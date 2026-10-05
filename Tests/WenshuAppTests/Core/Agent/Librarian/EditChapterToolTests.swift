@@ -9,91 +9,103 @@
 //
 //  Async Swift Testing — drives the actor directly via its async API.
 //
+//  ActiveLibrary.overrideForTesting is a `@TaskLocal` (= Apple
+//  HIG canonical pattern for test seams). Tests wrap their body
+//  in `ActiveLibrary.$overrideForTesting.withValue(...) { ... }`
+//  via the `withLibraryRoot` helper (= per-task scope; = no
+//  cross-suite pollution; = no init() reset needed).
+//
 
 import Foundation
 import Testing
 @testable import WenshuApp
 
+@MainActor
 @Suite("EditChapterActor patch-style edit (edit-chapter-tool 2026-09-28 T4)")
 struct EditChapterActorTests {
 
+    /// Canonical library root for these tests (= /tmp, resolved
+    /// through /private/tmp symlink so PathGuard's canonical-root
+    /// comparison matches).
+    private static let libraryRoot = URL(fileURLWithPath: "/tmp").resolvingSymlinksInPath().path
 
-    // Reset the global library override to nil at suite entry. Suite
-    // bodies then re-set it to the canonical test root (e.g. `/tmp`
-    // or the makeBookDirectory) inside individual test functions. The
-    // nil reset prevents prior-suite leakage across the
-    // .nonisolated(unsafe) override seam (= tests are .serialized but
-    // the static var is process-wide; = without this reset a prior
-    // suite's /Users/.../test.ws would still be bound when this suite
-    // starts and PathGuard would reject paths from the new
-    // makeBookDirectory).
-    init() {
-        ActiveLibrary.overrideForTesting = nil
+    /// Run `body` with `ActiveLibrary.overrideForTesting` bound to
+    /// the canonical /tmp library root (= Apple HIG canonical
+    /// TaskLocal pattern; = no cross-suite pollution).
+    private func withLibraryRoot<R>(_ body: () async throws -> R) async rethrows -> R {
+        try await ActiveLibrary.$overrideForTesting.withValue(Self.libraryRoot, operation: body)
     }
+
     @Test("edit replaces a single occurrence of old_text with new_text")
     func singleReplacement() async throws {
-        let (actor, bookId, chapterId) = try await Self.seedChapter(
-            initialBody: "第一行。\n第二行原文。\n第三行。\n"
-        )
+        try await withLibraryRoot {
+            let (actor, bookId, chapterId) = try await Self.seedChapter(
+                initialBody: "第一行。\n第二行原文。\n第三行。\n"
+            )
 
-        let result = try await actor.editChapter(
-            chapterId: chapterId,
-            bookId: bookId,
-            oldText: "第二行原文。",
-            newText: "第二行改后。",
-            summary: nil
-        )
+            let result = try await actor.editChapter(
+                chapterId: chapterId,
+                bookId: bookId,
+                oldText: "第二行原文。",
+                newText: "第二行改后。",
+                summary: nil
+            )
 
-        // The chapter body on disk reflects the patch.
-        let storeBody = Self.loadBody(chapterId: chapterId)
-        #expect(storeBody?.contains("第二行原文。") == false)
-        #expect(storeBody?.contains("第二行改后。") == true)
+            // The chapter body on disk reflects the patch.
+            let storeBody = Self.loadBody(chapterId: chapterId)
+            #expect(storeBody?.contains("第二行原文。") == false)
+            #expect(storeBody?.contains("第二行改后。") == true)
 
-        // The diff envelope mirrors the chat-diff-preview shape
-        // (= hermes tool-fallback.tsx).
-        #expect(result.envelope.kind == "diff")
-        let stats = result.envelope.stats
-        #expect(stats.addedChars > 0)
-        #expect(stats.removedChars > 0)
-        // The body matches what is now on disk.
-        #expect(result.envelope.newText == storeBody)
+            // The diff envelope mirrors the chat-diff-preview shape
+            // (= hermes tool-fallback.tsx).
+            #expect(result.envelope.kind == "diff")
+            let stats = result.envelope.stats
+            #expect(stats.addedChars > 0)
+            #expect(stats.removedChars > 0)
+            // The body matches what is now on disk.
+            #expect(result.envelope.newText == storeBody)
+        }
     }
 
     @Test("edit fails when old_text is not present (= hermes edit_file semantics)")
     func missingOldTextThrows() async throws {
-        let (actor, bookId, chapterId) = try await Self.seedChapter(
-            initialBody: "alpha\nbeta\ngamma\n"
-        )
-
-        await #expect(throws: EditChapterError.self) {
-            try await actor.editChapter(
-                chapterId: chapterId,
-                bookId: bookId,
-                oldText: "delta",
-                newText: "epsilon",
-                summary: nil
+        try await withLibraryRoot {
+            let (actor, bookId, chapterId) = try await Self.seedChapter(
+                initialBody: "alpha\nbeta\ngamma\n"
             )
+
+            await #expect(throws: EditChapterError.self) {
+                try await actor.editChapter(
+                    chapterId: chapterId,
+                    bookId: bookId,
+                    oldText: "delta",
+                    newText: "epsilon",
+                    summary: nil
+                )
+            }
+            // Body unchanged on disk.
+            #expect(Self.loadBody(chapterId: chapterId) == "alpha\nbeta\ngamma\n")
         }
-        // Body unchanged on disk.
-        #expect(Self.loadBody(chapterId: chapterId) == "alpha\nbeta\ngamma\n")
     }
 
     @Test("edit's diff envelope carries old_text + new_text + path so the chat preview can render the file card without a second read.")
     func diffEnvelopeCarriesContext() async throws {
-        let (actor, bookId, chapterId) = try await Self.seedChapter(
-            initialBody: "before-patch"
-        )
-        let result = try await actor.editChapter(
-            chapterId: chapterId,
-            bookId: bookId,
-            oldText: "before-patch",
-            newText: "after-patch",
-            summary: nil
-        )
-        let diff = result.envelope
-        #expect(diff.path == "chapters/\(chapterId.uuidString).md")
-        #expect(diff.oldText == "before-patch")
-        #expect(diff.newText == "after-patch")
+        try await withLibraryRoot {
+            let (actor, bookId, chapterId) = try await Self.seedChapter(
+                initialBody: "before-patch"
+            )
+            let result = try await actor.editChapter(
+                chapterId: chapterId,
+                bookId: bookId,
+                oldText: "before-patch",
+                newText: "after-patch",
+                summary: nil
+            )
+            let diff = result.envelope
+            #expect(diff.path == "chapters/\(chapterId.uuidString).md")
+            #expect(diff.oldText == "before-patch")
+            #expect(diff.newText == "after-patch")
+        }
     }
 
     // MARK: - Fixtures
@@ -106,8 +118,6 @@ struct EditChapterActorTests {
     ) async throws -> (actor: EditChapterActor, bookId: UUID, chapterId: UUID) {
         let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-edit-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
-
-        ActiveLibrary.overrideForTesting = nil; ActiveLibrary.overrideForTesting = URL(fileURLWithPath: "/tmp").resolvingSymlinksInPath().path
 
         let bookId = UUID()
         // Seed via FileSystemChapterStore directly (= bypasses the
@@ -125,8 +135,6 @@ struct EditChapterActorTests {
         )
         try store.saveChapter(chapter, bodyMarkdown: initialBody)
 
-        ActiveLibrary.overrideForTesting = URL(fileURLWithPath: "/tmp").resolvingSymlinksInPath().path
-        defer { ActiveLibrary.overrideForTesting = nil }
         let actor = EditChapterActor(bookDirectoryProvider: { tmpRoot })
         return (actor, bookId, chapter.id)
     }

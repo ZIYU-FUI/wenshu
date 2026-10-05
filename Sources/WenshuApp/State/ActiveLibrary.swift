@@ -25,6 +25,22 @@ import Foundation
 /// bookmark is the SOLE persistence. Consumers call `ActiveLibrary.path`
 /// instead of `UserDefaults.standard.string(forKey: "wenshu.libraryPath")`.
 enum ActiveLibrary {
+    /// Test-only override hook. Visible only in DEBUG builds via
+    /// the `#if DEBUG` block on `path`.
+    ///
+    /// Apple HIG canonical pattern for test seams: `@TaskLocal` =
+    /// the value lives in the current Swift task's context only;
+    /// = tests wrap their body in
+    /// `ActiveLibrary.$overrideForTesting.withValue(value) { ... }`
+    /// = the override is automatically scoped to that block; = no
+    /// cross-suite pollution; = no per-suite init() reset needed;
+    /// = Swift 6 strict-concurrency safe (no `nonisolated(unsafe)`).
+    ///
+    /// See [ActiveLibrary path override usage for tests] in the SKILL
+    /// references for the canonical test wrapper.
+    @TaskLocal
+    static var overrideForTesting: String?
+
     /// The active .ws library path string (= the bookmark-resolved
     /// path). Returns nil when no library has been picked yet (= the
     /// onboarding picker will be shown) or when the persisted
@@ -52,21 +68,6 @@ enum ActiveLibrary {
         #endif
         return LibraryBookmark.resolve()?.path
     }
-
-    /// Test-only override hook. Visible only in DEBUG builds via
-    /// the `#if DEBUG` block on `path`. Tests in
-    /// `Tests/WenshuAppTests/` set this in their `init()` to mock the
-    /// active library without touching the security-scoped bookmark
-    /// persistence (= which is why the legacy 'wenshu.libraryPath'
-    /// UserDefaults string was deleted; = tests can no longer reach
-    /// into a UserDefaults key).
-    ///
-    /// `nonisolated(unsafe)` (= Swift 6 strict-concurrency = tests
-    /// are .serialized on the main actor; = write/read is in practice
-    /// single-threaded across the suite; = the compiler's concurrency
-    /// checker is told to trust us). Always nil in production (= the
-    /// `path` accessor only reads it under `#if DEBUG`).
-    nonisolated(unsafe) static var overrideForTesting: String? = nil
 
     /// Call when the user picks a new .ws library (= from
     /// LibraryRootView's onboarding completion). Generates the

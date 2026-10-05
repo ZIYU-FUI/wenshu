@@ -18,27 +18,33 @@
 //  Uses /tmp (= POSIX-portable temp dir, not sandbox-denied per
 //  FileTools.pathDenied implementation).
 //
+//  ActiveLibrary.overrideForTesting is a `@TaskLocal` (= Apple
+//  HIG canonical pattern for test seams). Tests wrap their body
+//  in `ActiveLibrary.$overrideForTesting.withValue(...) { ... }`
+//  via the `withLibraryRoot` helper (= per-task scope; = no
+//  cross-suite pollution; = no init() reset needed).
+//
 
 import Testing
 import Foundation
 @testable import WenshuApp
 
+@MainActor
 @Suite("FileTools (agent-side, = ticket 001 sub-step 6)")
 struct FileToolsAgentTests {
 
+    /// Canonical library root for these tests (= /tmp, resolved
+    /// through /private/tmp symlink so PathGuard's canonical-root
+    /// comparison matches the test's /tmp/... temp files).
+    private static let libraryRoot = URL(fileURLWithPath: "/tmp").resolvingSymlinksInPath().path
 
-    // Reset the global library override to nil at suite entry. Suite
-    // bodies then re-set it to the canonical test root (e.g. `/tmp`
-    // or the makeBookDirectory) inside individual test functions. The
-    // nil reset prevents prior-suite leakage across the
-    // .nonisolated(unsafe) override seam (= tests are .serialized but
-    // the static var is process-wide; = without this reset a prior
-    // suite's /Users/.../test.ws would still be bound when this suite
-    // starts and PathGuard would reject paths from the new
-    // makeBookDirectory).
-    init() {
-        ActiveLibrary.overrideForTesting = nil
+    /// Run `body` with `ActiveLibrary.overrideForTesting` bound to
+    /// the canonical /tmp library root (= Apple HIG canonical
+    /// TaskLocal pattern; = no cross-suite pollution).
+    private func withLibraryRoot<R>(_ body: () async throws -> R) async rethrows -> R {
+        try await ActiveLibrary.$overrideForTesting.withValue(Self.libraryRoot, operation: body)
     }
+
     // MARK: - Test 1: Read round-trip
 
     @Test("ReadFileTool reads existing file via FileTools delegate")
@@ -102,43 +108,41 @@ struct FileToolsAgentTests {
 
     @Test("ReadFileTool integrates with ToolExecutor (end-to-end dispatch)")
     func testToolExecutorIntegration() async throws {
-        // wt/path-guard-v2-2026-09-25: the executor's preDispatchValidator
-        // (= defaultPathGuardValidator) rejects any path that resolves
-        // outside the .ws library root. Set the library root to the
-        // canonical /tmp (= resolves through /private/tmp symlink so
-        // PathGuard's canonical-root comparison matches the test's
-        // /tmp/wenshu-exec-test-*.md temp file).
-        ActiveLibrary.overrideForTesting = URL(fileURLWithPath: "/tmp").resolvingSymlinksInPath().path
-        defer { ActiveLibrary.overrideForTesting = nil }
+        try await withLibraryRoot {
+            // wt/path-guard-v2-2026-09-25: the executor's preDispatchValidator
+            // (= defaultPathGuardValidator) rejects any path that resolves
+            // outside the .ws library root. The override (= bound to /tmp
+            // via withLibraryRoot) makes the temp file's path pass.
 
-        let tmpPath = "/tmp/wenshu-exec-test-\(UUID().uuidString).md"
-        try FileTools().write(path: tmpPath, content: "executor dispatched this")
+            let tmpPath = "/tmp/wenshu-exec-test-\(UUID().uuidString).md"
+            try FileTools().write(path: tmpPath, content: "executor dispatched this")
 
-        defer {
-            try? FileManager.default.removeItem(atPath: tmpPath)
-        }
+            defer {
+                try? FileManager.default.removeItem(atPath: tmpPath)
+            }
 
-        let executor = ToolExecutor()
-        let assistantMessage = LLMMessage(
-            role: .assistant,
-            blocks: [.toolUse(id: "t1", name: "ReadFile", input: "{\"path\":\"\(tmpPath)\"}")]
-        )
-        var messages: [LLMMessage] = [assistantMessage]
+            let executor = ToolExecutor()
+            let assistantMessage = LLMMessage(
+                role: .assistant,
+                blocks: [.toolUse(id: "t1", name: "ReadFile", input: "{\"path\":\"\(tmpPath)\"}")]
+            )
+            var messages: [LLMMessage] = [assistantMessage]
 
-        try await executor.executeSequential(
-            assistantMessage: assistantMessage,
-            messages: &messages,
-            taskId: "task-1",
-            tools: ["ReadFile": ReadFileTool()]
-        )
+            try await executor.executeSequential(
+                assistantMessage: assistantMessage,
+                messages: &messages,
+                taskId: "task-1",
+                tools: ["ReadFile": ReadFileTool()]
+            )
 
-        // Verify: 1 assistant + 1 tool message with the file content
-        #expect(messages.count == 2)
-        #expect(messages[1].role == .tool)
-        if case .toolResult(_, let output) = messages[1].blocks[0] {
-            #expect(output == "executor dispatched this")
-        } else {
-            Issue.record("expected toolResult block")
+            // Verify: 1 assistant + 1 tool message with the file content
+            #expect(messages.count == 2)
+            #expect(messages[1].role == .tool)
+            if case .toolResult(_, let output) = messages[1].blocks[0] {
+                #expect(output == "executor dispatched this")
+            } else {
+                Issue.record("expected toolResult block")
+            }
         }
     }
 }

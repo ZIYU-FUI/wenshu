@@ -12,48 +12,34 @@
 // 'PO execute,don't' + '1 RULE 1 commit' + '
 // when done, verify visual and frontend flow together'.
 //
+//  ActiveLibrary.overrideForTesting is a `@TaskLocal` (= Apple
+//  HIG canonical pattern for test seams). Tests wrap their body
+//  in `ActiveLibrary.$overrideForTesting.withValue(...) { ... }`
+//  via the `withLibraryRoot` helper (= per-task scope; = no
+//  cross-suite pollution; = no init() reset needed).
+//
 
 import Testing
 import Foundation
 @testable import WenshuApp
 
-/// End-to-end agent dispatch tests for the hermes port.
+@MainActor
 @Suite("RealAgentDispatch (= ticket 018 sub-step 3 end-to-end)")
 struct RealAgentDispatchTests {
 
-
-    // Reset the global library override to nil at suite entry. Suite
-    // bodies then re-set it to the canonical test root (e.g. `/tmp`
-    // or the makeBookDirectory) inside individual test functions. The
-    // nil reset prevents prior-suite leakage across the
-    // .nonisolated(unsafe) override seam (= tests are .serialized but
-    // the static var is process-wide; = without this reset a prior
-    // suite's /Users/.../test.ws would still be bound when this suite
-    // starts and PathGuard would reject paths from the new
-    // makeBookDirectory).
-    init() {
-        ActiveLibrary.overrideForTesting = nil
-    }
-    /// Library root path (= the path PathGuard validates against). Set via
-    /// UserDefaultsStore in `setLibraryRoot()` so PathGuard checks pass.
+    /// Library root path (= the path PathGuard validates against).
     private let libraryRoot = "/Users/anbaiqiang/libraries/test-real-agent.ws"
 
-    /// Helper: seed UserDefaultsStore.libraryPath so PathGuard.requireRoot()
-    /// (= §11.7 v1.55 path-guard policy) returns a valid root. Without
-    /// this, the tool call throws .libraryRootUnconfigured (= test was
-    /// authored before PathGuard existed).
-    private func setLibraryRoot() {
-        ActiveLibrary.overrideForTesting = nil; ActiveLibrary.overrideForTesting = libraryRoot
-    }
-
-    /// Reset UserDefaultsStore.libraryPath to a clean state for the next test.
-    private func clearLibraryRoot() {
-        ActiveLibrary.overrideForTesting = ""
+    /// Run `body` with `ActiveLibrary.overrideForTesting` bound to
+    /// `libraryRoot` for the duration of the closure (= Apple HIG
+    /// canonical TaskLocal pattern; = no cross-suite pollution).
+    private func withLibraryRoot<R>(_ body: () async throws -> R) async rethrows -> R {
+        try await ActiveLibrary.$overrideForTesting.withValue(libraryRoot, operation: body)
     }
 
     /// Set up a temp directory with a sample book file under the library root
-    /// (= PathGuard.requireRoot() resolves to `libraryRoot` via UserDefaults,
-    /// so the file must live under that root to pass the §11.7 path guard).
+    /// (= PathGuard.requireRoot() resolves to `libraryRoot` via the override,
+    /// so the file must live under that root to pass the path guard).
     private func makeFixtures() throws -> (bookPath: String, summaryPath: String) {
         // Materialize a temp dir under the configured libraryRoot so the
         // resolved path canonicalizes to `<libraryRoot>/<uuid>` (= passes
@@ -69,12 +55,6 @@ struct RealAgentDispatchTests {
         try "Chapter 1: Alice discovers the portal. The forest holds many secrets."
             .write(toFile: bookPath, atomically: true, encoding: .utf8)
         return (bookPath, summaryPath)
-    }
-
-    /// Reset libraryRoot before each test (= the prior test's setLibraryRoot
-    /// leaks into the next one if not cleared).
-    private func resetLibraryRoot() {
-        ActiveLibrary.overrideForTesting = ""
     }
 
     @Test("ConversationLoop.runConversation with empty history returns LLMResponse")
@@ -124,100 +104,100 @@ struct RealAgentDispatchTests {
 
     @Test("ToolExecutor dispatches ReadFileTool to filesystem")
     func toolExecutorReadFile() async throws {
-        setLibraryRoot()
-        defer { clearLibraryRoot() }
-        // PathGuard v2 (= §11.7) requires file paths inside the library root.
-        // Materialize the temp file under `libraryRoot` (= `/Users/anbaiqiang/libraries/test-real-agent.ws`)
-        // so the path canonicalizes inside the guard's allowlist.
-        let tempDir = "\(libraryRoot)/read-\(UUID().uuidString)"
-        try FileManager.default.createDirectory(atPath: tempDir, withIntermediateDirectories: true)
-        let tempPath = "\(tempDir)/read.md"
-        try "Test content".write(toFile: tempPath, atomically: true, encoding: .utf8)
+        try await withLibraryRoot {
+            // PathGuard v2 requires file paths inside the library root.
+            // Materialize the temp file under `libraryRoot`
+            // so the path canonicalizes inside the guard's allowlist.
+            let tempDir = "\(libraryRoot)/read-\(UUID().uuidString)"
+            try FileManager.default.createDirectory(atPath: tempDir, withIntermediateDirectories: true)
+            let tempPath = "\(tempDir)/read.md"
+            try "Test content".write(toFile: tempPath, atomically: true, encoding: .utf8)
 
-        let executor = ToolExecutor()
-        let tools: [String: any Tool] = ["ReadFile": ReadFileTool()]
+            let executor = ToolExecutor()
+            let tools: [String: any Tool] = ["ReadFile": ReadFileTool()]
 
-        // Create a fake assistant message containing the tool_use block
-        let assistantMsg = LLMMessage(
-            role: .assistant,
-            blocks: [.toolUse(id: "t1", name: "ReadFile", input: "{\"path\":\"\(tempPath)\"}")]
-        )
+            // Create a fake assistant message containing the tool_use block
+            let assistantMsg = LLMMessage(
+                role: .assistant,
+                blocks: [.toolUse(id: "t1", name: "ReadFile", input: "{\"path\":\"\(tempPath)\"}")]
+            )
 
-        var messages: [LLMMessage] = []
-        try await executor.executeSequential(
-            assistantMessage: assistantMsg,
-            messages: &messages,
-            taskId: UUID().uuidString,
-            tools: tools
-        )
+            var messages: [LLMMessage] = []
+            try await executor.executeSequential(
+                assistantMessage: assistantMsg,
+                messages: &messages,
+                taskId: UUID().uuidString,
+                tools: tools
+            )
 
-        // Verify a tool_result was appended
-        #expect(messages.count >= 1)
-        let last = messages.last
-        if case .toolResult = last?.blocks.first {
-            // expected: tool result block appended
-        } else {
-            Issue.record("expected tool result block, got \(String(describing: last?.blocks.first))")
+            // Verify a tool_result was appended
+            #expect(messages.count >= 1)
+            let last = messages.last
+            if case .toolResult = last?.blocks.first {
+                // expected: tool result block appended
+            } else {
+                Issue.record("expected tool result block, got \(String(describing: last?.blocks.first))")
+            }
         }
     }
 
     @Test("ToolExecutor dispatches WriteFileTool to filesystem")
     func toolExecutorWriteFile() async throws {
-        setLibraryRoot()
-        defer { clearLibraryRoot() }
-        // PathGuard v2 (= §11.7) requires file paths inside the library root.
-        let tempDir = "\(libraryRoot)/write-\(UUID().uuidString)"
-        try FileManager.default.createDirectory(atPath: tempDir, withIntermediateDirectories: true)
-        let tempPath = "\(tempDir)/write.md"
+        try await withLibraryRoot {
+            // PathGuard v2 requires file paths inside the library root.
+            let tempDir = "\(libraryRoot)/write-\(UUID().uuidString)"
+            try FileManager.default.createDirectory(atPath: tempDir, withIntermediateDirectories: true)
+            let tempPath = "\(tempDir)/write.md"
 
-        let executor = ToolExecutor()
-        let tools: [String: any Tool] = ["WriteFile": WriteFileTool()]
+            let executor = ToolExecutor()
+            let tools: [String: any Tool] = ["WriteFile": WriteFileTool()]
 
-        let assistantMsg = LLMMessage(
-            role: .assistant,
-            blocks: [.toolUse(
-                id: "t1",
-                name: "WriteFile",
-                input: "{\"path\":\"\(tempPath)\",\"content\":\"Written by tool\"}"
-            )]
-        )
+            let assistantMsg = LLMMessage(
+                role: .assistant,
+                blocks: [.toolUse(
+                    id: "t1",
+                    name: "WriteFile",
+                    input: "{\"path\":\"\(tempPath)\",\"content\":\"Written by tool\"}"
+                )]
+            )
 
-        var messages: [LLMMessage] = []
-        try await executor.executeSequential(
-            assistantMessage: assistantMsg,
-            messages: &messages,
-            taskId: UUID().uuidString,
-            tools: tools
-        )
+            var messages: [LLMMessage] = []
+            try await executor.executeSequential(
+                assistantMessage: assistantMsg,
+                messages: &messages,
+                taskId: UUID().uuidString,
+                tools: tools
+            )
 
-        // Verify file was written
-        let written = try String(contentsOfFile: tempPath, encoding: .utf8)
-        #expect(written == "Written by tool")
-        #expect(messages.count >= 1)
+            // Verify file was written
+            let written = try String(contentsOfFile: tempPath, encoding: .utf8)
+            #expect(written == "Written by tool")
+            #expect(messages.count >= 1)
+        }
     }
 
     @Test("End-to-end: ConversationLoop + ToolExecutor + ReadFile + WriteFile")
     func endToEndAgentDispatch() async throws {
-        setLibraryRoot()
-        defer { clearLibraryRoot() }
-        let fixtures = try makeFixtures()
+        try await withLibraryRoot {
+            let fixtures = try makeFixtures()
 
-        let mockConnector = MockLLMConnector(response: "Done.")
-        let loop = ConversationLoop(
-            connector: mockConnector,
-            systemPrompt: "You are a writing assistant."
-        )
+            let mockConnector = MockLLMConnector(response: "Done.")
+            let loop = ConversationLoop(
+                connector: mockConnector,
+                systemPrompt: "You are a writing assistant."
+            )
 
-        // Verify the test harness works (= ConversationLoop + mock connector)
-        let result = try await loop.runConversation(
-            userMessage: "Read \(fixtures.bookPath) and write a summary to \(fixtures.summaryPath)",
-            conversationHistory: nil
-        )
+            // Verify the test harness works (= ConversationLoop + mock connector)
+            let result = try await loop.runConversation(
+                userMessage: "Read \(fixtures.bookPath) and write a summary to \(fixtures.summaryPath)",
+                conversationHistory: nil
+            )
 
-        // Verify end-to-end pipeline executed
-        let received = await mockConnector.streamedMessages
-        #expect(received.count >= 1)
-        _ = result  // ConversationResult wraps the response
+            // Verify end-to-end pipeline executed
+            let received = await mockConnector.streamedMessages
+            #expect(received.count >= 1)
+            _ = result  // ConversationResult wraps the response
+        }
     }
 
     ///
@@ -226,56 +206,56 @@ struct RealAgentDispatchTests {
     /// response. Verifies the full real-agent dispatch loop.
     @Test("Scripted tool_use: mock emits ReadFile tool_use, ToolExecutor executes, mock returns final response")
     func scriptedToolUseEndToEnd() async throws {
-        setLibraryRoot()
-        defer { clearLibraryRoot() }
-        let fixtures = try makeFixtures()
+        try await withLibraryRoot {
+            let fixtures = try makeFixtures()
 
-        // Scripted responses:
-        // 1. First send: emit tool_use for ReadFile
-        // 2. Second send (= after tool result): emit final assistant text
-        let mockConnector = MockLLMConnector(scriptedResponses: [
-            LLMResponse(
-                id: "resp-1",
-                model: "test",
-                blocks: [
-                    .toolUse(
-                        id: "tool-1",
-                        name: "ReadFile",
-                        input: "{\"path\":\"\(fixtures.bookPath)\"}"
-                    )
-                ],
-                stopReason: .toolUse,
-                usage: LLMUsage(inputTokens: 10, outputTokens: 5)
-            ),
-            LLMResponse(
-                id: "resp-2",
-                model: "test",
-                blocks: [.text("File read successfully. Book contains Alice story.")],
-                stopReason: .endTurn,
-                usage: LLMUsage(inputTokens: 15, outputTokens: 10)
+            // Scripted responses:
+            // 1. First send: emit tool_use for ReadFile
+            // 2. Second send (= after tool result): emit final assistant text
+            let mockConnector = MockLLMConnector(scriptedResponses: [
+                LLMResponse(
+                    id: "resp-1",
+                    model: "test",
+                    blocks: [
+                        .toolUse(
+                            id: "tool-1",
+                            name: "ReadFile",
+                            input: "{\"path\":\"\(fixtures.bookPath)\"}"
+                        )
+                    ],
+                    stopReason: .toolUse,
+                    usage: LLMUsage(inputTokens: 10, outputTokens: 5)
+                ),
+                LLMResponse(
+                    id: "resp-2",
+                    model: "test",
+                    blocks: [.text("File read successfully. Book contains Alice story.")],
+                    stopReason: .endTurn,
+                    usage: LLMUsage(inputTokens: 15, outputTokens: 10)
+                )
+            ])
+
+            let loop = ConversationLoop(
+                connector: mockConnector,
+                systemPrompt: "Read the file when asked."
             )
-        ])
 
-        let loop = ConversationLoop(
-            connector: mockConnector,
-            systemPrompt: "Read the file when asked."
-        )
+            // Run the agent end-to-end with a tool_use-driven flow
+            let result = try await loop.runConversation(
+                userMessage: "Read the book at \(fixtures.bookPath)",
+                conversationHistory: nil
+            )
 
-        // Run the agent end-to-end with a tool_use-driven flow
-        let result = try await loop.runConversation(
-            userMessage: "Read the book at \(fixtures.bookPath)",
-            conversationHistory: nil
-        )
+            // Verify the agent dispatched the request
+            let received = await mockConnector.streamedMessages
+            #expect(received.count >= 1)
 
-        // Verify the agent dispatched the request
-        let received = await mockConnector.streamedMessages
-        #expect(received.count >= 1)
-
-        // Verify ConversationResult wraps a response (= real agent dispatch)
-        _ = result
+            // Verify ConversationResult wraps a response (= real agent dispatch)
+            _ = result
+        }
     }
 
-    /// 
+    ///
     /// Mock emits WriteFile tool_use, ConversationLoop routes to
     /// ToolExecutor, which executes WriteFileTool, then mock emits final.
     /// Verifies file system side effect of tool execution.
@@ -329,7 +309,7 @@ struct RealAgentDispatchTests {
         _ = result
     }
 
-    /// 
+    ///
     /// Verifies that the result wraps an LLMResponse with expected
     /// blocks + usage + stopReason (= hermes parity per ADR-0012).
     @Test("ConversationResult: response.blocks + usage + stopReason match scripted")
@@ -387,7 +367,7 @@ struct RealAgentDispatchTests {
         }
     }
 
-    /// 
+    ///
     /// the user message (= history tracking works).
     @Test("ConversationResult: messages contain user input")
     func conversationResultMessagesTracking() async throws {

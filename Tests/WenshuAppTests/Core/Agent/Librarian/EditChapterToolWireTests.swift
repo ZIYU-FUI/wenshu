@@ -9,101 +9,108 @@
 //  Async Swift Testing — drives the actor directly via the
 //  EditChapterTool.execute(input:) entry point.
 //
+//  ActiveLibrary.overrideForTesting is a `@TaskLocal` (= Apple
+//  HIG canonical pattern for test seams). Tests wrap their body
+//  in `ActiveLibrary.$overrideForTesting.withValue(...) { ... }`
+//  via the `withLibraryRoot` helper (= per-task scope; = no
+//  cross-suite pollution; = no init() reset needed).
+//
 
 import Foundation
 import Testing
 @testable import WenshuApp
 
+@MainActor
 @Suite("EditChapterTool wire-up (edit-chapter-tool 2026-09-28 T5)")
 struct EditChapterToolWireTests {
 
+    /// Canonical library root for these tests (= /tmp, resolved
+    /// through /private/tmp symlink so PathGuard's canonical-root
+    /// comparison matches).
+    private static let libraryRoot = URL(fileURLWithPath: "/tmp").resolvingSymlinksInPath().path
 
-    // Reset the global library override to nil at suite entry. Suite
-    // bodies then re-set it to the canonical test root (e.g. `/tmp`
-    // or the makeBookDirectory) inside individual test functions. The
-    // nil reset prevents prior-suite leakage across the
-    // .nonisolated(unsafe) override seam (= tests are .serialized but
-    // the static var is process-wide; = without this reset a prior
-    // suite's /Users/.../test.ws would still be bound when this suite
-    // starts and PathGuard would reject paths from the new
-    // makeBookDirectory).
-    init() {
-        ActiveLibrary.overrideForTesting = nil
+    /// Run `body` with `ActiveLibrary.overrideForTesting` bound to
+    /// the canonical /tmp library root (= Apple HIG canonical
+    /// TaskLocal pattern; = no cross-suite pollution).
+    private func withLibraryRoot<R>(_ body: () async throws -> R) async rethrows -> R {
+        try await ActiveLibrary.$overrideForTesting.withValue(Self.libraryRoot, operation: body)
     }
+
     @Test("EditChapterTool.execute(input:) routes the JSON envelope to the actor and returns the diff envelope")
     func executeRoutesToActor() async throws {
-        let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-edit-tool-\(UUID().uuidString)", isDirectory: true)
-        try FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
+        try await withLibraryRoot {
+            let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-edit-tool-\(UUID().uuidString)", isDirectory: true)
+            try FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
 
-        ActiveLibrary.overrideForTesting = nil; ActiveLibrary.overrideForTesting = URL(fileURLWithPath: "/tmp").resolvingSymlinksInPath().path
+            // Seed a chapter row + body on disk so the actor has
+            // something to patch.
+            let bookId = UUID()
+            let chapter = Document(
+                id: UUID(),
+                bookId: bookId,
+                category: .chapter,
+                title: "T",
+                summary: "",
+                createdAt: Date(),
+                updatedAt: Date()
+            )
+            let store = FileSystemChapterStore(bookDirectory: tmpRoot)
+            try store.saveChapter(chapter, bodyMarkdown: "before-patch")
 
-        // Seed a chapter row + body on disk so the actor has
-        // something to patch.
-        let bookId = UUID()
-        let chapter = Document(
-            id: UUID(),
-            bookId: bookId,
-            category: .chapter,
-            title: "T",
-            summary: "",
-            createdAt: Date(),
-            updatedAt: Date()
-        )
-        let store = FileSystemChapterStore(bookDirectory: tmpRoot)
-        try store.saveChapter(chapter, bodyMarkdown: "before-patch")
+            let tool = EditChapterTool(
+                actor: EditChapterActor(bookDirectoryProvider: { tmpRoot })
+            )
+            let input = """
+            {"action":"edit","id":"\(chapter.id.uuidString)","book_id":"\(bookId.uuidString)","old_text":"before-patch","new_text":"after-patch"}
+            """
+            let output = try await tool.execute(input: input)
+            let payload = try jsonObject(output)
 
-        let tool = EditChapterTool(
-            actor: EditChapterActor(bookDirectoryProvider: { tmpRoot })
-        )
-        let input = """
-        {"action":"edit","id":"\(chapter.id.uuidString)","book_id":"\(bookId.uuidString)","old_text":"before-patch","new_text":"after-patch"}
-        """
-        let output = try await tool.execute(input: input)
-        let payload = try jsonObject(output)
-
-        // Mirror BookChapterTool.update's success envelope so
-        // ChatToolDiffPreview's input stays stable.
-        #expect(payload["ok"] as? Bool == true)
-        #expect(payload["action"] as? String == "edit")
-        #expect(payload["kind"] as? String == "diff")
-        let diff = payload["diff"] as? [String: Any]?
-        #expect(diff != nil)
-        if let diffBlock = payload["diff"] as? [String: Any],
-           let stats = diffBlock["stats"] as? [String: Any] {
-            #expect((stats["added_chars"] as? Int) != nil)
-            #expect((stats["removed_chars"] as? Int) != nil)
+            // Mirror BookChapterTool.update's success envelope so
+            // ChatToolDiffPreview's input stays stable.
+            #expect(payload["ok"] as? Bool == true)
+            #expect(payload["action"] as? String == "edit")
+            #expect(payload["kind"] as? String == "diff")
+            let diff = payload["diff"] as? [String: Any]?
+            #expect(diff != nil)
+            if let diffBlock = payload["diff"] as? [String: Any],
+               let stats = diffBlock["stats"] as? [String: Any] {
+                #expect((stats["added_chars"] as? Int) != nil)
+                #expect((stats["removed_chars"] as? Int) != nil)
+            }
         }
     }
 
     @Test("EditChapterTool.execute surfaces oldTextNotFound when old_text is missing")
     func missingOldTextSurfacesError() async throws {
-        let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-edit-tool-\(UUID().uuidString)", isDirectory: true)
-        try FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
-        ActiveLibrary.overrideForTesting = URL(fileURLWithPath: "/tmp").resolvingSymlinksInPath().path
+        try await withLibraryRoot {
+            let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-edit-tool-\(UUID().uuidString)", isDirectory: true)
+            try FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
 
-        let bookId = UUID()
-        let chapter = Document(
-            id: UUID(),
-            bookId: bookId,
-            category: .chapter,
-            title: "T",
-            summary: "",
-            createdAt: Date(),
-            updatedAt: Date()
-        )
-        let store = FileSystemChapterStore(bookDirectory: tmpRoot)
-        try store.saveChapter(chapter, bodyMarkdown: "alpha\nbeta\ngamma\n")
+            let bookId = UUID()
+            let chapter = Document(
+                id: UUID(),
+                bookId: bookId,
+                category: .chapter,
+                title: "T",
+                summary: "",
+                createdAt: Date(),
+                updatedAt: Date()
+            )
+            let store = FileSystemChapterStore(bookDirectory: tmpRoot)
+            try store.saveChapter(chapter, bodyMarkdown: "alpha\nbeta\ngamma\n")
 
-        let tool = EditChapterTool(
-            actor: EditChapterActor(bookDirectoryProvider: { tmpRoot })
-        )
-        let input = """
-        {"action":"edit","id":"\(chapter.id.uuidString)","book_id":"\(bookId.uuidString)","old_text":"delta","new_text":"epsilon"}
-        """
-        let output = try await tool.execute(input: input)
-        let payload = try jsonObject(output)
-        #expect(payload["ok"] as? Bool == false)
-        #expect(payload["error_kind"] as? String == "old_text_not_found")
+            let tool = EditChapterTool(
+                actor: EditChapterActor(bookDirectoryProvider: { tmpRoot })
+            )
+            let input = """
+            {"action":"edit","id":"\(chapter.id.uuidString)","book_id":"\(bookId.uuidString)","old_text":"delta","new_text":"epsilon"}
+            """
+            let output = try await tool.execute(input: input)
+            let payload = try jsonObject(output)
+            #expect(payload["ok"] as? Bool == false)
+            #expect(payload["error_kind"] as? String == "old_text_not_found")
+        }
     }
 
     @Test("WenshuConductor wires EditChapterTool under book_edit_chapter")
