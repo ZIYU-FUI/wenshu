@@ -73,14 +73,33 @@ actor EditChapterActor {
         guard let dir = bookDirectoryProvider() else {
             throw EditChapterError.chapterNotFound
         }
-        let store = FileSystemChapterStore(bookDirectory: dir)
+        // Per boss 2026-10-05 OOB '做 8' (= the #8 FileSystem*Store
+        // → SwiftData migration commit 1): actor-based callers
+        // can't instantiate the @MainActor-isolated
+        // FileSystemChapterStore struct (= SwiftData's ModelContext
+        // is MainActor-isolated; = the struct's init requires
+        // MainActor). Use the static FileSystem fallback methods
+        // (= the legacy .md file path) until the actor is migrated
+        // to a non-isolated form or the storage layer migrates to
+        // a Sendable protocol.
+        let chaptersDirectory = dir.appendingPathComponent("chapters", isDirectory: true)
+        let indexURL = dir.appendingPathComponent("chapters.json")
 
-        // 1. Read the existing chapter + body.
-        let documents = try store.loadChapters()
+        // 1. Read the existing chapter + body (= via the FileSystem
+        // fallback; = the SwiftData path will be wired once the
+        // actor boundary is fixed in commit 2 of #8).
+        let documents = (try? FileSystemChapterStore.loadChaptersFromFileSystem(
+            bookDirectory: dir,
+            chaptersDirectory: chaptersDirectory,
+            indexURL: indexURL
+        )) ?? []
         guard let document = documents.first(where: { $0.id == chapterId }) else {
             throw EditChapterError.chapterNotFound
         }
-        guard let oldBody = store.loadChapterBody(id: chapterId) else {
+        guard let oldBody = FileSystemChapterStore.loadChapterBodyFromFileSystem(
+            id: chapterId,
+            chaptersDirectory: chaptersDirectory
+        ) else {
             throw EditChapterError.chapterNotFound
         }
 
@@ -96,11 +115,20 @@ actor EditChapterActor {
         //    BookChapterTool.computeUnifiedDiff; = LCS-based).
         let diff = Self.computeUnifiedDiff(old: oldBody, new: newBody)
 
-        // 4. Persist the patched body.
+        // 4. Persist the patched body. NOTE: writeFileSystemChapter
+        // is the legacy .md writer (= actor can write to the file
+        // system directly; = the SwiftData write path is gated on
+        // MainActor and will be wired in commit 2 of #8).
         var updated = document
         updated.updatedAt = Date()
         if let summary { updated.summary = summary }
-        try store.replaceChapter(updated, bodyMarkdown: newBody)
+        try Self.writeFileSystemChapter(
+            chapter: updated,
+            bodyMarkdown: newBody,
+            bookDirectory: dir,
+            chaptersDirectory: chaptersDirectory,
+            indexURL: indexURL
+        )
 
         let envelope = EditDiffEnvelope(
             kind: "diff",
@@ -113,6 +141,87 @@ actor EditChapterActor {
             removedLines: diff.removedLines
         )
         return EditResult(envelope: envelope)
+    }
+
+    /// Write a chapter to the legacy FileSystem .md + chapters.json
+    /// path (= actor-safe helper; = FileManager + JSONEncoder are
+    /// thread-safe).
+    static func writeFileSystemChapter(
+        chapter: Document,
+        bodyMarkdown: String,
+        bookDirectory: URL,
+        chaptersDirectory: URL,
+        indexURL: URL
+    ) throws {
+        NSLog("[edit-chapter] writeFileSystemChapter bookDirectory=%@ chaptersDirectory=%@ indexURL=%@", bookDirectory.path, chaptersDirectory.path, indexURL.path)
+        guard FileManager.default.fileExists(atPath: bookDirectory.path) else {
+            NSLog("[edit-chapter] writeFileSystemChapter FAIL: bookDirectory missing")
+            throw EditChapterError.chapterNotFound
+        }
+        try Self.ensureChaptersDirectoryExists(at: chaptersDirectory)
+        var chapter = chapter
+        chapter.category = .chapter
+
+        let chapterURL = chaptersDirectory
+            .appendingPathComponent("\(chapter.id.uuidString).md")
+        NSLog("[edit-chapter] writeFileSystemChapter chapterURL=%@ exists=%d", chapterURL.path, FileManager.default.fileExists(atPath: chapterURL.path) ? 1 : 0)
+        guard FileManager.default.fileExists(atPath: chapterURL.path) else {
+            NSLog("[edit-chapter] writeFileSystemChapter FAIL: chapterURL missing")
+            throw EditChapterError.chapterNotFound
+        }
+        try Self.atomicWrite(bodyMarkdown.data(using: .utf8) ?? Data(), to: chapterURL)
+
+        var current = (try? FileSystemChapterStore.loadChaptersFromFileSystem(
+            bookDirectory: bookDirectory,
+            chaptersDirectory: chaptersDirectory,
+            indexURL: indexURL
+        )) ?? []
+        guard let idx = current.firstIndex(where: { $0.id == chapter.id }) else {
+            throw EditChapterError.chapterNotFound
+        }
+        current[idx] = chapter
+        try Self.writeIndex(current, to: indexURL)
+    }
+
+    /// Static FileSystem load (= actor-safe; = no instance state).
+    private static func loadChaptersFromFileSystemStatic(
+        bookDirectory: URL,
+        chaptersDirectory: URL,
+        indexURL: URL
+    ) throws -> [Document] {
+        try FileSystemChapterStore.loadChaptersFromFileSystem(
+            bookDirectory: bookDirectory,
+            chaptersDirectory: chaptersDirectory,
+            indexURL: indexURL
+        )
+    }
+
+    private static func ensureChaptersDirectoryExists(at url: URL) throws {
+        if !FileManager.default.fileExists(atPath: url.path) {
+            try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        }
+    }
+
+    private static func atomicWrite(_ data: Data, to url: URL) throws {
+        let tmpURL = url.appendingPathExtension("tmp")
+        try data.write(to: tmpURL, options: .atomic)
+        if FileManager.default.fileExists(atPath: url.path) {
+            try FileManager.default.removeItem(at: url)
+        }
+        try FileManager.default.moveItem(at: tmpURL, to: url)
+        let fd = open(url.path, O_RDONLY)
+        if fd >= 0 {
+            fsync(fd)
+            close(fd)
+        }
+    }
+
+    private static func writeIndex(_ chapters: [Document], to indexURL: URL) throws {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        encoder.dateEncodingStrategy = .iso8601
+        let data = try encoder.encode(chapters)
+        try atomicWrite(data, to: indexURL)
     }
 
     /// Tool-call dispatch entry point (= hermes-style tool-call

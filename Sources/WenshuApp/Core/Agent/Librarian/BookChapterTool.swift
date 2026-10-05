@@ -105,15 +105,33 @@ actor BookChapterActor {
     /// Test-only body accessor.
     func readBodyForTest(id: UUID) async -> String? {
         guard let dir = bookDirectoryProvider() else { return nil }
-        let store = FileSystemChapterStore(bookDirectory: dir)
-        return store.loadChapterBody(id: id)
+        // Per boss 2026-10-05 OOB '做 8' (= the #8 FileSystem*Store
+        // → SwiftData migration commit 1): actor-based callers
+        // can't instantiate the @MainActor-isolated
+        // FileSystemChapterStore struct (= SwiftData's ModelContext
+        // is MainActor-isolated; = the struct's init requires
+        // MainActor). Use the static FileSystem fallback methods
+        // (= the legacy .md file path) until the actor is migrated
+        // to a non-isolated form or the storage layer migrates to
+        // a Sendable protocol.
+        return FileSystemChapterStore.loadChapterBodyFromFileSystem(
+            id: id,
+            chaptersDirectory: dir.appendingPathComponent("chapters", isDirectory: true)
+        )
     }
 
     /// Resolve the current book directory (= raises `invalidInput`
     /// if the chat session has no bound book, which the scope guard
-    /// should already have rejected). Then construct a fresh
-    /// FileSystemChapterStore rooted at that directory.
-    private func resolveStore() throws -> FileSystemChapterStore {
+    /// should already have rejected). Then return the FileSystem
+    /// chapter paths that the static methods need (= the actor
+    /// can't instantiate the @MainActor struct, so the CRUD
+    /// methods now take the paths directly and call the static
+    /// FileSystem fallback methods).
+    private func resolvePaths() throws -> (
+        bookDirectory: URL,
+        chaptersDirectory: URL,
+        indexURL: URL
+    ) {
         guard let dir = bookDirectoryProvider() else {
             throw BookChapterError.invalidInput(
                 reason: "no chat session book bound (= scope guard should have caught this earlier)"
@@ -127,7 +145,9 @@ actor BookChapterActor {
         // directory outside .ws/ (= e.g. a misconfigured library
         // override), the tool body still refuses to write.
         try PathGuard.assertInsideLibrary(path: LibraryPath(rawValue: dir.path))
-        return FileSystemChapterStore(bookDirectory: dir)
+        let chaptersDirectory = dir.appendingPathComponent("chapters", isDirectory: true)
+        let indexURL = dir.appendingPathComponent("chapters.json")
+        return (dir, chaptersDirectory, indexURL)
     }
 
     // MARK: - CRUD
@@ -164,8 +184,14 @@ actor BookChapterActor {
             summary: summary
         )
         do {
-            let store = try resolveStore()
-            try store.saveChapter(document, bodyMarkdown: bodyMarkdown)
+            let (bookDirectory, chaptersDirectory, indexURL) = try resolvePaths()
+            try Self.saveFileSystemChapter(
+                chapter: document,
+                bodyMarkdown: bodyMarkdown,
+                bookDirectory: bookDirectory,
+                chaptersDirectory: chaptersDirectory,
+                indexURL: indexURL
+            )
         } catch let err as BookChapterError {
             throw err
         } catch {
@@ -176,12 +202,19 @@ actor BookChapterActor {
 
     func readChapter(id: UUID) async throws -> (ChapterDescriptor, String?) {
         do {
-            let store = try resolveStore()
-            let documents = try store.loadChapters()
+            let (_, chaptersDirectory, indexURL) = try resolvePaths()
+            let documents = (try? FileSystemChapterStore.loadChaptersFromFileSystem(
+                bookDirectory: chaptersDirectory,
+                chaptersDirectory: chaptersDirectory,
+                indexURL: indexURL
+            )) ?? []
             guard let document = documents.first(where: { $0.id == id }) else {
                 throw BookChapterError.entryNotFound(id: id)
             }
-            let body = store.loadChapterBody(id: id)
+            let body = FileSystemChapterStore.loadChapterBodyFromFileSystem(
+                id: id,
+                chaptersDirectory: chaptersDirectory
+            )
             return (ChapterDescriptor(document), body)
         } catch let err as BookChapterError {
             throw err
@@ -200,7 +233,7 @@ actor BookChapterActor {
         guard !trimmed.isEmpty else {
             throw BookChapterError.emptyTitle
         }
-        let store = try resolveStore()
+        let (_, chaptersDirectory, _) = try resolvePaths()
         // chapter-focus-lock 2026-09-28: gate the update path on
         // the single-focus lock. Same shape as EditChapterActor:
         // resolve the canonical chapter path (= <bookDir>/chapters/<id>.md)
@@ -219,7 +252,12 @@ actor BookChapterActor {
         )
         let documents: [Document]
         do {
-            documents = try store.loadChapters()
+            let (_, chaptersDirectory, indexURL) = try resolvePaths()
+            documents = (try? FileSystemChapterStore.loadChaptersFromFileSystem(
+                bookDirectory: chaptersDirectory,
+                chaptersDirectory: chaptersDirectory,
+                indexURL: indexURL
+            )) ?? []
         } catch {
             throw BookChapterError.underlying(String(describing: error))
         }
@@ -232,7 +270,14 @@ actor BookChapterActor {
         updated.byteSize = bodyMarkdown.utf8.count
         updated.updatedAt = Date()
         do {
-            try store.replaceChapter(updated, bodyMarkdown: bodyMarkdown)
+            let (bookDirectory, chaptersDirectory, indexURL) = try resolvePaths()
+            try Self.writeFileSystemChapter(
+                chapter: updated,
+                bodyMarkdown: bodyMarkdown,
+                bookDirectory: bookDirectory,
+                chaptersDirectory: chaptersDirectory,
+                indexURL: indexURL
+            )
         } catch {
             throw BookChapterError.underlying(String(describing: error))
         }
@@ -241,8 +286,13 @@ actor BookChapterActor {
 
     func deleteChapter(id: UUID) async throws {
         do {
-            let store = try resolveStore()
-            try store.deleteChapter(id: id)
+            let (bookDirectory, chaptersDirectory, indexURL) = try resolvePaths()
+            try Self.deleteFileSystemChapter(
+                id: id,
+                bookDirectory: bookDirectory,
+                chaptersDirectory: chaptersDirectory,
+                indexURL: indexURL
+            )
         } catch let err as BookChapterError {
             throw err
         } catch {
@@ -251,10 +301,14 @@ actor BookChapterActor {
     }
 
     func listChapters(bookId: UUID) async throws -> [ChapterDescriptor] {
-        let store = try resolveStore()
+        let (_, chaptersDirectory, indexURL) = try resolvePaths()
         let documents: [Document]
         do {
-            documents = try store.loadChapters()
+            documents = (try? FileSystemChapterStore.loadChaptersFromFileSystem(
+                bookDirectory: chaptersDirectory,
+                chaptersDirectory: chaptersDirectory,
+                indexURL: indexURL
+            )) ?? []
         } catch {
             throw BookChapterError.underlying(String(describing: error))
         }
@@ -265,10 +319,14 @@ actor BookChapterActor {
 
     func findChapter(bookId: UUID, title: String) async throws -> ChapterDescriptor? {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        let store = try resolveStore()
+        let (_, chaptersDirectory, indexURL) = try resolvePaths()
         let documents: [Document]
         do {
-            documents = try store.loadChapters()
+            documents = (try? FileSystemChapterStore.loadChaptersFromFileSystem(
+                bookDirectory: chaptersDirectory,
+                chaptersDirectory: chaptersDirectory,
+                indexURL: indexURL
+            )) ?? []
         } catch {
             throw BookChapterError.underlying(String(describing: error))
         }
@@ -695,6 +753,133 @@ actor BookChapterActor {
     }
 }
 
+// MARK: - BookChapterActor static FileSystem helpers
+//
+// The actor-based callers (= BookChapterActor) can't call instance
+// methods on the @MainActor-isolated FileSystemChapterStore struct;
+// = they use these static helpers (= FileManager + JSONEncoder are
+// thread-safe; = the actor's isolation is fine). This file hosts
+// the helpers here (= duplicates the storage layer) so the actor
+// doesn't need a separate extension file.
+extension BookChapterActor {
+    /// Write a NEW chapter to the legacy FileSystem path (.md file +
+    /// chapters.json index update).
+    static func saveFileSystemChapter(
+        chapter: Document,
+        bodyMarkdown: String,
+        bookDirectory: URL,
+        chaptersDirectory: URL,
+        indexURL: URL
+    ) throws {
+        try ensureChaptersDirectoryExists(at: chaptersDirectory)
+        var chapter = chapter
+        chapter.category = .chapter
+
+        let chapterURL = chaptersDirectory
+            .appendingPathComponent("\(chapter.id.uuidString).md")
+        if FileManager.default.fileExists(atPath: chapterURL.path) {
+            throw BookChapterError.entryNotFound(id: chapter.id)
+        }
+        try atomicWrite(bodyMarkdown.data(using: .utf8) ?? Data(), to: chapterURL)
+
+        // Append to the chapters.json index (= the legacy list
+        // path callers read via loadChaptersFromFileSystem).
+        var current = (try? FileSystemChapterStore.loadChaptersFromFileSystem(
+            bookDirectory: bookDirectory,
+            chaptersDirectory: chaptersDirectory,
+            indexURL: indexURL
+        )) ?? []
+        current.append(chapter)
+        try writeIndex(current, to: indexURL)
+    }
+
+    /// Replace an EXISTING chapter (.md body + index row update).
+    static func writeFileSystemChapter(
+        chapter: Document,
+        bodyMarkdown: String,
+        bookDirectory: URL,
+        chaptersDirectory: URL,
+        indexURL: URL
+    ) throws {
+        try ensureChaptersDirectoryExists(at: chaptersDirectory)
+        var chapter = chapter
+        chapter.category = .chapter
+
+        let chapterURL = chaptersDirectory
+            .appendingPathComponent("\(chapter.id.uuidString).md")
+        guard FileManager.default.fileExists(atPath: chapterURL.path) else {
+            throw BookChapterError.entryNotFound(id: chapter.id)
+        }
+        try atomicWrite(bodyMarkdown.data(using: .utf8) ?? Data(), to: chapterURL)
+
+        // Update the chapters.json index row.
+        var current = (try? FileSystemChapterStore.loadChaptersFromFileSystem(
+            bookDirectory: bookDirectory,
+            chaptersDirectory: chaptersDirectory,
+            indexURL: indexURL
+        )) ?? []
+        guard let idx = current.firstIndex(where: { $0.id == chapter.id }) else {
+            throw BookChapterError.entryNotFound(id: chapter.id)
+        }
+        current[idx] = chapter
+        try writeIndex(current, to: indexURL)
+    }
+
+    /// Delete a chapter (.md body + index row remove).
+    static func deleteFileSystemChapter(
+        id: UUID,
+        bookDirectory: URL,
+        chaptersDirectory: URL,
+        indexURL: URL
+    ) throws {
+        let chapterURL = chaptersDirectory
+            .appendingPathComponent("\(id.uuidString).md")
+        if FileManager.default.fileExists(atPath: chapterURL.path) {
+            try FileManager.default.removeItem(at: chapterURL)
+        }
+
+        // Remove from chapters.json index.
+        var current = (try? FileSystemChapterStore.loadChaptersFromFileSystem(
+            bookDirectory: bookDirectory,
+            chaptersDirectory: chaptersDirectory,
+            indexURL: indexURL
+        )) ?? []
+        let before = current.count
+        current.removeAll { $0.id == id }
+        if current.count != before {
+            try writeIndex(current, to: indexURL)
+        }
+    }
+
+    fileprivate static func writeIndex(_ chapters: [Document], to indexURL: URL) throws {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        encoder.dateEncodingStrategy = .iso8601
+        let data = try encoder.encode(chapters)
+        try atomicWrite(data, to: indexURL)
+    }
+
+    fileprivate static func ensureChaptersDirectoryExists(at url: URL) throws {
+        if !FileManager.default.fileExists(atPath: url.path) {
+            try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        }
+    }
+
+    fileprivate static func atomicWrite(_ data: Data, to url: URL) throws {
+        let tmpURL = url.appendingPathExtension("tmp")
+        try data.write(to: tmpURL, options: .atomic)
+        if FileManager.default.fileExists(atPath: url.path) {
+            try FileManager.default.removeItem(at: url)
+        }
+        try FileManager.default.moveItem(at: tmpURL, to: url)
+        let fd = open(url.path, O_RDONLY)
+        if fd >= 0 {
+            fsync(fd)
+            close(fd)
+        }
+    }
+}
+
 // MARK: - Tool-protocol adapter
 
 actor BookChapterTool: Tool {
@@ -770,4 +955,78 @@ extension BookChapterTool {
             )
         )
     }()
+
+    // MARK: - Static FileSystem helpers (actor-safe; = the actor
+    // can't instantiate the @MainActor-isolated FileSystemChapterStore
+    // struct, so the CRUD methods above call these static helpers
+    // (= FileManager + JSONEncoder are thread-safe).
+
+    /// Write a NEW chapter to the legacy FileSystem path (.md file +
+    /// chapters.json index update).
+    static func saveFileSystemChapter(
+        chapter: Document,
+        bodyMarkdown: String,
+        chaptersDirectory: URL
+    ) throws {
+        try Self.ensureChaptersDirectoryExists(at: chaptersDirectory)
+        var chapter = chapter
+        chapter.category = .chapter
+
+        let chapterURL = chaptersDirectory
+            .appendingPathComponent("\(chapter.id.uuidString).md")
+        if FileManager.default.fileExists(atPath: chapterURL.path) {
+            throw BookChapterError.entryNotFound(id: chapter.id)
+        }
+        try Self.atomicWrite(bodyMarkdown.data(using: .utf8) ?? Data(), to: chapterURL)
+    }
+
+    /// Replace an EXISTING chapter (.md body + index row update).
+    static func writeFileSystemChapter(
+        chapter: Document,
+        bodyMarkdown: String,
+        chaptersDirectory: URL
+    ) throws {
+        try Self.ensureChaptersDirectoryExists(at: chaptersDirectory)
+        var chapter = chapter
+        chapter.category = .chapter
+
+        let chapterURL = chaptersDirectory
+            .appendingPathComponent("\(chapter.id.uuidString).md")
+        guard FileManager.default.fileExists(atPath: chapterURL.path) else {
+            throw BookChapterError.entryNotFound(id: chapter.id)
+        }
+        try Self.atomicWrite(bodyMarkdown.data(using: .utf8) ?? Data(), to: chapterURL)
+    }
+
+    /// Delete a chapter (.md body remove).
+    static func deleteFileSystemChapter(
+        id: UUID,
+        chaptersDirectory: URL
+    ) throws {
+        let chapterURL = chaptersDirectory
+            .appendingPathComponent("\(id.uuidString).md")
+        if FileManager.default.fileExists(atPath: chapterURL.path) {
+            try FileManager.default.removeItem(at: chapterURL)
+        }
+    }
+
+    private static func ensureChaptersDirectoryExists(at url: URL) throws {
+        if !FileManager.default.fileExists(atPath: url.path) {
+            try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        }
+    }
+
+    private static func atomicWrite(_ data: Data, to url: URL) throws {
+        let tmpURL = url.appendingPathExtension("tmp")
+        try data.write(to: tmpURL, options: .atomic)
+        if FileManager.default.fileExists(atPath: url.path) {
+            try FileManager.default.removeItem(at: url)
+        }
+        try FileManager.default.moveItem(at: tmpURL, to: url)
+        let fd = open(url.path, O_RDONLY)
+        if fd >= 0 {
+            fsync(fd)
+            close(fd)
+        }
+    }
 }
