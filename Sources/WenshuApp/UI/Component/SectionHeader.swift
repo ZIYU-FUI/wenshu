@@ -8,8 +8,8 @@
 //     <10 PT bottom inset>
 //
 // The same pattern repeats at the top of every column
-// (AppleSidebarView '书架', PreviewPane '素材',
-// EditorView tab strip '写作（小说）'). Lifted here so
+// (AppleSidebarView '', PreviewPane '',
+// EditorView tab strip '（）'). Lifted here so
 // future columns use SectionHeader(...) instead of inlining the
 // same HStack + Divider block three times.
 //

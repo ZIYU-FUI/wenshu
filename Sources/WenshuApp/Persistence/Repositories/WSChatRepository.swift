@@ -108,7 +108,7 @@ final class WSChatRepository {
                 content: model.content,
                 timestamp: model.createdAt,
                 tokens: model.tokenCount >= 0 ? model.tokenCount : nil,
-                // -cleanup E2 (see OOB.md #2026-09-21) OOB 'AI 思考过程不显示':
+                // -cleanup E2 (see OOB.md #2026-09-21) OOB 'AI ':
                 // restore the persisted reasoning content from the new
                 // SwiftData column (= previously lost on reload because
                 // the streaming parts[] was never persisted to disk).
@@ -173,7 +173,7 @@ final class WSChatRepository {
             content: message.content,
             position: count,
             status: "ok",
-            // -cleanup E2 (see OOB.md #2026-09-21) OOB 'AI 思考过程不显示':
+            // -cleanup E2 (see OOB.md #2026-09-21) OOB 'AI ':
             // persist the reasoning text alongside the reply (= multiple
             // .reasoning parts joined by '\n\n' at the streaming boundary;
             // = the View layer decomposes it back into separate reasoning

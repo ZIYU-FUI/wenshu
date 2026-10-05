@@ -5,7 +5,7 @@
 //  the JSON-in-UserDefaults persistence that LayoutTreeStore.swift was
 //  using).
 //
-//  Per boss 2026-10-05 OOB '做 8 和 9' (= complete the SwiftData migration
+//  Per boss 2026-10-05 OOB ' 8  9' (= complete the SwiftData migration
 //  for LayoutTree + FileSystem stores). This is commit 2 of the #9
 //  LayoutTreeState/Store → SwiftData migration.
 //

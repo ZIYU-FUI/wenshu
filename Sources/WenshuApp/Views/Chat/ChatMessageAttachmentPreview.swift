@@ -65,7 +65,7 @@ struct ChatMessageAttachmentPreview: View {
                 let url = URL(fileURLWithPath: imagePath)
                 // Apple HIG canonical attachment-open behavior:
                 // NSWorkspace.shared.open = "Reveal in default app".
-                // No custom viewer (= hermes真值 also uses
+                // No custom viewer (= hermes also uses
                 // <a href={url} target="_blank">).
                 NSWorkspace.shared.open(url)
             } label: {

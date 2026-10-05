@@ -5,7 +5,7 @@
 //  per OutlineEntry (= high-level story structure = volume /
 //  chapter / scene / beat).
 //
-//  Per boss 2026-10-05 OOB '做 8' (= complete the FileSystem*Store →
+//  Per boss 2026-10-05 OOB ' 8' (= complete the FileSystem*Store →
 //  SwiftData migration). This is commit 4 of #8.
 //
 //  Apple HIG canonical pattern: OutlineEntry metadata (= id,

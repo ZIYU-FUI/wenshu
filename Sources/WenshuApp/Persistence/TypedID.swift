@@ -104,7 +104,7 @@ struct BookID: TypedID, Equatable, Hashable, Codable, Sendable {
 /// `ToolUsePart`; = the `tool_call_id` on the LLM-protocol response).
 ///
 /// This commit only INTRODUCES the type (= zero call-site migration).
-/// Future commits per P2-03 (逐步 typed-ID rollout) will swap
+/// Future commits per P2-03 ( typed-ID rollout) will swap
 /// `String` for `ToolCallID` at the call sites that hold a tool-call
 /// identifier (ToolUsePart.id, ToolResultPart.toolUseID,
 /// ToolDispatchHelpers.makeToolResultMessage). Splitting this work

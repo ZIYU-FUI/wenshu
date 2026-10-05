@@ -3,7 +3,7 @@
 //
 //  Apple HIG canonical single-library persistence (macOS 10.27+).
 //
-//  Why this exists (= the v0.x '裸路径字符串' bug):
+//  Why this exists (= the v0.x '' bug):
 //  LibraryRootView previously stored the user's picked .ws library
 //  root as a bare path string (@AppStorage "wenshu.libraryPath").
 //  That works when wenshu runs without the App Sandbox (= today).

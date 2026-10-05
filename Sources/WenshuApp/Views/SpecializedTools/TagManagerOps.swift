@@ -76,7 +76,7 @@ import Foundation
 
 /// Stateless business layer for the per-book tag board. Lifts
 /// the actor-call + state-transition logic out of `TagManagerView`
-/// per the v1.74 UI/业务/数据 separation audit (= ADR-0009).
+/// per the v1.74 UI// separation audit (= ADR-0009).
 ///
 /// All public static funcs accept `manager: TagManager?` (= the
 /// actor may be nil when no book is selected / the actor has not

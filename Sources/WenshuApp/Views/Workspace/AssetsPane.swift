@@ -149,8 +149,8 @@ struct AssetsPane: View {
         case .referenceCategory(let dirName):
             // SidebarItem.referenceCategory(directoryName) carries
             // the EntityCategory.directoryName (= lowercase letter
-            // for the official 22 CLC cases, "其它" for the .z
-            // fallback, "未分类" for pre-v0.29 nil-category
+            // for the official 22 CLC cases, "" for the .z
+            // fallback, "" for pre-v0.29 nil-category
             // references). EntityCategory rawValues are uppercase
             // letters (= "A" .. "Z"), so a case-insensitive lookup
             // restores the canonical form.
@@ -334,7 +334,7 @@ struct AssetsPane: View {
             // PT) (= 28 + 4 × 2 = 36 PT total height = the
             // user-specified 36 PT without hard-coding a frame
             // height = Apple semantic expression per the user's
-            // '不要硬编码, 用 Apple 表达式' rule).
+            // ',  Apple ' rule).
             //
             // Note: dropped `.searchable` because the framework's
             // own search box was rendering trailing regardless of
@@ -398,20 +398,20 @@ struct AssetsPane: View {
                     }
                     // Total height = 22 PT
                     // (controlSize .regular) + 6 PT × 2 = 34 PT,
-                    // 这个需要再改, 还是得 8PT, 6 不够': the
+                    // ,  8PT, 6 ': the
                     // search field INNER vertical padding is
                     // chromePaddingMedium (= 8 PT) on each side =
                     // 16 PT total vertical breathing room between
                     // the icon / TextField and the RoundedRectangle
                     // background top / bottom edges. The 16 PT is the user-specified
-                    // experimented with 6 PT (= '用六的') and
-                    // decided 8 PT (= '还是得 8PT') = the rect
+                    // experimented with 6 PT (= '') and
+                    // decided 8 PT (= ' 8PT') = the rect
                     // needs more vertical room = the
                     // chromePaddingSmall (= 6 PT) was visually
                     // cramped.
                     //
                     // The search field border
-                    // 左右距离素材栏栏边的间距没有生效': the
+                    // ': the
                     // outer .padding(.horizontal, 10) modifier
                     // was placed AFTER .background(...) in the
                     // The chain (= HStack content → padding
@@ -481,19 +481,19 @@ struct AssetsPane: View {
                             .fill(Color(nsColor: .textBackgroundColor).opacity(0.5))
                     )
                     // Search field
-                    // 的描边掉, 不要描边': drop the stroke
+                    // , ': drop the stroke
                     // overlay (= the macOS 27 hairline stroke on
                     // top of the rounded rectangle = 'no border' call. The fill stays (= the
                     // visual background the user requested =
                     // visible inset rectangle without the hairline
                     // edge = flat fill style = the Apple Music /
                     // Apple Notes 'pill' fill without border = the
-                    // '更协调' aesthetic per the search-field rhythm.
+                    // '' aesthetic per the search-field rhythm.
                 )
             )
             // Header (= assets + divider
-            // 也被内边距影响了, 需要像目录树和右栏一样, 让标题不
-            // 受栏的内边距影响, 让分割线拉满整栏': drop the
+            // , , 
+            // , ': drop the
             // PreviewPane-column-level .padding(.horizontal,
             // chromePaddingContentHorizontal). The column-level
             // padding affected the SectionHeader (= divider + title

@@ -1129,7 +1129,7 @@ final class ChatViewModel {
 }
 
 
-// MARK: - Try-logging helper (= 12 standard P1-02 try? 收口 scaffolding)
+// MARK: - Try-logging helper (= 12 standard P1-02 try?  scaffolding)
 
 // Per Apple HIG + 12 standard P1-02: business-layer `try?` calls
 // (= the `try? await repository.append(...)` pattern) silently drop

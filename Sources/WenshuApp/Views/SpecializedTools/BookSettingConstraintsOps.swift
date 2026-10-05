@@ -19,7 +19,7 @@
 //
 //  Actor dependency: `BookSettingConstraints` actor lives in
 //  Sources/WenshuApp/Core/Agent/Specialized/BookSettingConstraintsTools.swift
-//  (= already actor-isolated; = no actor 搬家 per v1.74 standing rule).
+//  (= already actor-isolated; = no actor  per v1.74 standing rule).
 //
 
 import Foundation

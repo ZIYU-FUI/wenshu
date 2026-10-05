@@ -16,7 +16,7 @@
 //    5. runCheck(manager:guardrails:checkText:) -> CheckResult
 //
 //  All actor calls nil-guarded (= manager == nil -> didLoad/didSave=false).
-//  Per the per-commit 1-source-1-test rule, no actor 搬家: actor stays in
+//  Per the per-commit 1-source-1-test rule, no actor : actor stays in
 //  Sources/WenshuApp/Core/Agent/LongForm/LongFormGuardrails.swift.
 //
 

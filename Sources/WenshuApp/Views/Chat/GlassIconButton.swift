@@ -59,8 +59,8 @@ struct GlassIconButton: NSViewRepresentable {
         button.action = #selector(Coordinator.tap(_:))
         button.toolTip = help
         button.contentTintColor = NSColor.labelColor
-        // Pin the button size to 36 PT (= (see OOB.md #2026-09-23) '按钮文本框的高度，
-        // 统一一下，改成 36'). Apple HIG NSButton with bezelStyle=.glass
+        // Pin the button size to 36 PT (= (see OOB.md #2026-09-23) '，
+        // ， 36'). Apple HIG NSButton with bezelStyle=.glass
         // is constrained by its BEZEL'S intrinsicContentSize (= ~28 PT
         // for the glass bezel). Height-only heightAnchor alone is
         // ignored: the button's intrinsic size wins, and SwiftUI sees

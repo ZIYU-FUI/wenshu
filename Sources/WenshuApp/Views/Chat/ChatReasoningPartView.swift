@@ -28,7 +28,7 @@ import SwiftUI
 struct ChatReasoningPartView: View {
     let text: String
     let isRunning: Bool
-    // -cleanup E2 (see OOB.md #2026-09-21) OOB 'AI 思考过程不显示' (= the
+    // -cleanup E2 (see OOB.md #2026-09-21) OOB 'AI ' (= the
     // thinking content was collapsed by default; = the user could see
     // only the brain-head-profile icon and the "AI thought for Xs"
     // label, = effectively no visible thinking content). Default to
@@ -60,9 +60,9 @@ struct ChatReasoningPartView: View {
                 .padding(.top, DesignTokens.spacingIconic)
                 .transition(.opacity)
         } label: {
-            // -cleanup E2 (see OOB.md #2026-09-21) OOB 'AI 思考过程不显示'
+            // -cleanup E2 (see OOB.md #2026-09-21) OOB 'AI '
             // (= the brain-head-profile icon was C2-era wenshu-side chrome
-            // that hermes真值 does NOT use; = status.tsx ResponseLoadingIndicator
+            // that hermes does NOT use; = status.tsx ResponseLoadingIndicator
             // is a 3×3 PT StatusPulse square, no icon). Drop the icon; =
             // a small grayer caption label is enough to identify the
             // thinking section. The label flips between running + finished
@@ -82,11 +82,11 @@ struct ChatReasoningPartView: View {
     /// going fully invisible). `private` so the view body can read
     /// it directly without exposing the TimelineView as part of the
     /// public surface.
-    // -cleanup E2 (see OOB.md #2026-09-21) OOB 'AI 思考过程不显示': removed
+    // -cleanup E2 (see OOB.md #2026-09-21) OOB 'AI ': removed
     // the brain-head-profile icon + the runningOpacity pulse animation
     // (= was driving the icon's 0.4 -> 1.0 -> 0.4 oscillation). The
-    // thinking section is now a small caption label (= "AI 已思考" /
-    // "AI 思考中") with no icon, no pulse
+    // thinking section is now a small caption label (= "AI " /
+    // "AI ") with no icon, no pulse
 
     /// Reasoning text also uses inline markdown (= reasoning often
     /// contains structure like `**KEY POINT**: ...`).

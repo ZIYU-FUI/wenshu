@@ -79,7 +79,7 @@ actor BookEntityActor {
     /// Test-only body accessor.
     func readBodyForTest(id: EntityID) async -> String? {
         guard let dir = bookDirectoryProvider() else { return nil }
-        // Per boss 2026-10-05 OOB '做 8': FileSystemEntityStore is
+        // Per boss 2026-10-05 OOB ' 8': FileSystemEntityStore is
         // @MainActor-isolated (= SwiftData ModelContext contract);
         // = the actor can't instantiate it. Use the nonisolated
         // static FileSystem fallback helpers (= actor-safe).
@@ -93,7 +93,7 @@ actor BookEntityActor {
     /// session has no bound book (= the scope guard should have
     /// already caught this).
     ///
-    /// Per boss 2026-10-05 OOB '做 8': the FileSystemEntityStore
+    /// Per boss 2026-10-05 OOB ' 8': the FileSystemEntityStore
     /// struct is @MainActor-isolated (= SwiftData ModelContext
     /// contract); = actor-based callers (= this actor + the actor-
     /// based tool wrapper) can't instantiate it. We resolve to the

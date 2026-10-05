@@ -79,7 +79,7 @@ import Foundation
 
 /// Stateless business layer for the per-book kanban board. Lifts
 /// the disk-IO + state-transition logic out of `KanbanView` per
-/// the v1.72 UI/业务/数据 separation audit (= ADR-0009).
+/// the v1.72 UI// separation audit (= ADR-0009).
 @MainActor
 enum KanbanOps {
 

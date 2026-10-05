@@ -179,7 +179,7 @@ struct SettingView: View {
     /// lift the keychain + fetcher + expansion logic into
     /// `SettingsOps` (= the stateless business layer at
     /// `Sources/WenshuApp/Views/Settings/SettingsOps.swift`). Per
-    /// ADR-0009 (= UI/业务/数据 separation), the View is now a pure
+    /// ADR-0009 (= UI// separation), the View is now a pure
     /// consumer: it holds the @State (liveModelIds / isLoadingModels /
     /// providersWithKeys / apiExpandedProviders / providerSearchText
     /// / apiDraftKey / apiError), and delegates every mutation to

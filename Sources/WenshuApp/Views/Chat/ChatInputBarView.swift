@@ -2,10 +2,10 @@
 //  ChatInputBarView.swift
 //
 // (2026-09-23): the token-usage bottom bar needs a background
-//  色，现在是全透明的，或者说是没有背景的，加上一个背景'. Add
+//  ，，，'. Add
 //  `.background(.bar)` (= Apple HIG sidebar/chrome material; =
 //  translucent + Light/Dark auto-adapts; = same primitive the sidebar
-// 底栏 inherits).
+//  inherits).
 //
 // (2026-09-23): divider co-located with tokenCountFooter (=
 //  same VStack(spacing: 0) { Divider(); label } pattern as sidebar
@@ -13,7 +13,7 @@
 //  divider used to sit directly below inputRow = visually disconnected
 //  from the footer; = moved into the footer group).
 //
-// (2026-09-23): spec = match the sidebar's bottom "+ 新建"
+// (2026-09-23): spec = match the sidebar's bottom "+ "
 //  button style/size verbatim. Reference: NewLibraryOutlineView.swift
 //  L1760 `sidebarBottomNewButton`. Changes to the tokenCountFooter:
 //    - .footnote → .callout        (= sidebar's exact text size)
@@ -26,10 +26,10 @@
 //  size from the sidebar').
 //
 // (2026-09-23): restored the token-usage bottom bar (= the
-//  2026-09-23 '那个 token 计数的底栏没有了，刚你写出来过，挺好的。
-//  写回来吧'). Did NOT restore the manual compress button (= confirmed
-//  automatic via ConversationLoop.swift:512; = (see OOB.md #2026-09-23) '如果
-//  可以自动，那个按钮就不用写回来了').
+//  2026-09-23 ' token ，，。
+//  '). Did NOT restore the manual compress button (= confirmed
+//  automatic via ConversationLoop.swift:512; = (see OOB.md #2026-09-23) '
+//  ，').
 //
 // (2026-09-23): spec = chat column bottom = single input row +
 //  divider hairline (= Apple HIG sidebar-bottom-accessory separator).
@@ -51,9 +51,9 @@ import UniformTypeIdentifiers
 
 /// Chat input bar = the top layer of the chat zone's 3-layer UI
 ///
-///   1. 顶层 (this file) = ChatInputBarView
-///   2. 中层 (ChatView body ScrollView) = chat content
-///   3. 底层 (NavigationSplitShell + EditorChatNSController) = NSSplitView
+///   1.  (this file) = ChatInputBarView
+///   2.  (ChatView body ScrollView) = chat content
+///   3.  (NavigationSplitShell + EditorChatNSController) = NSSplitView
 ///
 /// Floats over the chat ScrollView via `.safeAreaInset(edge: .bottom)`.
 /// Apple Messages / Slack chat input pattern (= single row; = input
@@ -72,18 +72,18 @@ struct ChatInputBarView: View {
 
     var body: some View {
         // 2026-09-23: restored the token-usage bottom bar
-        // (= (see OOB.md #2026-09-23) '那个 token 计数的底栏没有了，刚你写出来过，
-        // 挺好的。写回来吧'). Manual compress button is NOT restored
+        // (= (see OOB.md #2026-09-23) ' token ，，
+        // 。'). Manual compress button is NOT restored
         // (= ConversationLoop.swift:512 runs ConversationCompression.
         // historyAfterCompression on every turn = automatic compression;
         // = no production caller for manualTrigger anymore; = the
-        // 2026-09-23 '那个压缩按钮，你去确认了吗，自动触发压缩，还是手动。
-        // 如果可以自动，那个按钮就不用写回来了').
+        // 2026-09-23 '，，，。
+        // ，').
         //
         // Structure (top to bottom):
         //   1. attachmentPreviewChip (= conditional; = nothing when no image)
         //   2. inputRow              (= single horizontal HStack with
-        //                              paperclip + sparkles + 输入框 +
+        //                              paperclip + sparkles +  +
         //                              ⌃ + 🎯 + ✈️)
         //   3. Divider               (= sidebar-bottom-accessory separator;
         //                              = matches NewLibraryOutlineView L1776)
@@ -115,13 +115,13 @@ struct ChatInputBarView: View {
     ///   3. Over threshold    → "N / M tokens (P%)" in `.orange` tone
     private var tokenCountFooter: some View {
         // 2026-09-23: spec = match the sidebar's bottom
-        // "+ 新建" button style/size verbatim (= the 'style, size copy verbatim'
-        // 就好' = 'just copy the style and size from the sidebar').
+        // "+ " button style/size verbatim (= the 'style, size copy verbatim'
+        // ' = 'just copy the style and size from the sidebar').
         // Reference: NewLibraryOutlineView.swift L1760 `sidebarBottomNewButton`.
         // Same primitives (= Apple HIG sidebar-bottom-accessory pattern):
         //   - Divider above
         //   - HStack(spacing: DesignTokens.spacingTight) for label (= just the Text here; = the
-        //     "+ 新建" button has `Image + Text`; = we have no action
+        //     "+ " button has `Image + Text`; = we have no action
         //     button = just the text label)
         //   - Text.font(.callout) (= NOT .footnote; = matches the
         //     sidebar's exact text size)
@@ -143,7 +143,7 @@ struct ChatInputBarView: View {
                 if vm.contextUsed >= tokenCompressionContextThreshold {
                     // Over-threshold warning (orange).
                     // (2026-09-23): localized.
-                    // en: "%d / %d tokens (%d%%)" / zh-Hans: "已使用 %d / %d tokens（%d%%）".
+                    // en: "%d / %d tokens (%d%%)" / zh-Hans: " %d / %d tokens（%d%%）".
                     Text(String.localizedStringWithFormat(NSLocalizedString("chat.input.tokens_used.over_threshold", comment: ""), vm.contextUsed,
                                        tokenCompressionContextThreshold,
                                        percentOfThreshold))
@@ -152,7 +152,7 @@ struct ChatInputBarView: View {
                 } else {
                     // Below threshold (quiet secondary).
                     // 2026-09-23: 'change the context-usage text to Chinese'.
-                    // en: "%d tokens used" / zh-Hans: "已使用 %d tokens".
+                    // en: "%d tokens used" / zh-Hans: " %d tokens".
                     Text(String.localizedStringWithFormat(NSLocalizedString("chat.input.tokens_used", comment: ""), vm.contextUsed))
                         .font(.callout)
                         .foregroundStyle(.secondary)
@@ -163,11 +163,11 @@ struct ChatInputBarView: View {
             .padding(.horizontal, DesignTokens.spacingStandard)
         }
         // 2026-09-23: the token-usage bottom bar needs a
-        // 背景色，现在是全透明的，或者说是没有背景的，加上一个背景'.
+        // ，，，'.
         // Use Apple HIG `.bar` material (= the macOS 27 sidebar/chrome
         // tint; = the same primitive the outer sidebar uses; =
         // translucent + adapts to Light/Dark mode automatically). The
-        // sidebar底栏 also uses .bar implicitly via its safeAreaInset
+        // sidebar also uses .bar implicitly via its safeAreaInset
         // (= the sidebar region paints .bar; = the bottom bar inherits
         // it). Chat column sits on top of the editor background (=
         // no .bar material by default), so the footer row needs an
@@ -200,20 +200,20 @@ struct ChatInputBarView: View {
     // MARK: - Input row (the actual UI per the spec)
 
     /// The single input row per the v1.82 spec:
-    /// `1.token 压缩 2.10PT，按钮、10PT，按钮、10PT，输入框、10PT，
-    ///  按钮、10PT，按钮、10PT，按键，10PT 距底，30PT`
+    /// `1.token  2.10PT，、10PT，、10PT，、10PT，
+    ///  、10PT，、10PT，，10PT ，30PT`
     ///
     /// Elements (left → right):
-    ///   1. token压缩 (compression indicator pill)
-    ///   2. 按钮 (paperclip = file picker)
-    ///   3. 按钮 (sparkles = agent path indicator, display-only)
-    ///   4. 输入框 (TextField = middle, fills available space)
-    ///   5. 按钮 (turn counter = display-only)
-    ///   6. 按钮 (scope = long-running goal, ⌘⇧G)
-    ///   7. 按钮 (paperplane = send, ⌘↩)
+    ///   1. token (compression indicator pill)
+    ///   2.  (paperclip = file picker)
+    ///   3.  (sparkles = agent path indicator, display-only)
+    ///   4.  (TextField = middle, fills available space)
+    ///   5.  (turn counter = display-only)
+    ///   6.  (scope = long-running goal, ⌘⇧G)
+    ///   7.  (paperplane = send, ⌘↩)
     private var inputRow: some View {
         // 2026-09-23: '10PT | button | 10PT | button | 10PT | button | 10PT | chat box
-        // （自动拉宽）｜10PT｜按钮｜10PT｜按钮｜10PT' OOB. Apple Messages
+        // （）｜10PT｜｜10PT｜｜10PT' OOB. Apple Messages
         // 3-left + 2-right layout (= info/options left, action right;
         // = the canonical chat input row spec).
         //

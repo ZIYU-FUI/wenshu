@@ -159,7 +159,7 @@ struct LibraryRootView: View {
         content
             .environment(library)
             .preferredColorScheme(appearanceMode.colorScheme)
-            // macOS 27 doc-alignment (see OOB.md #2026-09-18) OOB '全都改一下',
+            // macOS 27 doc-alignment (see OOB.md #2026-09-18) OOB '',
             // : the canonical macOS 27 SwiftUI window
             // background is the `.containerBackground(for: .window)`
             // modifier applied at the root view inside WindowGroup.
@@ -173,7 +173,7 @@ struct LibraryRootView: View {
             // Glass tonal layer). Setting it to
             // `.windowBackground` (= Apple-managed
             // NSColor, NOT a custom RGB; per (see OOB.md #2026-09-02)
-            // OOB '你所有用的颜色，都是 API 给的, 不要自定义')
+            // OOB '， API , ')
             // gives the window its canonical Apple HIG background
             // tone (= the 1 NSColor pane content fills, paired with
             // `.controlBackgroundColor` for chrome, where the
@@ -327,8 +327,8 @@ struct LibraryRootView: View {
             // Commit 6b removed the NavigationSplitShell wrapper layer
             // (= the wenshu-summary abstraction that conflated wenshu-
             // specific column-binding plumbing with Apple's
-            // NavigationSplitView). Per (see OOB.md #2026-10-03) OOB '清多余的
-            // 层' = strip wenshu-summary layers that conflate with the
+            // NavigationSplitView). Per (see OOB.md #2026-10-03) OOB '
+            // ' = strip wenshu-summary layers that conflate with the
             // Apple-canonical shape.
             //
             // Column bodies are still wrapped by ShellMiddleColumn /

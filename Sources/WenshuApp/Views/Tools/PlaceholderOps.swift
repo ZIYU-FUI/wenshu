@@ -88,7 +88,7 @@ import Foundation
 
 /// Stateless business layer for the per-book placeholder
 /// tracker. Lifts the actor-call + state-transition logic out of
-/// `PlaceholderView` per the v1.74 UI/业务/数据 separation audit
+/// `PlaceholderView` per the v1.74 UI// separation audit
 /// (= ADR-0009).
 @MainActor
 enum PlaceholderOps {

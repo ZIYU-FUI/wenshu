@@ -73,7 +73,7 @@ enum DesignTokens {
     // Per-application-position usage notes live in each token's
     // doc-comment below (= readers can grep a wenshu file for the
     // position name to find the canonical token). 8/4 alignment rule
-    // (= (see OOB.md #2026-09-30) '调整方向按 8 或者 4 的倍数'): every value is
+    // (= (see OOB.md #2026-09-30) ' 8  4 '): every value is
     // either a multiple of 8 (= 8 / 16 / 24) or 4 (= 4 / 12 / 20)
     // or sub-multiple (= 1 / 2).
 
@@ -295,13 +295,13 @@ enum DesignTokens {
     /// that wants to match the sidebar one parameter (= token-driven
     /// color = Light/Dark mode + future Apple default updates = 1-line
     /// change instead of N).
-    // (2026-09-23): the directive '聊天区背景颜色没有实现'.
+    // (2026-09-23): the directive ''.
     // The default `.controlBackgroundColor` (= Apple HIG sidebar
     // tint) produced RGB(28,28,28) in chat zone (= NSSplitViewItem
     // underlying visual effect layer bleed-through) vs. sidebar
     // RGB(34) (= macOS list(.sidebar) material). The 6-RGB-unit
-    // difference was visible to the eye. the directive '就用 apple 颜色
-    // 表达示，改成和左栏接近的颜色就好'.
+    // difference was visible to the eye. the directive ' apple 
+    // ，'.
     //
     // Apple HIG path: use the dynamic NSColor that the macOS
     // sidebar list actually renders (= RGB(34) in dark mode;

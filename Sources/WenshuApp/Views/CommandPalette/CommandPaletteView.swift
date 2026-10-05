@@ -180,10 +180,10 @@ struct CommandPaletteView: View {
             .padding(.vertical, DesignTokens.spacingStandard)
         }
         .frame(width: DesignTokens.settingIOsheetSize.width, height: DesignTokens.settingIOsheetSize.height)
-        // macOS 27 doc-alignment ((see OOB.md #2026-09-18) '全都改一下',
+        // macOS 27 doc-alignment ((see OOB.md #2026-09-18) '',
         // ): per-pane `.glassEffect(.regular)` is
-        // forbidden per (see OOB.md #2026-09-02) OOB "默认不加液态玻璃效果
-        // 的, 我们就不加; 默认带的, 我们就默认带". The canonical
+        // forbidden per (see OOB.md #2026-09-02) OOB "
+        // , ; , ". The canonical
         // pattern = Apple NSColor.windowBackgroundColor for sheet
         // surface.
         .background(.windowBackground)

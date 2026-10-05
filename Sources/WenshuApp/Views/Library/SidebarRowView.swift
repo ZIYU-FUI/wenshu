@@ -22,7 +22,7 @@ struct SidebarRowView: View {
 
     var body: some View {
         // sidebar fix (= (see OOB.md #2026-09-22) OOB
-        // '现在目录树还是点不了'): the macOS sidebar List bundled
+        // ''): the macOS sidebar List bundled
         // with the `List(data, children:selection:rowContent:)`
         // init (= the OutlineGroup-backed one) does NOT bind
         // selection back to the binding purely via
@@ -55,7 +55,7 @@ struct SidebarRowView: View {
         // header uses). Net result: divider spans from sidebar
         // left edge + 10 PT to sidebar right edge − 10 PT (= full
         // visible width minus the standard inset, NOT flush to
-        // the column edge; = the user's '符合左栏内边距保留'
+        // the column edge; = the user's ''
         // requirement).
         rowContent
             .listRowInsets(node.kind == .divider
@@ -64,8 +64,8 @@ struct SidebarRowView: View {
             .tag(node)
     }
 
-    /// '现在把资料库上面也加一条
-    /// 分割线': the row body (= split out so the
+    /// '
+    /// ': the row body (= split out so the
     /// `.divider` kind can return a different View type without
     /// breaking the `.tag(node)` modifier chain on the parent
     /// View). The `.tag(node)` modifier is applied on the result

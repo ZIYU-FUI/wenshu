@@ -36,10 +36,10 @@ import Foundation
 /// the content, instead of being laid out all at once' rule).
 /// The category parent's children are the reference leaves.
 ///
-/// '资料库分类, 现在显示是的一个
-/// 字母. 不是中文分类名': the user-facing `title` MUST carry
+/// ', 
+/// . ': the user-facing `title` MUST carry
 /// the Chinese display label (= the user reads the sidebar in
-/// 中文), NOT the routing key. The routing key (= the
+/// ), NOT the routing key. The routing key (= the
 /// EntityCategory.directoryName that ShellMiddleColumn
 /// previewScope's case-insensitive rawValue lookup resolves
 /// to an EntityCategory) is stored in the dedicated
@@ -61,7 +61,7 @@ struct SidebarNode: Identifiable, Hashable, Sendable {
     /// from sidebar click → SidebarItem → PreviewScope
     /// case-insensitive EntityCategory lookup. Set on
     /// `.referenceCategory` rows to EntityCategory
-    /// .directoryName (= "a" / "b" / ... / "其它" / "未分类").
+    /// .directoryName (= "a" / "b" / ... / "" / "").
     /// Nil for every other Kind (= the existing
     /// shelf / book / reference rows route via the row id
     /// or the title respectively; = no separate routing key
@@ -77,8 +77,8 @@ struct SidebarNode: Identifiable, Hashable, Sendable {
         // = EntityCategory). Children = the references in that
         // category.
         case referenceCategory
-        // bb (see OOB.md #2026-09-23) OOB '现在把资料库上面也加一条
-        // 分割线': non-interactive row that renders a horizontal
+        // bb (see OOB.md #2026-09-23) OOB '
+        // ': non-interactive row that renders a horizontal
         // Divider (= the Apple HIG section separator idiom;
         // = same role as the section header divider at the
         // top of the sidebar). Inserted between the shelves

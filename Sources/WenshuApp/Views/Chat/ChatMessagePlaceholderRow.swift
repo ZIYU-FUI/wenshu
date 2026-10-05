@@ -22,7 +22,7 @@
 //      sleeping 5 s between pulses (= StatusPulse private struct in
 //      ChatMessageView.swift = the canonical wenshu 1:1 impl).
 //    - Followed by hint text (the ChatMessage.content payload =
-//      usually "AI 思考中…").
+//      usually "AI …").
 //    - Followed by an elapsed-since-timestamp timer (= the activity
 //      indicator; = updates every 0.5s).
 //
@@ -40,7 +40,7 @@ import SwiftUI
 /// Leaf view: the "AI thinking…" placeholder row rendered in the
 /// chat transcript while a streaming reply is in flight.
 struct ChatMessagePlaceholderRow<Pulse: View>: View {
-    /// The hint text shown next to the pulse (= usually "AI 思考中…").
+    /// The hint text shown next to the pulse (= usually "AI …").
     let hintText: String
     /// The timestamp the thinking started (= used to compute the
     /// elapsed timer).
@@ -73,7 +73,7 @@ struct ChatMessagePlaceholderRow<Pulse: View>: View {
                     .foregroundStyle(.tertiary)
             }
         }
-        // -cleanup E6 (see OOB.md #2026-09-21) '只保留 10PT, 我建议你把基它地方的全都取消掉':
+        // -cleanup E6 (see OOB.md #2026-09-21) ' 10PT, ':
         // vertical chromePaddingVertical (= 8 PT; = Apple HIG py-2 row gap
         // convention). Horizontal padding lives on the chat transcript
         // outer (= single source of truth = ChatView.swift, not this
@@ -82,7 +82,7 @@ struct ChatMessagePlaceholderRow<Pulse: View>: View {
     }
 
     /// Format an elapsed-seconds value as "5.3s" / "1m 23s" /
-    /// "1h 5m" (= hermes真值 ActivityTimerText format). Mirrors
+    /// "1h 5m" (= hermes ActivityTimerText format). Mirrors
     /// the static helper that used to live on ChatMessageView.
     nonisolated static func formatElapsed(_ seconds: TimeInterval) -> String {
         if seconds < 0 { return "0.0s" }

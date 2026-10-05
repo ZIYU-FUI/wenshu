@@ -123,7 +123,7 @@ enum WSPersistenceContainer {
                 do {
                     return try makeInMemoryContainer()
                 } catch {
-                    // Per Apple HIG + 12 standard P2-01 fatalError 收口:
+                    // Per Apple HIG + 12 standard P2-01 fatalError :
                     // SwiftData runtime broken is unrecoverable (= the in-memory
                     // fallback above also failed; = the app cannot persist any
                     // data). This is the last-resort guard before the app
