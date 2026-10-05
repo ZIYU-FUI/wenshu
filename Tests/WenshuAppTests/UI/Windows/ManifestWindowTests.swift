@@ -50,12 +50,10 @@ struct ManifestWindowTests {
 
     @Test("WindowID.manifest declared and Window registered in AppRootScene")
     func testManifestWindowIDRegistered() throws {
-        let shellPath = resolve("Sources/WenshuApp/UI/Layout/NavigationSplitShell.swift")
-        let shellSource = try String(contentsOfFile: shellPath, encoding: .utf8)
-        #expect(shellSource.contains("static let manifest = \"wenshu-manifest\""),
-                "WindowID.manifest must be declared in NavigationSplitShell")
         let scenePath = resolve("Sources/WenshuApp/App/AppRootScene.swift")
         let sceneSource = try String(contentsOfFile: scenePath, encoding: .utf8)
+        #expect(sceneSource.contains("static let manifest = \"wenshu-manifest\""),
+                "WindowID.manifest must be declared in AppRootScene")
         #expect(sceneSource.contains("id: WindowID.manifest"),
                 "Window must be registered in AppRootScene with WindowID.manifest")
         #expect(sceneSource.contains("ManifestWindow()"),

@@ -34,10 +34,16 @@ import Foundation
 @Suite("Secondary windows (v2.8b — boss 2026-09-28 OOB B6 + B7 + B9)")
 struct SecondaryWindowsTests {
 
-    private var navigationShellPath: String {
+    // WindowID enum moved from NavigationSplitShell.swift to AppRootScene.swift
+    // during the 2026-10-03 overabstraction cleanup (= the v2.8b 整窗重写
+    // deleted NavigationSplitShell entirely when consolidating layout into
+    // LibraryRootView + WorkspaceUIState). WindowID's new canonical home is
+    // AppRootScene.swift line 44, where it is co-located with the Window()
+    // declarations that use those IDs (= single-source-of-truth).
+    private var windowIDSourcePath: String {
         var url = URL(fileURLWithPath: #filePath)
         for _ in 0..<5 { url.deleteLastPathComponent() }
-        url.appendPathComponent("Sources/WenshuApp/UI/Layout/NavigationSplitShell.swift")
+        url.appendPathComponent("Sources/WenshuApp/App/AppRootScene.swift")
         return url.path
     }
 
@@ -57,7 +63,7 @@ struct SecondaryWindowsTests {
 
     @Test("WindowID exposes canvas + composer + foreshadowingGraph + cron cases (= v2.8b boss B6+B7+B9 surface)")
     func testWindowIDExposesFourCases() throws {
-        let source = try String(contentsOfFile: navigationShellPath, encoding: .utf8)
+        let source = try String(contentsOfFile: windowIDSourcePath, encoding: .utf8)
         // (name, identifier) pairs; = windowID matches the
         // Swift enum case name; = identifier matches the
         // raw wenshu-stable identifier string (= the kebab

@@ -53,12 +53,10 @@ struct SummariesWindowTests {
 
     @Test("WindowID.summaries declared and Window registered in AppRootScene")
     func testSummariesWindowIDRegistered() throws {
-        let shellPath = resolve("Sources/WenshuApp/UI/Layout/NavigationSplitShell.swift")
-        let shellSource = try String(contentsOfFile: shellPath, encoding: .utf8)
-        #expect(shellSource.contains("static let summaries = \"wenshu-summaries\""),
-                "WindowID.summaries must be declared in NavigationSplitShell")
         let scenePath = resolve("Sources/WenshuApp/App/AppRootScene.swift")
         let sceneSource = try String(contentsOfFile: scenePath, encoding: .utf8)
+        #expect(sceneSource.contains("static let summaries = \"wenshu-summaries\""),
+                "WindowID.summaries must be declared in AppRootScene")
         #expect(sceneSource.contains("id: WindowID.summaries"),
                 "Window must be registered in AppRootScene with WindowID.summaries")
         #expect(sceneSource.contains("SummariesWindow()"),

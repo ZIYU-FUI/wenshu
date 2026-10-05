@@ -62,12 +62,14 @@ struct AttachmentsWindowTests {
 
     @Test("WindowID.attachments declared and Window registered in AppRootScene")
     func testAttachmentsWindowIDRegistered() throws {
-        let shellPath = resolve("Sources/WenshuApp/UI/Layout/NavigationSplitShell.swift")
-        let shellSource = try String(contentsOfFile: shellPath, encoding: .utf8)
-        #expect(shellSource.contains("static let attachments = \"wenshu-attachments\""),
-                "WindowID.attachments must be declared in NavigationSplitShell")
+        // WindowID enum moved to AppRootScene.swift during the 2026-10-03
+        // overabstraction cleanup (= NavigationSplitShell.swift deleted in
+        // the same pass when the v2.8b 整窗重写 consolidated layout into
+        // LibraryRootView + WorkspaceUIState). Pin the canonical home now.
         let scenePath = resolve("Sources/WenshuApp/App/AppRootScene.swift")
         let sceneSource = try String(contentsOfFile: scenePath, encoding: .utf8)
+        #expect(sceneSource.contains("static let attachments = \"wenshu-attachments\""),
+                "WindowID.attachments must be declared in AppRootScene")
         #expect(sceneSource.contains("id: WindowID.attachments"),
                 "Window must be registered in AppRootScene with WindowID.attachments")
         #expect(sceneSource.contains("AttachmentsWindow()"),
