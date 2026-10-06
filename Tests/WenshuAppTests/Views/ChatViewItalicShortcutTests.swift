@@ -38,7 +38,7 @@ struct ChatViewItalicShortcutTests {
         #expect(block.contains("let current = vm.inputText"))
         #expect(block.contains("let italicized = \"_\\(current)_\""))
         #expect(block.contains("vm.inputText = italicized"))
-        #expect(block.contains("NSLog(\"[wenshu.italic]"))
+        #expect(block.contains("wenshuLogger.info(\"[wenshu.italic]"))
     }
 
     /// T94 contract: button is visually hidden.

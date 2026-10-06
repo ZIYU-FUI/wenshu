@@ -35,7 +35,7 @@ struct ChatViewOptCmdDShortcutTests {
         let startIdx = src.index(src.startIndex, offsetBy: startOffset)
         let endIdx = src.index(src.startIndex, offsetBy: endOffset)
         let block = String(src[startIdx..<endIdx])
-        #expect(block.contains("NSLog(\"[wenshu.save]"))
+        #expect(block.contains("wenshuLogger.info(\"[wenshu.save]"))
         #expect(block.contains("vm.messages.count"))
     }
 

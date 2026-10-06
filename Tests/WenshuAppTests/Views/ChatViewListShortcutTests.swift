@@ -38,7 +38,7 @@ struct ChatViewListShortcutTests {
         #expect(block.contains("let current = vm.inputText"))
         #expect(block.contains("let listed = lines.map { \"- \\($0)\" }"))
         #expect(block.contains("vm.inputText = listed"))
-        #expect(block.contains("NSLog(\"[wenshu.list]"))
+        #expect(block.contains("wenshuLogger.info(\"[wenshu.list]"))
     }
 
     /// T110 contract: button is visually hidden.

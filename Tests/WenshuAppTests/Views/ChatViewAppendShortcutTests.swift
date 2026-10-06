@@ -39,7 +39,7 @@ struct ChatViewAppendShortcutTests {
         #expect(block.contains("!$0.isPlaceholder"))
         #expect(block.contains("vm.inputText = lastAssistant") || block.contains("vm.inputText += "))
         #expect(block.contains("inputFocused = true"))
-        #expect(block.contains("NSLog(\"[wenshu.append]"))
+        #expect(block.contains("wenshuLogger.info(\"[wenshu.append]"))
     }
 
     /// T104 contract: button is visually hidden.

@@ -38,7 +38,7 @@ struct ChatViewCodeBlockShortcutTests {
         #expect(block.contains("let current = vm.inputText"))
         #expect(block.contains("let coded = \"```\\n\\(current)\\n```\""))
         #expect(block.contains("vm.inputText = coded"))
-        #expect(block.contains("NSLog(\"[wenshu.codeblock]"))
+        #expect(block.contains("wenshuLogger.info(\"[wenshu.codeblock]"))
     }
 
     /// T101 contract: button is visually hidden.

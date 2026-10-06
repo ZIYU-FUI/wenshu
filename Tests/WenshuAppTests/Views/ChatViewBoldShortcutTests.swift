@@ -38,7 +38,7 @@ struct ChatViewBoldShortcutTests {
         #expect(block.contains("let current = vm.inputText"))
         #expect(block.contains("let bolded = \"**\\(current)**\""))
         #expect(block.contains("vm.inputText = bolded"))
-        #expect(block.contains("NSLog(\"[wenshu.bold]"))
+        #expect(block.contains("wenshuLogger.info(\"[wenshu.bold]"))
     }
 
     /// T93 contract: button is visually hidden.
