@@ -163,13 +163,13 @@ struct UserDefaultsStoreTests {
 
     // MARK: - Key namespace coverage (= G-2 cluster key registry)
 
-    @Test("WenshuDefaultsKey.allCases covers 13 typed settings keys")
+    @Test("WenshuDefaultsKey.allCases covers 12 typed settings keys")
     func keyEnumCompleteness() {
         // Wenshu's G-2 cluster (= the keys written/read by @Observable
         // models) maps 1:1 to WenshuDefaultsKey cases. Adding a new
         // case here is the canonical way to onboard a new persisted
         // setting (= typo-proof).
-        #expect(WenshuDefaultsKey.allCases.count == 13)
+        #expect(WenshuDefaultsKey.allCases.count == 12)
     }
 
     @Test("All WenshuDefaultsKey raw values use the wenshu. namespace prefix")

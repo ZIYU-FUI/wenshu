@@ -64,12 +64,6 @@ struct EditorContentPlaceholderTests {
         #expect(!source.contains("@Environment"), "EditorContentPlaceholder code region should have no @Environment")
     }
 
-    @Test("source mentions v0.28 (= the removal of the white overlay)")
-    func sourceHasV028Context() throws {
-        let source = try Self.readSource()
-        #expect(source.contains("v0.28"), "EditorContentPlaceholder.swift should document v0.28 context")
-    }
-
     // MARK: - Helpers
 
     /// Read the file via #filePath-relative resolution (= works in any

@@ -71,7 +71,8 @@ struct E2EMemoryAndLLMFlowTests {
     @MainActor
     func fullFlow() async throws {
         guard Self.liveEnabled else {
-            Issue.record("skipped (= WENSHU_LIVE_API_TESTS not set)")
+            print("[E2E] skipped (= WENSHU_LIVE_API_TESTS not set)")
+            return
             return
         }
 
@@ -181,7 +182,8 @@ struct E2EMemoryAndLLMFlowTests {
     @MainActor
     func autoTriggerResearch() async throws {
         guard Self.liveEnabled else {
-            Issue.record("skipped (= WENSHU_LIVE_API_TESTS not set)")
+            print("[E2E] skipped (= WENSHU_LIVE_API_TESTS not set)")
+            return
             return
         }
 
@@ -459,7 +461,8 @@ struct E2EMemoryAndLLMFlowTests {
     @Test("vague prompt -> LLM emits delegate_research (NOT web_search), kanban gets the row")
     func delegateResearchPath() async throws {
         guard Self.liveEnabled else {
-            Issue.record("skipped (= WENSHU_LIVE_API_TESTS not set)")
+            print("[E2E] skipped (= WENSHU_LIVE_API_TESTS not set)")
+            return
             return
         }
 

@@ -15,17 +15,44 @@ import Foundation
 @Suite("ContextEngine (ticket 003 sub-step 3)")
 struct ContextEngineTests {
 
+    @MainActor
+    private func makeInMemoryRepository() throws -> WSMemoryRepository {
+        // In-memory ModelContainer (= no SwiftData disk persistence between
+        // test runs; = empty on every invocation).
+        try WSMemoryRepository(container: WSPersistenceContainer.makeInMemoryContainer())
+    }
+
     @Test("aggregateContextForTurn returns empty bundle in sub-step 3 (= ticket 009 wires Core/Memory)")
     func testAggregateReturnsEmpty() async {
         let engine = ContextEngine()
-        let bundle = await engine.aggregateContextForTurn(bookId: nil, userMessage: "test")
+        // Provide an explicit empty MemoryManager so the test does not
+        // touch WSMemoryRepository.shared (= SwiftData persists across
+        // test runs and would surface memory entries from previous
+        // suites; = the bundle would not be empty).
+        let emptyManager = await MainActor.run {
+            let emptyRepo = try! makeInMemoryRepository()
+        return MemoryManager(memory: emptyRepo)
+        }
+        let bundle = await engine.aggregateContextForTurn(
+            bookId: nil,
+            userMessage: "test",
+            memoryManager: emptyManager
+        )
         #expect(bundle.isEmpty)
     }
 
     @Test("formatContextBundle handles empty bundle (= no system-prompt dynamic tier added)")
     func testFormatEmptyBundle() async {
         let engine = ContextEngine()
-        let bundle = await engine.aggregateContextForTurn(bookId: nil, userMessage: "test")
+        let emptyManager = await MainActor.run {
+            let emptyRepo = try! makeInMemoryRepository()
+        return MemoryManager(memory: emptyRepo)
+        }
+        let bundle = await engine.aggregateContextForTurn(
+            bookId: nil,
+            userMessage: "test",
+            memoryManager: emptyManager
+        )
         let formatted = await engine.formatContextBundle(bundle)
         #expect(formatted.isEmpty)
     }
