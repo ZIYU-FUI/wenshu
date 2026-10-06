@@ -39,7 +39,7 @@ struct ChatViewQuoteShortcutTests {
         #expect(block.contains("let lines = current.split(separator:"))
         #expect(block.contains("let quoted = lines.map"))
         #expect(block.contains("vm.inputText = quoted"))
-        #expect(block.contains("NSLog(\"[wenshu.quote]"))
+        #expect(block.contains("wenshuLogger.info(\"[wenshu.quote]"))
     }
 
     /// T102 contract: button is visually hidden.

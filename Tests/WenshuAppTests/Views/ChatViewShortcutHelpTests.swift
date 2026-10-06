@@ -35,7 +35,7 @@ struct ChatViewShortcutHelpTests {
         let blockStartIdx = src.index(src.startIndex, offsetBy: startOffset)
         let blockEndIdx = src.index(src.startIndex, offsetBy: endOffset)
         let block = String(src[blockStartIdx..<blockEndIdx])
-        #expect(block.contains("NSLog(\"[wenshu.shortcuts]"))
+        #expect(block.contains("wenshuLogger.info(\"[wenshu.shortcuts]"))
         #expect(block.contains("⌘K focus input"))
         #expect(block.contains("⌘N new chat"))
         #expect(block.contains("⌘P print"))

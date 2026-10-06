@@ -36,7 +36,7 @@ struct ChatViewHistoryShortcutTests {
         let startIdx = src.index(src.startIndex, offsetBy: startOffset)
         let endIdx = src.index(src.startIndex, offsetBy: endOffset)
         let block = String(src[startIdx..<endIdx])
-        #expect(block.contains("NSLog(\"[wenshu.history]"))
+        #expect(block.contains("wenshuLogger.info(\"[wenshu.history]"))
         #expect(block.contains("vm.messages.count"))
         #expect(block.contains("totalTokens"))
         #expect(block.contains("firstTs"))

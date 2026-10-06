@@ -34,7 +34,7 @@ struct ChatViewPrevChatShortcutTests {
         let startIdx = src.index(src.startIndex, offsetBy: startOffset)
         let endIdx = src.index(src.startIndex, offsetBy: endOffset)
         let block = String(src[startIdx..<endIdx])
-        #expect(block.contains("NSLog(\"[wenshu.chat]"))
+        #expect(block.contains("wenshuLogger.info(\"[wenshu.chat]"))
         #expect(block.contains("previous-chat requested"))
         #expect(block.contains("vm.messages.count"))
     }

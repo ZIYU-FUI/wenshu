@@ -43,7 +43,7 @@ struct ChatMessageViewElapsedTimeTests {
         let elapsedBlockStart = src.range(of: "Self.formatElapsed(elapsed)")!
         let elapsedBlockEnd = src.range(of: "}\n        }", range: elapsedBlockStart.upperBound..<src.endIndex)!.lowerBound
         let elapsedBlock = src[elapsedBlockStart.lowerBound..<elapsedBlockEnd]
-        #expect(elapsedBlock.contains(".font(.system(.caption2, design: .monospaced))"))
+        #expect(elapsedBlock.contains(".font(.caption2.monospaced())"))
         #expect(elapsedBlock.contains(".foregroundStyle(.tertiary)"))
     }
 

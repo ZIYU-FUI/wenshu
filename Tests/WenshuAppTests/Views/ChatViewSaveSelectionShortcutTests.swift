@@ -39,7 +39,7 @@ struct ChatViewSaveSelectionShortcutTests {
         #expect(block.contains("let pb = NSPasteboard.general"))
         #expect(block.contains("pb.clearContents()"))
         #expect(block.contains("pb.setString(current, forType: .string)"))
-        #expect(block.contains("NSLog(\"[wenshu.savesel]"))
+        #expect(block.contains("wenshuLogger.info(\"[wenshu.savesel]"))
     }
 
     /// T103 contract: button is visually hidden.

@@ -41,7 +41,7 @@ struct ChatViewMuteShortcutTests {
         let startIdx = src.index(src.startIndex, offsetBy: startOffset)
         let endIdx = src.index(src.startIndex, offsetBy: endOffset)
         let block = String(src[startIdx..<endIdx])
-        #expect(block.contains("NSLog(\"[wenshu.mute]"))
+        #expect(block.contains("wenshuLogger.info(\"[wenshu.mute]"))
     }
 
     /// T96 contract: button is visually hidden.

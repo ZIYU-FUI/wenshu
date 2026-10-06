@@ -36,7 +36,7 @@ struct ChatViewWordCountShortcutTests {
         let startIdx = src.index(src.startIndex, offsetBy: startOffset)
         let endIdx = src.index(src.startIndex, offsetBy: endOffset)
         let block = String(src[startIdx..<endIdx])
-        #expect(block.contains("NSLog(\"[wenshu.wordcount]"))
+        #expect(block.contains("wenshuLogger.info(\"[wenshu.wordcount]"))
         #expect(block.contains("totalWords"))
         #expect(block.contains("lastAssistantWords"))
         #expect(block.contains("split(separator: \" \")"))

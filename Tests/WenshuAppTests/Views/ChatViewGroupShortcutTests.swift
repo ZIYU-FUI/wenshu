@@ -35,7 +35,7 @@ struct ChatViewGroupShortcutTests {
         let startIdx = src.index(src.startIndex, offsetBy: startOffset)
         let endIdx = src.index(src.startIndex, offsetBy: endOffset)
         let block = String(src[startIdx..<endIdx])
-        #expect(block.contains("NSLog(\"[wenshu.group]"))
+        #expect(block.contains("wenshuLogger.info(\"[wenshu.group]"))
         #expect(block.contains("vm.messages.count"))
         #expect(block.contains("dates.count"))
     }

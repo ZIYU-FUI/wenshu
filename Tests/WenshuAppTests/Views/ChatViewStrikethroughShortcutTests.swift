@@ -39,7 +39,7 @@ struct ChatViewStrikethroughShortcutTests {
         #expect(block.contains("let current = vm.inputText"))
         #expect(block.contains("let struck = \"~~\\(current)~~\""))
         #expect(block.contains("vm.inputText = struck"))
-        #expect(block.contains("NSLog(\"[wenshu.strike]"))
+        #expect(block.contains("wenshuLogger.info(\"[wenshu.strike]"))
     }
 
     /// T95 contract: button is visually hidden.
