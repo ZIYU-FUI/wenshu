@@ -88,7 +88,8 @@ struct AnbaiqiangLiveResearch {
     @Test("anbaiqiang.ws accepts research; WebSearch → ReferenceLibrary.write real .md + library.json index")
     func fullFlow() async throws {
         guard Self.liveEnabled else {
-            Issue.record("skipped (= WENSHU_LIVE_API_TESTS not set)")
+            print("[AnbaiqiangLiveResearch] skipped (= WENSHU_LIVE_API_TESTS not set)")
+            return
             return
         }
 
