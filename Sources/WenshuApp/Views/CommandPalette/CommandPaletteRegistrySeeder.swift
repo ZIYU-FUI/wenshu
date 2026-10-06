@@ -41,6 +41,7 @@ enum CommandPaletteRegistrySeeder {
         items.append(contentsOf: hubCommandItems())
         items.append(contentsOf: subAgentItems())
         items.append(contentsOf: settingsItems())
+        items.append(contentsOf: zoneToggleItems())
         items.append(contentsOf: shortcutItems())
         await CommandPaletteRegistry.shared.registerMany(items)
     }
@@ -120,4 +121,31 @@ enum CommandPaletteRegistrySeeder {
             )
         ]
     }
+
+    // MARK: - Zone toggles (5 — synthesized from TabKind cases that have a menu binding)
+
+    /// One palette entry per TabKind case that maps to a visible zone
+    /// (= projectSidebar, projectPreview, specializedTools, aiChat,
+    /// aiDynamic). editor is omitted (= the editor is always present;
+    /// = no toggle exists for it).
+    private static func zoneToggleItems() -> [CommandPaletteItem] {
+        let zones: [(id: String, title: String, subtitle: String, action: CommandPaletteAction)] = [
+            ("palette.zone.library", "Toggle Library", "Show or hide the project sidebar (= ⌘, the Settings shortcut is separate)", .custom(name: "toggle.library")),
+            ("palette.zone.preview", "Toggle Preview", "Show or hide the reference preview zone", .custom(name: "toggle.preview")),
+            ("palette.zone.tools", "Toggle Tools", "Show or hide the specialized tools zone", .custom(name: "toggle.tools")),
+            ("palette.zone.chat", "Toggle Chat", "Show or hide the chat zone", .custom(name: "toggle.chat")),
+            ("palette.zone.dynamic", "Toggle Dynamic Zone", "Navigate to the Kanban / SubAgent progress view (= ⌥K)", .navigateTo(destination: "kanban"))
+        ]
+        return zones.map { zone in
+            CommandPaletteItem(
+                id: zone.id,
+                title: zone.title,
+                subtitle: zone.subtitle,
+                category: "command",
+                shortcutHint: nil,
+                action: zone.action
+            )
+        }
+    }
+
 }

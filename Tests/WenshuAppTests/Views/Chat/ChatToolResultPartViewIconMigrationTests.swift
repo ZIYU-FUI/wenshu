@@ -34,7 +34,7 @@ struct ChatToolResultPartViewIconMigrationTests {
     func resultStatusIconUsesSFIcon() throws {
         let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/Chat/ChatToolResultPartView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
-        #expect(content.contains("SFIcon(") && content.contains("Color(nsColor: .systemRed)"),
-                "ChatToolResultPartView result-status icon must render via SFIcon(.inlineSmall, systemRed/systemGreen)")
+        #expect(content.contains("SFIcon(") && content.contains("Color.red") && content.contains("Color.green"),
+                    "ChatToolResultPartView result-status icon must render via SFIcon(.inlineSmall, Color.red/Color.green)")
     }
 }

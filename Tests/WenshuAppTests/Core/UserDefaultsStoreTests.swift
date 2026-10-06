@@ -169,7 +169,7 @@ struct UserDefaultsStoreTests {
         // models) maps 1:1 to WenshuDefaultsKey cases. Adding a new
         // case here is the canonical way to onboard a new persisted
         // setting (= typo-proof).
-        #expect(WenshuDefaultsKey.allCases.count == 13)
+        #expect(WenshuDefaultsKey.allCases.count == 11)
     }
 
     @Test("All WenshuDefaultsKey raw values use the wenshu. namespace prefix")

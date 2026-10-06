@@ -156,11 +156,13 @@ struct RequestHelpersTests {
         #expect(body?["system"] is String)
         #expect(body?["system"] as? String == "you are helpful")
 
-        // Messages array; content is joined string (= NOT block array).
+        // Messages array; content is a block array (= per v0+ Anthropic
+        // API: each message has [{"type": "text", "text": "..."}], not
+        // a flat string).
         let messages2 = body?["messages"] as? [[String: Any]]
         #expect(messages2?.count == 2)
         #expect(messages2?[0]["role"] as? String == "user")
-        #expect(messages2?[0]["content"] is String)  // = joined string
+        #expect(messages2?[0]["content"] is [Any])  // = block array
         #expect(messages2?[1]["cache_control"] as? [String: String] != nil)  // per-msg marker preserved
     }
 
