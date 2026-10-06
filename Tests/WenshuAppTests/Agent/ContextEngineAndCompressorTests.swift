@@ -19,14 +19,24 @@ import Foundation
 @Suite("ContextEngine + ContextCompressor deep (= v0.35 ticket 003)")
 struct ContextEngineAndCompressorDeepTests {
 
+    @MainActor
+    private func makeInMemoryRepository() throws -> WSMemoryRepository {
+        try WSMemoryRepository(container: WSPersistenceContainer.makeInMemoryContainer())
+    }
+
     // MARK: - ContextEngine
 
     @Test("ContextEngine.aggregateContextForTurn: returns empty bundle by default")
     func aggregateEmptyBundle() async {
         let engine = ContextEngine()
+        let emptyManager = await MainActor.run {
+            let emptyRepo = try! makeInMemoryRepository()
+            return MemoryManager(memory: emptyRepo)
+        }
         let bundle = await engine.aggregateContextForTurn(
             bookId: "book-1",
-            userMessage: "Tell me about Alice"
+            userMessage: "Tell me about Alice",
+            memoryManager: emptyManager
         )
         #expect(bundle.isEmpty)
     }
@@ -34,11 +44,16 @@ struct ContextEngineAndCompressorDeepTests {
     @Test("ContextEngine.formatContextBundle: empty bundle returns empty string")
     func formatEmptyBundle() async {
         let engine = ContextEngine()
+        let emptyManager = await MainActor.run {
+            let emptyRepo = try! makeInMemoryRepository()
+            return MemoryManager(memory: emptyRepo)
+        }
         let bundle = await engine.aggregateContextForTurn(
             bookId: nil,
-            userMessage: "test"
+            userMessage: "test",
+            memoryManager: emptyManager
         )
-        let formatted = await await engine.formatContextBundle(bundle)
+        let formatted = await engine.formatContextBundle(bundle)
         #expect(formatted.isEmpty)
     }
 

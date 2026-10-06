@@ -20,6 +20,11 @@ import Foundation
 @Suite("ContextEngine e2e (ticket 003 sub-step 6)")
 struct ContextEngineE2ETests {
 
+    @MainActor
+    static func makeInMemoryRepository() throws -> WSMemoryRepository {
+        try WSMemoryRepository(container: WSPersistenceContainer.makeInMemoryContainer())
+    }
+
     @Test("End-to-end manual trigger compresses a long conversation history")
     func testManualTriggerE2E() async {
         let cc = ConversationCompression()
@@ -94,9 +99,19 @@ struct ContextEngineE2ETests {
 
     @Test("ContextEngine + ContextCompressor compose (= system prompt dynamic tier injection)")
     func testContextEngineComposesWithCompressor() async {
-        // 1. Aggregate context (= empty in sub-step 3, but API exists)
+        // 1. Aggregate context via an explicit empty MemoryManager so the
+        // test does not depend on the SwiftData store (= which persists
+        // across test runs; = bundle would not be empty otherwise).
         let engine = ContextEngine()
-        let bundle = await engine.aggregateContextForTurn(bookId: nil, userMessage: "test")
+        let emptyManager = await MainActor.run {
+            let emptyRepo = try! ContextEngineE2ETests.makeInMemoryRepository()
+            return MemoryManager(memory: emptyRepo)
+        }
+        let bundle = await engine.aggregateContextForTurn(
+            bookId: nil,
+            userMessage: "test",
+            memoryManager: emptyManager
+        )
         #expect(bundle.isEmpty)
 
         // 2. Format = empty string (= no system-prompt dynamic tier)
