@@ -31,7 +31,7 @@ struct ChatTextPartViewCursorTooltipTests {
     }
 
     /// T61 contract: helper uses chatview.streaming_cursor.generating key.
-    @Test func helper_uses_i18n_key() throws {
+    @Test func helper_uses_localized_key() throws {
         let src = try String(
             contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatTextPartView.swift",
             encoding: .utf8
@@ -40,7 +40,7 @@ struct ChatTextPartViewCursorTooltipTests {
     }
 
     /// T61 contract: chatview.streaming_cursor.generating exists in BOTH locales.
-    @Test func i18n_keys_in_both_locales() throws {
+    @Test func localized_key_in_both_locales() throws {
         let en = try runPlutil("Sources/WenshuApp/Resources/en.lproj/Localizable.strings")
         let zh = try runPlutil("Sources/WenshuApp/Resources/zh-Hans.lproj/Localizable.strings")
         #expect(en.contains("\"chatview.streaming_cursor.generating\""))

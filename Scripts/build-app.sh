@@ -44,13 +44,10 @@ fi
 # AppIcon (.icon Icon Composer 格式) → Contents/Resources/AppIcon.icon (CFBundleIconFile="AppIcon" 解析路径)
 cp -R "Sources/WenshuApp/Resources/AppIcon.icon" "$RES_DIR/AppIcon.icon"
 
-# v0.38 P2: copy SPM-generated i18n bundle into the .app so
-# WenshuI18n.bundle resolution finds it at runtime (= Settings tab
-# labels and other i18n catalog strings display correctly).
-# SPM may place the bundle under .build/release/, .build/debug/, or
-# .build/out/Products/{Debug,Release}/ (= multiple spellings observed
-# across SPM versions); probe the common locations then fall back to
-# a recursive find under .build.
+# SPM-generated resource bundle (= Wenshu_WenshuApp.bundle) ships
+# alongside the executable in .build/out/Products/{Debug,Release}/.
+# Probe the canonical SPM locations first, then fall back to a
+# recursive find (= SPM nesting varies across versions).
 SPM_BUNDLE_PATH=""
 for candidate in \
     ".build/release/Wenshu_WenshuApp.bundle" \
@@ -66,62 +63,19 @@ if [ -z "$SPM_BUNDLE_PATH" ]; then
     # Fallback: search anywhere under .build (in case SPM nesting changes)
     SPM_BUNDLE_PATH="$(find .build -name 'Wenshu_WenshuApp.bundle' -type d 2>/dev/null | head -1 || true)"
 fi
-# v0.40 boss 9/7 OOB '刚刚的截图, 又有好多没有正确显示多语言的值':
-# WenshuI18n.bundle (= SPM-generated, contains the Localizable.strings
-# runtime catalogs) was being FOUND by the probe loop above but
-# NEVER COPIED into the .app — only the 3rd-party SPM bundles got
-# copied (= line 75-76 explicitly skipped Wenshu_WenshuApp.bundle).
-# Result at runtime: WenshuI18n.bundle resolution falls back to the
-# source path (= sometimes fails on .app bundle with sandbox
-# restrictions) → WenshuI18n.t("...") returns the raw key path
-# (= user sees "auto.kanbanview.l146.h37..." in the UI instead of
-# the translation).
-# Fix: explicitly cp -R the wenshu bundle into the .app (= same
-# treatment as the 3rd-party bundles below, but unconditional).
 if [ -n "$SPM_BUNDLE_PATH" ]; then
     cp -R "$SPM_BUNDLE_PATH" "$RES_DIR/"
     echo ">>> copied SPM bundle: $SPM_BUNDLE_PATH -> $RES_DIR/$(basename "$SPM_BUNDLE_PATH")"
 fi
 
-# v0.94 boss 2026-09-10 OOB '多语言 key 又坏了, 反反复复出现过很我次了':
-# Wenshu_WenshuApp.bundle (= the SPM-generated resource bundle
-# for the executable target) is EMPTY at runtime — SPM's executable
-# target resource processing does not actually copy .lproj contents
-# into the resulting bundle (= only Library/library targets get the
-# auto-generated Wenshu_WenshuApp.bundle with contents; executable
-# targets get an empty bundle directory by default, even with
-# `.process("Resources")` declared in Package.swift).
-#
-# Empirical evidence (2026-09-10):
-#   $ find .build -name 'Wenshu_WenshuApp.bundle' -type d
-#   .build/out/Products/Debug/Wenshu_WenshuApp.bundle
-#   $ ls .build/.../Debug/Wenshu_WenshuApp.bundle/Contents/Resources/
-#   (empty)
-#
-# Result: WenshuI18n.bundle probe loop above finds the bundle
-# directory, copies the empty shell into the .app (= no
-# Localizable.strings), and at runtime every
-# `WenshuI18n.t("...")` lookup misses → returns the key string
-# (= user sees 'auto.kanbanview.l146.h37...' in the UI).
-#
-# Fix: copy the lproj directories DIRECTLY from the source
-# tree (= Sources/WenshuApp/Resources/{en,zh-Hans}.lproj/) into
-# the .app's Resources directory. WenshuI18n.bundle's resolver
-# chain has a Bundle.main fallback that will find
-# .app/Contents/Resources/{en,zh-Hans}.lproj/Localizable.strings
-# (= Apple-canonical .app bundle layout for localized
-# resources).
-#
-# Per developer.apple.com/documentation/swift/localizedstringresource:
-# > "Place your localized strings in language-specific .lproj
-# > subdirectories in your project. Place these directories in
-# > your app bundle, typically in the Resources directory."
-#
-# This is the canonical Apple HIG layout, and it works without
-# the SPM bundle dance (= which doesn't actually package the
-# .strings files for executable targets). It also makes the
-# .app self-contained (= the Localizable.strings travel with
-# the .app, not in a separate bundle that could be missed).
+# Apple HIG canonical layout: copy each .lproj directory
+# (= en, zh-Hans, ...) from the source tree into the .app's
+# Resources directory. Per developer.apple.com/documentation/swift/
+# localizedstringresource: localized strings live in
+# language-specific .lproj subdirectories under the app bundle's
+# Resources/. Foundation's NSLocalizedString resolves them via
+# Bundle.main + the user's preferred language (= Apple default
+# localization behavior; = no wenshu wrapper required).
 for lang_dir in "Sources/WenshuApp/Resources"/*; do
     if [ -d "$lang_dir" ] && [[ "$lang_dir" == *.lproj ]]; then
         cp -R "$lang_dir" "$RES_DIR/"
