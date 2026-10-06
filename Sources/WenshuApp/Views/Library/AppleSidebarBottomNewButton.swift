@@ -29,7 +29,7 @@ struct AppleSidebarBottomNewButton: View {
                     Text(String(localized: "sidebar.new_button.label"))
                         .font(.callout)
                 }
-                .frame(width: nil, height: DesignTokens.chromeHeight)
+                .frame(width: nil, height: DesignTokens.sidebarRowHeight)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, DesignTokens.spacingStandard)
                 .contentShape(Rectangle())

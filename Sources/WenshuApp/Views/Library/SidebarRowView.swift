@@ -91,26 +91,11 @@ struct SidebarRowView: View {
         if node.kind == .divider {
             Divider()
         } else {
-            HStack(spacing: DesignTokens.spacingTight) {
-                SFIcon(node.systemImage, style: .paneTab, color: IconColor.tint)
-                    .frame(width: DesignTokens.listRowLeadingIconColumnWidth)
-                VStack(alignment: .leading, spacing: 0) {
-                    Text(node.title)
-                        .font(.body)
-                        .lineLimit(1)
-                    if let subtitle = node.subtitle {
-                        Text(subtitle)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
-                }
-                Spacer(minLength: 4)
-            }
-            // macOS 27 standard sidebar row height (= 30 PT
-            // chrome row; = the same value the v1.67
-            // LazySidebarView used pre-MVVM-split).
-            .frame(height: DesignTokens.chromeHeight)
+            SFLabelRow(
+                title: node.title,
+                systemImage: node.systemImage,
+                subtitle: node.subtitle
+            )
         }
     }
 }

@@ -1,13 +1,13 @@
 //
 //  SidebarRowViewIconMigrationTests.swift · Wenshu · v3.0
 //
-//  Per Q112 = 1 source + 1 test per ticket. SidebarRowView
-//  row leading icon migration: the node.systemImage icon site
-//  `Image(systemName: node.systemImage).frame(width: 18)`
-//  replaced with `SFIcon(node.systemImage, style: .paneTab, color: IconColor.tint).frame(width: 18)`.
-//  The .frame(width: 18) is a layout token (= list-row leading icon
-//  column width = 18 PT = Apple HIG sidebar list row inline) and is
-//  preserved (= not an icon glyph; = outside v3.0 sweep scope).
+//  Per the per-commit 1-source-1-test rule. SidebarRowView row
+//  leading icon = the central factory's SFLabelRow surface
+//  (= Apple HIG sidebar-row purpose-built factory). Per
+//  (see OOB.md #2026-10-06) "中央工厂保留 / 按应用位置不同加工":
+//  each application position gets its own purpose-built surface.
+//  SFLabelRow is the sidebar-row surface; it internally delegates
+//  to Apple HIG Label view per Apple's recommended pattern.
 //
 
 import Foundation
@@ -29,11 +29,11 @@ struct SidebarRowViewIconMigrationTests {
                 "SidebarRowView must drop naked Image(systemName:) for the v3.0 sweep")
     }
 
-    @Test("SidebarRowView row leading icon uses SFIcon style: .paneTab + .tint")
-    func rowLeadingIconUsesSFIcon() throws {
+    @Test("SidebarRowView row uses the central SFLabelRow factory (= Apple HIG sidebar row surface)")
+    func rowUsesCentralLabelRowFactory() throws {
         let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/Library/SidebarRowView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
-        #expect(content.contains("SFIcon(node.systemImage, style: .paneTab, color: IconColor.tint)"),
-                "SidebarRowView row leading icon must render via SFIcon(.paneTab, IconColor.tint)")
+        #expect(content.contains("SFLabelRow("),
+                "SidebarRowView row must render via the central SFLabelRow factory (= Apple HIG sidebar-row surface)")
     }
 }

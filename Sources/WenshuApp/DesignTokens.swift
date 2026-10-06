@@ -38,6 +38,25 @@ enum DesignTokens {
     /// no separate wrapper).
     static let chromeHeight: CGFloat = 30
 
+    /// Apple HIG sidebar list-row height (= 22 PT). Distinct from
+    /// `chromeHeight` (= 30 PT = the canonical chrome standard used
+    /// by toolbar / pane tab / top-bar buttons); = `sidebarRowHeight`
+    /// is the per-row height of macOS List(.sidebar) inside the
+    /// sidebar column.
+    ///
+    /// Apple HIG source: `Layout > Lists > macOS sidebar row height
+    /// = 22 PT` (= the SwiftUI List(.sidebar) default; measured on
+    /// Apple Mail / Finder / Settings sidebar rows). Use this token
+    /// for every row inside a List(.sidebar) (= SidebarRowView +
+    /// the sidebar bottom action button = same row height for visual
+    /// continuity).
+    ///
+    /// Per (see OOB.md #2026-10-06): one application position =
+    /// one purpose-built token. `chromeHeight` is the chrome /
+    /// toolbar surface; `sidebarRowHeight` is the List(.sidebar)
+    /// row surface. They are different.
+    static let sidebarRowHeight: CGFloat = 22
+
     /// ZONE-INSET-002 (2026-09-07): canonical zone-content inset
     /// (= 8 PT on all 4 sides per Apple HIG) applied by
     /// ZoneContentView (= the shared chrome wrapper for sidebar /

@@ -121,4 +121,28 @@ struct IconFontMagicSweepSummaryTests {
         #expect(content.contains("case .toolbarButton"), "IconStyle must include .toolbarButton (= 32 PT)")
         #expect(content.contains("case .surface"), "IconStyle must include .surface (= 56 PT)")
     }
+
+    @Test("Round 23 — IconStyles file declares the 6 SF region view wrappers")
+    func iconStylesFileHasSFRegionWrappers() throws {
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/UI/IconStyles.swift")
+        let content = try String(contentsOf: url, encoding: .utf8)
+        #expect(content.contains("struct SFIcon"), "SFIcon central wrapper must exist")
+        #expect(content.contains("struct SFLabelRow"), "SFLabelRow sidebar-row wrapper must exist")
+        #expect(content.contains("struct SFStatusBadge"), "SFStatusBadge status-badge wrapper must exist")
+        #expect(content.contains("struct SFCardHero"), "SFCardHero card-hero wrapper must exist")
+        #expect(content.contains("struct SFToolbarButton"), "SFToolbarButton toolbar-button wrapper must exist")
+        #expect(content.contains("struct SFListRow"), "SFListRow general-list-row wrapper must exist")
+    }
+
+    @Test("Round 23 — SFRegions.md index exists (= per-region wrapper index)")
+    func sfRegionsIndexExists() throws {
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/UI/SFRegions.md")
+        let content = try String(contentsOf: url, encoding: .utf8)
+        #expect(content.contains("SFRegions"), "SFRegions.md title must exist")
+        #expect(content.contains("SFLabelRow"), "SFRegions.md must list SFLabelRow")
+        #expect(content.contains("SFStatusBadge"), "SFRegions.md must list SFStatusBadge")
+        #expect(content.contains("SFCardHero"), "SFRegions.md must list SFCardHero")
+        #expect(content.contains("SFToolbarButton"), "SFRegions.md must list SFToolbarButton")
+        #expect(content.contains("SFListRow"), "SFRegions.md must list SFListRow")
+    }
 }

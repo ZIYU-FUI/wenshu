@@ -27,6 +27,12 @@ struct DesignTokensTests {
                 "Per-pane chrome height must be 30 PT per Apple HIG (= matches Pages / Mail / Xcode toolbar)")
     }
 
+    @Test("sidebarRowHeight = 22 PT (= Apple HIG macOS List(.sidebar) default)")
+    func sidebarRowHeight() {
+        #expect(DesignTokens.sidebarRowHeight == 22,
+                "Sidebar row height must be 22 PT per Apple HIG (= matches Mail / Finder / Settings sidebar rows)")
+    }
+
     // MARK: - Apple HIG spacing tokens (= 8 PT baseline grid)
 
     @Test("zoneContentInset = 8 PT (= Apple HIG Spacing.small on all 4 sides)")
