@@ -9079,23 +9079,6 @@
         }
       }
     },
-    "spotlight.search.placeholder": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Search chapters, references, and outlines"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "搜索章节、参考、大纲"
-          }
-        }
-      }
-    },
     "subagent.empty_state": {
       "extractionState": "manual",
       "localizations": {

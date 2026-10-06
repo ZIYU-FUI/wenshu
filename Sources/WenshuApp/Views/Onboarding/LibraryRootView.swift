@@ -118,18 +118,6 @@ struct LibraryRootView: View {
     @State private var bookStore: BookStore?
     @State private var commandPaletteModel = CommandPaletteModel()
     @State private var commandPaletteVisible: Bool = false
-    // v2.8a ((see OOB.md #2026-09-28) OOB B2): Spotlight search
-    // (= the Cmd-F ⌘F keyboard binding target). Migrated to Apple
-    // HIG canonical `.searchable` (macOS 14+; = the search field
-    // renders in the toolbar at the trailing edge; = matches
-    // Apple Pages / Numbers / Finder pattern). The previous
-    // custom-sheet + TextField + List shape (= SpotlightSearchSheet,
-    // 160 lines) is replaced by `spotlightQuery` + `spotlightRows`
-    // state here (= the only true home for the search binding;
-    // = inline `SpotlightInlineResults` view renders the list
-    // below the toolbar search field).
-    @State private var spotlightQuery: String = ""
-    @State private var spotlightRows: [SpotlightOps.Row] = []
     @State private var editMode = LayoutEditMode()
     /// Apple HIG inspector visibility. Per WWDC23-10161,
     /// `.inspector(isPresented:)` takes a `Binding<Bool>` that
@@ -145,12 +133,6 @@ struct LibraryRootView: View {
     /// owning split view, so the inspector state lives on it).
     @State private var inspectorVisible: Bool = true
     @Environment(\.openSettings) private var openSettings
-    // Apple HIG canonical `.searchable` env value. True while the
-    // user is actively searching (= search field has focus +
-    // non-empty query). Per Apple docs it must be read from a
-    // child of the .searchable view (= this struct IS the
-    // .searchable view; = the environment value resolves here).
-    @Environment(\.isSearching) private var isSearching
 
     var body: some View {
         // No Group wrapper: a @ViewBuilder computed property is inlined
@@ -206,78 +188,9 @@ struct LibraryRootView: View {
             // apps). The toolbar now hosts only wenshu's own
             // chrome (= no NSV-default buttons added).
             .task(id: activeLibraryPath) { await runLaunch() }
-            // Apple HIG canonical Spotlight result overlay
-            // (= .searchable renders the toolbar field; = the
-            // overlay shows the result list when the user is
-            // actively searching). Apple HIG pattern (= Mail.app
-            // / Notes.app inline search results). Uses the
-            // `.isSearching` environment value (= read from a
-            // child of the .searchable view per Apple's
-            // constraint).
-            .overlay(alignment: .top) {
-                if isSearching {
-                    SpotlightInlineResults(
-                        rows: spotlightRows,
-                        onPick: handleSpotlightPick
-                    )
-                    .background(.regularMaterial)
-                    .clipShape(RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusWindow))
-                    .padding(DesignTokens.spacingLoose)
-                    .transition(.opacity)
-                }
-            }
             .sheet(isPresented: $commandPaletteVisible) {
                 CommandPaletteView(model: commandPaletteModel)
                     .navigationTitle(String(localized: "command_palette.title"))
-            }
-            // v2.8a ((see OOB.md #2026-09-28) OOB B2): Cmd-F ⌘F triggers
-            // the Spotlight search (= Apple HIG canonical `.searchable`
-            // pattern; = the search field renders in the trailing
-            // toolbar at the window's top edge; = matches Apple
-            // Pages / Numbers / Xcode / Finder; = no custom sheet
-            // chrome). The inline `SpotlightInlineResults` view
-            // (= the toolbar search field + an empty-state or
-            // result list below it) replaces the previous 160-line
-            // SpotlightSearchSheet.swift. The Cmd-F ⌘F shortcut is
-            // preserved via the same hidden-activation Button +
-            // .keyboardShortcut pattern (= Apple HIG canonical
-            // way to route a keyboard shortcut through a SwiftUI
-            // view without a visible chrome element; = matches
-            // Mail / Finder).
-            .searchable(
-                text: $spotlightQuery,
-                placement: .toolbar,
-                prompt: String(localized: "spotlight.search.placeholder")
-            )
-            .onChange(of: spotlightQuery) { _, newValue in
-                Task { await runSpotlightSearch(query: newValue) }
-            }
-            .background(
-                // Hidden activation button (= .frame(width: 0, height: 0) +
-                // .opacity(0) + .accessibilityHidden(true) = the canonical
-                // Apple HIG pattern for routing keyboard shortcuts through
-                // a SwiftUI view without a visible chrome element).
-                Button("") { /* focus on toolbar search via Cmd-F */
-                    // No-op (= .searchable renders the field; = Cmd-F
-                    // routes the focus through SwiftUI's own
-                    // keyboardShortcut plumbing; = the hidden button
-                    // is just here so the .keyboardShortcut modifier
-                    // has a target to attach to. The actual focus
-                    // jump is handled by SwiftUI's standard Cmd-F
-                    // search behavior).
-                }
-                .keyboardShortcut("f", modifiers: .command)
-                .frame(width: 0, height: 0)
-                .opacity(0)
-                .accessibilityHidden(true)
-            )
-            .onReceive(NotificationCenter.default.publisher(for: .wenshuShowCommandPalette)) { _ in
-                commandPaletteVisible = true
-                commandPaletteModel.show()
-            }
-            .layoutEditHotkey(editMode)
-            .onReceive(NotificationCenter.default.publisher(for: .wenshuToggleEditMode)) { _ in
-                editMode.toggle()
             }
             .onAppear {
                 WenshuAppDelegate.openSettings = openSettings
@@ -436,56 +349,6 @@ struct LibraryRootView: View {
             // on the loading spinner (= the symptom reported during
             // the 2026-09-10 audit).
             wenshuLogger.info("[wenshu.library.lifecycle] runLaunch failed: \(String(describing: error))")
-        }
-    }
-
-    /// v2.8a ((see OOB.md #2026-09-28) OOB B2): handle a Spotlight result
-    /// pick. Currently the dispatcher is a stub (= logs the docId
-    /// + dismisses the sheet); = future tickets can wire this to
-    /// chapter / reference / outline navigation once the
-    /// search-index pipeline is feeding real docs into the
-    /// CSSearchableIndexSearch actor (= §11.7 LLM Wiki pipeline;
-    /// = see v2.8d ticket cluster).
-    private func runSpotlightSearch(query: String) async {
-        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        if trimmed.isEmpty {
-            spotlightRows = []
-            return
-        }
-        spotlightRows = await SpotlightOps.search(query: trimmed)
-    }
-
-    private func handleSpotlightPick(docId: String) {
-        wenshuLogger.info("[wenshu.spotlight] pick docId=\(docId)")
-
-        // v2.9d T35 ((see OOB.md #2026-09-28) OOB A8 polish): the
-        // editor tab title now uses the mirror entry's title
-        // (= falls back to the docId when the mirror has no
-        // entry); = the canonical user-facing label per
-        // AGENTS.md §11 baseline.
-        //
-        // Pattern mirrors the v2.9a jump-to-source path
-        // (= openTabs.append + activeTabId), = now uses
-        // CSSearchableIndexSearch.shared.title(forDocId:)
-        // instead of the raw docId.
-        Task {
-            let title = await CSSearchableIndexSearch.shared.title(forDocId: docId)
-            await MainActor.run {
-                if !appState.openTabs.contains(where: { $0.documentPath == docId }) {
-                    let newTab = EditorTab(
-                        id: UUID(),
-                        documentPath: docId,
-                        draft: "",
-                        originalBody: "",
-                        mode: .preview,
-                        title: title
-                    )
-                    appState.openTabs.append(newTab)
-                    appState.activeTabId = newTab.id
-                } else if let existing = appState.openTabs.first(where: { $0.documentPath == docId }) {
-                    appState.activeTabId = existing.id
-                }
-            }
         }
     }
 }
