@@ -57,6 +57,15 @@ enum WindowID {
     static let attachments = "wenshu-attachments"
     static let manifest = "wenshu-manifest"
     static let summaries = "wenshu-summaries"
+    // SwiftData library upgrade panel window (= boss OOB 2026-10-06
+    // FCP-style upgrade arc). Single-instance Window (= macOS
+    // HIG canonical for panels; = the user can't open duplicates
+    // and clicking the open trigger while the window is already
+    // shown brings it to front). The window uses
+    // .windowStyle(.hiddenTitleBar) (= 0 traffic lights; = user
+    // cannot use the system close button to bypass the upgrade =
+    // must walk through the panel's 重试 / 退出 button path).
+    static let libraryMigration = "wenshu-library-migration"
 }
 
 struct AppRootScene: Scene {
@@ -513,5 +522,63 @@ struct AppRootScene: Scene {
         }
         .windowResizability(.contentSize)
         .windowToolbarStyle(.unified)
+        // SwiftData library upgrade panel (= boss OOB 2026-10-06
+        // FCP-style upgrade arc + macOS system-upgrade-style UX).
+        // The panel is mounted on demand from
+        // WenshuAppDelegate.applicationDidFinishLaunching when
+        // LibraryInfo.needsMigration is true (= the user's
+        // .ws WSSchemaVersion is below ModelsSchemaV2's version).
+        // Single-instance Window (= the user can't open multiple
+        // upgrade panels; = tapping the open trigger while the
+        // window is already shown brings it to front, which is the
+        // macOS HIG canonical behavior for utility panels).
+        //
+        // .windowStyle(.hiddenTitleBar) (= no traffic lights; =
+        // no Cmd-W close; = the only path to leave the panel is
+        // the in-panel 重试 or 退出 buttons; = matches the
+        // macOS system upgrade window where the user is
+        // committed to the in-progress flow until it succeeds or
+        // fails terminally). .windowToolbarStyle(.unified,
+        // showsTitle: false) is paired because hiddenTitleBar
+        // still shows a title slot by default; = both modifiers
+        // together guarantee a 0-chrome panel.
+        //
+        // The Window content takes a single @Bindable LibraryMigrationState
+        // (= 003 ticket). WenshuAppDelegate constructs the state
+        // before opening the window and stashes it on itself
+        // (= AppDelegate.sharedMigrationState); = the panel reads
+        // it via a static accessor (= the Window content closure
+        // is a Scene-level static body that can't take constructor
+        // arguments from outside).
+        Window(String(localized: "library.migration.title"), id: WindowID.libraryMigration) {
+            if let state = WenshuAppDelegate.sharedMigrationState {
+                LibraryMigrationPanel(
+                    state: state,
+                    onRetry: {
+                        // Re-run the migration. WenshuAppDelegate
+                        // owns the closure that drives the
+                        // prepare / execute / finalize pipeline.
+                        WenshuAppDelegate.sharedMigrationRetry?()
+                    },
+                    onExit: {
+                        // Clean termination of the upgrade flow
+                        // (= the user pressed 退出; = matches the
+                        // panel's "no escape except 重试 or 退出"
+                        // contract from boss OOB 2026-10-06).
+                        NSApp.terminate(nil)
+                    }
+                )
+            } else {
+                // Defensive placeholder. The Window body only renders
+                // when WenshuAppDelegate has populated sharedMigrationState;
+                // = if the panel opens out of order (= a future
+                // ticket calls openWindow without setting the state
+                // first), the user sees a non-crashing empty panel
+                // instead of a fatalError.
+                EmptyView()
+            }
+        }
+        .windowStyle(.hiddenTitleBar)
+        .windowResizability(.contentSize)
     }
 }
