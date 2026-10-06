@@ -588,16 +588,33 @@ Group {
             }
 
             VStack(spacing: DesignTokens.spacingModerate) {
-                // wenshu-verification-fix: 2 buttons (= open / import) match the
-            // macOS standard 'New' / 'Open' save panel pattern (= the
-            // '.ws' extension and 'Final Cut Pro' library picker are
-            // not shown to the user). The primary button label uses
-            // 'Open' (= the macOS HIG standard; = not a custom label).
+                // macOS HIG standard: the primary 'New' action (= create
+                // a new Wenshu library) sits above the secondary 'Open'
+                // action. Both buttons render via Apple's
+                // `Label(_, systemImage:)` initializer (= .hermes.md
+                // exception #4 explicitly permits this site for
+                // `.systemName` strings). Using `Label(_, systemImage:)`
+                // delegates icon color management to SwiftUI's button
+                // styling (= .borderedProminent swaps the foreground
+                // to white for contrast against the accent background;
+                // = .bordered keeps the tint color visible against
+                // the gray background). The earlier `Label { Text }
+                // icon: { SFIcon(..., color: IconColor.tint) }` form
+                // locked the icon color to the SwiftUI environment
+                // tint, which SwiftUI then surfaced as the same accent
+                // blue as the prominent button's background (= the
+                // icon vanished against its own button).
+                //
+                // Do NOT wrap the label in a fixed-size
+                // .frame(width:height:) — that previously clipped the
+                // icon + text out of the prominent button entirely.
                 Button {
                     isImporterPresented = true
                 } label: {
-                    Label { Text(String(localized: "auto2.libraryrootview.l387.h40947105")) } icon: { SFIcon("document.badge.plus", style: .inlineSmall, color: IconColor.tint) }
-                        .frame(width: DesignTokens.bannerInlineSize.width, height: DesignTokens.bannerInlineSize.height)
+                    Label(
+                        String(localized: "auto2.libraryrootview.l387.h40947105"),
+                        systemImage: "document.badge.plus"
+                    )
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
@@ -605,8 +622,10 @@ Group {
                 Button {
                     isImporterPresented = true
                 } label: {
-                    Label { Text(String(localized: "auto2.libraryrootview.l396.h53178210")) } icon: { SFIcon("folder", style: .inlineSmall, color: IconColor.tint) }
-                        .frame(width: DesignTokens.bannerInlineSize.width, height: DesignTokens.bannerInlineSize.height)
+                    Label(
+                        String(localized: "auto2.libraryrootview.l396.h53178210"),
+                        systemImage: "folder"
+                    )
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.large)
