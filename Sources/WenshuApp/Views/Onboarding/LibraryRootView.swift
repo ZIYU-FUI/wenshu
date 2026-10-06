@@ -133,6 +133,7 @@ struct LibraryRootView: View {
     /// owning split view, so the inspector state lives on it).
     @State private var inspectorVisible: Bool = true
     @Environment(\.openSettings) private var openSettings
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         // No Group wrapper: a @ViewBuilder computed property is inlined
@@ -194,12 +195,36 @@ struct LibraryRootView: View {
             }
             .onAppear {
                 WenshuAppDelegate.openSettings = openSettings
+                // SwiftData library upgrade wiring (= boss OOB
+                // 2026-10-06). WenshuAppDelegate owns the static
+                // bridge slots for the migration panel (= the
+                // AppState reference + the OpenWindow action).
+                // AppRootScene has no constructor argument path to
+                // AppState (= the App-level body constructs it via
+                // @State); = LibraryRootView reads AppState via
+                // @Environment and forwards it to the AppDelegate
+                // here. Same pattern as openSettings = one bridge,
+                // one assignment.
+                WenshuAppDelegate.sharedAppState = appState
+                WenshuAppDelegate.openWindowAction = openWindow
             }
     }
 
     @ViewBuilder
     private var content: some View {
-        if shouldShowOnboarding {
+        if appState.migrationInFlight {
+            // SwiftData library upgrade in progress (= boss OOB
+            // 2026-10-06). Render an empty view here so the main
+            // window does not mount the NavigationSplitView (= the
+            // SwiftData ModelContainer is being migrated by the
+            // pipeline running behind the LibraryMigrationPanel).
+            // The user sees the panel only (= no main app chrome
+            // = no half-migrated state visible in the columns).
+            // The panel's Window has .windowStyle(.hiddenTitleBar)
+            // so the user cannot close the panel from the system
+            // chrome (= must walk through 重试 or 退出).
+            EmptyView()
+        } else if shouldShowOnboarding {
             LibraryOnboardingView(onLibraryPicked: { url in
                 // Persist the user's selection in two parts:
                 // 1. 'wenshu.libraryPath' string (= the existing source

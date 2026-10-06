@@ -35,6 +35,24 @@ final class AppState {
     /// the active-focused column's search field renders visible.
     var searchText: String = ""
 
+    /// SwiftData library upgrade in flight. True while
+    /// LibraryMigrationPanel is shown (= boss OOB 2026-10-06 on
+    /// the FCP-style upgrade arc; = macOS system upgrade UX with
+    /// visible progress + retry + auto-exit on 3 failures).
+    /// LibraryRootView reads this flag (= renders an empty view
+    /// when true) so the main app does not mount its NavigationSplitView
+    /// before the migration finishes (= the SwiftData ModelContainer
+    /// init that runs behind the panel would otherwise expose half-
+    /// migrated state to the columns).
+    ///
+    /// Bridge (= single owner): WenshuAppDelegate.applicationDidFinishLaunching
+    /// sets this to true after detecting needsMigration and
+    /// opening the panel window; = the panel's complete() / fail() +
+    /// resetForRetry() callbacks clear it (= along with the
+    /// completion path that flips the AppState flag when the user
+    /// presses 退出 so the app exits cleanly).
+    var migrationInFlight: Bool = false
+
     // open document tabs in the editor zone. Each tab = one
     // open document (= independent draft, mode, auto-save task,
     // file watcher). activeTabId identifies the currently focused
