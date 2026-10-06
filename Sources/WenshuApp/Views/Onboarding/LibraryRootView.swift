@@ -471,6 +471,25 @@ Group {
                 // Do NOT wrap the label in a fixed-size
                 // .frame(width:height:) — that previously clipped the
                 // icon + text out of the prominent button entirely.
+                // Per (see OOB.md #2026-10-06) macOS 27 Liquid
+                // Glass canonical form: use SwiftUI's `Button` with
+                // `.buttonStyle(.glassProminent / .glass)` (= SwiftUI
+                // internally wraps NSButton + sets bezelStyle +
+                // borderShape = .capsule automatically when
+                // .controlSize(.large) is in effect; = the canonical
+                // 'large → capsule shape' path documented in
+                // WWDC25-310 'Build an AppKit app with the new
+                // design'). The wenshu GlassTextButton NSViewRepresentable
+                // (= used in earlier commits) bypassed this path and
+                // rendered the NSButton's default rectangular border
+                // shape; = the SwiftUI wrapper is the right one.
+                //
+                // The icon is a SF Symbol passed via
+                // Label(_, systemImage:) (= .hermes.md exception #4).
+                // The system foreground tint = SwiftUI picks the
+                // contrast color per button style (= .glassProminent =
+                // white on accent; = .glass = tint on transparent
+                // glass; = no manual color tuning needed).
                 Button {
                     isImporterPresented = true
                 } label: {
@@ -479,7 +498,7 @@ Group {
                         systemImage: "document.badge.plus"
                     )
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.glassProminent)
                 .controlSize(.large)
 
                 Button {
@@ -490,7 +509,7 @@ Group {
                         systemImage: "folder"
                     )
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.glass)
                 .controlSize(.large)
 
                 Text(String(localized: "onboarding.library.new_vs_open"))
