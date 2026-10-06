@@ -145,6 +145,7 @@ struct CardOpenOpsTests {
         // should produce an OpenCardResult with openedTabId=nil +
         // didSwitchExistingTab=false + contentLength=0.
         let appState = AppState()
+        appState.openTabs = []
         let triad = CardOpenOps.CardTriad(path: nil, content: "", title: "")
         let result = CardOpenOps.openTab(
             triad: triad,
@@ -161,6 +162,7 @@ struct CardOpenOpsTests {
     @Test("openTab returns silent no-op for shelf-scope empty triad")
     func openTabReturnsSilentNoOpForShelfScopeTriad() {
         let appState = AppState()
+        appState.openTabs = []
         let triad = CardOpenOps.computeCardTriad(
             source: nil,
             previewScope: .shelfScope(shelfId: UUID()),
@@ -183,6 +185,7 @@ struct CardOpenOpsTests {
         // a hypothetical 'Dufu' reference). The helper should
         // append a new tab + set activeTabId.
         let appState = AppState()
+        appState.openTabs = []
         let triad = CardOpenOps.CardTriad(
             path: nil,
             content: String(repeating: "a", count: 300),  // > 200 chars to fill fingerprint
@@ -205,6 +208,11 @@ struct CardOpenOpsTests {
     @Test("openTab returns didSwitchExistingTab=true when fingerprint matches an existing tab")
     func openTabSwitchesExistingTabForDuplicateFingerprint() {
         let appState = AppState()
+        appState.openTabs = []
+        // Reset persisted tabs from prior test runs (= Swift Testing
+        // shares one process + one UserDefaults suite; = other tests
+        // in this run may have left tabs persisted).
+        appState.openTabs = []
         let content = String(repeating: "b", count: 300)
         let firstTriad = CardOpenOps.CardTriad(
             path: nil,
@@ -242,12 +250,8 @@ struct CardOpenOpsTests {
 
     @Test("openTab honours the caller's mode parameter (= .edit for ShellMiddleColumn)")
     func openTabHonoursCallerModeParameter() {
-        // ShellMiddleColumn passes `mode: .edit` (= the
-        // WenshuMarkdownEditor editable NSTextView from the
-        // start; = boss 2026-09-12 directive). Verify the helper
-        // honours the caller's mode instead of hard-coding
-        // `.preview`.
         let appState = AppState()
+        appState.openTabs = []
         let triad = CardOpenOps.CardTriad(
             path: nil,
             content: String(repeating: "c", count: 300),
