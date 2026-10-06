@@ -56,10 +56,30 @@ import os.log
 
 private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "container")
 
+/// SchemaMigrationPlan driving the per-version evolution of the wenshu
+/// SwiftData store. Lives at the top of Container.swift (= close to the
+/// schema namespace it migrates). Lightweight between V1 and V2 today
+/// (= both schemas hold the same 22 @Model class set; = no breaking
+/// delta). When a real schema delta ships (= new field, renamed entity,
+/// deleted field), the V1toV2 stage body changes to a custom MigrationStage
+/// (= with willMigrate + didMigrate) while the plan skeleton stays.
+enum WenshuMigrationPlan: SchemaMigrationPlan {
+    static var schemas: [any VersionedSchema.Type] {
+        [ModelsSchemaV1.self, ModelsSchemaV2.self]
+    }
+    static var stages: [MigrationStage] {
+        [.lightweight(fromVersion: ModelsSchemaV1.self, toVersion: ModelsSchemaV2.self)]
+    }
+}
+
 /// Singleton ModelContainer (= held by AppState).
 /// Initialization is lazy (= defer until first access).
 enum WSPersistenceContainer {
-    /// Schema listing all 22 @Model classes (= generated below)
+    /// Schema listing all 22 @Model classes (= generated below).
+    /// Kept for backward compatibility (= callers that need a plain
+    /// Schema without a plan still reach for this). The plan-aware
+    /// ModelContainer init below builds its own Schema from
+    /// ModelsSchemaV1.models.
     static let schema = Schema([
         // Tier 1: leaf entities (= no relationships)
         WSManifest.self,
@@ -111,7 +131,17 @@ enum WSPersistenceContainer {
             cloudKitDatabase: .none
         )
         do {
-            return try ModelContainer(for: schema, configurations: [config])
+            // Plan-aware init: SwiftData runs WenshuMigrationPlan
+            // (= .lightweight V1 -> V2 today) automatically when the
+            // on-disk store is at an older schema version. The plan's
+            // schema namespace is built from ModelsSchemaV1.models (= the
+            // current 22 @Model class set).
+            let schemaV1 = Schema(ModelsSchemaV1.models)
+            return try ModelContainer(
+                for: schemaV1,
+                migrationPlan: WenshuMigrationPlan.self,
+                configurations: [config]
+            )
         } catch {
             // Last-resort fallback (= in-memory only; = no disk side effects).
             // App still launches; = user can reset and re-onboard via Library Properties.
@@ -130,9 +160,17 @@ enum WSPersistenceContainer {
                     // silently launches a non-functional SwiftData stack.
                     // Preserve as fatalError (= the only remaining P2-01
                     // site) because there is no graceful degradation here.
+                    // The message is Chinese (= user-facing; = the boss
+                    // OOB on 2026-10-06 chose 'user-experience-first' for
+                    // the SwiftData upgrade arc; = a user who reads a fatal
+                    // message deserves to read it in their own language).
+                    // For the warehouse path (= the common case where the
+                    // user picked a .ws library), the same failure also
+                    // lands at makeContainer(at:) in this file (= the
+                    // warehouse-aware fatalError path; = see 004 ticket).
                     os.Logger(subsystem: "com.wenshu.app", category: "persistence")
-                        .error("[wenshu.persistence] FATAL: SwiftData runtime broken and in-memory fallback failed = \(String(describing: error), privacy: .public). Wenshu cannot continue.")
-                    fatalError("SwiftData runtime is broken: \(error). Wenshu cannot continue.")
+                        .error("[wenshu.persistence] FATAL: SwiftData 启动失败且内存兜底也失败 (\(String(describing: error), privacy: .public)). 文枢无法继续运行。请在「设置 → 文枢库属性 → 重置库」中恢复，或联系支持。")
+                    fatalError("文枢 SwiftData 启动失败且内存兜底也失败：\(error)。请在「设置 → 文枢库属性 → 重置库」中恢复，或联系支持。")
                 }
             }
         }
@@ -143,7 +181,12 @@ enum WSPersistenceContainer {
     @MainActor
     static func makeInMemoryContainer() throws -> ModelContainer {
         let config = ModelConfiguration(isStoredInMemoryOnly: true)
-        return try ModelContainer(for: schema, configurations: [config])
+        let schemaV1 = Schema(ModelsSchemaV1.models)
+        return try ModelContainer(
+            for: schemaV1,
+            migrationPlan: WenshuMigrationPlan.self,
+            configurations: [config]
+        )
     }
 
     /// Active warehouse container (= set by AppDelegate at launch time).
