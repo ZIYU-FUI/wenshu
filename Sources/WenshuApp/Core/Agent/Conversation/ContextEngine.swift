@@ -142,11 +142,6 @@ actor ContextEngine {
     /// This removes the last production `MemoryStore` instantiation
     /// (= `MemoryStore.swift` deletion is gated on the phase 3
     /// deferred `MemoryProvider` + `WenshuConductor` migration).
-    private static func makeDefaultMemoryManager() async -> MemoryManager {
-        // Empty `MemoryManager` (= no args = default = nil store = uses
-        // `WSMemoryRepository.shared`).
-        return MemoryManager()
-    }
 
     /// Aggregate context for one conversation turn
     /// (= hermes context_engine.aggregate_context entry).
@@ -155,11 +150,21 @@ actor ContextEngine {
     /// - ephemeral hint (per-turn, not cacheable)
     /// - cacheable references (character / world / foreshadow)
     /// - per-turn memos (memory subsystem)
+    ///
+    /// Implementation note: `MemoryManager()` init body uses
+    /// `MainActor.assumeIsolated { WSMemoryRepository.shared }`;
+    /// = the actor context where this method runs is NOT MainActor;
+    /// = the `assumeIsolated` call would crash the process (= Swift
+    /// runtime TRAP). We bridge to MainActor with `MainActor.run`
+    /// so the `MemoryManager` init runs on the MainActor (= where
+    /// `WSMemoryRepository.shared` is valid).
     func aggregateContextForTurn(
         bookId: String?,
         userMessage: String
     ) async -> ContextBundle {
-        let manager = await Self.makeDefaultMemoryManager()
+        let manager = await MainActor.run {
+            MemoryManager()
+        }
         return await aggregateContextForTurn(
             bookId: bookId,
             userMessage: userMessage,

@@ -17,6 +17,7 @@ struct WSMemoryProviderTests {
     }
 
     @Test("WSMemoryProvider init sets slug + isEnabled")
+    @MainActor
     func initDefaults() {
         let provider = WSMemoryProvider()
         #expect(provider.slug == "swiftdata-memory")
@@ -24,6 +25,7 @@ struct WSMemoryProviderTests {
     }
 
     @Test("WSMemoryProvider conforms to MemoryProvider protocol")
+    @MainActor
     func conformsToProtocol() {
         let provider: MemoryProvider = WSMemoryProvider()
         #expect(provider.slug == "swiftdata-memory")
@@ -59,12 +61,14 @@ struct WSMemoryProviderTests {
     }
 
     @Test("preCompressCheckpoint returns nil when mirror empty")
+    @MainActor
     func preCompressEmpty() {
         let provider = WSMemoryProvider()
         #expect(provider.preCompressCheckpoint() == nil)
     }
 
     @Test("getToolSchemas returns 3 schemas (= memory_add, memory_search, memory_get_recent)")
+    @MainActor
     func toolSchemas() {
         let provider = WSMemoryProvider()
         let schemas = provider.getToolSchemas()
@@ -76,6 +80,7 @@ struct WSMemoryProviderTests {
     }
 
     @Test("resetCache clears in-memory state")
+    @MainActor
     func resetCache() {
         let provider = WSMemoryProvider()
         provider.resetCache()
