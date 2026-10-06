@@ -16,37 +16,31 @@ import Foundation
 struct PlanModeI18nTests {
 
     private func readStrings(at path: String) -> [String: String] {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/plutil")
-        process.arguments = ["-p", path]
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = Pipe()  // discard stderr
-        do {
-            try process.run()
-        } catch {
+        // Apple canonical source of truth: Localizable.xcstrings
+        // (Xcode 15+ String Catalog format). The path parameter
+        // is preserved for caller compatibility (= existing tests
+        // pass per-locale paths like ".../en.lproj/Localizable.strings"
+        // for documentation); the helper detects the locale from
+        // the path suffix and reads the .xcstrings JSON once.
+        let lang: String
+        if path.contains("zh-Hans.lproj") {
+            lang = "zh-Hans"
+        } else if path.contains("en.lproj") {
+            lang = "en"
+        } else {
             return [:]
         }
-        process.waitUntilExit()
-        guard process.terminationStatus == 0 else { return [:] }
-        let raw = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-        // plutil -p output: "key" => "value" lines (= one per entry).
-        // = parse them into a dictionary. Quoted values may contain
-        // escaped quotes (= the standard plutil format).
+        let xcstringsPath = "Sources/WenshuApp/Resources/Localizable.xcstrings"
+        guard let data = try? Data(contentsOf: URL(fileURLWithPath: xcstringsPath)) else { return [:] }
+        guard let catalog = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return [:] }
+        guard let strings = catalog["strings"] as? [String: [String: Any]] else { return [:] }
         var dict: [String: String] = [:]
-        let pattern = try? NSRegularExpression(
-            pattern: "^\\s*\"((?:[^\"\\\\]|\\\\.)*)\"\\s*=>\\s*\"((?:[^\"\\\\]|\\\\.)*)\"",
-            options: [.anchorsMatchLines]
-        )
-        let range = NSRange(raw.startIndex..<raw.endIndex, in: raw)
-        pattern?.enumerateMatches(in: raw, options: [], range: range) { match, _, _ in
-            guard let m = match,
-                  m.numberOfRanges == 3 else { return }
-            guard let keyRange = Range(m.range(at: 1), in: raw),
-                  let valRange = Range(m.range(at: 2), in: raw) else { return }
-            let key = raw[keyRange]
-            let val = raw[valRange]
-            dict[String(key)] = String(val)
+        for (key, entry) in strings {
+            guard let localizations = entry["localizations"] as? [String: Any] else { continue }
+            guard let loc = localizations[lang] as? [String: Any] else { continue }
+            guard let unit = loc["stringUnit"] as? [String: Any] else { continue }
+            guard let value = unit["value"] as? String else { continue }
+            dict[key] = value
         }
         return dict
     }

@@ -69,17 +69,33 @@ struct ChatTextPartViewCursorTooltipTests {
     }
 
     private func runPlutil(_ path: String) throws -> String {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/plutil")
-        process.arguments = ["-p", path]
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = Pipe()
-        try process.run()
-        process.waitUntilExit()
-        guard process.terminationStatus == 0 else {
-            throw NSError(domain: "Plutil", code: Int(process.terminationStatus))
+        // Apple canonical source of truth: Localizable.xcstrings
+        // (Xcode 15+ String Catalog format). Produce a plutil -p
+        // style "key" => "value" output (= the format the
+        // existing contains() assertions match on). The path
+        // argument is preserved for caller compatibility; the
+        // helper detects the locale from the path suffix.
+        let lang: String
+        if path.contains("zh-Hans.lproj") {
+            lang = "zh-Hans"
+        } else if path.contains("en.lproj") {
+            lang = "en"
+        } else {
+            return ""
         }
-        return String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+        let xcstringsPath = "Sources/WenshuApp/Resources/Localizable.xcstrings"
+        let data = try Data(contentsOf: URL(fileURLWithPath: xcstringsPath))
+        guard let catalog = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let strings = catalog["strings"] as? [String: [String: Any]] else { return "" }
+        var out = "{\n"
+        for (key, entry) in strings.sorted(by: { $0.key < $1.key }) {
+            guard let localizations = entry["localizations"] as? [String: Any],
+                  let loc = localizations[lang] as? [String: Any],
+                  let unit = loc["stringUnit"] as? [String: Any],
+                  let value = unit["value"] as? String else { continue }
+            out += "  \"\(key)\" => \"\(value)\"\n"
+        }
+        out += "}"
+        return out
     }
 }

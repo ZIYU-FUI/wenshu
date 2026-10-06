@@ -74,18 +74,18 @@ swift_build() {
 # the user launches). Copies:
 #   - The executable (Contents/MacOS/WenshuApp)
 #   - The SPM module bundle with all resources (= .lproj
-#     Localizable.strings, AppIcon.icon, entitlements, etc.)
-#   - The Info.plist + InfoPlist.strings (= Apple canonical
-#     bundle metadata; localized per system language)
+#     Localizable.strings + InfoPlist.strings from SPM's
+#     Localizable.xcstrings compile, AppIcon.icon, entitlements, etc.)
+#   - The Info.plist (= Apple canonical bundle metadata)
 #
 # Note: the .app bundle layout follows macOS conventions:
 #   Contents/
 #     Info.plist                   (= bundle metadata)
 #     MacOS/WenshuApp              (= executable)
 #     Resources/                   (= bundle resources)
-#       en.lproj/Localizable.strings
+#       en.lproj/Localizable.strings  (= from SPM .xcstrings compile)
 #       zh-Hans.lproj/Localizable.strings
-#       en.lproj/InfoPlist.strings
+#       en.lproj/InfoPlist.strings    (= from source; already UTF-16)
 #       zh-Hans.lproj/InfoPlist.strings
 #       Wenshu_WenshuApp.bundle/   (= SPM module bundle)
 copy_to_app_bundle() {
@@ -97,10 +97,17 @@ copy_to_app_bundle() {
 
     cp "$PROJECT_ROOT/.build/debug/WenshuApp" "$APP/Contents/MacOS/WenshuApp"
     cp "$PROJECT_ROOT/Sources/WenshuApp/Resources/Info.plist" "$APP/Contents/Info.plist"
-    cp "$PROJECT_ROOT/Sources/WenshuApp/Resources/en.lproj/Localizable.strings" "$APP/Contents/Resources/en.lproj/"
-    cp "$PROJECT_ROOT/Sources/WenshuApp/Resources/zh-Hans.lproj/Localizable.strings" "$APP/Contents/Resources/zh-Hans.lproj/"
+    # InfoPlist.strings (= localized CFBundleDisplayName etc.)
+    # lives in source (= already UTF-16 LE BOM, Apple canonical).
     cp "$PROJECT_ROOT/Sources/WenshuApp/Resources/en.lproj/InfoPlist.strings" "$APP/Contents/Resources/en.lproj/"
     cp "$PROJECT_ROOT/Sources/WenshuApp/Resources/zh-Hans.lproj/InfoPlist.strings" "$APP/Contents/Resources/zh-Hans.lproj/"
+    # Localizable.strings arrives via the SPM module bundle below
+    # (= SPM 6.4 compiles Localizable.xcstrings into the bundle at
+    # swift-build time; = the source tree's per-locale Localizable.strings
+    # are excluded from the SPM target and are no longer the source
+    # of truth). The copy loop in Scripts/build-app.sh skips the
+    # source-tree .lproj for the same reason.
+
 
     # Copy SPM module bundle (= Wenshu_WenshuApp.bundle has the
     # en.lproj/zh-Hans.lproj Localizable.strings + all third-party
@@ -123,7 +130,6 @@ case "$ACTION" in
         copy_to_app_bundle
         ;;
     all)
-        convert_strings
         swift_build
         copy_to_app_bundle
         ;;

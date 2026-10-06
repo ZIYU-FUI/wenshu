@@ -123,16 +123,32 @@ let package = Package(
                 // (= no #fileLiteral resource access at runtime).
                 "Core/Agent/Conversation/AgentLifecycleTrackerDesign.md",
                 "UI/ComponentIndex.md",
+                // Per-region view wrapper design docs (= humans + LLMs,
+                // not Swift compiler; = no runtime Bundle access).
+                "UI/SFRegions.md",
+                // Localizable.strings inside each .lproj/. The single
+                // source of truth is Localizable.xcstrings; SPM 6.4
+                // compiles it into per-locale Localizable.strings
+                // inside Wenshu_WenshuApp.bundle at swift-build time
+                // (= Apple's String Catalog native support). Excluding
+                // these from the SPM target prevents the 'Multiple
+                // commands produce ...' duplicate-output error when
+                // SPM processes both the source .lproj/Localizable.strings
+                // AND the .xcstrings-derived equivalent. The .lproj/
+                // directory itself is still processed (= InfoPlist.strings
+                // for localized CFBundleDisplayName etc. ships as a
+                // normal SPM resource).
+                "Resources/en.lproj/Localizable.strings",
+                "Resources/zh-Hans.lproj/Localizable.strings",
             ],
-            // v0.38 ticket P2 (= Apple-standard i18n per boss OOB):
-            // .process("Resources") ships en.lproj/Localizable.strings +
-            // zh-Hans.lproj/Localizable.strings (= Apple canonical
-            // NSLocalizedString table) + entitlements (= macOS app sandbox
-            // signing artifact; .process copies verbatim). The
-            // Info.plist + AppIcon.icon are excluded above because they
-            // are NOT regular resources (= Info.plist is the macOS bundle
-            // descriptor, AppIcon.icon is an icns container that the
-            // build script extracts separately).
+            // Per (see OOB.md #2026-10-06): single source of truth is
+            // Localizable.xcstrings (= Apple Xcode 15+ String Catalog
+            // format; = JSON; = git-tracked; = edited in Xcode's String
+            // Catalog editor). SPM .process("Resources") ships the
+            // .xcstrings file verbatim; the build pipeline (= Tools/build-wenshu.sh
+            // + Scripts/build-app.sh) then runs `xcstringstool compile`
+            // to produce the per-locale .lproj/Localizable.strings
+            // files that NSLocalizedString actually consumes at runtime.
             resources: [
                 .process("Resources")
             ],
@@ -177,25 +193,21 @@ let package = Package(
                 "Agent/PortedFromHermes/golden",
                 "Agent/PortedFromHermes/scripts",
             ],
-            // v0.71 P1 batch 3: expose Localizable.strings to the
-            // test target's Bundle.module (= the I18nParityTests
-            // suite needs Bundle.module.url(forResource: "Localizable",
-            // withExtension: "strings") to verify en ↔ zh-Hans parity
-            // + source-code coverage). Without this, Bundle.module
-            // doesn't exist (= SPM only generates it when the target
-            // has resources). Symlink the WenshuApp Resources dir
-            // (= Localizable.strings is the only file the i18n tests
-            // actually read; = no need to process .lproj via SPM's
-            // localization pipeline = .copy preserves the .lproj
-            // directory structure).
-            resources: [
-                // Localizable.strings lives in each .lproj (= the
-                // canonical Apple localization layout; = Swift's
-                // NSLocalizedString looks it up via the user's
-                // preferred language + the .lproj directory).
-                .copy("Resources/en.lproj"),
-                .copy("Resources/zh-Hans.lproj"),
-            ]
+            // v0.71 P1 batch 3 + 2026-10-06 update: per the Localizable.xcstrings
+            // migration (= see OOB.md #2026-10-06), the test target
+            // no longer needs to ship Localizable.xcstrings as an
+            // SPM resource. Instead, tests read the catalog directly
+            // from the source tree via the path
+            // 'Sources/WenshuApp/Resources/Localizable.xcstrings'
+            // (= the readStrings / runPlutil helpers use
+            // String(contentsOf:) on that path; = works regardless
+            // of whether SPM ships the file to the test bundle).
+            // Removing the .copy("/.process") declaration prevents
+            // SPM from emitting 'duplicate output file' warnings
+            // (= the production target already ships the file).
+            // The .lproj children are produced at build time by
+            // `xcstringstool compile` (= Tools/build-wenshu.sh +
+            // Scripts/build-app.sh).
         )
     ]
 )

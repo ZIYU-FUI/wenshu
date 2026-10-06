@@ -68,20 +68,18 @@ if [ -n "$SPM_BUNDLE_PATH" ]; then
     echo ">>> copied SPM bundle: $SPM_BUNDLE_PATH -> $RES_DIR/$(basename "$SPM_BUNDLE_PATH")"
 fi
 
-# Apple HIG canonical layout: copy each .lproj directory
-# (= en, zh-Hans, ...) from the source tree into the .app's
-# Resources directory. Per developer.apple.com/documentation/swift/
-# localizedstringresource: localized strings live in
-# language-specific .lproj subdirectories under the app bundle's
-# Resources/. Foundation's NSLocalizedString resolves them via
-# Bundle.main + the user's preferred language (= Apple default
+# Localized catalogs arrive in the .app via the SPM bundle copy
+# above (= L67-69): SPM 6.4 compiles Localizable.xcstrings into
+# en.lproj + zh-Hans.lproj inside Wenshu_WenshuApp.bundle at
+# swift-build time (= Apple's String Catalog native support; =
+# no xcstringstool compile invocation needed here). The source
+# tree's per-locale .lproj directories (= Sources/WenshuApp/Resources/
+# {en,zh-Hans}.lproj/) are excluded from the WenshuApp SPM target
+# (= Package.swift exclude list) so they are NOT shipped by SPM
+# and the SPM bundle's .xcstrings-derived .lproj is the canonical
+# runtime catalog. Foundation's NSLocalizedString resolves the
+# user's preferred language via Bundle.main (= Apple default
 # localization behavior; = no wenshu wrapper required).
-for lang_dir in "Sources/WenshuApp/Resources"/*; do
-    if [ -d "$lang_dir" ] && [[ "$lang_dir" == *.lproj ]]; then
-        cp -R "$lang_dir" "$RES_DIR/"
-        echo ">>> copied lproj: $lang_dir -> $RES_DIR/$(basename "$lang_dir")"
-    fi
-done
 # Copy all third-party SPM-generated resource bundles into the .app
 # (= Highlighter_Highlighter, GRDB_GRDB, Defaults_Defaults, etc.) so
 # their `Bundle.module` lookups succeed at runtime. Without these,
