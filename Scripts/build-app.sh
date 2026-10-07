@@ -68,18 +68,27 @@ if [ -n "$SPM_BUNDLE_PATH" ]; then
     echo ">>> copied SPM bundle: $SPM_BUNDLE_PATH -> $RES_DIR/$(basename "$SPM_BUNDLE_PATH")"
 fi
 
-# Localized catalogs arrive in the .app via the SPM bundle copy
-# above (= L67-69): SPM 6.4 compiles Localizable.xcstrings into
-# en.lproj + zh-Hans.lproj inside Wenshu_WenshuApp.bundle at
-# swift-build time (= Apple's String Catalog native support; =
-# no xcstringstool compile invocation needed here). The source
-# tree's per-locale .lproj directories (= Sources/WenshuApp/Resources/
-# {en,zh-Hans}.lproj/) are excluded from the WenshuApp SPM target
-# (= Package.swift exclude list) so they are NOT shipped by SPM
-# and the SPM bundle's .xcstrings-derived .lproj is the canonical
-# runtime catalog. Foundation's NSLocalizedString resolves the
-# user's preferred language via Bundle.main (= Apple default
-# localization behavior; = no wenshu wrapper required).
+# Promote the SPM-compiled .lproj/Localizable.strings to .app/Contents/Resources/
+# so Bundle.main (= String(localized:) / NSLocalizedString) can resolve them.
+# Without this promotion, the user sees the raw key string (e.g.
+# "onboarding.library.choose_location") instead of the translated value,
+# because Foundation's Bundle.main does NOT recurse into the nested
+# Wenshu_WenshuApp.bundle (= it reads only the top-level Resources/). The
+# SPM-generated .lproj inside the nested bundle is the canonical source
+# (= compiled at swift-build time from Sources/WenshuApp/Resources/Localizable.xcstrings;
+# no xcstringstool invocation needed here). Apple HIG canonical pattern:
+# all app-localized resources must live directly under Contents/Resources/.
+# Source-tree per-locale .lproj directories are excluded from the SPM target
+# (= Package.swift exclude list) so they are NOT shipped and the SPM bundle's
+# .xcstrings-derived .lproj is the canonical runtime catalog.
+if [ -n "$SPM_BUNDLE_PATH" ]; then
+    for lproj in "$SPM_BUNDLE_PATH/Contents/Resources/"*.lproj; do
+        if [ -d "$lproj" ]; then
+            cp -R "$lproj" "$RES_DIR/"
+            echo ">>> promoted .lproj: $(basename "$lproj") -> $RES_DIR/"
+        fi
+    done
+fi
 # Copy all third-party SPM-generated resource bundles into the .app
 # (= Highlighter_Highlighter, GRDB_GRDB, Defaults_Defaults, etc.) so
 # their `Bundle.module` lookups succeed at runtime. Without these,

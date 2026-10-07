@@ -116,3 +116,11 @@ Unique dates: 14
 - OOB directive (= 来源 = sweep round 74 commit `33b5786d8`): "继续" (= continue, = context: keep pushing sweep arc)
 - OOB directive (= 来源 = design-system-rule skill authoring, = derived from session work): "Apple-default-first" (= 颜色 sweep round 73 tokenize .tint.opacity(0.18) to DesignTokens.accentTintOpacityHero, = Apple HIG canonical pattern, = per §11.7 sqlite3-zero + §11.16 facet model precedent)
 - OOB directive (= 来源 = sweep round 74 TodoListView chipStyle AnyShapeStyle, = derived from session work): "颜色已经做完了的话" (= when color sweep closes, = apply to the rest of the codebase)
+
+## 2026-10-07
+
+- OOB directive (= 来源 = 当前 conversation): "所有目录只有资料库是共享的，默认共享，无论在哪个书的会话都可以对资料库中的 MD 进行操作"
+
+- OOB directive (= 来源 = 当前 conversation): "多语言怎么又丢了" (= 截图 5 个 onboarding 元素显示 key 字面量, 不是英文 fallback, 不是中文)
+- OOB directive (= 来源 = 当前 conversation): "你自己确认下，现在按钮显示的是 key" (= 老板亲口确认是 key 字面量 fallback)
+- OOB 已知 bug pattern: NSLocalizedString 在 .app bundle 拿不到 SPM nested bundle 的 .lproj → fallback 到 key 字面量本身 (= 不是英文, 不是 nil). 根因 = Scripts/build-app.sh 没把 Wenshu_WenshuApp.bundle/Contents/Resources/*.lproj 复制到 .app/Contents/Resources/. 修复: build-app.sh 加 3 行 cp.
