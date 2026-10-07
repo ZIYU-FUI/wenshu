@@ -29,6 +29,7 @@
 
 import SwiftUI
 import UniformTypeIdentifiers
+import AppKit
 
 /// The three export kinds the sheet can produce.
 enum ExportKind: String, CaseIterable, Identifiable, Sendable {
@@ -47,6 +48,11 @@ struct ExportSheet: View {
     /// File → Export… menu). The parent flips this to dismiss.
     @Binding var isPresented: Bool
 
+    /// Book source (= needed for the book + chapter pickers).
+    /// Injected from the parent (= AppleSidebarView) where the
+    /// environment chain already carries it.
+    @Environment(BookStore.self) private var bookStore
+
     /// Which kind the user has selected. Defaults to library.
     @State private var kind: ExportKind = .library
 
@@ -56,15 +62,28 @@ struct ExportSheet: View {
     /// Book export sub-option: EPUB / PDF / combined MD.
     @State private var bookFormat: BookExportFormat = .epub
 
-    /// Selected book id (= populated from `WenshuLibrary`).
+    /// Selected book id (= populated from `BookStore.books`).
     @State private var selectedBookID: UUID?
 
-    /// Selected chapter id (= populated from the selected book's chapters).
+    /// Selected chapter id (= populated when `selectedBookID`
+    /// changes; = lazy-loaded from FileSystemChapterStore).
     @State private var selectedChapterID: UUID?
+
+    /// Loaded chapters for the selected book (= `liveChapters(of:)`
+    /// walks `bookStore.books` for the book, then calls
+    /// `FileSystemChapterStore.loadChaptersFromFileSystem`).
+    @State private var chapters: [Document] = []
 
     /// Flipped when the user clicks 导出; = triggers the
     /// `.fileExporter` modifier for the selected kind.
     @State private var isExporting: Bool = false
+
+    /// Last-used destination URL per kind (Apple HIG canonical
+    /// "remember the last folder" pattern, persisted via
+    /// @AppStorage below).
+    @AppStorage("wenshu.export.library.lastURL") private var lastLibraryURLString: String = ""
+    @AppStorage("wenshu.export.book.lastURL") private var lastBookURLString: String = ""
+    @AppStorage("wenshu.export.chapter.lastURL") private var lastChapterURLString: String = ""
 
     /// The engine instances (= long-lived; = actor-isolated).
     /// Held on the sheet (= recreated each time the sheet
@@ -166,14 +185,88 @@ struct ExportSheet: View {
             Text(String(localized: "export.book.format.combined_md")).tag(BookExportFormat.combinedMd)
         }
         .pickerStyle(.radioGroup)
-        Text("Book picker placeholder")
-            .foregroundStyle(.secondary)
+        Picker(String(localized: "export.book.picker"), selection: $selectedBookID) {
+            Text(String(localized: "export.book.placeholder")).tag(UUID?.none)
+            ForEach(bookStore.books) { book in
+                Text(book.title).tag(Optional(book.id))
+            }
+        }
+        .pickerStyle(.menu)
+        .onChange(of: selectedBookID) { _, newValue in
+            guard let bookID = newValue,
+                  let book = bookStore.books.first(where: { $0.id == bookID }) else {
+                chapters = []
+                selectedChapterID = nil
+                return
+            }
+            // Load chapters from the book's filesystem JSON index
+            // (= the nonisolated static helper on FileSystemChapterStore).
+            let bookDir = bookURL(for: book)
+            chapters = (try? FileSystemChapterStore.loadChaptersFromFileSystem(
+                bookDirectory: bookDir,
+                chaptersDirectory: bookDir.appendingPathComponent("chapters", isDirectory: true),
+                indexURL: bookDir.appendingPathComponent("chapters.json")
+            )) ?? []
+            selectedChapterID = nil
+        }
     }
 
     @ViewBuilder
     private var chapterSection: some View {
-        Text("Chapter picker placeholder")
-            .foregroundStyle(.secondary)
+        Picker(String(localized: "export.book.picker"), selection: $selectedBookID) {
+            Text(String(localized: "export.book.placeholder")).tag(UUID?.none)
+            ForEach(bookStore.books) { book in
+                Text(book.title).tag(Optional(book.id))
+            }
+        }
+        .pickerStyle(.menu)
+        .onChange(of: selectedBookID) { _, newValue in
+            guard let bookID = newValue,
+                  let book = bookStore.books.first(where: { $0.id == bookID }) else {
+                chapters = []
+                selectedChapterID = nil
+                return
+            }
+            let bookDir = bookURL(for: book)
+            chapters = (try? FileSystemChapterStore.loadChaptersFromFileSystem(
+                bookDirectory: bookDir,
+                chaptersDirectory: bookDir.appendingPathComponent("chapters", isDirectory: true),
+                indexURL: bookDir.appendingPathComponent("chapters.json")
+            )) ?? []
+            selectedChapterID = nil
+        }
+        Picker(String(localized: "export.chapter.picker"), selection: $selectedChapterID) {
+            Text(String(localized: "export.chapter.placeholder")).tag(UUID?.none)
+            ForEach(chapters) { chapter in
+                Text(chapter.title).tag(Optional(chapter.id))
+            }
+        }
+        .pickerStyle(.menu)
+        .disabled(chapters.isEmpty)
+    }
+
+    /// Resolve the book's filesystem URL (= `.ws/shelves/<shelf>/
+    /// books/<book-uuid>/`). Walks the shelves in the active
+    /// library root.
+    private func bookURL(for book: Book) -> URL {
+        guard let libPath = ActiveLibrary.path else {
+            return URL(fileURLWithPath: "/")
+        }
+        let libURL = URL(fileURLWithPath: libPath, isDirectory: true)
+        let shelvesURL = libURL.appendingPathComponent("shelves", isDirectory: true)
+        let fm = FileManager.default
+        guard fm.fileExists(atPath: shelvesURL.path) else {
+            return libURL
+        }
+        let shelves = (try? fm.contentsOfDirectory(at: shelvesURL, includingPropertiesForKeys: nil)) ?? []
+        for shelf in shelves {
+            let candidate = shelf.appendingPathComponent("books", isDirectory: true)
+                .appendingPathComponent(book.id.uuidString, isDirectory: true)
+            if fm.fileExists(atPath: candidate.path) {
+                return candidate
+            }
+        }
+        return libURL
     }
 }
 
