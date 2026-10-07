@@ -144,8 +144,11 @@ struct ExportSheet: View {
             libraryEngine: libraryEngine,
             bookEngine: bookEngine,
             chapterEngine: chapterEngine,
+            lastLibraryURLString: $lastLibraryURLString,
+            lastBookURLString: $lastBookURLString,
+            lastChapterURLString: $lastChapterURLString,
             isExporting: $isExporting,
-            onComplete: { url in
+            onComplete: { _ in
                 isExporting = false
                 isPresented = false
             }
@@ -289,6 +292,13 @@ enum BookExportFormat: String, CaseIterable, Identifiable, Sendable {
 /// (= library / book / chapter). Apple HIG canonical pattern: one
 /// modifier per FileDocument type (= each declares its own
 /// `writableContentTypes`).
+///
+/// The onCompletion handler dispatches to the appropriate engine:
+/// library → libraryEngine.exportLibrary(to:as:); book → bookEngine.
+/// exportBook(id:to:format:); chapter → chapterEngine.exportChapter
+/// (id:to:). The destination URL the user picks via the system
+/// save dialog is the engine's `to:` argument (= the engine reads
+/// it + writes the result to that path).
 private struct ExportFileExporters: ViewModifier {
     let kind: ExportKind
     let libraryFormat: LibraryExportFormat
@@ -298,62 +308,105 @@ private struct ExportFileExporters: ViewModifier {
     let libraryEngine: LibraryExportEngine
     let bookEngine: BookExportEngine
     let chapterEngine: ChapterExportEngine
+    @Binding var lastLibraryURLString: String
+    @Binding var lastBookURLString: String
+    @Binding var lastChapterURLString: String
     @Binding var isExporting: Bool
     let onComplete: (URL) -> Void
 
     func body(content: Content) -> some View {
         content
-            // Library → .package directory OR .zip archive
+            // Library → .package directory OR .zip archive.
+            // The destination URL is the user-picked path (= the
+            // system save dialog returns it; = the engine writes
+            // the library mirror or zip to that exact path).
             .fileExporter(
                 isPresented: $isExporting,
                 document: LibraryExportDocument.package(
-                    // Default destination = the user's Downloads
-                    // folder with a timestamped name (= the system
-                    // save dialog will override if the user picks
-                    // another path).
-                    FileManager.default.temporaryDirectory
-                        .appendingPathComponent("wenshu-export-\(Int(Date.now.timeIntervalSince1970))")
+                    lastURL(lastLibraryURLString, suffix: "wenshu-export")
                 ),
-                contentType: .folder,
+                contentType: kind == .library ? .folder : .folder,
                 onCompletion: { result in
-                    if case .success(let url) = result {
-                        onComplete(url)
-                    }
-                    isExporting = false
+                    handle(result: result, kind: .library, lastURLBinding: $lastLibraryURLString)
                 }
             )
             // Book → EPUB / PDF / combined MD (= one modifier per
             // FileDocument type because each declares its own
             // writableContentTypes; = Apple's canonical pattern for
-            // type-driven file pickers). The modifier fires when
-            // `isExporting` flips AND the kind is book; the
-            // destination URL is a placeholder (= the system save
-            // dialog overrides).
+            // type-driven file pickers).
             .fileExporter(
                 isPresented: $isExporting,
                 document: EBookExportDocument.epub(
-                    FileManager.default.temporaryDirectory
-                        .appendingPathComponent("wenshu-book-\(Int(Date.now.timeIntervalSince1970)).epub")
+                    lastURL(lastBookURLString, suffix: "wenshu-book", ext: ".epub")
                 ),
                 contentType: .epub,
                 onCompletion: { result in
-                    if case .success(let url) = result {
-                        onComplete(url)
-                    }
-                    isExporting = false
+                    handle(result: result, kind: .book, lastURLBinding: $lastBookURLString)
                 }
             )
-            // Chapter → single Markdown file
+            // Chapter → single Markdown file.
             .fileExporter(
                 isPresented: $isExporting,
                 document: MarkdownDocument(text: ""),
                 contentType: .plainText,
                 onCompletion: { result in
-                    if case .success(let url) = result {
-                        onComplete(url)
-                    }
-                    isExporting = false
+                    handle(result: result, kind: .chapter, lastURLBinding: $lastChapterURLString)
                 }
             )
+    }
+
+    /// Build the default destination URL for the system save dialog.
+    /// Reads the last-used URL from @AppStorage (= Apple HIG
+    /// canonical "remember last folder" pattern); = falls back to
+    /// the temp directory with a timestamped filename.
+    private func lastURL(_ stored: String, suffix: String, ext: String = "") -> URL {
+        if !stored.isEmpty {
+            let url = URL(fileURLWithPath: stored)
+            let base = url.deletingLastPathComponent()
+            let baseName = url.lastPathComponent
+            let stripped = baseName.hasSuffix(ext)
+                ? String(baseName.dropLast(ext.count))
+                : baseName
+            return base.appendingPathComponent("\(stripped)-\(Int(Date.now.timeIntervalSince1970))\(ext)")
+        }
+        return FileManager.default.temporaryDirectory
+            .appendingPathComponent("\(suffix)-\(Int(Date.now.timeIntervalSince1970))\(ext)")
+    }
+
+    /// Dispatch the user's chosen destination URL to the matching
+    /// engine. The kind matches the kind the user picked when they
+    /// clicked 导出; = the picker tap is what flipped isExporting.
+    private func handle(
+        result: Result<URL, Error>,
+        kind: ExportKind,
+        lastURLBinding: Binding<String>
+    ) {
+        defer { isExporting = false }
+        guard case .success(let url) = result else { return }
+
+        // Persist the destination path (= next time the user opens
+        // the sheet for this kind, the system save dialog starts
+        // there).
+        lastURLBinding.wrappedValue = url.path
+
+        switch kind {
+        case .library:
+            let format: LibraryExportFormat = (self.libraryFormat == .zip) ? .zip : .copy
+            Task {
+                _ = try? await libraryEngine.exportLibrary(to: url, as: format)
+            }
+        case .book:
+            guard let bookID = self.selectedBookID else { return }
+            let fmt: BookExportFormat = self.bookFormat
+            Task {
+                _ = try? await bookEngine.exportBook(id: bookID, to: url, format: fmt)
+            }
+        case .chapter:
+            guard let chapterID = self.selectedChapterID else { return }
+            Task {
+                _ = try? await chapterEngine.exportChapter(id: chapterID, to: url)
+            }
+        }
+        onComplete(url)
     }
 }
