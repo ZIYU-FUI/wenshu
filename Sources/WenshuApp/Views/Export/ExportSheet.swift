@@ -229,5 +229,38 @@ private struct ExportFileExporters: ViewModifier {
                     isExporting = false
                 }
             )
+            // Book → EPUB / PDF / combined MD (= one modifier per
+            // FileDocument type because each declares its own
+            // writableContentTypes; = Apple's canonical pattern for
+            // type-driven file pickers). The modifier fires when
+            // `isExporting` flips AND the kind is book; the
+            // destination URL is a placeholder (= the system save
+            // dialog overrides).
+            .fileExporter(
+                isPresented: $isExporting,
+                document: EBookExportDocument.epub(
+                    FileManager.default.temporaryDirectory
+                        .appendingPathComponent("wenshu-book-\(Int(Date.now.timeIntervalSince1970)).epub")
+                ),
+                contentType: .epub,
+                onCompletion: { result in
+                    if case .success(let url) = result {
+                        onComplete(url)
+                    }
+                    isExporting = false
+                }
+            )
+            // Chapter → single Markdown file
+            .fileExporter(
+                isPresented: $isExporting,
+                document: MarkdownDocument(text: ""),
+                contentType: .plainText,
+                onCompletion: { result in
+                    if case .success(let url) = result {
+                        onComplete(url)
+                    }
+                    isExporting = false
+                }
+            )
     }
 }
