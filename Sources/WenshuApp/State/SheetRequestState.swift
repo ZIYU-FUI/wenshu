@@ -72,6 +72,7 @@ final class SheetRequestState {
     var newBook: Int = 0
     var newShelf: Int = 0
     var choice: Int = 0
+    var exportSheet: Int = 0
 
     init() {
         // In-memory only (= no UserDefaults read).
