@@ -347,6 +347,11 @@ struct AppRootScene: Scene {
                     NotificationCenter.default.post(name: .wenshuImportRequested, object: nil)
                 }
                 .keyboardShortcut("i", modifiers: [.command, .shift])
+
+                Button(String(localized: "export.menu.file")) {
+                    sheetRequests.exportSheet += 1
+                }
+                .keyboardShortcut("e", modifiers: [.command, .shift])
             }
             CommandGroup(replacing: .undoRedo) {
                 Button(String(localized: "menu.edit.undo"), action: {})
