@@ -115,6 +115,7 @@ struct LibraryRootView: View {
     // 4 fields migrated to WorkspaceUIState + NavigationSplitShell
     // @State; = LibraryRootView no longer threads ShellState).
     @Environment(WorkspaceUIState.self) private var workspaceUI
+    @Environment(SheetRequestState.self) private var sheetRequests
     @State private var bookStore: BookStore?
     @State private var commandPaletteModel = CommandPaletteModel()
     @State private var commandPaletteVisible: Bool = false
@@ -322,7 +323,36 @@ struct LibraryRootView: View {
                     )
                 }
             }
-            .environment(bookStore)
+            // Apple HIG canonical toolbar placement for the
+            // document-menu (= per developer.apple.com/design/
+            // human-interface-guidelines/toolbars 'Next to the
+            // title, the toolbar can include a document menu that
+            // contains standard and app-specific commands that
+            // affect the document as a whole, such as Duplicate,
+            // Rename, Move, and Export'). We add a single Export
+            // button at `.automatic` (= trailing edge) using the
+            // SF Symbols 6 share/export glyph (= 'square.and.arrow.
+            // up'). Tapping it mirrors the File → Export… menu item:
+            // bumps sheetRequests.exportSheet += 1 (= Apple HIG
+            // cross-component sync rule = 'a new feature should
+            // appear everywhere = synced').
+            .toolbar {
+                    ToolbarItem(
+                        id: "wenshu-export",
+                        placement: .automatic
+                    ) {
+                        Button {
+                            sheetRequests.exportSheet += 1
+                        } label: {
+                            Label(
+                                String(localized: "export.toolbar.label"),
+                                systemImage: "square.and.arrow.up"
+                            )
+                        }
+                        .help(String(localized: "export.toolbar.label"))
+                    }
+                }
+                .environment(bookStore)
         } else {
             // BookStore is built asynchronously by LibraryLifecycleHook.
             // Column bodies read it as a non-optional @Environment value,
