@@ -86,6 +86,7 @@ struct AppleSidebarView: View {
     @State private var showNewChoiceSheet = false
     @State private var showNewShelfSheet = false
     @State private var showNewBookSheet = false
+    @State private var showExportSheet = false
     @State private var renaming: SidebarRenamingTarget?
     @State private var pendingDelete: SidebarPendingDelete?
 
@@ -261,6 +262,9 @@ struct AppleSidebarView: View {
         .onChange(of: sheetRequests.newBook) { _, _ in
             showNewBookSheet = true
         }
+        .onChange(of: sheetRequests.exportSheet) { _, _ in
+            showExportSheet = true
+        }
         // y: the create/rename/delete sheets. Each presents
         // a focused `*Sheet` view from `SidebarSheets.swift`; =
         // the sheet's `onSave` closure calls into
@@ -320,6 +324,9 @@ struct AppleSidebarView: View {
                 targetShelfName: target.name,
                 availableShelves: service?.availableShelvesForPicker() ?? []
             )
+        }
+        .sheet(isPresented: $showExportSheet) {
+            ExportSheet(isPresented: $showExportSheet)
         }
         .sheet(item: $renaming) { target in
             RenameItemSheet(
