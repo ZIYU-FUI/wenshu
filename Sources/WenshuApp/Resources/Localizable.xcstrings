@@ -7107,6 +7107,23 @@
         }
       }
     },
+    "export.toolbar.label": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Export"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "导出"
+          }
+        }
+      }
+    },
     "foreshadowing_graph.empty.body": {
       "extractionState": "manual",
       "localizations": {
