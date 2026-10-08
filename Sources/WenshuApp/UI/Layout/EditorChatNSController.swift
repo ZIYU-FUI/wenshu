@@ -219,7 +219,11 @@ final class EditorChatNSController: NSSplitViewController {
             rootView: editorRoot
         ))
         editorItem.canCollapse = false   // editor is always visible
-        editorItem.minimumThickness = 200
+        editorItem.minimumThickness = NSSplitViewItem.unspecifiedDimension
+        editorItem.preferredThicknessFraction = 1.0 / 2.0
+        // The NavigationSplitView owns horizontal bounds. This split owns
+        // vertical thickness only; AppKit computes its automatic maximum
+        // after the controller is attached to the split view.
         addSplitViewItem(editorItem)
 
         // Bottom pane (= chat zone).
@@ -245,7 +249,8 @@ final class EditorChatNSController: NSSplitViewController {
         )
         let chatItemLocal = NSSplitViewItem(viewController: chatViewController)
         chatItemLocal.canCollapse = true   // Keynote speaker-notes pattern
-        chatItemLocal.minimumThickness = 100
+        chatItemLocal.minimumThickness = NSSplitViewItem.unspecifiedDimension
+        chatItemLocal.preferredThicknessFraction = 1.0 / 2.0
         addSplitViewItem(chatItemLocal)
         self.chatItem = chatItemLocal
 
@@ -308,6 +313,7 @@ final class EditorChatNSController: NSSplitViewController {
     /// splitView now has its final height here.
     override func viewDidLayout() {
         super.viewDidLayout()
+        updateAutomaticThicknessBounds()
         let defaults = UserDefaults.standard
         let autosaveKey = "NSSplitView Subview Frames \(Self.autosaveName)"
         let hasAutosave = defaults.data(forKey: autosaveKey) != nil
@@ -316,6 +322,19 @@ final class EditorChatNSController: NSSplitViewController {
             // the flag is set) but it didn't take (= bounds were
             // off). Retry now that bounds are final.
             applyFiftyFiftyFirstLaunch()
+        }
+    }
+
+    /// Re-assert Apple automatic bounds after the split view has a
+    /// window-backed size. `automaticMaximumThickness` is meaningful only
+    /// after attachment; reading it during `viewDidLoad` produced an invalid
+    /// hard maximum and let the hosting column collapse.
+    private func updateAutomaticThicknessBounds() {
+        let available = splitView.bounds.height
+        guard available > 0 else { return }
+        for item in splitViewItems {
+            item.minimumThickness = 0
+            item.maximumThickness = available
         }
     }
 
