@@ -94,9 +94,7 @@ struct SidebarRowView: View {
             SFLabelRow(
                 title: node.title,
                 systemImage: node.systemImage,
-                subtitle: node.subtitle,
-                iconOpacity: node.iconOpacity,
-                iconStyle: .small
+                subtitle: node.subtitle
             )
         }
     }

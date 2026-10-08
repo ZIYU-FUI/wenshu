@@ -55,7 +55,6 @@ struct SidebarNode: Identifiable, Hashable, Sendable {
     var subtitle: String?
     var systemImage: String
     var children: [SidebarNode]?
-    var iconOpacity: Double = 1
 
     init(
         id: UUID,
@@ -64,8 +63,7 @@ struct SidebarNode: Identifiable, Hashable, Sendable {
         subtitle: String?,
         systemImage: String,
         children: [SidebarNode]?,
-        routingKey: String? = nil,
-        iconOpacity: Double = 1
+        routingKey: String? = nil
     ) {
         self.id = id
         self.kind = kind
@@ -74,7 +72,6 @@ struct SidebarNode: Identifiable, Hashable, Sendable {
         self.systemImage = systemImage
         self.children = children
         self.routingKey = routingKey
-        self.iconOpacity = iconOpacity
     }
 
     /// : routing key for sidebar

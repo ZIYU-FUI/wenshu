@@ -206,6 +206,26 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
     /// Weight: .regular.
     case surface
 
+    /// Sidebar row leading icon (= Apple HIG sidebar list row anatomy).
+    /// One canonical slot for every row in the tree so the visual
+    /// baseline is fixed; SF Symbols render at the .small scale that
+    /// Apple Mail / Notes / Xcode / System Settings use.
+    ///
+    /// Apple HIG source: `Sidebars > List > A sidebar's row height,
+    /// text, and glyph size depend on its overall size, which can be
+    /// small, medium, or large.` (= `NSTableViewDefaultSizeMode` /
+    /// SwiftUI `\.sidebarRowSize`). The wenshu default follows Apple
+    /// Mail / Notes / Xcode at 16 PT and .regular; the
+    /// `sidebarWidth` + `sidebarInset` properties on this case hold
+    /// the optical slot so callers do not have to know the difference
+    /// between the symbol's intrinsic width and the row slot.
+    ///
+    /// Used by: SFLabelRow (every sidebar row in the library tree).
+    /// Weight: .regular. Color: `.primary` (= Apple Tahoe sidebar
+    /// default = black in light mode, white in dark mode, NOT
+    /// app accent color).
+    case sidebar
+
     /// Apple HIG point size for this case. Values follow Apple-shipped
     /// app defaults (= not wenshu-invented).
     var pointSize: CGFloat {
@@ -221,6 +241,7 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
         case .cover: 192
         case .toolbarButton: 32
         case .surface: 56
+        case .sidebar: 16
         }
     }
 
@@ -252,16 +273,26 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
         default: .regular
         }
     }
+}
 
-    /// Sidebar icon width is the primary visual baseline. Height remains
-    /// intrinsic to each SF Symbol so Apple can preserve its optical
-    /// proportions; do not force a square frame around the glyph.
-    /// `sidebarInset` is the shared internal breathing room around the
-    /// glyph: it controls the usable optical width without changing the
-    /// Symbol's own aspect ratio or height.
+// MARK: - Sidebar slot (only meaningful on .sidebar)
+
+// Sidebar row iconography owns its own slot dimensions and tint so
+// callers do not need to know the optical difference between an SF
+// Symbol's intrinsic width and the row's leading icon frame. Apple
+// HIG does not define a sidebar row icon width; the 16 PT baseline
+// matches Apple Mail / Notes / Xcode / System Settings (= the
+// wenshu-declared default in the absence of a system override).
+extension IconStyle {
+    /// Sidebar row leading icon width (= the row's leading icon
+    /// frame; = the fixed visual slot the SF Symbol sits inside).
+    /// Only meaningful when `self == .sidebar`.
     var sidebarWidth: CGFloat { 16 }
+    /// Sidebar row leading icon inner horizontal padding (= the
+    /// breathing room inside the slot so the symbol's optical bounds
+    /// never touch the slot edge). Only meaningful when
+    /// `self == .sidebar`.
     var sidebarInset: CGFloat { 2 }
-    var sidebarStrokeWeight: NSFont.Weight { .regular }
 }
 
 // MARK: - IconColor
@@ -427,20 +458,17 @@ struct SFLabelRow: View {
     let title: String
     let systemImage: String
     let subtitle: String?
-    let iconOpacity: Double
     let iconStyle: IconStyle
 
     init(
         title: String,
         systemImage: String,
         subtitle: String? = nil,
-        iconOpacity: Double = 1,
-        iconStyle: IconStyle = .small
+        iconStyle: IconStyle = .sidebar
     ) {
         self.title = title
         self.systemImage = systemImage
         self.subtitle = subtitle
-        self.iconOpacity = iconOpacity
         self.iconStyle = iconStyle
     }
 
@@ -464,17 +492,17 @@ struct SFLabelRow: View {
             // intrinsic bounds can still look larger or smaller beside
             // one another. A fixed slot plus the canonical regular
             // weight keeps the tree visually aligned without tuning each
-            // symbol individually.
+            // symbol individually. Color follows Apple Tahoe sidebar
+            // default (= system primary, not app accent).
             SFIcon(
                 systemImage,
                 style: iconStyle,
-                color: .tint
+                color: IconColor.primary
             )
             .padding(.horizontal, iconStyle.sidebarInset)
             .frame(width: iconStyle.sidebarWidth)
             .symbolRenderingMode(.hierarchical)
-            .foregroundStyle(.tint)
-            .opacity(iconOpacity)
+            .foregroundStyle(Color.primary)
         }
         .frame(height: DesignTokens.sidebarRowHeight)
     }
