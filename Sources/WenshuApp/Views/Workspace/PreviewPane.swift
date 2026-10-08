@@ -1002,15 +1002,6 @@ struct PreviewPane: View {
                     titleKey: folderName != nil
                         ? "preview.empty_state.book_with_folder"
                         : "preview.empty_state.book_no_folder",
-                    // Keys with no Chinese fallback: the previous key
-                    // `preview.pick_book` did not exist in either
-                    // locale (= fell back to the key string and
-                    // surfaced as the literal 'preview.pick_book'
-                    // text under the title). Use the localized
-                    // `preview.empty.pick_book` key (= already
-                    // translated in en + zh-Hans) so the body
-                    // renders the actual hint instead of the
-                    // diagnostic key string.
                     bodyKey: "preview.empty.pick_book"
                 )
             } else {
