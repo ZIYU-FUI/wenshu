@@ -55,6 +55,27 @@ struct SidebarNode: Identifiable, Hashable, Sendable {
     var subtitle: String?
     var systemImage: String
     var children: [SidebarNode]?
+    var iconOpacity: Double = 1
+
+    init(
+        id: UUID,
+        kind: Kind,
+        title: String,
+        subtitle: String?,
+        systemImage: String,
+        children: [SidebarNode]?,
+        routingKey: String? = nil,
+        iconOpacity: Double = 1
+    ) {
+        self.id = id
+        self.kind = kind
+        self.title = title
+        self.subtitle = subtitle
+        self.systemImage = systemImage
+        self.children = children
+        self.routingKey = routingKey
+        self.iconOpacity = iconOpacity
+    }
 
     /// : routing key for sidebar
     /// selection = the string that survives the round-trip

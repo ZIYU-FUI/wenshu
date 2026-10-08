@@ -78,7 +78,7 @@
 //
 
 import SwiftUI
-
+import AppKit
 // MARK: - IconStyle
 
 /// Apple HIG / Apple-shipped app icon-style enum. Each case carries the
@@ -242,6 +242,26 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
     var isHitArea: Bool {
         self == .hitArea || self == .toolbarButton
     }
+
+    /// AppKit counterpart used at NSImage boundaries. Apple keeps
+    /// the symbol's intrinsic optical bounds; the factory normalizes
+    /// only the shared point size, weight, and scale.
+    var symbolWeight: NSFont.Weight {
+        switch self {
+        case .emptyStateHero, .avatar, .cover: .thin
+        default: .regular
+        }
+    }
+
+    /// Sidebar icon width is the primary visual baseline. Height remains
+    /// intrinsic to each SF Symbol so Apple can preserve its optical
+    /// proportions; do not force a square frame around the glyph.
+    /// `sidebarInset` is the shared internal breathing room around the
+    /// glyph: it controls the usable optical width without changing the
+    /// Symbol's own aspect ratio or height.
+    var sidebarWidth: CGFloat { 16 }
+    var sidebarInset: CGFloat { 2 }
+    var sidebarStrokeWeight: NSFont.Weight { .regular }
 }
 
 // MARK: - IconColor
@@ -407,11 +427,21 @@ struct SFLabelRow: View {
     let title: String
     let systemImage: String
     let subtitle: String?
+    let iconOpacity: Double
+    let iconStyle: IconStyle
 
-    init(title: String, systemImage: String, subtitle: String? = nil) {
+    init(
+        title: String,
+        systemImage: String,
+        subtitle: String? = nil,
+        iconOpacity: Double = 1,
+        iconStyle: IconStyle = .small
+    ) {
         self.title = title
         self.systemImage = systemImage
         self.subtitle = subtitle
+        self.iconOpacity = iconOpacity
+        self.iconStyle = iconStyle
     }
 
     var body: some View {
@@ -429,12 +459,22 @@ struct SFLabelRow: View {
                 }
             }
         } icon: {
-            Image(systemName: systemImage)
-                .font(.system(size: IconStyle.small.pointSize,
-                              weight: IconStyle.small.fontWeight))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(.tint)
-                .frame(width: IconStyle.small.pointSize + 2)
+            // Sidebar rows use one fixed icon slot. The same nominal
+            // point size alone is not enough: SF Symbols with different
+            // intrinsic bounds can still look larger or smaller beside
+            // one another. A fixed slot plus the canonical regular
+            // weight keeps the tree visually aligned without tuning each
+            // symbol individually.
+            SFIcon(
+                systemImage,
+                style: iconStyle,
+                color: .tint
+            )
+            .padding(.horizontal, iconStyle.sidebarInset)
+            .frame(width: iconStyle.sidebarWidth)
+            .symbolRenderingMode(.hierarchical)
+            .foregroundStyle(.tint)
+            .opacity(iconOpacity)
         }
         .frame(height: DesignTokens.sidebarRowHeight)
     }
