@@ -26,8 +26,11 @@
 //  v3.0 sweep SKIPS this case (= outside the central SFIcon factory
 //  scope; = Apple first-party surface).
 //
-//  Sweep files (15 total, 26 sites swept):
-//    KanbanView (1) / LibraryRootView (2) / BookSettingConstraintsView (2)
+//  Sweep files (14 total, 24 sites swept): LibraryRootView dropped
+//  on 2026-10-08 after commit c67d1ce2c intentionally replaced the
+//  sweep pattern with a unified button shape (= see sweptFiles
+//  comment + totalSitesConsistent test). Remaining swept files:
+//    KanbanView (1) / BookSettingConstraintsView (2)
 //    / CharacterLifecycleView (1) / CharacterRelationshipsView (1)
 //    / EmotionCurveView (2) / GenreFitView (2) / IdeaLibraryView (3)
 //    / LongFormGuardrailsView (3) / PlotThreadView (1) / ReaderExperienceView (2)
@@ -39,12 +42,19 @@ import Foundation
 import Testing
 @testable import WenshuApp
 
-@Suite("Label icon slot sweep (= 15 view files / 26 sites to SFIcon(tint))")
+@Suite("Label icon slot sweep (= 14 view files / 24 sites to SFIcon(tint))")
 struct LabelIconSlotSweepTests {
 
+    // LibraryRootView was removed from sweptFiles on 2026-10-08:
+    // commit c67d1ce2c (= onboarding buttons render icon + title
+    // consistently) intentionally replaced `Label { Text } icon: {
+    // SFIcon(.inlineSmall, .tint) }` with a unified button shape so
+    // the onboarding row reads the same in light + dark + accessibility
+    // text sizes. The sweep invariant is preserved by the remaining
+    // 14 swept files (= 24 sites; = the original 26 minus 2 dropped
+    // sites in LibraryRootView).
     static let sweptFiles: [(path: String, sites: Int)] = [
         ("Sources/WenshuApp/Views/Kanban/KanbanView.swift", 1),
-        ("Sources/WenshuApp/Views/Onboarding/LibraryRootView.swift", 2),
         ("Sources/WenshuApp/Views/SpecializedTools/BookSettingConstraintsView.swift", 2),
         ("Sources/WenshuApp/Views/SpecializedTools/CharacterLifecycleView.swift", 1),
         ("Sources/WenshuApp/Views/SpecializedTools/CharacterRelationshipsView.swift", 1),
@@ -84,7 +94,7 @@ struct LabelIconSlotSweepTests {
     // EmptyStateView has no naked Image(systemName:) in any Label slot;
     // = the sweep closes itself with no ShellPlaceholder check needed.
 
-    @Test("Label icon slot sweep — totals: 26 sites across 15 view files")
+    @Test("Label icon slot sweep — totals: 24 sites across 14 view files")
     func totalSitesConsistent() throws {
         var totalSFIconInlineSmall = 0
         for entry in Self.sweptFiles {
@@ -95,7 +105,7 @@ struct LabelIconSlotSweepTests {
             let range = content.range(of: pattern, options: .regularExpression)
             if let _ = range { totalSFIconInlineSmall += 1 }
         }
-        #expect(totalSFIconInlineSmall == 15,
-                "Label icon slot sweep must produce 15 view files using SFIcon(.inlineSmall, .tint) inside icon: { } (= one SFIcon per file = the first-pass count)")
+        #expect(totalSFIconInlineSmall == 14,
+                "Label icon slot sweep must produce 14 view files using SFIcon(.inlineSmall, .tint) inside icon: { } (= one SFIcon per file = the post-LibraryRootView count)")
     }
 }
