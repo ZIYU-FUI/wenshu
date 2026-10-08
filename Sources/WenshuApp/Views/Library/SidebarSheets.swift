@@ -223,36 +223,36 @@ struct NewShelfSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                TextField(String(localized: "new_shelf_sheet_name_field"), text: $name)
-                    .textFieldStyle(.roundedBorder)
-                if let error = nameError {
-                    Text(error)
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                }
+        VStack(alignment: .leading, spacing: DesignTokens.spacingModerate) {
+            // inline error caption (= sits under the TextField; =
+            // matches macOS 27 canonical new-shelf sheet shape from
+            // Finder / Notes).
+            TextField(String(localized: "new_shelf_sheet_name_field"), text: $name)
+                .textFieldStyle(.roundedBorder)
+                .onSubmit(saveAndClose)
+            if let error = nameError {
+                Text(error)
+                    .font(.caption)
+                    .foregroundStyle(.red)
             }
-            // chromePaddingHero (= 20 PT all-around) kept as DesignTokens
-            // (= static non-scrollable sheet VStack; = Apple has no
-            // system API for non-scrollable outer padding).
-            .padding(DesignTokens.spacingHero)
-            .navigationTitle(String(localized: "new_shelf_sheet_title"))
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(String(localized: "auto.shared.cancel"), action: onCancel)
-                        .keyboardShortcut(.cancelAction)
+            HStack(spacing: DesignTokens.spacingModerate) {
+                Spacer()
+                Button(String(localized: "auto.shared.cancel"), action: onCancel)
+                    .keyboardShortcut(.cancelAction)
+                Button(String(localized: "auto.shared.save")) {
+                    saveAndClose()
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(String(localized: "auto.shared.save")) {
-                        onSave(trimmed)
-                    }
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(!isNameValid)
-                }
+                .keyboardShortcut(.defaultAction)
+                .disabled(!isNameValid)
             }
         }
-        .frame(minWidth: 420, minHeight: 200)
+        .padding(DesignTokens.spacingLoose)
+        .frame(width: DesignTokens.controlSheetWidthRename)
+    }
+
+    private func saveAndClose() {
+        guard isNameValid else { return }
+        onSave(trimmed)
     }
 }
 
@@ -472,35 +472,38 @@ struct RenameItemSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            Form {
-                TextField(String(localized: "rename_item_sheet_name_field"), text: $name)
-                    .textFieldStyle(.roundedBorder)
-                if let error = nameError {
-                    Text(error)
-                        .font(.caption)
-                        .foregroundStyle(.red)
-                }
+        VStack(alignment: .leading, spacing: DesignTokens.spacingModerate) {
+            // inline error caption (= sits under the TextField, not in
+            // a separate Form section; = matches macOS 27 canonical
+            // rename dialog shape from Mail / Notes / Finder).
+            TextField(String(localized: "rename_item_sheet_name_field"), text: $name)
+                .textFieldStyle(.roundedBorder)
+                .onSubmit(saveAndClose)
+            if let error = nameError {
+                Text(error)
+                    .font(.caption)
+                    .foregroundStyle(.red)
             }
-            // chromePaddingHero (= 20 PT all-around) kept as DesignTokens
-            // (= static non-scrollable sheet VStack; = Apple has no
-            // system API for non-scrollable outer padding).
-            .padding(DesignTokens.spacingHero)
-            .navigationTitle(String(localized: "rename_item_sheet_title"))
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(String(localized: "auto.shared.cancel"), action: onCancel)
-                        .keyboardShortcut(.cancelAction)
+            // HStack: 取消 + 保存 (= 12 PT spacing between; = trailing
+            // alignment; = Cancel first, Save second per Apple HIG
+            // macOS button order = leading = safe = trailing = primary).
+            HStack(spacing: DesignTokens.spacingModerate) {
+                Spacer()
+                Button(String(localized: "auto.shared.cancel"), action: onCancel)
+                    .keyboardShortcut(.cancelAction)
+                Button(String(localized: "auto.shared.save")) {
+                    saveAndClose()
                 }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(String(localized: "auto.shared.save")) {
-                        onSave(trimmed)
-                    }
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(!isNameValid)
-                }
+                .keyboardShortcut(.defaultAction)
+                .disabled(!isNameValid)
             }
         }
-        .frame(minWidth: 420, minHeight: 200)
+        .padding(DesignTokens.spacingLoose)
+        .frame(width: DesignTokens.controlSheetWidthRename)
+    }
+
+    private func saveAndClose() {
+        guard isNameValid else { return }
+        onSave(trimmed)
     }
 }
