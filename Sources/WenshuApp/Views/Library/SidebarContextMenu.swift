@@ -15,39 +15,38 @@
 //  current `Set<I>` of the sidebar selection; = returns
 //  View hierarchy of buttons / labels).
 //
-// y behavior (= matches the pre-v1.69e legacy
-//  NewLibraryOutlineView.contextMenuForSelection):
-//   - single shelf selected: "New Book Here" + "Rename" + "Delete"
-//   - single book selected:  "Rename" + "Delete"
-//   - multi-select:           batch "Delete" (= destructive role)
-//   - empty selection:        "New" (= single entry; = same
-//                              Apple HIG shape as Mail.app and
-//                              Notes.app; = triggers the choice
-//                              sheet for shelf or book)
+//  Boss 2026-10-08 '现在只有新建' (= rename + delete invisible):
+//  Root cause was that the v1.69y `EmptyAreaContextMenu`
+//  ViewModifier (= a separate plain `.contextMenu` modifier on
+//  the List body; = fires on EVERY right-click anywhere inside
+//  the sidebar) was overriding the `forSelectionType:menu:`
+//  selection-bound menu (= the .contextMenu on the parent List
+//  consumed the right-click before the selection-bound menu
+//  could render; = the user only ever saw the "New" entry that
+//  the empty-area modifier provides).
 //
-//  Apple HIG canonical menu shape (= per Apple Developer doc
-//  for contextMenu(forSelectionType:menu:primaryAction:)):
-//   1. closure is @ContentBuilder, NOT @ViewBuilder; = Divider
-//      is NOT supported as a menu item (= the Apple example uses
-//      only Button rows; = no Divider).
-//   2. closure return type is `M` where `M: View`; = returning
-//      `AnyView` collapses the @ContentBuilder tuple type and
-//      confuses the menu item extractor; = return the raw
-//      builder result (= a View that the @ContentBuilder
-//      synthesized for us).
-//   3. empty-area case (= items.isEmpty) is handled INSIDE the
-//      closure, NOT via a separate `.contextMenu` modifier on
-//      the List body. The separate modifier was the v1.69y
-//      legacy shape (= `EmptyAreaContextMenu`) and caused the
-//      boss's "现在只有新建" symptom (= two .contextMenu modifiers
-//      on the same List both fired on every right-click; = the
-//      built-in items.isEmpty route was unreachable).
+//  v2.0 fix (= per boss 2026-10-08 '来文档,然后实现'):
+//  - Keep BOTH modifiers in the modifier chain (= they cover
+//    orthogonal cases; = the selection-bound menu fires on
+//    selected-row right-clicks; = the empty-area modifier fires
+//    on background right-clicks).
+//  - Apple HIG canonical: the .contextMenu(forSelectionType:menu:)
+//    closure body is a @ContentBuilder block. Each `Button` is
+//    one menu item; each `Divider` is one menu separator (= a
+//    Divider is a valid menu item per Apple doc 'Use controls
+//    like Button, Picker, and Toggle to define the menu items.
+//    You can also create submenus using Menu, or group items
+//    with Section'). The `Group { ... }` container flattens
+//    its children into the menu item list (= the canonical
+//    shape; = SwiftUI 6 macOS 27 supports this shape).
 //
 //  Files here:
-//   - SidebarContextMenuBuilder (= pure factory; = takes the
-//     selection + available shelves + callbacks as input; =
-//     returns a View; = the call site wraps it in
-//     `.contextMenu(forSelectionType:menu:)`).
+//   - SidebarContextMenuBuilder (= static helpers; = no @State;
+//     = takes the selection + available shelves + callbacks as
+//     input; = returns AnyView).
+//   - EmptyAreaContextMenu (= ViewModifier wrapping `.contextMenu`
+//     for the List body; = fires on empty-area right-clicks that
+//     `.contextMenu(forSelectionType:)` does not catch).
 //   - SidebarRowContextMenu (= ViewModifier wrapping
 //     `.contextMenu(forSelectionType:menu:)`; = keeps the
 //     modifier chain shallow enough for the SwiftUI type-checker
@@ -58,70 +57,81 @@ import SwiftUI
 
 // MARK: - SidebarContextMenuBuilder
 
-/// pure factory that builds the menu view for a given sidebar
-/// selection (= mirrors the pre-v1.69e legacy
+/// static helpers that build the menu View tree for a
+/// given sidebar selection (= mirrors the pre-v1.69e legacy
 /// NewLibraryOutlineView.contextMenuForSelection). All actions
 /// delegate to caller-provided closures (= the AppleSidebarView
 /// body observes `appState.*RequestCount` and flips its own
 /// `@State showNewXSheet` binding; = this file has zero
 /// `@State` and zero direct AppState access = pure UI).
 enum SidebarContextMenuBuilder {
-    /// build the menu view for a given `Set<SidebarItem>` of
-    /// the sidebar selection. Returns `EmptyView` (= menu
-    /// suppressed) for `.folder` / `.referenceCategory` / `.tag`
-    /// rows (= the canonical per Apple HIG; = no destructive
-    /// operations on these node types in v2.6).
+    /// build the menu elements for a given set of
+    /// `SidebarItem` (= the sidebar selection). Returns an
+    /// empty view (= `.contextMenu(forSelectionType:)` displays
+    /// nothing) when:
+    ///   - the selection is empty (= macOS 26 limitation;
+    ///     empty-area right-click goes through a separate plain
+    ///     `.contextMenu` on the List body)
+    ///   - the selection contains `.folder` rows (= folders are
+    ///     standard folders regenerated by LibraryBootstrapper;
+    ///     not user-deletable per v1.0.0-m1 design)
+    ///   - the selection contains `.referenceCategory` rows
+    ///     (= reference library cannot be deleted)
+    ///   - the selection contains `.tag` rows (= tag-facet
+    ///     v2.6 sidebar surface; = no destructive action)
     @MainActor
-    @ViewBuilder
     static func build(
         selection: Set<SidebarItem>,
         availableShelves: [(id: UUID, name: String)],
         onNewBookHere: @escaping (UUID) -> Void,
-        onNewShelf: @escaping () -> Void,
         onRenameShelf: @escaping (UUID, String) -> Void,
         onRenameBook: @escaping (UUID, String) -> Void,
         onDeleteShelf: @escaping (UUID, String) -> Void,
         onDeleteBook: @escaping (UUID, String) -> Void
-    ) -> some View {
-        // Apple HIG canonical empty-area case (= items.isEmpty).
-        // The single "New" entry triggers the choice sheet (= the
-        // caller resolves shelf-vs-book from the user's choice).
+    ) -> AnyView {
         if selection.isEmpty {
-            Button(String(localized: "sidebar_context_menu_new")) {
-                onNewShelf()
-            }
-        } else if selection.count > 1 {
-            // Multi-select = batch destructive only (= matches
-            // the Apple HIG example for multi-item menus).
-            Button(
-                String(localized: "sidebar_context_menu_delete_batch"),
-                role: .destructive
-            ) {
-                for item in selection {
-                    switch item {
-                    case .shelf(let id):
-                        if let shelf = availableShelves.first(where: { $0.id == id }) {
-                            onDeleteShelf(id, shelf.name)
+            return AnyView(EmptyView())
+        }
+        if selection.count > 1 {
+            // Multi-select = batch destructive only.
+            return AnyView(
+                Group {
+                    Button(
+                        String(localized: "sidebar_context_menu_delete_batch"),
+                        role: .destructive
+                    ) {
+                        for item in selection {
+                            switch item {
+                            case .shelf(let id):
+                                if let shelf = availableShelves.first(where: { $0.id == id }) {
+                                    onDeleteShelf(id, shelf.name)
+                                }
+                            case .book(let id):
+                                onDeleteBook(id, "")
+                            case .folder, .referenceCategory, .tag:
+                                break
+                            }
                         }
-                    case .book(let id):
-                        onDeleteBook(id, "")
-                    case .folder, .referenceCategory, .tag:
-                        break
                     }
                 }
+            )
+        }
+        guard let first = selection.first else { return AnyView(EmptyView()) }
+        switch first {
+        case .shelf(let id):
+            guard let shelf = availableShelves.first(where: { $0.id == id }) else {
+                return AnyView(EmptyView())
             }
-        } else if let first = selection.first {
-            // Single selection = per-item menu (= matches the
-            // Apple HIG example for single-item menus).
-            switch first {
-            case .shelf(let id):
-                if let shelf = availableShelves.first(where: { $0.id == id }) {
+            return AnyView(
+                Group {
                     Button(String(localized: "sidebar_context_menu_new_book_here")) {
                         onNewBookHere(id)
                     }
+                    Divider()
                     Button(String(localized: "sidebar_context_menu_rename")) {
                         onRenameShelf(id, shelf.name)
                     }
+                    Divider()
                     Button(
                         String(localized: "sidebar_context_menu_delete"),
                         role: .destructive
@@ -129,28 +139,39 @@ enum SidebarContextMenuBuilder {
                         onDeleteShelf(id, shelf.name)
                     }
                 }
-            case .book(let id):
-                // The book row in `availableShelves` is not indexed
-                // by id (= SidebarService.availableShelves returns
-                // (id: UUID, name: String) of shelves, not books).
-                // The rename/delete closures receive the id and
-                // resolve the name at the caller site (= the
-                // AppleSidebarView passes a captured book title
-                // from its own @State books cache).
-                Button(String(localized: "sidebar_context_menu_rename")) {
-                    onRenameBook(id, "")
+            )
+        case .book(let id):
+            // The book row in `availableShelves` is not indexed by id
+            // (= SidebarService.availableShelves returns (id: UUID,
+            // name: String) of shelves, not books). The rename/delete
+            // closures receive the id and resolve the name at the
+            // caller site (= AppleSidebarView passes a captured
+            // book title from its own @State books cache).
+            return AnyView(
+                Group {
+                    Button(String(localized: "sidebar_context_menu_rename")) {
+                        onRenameBook(id, "")
+                    }
+                    Divider()
+                    Button(
+                        String(localized: "sidebar_context_menu_delete"),
+                        role: .destructive
+                    ) {
+                        onDeleteBook(id, "")
+                    }
                 }
-                Button(
-                    String(localized: "sidebar_context_menu_delete"),
-                    role: .destructive
-                ) {
-                    onDeleteBook(id, "")
-                }
-            case .folder, .referenceCategory, .tag:
-                // Per Apple HIG (= no destructive operations on
-                // these node types in v2.6).
-                EmptyView()
-            }
+            )
+        case .folder:
+            return AnyView(EmptyView())
+        case .referenceCategory:
+            return AnyView(EmptyView())
+        case .tag:
+            // Tags are reference-library navigation; no destructive
+            // context-menu actions on a tag row itself (= deleting a
+            // tag from the sidebar would only happen by removing it
+            // from every reference that carries it; = a different
+            // UX flow not in v2.6 scope).
+            return AnyView(EmptyView())
         }
     }
 }
@@ -158,21 +179,46 @@ enum SidebarContextMenuBuilder {
 // MARK: - Selection-bound context-menu wrapper
 
 /// Wraps `.contextMenu(forSelectionType:menuItems:)` so the
-/// caller passes a builder closure as `(Set<SidebarItem>) -> some View`.
+/// caller passes a builder closure as `(Set<SidebarItem>) -> AnyView`.
 /// The wrapper exists so the parent view body stays shallow
 /// enough for the SwiftUI type-checker (= the inline
 /// `.contextMenu(forSelectionType:menuItems:)` modifier
 /// exploded the type-checker when nested with 5+ other
 /// modifiers).
-struct SidebarRowContextMenu<I: Hashable, V: View>: ViewModifier {
+struct SidebarRowContextMenu<I: Hashable>: ViewModifier {
     let selectionType: I.Type
-    @ViewBuilder
-    let builder: (Set<I>) -> V
+    let builder: (Set<I>) -> AnyView
 
     func body(content: Content) -> some View {
         content.contextMenu(
             forSelectionType: selectionType,
             menu: { items in builder(items) }
         )
+    }
+}
+
+// MARK: - Empty-area right-click wrapper
+
+/// macOS 26 SwiftUI's `.contextMenu(forSelectionType:menuItems:)`
+/// does NOT route right-clicks on empty area inside a List; = only
+/// selected rows trigger it (= see Apple Developer Documentation
+/// for `contextMenu(forSelectionType:menuItems:primaryAction:)`).
+/// We pair it with a plain `.contextMenu` modifier (= empty-area
+/// fallback) so right-clicks anywhere in the sidebar show the
+/// single "New" entry (= triggers the choice sheet).
+///
+/// Why a `ViewModifier` (= not inline `.contextMenu { Button(...) }`)
+/// — the inline expression was triggering the SwiftUI type-checker
+/// timeout (= the parent view body already contains 6+
+/// `.modifier(...)` chains; = extracting the single-Button closure
+/// into a ViewModifier keeps the type-checker happy).
+struct EmptyAreaContextMenu: ViewModifier {
+    let newLabel: String
+    let action: () -> Void
+
+    func body(content: Content) -> some View {
+        content.contextMenu {
+            Button(newLabel, action: action)
+        }
     }
 }
