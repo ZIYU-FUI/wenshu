@@ -119,7 +119,19 @@ struct AppleSidebarView: View {
                     }
                     sidebarList
                     .listStyle(.sidebar)
-                // y: sidebar right-click menu (= Apple HIG
+                // y: empty-area right-click (= the
+                // `.contextMenu(forSelectionType:menu:)` hook
+                // does NOT route empty-area hits on macOS 27
+                // OutlineGroup-backed Lists; = a plain
+                // `.contextMenu` modifier on the List covers
+                // right-clicks on empty sidebar area; = shows
+                // the single "新建" entry that triggers the
+                // choice sheet).
+                .modifier(EmptyAreaContextMenu(
+                    newLabel: String(localized: "sidebar_context_menu_new"),
+                    action: { sheetRequests.choice += 1 }
+                ))
+                // y: right-click on selected rows (= Apple HIG
                 // canonical macOS 14+ contextMenu hook). The
                 // closure body lives in `SidebarContextMenuModifier`
                 // (= a ViewModifier that hides the SwiftUI
@@ -129,20 +141,16 @@ struct AppleSidebarView: View {
                 // no AnyView; = matches the Apple Developer doc
                 // example for the canonical menu shape).
                 //
-                // y: macOS 27 right-click routing. Per
-                // Apple Developer doc for
-                // `contextMenu(forSelectionType:menu:primaryAction:)`:
-                // 'An empty set indicates menu activation over
-                // the empty area of the selectable container,
-                // while a non-empty set indicates menu
-                // activation over selected items.' We rely on
-                // this (= NO separate plain `.contextMenu`
-                // modifier on the List body; = only ONE
-                // `.contextMenu(forSelectionType:menu:)` is
-                // attached; = the closure body has the
-                // `if items.isEmpty` branch which shows the
-                // single "新建" entry for empty-area
-                // right-clicks).
+                // y: forSelectionType is `SidebarNode.self`
+                // (= matches the `List(service.nodes, children:,
+                // selection: $selectedNode)` declaration on the
+                // sidebar + the `.tag(node)` modifier in
+                // SidebarRowView). Using `SidebarItem.self` here
+                // (= the in-memory enum used by
+                // `workspaceUI.sidebarSelection`) was a type
+                // mismatch that macOS 27 silently ignored
+                // (= the closure never fired; = "no menu at
+                // all on any right-click"). v2.4 arc fixed.
                 .modifier(SidebarContextMenuModifier(
                     onNewShelf: { sheetRequests.choice += 1 },
                     onNewBookHere: { shelfId in
