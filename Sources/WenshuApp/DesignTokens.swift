@@ -903,6 +903,22 @@ enum DesignTokens {
     /// longer text).
     static let controlHeightLarge: CGFloat = 36
 
+    /// Sheet width for inline rename dialogs (= 360 PT, Apple HIG
+    /// macOS canonical rename dialog width).
+    ///
+    /// Apple HIG source: `Dialogs > Sheet > Rename` (= the macOS 26+
+    /// canonical single-field rename sheet = 360 PT fixed width =
+    /// measured from Finder / Mail / Notes.app rename sheet; = the
+    /// same width the OS uses for "Rename File" / "Rename Folder"
+    /// / "Rename Bookmark" sheets).
+    ///
+    /// Used by: SidebarSheets.RenameItemSheet (= the single-field
+    /// rename sheet for a sidebar shelf or book; = matches the
+    /// Apple canonical macOS rename shape instead of the prior
+    /// 420×200 NavigationStack+Form sheet that read as iOS-shaped
+    /// chrome on macOS 27).
+    static let controlSheetWidthRename: CGFloat = 360
+
     /// Onboarding welcome window size (= 640×720 PT, Apple HIG
     /// onboarding panel standard).
     ///
