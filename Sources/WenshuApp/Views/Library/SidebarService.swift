@@ -236,8 +236,9 @@ final class SidebarService {
                         title: category.displayName,
                         subtitle: "\(refs.count) 项",
                         systemImage: category.icon,
-                        children: nil,
-                        routingKey: category.directoryName
+                        children: leafNodes,
+                        routingKey: category.directoryName,
+                        iconOpacity: 1
                     ))
                 } else {
                     // nil-category bucket (= pre-v0.29 references
@@ -270,8 +271,9 @@ final class SidebarService {
                         title: key,
                         subtitle: "\(refs.count) 项",
                         systemImage: "tray.full",
-                        children: nil,
-                        routingKey: key
+                        children: leafNodes,
+                        routingKey: key,
+                        iconOpacity: 1
                     ))
                 }
             }
@@ -290,7 +292,8 @@ final class SidebarService {
                 title: "",
                 subtitle: nil,
                 systemImage: "",
-                children: nil
+                children: nil,
+                iconOpacity: 0.55
             ))
             roots.append(SidebarNode(
                 id: Self.referenceLibraryRootId,
@@ -396,7 +399,8 @@ final class SidebarService {
                 title: folder.displayName,
                 subtitle: "\(count) 项",
                 systemImage: folder.icon,
-                children: nil
+                children: nil,
+                iconOpacity: 0.55
             )
         }
     }
