@@ -196,6 +196,39 @@ enum CardOpenOps {
             return CardTriad(path: nil, content: "", title: "book-doc")
         case .shelfScope, .empty:
             return CardTriad(path: nil, content: "", title: "")
+        case .tagScope(let tag):
+            // v2.6 facet model: .tagScope opens a reference
+            // entity (= the same triad shape as
+            // .referenceScope; = the editor opens the
+            // document by id; = tag is a facet of the
+            // reference, not a separate document type).
+            // PaneView routes .tagScope through this
+            // helper via the .referenceScope branch
+            // (= see its switch; = this case is here for
+            // exhaustiveness and to keep the editor's
+            // sourceScope Codable for .tagScope
+            // pickling across launches).
+            let entities: [Reference] = (try? bookStore?.loadAllReferences()) ?? []
+            let filtered = entities.filter { entity in
+                entity.layer == .layerEntities && entity.tags.contains(tag)
+            }
+            let pickedReference: Reference? = {
+                if case .reference(let r) = source, r.tags.contains(tag) { return r }
+                return filtered.first
+            }()
+            if let first = pickedReference {
+                let body = bookStore?.loadReferenceBody(id: first.id) ?? first.summary
+                return CardTriad(
+                    path: nil,
+                    content: body,
+                    title: first.title
+                )
+            }
+            return CardTriad(
+                path: nil,
+                content: "",
+                title: tag
+            )
         }
     }
 

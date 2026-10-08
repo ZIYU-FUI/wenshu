@@ -137,14 +137,33 @@ enum EntitySortOrder: String, CaseIterable, Identifiable {
 // but PreviewScope is constructed from it; equality comparisons
 // happen upstream via sidebarSelection).
 //
-// (see OOB.md #2026-09-07) — 'directory tree card,':
-// PreviewScope is Codable so it can be persisted on the active
-// EditorTab (= sourceScope) and restored on launch (= drives
-// sidebar expansion + preview card display).
+/// the sidebar selection (= WorkspaceView computes `previewScope` from
+/// sidebarSelection + the routed SidebarItem; = drives the
+/// preview-pane card grid + tab sourceScope).
+///
+/// Apple canonical model: this enum is the **single source of
+/// truth** for the preview-pane content scope. The Apple Swift API
+/// design guideline §"Make illegal states unrepresentable" rules
+/// out combining scopes with a single optional / nil case (= the
+/// v2.6 tag-vs-category ambiguity was the only reason a nil was
+/// ever legal here; the v2.6 facet model resolves that by giving
+/// tag + category separate, dedicated cases below).
+///
+/// v2.6 facet model: tag is a cross-cutting facet (= a single
+/// reference can carry 0..N tags; = browsing by tag must NOT
+/// silently fall through to a different facet's case). Hence
+/// the dedicated `tagScope(String)` case (= Apple canonical
+/// type-safe scoping; = `tag` cannot be confused with
+/// `referenceScope`'s category at runtime).
 enum PreviewScope: Hashable, Codable {
     /// Reference library scope. category nil = root (= all entities);
     /// category non-nil = that category only.
     case referenceScope(EntityCategory?)
+    /// Reference library tag scope. The string is a tag value;
+    /// the preview pane filters references by `tags.contains(tag)`.
+    /// (= v2.6 facet model: tag is a cross-cutting facet; =
+    /// dedicated case, not a nil-fallback to referenceScope.)
+    case tagScope(String)
     /// Book scope. folderName nil = all folders in this book; non-nil
     /// = just that folder's .md files.
     case bookScope(bookId: UUID, folderName: String?)
@@ -778,6 +797,27 @@ struct PreviewPane: View {
                     switch scope {
                     case .referenceScope(let category):
                         referenceScopeView(category: category)
+                    case .tagScope(let tag):
+                        // v2.6 facet model: dedicated preview
+                        // scope for tag rows. The tag string
+                        // flows in via the scope (= Apple
+                        // canonical = scope = the
+                        // single-source-of-truth for the
+                        // preview-pane content filter; =
+                        // PreviewPane does not need a
+                        // separate workspaceUI.activeTag
+                        // for this case (= the scope IS
+                        // the tag filter). The body
+                        // composes the existing
+                        // referenceScopeView's
+                        // overviewGrid with an in-scope
+                        // tag prefilter (= applies
+                        // tags.contains(tag) before the
+                        // search + category filter; =
+                        // search and activeTag remain
+                        // available for additive
+                        // narrowing).
+                        referenceScopeView(category: nil, tagOverride: tag)
                     case .bookScope(let bookId, folderName: let folderName):
                         bookScopeView(bookId: bookId, folderName: folderName)
                     case .shelfScope(let shelfId):
@@ -950,22 +990,30 @@ struct PreviewPane: View {
     /// OOB: 'card'). category nil = overview (= all
     /// entities, flat grid per (see OOB.md #2026-08-30)); non-nil = category filter.
     @ViewBuilder
-    private func referenceScopeView(category: EntityCategory?) -> some View {
+    private func referenceScopeView(category: EntityCategory?, tagOverride: String? = nil) -> some View {
         // (see OOB.md #2026-09-07) — 'search,': apply the
         // search filter (= previewSearchQuery) on top of the
         // category filter. Both filters compose (= all entities →
         // search filter → category filter).
         let searched = searchFilteredEntities(loadAllEntities())
         // SidebarItem.tag preview-pane filter:
-        // apply the tag filter (= self.activeTag) on top
+        // apply the tag filter (= self.activeTag OR
+        // tagOverride from PreviewScope.tagScope) on top
         // of the search + category filter. tag nil = show all
         // (= the user picked the reference library root).
+        // tagOverride takes precedence (= the new
+        // PreviewScope.tagScope is the canonical route; =
+        // workspaceUI.activeTag remains supported for
+        // backward compatibility with the prior
+        // .referenceScope(nil) routing path that AssetsPane
+        // uses to set activeTag in addition).
+        let effectiveTag = tagOverride ?? activeTag
         let allEntities: [Reference] = {
-            guard let activeTag else {
+            guard let effectiveTag else {
                 return searched
             }
             return searched.filter { entity in
-                entity.tags.contains(activeTag)
+                entity.tags.contains(effectiveTag)
             }
         }()
         VStack(spacing: 0) {

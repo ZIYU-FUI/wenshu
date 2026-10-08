@@ -544,6 +544,20 @@ struct AppleSidebarView: View {
             // user-visible slot (= the user's ', 
             // ' complaint).
             workspaceUI.sidebarSelection = .referenceCategory(node.routingKey ?? node.title)
+        case .tag:
+            // v2.6 facet model: tag row (= SidebarNode.Kind.tag,
+            // populated by SidebarService from the union of
+            // Reference.tags across all references). Routing
+            // uses the node title (= the tag string) directly;
+            // AssetsPane.previewScope() maps .tag(let tagString)
+            // to .referenceScope(nil) AND sets
+            // workspaceUI.activeTag = tagString (= PreviewPane
+            // applies the tag filter on top of the reference
+            // scope). This case must be its own branch
+            // (= NOT a .referenceCategory fallback; = the
+            // previous code used .referenceCategory here and
+            // the tag filter was silently unreachable).
+            workspaceUI.sidebarSelection = .tag(node.title)
         case .divider:
             // bb (see OOB.md #2026-09-23) OOB '
             // ': divider rows are non-interactive;
