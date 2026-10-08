@@ -119,18 +119,7 @@ struct AppleSidebarView: View {
                     }
                     sidebarList
                     .listStyle(.sidebar)
-                // y: empty-area right-click (= the
-                // `.contextMenu(forSelectionType:menu:)` hook
-                // does NOT route empty-area hits on macOS 27;
-                // = a plain `.contextMenu` modifier on the
-                // List covers right-clicks on empty sidebar
-                // area (= shows the single "New" entry that
-                // triggers the choice sheet).
-                .modifier(EmptyAreaContextMenu(
-                    newLabel: String(localized: "sidebar_context_menu_new"),
-                    action: { sheetRequests.choice += 1 }
-                ))
-                // y: right-click on selected rows (= Apple HIG
+                // y: sidebar right-click menu (= Apple HIG
                 // canonical macOS 14+ contextMenu hook). The
                 // closure body lives in `SidebarContextMenuModifier`
                 // (= a ViewModifier that hides the SwiftUI
@@ -139,6 +128,21 @@ struct AppleSidebarView: View {
                 // direct Button rows; = no Divider; = no Group; =
                 // no AnyView; = matches the Apple Developer doc
                 // example for the canonical menu shape).
+                //
+                // y: macOS 27 right-click routing. Per
+                // Apple Developer doc for
+                // `contextMenu(forSelectionType:menu:primaryAction:)`:
+                // 'An empty set indicates menu activation over
+                // the empty area of the selectable container,
+                // while a non-empty set indicates menu
+                // activation over selected items.' We rely on
+                // this (= NO separate plain `.contextMenu`
+                // modifier on the List body; = only ONE
+                // `.contextMenu(forSelectionType:menu:)` is
+                // attached; = the closure body has the
+                // `if items.isEmpty` branch which shows the
+                // single "新建" entry for empty-area
+                // right-clicks).
                 .modifier(SidebarContextMenuModifier(
                     onNewShelf: { sheetRequests.choice += 1 },
                     onNewBookHere: { shelfId in
