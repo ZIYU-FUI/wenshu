@@ -86,11 +86,10 @@ struct ZoneContentView: View {
                 displayStrings: tabs.map(\.label),
                 icon: { tabId in
                     guard let tab = tabs.first(where: { $0.id == tabId }) else { return nil }
-                    // -m1-shell (see OOB.md #2026-09-15) OOB 'use SF Symbols 6
-                    // (3rd gen) with palette rendering': SF Symbol
-                    // mapping as a NSSegmentedControl-friendly
-                    // fallback (= NSSegmentedControl.setImage
-                    // requires NSImage).
+                    // NSSegmentedControl consumes NSImage instead of SwiftUI's
+                    // SFIcon, so use the central IconStyle at the AppKit
+                    // boundary. This keeps all toolbar symbols on one size,
+                    // weight, and scale.
                     return NSImage(systemSymbolName: tab.icon, accessibilityDescription: tab.label)
                 }
             )
