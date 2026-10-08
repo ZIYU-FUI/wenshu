@@ -31,13 +31,12 @@ import SwiftUI
 @MainActor
 struct ForeshadowingGraphWindow: View {
 
-    @Environment(BookStore.self) private var bookStore
-
+    @State private var bookStore: BookStore?
     @State private var entries: [ForeshadowingEntry] = []
     @State private var errorText: String?
 
     /// Active book (= mirrors ForeshadowingView's pattern).
-    private var activeBookId: UUID? { bookStore.selectedBookId }
+    private var activeBookId: UUID? { bookStore?.selectedBookId }
 
     /// One foreshadowing entry (= the row shape; = mapped from
     /// the ForeshadowingTracker actor's data).
@@ -70,6 +69,7 @@ struct ForeshadowingGraphWindow: View {
         }
         .frame(minWidth: 540, minHeight: 400)
         .task(id: activeBookId) {
+            await loadBookStore()
             await reload()
         }
     }
@@ -97,11 +97,26 @@ struct ForeshadowingGraphWindow: View {
         }
     }
 
+    private func loadBookStore() async {
+        guard bookStore == nil else { return }
+        do {
+            let wsRoot = try KanbanWindow.resolveLibraryPath()
+            let result = try LibraryLifecycleHook(wsRoot: wsRoot).runLaunch()
+            bookStore = result.makeBookStore()
+        } catch {
+            errorText = String(describing: error)
+        }
+    }
+
     // Load via the canonical `ForeshadowingTracker` actor (= the
     // view never reads the sidecar directly). Pattern mirrors
     // `ForeshadowingView` (= same actor + same `BookStore`
     // environment).
     private func reload() async {
+        guard let bookStore else {
+            entries = []
+            return
+        }
         guard let bookId = activeBookId else {
             entries = []
             return

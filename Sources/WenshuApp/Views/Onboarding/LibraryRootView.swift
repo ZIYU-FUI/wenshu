@@ -65,7 +65,9 @@ struct LibraryRootView: View {
     // (= deleted by the one-shot migration in
     // WenshuAppDelegate.applicationDidFinishLaunching), = so we
     // replaced it with the canonical accessor.
-    private var activeLibraryPath: String? { ActiveLibrary.path }
+    private var activeLibraryPath: String? {
+        activeLibrarySelection ?? ActiveLibrary.path
+    }
 
     init(library: WenshuLibrary, appearanceMode: AppearanceMode) {
         self.library = library
@@ -117,6 +119,7 @@ struct LibraryRootView: View {
     @Environment(WorkspaceUIState.self) private var workspaceUI
     @Environment(SheetRequestState.self) private var sheetRequests
     @State private var bookStore: BookStore?
+    @State private var activeLibrarySelection: String?
     @State private var commandPaletteModel = CommandPaletteModel()
     @State private var commandPaletteVisible: Bool = false
     @State private var editMode = LayoutEditMode()
@@ -256,6 +259,7 @@ struct LibraryRootView: View {
                 // fresh bookmark Data (= rejects any pre-existing
                 // bookmark) and persists it via LibraryBookmark.save.
                 try? ActiveLibrary.setActiveLibrary(at: url)
+                activeLibrarySelection = url.path
             })
         } else if let bookStore {
             // LibraryRootView is the NavigationSplitView. Nothing
@@ -299,13 +303,29 @@ struct LibraryRootView: View {
             // the optional `self.bookStore` into a non-nil local, so
             // this value is the same one the SwiftUI body just bound
             // (= nil ruled out by the guard above).
+            // Apple NavigationSplitView has no automatic maximum-width API for
+            // SwiftUI columns. Leaving these widths to the framework allows
+            // either column to grow until the NSHostingView constraints
+            // become invalid on macOS 27; the verified crash occurs in
+            // NSWindow._postWindowNeedsUpdateConstraints. These min/ideal/max
+            // values are therefore a crash guardrail, not cosmetic sizing.
             NavigationSplitView {
                 AppleSidebarView()
+                    .navigationSplitViewColumnWidth(
+                        min: 200,
+                        ideal: 240,
+                        max: 320
+                    )
             } content: {
                 AssetsPane(
                     envAppState: appState,
                     appState: appState,
                     workspaceUI: workspaceUI
+                )
+                .navigationSplitViewColumnWidth(
+                    min: 280,
+                    ideal: 360,
+                    max: 520
                 )
             } detail: {
                 EditorChatSplitHost(
@@ -590,30 +610,22 @@ Group {
             // maxHeight:) is just a starting size, not a hard cap).
         .frame(minWidth: 640, idealWidth: DesignTokens.onboardingWindowSize.width, maxWidth: 800, minHeight: 720, idealHeight: DesignTokens.onboardingWindowSize.height, maxHeight: 900)
         .background(Color.clear)
-        // Apple HIG canonical sheet for selecting a .ws directory.
-        // Single panel for both 'open' (= pick an existing .ws) and
-        // 'new' (= pick any folder, wenshu converts it to a .ws bundle
-        // by writing Info.plist + initial subdirs). The legacy code
-        // used NSSavePanel for the new path (= 10/03 audit) and
-        // .fileImporter only for the open path (= 8/24 audit). The
-        // .ws package is a directory (= per v0.26 spec) so the
-        // .folder UTType lets the user pick or create a folder in
-        // Finder, which is the same Apple HIG entry point for both
-        // actions. The destination handler below detects new vs
-        // existing by Info.plist presence (= wenshu.verification-fix
-        // #2: 'wenshu-verification-fix #2' required the .ws directory
-        // to already contain Info.plist before the main UI shows;
-        // createWenshuWorkspace writes it).
+        // RATIONALE: A `.ws` library is a custom package type, not a
+        // generic folder. `public.folder` does not include package
+        // conformance in the open panel, so existing libraries remain
+        // disabled even though LaunchServices identifies their UTI.
+        // Registering the exported type at runtime keeps the picker
+        // aligned with the same custom package declared in Info.plist.
         .fileImporter(
             isPresented: $isImporterPresented,
-            allowedContentTypes: [UTType.folder]
+            allowedContentTypes: [UTType(exportedAs: "com.wenshu.workspace")]
         ) { result in
             switch result {
             case .success(let url):
-                // New vs existing detection: Info.plist missing =
-                // user picked a fresh folder; convert it to a .ws
-                // bundle (= createWenshuWorkspace writes Info.plist
-                // + initial subdirs). Existing = use as-is.
+                // Existing libraries open as-is. A custom package without its
+                // manifest is treated as an incomplete library rather
+                // than silently initialized, because this picker now
+                // accepts only the declared `.ws` type.
                 let infoPlist = url.appendingPathComponent("Info.plist")
                 if !FileManager.default.fileExists(atPath: infoPlist.path) {
                     LibraryOnboardingView.createWenshuWorkspace(at: url)
