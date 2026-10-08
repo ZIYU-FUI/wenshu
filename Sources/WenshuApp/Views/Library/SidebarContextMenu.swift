@@ -147,3 +147,32 @@ struct SidebarContextMenuModifier: ViewModifier {
         }
     }
 }
+
+// MARK: - Empty-area right-click wrapper
+
+/// macOS 27's `.contextMenu(forSelectionType:menu:)` does
+/// NOT route right-clicks on empty area inside a List; = only
+/// selected rows trigger it (= see Apple Developer Documentation
+/// for `contextMenu(forSelectionType:menuItems:primaryAction:)`;
+/// the `items.isEmpty` branch of the closure is unreachable
+/// in practice on macOS 27). We pair the selection-bound
+/// menu (= SidebarContextMenuModifier) with this plain
+/// `.contextMenu` modifier (= empty-area fallback) so
+/// right-clicks anywhere in the sidebar background show
+/// the single "New" entry (= triggers the choice sheet).
+///
+/// Why a `ViewModifier` (= not inline `.contextMenu { Button(...) }`)
+/// — the inline expression was triggering the SwiftUI type-checker
+/// timeout (= the parent view body already contains 6+
+/// `.modifier(...)` chains; = extracting the single-Button closure
+/// into a ViewModifier keeps the type-checker happy).
+struct EmptyAreaContextMenu: ViewModifier {
+    let newLabel: String
+    let action: () -> Void
+
+    func body(content: Content) -> some View {
+        content.contextMenu {
+            Button(newLabel, action: action)
+        }
+    }
+}

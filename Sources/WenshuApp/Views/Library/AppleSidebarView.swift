@@ -119,7 +119,18 @@ struct AppleSidebarView: View {
                     }
                     sidebarList
                     .listStyle(.sidebar)
-                // y: sidebar right-click menu (= Apple HIG
+                // y: empty-area right-click (= the
+                // `.contextMenu(forSelectionType:menu:)` hook
+                // does NOT route empty-area hits on macOS 27;
+                // = a plain `.contextMenu` modifier on the
+                // List covers right-clicks on empty sidebar
+                // area (= shows the single "New" entry that
+                // triggers the choice sheet).
+                .modifier(EmptyAreaContextMenu(
+                    newLabel: String(localized: "sidebar_context_menu_new"),
+                    action: { sheetRequests.choice += 1 }
+                ))
+                // y: right-click on selected rows (= Apple HIG
                 // canonical macOS 14+ contextMenu hook). The
                 // closure body lives in `SidebarContextMenuModifier`
                 // (= a ViewModifier that hides the SwiftUI
