@@ -119,35 +119,64 @@ struct AppleSidebarView: View {
                     }
                     sidebarList
                     .listStyle(.sidebar)
-                // y: empty-area right-click (= the
-                // `.contextMenu(forSelectionType:menuItems:)`
-                // hook below does NOT route empty-area hits; =
-                // macOS 26 SwiftUI behavior). A plain
-                // `.contextMenu` modifier on the List covers
-                // right-clicks on empty sidebar area (= shows
-                // the single "New" entry that triggers the
-                // choice sheet; = the pre-v1.69e legacy
-                // NewLibraryOutlineView empty-area behavior
-                // preserved via the same EmptyAreaContextMenu
-                // ViewModifier).
-                // The closure is tiny (= single Button) so the
-                // type-checker handles it inline; = the heavy
-                // closure lives in `contextMenuHandler`.
-                .modifier(EmptyAreaContextMenu(
-                    newLabel: String(localized: "sidebar_context_menu_new"),
-                    action: { sheetRequests.choice += 1 }
-                ))
-                // y: right-click on selected rows (= Apple
-                // HIG canonical macOS 14+ contextMenu hook).
-                // The closure body lives in a separate
-                // helper method (= `contextMenuHandler(items:)`)
-                // and is wrapped in `SidebarRowContextMenu`
+                // y: sidebar right-click menu (= Apple HIG
+                // canonical macOS 14+ contextMenu hook). The
+                // closure body lives in `SidebarContextMenuModifier`
                 // (= a ViewModifier that hides the SwiftUI
-                // `.contextMenu(forSelectionType:menuItems:)`
-                // complexity from the type-checker).
-                .modifier(SidebarRowContextMenu(
-                    selectionType: SidebarItem.self,
-                    builder: { items in contextMenuHandler(items: items) }
+                // `.contextMenu(forSelectionType:menu:)` complexity
+                // from the type-checker; = the closure body uses
+                // direct Button rows; = no Divider; = no Group; =
+                // no AnyView; = matches the Apple Developer doc
+                // example for the canonical menu shape).
+                .modifier(SidebarContextMenuModifier(
+                    onNewShelf: { sheetRequests.choice += 1 },
+                    onNewBookHere: { shelfId in
+                        workspaceUI.sidebarSelection = .shelf(shelfId)
+                        sheetRequests.newBook += 1
+                    },
+                    onRenameShelf: { shelfId, _ in
+                        if let shelf = service.shelves.first(where: { $0.id == shelfId }) {
+                            renaming = SidebarRenamingTarget(
+                                kind: .shelf,
+                                itemId: shelfId,
+                                originalName: shelf.name,
+                                shelfId: nil
+                            )
+                        }
+                    },
+                    onRenameBook: { bookId, _ in
+                        if let book = service.books.first(where: { $0.id == bookId }) {
+                            renaming = SidebarRenamingTarget(
+                                kind: .book,
+                                itemId: bookId,
+                                originalName: book.title,
+                                shelfId: book.shelfId
+                            )
+                        }
+                    },
+                    onDeleteShelf: { shelfId, name in
+                        pendingDelete = SidebarPendingDelete(
+                            kind: .shelf,
+                            itemId: shelfId,
+                            itemName: name
+                        )
+                    },
+                    onDeleteBook: { bookId, _ in
+                        let resolvedName = service.books.first(where: { $0.id == bookId })?.title ?? ""
+                        pendingDelete = SidebarPendingDelete(
+                            kind: .book,
+                            itemId: bookId,
+                            itemName: resolvedName
+                        )
+                    },
+                    resolveShelf: { id in
+                        service.shelves.first(where: { $0.id == id })
+                            .map { (id: $0.id, name: $0.name) }
+                    },
+                    resolveBook: { id in
+                        service.books.first(where: { $0.id == id })
+                            .map { (id: $0.id, name: $0.title) }
+                    }
                 ))
                 // sidebar fix (= (see OOB.md #2026-09-22) OOB
                 // ''): the .onChange(of:
@@ -418,55 +447,6 @@ struct AppleSidebarView: View {
     /// symptom = "only 新建 shows"). The `?` shorthand below
     /// ensures both return paths produce the same @ContentBuilder
     /// tuple (= Apple HIG canonical shape).
-    private func contextMenuHandler(items: Set<SidebarItem>) -> AnyView {
-        guard let service else {
-            return AnyView(EmptyView())
-        }
-        let shelves = service.availableShelvesForPicker()
-        return SidebarContextMenuBuilder.build(
-            selection: items,
-            availableShelves: shelves,
-            onNewBookHere: { shelfId in
-                workspaceUI.sidebarSelection = .shelf(shelfId)
-                sheetRequests.newBook += 1
-            },
-            onRenameShelf: { shelfId, _ in
-                if let shelf = service.shelves.first(where: { $0.id == shelfId }) {
-                    renaming = SidebarRenamingTarget(
-                        kind: .shelf,
-                        itemId: shelfId,
-                        originalName: shelf.name,
-                        shelfId: nil
-                    )
-                }
-            },
-            onRenameBook: { bookId, _ in
-                if let book = service.books.first(where: { $0.id == bookId }) {
-                    renaming = SidebarRenamingTarget(
-                        kind: .book,
-                        itemId: bookId,
-                        originalName: book.title,
-                        shelfId: book.shelfId
-                    )
-                }
-            },
-            onDeleteShelf: { shelfId, name in
-                pendingDelete = SidebarPendingDelete(
-                    kind: .shelf,
-                    itemId: shelfId,
-                    itemName: name
-                )
-            },
-            onDeleteBook: { bookId, _ in
-                let resolvedName = service.books.first(where: { $0.id == bookId })?.title ?? ""
-                pendingDelete = SidebarPendingDelete(
-                    kind: .book,
-                    itemId: bookId,
-                    itemName: resolvedName
-                )
-            }
-        )
-    }
 
     /// Map the user-clicked sidebar row to the corresponding
     /// AppState.sidebarSelection discriminator (= so the rest of

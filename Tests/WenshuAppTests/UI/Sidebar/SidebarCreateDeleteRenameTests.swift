@@ -100,41 +100,41 @@ final class SidebarCreateDeleteRenameTests: XCTestCase {
         )
     }
 
-    func testSidebarContextMenu_defines_builder() throws {
+    func testSidebarContextMenu_defines_modifier() throws {
+        // v2.x arc: the v1.69y SidebarContextMenuBuilder / EmptyAreaContextMenu /
+        // SidebarRowContextMenu trio is gone. The context menu now lives in a
+        // single `SidebarContextMenuModifier` (= Apple HIG canonical =
+        // the closure body uses direct Button rows; = no Divider; = no
+        // Group; = no AnyView; = matches the Apple Developer doc example).
         let body = try String(
             contentsOfFile: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Library/SidebarContextMenu.swift",
             encoding: .utf8
         )
         XCTAssertTrue(
-            body.contains("SidebarContextMenuBuilder"),
-            "SidebarContextMenu.swift must define SidebarContextMenuBuilder (= the menu-item factory)"
+            body.contains("struct SidebarContextMenuModifier"),
+            "SidebarContextMenu.swift must define SidebarContextMenuModifier (= the v2.x context-menu ViewModifier)"
         )
         XCTAssertTrue(
-            body.contains("EmptyAreaContextMenu"),
-            "SidebarContextMenu.swift must define EmptyAreaContextMenu (= empty-area right-click wrapper)"
-        )
-        XCTAssertTrue(
-            body.contains("SidebarRowContextMenu"),
-            "SidebarContextMenu.swift must define SidebarRowContextMenu (= selection-bound contextMenu wrapper)"
+            body.contains("contextMenu(forSelectionType:"),
+            "SidebarContextMenuModifier must wire the .contextMenu(forSelectionType:menu:) hook (= Apple HIG canonical)"
         )
     }
 
-    func testSidebarContextMenu_builder_handles_shelf_and_book() throws {
+    func testSidebarContextMenu_modifier_handles_shelf_and_book() throws {
         let body = try String(
             contentsOfFile: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Library/SidebarContextMenu.swift",
             encoding: .utf8
         )
-        // Builder must handle both `.shelf` (= rename + new book here
-        // + delete + duplicate target) and `.book` (= rename + delete)
-        // cases (= the legacy NewLibraryOutlineView.contextMenuForSelection
-        // supported both).
+        // Modifier must handle both `.shelf` (= new book here + rename + delete)
+        // and `.book` (= rename + delete) cases (= the legacy
+        // NewLibraryOutlineView.contextMenuForSelection supported both).
         XCTAssertTrue(
             body.contains("case .shelf"),
-            "SidebarContextMenuBuilder must handle `.shelf` sidebar items"
+            "SidebarContextMenuModifier must handle `.shelf` sidebar items"
         )
         XCTAssertTrue(
             body.contains("case .book"),
-            "SidebarContextMenuBuilder must handle `.book` sidebar items"
+            "SidebarContextMenuModifier must handle `.book` sidebar items"
         )
     }
 
@@ -288,8 +288,8 @@ final class SidebarCreateDeleteRenameTests: XCTestCase {
             "AppleSidebarView must present the delete confirmation alert"
         )
         XCTAssertTrue(
-            body.contains("SidebarContextMenuBuilder") || body.contains("contextMenuHandler"),
-            "AppleSidebarView must call the context-menu builder"
+            body.contains("SidebarContextMenuModifier"),
+            "AppleSidebarView must wire the SidebarContextMenuModifier (= v2.x context-menu hook)"
         )
     }
 
