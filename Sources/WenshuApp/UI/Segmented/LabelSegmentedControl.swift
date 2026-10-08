@@ -110,30 +110,39 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
     /// writes back the selected value; = the array order
     /// determines the left-to-right segment order).
     let labels: [Selection]
+    /// Icon style applied before an `NSImage` is supplied to
+    /// `NSSegmentedControl`. AppKit's segmented control scales images
+    /// independently from SwiftUI text, so callers pass the same central
+    /// style used by the surrounding toolbar instead of relying on
+    /// `NSImage(systemSymbolName:)` defaults.
+    let iconStyle: IconStyle
+
+    /// AppKit weight counterpart used to configure `NSImage`
+    /// symbols before they enter `NSSegmentedControl`.
+    var symbolWeight: NSFont.Weight {
+        iconStyle.fontWeight == .thin ? .thin : .regular
+    }
+
     /// Per-segment display strings (= the `String` shown in
     /// `setLabel(_:forSegment:)`; = default uses
     /// `String(describing: labels[index])`; = callers can
     /// override for localized labels when Selection is a
     /// non-String Hashable like a custom enum).
     let displayStrings: [String]
-    /// Use SF Symbols 6 (3rd gen) with palette rendering: canonical
-    /// icon layer = Apple SF Symbols 6 (= built into macOS 27; =
-    /// zero SPM dependency). NSSegmentedControl.setImage(_:forSegment:)
-    /// requires NSImage; = we resolve the SF Symbol name to
-    /// NSImage via NSImage(systemSymbolName:) at the call site.
-    /// TODO future ticket can pre-render the SF Symbol to
-    /// NSImage for true wenshu visual fidelity.
+    /// Per-segment symbol provider.
     let icon: ((Selection) -> NSImage?)?
 
     init(
         selection: Binding<Selection>,
         labels: [Selection],
         displayStrings: [String]? = nil,
+        iconStyle: IconStyle = .paneTab,
         icon: ((Selection) -> NSImage?)? = nil
     ) {
         self.selection = selection
         self.labels = labels
         self.displayStrings = displayStrings ?? labels.map { String(describing: $0) }
+        self.iconStyle = iconStyle
         self.icon = icon
     }
 
@@ -165,8 +174,18 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
             // label washing).
             let display = index < displayStrings.count ? displayStrings[index] : String(describing: label)
             control.setLabel(display, forSegment: index)
-            if let icon = icon {
-                control.setImage(icon(label), forSegment: index)
+            if let iconProvider = icon,
+               let image = iconProvider(label) {
+                control.setImage(
+                    image.withSymbolConfiguration(
+                        NSImage.SymbolConfiguration(
+                            pointSize: iconStyle.pointSize,
+                            weight: symbolWeight,
+                            scale: .medium
+                        )
+                    ),
+                    forSegment: index
+                )
             }
             // Also set tooltip (= the canonical Apple HIG
             // inspector tab tooltip; = appears on hover).
