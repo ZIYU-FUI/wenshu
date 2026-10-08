@@ -218,7 +218,26 @@ final class SidebarService {
                 .map { (tag, count) -> SidebarNode in
                     SidebarNode(
                         id: Self.stableReferenceTagId(tag),
-                        kind: .referenceCategory,
+                        // v2.6 facet model: tag is a separate
+                        // SidebarNode.Kind (= NOT a
+                        // referenceCategory). This is the fix
+                        // for the v2.6+ preview-pane routing
+                        // bug (= the old code used
+                        // .referenceCategory here; =
+                        // forwardSelection mis-routed the
+                        // selection to SidebarItem.referenceCategory;
+                        // = AssetsPane.previewScope() took the
+                        // referenceCategory branch (= no
+                        // activeTag set = no tag filter
+                        // applied)). The new .tag kind = a
+                        // dedicated kind (= Apple canonical
+                        // = distinguish cross-cutting facets
+                        // by type) that forwardSelection
+                        // maps to SidebarItem.tag(<tagString>)
+                        // (= AssetsPane sets activeTag and
+                        // PreviewPane filters its card grid
+                        // by tags.contains(activeTag)).
+                        kind: .tag,
                         title: tag,
                         subtitle: "\(count) 项",
                         systemImage: "tag.fill",

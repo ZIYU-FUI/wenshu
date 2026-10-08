@@ -175,15 +175,17 @@ struct AssetsPane: View {
         case .folder(let bookId, let folderName):
             return .bookScope(bookId: bookId, folderName: folderName)
         case .tag(let tagString):
-            // v2.9d T37 ((see OOB.md #2026-09-28) OOB A7 follow-up):
-            // a tag selection now sets workspaceUI.activeTag
-            // (= PreviewPane reads workspaceUI.activeTag
-            // to filter its card grid by tag). Previously
-            // the tag route fell through to .referenceScope
-            // (= no real filter applied; = tag chip was a
-            // dead UI affordance).
-            workspaceUI.activeTag = tagString
-            return .referenceScope(nil)
+            // v2.6 facet model: tag is a dedicated PreviewScope
+            // case (= NOT a nil-fallback to .referenceScope;
+            // = the v2.6+ preview-pane routing fix that
+            // gives the tag filter a type-safe path). The
+            // .tagScope case carries the tag string in the
+            // scope (= single source of truth; = PreviewPane
+            // no longer relies on workspaceUI.activeTag for
+            // its tag filter; = workspaceUI.activeTag
+            // remains a back-compat slot used by the legacy
+            // .referenceScope(nil) routing path elsewhere).
+            return .tagScope(tagString)
         case nil:
             return .referenceScope(nil)
         }

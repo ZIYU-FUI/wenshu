@@ -117,7 +117,7 @@ struct SidebarContextMenuModifier: ViewModifier {
                             if let book = resolveBook(node.id) {
                                 onDeleteBook(book.id, book.name)
                             }
-                        case .reference, .referenceCategory, .divider:
+                        case .reference, .referenceCategory, .divider, .tag:
                             break
                         }
                     }
@@ -152,7 +152,7 @@ struct SidebarContextMenuModifier: ViewModifier {
                             onDeleteBook(book.id, book.name)
                         }
                     }
-                case .reference, .referenceCategory, .divider:
+                case .reference, .referenceCategory, .divider, .tag:
                     // No destructive operations on these node types
                     // in v2.6 (= Apple HIG canonical = empty menu).
                     EmptyView()

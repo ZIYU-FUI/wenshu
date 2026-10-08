@@ -95,10 +95,18 @@ struct SidebarNode: Identifiable, Hashable, Sendable {
         // = EntityCategory). Children = the references in that
         // category.
         case referenceCategory
+        // v2.6 facet model: tag row (= a v2.6 cross-cutting
+        // facet; = one SidebarNode per unique tag string; =
+        // orthogonal to `referenceCategory` and entityType).
+        // Children = nil (= leaf; = clicking a tag row routes
+        // `workspaceUI.sidebarSelection = .tag(<tagString>)` and
+        // PreviewPane filters its card grid by
+        // `tags.contains(tag)`).
+        case tag
         // bb (see OOB.md #2026-09-23) OOB '
         // ': non-interactive row that renders a horizontal
-        // Divider (= the Apple HIG section separator idiom;
-        // = same role as the section header divider at the
+        // Divider (= the Apple HIG section separator idiom; =
+        // same role as the section header divider at the
         // top of the sidebar). Inserted between the shelves
         // (= user shelves) and the reference library (= the
         // synthetic `reference` root node) by SidebarService.

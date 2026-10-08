@@ -271,7 +271,16 @@ struct PaneView: View {
             } else {
                 triad = scanFirstBookDoc(bookId: bookId, folderName: folderName)
             }
-        case .shelfScope, .empty:
+        case .shelfScope, .empty, .tagScope:
+            // v2.6 facet model: .tagScope is a preview-pane
+            // filter scope (= the same as .referenceScope in
+            // terms of what to open; = the openTab result
+            // uses the scope's sourceScope for tab routing;
+            // = a .tagScope result opens the card in the
+            // editor the same way a .referenceScope result
+            // does). The empty triad here means "no
+            // pre-resolved content" (= the editor opens
+            // the document by id; = see CardOpenOps.openTab).
             triad = CardOpenOps.CardTriad(path: nil, content: "", title: "")
         }
         _ = CardOpenOps.openTab(
