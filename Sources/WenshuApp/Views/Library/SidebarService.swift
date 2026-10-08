@@ -21,6 +21,9 @@
 // here).
 
 import Foundation
+import os
+
+private let sidebarLogger = Logger(subsystem: "com.wenshu", category: "sidebarservice")
 
 /// Loads and projects the sidebar tree (= flat row + cell library
 /// + reference) into a SidebarNode tree for the Apple HIG

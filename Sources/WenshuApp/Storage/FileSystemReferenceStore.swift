@@ -575,7 +575,9 @@ struct FileSystemReferenceStore: ReferenceStoring {
         }
         do {
             let data = try Data(contentsOf: indexURL)
-            return try JSONDecoder().decode([Reference].self, from: data)
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            return try decoder.decode([Reference].self, from: data)
         } catch {
             return []
         }

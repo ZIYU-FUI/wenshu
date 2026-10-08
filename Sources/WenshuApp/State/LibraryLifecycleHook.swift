@@ -26,7 +26,7 @@ struct LibraryLifecycleHook: Sendable {
         try bootstrapper.ensureValidStructure()
         wenshuLogger.info("[wenshu.library.lifecycle] runLaunch: ensureValidStructure done")
         let stores = try constructStores(wsRoot: wsRoot)
-        wenshuLogger.info("[wenshu.library.lifecycle] runLaunch: constructStores done; shelvesRoot=\(stores.shelvesRoot.path)")
+        wenshuLogger.info("[wenshu.library.lifecycle] runLaunch: constructStores done; shelvesRoot=\(stores.shelvesRoot.path) referenceLibraryRoot=\(stores.referenceLibraryRoot.path)")
         return LibraryLaunchResult(stores: stores)
     }
 
