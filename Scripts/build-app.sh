@@ -89,6 +89,18 @@ if [ -n "$SPM_BUNDLE_PATH" ]; then
         fi
     done
 fi
+
+# Source catalogs are the per-language truth in this repository. The
+# SPM resource bundle can retain a stale incremental copy, so refresh the
+# top-level app catalogs from source after every release build.
+for source_lproj in Sources/WenshuApp/Resources/*.lproj; do
+    if [ -d "$source_lproj" ]; then
+        locale="$(basename "$source_lproj" .lproj)"
+        mkdir -p "$RES_DIR/${locale}.lproj"
+        cp "$source_lproj/Localizable.strings" "$RES_DIR/${locale}.lproj/Localizable.strings"
+        echo ">>> refreshed source localization: ${locale}.lproj"
+    fi
+done
 # Copy all third-party SPM-generated resource bundles into the .app
 # (= Highlighter_Highlighter, GRDB_GRDB, Defaults_Defaults, etc.) so
 # their `Bundle.module` lookups succeed at runtime. Without these,
