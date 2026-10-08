@@ -86,6 +86,11 @@ struct IconStylesTests {
         #expect(IconStyle.surface.pointSize == 56)
     }
 
+    @Test("IconStyle.sidebar = 16 (= Apple Mail / Notes / Xcode sidebar row leading icon)")
+    func sidebarPointSize() {
+        #expect(IconStyle.sidebar.pointSize == 16)
+    }
+
     // MARK: - IconStyle.fontWeight split (boss 2026-09-17 SF Symbols 6 rule)
 
     @Test("IconStyle.fontWeight = .thin for the >=38 PT zone (= hero / avatar / cover)")
@@ -105,6 +110,7 @@ struct IconStylesTests {
         #expect(IconStyle.hitArea.fontWeight == .regular)
         #expect(IconStyle.toolbarButton.fontWeight == .regular)
         #expect(IconStyle.surface.fontWeight == .regular)
+        #expect(IconStyle.sidebar.fontWeight == .regular)
     }
 
     // MARK: - IconStyle.isHitArea
@@ -119,14 +125,14 @@ struct IconStylesTests {
 
     // MARK: - IconStyle coverage
 
-    @Test("IconStyle.allCases = 11 (= the full Apple-HIG surface list)")
+    @Test("IconStyle.allCases = 12 (= the full Apple-HIG surface list)")
     func iconStyleAllCasesCount() {
         let cases = IconStyle.allCases
-        #expect(cases.count == 11, "IconStyle has 11 cases; = the union of all Apple-HIG-tier + .hitArea / .toolbarButton / .surface wrappers")
+        #expect(cases.count == 12, "IconStyle has 12 cases; = the union of all Apple-HIG-tier + .hitArea / .toolbarButton / .surface / .sidebar wrappers")
         let names = Set(cases.map { String(describing: $0) })
         for expected in ["inlineSmall", "small", "paneTab", "toolbar", "nav",
                           "hitArea", "emptyStateHero", "avatar", "cover",
-                          "toolbarButton", "surface"] {
+                          "toolbarButton", "surface", "sidebar"] {
             #expect(names.contains(expected), "IconStyle is missing case: \(expected)")
         }
     }
