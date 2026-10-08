@@ -155,126 +155,74 @@ final class SidebarService {
             }
 
             // Reference library = one root node whose children
-            // are the auto-classified CLC categories (= the canonical
-            // 2026-09-22 OOB '' = the
-            // 22 CLC top-level categories that auto-classify
-            // references; = user can pick a category in the
-            // sidebar to filter the middle-column card grid).
+            // are the v2.6 tag facet (= cross-cutting tag cloud;
+            // = per boss 2026-10-08 'pure tag facet, 22 category
+            // 删除' directive). The tag cloud is built from the
+            // union of `Reference.tags` across all references;
+            // = each tag row is one SidebarNode keyed by the tag
+            // string (= SidebarItem.tag(tagString), which v2.6
+            // already wires to .referenceScope(nil) in the
+            // preview pane).
             //
-            // incremental display rule (= (see OOB.md #2026-08-30)):
-            // 'category folders grow with the content, instead of
-            // being laid out all at once' — only categories with
-            // >= 1 reference are visible. Empty categories are
-            // hidden (= no row = no disclosure clutter).
+            // Why pure tag (and not the 22-EntityCategory
+            // hierarchy): per AGENTS.md §11.16 v2.6 facet model
+            // (= boss 2026-09-25 OOB 'adopted option 3 = facet
+            // model'), the tag is the cross-cutting facet that
+            // carries the user's mental model of how to find
+            // material. The 22 EntityCategory cases stay as a
+            // primary facet on the Reference struct (= still
+            // assigned by EntityClassifier), but they no longer
+            // drive the sidebar browse surface. The previous
+            // v0.29 22-category sidebar was too rigid for the
+            // wenshu use case (= users couldn't tag '唐代边塞诗'
+            // under both '唐朝' + '边塞诗' = the tag cloud
+            // collapses to one row per distinct tag).
             //
-            // Projection rules:
-            // 1. Group references by category (= .category? — nil
-            //    references go under a synthetic '' bucket
-            //    = below the official 22 CLC categories; =
-            //    entity-classifier assigns category on save;
-            //    pre-v0.29 references have nil).
-            // 2. For each non-empty bucket, emit one
-            //    `.referenceCategory` parent SidebarNode with the
-            //    EntityCategory's displayName + icon (= the same
-            //    iconography the entity-classifier uses for the
-            //    folder rendering in the reference library).
-            // 3. Each category parent's children = the references
-            //    (= `.reference` leaves, sorted by title ascending
-            //    = CLC convention).
-            // 4. The Reference-Library root keeps its existing
-            //    kind = .reference (= the v0.30 SidebarItem
-            //    .referenceCategory(__root__) sentinel still
-            //    resolves to .referenceScope(nil) in
-            //    ShellMiddleColumn.previewScope).
-            let grouped = Dictionary(grouping: references, by: { Self.referenceCategoryKey(for: $0) })
-            var referenceRootChildren: [SidebarNode] = []
-            for (key, refs) in grouped.sorted(by: { lhs, rhs in
-                Self.categorySortKey(lhs.key) < Self.categorySortKey(rhs.key)
-            }) {
-                let leafNodes = refs
-                    .sorted { $0.title.localizedCompare($1.title) == .orderedAscending }
-                    .map { ref -> SidebarNode in
-                        SidebarNode(
-                            id: ref.id,
-                            kind: .reference,
-                            title: ref.title,
-                            subtitle: ref.source,
-                            systemImage: "book.closed",
-                            children: nil
-                        )
-                    }
-                if let category = Self.EntityCategoryFromDirectoryName(key) {
-                    // Official CLC category — show by its
-                    // EntityCategory displayName + icon.
-                    //
-                    // '
-                    // ': leaf rows (= individual references)
-                    // are NOT rendered in the sidebar (= the
-                    // user browses them via the middle-column
-                    // card grid after picking a category). Pass
-                    // nil for children so the row carries no
-                    // disclosure chevron (= leaf-shaped row;
-                    // = single-click routes to the category
-                    // scope immediately).
-                    //
-                    // p (see OOB.md #2026-09-22) OOB ',
-                    // . ':
-                    // the user-facing title carries the Chinese
-                    // displayName (= what the user reads in the
-                    // sidebar). The routing key (= the
-                    // EntityCategory.directoryName that
-                    // ShellMiddleColumn previewScope's case-
-                    // insensitive rawValue lookup resolves
-                    // back to a category) is stored separately
-                    // in `routingKey` so forwardSelection can
-                    // write the routing key into SidebarItem
-                    // without polluting the user-visible
-                    // title slot.
-                    referenceRootChildren.append(SidebarNode(
-                        id: Self.stableReferenceCategoryId(key),
-                        kind: .referenceCategory,
-                        title: category.displayName,
-                        subtitle: "\(refs.count) 项",
-                        systemImage: category.icon,
-                        children: leafNodes,
-                        routingKey: category.directoryName
-                    ))
-                } else {
-                    // nil-category bucket (= pre-v0.29 references
-                    // that were imported before EntityClassifier
-                    // existed). Same leaf shape as the official
-                    // categories (= the user can still see and
-                    // pick the bucket from the sidebar; = the
-                    // bucket's contents show in the middle-column
-                    // card grid).
-                    //
-                    // Routing: the bucket key ("") is
-                    // stored as the title (= matches the routing
-                    // contract that official categories follow).
-                    // ShellMiddleColumn.previewScope's case-
-                    // insensitive rawValue lookup can't resolve
-                    // "" to an EntityCategory (= no
-                    // EntityCategory carries this label) so the
-                    // previewScope falls through to
-                    // .referenceScope(nil) = the full overview
-                    // (= the user sees ALL references, including
-                    // the bucket's). This is the conservative
-                    // behaviour (= better than hiding the bucket
-                    // = the user can still reach the uncategorized
-                    // row's contents). A future ticket can add a
-                    // dedicated .uncategorizedReference scope for
-                    // narrow filtering.
-                    referenceRootChildren.append(SidebarNode(
-                        id: Self.stableReferenceCategoryId(key),
-                        kind: .referenceCategory,
-                        title: key,
-                        subtitle: "\(refs.count) 项",
-                        systemImage: "tray.full",
-                        children: leafNodes,
-                        routingKey: key
-                    ))
+            // Tag row shape (= matches the v0.29 reference-
+            // category row shape so the sidebar visual rhythm
+            // is preserved):
+            //   - title = the tag string (= '唐朝' / '诗人' / etc.)
+            //   - subtitle = 'N 项' (= tag count; = mirrors
+            //     the previous 'N 项' format on the 22-category
+            //     rows so the user has a consistent density cue)
+            //   - systemImage = 'tag.fill' (= SF Symbols 6 tag
+            //     glyph = the canonical 'tag' iconography; = the
+            //     boss can review every tag in one glance the
+            //     same way he wanted to review every category)
+            //   - children = nil (= leaf = no disclosure chevron
+            //     = single-click routes the preview pane to
+            //     .referenceScope(nil) with the active tag filter)
+            //   - routingKey = the tag string (= the same string
+            //     passed to SidebarItem.tag(tagString); =
+            //     forwardSelection can map the row to the
+            //     SidebarItem.tag case without ambiguity)
+            //
+            // Sort order = descending count (= '唐朝' N=10
+            // above '诗人' N=4), then by tag string ascending
+            // for tie-break (= stable order; = Swift Set has
+            // no inherent order so this sort is required for
+            // consistent rendering across launches).
+            let tagCounts = references
+                .flatMap { $0.tags }
+                .reduce(into: [String: Int]()) { acc, tag in
+                    acc[tag, default: 0] += 1
                 }
-            }
+            let tagRows: [SidebarNode] = tagCounts
+                .sorted { lhs, rhs in
+                    if lhs.value != rhs.value { return lhs.value > rhs.value }
+                    return lhs.key < rhs.key
+                }
+                .map { (tag, count) -> SidebarNode in
+                    SidebarNode(
+                        id: Self.stableReferenceTagId(tag),
+                        kind: .referenceCategory,
+                        title: tag,
+                        subtitle: "\(count) 项",
+                        systemImage: "tag.fill",
+                        children: nil,
+                        routingKey: tag
+                    )
+                }
             // bb (see OOB.md #2026-09-23) OOB '
             // ': insert a non-interactive divider
             // row between the user shelves (= `roots` collected
@@ -298,7 +246,7 @@ final class SidebarService {
                 title: String(localized: "sidebar.reference_library.title"),
                 subtitle: nil,
                 systemImage: "books.vertical",
-                children: referenceRootChildren.isEmpty ? nil : referenceRootChildren
+                children: tagRows.isEmpty ? nil : tagRows
             ))
 
             nodes = roots
@@ -488,6 +436,29 @@ final class SidebarService {
     /// "wenshu.sidebar.folder.").
     private static func stableReferenceCategoryId(_ key: String) -> UUID {
         let raw = "wenshu.sidebar.refcat.\(key)"
+        var hasher = Hasher()
+        hasher.combine(raw)
+        let hash = hasher.finalize()
+        let bytes = withUnsafeBytes(of: hash.bigEndian) { Array($0) }
+        var uuidBytes = Array(bytes)
+        while uuidBytes.count < 16 { uuidBytes.append(0) }
+        uuidBytes = Array(uuidBytes.prefix(16))
+        uuidBytes[6] = (uuidBytes[6] & 0x0F) | 0x40
+        uuidBytes[8] = (uuidBytes[8] & 0x3F) | 0x80
+        let u = uuidBytes.map { String(format: "%02x", $0) }.joined()
+        let formatted = "\(u.prefix(8))-\(u.dropFirst(8).prefix(4))-\(u.dropFirst(12).prefix(4))-\(u.dropFirst(16).prefix(4))-\(u.dropFirst(20).prefix(12))"
+        return UUID(uuidString: formatted) ?? UUID()
+    }
+
+    /// Stable UUID for a sidebar tag row (v2.6 facet model).
+    /// Same tag string yields the same UUID across launches,
+    /// so the persisted sidebarSelection survives reload.
+    /// Distinct ID namespace from stableReferenceCategoryId
+    /// (= "wenshu.sidebar.reftag." vs "wenshu.sidebar.refcat.")
+    /// so the v2.6 tag rows never collide with the legacy
+    /// v0.29 category rows in any persisted selection.
+    private static func stableReferenceTagId(_ tag: String) -> UUID {
+        let raw = "wenshu.sidebar.reftag.\(tag)"
         var hasher = Hasher()
         hasher.combine(raw)
         let hash = hasher.finalize()
