@@ -403,7 +403,13 @@ struct SFIcon: View {
     }
 
     var body: some View {
-        let image = Image(systemName: name)
+        // The plain Image is needed for .resizable() (= .resizable()
+        // is Image-only and must follow Image(...) before any other
+        // modifier that returns `some View`). The styledImage carries
+        // .font() for the non-sidebar tiers. The .sidebar tier uses
+        // plainImage so it can call .resizable() first.
+        let plainImage = Image(systemName: name)
+        let styledImage = plainImage
             .font(.system(size: style.pointSize, weight: style.fontWeight))
 
         // .sidebar uses .monochrome so .foregroundStyle(Color.primary)
@@ -419,20 +425,51 @@ struct SFIcon: View {
         // rendering for the .sidebar tier.
         let isSidebar = style == .sidebar
 
+        // .sidebar tier: lock the row icon to a 16×16 square
+        // frame and force the SF Symbol to fill it via
+        // .resizable() + .aspectRatio(contentMode: .fit). Per
+        // the boss 2026-10-08 decision (= "光学, 也就是视觉宽度
+        // 统一"), every sidebar row icon must occupy the same
+        // optical width inside the 16×16 box. SF Symbols 6 keeps
+        // each symbol's intrinsic optical bounds; resizable +
+        // aspectRatio flatten them to the frame. The trade-off
+        // (= book.vertical no longer looks slim) is the
+        // documented wenshu sidebar row decision.
+        //
+        // .font() is dropped here (= Image.font() returns
+        // `some View` on Swift 6.4 macOS 27, which blocks
+        // .resizable() from following). The 16×16 frame
+        // below pins the rendered size; the .style.pointSize
+        // value still drives the non-sidebar tiers.
+        if isSidebar && rendering == nil {
+            return AnyView(
+                plainImage
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 16, height: 16)
+                    .symbolRenderingMode(.monochrome)
+                    .foregroundStyle(color)
+            )
+        }
+
+        // All other tiers: rendering decision only (= the
+        // IconStyle .hierarchical default for <38 PT and
+        // .monochrome for ≥38 PT, plus the explicit
+        // rendering override).
         switch rendering {
         case .monochrome:
-            image.symbolRenderingMode(.monochrome).foregroundStyle(color)
+            return AnyView(styledImage.symbolRenderingMode(.monochrome).foregroundStyle(color))
         case .hierarchical:
-            image.symbolRenderingMode(.hierarchical).foregroundStyle(color)
+            return AnyView(styledImage.symbolRenderingMode(.hierarchical).foregroundStyle(color))
         case .palette:
-            image.symbolRenderingMode(.palette).foregroundStyle(color)
+            return AnyView(styledImage.symbolRenderingMode(.palette).foregroundStyle(color))
         case .multicolor:
-            image.symbolRenderingMode(.multicolor).foregroundStyle(color)
+            return AnyView(styledImage.symbolRenderingMode(.multicolor).foregroundStyle(color))
         case nil:
-            if isSidebar || style.pointSize >= 38 {
-                image.symbolRenderingMode(.monochrome).foregroundStyle(color)
+            if style.pointSize >= 38 {
+                return AnyView(styledImage.symbolRenderingMode(.monochrome).foregroundStyle(color))
             } else {
-                image.symbolRenderingMode(.hierarchical).foregroundStyle(color)
+                return AnyView(styledImage.symbolRenderingMode(.hierarchical).foregroundStyle(color))
             }
         }
     }
