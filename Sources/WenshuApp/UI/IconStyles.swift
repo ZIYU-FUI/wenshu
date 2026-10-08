@@ -406,6 +406,19 @@ struct SFIcon: View {
         let image = Image(systemName: name)
             .font(.system(size: style.pointSize, weight: style.fontWeight))
 
+        // .sidebar uses .monochrome so .foregroundStyle(Color.primary)
+        // surfaces as the actual system primary (= black on light
+        // mode, white on dark mode). In .hierarchical mode,
+        // Color.primary is interpreted as the foreground style's
+        // primary variant (= system tint = accent = blue on macOS),
+        // so the icon surfaces as blue regardless of the
+        // explicit foreground style. Per Apple HIG sidebar
+        // row anatomy (= Apple Mail / Notes / Xcode sidebar
+        // row icons render in the system primary color, not
+        // the app accent), monochrome is the canonical
+        // rendering for the .sidebar tier.
+        let isSidebar = style == .sidebar
+
         switch rendering {
         case .monochrome:
             image.symbolRenderingMode(.monochrome).foregroundStyle(color)
@@ -416,10 +429,7 @@ struct SFIcon: View {
         case .multicolor:
             image.symbolRenderingMode(.multicolor).foregroundStyle(color)
         case nil:
-            // No explicit rendering = apply the Apple HIG per-zone default:
-            //   ≥38 PT zone (= emptyStateHero / avatar / cover) = .monochrome
-            //   <38 PT zone (= everything else) = .hierarchical (= (see OOB.md #2026-09-15))
-            if style.pointSize >= 38 {
+            if isSidebar || style.pointSize >= 38 {
                 image.symbolRenderingMode(.monochrome).foregroundStyle(color)
             } else {
                 image.symbolRenderingMode(.hierarchical).foregroundStyle(color)
@@ -494,6 +504,14 @@ struct SFLabelRow: View {
             // weight keeps the tree visually aligned without tuning each
             // symbol individually. Color follows Apple Tahoe sidebar
             // default (= system primary, not app accent).
+            //
+            // No explicit .symbolRenderingMode here (= the SFIcon
+            // factory owns the rendering decision via IconStyle.sidebar
+            // = .monochrome; per the boss 2026-10-08 finding,
+            // .hierarchical + .foregroundStyle(Color.primary)
+            // surfaces the icon as system tint = accent = blue;
+            // only .monochrome renders Color.primary as the
+            // actual system primary color).
             SFIcon(
                 systemImage,
                 style: iconStyle,
@@ -501,7 +519,6 @@ struct SFLabelRow: View {
             )
             .padding(.horizontal, iconStyle.sidebarInset)
             .frame(width: iconStyle.sidebarWidth)
-            .symbolRenderingMode(.hierarchical)
             .foregroundStyle(Color.primary)
         }
         .frame(height: DesignTokens.sidebarRowHeight)
