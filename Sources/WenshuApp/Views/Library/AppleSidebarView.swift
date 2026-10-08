@@ -119,32 +119,6 @@ struct AppleSidebarView: View {
                     }
                     sidebarList
                     .listStyle(.sidebar)
-                // y: empty-area right-click (= the
-                // `.contextMenu(forSelectionType:menuItems:)`
-                // hook below does NOT route empty-area hits; =
-                // macOS 26 SwiftUI behavior). A plain
-                // `.contextMenu` modifier on the List covers
-                // right-clicks on empty sidebar area (= shows
-                // the single "New" entry that triggers the
-                // choice sheet; = the pre-v1.69e legacy
-                // NewLibraryOutlineView empty-area behavior
-                // preserved via the same EmptyAreaContextMenu
-                // ViewModifier).
-                // The closure is tiny (= single Button) so the
-                // type-checker handles it inline; = the heavy
-                // closure lives in `contextMenuHandler`.
-                .modifier(EmptyAreaContextMenu(
-                    newLabel: String(localized: "sidebar_context_menu_new"),
-                    action: { sheetRequests.choice += 1 }
-                ))
-                // y: right-click on selected rows (= Apple
-                // HIG canonical macOS 14+ contextMenu hook).
-                // The closure body lives in a separate
-                // helper method (= `contextMenuHandler(items:)`)
-                // and is wrapped in `SidebarRowContextMenu`
-                // (= a ViewModifier that hides the SwiftUI
-                // `.contextMenu(forSelectionType:menuItems:)`
-                // complexity from the type-checker).
                 .modifier(SidebarRowContextMenu(
                     selectionType: SidebarItem.self,
                     builder: { items in contextMenuHandler(items: items) }
@@ -397,54 +371,91 @@ struct AppleSidebarView: View {
     /// `@State` and the AppState shared counter; = the
     /// .sheet + .alert modifiers elsewhere on this body
     /// observe + present).
-    private func contextMenuHandler(items: Set<SidebarItem>) -> AnyView {
-        guard let service else {
-            return AnyView(EmptyView())
-        }
-        let shelves = service.availableShelvesForPicker()
-        return SidebarContextMenuBuilder.build(
-            selection: items,
-            availableShelves: shelves,
-            onNewBookHere: { shelfId in
-                workspaceUI.sidebarSelection = .shelf(shelfId)
-                sheetRequests.newBook += 1
-            },
-            onRenameShelf: { shelfId, _ in
-                if let shelf = service.shelves.first(where: { $0.id == shelfId }) {
-                    renaming = SidebarRenamingTarget(
+    /// context-menu builder (= extracted from the inline body
+    /// of `.contextMenu(forSelectionType:menuItems:)` above; =
+    /// the inline closure body was so large the Swift type
+    /// checker gave up; = extracting it to a focused method
+    /// gives the type-checker room to work). The handler
+    /// forwards to `SidebarContextMenuBuilder.build(...)` with
+    /// closures that flip `renaming` / `pendingDelete` /
+    /// `appState.*RequestCount` (= the sidebar's local
+    /// `@State` and the AppState shared counter; = the
+    /// .sheet + .alert modifiers elsewhere on this body
+    /// observe + present).
+    ///
+    /// Apple HIG canonical: the closure passed to
+    /// `.contextMenu(forSelectionType:menu:)` must return a
+    /// @ViewBuilder block (= no `AnyView` wrapper, no explicit
+    /// Group, no Divider between buttons). The `AnyView` wrapper
+    /// collapses the @ContentBuilder tuple type and the menu
+    /// item extractor drops trailing items (= the v1.69y
+    /// symptom = "only 新建 shows"). The `?` shorthand below
+    /// ensures both return paths produce the same @ContentBuilder
+    /// tuple (= Apple HIG canonical shape).
+    @ViewBuilder
+    private func contextMenuHandler(items: Set<SidebarItem>) -> some View {
+        if let service {
+            SidebarContextMenuBuilder.build(
+                selection: items,
+                availableShelves: service.availableShelvesForPicker(),
+                onNewBookHere: { shelfId in
+                    workspaceUI.sidebarSelection = .shelf(shelfId)
+                    sheetRequests.newBook += 1
+                },
+                onNewShelf: {
+                    // Empty-area right-click: open the choice
+                    // sheet (= the user picks shelf or book; =
+                    // the choice sheet's onCreate closure
+                    // routes to the right request counter; =
+                    // matches the bottom-button "New" entry
+                    // behavior).
+                    sheetRequests.choice += 1
+                },
+                onRenameShelf: { shelfId, _ in
+                    if let shelf = service.shelves.first(where: { $0.id == shelfId }) {
+                        renaming = SidebarRenamingTarget(
+                            kind: .shelf,
+                            itemId: shelfId,
+                            originalName: shelf.name,
+                            shelfId: nil
+                        )
+                    }
+                },
+                onRenameBook: { bookId, _ in
+                    if let book = service.books.first(where: { $0.id == bookId }) {
+                        renaming = SidebarRenamingTarget(
+                            kind: .book,
+                            itemId: bookId,
+                            originalName: book.title,
+                            shelfId: book.shelfId
+                        )
+                    }
+                },
+                onDeleteShelf: { shelfId, name in
+                    pendingDelete = SidebarPendingDelete(
                         kind: .shelf,
                         itemId: shelfId,
-                        originalName: shelf.name,
-                        shelfId: nil
+                        itemName: name
                     )
-                }
-            },
-            onRenameBook: { bookId, _ in
-                if let book = service.books.first(where: { $0.id == bookId }) {
-                    renaming = SidebarRenamingTarget(
+                },
+                onDeleteBook: { bookId, _ in
+                    let resolvedName = service.books.first(where: { $0.id == bookId })?.title ?? ""
+                    pendingDelete = SidebarPendingDelete(
                         kind: .book,
                         itemId: bookId,
-                        originalName: book.title,
-                        shelfId: book.shelfId
+                        itemName: resolvedName
                     )
                 }
-            },
-            onDeleteShelf: { shelfId, name in
-                pendingDelete = SidebarPendingDelete(
-                    kind: .shelf,
-                    itemId: shelfId,
-                    itemName: name
-                )
-            },
-            onDeleteBook: { bookId, _ in
-                let resolvedName = service.books.first(where: { $0.id == bookId })?.title ?? ""
-                pendingDelete = SidebarPendingDelete(
-                    kind: .book,
-                    itemId: bookId,
-                    itemName: resolvedName
-                )
-            }
-        )
+            )
+        } else {
+            // Service not yet initialised (= still in
+            // `.task` first run) = no menu items to show.
+            // `EmptyView` here keeps the @ContentBuilder shape
+            // = the closure result is one of the two branches
+            // of an `if` (= a TupleView<(_, _)>); = both
+            // branches are views, = the type-checker is happy.
+            EmptyView()
+        }
     }
 
     /// Map the user-clicked sidebar row to the corresponding
