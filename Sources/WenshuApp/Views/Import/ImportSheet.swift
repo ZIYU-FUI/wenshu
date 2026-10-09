@@ -180,10 +180,11 @@ struct ImportSheet: View {
 
             HStack {
                 Spacer()
-                Button("取消") {
-                    isPresented = false
+                Button(cancelButtonLabel) {
+                    skipFailedAndClose()
                 }
                 .keyboardShortcut(.cancelAction)
+                .disabled(isImporting)
                 Button(actionButtonLabel) {
                     startImport()
                 }
@@ -196,18 +197,55 @@ struct ImportSheet: View {
     }
 
     /// The action button's label varies with the sheet's
-    /// state machine (= the user's 2026-10-09 feedback:
-    /// "部分导入成功后，按钮还是开始导入，不是重试").
-    /// Apple HIG canonical sheet button convention =
-    /// the label reflects what tapping it WILL do; =
-    /// the running-state disables the button; = the
-    /// done-state shows "再次导入" (= idiomatic; =
-    /// clearer than "重试" for a fresh batch on the
-    /// same directory).
+    /// state machine (= the user's 2026-10-09 round of
+    /// feedback: "失败的时候，再次导入改叫重试"). Apple HIG
+    /// canonical sheet button convention = the label
+    /// reflects what tapping it WILL do; = the
+    /// running-state disables the button; = a
+    /// done-state with at least one failure shows
+    /// "重试" (= taps re-run the import; = the user
+    /// reads this as "再试一次" = fix + retry); = a
+    /// done-state with zero failures shows "再次导入"
+    /// (= taps re-run the import on a clean state; =
+    /// idiomatic for "import again").
     private var actionButtonLabel: String {
         if isImporting { return "导入中…" }
+        if hasFailures { return "重试" }
         if hasRunOnce { return "再次导入" }
         return "开始导入"
+    }
+
+    /// The cancel button's label varies with the sheet's
+    /// state machine too (= the user's 2026-10-09
+    /// feedback: "取消改叫跳过失败"). Apple HIG canonical:
+    /// the button's label always reflects what tapping it
+    /// will do; = a fresh sheet shows "取消" (= dismiss
+    /// without doing anything); = a done sheet with at
+    /// least one failure shows "跳过失败" (= dismiss,
+    /// leaving the failed rows out of the final
+    /// ImportSheet state machine; = the file-system
+    /// write either succeeded or failed, = the user
+    /// can't "skip" a half-written file; = the label
+    /// reads as "close the sheet and stop looking at
+    /// the failure list").
+    private var cancelButtonLabel: String {
+        if hasFailures { return "跳过失败" }
+        return "取消"
+    }
+
+    /// True when at least one task ended in `.failed` (= the
+    /// sheet's per-file state machine). Drives the
+    /// "重试" / "跳过失败" button-label switch.
+    private var hasFailures: Bool {
+        tasks.contains { $0.state == .failed }
+    }
+
+    /// The cancel-button action (= Apple HIG canonical:
+    /// closing the sheet means the user is done with the
+    /// UI surface; = the per-file state machine goes
+    /// with the sheet).
+    private func skipFailedAndClose() {
+        isPresented = false
     }
 
     /// The ProgressView's caption row (= derived from

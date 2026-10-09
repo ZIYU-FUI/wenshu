@@ -456,6 +456,26 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// The user-picked model slug for the active
+    /// connector (= the `wenshu.llm.model`
+    /// UserDefaults entry; = same source
+    /// `ChatSessionViewModel.activeModel` reads).
+    /// Returns `nil` when the user has not picked a
+    /// model yet (= the connector then uses its
+    /// provider default; = the v2.7 markdown
+    /// import's `WenshuConductorImportRouter`
+    /// passes this `nil`-able value to
+    /// `LLMCallOptions.model`).
+    nonisolated static func activeModelSlug() -> String? {
+        let slug = UserDefaults.standard.string(forKey: "wenshu.llm.model")
+        // Empty string (= the user explicitly cleared
+        // the picker; = a real value) is returned
+        // unchanged. nil (= the user never picked
+        // anything; = the connector default) is
+        // returned as nil too.
+        return (slug?.isEmpty == false) ? slug : nil
+    }
+
     // SwiftData library upgrade entry point (= boss OOB 2026-10-06
     // FCP-style upgrade arc). Wired from
     // applicationDidFinishLaunching; = called once per launch with
