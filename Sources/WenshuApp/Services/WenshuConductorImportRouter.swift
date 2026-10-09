@@ -483,67 +483,70 @@ actor WenshuConductorImportRouter: ImportRouter {
                  容; = 搜索只是补全原文里不完整的部
                  分; = 整理 = 标准化 .ws 格式).
                - .ws 资料库正文格式 (= 老板 2026-10-09
-                 round-20 "重写后格式不统一" 反馈;
-                 = **必须**严格按这个模板; = 这个
-                 模板来自老板手写的资料库文档
-                 = 唯一一个被采纳的 .ws 格式
-                 模板; = 不符合这个模板的 = 不
-                 是 .ws 文档):
+                 round-25 "不要参考 MD 的格式，而
+                 是盘点文枢的功能，做出文枢
+                 的头部格式" directive; = 抛弃
+                 老板旧 MD 的 `类型/状态/核心
+                 信息/详细描述` 模板; = **从头**
+                 设计 = 基于文枢 `Reference`
+                 struct 字段):
                  ```
                  # <实体名>
 
-                 类型: <类型>
-                 状态: 已建
+                 实体类型: <character | location | event | concept | artifact | organization | era | work | other>
+                 标签: <tag1>; <tag2>; <tag3>
+                 摘要: <一句话中文摘要>
 
-                 ## 核心信息
-
-                 <3-5 行核心事实，bullet 形式>
-
-                 ## 详细描述
-
-                 <整理后的详细正文; 用 ### 子
-                 标题组织; 关键事实用 **加粗**: value
-                 形式>
+                 <自由 markdown 正文 — 内容随你; 不
+                  要分 "核心信息 / 详细描述"; 不
+                  要 frontmatter 之外的字段名>
                  ```
-                 - .ws 书目录正文格式: 直接 `<实体
-                   名>相关正文` (无 frontmatter; =
-                   老板原 .md 格式).
-               - **严禁**保留 Obsidian 反链 (= 老板
-                 2026-10-09 round-20 "反链不用保留，
-                 我们的关系链应该有其它的功能" =
-                 = 反链 = `../路径` 形式; = import
-                 后这些路径是死链; = 写入
-                 rewrittenBody 前 = **必须** strip
-                 所有 `../` 开头的行; = 不管
-                 consolidate 还是 searchAndRewrite).
-               - **严禁**保留无用的源文件 metadata
-                 (= 老板 2026-10-09 round-24
-                 "重写的时候，原来的一些没有用的
-                 格式能不留也不留"; = 这些是源
-                 Obsidian / 老板原 .md 文件里的
-                 一些杂 metadata; = 写入 .ws 资料
-                 库时 = **必须** strip):
-                 - `上次更新: ...` / `创建时间: ...` /
-                   `updated: ...` (= 时间戳; = .ws
-                   资料库 entities.json 自带
-                   `createdAt` + `updatedAt`; = 重
-                   复就冗余)
-                 - `反链:` / `反链 :` (= Obsidian
-                   关系链; = 我们的关系链是独立
-                   功能; = 一律 strip)
-                 - `tags:` / `标签:` 一整行 (= 我
-                   们有独立的 tag 字段, 不写在
-                   正文里)
-                 - 任何 `../` 或 `[[...]]` 形式
-                 (= Obsidian 内部 link)
-                 - 任何 `<!-- ... -->` HTML 注释
-                 (= Obsidian plugin 痕迹)
-               - **保留**: `## 核心信息` / `## 详细
-                 描述` 这两个 ## 标题 (重要结构);
-                 = `### 子标题` 保留 (= 详细描述
-                 的细分); = `**加粗**: 值` 保留
-                 (= 关键事实); = bullet `-` 保留
-                 (= 核心信息).
+                 - 头信息**必须**包含 3 行 (= 老板
+                   2026-10-09 round-25 "头部信息
+                   必须包含哪些"):
+                   1. `实体类型: <值>` (= 必填; =
+                      .ws `Reference.entityType`;
+                      = 9 个枚举值; = 没填 = 后
+                      端无法分类 = 卡片 facet
+                      失灵)
+                   2. `标签: <值1>; <值2>; <值3>`
+                      (= 必填; = .ws `Reference.tags`;
+                      = ≤ 3 个; = `; ` 分隔; = 资料
+                      库 sidebar tag facet 唯一
+                      的导航源)
+                   3. `摘要: <值>` (= 必填; = .ws
+                      `Reference.summary`; = 一句
+                      话; = 卡片副标题)
+                 - 头信息**可选**:
+                   - `出处: <值>` (= .ws `Reference.source`;
+                     = 资料库 = 资料来源 (e.g.
+                     "《太平广记》卷一○○"))
+                   - `链接: <值>` (= .ws `Reference.url`;
+                     = 资料库 = web URL)
+                 - **严禁**写 (= 这些字段文枢已经
+                   用别的机制管理, 不写在 .md body):
+                   - `类型: ...` / `状态: ...` (= 没
+                     意义; = 文枢不维护 status 字
+                     段; = `状态: 已建` 这种字段
+                     是冗余的)
+                   - `核心信息:` / `详细描述:` (= 不
+                     需要分节; = 自由写)
+                   - `反链:` / `tags:` / `标签:` 在正
+                     文 = 跟 metadata 重复
+                   - `上次更新: ...` / `created: ...` /
+                     `modified: ...` (= entities.json
+                     有 `createdAt` / `updatedAt`)
+                   - `../` / `[[...]]` (= Obsidian
+                     link; = 关系走 .ws 关系链
+                     字段, 不在 .md 里)
+                   - `<!-- ... -->` (= Obsidian plugin
+                     痕迹)
+               - .ws 书目录正文格式: 直接 `<实体
+                 名>相关正文` (无 frontmatter; =
+                 老板原 .md 格式).
+               - **保留** (= 重要结构): `# 标题` /
+                 `## 子标题` / `### 子标题` /
+                 `**加粗**: value` / bullet `-` / 段落.
                - 把整理后的正文放 JSON 的
                  `rewrittenBody` 字段 (= 没有整理
                  = 字段留空字符串 = 走"原样落地"
@@ -753,11 +756,17 @@ actor WenshuConductorImportRouter: ImportRouter {
         return stripped.joined(separator: "\n")
     }
 
-    /// v2.7 (= boss 2026-10-09 round-24) = a
-    /// defensive list of "useless" lines that
-    /// (= the user's .ws library already has
-    /// structured fields for = should NOT
-    /// appear in the .md body).
+    /// v2.7 (= boss 2026-10-09 round-25) = the
+    /// .ws reference-library doc header has
+    /// exactly 3 required frontmatter lines
+    /// (= boss 2026-10-09 round-25 "盘点文枢
+    /// 的功能，做出文枢的头部格式" directive;
+    /// = the canonical wenshu reference doc
+    /// header). Anything that looks like the
+    /// OLD pre-v2.7 template (= 类型 / 状态 /
+    /// 核心信息 / 详细描述 / 反链 / 上次更新 /
+    /// tags / 标签 / author / source / created /
+    /// modified / ../ / [[ ]]) is dropped here.
     ///
     /// Match by prefix on the trimmed line.
     /// Each case is the canonical prefix a
@@ -766,6 +775,25 @@ actor WenshuConductorImportRouter: ImportRouter {
     /// body never has these).
     private static func isUselessMetadataLine(_ trimmed: String) -> Bool {
         let prefixes: [String] = [
+            // The old pre-v2.7 template (= 老板
+            // 2026-10-09 round-25 "不要参考
+            // MD 的格式，而是盘点文枢的功
+            // 能，做出文枢的头部格式" = strip
+            // the old template; = the new
+            // template uses 实体类型/标签/摘
+            // 要 only).
+            "类型:",
+            "类型 :",
+            "状态:",
+            "状态 :",
+            "核心信息:",
+            "核心信息 :",
+            "核心:",
+            "核心 :",
+            "详细描述:",
+            "详细描述 :",
+            "实体化:",
+            "实体化 :",
             // Timestamps (= entities.json has
             // createdAt / updatedAt already).
             "上次更新:",
