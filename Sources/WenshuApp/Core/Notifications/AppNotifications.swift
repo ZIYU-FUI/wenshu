@@ -58,6 +58,26 @@ enum AppStateEvents: String, CaseIterable {
     /// Posted by RuntimeCWD.setCWD(_:) after the UserDefaults write.
     /// Listened by RuntimeCWDDisplayChip (= editor zone toolbar chip).
     case runtimeCWDDidChange = "com.wenshu.runtimeCWD.didChange"
+
+    /// The library contents changed on disk (= the markdown
+    /// import feature wrote new entities / new book-folder
+    /// files / new reference-library entries; = the
+    /// sidebar's cached view needs to re-read so the user
+    /// sees the new files without manually re-launching
+    /// the app).
+    ///
+    /// Posted by `ImportSheet` (= the v2.7 markdown import
+    /// orchestrator's UI surface) after each successful
+    /// batch; = listened by `AppleSidebarView` (= the
+    /// canonical sidebar host) which calls
+    /// `SidebarService.reload()` (= the existing reload
+    /// path; = same pattern the create/rename/delete sheets
+    /// use today). The notification carries no payload; =
+    /// the receiver decides whether the change is on the
+    /// shelves side, the reference-library side, or both
+    /// (= the reload is cheap = FileManager walk over the
+    /// active library root).
+    case libraryDidChange = "com.wenshu.library.didChange"
 }
 
 // MARK: - LayoutEvents
@@ -116,6 +136,12 @@ extension Notification.Name {
     /// Local symbol for `runtimeCWDDidChange` (no `wenshu` prefix to
     /// match the existing call sites in RuntimeCWDDisplayChip + tests).
     static let runtimeCWDDidChange = Notification.Name(AppStateEvents.runtimeCWDDidChange.rawValue)
+
+    /// Library contents changed on disk (= the sidebar needs
+    /// to reload). Posted by the markdown import feature
+    /// (= `ImportSheet`) after a successful batch; = listened
+    /// by `AppleSidebarView`.
+    static let wenshuLibraryDidChange = Notification.Name(AppStateEvents.libraryDidChange.rawValue)
 
     // LayoutEvents
     static let wenshuResetLayout = Notification.Name(LayoutEvents.resetLayout.rawValue)

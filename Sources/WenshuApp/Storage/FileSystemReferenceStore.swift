@@ -741,6 +741,26 @@ struct FileSystemReferenceStore: ReferenceStoring {
             .appendingPathComponent("\(layer.directoryName).json")
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        // Match the decoder's `.iso8601` strategy (= see
+        // `loadReferencesFromFileSystem` below). The decoder
+        // was switched to ISO 8601 in commit 3e899d35c so
+        // the legacy on-disk files (= written by the
+        // earlier Wenshu version that always wrote ISO
+        // 8601 strings) could decode. Without matching the
+        // encoder, every `saveReference` would write a
+        // Double for `createdAt` (= JSONEncoder's default
+        // `.deferredToDate` strategy), and the next
+        // `loadReferencesFromFileSystem` would fall into
+        // the `catch` arm (= `return []`) — silently
+        // truncating the on-disk index to a single entry
+        // (= the entry being saved). The v2.7 markdown
+        // import feature surfaced this in production
+        // (= importing 367 files into a clean library
+        // left the entities.json with exactly one entry;
+        // the .md files all landed, but the index was
+        // collapsed on every save). The fix: keep encoder
+        // and decoder on the same strategy.
+        encoder.dateEncodingStrategy = .iso8601
         let data = try encoder.encode(references)
         try atomicFileSystemWrite(data, to: indexURL)
     }

@@ -162,14 +162,34 @@ actor ImportService {
     ///   2. dedup = cache diff (= skip already-imported)
     ///   3. route + enrich = concurrent LLM dispatch
     ///   4. write = branch on ImportDestination
+    ///
+    /// `onProgress` (= optional) is a `@Sendable` closure that
+    /// the orchestrator invokes after each per-file state
+    /// transition (= the sheet's progress strip + ProgressView
+    /// reads from this closure; = the closure is invoked on
+    /// the orchestrator's actor = the sheet must hop to
+    /// `@MainActor` to update its `@State`).
+    ///
+    /// The closure receives the current task array (= the
+    /// same array the method returns at the end; = the sheet
+    /// can render the live progress strip directly from the
+    /// closure's payload). The closure is called at the end
+    /// of Phase 1 (walk), at the end of Phase 2 (dedup), at
+    /// the end of Phase 4 (write) per file, and once at the
+    /// end of the method.
     func importFiles(
         in sourceDir: URL,
         into target: ImportTarget,
-        router: ImportRouter
+        router: ImportRouter,
+        onProgress: (@Sendable ([ImportTask]) async -> Void)? = nil
     ) async -> [ImportTask] {
         // Phase 1: walk.
         let mdFiles = walkSourceDir(sourceDir)
         var tasks = mdFiles.map { ImportTask(sourcePath: $0.path) }
+        // Emit walk-phase progress so the sheet's ProgressView
+        // updates immediately (= the user sees "找到 X 个 .md
+        // 文件" the instant the orchestrator finishes Phase 1).
+        await onProgress?(tasks)
         // Phase 2: dedup. Read the cache once (= the
         // orchestrator batches the read so the per-file
         // lookup is O(1)). The cache is `var` because the
