@@ -309,7 +309,30 @@ struct ImportSheet: View {
                 // visual state is informative.
                 .disabled(false)
                 Button(actionButtonLabel) {
-                    startImport()
+                    // The action button's behavior
+                    // varies with the state machine:
+                    // - "开始导入" / "重试" /
+                    //   "导入中…" → start the import
+                    //   (or wait for the running
+                    //   import; = `canStart` is
+                    //   gated on `!isImporting`).
+                    // - "完成" (= 100% + zero
+                    //   failures) → dismiss the
+                    //   sheet (= the user's 2026-10-09
+                    //   round-17 feedback "3 个全完成
+                    //   了，但按钮还是再次导入，应该
+                    //   是完成"; = "完成" is a
+                    //   terminal state; = the user
+                    //   expects to close the sheet,
+                    //   not re-run an already-finished
+                    //   batch; = the previous
+                    //   "再次导入" label
+                    //   mis-represents the state).
+                    if isRunComplete && !hasFailures {
+                        isPresented = false
+                    } else {
+                        startImport()
+                    }
                 }
                 .keyboardShortcut(.defaultAction)
                 .disabled(!canStart)
@@ -460,7 +483,7 @@ struct ImportSheet: View {
     private var actionButtonLabel: String {
         if isImporting { return "导入中…" }
         if isRunComplete && hasFailures { return "重试" }
-        if hasRunOnce { return "再次导入" }
+        if isRunComplete { return "完成" }
         return "开始导入"
     }
 
