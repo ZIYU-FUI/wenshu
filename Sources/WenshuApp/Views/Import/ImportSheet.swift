@@ -60,6 +60,31 @@ struct ImportSheet: View {
         self._isPresented = isPresented
         self.prefillDestination = prefillDestination
         self.prefillBookID = prefillBookID
+        // v2.7 boss 2026-10-09 round-22 "右键
+        // 十二地仙... 目标书籍没有自动选
+        // 定十二地仙" (= `.onAppear` only
+        // fires once per sheet instance; =
+        // re-opening via contextMenu after a
+        // File-menu first-open left the
+        // prefill stale; = the fix is to
+        // initialize the @State values in
+        // the init (= SwiftUI's
+        // `_State(wrappedValue:)` initializer
+        // accepts an `initialValue`; = the
+        // value is set when the sheet is
+        // constructed; = every contextMenu
+        // click that calls `showImportSheet =
+        // true` rebuilds the sheet (= the
+        // @State is initialized fresh on
+        // each construction); = the
+        // prefill is honored on EVERY
+        // presentation)).
+        if let d = prefillDestination {
+            self._importDestination = State(initialValue: d)
+        }
+        if let id = prefillBookID {
+            self._selectedBookID = State(initialValue: id)
+        }
     }
 
     @Environment(BookStore.self) private var bookStore
