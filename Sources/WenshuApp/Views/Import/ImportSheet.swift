@@ -311,22 +311,23 @@ struct ImportSheet: View {
         // dismisses the sheet for real (= the
         // `isPresented = false` flag flips AFTER
         // the rollback Task completes).
-        .onDisappear {
-            if isImporting {
+        .onChange(of: isPresented) { _, newValue in
+            if !newValue && isImporting {
                 // The sheet's parent binding was
                 // about to flip to `false` (= the
-                // dismiss path fired); = we cancel
-                // that flip + show the confirmation
-                // dialog instead. The
-                // `Task { @MainActor in
-                // isPresented = true }` runs in
-                // the same run-loop tick so the
+                // dismiss path fired); = we flip it
+                // back to `true` immediately + show
+                // the confirmation dialog. The
+                // `Task { @MainActor in ... }` runs
+                // in the same run-loop tick so the
                 // dialog presents before SwiftUI
                 // tears the sheet down (= no
                 // visible "flash" of an empty
                 // workspace).
-                isPresented = true
-                confirmCancelPresented = true
+                Task { @MainActor in
+                    isPresented = true
+                    confirmCancelPresented = true
+                }
             }
         }
         .padding(DesignTokens.spacingSection)
@@ -485,7 +486,34 @@ struct ImportSheet: View {
     /// `confirmationDialog` body is the single source
     /// of truth for the cancel-and-rollback path.
     private func showCancelConfirmation() {
-        confirmCancelPresented = true
+        // The cancel-confirmation dialog is only
+        // meaningful while an import is mid-flight
+        // (= the boss's 2026-10-09 follow-up "那你要
+        // 在取消的时候弹一个拦截弹窗"; = an empty
+        // sheet's "取消" click = no partial batch to
+        // confirm = the dialog would feel like a
+        // roadblock for a no-op dismiss). Two paths:
+        // - `isImporting == true` (= the click
+        //   arrives after 开始导入; = the partial
+        //   batch is on disk; = the dialog is the
+        //   boss's "确认取消 / 返回" UX).
+        // - `isImporting == false` (= the click
+        //   arrives before the user ever clicked
+        //   开始导入; = no batch to confirm; = the
+        //   dismiss is unconditional).
+        if isImporting {
+            confirmCancelPresented = true
+        } else {
+            // Pre-run state: just close the sheet.
+            // The dialog would be a roadblock with
+            // nothing to roll back (= the
+            // `ImportService.rollback` path is a
+            // no-op when `writtenURLs` is empty +
+            // `entitiesJSONSnapshot` is the empty
+            // sentinel; = the dialog adds friction
+            // with no upside).
+            isPresented = false
+        }
     }
 
     /// The ProgressView's caption row (= derived from
