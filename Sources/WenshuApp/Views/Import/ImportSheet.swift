@@ -73,11 +73,14 @@ struct ImportSheet: View {
     /// production binding once T4 lands).
     private let importService = ImportService()
 
-    /// The production router. T4 will swap the
-    /// stub for the LLM-backed one; = for now the
-    /// sheet wires a no-op placeholder so the sheet
-    /// builds without a hard T4 dependency.
-    private let router: any ImportRouter = StubImportRouterForSheet()
+    /// The production router. T4 wires the LLM-backed
+    /// `WenshuConductorImportRouter` (= the same
+    /// EntityClassifier the rest of wenshu uses; = the
+    /// sheet classifies each .md file via the project's
+    /// standard 2-pass keyword + LLM classifier; = no
+    /// new inference path; = "用文枢正常机制来推出" per
+    /// boss 2026-10-09 OOB).
+    private let router: any ImportRouter = WenshuConductorImportRouter()
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingModerate) {
@@ -283,19 +286,16 @@ private struct ImportTaskRow: View {
     }
 }
 
-/// Placeholder router for the sheet (= T4 swaps
-/// this for the LLM-backed `WenshuConductor` binding;
-/// = until T4 lands, the sheet's "开始导入" action
-/// will classify every file as reference-library
-/// content = the user's .md files end up in the
-/// reference library, = the orchestrator's other
-/// branches stay covered by the unit tests).
+/// Placeholder router for the sheet (= kept as a
+/// fallback for unit tests + the dev hot-reload
+/// path; = the production sheet wires
+/// `WenshuConductorImportRouter` instead).
 private struct StubImportRouterForSheet: ImportRouter {
     func route(_ input: ImportFileInput) async throws -> ImportRoutingResult {
         return ImportRoutingResult(
             destination: .referenceLibrary,
             title: (input.filePath as NSString).deletingPathExtension,
-            summary: "stub classification (T4 not yet wired)",
+            summary: "stub classification",
             tags: ["imported"],
             entityType: "other",
             category: nil,
