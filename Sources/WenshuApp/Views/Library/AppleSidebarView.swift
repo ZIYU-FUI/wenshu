@@ -321,6 +321,21 @@ struct AppleSidebarView: View {
         .onReceive(NotificationCenter.default.publisher(for: .wenshuImportRequested)) { _ in
             showImportSheet = true
         }
+        // Reload the sidebar tree when the markdown import
+        // (= or any future on-disk library writer) finishes
+        // a batch. The notification is posted by
+        // `ImportSheet` (= the v2.7 markdown import UI)
+        // after the orchestrator returns (= success or
+        // partial failure; = the sidebar refresh fires
+        // either way). The reload is the existing
+        // `SidebarService.reload()` path (= the same path
+        // the create / rename / delete sheets trigger when
+        // they mutate the library; = no new refresh code).
+        // The user's 2026-10-09 feedback: "点取消返回后，
+        // 目录树没有刷新".
+        .onReceive(NotificationCenter.default.publisher(for: .wenshuLibraryDidChange)) { _ in
+            Task { await service?.reload() }
+        }
         // y: the create/rename/delete sheets. Each presents
         // a focused `*Sheet` view from `SidebarSheets.swift`; =
         // the sheet's `onSave` closure calls into
