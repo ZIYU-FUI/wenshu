@@ -178,19 +178,30 @@ struct SidebarContextMenuModifier: ViewModifier {
                         }
                     }
                 case .reference, .referenceCategory, .divider, .tag:
-                    if node.kind == .reference {
-                        // v2.7 "导入 Markdown..." on
-                        // the reference library
-                        // (= boss round-18 "右键点
-                        // 资料库，点导入，进到弹
-                        // 窗后，目标自动选好资料
-                        // 库" directive; = the
-                        // sheet opens with
-                        // prefillDestination =
-                        // .referenceLibrary).
-                        Button("导入 Markdown...") {
-                            onImportToReferenceLibrary()
-                        }
+                    // v2.7 (= boss 2026-10-09 round-20
+                    // "资料库右键不需要'新建'，只保
+                    // 留'导入'即可，点资料库右建
+                    // 也改成'导入'" directive; = the
+                    // right-click menu on the
+                    // reference library, on a
+                    // reference category (= tag
+                    // group), AND on an individual
+                    // tag row all show ONLY "导入
+                    // Markdown..."; = the user can
+                    // import into the reference
+                    // library from any of these
+                    // surfaces; = the "新建" entry
+                    // is reserved for the .shelf /
+                    // .book nodes where a new
+                    // shelf or book is the right
+                    // outcome; = creating a "new
+                    // reference" (= a new tag or
+                    // category) is not a thing the
+                    // user does; = the tag is
+                    // derived from the body of
+                    // imported files).
+                    Button("导入 Markdown...") {
+                        onImportToReferenceLibrary()
                     }
                     // No destructive operations on these
                     // node types in v2.6 (= Apple HIG

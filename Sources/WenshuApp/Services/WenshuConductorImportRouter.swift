@@ -414,13 +414,19 @@ actor WenshuConductorImportRouter: ImportRouter {
              - "XX 朝代元 1290 狗案" → "狗"
              - "主角职业入殓师" → "入殓师"
         2) 写一句话的中文摘要
-        3) 提取 5-8 个真实内容的标签（**仅从正文
-           内容本身提取**：人物、地点、年代、概
-           念、品牌等真实信息; = **严禁**把小说
-           名字、目标小说、用户身份、当前项目名等
-           元信息塞进 tag; = 标签只能描述"这个文
-           件讲的是什么内容"，不能描述"这个文件
-           属于哪本书")
+        3) 提取**最多 3 个**真实内容的标签（= 老板
+           2026-10-09 round-20 "限制资料库文档的
+           标签数量，要最有用的，只能有 3 个标
+           签" 反馈; = **不要 5-8 个, 只能 1-3
+           个**; = 仅从正文内容本身提取: 人物 /
+           地点 / 年代 / 概念 / 品牌等真实信
+           息; = **严禁**把小说名字、目标小
+           说、用户身份、当前项目名等元信息
+           塞进 tag; = 标签只能描述"这个文件
+           讲的是什么内容"，不能描述"这个文
+           件属于哪本书"; = **严格 3 个以内**;
+           = 资料库 sidebar 的 tag facet 用
+           户筛选用, 太多 tag = 难以导航)
         4) **destination 已经被用户选好**（= 老板
            2026-10-09 round-18 "强制让用户分开导
            入"指令）。你**不需要**判 断 destination
@@ -450,7 +456,20 @@ actor WenshuConductorImportRouter: ImportRouter {
     private static func rewriteModeBlock(_ mode: ImportFileInput.RewriteMode) -> String {
         switch mode {
         case .consolidate:
-            return ""
+            return """
+            5) **整理正文** (= consolidate 模式也要
+               标准化 .ws 格式; = 老板 2026-10-09
+               round-20 "重写后格式不统一" 反馈;
+               = 现在的 consolidate 模式只是
+               "原样落地" 没有整理, 老板要统一
+               格式, 不只是 searchAndRewrite 整
+               理):
+               - 输出**整理后的 .ws 格式正文**到
+                 `rewrittenBody` 字段 (= 即使你没
+                 有搜索, 也要把原文按 .ws 格式
+                 标准化; = 不写 = 字段留空 = 走
+                 "原样落地" fallback).
+            """
         case .searchAndRewrite:
             return """
             5) **整理新正文**:
@@ -463,17 +482,34 @@ actor WenshuConductorImportRouter: ImportRouter {
                  式的最终正文 (= 不要扩写或加虚构内
                  容; = 搜索只是补全原文里不完整的部
                  分; = 整理 = 标准化 .ws 格式).
-               - .ws 资料库正文格式:
+               - .ws 资料库正文格式 (= 老板 2026-10-09
+                 round-20 "重写后格式不统一" 反馈;
+                 = **必须**严格按这个模板):
                  ```
                  # <实体名>
+
                  类型: <类型>
                  状态: 已建
 
-                 <整理后的正文>
+                 ## 核心信息
+
+                 <3-5 行核心事实>
+
+                 ## 详细描述
+
+                 <整理后的详细正文>
                  ```
-               - .ws 书目录正文格式: 直接 `<实体
-                 名>相关正文` (无 frontmatter; = 老
-                 板原 .md 格式).
+                 - .ws 书目录正文格式: 直接 `<实体
+                   名>相关正文` (无 frontmatter; =
+                   老板原 .md 格式).
+               - **严禁**保留 Obsidian 反链 (= 老板
+                 2026-10-09 round-20 "反链不用保留，
+                 我们的关系链应该有其它的功能" =
+                 = 反链 = `../路径` 形式; = import
+                 后这些路径是死链; = 写入
+                 rewrittenBody 前 = **必须** strip
+                 所有 `../` 开头的行; = 不管
+                 consolidate 还是 searchAndRewrite).
                - 把整理后的正文放 JSON 的
                  `rewrittenBody` 字段 (= 没有整理
                  = 字段留空字符串 = 走"原样落地"
@@ -590,6 +626,37 @@ actor WenshuConductorImportRouter: ImportRouter {
         return basename.isEmpty ? "未命名" : basename
     }
 
+    /// v2.7 (= boss 2026-10-09 round-20
+    /// "反链不用保留，我们的关系链应该有
+    /// 其它的功能" directive; = Obsidian
+    /// wikilinks = `[[目标]]` 形式 + plain
+    /// relative paths = `../路径` 形式; =
+    /// after import these become dead
+    /// links in the .ws library; = the
+    /// canonical wenshu relation feature
+    /// (= the sidebar's linkgraph =
+    /// "关系链") is a different surface
+    /// that should be derived from
+    /// explicit metadata, NOT Obsidian
+    /// autolinks; = strip both shapes so
+    /// the rewritten body never carries
+    /// Obsidian-era link cruft).
+    static func stripObsidianBacklinks(_ body: String) -> String {
+        var stripped: [String] = []
+        for line in body.split(separator: "\n", omittingEmptySubsequences: false) {
+            let lineStr = String(line)
+            let trimmed = lineStr.trimmingCharacters(in: .whitespaces)
+            // Skip Obsidian wikilink lines: `[[..]]`
+            if trimmed.hasPrefix("[[") { continue }
+            // Skip lines that begin with a relative
+            // upward path: `../`, `../../`, etc. (= the
+            // Obsidian relative-link form).
+            if trimmed.hasPrefix("../") { continue }
+            stripped.append(lineStr)
+        }
+        return stripped.joined(separator: "\n")
+    }
+
     // MARK: - Private parsing
 
     /// Decoded subset of the LLM's JSON output.
@@ -674,11 +741,22 @@ actor WenshuConductorImportRouter: ImportRouter {
         // = treat as nil so the orchestrator
         // falls back to the original body).
         let rawRewritten = (parsed["rewrittenBody"] as? String) ?? ""
-        let rewrittenBody: String? = rawRewritten.isEmpty ? nil : rawRewritten
+        let rewrittenBody: String? = rawRewritten.isEmpty ? nil : Self.stripObsidianBacklinks(rawRewritten)
+        // v2.7 tag cap (= boss 2026-10-09 round-20
+        // "限制资料库文档的标签数量，要最有
+        // 用的，只能有 3 个标签" directive; =
+        // the LLM was instructed to emit ≤ 3
+        // tags; = this is the last-mile cap
+        // (= the LLM may emit 4 or 5 if it
+        // ignored the prompt; = the cap is
+        // here as the canonical gate; = the
+        // sidebar tag facet remains
+        // navigable).
+        let cappedTags = Array(tags.prefix(3))
         return ImportDecision(
             title: title,
             summary: summary,
-            tags: tags,
+            tags: cappedTags,
             destination: destination,
             bookFolder: bookFolder,
             rewrittenBody: rewrittenBody
