@@ -569,17 +569,41 @@ struct ImportSheet: View {
     /// `inFlightCount` ("进行中 N") is what makes
     /// the row feel alive while the 5-way parallel
     /// LLM dispatch is mid-flight).
+    ///
+    /// The "跳过 N" segment is CONDITIONAL (= the
+    /// boss's 2026-10-09 round-15 feedback "跳过是
+    /// 最后一个动作，这个过程中永远都会显示零，
+    /// 没有意义"; = `skipped` is the terminal
+    /// state for a cache-hit dedup (= the file was
+    /// already imported in a previous batch); = the
+    /// skip only happens in Phase 2 dedup; = the
+    /// 5-way parallel Phase 3 dispatch never
+    /// produces skips; = the running caption row
+    /// always shows "跳过 0" which is noise; = the
+    /// segment only renders when at least one skip
+    /// has happened; = the row stays 3-segment
+    /// during the import run + 4-segment on a
+    /// re-import).
     private var progressLabel: String {
         guard totalCount > 0 else { return "" }
         let done = tasks.filter { $0.state == .done }.count
         let skipped = tasks.filter { $0.state == .skipped }.count
         let failed = tasks.filter { $0.state == .failed }.count
-        let parts: [String] = [
+        var parts: [String] = [
             "完成 \(done)",
-            "跳过 \(skipped)",
             "失败 \(failed)",
             "进行中 \(inFlightCount)"
         ]
+        if skipped > 0 {
+            // Insert "跳过 N" between 完成 and 失败
+            // (= matches the pre-fix segment order; =
+            // = 完成 · 跳过 · 失败 · 进行中 = the
+            // canonical Apple HIG progress
+            // annotation pattern; = no surprise
+            // when the user re-imports and sees
+            // the skip count appear).
+            parts.insert("跳过 \(skipped)", at: 1)
+        }
         return parts.joined(separator: " · ")
     }
 
