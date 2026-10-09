@@ -97,18 +97,26 @@ struct SidebarContextMenuModifier: ViewModifier {
     let resolveShelf: (UUID) -> (id: UUID, name: String)?
     let resolveBook: (UUID) -> (id: UUID, name: String)?
     /// v2.7 (= boss 2026-10-09 round-18 "右键
-    /// 点资料库，点导入，进到弹窗后，目标
-    /// 自动选好资料库。右键点书的时候目
-    /// 标自动选好对应的书" directive). When
-    /// the user right-clicks the reference
-    /// library, the menu adds an "导入
-    /// Markdown..." row that opens the sheet
+    /// 点资料库，点导入，进到弹窗后，目
+    /// 标自动选好资料库。右键点书的时
+    /// 候目标自动选好对应的书" directive).
+    /// When the user right-clicks the
+    /// reference library, the menu adds
+    /// an "导入" row that opens the sheet
     /// with `prefillDestination =
     /// .referenceLibrary`. When the user
-    /// right-clicks a book, the menu adds an
-    /// "导入 Markdown..." row that opens the
-    /// sheet with `prefillDestination = .book` +
-    /// `prefillBookID = book.id`.
+    /// right-clicks a book, the menu adds
+    /// an "导入" row that opens the sheet
+    /// with `prefillDestination = .book` +
+    /// `prefillBookID = book.id`. Boss
+    /// 2026-10-09 round-21 "改成导入，不
+    /// 要导入 MD" (= "导入" is the
+    /// format-agnostic label; = the
+    /// sheet's file-type picker is the
+    /// source of truth for which file
+    /// types the import accepts; = the
+    /// row label must NOT bind to a
+    /// single extension).
     let onImportToReferenceLibrary: () -> Void
     let onImportToBook: (UUID) -> Void
 
@@ -157,14 +165,21 @@ struct SidebarContextMenuModifier: ViewModifier {
                     }
                 case .book:
                     if let book = resolveBook(node.id) {
-                        // v2.7 "导入 Markdown..."
-                        // (= boss round-18 "右键点书
-                        // 的时候目标自动选好对应的
+                        // v2.7 "导入" row (= boss
+                        // round-18 "右键点书的时
+                        // 候目标自动选好对应的
                         // 书" directive; = the
                         // sheet opens with
                         // prefillDestination = .book
-                        // + prefillBookID = book.id).
-                        Button("导入 Markdown...") {
+                        // + prefillBookID = book.id;
+                        // = boss round-21 "改成导
+                        // 入，不要导入 MD" = the
+                        // label is format-agnostic;
+                        // = the sheet's file-type
+                        // picker is the source of
+                        // truth for accepted
+                        // extensions).
+                        Button("导入") {
                             onImportToBook(book.id)
                         }
                         Button(String(localized: "sidebar_context_menu_rename")) {
@@ -186,21 +201,28 @@ struct SidebarContextMenuModifier: ViewModifier {
                     // reference library, on a
                     // reference category (= tag
                     // group), AND on an individual
-                    // tag row all show ONLY "导入
-                    // Markdown..."; = the user can
-                    // import into the reference
-                    // library from any of these
-                    // surfaces; = the "新建" entry
-                    // is reserved for the .shelf /
-                    // .book nodes where a new
+                    // tag row all show ONLY "导入";
+                    // = the user can import into the
+                    // reference library from any of
+                    // these surfaces; = the "新建"
+                    // entry is reserved for the .shelf
+                    // / .book nodes where a new
                     // shelf or book is the right
                     // outcome; = creating a "new
                     // reference" (= a new tag or
                     // category) is not a thing the
                     // user does; = the tag is
                     // derived from the body of
-                    // imported files).
-                    Button("导入 Markdown...") {
+                    // imported files). Boss
+                    // 2026-10-09 round-21: label =
+                    // "导入" (= format-agnostic; = the
+                    // sheet's file-type picker is
+                    // the source of truth for which
+                    // file types the import accepts;
+                    // = the row label must NOT bind
+                    // to a single extension like
+                    // "Markdown").
+                    Button("导入") {
                         onImportToReferenceLibrary()
                     }
                     // No destructive operations on these
