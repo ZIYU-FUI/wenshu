@@ -170,15 +170,37 @@ actor WenshuConductorImportRouter: ImportRouter {
         1) 重写一个清晰的中文标题 (= 如果原文已经有 H1，可以基于它改写得更清楚；如果没有，提取正文核心)
         2) 写一句话的中文摘要
         3) 提取 5-8 个真实内容的标签（不要图书馆分类字母 K/B/N 之类；必须是从正文中看到的人物、地点、年代、概念、品牌等真实信息）
-        4) 判断归类到哪本书的哪个目录：
-           - 如果是这本小说（《十二地仙》）的世界观、角色、章节、大纲、草稿 → bookFolder（folder 必须是 world / characters / outlines / chapters / drafts 之一）
-           - 如果是外部资料、调研、灵感来源、参考资料 → referenceLibrary
+        4) 判断归类到哪本书的哪个目录。
+           这是最关键的一步 —— 调研 vs 书内设定 有一条非常清晰的界限：
+
+        调研（= referenceLibrary）= 这是**真实世界已经存在的资料**，是小说作者参考用的输入。
+           包括：
+             - 古代文献原文 / 选段：例如《太平广记》某卷、《夷坚志》某则、《酉阳杂俎》某条、《搜神记》某篇
+             - 历史人物 / 神话传说的客观叙述：例如"灶神的起源"、"城隍信仰在唐宋的演变"
+             - 现实世界的资料：地方志、考古报告、宗教民俗研究摘录
+           这些资料的共同特征 = **它们的存在不依赖任何小说** = 即使把这本小说删掉，这些资料仍然有意义。
+           → 全部进 `referenceLibrary`，**不要进任何 book folder**。
+
+        书内设定（= bookFolder，folder ∈ {world, characters, outlines, chapters, drafts}）= 这本小说**自己创造**的内容。
+           包括：
+             - 世界观：例如"十二地仙所在朝代表"、"本书的神祇等级体系"（不是《封神榜》的通用神祇 = 这本小说的特定设定）
+             - 角色：主角/配角的人物卡、出场设定、人物关系图
+             - 大纲 / 章节：本书的章节大纲、未完成的章节草稿、写作计划
+             - 草稿：本书的人物对话草稿、场景草稿、随手记下的情节碎片
+           这些内容的共同特征 = **它们专属于这本小说** = 把这些内容脱离小说看就没有意义。
+           → 进对应的 bookFolder。
+
+        决策流程（按顺序判断）：
+          1. 这段文字在脱离"十二地仙"这本小说后还有没有独立意义？
+              是 → `referenceLibrary`
+              否 → 继续
+          2. 这是本书的哪一类设定？→ world / characters / outlines / chapters / drafts
 
         ## 输出格式
         严格一行 JSON，不要任何其他文字、解释或 markdown 代码块：
-        {"title":"<中文标题>","summary":"<一句话中文摘要>","tags":["<tag1>","<tag2>",...],"destination":"bookFolder","folder":"<world|characters|outlines|chapters|drafts>"}
-        或
         {"title":"<中文标题>","summary":"<一句话中文摘要>","tags":["<tag1>","<tag2>",...],"destination":"referenceLibrary"}
+        或
+        {"title":"<中文标题>","summary":"<一句话中文摘要>","tags":["<tag1>","<tag2>",...],"destination":"bookFolder","folder":"<world|characters|outlines|chapters|drafts>"}
         """
     }
 
