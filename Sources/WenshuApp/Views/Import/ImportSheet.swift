@@ -61,6 +61,21 @@ struct ImportSheet: View {
     /// the pickers + the action button.
     @State private var isImporting: Bool = false
 
+    /// The file-type filter the user wants to import
+    /// (= the user's 2026-10-09 ask: "加一个导入文件类
+    /// 型选择，其它的可以慢慢做，现在默认 MD 可导
+    /// 入，以后要加电子书格式什么的"; = today only
+    /// Markdown is wired; = the enum is open to .epub /
+    /// .pdf / .txt / etc. as future tickets ship; = the
+    /// `ImportService.walkSourceDir(_:_:)` accepts the
+    /// filter via the `extensions` parameter so the
+    /// orchestrator only walks files whose extension
+    /// matches the user's pick). Apple canonical pattern:
+    /// closed enum (= "make illegal states unrepresentable";
+    /// = a new file type forces a decision at the
+    /// walker's match site).
+    @State private var fileType: ImportFileType = .markdown
+
     /// Counters surfaced to the sheet's ProgressView
     /// (= the orchestrator emits per-file state
     /// transitions through `onProgress`; = the
@@ -106,6 +121,47 @@ struct ImportSheet: View {
 
             Form {
                 Section {
+                    // File-type filter (= the user's
+                    // 2026-10-09 ask: "在目录树上一行，
+                    // 加一行文件类型图标，单选"; = a
+                    // one-line row that sits at the top
+                    // of the form, with an SF Symbol on
+                    // the left, the type name in the
+                    // middle, and a chevron on the right
+                    // (= the same pattern as the
+                    // `目标书籍` picker below). Apple
+                    // canonical: `Picker` with
+                    // `.menu` style (= the user picks
+                    // from a dropdown, = the row itself
+                    // shows the current value as a
+                    // label). The .pdf / .epub cases are
+                    // visible in the menu but disabled
+                    // (= the v2.7 orchestrator only
+                    // knows how to walk + write .md
+                    // files; = the disabled rows
+                    // communicate "coming soon" without
+                    // a separate label).
+                    Picker(selection: $fileType) {
+                        ForEach(ImportFileType.allCases) { type in
+                            HStack {
+                                SFIcon(type.iconName, style: .toolbarButton, color: .tint)
+                                Text(type.displayName)
+                                if !type.isSupported {
+                                    Text("（即将支持）")
+                                        .foregroundStyle(.tertiary)
+                                }
+                            }
+                            .tag(type)
+                        }
+                    } label: {
+                        HStack(spacing: DesignTokens.spacingStandard) {
+                            SFIcon(fileType.iconName, style: .toolbarButton, color: .tint)
+                            Text("文件类型")
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .disabled(isImporting)
+
                     HStack {
                         if let url = sourceDirectory {
                             // Show the FULL path (= the
@@ -356,7 +412,8 @@ struct ImportSheet: View {
                 }
             }
             let result = await importService.importFiles(
-                in: source, into: target, router: router, onProgress: onProgress
+                in: source, into: target, router: router, onProgress: onProgress,
+                extensions: fileType.extensions
             )
             await MainActor.run {
                 tasks = result

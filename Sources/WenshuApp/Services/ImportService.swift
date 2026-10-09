@@ -67,6 +67,89 @@ protocol ImportRouter: Sendable {
 ///                                   file is byte-equal to
 ///                                   a previously-imported
 ///                                   file)
+/// The file-type filter the user picked in the
+/// import sheet (= the user's 2026-10-09 ask: "在
+/// 目录树上一行，加一行文件类型图标，单选"; = the
+/// v2.7 orchestrator only knows how to walk + write
+/// Markdown; = the .epub / .pdf / .txt cases are
+/// rendered as "coming soon" in the picker UI; = a
+/// future ticket can flip `isSupported` once the
+/// orchestrator's walk + write paths handle them).
+///
+/// Apple canonical pattern: closed enum with a
+/// canonical `extensions: Set<String>` per case (= the
+/// orchestrator's `walkSourceDir` takes the
+/// extension set as a parameter; = adding a new
+/// file type forces a single source-of-truth change
+/// at the type-definition site; = no string matching
+/// at the call site = "make illegal states
+/// unrepresentable").
+enum ImportFileType: String, CaseIterable, Identifiable, Codable, Sendable, Hashable {
+    case markdown
+    case epub
+    case pdf
+    case text
+
+    var id: String { rawValue }
+
+    /// Chinese display name for the picker row
+    /// (= the user's primary locale is .chinese;
+    /// = the picker row's `Text(type.displayName)`
+    /// is the visible label).
+    var displayName: String {
+        switch self {
+        case .markdown: return "Markdown"
+        case .epub:     return "EPUB 电子书"
+        case .pdf:      return "PDF"
+        case .text:     return "纯文本"
+        }
+    }
+
+    /// The SF Symbol name for the row's leading
+    /// icon (= Apple HIG canonical "leading icon"
+    /// for a picker row; = the wenshu v3.0 design
+    /// system uses the `SFIcon` central factory; =
+    /// no naked `Image(systemName:)`).
+    var iconName: String {
+        switch self {
+        case .markdown: return "doc.richtext"
+        case .epub:     return "book.closed"
+        case .pdf:      return "doc.fill"
+        case .text:     return "doc.plaintext"
+        }
+    }
+
+    /// `true` when the v2.7 orchestrator can
+    /// import this file type end-to-end (= the
+    /// walker + writer both understand it; = a
+    /// false value means the picker row renders
+    /// the "（即将支持）" hint and the user can't
+    /// pick it for an import run).
+    var isSupported: Bool {
+        switch self {
+        case .markdown: return true
+        case .epub, .pdf, .text: return false
+        }
+    }
+
+    /// The file extensions the walker should
+    /// match (= lower-cased; = the walker compares
+    /// against `url.pathExtension` lower-cased too;
+    /// = a Markdown file with a `.markdown`
+    /// extension is matched; = a `.mdown` /
+    /// `.mkd` is matched; = a future file type can
+    /// add multiple extensions here without
+    /// touching the walker).
+    var extensions: Set<String> {
+        switch self {
+        case .markdown: return ["md", "markdown", "mdown", "mkd"]
+        case .epub:     return ["epub"]
+        case .pdf:      return ["pdf"]
+        case .text:     return ["txt"]
+        }
+    }
+}
+
 enum ImportTaskState: String, Codable, Sendable, Hashable {
     case pending
     case routing
@@ -177,14 +260,27 @@ actor ImportService {
     /// of Phase 1 (walk), at the end of Phase 2 (dedup), at
     /// the end of Phase 4 (write) per file, and once at the
     /// end of the method.
+    /// `extensions` (= optional, default `["md"]`) is
+    /// the file-type filter the user picked in the
+    /// import sheet (= the user's 2026-10-09 ask).
+    /// The walker's `extensions` parameter accepts a
+    /// `Set<String>` of lower-cased extensions (= the
+    /// walker's source-of-truth is the
+    /// `ImportFileType.extensions` property; = the
+    /// orchestrator never hard-codes a single
+    /// extension; = the walker's match site is a
+    /// single `Set.contains(...)` call so a new file
+    /// type is a one-line change at the enum
+    /// definition).
     func importFiles(
         in sourceDir: URL,
         into target: ImportTarget,
         router: ImportRouter,
-        onProgress: (@Sendable ([ImportTask]) async -> Void)? = nil
+        onProgress: (@Sendable ([ImportTask]) async -> Void)? = nil,
+        extensions: Set<String> = ["md"]
     ) async -> [ImportTask] {
         // Phase 1: walk.
-        let mdFiles = walkSourceDir(sourceDir)
+        let mdFiles = walkSourceDir(sourceDir, extensions: extensions)
         var tasks = mdFiles.map { ImportTask(sourcePath: $0.path) }
         // Emit walk-phase progress so the sheet's ProgressView
         // updates immediately (= the user sees "找到 X 个 .md
@@ -358,11 +454,20 @@ actor ImportService {
 
     // MARK: - Phase 1: walk
 
-    /// Walk the source directory recursively. Returns the
-    /// `.md` files (sorted for deterministic order; = the
-    /// sheet's per-file strip renders in the same order
-    /// every re-import).
-    private func walkSourceDir(_ sourceDir: URL) -> [(path: String, url: URL)] {
+    /// Walk the source directory recursively. Returns
+    /// files whose extension is in the
+    /// `extensions` set (sorted for deterministic
+    /// order; = the sheet's per-file strip renders
+    /// in the same order every re-import). Apple
+    /// canonical pattern: the match site is a
+    /// single `Set.contains(...)` call so a new
+    /// file type is a one-line change at the
+    /// enum-definition site (= the orchestrator
+    /// never hard-codes a single extension).
+    private func walkSourceDir(
+        _ sourceDir: URL,
+        extensions: Set<String>
+    ) -> [(path: String, url: URL)] {
         let fm = FileManager.default
         guard let enumerator = fm.enumerator(
             at: sourceDir,
@@ -375,7 +480,7 @@ actor ImportService {
             // symlinks pointing outside the source tree.
             guard let values = try? url.resourceValues(forKeys: [.isRegularFileKey, .nameKey]),
                   values.isRegularFile == true else { continue }
-            guard url.pathExtension.lowercased() == "md" else { continue }
+            guard extensions.contains(url.pathExtension.lowercased()) else { continue }
             out.append((url.path, url))
         }
         // Sort by path (= the same sort the e2e scaffold
