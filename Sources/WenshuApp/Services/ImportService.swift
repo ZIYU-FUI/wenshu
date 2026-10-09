@@ -1190,22 +1190,39 @@ extension ImportService {
             includingPropertiesForKeys: nil
         ) else { return nil }
         for entry in entries where entry.pathExtension == "md" {
-            guard let body = try? String(contentsOf: entry, encoding: .utf8) else { continue }
-            // Find the first H1 (= the canonical title; = the
-            // orchestrator does NOT rewrite the body; = the H1
-            // is whatever the source file had; = we accept
-            // either an H1 already present OR a leading title
-            // derived from the LLM's routing.title when the
-            // orchestrator generated the file in a prior run).
-            for line in body.split(separator: "\n").prefix(20) {
-                let trimmed = line.trimmingCharacters(in: .whitespaces)
-                if trimmed.hasPrefix("# ") {
-                    let h1 = String(trimmed.dropFirst(2)).trimmingCharacters(in: .whitespaces)
-                    if Self.normalizeTitle(h1) == normalized {
-                        return entry
+            // 1) First H1 in the body (= the canonical
+            //    case for newly-imported files; = the
+            //    LLM body and the LLM title are
+            //    consistent so the first H1 matches
+            //    the routing title).
+            if let body = try? String(contentsOf: entry, encoding: .utf8) {
+                for line in body.split(separator: "\n").prefix(20) {
+                    let trimmed = line.trimmingCharacters(in: .whitespaces)
+                    if trimmed.hasPrefix("# ") {
+                        let h1 = String(trimmed.dropFirst(2)).trimmingCharacters(in: .whitespaces)
+                        if Self.normalizeTitle(h1) == normalized {
+                            return entry
+                        }
+                        break
                     }
-                    break
                 }
+            }
+            // 2) Filename heuristic fallback (= the boss
+            //    sometimes hand-edits a file to remove
+            //    the H1 (= the boss's 2026-10-09
+            //    round-14 "还有 3 个重名" feedback); = the
+            //    file has no H1; = the dedup lookup
+            //    would return nil; = a re-import of the
+            //    same entity would create a duplicate
+            //    file. The fallback strips the .md
+            //    extension and normalizes the filename
+            //    (= a file named "五道将军民俗神档案.md"
+            //    normalizes to "五道将军民俗神档案"; = the
+            //    LLM title "五道将军民俗神档案" matches;
+            //    = dedup hits even without an H1).
+            let filenameNoExt = entry.deletingPathExtension().lastPathComponent
+            if Self.normalizeTitle(filenameNoExt) == normalized {
+                return entry
             }
         }
         return nil
