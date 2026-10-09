@@ -87,6 +87,7 @@ struct AppleSidebarView: View {
     @State private var showNewShelfSheet = false
     @State private var showNewBookSheet = false
     @State private var showExportSheet = false
+    @State private var showImportSheet = false
     @State private var renaming: SidebarRenamingTarget?
     @State private var pendingDelete: SidebarPendingDelete?
 
@@ -317,6 +318,9 @@ struct AppleSidebarView: View {
         .onChange(of: sheetRequests.exportSheet) { _, _ in
             showExportSheet = true
         }
+        .onReceive(NotificationCenter.default.publisher(for: .wenshuImportRequested)) { _ in
+            showImportSheet = true
+        }
         // y: the create/rename/delete sheets. Each presents
         // a focused `*Sheet` view from `SidebarSheets.swift`; =
         // the sheet's `onSave` closure calls into
@@ -379,6 +383,9 @@ struct AppleSidebarView: View {
         }
         .sheet(isPresented: $showExportSheet) {
             ExportSheet(isPresented: $showExportSheet)
+        }
+        .sheet(isPresented: $showImportSheet) {
+            ImportSheet(isPresented: $showImportSheet)
         }
         .sheet(item: $renaming) { target in
             RenameItemSheet(
