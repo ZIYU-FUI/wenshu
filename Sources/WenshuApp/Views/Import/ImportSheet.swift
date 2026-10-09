@@ -279,7 +279,17 @@ struct ImportSheet: View {
                     showCancelConfirmation()
                 }
                 .keyboardShortcut(.cancelAction)
-                .disabled(isImporting)
+                // Do NOT disable the cancel button
+                // while the import is mid-flight:
+                // the user NEEDS this button (= and
+                // its bound ESC key) as the only way
+                // to surface the confirmation dialog
+                // when `interactiveDismissDisabled`
+                // is blocking the OS dismiss verbs.
+                // The button's label still changes
+                // (= "取消" → "跳过失败") so the
+                // visual state is informative.
+                .disabled(false)
                 Button(actionButtonLabel) {
                     startImport()
                 }
