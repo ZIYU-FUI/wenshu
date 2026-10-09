@@ -61,6 +61,23 @@ struct ImportSheet: View {
     /// the pickers + the action button.
     @State private var isImporting: Bool = false
 
+    /// Counters surfaced to the sheet's ProgressView
+    /// (= the orchestrator emits per-file state
+    /// transitions through `onProgress`; = the
+    /// sheet's view derives a single `progress`
+    /// fraction from the completed-state count).
+    @State private var completedCount: Int = 0
+    @State private var totalCount: Int = 0
+
+    /// True after the orchestrator finishes at least
+    /// one batch (= the action button changes from
+    /// "开始导入" to "重试" / "再次导入" so the user
+    /// can re-run on the same directory; = the user
+    /// explicitly picked this UX in the 2026-10-09
+    /// round of feedback where they said "部分导入
+    /// 成功后，按钮还是开始导入，不是重试").
+    @State private var hasRunOnce: Bool = false
+
     /// Last-used source directory (= Apple HIG
     /// canonical "remember the last folder"; =
     /// the system open panel starts here).
@@ -91,9 +108,23 @@ struct ImportSheet: View {
                 Section {
                     HStack {
                         if let url = sourceDirectory {
-                            Text(url.lastPathComponent)
+                            // Show the FULL path (= the
+                            // user's 2026-10-09 feedback:
+                            // "选择文件夹只显示最后一个
+                            // 文件夹的名字不合适，需要放
+                            // 文件路径"). Middle-elided so
+                            // long paths still fit on one
+                            // line in the 480 PT sheet
+                            // (= the trailing parent dir
+                            // is what the user usually
+                            // needs to verify they're
+                            // importing the right tree).
+                            Text(url.path)
+                                .font(.callout)
                                 .lineLimit(1)
                                 .truncationMode(.middle)
+                                .help(url.path)
+                                .textSelection(.enabled)
                         } else {
                             Text("选择一个包含 .md 文件的目录")
                                 .foregroundStyle(.secondary)
@@ -115,6 +146,31 @@ struct ImportSheet: View {
 
                 if !tasks.isEmpty {
                     Section("进度") {
+                        // The ProgressView shows the
+                        // canonical "已完成 X / Y" form
+                        // (= Apple HIG canonical
+                        // indeterminate determinate
+                        // progress pattern). The
+                        // fraction is the count of
+                        // terminal-state tasks (.done /
+                        // .skipped / .failed) divided by
+                        // the total (= the orchestrator's
+                        // live state machine; = updated
+                        // on each `onProgress` emit).
+                        if totalCount > 0 {
+                            ProgressView(
+                                value: Double(completedCount),
+                                total: Double(max(totalCount, 1))
+                            ) {
+                                Text("已完成 \(completedCount) / \(totalCount)")
+                                    .font(.callout.monospacedDigit())
+                            } currentValueLabel: {
+                                Text(progressLabel)
+                                    .font(.caption.monospacedDigit())
+                                    .foregroundStyle(.secondary)
+                            }
+                            .progressViewStyle(.linear)
+                        }
                         ImportProgressStrip(tasks: tasks)
                             .frame(maxHeight: DesignTokens.kanbanBoardMaxHeight)
                     }
@@ -128,7 +184,7 @@ struct ImportSheet: View {
                     isPresented = false
                 }
                 .keyboardShortcut(.cancelAction)
-                Button("开始导入") {
+                Button(actionButtonLabel) {
                     startImport()
                 }
                 .keyboardShortcut(.defaultAction)
@@ -137,6 +193,32 @@ struct ImportSheet: View {
         }
         .padding(DesignTokens.spacingSection)
         .frame(minWidth: 480, minHeight: 360)
+    }
+
+    /// The action button's label varies with the sheet's
+    /// state machine (= the user's 2026-10-09 feedback:
+    /// "部分导入成功后，按钮还是开始导入，不是重试").
+    /// Apple HIG canonical sheet button convention =
+    /// the label reflects what tapping it WILL do; =
+    /// the running-state disables the button; = the
+    /// done-state shows "再次导入" (= idiomatic; =
+    /// clearer than "重试" for a fresh batch on the
+    /// same directory).
+    private var actionButtonLabel: String {
+        if isImporting { return "导入中…" }
+        if hasRunOnce { return "再次导入" }
+        return "开始导入"
+    }
+
+    /// The ProgressView's caption row (= derived from
+    /// the live per-task state counts; = updates
+    /// automatically as `tasks` mutates).
+    private var progressLabel: String {
+        guard totalCount > 0 else { return "" }
+        let done = tasks.filter { $0.state == .done }.count
+        let skipped = tasks.filter { $0.state == .skipped }.count
+        let failed = tasks.filter { $0.state == .failed }.count
+        return "完成 \(done) · 跳过 \(skipped) · 失败 \(failed)"
     }
 
     private var canStart: Bool {
@@ -170,6 +252,20 @@ struct ImportSheet: View {
     /// Kick off the import. Builds the ImportTarget
     /// from the picked source + book, then asks the
     /// orchestrator to walk + dedup + route + write.
+    ///
+    /// Progress: the orchestrator's `onProgress`
+    /// callback hops to `@MainActor` and updates the
+    /// sheet's `tasks` + `completedCount` + `totalCount`
+    /// (= the ProgressView re-renders on each tick;
+    /// = the per-file state strip re-renders on
+    /// each tick).
+    ///
+    /// On completion (= success or partial failure):
+    /// the sheet posts `.wenshuLibraryDidChange` so
+    /// `AppleSidebarView` (= the canonical sidebar
+    /// host) calls `SidebarService.reload()` and
+    /// the user sees the new files in the tree
+    /// without manually re-launching.
     private func startImport() {
         guard let source = sourceDirectory,
               let bookID = selectedBookID,
@@ -177,6 +273,7 @@ struct ImportSheet: View {
             return
         }
         isImporting = true
+        completedCount = 0
         let target = ImportTarget(
             wsRoot: libraryRoot(),
             bookId: bookID,
@@ -186,12 +283,45 @@ struct ImportSheet: View {
             )
         )
         Task {
+            // The closure is `@Sendable` (=
+            // ImportService's signature) and runs on the
+            // orchestrator's actor; = hop to @MainActor
+            // before mutating @State so SwiftUI sees the
+            // updates on the right isolation domain.
+            let onProgress: @Sendable ([ImportTask]) async -> Void = { snapshot in
+                await MainActor.run {
+                    tasks = snapshot
+                    totalCount = snapshot.count
+                    completedCount = snapshot.filter {
+                        switch $0.state {
+                        case .done, .skipped, .failed: return true
+                        default: return false
+                        }
+                    }.count
+                }
+            }
             let result = await importService.importFiles(
-                in: source, into: target, router: router
+                in: source, into: target, router: router, onProgress: onProgress
             )
             await MainActor.run {
                 tasks = result
+                completedCount = result.filter {
+                    switch $0.state {
+                    case .done, .skipped, .failed: return true
+                    default: return false
+                    }
+                }.count
                 isImporting = false
+                hasRunOnce = true
+                // Post the library-change notification so
+                // AppleSidebarView (= the canonical sidebar
+                // host) re-reads the on-disk library state
+                // (= the existing SidebarService.reload()
+                // path; = same pattern the create / rename
+                // / delete sheets use today). The user's
+                // 2026-10-09 feedback: "点取消返回后，目录
+                // 树没有刷新".
+                NotificationCenter.default.post(name: .wenshuLibraryDidChange, object: nil)
             }
         }
     }
