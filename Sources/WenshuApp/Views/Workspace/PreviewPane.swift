@@ -1587,6 +1587,34 @@ internal enum CardSource {
         case .bookDoc(let d): return d.summary
         }
     }
+
+    /// v2.7 boss 2026-10-09 round-26 "在素材栏卡
+    /// 片上加一行标签显示" directive; = the
+    /// card now surfaces the reference's tag
+    /// set (= the .ws library's cross-cutting
+    /// facet; = the user previously had no
+    /// way to see which 3 tags a card
+    /// carries without opening the .md body);
+    /// = reference cards show
+    /// `Reference.tags` (= ≤ 3 entries
+    /// after the round-20 cap); = bookDoc
+    /// cards have no tag concept yet (= the
+    /// book folder structure is its own
+    /// navigation; = return [] for that case).
+    var tags: [String] {
+        switch self {
+        case .reference(let r):
+            // Sort the tag list for stable
+            // rendering (= the underlying Set
+            // has no defined order; = the
+            // card layout should not jitter
+            // when SwiftUI re-evaluates the
+            // body).
+            return r.tags.sorted()
+        case .bookDoc:
+            return []
+        }
+    }
 }
 
 private struct Card: View {
@@ -1660,13 +1688,46 @@ private struct Card: View {
                 )
             )
             // TEXT content below the thumbnail
-            // reference-library card standard = title + one-line summary,
-            // no [type] badge, no timestamp chip, no iconSize split.
+            // reference-library card standard = title + tag
+            // chips + one-line summary, no [type] badge, no
+            // timestamp chip, no iconSize split.
             VStack(alignment: .leading, spacing: 6) {
                 Text(source.title)
                     .font(.headline)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
+                // v2.7 boss 2026-10-09 round-26
+                // "在素材栏卡片上加一行标签
+                // 显示，在标题下面一行，在
+                // 一句话介绍上一行" directive; =
+                // the user needs to see which 3
+                // tags a reference carries without
+                // opening the .md body; = render the
+                // tag list as small chip-style
+                // pills in a single line between
+                // title and summary; = use the
+                // canonical wenshu design-token
+                // spacing (= 6 PT = spacingTight
+                // inside the VStack) and the
+                // secondary-tint foreground so the
+                // tags read as metadata not as
+                // primary content.
+                if !source.tags.isEmpty {
+                    HStack(spacing: DesignTokens.spacingCaption) {
+                        ForEach(source.tags, id: \.self) { tag in
+                            Text(tag)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, DesignTokens.spacingCaption)
+                                .padding(.vertical, DesignTokens.spacingHairline)
+                                .background(
+                                    Capsule()
+                                        .fill(.tertiary)
+                                )
+                        }
+                    }
+                    .lineLimit(1)
+                }
                 if !source.summary.isEmpty {
                     Text(source.summary)
                         .font(.caption)
