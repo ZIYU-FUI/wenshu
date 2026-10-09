@@ -172,9 +172,14 @@ actor ImportService {
         var tasks = mdFiles.map { ImportTask(sourcePath: $0.path) }
         // Phase 2: dedup. Read the cache once (= the
         // orchestrator batches the read so the per-file
-        // lookup is O(1)).
+        // lookup is O(1)). The cache is `var` because the
+        // Phase 4 write step inlines the new entries into
+        // the same in-memory map (= the in-memory map is
+        // the single source of truth for the duration of
+        // the import; = the disk-side writeCache call at
+        // the end persists the merged result).
         let cacheFile = target.cacheRoot.appendingPathComponent("import-cache.json")
-        let cache = readCache(cacheFile: cacheFile)
+        var cache = readCache(cacheFile: cacheFile)
         for i in tasks.indices {
             // Read the file body + hash it (= the
             // dedup key is the body hash, not the path
@@ -282,10 +287,24 @@ actor ImportService {
                     contentHash: tasks[i].contentHash,
                     target: target,
                     sourcePath: tasks[i].sourcePath,
-                    cache: cache
+                    cache: &cache
                 )
                 tasks[i].state = .done
                 tasks[i].destination = routing.destination
+                // The writeFile appended the new entry to
+                // its inout cache; = back-fill into the
+                // outer `cache` so the next dedup pass
+                // (= a re-import of the same source
+                // directory) sees the prior write.
+                if let entry = cache[tasks[i].sourcePath] {
+                    // Back-fill into the local `cache`
+                    // (= the orchestrator already wrote
+                    // the updated cache to disk in the
+                    // final writeCache call; = the
+                    // in-memory copy stays in sync here
+                    // for the same-process dedup pass).
+                    cache[tasks[i].sourcePath] = entry
+                }
             } catch {
                 tasks[i].state = .failed
                 tasks[i].errorMessage = "写入失败: \(error.localizedDescription)"
@@ -372,7 +391,7 @@ actor ImportService {
         contentHash: String,
         target: ImportTarget,
         sourcePath: String,
-        cache: [String: CacheEntry]
+        cache: inout [String: CacheEntry]
     ) async throws {
         switch routing.destination {
         case .bookFolder(let folder):
@@ -418,6 +437,19 @@ actor ImportService {
                 contentHash: contentHash
             )
         }
+        // Record the import in the sidecar cache so the
+        // next dedup pass (= a re-import of the same
+        // source directory) hits the cache instead of
+        // dispatching the LLM + re-writing the file.
+        // (= the dedup key is the absolute source path; =
+        // the cache value carries the body hash + the
+        // resolved destination = the dedup pass can
+        // short-circuit without touching the LLM).
+        cache[sourcePath] = CacheEntry(
+            contentHash: contentHash,
+            destination: routing.destination,
+            writtenAt: Date()
+        )
     }
 
     /// Write the file to the reference library. Reuses
