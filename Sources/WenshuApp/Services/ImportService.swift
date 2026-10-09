@@ -209,10 +209,18 @@ struct ImportTask: Identifiable, Sendable, Hashable {
 /// `ImportService` mutates the array in place (= the
 /// orchestrator returns the array; = the view diffs).
 actor ImportService {
-    /// 4-way parallel (= the same knob the existing
-    /// `Librarian` agent uses for `--max-concurrent-tool-
-    /// calls`; = the boss can retune it in one place).
-    static let maxParallel = 4
+    /// 5-way parallel LLM dispatch (= the boss's
+    /// 2026-10-09 directive "你要做一个机制 5 个并发，
+    /// 一个文件一个请求。同时只能处理 5 个"; = the
+    /// orchestrator's TaskGroup seeds the first
+    /// `maxParallel` tasks and refills as each
+    /// completes; = 5 keeps the in-flight LLM
+    /// pressure below the Anthropic / MiniMax
+    /// per-second burst limit; = the LLMConnector
+    /// adapter handles its own rate limiting for
+    /// the actual provider). The boss can retune
+    /// it in one place.
+    static let maxParallel = 5
 
     /// Where the sidecar cache lives (= per-library;
     /// = `<wsRoot>/.import-cache/`; = deletable by the user
