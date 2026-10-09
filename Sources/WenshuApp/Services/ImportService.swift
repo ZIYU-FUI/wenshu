@@ -299,6 +299,17 @@ actor ImportService {
             guard tasks[i].state == .routing,
                   let routing = tasks[i].routing else { continue }
             tasks[i].state = .writing
+            // Emit per-file progress so the sheet's
+            // ProgressView ticks one row at a time (= the
+            // user's 2026-10-09 feedback: "进度条没有跑进度，
+            // 是等到全完成一下子完成的"). The "writing"
+            // state is a transition state (= the file
+            // didn't actually finish yet) but the sheet's
+            // `progressLabel` only counts terminal states
+            // (= .done / .skipped / .failed); = this emit
+            // updates the row's pill in real time without
+            // inflating the ProgressView's "X / Y" counter.
+            await onProgress?(tasks)
             do {
                 let body = try String(contentsOfFile: tasks[i].sourcePath, encoding: .utf8)
                 try await writeFile(
@@ -329,6 +340,13 @@ actor ImportService {
                 tasks[i].state = .failed
                 tasks[i].errorMessage = "写入失败: \(error.localizedDescription)"
             }
+            // Emit after the state transition (= .done or
+            // .failed) so the sheet's ProgressView sees the
+            // final state for this row. The closure hops
+            // to @MainActor (= the sheet does the hop
+            // itself; = the orchestrator just hands the
+            // snapshot over).
+            await onProgress?(tasks)
         }
         // Persist the updated cache (= the orchestrator
         // re-reads the cache after each successful write

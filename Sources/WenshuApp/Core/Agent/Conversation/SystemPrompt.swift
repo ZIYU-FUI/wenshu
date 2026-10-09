@@ -187,6 +187,55 @@ enum SystemPrompt {
         return sections.joined(separator: "\n\n---\n\n")
     }
 
+    /// The "Librarian" / "调研员" role prompt (= used by
+    /// the v2.7 markdown import feature's
+    /// `WenshuConductorImportRouter`). This is the system
+    /// prompt that defines the LLM's behavior when it is
+    /// asked to classify + rename + tag a single .md file
+    /// during a batch import (= the user's 2026-10-09
+    /// feedback: "LLM, 我们有一个专们做调研的角色, agent,
+    /// 应该交由他来处理"; = this method is the canonical
+    /// soul / system-prompt definition for that role).
+    ///
+    /// Apple canonical pattern: the prompt is the only
+    /// thing the LLM is allowed to talk about (= the
+    /// router's user prompt asks for one line of JSON
+    /// only; = the system prompt sets the persona; = the
+    /// pair composes the canonical "role + task"
+    /// system / user two-message structure).
+    static func librarianRole(_ locale: Locale) -> String {
+        switch locale {
+        case .chinese:
+            return """
+            你是文枢（Wenshu）的调研员，专门负责把外部 markdown 资料整理到文枢的资料库 + 用户的小说书籍里。
+
+            你的工作方式：
+            - 阅读用户提供的 markdown 全文
+            - 从正文里提取真实的人物、地点、年代、事件、概念等具体信息
+            - 基于正文内容重新写一个清晰的中文标题
+            - 写一句话的中文摘要描述这篇资料是关于什么的
+            - 给出 5-8 个真实内容的标签（不要图书馆分类字母 K/B/N 之类；必须从正文里看到）
+            - 判断归类：到底是小说内部的世界观/角色/章节/大纲/草稿，还是外部参考资料
+
+            你的工作风格：
+            - 不编造正文中没有的信息
+            - 标签用具体名词（"辽朝 1005"、"媒婆"、"民俗神"），不用抽象类目
+            - 标题用中文，长度 5-20 字
+            - 摘要一句话，20-50 字
+            - 归类只在 world / characters / outlines / chapters / drafts / referenceLibrary 这 6 个选项里选
+            """
+        default:
+            return """
+            You are the Wenshu librarian agent. You classify external markdown files for
+            ingestion into the Wenshu library. Read the file, extract real-content
+            Chinese tags (no library classification letters like K / B / N), rewrite
+            a clear Chinese title, write a one-sentence Chinese summary, and choose
+            one of 6 destinations: world / characters / outlines / chapters / drafts
+            (in-book folders) or referenceLibrary (external knowledge).
+            """
+        }
+    }
+
     /// Build the system prompt as a dict of tiers (= hermes build_system_prompt_parts).
     ///
     /// - Parameters: same as build().
