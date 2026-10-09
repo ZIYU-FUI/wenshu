@@ -607,17 +607,49 @@ actor ImportService {
     ) async throws {
         switch routing.destination {
         case .bookFolder(let folder):
-            // uuid = content-hash-prefixed (= the same
-            // body always lands at the same on-disk
-            // filename; = the idempotent re-import's
-            // dedup key).
+            // The on-disk filename derives from the
+            // LLM-supplied title (= the boss's 2026-10-09
+            // round-10 feedback "这个 ID 的事还没有修吗":
+            // = the sidebar's BookDoc card title came from
+            // the file's filename without extension; = the
+            // previous UUID-only filename meant the cards
+            // read "023D22E3-1F1D-4A55-83C8-F133156ECEB9"
+            // instead of the human-readable title the LLM
+            // generated; = a stable, title-based filename
+            // makes the sidebar readable on the first pass).
+            //
+            // The dedup key still lives in the cache
+            // (= a re-import of the same body finds the
+            // cache entry by source path; = the on-disk
+            // filename is a display concern, not a
+            // identity concern; = the fileURL still uses
+            // the title for the sidebar + the cache for
+            // idempotency).
+            //
+            // Sanitization (= boss 2026-10-09: "文枢内部
+            // 完整处理" = the title can contain Chinese
+            // characters + punctuation; = we strip path-
+            // unsafe characters + collapse whitespace;
+            // = the max-255-byte limit on most
+            // filesystems is honored via the 80-char
+            // truncation; = an empty / unsafe-only title
+            // falls back to the UUID; = the fallback
+            // path is rare (= the LLM is instructed to
+            // always return a title; = a missing title
+            // would indicate a deeper LLM misbehavior
+            // worth surfacing as a generic "未命名"
+            // rather than a cryptic UUID).
             let uuid = Self.uuidFromHash(contentHash)
             let folderURL = target.shelvesRoot
                 .appendingPathComponent(target.shelfId.uuidString)
                 .appendingPathComponent("books")
                 .appendingPathComponent(target.bookId.uuidString)
                 .appendingPathComponent(folder.directoryName)
-            let fileURL = folderURL.appendingPathComponent("\(uuid.uuidString).md")
+            let basename = Self.sanitizeFilename(
+                raw: routing.title,
+                fallback: String(uuid.uuidString.prefix(8))
+            )
+            let fileURL = folderURL.appendingPathComponent("\(basename).md")
             // Create the folder if missing (= idempotent;
             // = the orchestrator does not depend on the
             // book bootstrap having created the folder
@@ -1058,5 +1090,30 @@ extension ImportService {
         // sheet's ProgressView sees the final
         // state for this row.
         await onProgress?(tasksBox.value)
+    }
+}
+
+extension ImportService {
+    /// Sanitize the LLM-supplied title into a safe
+    /// filename basename (= the previous UUID-only
+    /// filename made the sidebar cards unreadable).
+    static func sanitizeFilename(raw: String, fallback: String) -> String {
+        let unsafe = CharacterSet(charactersIn: "/\\:*?\"<>|\n\r\t")
+        var stripped: String = ""
+        stripped.reserveCapacity(raw.unicodeScalars.count)
+        for scalar in raw.unicodeScalars where !unsafe.contains(scalar) {
+            stripped.unicodeScalars.append(scalar)
+        }
+        stripped = stripped.replacingOccurrences(
+            of: "[ \\t]+",
+            with: " ",
+            options: .regularExpression
+        )
+        stripped = stripped.trimmingCharacters(in: .whitespacesAndNewlines)
+        if stripped.isEmpty { return fallback }
+        if stripped.count > 80 {
+            stripped = String(stripped.prefix(80))
+        }
+        return stripped
     }
 }
