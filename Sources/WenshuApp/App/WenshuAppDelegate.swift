@@ -421,21 +421,40 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     /// test + production in lockstep without leaking the view API.
     nonisolated static func activeLLMConnector() -> any LLMConnector {
         let slug = UserDefaults.standard.string(forKey: "wenshu.llm.activeConnector")
-        // ProviderCatalog cannot resolve) must fall back to AnthropicConnector
-        // (NOT ProviderCatalog's .minimaxCn default). The unit test contract in
-        // TriggerClosureWiringTests pins this so the production long-running-goal
-        // button can never hit a connector it cannot drive (= AnthropicConnector
-        // is the canonical native-protocol connector wenshu ships with out of the
-        // box per AGENTS.md §11.2 P0 profile list). When the user has not picked
-        // a connector OR has picked one we don't ship, route to Anthropic.
+        // ProviderCatalog cannot resolve) must fall back to the
+        // first provider that has a key in the keychain (= NOT
+        // AnthropicConnector). The previous behavior (= default
+        // to anthropic) caused a "Missing API key for provider
+        // 'anthropic'" error in the v2.7 markdown import flow
+        // whenever the user had configured MiniMax (China) /
+        // OpenAI / etc. in the chat Settings picker (= the
+        // picker is per-chat; = the v2.7 import connector is
+        // resolved independently and should follow the
+        // keychain-side signal). The new behavior: ask the
+        // keychain which providers have keys; = pick the
+        // first one (= wenshu only ships 1 key for non-test
+        // users in practice; = the order is the user's own
+        // configure order).
         let provider: Provider
         if let slug = slug, let resolved = Provider.by(slug: slug) {
             provider = resolved
         } else {
-            // Anchor the AnthropicConnector fallback on the explicit
-            // "anthropic" Provider (= real Anthropic API, not the
-            // anthropic-compatible MinimaxConnector).
-            provider = Provider.by(slug: "anthropic") ?? .minimaxCn
+            // Ask the keychain which providers have keys (= the
+            // canonical signal that the user has configured a
+            // provider end-to-end; = UserDefaults alone doesn't
+            // prove the key is real).
+            let configuredSlugs = ProviderKeychain.listProvidersWithKeys()
+            if let first = configuredSlugs.first(where: { Provider.by(slug: $0) != nil }),
+               let resolved = Provider.by(slug: first) {
+                provider = resolved
+            } else {
+                // Last resort: AnthropicConnector for unit tests
+                // (= the unit-test contract in
+                // TriggerClosureWiringTests pins this so the
+                // production long-running-goal button can never
+                // hit a connector it cannot drive).
+                provider = Provider.by(slug: "anthropic") ?? .minimaxCn
+            }
         }
         switch provider.apiMode {
         case "anthropic_messages":
