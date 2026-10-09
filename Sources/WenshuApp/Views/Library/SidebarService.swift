@@ -240,7 +240,19 @@ final class SidebarService {
                         kind: .tag,
                         title: tag,
                         subtitle: "\(count) 项",
-                        systemImage: "tag.fill",
+                        // Boss 2026-10-09: tag row icon
+                        // is now the line / outline
+                        // variant (= 'tag' = SF Symbols
+                        // 6 outline) rather than the
+                        // filled variant 'tag.fill'.
+                        // The line variant matches the
+                        // Apple HIG section-row visual
+                        // weight (= thinner stroke =
+                        // less heavy in the sidebar =
+                        // a list-of-tags reads as a
+                        // set of labels, not a set
+                        // of buttons).
+                        systemImage: "tag",
                         children: nil,
                         routingKey: tag
                     )
