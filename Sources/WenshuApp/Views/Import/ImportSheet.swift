@@ -329,7 +329,43 @@ struct ImportSheet: View {
                         // user expects).
                         if totalCount > 0 {
                             ProgressView(
-                                value: Double(completedCount + inFlightCount),
+                                // v2.7 bar value (= boss
+                                // 2026-10-09 round-19
+                                // "进度条跑太快了，还在
+                                // 进行中的，进度条已经
+                                // 跑完了"; = the
+                                // previous `completed
+                                // + inFlight` formula
+                                // hit 100% the moment
+                                // the last task was
+                                // seeded (= 3 done + 1
+                                // in-flight = 4/4 = the
+                                // bar visually said
+                                // "100% done" while
+                                // there was still 1
+                                // task in flight; = the
+                                // user reads this as
+                                // "the progress bar is
+                                // lying to me"). The
+                                // new formula weights
+                                // in-flight as 0.5 of
+                                // a unit (= a partial
+                                // credit for work that
+                                // has been dispatched
+                                // but not yet
+                                // completed; = when
+                                // 3/4 are .done + 1 is
+                                // in-flight, the bar
+                                // shows 3.5/4 = ~88%
+                                // = the user can see
+                                // "yes, the last task
+                                // is still running"
+                                // without losing the
+                                // upward momentum
+                                // signal that "the
+                                // import is almost
+                                // done").
+                                value: Double(completedCount) + Double(inFlightCount) * 0.5,
                                 total: Double(max(totalCount, 1))
                             ) {
                                 Text("已完成 \(completedCount) / \(totalCount)")
