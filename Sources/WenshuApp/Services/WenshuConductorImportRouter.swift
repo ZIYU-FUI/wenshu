@@ -527,7 +527,25 @@ actor WenshuConductorImportRouter: ImportRouter {
         case .consolidate:
             return "\"title\":\"<中文标题>\",\"summary\":\"<一句话中文摘要>\",\"tags\":[\"<tag1>\",\"<tag2>\",...]\""
         case .searchAndRewrite:
-            return "\"title\":\"<中文标题>\",\"summary\":\"<一句话中文摘要>\",\"tags\":[\"<tag1>\",\"<tag2>\",...],\"rewrittenBody\":\"<整理后的 .ws 格式正文（可以包含换行 \\\\n）>\""
+            // CRITICAL: `rewrittenBody` must be a
+            // single-line JSON string (= the
+            // string-value `\\n` is the JSON
+            // escape for newline; = the LLM
+            // should NOT emit a literal newline
+            // inside the string-value; = the
+            // previous prompt said "可以包含换行
+            // \\\\n" which the LLM took as
+            // permission to insert a real
+            // newline; = the JSON parser then
+            // bailed; = the boss 2026-10-09
+            // round-23 saw "LLM 未返回可解
+            // 析的 JSON；归类为草稿" cards
+            // with the source path as the
+            // fallback title). Fix: tell the
+            // LLM to use JSON-escaped `\n`
+            // (= \\n) only; = the orchestrator
+            // un-escapes after parsing.
+            return "\"title\":\"<中文标题>\",\"summary\":\"<一句话中文摘要>\",\"tags\":[\"<tag1>\",\"<tag2>\",...],\"rewrittenBody\":\"<整理后的 .ws 格式正文; 用 \\\\n 表示换行, 不要在字符串值里写真实换行>\""
         }
     }
 
@@ -641,17 +659,50 @@ actor WenshuConductorImportRouter: ImportRouter {
     /// autolinks; = strip both shapes so
     /// the rewritten body never carries
     /// Obsidian-era link cruft).
+    ///
+    /// The boss 2026-10-09 round-23 follow-up
+    /// (= "而且内部反链在重写的时候
+    /// 没有删"; = the previous version
+    /// only stripped lines that START with
+    /// `../` or `[[`; = Obsidian reverse-
+    /// link lines look like:
+    ///   `反链:`
+    ///   `  - ../../08-3 大类实体/03-物件/物件`
+    /// = the inner `../` is NOT at line
+    /// start; = the previous matcher
+    /// missed it). Fix: use a regex-based
+    /// filter that drops any line
+    /// containing `../`, `/../`, or
+    /// `[[...]]` (= matches every Obsidian
+    /// relative-path form regardless of
+    /// where it appears in the line; = also
+    /// matches wikilink fragments inside
+    /// prose, not just at line start).
     static func stripObsidianBacklinks(_ body: String) -> String {
         var stripped: [String] = []
         for line in body.split(separator: "\n", omittingEmptySubsequences: false) {
             let lineStr = String(line)
+            // Drop any line containing a relative
+            // upward path (= "../" or "/../"; =
+            // catches "- ../../x" / "  ../x" /
+            // "[text](../../x)" etc.; = the
+            // Obsidian relative-link family).
+            if lineStr.contains("../") { continue }
+            // Drop any line containing a wikilink
+            // fragment (= "[[...]]"; = the
+            // Obsidian autolink form).
+            if lineStr.contains("[[") { continue }
+            // Drop the "反链:" / "反链 :" header
+            // line too (= once we've stripped all
+            // the links underneath, the header
+            // becomes a dangling marker; = the
+            // canonical wenshu "关系链" feature
+            // will own this concept; = this line
+            // is the Obsidian-era marker).
             let trimmed = lineStr.trimmingCharacters(in: .whitespaces)
-            // Skip Obsidian wikilink lines: `[[..]]`
-            if trimmed.hasPrefix("[[") { continue }
-            // Skip lines that begin with a relative
-            // upward path: `../`, `../../`, etc. (= the
-            // Obsidian relative-link form).
-            if trimmed.hasPrefix("../") { continue }
+            if trimmed == "反链" || trimmed == "反链:" || trimmed == "反链 :" {
+                continue
+            }
             stripped.append(lineStr)
         }
         return stripped.joined(separator: "\n")
@@ -682,24 +733,62 @@ actor WenshuConductorImportRouter: ImportRouter {
     /// <think>...</think> block; = Anthropic similarly
     /// returns a `thinking` content block ahead of
     /// `text`).
+    ///
+    /// Boss 2026-10-09 round-23 follow-up: even after
+    /// the prompt rewrite (= the LLM should now
+    /// produce a single-line JSON; = with escaped
+    /// `\n` for newlines inside string values; =
+    /// the parser should be tolerant of either form;
+    /// = the previous version bailed on the first
+    /// unescaped quote inside a string value; = the
+    /// round-23 observation was "cards showed the
+    /// source path as the title" = the parser bailed
+    /// on the LLM's response = the orchestrator
+    /// synthesized the fallback envelope). The fix
+    /// here: also accept the LLM's literal-newline
+    /// form (= replace literal newlines with `\\n`
+    /// inside what looks like a string value; = makes
+    /// the parser tolerant of either JSON-correct
+    /// or "markdown-style" JSON output).
     private static func extractFirstJSONObject(_ raw: String) -> String? {
         guard let firstBrace = raw.firstIndex(of: "{") else { return nil }
         var depth = 0
         var inString = false
         var escape = false
+        var sanitized = ""
         for i in raw[firstBrace...].indices {
             let c = raw[i]
-            if escape { escape = false; continue }
-            if c == "\\" { escape = true; continue }
-            if c == "\"" { inString.toggle(); continue }
-            if inString { continue }
+            if escape { escape = false; sanitized.append(c); continue }
+            if c == "\\" { escape = true; sanitized.append(c); continue }
+            if c == "\"" { inString.toggle(); sanitized.append(c); continue }
+            if inString {
+                // The LLM may have inserted literal
+                // newlines inside a string value
+                // (= the prompt now forbids this; =
+                // older runs or misbehaving models
+                // may still produce this form). Convert
+                // any literal newline inside a string
+                // value to the JSON-escaped `\n` so
+                // the rest of the parse can succeed.
+                if c == "\n" {
+                    sanitized.append("\\n")
+                } else if c == "\r" {
+                    // Skip CR; = the \n already handled the
+                    // line break.
+                } else {
+                    sanitized.append(c)
+                }
+                continue
+            }
             if c == "{" { depth += 1 }
             if c == "}" {
                 depth -= 1
                 if depth == 0 {
-                    return String(raw[firstBrace...i])
+                    sanitized.append(c)
+                    return sanitized
                 }
             }
+            sanitized.append(c)
         }
         return nil
     }
