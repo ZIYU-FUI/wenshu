@@ -323,9 +323,43 @@ struct LibraryRootView: View {
                     workspaceUI: workspaceUI
                 )
                 .navigationSplitViewColumnWidth(
-                    min: 280,
-                    ideal: 360,
-                    max: 520
+                    // v2.6+ reference preview (= the
+                    // '素材栏' / 'cards' column in the
+                    // standard 4-zone nomenclature; = the
+                    // second column from the left; = the
+                    // Apple Mail / Notes.app / Xcode
+                    // 'list / cards' column = where the
+                    // card grid lives).
+                    //
+                    // Boss 2026-10-09 directive: tight min
+                    // / max so the column does NOT eat the
+                    // detail (= 'a wider preview pane
+                    // pushes the editor off-screen'; =
+                    // the prior 280 / 360 / 520 spread
+                    // allowed a drag-stretch into a
+                    // NavigationSplitView constraint
+                    // violation on macOS 27 (= the
+                    // 'max not enforced' symptom; =
+                    // NSV honours min + ideal but lets
+                    // ideal grow indefinitely, = over-stretch
+                    // = NSHostingView constraint loop =
+                    // NSWindow._postWindowNeedsUpdateConstraints
+                    // fatal).
+                    //
+                    // 240 / 300 / 340 = a narrow card
+                    // column that leaves the editor pane
+                    // (= minimum 400 per the macOS HIG
+                    // editor-pane standard; = the user's
+                    // Apple HIG editor-pane-width spec) with
+                    // breathing room on a 1480 PT window.
+                    // Hard cap at 340 prevents the over-stretch
+                    // crash (= the user can still resize the
+                    // window, = the column just stops accepting
+                    // drag past 340 PT; = the cap = a safety
+                    // bound, not a fixed width).
+                    min: 240,
+                    ideal: 300,
+                    max: 340
                 )
             } detail: {
                 EditorChatSplitHost(
