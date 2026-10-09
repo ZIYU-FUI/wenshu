@@ -334,10 +334,18 @@ actor ImportService {
         let dispatchIndices = tasks.indices.filter {
             tasks[$0].state == .pending
         }
-        // Phase 3: route + enrich (= concurrent, = 4-way
-        // parallel via a Semaphore-shaped TaskGroup; = the
-        // actor's serialized state protects the cache
-        // write back from races).
+        // Phase 3: route + enrich (= concurrent, =
+        // 5-way parallel via a Semaphore-shaped
+        // TaskGroup; = the actor's serialized state
+        // protects the cache write back from races;
+        // = the sheet's ProgressView reads the
+        // per-task `routing` state to drive the
+        // "进行中 N" live label, so we emit
+        // `onProgress` after every state transition
+        // in this phase = the sheet's
+        // `inFlightCount` ticks as tasks flip from
+        // .pending → .routing and back to
+        // .routing → .writing on completion).
         await withTaskGroup(of: (Int, Result<ImportRoutingResult, Error>).self) { (group: inout TaskGroup<(Int, Result<ImportRoutingResult, Error>)>) in
             var inFlight = 0
             var nextIndex = 0
@@ -361,6 +369,18 @@ actor ImportService {
                 inFlight += 1
                 nextIndex += 1
             }
+            // Emit once after the initial seed batch
+            // (= the sheet's first in-flight tick
+            // = the 5 rows visibly flip from
+            // "待处理" to "分析中" as soon as the
+            // first TaskGroup is seeded; = the
+            // user's 2026-10-09 feedback "进度条
+            // 还是不会跟着走" = the previous
+            // behavior kept every row at "待处理"
+            // the whole time because no `onProgress`
+            // fired between Phase 1 + Phase 3's
+            // routing transitions).
+            await onProgress?(tasks)
             // Drain + refill.
             while let result = await group.next() {
                 inFlight -= 1
@@ -372,6 +392,13 @@ actor ImportService {
                     tasks[i].state = .failed
                     tasks[i].errorMessage = "LLM 路由失败: \(error.localizedDescription)"
                 }
+                // Emit after each result so the
+                // sheet's `inFlightCount` ticks
+                // down (= a finished task = one
+                // less in-flight row = the bar
+                // visibly moves as each LLM
+                // completes).
+                await onProgress?(tasks)
                 if nextIndex < dispatchIndices.count {
                     let j = dispatchIndices[nextIndex]
                     if tasks[j].state == .pending {
@@ -391,6 +418,11 @@ actor ImportService {
                         }
                         inFlight += 1
                         nextIndex += 1
+                        // Emit after each new
+                        // seed (= the sheet sees
+                        // the fresh in-flight
+                        // row).
+                        await onProgress?(tasks)
                     }
                 }
             }
