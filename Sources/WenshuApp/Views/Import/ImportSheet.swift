@@ -311,25 +311,20 @@ struct ImportSheet: View {
         // dismisses the sheet for real (= the
         // `isPresented = false` flag flips AFTER
         // the rollback Task completes).
-        .onChange(of: isPresented) { _, newValue in
-            if !newValue && isImporting {
-                // The sheet's parent binding was
-                // about to flip to `false` (= the
-                // dismiss path fired); = we flip it
-                // back to `true` immediately + show
-                // the confirmation dialog. The
-                // `Task { @MainActor in ... }` runs
-                // in the same run-loop tick so the
-                // dialog presents before SwiftUI
-                // tears the sheet down (= no
-                // visible "flash" of an empty
-                // workspace).
-                Task { @MainActor in
-                    isPresented = true
-                    confirmCancelPresented = true
-                }
-            }
-        }
+        // (previous onChange-of-isPresented
+        // interceptor was removed = the
+        // SwiftUI lifecycle fires it after the
+        // sheet has already torn down; = the
+        // new interception model is
+        // `interactiveDismissDisabled(isImporting)`
+        // below = blocks the OS dismiss paths
+        // while an import is mid-flight; = the
+        // 取消 button + ESC + Cmd+W all flip
+        // `confirmCancelPresented` to show the
+        // boss's 确认 / 返回 dialog = the
+        // dialog is the single source of truth
+        // for the cancel-and-rollback path.
+        .interactiveDismissDisabled(isImporting)
         .padding(DesignTokens.spacingSection)
         // Sheet sizing: the canonical Apple HIG macOS 14+
         // pattern is `minWidth: N` (= a minimum so the
