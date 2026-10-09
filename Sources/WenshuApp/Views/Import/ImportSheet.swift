@@ -84,6 +84,20 @@ struct ImportSheet: View {
     @State private var completedCount: Int = 0
     @State private var totalCount: Int = 0
 
+    /// Counter of files currently in `routing` or
+    /// `writing` (= the LLM is mid-flight or the
+    /// file is mid-write). Drives the "进行中"
+    /// label next to "完成 / 跳过 / 失败" so the
+    /// user sees live activity (= the user's
+    /// 2026-10-09 feedback: "进度条还是不会跟着
+    /// 走，还在憋大招，最后给一个 100%"; = the
+    /// 4-way parallel LLM dispatch means at most
+    /// 4 files are in flight at any time, but the
+    /// per-second "in flight" count combined with
+    /// the moving `done` count is what makes the
+    /// bar feel alive).
+    @State private var inFlightCount: Int = 0
+
     /// True after the orchestrator finishes at least
     /// one batch (= the action button changes from
     /// "开始导入" to "重试" / "再次导入" so the user
@@ -323,13 +337,24 @@ struct ImportSheet: View {
 
     /// The ProgressView's caption row (= derived from
     /// the live per-task state counts; = updates
-    /// automatically as `tasks` mutates).
+    /// automatically as `tasks` mutates). Shows the
+    /// in-flight count (= the boss's 2026-10-09
+    /// "进度条还是不会跟着走" feedback; = the
+    /// `inFlightCount` ("进行中 N") is what makes
+    /// the row feel alive while the 5-way parallel
+    /// LLM dispatch is mid-flight).
     private var progressLabel: String {
         guard totalCount > 0 else { return "" }
         let done = tasks.filter { $0.state == .done }.count
         let skipped = tasks.filter { $0.state == .skipped }.count
         let failed = tasks.filter { $0.state == .failed }.count
-        return "完成 \(done) · 跳过 \(skipped) · 失败 \(failed)"
+        let parts: [String] = [
+            "完成 \(done)",
+            "跳过 \(skipped)",
+            "失败 \(failed)",
+            "进行中 \(inFlightCount)"
+        ]
+        return parts.joined(separator: " · ")
     }
 
     private var canStart: Bool {
@@ -403,9 +428,29 @@ struct ImportSheet: View {
                 await MainActor.run {
                     tasks = snapshot
                     totalCount = snapshot.count
+                    // The ProgressView's bar value
+                    // counts terminal states (= the
+                    // done counter); = the
+                    // `currentValueLabel` row shows
+                    // the per-state breakdown so the
+                    // user sees live activity from
+                    // the in-flight count too (= the
+                    // user's 2026-10-09 feedback
+                    // "进度条还是不会跟着走，还在憋
+                    // 大招，最后给一个 100%"; = the
+                    // done counter ticks one row at
+                    // a time as the 5-way parallel
+                    // LLM dispatch finishes, = the
+                    // bar visibly moves).
                     completedCount = snapshot.filter {
                         switch $0.state {
                         case .done, .skipped, .failed: return true
+                        default: return false
+                        }
+                    }.count
+                    inFlightCount = snapshot.filter {
+                        switch $0.state {
+                        case .routing, .writing: return true
                         default: return false
                         }
                     }.count
