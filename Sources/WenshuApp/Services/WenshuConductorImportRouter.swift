@@ -997,9 +997,50 @@ actor WenshuConductorImportRouter: ImportRouter {
         // might emit "活字印刷" as title and
         // " 活字印刷 " as a tag).
         let titleNorm = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        let dedupedTags = cappedTags.filter { tag in
-            let tagNorm = tag.trimmingCharacters(in: .whitespacesAndNewlines)
-            return !tagNorm.isEmpty && tagNorm != titleNorm
+        // v2.7 (= boss 2026-10-09 round-29
+        // "标签不可以带标点" directive; = the
+        // sidebar tag facet is a navigation
+        // filter (= the user clicks a tag to
+        // see every reference carrying that
+        // tag); = punctuation in a tag breaks
+        // the facet UX (= "民俗神-A民俗神"
+        // parses as one opaque tag; = "民俗
+        // 神" parses as the same tag with a
+        // leading space; = the LLM is
+        // sometimes emitting tags like
+        // "民俗神-A喜丧" (= entityType
+        // codes) or "考古报告, 民俗" (= the
+        // comma is meant to be a tag
+        // separator that the LLM put inside
+        // one tag); = these don't match the
+        // user's mental model of "tag = a
+        // short, single-token Chinese
+        // word"). Drop any tag containing
+        // punctuation (= ASCII punctuation +
+        // common CJK punctuation; = the
+        // remaining tag is letters and digits
+        // only; = the LLM was instructed to
+        // emit single-word tags without
+        // punctuation; = the last-mile filter
+        // matches the user expectation).
+        let dedupedTags = cappedTags.compactMap { tag -> String? in
+            let trimmedTag = tag.trimmingCharacters(in: .whitespacesAndNewlines)
+            // Drop empties.
+            if trimmedTag.isEmpty { return nil }
+            // Drop title-match (= round-28).
+            if trimmedTag == titleNorm { return nil }
+            // Drop any tag containing punctuation
+            // (= the canonical wenshu tag is a
+            // short single-token word like "民
+            // 俗神" / "唐朝" / "阎罗" / "印
+            // 度"; = punctuation in a tag is
+            // always an LLM error; = drop it
+            // silently; = the user gets fewer
+            // tags but every tag is meaningful).
+            if Self.tagContainsPunctuation(trimmedTag) {
+                return nil
+            }
+            return trimmedTag
         }
         return ImportDecision(
             title: title,
@@ -1009,5 +1050,80 @@ actor WenshuConductorImportRouter: ImportRouter {
             bookFolder: bookFolder,
             rewrittenBody: rewrittenBody
         )
+    }
+
+    /// v2.7 (= boss 2026-10-09 round-29) = a
+    /// tag that contains any non-letter / non-
+    /// digit / non-CJK character is treated as
+    /// punctuation (= the LLM sometimes emits
+    /// `,` to separate what should be two
+    /// tags, or `()` to wrap a parenthetical
+    /// that snuck in; = the wenshu tag facet is
+    /// a navigation filter; = the user can
+    /// only navigate to a tag that matches a
+    /// real entity; = punctuation breaks the
+    /// facet match).
+    ///
+    /// "Punctuation" here = anything that is
+    /// not a Unicode letter, digit, or CJK
+    /// character. CJK Unified Ideographs (= the
+    /// U+4E00..U+9FFF block + extensions) are
+    /// all valid tag characters. CJK
+    /// punctuation blocks (= U+3000..U+303F
+    /// "CJK Symbols and Punctuation", U+FF00
+    /// "Halfwidth and Fullwidth Forms", U+FE30
+    /// "CJK Compatibility Forms") are dropped.
+    /// ASCII punctuation (= `,` / `.` / `-` /
+    /// `:` / `(` / `)` / `/` / `'` / `"` /
+    /// `[` / `]`) is dropped. Whitespace and
+    /// underscore are also dropped (= the tag
+    /// facet matches on the canonical string;
+    /// = the user never types spaces or
+    /// underscores when navigating).
+    private static func tagContainsPunctuation(_ tag: String) -> Bool {
+        // Pre-resolve the underscore scalar (= the
+        // `Unicode.Scalar == String` overload doesn't
+        // exist; = the comparison is scalar-to-scalar).
+        let underscore: Unicode.Scalar = "_"
+        for scalar in tag.unicodeScalars {
+            // ASCII letters / digits: keep (= use
+            // the scalar's `properties` set; =
+            // `Unicode.Scalar` has no `.isLetter`
+            // / `.isNumber` member directly; =
+            // those members live on `Character`).
+            if scalar.isASCII {
+                let p = scalar.properties
+                if p.isASCIIHexDigit || (scalar.value >= 0x41 && scalar.value <= 0x5A)
+                    || (scalar.value >= 0x61 && scalar.value <= 0x7A)
+                    || (scalar.value >= 0x30 && scalar.value <= 0x39) {
+                    continue
+                }
+            }
+            // ASCII underscore: drop (= the
+            // user wouldn't navigate to a
+            // tag with an underscore in it).
+            if scalar == underscore { return true }
+            // CJK Unified Ideographs and
+            // extensions: keep. CJK
+            // Compatibility Ideographs
+            // (U+F900..U+FAFF): keep.
+            let v = scalar.value
+            if (0x4E00...0x9FFF).contains(v)       // CJK Unified
+                || (0x3400...0x4DBF).contains(v)   // CJK Ext A
+                || (0x20000...0x2A6DF).contains(v) // CJK Ext B
+                || (0x2A700...0x2B73F).contains(v) // CJK Ext C
+                || (0x2B740...0x2B81F).contains(v) // CJK Ext D
+                || (0xF900...0xFAFF).contains(v)   // CJK Compat
+                || (0x2F800...0x2FA1F).contains(v) // CJK Compat Suppl
+            {
+                continue
+            }
+            // Everything else (= ASCII
+            // punctuation, CJK punctuation,
+            // whitespace, control chars, emoji,
+            // symbols) is rejected.
+            return true
+        }
+        return false
     }
 }
