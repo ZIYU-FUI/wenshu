@@ -235,15 +235,33 @@ struct ImportSheet: View {
                         // (= Apple HIG canonical
                         // indeterminate determinate
                         // progress pattern). The
-                        // fraction is the count of
-                        // terminal-state tasks (.done /
-                        // .skipped / .failed) divided by
-                        // the total (= the orchestrator's
-                        // live state machine; = updated
-                        // on each `onProgress` emit).
+                        // fraction counts the
+                        // terminal-state tasks
+                        // (.done / .skipped / .failed)
+                        // PLUS the in-flight tasks
+                        // (.routing / .writing); = the
+                        // bar moves continuously while
+                        // the 5-way parallel LLM
+                        // dispatch is mid-flight
+                        // (= the user's 2026-10-09
+                        // follow-up "进度一直在反复跳，
+                        // 逐个文件处理没有生效" = the
+                        // bar stuck at 0% because
+                        // in-flight tasks were
+                        // excluded from the fraction;
+                        // = the new model shows the
+                        // full pipeline moving
+                        // (= completed + inFlight
+                        // ticks as each LLM call
+                        // returns and each file
+                        // write lands)). The "已完成"
+                        // label still counts only
+                        // terminal states (= the
+                        // canonical "X / Y" feel the
+                        // user expects).
                         if totalCount > 0 {
                             ProgressView(
-                                value: Double(completedCount),
+                                value: Double(completedCount + inFlightCount),
                                 total: Double(max(totalCount, 1))
                             ) {
                                 Text("已完成 \(completedCount) / \(totalCount)")
