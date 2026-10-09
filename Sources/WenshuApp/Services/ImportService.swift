@@ -675,7 +675,42 @@ actor ImportService {
                 raw: routing.title,
                 fallback: String(uuid.uuidString.prefix(8))
             )
-            let fileURL = folderURL.appendingPathComponent("\(basename).md")
+            // v2.7 entity-level dedup (= boss
+            // 2026-10-09 round-13 directive "再次触发
+            // 同名实体，只 edit. 不建重名文档"; = the
+            // previous per-source-path dedup let the
+            // same entity land at multiple paths when
+            // the user re-imported after clearing only
+            // one source directory; = world/ ended up
+            // with 33 duplicate titles + characters/ with
+            // 20 duplicates; = the user-visible bug was
+            // "一物多份"; = fix is to scan the existing
+            // folder for an entity with the same
+            // normalized title; = match → overwrite the
+            // existing file (= new body + new LLM
+            // metadata); = no match → write the new
+            // title-derived file).
+            //
+            // The normalization is the canonical
+            // = "trim whitespace + lowercase" =
+            // the LLM sometimes returns "  蛇
+            //  精" with double spaces; = a strict
+            // == compare would miss the duplicate.
+            let fileURL: URL
+            let existing = Self.findEntityByTitle(
+                in: folderURL,
+                title: routing.title
+            )
+            if let existingURL = existing {
+                // Match (= re-import of an existing
+                // entity); = overwrite the existing
+                // file at its current path; = the
+                // boss's "edit, not create" rule.
+                fileURL = existingURL
+                NSLog("WSImport: dedup hit title='\(routing.title)' → \(existingURL.lastPathComponent)")
+            } else {
+                fileURL = folderURL.appendingPathComponent("\(basename).md")
+            }
             // Create the folder if missing (= idempotent;
             // = the orchestrator does not depend on the
             // book bootstrap having created the folder
@@ -1120,7 +1155,77 @@ extension ImportService {
 }
 
 extension ImportService {
-    /// Sanitize the LLM-supplied title into a safe
+    /// v2.7 entity-level dedup lookup (= scan an existing
+    /// bookFolder for a .md whose first H1 heading
+    /// matches the LLM-supplied title; = used by the
+    /// orchestrator to decide between "create" (= no
+    /// match) and "edit" (= match found) when writing
+    /// a new .md file; = the boss's 2026-10-09
+    /// round-13 directive "再次触发同名实体，只
+    /// edit. 不建重名文档").
+    ///
+    /// Why scan the file body instead of trusting the
+    /// filename: the filename derives from the title
+    /// via `sanitizeFilename` (= path-unsafe chars
+    /// stripped; = truncated to 80 chars; = the LLM
+    /// might rephrase the title slightly between
+    /// runs); = the FIRST H1 in the body is the
+    /// canonical identity (= the LLM's most stable
+    /// output; = survives filename normalization
+    /// drift).
+    ///
+    /// Performance: O(n) over the folder's .md files;
+    /// = n is bounded by the 5-way parallel import
+    /// (= 456 files max in the boss's test corpus; =
+    /// the folder scan is ~5-50 ms on a fast SSD; =
+    /// 5-way parallel can amortize this if needed
+    /// but a sync scan is acceptable for now; = the
+    /// 5-way parallelism is in the LLM dispatch, not
+    /// the file writes).
+    static func findEntityByTitle(in folderURL: URL, title: String) -> URL? {
+        let normalized = Self.normalizeTitle(title)
+        let fm = FileManager.default
+        guard let entries = try? fm.contentsOfDirectory(
+            at: folderURL,
+            includingPropertiesForKeys: nil
+        ) else { return nil }
+        for entry in entries where entry.pathExtension == "md" {
+            guard let body = try? String(contentsOf: entry, encoding: .utf8) else { continue }
+            // Find the first H1 (= the canonical title; = the
+            // orchestrator does NOT rewrite the body; = the H1
+            // is whatever the source file had; = we accept
+            // either an H1 already present OR a leading title
+            // derived from the LLM's routing.title when the
+            // orchestrator generated the file in a prior run).
+            for line in body.split(separator: "\n").prefix(20) {
+                let trimmed = line.trimmingCharacters(in: .whitespaces)
+                if trimmed.hasPrefix("# ") {
+                    let h1 = String(trimmed.dropFirst(2)).trimmingCharacters(in: .whitespaces)
+                    if Self.normalizeTitle(h1) == normalized {
+                        return entry
+                    }
+                    break
+                }
+            }
+        }
+        return nil
+    }
+
+    /// Normalize a title for dedup comparison (= the
+    /// canonical "trim + collapse whitespace + lowercase"
+    /// transform; = matches the import's LLM output
+    /// even when the LLM varies whitespace or
+    /// capitalization across runs).
+    static func normalizeTitle(_ s: String) -> String {
+        let collapsed = s.replacingOccurrences(
+            of: "[\\s]+",
+            with: " ",
+            options: .regularExpression
+        )
+        return collapsed
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+    }
     /// filename basename (= the previous UUID-only
     /// filename made the sidebar cards unreadable).
     static func sanitizeFilename(raw: String, fallback: String) -> String {
