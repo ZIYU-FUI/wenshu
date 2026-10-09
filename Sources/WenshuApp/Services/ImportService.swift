@@ -450,12 +450,31 @@ actor ImportService {
             // pressure knob; = the LLMConnector
             // adapter handles its own provider-side
             // rate limiting).
+            //
+            // CRITICAL: mutate `tasksBox.value[i].state`
+            // (NOT the local `tasks` copy) and emit
+            // `tasksBox.value` to onProgress. The
+            // previous code mutated the local
+            // `tasks` array and emitted the local
+            // `tasks` in the drain loop, which meant
+            // the sheet's snapshot went STALE on
+            // every processFile completion (= the
+            // .done / .failed mutations live in
+            // tasksBox.value; = the local `tasks` copy
+            // was never updated; = the sheet saw the
+            // completed tasks revert to .pending; =
+            // the boss's 2026-10-09 round-11
+            // feedback "还是没修好，已完成没有持久":
+            // the .done state was set in
+            // tasksBox.value but the snapshot the
+            // sheet received was the STALE local
+            // `tasks`).
             while inFlight < Self.maxParallel, nextIndex < dispatchIndices.count {
                 let i = dispatchIndices[nextIndex]
-                tasks[i].state = .routing
-                await onProgress?(tasks)
+                tasksBox.value[i].state = .routing
+                await onProgress?(tasksBox.value)
                 let input = ImportFileInput(
-                    filePath: tasks[i].sourcePath,
+                    filePath: tasksBox.value[i].sourcePath,
                     targetBookId: target.bookId,
                     targetShelfId: target.shelfId
                 )
@@ -478,15 +497,22 @@ actor ImportService {
             // next pending task is seeded; = the
             // pipeline keeps 5 files in flight
             // concurrently for the entire batch).
+            //
+            // CRITICAL: same fix as the seed loop
+            // (= mutate `tasksBox.value[j].state`; =
+            // emit `tasksBox.value`; = the local
+            // `tasks` array is a stale snapshot from
+            // before the TaskGroup started and is no
+            // longer the source of truth).
             while await group.next() != nil {
                 inFlight -= 1
                 if nextIndex < dispatchIndices.count {
                     let j = dispatchIndices[nextIndex]
-                    if tasks[j].state == .pending {
-                        tasks[j].state = .routing
-                        await onProgress?(tasks)
+                    if tasksBox.value[j].state == .pending {
+                        tasksBox.value[j].state = .routing
+                        await onProgress?(tasksBox.value)
                         let input = ImportFileInput(
-                            filePath: tasks[j].sourcePath,
+                            filePath: tasksBox.value[j].sourcePath,
                             targetBookId: target.bookId,
                             targetShelfId: target.shelfId
                         )
