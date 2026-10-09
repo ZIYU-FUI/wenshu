@@ -484,7 +484,11 @@ actor WenshuConductorImportRouter: ImportRouter {
                  分; = 整理 = 标准化 .ws 格式).
                - .ws 资料库正文格式 (= 老板 2026-10-09
                  round-20 "重写后格式不统一" 反馈;
-                 = **必须**严格按这个模板):
+                 = **必须**严格按这个模板; = 这个
+                 模板来自老板手写的资料库文档
+                 = 唯一一个被采纳的 .ws 格式
+                 模板; = 不符合这个模板的 = 不
+                 是 .ws 文档):
                  ```
                  # <实体名>
 
@@ -493,11 +497,13 @@ actor WenshuConductorImportRouter: ImportRouter {
 
                  ## 核心信息
 
-                 <3-5 行核心事实>
+                 <3-5 行核心事实，bullet 形式>
 
                  ## 详细描述
 
-                 <整理后的详细正文>
+                 <整理后的详细正文; 用 ### 子
+                 标题组织; 关键事实用 **加粗**: value
+                 形式>
                  ```
                  - .ws 书目录正文格式: 直接 `<实体
                    名>相关正文` (无 frontmatter; =
@@ -510,6 +516,34 @@ actor WenshuConductorImportRouter: ImportRouter {
                  rewrittenBody 前 = **必须** strip
                  所有 `../` 开头的行; = 不管
                  consolidate 还是 searchAndRewrite).
+               - **严禁**保留无用的源文件 metadata
+                 (= 老板 2026-10-09 round-24
+                 "重写的时候，原来的一些没有用的
+                 格式能不留也不留"; = 这些是源
+                 Obsidian / 老板原 .md 文件里的
+                 一些杂 metadata; = 写入 .ws 资料
+                 库时 = **必须** strip):
+                 - `上次更新: ...` / `创建时间: ...` /
+                   `updated: ...` (= 时间戳; = .ws
+                   资料库 entities.json 自带
+                   `createdAt` + `updatedAt`; = 重
+                   复就冗余)
+                 - `反链:` / `反链 :` (= Obsidian
+                   关系链; = 我们的关系链是独立
+                   功能; = 一律 strip)
+                 - `tags:` / `标签:` 一整行 (= 我
+                   们有独立的 tag 字段, 不写在
+                   正文里)
+                 - 任何 `../` 或 `[[...]]` 形式
+                 (= Obsidian 内部 link)
+                 - 任何 `<!-- ... -->` HTML 注释
+                 (= Obsidian plugin 痕迹)
+               - **保留**: `## 核心信息` / `## 详细
+                 描述` 这两个 ## 标题 (重要结构);
+                 = `### 子标题` 保留 (= 详细描述
+                 的细分); = `**加粗**: 值` 保留
+                 (= 关键事实); = bullet `-` 保留
+                 (= 核心信息).
                - 把整理后的正文放 JSON 的
                  `rewrittenBody` 字段 (= 没有整理
                  = 字段留空字符串 = 走"原样落地"
@@ -682,6 +716,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         var stripped: [String] = []
         for line in body.split(separator: "\n", omittingEmptySubsequences: false) {
             let lineStr = String(line)
+            let trimmed = lineStr.trimmingCharacters(in: .whitespaces)
             // Drop any line containing a relative
             // upward path (= "../" or "/../"; =
             // catches "- ../../x" / "  ../x" /
@@ -692,6 +727,17 @@ actor WenshuConductorImportRouter: ImportRouter {
             // fragment (= "[[...]]"; = the
             // Obsidian autolink form).
             if lineStr.contains("[[") { continue }
+            // Drop Obsidian-era metadata markers
+            // (= boss 2026-10-09 round-24
+            // "原来的一些没有用的格式能不
+            // 留也不留"; = the .ws library
+            // already has `createdAt` /
+            // `updatedAt` / `tags` fields; =
+            // these lines are noise; = match
+            // by prefix on the trimmed line).
+            if Self.isUselessMetadataLine(trimmed) {
+                continue
+            }
             // Drop the "反链:" / "反链 :" header
             // line too (= once we've stripped all
             // the links underneath, the header
@@ -699,13 +745,71 @@ actor WenshuConductorImportRouter: ImportRouter {
             // canonical wenshu "关系链" feature
             // will own this concept; = this line
             // is the Obsidian-era marker).
-            let trimmed = lineStr.trimmingCharacters(in: .whitespaces)
             if trimmed == "反链" || trimmed == "反链:" || trimmed == "反链 :" {
                 continue
             }
             stripped.append(lineStr)
         }
         return stripped.joined(separator: "\n")
+    }
+
+    /// v2.7 (= boss 2026-10-09 round-24) = a
+    /// defensive list of "useless" lines that
+    /// (= the user's .ws library already has
+    /// structured fields for = should NOT
+    /// appear in the .md body).
+    ///
+    /// Match by prefix on the trimmed line.
+    /// Each case is the canonical prefix a
+    /// source file might use (= Chinese +
+    /// English; = the canonical wenshu .md
+    /// body never has these).
+    private static func isUselessMetadataLine(_ trimmed: String) -> Bool {
+        let prefixes: [String] = [
+            // Timestamps (= entities.json has
+            // createdAt / updatedAt already).
+            "上次更新:",
+            "上次更新 :",
+            "更新于",
+            "创建时间:",
+            "创建时间 :",
+            "创建于",
+            "updated:",
+            "updated :",
+            "created:",
+            "created :",
+            "modified:",
+            "modified :",
+            // Tags (= tags are a separate field
+            // in the Reference struct).
+            "tags:",
+            "tags :",
+            "tag:",
+            "tag :",
+            "标签:",
+            "标签 :",
+            "tags",
+            "tag",
+            "标签",
+            // Author / source markers (= the
+            // .ws Reference struct has a `source`
+            // field; = author markers are
+            // duplicated if they appear in the
+            // body).
+            "作者:",
+            "作者 :",
+            "author:",
+            "author :",
+            "来源:",
+            "来源 :",
+            "source:",
+            "source :",
+        ]
+        let lower = trimmed.lowercased()
+        for p in prefixes {
+            if lower.hasPrefix(p.lowercased()) { return true }
+        }
+        return false
     }
 
     // MARK: - Private parsing
