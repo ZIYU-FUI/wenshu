@@ -666,10 +666,28 @@ actor ImportService {
             // worth surfacing as a generic "未命名"
             // rather than a cryptic UUID).
             let uuid = Self.uuidFromHash(contentHash)
+            // v2.7 user-pinned destination (= the
+            // boss's 2026-10-09 round-18 "强制让用户
+            // 分开导入" directive). When the user
+            // pinned the reference library, this
+            // branch is unreachable (= the LLM
+            // already overrode the destination to
+            // .referenceLibrary + the orchestrator
+            // took the referenceLibrary case). The
+            // `bookId!` / `shelfId!` unwraps are
+            // safe because the orchestrator's
+            // processFile passes the user's chosen
+            // target down here; = a destination =
+            // .book guarantee that both IDs are
+            // populated.
+            guard let bookId = target.bookId,
+                  let shelfId = target.shelfId else {
+                throw ImportServiceError.missingBookForBookFolderDestination
+            }
             let folderURL = target.shelvesRoot
-                .appendingPathComponent(target.shelfId.uuidString)
+                .appendingPathComponent(shelfId.uuidString)
                 .appendingPathComponent("books")
-                .appendingPathComponent(target.bookId.uuidString)
+                .appendingPathComponent(bookId.uuidString)
                 .appendingPathComponent(folder.directoryName)
             let basename = Self.sanitizeFilename(
                 raw: routing.title,
@@ -824,7 +842,33 @@ actor ImportService {
     /// for now; = a future ticket can ask the user to
     /// label the source).
     private func sourceStringFromPath(target: ImportTarget) -> String {
-        "导入: \(target.bookId.uuidString.prefix(8))"
+        if let bookId = target.bookId {
+            return "导入: \(bookId.uuidString.prefix(8))"
+        }
+        return "导入: 资料库"
+    }
+
+    // MARK: - Errors
+
+    /// v2.7 user-pinned destination errors (= thrown
+    /// by writeFile when the orchestrator's
+    /// processFile reaches a bookFolder write but
+    /// the target's `bookId` / `shelfId` are nil; =
+    /// a defensive guard for the boss's
+    /// 2026-10-09 round-18 "强制让用户分开导入"
+    /// directive; = the user pinned a book, the
+    /// LLM overrode to .referenceLibrary in error,
+    /// and the orchestrator's processFile would
+    /// otherwise crash on a force-unwrap).
+    enum ImportServiceError: Error, LocalizedError {
+        case missingBookForBookFolderDestination
+
+        var errorDescription: String? {
+            switch self {
+            case .missingBookForBookFolderDestination:
+                return "user pinned a book as the destination, but the import target has no bookId; = the orchestrator cannot resolve a book folder path"
+            }
+        }
     }
 
     // MARK: - Crypto helpers (= Apple-native; = no third-party deps per AGENTS.md §11.1)
@@ -874,19 +918,47 @@ actor ImportService {
 /// stateless but the storage layer is not; = the
 /// caller supplies the storage handles here).
 struct ImportTarget: Sendable {
+    /// Where the orchestrator should land the imported
+    /// files (= boss 2026-10-09 round-18 directive
+    /// "导入目标加一个资料库，用户指定了资料
+    /// 库的，就自动全进到资料库。用户指定到书
+    /// 的，就自动全进入到书的五目录。这样可以
+    /// 简化一些提示词。强制让用户分开导入"; =
+    /// the previous version was always
+    /// book-folder + LLM-routed = LLM picked
+    /// between referenceLibrary and 5 book
+    /// folders; = the LLM's classification was
+    /// noisy; = the boss's preferred UX is to
+    /// ask the user ONCE at sheet open time +
+    /// force a single routing destination for
+    /// the whole batch; = the LLM is then
+    /// reduced to a metadata-only role (= title
+    /// + summary + tags; = the destination
+    /// itself is user-pinned)).
+    let destination: ImportTargetDestination
     /// The .ws library root (= the same root that
     /// `LibraryLifecycleHook` constructed; = the single
     /// source of truth for "where the user's library is").
     let wsRoot: URL
     /// The book the user picked (= the book.id from
-    /// `SidebarService.availableBooks()`).
-    let bookId: UUID
-    /// The shelf the target book lives under.
-    let shelfId: UUID
+    /// `SidebarService.availableBooks()`). Nil when
+    /// `destination == .referenceLibrary` (= the user
+    /// picked the reference library as the target; = no
+    /// book is involved).
+    let bookId: UUID?
+    /// The shelf the target book lives under. Nil when
+    /// `destination == .referenceLibrary` (= same
+    /// reason as `bookId`).
+    let shelfId: UUID?
     /// The reference library's `ReferenceStoring` (= the
     /// existing storage handle; = passed in by the
     /// `LibraryStores` factory at launch).
     let referenceStore: any ReferenceStoring
+
+    enum ImportTargetDestination: Sendable, Equatable {
+        case book              // → LLM picks world/characters/outlines/chapters/drafts
+        case referenceLibrary  // → everything lands in the reference library
+    }
 
     /// Standard library layout (= matches
     /// `LibraryStores.shelvesRoot`).
@@ -1104,7 +1176,7 @@ extension ImportService {
         // sees "LLM 路由失败: ..." in the row's
         // error caption; = the orchestrator moves
         // on to the next file).
-        let routing: ImportRoutingResult
+        var routing: ImportRoutingResult
         do {
             routing = try await router.route(input)
             tasksBox.value[i].routing = routing
@@ -1114,6 +1186,37 @@ extension ImportService {
             await onProgress?(tasksBox.value)
             return
         }
+        // v2.7 user-pinned destination override
+        // (= boss 2026-10-09 round-18 "导入目标
+        // 加一个资料库，强制让用户分开导入";
+        // = the LLM no longer picks the
+        // destination; = the user picked the
+        // destination ONCE in the sheet; = every
+        // file in the batch lands at that
+        // destination; = the LLM is reduced to a
+        // metadata-only role = title + summary +
+        // tags; = the destination itself is
+        // user-pinned).
+        switch target.destination {
+        case .referenceLibrary:
+            routing.destination = .referenceLibrary
+        case .book:
+            // If the LLM routed to .referenceLibrary
+            // but the user picked a book as the
+            // target, fall back to .drafts (= the
+            // LLM's classification is downgraded
+            // to "this needs a closer look"; = the
+            // user can move it manually after the
+            // batch completes). This is rare
+            // because the user-pinned destination
+            // prompt steers the LLM away from
+            // referenceLibrary, but the fallback is
+            // here for safety.
+            if case .referenceLibrary = routing.destination {
+                routing.destination = .bookFolder(.drafts)
+            }
+        }
+        tasksBox.value[i].routing = routing
         // Phase 4: write (= the destination was
         // decided by the LLM; = the write step is a
         // pure function of the routing result + the

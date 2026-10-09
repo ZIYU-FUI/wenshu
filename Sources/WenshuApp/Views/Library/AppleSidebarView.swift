@@ -88,6 +88,18 @@ struct AppleSidebarView: View {
     @State private var showNewBookSheet = false
     @State private var showExportSheet = false
     @State private var showImportSheet = false
+    /// v2.7 prefill state for the import sheet
+    /// (= boss 2026-10-09 round-18 "右键点资料
+    /// 库，点导入，进到弹窗后，目标自动选
+    /// 好资料库。右键点书的时候目标自动选
+    /// 好对应的书" directive). The
+    /// `onImportToReferenceLibrary` /
+    /// `onImportToBook` contextMenu handlers
+    /// set these then flip `showImportSheet`;
+    /// the sheet's `onAppear` reads them to
+    /// pick the right destination.
+    @State private var importPrefillDestination: ImportSheet.ImportDestination = .book
+    @State private var importPrefillBookID: UUID?
     @State private var renaming: SidebarRenamingTarget?
     @State private var pendingDelete: SidebarPendingDelete?
 
@@ -200,6 +212,23 @@ struct AppleSidebarView: View {
                     resolveBook: { id in
                         service.books.first(where: { $0.id == id })
                             .map { (id: $0.id, name: $0.title) }
+                    },
+                    // v2.7 contextMenu "导入
+                    // Markdown..." handlers (= boss
+                    // round-18 directive). Both
+                    // pre-fill the sheet then flip
+                    // `showImportSheet`; = the
+                    // sheet's `onAppear` reads the
+                    // prefill state.
+                    onImportToReferenceLibrary: {
+                        importPrefillDestination = .referenceLibrary
+                        importPrefillBookID = nil
+                        showImportSheet = true
+                    },
+                    onImportToBook: { bookId in
+                        importPrefillDestination = .book
+                        importPrefillBookID = bookId
+                        showImportSheet = true
                     }
                 ))
                 // sidebar fix (= (see OOB.md #2026-09-22) OOB
@@ -400,7 +429,11 @@ struct AppleSidebarView: View {
             ExportSheet(isPresented: $showExportSheet)
         }
         .sheet(isPresented: $showImportSheet) {
-            ImportSheet(isPresented: $showImportSheet)
+            ImportSheet(
+                isPresented: $showImportSheet,
+                prefillDestination: importPrefillDestination,
+                prefillBookID: importPrefillBookID
+            )
         }
         .sheet(item: $renaming) { target in
             RenameItemSheet(

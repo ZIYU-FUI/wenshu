@@ -41,6 +41,27 @@ struct ImportSheet: View {
     /// shortcut). The parent flips this to dismiss.
     @Binding var isPresented: Bool
 
+    /// v2.7 pre-fill parameters (= the boss's
+    /// 2026-10-09 round-18 "右键点资料库，点
+    /// 导入，进到弹窗后，目标自动选好资料库。
+    /// 右键点书的时候目标自动选好对应的书"
+    /// directive). Both are nil when the sheet
+    /// is opened via the File menu (= no
+    /// pre-selection; = the user picks the
+    /// destination themselves).
+    var prefillDestination: ImportDestination?
+    var prefillBookID: UUID?
+
+    init(
+        isPresented: Binding<Bool>,
+        prefillDestination: ImportDestination? = nil,
+        prefillBookID: UUID? = nil
+    ) {
+        self._isPresented = isPresented
+        self.prefillDestination = prefillDestination
+        self.prefillBookID = prefillBookID
+    }
+
     @Environment(BookStore.self) private var bookStore
 
     /// Picked source directory on disk (= the user's
@@ -49,8 +70,45 @@ struct ImportSheet: View {
     @State private var sourceDirectory: URL?
 
     /// Selected target book id (= the user picks
-    /// which book the .md files should land in).
+    /// which book the .md files should land in). Nil
+    /// when `importDestination == .referenceLibrary`
+    /// (= the user pinned the reference library as
+    /// the target; = no book is involved).
     @State private var selectedBookID: UUID?
+
+    /// v2.7 user-pinned import destination (= boss
+    /// 2026-10-09 round-18 "导入目标加一个资料库，
+    /// 用户指定了资料库的，就自动全进到资料库。
+    /// 用户指定到书的，就自动全进入到书的五目
+    /// 录。这样可以简化一些提示词。强制让用户分
+    /// 开导入"; = the user picks ONCE at sheet open
+    /// time; = the LLM no longer picks the
+    /// destination; = the LLM is reduced to a
+    /// metadata-only role = title + summary + tags).
+    enum ImportDestination: String, CaseIterable, Identifiable, Sendable {
+        /// Every file in the batch lands in the
+        /// reference library (= the user is
+        /// importing research / 调研 / 民俗
+        /// 文献 / 古籍原文; = no LLM
+        /// destination classification; = the LLM
+        /// just produces title / summary / tags).
+        case referenceLibrary
+        /// Every file in the batch lands in the
+        /// selected book's 5 folders (= the user
+        /// is importing book-specific setting; =
+        /// the LLM picks world/characters/outline
+        /// s/chapters/drafts).
+        case book
+
+        var id: String { rawValue }
+        var label: String {
+            switch self {
+            case .referenceLibrary: return "导入到资料库"
+            case .book: return "导入到书"
+            }
+        }
+    }
+    @State private var importDestination: ImportDestination = .book
 
     /// Per-file task state (= the orchestrator's
     /// `ImportTask` model; = the progress strip
@@ -218,14 +276,24 @@ struct ImportSheet: View {
                             .disabled(isImporting)
                     }
 
-                    Picker("目标书籍", selection: $selectedBookID) {
-                        Text("请选择书籍").tag(UUID?.none)
-                        ForEach(bookStore.books) { book in
-                            Text(book.title).tag(Optional(book.id))
+                    Picker("目标", selection: $importDestination) {
+                        ForEach(ImportDestination.allCases) { d in
+                            Text(d.label).tag(d)
                         }
                     }
-                    .pickerStyle(.menu)
+                    .pickerStyle(.segmented)
                     .disabled(isImporting)
+
+                    if importDestination == .book {
+                        Picker("目标书籍", selection: $selectedBookID) {
+                            Text("请选择书籍").tag(UUID?.none)
+                            ForEach(bookStore.books) { book in
+                                Text(book.title).tag(Optional(book.id))
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .disabled(isImporting)
+                    }
                 }
 
                 if !tasks.isEmpty {
@@ -377,6 +445,26 @@ struct ImportSheet: View {
         // for the cancel-and-rollback path.
         .interactiveDismissDisabled(isImporting)
         .padding(DesignTokens.spacingSection)
+        // v2.7 prefill on first appear (= the
+        // boss's 2026-10-09 round-18 "右键点
+        // 资料库，点导入，进到弹窗后，目标
+        // 自动选好资料库。右键点书的时候
+        // 目标自动选好对应的书" directive; =
+        // when the user right-clicks the
+        // reference library, the sheet opens
+        // with `prefillDestination = .referenceLibrary`;
+        // = when the user right-clicks a book,
+        // the sheet opens with
+        // `prefillDestination = .book` +
+        // `prefillBookID = book.id`).
+        .onAppear {
+            if let d = prefillDestination {
+                importDestination = d
+            }
+            if let id = prefillBookID {
+                selectedBookID = id
+            }
+        }
         // Sheet sizing: the canonical Apple HIG macOS 14+
         // pattern is `minWidth: N` (= a minimum so the
         // sheet is always wide enough to be readable) +
@@ -632,12 +720,19 @@ struct ImportSheet: View {
 
     private var canStart: Bool {
         guard !isImporting,
-              sourceDirectory != nil,
-              let bookID = selectedBookID,
-              bookStore.books.contains(where: { $0.id == bookID }) else {
+              sourceDirectory != nil else {
             return false
         }
-        return true
+        switch importDestination {
+        case .referenceLibrary:
+            return true
+        case .book:
+            guard let bookID = selectedBookID,
+                  bookStore.books.contains(where: { $0.id == bookID }) else {
+                return false
+            }
+            return true
+        }
     }
 
     /// Present the system open panel (= Apple HIG
@@ -676,21 +771,43 @@ struct ImportSheet: View {
     /// the user sees the new files in the tree
     /// without manually re-launching.
     private func startImport() {
-        guard let source = sourceDirectory,
-              let bookID = selectedBookID,
-              let book = bookStore.books.first(where: { $0.id == bookID }) else {
-            return
+        guard let source = sourceDirectory else { return }
+        // v2.7 user-pinned destination (= boss
+        // 2026-10-09 round-18 "强制让用户分开导
+        // 入" directive). The `canStart` gate
+        // already validated the picker state
+        // (= book is selected when destination =
+        // .book; = no book is required when
+        // destination = .referenceLibrary).
+        let target: ImportTarget
+        switch importDestination {
+        case .referenceLibrary:
+            target = ImportTarget(
+                destination: .referenceLibrary,
+                wsRoot: libraryRoot(),
+                bookId: nil,
+                shelfId: nil,
+                referenceStore: FileSystemReferenceStore(
+                    referenceLibraryRoot: libraryRoot().appendingPathComponent("reference-library")
+                )
+            )
+        case .book:
+            guard let bookID = selectedBookID,
+                  bookStore.books.contains(where: { $0.id == bookID }) else {
+                return
+            }
+            target = ImportTarget(
+                destination: .book,
+                wsRoot: libraryRoot(),
+                bookId: bookID,
+                shelfId: shelfIdForBook(bookID),
+                referenceStore: FileSystemReferenceStore(
+                    referenceLibraryRoot: libraryRoot().appendingPathComponent("reference-library")
+                )
+            )
         }
         isImporting = true
         completedCount = 0
-        let target = ImportTarget(
-            wsRoot: libraryRoot(),
-            bookId: bookID,
-            shelfId: shelfIdForBook(bookID),
-            referenceStore: FileSystemReferenceStore(
-                referenceLibraryRoot: libraryRoot().appendingPathComponent("reference-library")
-            )
-        )
         Task {
             // The closure is `@Sendable` (=
             // ImportService's signature) and runs on the

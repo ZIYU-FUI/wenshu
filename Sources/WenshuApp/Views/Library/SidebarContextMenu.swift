@@ -96,6 +96,21 @@ struct SidebarContextMenuModifier: ViewModifier {
     let onDeleteBook: (UUID, String) -> Void
     let resolveShelf: (UUID) -> (id: UUID, name: String)?
     let resolveBook: (UUID) -> (id: UUID, name: String)?
+    /// v2.7 (= boss 2026-10-09 round-18 "右键
+    /// 点资料库，点导入，进到弹窗后，目标
+    /// 自动选好资料库。右键点书的时候目
+    /// 标自动选好对应的书" directive). When
+    /// the user right-clicks the reference
+    /// library, the menu adds an "导入
+    /// Markdown..." row that opens the sheet
+    /// with `prefillDestination =
+    /// .referenceLibrary`. When the user
+    /// right-clicks a book, the menu adds an
+    /// "导入 Markdown..." row that opens the
+    /// sheet with `prefillDestination = .book` +
+    /// `prefillBookID = book.id`.
+    let onImportToReferenceLibrary: () -> Void
+    let onImportToBook: (UUID) -> Void
 
     func body(content: Content) -> some View {
         content.contextMenu(forSelectionType: SidebarNode.self) { items in
@@ -142,6 +157,16 @@ struct SidebarContextMenuModifier: ViewModifier {
                     }
                 case .book:
                     if let book = resolveBook(node.id) {
+                        // v2.7 "导入 Markdown..."
+                        // (= boss round-18 "右键点书
+                        // 的时候目标自动选好对应的
+                        // 书" directive; = the
+                        // sheet opens with
+                        // prefillDestination = .book
+                        // + prefillBookID = book.id).
+                        Button("导入 Markdown...") {
+                            onImportToBook(book.id)
+                        }
                         Button(String(localized: "sidebar_context_menu_rename")) {
                             onRenameBook(book.id, book.name)
                         }
@@ -153,8 +178,23 @@ struct SidebarContextMenuModifier: ViewModifier {
                         }
                     }
                 case .reference, .referenceCategory, .divider, .tag:
-                    // No destructive operations on these node types
-                    // in v2.6 (= Apple HIG canonical = empty menu).
+                    if node.kind == .reference {
+                        // v2.7 "导入 Markdown..." on
+                        // the reference library
+                        // (= boss round-18 "右键点
+                        // 资料库，点导入，进到弹
+                        // 窗后，目标自动选好资料
+                        // 库" directive; = the
+                        // sheet opens with
+                        // prefillDestination =
+                        // .referenceLibrary).
+                        Button("导入 Markdown...") {
+                            onImportToReferenceLibrary()
+                        }
+                    }
+                    // No destructive operations on these
+                    // node types in v2.6 (= Apple HIG
+                    // canonical = empty menu).
                     EmptyView()
                 }
             }

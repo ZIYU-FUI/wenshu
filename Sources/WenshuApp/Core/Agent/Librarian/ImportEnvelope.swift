@@ -65,14 +65,19 @@ struct ImportFileInput: Codable, Sendable, Hashable {
     let filePath: String
     /// The book the user picked in the import sheet (= the
     /// `book.id` from `SidebarService.availableBooks()`).
-    /// Required (= the sheet's 导入 button is disabled until
-    /// the user picks a target book; = see the sheet's
-    /// canImport gate).
-    let targetBookId: UUID
+    /// Required when the user pinned a book as the
+    /// destination; = nil when the user pinned the
+    /// reference library as the destination (= the boss's
+    /// 2026-10-09 round-18 "强制让用户分开导入"
+    /// directive; = the LLM gets a nil targetBookId +
+    /// the prompt steers it away from book-folder
+    /// routing).
+    let targetBookId: UUID?
     /// The shelf the target book lives under (= needed to
     /// resolve the on-disk path
     /// `<shelvesRoot>/<shelfId>/books/<bookId>/<folder>/`).
-    let targetShelfId: UUID
+    /// Nil when `targetBookId` is nil (= same reason).
+    let targetShelfId: UUID?
 }
 
 // MARK: - ImportRoutingResult (the agent's reply)
@@ -89,8 +94,16 @@ struct ImportFileInput: Codable, Sendable, Hashable {
 /// = this struct carries only the metadata fields the
 /// storage layer needs beyond the raw body.
 struct ImportRoutingResult: Codable, Sendable, Hashable {
-    /// Where the file lands (= the LLM's routing decision).
-    let destination: ImportDestination
+    /// Where the file lands (= the LLM's routing
+    /// decision; = the orchestrator's
+    /// `processFile` may OVERRIDE this when the
+    /// user pinned a destination in the sheet
+    /// (= the boss's 2026-10-09 round-18
+    /// "强制让用户分开导入" directive); = the
+    /// `var` is necessary so the orchestrator
+    /// can replace the LLM's classification
+    /// with the user-pinned destination).
+    var destination: ImportDestination
     /// Title for the entity / book doc. The agent derives
     /// this from the file's H1 (= or the first non-empty
     /// heading; = the same heuristic `EntityClassifier` and

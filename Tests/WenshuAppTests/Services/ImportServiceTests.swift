@@ -83,6 +83,7 @@ final class ImportServiceTests: XCTestCase {
 
     private func makeTarget(wsRoot: URL, shelfId: UUID, bookId: UUID, store: any ReferenceStoring) -> ImportTarget {
         return ImportTarget(
+            destination: .book,
             wsRoot: wsRoot,
             bookId: bookId,
             shelfId: shelfId,
@@ -168,7 +169,19 @@ final class ImportServiceTests: XCTestCase {
         let svc = ImportService()
         let canned: [String: ImportRoutingResult] = [
             "a.md": ImportRoutingResult(
-                destination: .referenceLibrary,
+                // v2.7 user-pinned destination: the
+                // test's `target.destination = .book`
+                // forces the LLM's `.referenceLibrary`
+                // choice to downgrade to
+                // `.bookFolder(.drafts)`; = the cache
+                // then stores `.drafts` (= the
+                // canonical "user-pinned book folder"
+                // destination); = the second-import
+                // assertion below reads
+                // `.bookFolder(.drafts)` from the
+                // cache (= no longer
+                // `.referenceLibrary`).
+                destination: .bookFolder(.drafts),
                 title: "t", summary: "s", tags: ["stub"],
                 entityType: "other", category: nil, confidence: 1.0
             )
@@ -184,7 +197,7 @@ final class ImportServiceTests: XCTestCase {
         if second.isEmpty || second[0].state != .skipped {
             XCTFail("second import: state=\(second.first?.state.rawValue ?? "nil") err=\(second.first?.errorMessage ?? "nil")")
         }
-        XCTAssertEqual(second[0].destination, .referenceLibrary)
+        XCTAssertEqual(second[0].destination, .bookFolder(.drafts))
         try? FileManager.default.removeItem(at: src)
         try? FileManager.default.removeItem(at: wsRoot)
     }

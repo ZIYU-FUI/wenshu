@@ -221,32 +221,16 @@ actor WenshuConductorImportRouter: ImportRouter {
            元信息塞进 tag; = 标签只能描述"这个文
            件讲的是什么内容"，不能描述"这个文件
            属于哪本书")
-        4) 路由（**这是最关键的一步**）：
-
-        **默认 = referenceLibrary**（= 调研/资
-        料/外部知识）。仅当正文里**明确**包含以下
-        标记之一时，才进 bookFolder:
-            - 目标小说里这个人物的**角色卡**（=
-              明确说"在本书中"、"这个角色"、"主角
-              设定"、"角色卡"格式）
-            - 目标小说独有的**世界观宪法**（= 明
-              确说"本书设定"、"我们这本书"、"十二
-              地仙的世界规则"等)
-            - 目标小说的**章节大纲 / 草稿**（= 明
-              确说"本章"、"下一章"、"剧情走向"等)
-        **没看到这些标记 → 全部进 referenceLibrary**。
-        换言之：通用民俗神/历史人物/神话体系/朝
-        代资料/宗教研究/古籍原文/学术笔记/考据
-        论文/碑文/出土文物 = 几乎都是**调研**，
-        进 referenceLibrary。`world/` 只是**宪
-        法级 = 1-2 个文件**，装这本书独有的顶层
-        世界规则；装不下的应该都是**调研**。
+        4) **destination 已经被用户选好**（= 老板
+           2026-10-09 round-18 "强制让用户分开导
+           入"指令）。你**不需要**判 断 destination
+           — 用户在 sheet 里已经选了"导入到资料
+           库"或"导入到书"；= 你**只负责**生成
+           title / summary / tags。
 
         ## 输出格式
         严格一行 JSON，不要任何其他文字、解释或 markdown 代码块：
-        {"title":"<中文标题>","summary":"<一句话中文摘要>","tags":["<tag1>","<tag2>",...],"destination":"referenceLibrary"}
-        或
-        {"title":"<中文标题>","summary":"<一句话中文摘要>","tags":["<tag1>","<tag2>",...],"destination":"bookFolder","folder":"<world|characters|outlines|chapters|drafts>"}
+        {"title":"<中文标题>","summary":"<一句话中文摘要>","tags":["<tag1>","<tag2>",...]}
         """
     }
 
