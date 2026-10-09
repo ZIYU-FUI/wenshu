@@ -974,10 +974,37 @@ actor WenshuConductorImportRouter: ImportRouter {
         // sidebar tag facet remains
         // navigable).
         let cappedTags = Array(tags.prefix(3))
+        // v2.7 (= boss 2026-10-09 round-28
+        // "标签不可以与标题重名" directive; =
+        // a tag identical to the title is
+        // redundant (= the title is the
+        // canonical name; = the tag is a
+        // navigation facet; = having both
+        // is duplicate metadata that
+        // clutters the card view AND breaks
+        // the v2.6 tag-based filter (= the
+        // user clicks the tag to find
+        // everything related; = the entity
+        // that has the title as a tag
+        // always shows up for that tag; =
+        // the redundancy is the same as no
+        // tag at all)). The LLM was
+        // instructed to avoid title-as-tag;
+        // this is the last-mile filter that
+        // drops it if the LLM still emitted
+        // it. Comparison is case- and
+        // whitespace-insensitive (= the LLM
+        // might emit "活字印刷" as title and
+        // " 活字印刷 " as a tag).
+        let titleNorm = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let dedupedTags = cappedTags.filter { tag in
+            let tagNorm = tag.trimmingCharacters(in: .whitespacesAndNewlines)
+            return !tagNorm.isEmpty && tagNorm != titleNorm
+        }
         return ImportDecision(
             title: title,
             summary: summary,
-            tags: cappedTags,
+            tags: dedupedTags,
             destination: destination,
             bookFolder: bookFolder,
             rewrittenBody: rewrittenBody
