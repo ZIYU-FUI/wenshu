@@ -193,7 +193,24 @@ struct ImportSheet: View {
             }
         }
         .padding(DesignTokens.spacingSection)
-        .frame(minWidth: 480, minHeight: 360)
+        // Sheet sizing: the canonical Apple HIG macOS 14+
+        // pattern is `minWidth: N` (= a minimum so the
+        // sheet is always wide enough to be readable) +
+        // no `minHeight` (= the sheet hugs the content; =
+        // the empty / fresh sheet is a small 2-picker
+        // card; = the post-import sheet grows to fit
+        // the per-file progress strip; = the boss's
+        // 2026-10-09 feedback "这个弹窗留白太多了"
+        // referred to the fixed 360 PT minHeight on
+        // the fresh sheet; = dropping the minHeight
+        // lets SwiftUI pick the right intrinsic
+        // height). The sheet does not bound
+        // `maxHeight` either (= no upper cap; = the
+        // progress strip's own `maxHeight` constrains
+        // its scroll surface; = the sheet body itself
+        // can grow as needed for the 1-N error
+        // captions in the failure list).
+        .frame(minWidth: 480)
     }
 
     /// The action button's label varies with the sheet's
