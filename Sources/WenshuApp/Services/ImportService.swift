@@ -476,7 +476,8 @@ actor ImportService {
                 let input = ImportFileInput(
                     filePath: tasksBox.value[i].sourcePath,
                     targetBookId: target.bookId,
-                    targetShelfId: target.shelfId
+                    targetShelfId: target.shelfId,
+                    rewriteMode: target.rewriteMode
                 )
                 group.addTask { [self] in
                     await self.processFile(
@@ -514,7 +515,8 @@ actor ImportService {
                         let input = ImportFileInput(
                             filePath: tasksBox.value[j].sourcePath,
                             targetBookId: target.bookId,
-                            targetShelfId: target.shelfId
+                            targetShelfId: target.shelfId,
+                            rewriteMode: target.rewriteMode
                         )
                         group.addTask { [self] in
                             await self.processFile(
@@ -955,6 +957,15 @@ struct ImportTarget: Sendable {
     /// `LibraryStores` factory at launch).
     let referenceStore: any ReferenceStoring
 
+    /// v2.7 (= boss 2026-10-09 round-18 "AI 重写
+    /// 程度"). The user-picked rewrite mode; = the
+    /// orchestrator reads this in `processFile` and
+    /// forwards to the LLM router (= the LLM
+    /// either runs the consolidate path with no
+    /// tools OR the searchAndRewrite path with
+    /// the `web_search` tool loop).
+    let rewriteMode: ImportFileInput.RewriteMode
+
     enum ImportTargetDestination: Sendable, Equatable {
         case book              // → LLM picks world/characters/outlines/chapters/drafts
         case referenceLibrary  // → everything lands in the reference library
@@ -1228,9 +1239,30 @@ extension ImportService {
         tasksBox.value[i].state = .writing
         await onProgress?(tasksBox.value)
         do {
-            let body = try String(contentsOfFile: tasksBox.value[i].sourcePath, encoding: .utf8)
+            // v2.7 body selection (= boss 2026-10-09
+            // round-18 "重写同时搜索校对" mode; =
+            // the LLM may return a `rewrittenBody`
+            // (= the search-augmented, .ws-format
+            // body) in `routing.rewrittenBody`; = the
+            // orchestrator uses the rewritten body
+            // when present; = otherwise it falls
+            // back to the original source body
+            // verbatim (= the
+            // `searchAndRewrite` mode is a
+            // super-set of `consolidate`; = a stub
+            // router or an LLM that didn't search
+            // simply keeps the original body)).
+            let bodyToWrite: String
+            if let rewritten = routing.rewrittenBody, !rewritten.isEmpty {
+                bodyToWrite = rewritten
+            } else {
+                bodyToWrite = try String(
+                    contentsOfFile: tasksBox.value[i].sourcePath,
+                    encoding: .utf8
+                )
+            }
             try await writeFile(
-                body: body,
+                body: bodyToWrite,
                 routing: routing,
                 contentHash: tasksBox.value[i].contentHash,
                 target: target,

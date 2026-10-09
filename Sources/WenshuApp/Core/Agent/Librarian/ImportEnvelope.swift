@@ -78,6 +78,43 @@ struct ImportFileInput: Codable, Sendable, Hashable {
     /// `<shelvesRoot>/<shelfId>/books/<bookId>/<folder>/`).
     /// Nil when `targetBookId` is nil (= same reason).
     let targetShelfId: UUID?
+
+    /// v2.7 (= boss 2026-10-09 round-18 "AI 重写
+    /// 程度: 基于现有内容整理 / 重写同时重新
+    /// 搜索校对"; = the user picks the LLM's
+    /// effort level ONCE at sheet open; = the
+    /// LLM respects the choice; = the orchestrator
+    /// carries it into `writeFile` to decide
+    /// whether to land the original body or the
+    /// LLM-rewritten body).
+    let rewriteMode: RewriteMode
+
+    enum RewriteMode: String, Codable, Sendable, Hashable, CaseIterable {
+        /// "基于现有内容整理" (= Token 节约) = the
+        /// LLM does NOT call any tools; = the LLM
+        /// produces metadata (title / summary /
+        /// tags); = the body lands verbatim on
+        /// disk (= boss 2026-10-09 "原样落地"
+        /// directive).
+        case consolidate
+        /// "重写同时重新搜索校对" (= Token 高消耗)
+        /// = the LLM is permitted to call
+        /// `web_search` (= the v0.74 / WenshuAgent
+        /// toolset) to find the canonical content
+        /// for the entity (= the LLM searches the
+        /// web for the entity name; = then the LLM
+        /// rewrites the body in light of the
+        /// search results; = the new body lands on
+        /// disk in place of the original).
+        case searchAndRewrite
+
+        var label: String {
+            switch self {
+            case .consolidate: return "基于现有内容整理"
+            case .searchAndRewrite: return "重写同时搜索校对"
+            }
+        }
+    }
 }
 
 // MARK: - ImportRoutingResult (the agent's reply)
@@ -132,6 +169,18 @@ struct ImportRoutingResult: Codable, Sendable, Hashable {
     /// override the routing via chat (= the `confidence`
     /// field is plumbing for that feature).
     let confidence: Double
+    /// v2.7 (= boss 2026-10-09 round-18 "重写同时
+    /// 搜索校对" mode). When the user picked the
+    /// `searchAndRewrite` rewriteMode, the LLM is
+    /// expected to search the web for the
+    /// canonical content + rewrite the body; = the
+    /// LLM returns the new body here (= a
+    /// complete, self-contained markdown file; =
+    /// the original body is replaced wholesale
+    /// when this is non-nil). Nil in
+    /// `consolidate` mode (= the orchestrator
+    /// keeps the original body verbatim).
+    let rewrittenBody: String?
 }
 
 // MARK: - ImportEnvelope (the wire envelope)
@@ -148,7 +197,7 @@ enum ImportEnvelope: Codable, Sendable, Hashable {
 
     private enum CodingKeys: String, CodingKey {
         case kind
-        case filePath, targetBookId, targetShelfId
+        case filePath, targetBookId, targetShelfId, rewriteMode
     }
 
     private enum Kind: String, Codable, Sendable {
@@ -163,6 +212,7 @@ enum ImportEnvelope: Codable, Sendable, Hashable {
             try c.encode(input.filePath, forKey: .filePath)
             try c.encode(input.targetBookId, forKey: .targetBookId)
             try c.encode(input.targetShelfId, forKey: .targetShelfId)
+            try c.encode(input.rewriteMode, forKey: .rewriteMode)
         }
     }
 
@@ -174,10 +224,17 @@ enum ImportEnvelope: Codable, Sendable, Hashable {
             let filePath = try c.decode(String.self, forKey: .filePath)
             let bookId = try c.decode(UUID.self, forKey: .targetBookId)
             let shelfId = try c.decode(UUID.self, forKey: .targetShelfId)
+            // v2.7 backwards-compat (= if a pre-v2.7
+            // envelope omits `rewriteMode`, default to
+            // `consolidate`; = the orchestrator's
+            // pre-v2.7 behavior = no tools + original
+            // body verbatim).
+            let rewriteMode = (try? c.decode(ImportFileInput.RewriteMode.self, forKey: .rewriteMode)) ?? .consolidate
             self = .importFile(ImportFileInput(
                 filePath: filePath,
                 targetBookId: bookId,
-                targetShelfId: shelfId
+                targetShelfId: shelfId,
+                rewriteMode: rewriteMode
             ))
         }
     }

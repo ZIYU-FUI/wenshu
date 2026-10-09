@@ -32,7 +32,8 @@ final class ImportServiceTests: XCTestCase {
                 destination: .referenceLibrary,
                 title: "stub", summary: "stub summary",
                 tags: ["stub"], entityType: "other",
-                category: nil, confidence: 1.0
+                category: nil, confidence: 1.0,
+                rewrittenBody: nil
             )
         }
     }
@@ -87,7 +88,8 @@ final class ImportServiceTests: XCTestCase {
             wsRoot: wsRoot,
             bookId: bookId,
             shelfId: shelfId,
-            referenceStore: store
+            referenceStore: store,
+            rewriteMode: .consolidate
         )
     }
 
@@ -131,7 +133,8 @@ final class ImportServiceTests: XCTestCase {
                 destination: .bookFolder(.world),
                 title: "Eryndor kingdom", summary: "stub",
                 tags: [], entityType: "other",
-                category: nil, confidence: 1.0
+                category: nil, confidence: 1.0,
+                rewrittenBody: nil
             )
         ]
         let tasks = await svc.importFiles(in: src, into: target, router: StubImportRouter(canned))
@@ -183,7 +186,8 @@ final class ImportServiceTests: XCTestCase {
                 // `.referenceLibrary`).
                 destination: .bookFolder(.drafts),
                 title: "t", summary: "s", tags: ["stub"],
-                entityType: "other", category: nil, confidence: 1.0
+                entityType: "other", category: nil, confidence: 1.0,
+                rewrittenBody: nil
             )
         ]
         // First import.
@@ -219,7 +223,8 @@ final class ImportServiceTests: XCTestCase {
                 try await Task.sleep(nanoseconds: 50_000_000)
                 return ImportRoutingResult(
                     destination: .referenceLibrary, title: "t", summary: "s",
-                    tags: [], entityType: "other", category: nil, confidence: 1.0
+                    tags: [], entityType: "other", category: nil, confidence: 1.0,
+                    rewrittenBody: nil
                 )
             }
         }
@@ -251,7 +256,8 @@ final class ImportServiceTests: XCTestCase {
             canned[rel] = ImportRoutingResult(
                 destination: .bookFolder(.world),
                 title: "t-\(rel)", summary: "s", tags: [],
-                entityType: "other", category: nil, confidence: 1.0
+                entityType: "other", category: nil, confidence: 1.0,
+                rewrittenBody: nil
             )
         }
         let tasks = await svc.importFiles(in: src, into: target, router: StubImportRouter(canned))

@@ -110,6 +110,15 @@ struct ImportSheet: View {
     }
     @State private var importDestination: ImportDestination = .book
 
+    /// v2.7 (= boss 2026-10-09 round-18 "AI
+    /// 重写程度"). The user picks ONCE at sheet
+    /// open; = the LLM's tool set + the
+    /// orchestrator's write path both
+    /// respect this; = default = `consolidate`
+    /// (= Token 节约; = original body
+    /// verbatim).
+    @State private var rewriteMode: ImportFileInput.RewriteMode = .consolidate
+
     /// Per-file task state (= the orchestrator's
     /// `ImportTask` model; = the progress strip
     /// shows one row per file).
@@ -294,6 +303,19 @@ struct ImportSheet: View {
                         .pickerStyle(.menu)
                         .disabled(isImporting)
                     }
+
+                    // v2.7 AI 重写程度 Picker (= boss
+                    // round-18 "AI 重写程度（基于现
+                    // 有内容整理、重写同时重新搜索
+                    // 校对）" directive; = Token 节
+                    // 约 vs Token 高消耗).
+                    Picker("AI 重写程度", selection: $rewriteMode) {
+                        ForEach(ImportFileInput.RewriteMode.allCases, id: \.self) { mode in
+                            Text(mode.label).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .disabled(isImporting)
                 }
 
                 if !tasks.isEmpty {
@@ -825,7 +847,8 @@ struct ImportSheet: View {
                 shelfId: nil,
                 referenceStore: FileSystemReferenceStore(
                     referenceLibraryRoot: libraryRoot().appendingPathComponent("reference-library")
-                )
+                ),
+                rewriteMode: rewriteMode
             )
         case .book:
             guard let bookID = selectedBookID,
@@ -839,7 +862,8 @@ struct ImportSheet: View {
                 shelfId: shelfIdForBook(bookID),
                 referenceStore: FileSystemReferenceStore(
                     referenceLibraryRoot: libraryRoot().appendingPathComponent("reference-library")
-                )
+                ),
+                rewriteMode: rewriteMode
             )
         }
         isImporting = true
@@ -1012,7 +1036,8 @@ private struct StubImportRouterForSheet: ImportRouter {
             tags: ["imported"],
             entityType: "other",
             category: nil,
-            confidence: 1.0
+            confidence: 1.0,
+            rewrittenBody: nil
         )
     }
 }

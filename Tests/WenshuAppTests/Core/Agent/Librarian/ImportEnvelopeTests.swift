@@ -48,7 +48,8 @@ final class ImportEnvelopeTests: XCTestCase {
         let original = ImportFileInput(
             filePath: "/Users/me/Library/Mobile Documents/iCloud~md~obsidian/Documents/十二地仙/世界观.md",
             targetBookId: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
-            targetShelfId: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!
+            targetShelfId: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!,
+            rewriteMode: .searchAndRewrite
         )
         let data = try JSONEncoder().encode(original)
         let decoded = try JSONDecoder().decode(ImportFileInput.self, from: data)
@@ -63,7 +64,8 @@ final class ImportEnvelopeTests: XCTestCase {
         let input: any Sendable = ImportFileInput(
             filePath: "/tmp/x.md",
             targetBookId: UUID(),
-            targetShelfId: UUID()
+            targetShelfId: UUID(),
+            rewriteMode: .consolidate
         )
         _ = input
     }
@@ -78,7 +80,8 @@ final class ImportEnvelopeTests: XCTestCase {
             tags: ["setting", "fantasy"],
             entityType: "location",
             category: nil,
-            confidence: 0.92
+            confidence: 0.92,
+            rewrittenBody: nil
         )
         let data = try JSONEncoder().encode(original)
         let decoded = try JSONDecoder().decode(ImportRoutingResult.self, from: data)
@@ -93,7 +96,8 @@ final class ImportEnvelopeTests: XCTestCase {
             tags: ["唐诗", "边塞"],
             entityType: "concept",
             category: "I",
-            confidence: 0.85
+            confidence: 0.85,
+            rewrittenBody: nil
         )
         let data = try JSONEncoder().encode(original)
         let decoded = try JSONDecoder().decode(ImportRoutingResult.self, from: data)
@@ -112,7 +116,8 @@ final class ImportEnvelopeTests: XCTestCase {
                 tags: [],
                 entityType: "other",
                 category: nil,
-                confidence: 1.0
+                confidence: 1.0,
+                rewrittenBody: nil
             )
             let data = try JSONEncoder().encode(original)
             let decoded = try JSONDecoder().decode(ImportRoutingResult.self, from: data)
@@ -126,7 +131,8 @@ final class ImportEnvelopeTests: XCTestCase {
         let original = ImportEnvelope.importFile(ImportFileInput(
             filePath: "/tmp/世界观.md",
             targetBookId: UUID(),
-            targetShelfId: UUID()
+            targetShelfId: UUID(),
+            rewriteMode: .consolidate
         ))
         let data = try JSONEncoder().encode(original)
         let decoded = try JSONDecoder().decode(ImportEnvelope.self, from: data)
