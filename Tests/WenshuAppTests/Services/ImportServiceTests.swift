@@ -140,13 +140,18 @@ final class ImportServiceTests: XCTestCase {
         }
         XCTAssertEqual(tasks[0].destination, .bookFolder(.world))
         // The body lands verbatim at the standard 5-folder path.
+        // The basename derives from the LLM-supplied title
+        // (= the v2.7 filename-sanitization rule introduced
+        // in 2026-10-09; = the boss's "ID 的事还没有修"
+        // feedback; = the filename must be the human-readable
+        // title, not a UUID).
         let expectedURL = wsRoot
             .appendingPathComponent("shelves")
             .appendingPathComponent(shelfId.uuidString)
             .appendingPathComponent("books")
             .appendingPathComponent(bookId.uuidString)
             .appendingPathComponent("world")
-            .appendingPathComponent(ImportService.uuidFromHash(tasks[0].contentHash).uuidString + ".md")
+            .appendingPathComponent("Eryndor kingdom.md")
         let written = try String(contentsOf: expectedURL, encoding: .utf8)
         XCTAssertEqual(written, body, "body must be byte-equal to the source")
         try? FileManager.default.removeItem(at: src)
