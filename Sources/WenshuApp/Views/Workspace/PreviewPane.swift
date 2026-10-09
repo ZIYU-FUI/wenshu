@@ -56,7 +56,7 @@ private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "previewpan
 // Sessions/foreshadowing/placeholders can still be reached via the
 // PreviewPane when the user picks them via API (= no UI yet for
 // picking non-sidebar folders; deferred to v0.31).
-enum BookFolder: String, CaseIterable {
+enum BookFolder: String, CaseIterable, Codable, Sendable, Hashable {
     case world
     case characters
     case outlines
