@@ -107,6 +107,20 @@ struct ImportSheet: View {
     /// 成功后，按钮还是开始导入，不是重试").
     @State private var hasRunOnce: Bool = false
 
+    /// Flag for the cancel-confirmation dialog (= the
+    /// boss's 2026-10-09 follow-up "那你要在取消的
+    /// 时候弹一个拦截弹窗，用户确认才取消，不然 ESC
+    /// 容易误触"). The `取消` button + every dismiss
+    /// path (= ESC / Cmd+W / toolbar X / clicking
+    /// outside) flips this to `true`; = the
+    /// `confirmationDialog` modifier presents
+    /// immediately (= the user can't dismiss the
+    /// sheet without picking "确认取消" or
+    /// "返回"; = the `interactiveDismissDisabled`
+    /// modifier on the sheet body holds the dismiss
+    /// hostage while the import is mid-flight).
+    @State private var confirmCancelPresented: Bool = false
+
     /// Last-used source directory (= Apple HIG
     /// canonical "remember the last folder"; =
     /// the system open panel starts here).
@@ -251,7 +265,18 @@ struct ImportSheet: View {
             HStack {
                 Spacer()
                 Button(cancelButtonLabel) {
-                    skipFailedAndClose()
+                    // The cancel button + every
+                    // dismiss path (ESC / Cmd+W /
+                    // toolbar X / clicking outside)
+                    // all flip the same flag (= the
+                    // `confirmationDialog` modifier
+                    // presents immediately; = the
+                    // user can't dismiss the sheet
+                    // without picking "确认取消" or
+                    // "返回"; = the dialog is the
+                    // single source of truth for the
+                    // cancel-and-rollback path).
+                    showCancelConfirmation()
                 }
                 .keyboardShortcut(.cancelAction)
                 .disabled(isImporting)
@@ -260,6 +285,48 @@ struct ImportSheet: View {
                 }
                 .keyboardShortcut(.defaultAction)
                 .disabled(!canStart)
+            }
+        }
+        // Boss's 2026-10-09 directive: "ESC，cmd+w
+        // 应该还是可以关掉了，不要让用户可关闭。
+        // 只能通过取消退出". The intended UX is:
+        // ESC + Cmd+W + the toolbar X button +
+        // clicking outside DO close the sheet
+        // (= the user is in control of the
+        // window-chrome dismiss verbs); = but the
+        // sheet re-opens with the confirmation
+        // dialog immediately (= the
+        // `onDisappear` hook flips
+        // `confirmCancelPresented = true`; = the
+        // parent binding is restored via
+        // `isPresented = true` in the same hook;
+        // = the dialog is the only way out). The
+        // `interactiveDismissDisabled` modifier is
+        // NOT used (= the user wanted ESC to
+        // "still work"; = blocking it would be the
+        // wrong UX). The behavior: any dismiss path
+        // = user sees the confirmation dialog =
+        // "返回" keeps the sheet open + the import
+        // running; = "确认取消" runs the rollback +
+        // dismisses the sheet for real (= the
+        // `isPresented = false` flag flips AFTER
+        // the rollback Task completes).
+        .onDisappear {
+            if isImporting {
+                // The sheet's parent binding was
+                // about to flip to `false` (= the
+                // dismiss path fired); = we cancel
+                // that flip + show the confirmation
+                // dialog instead. The
+                // `Task { @MainActor in
+                // isPresented = true }` runs in
+                // the same run-loop tick so the
+                // dialog presents before SwiftUI
+                // tears the sheet down (= no
+                // visible "flash" of an empty
+                // workspace).
+                isPresented = true
+                confirmCancelPresented = true
             }
         }
         .padding(DesignTokens.spacingSection)
@@ -281,6 +348,77 @@ struct ImportSheet: View {
         // can grow as needed for the 1-N error
         // captions in the failure list).
         .frame(minWidth: 480)
+        // The boss's 2026-10-09 follow-up: "那你要
+        // 在取消的时候弹一个拦截弹窗，用户确认才
+        // 取消，不然 ESC 容易误触". The dismiss
+        // path (ESC + Cmd+W + the toolbar X button +
+        // clicking outside the sheet) fires SwiftUI's
+        // `.onDisappear`; = we DO NOT auto-rollback
+        // here (= that was the previous version; =
+        // the user was right that ESC can be a
+        // reflexive muscle-memory press; = the
+        // auto-rollback would nuke the partial batch
+        // without confirmation). Instead, every
+        // dismiss path (ESC / Cmd+W / toolbar close
+        // / clicking outside) routes through the
+        // `confirmCancelPresented` confirmation
+        // dialog (= the user explicitly confirms
+        // "yes, throw away the partial batch"; = the
+        // dialog is an Apple HIG canonical
+        // macOS 14+ `confirmationDialog` pattern; =
+        // a "返回" option lets the user dismiss the
+        // dialog and keep importing). If the user
+        // clicks "返回" (= cancel the cancel), the
+        // sheet stays open + the import keeps
+        // running. If the user clicks "确认取消",
+        // the orchestrator's cancel + rollback
+        // fire (= the partial batch is gone, = the
+        // sheet dismisses to the "no trace" state
+        // the boss asked for).
+        .onDisappear {
+            // Intentionally no-op. The
+            // `confirmCancelPresented` flow owns
+            // the dismiss path (= the sheet's
+            // parent binding flips to false ONLY
+            // after the user confirms; = this hook
+            // is the no-op tail of the dismiss
+            // path so we don't double-rollback).
+        }
+        // The confirmation dialog (= the canonical
+        // Apple HIG macOS 14+ `confirmationDialog`
+        // pattern; = a popup the user can't miss; =
+        // the dismiss is blocked until the user
+        // explicitly picks an outcome). Apple
+        // canonical: the dialog presents ONLY when
+        // `confirmCancelPresented = true`; = the
+        // `isPresented` binding reads the
+        // user-pick (= a Bool return = "true" means
+        // "yes, throw it all away").
+        .confirmationDialog(
+            "确认取消导入？",
+            isPresented: $confirmCancelPresented,
+            titleVisibility: .visible
+        ) {
+            Button("确认取消", role: .destructive) {
+                Task {
+                    await importService.cancel()
+                    await importService.rollback()
+                    await MainActor.run {
+                        isPresented = false
+                    }
+                }
+            }
+            Button("返回", role: .cancel) {
+                // No-op; = the user changed their
+                // mind; = the sheet stays open + the
+                // import keeps running; = the
+                // `isPresented` binding already flipped
+                // back to false by SwiftUI's
+                // `confirmationDialog` machinery.
+            }
+        } message: {
+            Text("目前已经导入的 \(completedCount) 个文件会全部回退清掉，关闭弹窗后不会保留任何内容。")
+        }
     }
 
     /// The action button's label varies with the sheet's
@@ -330,9 +468,24 @@ struct ImportSheet: View {
     /// The cancel-button action (= Apple HIG canonical:
     /// closing the sheet means the user is done with the
     /// UI surface; = the per-file state machine goes
-    /// with the sheet).
-    private func skipFailedAndClose() {
-        isPresented = false
+    /// with the sheet; = boss's 2026-10-09 directive
+    /// "取消退出时，所有已经导入的内容回退清掉" =
+    /// if a batch is mid-flight when the user clicks
+    /// The cancel button's action (= the boss's
+    /// 2026-10-09 follow-up "那你要在取消的时候弹一个
+    /// 拦截弹窗，用户确认才取消，不然 ESC 容易误触";
+    /// = the cancel button (= and ESC / Cmd+W / toolbar
+    /// X / click-outside) all flip
+    /// `confirmCancelPresented`; = the
+    /// `confirmationDialog` modifier presents the
+    /// 拦截弹窗 immediately; = the user picks
+    /// "确认取消" (= the rollback runs) or "返回" (=
+    /// the sheet stays open + the import keeps
+    /// running). The "确认取消" branch in the
+    /// `confirmationDialog` body is the single source
+    /// of truth for the cancel-and-rollback path.
+    private func showCancelConfirmation() {
+        confirmCancelPresented = true
     }
 
     /// The ProgressView's caption row (= derived from
