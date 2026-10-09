@@ -1718,8 +1718,22 @@ private struct Card: View {
                             Text(tag)
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
-                                .padding(.horizontal, DesignTokens.spacingCaption)
-                                .padding(.vertical, DesignTokens.spacingHairline)
+                                // v2.7 boss 2026-10-09 round-27
+                                // "文字在胶囊内的左右边距
+                                // 加一点" directive; = the
+                                // previous spacingCaption
+                                // (= 2 PT) was too tight; =
+                                // tag text was visually flush
+                                // against the chip border;
+                                // = spacingStandard (= 8 PT
+                                // horizontal + 2 PT vertical)
+                                // gives the chip a proper
+                                // pill-shape with breathing
+                                // room around the text; = the
+                                // vertical stays tight (= 2 PT
+                                // = the chip is one line tall).
+                                .padding(.horizontal, DesignTokens.spacingStandard)
+                                .padding(.vertical, DesignTokens.spacingCaption)
                                 .background(
                                     Capsule()
                                         .fill(.tertiary)
