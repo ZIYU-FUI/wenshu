@@ -459,32 +459,54 @@ struct ImportSheet: View {
     /// idiomatic for "import again").
     private var actionButtonLabel: String {
         if isImporting { return "导入中…" }
-        if hasFailures { return "重试" }
+        if isRunComplete && hasFailures { return "重试" }
         if hasRunOnce { return "再次导入" }
         return "开始导入"
     }
 
     /// The cancel button's label varies with the sheet's
     /// state machine too (= the user's 2026-10-09
-    /// feedback: "取消改叫跳过失败"). Apple HIG canonical:
-    /// the button's label always reflects what tapping it
-    /// will do; = a fresh sheet shows "取消" (= dismiss
-    /// without doing anything); = a done sheet with at
-    /// least one failure shows "跳过失败" (= dismiss,
-    /// leaving the failed rows out of the final
-    /// ImportSheet state machine; = the file-system
-    /// write either succeeded or failed, = the user
-    /// can't "skip" a half-written file; = the label
-    /// reads as "close the sheet and stop looking at
-    /// the failure list").
+    /// feedback: "取消改叫跳过失败" + the 2026-10-09
+    /// follow-up "跳过失败按钮，不是遇到失败就亮起，
+    /// 而是在进度跑到 100% 后亮起" = the button is
+    /// "跳过失败" only AFTER the batch has run to
+    /// completion; = mid-flight, the button is still
+    /// "取消" because the user is mid-import and the
+    /// label is "cancel the running batch"; = a
+    /// done-state with zero failures stays "取消" (= the
+    /// user can dismiss the sheet as normal; = the
+    /// "跳过失败" label is meaningless when there were
+    /// no failures to skip).
     private var cancelButtonLabel: String {
-        if hasFailures { return "跳过失败" }
+        if isRunComplete && hasFailures { return "跳过失败" }
         return "取消"
+    }
+
+    /// True when the import batch has run to completion
+    /// (= no tasks are in `.pending` or `.routing` or
+    /// `.writing` state; = every task reached a terminal
+    /// state). Apple canonical pattern: a derived
+    /// state-machine flag (= composed from `tasks` and
+    /// `isImporting`; = avoids storing a separate
+    /// boolean that could desync from the source of
+    /// truth). Drives the "跳过失败" / "重试" /
+    /// "再次导入" label switch.
+    private var isRunComplete: Bool {
+        guard !isImporting else { return false }
+        guard !tasks.isEmpty else { return false }
+        return tasks.allSatisfy { task in
+            switch task.state {
+            case .pending, .routing, .writing: return false
+            case .done, .skipped, .failed: return true
+            }
+        }
     }
 
     /// True when at least one task ended in `.failed` (= the
     /// sheet's per-file state machine). Drives the
-    /// "重试" / "跳过失败" button-label switch.
+    /// "重试" / "跳过失败" button-label switch (in
+    /// combination with `isRunComplete`; = mid-flight
+    /// failures are not surfaced as "重试" yet).
     private var hasFailures: Bool {
         tasks.contains { $0.state == .failed }
     }
