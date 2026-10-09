@@ -266,7 +266,7 @@ actor ImportService {
     /// One path's hash → the destination metadata. The
     /// orchestrator reads this at the dedup step; = writes
     /// a fresh entry after each successful import.
-    private struct CacheEntry: Codable, Sendable {
+    fileprivate struct CacheEntry: Codable, Sendable {
         let contentHash: String
         let destination: ImportDestination
         let writtenAt: Date
@@ -410,150 +410,115 @@ actor ImportService {
         // `inFlightCount` ticks as tasks flip from
         // .pending → .routing and back to
         // .routing → .writing on completion).
-        await withTaskGroup(of: (Int, Result<ImportRoutingResult, Error>).self) { (group: inout TaskGroup<(Int, Result<ImportRoutingResult, Error>)>) in
+        // Phase 3 + Phase 4 (= unified per-file
+        // pipeline; = boss's 2026-10-09 directive
+        // "分析、编辑、完成、失败 这四种状态跑吗，
+        // 每个文件每个文件的跑"; = the old
+        // all-route-then-all-write design forced the
+        // user to watch the bar stuck at "进行中
+        // 40" for the full LLM round before any row
+        // reached .done; = the per-file pipeline
+        // ticks a file through 分析 → 编辑 → 完成
+        // back-to-back in a single TaskGroup slot
+        // = the first .done row lands within
+        // seconds; = the sheet's "已完成 X" counter
+        // ticks in real time; = the user sees
+        // progress instead of a frozen bar).
+        //
+        // The pipeline runs on the orchestrator
+        // actor (= the actor's serialized state
+        // mutation is safe across 5 parallel
+        // `processFile` calls; = the TaskGroup
+        // concurrency is per-task only; = the
+        // shared `cache` dict needs a reference
+        // wrapper because the per-task calls take
+        // `cache: inout` = value-type mutation
+        // across a TaskGroup boundary is the
+        // classic Swift 6 data-race source; =
+        // `CacheBox` is the canonical class-wrapper
+        // workaround that holds a single shared
+        // dict the orchestrator can write to
+        // safely from any concurrent context).
+        let cacheBox = CacheBox(value: cache)
+        let tasksBox = TasksBox(value: tasks)
+        await withTaskGroup(of: Void.self) { (group: inout TaskGroup<Void>) in
             var inFlight = 0
             var nextIndex = 0
-            // Seed the first `maxParallel` tasks.
+            // Seed the first `maxParallel` tasks (= 5
+            // today; = the boss's explicit knob; = the
+            // TaskGroup cap is the in-flight LLM
+            // pressure knob; = the LLMConnector
+            // adapter handles its own provider-side
+            // rate limiting).
             while inFlight < Self.maxParallel, nextIndex < dispatchIndices.count {
                 let i = dispatchIndices[nextIndex]
                 tasks[i].state = .routing
+                await onProgress?(tasks)
                 let input = ImportFileInput(
                     filePath: tasks[i].sourcePath,
                     targetBookId: target.bookId,
                     targetShelfId: target.shelfId
                 )
-                group.addTask {
-                    do {
-                        let r = try await router.route(input)
-                        return (i, .success(r))
-                    } catch {
-                        return (i, .failure(error))
-                    }
+                group.addTask { [self] in
+                    await self.processFile(
+                        taskIndex: i,
+                        input: input,
+                        target: target,
+                        router: router,
+                        cacheBox: cacheBox,
+                        tasksBox: tasksBox,
+                        onProgress: onProgress
+                    )
                 }
                 inFlight += 1
                 nextIndex += 1
             }
-            // Emit once after the initial seed batch
-            // (= the sheet's first in-flight tick
-            // = the 5 rows visibly flip from
-            // "待处理" to "分析中" as soon as the
-            // first TaskGroup is seeded; = the
-            // user's 2026-10-09 feedback "进度条
-            // 还是不会跟着走" = the previous
-            // behavior kept every row at "待处理"
-            // the whole time because no `onProgress`
-            // fired between Phase 1 + Phase 3's
-            // routing transitions).
-            await onProgress?(tasks)
-            // Drain + refill.
-            while let result = await group.next() {
+            // Drain + refill (= each completed task
+            // frees a slot in the semaphore; = the
+            // next pending task is seeded; = the
+            // pipeline keeps 5 files in flight
+            // concurrently for the entire batch).
+            while await group.next() != nil {
                 inFlight -= 1
-                let (i, r) = result
-                switch r {
-                case .success(let routing):
-                    tasks[i].routing = routing
-                case .failure(let error):
-                    tasks[i].state = .failed
-                    tasks[i].errorMessage = "LLM 路由失败: \(error.localizedDescription)"
-                }
-                // Emit after each result so the
-                // sheet's `inFlightCount` ticks
-                // down (= a finished task = one
-                // less in-flight row = the bar
-                // visibly moves as each LLM
-                // completes).
-                await onProgress?(tasks)
                 if nextIndex < dispatchIndices.count {
                     let j = dispatchIndices[nextIndex]
                     if tasks[j].state == .pending {
                         tasks[j].state = .routing
+                        await onProgress?(tasks)
                         let input = ImportFileInput(
                             filePath: tasks[j].sourcePath,
                             targetBookId: target.bookId,
                             targetShelfId: target.shelfId
                         )
-                        group.addTask {
-                            do {
-                                let r = try await router.route(input)
-                                return (j, .success(r))
-                            } catch {
-                                return (j, .failure(error))
-                            }
+                        group.addTask { [self] in
+                            await self.processFile(
+                                taskIndex: j,
+                                input: input,
+                                target: target,
+                                router: router,
+                                cacheBox: cacheBox,
+                                tasksBox: tasksBox,
+                                onProgress: onProgress
+                            )
                         }
                         inFlight += 1
                         nextIndex += 1
-                        // Emit after each new
-                        // seed (= the sheet sees
-                        // the fresh in-flight
-                        // row).
-                        await onProgress?(tasks)
                     }
                 }
             }
-        }
-        // Phase 4: write (= the destination is decided by
-        // the LLM in Phase 3; = the write step is a
-        // pure function of the routing result + the
-        // orchestrator's on-disk targets).
-        for i in tasks.indices {
-            guard tasks[i].state == .routing,
-                  let routing = tasks[i].routing else { continue }
-            tasks[i].state = .writing
-            // Emit per-file progress so the sheet's
-            // ProgressView ticks one row at a time (= the
-            // user's 2026-10-09 feedback: "进度条没有跑进度，
-            // 是等到全完成一下子完成的"). The "writing"
-            // state is a transition state (= the file
-            // didn't actually finish yet) but the sheet's
-            // `progressLabel` only counts terminal states
-            // (= .done / .skipped / .failed); = this emit
-            // updates the row's pill in real time without
-            // inflating the ProgressView's "X / Y" counter.
-            await onProgress?(tasks)
-            do {
-                let body = try String(contentsOfFile: tasks[i].sourcePath, encoding: .utf8)
-                try await writeFile(
-                    body: body,
-                    routing: routing,
-                    contentHash: tasks[i].contentHash,
-                    target: target,
-                    sourcePath: tasks[i].sourcePath,
-                    cache: &cache
-                )
-                tasks[i].state = .done
-                tasks[i].destination = routing.destination
-                // The writeFile appended the new entry to
-                // its inout cache; = back-fill into the
-                // outer `cache` so the next dedup pass
-                // (= a re-import of the same source
-                // directory) sees the prior write.
-                if let entry = cache[tasks[i].sourcePath] {
-                    // Back-fill into the local `cache`
-                    // (= the orchestrator already wrote
-                    // the updated cache to disk in the
-                    // final writeCache call; = the
-                    // in-memory copy stays in sync here
-                    // for the same-process dedup pass).
-                    cache[tasks[i].sourcePath] = entry
-                }
-            } catch {
-                tasks[i].state = .failed
-                tasks[i].errorMessage = "写入失败: \(error.localizedDescription)"
-            }
-            // Emit after the state transition (= .done or
-            // .failed) so the sheet's ProgressView sees the
-            // final state for this row. The closure hops
-            // to @MainActor (= the sheet does the hop
-            // itself; = the orchestrator just hands the
-            // snapshot over).
-            await onProgress?(tasks)
         }
         // Persist the updated cache (= the orchestrator
         // re-reads the cache after each successful write
         // so concurrent imports don't lose entries; = the
         // actor's serialized state is the lock).
-        writeCache(cacheFile: cacheFile, cache: cache)
-        return tasks
+        writeCache(cacheFile: cacheFile, cache: cacheBox.value)
+        // Copy the per-task state back out of the
+        // shared box (= the TaskGroup's per-file
+        // pipeline mutated `tasksBox.value` directly;
+        // = the orchestrator's return value carries
+        // the canonical final-state view for the
+        // sheet's per-file strip).
+        return tasksBox.value
     }
 
     // MARK: - Phase 1: walk
@@ -957,5 +922,141 @@ extension ImportService {
                         //  = .import-cache dir
                         //  = delete above handles
                         //  = the v0.74 schema).
+    }
+}
+
+/// Reference-type wrapper around the dedup cache
+/// (= the per-file pipeline runs 5 tasks in parallel
+/// via TaskGroup; = each task mutates the cache via
+/// `writeFile(... cache: inout ...)`; = Swift 6
+/// forbids capturing `inout` across a TaskGroup
+/// boundary; = the canonical fix is a class that
+/// holds a single shared dictionary the orchestrator
+/// can reach from any concurrent context). Apple
+/// canonical pattern: a class-wrapper for
+/// cross-actor mutable state (= the orchestrator's
+/// `writtenURLs` is a value-type `Array<URL>` living
+/// on the actor itself; = the `cache` is a value-type
+/// `Dictionary` that needs the same kind of
+/// "share-by-reference" treatment the test mocks
+/// get).
+fileprivate final class CacheBox: @unchecked Sendable {
+    var value: [String: ImportService.CacheEntry]
+    init(value: [String: ImportService.CacheEntry]) {
+        self.value = value
+    }
+}
+
+/// Reference-type wrapper around the per-task
+/// state array (= the per-file pipeline runs 5
+/// tasks in parallel via TaskGroup; = each task
+/// mutates `tasksBox.value[i]` (= its own slot;
+/// = the mutation is safe because each task only
+/// touches a disjoint index; = the shared `value`
+/// is read by the orchestrator's TaskGroup loop
+/// for state-transition emits). Apple canonical
+/// pattern: a class-wrapper for cross-actor
+/// mutable state (= the same trick the `CacheBox`
+/// uses; = both the dedup cache + the per-task
+/// state array need the reference-type wrapper
+/// because the per-file pipeline runs concurrently
+/// across the 5 TaskGroup slots).
+fileprivate final class TasksBox: @unchecked Sendable {
+    var value: [ImportTask]
+    init(value: [ImportTask]) {
+        self.value = value
+    }
+}
+
+/// Extension: the per-file pipeline (= the boss's
+/// 2026-10-09 directive "分析、编辑、完成、失败 这
+/// 四种状态跑吗，每个文件每个文件的跑"). The
+/// pipeline runs on the orchestrator actor (= the
+/// actor's serialized state mutation is safe across
+/// the 5 parallel `processFile` calls; = the
+/// TaskGroup concurrency is per-task only).
+extension ImportService {
+    /// Run the per-file pipeline (= route → write → done)
+    /// for a single task. The Semaphore-shaped TaskGroup
+    /// in the importFiles loop calls this method.
+    ///
+    /// State transitions per file (= matches the boss's
+    /// 2026-10-09 "分析、编辑、完成、失败" spec; = the
+    /// per-file pipeline flips states back-to-back in
+    /// sequence; = the sheet sees a single file's life
+    /// cycle tick in real time):
+    /// - .pending  → .routing (= already set by the
+    ///   TaskGroup seed)
+    /// - .routing  → .writing (= LLM call returned; = the
+    ///   routing decision is the destination + tags +
+    ///   title)
+    /// - .writing  → .done (= the file lands on disk; = the
+    ///   body is byte-equal to the source body)
+    /// - any state → .failed (= the LLM call or the file
+    ///   write threw; = the row's `errorMessage` carries
+    ///   the cause)
+    fileprivate func processFile(
+        taskIndex i: Int,
+        input: ImportFileInput,
+        target: ImportTarget,
+        router: ImportRouter,
+        cacheBox: CacheBox,
+        tasksBox: TasksBox,
+        onProgress: (@Sendable ([ImportTask]) async -> Void)?
+    ) async {
+        // Phase 3: route + enrich (= the LLM
+        // dispatch; = this is the slow part; = the
+        // pipeline's bottleneck). Failure here means
+        // the LLM rejected the file (= the user
+        // sees "LLM 路由失败: ..." in the row's
+        // error caption; = the orchestrator moves
+        // on to the next file).
+        let routing: ImportRoutingResult
+        do {
+            routing = try await router.route(input)
+            tasksBox.value[i].routing = routing
+        } catch {
+            tasksBox.value[i].state = .failed
+            tasksBox.value[i].errorMessage = "LLM 路由失败: \(error.localizedDescription)"
+            await onProgress?(tasksBox.value)
+            return
+        }
+        // Phase 4: write (= the destination was
+        // decided by the LLM; = the write step is a
+        // pure function of the routing result + the
+        // orchestrator's on-disk targets). The state
+        // flips .routing → .writing → .done inside
+        // this single function call (= the sheet
+        // sees the .writing pill for a brief moment
+        // before .done takes over).
+        tasksBox.value[i].state = .writing
+        await onProgress?(tasksBox.value)
+        do {
+            let body = try String(contentsOfFile: tasksBox.value[i].sourcePath, encoding: .utf8)
+            try await writeFile(
+                body: body,
+                routing: routing,
+                contentHash: tasksBox.value[i].contentHash,
+                target: target,
+                sourcePath: tasksBox.value[i].sourcePath,
+                cache: &cacheBox.value
+            )
+            tasksBox.value[i].state = .done
+            tasksBox.value[i].destination = routing.destination
+            // The writeFile appended the new entry
+            // to its inout cache; = the shared
+            // `cacheBox.value` is now the canonical
+            // source of truth for the in-memory
+            // cache (= the next dedup pass sees the
+            // prior write via the same `cacheBox`).
+        } catch {
+            tasksBox.value[i].state = .failed
+            tasksBox.value[i].errorMessage = "写入失败: \(error.localizedDescription)"
+        }
+        // Emit after the terminal state
+        // transition (= .done or .failed) so the
+        // sheet's ProgressView sees the final
+        // state for this row.
+        await onProgress?(tasksBox.value)
     }
 }
