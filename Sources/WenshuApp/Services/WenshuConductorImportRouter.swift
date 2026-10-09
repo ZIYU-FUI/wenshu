@@ -158,86 +158,89 @@ actor WenshuConductorImportRouter: ImportRouter {
         // decision; = the cap also keeps the cost
         // low for a 456-file batch).
         let trimmed = String(body.prefix(12_000))
+        // v2.7 PROMPT REWRITE (= boss 2026-10-09
+        // round-16 "三个问题" feedback):
+        // 1) "小说草稿里的卡片还是显示 ID":
+        //    = the previous prompt included the
+        //    `filePath` line (= the source path); =
+        //    the LLM sometimes echoed the path as
+        //    the title (= a long string with `/`
+        //    stripped → "UsersanbaiqiangLibraryMob
+        //    ileDocumentsiCloud~md..."); = the
+        //    filename = the LLM title = a path
+        //    echo; = the sidebar card title was
+        //    unreadable. Fix: drop the filePath
+        //    line from the prompt entirely (= the
+        //    body alone is enough for the LLM to
+        //    find the canonical entity name; = the
+        //    filePath was the leak that turned
+        //    into a filename).
+        // 2) "世界观混入了大量本来放在资料库
+        //    里的资料" (= 124 items in world/, all
+        //    folk-god / 五脊六兽 / 三台星 / generic
+        //    cosmic lore; = the LLM wrongly routed
+        //    generic-world-knowledge into world/).
+        //    Fix: world/ is now the STRICT
+        //    constitution-level folder; = the
+        //    default routing is referenceLibrary;
+        //    = world/ requires explicit "in this
+        //    novel" / "本小说独有" markers in
+        //    the body; = otherwise referenceLibrary.
+        // 3) "资料库多了一个 tag '十二地仙'":
+        //    = the LLM was leaking the target
+        //    novel's name into the tag list (= a
+        //    hard-rule violation; = tags must come
+        //    from the body content, NOT from the
+        //    novel context). Fix: explicit "no
+        //    book name in tags" rule + the
+        //    "target novel" mention is now ONLY
+        //    used as the routing signal; = tags
+        //    derive from the body.
         return """
         请阅读下面的 Markdown 资料，输出一行 JSON 描述如何整理它。
 
-        ## 资料信息
-        - 文件路径: \(filePath)
-        - 正文:
+        ## 正文
         \(trimmed)
 
         ## 任务
-        1) 重写一个**最短**的中文标题 (= boss 2026-10-09
-           round-14 "文件命名最短原则"; = 取文件表示
+        1) 重写一个**最短**的中文标题 (= 取文件表示
            的**最核心实体名字**, 不要前缀/后缀/说
-           明; = 例子:
+           明; = 文件名只放**一个实体的名字**; = 不
+           带 "档案"、"资料"、"研究"、"卷"、朝代、
+           年份、章节号等修饰词; = 如果一个文件讲了
+           多个实体, 选**最核心**那一个):
              - "太平广记卷一○○李寄斩蛇" → "李寄"
              - "门闩神民俗研究" → "门闩神"
              - "XX 朝代元 1290 狗案" → "狗"
              - "主角职业入殓师" → "入殓师"
-             - "十二地仙主角团狗" → "狗"
-           = 文件名只放**一个实体的名字**, = 不带 "档
-           案"、"资料"、"研究"、"卷"、朝代、年份、章
-           节号等修饰词; = 如果一个文件讲了多个实体,
-           选**最核心**那一个; = 总之: 最简短、能区
-           分出这个实体即可。
         2) 写一句话的中文摘要
-        3) 提取 5-8 个真实内容的标签（不要图书馆分类字母 K/B/N 之类；必须是从正文中看到的人物、地点、年代、概念、品牌等真实信息）
-        4) 判断归类到哪本书的哪个目录。
-           这是最关键的一步 —— 调研 vs 书内设定 有一条非常清晰的界限：
+        3) 提取 5-8 个真实内容的标签（**仅从正文
+           内容本身提取**：人物、地点、年代、概
+           念、品牌等真实信息; = **严禁**把小说
+           名字、目标小说、用户身份、当前项目名等
+           元信息塞进 tag; = 标签只能描述"这个文
+           件讲的是什么内容"，不能描述"这个文件
+           属于哪本书")
+        4) 路由（**这是最关键的一步**）：
 
-        调研（= referenceLibrary）= 这是**真实世界已经存在的资料**，是小说作者参考用的输入。
-           包括：
-             - 古代文献原文 / 选段：例如《太平广记》某卷、《夷坚志》某则、《酉阳杂俎》某条、《搜神记》某篇
-             - 历史人物 / 神话传说的客观叙述：例如"灶神的起源"、"城隍信仰在唐宋的演变"
-             - 现实世界的资料：地方志、考古报告、宗教民俗研究摘录
-           这些资料的共同特征 = **它们的存在不依赖任何小说** = 即使把目标小说删掉，这些资料仍然有意义。
-           → 全部进 `referenceLibrary`，**不要进任何 book folder**。
-
-        书内设定（= bookFolder，folder ∈ {world, characters, outlines, chapters, drafts}）= 目标小说**自己创造**的内容。
-           包括：
-             - 世界观：例如目标小说所在朝代表、目标小说的神祇等级体系（不是《封神榜》的通用神祇 = 目标小说的特定设定）
-             - 角色：主角/配角的人物卡、出场设定、人物关系图
-             - 大纲 / 章节：目标小说的章节大纲、未完成的章节草稿、写作计划
-             - 草稿：目标小说的人物对话草稿、场景草稿、随手记下的情节碎片
-           这些内容的共同特征 = **它们专属于目标小说** = 把这些内容脱离小说看就没有意义。
-           → 进对应的 bookFolder。
-
-        **目录细分规则**（= boss 2026-10-09 round-14
-         "五目录进得太多" 反馈；= 民俗神 / 历史人物 /
-         神话 / 通用宗教研究 = 几乎都是**调研资料**，
-         不是书内设定）：
-
-           1. 民俗神 / 神话人物 / 历史人物：
-              - 如果资料是**客观研究该人物/神祇**
-                （= 例如"灶神起源"、"城隍信仰在唐宋
-                的演变"、民俗学者的考据论文）= 这是
-                **调研**，进 referenceLibrary。
-              - 如果资料是**目标小说里这个人物的
-                角色卡**（= 明确说"在本书中"、"这个
-                角色"、"主角设定"、人物卡格式）= 这
-                是**书内设定**，进 characters/。
-              - 关键判断：资料是"在讲这个人物/神祇的
-                客观知识"（= 调研）还是"为这本书设
-                定这个角色"（= 书内）？
-
-           2. 通用世界观 / 朝代 / 神祇等级 / 神话体
-              系（= 通用知识，不是目标小说独有的设
-              定）：进 referenceLibrary。
-
-           3. 目标小说独有的设定（= 名字带"目标小说"
-              标记、明确说"我们这本书..."、"本书设定"
-              等）：进 world/。
-
-           4. 章节大纲 / 章草稿 / 写作计划 = outlines/
-              或 drafts/。其他一切都是**调研**（除非
-              明确是目标小说独有）。
-
-        决策流程（按顺序判断）：
-          1. 这段文字在脱离目标小说后还有没有独立意义？
-              是 → `referenceLibrary`
-              否 → 继续
-          2. 这是目标小说的哪一类设定？→ world / characters / outlines / chapters / drafts
+        **默认 = referenceLibrary**（= 调研/资
+        料/外部知识）。仅当正文里**明确**包含以下
+        标记之一时，才进 bookFolder:
+            - 目标小说里这个人物的**角色卡**（=
+              明确说"在本书中"、"这个角色"、"主角
+              设定"、"角色卡"格式）
+            - 目标小说独有的**世界观宪法**（= 明
+              确说"本书设定"、"我们这本书"、"十二
+              地仙的世界规则"等)
+            - 目标小说的**章节大纲 / 草稿**（= 明
+              确说"本章"、"下一章"、"剧情走向"等)
+        **没看到这些标记 → 全部进 referenceLibrary**。
+        换言之：通用民俗神/历史人物/神话体系/朝
+        代资料/宗教研究/古籍原文/学术笔记/考据
+        论文/碑文/出土文物 = 几乎都是**调研**，
+        进 referenceLibrary。`world/` 只是**宪
+        法级 = 1-2 个文件**，装这本书独有的顶层
+        世界规则；装不下的应该都是**调研**。
 
         ## 输出格式
         严格一行 JSON，不要任何其他文字、解释或 markdown 代码块：
