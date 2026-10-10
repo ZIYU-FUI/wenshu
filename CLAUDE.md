@@ -1,7 +1,7 @@
 # CLAUDE.md · 文枢 (Wenshu)
 
 |> Truth-source pointer: `AGENTS.md` (project baseline §11 + cross-role address hard constraint §12).
-|> Current wenshu = v0.72 SwiftData + multi-target Sources/WenshuApp/ tree (= post-2026-10-03 Apple multi-column rewrite; = §3-§9 reflect this tree; = the "v0.09 / v0.37 ship packet" baseline is the §11 era stamp). Long-term auto-pilot mode per 2026-09-03 (= I have push authority per "之前 push 就是你的活"). No 6-role flow, no dispatch, no board — pocock reads this when working on wenshu.
+|> Current wenshu = SwiftData (post-v0.72) + single executable target Sources/WenshuApp/ tree (= 1 WenshuApp target + 1 WenshuAppTests target; see Package.swift; = §3-§9 reflect this tree) (= post-2026-10-03 Apple multi-column rewrite; = §3-§9 reflect this tree; = the "v0.09 / v0.37 ship packet" baseline is the §11 era stamp). Long-term auto-pilot mode per 2026-09-03 (= I have push authority per "之前 push 就是你的活"). No 6-role flow, no dispatch, no board — pocock reads this when working on wenshu.
 |> English-only rule applies to this file (see `AGENTS.md` top section). Sole address for the user = "老板".
 
 ---
