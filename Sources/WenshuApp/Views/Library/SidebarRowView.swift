@@ -286,11 +286,68 @@ struct SidebarRowView: View {
                         })
                     }
                 case .reference, .referenceCategory, .divider, .tag:
-                    return AnyView(content.contextMenu {
-                        Button("导入") {
-                            callbacks.onImportToReferenceLibrary()
-                        }
-                    })
+                    // v2.7 round-63:
+                    // the `.reference`
+                    // case (=
+                    // a single
+                    // reference
+                    // card)
+                    // gets a
+                    // full
+                    // rename +
+                    // delete
+                    // menu
+                    // (= the
+                    // boss's
+                    // "素材
+                    // 区，卡
+                    // 片，右
+                    // 键菜单
+                    // ，做删
+                    // 除、重
+                    // 命名"
+                    // directive);
+                    // the
+                    // `.referenceCategory`
+                    // / `.divider` /
+                    // `.tag`
+                    // cases
+                    // stay
+                    // as
+                    // just
+                    // "导入"
+                    // (= they
+                    // are
+                    // containers
+                    // / visual
+                    // separators
+                    // / nav
+                    // items;
+                    // = no
+                    // destructive
+                    // operations
+                    // apply
+                    // to
+                    // them).
+                    if case .reference = node.kind {
+                        return AnyView(content.contextMenu {
+                            Button(String(localized: "sidebar_context_menu_rename")) {
+                                callbacks.onRenameReference(node.id, node.title)
+                            }
+                            Button(
+                                String(localized: "sidebar_context_menu_delete"),
+                                role: .destructive
+                            ) {
+                                callbacks.onDeleteReference(node.id, node.title)
+                            }
+                        })
+                    } else {
+                        return AnyView(content.contextMenu {
+                            Button("导入") {
+                                callbacks.onImportToReferenceLibrary()
+                            }
+                        })
+                    }
                 }
             }
             // No callbacks (= dev / preview path;
@@ -356,4 +413,37 @@ struct SidebarRowCallbacks {
     /// 标自动选好对应的书" directive).
     let onImportToReferenceLibrary: () -> Void
     let onImportToBook: (UUID) -> Void
+    /// v2.7 round-63 (= boss
+    /// 2026-10-10 "素
+    /// 材区，卡片，
+    /// 右键菜单，
+    /// 做删除、重
+    /// 命名" directive).
+    /// Right-click menu
+    /// callbacks for
+    /// `.reference` rows
+    /// (= a single
+    /// reference card in
+    /// the sidebar tree).
+    /// The rename opens
+    /// the `RenameItemSheet`
+    /// (= the same sheet
+    /// used for shelf /
+    /// book rename; =
+    /// the rename
+    /// dispatches to
+    /// `SidebarService.
+    /// renameReference`).
+    /// The delete shows
+    /// the destructive
+    /// alert (= the same
+    /// `pendingDelete` flow
+    /// used for shelf /
+    /// book delete; =
+    /// the delete
+    /// dispatches to
+    /// `SidebarService.
+    /// deleteReference`).
+    let onRenameReference: (UUID, String) -> Void
+    let onDeleteReference: (UUID, String) -> Void
 }

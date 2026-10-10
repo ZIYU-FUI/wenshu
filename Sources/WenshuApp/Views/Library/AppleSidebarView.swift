@@ -211,6 +211,64 @@ struct AppleSidebarView: View {
                                     importPrefillDestination = .book
                                     importPrefillBookID = bookId
                                     showImportSheet = true
+                                },
+                                // v2.7 round-63
+                                // (= boss
+                                // 2026-10-10
+                                // "素材区,
+                                // 卡片,
+                                // 右键菜
+                                // 单, 做
+                                // 删除、
+                                // 重命名"
+                                // directive).
+                                // The
+                                // rename
+                                // callback
+                                // sets
+                                // the
+                                // `renaming`
+                                // state to
+                                // a
+                                // `.reference`
+                                // -kind
+                                // target;
+                                // = the
+                                // existing
+                                // `RenameItemSheet`
+                                // was
+                                // extended
+                                // to
+                                // handle
+                                // `.reference`
+                                // (= the
+                                // same
+                                // sheet;
+                                // = the
+                                // kind
+                                // enum
+                                // got a
+                                // new
+                                // case;
+                                // = the
+                                // duplicate-name
+                                // check
+                                // uses
+                                // `otherReferenceTitles`).
+                                onRenameReference: { referenceId, _ in
+                                    renaming = SidebarRenamingTarget(
+                                        kind: .reference,
+                                        itemId: referenceId,
+                                        originalName: referenceTitle(for: referenceId) ?? "",
+                                        shelfId: nil
+                                    )
+                                },
+                                onDeleteReference: { referenceId, name in
+                                    pendingDelete = SidebarPendingDelete(
+                                        kind: .reference,
+                                        itemId: referenceId,
+                                        itemName: name
+                                    )
                                 }
                             )
                         )
@@ -503,9 +561,20 @@ struct AppleSidebarView: View {
             RenameItemSheet(
                 kind: target.kind,
                 originalName: target.originalName,
-                otherNames: target.kind == .shelf
-                    ? (service?.otherShelfNames(excluding: target.itemId) ?? [])
-                    : (service?.otherBookTitles(excluding: target.itemId) ?? []),
+                // v2.7 round-63: the
+                // otherNames source
+                // depends on the
+                // kind. Shelf / book
+                // use the existing
+                // helpers; = the
+                // reference kind
+                // uses
+                // `otherReferenceTitles`
+                // (= the v2.7
+                // round-63 addition
+                // to
+                // `SidebarService`).
+                otherNames: otherNamesForRename(target: target),
                 onSave: { newName in
                     do {
                         switch target.kind {
@@ -513,6 +582,8 @@ struct AppleSidebarView: View {
                             try service?.renameShelf(id: target.itemId, newName: newName)
                         case .book:
                             try service?.renameBook(id: target.itemId, newTitle: newName)
+                        case .reference:
+                            try service?.renameReference(id: target.itemId, newTitle: newName)
                         }
                         renaming = nil
                         Task { await service?.reload() }
@@ -539,6 +610,35 @@ struct AppleSidebarView: View {
                         try service?.deleteShelf(id: target.itemId)
                     case .book:
                         try service?.deleteBook(id: target.itemId)
+                    case .reference:
+                        // v2.7 round-63:
+                        // the
+                        // reference
+                        // delete
+                        // goes
+                        // through
+                        // the
+                        // reference
+                        // store
+                        // (= the
+                        // .md body
+                        // + the
+                        // index
+                        // entry
+                        // are
+                        // both
+                        // removed);
+                        // = the
+                        // sidebar
+                        // reloads
+                        // to
+                        // drop
+                        // the
+                        // card
+                        // from
+                        // the
+                        // tree.
+                        try service?.deleteReference(id: target.itemId)
                     }
                     pendingDelete = nil
                     Task { await service?.reload() }
@@ -554,6 +654,88 @@ struct AppleSidebarView: View {
             Text(String(localized: "sidebar_delete_alert_message")
                 .replacingOccurrences(of: "%@", with: target.itemName))
         }
+    }
+
+    // MARK: v2.7 round-63
+    // (= boss 2026-10-10
+    // "素材区，卡
+    // 片，右键菜
+    // 单，做删
+    // 除、重命
+    // 名" directive).
+    // Helpers for the
+    // reference-row
+    // right-click menu
+    // (= the rename
+    // sheet needs the
+    // reference's
+    // current title +
+    // the list of all
+    // other reference
+    // titles for the
+    // duplicate check).
+
+    /// Resolve the
+    /// `otherNames` list
+    /// for the rename
+    /// sheet based on the
+    /// target's `Kind` (=
+    /// shelf / book /
+    /// reference). The
+    /// reference case
+    /// uses
+    /// `SidebarService.
+    /// otherReferenceTitles`
+    /// (= the v2.7
+    /// round-63
+    /// addition).
+    private func otherNamesForRename(target: SidebarRenamingTarget) -> [String] {
+        switch target.kind {
+        case .shelf:
+            return service?.otherShelfNames(excluding: target.itemId) ?? []
+        case .book:
+            return service?.otherBookTitles(excluding: target.itemId) ?? []
+        case .reference:
+            return service?.otherReferenceTitles(excluding: target.itemId) ?? []
+        }
+    }
+
+    /// Resolve the
+    /// current title of
+    /// a reference by id
+    /// (= the rename
+    /// sheet's
+    /// `originalName`
+    /// field; = the
+    /// existing
+    /// `renameShelf` /
+    /// `renameBook`
+    /// callbacks look up
+    /// the name from
+    /// `service.shelves`
+    /// / `service.books`
+    /// synchronously; =
+    /// the reference
+    /// equivalent reads
+    /// from
+    /// `bookStore.
+    /// loadAllReferences()`).
+    /// Returns nil if the
+    /// reference is
+    /// missing (= the
+    /// rename sheet
+    /// opens with an
+    /// empty name; =
+    /// the user can
+    /// still type a new
+    /// one; = the save
+    /// fails with
+    /// `bookNotFound`).
+    private func referenceTitle(for id: UUID) -> String? {
+        guard let references = try? bookStore.loadAllReferences() else {
+            return nil
+        }
+        return references.first(where: { $0.id == id })?.title
     }
 
     /// ', ':
