@@ -98,77 +98,47 @@ struct EditorView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Tab strip: tabs span the full width + show file name + close button.
-            // The tab strip = the multi-document title bar; = delete every other chrome
-            // element on the editor top bar: the mode toggle Button,
-            // ParagraphAIToolbarButtons, Spacer, .frame toolbar
-            // height, and the .background { Color.clear } glass
-            // material). The editor top bar = a Safari-style tab
-            // strip ONLY (= Apple HIG tabbed-document pattern;
-            // = Finder / Safari / Terminal all use a plain tab
-            // strip without formatting chrome; = the user said
-            // 'just keep it for the tab strip' = nothing else on this bar).
+            // Tab strip = Safari-style multi-tab bar (Apple HIG
+            // tabbed-document pattern). Replaces the ad-hoc HStack
+            // that previously showed only the active tab (= boss
+            // OOB 2026-10-10 = match Safari behavior).
             //
-            // Apple HIG tabbed-document pattern (= NSTabView / Safari
-            // tab strip): single-line HStack, scrollable horizontally
-            // when tabs overflow. = no formatting toolbar / no save
-            // button (= the per-tab formatting + save hotkey move to
-            // the new tab-bar layout (decision pending)).
-            // Tab strip:
-            // only the ACTIVE tab is shown in the strip (= full-width
-            // title + close X). Inactive tabs are hidden (= openTabs
-            // stays in AppState for state; = sidebar drives the
-            // switch-back path; = this matches Safari's "single tab"
-            // feel on a one-tab window).
+            // EditorTabStrip is a pure render surface (= 4
+            // closures: onSelect / onClose / onReorder). AppState
+            // stays the single source of truth for openTabs +
+            // activeTabId (= the strip never holds a copy of the
+            // data; = every binding flows through AppState).
             //
-            // X button = small xmark Button next to the title (= fires
-            // appState.closeTab which handles dirty flush + remove +
-            // focus follow). We avoid sibling Button nesting inside the
-            // active title Button (= which earlier triggered a SwiftUI
-            // Update-Constraints infinite loop on macOS 27 Liquid Glass).
-            // rollback: the editor
-            // top bar is NOT a column section header; = it
-            // is a Safari-style TAB MANAGEMENT BAR (= one
-            // tab per open document, with a close X on
-            // the active tab). Restored to the pre-v1.77
-            // tab strip (= accentColor full-width
-            // tab title + xmark close button). The shared
-            // SectionHeader component is reserved for the
-            // other 3 column headers (= AppleSidebarView
-            // Tab strip = the top-of-editor surface (= Library's 'shelf' row + PreviewPane's 'asset' row + ShellDetailColumn's panel).
-            // inspector page title).
-            HStack(spacing: 0) {
-                if let active = appState.openTabs.first(where: { $0.id == appState.activeTabId })
-                    ?? appState.openTabs.first {
-                    let title = EditorTab.displayTitle(active)
-                    // Active tab title = plain Text (= no Button; =
-                    // the active tab is not interactive itself; =
-                    // clicking the title is a no-op and would only
-                    // add a focus ring + accessibility label that
-                    // screen readers would announce as a control).
-                    Text(title)
-                        .font(.caption.monospacedDigit().weight(.semibold))
-                        .foregroundStyle(Color.accentColor)
-                        .padding(.horizontal, DesignTokens.spacingModerate)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .frame(height: DesignTokens.paneTabHotArea)
-                        .background(
-                            Rectangle()
-                                .fill(Color.accentColor.opacity(DesignTokens.accentTintOpacitySubtle))
-                        )
-                        .help(title)
-
-                    Button(action: {
-                        appState.closeTab(id: active.id, bookStore: bookStore)
-                    }) {
-                        SFIcon("xmark", style: .inlineSmall, color: IconColor.secondary)
-                            .frame(width: DesignTokens.tabCloseFrameSize,
-                                   height: DesignTokens.tabCloseFrameSize)
+            // Drag-reorder feeds back via the onReorder closure
+            // (= AppState.openTabs is rewritten + persistOpenTabs
+            // fires from AppState's openTabs didSet = single
+            // persistence path).
+            //
+            // Empty-state path (= openTabs.isEmpty = no tab strip)
+            // is handled by EditorTabStrip internally (= the strip
+            // renders EmptyView when tabs = []; = the editor zone
+            // shows its empty-state hint at full size below).
+            EditorTabStrip(
+                tabs: appState.openTabs,
+                selectedTabId: appState.activeTabId,
+                onSelect: { newId in
+                    appState.activeTabId = newId
+                },
+                onClose: { closedId in
+                    appState.closeTab(id: closedId, bookStore: bookStore)
+                },
+                onReorder: { newOrder in
+                    // Reorder AppState.openTabs to match the
+                    // dragged drop order. AppState.openTabs's didSet
+                    // (= on line 64 of AppState.swift) calls
+                    // persistOpenTabs() which writes UserDefaults
+                    // = the reorder is durable across app relaunch.
+                    let reordered = newOrder.compactMap { id in
+                        appState.openTabs.first(where: { $0.id == id })
                     }
-                    .buttonStyle(.plain)
-                    .help(String(localized: "workspace.editor.close_tab_tooltip"))
+                    appState.openTabs = reordered
                 }
-            }
+            )
             // dirty-discard confirm dialog. Shown when
             // user tries to close with unsaved changes. Apple HIG
             // 2-option confirm pattern (= destructive + cancel).
