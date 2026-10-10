@@ -80,8 +80,39 @@ enum BookFolder: String, CaseIterable, Codable, Sendable, Hashable {
         BookFolderCatalog.spec(for: rawValue)?.cardDisplayName ?? rawValue
     }
 
-    /// 'remove Lucide, use
-    /// SF Symbols 6 (3rd generation) with palette rendering': Lucide
+    /// v2.7 round-59 (= boss 2026-10-10
+    /// "我觉的重写文件不
+    /// 能靠 LLM 来约束
+    /// . 而是要有一个
+    /// 模版，是文枢项
+    /// 目要求的各目录
+    /// 文档模版"
+    /// directive). The
+    /// import template
+    /// (= markdown
+    /// skeleton) that
+    /// constrains the
+    /// rewrite for
+    /// documents in this
+    /// folder. Returns
+    /// nil for the
+    /// non-import folders
+    /// (= sessions /
+    /// foreshadowing /
+    /// placeholders; =
+    /// not in the import
+    /// path yet).
+    var importTemplate: ImportDocumentTemplate? {
+        switch self {
+        case .world:      return .world
+        case .characters: return .characters
+        case .outlines:   return .outlines
+        case .chapters:   return .chapters
+        case .drafts:     return .drafts
+        case .sessions, .foreshadowing, .placeholders:
+            return nil
+        }
+    }
     /// kebab-case names (= globe / user-round / list-tree / book-text /
     /// file-pen-line) are NOT valid SF Symbols 6 identifiers and
     /// SwiftUI renders them as blank rectangles. Verified against
