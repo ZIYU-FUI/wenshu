@@ -86,6 +86,8 @@ wenshu/                                                ← project root
 │       ├── Resources/                                 ← AppIcon.icns + Info.plist
 │       ├── Settings/                                  ← user settings pane
 │       ├── State/                                     ← @Observable state layer
+│       ├── Services/                                 ← import / migration / document-template services (= ImportService / ImportDocumentTemplates / ImportAgentDriver / WenshuConductorImportRouter / ImportSOPLoader)
+│       ├── AI/                                       ← SSE + agent-runtime errors (= SSEClient / UserFacingError)
 │       ├── Storage/                                   ← file-system stores (LibraryMigrator / FileSystemReferenceStore)
 │       ├── UI/                                        ← reusable SwiftUI components (IconStyles / DesignTokens / Layout / Segmented / Memory / PaneTabBar / ComponentIndex.md)
 │       └── Views/                                     ← feature views (Chat / Library / Onboarding / SpecializedTools / Workspace / Kanban / Graph / Outline / LinkGraph / LinkBack / Windows / Tools / Todo / LayoutPicker / Inspection)
@@ -211,15 +213,15 @@ swift run swiftlint
 **minimax cn endpoint + auth** (when active connector profile = minimax cn):
 
 - Endpoint = `https://api.minimaxi.com/anthropic/v1/messages`.
-- Auth = `X-Api-Key: *** (`Authorization: Bearer *** also OK).
-- SSE streaming, event sequence = `message_start` → `content_block_start` → `ping` → `content_block_delta` → `content_block_stop` → `message_delta` → `message_stop`. No `[DONE]` terminator.
+- Auth = `x-api-key` (lowercase) + `anthropic-version: 2023-06-01` headers per MinimaxConnector.swift:84; `Authorization: Bearer ***` is also accepted by Anthropic servers as a fallback.
+- SSE streaming, event sequence = `content_block_start` → `ping` → `content_block_delta` → `content_block_stop` → `message_delta` → `message_stop` (= `message_start` is in the Anthropic SSE spec but wenshu's AnthropicStreaming.swift does not wire a handler for it — see Sources/WenshuApp/Core/Agent/Connector/AnthropicStreaming.swift:43-112 for the live handler set; = no `[DONE]` terminator).
 - Content block types = `text` / `thinking` / `tool_use` / `image`.
 - Tool use = `tools: [{name, description, input_schema}]` + `tool_choice: {type: auto}`.
 
 **Other 6 connector profile endpoints** (per AGENTS.md §11.2; user self-configures base URL + key in Settings → LLM Connector pane):
 
 - Anthropic: `https://api.anthropic.com/v1/messages` (Anthropic native; `x-api-key` + `anthropic-version: 2023-06-01`).
-- OpenAI: `https://api.openai.com/v1/chat/completions` (OpenAI native; `Authorization: Bearer ***`).
+- OpenAI: `https://api.openai.com/v1/chat/completions` (OpenAI native; `Authorization: Bearer ***`).`).`)`).`).
 - DeepSeek: `https://api.deepseek.com/v1/chat/completions` (Anthropic-compatible).
 - Gemini: `https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent` (Gemini native).
 - Ollama: `http://localhost:11434/v1/chat/completions` (OpenAI-compatible; no auth, local).
