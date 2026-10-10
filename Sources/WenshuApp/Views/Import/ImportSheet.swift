@@ -1142,10 +1142,13 @@ extension ImportSheet {
     /// True if the user can go back one step (= not on
     /// the first step; = never go back from .running
     /// because the import is mid-flight; = the boss's
-    /// "不点 '开始导入' 不能进步骤 2" rule implies the
-    /// "上一步" button is only enabled in .configure).
+    /// "上一步" button is enabled on every step EXCEPT
+    /// the first (.configure); = on the first step
+    /// the button is HIDDEN entirely per the
+    /// boss's round-48 "第一步的页面, 不应该有
+    /// 上一步" directive).
     fileprivate var canGoPrev: Bool {
-        currentStep == .configure
+        currentStep != .configure
     }
 
     /// True if the user can advance to the next step.
@@ -1252,80 +1255,37 @@ extension ImportSheet {
 
     // MARK: - Per-step views
 
-    /// Step 1: 选目标. The Pages macOS 27
-    /// inspector panel layout (= each
-    /// picker is a filled rounded card
-    /// 32 PT tall, with 8 PT gap between
-    /// cards in a section and 24 PT gap
-    /// between sections; = the boss's
-    /// round-45 "重点是间距" directive).
-    /// No progress UI, no action
-    /// button, no retry button.
+    /// Step 1: 选目标. The macOS 27 list
+    /// row pattern (= 32 PT row
+    /// height; = no card background
+    /// fill; = the boss's round-49
+    /// "每一行的背景矩形不需要"
+    /// directive; = the row is
+    /// just text + control; =
+    /// sections separated by a
+    /// hairline Divider).
     @ViewBuilder
     fileprivate var step1ConfigureView: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.spacingStandard) {
-            // v2.7 round-45 (= boss 2026-10-10
-            // "UI 参考, pages 的
-            // mac os 27 的样式"
-            // directive). Section 1
-            // = file picker. No
-            // section label (= the
-            // first section; = the
-            // Pages inspector omits
-            // the section label
-            // for the leading
-            // group because the
-            // context is obvious).
-            // v2.7 round-45: file-type
-            // picker as a Pages-style
-            // card. The Picker
-            // itself is hidden (= the
-            // user sees a card with
-            // the icon + label + a
-            // chevron; = tapping
-            // anywhere on the card
-            // opens the menu).
-            PickerCard {
-                Picker(selection: $fileType) {
+        VStack(alignment: .leading, spacing: 0) {
+            PickerRow {
+                Text("文件类型")
+                    .foregroundStyle(.primary)
+            } trailing: {
+                Picker("", selection: $fileType) {
                     ForEach(ImportFileType.allCases) { type in
-                        HStack {
-                            SFIcon(type.iconName, style: .toolbarButton, color: .tint)
-                            Text(type.displayName)
-                            if !type.isSupported {
-                                Text("（即将支持）")
-                                    .foregroundStyle(.tertiary)
-                            }
-                        }
-                        .tag(type)
-                    }
-                } label: {
-                    HStack(spacing: DesignTokens.spacingStandard) {
-                        SFIcon(fileType.iconName, style: .toolbarButton, color: .tint)
-                        Text("文件类型")
-                            .foregroundStyle(.primary)
+                        Text(type.displayName).tag(type)
                     }
                 }
                 .pickerStyle(.menu)
+                .labelsHidden()
                 .disabled(isImporting)
             }
 
-            // v2.7 round-45: source
-            // directory card. The
-            // card holds the path
-            // + the "选择…"
-            // button. The path
-            // truncates in the
-            // middle (= the
-            // standard macOS
-            // truncation pattern;
-            // = the trailing
-            // parent is what
-                // the user usually
-                // needs to verify
-                // they're importing
-                // the right tree).
-            PickerCard {
-                HStack {
+            PickerRow {
+                Text("源目录")
+                    .foregroundStyle(.primary)
+            } trailing: {
+                HStack(spacing: DesignTokens.spacingStandard) {
                     if let url = sourceDirectory {
                         Text(url.path)
                             .font(.callout)
@@ -1336,84 +1296,67 @@ extension ImportSheet {
                     } else {
                         Text("选择一个包含 .md 文件的目录")
                             .foregroundStyle(.secondary)
+                            .lineLimit(1)
                     }
-                    Spacer()
                     Button("选择…") { pickSourceDirectory() }
                         .disabled(isImporting)
-                        // v2.7 round-45:
-                        // the
-                        // inline
-                        // button
-                        // uses
-                        // the
-                        // Pages
-                        // .borderedProminent
-                        // style
-                        // (= a
-                        // filled
-                        // pill
-                        // button
-                        // =
-                        // the
-                        // small
-                        // blue/accent
-                        // pill
-                        // in
-                        // the
-                        // Pages
-                        // inspector
-                        // for
-                        // "Browse"
-                        // /
-                        // "Select"
-                        // /
-                        // "Open"
-                        // actions).
                         .buttonStyle(.borderedProminent)
                         .controlSize(.small)
                 }
             }
 
-            // v2.7 round-45: 24 PT section gap
-            // (= the Pages inspector uses a
-            // larger gap between major
-            // sections than within a
-            // section; = `spacingSection` =
-            // 24 PT is the Apple HIG
-            // canonical value).
-            Spacer()
-                .frame(height: DesignTokens.spacingSection - DesignTokens.spacingStandard)
-            PickerSectionLabel(text: "目标")
+            // v2.7 round-49: Divider
+            // between the file /
+            // source section and
+            // the destination
+            // section (= the
+            // boss's "用一条
+            // 分割线分割"
+            // directive; = the
+            // previous
+            // `PickerSectionLabel
+            // ` + 24 PT gap is
+            // replaced with a
+            // single hairline
+            // Divider; = the
+            // small vertical
+            // padding around
+            // the Divider is
+            // 8 PT (= `spacing
+            // Standard`) =
+            // enough for the
+            // user to see the
+            // Divider as a
+            // deliberate
+            // separator; =
+            // matches the
+            // wenshu v3.0
+            // design system
+            // Divider padding
+            // convention).
+            Divider()
+                .padding(.vertical, DesignTokens.spacingStandard)
 
-            // v2.7 round-45: destination
-            // picker (= .referenceLibrary vs
-            // .book). Uses the
-            // .borderless segmented style
-            // (= the Pages inspector uses
-            // 3-segment tabs in the top
-            // position; = 2-segment tabs
-            // for binary choices like
-            // "Library vs Book"; = the
-            // visual style is a rounded
-            // container with two pills
-            // inside, the active one
-            // tinted).
-            PickerCard {
+            PickerRow {
+                Text("目标")
+                    .foregroundStyle(.primary)
+            } trailing: {
                 Picker("目标", selection: $importDestination) {
                     ForEach(ImportDestination.allCases) { d in
                         Text(d.label).tag(d)
                     }
                 }
                 .pickerStyle(.segmented)
+                .labelsHidden()
                 .disabled(isImporting)
+                .fixedSize()
             }
 
-            // v2.7 round-45: book picker
-            // (= conditional; = only
-            // shown when destination
-            // is .book).
             if importDestination == .book {
-                PickerCard {
+                PickerRow {
+                    Text("目标书籍")
+                        .foregroundStyle(.primary)
+                } trailing: {
                     Picker("目标书籍", selection: $selectedBookID) {
                         Text("请选择书籍").tag(UUID?.none)
                         ForEach(bookStore.books) { book in
@@ -1421,33 +1364,44 @@ extension ImportSheet {
                         }
                     }
                     .pickerStyle(.menu)
+                    .labelsHidden()
                     .disabled(isImporting)
                 }
             }
 
-            // v2.7 round-45: 24 PT section
-            // gap (= the AI 处理 section).
-            Spacer()
-                .frame(height: DesignTokens.spacingSection - DesignTokens.spacingStandard)
-            PickerSectionLabel(text: "AI 处理")
+            // v2.7 round-49: Divider
+            // between the
+            // destination
+            // section and the AI
+            // section.
+            Divider()
+                .padding(.vertical, DesignTokens.spacingStandard)
 
-            PickerCard {
+            PickerRow {
+                Text("AI 重写程度")
+                    .foregroundStyle(.primary)
+            } trailing: {
                 Picker("AI 重写程度", selection: $rewriteMode) {
                     ForEach(ImportFileInput.RewriteMode.allCases, id: \.self) { mode in
                         Text(mode.label).tag(mode)
                     }
                 }
                 .pickerStyle(.menu)
+                .labelsHidden()
                 .disabled(isImporting)
             }
 
-            PickerCard {
+            PickerRow {
+                Text("同时处理文件数")
+                    .foregroundStyle(.primary)
+            } trailing: {
                 Picker("同时处理文件数", selection: $maxParallel) {
                     ForEach(1...5, id: \.self) { n in
                         Text("\(n)").tag(n)
                     }
                 }
                 .pickerStyle(.menu)
+                .labelsHidden()
                 .disabled(isImporting)
             }
         }
@@ -1749,58 +1703,108 @@ private struct WizardStepIndicator: View {
 
 // MARK: - Pages-style picker card
 
-/// v2.7 round-45 (= boss 2026-10-10
-/// "UI 参考, pages 的
-/// mac os 27 的样式.
-/// 重点是间距，和组件
-/// 样式" directive).
-/// The Pages macOS 27 inspector
-/// panel = each picker / stepper /
-/// color swatch row is a filled
-/// rounded card 32 PT tall. This
-/// component wraps a Picker /
-/// Stepper / ColorPicker in the
-/// canonical Pages card surface
-/// (= 8 PT corner radius + subtle
-/// fill + 12 PT horizontal padding
-/// + 32 PT vertical height).
+/// v2.7 round-49 (= boss 2026-10-10
+/// "每一行的背景矩形
+/// 不需要, 每一类
+/// 的小标题不需要
+/// ，用一条分割线
+/// 分割" directive).
+/// The Pages macOS 27
+/// inspector row pattern
+/// (= the canonical macOS
+/// 27 list row = 32 PT
+/// tall, no card
+/// background fill; =
+/// the row is just text
+/// on the panel surface;
+/// = the previous
+/// round-45 "filled
+/// card with 12% white
+/// overlay" was wrong
+/// for a wizard step
+/// surface; = the
+/// wenshu v3.0 design
+/// system now uses the
+/// macOS 14+ list row
+/// pattern). The row
+/// is split into 2
+/// columns:
+/// 1. Leading: the
+///    row's title (=
+///    left aligned,
+///    primary
+///    foreground).
+/// 2. Trailing: the
+///    row's control (=
+///    right aligned;
+///    = a Picker /
+///    Button / HStack).
 ///
-/// Apple HIG source: `Design >
-/// Patterns > Inspector > macOS
-/// 27` (= the Pages / Numbers /
-/// Keynote inspector panel; = the
-/// same card style the macOS
-/// Finder inspector uses for the
-/// "Info" tab + the "Quick Look"
-/// preview panel; = the same
-/// surface color as the system
-/// "Form" widgets in System
-/// Settings).
-///
-/// The card uses a `RoundedRectangle`
-/// clipShape with `.continuous`
-/// corner style (= Apple HIG 13+
-/// corner style; = the squircle
-/// curve; = NOT the deprecated
-/// `.cornerRadius()` API).
-private struct PickerCard<Content: View>: View {
-    let content: Content
+/// v2.7 round-48 also
+/// removed ALL icons.
+/// v2.7 round-49 also
+/// removed the
+/// per-card background
+/// fill (= the
+/// `RoundedRectangle`
+/// with the 12% white
+/// overlay is GONE).
+/// v2.7 round-49 also
+/// removed the
+/// per-section labels
+/// (= "目标" / "AI 处
+/// 理" are gone; = the
+/// sections are
+/// separated by a
+/// single hairline
+/// `Divider`; = the
+/// 24 PT section gap
+/// collapses to the
+/// Divider's natural
+/// 1 PT line + small
+/// padding).
+private struct PickerRow<Leading: View, Trailing: View>: View {
+    let leading: Leading
+    let trailing: Trailing
 
-    init(@ViewBuilder content: () -> Content) {
-        self.content = content()
+    init(
+        @ViewBuilder leading: () -> Leading,
+        @ViewBuilder trailing: () -> Trailing
+    ) {
+        self.leading = leading()
+        self.trailing = trailing()
     }
 
     var body: some View {
-        content
-            .frame(height: DesignTokens.pickerCardHeight)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, DesignTokens.pickerCardPaddingH)
-            .background(
-                RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusCard, style: .continuous)
-                    .fill(Color.secondary.opacity(0.12))
-            )
+        HStack(spacing: DesignTokens.spacingStandard) {
+            leading
+                .frame(maxWidth: .infinity, alignment: .leading)
+            trailing
+        }
+        .frame(height: DesignTokens.pickerCardHeight)
     }
 }
+
+/// v2.7 round-49: renamed
+/// from `PickerSectionLabel`
+/// (= the boss rejected
+/// per-section labels; =
+/// sections are now
+/// separated by a single
+/// `Divider`; = no label
+/// needed). Kept here as
+/// an unused stub for
+/// the moment (= a future
+/// ticket might need it
+/// for a different
+/// surface; = deleting it
+/// would be a dead-code
+/// sweep that violates
+/// Q112's "don't mix
+/// dead-code cleanup with
+/// feature commits"; =
+/// leave it for the next
+/// dead-code sweep).
 
 /// v2.7 round-45: a Pages-style
 /// section label (= the bold
@@ -1846,6 +1850,26 @@ private struct PickerSectionLabel: View {
 /// nav bar is part of
 /// the panel, not a
 /// separate footer").
+/// v2.7 round-48 (= boss 2026-10-10
+/// "第一步的页面，
+/// 不应该有上一步"
+/// directive). The "上
+/// 一步" button is
+/// HIDDEN on step 1
+/// (NOT just disabled;
+/// = the user said
+/// "不应该有" = the
+/// button should not
+/// be present at
+/// all; = a disabled
+/// button takes up
+/// the same space and
+/// is visually noisy;
+/// = the boss wants
+/// the button gone
+/// from the chrome
+/// entirely on the
+/// first step).
 private struct WizardStepNavBar: View {
     @Binding var currentStep: ImportSheet.WizardStep
     let canGoPrev: Bool
@@ -1856,20 +1880,44 @@ private struct WizardStepNavBar: View {
 
     var body: some View {
         HStack {
-            Button("上一步") { onPrev() }
-                .disabled(!canGoPrev)
-                // v2.7 round-45: the
-                // back button uses
-                // the .borderless
-                // style (= Pages
-                // inspector never
-                // uses a prominent
-                // back button; = a
-                // plain text button
-                // is the canonical
-                // "I'm secondary"
-                // style).
-                .buttonStyle(.borderless)
+            // v2.7 round-48: hide the
+            // back button on
+            // step 1 entirely.
+            // An `if` (not
+            // `.disabled`)
+            // because the
+            // boss explicitly
+            // said "不应该有"
+            // (= "should not
+            // exist"; = a
+            // disabled
+            // button is
+            // visible; = the
+            // boss wants it
+            // removed from
+            // the chrome).
+            if canGoPrev {
+                Button("上一步") { onPrev() }
+                    // v2.7 round-45:
+                    // the back
+                    // button uses
+                    // the
+                    // .borderless
+                    // style (=
+                    // Pages
+                    // inspector
+                    // never uses
+                    // a prominent
+                    // back button;
+                    // = a plain
+                    // text button
+                    // is the
+                    // canonical
+                    // "I'm
+                    // secondary"
+                    // style).
+                    .buttonStyle(.borderless)
+            }
             Spacer()
             Button(primaryActionLabel) { onNext() }
                 .keyboardShortcut(.defaultAction)
