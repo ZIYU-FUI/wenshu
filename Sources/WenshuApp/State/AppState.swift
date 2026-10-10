@@ -435,10 +435,15 @@ final class EditorTab: Identifiable {
     // 3rd-column tab strip when the user
     // has not yet picked a document). Now
     // uses the `preview.tab.placeholder`
-    // i18n key (= "Preview" in en /
-    // "预览" in zh-Hans; = matches the
-    // other empty-state strings in
-    // PreviewPane).
+    // i18n key via `NSLocalizedString` (=
+    // reads from the binary .strings
+    // files at runtime; = the .xcstrings
+    // String Catalog is the human/LLM
+    // source of truth but is not shipped
+    // to the bundle; = see PreviewPane's
+    // emptyState comment for the full
+    // rationale). Translations: "Preview"
+    // (en) / "预览" (zh-Hans).
     static func displayTitle(_ tab: EditorTab) -> String {
         if let path = tab.documentPath, !path.isEmpty {
             let url = URL(fileURLWithPath: path)
@@ -446,7 +451,7 @@ final class EditorTab: Identifiable {
             if !basename.isEmpty { return basename }
         }
         if let title = tab.title, !title.isEmpty { return title }
-        return String(localized: "preview.tab.placeholder")
+        return NSLocalizedString("preview.tab.placeholder", comment: "")
     }
 }
 

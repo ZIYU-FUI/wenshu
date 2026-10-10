@@ -1842,10 +1842,61 @@ struct PreviewPane: View {
         // inspector icon weight; = standard title /
         // body hierarchy). Same visual treatment as the 12
         // specialized tool tabs.
+        // v2.7 round-68 (= boss
+        // 2026-10-10 "少了几个
+        // 多语言" feedback).
+        // The previous
+        // implementation used
+        // `String(localized:
+        // LocalizationValue(stringLiteral:))`
+        // which on macOS 14+ /
+        // Xcode 15+ reads from
+        // `Localizable.xcstrings`
+        // (= the String Catalog).
+        // = the SPM .process("Resources")
+        // pattern did NOT ship
+        // the .xcstrings into
+        // the runtime bundle (=
+        // it stays in the
+        // build cache; = the
+        // copy loop in
+        // Scripts/build-app.sh
+        // promotes only the
+        // compiled .lproj/
+        // Localizable.strings
+        // files; = the runtime
+        // never sees
+        // .xcstrings; = the
+        // 10 preview.empty*
+        // keys existed in
+        // the binary .strings
+        // but not in
+        // .xcstrings; = the
+        // runtime showed raw
+        // dotted keys). Fix:
+        // use `NSLocalizedString`
+        // (= reads from the
+        // binary .strings files
+        // which DO have the
+        // keys; = the canonical
+        // path for runtime
+        // lookup; = the
+        // `Localizable.xcstrings`
+        // becomes the source
+        // for humans + LLMs
+        // only; = the binary
+        // .strings files are
+        // the runtime truth).
+        // The .xcstrings is
+        // also updated (= 638
+        // keys vs 627; = source
+        // of truth for future
+        // Xcode String Catalog
+        // editing).
         EmptyStateView(
             icon: icon,
-            title: String(localized: String.LocalizationValue(stringLiteral: titleKey)),
-            body: String(localized: String.LocalizationValue(stringLiteral: bodyKey))
+            title: NSLocalizedString(titleKey, comment: ""),
+            body: NSLocalizedString(bodyKey, comment: "")
         )
     }
 
