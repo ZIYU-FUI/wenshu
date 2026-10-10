@@ -137,9 +137,10 @@ matter for ADR-0009 / code-duplication-forbidden principle) are:
 The 43 hermes modules per spec §2.1 + §2.2 are covered across the wenshu tree
 (= `Sources/WenshuApp/Core/Agent/`, `Core/Provider/`, `Core/Memory/`, `Core/Skills/`,
 `Core/Tools/`, `Core/Chat/`, plus `UI/LLMConnector/` for the Settings UI). The
-ground-truth tally per the parallel gap audit at
-`.scratch/2026-09-04-hermes-port-gap-audit.md` (read-only static analysis
-2026-09-04):
+ground-truth tally (= per the 2026-09-04 static-analysis snapshot; = the
+original parallel `.scratch/2026-09-04-hermes-port-gap-audit.md` file has
+been superseded by the manifest below; = the manifest is now the
+canonical live tally source):
 
 - 6 ✅ direct port (14%) — have a dedicated wenshu Swift file that ports the
   behavior 1:1 (= prompt_caching, error_classifier, turn_retry_state,
@@ -179,8 +180,9 @@ Decision (= wenshu-side wins, per ADR-0009):
    wenshu-side" requires explicit boss拍. Default = wenshu-side wins. No silent
    replacement.
 5. **Work-tree coverage** (boss OOB 2026-09-04 (see OOB.md #2026-09-04)): the 26
-   incomplete hermes modules (= 18 ⚠️ partial + 8 ❌ missing per the gap audit at
-   `.scratch/2026-09-04-hermes-port-gap-audit.md`) are tracked in the manifest's
+   incomplete hermes modules (= 18 ⚠️ partial + 8 ❌ missing per the 2026-09-04
+   static-analysis snapshot; = the manifest below is the live tally source)
+   are tracked in the manifest's
    Coverage section. The 8 ❌ missing modules (= prompt_builder,
    chat_completion_helpers, agent_runtime_helpers, tool_dispatch_helpers,
    skill_bundles, secret_sources + secret_scope, retry_utils, shell_hooks) have
