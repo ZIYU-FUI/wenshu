@@ -695,4 +695,15 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         let data = try PropertyListSerialization.data(fromPropertyList: plist, format: .xml, options: 0)
         try data.write(to: infoPlistURL)
     }
+
+    /// v2.7 round-73 (= boss 2026-10-10): the import
+    /// agent needs the on-disk shelvesRoot (= to
+    /// resolve a target book's directory at write
+    /// time). Without an active library (= first-launch
+    /// / pre-onboarding), returns nil.
+    nonisolated static func activeShelvesRoot() -> URL? {
+        guard let wsRoot = ActiveLibrary.path else { return nil }
+        let url = URL(fileURLWithPath: wsRoot)
+        return url.appendingPathComponent("shelves", isDirectory: true)
+    }
 }

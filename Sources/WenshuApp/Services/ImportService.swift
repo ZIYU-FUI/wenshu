@@ -412,19 +412,7 @@ struct ImportTask: Identifiable, Sendable, Hashable {
     /// v2.7 round-72 (= boss 2026-10-10
     /// "B" pick for "让 LLM 必须拆, 但
     /// 真的没有内容, 拆不出来就拆不出
-    /// 来, 但拆的东西必须要做"). True
-    /// when phase 2 returned empty (=
-    /// LLM could not extract the 6
-    /// 必填). The orchestrator wrote all
-    /// 6 必填 as 占位子文件 with a
-    /// `[待补充] 需调研补齐` body (= boss's
-    /// "拆的东西必须要做" + "文件内允许打
-    /// 待补充标记"). Main B file was NOT
-    /// written (= boss's "导入失败就是
-    /// 导入失败"). The row UI shows a
-    /// "⚠️ 待补充" badge.
-    var needsFilling: Bool = false
-    /// v2.7 round-70 (= boss 2026-10-10
+        /// v2.7 round-70 (= boss 2026-10-10
     /// "能在这个导入的过
     /// 程中, 事实显示
     /// LLM 的工具调用
@@ -490,8 +478,6 @@ struct ImportTask: Identifiable, Sendable, Hashable {
     /// progress
     /// indicator on the
     /// specific phase).
-    var activePhase: LLMCallPhase? = nil
-
     init(sourcePath: String) {
         self.id = UUID()
         self.sourcePath = sourcePath
@@ -503,9 +489,7 @@ struct ImportTask: Identifiable, Sendable, Hashable {
         self.routing = nil
         self.extraFilesTotal = 0
         self.extraFilesDone = 0
-        self.needsFilling = false
         self.activityLog = []
-        self.activePhase = nil
     }
 }
 
@@ -3366,52 +3350,25 @@ extension ImportService {
                     folder: folder
                 )
             case .reorganize:
-                // Reorganize: use the LLM's rewrittenBody
-                // (= complete B-template body) directly.
-                // v2.7 round-72 (= boss 2026-10-10
-                // "B" pick for "让 LLM 必
-                // 须拆, 但真的没有内容, 拆
-                // 不出来就拆不出来, 但拆的
-                // 东西必须要做"). When
-                // `routing.needsFilling ==
-                // true` (= phase 2 empty),
-                // skip writing the main B
-                // file entirely (= boss's
-                // "导入失败就是导入失败";
-                // = no
-                // `prepareBodyForWrite`
-                // fallback). The orchestrator
-                // synthesizes the 6 必填 as
-                // 占位子文件 with a `[待补
-                // 充] 需调研补齐` body
-                // below (= boss's "拆的东
-                // 西必须要做").
-                if routing.needsFilling {
-                    NSLog(
-                        "[wenshu.import] .reorganize mode + needsFilling=true; SKIPPING main file write"
-                    )
-                    bodyToWrite = ""
-                } else if let rewritten = routing.rewrittenBody,
-                          !rewritten.isEmpty {
-                    bodyToWrite = rewritten
-                } else {
-                    // LLM didn't return a body (= rare;
-                    // = most likely a transient LLM
-                    // failure or the prompt was
-                    // mis-parsed); = use the
-                    // prepareBodyForWrite fallback (= the
-                    // user gets at least the canonical
-                    // B-template structure; = the
-                    // [TODO: 需调研补齐] placeholders
-                    // are then editable; = no data loss).
-                    NSLog(
-                        "[wenshu.import] .reorganize mode but rewrittenBody empty; falling back to prepareBodyForWrite"
-                    )
-                    bodyToWrite = ImportDocumentTemplate.prepareBodyForWrite(
-                        rawBody: originalBody,
-                        folder: folder
-                    )
-                }
+                // v2.7 round-73 (= the agent owns writing;
+                // = ImportAgentDriver delegates to the
+                // writeBookDoc tool for every sub-file; =
+                // the agent never surfaces a `rewrittenBody`
+                // through this path; = the main INDEX file
+                // body is written via the agent's
+                // writeBookDoc call for `world/<title>.md`).
+                // `rewrittenBody` here is always nil per
+                // routeReorganizeMultiTurn's round-73
+                // signature (= we set
+                // `rewrittenBody: nil` explicitly); = the
+                // orchestrator has nothing to write for the
+                // main file in .reorganize mode. Set
+                // `bodyToWrite = ""` (= the agent's
+                // writeBookDoc tool calls are the only
+                // authoritative writes; = see
+                // routeReorganizeMultiTurn in
+                // WenshuConductorImportRouter).
+                bodyToWrite = ""
             case .searchAndRewrite:
                 if let rewritten = routing.rewrittenBody, !rewritten.isEmpty {
                     // SearchAndRewrite with LLM-supplied body: still run through prepareBodyForWrite
@@ -3526,87 +3483,6 @@ extension ImportService {
                 tasksBox.value[i].extraFilesDone += 1
                 _ = extraResult
             }
-            // v2.7 round-72 (= boss 2026-10-10
-            // "B" pick for "拆的东西必须要
-            // 做, 文件内允许打待补充标
-            // 记, 不兜底落库"). When
-            // `routing.needsFilling == true`
-            // (= phase 2 returned empty),
-            // the LLM's 6 必填 + N 自定义
-            // above were ALL 占位 (= empty
-            // body + `[待补充] 需调研补齐`
-            // marker). Additionally, for the
-            // 6 必填 titles defined in the
-            // folder's `requiredTitles` (=
-            // only `world` has 6 right now),
-            // the orchestrator **guarantees**
-            // each one is written (= boss's
-            // "拆的东西必须要做"), filling
-            // any titles the LLM didn't
-            // return with the same 占位
-            // body. Main B file is NOT
-            // written (= boss's "不兜底落
-            // 库").
-            if routing.needsFilling,
-               case .reorganize = target.rewriteMode {
-                tasksBox.value[i].needsFilling = true
-                let requiredTitles = BookFolderCatalog.spec(
-                    for: mainFolderName
-                )?.requiredTitles ?? []
-                for placeholderTitle in requiredTitles {
-                    // Skip titles the LLM
-                    // already produced (= those
-                    // are in `allExtras` from
-                    // the loop above).
-                    let alreadyExists = routing.extraFiles.contains(
-                        where: { $0.title == placeholderTitle }
-                    )
-                    if alreadyExists { continue }
-                    let placeholderFolder: BookFolder
-                    switch routing.destination {
-                    case .referenceLibrary:
-                        placeholderFolder = .world
-                    case .bookFolder(let f):
-                        placeholderFolder = f
-                    }
-                    let placeholderExtra = ExtraFile(
-                        folder: placeholderFolder,
-                        title: placeholderTitle,
-                        body: "",
-                        required: true
-                    )
-                    do {
-                        try await writeExtraFile(
-                            extra: placeholderExtra,
-                            target: target,
-                            tasksBox: tasksBox,
-                            i: i,
-                            extraIndex: tasksBox.value[i].extraFilesTotal
-                        )
-                        await appendActivity(
-                            to: tasksBox, i: i,
-                            message: String(
-                                format: "  📝 %@/%@.md",
-                                mainFolderName, placeholderTitle
-                            ),
-                            onProgress: onProgress
-                        )
-                        tasksBox.value[i].extraFilesTotal += 1
-                        tasksBox.value[i].extraFilesDone += 1
-                    } catch {
-                        NSLog(
-                            "[wenshu.import] placeholder sub-file %@ failed: %@",
-                            placeholderTitle,
-                            String(describing: error)
-                        )
-                        await appendActivity(
-                            to: tasksBox, i: i,
-                            message: "  ❌ \(placeholderTitle).md 写失败: \(String(describing: error))",
-                            onProgress: onProgress
-                        )
-                    }
-                }
-            }
             if !bodyToWrite.isEmpty {
                 try await writeFile(
                     body: bodyToWrite,
@@ -3623,13 +3499,6 @@ extension ImportService {
                 await appendActivity(
                     to: tasksBox, i: i,
                     message: String(format: "✅ 主文件写入成功 (%.1f KB)", bodyKB),
-                    onProgress: onProgress
-                )
-            } else if routing.needsFilling,
-                      case .reorganize = target.rewriteMode {
-                await appendActivity(
-                    to: tasksBox, i: i,
-                    message: "❌ 主文件未写 (= LLM 未拆出 6 必填)",
                     onProgress: onProgress
                 )
             }
