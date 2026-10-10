@@ -3363,9 +3363,11 @@ extension ImportService {
                 // `rewrittenBody: nil` explicitly); = the
                 // orchestrator has nothing to write for the
                 // main file in .reorganize mode. Set
-                // `bodyToWrite = ""` and skip the writeFile
-                // call below (= the agent's tool calls are
-                // the only authoritative writes).
+                // `bodyToWrite = ""` (= the agent's
+                // writeBookDoc tool calls are the only
+                // authoritative writes; = see
+                // routeReorganizeMultiTurn in
+                // WenshuConductorImportRouter).
                 bodyToWrite = ""
             case .searchAndRewrite:
                 if let rewritten = routing.rewrittenBody, !rewritten.isEmpty {

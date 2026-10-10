@@ -169,7 +169,7 @@ struct WriteBookDocTool: Tool, Sendable {
         // FileTools.write for the
         // canonical wenshu file-writing
         // path; = shared with the
-        // orchestrator's writeFile).
+        // orchestrator's FileTools.write).
         let tools = FileTools()
         do {
             try tools.write(path: canonicalFull, content: body)
