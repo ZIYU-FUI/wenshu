@@ -33,7 +33,8 @@ final class ImportServiceTests: XCTestCase {
                 title: "stub", summary: "stub summary",
                 tags: ["stub"], entityType: "other",
                 category: nil, confidence: 1.0,
-                rewrittenBody: nil
+                rewrittenBody: nil,
+                extraFiles: []
             )
         }
         // v2.7 round-66 commit F:
@@ -174,7 +175,8 @@ final class ImportServiceTests: XCTestCase {
                 title: "Eryndor kingdom", summary: "stub",
                 tags: [], entityType: "other",
                 category: nil, confidence: 1.0,
-                rewrittenBody: nil
+                rewrittenBody: nil,
+                extraFiles: []
             )
         ]
         let tasks = await svc.importFiles(in: src, into: target, router: StubImportRouter(canned))
@@ -267,7 +269,8 @@ final class ImportServiceTests: XCTestCase {
                 destination: .bookFolder(.drafts),
                 title: "t", summary: "s", tags: ["stub"],
                 entityType: "other", category: nil, confidence: 1.0,
-                rewrittenBody: nil
+                rewrittenBody: nil,
+                extraFiles: []
             )
         ]
         // First import.
@@ -309,7 +312,8 @@ final class ImportServiceTests: XCTestCase {
                 return ImportRoutingResult(
                     destination: .referenceLibrary, title: "t", summary: "s",
                     tags: [], entityType: "other", category: nil, confidence: 1.0,
-                    rewrittenBody: nil
+                    rewrittenBody: nil,
+                    extraFiles: []
                 )
             }
             // v2.7 round-66 commit F:
@@ -365,7 +369,8 @@ final class ImportServiceTests: XCTestCase {
                 destination: .bookFolder(.world),
                 title: "t-\(rel)", summary: "s", tags: [],
                 entityType: "other", category: nil, confidence: 1.0,
-                rewrittenBody: nil
+                rewrittenBody: nil,
+                extraFiles: []
             )
         }
         let tasks = await svc.importFiles(in: src, into: target, router: StubImportRouter(canned))

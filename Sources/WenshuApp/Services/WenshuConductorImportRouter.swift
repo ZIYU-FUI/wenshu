@@ -632,6 +632,50 @@ actor WenshuConductorImportRouter: ImportRouter {
                    `# 标题` 之外的 H1 / 自定义
                    字段名; = 全部按 B 模板重
                    组)
+                 - **强制去反链** (= 老
+                   板 2026-10-10 "强
+                   制去反链" 反馈;
+                   = Obsidian 反链是
+                   wenshu 用不上的
+                   链接形式; = wenshu
+                   关系走 Reference
+                   struct 字段; = A
+                   里的 `[[xxx]]` 形
+                   式 (= 整行 / 段
+                   落中间 / 引用块
+                   里) **全部** 去掉;
+                   = 包括:
+                     - `[[故事宪法]]` (= 反链)
+                     - `见 [[02-朝代]]` (= 嵌
+                       段中间)
+                     - `![[图片.png]]` (= 图
+                       片反链 = 删除)
+                   = 用"参见 <实体名>"
+                   或直接删除 = 你
+                   决定; 但**不写**
+                   `[[...]]` 形式)
+                 - **强制去版本记录**
+                   (= 老板 2026-10-10
+                   "强制去版本记录,
+                   这些东西在我们的
+                   项目没有意思" 反
+                   馈; = wenshu 文档
+                   body 是纯内容, 版
+                   本走 metadata 不
+                   走 body; = A 里的:
+                     - `上次更新: 2026-XX-XX`
+                     - `修改记录: v1 / v2 / v3`
+                     - `版本: 0.5`
+                     - `修订: ...`
+                     - `Created: ...`
+                     - `Modified: ...`
+                     - `Updated: ...`
+                     - `Revision: ...`
+                     - `Last edited: ...`
+                     - `Date: ...`
+                   = 全部去掉; = 留
+                   空白行即可; = **不
+                   要**写到 .md body)
                  - **不要**扩写或虚构 (= 老
                    板原话 "不要扩写或加虚构
                    内容" 一直适用; = 重组 =
@@ -933,7 +977,8 @@ actor WenshuConductorImportRouter: ImportRouter {
                 entityType: "other",
                 category: nil,
                 confidence: 0.0,
-                rewrittenBody: nil
+                rewrittenBody: nil,
+                extraFiles: []
             )
         }
         // 2. Parse the JSON.
@@ -997,7 +1042,13 @@ actor WenshuConductorImportRouter: ImportRouter {
             // to use the rewritten body or fall back
             // to the original (= see round-66 commit E
             // for the mode-aware body selection).
-            rewrittenBody: parsed.rewrittenBody
+            rewrittenBody: parsed.rewrittenBody,
+            // v2.7 round-67: extraFiles parsed
+            // by `parseImportDecision` (=
+            // see ticket 02). Empty array
+            // when LLM doesn't return any
+            // (= most common case).
+            extraFiles: parsed.extraFiles
         )
     }
 
@@ -1392,6 +1443,24 @@ actor WenshuConductorImportRouter: ImportRouter {
         /// when the LLM returned an empty
         /// string).
         var rewrittenBody: String?
+        /// v2.7 round-67 (= boss 2026-10-10
+        /// "甚至原文件 A 的内容, 与我们的
+        /// B 模版不符合, 多了很我非模
+        /// 板的内容, 我希望能自动拆出
+        /// 一个文件, 放在合适的目录中
+        /// 去" 反馈). The LLM's optional
+        /// array of additional files to
+        /// split out (= A's content that
+        /// doesn't fit B's template
+        /// structure; = each element
+        /// contains folder/title/body
+        /// keys). Empty array when A
+        /// fully maps to B (= most
+        /// common case). Capped at 5
+        /// elements (= orchestrator-level
+        /// safety cap on top of the
+        /// LLM-prompt cap).
+        var extraFiles: [ExtraFile] = []
     }
 
     /// Extract the first balanced `{...}` JSON object
@@ -1578,14 +1647,115 @@ actor WenshuConductorImportRouter: ImportRouter {
             }
             return trimmedTag
         }
+        // v2.7 round-67 ticket 02: parse
+        // `extraFiles` (= LLM's optional
+        // array of split-out files).
+        // Defensive: missing / malformed
+        // elements are dropped (= the
+        // orchestrator never sees a
+        // half-parsed element). Capped at
+        // 5 (= safety cap on top of the
+        // LLM-prompt cap; = prevents an
+        // LLM that ignored the prompt from
+        // producing hundreds of extra
+        // files in one import).
+        let extraFiles = Self.parseExtraFiles(from: parsed)
         return ImportDecision(
             title: title,
             summary: summary,
             tags: dedupedTags,
             destination: destination,
             bookFolder: bookFolder,
-            rewrittenBody: rewrittenBody
+            rewrittenBody: rewrittenBody,
+            extraFiles: extraFiles
         )
+    }
+
+    /// v2.7 round-67 ticket 02: parse the
+    /// `extraFiles` array from the LLM's
+    /// JSON response. Each element must
+    /// have a valid `folder` (= one of
+    /// the 6 BookFolder cases; = unknown
+    /// → drop the element + log warning),
+    /// a non-empty `title` (= empty
+    /// → drop), and a non-empty `body`
+    /// (= empty → drop). Capped at 5
+    /// elements. Returns an empty array
+    /// (= the safe default) when the LLM
+    /// doesn't include `extraFiles` at all.
+    private static func parseExtraFiles(from json: [String: Any]) -> [ExtraFile] {
+        guard let rawArray = json["extraFiles"] as? [[String: Any]] else {
+            return []
+        }
+        var result: [ExtraFile] = []
+        for element in rawArray {
+            // Stop at the cap (= 5).
+            if result.count >= 5 { break }
+            // Parse folder (= one of 6 BookFolder cases).
+            guard let folderStr = element["folder"] as? String,
+                  let folder = Self.bookFolder(from: folderStr)
+            else {
+                NSLog(
+                    "[wenshu.import] extraFiles element has unknown folder; skipping: %@",
+                    element.description
+                )
+                continue
+            }
+            // Title must be non-empty (= after trim).
+            let title = (element["title"] as? String ?? "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            if title.isEmpty {
+                NSLog(
+                    "[wenshu.import] extraFiles element has empty title; skipping: %@",
+                    element.description
+                )
+                continue
+            }
+            // Body must be non-empty (= the LLM is
+            // supposed to put real content here; =
+            // empty body = no point in creating a
+            // blank .md).
+            let body = element["body"] as? String ?? ""
+            if body.isEmpty {
+                NSLog(
+                    "[wenshu.import] extraFiles element has empty body; skipping: %@",
+                    element.description
+                )
+                continue
+            }
+            // Un-escape JSON `\\n` to real newlines
+            // (= the LLM-prompt told it to use \n
+            // escape; = the orchestrator un-escapes
+            // here; = same pattern as rewrittenBody
+            // above).
+            let unescapedBody = body
+                .replacingOccurrences(of: "\\n", with: "\n")
+            result.append(ExtraFile(
+                folder: folder,
+                title: title,
+                body: unescapedBody
+            ))
+        }
+        return result
+    }
+
+    /// v2.7 round-67 ticket 02: map a
+    /// string to a `BookFolder` (= the
+    /// same mapping as the main
+    /// destination's `folder` key; =
+    /// extracted to a helper so the
+    /// main + extraFiles parsers
+    /// share the canonical case list).
+    private static func bookFolder(from string: String) -> BookFolder? {
+        switch string {
+        case "world": return .world
+        case "characters": return .characters
+        case "outlines": return .outlines
+        case "chapters": return .chapters
+        case "drafts": return .drafts
+        case "ideas": return .ideas
+        default: return nil
+        }
     }
 
     /// v2.7 (= boss 2026-10-09 round-29) = a

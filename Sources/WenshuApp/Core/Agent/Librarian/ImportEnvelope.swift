@@ -248,6 +248,65 @@ struct ImportRoutingResult: Codable, Sendable, Hashable {
     /// `consolidate` mode (= the orchestrator
     /// keeps the original body verbatim).
     let rewrittenBody: String?
+    /// v2.7 round-67 (= boss 2026-10-10
+    /// "甚至原文件 A 的内容, 与我们的 B
+    /// 模版不符合, 多了很我非模版的内
+    /// 容, 我希望能自动拆出一个文件, 放
+    /// 在合适的目录中去" 反馈). When the
+    /// user picked the `reorganize` rewriteMode,
+    /// the LLM may return additional files
+    /// (= A's content that doesn't fit B's
+    /// template structure; = e.g. an Obsidian
+    /// 故事宪法 with "七夕" event descriptions
+    /// → the LLM splits that into a separate
+    /// 七夕.md in the same book). Each element
+    /// is routed to the same book (= same
+    /// shelfId / bookId UUIDs) but a different
+    /// folder (= the LLM-decided `BookFolder`;
+    /// = the orchestrator writes to the
+    /// corresponding `<bookId>/<folder.directoryName>/`
+    /// path). Capped at 5 elements (= boss
+    /// 烤问约束 = 防止 LLM 过度拆). Empty
+    /// array (= most common case) when A
+    /// fully maps to B (= no extra content).
+    let extraFiles: [ExtraFile]
+}
+
+/// v2.7 round-67 (= see boss 2026-10-10 OOB
+/// on auto-splitting A's non-B content into
+/// separate .md files). One element of
+/// `ImportRoutingResult.extraFiles`. The LLM
+/// decides: which `BookFolder` to route to
+/// (within the same book), what human-readable
+/// `title` to give the new file (= Chinese is
+/// fine; = the sidebar uses this as the card
+/// title), and the `body` to write (= a
+/// self-contained markdown file = no
+/// backlinks / no frontmatter; = same shape
+/// as a hand-written book doc).
+struct ExtraFile: Codable, Sendable, Hashable {
+    /// Which book folder to write this file
+    /// into (= the LLM's routing decision;
+    /// = constrained to the 6 `BookFolder`
+    /// cases that have an `importTemplate`;
+    /// = `drafts` (= 草稿) is the
+    /// safest default for ambiguous content).
+    let folder: BookFolder
+    /// Human-readable title for the new file
+    /// (= used as the on-disk filename stem
+    /// AND as the BookDoc card title; =
+    /// sanitized against path-unsafe
+    /// characters at write time; = max 30
+    /// Chinese chars per the LLM prompt; =
+    /// empty / unsafe-only title falls back
+    /// to a UUID prefix).
+    let title: String
+    /// Full markdown body for the new file
+    /// (= the LLM-supplied content; =
+    /// stripped of Obsidian backlinks at
+    /// write time; = no frontmatter
+    /// required).
+    let body: String
 }
 
 /// v2.7 round-66 commit F (= boss

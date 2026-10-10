@@ -113,7 +113,8 @@ final class ImportEnvelopeTests: XCTestCase {
             entityType: "location",
             category: nil,
             confidence: 0.92,
-            rewrittenBody: nil
+            rewrittenBody: nil,
+            extraFiles: []
         )
         let data = try JSONEncoder().encode(original)
         let decoded = try JSONDecoder().decode(ImportRoutingResult.self, from: data)
@@ -129,7 +130,8 @@ final class ImportEnvelopeTests: XCTestCase {
             entityType: "concept",
             category: "I",
             confidence: 0.85,
-            rewrittenBody: nil
+            rewrittenBody: nil,
+            extraFiles: []
         )
         let data = try JSONEncoder().encode(original)
         let decoded = try JSONDecoder().decode(ImportRoutingResult.self, from: data)
@@ -149,7 +151,8 @@ final class ImportEnvelopeTests: XCTestCase {
                 entityType: "other",
                 category: nil,
                 confidence: 1.0,
-                rewrittenBody: nil
+                rewrittenBody: nil,
+                extraFiles: []
             )
             let data = try JSONEncoder().encode(original)
             let decoded = try JSONDecoder().decode(ImportRoutingResult.self, from: data)

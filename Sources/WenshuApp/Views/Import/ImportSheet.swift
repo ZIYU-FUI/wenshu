@@ -2429,7 +2429,8 @@ private struct StubImportRouterForSheet: ImportRouter {
             entityType: "other",
             category: nil,
             confidence: 1.0,
-            rewrittenBody: nil
+            rewrittenBody: nil,
+            extraFiles: []
         )
     }
     // v2.7 round-66 commit F:
