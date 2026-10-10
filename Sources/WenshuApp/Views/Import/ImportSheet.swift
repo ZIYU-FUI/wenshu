@@ -423,6 +423,28 @@ struct ImportSheet: View {
             // with the current step;
             // = "开始" / "下一步" /
             // "完成").
+            // v2.7 round-52 (= boss
+            // 2026-10-10 "我画的
+            // 红线处, 缺一条
+            // 分割先. 让操作
+            // 区和设定区分
+            // 开" directive).
+            // A hairline
+            // Divider between
+            // the per-step
+            // content (= 设定
+            // 区) and the nav
+            // bar (= 操作
+            // 区). The Divider
+            // is on every
+            // step (= the
+            // boss's "演示
+            // 要每一步骤
+            // 的页面都
+            // 一样"
+            // directive from
+            // round-50).
+            WizardActionDivider()
             WizardStepNavBar(
                 currentStep: $currentStep,
                 canGoPrev: canGoPrev,
@@ -2063,5 +2085,63 @@ private struct WizardStepNavBar: View {
                 .controlSize(.regular)
         }
         .padding(.top, DesignTokens.spacingStandard)
+    }
+}
+
+// v2.7 round-52 (= boss 2026-10-10
+// "我画的红线处, 缺一
+// 条分割先. 让操作区
+// 和设定区分开"
+// directive). The hairline
+// Divider between the
+// step's per-step content
+// (= the 设定区 = the
+// pickers / progress bar
+// / file list / summary)
+// and the bottom action
+// row (= the 操作区 = the
+// nav bar with "上一步"
+// + "下一步/开始/
+// 完成"). The Divider is
+// the visual seam that
+// separates "what the user
+// is configuring /
+// observing" from "what
+// the user does next" (=
+// Apple HIG canonical
+// dialog pattern; = the
+// Pages inspector uses
+// the same hairline
+// Divider between the
+// inspector body and the
+// toolbar at the bottom
+// of the panel).
+//
+// The Divider is applied
+// to the sheet body
+// (= ABOVE the
+// WizardStepNavBar; =
+// below the per-step
+// view's content; = on
+// every step) so the
+// action area is always
+// visually separated
+// from the content area.
+// The Divider has no
+// vertical padding (= the
+// Divider is a single
+// hairline; = the
+// padding above the
+// Divider is supplied by
+// the per-step view's
+// bottom padding; = the
+// padding below the
+// Divider is supplied by
+// the WizardStepNavBar's
+// `padding(.top, ...
+// spacingStandard)`).
+private struct WizardActionDivider: View {
+    var body: some View {
+        Divider()
     }
 }
