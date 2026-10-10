@@ -362,7 +362,33 @@ struct ImportSheet: View {
             // also clickable to jump
             // back; = this replaces the
             // old single-page Form).
-            WizardStepIndicator(currentStep: $currentStep)
+            //
+            // v2.7 round-47 (= boss
+            // 2026-10-10 "dot 如果没
+            // 有进到下一步，dot
+            // 就不能跳到下一
+            // 步骤" directive).
+            // The dot jumps are
+            // GATED on
+            // `canReachStep(step)`;
+            // = the user can
+            // only click a dot
+            // for a step they
+            // have already
+            // reached; = a
+            // fresh sheet on
+            // ① 选目标 only
+            // has ① clickable;
+            // = ②③④ are
+            // dimmed and
+            // disabled; = the
+            // user MUST walk
+            // through the
+            // wizard linearly.
+            WizardStepIndicator(
+                currentStep: $currentStep,
+                canReach: canReachStep
+            )
                 .padding(.bottom, DesignTokens.spacingTight)
 
             // The per-step content. Each step
@@ -1051,6 +1077,68 @@ struct ImportSheet: View {
 // MARK: - 4-step wizard helpers
 
 extension ImportSheet {
+    /// v2.7 round-47 (= boss 2026-10-10
+    /// "dot 如果没有进
+    /// 到下一步，dot
+    /// 就不能跳到下一
+    /// 步骤" directive).
+    /// The reachability
+    /// predicate for the
+    /// dot indicator. The
+    /// user can only click
+    /// a dot for a step
+    /// they have already
+    /// reached (= a fresh
+    /// sheet on ① 选目
+    /// 标 only has ①
+    /// clickable; = ②③④
+    /// are dimmed AND
+    /// disabled). The
+    /// reachability
+    /// contract:
+    /// - `.configure`
+    ///   always reachable
+    ///   (= the initial
+    ///   step).
+    /// - `.running`
+    ///   reachable when
+    ///   the user has
+    ///   pressed 开始 (=
+    ///   `hasRunOnce`).
+    /// - `.results`
+    ///   reachable when
+    ///   the import has
+    ///   finished (= the
+    ///   orchestrator's
+    ///   `isRunComplete`
+    ///   flag is true) OR
+    ///   the user has
+    ///   already
+    ///   navigated past
+    ///   it (= currentStep
+    ///   ≥ .results).
+    /// - `.done`
+    ///   reachable only
+    ///   after the user
+    ///   has tapped 完成
+    ///   on the .results
+    ///   step (= currentStep
+    ///   == .done OR
+    ///   currentStep has
+    ///   been past it).
+    fileprivate func canReachStep(_ step: WizardStep) -> Bool {
+        switch step {
+        case .configure:
+            return true
+        case .running:
+            return hasRunOnce || currentStep.rawValue >= WizardStep.running.rawValue
+        case .results:
+            return isRunComplete || currentStep.rawValue >= WizardStep.results.rawValue
+        case .done:
+            return currentStep.rawValue >= WizardStep.done.rawValue
+        }
+    }
+
     /// True if the user can go back one step (= not on
     /// the first step; = never go back from .running
     /// because the import is mid-flight; = the boss's
@@ -1573,50 +1661,50 @@ private struct StubImportRouterForSheet: ImportRouter {
 /// answer to the Q3 clarify).
 private struct WizardStepIndicator: View {
     @Binding var currentStep: ImportSheet.WizardStep
+    let canReach: (ImportSheet.WizardStep) -> Bool
 
     var body: some View {
         HStack(spacing: DesignTokens.spacingModerate) {
             ForEach(ImportSheet.WizardStep.allCases) { step in
+                let reachable = canReach(step)
                 Button {
-                    // The user can jump to any
-                    // step directly (= the boss's
-                    // "混合" answer). We don't
-                    // gate the jump on a
-                    // "canReach" predicate; =
-                    // the user is in control;
-                    // = the per-step view's
-                    // content reflects the
-                    // current tasks state (= if
-                    // the user jumps to
-                    // .results before .running
-                    // has run, the strip is
-                    // empty + the summary
-                    // shows 0/0/0).
+                    // v2.7 round-47 (= boss
+                    // 2026-10-10 "dot
+                    // 如果没有进到下一
+                    // 步，dot 就不能
+                    // 跳到下一步骤
+                    // 不能一进来什么
+                    // 都没有，就可以
+                    // 跳到完成去"
+                    // directive). Only
+                    // jump if the step
+                    // is reachable
+                    // (= the button is
+                    // also .disabled
+                    // below; = the
+                    // guard is a
+                    // defense-in-depth
+                    // check). The
+                    // round-44
+                    // "可以跳到任意
+                    // 步骤" behavior
+                    // is the bug this
+                    // commit fixes.
+                    guard reachable else { return }
                     currentStep = step
                 } label: {
                     VStack(spacing: DesignTokens.spacingCaption) {
                         Image(systemName: dotIcon(for: step))
                             .font(.title3)
-                            .foregroundStyle(dotColor(for: step))
+                            .foregroundStyle(dotColor(for: step, reachable: reachable))
                         Text(step.label)
                             .font(.caption)
-                            .foregroundStyle(dotColor(for: step))
+                            .foregroundStyle(dotColor(for: step, reachable: reachable))
                     }
                 }
                 .buttonStyle(.plain)
+                .disabled(!reachable)
                 if step.rawValue < ImportSheet.WizardStep.done.rawValue {
-                    // Connector line between
-                    // adjacent dots (= the
-                    // Apple HIG canonical
-                    // onboarding pattern; = a
-                    // thin line that fills
-                    // based on completion;
-                    // = for the wenshu
-                    // v3.0 design system, we
-                    // use a `Divider` with
-                    // a tinted foreground
-                    // when the next step
-                    // has been reached).
                     Rectangle()
                         .fill(connectorColor(for: step))
                         .frame(height: 2)
@@ -1632,7 +1720,22 @@ private struct WizardStepIndicator: View {
         return "\(step.rawValue + 1).circle"
     }
 
-    private func dotColor(for step: ImportSheet.WizardStep) -> Color {
+    private func dotColor(for step: ImportSheet.WizardStep, reachable: Bool) -> Color {
+        // v2.7 round-47: a step
+        // that is NOT reachable
+        // (= the user hasn't
+        // reached it yet) is
+        // dimmed more than a
+        // step that is just
+        // "future from the
+        // current" (= .secondary
+        // .opacity(0.4) = the
+        // visual reads as
+        // "disabled"; = the
+        // user understands
+        // "I can't click this
+        // yet").
+        if !reachable { return .secondary.opacity(0.4) }
         if step == currentStep { return .accentColor }
         if step.rawValue < currentStep.rawValue { return .green }
         return .secondary
