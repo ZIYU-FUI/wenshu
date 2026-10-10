@@ -418,10 +418,27 @@ final class EditorTab: Identifiable {
     //      cards without a real documentPath (= the deferred
     //      path resolution), this is the only source of a
     //      meaningful name.
-    //   3. 'preview-sample' (= the legacy placeholder; = only
-    //      reached when neither documentPath nor title is set;
-    //      = the deferred path-resolution will narrow this
-    //      fallback to the empty / placeholder tabs).
+    //   3. 'preview.tab.placeholder' (= the legacy
+    //      placeholder; = only reached when
+    //      neither documentPath nor title is
+    //      set; = the deferred path-resolution
+    //      will narrow this fallback to the
+    //      empty / placeholder tabs).
+    // v2.7 round-68 (= boss 2026-10-10
+    // "打包的应用不动, 没有要苹果钥
+    // 匙串密码, 少了几个多语言. 重
+    // 新拉应用" feedback). The previous
+    // return value was the literal English
+    // string "preview-sample" (= raw
+    // placeholder; = not localized;
+    // = showed "preview-sample" in the
+    // 3rd-column tab strip when the user
+    // has not yet picked a document). Now
+    // uses the `preview.tab.placeholder`
+    // i18n key (= "Preview" in en /
+    // "预览" in zh-Hans; = matches the
+    // other empty-state strings in
+    // PreviewPane).
     static func displayTitle(_ tab: EditorTab) -> String {
         if let path = tab.documentPath, !path.isEmpty {
             let url = URL(fileURLWithPath: path)
@@ -429,7 +446,7 @@ final class EditorTab: Identifiable {
             if !basename.isEmpty { return basename }
         }
         if let title = tab.title, !title.isEmpty { return title }
-        return "preview-sample"
+        return String(localized: "preview.tab.placeholder")
     }
 }
 
