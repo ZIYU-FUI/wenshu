@@ -181,6 +181,88 @@ enum BookFolderCatalog {
         isUserFacing: true
     )
 
+    /// v2.7 round-62 (= boss
+    /// 2026-10-10 "先
+    /// 不用，之后
+    /// 测试. 先把
+    /// 构思目录放
+    /// 出来，现在
+    /// 目录树里没
+    /// 有" directive).
+    /// The 构思 folder
+    /// (= loose world-
+    /// building fragments
+    /// + future-story
+    /// ideas; = the
+    /// round-60 addition;
+    /// = round-61 added
+    /// it to the `BookFolder`
+    /// enum but the
+    /// `BookFolderCatalog`
+    /// didn't have a
+    /// matching `Spec`;
+    /// = the sidebar's
+    /// `userFacing` filter
+    /// (= `allBookFolders
+    /// .filter(\.isUserFacing)`)
+    /// didn't include
+    /// `ideas`; = the
+    /// folder was on
+    /// disk but invisible
+    /// in the sidebar).
+    /// The fix: add the
+    /// `ideas` spec with
+    /// `isUserFacing: true`
+    /// (= 6th sidebar-
+    /// visible folder;
+    /// = the boss's "零
+    /// 散的设定和未
+    /// 来的一些想
+    /// 法" gets its
+    /// own row in the
+    /// sidebar).
+    /// `timelapse` icon
+    /// (= SF Symbols 6;
+    /// = the boss's
+    /// 2026-10-10
+    /// directive:
+    /// "构思的
+    /// ICON 用
+    /// 这个
+    /// timelapse"
+    /// = the
+    /// canonical
+    /// "time-bending
+    /// / ideas-future"
+    /// glyph; =
+    /// matches the
+    /// wenshu v3.0
+    /// semantic for
+    /// "loose fragments
+    /// that may evolve
+    /// over time into
+    /// a character /
+    /// location /
+    /// chapter").
+    /// Placed between
+    /// `drafts` and
+    /// `sessions` in the
+    /// `allBookFolders`
+    /// array (= user-
+    /// facing folders
+    /// stay grouped at
+    /// the top of the
+    /// sidebar reading
+    /// order).
+    static let ideas = BookFolderSpec(
+        id: "ideas",
+        directoryName: "ideas",
+        sidebarDisplayName: "构思",
+        cardDisplayName: "构思",
+        icon: "timelapse",
+        isUserFacing: true
+    )
+
     /// LLM chat transcripts (= internal folder; = NOT
     /// shown in the sidebar; = no icon (= never rendered))
     static let sessions = BookFolderSpec(
@@ -225,6 +307,7 @@ enum BookFolderCatalog {
     /// the LibraryMigrator path).
     static let allBookFolders: [BookFolderSpec] = [
         world, characters, outlines, chapters, drafts,
+        ideas,
         sessions, foreshadowing, placeholders
     ]
 

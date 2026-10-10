@@ -17,19 +17,33 @@ struct SidebarServiceTests {
     // sidebar row children for a book). This test inspects the
     // catalog indirectly through the same getter the sidebar uses.
 
-    @Test("BookFolderCatalog.userFacing is the canonical 5-folder sidebar source")
+    @Test("BookFolderCatalog.userFacing is the canonical 6-folder sidebar source")
     func userFacingIsSidebarSource() {
-        // The 5 user-facing folders in BookFolderCatalog are, by
-        // SSOT contract, the same 5 folders shown in the sidebar
-        // (in the same order). This is the single source for the
-        // sidebar's folder row list (= future folder renames or
-        // additions touch BookFolderCatalog only).
+        // v2.7 round-62: the
+        // user-facing count
+        // is now 6 (= the
+        // boss's `ideas`
+        // folder for "loose
+        // settings + future
+        // ideas" is the 6th
+        // sidebar-visible
+        // row). The 5-folders
+        // → 6-folders
+        // migration is the
+        // canonical 6th-folder
+        // addition; = the SSOT
+        // contract is unchanged
+        // (= userFacing IS the
+        // sidebar's folder row
+        // list, in the same
+        // order).
         let expected: [(id: String, name: String, displayName: String, icon: String)] = [
             ("world",      "world",      "世界观",   "globe"),
             ("characters", "characters", "角色",     "person.crop.circle"),
             ("outlines",   "outlines",   "章节大纲", "bookmark.circle"),
             ("chapters",   "chapters",   "小说正文", "book.closed.circle"),
-            ("drafts",     "drafts",     "小说草稿", "book.circle")
+            ("drafts",     "drafts",     "小说草稿", "book.circle"),
+            ("ideas",      "ideas",      "构思",     "timelapse")
         ]
         #expect(BookFolderCatalog.userFacing.count == expected.count)
         for (i, expectedFolder) in expected.enumerated() {

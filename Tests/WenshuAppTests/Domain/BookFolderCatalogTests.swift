@@ -11,30 +11,53 @@ import Testing
 @Suite("BookFolderCatalog (v1.81 — sidebar + card + scope SSOT)")
 struct BookFolderCatalogTests {
 
-    @Test("8 standard folders registered (= world / characters / outlines / chapters / drafts / sessions / foreshadowing / placeholders)")
+    @Test("9 standard folders registered (= world / characters / outlines / chapters / drafts / ideas / sessions / foreshadowing / placeholders)")
     func allFoldersRegistered() {
-        #expect(BookFolderCatalog.allBookFolders.count == 8)
+        // v2.7 round-62: the
+        // catalog now has
+        // 9 specs (= the
+        // round-60 `ideas`
+        // case is now
+        // registered in the
+        // catalog; = the
+        // 6th sidebar-visible
+        // folder for "loose
+        // settings + future
+        // ideas"; = the
+        // standardFolders
+        // array went from 8
+        // to 9).
+        #expect(BookFolderCatalog.allBookFolders.count == 9)
         let ids = BookFolderCatalog.allBookFolders.map(\.id)
         #expect(ids.contains("world"))
         #expect(ids.contains("characters"))
         #expect(ids.contains("outlines"))
         #expect(ids.contains("chapters"))
         #expect(ids.contains("drafts"))
+        #expect(ids.contains("ideas"))
         #expect(ids.contains("sessions"))
         #expect(ids.contains("foreshadowing"))
         #expect(ids.contains("placeholders"))
     }
 
-    @Test("5 user-facing folders (= sidebar-visible; = world / characters / outlines / chapters / drafts)")
+    @Test("6 user-facing folders (= sidebar-visible; = world / characters / outlines / chapters / drafts / ideas)")
     func userFacingFolders() {
-        #expect(BookFolderCatalog.userFacing.count == 5)
+        // v2.7 round-62: `ideas`
+        // is now user-facing
+        // (= 6 total; = the
+        // sidebar shows 6
+        // folder rows under
+        // each book).
+        #expect(BookFolderCatalog.userFacing.count == 6)
         for folder in BookFolderCatalog.userFacing {
             #expect(folder.isUserFacing == true)
             #expect(folder.icon != nil, "user-facing folder '\(folder.id)' must have an icon")
         }
-        // The 5 user-facing folders, in expected sidebar order.
+        // The 6 user-facing folders, in expected sidebar order
+        // (= v2.7 round-62 added `ideas`; = the 6th sidebar-visible
+        // folder for "loose settings + future ideas").
         #expect(BookFolderCatalog.userFacing.map(\.id) == [
-            "world", "characters", "outlines", "chapters", "drafts"
+            "world", "characters", "outlines", "chapters", "drafts", "ideas"
         ])
     }
 
