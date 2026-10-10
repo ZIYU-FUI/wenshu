@@ -2123,6 +2123,73 @@ internal enum CardSource {
 private struct Card: View {
     let source: CardSource
     let onDoubleClick: (CardSource) -> Void
+    /// v2.7 round-66 (= boss
+    /// 2026-10-10 "如
+    /// 果有不
+    /// 符合
+    /// 模版
+    /// 的内
+    /// 容，
+    /// 导入
+    /// 后，
+    /// 卡
+    /// 片
+    /// 加
+    /// 橙
+    /// 色
+    /// 提
+    /// 示
+    /// 角
+    /// 标"
+    /// directive).
+    /// When `true`, the
+    /// card shows an
+    /// orange border
+    /// (= overriding
+    /// the hover tint)
+    /// + a top-right
+    /// triangle
+    /// badge (= Apple
+    /// HIG
+    /// needs-attention
+    /// pattern; = the
+    /// user immediately
+    /// sees which cards
+    /// need补齐).
+    /// The parent
+    /// PreviewPane
+    /// computes this
+    /// flag from the
+    /// reference's
+    /// completion
+    /// status (= see
+    /// commit B for the
+    /// checker; = the
+    /// default value
+    /// `false` keeps
+    /// the Card
+    /// backwards-
+    /// compatible with
+    /// the existing
+    /// call sites until
+    /// commit C wires
+    /// the flag in).
+    var needsCompletion: Bool = false
+    /// v2.7 round-66: the
+    /// "补齐" right-click
+    /// menu callback (=
+    /// only fires when
+    /// `needsCompletion`
+    /// is true; = see
+    /// commit D for the
+    /// full chat flow).
+    /// Defaults to nil
+    /// (= no menu item)
+    /// for call sites
+    /// that don't wire
+    /// the chat
+    /// integration.
+    var onComplete: (() -> Void)? = nil
     /// v2.7 round-64 (= boss
     /// 2026-10-10 "没有
     /// 实现，右键卡
@@ -2296,12 +2363,124 @@ private struct Card: View {
                 .fill(isHovered ? AnyShapeStyle(.tertiary) : AnyShapeStyle(Color.clear))
         )
         .overlay(
+            // v2.7 round-66: the
+            // border is now
+            // conditional on
+            // 3 states. `needsCompletion`
+            // overrides hover (= the
+            // card keeps the
+            // orange border
+            // whether the
+            // user is
+            // hovering or
+            // not; = the
+            // visual signal
+            // persists
+            // across
+            // mouse-off
+            // events; = the
+            // user can
+            // leave the
+            // card and the
+            // orange tint
+            // stays; =
+            // matches the
+            // boss's "需
+            // 要用户补
+            // 齐" wording
+            // = the
+            // card needs
+            // attention,
+            // not just
+            // a hover
+            // hint).
+            // The orange
+            // tint = Apple
+            // HIG
+            // "needs-
+            // attention"
+            // color (= the
+            // system
+            // orange; =
+            // not the
+            // wenshu
+            // accent
+            // color; = the
+            // user
+            // immediately
+            // recognizes
+            // "this
+            // needs
+            // action").
             RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusWindow, style: .continuous)
-                .stroke(isHovered
-                    ? AnyShapeStyle(.tint.opacity(0.4))
-                    : AnyShapeStyle(.tertiary),
-                    lineWidth: 0.5)
+                .stroke(
+                    needsCompletion
+                        ? AnyShapeStyle(Color.orange)
+                        : (isHovered ? AnyShapeStyle(.tint.opacity(0.4)) : AnyShapeStyle(.tertiary)),
+                    lineWidth: needsCompletion ? 1.5 : 0.5
+                )
         )
+        // v2.7 round-66: the
+        // top-right corner
+        // badge (= a small
+        // orange triangle
+        // icon in a white
+        // circle; = the
+        // Apple HIG
+        // "needs
+        // attention"
+        // pattern; = the
+        // badge persists
+        // across hover
+        // events; = the
+        // user can scroll
+        // the card into
+        // view and
+        // immediately
+        // see "this
+        // one needs
+        // 补齐" without
+        // hovering).
+        // Only shown
+        // when
+        // `needsCompletion
+        // == true`.
+        .overlay(alignment: .topTrailing) {
+            if needsCompletion {
+                ZStack {
+                    Circle()
+                        .fill(Color.white)
+                        .frame(width: 18, height: 18)
+                    Circle()
+                        .stroke(Color.orange, lineWidth: 1.2)
+                        .frame(width: 18, height: 18)
+                    SFIcon(
+                        "exclamationmark.triangle.fill",
+                        style: .inlineSmall,
+                        color: Color.orange
+                    )
+                }
+                .padding(DesignTokens.spacingCaption)
+                // The user can
+                // right-click
+                // the badge to
+                // see the
+                // "补齐" menu
+                // item (= the
+                // full menu is
+                // on the card
+                // body; = the
+                // badge itself
+                // has no gesture
+                // = clicking
+                // the badge
+                // passes
+                // through to
+                // the card's
+                // .contextMenu).
+                .allowsHitTesting(false)
+            }
+        }
         .onHover { isHovered = $0 }
         .contentShape(Rectangle())
         // (see OOB.md #2026-09-03) — 'directory double-click': click-count
@@ -2494,6 +2673,32 @@ private struct Card: View {
         .contextMenu {
             switch source {
             case .reference:
+                // v2.7 round-66: the
+                // "补齐" item
+                // shows when
+                // `needsCompletion
+                // == true` AND
+                // `onComplete` is
+                // wired. The
+                // item is the
+                // FIRST entry
+                // (= top of
+                // menu; = the
+                // user's primary
+                // intent when
+                // seeing an
+                // orange card
+                // is to补齐
+                // it; = putting
+                // it first
+                // reduces
+                // mouse travel).
+                if needsCompletion, let onComplete {
+                    Button(String(localized: "card_completion_context_menu_complete")) {
+                        onComplete()
+                    }
+                    Divider()
+                }
                 Button(String(localized: "sidebar_context_menu_rename")) {
                     onRename()
                 }
@@ -2505,6 +2710,25 @@ private struct Card: View {
                     onDelete()
                 }
             case .bookDoc:
+                // v2.7 round-66: same
+                // "补齐" item
+                // for bookDoc
+                // cards (= the
+                // boss's "双
+                // 向" directive;
+                // = both card
+                // types support
+                // the chat
+                // 补齐 flow;
+                // = the wiring
+                // is identical
+                // to reference).
+                if needsCompletion, let onComplete {
+                    Button(String(localized: "card_completion_context_menu_complete")) {
+                        onComplete()
+                    }
+                    Divider()
+                }
                 Button(String(localized: "sidebar_context_menu_rename")) {
                     onRename()
                 }

@@ -9232,6 +9232,23 @@
         }
       }
     },
+    "card_completion_context_menu_complete": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Complete with agent"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "和 agent 补齐"
+          }
+        }
+      }
+    },
     "sidebar_context_menu_delete_batch": {
       "extractionState": "manual",
       "localizations": {
