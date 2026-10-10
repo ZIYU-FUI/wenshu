@@ -145,11 +145,40 @@ struct ImportFileInput: Codable, Sendable, Hashable {
         /// search results; = the new body lands on
         /// disk in place of the original).
         case searchAndRewrite
+        /// v2.7 round-67 (= boss 2026-10-10
+        /// "LLM 偷懒了, 没有把内容重新组织, 填入
+        /// 到各个必填中去, 导致所有必填都空, MD
+        /// 整体还保留了原来的格式和样式" 反馈; =
+        /// "我希望的是, 如果用户原文件格式是 A,
+        /// 我们的模版是 B, 导入时, 重新组织 A,
+        /// 符合 B" 需求). The LLM **actively
+        /// reorganizes** the source A into B's
+        /// template structure (= 6 H2 for world
+        /// folder, 4 H2 for characters, etc.);
+        /// = the LLM fills the H2 with content
+        /// from A (verbatim copy or rewrite
+        /// decided by the LLM); = empty H2
+        /// get `[TODO: 需调研补齐]`. The LLM
+        /// **may also** return `extraFiles` in
+        /// the routing result (= A's content that
+        /// doesn't fit B's template; = e.g. an
+        /// Obsidian 故事宪法 with "七夕" event
+        /// descriptions → LLM splits that into a
+        /// separate 七夕.md in the same book);
+        /// = extra files are routed to the same
+        /// book but a different folder
+        /// (= LLM decides: world / characters /
+        /// outlines / chapters / drafts / ideas).
+        /// = the default rewrite mode for new
+        /// imports (= boss chose "LLM 决定" for
+        /// A → B 重组).
+        case reorganize
 
         var label: String {
             switch self {
             case .consolidate: return "基于现有内容整理"
             case .searchAndRewrite: return "重写同时搜索校对"
+            case .reorganize: return "智能重组"
             }
         }
     }

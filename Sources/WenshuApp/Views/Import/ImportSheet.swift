@@ -243,10 +243,13 @@ struct ImportSheet: View {
     /// 重写程度"). The user picks ONCE at sheet
     /// open; = the LLM's tool set + the
     /// orchestrator's write path both
-    /// respect this; = default = `consolidate`
-    /// (= Token 节约; = original body
-    /// verbatim).
-    @State private var rewriteMode: ImportFileInput.RewriteMode = .consolidate
+    /// respect this; = default = `reorganize`
+    /// (= boss 2026-10-10 "智能重组" choice;
+    /// = LLM actively reorganizes A → B;
+    /// = can also split A's non-B content
+    /// into separate .md files via
+    /// `extraFiles`).
+    @State private var rewriteMode: ImportFileInput.RewriteMode = .reorganize
 
     /// Per-file task state (= the orchestrator's
     /// `ImportTask` model; = the progress strip

@@ -176,6 +176,20 @@ actor WenshuConductorImportRouter: ImportRouter {
                 messages: [.user(userPrompt)],
                 options: options
             )
+        case .reorganize:
+            // v2.7 round-67 (= boss 2026-10-10
+            // "智能重组" mode). Single-turn,
+            // no tool loop (= the LLM has
+            // the source body; = no need to
+            // search; = the LLM is told to
+            // reorganize A → B in
+            // `rewrittenBody` + optionally
+            // return `extraFiles` in the
+            // routing JSON).
+            response = try await connector.send(
+                messages: [.user(userPrompt)],
+                options: options
+            )
         case .searchAndRewrite:
             // Multi-turn tool-use loop (= the
             // LLM is permitted to call
@@ -573,6 +587,103 @@ actor WenshuConductorImportRouter: ImportRouter {
                  = 字段留空字符串 = 走"原样落地"
                  fallback)。
             """
+        case .reorganize:
+            // v2.7 round-67 (= boss 2026-10-10
+            // "LLM 偷懒了, 没有把内容重新组织,
+            // 填入到各个必填中去, 导致所有必
+            // 填都空, MD 整体还保留了原来的
+            // 格式和样式" 反馈). The LLM's job
+            // is to **actively reorganize**
+            // the source A into the template
+            // B's structure (= world = 6 H2,
+            // characters = 4 H2, etc.). No
+            // tools (= the LLM has the source
+            // body).
+            return """
+            5) **重组正文 (A → B)**:
+               - 输出**重组后的 .ws 格式正文**到
+                 `rewrittenBody` 字段 (= 这是
+                 round-67 的核心要求; = 不要
+                 verbatim 保留原文格式):
+                 - **必须**按 B 模板的 H2 结构:
+                   - 世界观 (world/): 6 个 H2
+                     (= 核心设定 / 地理或位置 /
+                     体系或规则 / 历史脉络 /
+                     与其他元素的关系 /
+                     关键场景种子 / 备注)
+                   - 角色 (characters/): 4 个 H2
+                     (= 基本信息 / 外貌与性格 /
+                     背景故事 / 关系网络)
+                   - 章节大纲 (outlines/): 3 个 H2
+                     (= 故事梗概 / 章节结构 /
+                     伏笔与回收)
+                   - 章节 (chapters/): 自由 markdown
+                   - 草稿 (drafts/): 自由 markdown
+                   - 构思 (ideas/): 自由 markdown
+                 - 读懂 A 的内容, **主动分配**
+                   到对应的 H2 (= verbatim copy
+                   或改写由 LLM 决定; = 老板
+                   2026-10-10 烤问答案 1C =
+                   "完全 trust LLM 重组")
+                 - 空的 H2 (= A 里没对应内容)
+                   写 `[TODO: 需调研补齐]`
+                 - **不要**保留 A 原来的格式
+                   (= Obsidian 反链 / frontmatter /
+                   `# 标题` 之外的 H1 / 自定义
+                   字段名; = 全部按 B 模板重
+                   组)
+                 - **不要**扩写或虚构 (= 老
+                   板原话 "不要扩写或加虚构
+                   内容" 一直适用; = 重组 =
+                   把 A 的内容移到正确位置,
+                   不是新增内容)
+               - 输出**拆出的非模板内容**到
+                 `extraFiles` 数组 (= 老
+                 板原话 "甚至原文件 A 的
+                 内容, 与我们的 B 模版不
+                 符合, 多了很我非模版的
+                 内容, 我希望能自动拆出
+                 一个文件, 放在合适的目
+                 录中去"):
+                 - 原文 A 里**不属于 B 模
+                   板**的内容 (= e.g. 故事
+                   宪法里"七夕"事件描述,
+                   不属于世界观/角色/情节
+                   的任一 H2 → 应该拆出
+                   成独立的 七夕.md)
+                 - 每个 element 包含
+                   3 个字段:
+                   1. `folder` (= LLM 决定
+                      = world / characters /
+                      outlines / chapters /
+                      drafts / ideas 之一;
+                      = 不在 6 选 1 内的不写
+                      = 跳过这个 element)
+                   2. `title` (= LLM 决定
+                      的人类可读名; = 中文
+                      即可; = 不超过 30 字;
+                      = 不能含路径分隔符
+                      `/` 或 `:`)
+                   3. `body` (= 拆出的完
+                      整 markdown; = 用
+                      `\\n` 表示换行; =
+                      不在字符串值里写
+                      真实换行)
+                 - 数组可以是空的 (= A
+                   完全符合 B 模板, 没
+                   东西可拆; = 大多数情
+                   况下 = 数组 = `[]`)
+                 - **上限 5 个 element**
+                   (= 1 个 A 不应该产
+                   生 100 个 extraFiles;
+                   = 超出 LLM 自己
+                   收敛; = orchestrator
+                   端会截断)
+                 - **不要**把 A 里**已经
+                   重组进 rewrittenBody**
+                   的内容再写到
+                   extraFiles (= dedup)
+            """
         }
     }
 
@@ -604,6 +715,16 @@ actor WenshuConductorImportRouter: ImportRouter {
             // (= \\n) only; = the orchestrator
             // un-escapes after parsing.
             return "\"title\":\"<中文标题>\",\"summary\":\"<一句话中文摘要>\",\"tags\":[\"<tag1>\",\"<tag2>\",...],\"rewrittenBody\":\"<整理后的 .ws 格式正文; 用 \\\\n 表示换行, 不要在字符串值里写真实换行>\""
+        case .reorganize:
+            // v2.7 round-67 (= boss 2026-10-10
+            // "A → B 重组" 需求). The LLM
+            // returns BOTH `rewrittenBody`
+            // (= reorganized body in B's
+            // template) AND `extraFiles`
+            // (= A's content that doesn't
+            // fit B; = split out to
+            // separate .md files).
+            return "\"title\":\"<中文标题>\",\"summary\":\"<一句话中文摘要>\",\"tags\":[\"<tag1>\",\"<tag2>\",...],\"rewrittenBody\":\"<重组后的 .ws 格式正文; 按 B 模板的 H2 结构; 用 \\\\n 表示换行, 不要写真实换行>\",\"extraFiles\":[{\"folder\":\"<world|characters|outlines|chapters|drafts|ideas>\",\"title\":\"<拆出的文件名>\",\"body\":\"<拆出的 markdown 内容; 用 \\\\n 表示换行>\"}]"
         }
     }
 
