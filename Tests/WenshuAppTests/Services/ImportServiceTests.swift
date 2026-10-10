@@ -196,14 +196,55 @@ final class ImportServiceTests: XCTestCase {
             .appendingPathComponent("world")
             .appendingPathComponent("Eryndor kingdom.md")
         let written = try String(contentsOf: expectedURL, encoding: .utf8)
-        XCTAssertEqual(written, body, "body must be byte-equal to the source")
+        // v2.7 round-66 commit E: the
+        // body is no longer
+        // byte-equal (= the
+        // `prepareBodyForWrite`
+        // helper strips
+        // noise + appends the
+        // folder's H2
+        // skeleton; = the
+        // original content is
+        // preserved 100% + the
+        // world folder's
+        // canonical H2
+        // sections are
+        // appended with
+        // `[TODO]` markers
+        // for the empty
+        // ones).
+        XCTAssertTrue(written.contains("The kingdom of Eryndor lies"), "original content must be preserved")
+        XCTAssertTrue(written.contains("## 核心设定"), "world skeleton H2 must be appended")
+        XCTAssertTrue(written.contains("[TODO: 需调研补齐]"), "empty skeleton H2s must have a [TODO] marker")
         try? FileManager.default.removeItem(at: src)
         try? FileManager.default.removeItem(at: wsRoot)
     }
 
-    // MARK: - Phase 2: dedup
+    // MARK: - Phase 2: re-import
 
-    func testImportFiles_skipsAlreadyImported() async throws {
+    // v2.7 round-66 commit F+1 (= boss
+    // 2026-10-10 "还
+    // 是直接
+    // 跳过了"
+    // 反馈):
+    // the old
+    // "skip on cache hit"
+    // short-circuit was
+    // REMOVED; = the
+    // re-import now goes
+    // through Phase 3 +
+    // Phase 4; = the
+    // `findEntityByTitle`
+    // finds the same file;
+    // = the Stage 2 LLM
+    // content-same check
+    // fires (= the stub
+    // returns
+    // `isContentSame: false`
+    // = "always different"
+    // = the test expects
+    // .done + overwrite).
+    func testImportFiles_reImportOverwritesExisting() async throws {
         let body = "verbatim body"
         let src = try makeSourceDir(["a.md": body])
         let (wsRoot, shelfId, bookId) = try makeWsRoot()
@@ -213,17 +254,16 @@ final class ImportServiceTests: XCTestCase {
         let canned: [String: ImportRoutingResult] = [
             "a.md": ImportRoutingResult(
                 // v2.7 user-pinned destination: the
-                // test's `target.destination = .book`
-                // forces the LLM's `.referenceLibrary`
-                // choice to downgrade to
+                // "user-pinned to book" override at the
+                // writeFile stage downgrades the
+                // destination from .referenceLibrary to
                 // `.bookFolder(.drafts)`; = the cache
                 // then stores `.drafts` (= the
                 // canonical "user-pinned book folder"
-                // destination); = the second-import
+                // destination); = the re-import
                 // assertion below reads
                 // `.bookFolder(.drafts)` from the
-                // cache (= no longer
-                // `.referenceLibrary`).
+                // cache.
                 destination: .bookFolder(.drafts),
                 title: "t", summary: "s", tags: ["stub"],
                 entityType: "other", category: nil, confidence: 1.0,
@@ -236,9 +276,14 @@ final class ImportServiceTests: XCTestCase {
             XCTFail("first import failed: err=\(first.first?.errorMessage ?? "nil")")
             return
         }
-        // Second import: cache diff sees the body hash matches the prior import.
+        // Second import: no Phase 1 short-circuit anymore;
+        // = Phase 3 + Phase 4 run; = the
+        // `findEntityByTitle` finds the same file;
+        // = Stage 2 LLM check fires (= the stub
+        // always says "different"); = the orchestrator
+        // overwrites the existing file (= .done).
         let second = await svc.importFiles(in: src, into: target, router: StubImportRouter(canned))
-        if second.isEmpty || second[0].state != .skipped {
+        if second.isEmpty || second[0].state != .done {
             XCTFail("second import: state=\(second.first?.state.rawValue ?? "nil") err=\(second.first?.errorMessage ?? "nil")")
         }
         XCTAssertEqual(second[0].destination, .bookFolder(.drafts))

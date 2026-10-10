@@ -692,63 +692,176 @@ actor ImportService {
                 continue
             }
             tasks[i].contentHash = hash
-            if let cached = cache[tasks[i].sourcePath],
-               cached.contentHash == hash {
-                // v2.7 round-38 (= boss 2026-10-10
-                // "资料库已经清空了，但我
-                // 导入了上次一样的测试文
-                // 件，自动跳过了" directive).
-                // Dedup sanity check (= the
-                // cache says "this file was
-                // imported before" but the
-                // destination file may
-                // have been deleted; = the
-                // user cleared the reference
-                // library's .md + entities.json
-                // but the import-cache.json
-                // is still on disk; = the
-                // cache is lying; = the
-                // boss's exact failure
-                // mode). The fix: verify
-                // the destination file
-                // (= the .md the previous
-                // import wrote) still
-                // exists on disk; = if
-                // not = the cache entry is
-                // stale = re-import. The
-                // check is a single
-                // `FileManager.fileExists`
-                // per task (= cheap; =
-                // no extra I/O beyond
-                // what the orchestrator
-                // already does in
-                // Phase 4 write).
-                if Self.cachedDestinationExists(
-                    cached: cached,
-                    target: target
-                ) {
-                    // Idempotent re-import (= the
-                    // source file is byte-equal
-                    // to a previously-imported
-                    // file AND the previous
-                    // import's output file
-                    // still exists on disk;
-                    // = skip the LLM dispatch
-                    // and the write step).
-                    tasks[i].state = .skipped
-                    tasks[i].destination = cached.destination
-                }
-                // else: cache entry is stale;
-                // = fall through (= the task
-                // stays .pending; = the LLM
-                // dispatch + write will run
-                // again; = the new write
-                // overwrites whatever the
-                // user had on disk; = the
-                // cache entry is replaced
-                // by the new import at
-                // the end of Phase 4).
-            }
+            // v2.7 round-66 commit F+1 (= boss
+            // 2026-10-10 "还
+            // 是直接
+            // 跳过了"
+            // 反馈;
+            // = after
+            // commit F
+            // the user
+            // still
+            // saw
+            // "已跳过"
+            // because
+            // the
+            // **Phase
+            // 1**
+            // `cachedDestinationExists`
+            // check
+            // (= folder-level
+            // non-empty
+            // for the
+            // bookFolder
+            // case)
+            // short-circuited
+            // BEFORE the
+            // Phase 2
+            // LLM
+            // content-same
+            // decision
+            // could
+            // even
+            // run; =
+            // the LLM
+            // never
+            // got a
+            // chance
+            // to
+            // compare
+            // the
+            // bodies).
+            //
+            // Boss's
+            // 2026-10-10
+            // grill
+            // response:
+            // "全
+            // 部
+            // 去
+            // short-circuit:
+            // 不管
+            // cache
+            // 跟
+            // destination,
+            // 都
+            // 进
+            // Phase
+            // 3
+            // +
+            // 4
+            // (=
+            // 老
+            // 板
+            // 原
+            // 话
+            // LLM
+            // 判
+            // 断)".
+            //
+            // The fix:
+            // REMOVE the
+            // entire
+            // `if cachedDestinationExists`
+            // short-circuit
+            // (= the cache
+            // contentHash
+            // check is
+            // still useful
+            // for the
+            // title-only
+            // retry path; =
+            // the
+            // destination
+            // existence
+            // check is
+            // too coarse
+            // for the
+            // bookFolder
+            // case; = let
+            // Phase 3
+            // routing +
+            // Phase 4
+            // write (with
+            // Stage 2 LLM
+            // content-same
+            // decision)
+            // handle the
+            // skip / overwrite
+            // decision
+            // properly
+            // (= per-file;
+            // = LLM-driven;
+            // = transparent
+            // to the user).
+            //
+            // The
+            // `cache[sourcePath].contentHash`
+            // check (= the
+            // cache hit
+            // detection
+            // from
+            // round-40/42)
+            // is kept (= a
+            // cache hit
+            // means
+            // "this exact
+            // file was
+            // imported
+            // before";
+            // = the
+            // orchestrator
+            // still
+            // benefits
+            // from the
+            // cache for
+            // purposes of
+            // the
+            // sidecar
+            // cache
+            // record; =
+            // the Stage 2
+            // LLM check
+            // is what
+            // actually
+            // decides
+            // skip vs
+            // overwrite).
+            //
+            // The `if let
+            // cached` /
+            // `cached.contentHash
+            // == hash`
+            // branch is
+            // now a
+            // no-op
+            // (= no
+            // short-circuit;
+            // = the
+            // cache is
+            // consulted
+            // by the
+            // title-only
+            // retry
+            // path
+            // via
+            // `cache[tasks[i].sourcePath].lastTitleOnlyRetriedHash`
+            // further
+            // downstream;
+            // = the
+            // here
+            // branch
+            // could
+            // be
+            // removed
+            // entirely;
+            // = keeping
+            // the
+            // `if` for
+            // future
+            // cache-driven
+            // optimizations).
+            _ = cache  // cache is consulted downstream by the title-only retry path; the here branch is intentionally a no-op per boss's 2026-10-10 directive
         }
         // Filter out completed / skipped / failed; =
         // the dispatch set is the remaining tasks.
@@ -1804,6 +1917,94 @@ actor ImportService {
             // double-delete is a no-op).
             writtenURLs.append(fileURL)
         case .referenceLibrary:
+            // v2.7 round-66 commit F+1: the
+            // reference library
+            // path now also runs
+            // the Stage 2 LLM
+            // content-same
+            // decision (= the
+            // reference library
+            // dedup was
+            // per-file correct,
+            // but the user
+            // wants the same
+            // "LLM 比对"
+            // transparency for
+            // both destinations;
+            // = the
+            // `FileSystemReferenceStore.saveReferenceToFileSystem`
+            // upserts the file
+            // (= round-42), so
+            // "skip" here just
+            // means the upsert
+            // sees a
+            // content-identical
+            // file and the
+            // idempotent write
+            // is a no-op; = "overwrite"
+            // means the
+            // content differs
+            // and the upsert
+            // overwrites with
+            // the new body).
+            let refMdURL = target.wsRoot
+                .appendingPathComponent("reference-library")
+                .appendingPathComponent("entities")
+                .appendingPathComponent("\(Self.uuidFromHash(contentHash).uuidString).md")
+            if FileManager.default.fileExists(atPath: refMdURL.path) {
+                // File already exists
+                // for this content
+                // hash (= the
+                // previous import
+                // wrote it). Run
+                // Stage 2 LLM check
+                // (= the boss's
+                // "需要
+                // 检查
+                // 对比"
+                // requirement).
+                let existingBody = (try? String(
+                    contentsOf: refMdURL,
+                    encoding: .utf8
+                )) ?? ""
+                let sameResult = try await router.isContentSame(
+                    sourceBody: body,
+                    existingBody: existingBody,
+                    sourceTitle: routing.title
+                )
+                if WenshuConductorImportRouter.shouldSkip(result: sameResult) {
+                    NSLog("WSImport: ref-library content-same skip title='\(routing.title)' confidence=\(sameResult.confidence)")
+                    // No need to write;
+                    // = the file is
+                    // already correct.
+                    // Mark the task
+                    // as .skipped +
+                    // set the
+                    // reason; = throw
+                    // the sentinel so
+                    // the outer
+                    // processFile
+                    // doesn't
+                    // overwrite to
+                    // .done.
+                    tasksBox.value[i].state = .skipped
+                    tasksBox.value[i].errorMessage = nil
+                    tasksBox.value[i].skippedReason = "内容相同 (LLM confidence \(sameResult.confidence)): \(sameResult.reasoning)"
+                    throw ImportServiceError.contentSameSkipped
+                } else {
+                    NSLog("WSImport: ref-library content-different overwrite title='\(routing.title)' reasoning='\(sameResult.reasoning)'")
+                    // Fall through to
+                    // the standard
+                    // writeReference
+                    // (= the
+                    // upsert
+                    // overwrites
+                    // the existing
+                    // file with
+                    // the new
+                    // body).
+                }
+            }
             // Delegate to the existing reference-write
             // path (= the e2e scaffold's 4-phase walk →
             // reframe → classify → write; = the body
