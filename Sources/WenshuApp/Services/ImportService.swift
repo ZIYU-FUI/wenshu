@@ -281,6 +281,126 @@ actor ImportService {
         let contentHash: String
         let destination: ImportDestination
         let writtenAt: Date
+        /// v2.7 round-43 (= boss 2026-10-10
+        /// "如果已经重复过了，再
+        /// 重新调研一次，有些
+        /// 浪费" directive). The
+        /// timestamp of the last
+        /// title-only retry on
+        /// this file (= the user
+        /// clicked "重新调研
+        /// 所有失败" while this
+        /// entry was in `.failed`
+        /// state). The retry
+        /// method uses this to
+        /// detect "already
+        /// retried with the same
+        /// body" (= skip the LLM
+        /// dispatch; = save
+        /// token + time). The
+        /// field is OPTIONAL
+        /// (= older cache entries
+        /// from wenshu versions
+        /// before round-43
+        /// don't have it; = the
+        /// Codable decoder
+        /// tolerates the missing
+        /// key). Custom
+        /// `init(from:)` is
+        /// required (= default
+        /// memberwise init
+        /// doesn't expose a
+        /// default for the
+        /// optional field).
+        var lastTitleOnlyRetriedAt: Date?
+        /// v2.7 round-43: the body
+        /// hash at the time of the
+        /// last title-only retry
+        /// (= SHA-256 of the
+        /// LLM-ingested body = the
+        /// title-only-synthesized
+        /// body constructed from
+        /// the filename + sibling
+        /// context; = NOT the
+        /// source file's body
+        /// hash because the source
+        /// file is unreadable; =
+        /// if this hash changes
+        /// between retries, the
+        /// retry result would
+        /// differ; = the retry
+        /// method compares this
+        /// against the freshly
+        /// computed hash to
+        /// decide skip-vs-run). If
+        /// the source file's body
+        /// hash changes (= the
+        /// user edited the file;
+        /// = the title-only body
+        /// stays the same; = this
+        /// hash is stable) the
+        /// retry still skips; =
+        /// the boss's intent is
+        /// "if I haven't changed
+        /// anything, don't re-run
+        /// the LLM" = the
+        /// title-only body hash
+        /// is the right signal.
+        var lastTitleOnlyRetriedHash: String?
+
+        init(
+            contentHash: String,
+            destination: ImportDestination,
+            writtenAt: Date,
+            lastTitleOnlyRetriedAt: Date? = nil,
+            lastTitleOnlyRetriedHash: String? = nil
+        ) {
+            self.contentHash = contentHash
+            self.destination = destination
+            self.writtenAt = writtenAt
+            self.lastTitleOnlyRetriedAt = lastTitleOnlyRetriedAt
+            self.lastTitleOnlyRetriedHash = lastTitleOnlyRetriedHash
+        }
+
+        init(from decoder: Decoder) throws {
+            let c = try decoder.container(keyedBy: CodingKeys.self)
+            self.contentHash = try c.decode(String.self, forKey: .contentHash)
+            self.destination = try c.decode(ImportDestination.self, forKey: .destination)
+            self.writtenAt = try c.decode(Date.self, forKey: .writtenAt)
+            // v2.7 round-43: optional fields
+            // (= absent on pre-round-43
+            // cache entries; = decode
+            // failures silently fall back to
+            // nil = the dedup then sees nil
+            // = treats it as "never
+            // retried" = a fresh retry
+            // will run; = no migration
+            // step needed).
+            self.lastTitleOnlyRetriedAt = try? c.decode(Date.self, forKey: .lastTitleOnlyRetriedAt)
+            self.lastTitleOnlyRetriedHash = try? c.decode(String.self, forKey: .lastTitleOnlyRetriedHash)
+        }
+
+        private enum CodingKeys: String, CodingKey {
+            case contentHash, destination, writtenAt
+            case lastTitleOnlyRetriedAt, lastTitleOnlyRetriedHash
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var c = encoder.container(keyedBy: CodingKeys.self)
+            try c.encode(contentHash, forKey: .contentHash)
+            try c.encode(destination, forKey: .destination)
+            try c.encode(writtenAt, forKey: .writtenAt)
+            // Optional fields: only encode
+            // when present (= older
+            // wenshu versions reading
+            // these entries won't
+            // choke on a present-but-
+            // unrecognized key; =
+            // future-proofs the cache
+            // format).
+            try? c.encode(lastTitleOnlyRetriedAt, forKey: .lastTitleOnlyRetriedAt)
+            try? c.encode(lastTitleOnlyRetriedHash, forKey: .lastTitleOnlyRetriedHash)
+        }
     }
 
     /// Apple canonical convenience: stateless (= no init
@@ -682,7 +802,7 @@ actor ImportService {
         // understanding that this is the
         // "I trust the filename + LLM search
         // alone" path).
-        let retryIndices = tasks.indices.filter { i in
+        let candidateIndices = tasks.indices.filter { i in
             guard tasks[i].state == .failed else { return false }
             return tasks[i].errorMessage?.hasPrefix("读取文件失败") ?? false
         }
@@ -696,11 +816,103 @@ actor ImportService {
         // FileManager.enumerator call per
         // unique source directory).
         let contextByPath = Self.siblingContextMap(for: tasks)
-        // 3. Build a fresh tasks array (= we
-        // mutate in place via tasksBox; = the
-        // sheet sees the same task identity).
+        // 3. Load the sidecar cache ONCE (= we
+        // need to read the `lastTitleOnlyRetriedHash`
+        // to dedup repeat clicks; = the dedup
+        // logic runs here in the orchestrator;
+        // = the sheet doesn't need to do any
+        // extra work; = the dedup is per-sourcePath
+        // keyed by the title-only body hash (= if
+        // the source file's body changes, the
+        // title-only body is unchanged = the retry
+        // still skips; = if the user renames the
+        // source file = the title-only body
+        // changes because the filename changed
+        // = the retry runs; = the boss's intent
+        // is "if nothing about the input changed,
+        // don't re-run the LLM").
+        let cacheFile = target.cacheRoot.appendingPathComponent("import-cache.json")
+        let cache = readCache(cacheFile: cacheFile)
+        // 3.5. v2.7 round-43: the tasks
+        // box (= mutates `tasks` in
+        // place; = the dedup loop
+        // marks `.skipped`; = the
+        // retry loop later marks
+        // `.routing`).
         let tasksBox = TasksBox(value: tasks)
-        // 4. Re-seed the matching tasks (.failed
+        // 4. v2.7 round-43 (= boss 2026-10-10
+        // "如果已经重复过了，再
+        // 重新调研一次，有些
+        // 浪费" directive). The
+        // smart skip (= per-file
+        // dedup; = the boss's
+        // accepted answer:
+        // "如果上次调研的
+        // hash 不一样 →
+        // 重新调研, 否则
+        // skip").
+        // For each candidate (= a
+        // `.failed` "读取文件失
+        // 败" task), compute the
+        // title-only body (= the
+        // same synthesized body
+        // the LLM would ingest =
+        // filename + sibling
+        // context) + hash it.
+        // Compare against the
+        // cached
+        // `lastTitleOnlyRetriedHash`.
+        // Match (= retry would
+        // produce the same result
+        // as the last retry) =
+        // mark the task `.skipped`
+        // (= not `.routing`) and
+        // do NOT dispatch the LLM.
+        // Mismatch (= retry would
+        // produce a different
+        // result) = include in
+        // `retryIndices` and
+        // dispatch the LLM. No
+        // cache entry (= never
+        // retried) = dispatch
+        // (= first retry = the
+        // standard path).
+        var retryIndices: [Int] = []
+        for i in candidateIndices {
+            let siblingContext = contextByPath[tasksBox.value[i].sourcePath] ?? ""
+            let synthesizedBody = Self.titleOnlyBody(
+                fileName: (tasksBox.value[i].sourcePath as NSString).lastPathComponent,
+                siblingContext: siblingContext
+            )
+            let bodyHash = Self.sha256(synthesizedBody)
+            if let cached = cache[tasksBox.value[i].sourcePath],
+               cached.lastTitleOnlyRetriedHash == bodyHash {
+                // Already retried with the
+                // SAME body hash = the
+                // LLM output would be
+                // byte-identical to the
+                // last attempt = skip
+                // (= the boss's
+                // "不要浪费" rule;
+                // = no LLM token spent;
+                // = the row flips to
+                // "已跳过" instead of
+                // "分析中" → "完成"
+                // so the user sees
+                // what happened).
+                tasksBox.value[i].state = .skipped
+                tasksBox.value[i].errorMessage = nil
+                continue
+            }
+            // No prior retry OR a prior
+            // retry with a DIFFERENT
+            // body hash = the LLM
+            // would produce a
+            // different result = run
+            // the LLM.
+            retryIndices.append(i)
+        }
+        // 5. Re-seed the matching tasks (.failed
         // → .routing, errorMessage = nil,
         // body constructed from filename +
         // sibling context).
@@ -709,7 +921,7 @@ actor ImportService {
             tasksBox.value[i].errorMessage = nil
         }
         await onProgress?(tasksBox.value)
-        // 5. Same 5-way parallel TaskGroup as
+        // 6. Same 5-way parallel TaskGroup as
         // `importFiles` (= the only
         // difference is the `ImportFileInput`
         // carries a non-nil `body`; =
@@ -717,8 +929,6 @@ actor ImportService {
         // the `writeFile` step uses the
         // LLM's `rewrittenBody` and never
         // touches the unreadable file).
-        let cacheFile = target.cacheRoot.appendingPathComponent("import-cache.json")
-        let cache = readCache(cacheFile: cacheFile)
         let cacheBox = CacheBox(value: cache)
         await withTaskGroup(of: Void.self) { (group: inout TaskGroup<Void>) in
             var inFlight = 0
@@ -782,6 +992,47 @@ actor ImportService {
                     inFlight += 1
                     nextIndex += 1
                 }
+            }
+        }
+        // 8. v2.7 round-43 (= boss
+        // 2026-10-10 "如果已经
+        // 重复过了，再重新调
+        // 研一次，有些浪费"
+        // directive). After the
+        // retry batch finishes
+        // (= success or fail),
+        // stamp every retried
+        // task's cache entry
+        // with
+        // `lastTitleOnlyRetriedAt
+        // = now` + the
+        // title-only body hash
+        // (= the next user
+        // click on "重新调
+        // 研" will see the
+        // stamp + skip the
+        // LLM = the boss's
+        // "不要再浪费" rule).
+        for i in retryIndices {
+            let sourcePath = tasksBox.value[i].sourcePath
+            let siblingContext = contextByPath[sourcePath] ?? ""
+            let synthesizedBody = Self.titleOnlyBody(
+                fileName: (sourcePath as NSString).lastPathComponent,
+                siblingContext: siblingContext
+            )
+            let bodyHash = Self.sha256(synthesizedBody)
+            if var entry = cacheBox.value[sourcePath] {
+                entry.lastTitleOnlyRetriedAt = Date()
+                entry.lastTitleOnlyRetriedHash = bodyHash
+                cacheBox.value[sourcePath] = entry
+            } else {
+                cacheBox.value[sourcePath] = CacheEntry(
+                    contentHash: "orphan-" + Self.sha256(sourcePath),
+                    destination: .referenceLibrary,
+                    writtenAt: Date(),
+                    lastTitleOnlyRetriedAt: Date(),
+                    lastTitleOnlyRetriedHash: bodyHash
+                )
             }
         }
         writeCache(cacheFile: cacheFile, cache: cacheBox.value)

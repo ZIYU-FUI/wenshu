@@ -1181,6 +1181,32 @@ struct ImportSheet: View {
                         default: return false
                         }
                     }.count
+                    // v2.7 round-43 (= boss
+                    // 2026-10-10 "补充，
+                    // 重新调研时，进行
+                    // 中，不统计"
+                    // directive). The
+                    // "进行中 N" counter
+                    // is suppressed for
+                    // the duration of the
+                    // retry (= the retry's
+                    // in-flight .routing
+                    // tasks are not
+                    // visible to the user
+                    // as "进行中"; = the
+                    // user just sees the
+                    // completedCount
+                    // ticking up; = the
+                    // progress bar moves
+                    // by completedCount
+                    // alone; = the boss's
+                    // intent is "retry is
+                    // a different mode
+                    // from the import;
+                    // = don't conflate
+                    // the two activity
+                    // counters").
+                    inFlightCount = 0
                 }
             }
             let result = await importService.retryFailedTasksTitleOnly(
