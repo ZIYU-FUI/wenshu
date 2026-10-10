@@ -2157,9 +2157,138 @@ private struct ImportTaskRow: View {
         case .pending:
             Text("待处理").font(.caption).foregroundStyle(.secondary)
         case .routing:
-            Text("分析中").font(.caption).foregroundStyle(.secondary)
+            // v2.7 round-66 commit G (= boss
+            // 2026-10-10 "这
+            // 个分析
+            // 中三
+            // 个字
+            // 前面
+            // ，需
+            // 要加
+            // 一个
+            // 小小
+            // 的动
+            // 态
+            // SF，
+            // 循环
+            // 播放
+            // ，
+            // 要
+            // 不
+            // 然
+            // 这
+            // 个
+            // 界
+            // 面
+            // 像
+            // 静
+            // 止
+            // 了" 反馈).
+            // The
+            // `ellipsis.circle.fill`
+            // SF Symbol
+            // (= three
+            // dots in a
+            // circle) +
+            // the
+            // `.variableColor`
+            // effect (= the
+            // dots
+            // animate
+            // through
+            // colors
+            // in a
+            // loop) =
+            // the
+            // "wait / in
+            // progress"
+            // visual
+            // affordance;
+            // = the
+            // user
+            // sees
+            // continuous
+            // motion (= the
+            // `SFIcon`
+            // factory
+            // exposes the
+            // symbol via
+            // the canonical
+            // wenshu-icon-policy
+            // pipeline; = the
+            // `.symbolEffect`
+            // is
+            // attached
+            // to the
+            // underlying
+            // Image; = SF
+            // Symbols 6
+            // variableColor
+            // dots loop
+            // forever at
+            // ~1 Hz; = the
+            // user
+            // immediately
+            // sees
+            // "this is
+            // still
+            // running");
+            // = without
+            // this, the
+            // previous
+            // static
+            // "分析中"
+            // text felt
+            // frozen (=
+            // the boss's
+            // "像
+            // 静
+            // 止
+            // 了"
+            // feedback).
+            HStack(spacing: DesignTokens.spacingCaption) {
+                SFIcon(
+                    "ellipsis.circle.fill",
+                    style: .toolbar,
+                    color: Color.secondary,
+                    rendering: .variableColor
+                )
+                Text("分析中")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         case .writing:
-            Text("写入中").font(.caption).foregroundStyle(.secondary)
+            // v2.7 round-66 commit G:
+            // same idea as
+            // `routing` —
+            // show a
+            // spinning
+            // icon to
+            // signal
+            // activity
+            // (= the
+            // user might
+            // be confused
+            // if the
+            // state went
+            // from
+            // "分析中"
+            // to
+            // "写入中"
+            // with no
+            // visible
+            // change).
+            HStack(spacing: DesignTokens.spacingCaption) {
+                SFIcon(
+                    "arrow.down.circle.fill",
+                    style: .toolbar,
+                    color: Color.secondary,
+                    rendering: .variableColor
+                )
+                Text("写入中")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         case .done:
             Text("完成").font(.caption).foregroundStyle(.green)
         case .skipped:

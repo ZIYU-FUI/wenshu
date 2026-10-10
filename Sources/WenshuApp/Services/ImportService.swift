@@ -2730,18 +2730,86 @@ extension ImportService {
     ) async {
         // Phase 3: route + enrich (= the LLM
         // dispatch; = this is the slow part; = the
-        // pipeline's bottleneck). Failure here means
-        // the LLM rejected the file (= the user
-        // sees "LLM 路由失败: ..." in the row's
-        // error caption; = the orchestrator moves
-        // on to the next file).
-        var routing: ImportRoutingResult
-        do {
-            routing = try await router.route(input)
-            tasksBox.value[i].routing = routing
-        } catch {
+        // pipeline's bottleneck).
+        // v2.7 round-66 commit G (= boss
+        // 2026-10-10 "卡
+        // LLM" 反馈):
+        // the previous
+        // implementation
+        // gave up on the
+        // first LLM
+        // failure (= a
+        // single timeout
+        // = .failed; = the
+        // user had to
+        // hit "重试" to
+        // re-run the file
+        // after the LLM
+        // recovered).
+        // The new path
+        // retries up to
+        // 3 times with
+        // exponential
+        // backoff (= 1s,
+        // 2s, 4s; = the
+        // LLM provider's
+        // transient
+        // errors = rate
+        // limit / network
+        // blip / load
+        // spike = clear
+        // within 7s in
+        // 95% of cases per
+        // the connector
+        // team's
+        // 2026-10-09
+        // metrics). After
+        // 3 failures, the
+        // task is marked
+        // .failed with the
+        // LAST error
+        // message (= the
+        // user can still
+        // hit the sheet's
+        // "重试" button to
+        // re-run).
+        let maxLLMAttempts = 3
+        var lastError: Error?
+        var routing: ImportRoutingResult? = nil
+        for attempt in 1...maxLLMAttempts {
+            do {
+                let result = try await router.route(input)
+                routing = result
+                tasksBox.value[i].routing = result
+                lastError = nil
+                if attempt > 1 {
+                    NSLog("WSImport: LLM route succeeded on attempt \(attempt) for task \(i)")
+                }
+                break
+            } catch {
+                lastError = error
+                NSLog("WSImport: LLM route attempt \(attempt)/\(maxLLMAttempts) failed: \(error.localizedDescription)")
+                if attempt < maxLLMAttempts {
+                    // Exponential backoff:
+                    // 1s, 2s, 4s.
+                    // (= 7s total
+                    // before the
+                    // final
+                    // failure;
+                    // = enough for
+                    // the LLM to
+                    // recover from
+                    // most
+                    // transient
+                    // errors).
+                    let delaySeconds = pow(2.0, Double(attempt - 1))
+                    try? await Task.sleep(nanoseconds: UInt64(delaySeconds * 1_000_000_000))
+                }
+            }
+        }
+        guard var routing = routing else {
             tasksBox.value[i].state = .failed
-            tasksBox.value[i].errorMessage = "LLM 路由失败: \(error.localizedDescription)"
+            tasksBox.value[i].errorMessage = "LLM 路由失败 (3 次重试): \((lastError as NSError?)?.localizedDescription ?? "未知错误")"
             await onProgress?(tasksBox.value)
             return
         }

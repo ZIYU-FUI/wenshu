@@ -350,6 +350,65 @@ enum IconRendering: Sendable, Equatable {
     /// Apple's intrinsic colors (= use when the symbol has a curated
     /// multicolor variant; = Apple wifi / calendar.badge.plus / etc.).
     case multicolor
+
+    /// v2.7 round-66 commit G (= boss
+    /// 2026-10-10 "这
+    /// 个分
+    /// 析中
+    /// 三
+    /// 个字
+    /// 前
+    /// 面，
+    /// 需
+    /// 要
+    /// 加
+    /// 一个
+    /// 小
+    /// 小
+    /// 的
+    /// 动
+    /// 态
+    /// SF"
+    /// feedback): the
+    /// `.variableColor`
+    /// symbol effect
+    /// (= the SF
+    /// Symbol's
+    /// colors cycle
+    /// through the
+    /// spectrum
+    /// continuously;
+    /// = the canonical
+    /// "in progress"
+    /// visual
+    /// affordance; =
+    /// e.g.
+    /// `ellipsis.circle.fill`
+    /// with this
+    /// rendering = the
+    /// three dots
+    /// cycle through
+    /// colors at ~1
+    /// Hz; = the user
+    /// sees
+    /// continuous
+    /// motion and
+    /// immediately
+    /// knows the
+    /// system is
+    /// still
+    /// working). The
+    /// `SFIcon` factory
+    /// applies the
+    /// effect via
+    /// `.symbolEffect(.variableColor.iterative)`
+    /// (= the SwiftUI
+    /// 4.0+
+    /// API; = the loop
+    /// runs forever
+    /// while the view
+    /// is mounted).
+    case variableColor
 }
 
 // MARK: - SFIcon
@@ -465,6 +524,105 @@ struct SFIcon: View {
             return AnyView(styledImage.symbolRenderingMode(.palette).foregroundStyle(color))
         case .multicolor:
             return AnyView(styledImage.symbolRenderingMode(.multicolor).foregroundStyle(color))
+        case .variableColor:
+            // v2.7 round-66 commit G
+            // (= boss
+            // 2026-10-10 "这
+            // 个分
+            // 析中
+            // 三
+            // 个字
+            // 前
+            // 面，
+            // 需
+            // 要
+            // 加
+            // 一
+            // 个
+            // 小
+            // 小
+            // 的
+            // 动
+            // 态
+            // SF"
+            // feedback).
+            // The
+            // `.variableColor`
+            // symbol
+            // effect
+            // (= the
+            // SF
+            // Symbol's
+            // colors
+            // cycle
+            // through
+            // the
+            // spectrum
+            // continuously;
+            // = the
+            // canonical
+            // "in
+            // progress"
+            // visual
+            // affordance).
+            // `.symbolEffect(.variableColor.iterative)`
+            // loops
+            // forever
+            // while
+            // the
+            // view
+            // is
+            // mounted;
+            // = the
+            // effect
+            // stops
+            // automatically
+            // when
+            // the
+            // view
+            // is
+            // removed
+            // (= the
+            // state
+            // pill
+            // is
+            // unmounted
+            // when
+            // the
+            // task
+            // transitions
+            // away
+            // from
+            // .routing
+            // / .writing;
+            // = no
+            // cleanup
+            // needed).
+            // The
+            // `.symbolRenderingMode(.monochrome)`
+            // is
+            // skipped
+            // for
+            // .variableColor
+            // (= the
+            // effect
+            // requires
+            // the
+            // multicolor
+            // rendering
+            // path;
+            // = the
+            // symbol's
+            // intrinsic
+            // colors
+            // are
+            // what's
+            // cycling).
+            return AnyView(
+                styledImage
+                    .symbolEffect(.variableColor.iterative, options: .repeating)
+                    .foregroundStyle(color)
+            )
         case nil:
             if style.pointSize >= 38 {
                 return AnyView(styledImage.symbolRenderingMode(.monochrome).foregroundStyle(color))
