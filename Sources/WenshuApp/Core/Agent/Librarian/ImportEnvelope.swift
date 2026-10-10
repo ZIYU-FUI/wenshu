@@ -270,6 +270,22 @@ struct ImportRoutingResult: Codable, Sendable, Hashable {
     /// array (= most common case) when A
     /// fully maps to B (= no extra content).
     let extraFiles: [ExtraFile]
+    /// v2.7 round-72 (= boss 2026-10-10
+    /// "B" pick for "让 LLM 必须拆,
+    /// 但真的没有内容, 拆不出来就拆
+    /// 不出来, 但拆的东西必须要
+    /// 做"). When phase 2 returns
+    /// empty (= the LLM honestly
+    /// reports it could not extract
+    /// content), this flag is `true`.
+    /// The orchestrator then writes
+    /// all 6 必填 as 占位子文件 (= boss's
+    /// "拆的东西必须要做" + "文件内允许
+    /// 打待补充标记") AND skips writing
+    /// the main B file (= boss's "导
+    /// 入失败就是导入失败"; = no
+    /// `prepareBodyForWrite` fallback).
+    let needsFilling: Bool
 }
 
 /// v2.7 round-71 (= boss 2026-10-10

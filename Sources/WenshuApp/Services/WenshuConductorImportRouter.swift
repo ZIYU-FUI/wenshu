@@ -380,6 +380,27 @@ actor WenshuConductorImportRouter: ImportRouter {
         // Merge: phase 1's metadata + phase 2's
         // 6 必填 + phase 3's 0-5 自定义.
         let allExtras = phase2Extras + phase3Extras
+        // v2.7 round-72 (= boss 2026-10-10
+        // "B" pick: "让 LLM 必须拆,
+        // 但真的没有内容, 拆不出来
+        // 就拆不出来, 但拆的东西必
+        // 须要做"). When phase 2
+        // returned empty (= the LLM
+        // honestly reports it could
+        // not extract the 6 必填), set
+        // `needsFilling = true`. The
+        // orchestrator will then write
+        // the 6 必填 as 占位子文件 with a
+        // `[待补充] 需调研补齐` body
+        // AND skip writing the main B
+        // file (= no
+        // `prepareBodyForWrite`
+        // fallback; = boss's "导入失
+        // 败就是导入失败").
+        let needsFilling = phase2Extras.isEmpty
+        if needsFilling {
+            await progress?("  ⚠️ phase 2/3 返回空 → needsFilling=true → 6 占位子文件 = 待补充, 主文件不写")
+        }
         return ImportRoutingResult(
             destination: .bookFolder(phase1.folder),
             title: phase1.title,
@@ -389,7 +410,8 @@ actor WenshuConductorImportRouter: ImportRouter {
             category: nil,
             confidence: 0.9,
             rewrittenBody: phase1.rewrittenBody,
-            extraFiles: allExtras
+            extraFiles: allExtras,
+            needsFilling: needsFilling
         )
     }
 
@@ -1474,7 +1496,8 @@ actor WenshuConductorImportRouter: ImportRouter {
                 category: nil,
                 confidence: 0.0,
                 rewrittenBody: nil,
-                extraFiles: []
+                extraFiles: [],
+            needsFilling: false
             )
         }
         // 2. Parse the JSON.
@@ -1544,7 +1567,8 @@ actor WenshuConductorImportRouter: ImportRouter {
             // see ticket 02). Empty array
             // when LLM doesn't return any
             // (= most common case).
-            extraFiles: parsed.extraFiles
+            extraFiles: parsed.extraFiles,
+            needsFilling: false
         )
     }
 

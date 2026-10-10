@@ -34,7 +34,8 @@ final class ImportServiceTests: XCTestCase {
                 tags: ["stub"], entityType: "other",
                 category: nil, confidence: 1.0,
                 rewrittenBody: nil,
-                extraFiles: []
+                extraFiles: [],
+            needsFilling: false
             )
         }
         // v2.7 round-66 commit F:
@@ -176,7 +177,8 @@ final class ImportServiceTests: XCTestCase {
                 tags: [], entityType: "other",
                 category: nil, confidence: 1.0,
                 rewrittenBody: nil,
-                extraFiles: []
+                extraFiles: [],
+            needsFilling: false
             )
         ]
         let tasks = await svc.importFiles(in: src, into: target, router: StubImportRouter(canned))
@@ -270,7 +272,8 @@ final class ImportServiceTests: XCTestCase {
                 title: "t", summary: "s", tags: ["stub"],
                 entityType: "other", category: nil, confidence: 1.0,
                 rewrittenBody: nil,
-                extraFiles: []
+                extraFiles: [],
+            needsFilling: false
             )
         ]
         // First import.
@@ -313,7 +316,8 @@ final class ImportServiceTests: XCTestCase {
                     destination: .referenceLibrary, title: "t", summary: "s",
                     tags: [], entityType: "other", category: nil, confidence: 1.0,
                     rewrittenBody: nil,
-                    extraFiles: []
+                    extraFiles: [],
+            needsFilling: false
                 )
             }
             // v2.7 round-66 commit F:
@@ -370,7 +374,8 @@ final class ImportServiceTests: XCTestCase {
                 title: "t-\(rel)", summary: "s", tags: [],
                 entityType: "other", category: nil, confidence: 1.0,
                 rewrittenBody: nil,
-                extraFiles: []
+                extraFiles: [],
+            needsFilling: false
             )
         }
         let tasks = await svc.importFiles(in: src, into: target, router: StubImportRouter(canned))

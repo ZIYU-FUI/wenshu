@@ -98,6 +98,20 @@ struct BookFolderSpec: Sendable, Equatable {
     /// and the call sites have their own per-folder rendering
     /// logic).
     let icon: String?
+    /// v2.7 round-72 (= boss 2026-10-10
+    /// "B" pick for "拆的东西必须要
+    /// 做"). The canonical 6 必填
+    /// sub-file titles for this folder
+    /// (= boss's world/ 6 必填 schema).
+    /// Currently only `world` has 6 (=
+    /// 核心设定 / 地理或位置 / 体系或
+    /// 规则 / 历史脉络 / 与其他元素的
+    /// 关系 / 关键场景种子). When the
+    /// LLM fails to fill these, the
+    /// orchestrator writes each as a
+    /// 占位子文件 with `[待补充] 需调
+    /// 研补齐` body.
+    let requiredTitles: [String]
     /// `true` = the folder appears in the user-visible sidebar
     /// tree (the 5 user-facing folders). `false` = the folder
     /// exists on disk but is hidden from the sidebar tree
@@ -137,7 +151,15 @@ enum BookFolderCatalog {
         sidebarDisplayName: "世界观",
         cardDisplayName: "世界观",
         icon: "globe",
-        isUserFacing: true
+        requiredTitles: [
+            "核心设定",
+            "地理或位置",
+            "体系或规则",
+            "历史脉络",
+            "与其他元素的关系",
+            "关键场景种子"
+        ],
+        isUserFacing: true,
     )
 
     /// Named characters
@@ -147,7 +169,8 @@ enum BookFolderCatalog {
         sidebarDisplayName: "角色",
         cardDisplayName: "角色",
         icon: "person.crop.circle",
-        isUserFacing: true
+        requiredTitles: [],
+        isUserFacing: true,
     )
 
     /// Pre-write outline (= beat sheets)
@@ -157,7 +180,8 @@ enum BookFolderCatalog {
         sidebarDisplayName: "章节大纲",
         cardDisplayName: "章节大纲",
         icon: "bookmark.circle",
-        isUserFacing: true
+        requiredTitles: [],
+        isUserFacing: true,
     )
 
     /// The published body (= chapter .md files
@@ -168,7 +192,8 @@ enum BookFolderCatalog {
         sidebarDisplayName: "小说正文",
         cardDisplayName: "章节",
         icon: "book.closed.circle",
-        isUserFacing: true
+        requiredTitles: [],
+        isUserFacing: true,
     )
 
     /// In-progress drafts
@@ -178,7 +203,8 @@ enum BookFolderCatalog {
         sidebarDisplayName: "小说草稿",
         cardDisplayName: "草稿",
         icon: "book.circle",
-        isUserFacing: true
+        requiredTitles: [],
+        isUserFacing: true,
     )
 
     /// v2.7 round-62 (= boss
@@ -260,7 +286,8 @@ enum BookFolderCatalog {
         sidebarDisplayName: "构思",
         cardDisplayName: "构思",
         icon: "timelapse",
-        isUserFacing: true
+        requiredTitles: [],
+        isUserFacing: true,
     )
 
     /// LLM chat transcripts (= internal folder; = NOT
@@ -271,7 +298,8 @@ enum BookFolderCatalog {
         sidebarDisplayName: "会话",
         cardDisplayName: "会话",
         icon: nil,
-        isUserFacing: false
+        requiredTitles: [],
+        isUserFacing: false,
     )
 
     /// Cross-chapter foreshadowing tracker (= internal
@@ -283,7 +311,8 @@ enum BookFolderCatalog {
         sidebarDisplayName: "伏笔",
         cardDisplayName: "伏笔",
         icon: nil,
-        isUserFacing: false
+        requiredTitles: [],
+        isUserFacing: false,
     )
 
     /// TODO / hint placeholders the user plants
@@ -295,7 +324,8 @@ enum BookFolderCatalog {
         sidebarDisplayName: "占位符",
         cardDisplayName: "占位符",
         icon: nil,
-        isUserFacing: false
+        requiredTitles: [],
+        isUserFacing: false,
     )
 
     /// All 8 standard folders, in sidebar display order (=
