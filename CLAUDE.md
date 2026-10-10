@@ -104,7 +104,7 @@ wenshu/                                                ← project root
 | App entry | `Sources/WenshuApp/App.swift` + `Sources/WenshuApp/App/AppRootScene.swift` | SwiftUI App + NavigationSplitView root scene | SwiftUI |
 | MainActor chat layer | `Sources/WenshuApp/Views/Chat/` | User chat always responsive, slash commands, tool diff preview | Core |
 | Background agent tasks | `Sources/WenshuApp/Core/Agent/` | LLM call, chapter summary, research, revision candidate, style distill, librarian, todo, kanban, specialized tools | Core |
-| SwiftData @Model + Container | `Sources/WenshuApp/Persistence/` | 22 explicit @Model classes + WSPersistenceContainer + 8 Repositories | SwiftData |
+| SwiftData @Model + Container | `Sources/WenshuApp/Persistence/` | 28 explicit @Model classes + WSPersistenceContainer + 8 Repositories | SwiftData |
 | LLM connector layer | `Sources/WenshuApp/Core/Agent/Connector/` | Anthropic / OpenAI / Gemini / DeepSeek / Ollama / OpenRouter / Minimax connectors (7 BYOK profiles per AGENTS.md §11.2; additional Provider enum cases for OAuth / codex / copilot flow internally) | Connector APIs |
 | Memory + context | `Sources/WenshuApp/Core/Memory/` + `Sources/WenshuApp/Core/Search/` | WSMemoryProvider + CSSearchableIndexSearch | Core |
 | Notifications | `Sources/WenshuApp/Core/Notifications/` | AppNotifications | AppKit |
@@ -121,7 +121,7 @@ wenshu/                                                ← project root
 
 | Internal interface | Path | Use |
 |--------------------|------|-----|
-| `WSPersistenceContainer` | `Sources/WenshuApp/Persistence/Container.swift` | SwiftData ModelContainer. Single ModelContainer per app (= 22 @Model classes). |
+| `WSPersistenceContainer` | `Sources/WenshuApp/Persistence/Container.swift` | SwiftData ModelContainer. Single ModelContainer per app (= 28 @Model classes). |
 | `LLMConnector` protocol | `Sources/WenshuApp/Core/Agent/Connector/LLMConnector.swift` | Abstract LLM call. 7 connector profiles conform (Anthropic native / OpenAI native / OpenAI-compatible / Gemini native). See AGENTS.md §11.2. |
 | `ContextAssembler` (= `CSSearchableIndexSearch`) | `Sources/WenshuApp/Core/Search/CSSearchableIndexSearch.swift` | Long-term memory → LLM minimal context (Apple Core Spotlight backed). |
 | Stage gate | not yet implemented (= pre-pinned for v0.41+ backlog; = see wenshu-pocock-workflow references) | (placeholder) |
@@ -230,7 +230,7 @@ swift run swiftlint
 - `Sources/WenshuApp/App.swift` — SwiftUI App entry.
 - `Sources/WenshuApp/App/AppRootScene.swift` — NavigationSplitView root scene.
 - `Sources/WenshuApp/Persistence/WS*.swift` — SwiftData @Model classes (schema change requires escalation).
-- `Sources/WenshuApp/Persistence/Container.swift` — SwiftData ModelContainer setup (= 22 @Model classes, single container per app).
+- `Sources/WenshuApp/Persistence/Container.swift` — SwiftData ModelContainer setup (= 28 @Model classes, single container per app).
 - `Sources/WenshuApp/Core/Agent/Connector/LLMConnector.swift` — LLM connector protocol (7 BYOK profiles conform per AGENTS.md §11.2).
 - `Sources/WenshuApp/Core/Agent/Connector/SSEParser.swift` — SSE streaming parser (by event type).
 - `Sources/WenshuApp/Core/Search/CSSearchableIndexSearch.swift` — context assembly (Apple Core Spotlight).
