@@ -385,12 +385,60 @@ actor ImportService {
             tasks[i].contentHash = hash
             if let cached = cache[tasks[i].sourcePath],
                cached.contentHash == hash {
-                // Idempotent re-import (= the source file
-                // is byte-equal to a previously-imported
-                // file; = skip the LLM dispatch and the
-                // write step).
-                tasks[i].state = .skipped
-                tasks[i].destination = cached.destination
+                // v2.7 round-38 (= boss 2026-10-10
+                // "资料库已经清空了，但我
+                // 导入了上次一样的测试文
+                // 件，自动跳过了" directive).
+                // Dedup sanity check (= the
+                // cache says "this file was
+                // imported before" but the
+                // destination file may
+                // have been deleted; = the
+                // user cleared the reference
+                // library's .md + entities.json
+                // but the import-cache.json
+                // is still on disk; = the
+                // cache is lying; = the
+                // boss's exact failure
+                // mode). The fix: verify
+                // the destination file
+                // (= the .md the previous
+                // import wrote) still
+                // exists on disk; = if
+                // not = the cache entry is
+                // stale = re-import. The
+                // check is a single
+                // `FileManager.fileExists`
+                // per task (= cheap; =
+                // no extra I/O beyond
+                // what the orchestrator
+                // already does in
+                // Phase 4 write).
+                if Self.cachedDestinationExists(
+                    cached: cached,
+                    target: target
+                ) {
+                    // Idempotent re-import (= the
+                    // source file is byte-equal
+                    // to a previously-imported
+                    // file AND the previous
+                    // import's output file
+                    // still exists on disk;
+                    // = skip the LLM dispatch
+                    // and the write step).
+                    tasks[i].state = .skipped
+                    tasks[i].destination = cached.destination
+                }
+                // else: cache entry is stale;
+                // = fall through (= the task
+                // stays .pending; = the LLM
+                // dispatch + write will run
+                // again; = the new write
+                // overwrites whatever the
+                // user had on disk; = the
+                // cache entry is replaced
+                // by the new import at
+                // the end of Phase 4).
             }
         }
         // Filter out completed / skipped / failed; =
@@ -825,6 +873,91 @@ actor ImportService {
             }
         }
         return out
+    }
+
+    // v2.7 round-38 (= boss 2026-10-10
+    // "资料库已经清空了，但我
+    // 导入了上次一样的测试文
+    // 件，自动跳过了" directive).
+    /// Verify the cache entry's destination
+    /// file still exists on disk. Returns
+    /// `true` if the previous import's
+    /// output is still there (= the cache
+    /// entry is valid; = skip is safe);
+    /// returns `false` if the destination
+    /// file is gone (= the cache is stale;
+    /// = re-import instead of skip).
+    ///
+    /// For the reference library: the
+    /// destination file is
+    /// `<wsRoot>/reference-library/entities/<uuid>.md`
+    /// where `uuid = uuidFromHash(contentHash)`
+    /// (= deterministic; = we can
+    /// reconstruct the exact path from
+    /// the cache entry's `contentHash`;
+    /// = no need for the LLM's title).
+    /// This is the boss's exact bug case
+    /// (= cleared the ref lib's .md +
+    /// entities.json but the cache
+    /// remained; = the file existence
+    /// check correctly returns false; =
+    /// re-import).
+    ///
+    /// For a book folder: the
+    /// destination file is
+    /// `<shelves>/<shelfId>/books/<bookId>/<folder>/<basename>.md`
+    /// where `basename = sanitizeFilename(LLM title)`.
+    /// The cache does NOT store the LLM
+    /// title. For the book case, the
+    /// conservative check is the
+    /// directory existence + non-empty
+    /// (= at least one .md was
+    /// previously imported; = the cache
+    /// entry is likely valid; = the user
+    /// can re-import individual files
+    /// manually if they want). This is a
+    /// soft signal (= the user can
+    /// delete the cache to force a full
+    /// re-import if needed).
+    ///
+    /// For unknown destination variants
+    /// (= future enum cases): return
+    /// `false` (= conservative; = don't
+    /// skip; = re-import).
+    private static func cachedDestinationExists(
+        cached: CacheEntry,
+        target: ImportTarget
+    ) -> Bool {
+        switch cached.destination {
+        case .referenceLibrary:
+            let uuid = Self.uuidFromHash(cached.contentHash)
+            let refMdURL = target.wsRoot
+                .appendingPathComponent("reference-library")
+                .appendingPathComponent("entities")
+                .appendingPathComponent("\(uuid.uuidString).md")
+            return FileManager.default.fileExists(atPath: refMdURL.path)
+        case .bookFolder(let folder):
+            guard let bookId = target.bookId,
+                  let shelfId = target.shelfId else {
+                return false
+            }
+            let folderURL = target.shelvesRoot
+                .appendingPathComponent(shelfId.uuidString)
+                .appendingPathComponent("books")
+                .appendingPathComponent(bookId.uuidString)
+                .appendingPathComponent(folder.directoryName)
+            var isDir: ObjCBool = false
+            guard FileManager.default.fileExists(
+                atPath: folderURL.path, isDirectory: &isDir
+            ), isDir.boolValue else {
+                return false
+            }
+            let contents = (try? FileManager.default.contentsOfDirectory(
+                at: folderURL,
+                includingPropertiesForKeys: nil
+            )) ?? []
+            return !contents.isEmpty
+        }
     }
 
     // MARK: - Phase 1: walk
