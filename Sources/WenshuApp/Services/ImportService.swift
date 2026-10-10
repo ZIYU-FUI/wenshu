@@ -3006,6 +3006,10 @@ extension ImportService {
                 // the per-row
                 // activityLog.
                 let result = try await router.route(input) { message in
+                    NSLog(
+                        "[wenshu.import.progress] i=%d message=%@",
+                        i, message
+                    )
                     await self.appendActivity(
                         to: tasksBox, i: i,
                         message: message,
