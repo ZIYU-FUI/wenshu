@@ -1841,6 +1841,59 @@ extension ImportSheet {
     /// list (= the user is
     /// already done with the
     /// import).
+    ///
+    /// v2.7 round-58 (= boss 2026-10-10
+    /// "这个区域的文字没有
+    /// 左对齐" directive).
+    /// The previous
+    /// implementation
+    /// had
+    /// `.padding(DesignTokens
+    /// .spacingStandard)`
+    /// (= 12 PT
+    /// internal
+    /// padding) on
+    /// the VStack (= the
+    /// summary text
+    /// was inset 12 PT
+    /// from the sheet's
+    /// left edge; = the
+    /// user perceived
+    /// the text as
+    /// "floating in the
+    /// middle of the
+    /// sheet" with a
+    /// visible gap from
+    /// the sheet's left
+    /// edge). The fix:
+    /// REMOVE the
+    /// internal padding
+    /// (= the text now
+    /// starts at x = 0
+    /// inside the
+    /// VStack; = the
+    /// VStack itself
+    /// uses
+    /// `alignment:
+    /// .leading` + the
+    /// `frame(maxWidth:
+    /// .infinity,
+    /// alignment:
+    /// .leading)` to
+    /// make the text
+    /// flush with the
+    /// sheet's left
+    /// edge; = the
+    /// summary text is
+    /// now aligned with
+    /// the dot indicator
+    /// + the nav bar
+    /// buttons on the
+    /// other steps;
+    /// = the visual
+    /// alignment is
+    /// consistent across
+    /// all 4 steps).
     @ViewBuilder
     fileprivate var step4DoneView: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingStandard) {
@@ -1868,7 +1921,6 @@ extension ImportSheet {
                 .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(DesignTokens.spacingStandard)
     }
 }
 
