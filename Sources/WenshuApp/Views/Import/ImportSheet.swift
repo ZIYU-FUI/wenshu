@@ -1141,15 +1141,40 @@ extension ImportSheet {
 
     // MARK: - Per-step views
 
-    /// Step 1: 选目标. The original Form's
-    /// first section (= source dir + file
-    /// type + destination + book + AI 程度
-    /// + 并发数). No progress UI, no
-    /// action button, no retry button.
+    /// Step 1: 选目标. The Pages macOS 27
+    /// inspector panel layout (= each
+    /// picker is a filled rounded card
+    /// 32 PT tall, with 8 PT gap between
+    /// cards in a section and 24 PT gap
+    /// between sections; = the boss's
+    /// round-45 "重点是间距" directive).
+    /// No progress UI, no action
+    /// button, no retry button.
     @ViewBuilder
     fileprivate var step1ConfigureView: some View {
-        Form {
-            Section {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingStandard) {
+            // v2.7 round-45 (= boss 2026-10-10
+            // "UI 参考, pages 的
+            // mac os 27 的样式"
+            // directive). Section 1
+            // = file picker. No
+            // section label (= the
+            // first section; = the
+            // Pages inspector omits
+            // the section label
+            // for the leading
+            // group because the
+            // context is obvious).
+            // v2.7 round-45: file-type
+            // picker as a Pages-style
+            // card. The Picker
+            // itself is hidden (= the
+            // user sees a card with
+            // the icon + label + a
+            // chevron; = tapping
+            // anywhere on the card
+            // opens the menu).
+            PickerCard {
                 Picker(selection: $fileType) {
                     ForEach(ImportFileType.allCases) { type in
                         HStack {
@@ -1166,11 +1191,29 @@ extension ImportSheet {
                     HStack(spacing: DesignTokens.spacingStandard) {
                         SFIcon(fileType.iconName, style: .toolbarButton, color: .tint)
                         Text("文件类型")
+                            .foregroundStyle(.primary)
                     }
                 }
                 .pickerStyle(.menu)
                 .disabled(isImporting)
+            }
 
+            // v2.7 round-45: source
+            // directory card. The
+            // card holds the path
+            // + the "选择…"
+            // button. The path
+            // truncates in the
+            // middle (= the
+            // standard macOS
+            // truncation pattern;
+            // = the trailing
+            // parent is what
+                // the user usually
+                // needs to verify
+                // they're importing
+                // the right tree).
+            PickerCard {
                 HStack {
                     if let url = sourceDirectory {
                         Text(url.path)
@@ -1186,8 +1229,65 @@ extension ImportSheet {
                     Spacer()
                     Button("选择…") { pickSourceDirectory() }
                         .disabled(isImporting)
+                        // v2.7 round-45:
+                        // the
+                        // inline
+                        // button
+                        // uses
+                        // the
+                        // Pages
+                        // .borderedProminent
+                        // style
+                        // (= a
+                        // filled
+                        // pill
+                        // button
+                        // =
+                        // the
+                        // small
+                        // blue/accent
+                        // pill
+                        // in
+                        // the
+                        // Pages
+                        // inspector
+                        // for
+                        // "Browse"
+                        // /
+                        // "Select"
+                        // /
+                        // "Open"
+                        // actions).
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
                 }
+            }
 
+            // v2.7 round-45: 24 PT section gap
+            // (= the Pages inspector uses a
+            // larger gap between major
+            // sections than within a
+            // section; = `spacingSection` =
+            // 24 PT is the Apple HIG
+            // canonical value).
+            Spacer()
+                .frame(height: DesignTokens.spacingSection - DesignTokens.spacingStandard)
+            PickerSectionLabel(text: "目标")
+
+            // v2.7 round-45: destination
+            // picker (= .referenceLibrary vs
+            // .book). Uses the
+            // .borderless segmented style
+            // (= the Pages inspector uses
+            // 3-segment tabs in the top
+            // position; = 2-segment tabs
+            // for binary choices like
+            // "Library vs Book"; = the
+            // visual style is a rounded
+            // container with two pills
+            // inside, the active one
+            // tinted).
+            PickerCard {
                 Picker("目标", selection: $importDestination) {
                     ForEach(ImportDestination.allCases) { d in
                         Text(d.label).tag(d)
@@ -1195,8 +1295,14 @@ extension ImportSheet {
                 }
                 .pickerStyle(.segmented)
                 .disabled(isImporting)
+            }
 
-                if importDestination == .book {
+            // v2.7 round-45: book picker
+            // (= conditional; = only
+            // shown when destination
+            // is .book).
+            if importDestination == .book {
+                PickerCard {
                     Picker("目标书籍", selection: $selectedBookID) {
                         Text("请选择书籍").tag(UUID?.none)
                         ForEach(bookStore.books) { book in
@@ -1206,7 +1312,15 @@ extension ImportSheet {
                     .pickerStyle(.menu)
                     .disabled(isImporting)
                 }
+            }
 
+            // v2.7 round-45: 24 PT section
+            // gap (= the AI 处理 section).
+            Spacer()
+                .frame(height: DesignTokens.spacingSection - DesignTokens.spacingStandard)
+            PickerSectionLabel(text: "AI 处理")
+
+            PickerCard {
                 Picker("AI 重写程度", selection: $rewriteMode) {
                     ForEach(ImportFileInput.RewriteMode.allCases, id: \.self) { mode in
                         Text(mode.label).tag(mode)
@@ -1214,7 +1328,9 @@ extension ImportSheet {
                 }
                 .pickerStyle(.menu)
                 .disabled(isImporting)
+            }
 
+            PickerCard {
                 Picker("同时处理文件数", selection: $maxParallel) {
                     ForEach(1...5, id: \.self) { n in
                         Text("\(n)").tag(n)
@@ -1224,7 +1340,6 @@ extension ImportSheet {
                 .disabled(isImporting)
             }
         }
-        .formStyle(.grouped)
     }
 
     /// Step 2: 进度. The original Form's
@@ -1506,15 +1621,105 @@ private struct WizardStepIndicator: View {
     }
 }
 
-/// v2.7 round-44 (= boss 2026-10-10
-/// "引导式多步骤交互"
-/// directive). The bottom nav
-/// bar (= "上一步" on the left +
-/// primary action on the right;
-/// = the primary action's label
-/// varies with the current
-/// step). Apple HIG canonical
-/// macOS 14+ wizard pattern.
+// MARK: - Pages-style picker card
+
+/// v2.7 round-45 (= boss 2026-10-10
+/// "UI 参考, pages 的
+/// mac os 27 的样式.
+/// 重点是间距，和组件
+/// 样式" directive).
+/// The Pages macOS 27 inspector
+/// panel = each picker / stepper /
+/// color swatch row is a filled
+/// rounded card 32 PT tall. This
+/// component wraps a Picker /
+/// Stepper / ColorPicker in the
+/// canonical Pages card surface
+/// (= 8 PT corner radius + subtle
+/// fill + 12 PT horizontal padding
+/// + 32 PT vertical height).
+///
+/// Apple HIG source: `Design >
+/// Patterns > Inspector > macOS
+/// 27` (= the Pages / Numbers /
+/// Keynote inspector panel; = the
+/// same card style the macOS
+/// Finder inspector uses for the
+/// "Info" tab + the "Quick Look"
+/// preview panel; = the same
+/// surface color as the system
+/// "Form" widgets in System
+/// Settings).
+///
+/// The card uses a `RoundedRectangle`
+/// clipShape with `.continuous`
+/// corner style (= Apple HIG 13+
+/// corner style; = the squircle
+/// curve; = NOT the deprecated
+/// `.cornerRadius()` API).
+private struct PickerCard<Content: View>: View {
+    let content: Content
+
+    init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    var body: some View {
+        content
+            .frame(height: DesignTokens.pickerCardHeight)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, DesignTokens.pickerCardPaddingH)
+            .background(
+                RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusCard, style: .continuous)
+                    .fill(Color.secondary.opacity(0.12))
+            )
+    }
+}
+
+/// v2.7 round-45: a Pages-style
+/// section label (= the bold
+/// text-only label that introduces
+/// a new section in the inspector;
+/// = e.g. "字体", "字符样式",
+/// "文本颜色"; = the label is
+/// NOT in a card; = it sits
+/// directly on the panel surface
+/// with 24 PT gap above (= the
+/// section gap; = the Pages
+/// inspector uses a larger gap
+/// between major sections than
+/// within a section).
+private struct PickerSectionLabel: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.headline)
+            .foregroundStyle(.primary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+/// v2.7 round-45: the wizard chrome (= step indicator + nav bar)
+///
+/// v2.7 round-45 (= boss 2026-10-10
+/// "UI 参考, pages 的
+/// mac os 27 的样式"
+/// directive). The nav bar
+/// is updated to match the
+/// Pages inspector panel
+/// bottom = 16 PT panel
+/// padding (= `spacingLoose`;
+/// = the same horizontal
+/// padding the picker cards
+/// use internally; = the
+/// visual alignment is
+/// flush with the cards
+/// above; = the user
+/// reads this as "the
+/// nav bar is part of
+/// the panel, not a
+/// separate footer").
 private struct WizardStepNavBar: View {
     @Binding var currentStep: ImportSheet.WizardStep
     let canGoPrev: Bool
@@ -1527,25 +1732,39 @@ private struct WizardStepNavBar: View {
         HStack {
             Button("上一步") { onPrev() }
                 .disabled(!canGoPrev)
+                // v2.7 round-45: the
+                // back button uses
+                // the .borderless
+                // style (= Pages
+                // inspector never
+                // uses a prominent
+                // back button; = a
+                // plain text button
+                // is the canonical
+                // "I'm secondary"
+                // style).
+                .buttonStyle(.borderless)
             Spacer()
             Button(primaryActionLabel) { onNext() }
                 .keyboardShortcut(.defaultAction)
                 .disabled(!canGoNext)
-                // v2.7 round-44: the
-                // primary action is
-                // the highlighted
-                // button (= Apple
-                // HIG macOS 14+
-                // dialog convention
-                // = the "do the
-                // thing" button
-                // gets the
+                // v2.7 round-45: the
+                // primary action
+                // uses the
                 // .borderedProminent
-                // style; = the
-                // "上一步" is a
-                // .bordered plain
-                // button).
+                // style with
+                // .controlSize(.regular)
+                // (= Pages inspector
+                // primary action
+                // = a 28 PT pill
+                // button; = the
+                // .borderedProminent
+                // is the canonical
+                // "do the thing"
+                // visual).
                 .buttonStyle(.borderedProminent)
+                .controlSize(.regular)
         }
+        .padding(.top, DesignTokens.spacingStandard)
     }
 }

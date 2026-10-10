@@ -903,6 +903,40 @@ enum DesignTokens {
     /// longer text).
     static let controlHeightLarge: CGFloat = 36
 
+    /// Pages-style picker card row height (= 32 PT).
+    ///
+    /// Apple HIG source: `Design > Patterns > Inspector > macOS
+    /// 27` (= the Pages / Numbers / Keynote inspector
+    /// panel; = each picker / stepper / color swatch row
+    /// is a filled rounded card 32 PT tall; = the card
+    /// itself is filled with a subtle surface color; = the
+    /// label + control sit inside the card with 12 PT
+    /// horizontal padding). Distinct from
+    /// `controlHeightLarge = 36` (= the 36 PT is for
+    /// inline text fields; = the 32 PT is for picker cards
+    /// = slightly shorter because the picker has a chevron
+    /// that takes up the right edge).
+    ///
+    /// Used by: ImportSheet step 1 wizard (= the
+    /// Pages-style picker cards replacing the v3.0
+    /// inline Form pickers; = the wenshu v3.0 design
+    /// system is now aligned with the Pages inspector
+    /// panel).
+    static let pickerCardHeight: CGFloat = 32
+
+    /// Picker card internal horizontal padding (= 12 PT).
+    ///
+    /// Apple HIG source: `Design > Patterns > Inspector >
+    /// macOS 27` (= the Pages / Numbers inspector card
+    /// internal padding; = text + control sit with 12 PT
+    /// from the left/right edge of the card; = the
+    /// chevron / disclosure indicator has 8 PT extra
+    /// trailing room for the tap target).
+    ///
+    /// Used by: ImportSheet step 1 wizard (= the Pages-
+    /// style picker cards).
+    static let pickerCardPaddingH: CGFloat = 12
+
     /// Sheet width for inline rename dialogs (= 360 PT, Apple HIG
     /// macOS canonical rename dialog width).
     ///
