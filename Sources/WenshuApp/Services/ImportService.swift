@@ -1192,8 +1192,43 @@ actor ImportService {
         // the cache value carries the body hash + the
         // resolved destination = the dedup pass can
         // short-circuit without touching the LLM).
+        //
+        // v2.7 round-40 (= boss 2026-10-10
+        // "写入失败: Reference already
+        // exists on disk" directive; = the
+        // boss's `.import-cache.json` from
+        // a previous wenshu version had
+        // empty `contentHash` values for
+        // 3 files; = `uuidFromHash("")`
+        // returned the SAME deterministic
+        // UUID for all 3 files; = the
+        // orchestrator wrote the .md at
+        // the same path for the first file;
+        // = the second and third files
+        // crashed with "Reference ... already
+        // exists on disk"). The fix: NEVER
+        // write an empty / short contentHash
+        // to the cache; = if the input is
+        // empty (= the source file's
+        // contentHash was somehow not
+        // populated), compute a stable
+        // placeholder (= sha256 of the
+        // source path; = unique per
+        // file; = the uuid derives to a
+        // unique UUID; = the dedup still
+        // works). The previous code
+        // propagated the empty hash
+        // verbatim, which led to the
+        // "all empty hashes → same UUID"
+        // collision.
+        let safeContentHash: String
+        if contentHash.isEmpty || contentHash.count < 16 {
+            safeContentHash = "orphan-" + Self.sha256(sourcePath)
+        } else {
+            safeContentHash = contentHash
+        }
         cache[sourcePath] = CacheEntry(
-            contentHash: contentHash,
+            contentHash: safeContentHash,
             destination: routing.destination,
             writtenAt: Date()
         )
