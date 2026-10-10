@@ -1,4 +1,4 @@
-# ADR-0012: hermes-core-translation Scope B (= full non-frontend + agent core)
+# ADR-0013: hermes-core-translation Scope B (= full non-frontend + agent core)
 
 > Status: accepted
 > Date: 2026-09-03

@@ -1,4 +1,4 @@
-# ADR-0013: v0.37 Scope + Frontend Flow Integration Decisions
+# ADR-0014: v0.37 Scope + Frontend Flow Integration Decisions
 
 - Status: accepted
 - Date: 2026-09-03

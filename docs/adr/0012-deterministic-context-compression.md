@@ -1,4 +1,4 @@
-# ADR-0011: Deterministic context compression (= NO LLM-driven compression)
+# ADR-0012: Deterministic context compression (= NO LLM-driven compression)
 
 > Status: accepted
 > Date: 2026-09-03
