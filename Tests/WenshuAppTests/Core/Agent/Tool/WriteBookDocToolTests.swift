@@ -54,7 +54,10 @@ final class WriteBookDocToolTests: XCTestCase {
         let data = output.data(using: .utf8)!
         let dict = try JSONSerialization.jsonObject(with: data) as! [String: Any]
         XCTAssertEqual(dict["success"] as? Bool, true)
-        XCTAssertEqual(dict["bytes"] as? Int, 16)
+        XCTAssertEqual(
+            dict["bytes"] as? Int,
+            "# 核心设定\n\ncontent here".utf8.count
+        )
         XCTAssertTrue(
             (dict["path"] as? String ?? "").hasSuffix("/world/核心设定.md")
         )
