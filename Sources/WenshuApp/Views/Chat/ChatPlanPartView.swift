@@ -43,7 +43,7 @@ struct ChatPlanPartView: View {
     }
 
     /// T29-CONNECTOR-ICON (2026-09-18): map a connector slug to a
-    /// distinctive SF Symbol. Covers all 7 connectors in AGENTS.md
+    /// distinctive SF Symbol. Covers all 14 first-class + custom providers in AGENTS.md
     /// §11.2 + a generic fallback for unknown slugs. The icon
     /// appears next to the connector name in the plan header
     /// (= a quick visual hint of which LLM produced the plan).

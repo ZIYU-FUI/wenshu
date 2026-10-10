@@ -12,11 +12,11 @@
 
 **Project baseline** (= 2026-08-06, updated 2026-09-03):
 
-- Project baseline: self-built Swift/SwiftUI desktop app + self-built lightweight AI kernel + BYOK 7-connector LLM layer (Anthropic / OpenAI / Gemini / DeepSeek / Ollama / OpenRouter / minimax cn). The user configures key and uses.
-- **Stack** = Swift / SwiftUI single-process app + SwiftData single-file `.ws` + Swift Concurrency actor serialization + LLM connector layer (7 profiles, BYOK, provider-agnostic, see AGENTS.md §11.2).
+- Project baseline: self-built Swift/SwiftUI desktop app + self-built lightweight AI kernel + BYOK LLM layer with 14 first-class + custom providers (= Anthropic / OpenAI / Gemini / DeepSeek / Ollama / OpenRouter / minimax / minimax cn / Nous / OpenAI Codex / GitHub Copilot / Copilot ACP / xAI OAuth / StepFun). The user configures key and uses.
+- **Stack** = Swift / SwiftUI single-process app + SwiftData single-file `.ws` + Swift Concurrency actor serialization + LLM connector layer (14 first-class + custom, BYOK, provider-agnostic, see AGENTS.md §11.2).
 - **Do NOT reuse** = any external AI platform / any AI platform process / any AI platform CLI / any monorepo / legacy wenshu monorepo fork / legacy plugin route.
 - **Core user** = person with long-form novel idea but no writing experience (ordinary user).
-- **v1 LLM connector layer** = 7 profiles, user BYOK, no default recommendation (see AGENTS.md §11.2 for the 7 profiles).
+- **v1 LLM connector layer** = 14 first-class + custom profiles, user BYOK, no default recommendation (see AGENTS.md §11.2).
 - **`.ws` single file** = SwiftData + attachments, locally self-managed.
 - **Platform** = macOS-only (single platform; iPad / iPhone single Swift/SwiftUI code is structurally supported but not yet target).
 - **Version format** = three digits (Hermes style). Middle digit = phase, third digit = hotfix.
@@ -26,7 +26,7 @@
 - Project root = `/Volumes/ANAN/Engineering/wenshu/`
 - Sandbox = `~/Engineering/llm-call-test/` + `~/Engineering/wenshu-arch-experiments/{Exp5-CoreData,Exp6-Concurrency}/`
 - Legacy monorepo fork (read-only) = `/Volumes/ANAN/Engineering/.archive/wenshu-monorepo-fork/v0.x-monorepo-fork-2026-08-06/` (9.7 GB)
-- LICENSE = MIT (project itself). Connector protocols honored separately (Anthropic-compatible protocol for minimax cn is one of 7 connector profiles).
+- LICENSE = MIT (project itself). Connector protocols honored separately (Anthropic-compatible protocol for minimax cn is one of the 14 first-class profiles).
 - LLM API key = self-configured (stored in macOS Keychain). Never in project. User picks profile in Settings → LLM Connector pane; no default.
 
 ## 2. Tech Stack
@@ -37,7 +37,7 @@
 | Desktop | SwiftUI | macOS 14+ (`.macOS(.v27)` single platform) | Same code, 3-platform struct, macOS-first target. |
 | Data store | SwiftData | Apple framework (= Apple-recommended; = replaced CoreData in v0.72 per AGENTS.md §11.4; = v1.79 chat-by-book row-level split per AGENTS.md §11.11 + docs/agents/v1.79-chat-by-book-row-split.md) | Cross-Apple, single-file, actor-friendly. |
 | Concurrency | Swift Concurrency | Swift 5.5+ | actor serialization + Task async + AsyncSequence streaming. |
-| LLM connector layer | 7 profiles (Anthropic / OpenAI / Gemini / DeepSeek / Ollama / OpenRouter / minimax cn) | BYOK, provider-agnostic | Per AGENTS.md §11.2. minimax cn is one of 7 connectors (Anthropic-compatible). |
+| LLM connector layer | 14 first-class + custom (Anthropic / OpenAI / Gemini / DeepSeek / Ollama / OpenRouter / minimax / minimax cn / Nous / OpenAI Codex / GitHub Copilot / Copilot ACP / xAI OAuth / StepFun) | BYOK, provider-agnostic | Per AGENTS.md §11.2. minimax cn conforms to the Anthropic-compatible protocol (= one of the 14 first-class profiles). |
 | Streaming | URLSession + self-built SSE parser | — | byte-level accumulation, event type classification. |
 | Project format | `.ws` | SwiftData store + attachments | Local single-file, cross-device copy. |
 | LLM key store | macOS Keychain | Apple framework | Never in file, log, or commit. |
@@ -48,7 +48,7 @@
 **Used** (landed):
 
 - Swift / SwiftUI / SwiftData (= Apple-recommended) / Swift Concurrency.
-- 7 LLM connector profiles (BYOK, see AGENTS.md §11.2); minimax cn is one of 7.
+- 14 first-class + custom LLM profiles (BYOK, see AGENTS.md §11.2); minimax cn is one of the 14.
 - `.ws` single file as project data.
 - macOS Keychain for LLM keys.
 
@@ -105,7 +105,7 @@ wenshu/                                                ← project root
 | MainActor chat layer | `Sources/WenshuApp/Views/Chat/` | User chat always responsive, slash commands, tool diff preview | Core |
 | Background agent tasks | `Sources/WenshuApp/Core/Agent/` | LLM call, chapter summary, research, revision candidate, style distill, librarian, todo, kanban, specialized tools | Core |
 | SwiftData @Model + Container | `Sources/WenshuApp/Persistence/` | 28 explicit @Model classes + WSPersistenceContainer + 8 Repositories | SwiftData |
-| LLM connector layer | `Sources/WenshuApp/Core/Agent/Connector/` | Anthropic / OpenAI / Gemini / DeepSeek / Ollama / OpenRouter / Minimax connectors (7 BYOK profiles per AGENTS.md §11.2; additional Provider enum cases for OAuth / codex / copilot flow internally) | Connector APIs |
+| LLM connector layer | `Sources/WenshuApp/Core/Agent/Connector/` | 14 first-class + custom (Anthropic / OpenAI / Gemini / DeepSeek / Ollama / OpenRouter / minimax / minimax cn / Nous / OpenAI Codex / GitHub Copilot / Copilot ACP / xAI OAuth / StepFun); BYOK per AGENTS.md §11.2 | Connector APIs |
 | Memory + context | `Sources/WenshuApp/Core/Memory/` + `Sources/WenshuApp/Core/Search/` | WSMemoryProvider + CSSearchableIndexSearch | Core |
 | Notifications | `Sources/WenshuApp/Core/Notifications/` | AppNotifications | AppKit |
 | Auth pool | `Sources/WenshuApp/Core/Auth/` | AuthPool | Security |
@@ -122,7 +122,7 @@ wenshu/                                                ← project root
 | Internal interface | Path | Use |
 |--------------------|------|-----|
 | `WSPersistenceContainer` | `Sources/WenshuApp/Persistence/Container.swift` | SwiftData ModelContainer. Single ModelContainer per app (= 28 @Model classes). |
-| `LLMConnector` protocol | `Sources/WenshuApp/Core/Agent/Connector/LLMConnector.swift` | Abstract LLM call. 7 connector profiles conform (Anthropic native / OpenAI native / OpenAI-compatible / Gemini native). See AGENTS.md §11.2. |
+| `LLMConnector` protocol | `Sources/WenshuApp/Core/Agent/Connector/LLMConnector.swift` | Abstract LLM call. 14 first-class + custom profiles conform (Anthropic native / OpenAI native / OpenAI-compatible / Gemini native + OpenAI Codex OAuth + GitHub Copilot ACP). See AGENTS.md §11.2. |
 | `ContextAssembler` (= `CSSearchableIndexSearch`) | `Sources/WenshuApp/Core/Search/CSSearchableIndexSearch.swift` | Long-term memory → LLM minimal context (Apple Core Spotlight backed). |
 | Stage gate | not yet implemented (= pre-pinned for v0.41+ backlog; = see wenshu-pocock-workflow references) | (placeholder) |
 
@@ -140,7 +140,7 @@ wenshu/                                                ← project root
 - **Multi-device multi-entry via master router** — iPhone-recorded ideas go through master process. No direct modification of main project (avoid multi-end concurrent overwrite).
 - **Conflict resolution = version + post-decide** — file-level version, validate on open, mismatch = backup old + create new copy.
 - **Data survives uninstall** — after uninstall 文枢, `.ws` preserved.
-- **LLM keys in macOS Keychain** — never plaintext in file, log, commit message. 7 connector profiles each have their own Keychain entry (see AGENTS.md §11.2 + §11.3).
+- **LLM keys in macOS Keychain** — never plaintext in file, log, commit message. Each of the 14 first-class + custom profiles has its own Keychain entry (see AGENTS.md §11.2 + §11.3).
 - **Archived legacy monorepo fork read + write blocked** — `/Volumes/ANAN/Engineering/.archive/wenshu-monorepo-fork/v0.x-monorepo-fork-2026-08-06/` is read-only history. pocock cannot modify.
 
 ## 8. Verification (pocock must-run after coding)
@@ -177,7 +177,7 @@ swift run swiftlint
 
 > **Most important section. pocock reads first when taking on a task.**
 
-文枢 = Swift / SwiftUI self-built desktop app + SwiftData + 7-connector LLM layer (BYOK, see AGENTS.md §11.2). **Forbidden**:
+文枢 = Swift / SwiftUI self-built desktop app + SwiftData + 14-first-class + custom LLM layer (BYOK, see AGENTS.md §11.2). **Forbidden**:
 
 - Introduce any external AI platform dependency.
 - Introduce any LLM framework (LangChain / SwiftAI / Vercel AI SDK / OpenAI Swift Client etc.).
@@ -190,7 +190,7 @@ swift run swiftlint
 - Change `.ws` schema (add / remove entity / change field type = escalate).
 - Skip quality gate (change = escalate).
 - Decide product requirement.
-- Configure LLM keys (each of 7 connectors must be self-configured; see AGENTS.md §11.2).
+- Configure LLM keys (each of 14 first-class + custom providers must be self-configured; see AGENTS.md §11.2).
 - Upload `.ws` to cloud.
 - Touch any hermes self-owned file under `~/.hermes/`.
 - Touch any file under `.archive/wenshu-monorepo-fork/`.
@@ -225,13 +225,13 @@ swift run swiftlint
 - Ollama: `http://localhost:11434/v1/chat/completions` (OpenAI-compatible; no auth, local).
 - OpenRouter: `https://openrouter.ai/api/v1/chat/completions` (OpenAI-compatible; one key, all models).
 
-**pocock key file list** (current at v0.72 SwiftData + 7-connector era):
+**pocock key file list** (current at v0.72 SwiftData + 14-first-class + custom LLM era):
 
 - `Sources/WenshuApp/App.swift` — SwiftUI App entry.
 - `Sources/WenshuApp/App/AppRootScene.swift` — NavigationSplitView root scene.
 - `Sources/WenshuApp/Persistence/WS*.swift` — SwiftData @Model classes (schema change requires escalation).
 - `Sources/WenshuApp/Persistence/Container.swift` — SwiftData ModelContainer setup (= 28 @Model classes, single container per app).
-- `Sources/WenshuApp/Core/Agent/Connector/LLMConnector.swift` — LLM connector protocol (7 BYOK profiles conform per AGENTS.md §11.2).
+- `Sources/WenshuApp/Core/Agent/Connector/LLMConnector.swift` — LLM connector protocol (14 first-class + custom BYOK profiles conform per AGENTS.md §11.2).
 - `Sources/WenshuApp/Core/Agent/Connector/SSEParser.swift` — SSE streaming parser (by event type).
 - `Sources/WenshuApp/Core/Search/CSSearchableIndexSearch.swift` — context assembly (Apple Core Spotlight).
 - `Sources/WenshuApp/Editor/EditorView.swift` — body editor.
@@ -254,4 +254,4 @@ swift run swiftlint
 
 ---
 
-*CLAUDE.md · 2026-09-03 v0.08.0 (initial) → 2026-10-04 v0.09+ (Q99 dual-axis path / spec drift fix-up; = §3-§9 rewrote to current tree; = the Q99 SPEC axis run added §3 directory structure, §4 modules table, §5 interface table, §9 pocock key file list sync to Sources/WenshuApp/ post-v0.72 SwiftData era; = the v0.08 minimax cn narrative + 7-connector BYOK architecture retained from initial ship) · English-only · project root = `/Volumes/ANAN/Engineering/wenshu/`*
+*CLAUDE.md · 2026-09-03 v0.08.0 (initial) → 2026-10-04 v0.09+ (Q99 dual-axis path / spec drift fix-up; = §3-§9 rewrote to current tree; = the Q99 SPEC axis run added §3 directory structure, §4 modules table, §5 interface table, §9 pocock key file list sync to Sources/WenshuApp/ post-v0.72 SwiftData era; = the v0.08 minimax cn narrative + 14-first-class + custom BYOK architecture retained from initial ship) · English-only · project root = `/Volumes/ANAN/Engineering/wenshu/`*

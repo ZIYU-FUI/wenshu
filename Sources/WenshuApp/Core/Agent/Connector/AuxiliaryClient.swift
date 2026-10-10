@@ -7,7 +7,7 @@
 //  summarization, compression-summarizer, skill-frontmatter, memory-block
 //  extraction, etc.).
 //
-//  In wenshu-side wins mode (= AGENTS.md §11.3): the 7 connector profiles
+//  In wenshu-side wins mode (= AGENTS.md §11.3): the 14 first-class + custom profiles
 //  (= Anthropic / OpenAI / Gemini / DeepSeek / Ollama / OpenRouter /
 //  minimax-cn) already ship via AnthropicConnector / OpenAIConnector / etc.
 //  AuxiliaryClient is a thin facade that delegates to one of those
