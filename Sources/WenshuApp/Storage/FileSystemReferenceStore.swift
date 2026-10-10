@@ -599,6 +599,54 @@ struct FileSystemReferenceStore: ReferenceStoring {
         bodyMarkdown: String,
         referenceLibraryRoot: URL
     ) throws {
+        // v2.7 round-41 (= boss 2026-10-10
+        // "如果真的是撞重名，也要先
+        // 检查一下内容，是不是完全
+        // 一至，如果有差异可以编辑"
+        // directive). The previous
+        // implementation threw
+        // `referenceAlreadyExists` if
+        // the .md file at the
+        // destination path already
+        // existed. This was too
+        // strict: the reference-library
+        // `id` is `uuidFromHash(contentHash)`
+        // (= derived from the source
+        // body hash); = if two distinct
+        // import flows produced the
+        // same content hash (= the
+        // boss's orphan / re-import
+        // flow that round-40 just
+        // hardened; = or the LLM
+        // produces the same title for
+        // two semantically identical
+        // files), the second write
+        // would crash. The fix:
+        // 1. If the .md file doesn't
+        //    exist → write it (= the
+        //    original path).
+        // 2. If the .md file exists
+        //    AND its content is
+        //    byte-equal to the new
+        //    bodyMarkdown → no-op
+        //    (= idempotent re-import;
+        //    = the import is
+        //    successful; = we
+        //    silently skip the
+        //    duplicate to match the
+        //    user's "禁止重名" rule
+        //    without crashing).
+        // 3. If the .md file exists
+        //    AND its content differs
+        //    → edit (= overwrite the
+        //    .md and update the
+        //    entities.json index to
+        //    point at the new content;
+        //    = the user's "如果有差
+        //    异可以编辑" rule;
+        //    = idempotent in the
+        //    "the latest LLM result
+        //    wins" sense).
         try ensureReferenceLibraryRootExists(at: referenceLibraryRoot)
         try ensureReferenceLayerDirectoryExists(
             at: referenceLibraryRoot.appendingPathComponent(reference.layer.directoryName, isDirectory: true)
@@ -608,8 +656,53 @@ struct FileSystemReferenceStore: ReferenceStoring {
             .appendingPathComponent(reference.layer.directoryName)
             .appendingPathComponent("\(reference.id.uuidString).md")
         if FileManager.default.fileExists(atPath: mdURL.path) {
-            throw ReferenceStoreError.referenceAlreadyExists(id: reference.id)
+            // v2.7 round-41: content-diff check
+            // (= the user's "完全一至" rule).
+            // If the existing .md is byte-equal
+            // to the new body, the import is
+            // idempotent (= silent no-op; =
+            // no error, no warning; = the
+            // "禁止重名" rule is honored
+            // without crashing).
+            let existingBody = (try? String(contentsOf: mdURL, encoding: .utf8)) ?? ""
+            if existingBody == bodyMarkdown {
+                // Content unchanged; = this is
+                // a re-import of the same
+                // source body; = the entities
+                // index already has this entry
+                // from a previous import; = do
+                // nothing (= silent success).
+                return
+            }
+            // Content differs; = the user
+            // explicitly authorized "edit" in
+            // the round-41 directive. The
+            // edit = overwrite the .md AND
+            // update the entities.json
+            // index entry (= the
+            // `replaceReferenceToFileSystem`
+            // path).
+            try atomicFileSystemWrite(
+                bodyMarkdown.data(using: .utf8) ?? Data(),
+                to: mdURL
+            )
+            var current = (try? loadReferencesFromFileSystem(
+                referenceLibraryRoot: referenceLibraryRoot,
+                layer: reference.layer
+            )) ?? []
+            if let idx = current.firstIndex(where: { $0.id == reference.id }) {
+                current[idx] = reference
+            } else {
+                current.append(reference)
+            }
+            try writeIndexToFileSystem(current, at: referenceLibraryRoot, layer: reference.layer)
+            return
         }
+        // v2.7 round-41: original
+        // write path (no .md exists
+        // at the destination = first
+        // time this reference is
+        // imported).
         try atomicFileSystemWrite(bodyMarkdown.data(using: .utf8) ?? Data(), to: mdURL)
 
         var current = (try? loadReferencesFromFileSystem(
