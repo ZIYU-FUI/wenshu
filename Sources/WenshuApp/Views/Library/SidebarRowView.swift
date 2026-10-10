@@ -61,7 +61,66 @@ struct SidebarRowView: View {
             .listRowInsets(node.kind == .divider
                             ? EdgeInsets(top: DesignTokens.spacingIconic, leading: 0, bottom: DesignTokens.spacingIconic, trailing: 0)
                             : EdgeInsets())
-            .tag(node)
+            // v2.7 round-31 (= boss 2026-10-10
+            // "分割线也能点选了，分割线
+            // 不可点中" directive): divider
+            // rows are visual separators, not
+            // content rows. The previous code
+            // (rounded 1.68f) attached
+            // `.tag(node)` to EVERY row
+            // (including divider) because the
+            // v1.68 era macOS 14+ sidebar
+            // List selection bridge needed
+            // every row to be addressable;
+            // the side-effect was that the
+            // divider was selectable (= the
+            // user could click the gray line
+            // between "长篇网文" and "资料
+            // 库" and the row would highlight
+            // + the bound `selectedNode`
+            // would update to the divider).
+            // The fix: only attach
+            // `.tag(node)` to NON-divider
+            // rows. The OutlineGroup selection
+            // bridge (= the `List(_:children:
+            // selection:rowContent:)` form
+            // used in `AppleSidebarView.swift`)
+            // still works because the bridge
+            // resolves the selection via
+            // `Data.Element.Identifiable.id`
+            // for the row; = the divider
+            // without a tag simply has no
+            // selection value (= clicking
+            // divider = no selection update
+            // = no highlight; = the divider
+            // stays inert).
+            .modifier(DividerTagIfNeeded(node: node))
+    }
+
+    /// Applies `.tag(node)` to non-divider
+    /// rows only (= the v2.7 round-31 fix
+    /// for "divider can be selected"
+    /// bug). Divider rows are visual
+    /// separators (= the gray line between
+    /// "长篇网文" and "资料库" sections);
+    /// the canonical macOS sidebar pattern
+    /// = divider is NOT clickable, NOT
+    /// selectable, NOT a context-menu
+    /// target.
+    private struct DividerTagIfNeeded: ViewModifier {
+        let node: SidebarNode
+        func body(content: Content) -> some View {
+            if node.kind == .divider {
+                content
+                    // No .tag (= no selection
+                    // bridge; = the divider is
+                    // invisible to the List's
+                    // selection mechanism).
+                    .contentShape(Rectangle())
+            } else {
+                content.tag(node)
+            }
+        }
     }
 
     /// '
