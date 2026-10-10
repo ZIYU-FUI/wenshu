@@ -1161,7 +1161,26 @@ extension ImportSheet {
     ///   can review the results).
     /// - .results → .done always (= just a "next" tap
     ///   to dismiss the per-file list).
-    /// - .done: no next (= terminal).
+    /// - .done: ALWAYS reachable (= the
+    ///   boss's round-51 "完成不用判
+    ///   断任何, 就直接能点就可以"
+    ///   directive; = even if there
+    ///   are failures (= 21 failed
+    ///   + 14 skipped = the user has
+    ///   acknowledged the failures
+    ///   and wants to close the
+    ///   sheet; = the button is a
+    ///   "dismiss" not a "validate
+    ///   success"; = gating the
+    ///   dismiss button on
+    ///   `hasFailures == false`
+    ///   forces the user to do an
+    ///   extra step to dismiss the
+    ///   sheet even though the
+    ///   import is done and the
+    ///   user has accepted the
+    ///   outcome; = the gate is
+    ///   unnecessary friction).
     fileprivate var canGoNext: Bool {
         switch currentStep {
         case .configure:
@@ -1171,7 +1190,7 @@ extension ImportSheet {
         case .results:
             return true
         case .done:
-            return false
+            return true
         }
     }
 
