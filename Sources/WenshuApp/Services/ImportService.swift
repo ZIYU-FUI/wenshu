@@ -399,6 +399,49 @@ struct ImportTask: Identifiable, Sendable, Hashable {
     /// strip shows "1 主 + N
     /// 拆出").
     var extraFilesDone: Int = 0
+    /// v2.7 round-70 (= boss 2026-10-10
+    /// "能在这个导入的过
+    /// 程中, 事实显示
+    /// LLM 的工具调用
+    /// 不, 或者显示
+    /// LLM 在做什么, 读
+    /// 文件, 重写文件,
+    /// 之类的. 给用户更
+    /// 实时的反馈"
+    /// feedback). Real-time
+    /// LLM activity log
+    /// (= the orchestrator
+    /// appends short human-
+    /// readable messages as
+    /// the LLM pipeline
+    /// progresses; = the
+    /// sheet shows the log
+    /// in the row as a
+    /// scrolling terminal-
+    /// like view; = gives
+    /// the user visible
+    /// feedback for "what
+    /// the LLM is doing
+    /// right now"). Examples
+    /// (= Chinese):
+    /// - "读取源文件 23 KB"
+    /// - "调用 LLM 分类 + 重组"
+    /// - "LLM 返回: title=..., tags=[...]"
+    /// - "LLM 返回: 6 必填 + 3 自定义子文件"
+    /// - "写主文件: world/故事宪法.md (2.1 KB)"
+    /// - "写子文件 1/9: world/核心设定.md (0.3 KB)"
+    /// - "写子文件 2/9: world/地理或位置.md (0.2 KB)"
+    /// - "..." (= 1 line per step)
+    /// Capped at 30 entries
+    /// (= the old entries
+    /// drop off; = prevents
+    /// unbounded memory
+    /// growth; = 30 lines is
+    /// enough to show
+    /// the recent activity
+    /// without scrolling
+    /// forever).
+    var activityLog: [String] = []
 
     init(sourcePath: String) {
         self.id = UUID()
@@ -411,6 +454,7 @@ struct ImportTask: Identifiable, Sendable, Hashable {
         self.routing = nil
         self.extraFilesTotal = 0
         self.extraFilesDone = 0
+        self.activityLog = []
     }
 }
 
@@ -2908,6 +2952,14 @@ extension ImportService {
         let maxLLMAttempts = 3
         var lastError: Error?
         var routing: ImportRoutingResult? = nil
+        // v2.7 round-70: log
+        // "调用 LLM" before
+        // the LLM dispatch.
+        await appendActivity(
+            to: tasksBox, i: i,
+            message: "调用 LLM (\(target.rewriteMode.label)) 分类 + 重组 ...",
+            onProgress: onProgress
+        )
         for attempt in 1...maxLLMAttempts {
             do {
                 let result = try await router.route(input)
@@ -2916,6 +2968,61 @@ extension ImportService {
                 lastError = nil
                 if attempt > 1 {
                     NSLog("WSImport: LLM route succeeded on attempt \(attempt) for task \(i)")
+                }
+                // v2.7 round-70:
+                // log the LLM's
+                // response summary
+                // (= the user
+                // gets to SEE what
+                // the LLM
+                // returned:
+                // title, tags,
+                // # of extraFiles,
+                // etc.; = the
+                // boss's
+                // "导入后文
+                // 件没有重
+                // 新组织"
+                // OOB will
+                // become
+                // visible —
+                // if the
+                // LLM
+                // returns
+                // 0
+                // extraFiles
+                // (= the
+                // LLM
+                // ignored
+                // the
+                // prompt),
+                // the
+                // user
+                // sees
+                // that
+                // immediately).
+                let routingSummary = """
+                LLM 返回: title="\(result.title)", tags=\(result.tags.sorted().joined(separator: ",")), extraFiles=\(result.extraFiles.count) 个
+                """
+                await appendActivity(
+                    to: tasksBox, i: i,
+                    message: routingSummary,
+                    onProgress: onProgress
+                )
+                for (i2, ef) in result.extraFiles.enumerated() {
+                    let marker = ef.required ? "[必填]" : "[自定义]"
+                    await appendActivity(
+                        to: tasksBox, i: i,
+                        message: "  子文件 \(i2 + 1)/\(result.extraFiles.count) \(marker) \(ef.folder.directoryName)/\(ef.title).md",
+                        onProgress: onProgress
+                    )
+                }
+                if result.extraFiles.isEmpty {
+                    await appendActivity(
+                        to: tasksBox, i: i,
+                        message: "⚠️ LLM 没返回 extraFiles — 6 必填+N 自定义 没拆",
+                        onProgress: onProgress
+                    )
                 }
                 break
             } catch {
@@ -3114,9 +3221,25 @@ extension ImportService {
             // skeleton from
             // the folder's
             // `importTemplate`).
+            // v2.7 round-70: log
+            // "读取源文件" (= real-
+            // time feedback per
+            // boss 2026-10-10 OOB).
+            let sourceFileName = (tasksBox.value[i].sourcePath as NSString).lastPathComponent
+            await appendActivity(
+                to: tasksBox, i: i,
+                message: "读取源文件 \(sourceFileName)",
+                onProgress: onProgress
+            )
             let originalBody = try String(
                 contentsOfFile: tasksBox.value[i].sourcePath,
                 encoding: .utf8
+            )
+            let bodySizeKB = Double(originalBody.utf8.count) / 1024.0
+            await appendActivity(
+                to: tasksBox, i: i,
+                message: String(format: "源文件 = %.1f KB, %d 行", bodySizeKB, originalBody.components(separatedBy: "\n").count),
+                onProgress: onProgress
             )
             // The folder is sourced from the routing result
             // (= populated when `state >= .writing`; = the
@@ -3254,6 +3377,22 @@ extension ImportService {
             let extraFilesTotal = routing.extraFiles.count
             tasksBox.value[i].extraFilesTotal = extraFilesTotal
             tasksBox.value[i].extraFilesDone = 0
+            // v2.7 round-70:
+            // "写主文件" log
+            // (= the user sees
+            // the main file
+            // about to be
+            // written).
+            let mainFolderName: String
+            switch routing.destination {
+            case .referenceLibrary: mainFolderName = "资料库"
+            case .bookFolder(let f): mainFolderName = f.directoryName
+            }
+            await appendActivity(
+                to: tasksBox, i: i,
+                message: "写主文件 (\(mainFolderName)/...)",
+                onProgress: onProgress
+            )
             for (extraIndex, extra) in routing.extraFiles.enumerated() {
                 let extraResult: Bool
                 do {
@@ -3265,12 +3404,36 @@ extension ImportService {
                         extraIndex: extraIndex
                     )
                     extraResult = true
+                    // v2.7 round-70:
+                    // "✅ 写子文件" log
+                    let bodyKB = Double(extra.body.utf8.count) / 1024.0
+                    let marker = extra.required ? "[必填]" : "[自定义]"
+                    await appendActivity(
+                        to: tasksBox, i: i,
+                        message: String(
+                            format: "  ✅ 子文件 %d/%d %@ %@/%@.md (%.1f KB)",
+                            extraIndex + 1, extraFilesTotal,
+                            marker,
+                            extra.folder.directoryName,
+                            extra.title,
+                            bodyKB
+                        ),
+                        onProgress: onProgress
+                    )
                 } catch {
                     NSLog(
                         "[wenshu.import] extraFile %d (%@) failed: %@",
                         extraIndex, extra.title, String(describing: error)
                     )
                     extraResult = false
+                    // v2.7 round-70:
+                    // "❌ 写子文件
+                    // 失败" log.
+                    await appendActivity(
+                        to: tasksBox, i: i,
+                        message: "  ❌ 子文件 \(extraIndex + 1)/\(extraFilesTotal) \(extra.title).md 写失败: \(String(describing: error))",
+                        onProgress: onProgress
+                    )
                 }
                 tasksBox.value[i].extraFilesDone += 1
                 _ = extraResult
@@ -3285,6 +3448,22 @@ extension ImportService {
                 router: router,
                 tasksBox: tasksBox,
                 i: i
+            )
+            // v2.7 round-70:
+            // "✅ 主文件" log
+            // (= the user sees
+            // the main file
+            // successfully
+            // written; = the
+            // body KB helps
+            // confirm the
+            // rewritten
+            // content).
+            let bodyKB = Double(bodyToWrite.utf8.count) / 1024.0
+            await appendActivity(
+                to: tasksBox, i: i,
+                message: String(format: "✅ 主文件写入成功 (%.1f KB)", bodyKB),
+                onProgress: onProgress
             )
             tasksBox.value[i].state = .done
             tasksBox.value[i].destination = routing.destination
@@ -3331,6 +3510,53 @@ extension ImportService {
         // transition (= .done or .failed) so the
         // sheet's ProgressView sees the final
         // state for this row.
+        await onProgress?(tasksBox.value)
+    }
+
+    /// v2.7 round-70 (= boss 2026-10-10
+    /// "能在这个导入的过
+    /// 程中, 事实显示
+    /// LLM 的工具调用
+    /// 不, 或者显示
+    /// LLM 在做什么, 读
+    /// 文件, 重写文件,
+    /// 之类的. 给用户更
+    /// 实时的反馈"
+    /// feedback). Append a
+    /// single line to a
+    /// task's activityLog
+    /// (= the per-row
+    /// scrolling terminal-
+    /// like view in the
+    /// sheet). Capped at
+    /// 30 entries (= old
+    /// entries drop off;
+    /// = 30 is enough to
+    /// show the recent
+    /// activity without
+    /// scrolling forever).
+    /// Also triggers
+    /// onProgress so the
+    /// sheet UI updates
+    /// immediately.
+    private func appendActivity(
+        to tasksBox: TasksBox,
+        i: Int,
+        message: String,
+        onProgress: (@Sendable ([ImportTask]) async -> Void)?
+    ) async {
+        tasksBox.value[i].activityLog.append(message)
+        // Cap at 30 (= the
+        // oldest entries
+        // drop off; =
+        // prevents
+        // unbounded
+        // growth).
+        if tasksBox.value[i].activityLog.count > 30 {
+            tasksBox.value[i].activityLog.removeFirst(
+                tasksBox.value[i].activityLog.count - 30
+            )
+        }
         await onProgress?(tasksBox.value)
     }
 }

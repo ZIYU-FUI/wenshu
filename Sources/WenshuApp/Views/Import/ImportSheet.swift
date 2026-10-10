@@ -2257,6 +2257,84 @@ private struct ImportTaskRow: View {
         if task.extraFilesTotal > 0 {
             extraFilesCaption
         }
+        // v2.7 round-70 (= boss 2026-10-10
+        // "能在这个导入
+        // 的过程中, 事
+        // 实显示 LLM
+        // 的工具调用
+        // 不, 或者显
+        // 示 LLM 在
+        // 做什么, 读
+        // 文件, 重写
+        // 文件, 之类
+        // 的. 给用户
+        // 更实时的反
+        // 馈" feedback).
+        // Real-time LLM
+        // activity log
+        // (= scrolling
+        // terminal-like
+        // view; = the
+        // user sees what
+        // the LLM is
+        // doing RIGHT
+        // NOW; = the
+        // last 5 lines
+        // are shown;
+        // = each line
+        // gets a monospaced
+        // font + .caption
+        // + .secondary
+        // color; = the
+        // user can scroll
+        // to see older
+        // entries).
+        // Hidden when
+        // activityLog is
+        // empty (= before
+        // the orchestrator
+        // appends anything).
+        if !task.activityLog.isEmpty {
+            activityLogView
+        }
+    }
+
+    /// v2.7 round-70 (= boss 2026-10-10
+    /// "给用户更实时的反
+    /// 馈" feedback). Real-time
+    /// LLM activity log
+    /// (= a scrolling
+    /// terminal-like view
+    /// showing the last N
+    /// entries of
+    /// `task.activityLog`;
+    /// = the user can see
+    /// what the LLM is doing
+    /// right now). Shown when
+    /// activityLog is non-empty.
+    @ViewBuilder
+    private var activityLogView: some View {
+        // Show last 5 entries (= the
+        // most recent = the
+        // current LLM action;
+        // = older entries
+        // can be inferred from
+        // the sequence; = the
+        // 30-entry cap is
+        // still enforced in
+        // `appendActivity`).
+        let visible = task.activityLog.suffix(5)
+        VStack(alignment: .leading, spacing: 1) {
+            ForEach(Array(visible.enumerated()), id: \.offset) { idx, line in
+                Text(line)
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(idx == visible.count - 1 ? .primary : .secondary)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .padding(.top, 2)
     }
 
     /// v2.7 round-67 ticket 04: caption for
