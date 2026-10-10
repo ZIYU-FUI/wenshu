@@ -1300,11 +1300,75 @@ actor ImportService {
     /// 16 bytes (= 32 hex chars); = sets RFC 4122 version
     /// (= 4) and variant (= 10) bits so the UUID round-trips
     /// through `UUID(uuidString:)`.
+    ///
+    /// v2.7 round-39 (= boss 2026-10-10
+    /// "点重新调研，会闪退" directive;
+    /// = the previous implementation
+    /// crashed when called with a `hex`
+    /// string shorter than 32 chars
+    /// (= `chars[i*2..<i*2+2]` index out
+    /// of range at i=15; = the
+    /// `Array._checkIndex` failure
+    /// captured in the wenshu.ips crash
+    /// report at 2026-10-10 10:44:08).
+    /// The trigger: a stale cache
+    /// entry (= the boss's
+    /// `import-cache.json` from a
+    /// previous wenshu version) had a
+    /// `contentHash` shorter than 32
+    /// hex chars (= the older wenshu
+    /// stored a UUID string or a
+    /// truncated hash); = the
+    /// `retryFailedTasksTitleOnly`
+    /// flow ran `uuidFromHash` on that
+    /// short string; = crash; =
+    /// SIGTRAP → Trace/BPT trap →
+    /// `termination.indicator =
+    /// "Trace/BPT trap: 5"`).
+    ///
+    /// Fix: validate the hex length
+    /// BEFORE indexing; = if too
+    /// short, return a stable UUID
+    /// derived from a hashed-padded
+    /// version of the input (= the
+    /// on-disk filename won't match
+    /// the previously-imported
+    /// file's path = the
+    /// re-import will write a new
+    /// .md at a new UUID; = the old
+    /// cache entry is effectively
+    /// invalidated; = this is the
+    /// right behavior for a cache
+    /// entry that was written by a
+    /// wenshu version with a
+    /// different hash format).
     static func uuidFromHash(_ hex: String) -> UUID {
         let chars = Array(hex.prefix(32))
+        // v2.7 round-39: validate
+        // the input length BEFORE
+        // indexing. If too short,
+        // re-hash the input to a
+        // 32-char hex string (= the
+        // output is a deterministic
+        // UUID that doesn't match
+        // any previously-imported
+        // file's path; = the
+        // re-import writes a new
+        // .md at this UUID; = the
+        // old cache entry is
+        // effectively orphaned).
+        let safeHex: String
+        if chars.count < 32 {
+            safeHex = Self.sha256(hex.isEmpty ? "wenshu-orphan-\(hex)" : hex)
+                .prefix(32)
+                .description
+        } else {
+            safeHex = hex
+        }
+        let safeChars = Array(safeHex.prefix(32))
         var bytes = [UInt8](repeating: 0, count: 16)
         for i in 0..<16 {
-            let byte = UInt8(String(chars[i*2..<i*2+2]), radix: 16) ?? 0
+            let byte = UInt8(String(safeChars[i*2..<i*2+2]), radix: 16) ?? 0
             bytes[i] = byte
         }
         // RFC 4122 version 4 + variant 10 (= a random-ish

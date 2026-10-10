@@ -426,51 +426,69 @@ struct ImportSheet: View {
                         }
                         ImportProgressStrip(tasks: tasks)
                             .frame(maxHeight: DesignTokens.kanbanBoardMaxHeight)
-                        // v2.7 round-36 (= boss
-                        // 2026-10-09 "在红字后
-                        // 面，加一个小操作文
-                        // 字，就是基于标题重
-                        // 新调研" directive).
-                        // 重新调研所有失败
-                        // button (= only
-                        // visible when at
-                        // least one task is
-                        // in `.failed` state
-                        // AND that failure's
-                        // cause is "读取
-                        // 文件失败" =
-                        // the file is
-                        // unreadable on
-                        // disk = the title-
-                        // only retry path
-                        // can produce
-                        // metadata from
-                        // the filename +
-                        // sibling .md
-                        // names alone).
-                        if canRetryFailedTitleOnly {
-                            Button {
-                                Task { await retryFailedTitleOnly() }
-                            } label: {
-                                if isRetryingFailed {
-                                    HStack(spacing: DesignTokens.spacingIconic) {
-                                        ProgressView()
-                                            .controlSize(.small)
-                                        Text("重新调研中…")
-                                    }
-                                } else {
-                                    Text("重新调研所有失败 (\(failedReadFileCount) 个)")
-                                }
-                            }
-                            .disabled(isRetryingFailed)
-                            .padding(.top, DesignTokens.spacingTight)
-                        }
+                        // v2.7 round-39 (= boss
+                        // 2026-10-10 "位置动一下"
+                        // directive). The
+                        // "重新调研所有失败"
+                        // button was moved from
+                        // here (= nested in
+                        // the 进度 form
+                        // section) to the
+                        // bottom toolbar
+                        // HStack, left-aligned.
+                        // See the toolbar
+                        // HStack below for the
+                        // new position and
+                        // layout.
                     }
                 }
             }
             .formStyle(.grouped)
 
             HStack {
+                // v2.7 round-39 (= boss
+                // 2026-10-10 "位置动一下，和
+                // 跳过失败，和重试一排，
+                // 居左" directive). The
+                // "重新调研所有失败" button
+                // moves from the progress
+                // section (= it was nested
+                // inside the 进度 form
+                // section) to the bottom
+                // toolbar HStack, left-aligned
+                // (= Apple HIG macOS dialog
+                // button row = primary
+                // actions on the right; =
+                // secondary actions on the
+                // left; = the retry button
+                // is a secondary action;
+                // = "重新调研所有失败" is
+                // a tertiary action and
+                // belongs furthest left).
+                // Only visible when there
+                // is at least one
+                // "读取文件失败" task
+                // (= same condition as
+                // before; = LLM-routing
+                // failures are NOT
+                // eligible for title-only
+                // retry).
+                if canRetryFailedTitleOnly {
+                    Button {
+                        Task { await retryFailedTitleOnly() }
+                    } label: {
+                        if isRetryingFailed {
+                            HStack(spacing: DesignTokens.spacingIconic) {
+                                ProgressView()
+                                    .controlSize(.small)
+                                Text("重新调研中…")
+                            }
+                        } else {
+                            Text("重新调研所有失败 (\(failedReadFileCount) 个)")
+                        }
+                    }
+                    .disabled(isRetryingFailed)
+                }
                 Spacer()
                 Button(cancelButtonLabel) {
                     // The cancel button + every
