@@ -35,7 +35,6 @@ final class ImportServiceTests: XCTestCase {
                 category: nil, confidence: 1.0,
                 rewrittenBody: nil,
                 extraFiles: [],
-            needsFilling: false
             )
         }
         // v2.7 round-66 commit F:
@@ -178,7 +177,6 @@ final class ImportServiceTests: XCTestCase {
                 category: nil, confidence: 1.0,
                 rewrittenBody: nil,
                 extraFiles: [],
-            needsFilling: false
             )
         ]
         let tasks = await svc.importFiles(in: src, into: target, router: StubImportRouter(canned))
@@ -273,7 +271,6 @@ final class ImportServiceTests: XCTestCase {
                 entityType: "other", category: nil, confidence: 1.0,
                 rewrittenBody: nil,
                 extraFiles: [],
-            needsFilling: false
             )
         ]
         // First import.
@@ -317,7 +314,6 @@ final class ImportServiceTests: XCTestCase {
                     tags: [], entityType: "other", category: nil, confidence: 1.0,
                     rewrittenBody: nil,
                     extraFiles: [],
-            needsFilling: false
                 )
             }
             // v2.7 round-66 commit F:
@@ -375,7 +371,6 @@ final class ImportServiceTests: XCTestCase {
                 entityType: "other", category: nil, confidence: 1.0,
                 rewrittenBody: nil,
                 extraFiles: [],
-            needsFilling: false
             )
         }
         let tasks = await svc.importFiles(in: src, into: target, router: StubImportRouter(canned))

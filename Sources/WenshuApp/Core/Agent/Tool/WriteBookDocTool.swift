@@ -133,6 +133,38 @@ struct WriteBookDocTool: Tool, Sendable {
                 )
             )
         }
+        // v2.7 round-73 (boss 2026-10-10
+        // PO 双轴 test failure in worker):
+        // create the parent directory
+        // (= nested folders like
+        // `world/核心设定.md` need the
+        // `world/` parent; = a freshly
+        // imported book may not yet
+        // have any of the per-folder
+        // subdirs). Without this,
+        // `FileManager` returns
+        // `NSPOSIXErrorDomain Code=2`
+        // (= "No such file or
+        // directory") and the agent's
+        // first write call fails.
+        // `withIntermediateDirectories:
+        // true` is idempotent (= no
+        // error if the directory
+        // already exists).
+        let parentDir = (canonicalFull as NSString)
+            .deletingLastPathComponent
+        do {
+            try FileManager.default.createDirectory(
+                atPath: parentDir,
+                withIntermediateDirectories: true,
+                attributes: nil
+            )
+        } catch {
+            throw ToolExecutorError.toolFailed(
+                name: "writeBookDoc",
+                underlying: String(describing: error)
+            )
+        }
         // Write the file (= use
         // FileTools.write for the
         // canonical wenshu file-writing

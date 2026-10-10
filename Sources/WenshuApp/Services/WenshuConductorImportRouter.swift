@@ -345,22 +345,66 @@ actor WenshuConductorImportRouter: ImportRouter {
             fallbackTitle: fallbackTitle,
             progress: progress
         )
-        // Derive the active book from the
-        // ImportFileInput (= the user
-        // pinned it in the sheet). The
-        // folder name (= e.g. `world`) is
-        // a stable per-book identifier and
-        // matches the import target's
-        // destination folder (= the SOP
-        // lookup uses the same folder enum).
+        // v2.7 round-73 (boss 2026-10-10
+        // PO 双轴 HIGH finding): the
+        // agent's `writeBookDoc` tool
+        // needs the active book's
+        // on-disk root (= NOT the bare
+        // UUID; = the tool appends the
+        // relative path via NSString,
+        // which on a bare UUID would
+        // produce a non-existent path).
+        // Resolve `<shelvesRoot>/<shelfId>/books/<bookId>`
+        // from the canonical WS state.
         let bookPath: String?
         let bookTitle: String
-        if let bookId = input.targetBookId {
-            bookPath = "\(bookId.uuidString)"
-            bookTitle = input.filePath.replacingOccurrences(
-                of: "/", with: "_"
-            )
+        if let bookId = input.targetBookId,
+           let shelfId = input.targetShelfId,
+           let shelvesRoot = WenshuAppDelegate.activeShelvesRoot() {
+            // Real book-bound import. The
+            // agent writes inside the
+            // book's directory (= the
+            // agent's `writeBookDoc` tool
+            // prepends this path; = the
+            // agent's sub-files land under
+            // the book root, not the
+            // library root).
+            let booksRoot = shelvesRoot
+                .appendingPathComponent(shelfId.uuidString, isDirectory: true)
+                .appendingPathComponent("books", isDirectory: true)
+            bookPath = booksRoot
+                .appendingPathComponent(bookId.uuidString, isDirectory: true)
+                .path
+            // The orchestrator should give us a real
+            // book title via the picker (= we do
+            // not improvise from `filePath`; =
+            // the SOP substitutes it into the
+            // agent's prompt as the bookmark label).
+            // The picker still doesn't surface a
+            // display name through `ImportFileInput`;
+            // = v2.7 round-73 ships this as the
+            // file's stem (= no slash collisions;
+            // = the agent uses it as the SOP's
+            // `{bookTitle}` substitution; = a
+            // future round wires `ImportFileInput`
+            // to carry the picker-selected display
+            // title).
+            bookTitle = (input.filePath as NSString)
+                .lastPathComponent
+                .replacingOccurrences(of: ".md", with: "")
         } else {
+            // Reference-library import (=
+            // no book is bound; = the user
+            // pinned the library root as the
+            // destination). The SOP trigger
+            // is folder-keyed (= only `world`
+            // has one today); = the reference
+            // library has no folder = we set
+            // `bookPath = nil` and the agent's
+            // `writeBookDoc` tool will reject
+            // any writes (= the user sees a
+            // clean "no SOP" failure rather than
+            // a silent zero-write outcome).
             bookPath = nil
             bookTitle = "参考库"
         }
@@ -374,15 +418,11 @@ actor WenshuConductorImportRouter: ImportRouter {
             bookTitle: bookTitle,
             targetFolder: Self.folder(from: classification.destination)
         )
-        do {
-            _ = try await driver.run(
-                input: agentInput,
-                bookContext: context,
-                progress: progress
-            )
-        } catch {
-            throw error
-        }
+        _ = try await driver.run(
+            input: agentInput,
+            bookContext: context,
+            progress: progress
+        )
         await progress?("  ✅ 文档管理员 完成")
         return ImportRoutingResult(
             destination: classification.destination,
@@ -394,7 +434,6 @@ actor WenshuConductorImportRouter: ImportRouter {
             confidence: classification.confidence,
             rewrittenBody: nil,
             extraFiles: [],
-            needsFilling: false
         )
     }
 
@@ -1276,7 +1315,6 @@ actor WenshuConductorImportRouter: ImportRouter {
                 confidence: 0.0,
                 rewrittenBody: nil,
                 extraFiles: [],
-            needsFilling: false
             )
         }
         // 2. Parse the JSON.
@@ -1347,7 +1385,6 @@ actor WenshuConductorImportRouter: ImportRouter {
             // when LLM doesn't return any
             // (= most common case).
             extraFiles: parsed.extraFiles,
-            needsFilling: false
         )
     }
 

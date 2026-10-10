@@ -412,19 +412,7 @@ struct ImportTask: Identifiable, Sendable, Hashable {
     /// v2.7 round-72 (= boss 2026-10-10
     /// "B" pick for "让 LLM 必须拆, 但
     /// 真的没有内容, 拆不出来就拆不出
-    /// 来, 但拆的东西必须要做"). True
-    /// when phase 2 returned empty (=
-    /// LLM could not extract the 6
-    /// 必填). The orchestrator wrote all
-    /// 6 必填 as 占位子文件 with a
-    /// `[待补充] 需调研补齐` body (= boss's
-    /// "拆的东西必须要做" + "文件内允许打
-    /// 待补充标记"). Main B file was NOT
-    /// written (= boss's "导入失败就是
-    /// 导入失败"). The row UI shows a
-    /// "⚠️ 待补充" badge.
-    var needsFilling: Bool = false
-    /// v2.7 round-70 (= boss 2026-10-10
+        /// v2.7 round-70 (= boss 2026-10-10
     /// "能在这个导入的过
     /// 程中, 事实显示
     /// LLM 的工具调用
@@ -490,8 +478,6 @@ struct ImportTask: Identifiable, Sendable, Hashable {
     /// progress
     /// indicator on the
     /// specific phase).
-    var activePhase: LLMCallPhase? = nil
-
     init(sourcePath: String) {
         self.id = UUID()
         self.sourcePath = sourcePath
@@ -503,9 +489,7 @@ struct ImportTask: Identifiable, Sendable, Hashable {
         self.routing = nil
         self.extraFilesTotal = 0
         self.extraFilesDone = 0
-        self.needsFilling = false
         self.activityLog = []
-        self.activePhase = nil
     }
 }
 
@@ -3386,26 +3370,23 @@ extension ImportService {
                 // 充] 需调研补齐` body
                 // below (= boss's "拆的东
                 // 西必须要做").
-                if let rewritten = routing.rewrittenBody,
-                   !rewritten.isEmpty {
-                    // The agent (= wenshu 文档管理员) produced the main
-                    // INDEX body in its first response (= rewrittenBody
-                    // is set). The orchestrator's role is to write it
-                    // (= and skip the legacy 占位 fallback; = boss
-                    // 2026-10-10 "占位文件需要" but later rejected as
-                    // "约等于没写"; = we don't synthesize 占位 here).
-                    bodyToWrite = rewritten
-                } else {
-                    // The agent did not produce a rewrittenBody
-                    // (= rare; = either the LLM decided this source
-                    // file has no main INDEX content worth writing, or
-                    // a transient LLM error dropped the field). Fall
-                    // through to writing nothing (= boss's
-                    // "导入失败就是导入失败"; = no 占位 fallback; = no
-                    // prepareBodyForWrite legacy fallback; = the
-                    // agent decides, not the orchestrator).
-                    bodyToWrite = ""
-                }
+                // v2.7 round-73 (= the agent owns writing;
+                // = ImportAgentDriver delegates to the
+                // writeBookDoc tool for every sub-file; =
+                // the agent never surfaces a `rewrittenBody`
+                // through this path; = the main INDEX file
+                // body is written via the agent's
+                // writeBookDoc call for `world/<title>.md`).
+                // `rewrittenBody` here is always nil per
+                // routeReorganizeMultiTurn's round-73
+                // signature (= we set
+                // `rewrittenBody: nil` explicitly); = the
+                // orchestrator has nothing to write for the
+                // main file in .reorganize mode. Set
+                // `bodyToWrite = ""` and skip the writeFile
+                // call below (= the agent's tool calls are
+                // the only authoritative writes).
+                bodyToWrite = ""
             case .searchAndRewrite:
                 if let rewritten = routing.rewrittenBody, !rewritten.isEmpty {
                     // SearchAndRewrite with LLM-supplied body: still run through prepareBodyForWrite

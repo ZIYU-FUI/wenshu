@@ -142,11 +142,22 @@ struct ImportAgentDriver: Sendable {
         // ── Step 8: return the outcome.
         await progress?("agent finished (= \(result.messages.count) messages)")
         let lastAssistant = result.messages.last
-        let toolUseCount = result.messages.reduce(0) { acc, msg in
-            acc + msg.blocks.filter {
-                if case .toolUse = $0 { return true } else { return false }
-            }.count
-        }
+        // v2.7 round-73 (boss 2026-10-10
+        // PO 双轴 MED finding): count the
+        // number of assistant turns that
+        // made at least one tool_use call
+        // (= 1 turn = 1 task = "wenshu
+        // 文档管理员 wrote a book". = the
+        // previous double-count was
+        // counting the tool_result block
+        // of the previous turn as the
+        // current turn's tool_use; = the
+        // per-row log inflated by N).
+        let toolUseCount = result.messages.filter { msg in
+            msg.blocks.contains { block in
+                if case .toolUse = block { return true } else { return false }
+            }
+        }.count
         let finalResponse: String = {
         guard let lastAssistant = lastAssistant else { return "" }
         let parts = lastAssistant.blocks.map { $0.textValue }
