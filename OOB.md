@@ -5,9 +5,9 @@ All OOB mentions in code/comments reference this file by date.
 
 This file is dev-time only (= wenshu repo root = not in .app bundle = not in release).
 
-Generated: 2026-09-24 16:53
-Total unique OOB entries: 48
-Unique dates: 14
+Generated: 2026-10-10 (= last refreshed post Q99 dual-axis sweep 2026-10-10)
+Total unique OOB entries: 65
+Unique dates: 16
 
 ---
 
