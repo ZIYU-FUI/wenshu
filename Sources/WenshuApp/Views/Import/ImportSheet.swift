@@ -1342,7 +1342,42 @@ extension ImportSheet {
                     Button("选择…") { pickSourceDirectory() }
                         .disabled(isImporting)
                         .buttonStyle(.borderedProminent)
-                        .controlSize(.small)
+                        // v2.7 round-53 (= boss
+                        // 2026-10-10 "选择按钮
+                        // 的文字大小，和按
+                        // 钮高度，与其它
+                        // 按钮不同，需要
+                        // 拉成同意大小"
+                        // directive). REMOVED
+                        // `.controlSize(.small)`
+                        // (= the "选择…" button
+                        // is now the default
+                        // .controlSize(.regular)
+                        // = 28 PT tall + the
+                        // canonical Apple HIG
+                        // macOS body text size;
+                        // = the button height
+                        // matches the segmented
+                        // Picker (= "导入到
+                        // 资料库" / "导入到
+                        // 书") + the menu
+                        // Pickers (= Markdown /
+                        // 请选择书籍 / 基于
+                        // 现有内容整理 / 3);
+                        // = the visual rhythm
+                        // across the trailing
+                        // column is now
+                        // uniform; = the user
+                        // reads the row as
+                        // "all controls are
+                        // the same height").
+                        // The previous
+                        // `.small` (= 22 PT
+                        // tall + smaller text)
+                        // made "选择…" stand
+                        // out as visually
+                        // inconsistent with
+                        // its row neighbors.
                 }
             }
 
