@@ -142,21 +142,29 @@ original parallel `.scratch/2026-09-04-hermes-port-gap-audit.md` file has
 been superseded by the manifest below; = the manifest is now the
 canonical live tally source):
 
-- 6 ✅ direct port (14%) — have a dedicated wenshu Swift file that ports the
-  behavior 1:1 (= prompt_caching, error_classifier, turn_retry_state,
-  context_breakdown, rate_limit_tracker, runtime_cwd).
+- ✅ direct port — see `.scratch/2026-09-03-hermes-core-translation/hermes-port-manifest.md`
+  Coverage table for the live tally (= post-H/P-series closure; =
+  the original 2026-09-04 static-analysis snapshot numbers are stale;
+  = the manifest is the canonical source). Modules at last audit:
+  prompt_caching, error_classifier, turn_retry_state, context_breakdown,
+  rate_limit_tracker, runtime_cwd (+ chat_completion_helpers per the
+  2026-09-04 TICKET-HERMES-GAP-002 closure).
 - 11 ✅ wenshu-side wins (26%) — existing wenshu Core module (= pre-dates the
   hermes port) is the source of truth; hermes-port = thin adapter that delegates
   to it. The 5 pairs below account for 5 of the 11; the other 6 wenshu-side wins
   modules (= context_compressor, tool_guardrails, display, background_review,
   curator, credits_tracker) have no hermes-overlap conflict but use the
   wenshu-source-of-truth + thin-adapter pattern per ADR-0009.
-- 18 ⚠️ partial (42%) — Swift file exists but is a stub / minimum-surface /
-  wire-up-not-yet-done; Z-contract golden tests on most would fail.
-- 8 ❌ missing (19%) — no Swift file exists; spec §3.1 target file has not been
-  authored (= prompt_builder, chat_completion_helpers, agent_runtime_helpers,
-  tool_dispatch_helpers, skill_bundles, secret_sources + secret_scope, retry_utils,
-  shell_hooks).
+- ⚠️ partial — see the manifest Coverage table for the live tally.
+  Per the 2026-09-19 re-audit (= the manifest's "Honest re-audit tally"
+  block), 14/43 modules still carry documented gaps. Swift files exist
+  with doc-comment stubs / minimum-surface / wire-up-not-yet-done.
+- ❌ missing — see the manifest Coverage table for the live tally.
+  Modules per last audit: prompt_builder, agent_runtime_helpers,
+  tool_dispatch_helpers, skill_bundles, secret_sources + secret_scope,
+  retry_utils, shell_hooks. (= chat_completion_helpers was previously
+  listed here but landed 2026-09-04 via TICKET-HERMES-GAP-002 commit
+  1b5b038de; = see manifest ✅ direct port row.)
 
 Per boss OOB 2026-09-04 (see OOB.md #2026-09-04) = the 26 incomplete
 (= 18 ⚠️ partial + 8 ❌ missing) are the work-tree to fill in.
