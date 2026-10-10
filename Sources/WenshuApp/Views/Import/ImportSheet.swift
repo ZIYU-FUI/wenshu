@@ -1338,6 +1338,107 @@ extension ImportSheet {
                         Text(fileType.placeholderHint)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
+                            // v2.7 round-55 (= boss
+                            // 2026-10-10 "提示文
+                            // 案显示不全"
+                            // directive). The
+                            // previous
+                            // implementation
+                            // truncated the
+                            // placeholder
+                            // with the
+                            // default
+                            // truncation
+                            // mode (= tail)
+                            // which cut
+                            // off the
+                            // meaningful
+                            // portion of
+                            // the hint (=
+                            // "选择一个包
+                            // 含 .md 文"
+                            // = the user
+                            // couldn't see
+                            // the file
+                            // extension at
+                            // the end; =
+                            // the most
+                            // important
+                            // part of the
+                            // hint was
+                            // missing).
+                            // Fix: middle
+                            // truncation
+                            // (= the same
+                            // pattern the
+                            // path uses
+                            // above; = the
+                            // middle of
+                            // the hint is
+                            // omitted and
+                            // the file
+                            // extension
+                            // stays
+                            // visible at
+                            // the end; =
+                            // "选择...含
+                            // .md 文件
+                            // 的目录" =
+                            // the user
+                            // reads the
+                            // hint as
+                            // "choose a
+                            // directory
+                            // containing
+                            // .md files").
+                            .truncationMode(.middle)
+                            // v2.7 round-55:
+                            // the Text
+                            // needs to
+                            // fill the
+                            // available
+                            // horizontal
+                            // space (= the
+                            // HStack
+                            // contains a
+                            // fixed-size
+                            // button on
+                            // the right;
+                            // = the Text
+                            // gets the
+                            // rest; =
+                            // without
+                            // maxWidth the
+                            // Text would
+                            // shrink-to-
+                            // fit and the
+                            // truncation
+                            // would kick
+                            // in even
+                            // when the
+                            // full hint
+                            // could fit
+                            // = the
+                            // shrink-
+                            // fit is
+                            // iOS-only;
+                            // = on
+                            // macOS the
+                            // Text
+                            // expands
+                            // until the
+                            // HStack
+                            // overflows;
+                            // = adding
+                            // maxWidth
+                            // makes the
+                            // Text
+                            // take the
+                            // remaining
+                            // space
+                            // explicitly).
+                            .frame(maxWidth: .infinity, alignment: .trailing)
+                            .help(fileType.placeholderHint)
                     }
                     Button("选择…") { pickSourceDirectory() }
                         .disabled(isImporting)
