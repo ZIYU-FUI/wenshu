@@ -549,6 +549,284 @@ actor ImportService {
         return tasksBox.value
     }
 
+    // MARK: - v2.7 round-36: "重新调研所有失败" (= title-only retry)
+
+    /// Re-run the failed "读取文件失败" tasks (= the
+    /// source `.md` file was unreadable on disk; = the
+    /// user clicked "重新调研所有失败" in the sheet's
+    /// progress panel; = the orchestrator bypasses
+    /// the disk read by constructing a minimal body
+    /// from the filename + the sibling `.md` names
+    /// in the same source directory; = the LLM
+    /// produces a `.ws`-format body via web search;
+    /// = the new body is written verbatim by the
+    /// same `writeFile` path as the normal
+    /// `importFiles` flow).
+    ///
+    /// Design (= boss round-36 "在进度面板底部
+    /// 加一个'重新调研所有失败'聚合按钮"
+    /// directive):
+    /// - Filter `tasks` for `.state == .failed` AND
+    ///   `errorMessage` starts with "读取文件失败"
+    ///   (= LLM-routing failures are NOT retried
+    ///   here; = those are bugs, not file
+    ///   failures; = the user can re-import the
+    ///   whole directory if the LLM is misconfigured).
+    /// - Re-seed the matching tasks as `.routing`
+    ///   with `errorMessage = nil` (= the row's
+    ///   "失败" pill flips back to "分析中" =
+    ///   the sheet's progress strip animates
+    ///   smoothly).
+    /// - Construct a `body` per file (= the
+    ///   filename as the title + a sibling-context
+    ///   list of the other `.md` names in the same
+    ///   source directory = LLM has enough to
+    ///   produce metadata + a clean .ws body).
+    /// - Force `rewriteMode = .searchAndRewrite`
+    ///   (= the LLM will use `web_search` to fill
+    ///   in the entity's canonical content; = the
+    ///   missing source file is the trigger for
+    ///   the search; = the user explicitly opted
+    ///   into the higher-token mode by clicking
+    ///   "重新调研").
+    /// - Reuse the `importFiles` 5-way parallel
+    ///   TaskGroup pattern (= `processFile` is the
+    ///   same function = the only difference is
+    ///   the `ImportFileInput.body` is non-nil =
+    ///   the router uses it; = the `writeFile`
+    ///   step uses the LLM's `rewrittenBody` =
+    ///   the original file is never read again).
+    /// - Returns the new `tasks` array (= the
+    ///   sheet's `onProgress` is called as tasks
+    ///   transition; = the sheet re-renders).
+    ///
+    /// Why not just re-call `importFiles`? Because
+    /// `importFiles` re-walks the source
+    /// directory and creates new `ImportTask`
+    /// rows (= the sheet would have to track
+    /// task identity across calls; = the
+    /// progress strip would jitter; = the
+    /// "重新调研" button is the "patch the
+    /// failures" seam, not the "re-run the
+    /// whole batch" seam).
+    func retryFailedTasksTitleOnly(
+        tasks: [ImportTask],
+        into target: ImportTarget,
+        router: ImportRouter,
+        onProgress: (@Sendable ([ImportTask]) async -> Void)? = nil
+    ) async -> [ImportTask] {
+        // 1. Filter (= only the "读取文件失败"
+        // subset; = LLM-routing failures are
+        // excluded; = write failures are
+        // excluded; = the user clicked
+        // "重新调研" with the explicit
+        // understanding that this is the
+        // "I trust the filename + LLM search
+        // alone" path).
+        let retryIndices = tasks.indices.filter { i in
+            guard tasks[i].state == .failed else { return false }
+            return tasks[i].errorMessage?.hasPrefix("读取文件失败") ?? false
+        }
+        // 2. Compute the sibling-context list ONCE
+        // (= the user's whole source directory; =
+        // all .md files in the same folder as
+        // the failed file; = the LLM uses the
+        // list as "what other entities are
+        // nearby, what categories exist"; =
+        // cheap; = the walk is one
+        // FileManager.enumerator call per
+        // unique source directory).
+        let contextByPath = Self.siblingContextMap(for: tasks)
+        // 3. Build a fresh tasks array (= we
+        // mutate in place via tasksBox; = the
+        // sheet sees the same task identity).
+        let tasksBox = TasksBox(value: tasks)
+        // 4. Re-seed the matching tasks (.failed
+        // → .routing, errorMessage = nil,
+        // body constructed from filename +
+        // sibling context).
+        for i in retryIndices {
+            tasksBox.value[i].state = .routing
+            tasksBox.value[i].errorMessage = nil
+        }
+        await onProgress?(tasksBox.value)
+        // 5. Same 5-way parallel TaskGroup as
+        // `importFiles` (= the only
+        // difference is the `ImportFileInput`
+        // carries a non-nil `body`; =
+        // `processFile` is unchanged; =
+        // the `writeFile` step uses the
+        // LLM's `rewrittenBody` and never
+        // touches the unreadable file).
+        let cacheFile = target.cacheRoot.appendingPathComponent("import-cache.json")
+        let cache = readCache(cacheFile: cacheFile)
+        let cacheBox = CacheBox(value: cache)
+        await withTaskGroup(of: Void.self) { (group: inout TaskGroup<Void>) in
+            var inFlight = 0
+            var nextIndex = 0
+            let dispatchIndices = retryIndices
+            while inFlight < Self.maxParallel, nextIndex < dispatchIndices.count {
+                let i = dispatchIndices[nextIndex]
+                let siblingContext = contextByPath[tasks[i].sourcePath] ?? ""
+                let synthesizedBody = Self.titleOnlyBody(
+                    fileName: (tasks[i].sourcePath as NSString).lastPathComponent,
+                    siblingContext: siblingContext
+                )
+                let input = ImportFileInput(
+                    filePath: tasks[i].sourcePath,
+                    targetBookId: target.bookId,
+                    targetShelfId: target.shelfId,
+                    rewriteMode: .searchAndRewrite,
+                    body: synthesizedBody
+                )
+                group.addTask { [self] in
+                    await self.processFile(
+                        taskIndex: i,
+                        input: input,
+                        target: target,
+                        router: router,
+                        cacheBox: cacheBox,
+                        tasksBox: tasksBox,
+                        onProgress: onProgress
+                    )
+                }
+                inFlight += 1
+                nextIndex += 1
+            }
+            while await group.next() != nil {
+                inFlight -= 1
+                if nextIndex < dispatchIndices.count {
+                    let i = dispatchIndices[nextIndex]
+                    let siblingContext = contextByPath[tasks[i].sourcePath] ?? ""
+                    let synthesizedBody = Self.titleOnlyBody(
+                        fileName: (tasks[i].sourcePath as NSString).lastPathComponent,
+                        siblingContext: siblingContext
+                    )
+                    let input = ImportFileInput(
+                        filePath: tasks[i].sourcePath,
+                        targetBookId: target.bookId,
+                        targetShelfId: target.shelfId,
+                        rewriteMode: .searchAndRewrite,
+                        body: synthesizedBody
+                    )
+                    group.addTask { [self] in
+                        await self.processFile(
+                            taskIndex: i,
+                            input: input,
+                            target: target,
+                            router: router,
+                            cacheBox: cacheBox,
+                            tasksBox: tasksBox,
+                            onProgress: onProgress
+                        )
+                    }
+                    inFlight += 1
+                    nextIndex += 1
+                }
+            }
+        }
+        writeCache(cacheFile: cacheFile, cache: cacheBox.value)
+        return tasksBox.value
+    }
+
+    /// Construct a "title-only" body for the LLM
+    /// (= the source file is unreadable; = the
+    /// body is the minimum context the LLM
+    /// needs to produce metadata + a `.ws`-format
+    /// body). The body follows the same
+    /// structure as the `userPrompt` expects
+    /// (= the LLM's prompt is "read this body
+    /// + produce title / summary / tags +
+    /// rewrittenBody" = the title-only body
+    /// is a short synthesized markdown with
+    /// the title as the H1 + a brief context
+    /// block).
+    private static func titleOnlyBody(
+        fileName: String,
+        siblingContext: String
+    ) -> String {
+        let titleStem = (fileName as NSString).deletingPathExtension
+        return """
+        # \(titleStem)
+
+        <!-- v2.7 round-36: title-only retry.
+             The original .md file at the same path
+             failed to read on disk (= malformed utf-8
+             or unsupported format). The orchestrator
+             constructed this body from the filename
+             + the sibling .md names in the same
+             source directory. The LLM should use
+             web_search to fill in the canonical
+             content for "\(titleStem)" and produce
+             the standard .ws-format body (3 必填 + 2
+             可选 frontmatter + 自由 markdown 正文). -->
+        \(siblingContext.isEmpty ? "" : siblingContext)
+        """
+    }
+
+    /// Build a map from each task's source path to
+    /// a sibling-context string (= the names of
+    /// the other `.md` files in the same source
+    /// directory). One walk per unique parent
+    /// directory (= the wenshu user's import
+    /// directories typically hold hundreds of
+    /// files; = the walk is the only I/O = we
+    /// amortize it across the failed set).
+    private static func siblingContextMap(for tasks: [ImportTask]) -> [String: String] {
+        let fm = FileManager.default
+        // 1. Group task paths by parent
+        // directory.
+        var byDir: [String: [String]] = [:]
+        for task in tasks {
+            let path = task.sourcePath
+            let dir = (path as NSString).deletingLastPathComponent
+            byDir[dir, default: []].append(path)
+        }
+        // 2. For each unique parent, enumerate
+        // the directory and build a per-path
+        // context string (= all the other .md
+        // names in the same folder).
+        var out: [String: String] = [:]
+        for (dir, paths) in byDir {
+            // 3. Sibling .md names (= every .md
+            // file in the directory; = the
+            // failed file's own name is
+            // excluded from its own context;
+            // = the list is "what other
+            // entities are nearby").
+            let siblingNames: [String]
+            if let enumerator = fm.enumerator(
+                at: URL(fileURLWithPath: dir),
+                includingPropertiesForKeys: [.isRegularFileKey, .nameKey],
+                options: [.skipsHiddenFiles, .skipsPackageDescendants]
+            ) {
+                siblingNames = enumerator.compactMap { url in
+                    guard let url = url as? URL,
+                          (try? url.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile == true,
+                          url.pathExtension.lowercased() == "md"
+                    else { return nil }
+                    return url.lastPathComponent
+                }
+            } else {
+                siblingNames = []
+            }
+            // 4. Build the per-path context (= the
+            // failed file's own name is filtered
+            // out; = the list is the "neighbors
+            // in the same folder").
+            for path in paths {
+                let myName = (path as NSString).lastPathComponent
+                let others = siblingNames.filter { $0 != myName }
+                let context = others.isEmpty
+                    ? ""
+                    : "## 同目录其他文件 (= entity neighbors in this folder)\n\n" +
+                      others.sorted().prefix(20).map { "- \($0)" }.joined(separator: "\n") + "\n"
+                out[path] = context
+            }
+        }
+        return out
+    }
+
     // MARK: - Phase 1: walk
 
     /// Walk the source directory recursively. Returns

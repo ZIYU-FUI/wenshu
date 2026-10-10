@@ -95,13 +95,34 @@ actor WenshuConductorImportRouter: ImportRouter {
     /// with the structured fields the orchestrator
     /// needs).
     func route(_ input: ImportFileInput) async throws -> ImportRoutingResult {
-        // Read the body verbatim (= the orchestrator's
-        // writeFile also reads the body; = two reads
-        // for now; = a future micro-optimization can
-        // thread the body through the orchestrator +
-        // router seam; = today the test-isolation
-        // benefit wins over the cost).
-        let body = try String(contentsOfFile: input.filePath, encoding: .utf8)
+        // v2.7 round-36 (= boss 2026-10-09 "在
+        // 红字后面，加一个小操作文字，
+        // 就是基于标题重新调研" directive).
+        // Body resolution (= three sources,
+        // precedence high to low):
+        // 1. `input.body` (= the orchestrator's
+        //    override; = the "title-only" retry
+        //    path = the orchestrator synthesized
+        //    a body from the filename + sibling
+        //    .md names = the source file is
+        //    unreadable on disk = the router
+        //    must not try to read it)
+        // 2. `try String(contentsOfFile: input.filePath)`
+        //    (= the normal `importFiles` path; =
+        //    the source file is readable; = the
+        //    router reads it from disk)
+        // 3. `throw` (= neither is available; =
+        //    the file was deleted between the
+        //    orchestrator's walk phase and the
+        //    route phase; = the orchestrator
+        //    catches the throw and marks the
+        //    task .failed with "读取文件失败: ...")
+        let body: String
+        if let override = input.body {
+            body = override
+        } else {
+            body = try String(contentsOfFile: input.filePath, encoding: .utf8)
+        }
         let fallbackTitle = Self.fallbackTitle(from: input.filePath)
 
         // Build the prompt (= the librarian role's
@@ -674,11 +695,31 @@ actor WenshuConductorImportRouter: ImportRouter {
     }
 
     /// Fallback title (= the basename without
-    /// extension; = used when the LLM returns an
-    /// empty title string).
+    /// the source-file extension; = used when
+    /// the LLM returns an empty title string).
+    ///
+    /// v2.7 round-31 fix (= boss 2026-10-10
+    /// "目录树当名字的问题回归了" =
+    /// the previous implementation used
+    /// `(filePath as NSString).deletingPathExtension`
+    /// which only strips the trailing
+    /// extension (= `.md`); = the full
+    /// path prefix
+    /// `/Users/anbaiqiang/Library/Mobile
+    /// Documents/iCloud~md/06-...` survived
+    /// and became the card title; = the user
+    /// saw the path as the title on every
+    /// failed-LLM card. The fix: take
+    /// `lastPathComponent` (= filename
+    /// only) FIRST, then strip the
+    /// extension. `lastPathComponent` =
+    /// "/Users/.../06-字.md" → "06-字.md"
+    /// → "06-字" (= the user's expected
+    /// title shape).
     static func fallbackTitle(from filePath: String) -> String {
-        let basename = (filePath as NSString).deletingPathExtension
-        return basename.isEmpty ? "未命名" : basename
+        let fileName = (filePath as NSString).lastPathComponent
+        let stem = (fileName as NSString).deletingPathExtension
+        return stem.isEmpty ? "未命名" : stem
     }
 
     /// v2.7 (= boss 2026-10-09 round-20

@@ -426,6 +426,45 @@ struct ImportSheet: View {
                         }
                         ImportProgressStrip(tasks: tasks)
                             .frame(maxHeight: DesignTokens.kanbanBoardMaxHeight)
+                        // v2.7 round-36 (= boss
+                        // 2026-10-09 "在红字后
+                        // 面，加一个小操作文
+                        // 字，就是基于标题重
+                        // 新调研" directive).
+                        // 重新调研所有失败
+                        // button (= only
+                        // visible when at
+                        // least one task is
+                        // in `.failed` state
+                        // AND that failure's
+                        // cause is "读取
+                        // 文件失败" =
+                        // the file is
+                        // unreadable on
+                        // disk = the title-
+                        // only retry path
+                        // can produce
+                        // metadata from
+                        // the filename +
+                        // sibling .md
+                        // names alone).
+                        if canRetryFailedTitleOnly {
+                            Button {
+                                Task { await retryFailedTitleOnly() }
+                            } label: {
+                                if isRetryingFailed {
+                                    HStack(spacing: DesignTokens.spacingIconic) {
+                                        ProgressView()
+                                            .controlSize(.small)
+                                        Text("重新调研中…")
+                                    }
+                                } else {
+                                    Text("重新调研所有失败 (\(failedReadFileCount) 个)")
+                                }
+                            }
+                            .disabled(isRetryingFailed)
+                            .padding(.top, DesignTokens.spacingTight)
+                        }
                     }
                 }
             }
@@ -705,6 +744,37 @@ struct ImportSheet: View {
         tasks.contains { $0.state == .failed }
     }
 
+    // v2.7 round-36 (= boss 2026-10-09 "在红字
+    // 后面，加一个小操作文字，就是基
+    // 于标题重新调研" directive). The
+    // "重新调研所有失败" button is only
+    // visible when at least one task failed
+    // because the file was unreadable on
+    // disk (= `errorMessage` starts with
+    // "读取文件失败"). LLM-routing failures
+    // and write failures are NOT retried by
+    // this button (= those are bugs in the
+    // pipeline config, not file problems;
+    // = the user re-imports the whole batch
+    // if the LLM is misconfigured).
+    private var failedReadFileCount: Int {
+        tasks.filter {
+            $0.state == .failed
+                && ($0.errorMessage?.hasPrefix("读取文件失败") ?? false)
+        }.count
+    }
+    private var canRetryFailedTitleOnly: Bool {
+        failedReadFileCount > 0 && !isImporting && !isRetryingFailed
+            && isRunComplete
+    }
+    /// v2.7 round-36 (= boss 2026-10-09 "在
+    /// 红字后面" directive). True while
+    /// `retryFailedTasksTitleOnly` is
+    /// mid-flight (= the button flips to
+    /// "重新调研中…" and disables the
+    /// progress strip's bottom buttons).
+    @State private var isRetryingFailed: Bool = false
+
     /// The cancel-button action (= Apple HIG canonical:
     /// closing the sheet means the user is done with the
     /// UI surface; = the per-file state machine goes
@@ -953,6 +1023,94 @@ struct ImportSheet: View {
                 // / delete sheets use today). The user's
                 // 2026-10-09 feedback: "点取消返回后，目录
                 // 树没有刷新".
+                NotificationCenter.default.post(name: .wenshuLibraryDidChange, object: nil)
+            }
+        }
+    }
+
+    // v2.7 round-36 (= boss 2026-10-09 "在
+    // 红字后面，加一个小操作文
+    // 字，就是基于标题重新调
+    // 研" directive). The
+    // "重新调研所有失败" button
+    // handler. Reuses the same
+    // `ImportTarget` and `router` as
+    // the original `startImport`; the
+    // difference is the orchestrator's
+    // `retryFailedTasksTitleOnly`
+    // method bypasses the disk read
+    // (= the source files failed
+    // `String(contentsOfFile:)`; = the
+    // orchestrator synthesizes a body
+    // from the filename + sibling
+    // .md names in the same folder).
+    private func retryFailedTitleOnly() {
+        guard !isRetryingFailed else { return }
+        // The retry path doesn't need the
+        // source directory URL (= each
+        // task already carries its absolute
+        // `sourcePath`; = the orchestrator
+        // synthesizes the body from the
+        // filename + sibling .md names
+        // walked from the same parent dir).
+        // Reuse the same `ImportTarget` shape
+        // as `startImport` (= the user
+        // pinned destination in the sheet
+        // is the same for retry).
+        let target: ImportTarget
+        switch importDestination {
+        case .referenceLibrary:
+            target = ImportTarget(
+                destination: .referenceLibrary,
+                wsRoot: libraryRoot(),
+                bookId: nil,
+                shelfId: nil,
+                referenceStore: FileSystemReferenceStore(
+                    referenceLibraryRoot: libraryRoot().appendingPathComponent("reference-library")
+                ),
+                rewriteMode: rewriteMode
+            )
+        case .book:
+            guard let bookID = selectedBookID,
+                  bookStore.books.contains(where: { $0.id == bookID }) else {
+                return
+            }
+            target = ImportTarget(
+                destination: .book,
+                wsRoot: libraryRoot(),
+                bookId: bookID,
+                shelfId: shelfIdForBook(bookID),
+                referenceStore: FileSystemReferenceStore(
+                    referenceLibraryRoot: libraryRoot().appendingPathComponent("reference-library")
+                ),
+                rewriteMode: rewriteMode
+            )
+        }
+        isRetryingFailed = true
+        Task {
+            let onProgress: @Sendable ([ImportTask]) async -> Void = { snapshot in
+                await MainActor.run {
+                    tasks = snapshot
+                    completedCount = snapshot.filter {
+                        switch $0.state {
+                        case .done, .skipped, .failed: return true
+                        default: return false
+                        }
+                    }.count
+                }
+            }
+            let result = await importService.retryFailedTasksTitleOnly(
+                tasks: tasks, into: target, router: router, onProgress: onProgress
+            )
+            await MainActor.run {
+                tasks = result
+                completedCount = result.filter {
+                    switch $0.state {
+                    case .done, .skipped, .failed: return true
+                    default: return false
+                    }
+                }.count
+                isRetryingFailed = false
                 NotificationCenter.default.post(name: .wenshuLibraryDidChange, object: nil)
             }
         }

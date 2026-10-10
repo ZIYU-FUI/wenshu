@@ -63,6 +63,44 @@ struct ImportFileInput: Codable, Sendable, Hashable {
     /// into a long-lived Data blob; = see spec "Further Notes"
     /// on the 200+ MB source-directory memory budget).
     let filePath: String
+    /// v2.7 round-36 (= boss 2026-10-09 "在红
+    /// 字后面，加一个小操作文字，
+    /// 就是基于标题重新调研" directive).
+    /// Optional body override (= the
+    /// orchestrator pre-constructed a body
+    /// string from the filename + sibling
+    /// .md names = the LLM can produce
+    /// metadata + `.ws`-format body without
+    /// ever reading the source file; = the
+    /// canonical use case is "the source
+    /// file failed to read" = the file is
+    /// unreadable on disk = the orchestrator
+    /// synthesizes a body from the filename
+    /// and passes it here so the LLM has
+    /// something to work with).
+    /// `nil` (= the pre-round-36 default; = the
+    /// orchestrator's normal `importFiles`
+    /// path) = the router reads the body from
+    /// `filePath`.
+    let body: String?
+    /// Default-value init (= the
+    /// pre-round-36 call sites don't supply
+    /// `body`; = the existing tests and the
+    /// orchestrator's `importFiles` path
+    /// compile unchanged).
+    init(
+        filePath: String,
+        targetBookId: UUID?,
+        targetShelfId: UUID?,
+        rewriteMode: RewriteMode,
+        body: String? = nil
+    ) {
+        self.filePath = filePath
+        self.targetBookId = targetBookId
+        self.targetShelfId = targetShelfId
+        self.rewriteMode = rewriteMode
+        self.body = body
+    }
     /// The book the user picked in the import sheet (= the
     /// `book.id` from `SidebarService.availableBooks()`).
     /// Required when the user pinned a book as the
