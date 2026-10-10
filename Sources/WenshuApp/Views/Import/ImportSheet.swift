@@ -1407,13 +1407,22 @@ extension ImportSheet {
         }
     }
 
-    /// Step 2: 进度. The original Form's
-    /// "进度" section. No pickers, no
-    /// action button, no retry. Just the
-    /// progress bar + the per-file strip.
+    /// Step 2: 进度. The progress
+    /// bar + the per-file strip;
+    /// = the two surfaces are
+    /// separated by a hairline
+    /// Divider (= matches the
+    /// step 1 / step 3 pattern;
+    /// = the boss's round-50
+    /// "演示要每一步骤的页面
+    /// 都一样, 不只改第一步"
+    /// directive; = every step
+    /// has the same
+    /// dot-indicator / Divider /
+    /// bottom-nav-bar chrome).
     @ViewBuilder
     fileprivate var step2RunningView: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.spacingStandard) {
+        VStack(alignment: .leading, spacing: 0) {
             if totalCount > 0 {
                 ProgressView(
                     value: Double(completedCount) + Double(inFlightCount) * 0.5,
@@ -1428,6 +1437,24 @@ extension ImportSheet {
                 }
                 .progressViewStyle(.linear)
             }
+            // v2.7 round-50:
+            // Divider between
+            // the progress
+            // section and the
+            // per-file list
+            // (= the boss's
+            // "演示要每一步
+            // 骤的页面都一
+            // 样" directive;
+            // = every step
+            // uses the same
+            // "section
+            // content +
+            // Divider +
+            // list"
+            // pattern).
+            Divider()
+                .padding(.vertical, DesignTokens.spacingStandard)
             ImportProgressStrip(tasks: tasks)
                 .frame(maxHeight: DesignTokens.kanbanBoardMaxHeight)
         }
@@ -1435,37 +1462,54 @@ extension ImportSheet {
 
     /// Step 3: 结果. The per-file list
     /// (= the same strip as Step 2) +
-    /// a "重新调研所有失败" total button
-    /// at the top + per-row "重试"
-    /// buttons. No pickers, no
-    /// progress bar (= the import
-    /// already finished; = the user
-    /// is now in review/retry mode).
+    /// per-row "重试" buttons. No
+    /// pickers, no progress bar (= the
+    /// import already finished; = the
+    /// user is now in review/retry
+    /// mode).
+    ///
+    /// v2.7 round-50 (= boss 2026-10-10
+    /// "步骤二的按钮换个
+    /// 位置，挨着完成放
+    /// 然后操作上面需要
+    /// 也加一条分割线"
+    /// directive). The
+    /// "重新调研所有失败"
+    /// total button
+    /// moves from the
+    /// top of the view
+    /// (= the round-36
+    /// position; = the
+    /// user complained
+    /// "挨着完成放" =
+    /// the button
+    /// should be next
+    /// to the 完成
+    /// button, not at
+    /// the top of the
+    /// list) to the
+    /// BOTTOM of the
+    /// view, right-
+    /// aligned, with a
+    /// hairline Divider
+    /// above it (= the
+    /// "操作上面需要也
+    /// 加一条分割线"
+    /// requirement; =
+    /// the Divider
+    /// separates the
+    /// file list from
+    /// the action
+    /// surface; = the
+    /// action sits in
+    /// its own row,
+    /// visually
+    /// analogous to the
+    /// "完成" button in
+    /// the nav bar).
     @ViewBuilder
     fileprivate var step3ResultsView: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.spacingStandard) {
-            // The "重新调研所有失败" total
-            // button at the top of the
-            // results view (= same
-            // condition as before; = the
-            // boss's "不变" answer to
-            // the Q1 clarify).
-            if canRetryFailedTitleOnly {
-                Button {
-                    Task { await retryFailedTitleOnly() }
-                } label: {
-                    if isRetryingFailed {
-                        HStack(spacing: DesignTokens.spacingIconic) {
-                            ProgressView()
-                                .controlSize(.small)
-                            Text("重新调研中…")
-                        }
-                    } else {
-                        Text("重新调研所有失败 (\(failedReadFileCount) 个)")
-                    }
-                }
-                .disabled(isRetryingFailed)
-            }
+        VStack(alignment: .leading, spacing: 0) {
             // The per-file list (= the
             // same strip as Step 2;
             // = per-row "重试" buttons
@@ -1474,6 +1518,66 @@ extension ImportSheet {
             // ImportTaskRow).
             ImportProgressStrip(tasks: tasks)
                 .frame(maxHeight: DesignTokens.kanbanBoardMaxHeight)
+            // v2.7 round-50: the
+            // "重新调研所有失败"
+            // button at the
+            // BOTTOM of the
+            // results view (= the
+            // boss's "挨着完成
+            // 放" directive;
+            // = the button is
+            // now visually
+            // adjacent to the
+            // nav bar's "完成"
+            // button; = the
+            // user reads the
+            // two buttons as
+            // "secondary action
+            // + primary action"
+            // = a standard
+            // dialog pattern).
+            // The button is only
+            // visible when at
+            // least one task
+            // failed because
+            // the file was
+            // unreadable on
+            // disk (= same
+            // condition as
+            // before; = the
+            // boss's "不变"
+            // answer to the
+            // Q1 clarify).
+            if canRetryFailedTitleOnly {
+                // v2.7 round-50: hairline
+                // Divider above
+                // the action row
+                // (= the "操作
+                // 上面需要也加
+                // 一条分割线"
+                // requirement).
+                Divider()
+                HStack {
+                    Spacer()
+                    Button {
+                        Task { await retryFailedTitleOnly() }
+                    } label: {
+                        if isRetryingFailed {
+                            HStack(spacing: DesignTokens.spacingIconic) {
+                                ProgressView()
+                                    .controlSize(.small)
+                                Text("重新调研中…")
+                            }
+                        } else {
+                            Text("重新调研所有失败 (\(failedReadFileCount) 个)")
+                        }
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.regular)
+                    .disabled(isRetryingFailed)
+                }
+                .padding(.top, DesignTokens.spacingStandard)
+            }
         }
     }
 
