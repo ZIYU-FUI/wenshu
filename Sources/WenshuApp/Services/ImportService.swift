@@ -2254,26 +2254,113 @@ extension ImportService {
         tasksBox.value[i].state = .writing
         await onProgress?(tasksBox.value)
         do {
-            // v2.7 body selection (= boss 2026-10-09
-            // round-18 "重写同时搜索校对" mode; =
-            // the LLM may return a `rewrittenBody`
-            // (= the search-augmented, .ws-format
-            // body) in `routing.rewrittenBody`; = the
-            // orchestrator uses the rewritten body
-            // when present; = otherwise it falls
-            // back to the original source body
-            // verbatim (= the
-            // `searchAndRewrite` mode is a
-            // super-set of `consolidate`; = a stub
-            // router or an LLM that didn't search
-            // simply keeps the original body)).
+            // v2.7 round-66 commit E (= boss
+            // 2026-10-10 "导入
+            // 的文件，内容
+            // 大量缺失" 反馈).
+            // Body selection is
+            // now mode-aware:
+            //
+            // - `.consolidate`
+            //   (= the "基于
+            //   现有内容整理"
+            //   picker option):
+            //   ALWAYS use the
+            //   original source
+            //   body verbatim (=
+            //   read from disk);
+            //   ignore the LLM's
+            //   `rewrittenBody`
+            //   entirely. The
+            //   LLM was compressing
+            //   the content (= the
+            //   prompt's "整理
+            //   .ws 格式" was
+            //   interpreted as
+            //   "summarize and
+            //   rewrite"); = the
+            //   format work
+            //   (strip + H2
+            //   append) is now
+            //   done in code by
+            //   `ImportDocumentTemplates.prepareBodyForWrite`.
+            //
+            // - `.searchAndRewrite`
+            //   (= the
+            //   "重写同时搜索
+            //   校对" option):
+            //   use the LLM's
+            //   `rewrittenBody`
+            //   when present (=
+            //   the LLM called
+            //   `web_search` and
+            //   synthesized a
+            //   new body); =
+            //   otherwise fall
+            //   back to the
+            //   original (= the
+            //   user picked
+            //   rewrite but the
+            //   LLM decided not
+            //   to search; = we
+            //   still respect
+            //   their pick =
+            //   the original
+            //   body goes
+            //   through
+            //   prepareBodyForWrite).
+            //
+            // After mode-aware
+            // selection, the
+            // body is run
+            // through
+            // `ImportDocumentTemplates.prepareBodyForWrite`
+            // (= strip Obsidian
+            // backlinks + useless
+            // metadata + append
+            // missing H2
+            // skeleton from
+            // the folder's
+            // `importTemplate`).
+            let originalBody = try String(
+                contentsOfFile: tasksBox.value[i].sourcePath,
+                encoding: .utf8
+            )
+            // The folder is sourced from the routing result
+            // (= populated when `state >= .writing`; = the
+            // LLM's pick for the book folder). For the
+            // reference-library destination, the LLM picks
+            // a "concept" folder (= world/characters/...) for
+            // the `category` but the file lands in the flat
+            // reference library; = we use `.drafts` as a
+            // safe default skeleton (= the
+            // prepareBodyForWrite helper handles the default
+            // by skipping the H2 append when no skeleton
+            // exists).
+            let folder: BookFolder = {
+                if case .bookFolder(let f) = routing.destination { return f }
+                return .drafts
+            }()
             let bodyToWrite: String
-            if let rewritten = routing.rewrittenBody, !rewritten.isEmpty {
-                bodyToWrite = rewritten
+            if target.rewriteMode == .consolidate {
+                // Consolidate: always original verbatim + prepareBodyForWrite.
+                bodyToWrite = ImportDocumentTemplate.prepareBodyForWrite(
+                    rawBody: originalBody,
+                    folder: folder
+                )
+            } else if let rewritten = routing.rewrittenBody, !rewritten.isEmpty {
+                // SearchAndRewrite with LLM-supplied body: still run through prepareBodyForWrite
+                // (= strip noise + append missing H2; = the LLM may have skipped some
+                // required H2s; = the user gets the canonical skeleton).
+                bodyToWrite = ImportDocumentTemplate.prepareBodyForWrite(
+                    rawBody: rewritten,
+                    folder: folder
+                )
             } else {
-                bodyToWrite = try String(
-                    contentsOfFile: tasksBox.value[i].sourcePath,
-                    encoding: .utf8
+                // SearchAndRewrite without LLM-supplied body: original + prepareBodyForWrite.
+                bodyToWrite = ImportDocumentTemplate.prepareBodyForWrite(
+                    rawBody: originalBody,
+                    folder: folder
                 )
             }
             try await writeFile(

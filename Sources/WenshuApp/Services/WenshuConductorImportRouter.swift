@@ -702,7 +702,11 @@ actor WenshuConductorImportRouter: ImportRouter {
             // (= the LLM's .ws-format body in
             // `searchAndRewrite` mode; = nil = the
             // orchestrator keeps the original body
-            // verbatim).
+            // verbatim). The caller (= ImportService)
+            // checks `rewriteMode` and decides whether
+            // to use the rewritten body or fall back
+            // to the original (= see round-66 commit E
+            // for the mode-aware body selection).
             rewrittenBody: parsed.rewrittenBody
         )
     }

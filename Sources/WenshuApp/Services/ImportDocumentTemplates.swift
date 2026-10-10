@@ -202,17 +202,215 @@ enum ImportDocumentTemplate: String, CaseIterable, Sendable {
         }
     }
 
-    /// The mandatory metadata
-    /// header that every
-    /// wenshu document starts
-    /// with (= the user can
-    /// scan this header to
-    /// see "this is a
-    /// wenshu-generated
-    /// document"; = the
-    /// header is the same
-    /// across all 5 templates
-    /// for consistency).
+    /// v2.7 round-66 commit E (= boss
+    /// 2026-10-10 "导入
+    /// 的文件，内容
+    /// 大量缺失" 反馈).
+    /// The LLM in
+    /// `.consolidate` mode was
+    /// "compressing" the
+    /// source body (= the LLM
+    /// interpreted the prompt's
+    /// "整理 .ws 格式" as
+    /// "summarize and rewrite",
+    /// even though the intent was
+    /// "preserve verbatim + strip
+    /// noise + add template
+    /// skeleton"). Boss's fix:
+    /// the orchestrator now does
+    /// the format work in code
+    /// (= deterministic, no LLM
+    /// guessing):
+    /// 1. **strip** the body (= remove
+    ///    Obsidian backlinks, useless
+    ///    metadata lines, plugin
+    ///    comments; = the round-25
+    ///    canonical strip).
+    /// 2. **append missing H2
+    ///    skeleton** (= for each H2
+    ///    in the folder's
+    ///    `importTemplate.skeleton`
+    ///    that the stripped body
+    ///    doesn't already have,
+    ///    append it as an empty
+    ///    section with a `[TODO]`
+    ///    placeholder; = the user
+    ///    sees a complete template
+    ///    that highlights which
+    ///    sections are still
+    ///    blank).
+    /// 3. The result is a body
+    ///    that has **100% of the
+    ///    original content** (=
+    ///    nothing summarized, nothing
+    ///    dropped) + the folder's
+    ///    canonical H2 skeleton (= the
+    ///    user can fill in the blanks).
+    /// The `consolidate` mode
+    /// `rewrittenBody` from the LLM
+    /// is now ignored entirely (=
+    /// the parser forces nil for
+    /// `consolidate`; = the LLM no
+    /// longer has permission to
+    /// rewrite the body in this
+    /// mode).
+    static func prepareBodyForWrite(
+        rawBody: String,
+        folder: BookFolder
+    ) -> String {
+        // 1. strip
+        // noise (= the
+        // round-25
+        // canonical
+        // `stripObsidianBacklinks`
+        // helper on the
+        // WenshuConductorImportRouter
+        // also covers the
+        // `isUselessMetadataLine`
+        // filter; = we
+        // re-implement the
+        // same strip
+        // in-place here
+        // because the
+        // orchestrator
+        // already calls
+        // the router
+        // helper above
+        // and we want
+        // this helper to
+        // be
+        // self-contained
+        // for unit
+        // testing).
+        let stripped = stripUselessLines(rawBody)
+        // 2. collect
+        // the
+        // skeleton's
+        // H2
+        // titles
+        // (= the
+        // `## `
+        // lines
+        // in
+        // the
+        // skeleton
+        // string).
+        let skeletonH2s: [String]
+        if let template = folder.importTemplate {
+            skeletonH2s = extractH2Titles(from: template.skeleton)
+        } else {
+            skeletonH2s = []
+        }
+        // 3. for
+        // each
+        // H2 in
+        // the
+        // skeleton,
+        // check
+        // if
+        // the
+        // body
+        // already
+        // has
+        // that
+        // header.
+        // If
+        // not,
+        // append
+        // it
+        // as
+        // an
+        // empty
+        // section
+        // with
+        // a
+        // [TODO]
+        // marker.
+        var appended: [String] = []
+        for h2 in skeletonH2s {
+            if !stripped.contains("## \(h2)\n") && !stripped.contains("## \(h2)\r\n") {
+                appended.append("## \(h2)\n\n[TODO: 需调研补齐]\n")
+            }
+        }
+        if appended.isEmpty {
+            return stripped
+        }
+        return stripped + "\n\n" + appended.joined(separator: "\n\n")
+    }
+
+    /// Extract H2 titles (= lines starting with
+    /// `## `) from a markdown skeleton. Returns the
+    /// title text (= the part after `## `; = no
+    /// leading/trailing whitespace).
+    private static func extractH2Titles(from skeleton: String) -> [String] {
+        skeleton.components(separatedBy: "\n").compactMap { line in
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            guard trimmed.hasPrefix("## ") else { return nil }
+            let title = String(trimmed.dropFirst(3)).trimmingCharacters(in: .whitespaces)
+            // Skip
+            // empty
+            // titles
+            // (=
+            // guard
+            // against
+            // `## ` with
+            // no text;
+            // = shouldn't
+            // happen in
+            // the
+            // canonical
+            // skeletons).
+            return title.isEmpty ? nil : title
+        }
+    }
+
+    /// Strip useless metadata lines (= round-25
+    /// canonical; = inlined here for
+    /// self-contained testing). Each line in
+    /// `rawBody` is checked against the
+    /// "useless metadata" filter (= the
+    /// canonical "type: xxx", "状态:
+    /// 草稿/定稿" style noise that comes
+    /// from old wenshu templates / Obsidian
+    /// plugins / etc.). Lines that pass the
+    /// filter are joined back together.
+    static func stripUselessLines(_ rawBody: String) -> String {
+        return rawBody
+            .components(separatedBy: "\n")
+            .filter { line in
+                let trimmed = line.trimmingCharacters(in: .whitespaces)
+                if trimmed.isEmpty { return true } // keep blank lines
+                if trimmed.hasPrefix("[[") && trimmed.hasSuffix("]]") { return false } // Obsidian backlink
+                if trimmed.hasPrefix("<!--") && trimmed.hasSuffix("-->") { return false } // plugin comment
+                if Self.isUselessMetadataLine(trimmed) { return false }
+                return true
+            }
+            .joined(separator: "\n")
+    }
+
+    /// The canonical "useless metadata line" detector
+    /// (= round-25). Matches the old wenshu template's
+    /// noise lines (= e.g. "类型: 民俗神-A节气",
+    /// "状态: 草稿") that the user never asked to
+    /// preserve. The pattern is a Chinese-label line
+    /// (= one or more Chinese chars) followed by ": "
+    /// and a value, where the label is one of the
+    /// known-noisy labels (= 类型 / 状态 / 标签 /
+    /// 核心信息 / 详细描述 / 出处 / 链接).
+    static func isUselessMetadataLine(_ line: String) -> Bool {
+        let pattern = "^[A-Za-z\\u4e00-\\u9fff]+:\\s*[^:]+$"
+        guard line.range(of: pattern, options: .regularExpression) != nil else {
+            return false
+        }
+        return line.hasPrefix("类型")
+            || line.hasPrefix("状态")
+            || line.hasPrefix("标签")
+            || line.hasPrefix("核心信息")
+            || line.hasPrefix("详细描述")
+            || line.hasPrefix("出处")
+            || line.hasPrefix("链接")
+    }
+
     static let commonHeader = """
     # <实体名>
 
