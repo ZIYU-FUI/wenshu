@@ -2570,7 +2570,10 @@ private struct ImportTaskRow: View {
 /// path; = the production sheet wires
 /// `WenshuConductorImportRouter` instead).
 private struct StubImportRouterForSheet: ImportRouter {
-    func route(_ input: ImportFileInput) async throws -> ImportRoutingResult {
+    func route(
+        _ input: ImportFileInput,
+        progress: (@Sendable (String) async -> Void)? = nil
+    ) async throws -> ImportRoutingResult {
         return ImportRoutingResult(
             destination: .referenceLibrary,
             title: (input.filePath as NSString).deletingPathExtension,

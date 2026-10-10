@@ -25,7 +25,7 @@ final class ImportServiceTests: XCTestCase {
         init(_ canned: [String: ImportRoutingResult]) {
             self.canned = canned
         }
-        func route(_ input: ImportFileInput) async throws -> ImportRoutingResult {
+        func route(_ input: ImportFileInput, progress: (@Sendable (String) async -> Void)? = nil) async throws -> ImportRoutingResult {
             let basename = (input.filePath as NSString).lastPathComponent
             if let r = canned[basename] { return r }
             return ImportRoutingResult(
@@ -131,7 +131,7 @@ final class ImportServiceTests: XCTestCase {
         let target = makeTarget(wsRoot: wsRoot, shelfId: shelfId, bookId: bookId, store: store)
         let svc = ImportService()
         struct ThrowRouter: ImportRouter {
-            func route(_ input: ImportFileInput) async throws -> ImportRoutingResult {
+            func route(_ input: ImportFileInput, progress: (@Sendable (String) async -> Void)? = nil) async throws -> ImportRoutingResult {
                 throw NSError(domain: "test", code: 1)
             }
             // v2.7 round-66 commit F:
@@ -307,7 +307,7 @@ final class ImportServiceTests: XCTestCase {
         let target = makeTarget(wsRoot: wsRoot, shelfId: shelfId, bookId: bookId, store: store)
         let svc = ImportService()
         actor SleepingRouter: ImportRouter {
-            func route(_ input: ImportFileInput) async throws -> ImportRoutingResult {
+            func route(_ input: ImportFileInput, progress: (@Sendable (String) async -> Void)? = nil) async throws -> ImportRoutingResult {
                 try await Task.sleep(nanoseconds: 50_000_000)
                 return ImportRoutingResult(
                     destination: .referenceLibrary, title: "t", summary: "s",

@@ -94,7 +94,14 @@ actor WenshuConductorImportRouter: ImportRouter {
     /// asks the LLM to return a single JSON object
     /// with the structured fields the orchestrator
     /// needs).
-    func route(_ input: ImportFileInput) async throws -> ImportRoutingResult {
+    /// v2.7 round-71: `progress` callback emits
+    /// human-readable Chinese activity lines (= the
+    /// orchestrator wires this into the per-row
+    /// `activityLog`).
+    func route(
+        _ input: ImportFileInput,
+        progress: (@Sendable (String) async -> Void)? = nil
+    ) async throws -> ImportRoutingResult {
         // v2.7 round-36 (= boss 2026-10-09 "在
         // 红字后面，加一个小操作文字，
         // 就是基于标题重新调研" directive).
@@ -125,6 +132,56 @@ actor WenshuConductorImportRouter: ImportRouter {
         }
         let fallbackTitle = Self.fallbackTitle(from: input.filePath)
 
+        // v2.7 round-71 C2 (= boss 2026-10-10
+        // "B" pick for the "⚠️ LLM
+        // 没返回 extraFiles"
+        // OOB). In `.reorganize` mode
+        // (= the boss's new
+        // default mode), the
+        // pipeline now makes 3
+        // sequential LLM calls
+        // instead of 1 (= each call
+        // does 1 thing; = the LLM
+        // can't silently drop the
+        // extraFiles array; = the
+        // user sees each call in
+        // real time via the
+        // round-70 `activityLog`).
+        // Other modes (= .consolidate /
+        // .searchAndRewrite) still
+        // use 1 LLM call (= backward
+        // compat).
+        switch input.rewriteMode {
+        case .reorganize:
+            return try await routeReorganizeMultiTurn(
+                filePath: input.filePath,
+                body: body,
+                fallbackTitle: fallbackTitle,
+                progress: progress
+            )
+        case .consolidate, .searchAndRewrite:
+            // .consolidate + .searchAndRewrite
+            // unchanged (= 1 LLM call;
+            // = the pre-round-71 path).
+            return try await routeSingleTurn(
+                input: input,
+                body: body,
+                fallbackTitle: fallbackTitle,
+                progress: progress
+            )
+        }
+    }
+
+    /// v2.7 round-71 C2. The single-LLM-call
+    /// path (= the pre-round-71 behavior; = used by
+    /// `.consolidate` + `.searchAndRewrite`; = kept
+    /// for backward compat).
+    private func routeSingleTurn(
+        input: ImportFileInput,
+        body: String,
+        fallbackTitle: String,
+        progress: (@Sendable (String) async -> Void)?
+    ) async throws -> ImportRoutingResult {
         // Build the prompt (= the librarian role's
         // system prompt + the per-file user prompt).
         let userPrompt = Self.userPrompt(
@@ -158,13 +215,7 @@ actor WenshuConductorImportRouter: ImportRouter {
             reasoningEffort: nil,
             tools: tools
         )
-        // Fire the LLM call. Failures are non-fatal:
-        // the orchestrator's per-file try/catch
-        // catches the throw and marks the task
-        // .failed (= the user sees "失败" in the
-        // per-file state strip; = the action button
-        // flips to "重试" so they can re-run the
-        // failed rows after fixing the LLM config).
+        // Fire the LLM call (= single turn).
         let response: LLMResponse
         switch input.rewriteMode {
         case .consolidate:
@@ -172,20 +223,6 @@ actor WenshuConductorImportRouter: ImportRouter {
             // pre-v2.7 behavior; = the LLM has
             // no tools so `stopReason` is
             // `endTurn` immediately).
-            response = try await connector.send(
-                messages: [.user(userPrompt)],
-                options: options
-            )
-        case .reorganize:
-            // v2.7 round-67 (= boss 2026-10-10
-            // "智能重组" mode). Single-turn,
-            // no tool loop (= the LLM has
-            // the source body; = no need to
-            // search; = the LLM is told to
-            // reorganize A → B in
-            // `rewrittenBody` + optionally
-            // return `extraFiles` in the
-            // routing JSON).
             response = try await connector.send(
                 messages: [.user(userPrompt)],
                 options: options
@@ -210,6 +247,16 @@ actor WenshuConductorImportRouter: ImportRouter {
                 body: body,
                 filePath: input.filePath
             )
+        case .reorganize:
+            // Unreachable (= the caller's
+            // switch dispatched .reorganize
+            // to the multi-turn path; = kept
+            // for switch exhaustiveness).
+            throw NSError(
+                domain: "WenshuConductorImportRouter",
+                code: 0,
+                userInfo: [NSLocalizedDescriptionKey: "unreachable"]
+            )
         }
         let raw = response.blocks.map(\.textValue).joined()
         return Self.parseAndMap(
@@ -218,6 +265,357 @@ actor WenshuConductorImportRouter: ImportRouter {
             fallbackTitle: fallbackTitle,
             filePath: input.filePath
         )
+    }
+
+    /// v2.7 round-71 C2. The 3-phase multi-turn
+    /// path (= the new default for `.reorganize`;
+    /// = the fix for "⚠️ LLM 没返回
+    /// extraFiles"). Each phase makes 1 LLM call
+    /// with a focused prompt; = the results are
+    /// merged into 1 `ImportRoutingResult`.
+    ///
+    /// Phase 1/3 = `classifyAndIndex`:
+    ///   - LLM reads A
+    ///   - returns title + summary + tags
+    ///   - returns rewrittenBody (= the main
+    ///     INDEX file body; = metadata header
+    ///     + 6 必填子文件路径引用 + 1 段简短概述)
+    ///   - decides the destination folder
+    ///   - does NOT return extraFiles
+    ///
+    /// Phase 2/3 = `splitRequired`:
+    ///   - LLM reads A again
+    ///   - returns 6 必填 extraFiles (= 核心设定 /
+    ///     地理或位置 / 体系或规则 / 历史脉络 /
+    ///     与其他元素的关系 / 关键场景种子)
+    ///
+    /// Phase 3/3 = `splitCustom`:
+    ///   - LLM reads A again
+    ///   - returns 0-5 自定义 extraFiles (= A's
+    ///     non-B content; = "约等于备注")
+    private func routeReorganizeMultiTurn(
+        filePath: String,
+        body: String,
+        fallbackTitle: String,
+        progress: (@Sendable (String) async -> Void)?
+    ) async throws -> ImportRoutingResult {
+        // v2.7 round-71 C2 (= boss 2026-10-10
+        // OOB "B" pick). The 3-phase
+        // prompt factory lives in
+        // `reorganizePhase1Prompt` /
+        // `_phase2Prompt` /
+        // `_phase3Prompt` (= each
+        // prompt is focused on 1
+        // task; = the LLM can't drop
+        // a part because it didn't
+        // have room; = per-call
+        // reliability is
+        // significantly higher
+        // than the previous
+        // 1-big-prompt approach).
+        let options = LLMCallOptions(
+            model: modelSlug,
+            maxTokens: 4096,
+            systemPrompt: SystemPrompt.librarianRole(.chinese),
+            temperature: 0.2,
+            reasoningEffort: nil,
+            tools: []
+        )
+        // Phase 1/3: classify + index.
+        await progress?("  🔵 phase 1/3 分类 + 元数据 + 主索引 ...")
+        let phase1Prompt = Self.reorganizePhase1Prompt(
+            filePath: filePath,
+            body: body,
+            fallbackTitle: fallbackTitle
+        )
+        let phase1Raw = try await connector.send(
+            messages: [.user(phase1Prompt)],
+            options: options
+        ).blocks.map(\.textValue).joined()
+        // Parse the phase 1 JSON
+        // (= title + summary + tags +
+        // rewrittenBody + folder).
+        // Defensive: if the LLM
+        // returns an empty body
+        // (= rare but possible),
+        // we fall back to the
+        // prepareBodyForWrite path
+        // (= the user still gets
+        // a usable import).
+        let phase1 = Self.parseReorganizePhase1(
+            raw: phase1Raw,
+            fallbackTitle: fallbackTitle,
+            filePath: filePath
+        )
+        await progress?("  ✅ phase 1/3 返回: title=\"\(phase1.title)\", folder=\(phase1.folder.directoryName), 主索引=\(phase1.rewrittenBody == nil ? "空" : "有")")
+        // Phase 2/3: 6 必填.
+        await progress?("  🔵 phase 2/3 拆 6 必填子文件 ...")
+        let phase2Prompt = Self.reorganizePhase2Prompt(
+            body: body,
+            folder: phase1.folder
+        )
+        let phase2Raw = try await connector.send(
+            messages: [.user(phase2Prompt)],
+            options: options
+        ).blocks.map(\.textValue).joined()
+        let phase2Extras = Self.parseReorganizePhase2Extras(raw: phase2Raw)
+        if phase2Extras.isEmpty {
+            await progress?("  ⚠️ phase 2/3 没返回 6 必填 (= LLM 偷懒, = boss OOB)")
+        } else {
+            await progress?("  ✅ phase 2/3 返回 6 必填: \(phase2Extras.map { $0.title }.joined(separator: ", "))")
+        }
+        // Phase 3/3: 0-5 自定义.
+        await progress?("  🔵 phase 3/3 拆 N 自定义子文件 ...")
+        let phase3Prompt = Self.reorganizePhase3Prompt(
+            body: body,
+            folder: phase1.folder,
+            existingTitles: phase2Extras.map { $0.title }
+        )
+        let phase3Raw = try await connector.send(
+            messages: [.user(phase3Prompt)],
+            options: options
+        ).blocks.map(\.textValue).joined()
+        let phase3Extras = Self.parseReorganizePhase3Extras(raw: phase3Raw)
+        await progress?("  ✅ phase 3/3 返回 \(phase3Extras.count) 自定义: \(phase3Extras.map { $0.title }.joined(separator: ", "))")
+        // Merge: phase 1's metadata + phase 2's
+        // 6 必填 + phase 3's 0-5 自定义.
+        let allExtras = phase2Extras + phase3Extras
+        return ImportRoutingResult(
+            destination: .bookFolder(phase1.folder),
+            title: phase1.title,
+            summary: phase1.summary,
+            tags: Set(phase1.tags),
+            entityType: "other",
+            category: nil,
+            confidence: 0.9,
+            rewrittenBody: phase1.rewrittenBody,
+            extraFiles: allExtras
+        )
+    }
+
+    /// v2.7 round-71 C2. Phase 1/3 prompt
+    /// (= classification + metadata + main
+    /// INDEX file body; = the FIRST LLM call).
+    private static func reorganizePhase1Prompt(
+        filePath: String,
+        body: String,
+        fallbackTitle: String
+    ) -> String {
+        return """
+        你是 wenshu 资料库 / 书的 librarian (= 资料整理员)。
+        你的任务 = 读 1 个源文件 (= A), 返回 1 个 JSON 对象
+        (= metadata + main INDEX file body)。
+
+        源文件路径: \(filePath)
+        备用 title (= 如果 LLM 没填, 用这个): \(fallbackTitle)
+
+        ============================
+        源文件内容 (A):
+        ============================
+        \(body)
+        ============================
+
+        输出要求 (= ONE 1-line JSON; 用 JSON escape, 字符串值里的换行用 \\n):
+
+        {
+          "title":"<中文标题, ≤ 30 字>",
+          "summary":"<一句话中文摘要, ≤ 100 字>",
+          "tags":["<tag1>","<tag2>","<tag3>", ...],
+          "folder":"<world|characters|outlines|chapters|drafts|ideas>",
+          "rewrittenBody":"<主索引文件 body: metadata header + 6 必填子文件路径引用 + 1 段简短概述; 字符串值里的换行用 \\n; 不能写真实换行>"
+        }
+
+        field 规则:
+        - title: 中文, ≤ 30 字, 不能含路径分隔符 (/ 或 :)
+        - summary: 1 句话, ≤ 100 字
+        - tags: 1-3 个, 不能与 title 重复, 不能含标点
+        - folder: 从 6 个 BookFolder 里选 1 (= world / characters / outlines / chapters / drafts / ideas; = 你自己判断 A 属于哪个)
+        - rewrittenBody: 这个 field 是 round-67+ 的核心; = 主索引文件 body, 内容:
+          1. metadata header (= # 标题 + 实体类型 + 标签 + 摘要 4 行)
+          2. 一段简短概述 (= 你 1 段话总结 A 是什么, = wenshu 主索引风格)
+          3. **不要**包含 6 必填的 H2 内容 (= 内容由 phase 2 拆出; = 主索引只引用)
+          4. **不要**包含 extraFiles 内容 (= extraFiles 由 phase 2 + phase 3 拆出; = 主索引只引用)
+
+        **绝对不要**在 rewrittenBody 里返回 6 必填 H2 内容 (= 那是 phase 2 的事)。
+        **绝对不要**返回 extraFiles 字段 (= 那是 phase 2 + phase 3 的事)。
+        """
+    }
+
+    /// v2.7 round-71 C2. Phase 2/3 prompt
+    /// (= the 6 必填 sub-files; = the SECOND
+    /// LLM call).
+    private static func reorganizePhase2Prompt(
+        body: String,
+        folder: BookFolder
+    ) -> String {
+        return """
+        你是 wenshu librarian (= 资料整理员)。
+        你的任务 = 读源文件 A, 把内容**主动填入** 6 必填子文件 (= world/ 的 6 个 H2)。
+        只输出 1 个 JSON (= 6 必填 extraFiles 数组)。
+
+        目标 folder: \(folder.directoryName)
+
+        ============================
+        源文件内容 (A):
+        ============================
+        \(body)
+        ============================
+
+        输出要求 (= ONE 1-line JSON; 用 JSON escape, 字符串值里的换行用 \\n):
+
+        {
+          "extraFiles":[
+            {"folder":"\(folder.directoryName)","title":"核心设定","body":"<内容>","required":true},
+            {"folder":"\(folder.directoryName)","title":"地理或位置","body":"<内容>","required":true},
+            {"folder":"\(folder.directoryName)","title":"体系或规则","body":"<内容>","required":true},
+            {"folder":"\(folder.directoryName)","title":"历史脉络","body":"<内容>","required":true},
+            {"folder":"\(folder.directoryName)","title":"与其他元素的关系","body":"<内容>","required":true},
+            {"folder":"\(folder.directoryName)","title":"关键场景种子","body":"<内容>","required":true}
+          ]
+        }
+
+        6 必填规则:
+        - title 必须 = 上面 6 个 verbatim (= 核心设定 / 地理或位置 / 体系或规则 / 历史脉络 / 与其他元素的关系 / 关键场景种子)
+        - 6 个 title 一个都不能少 (= 必填字段)
+        - body 字段: 完整内容 (= 1 段话 / 列表, 由 LLM 决定结构; = 不要 "TODO: 需调研补齐", 因为这次是从 A 抽内容)
+        - required: 全部 = true
+        - 字符串值里的换行用 \\n
+        - **不要**返回其他 5 个 BookFolder 的 extraFiles (= 那不是这个 folder 的; = 忽略)
+        - **不要**返回 custom extraFiles (= 那是 phase 3 的事; = phase 2 只返 6 必填)
+        - **不要**返回备注 标题 (= 老板 2026-10-10 "不要备注标题的文档")
+        - **不要**返回 title = "其他不在六份里的" 之类的元标题 (= 那是 phase 3 的事)
+        """
+    }
+
+    /// v2.7 round-71 C2. Phase 3/3 prompt
+    /// (= 0-5 custom extraFiles; = the THIRD
+    /// LLM call).
+    private static func reorganizePhase3Prompt(
+        body: String,
+        folder: BookFolder,
+        existingTitles: [String]
+    ) -> String {
+        return """
+        你是 wenshu librarian (= 资料整理员)。
+        你的任务 = 读源文件 A, 把**不属于 B 模板**的内容 (= 即不属于 6 必填的额外内容, ≈ 备注)
+        拆出 0-5 份独立 .md (= 自定义标题, LLM 你自己起名字)。
+
+        目标 folder: \(folder.directoryName)
+        已存在的 6 必填 (= 不要重复; 也不要换名字): \(existingTitles.joined(separator: ", "))
+
+        ============================
+        源文件内容 (A):
+        ============================
+        \(body)
+        ============================
+
+        输出要求 (= ONE 1-line JSON; 用 JSON escape, 字符串值里的换行用 \\n):
+
+        {
+          "extraFiles":[
+            {"folder":"\(folder.directoryName)","title":"<自定义标题 1>","body":"<完整内容>","required":false}
+            // 0-5 个 element; = 如果 A 没有额外内容, 返回空数组
+          ]
+        }
+
+        自定义规则:
+        - title: LLM 你自己起中文名字 (= ≤ 30 字, 不含 / 或 :)
+        - body: 完整内容 (= markdown; = 不要 frontmatter)
+        - required: 全部 = false
+        - 字符串值里的换行用 \\n
+
+        **不要**返回 6 必填的 title (= 那是 phase 2 的事; = 重复了)
+        **不要**返回 title = "备注" (= 老板 2026-10-10 明确禁止)
+        **不要**返回空 body (= 没内容 = 不用拆)
+        数组可以为空 (= 如果 A 完全符合 6 必填, 没有任何额外内容; = 这是常见的 canonical case)
+        """
+    }
+
+    /// v2.7 round-71 C2. Parse phase 1/3
+    /// LLM response (= title + summary + tags +
+    /// folder + rewrittenBody).
+    private static func parseReorganizePhase1(
+        raw: String,
+        fallbackTitle: String,
+        filePath: String
+    ) -> Phase1Result {
+        guard let json = extractFirstJSONObject(raw),
+              let parsed = try? JSONSerialization.jsonObject(with: json.data(using: .utf8)!) as? [String: Any]
+        else {
+            // Defensive fallback: the LLM
+            // returned something we
+            // couldn't parse; = use safe
+            // defaults (= the user still
+            // gets a usable import via
+            // the prepareBodyForWrite
+            // path; = the orchestrator
+            // falls through to
+            // rewrittenBody = nil).
+            return Phase1Result(
+                title: fallbackTitle,
+                summary: "",
+                tags: [],
+                folder: .drafts,
+                rewrittenBody: nil
+            )
+        }
+        let title = (parsed["title"] as? String) ?? fallbackTitle
+        let summary = (parsed["summary"] as? String) ?? ""
+        let tags = (parsed["tags"] as? [String]) ?? []
+        let folderStr = (parsed["folder"] as? String) ?? "drafts"
+        let folder = Self.bookFolder(from: folderStr) ?? .drafts
+        let rawRewritten = (parsed["rewrittenBody"] as? String) ?? ""
+        let rewrittenBody: String? = rawRewritten.isEmpty
+            ? nil
+            : rawRewritten.replacingOccurrences(of: "\\n", with: "\n")
+        return Phase1Result(
+            title: title,
+            summary: summary,
+            tags: tags,
+            folder: folder,
+            rewrittenBody: rewrittenBody
+        )
+    }
+
+    /// v2.7 round-71 C2. Parse phase 2/3
+    /// LLM response (= 6 必填 extraFiles array).
+    /// Defensive: returns empty array if
+    /// the LLM response can't be parsed
+    /// (= the orchestrator then writes
+    /// no sub-files; = the user sees
+    /// the ⚠️ warning in the activity
+    /// log).
+    private static func parseReorganizePhase2Extras(
+        raw: String
+    ) -> [ExtraFile] {
+        guard let json = extractFirstJSONObject(raw),
+              let parsed = try? JSONSerialization.jsonObject(with: json.data(using: .utf8)!) as? [String: Any]
+        else { return [] }
+        return Self.parseExtraFiles(from: parsed)
+    }
+
+    /// v2.7 round-71 C2. Parse phase 3/3
+    /// LLM response (= 0-5 custom extraFiles).
+    /// Same defensive parser as phase 2.
+    private static func parseReorganizePhase3Extras(
+        raw: String
+    ) -> [ExtraFile] {
+        guard let json = extractFirstJSONObject(raw),
+              let parsed = try? JSONSerialization.jsonObject(with: json.data(using: .utf8)!) as? [String: Any]
+        else { return [] }
+        return Self.parseExtraFiles(from: parsed)
+    }
+
+    /// v2.7 round-71 C2. Phase 1/3 result
+    /// struct (= the intermediate; = not
+    /// exposed; = only used internally by
+    /// `routeReorganizeMultiTurn`).
+    private struct Phase1Result {
+        let title: String
+        let summary: String
+        let tags: [String]
+        let folder: BookFolder
+        let rewrittenBody: String?
     }
 
     // MARK: - Tool-use loop (= v2.7 searchAndRewrite)
