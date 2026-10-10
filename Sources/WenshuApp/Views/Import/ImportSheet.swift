@@ -36,6 +36,64 @@ import AppKit
 /// unified `开始导入` / `取消` button row.
 struct ImportSheet: View {
 
+    /// v2.7 round-44 (= boss 2026-10-10
+    /// "我觉的这个流程需要
+    /// 重构一下 我感觉
+    /// 现在在这同一个弹窗
+    /// 里跑所有步骤，按钮
+    /// 等 判断会变复杂
+    /// 我想改成引导式多步
+    /// 骤交互" directive).
+    /// The 4-step wizard state (= the
+    /// canonical Apple HIG macOS
+    /// 14+ multi-step sheet pattern;
+    /// = same as Pages / Mail
+    /// composer / Final Draft
+    /// importer; = one step at a
+    /// time; = the dot indicator at
+    /// the top + the nav bar at the
+    /// bottom are the only chrome;
+    /// = each step is a focused
+    /// Form / List with no
+    /// conditional button rows
+    /// hidden inside; = the state
+    /// machine is linear; = the
+    /// user can go back to fix a
+    /// setting, or forward when
+    /// ready).
+    enum WizardStep: Int, CaseIterable, Identifiable {
+        case configure = 0  // 步骤 1: 选目标 (= source dir + file type + destination + book + AI 程度 + 并发数)
+        case running = 1    // 步骤 2: 进度 (= ProgressView + progressLabel + per-file strip)
+        case results = 2    // 步骤 3: 结果 (= per-file list + per-row 重试 + 总重新调研所有失败)
+        case done = 3       // 步骤 4: 完成 (= 摘要 + 完成 button)
+
+        var id: Int { rawValue }
+        var label: String {
+            switch self {
+            case .configure: return "选目标"
+            case .running:   return "导入中"
+            case .results:   return "处理结果"
+            case .done:      return "完成"
+            }
+        }
+        /// Apple HIG canonical: a SF Symbol
+        /// per step (= the dot indicator
+        /// uses the symbol for the
+        /// completed state; = the
+        /// unfulfilled state is just a
+        /// dot; = the current step uses
+        /// the symbol + tint).
+        var iconName: String {
+            switch self {
+            case .configure: return "1.circle.fill"
+            case .running:   return "2.circle.fill"
+            case .results:   return "3.circle.fill"
+            case .done:      return "4.circle.fill"
+            }
+        }
+    }
+    @State private var currentStep: WizardStep = .configure
+
     /// Bumped when the `wenshuImportRequested`
     /// notification fires (= the File menu's 导入…
     /// shortcut). The parent flips this to dismiss.
@@ -268,378 +326,89 @@ struct ImportSheet: View {
             Text("导入 Markdown 文件")
                 .font(.title2.weight(.semibold))
 
-            Form {
-                Section {
-                    // File-type filter (= the user's
-                    // 2026-10-09 ask: "在目录树上一行，
-                    // 加一行文件类型图标，单选"; = a
-                    // one-line row that sits at the top
-                    // of the form, with an SF Symbol on
-                    // the left, the type name in the
-                    // middle, and a chevron on the right
-                    // (= the same pattern as the
-                    // `目标书籍` picker below). Apple
-                    // canonical: `Picker` with
-                    // `.menu` style (= the user picks
-                    // from a dropdown, = the row itself
-                    // shows the current value as a
-                    // label). The .pdf / .epub cases are
-                    // visible in the menu but disabled
-                    // (= the v2.7 orchestrator only
-                    // knows how to walk + write .md
-                    // files; = the disabled rows
-                    // communicate "coming soon" without
-                    // a separate label).
-                    Picker(selection: $fileType) {
-                        ForEach(ImportFileType.allCases) { type in
-                            HStack {
-                                SFIcon(type.iconName, style: .toolbarButton, color: .tint)
-                                Text(type.displayName)
-                                if !type.isSupported {
-                                    Text("（即将支持）")
-                                        .foregroundStyle(.tertiary)
-                                }
-                            }
-                            .tag(type)
-                        }
-                    } label: {
-                        HStack(spacing: DesignTokens.spacingStandard) {
-                            SFIcon(fileType.iconName, style: .toolbarButton, color: .tint)
-                            Text("文件类型")
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    .disabled(isImporting)
+            // v2.7 round-44 (= boss 2026-10-10
+            // "引导式多步骤交互"
+            // directive). The 4-step
+            // dot indicator at the top of
+            // the sheet (= canonical
+            // Apple HIG macOS 14+
+            // multi-step pattern; = the
+            // user can see which step
+            // they're on + how many
+            // remain; = the dots are
+            // also clickable to jump
+            // back; = this replaces the
+            // old single-page Form).
+            WizardStepIndicator(currentStep: $currentStep)
+                .padding(.bottom, DesignTokens.spacingTight)
 
-                    HStack {
-                        if let url = sourceDirectory {
-                            // Show the FULL path (= the
-                            // user's 2026-10-09 feedback:
-                            // "选择文件夹只显示最后一个
-                            // 文件夹的名字不合适，需要放
-                            // 文件路径"). Middle-elided so
-                            // long paths still fit on one
-                            // line in the 480 PT sheet
-                            // (= the trailing parent dir
-                            // is what the user usually
-                            // needs to verify they're
-                            // importing the right tree).
-                            Text(url.path)
-                                .font(.callout)
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-                                .help(url.path)
-                                .textSelection(.enabled)
-                        } else {
-                            Text("选择一个包含 .md 文件的目录")
-                                .foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        Button("选择…") { pickSourceDirectory() }
-                            .disabled(isImporting)
-                    }
-
-                    Picker("目标", selection: $importDestination) {
-                        ForEach(ImportDestination.allCases) { d in
-                            Text(d.label).tag(d)
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .disabled(isImporting)
-
-                    if importDestination == .book {
-                        Picker("目标书籍", selection: $selectedBookID) {
-                            Text("请选择书籍").tag(UUID?.none)
-                            ForEach(bookStore.books) { book in
-                                Text(book.title).tag(Optional(book.id))
-                            }
-                        }
-                        .pickerStyle(.menu)
-                        .disabled(isImporting)
-                    }
-
-                    // v2.7 AI 重写程度 Picker (= boss
-                    // round-18 "AI 重写程度（基于现
-                    // 有内容整理、重写同时重新搜索
-                    // 校对）" directive; = Token 节
-                    // 约 vs Token 高消耗).
-                    Picker("AI 重写程度", selection: $rewriteMode) {
-                        ForEach(ImportFileInput.RewriteMode.allCases, id: \.self) { mode in
-                            Text(mode.label).tag(mode)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    .disabled(isImporting)
-                    // v2.7 round-42 (= boss
-                    // 2026-10-10 "多数用户的
-                    // LLM 并发不能太高" +
-                    // "加一个同时处理文件数
-                    // 量。1 2 3 4 5，给五
-                    // 个选择。默认选3"
-                    // directive). The
-                    // concurrency knob for
-                    // the 5-way LLM dispatch
-                    // loop (= 1..5; = the
-                    // boss's five options; =
-                    // 1 = most conservative
-                    // for rate-limited
-                    // providers; = 5 = the
-                    // historical default;
-                    // = 3 = the boss's
-                    // recommended default).
-                    // Picker is menu-style
-                    // (= matches the rewrite-
-                    // mode Picker above; =
-                    // consistent wenshu
-                    // sidebar UX).
-                    Picker("同时处理文件数", selection: $maxParallel) {
-                        ForEach(1...5, id: \.self) { n in
-                            Text("\(n)").tag(n)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    .disabled(isImporting)
-                }
-
-                if !tasks.isEmpty {
-                    Section("进度") {
-                        // The ProgressView shows the
-                        // canonical "已完成 X / Y" form
-                        // (= Apple HIG canonical
-                        // indeterminate determinate
-                        // progress pattern). The
-                        // fraction counts the
-                        // terminal-state tasks
-                        // (.done / .skipped / .failed)
-                        // PLUS the in-flight tasks
-                        // (.routing / .writing); = the
-                        // bar moves continuously while
-                        // the 5-way parallel LLM
-                        // dispatch is mid-flight
-                        // (= the user's 2026-10-09
-                        // follow-up "进度一直在反复跳，
-                        // 逐个文件处理没有生效" = the
-                        // bar stuck at 0% because
-                        // in-flight tasks were
-                        // excluded from the fraction;
-                        // = the new model shows the
-                        // full pipeline moving
-                        // (= completed + inFlight
-                        // ticks as each LLM call
-                        // returns and each file
-                        // write lands)). The "已完成"
-                        // label still counts only
-                        // terminal states (= the
-                        // canonical "X / Y" feel the
-                        // user expects).
-                        if totalCount > 0 {
-                            ProgressView(
-                                // v2.7 bar value (= boss
-                                // 2026-10-09 round-19
-                                // "进度条跑太快了，还在
-                                // 进行中的，进度条已经
-                                // 跑完了"; = the
-                                // previous `completed
-                                // + inFlight` formula
-                                // hit 100% the moment
-                                // the last task was
-                                // seeded (= 3 done + 1
-                                // in-flight = 4/4 = the
-                                // bar visually said
-                                // "100% done" while
-                                // there was still 1
-                                // task in flight; = the
-                                // user reads this as
-                                // "the progress bar is
-                                // lying to me"). The
-                                // new formula weights
-                                // in-flight as 0.5 of
-                                // a unit (= a partial
-                                // credit for work that
-                                // has been dispatched
-                                // but not yet
-                                // completed; = when
-                                // 3/4 are .done + 1 is
-                                // in-flight, the bar
-                                // shows 3.5/4 = ~88%
-                                // = the user can see
-                                // "yes, the last task
-                                // is still running"
-                                // without losing the
-                                // upward momentum
-                                // signal that "the
-                                // import is almost
-                                // done").
-                                value: Double(completedCount) + Double(inFlightCount) * 0.5,
-                                total: Double(max(totalCount, 1))
-                            ) {
-                                Text("已完成 \(completedCount) / \(totalCount)")
-                                    .font(.callout.monospacedDigit())
-                            } currentValueLabel: {
-                                Text(progressLabel)
-                                    .font(.caption.monospacedDigit())
-                                    .foregroundStyle(.secondary)
-                            }
-                            .progressViewStyle(.linear)
-                        }
-                        ImportProgressStrip(tasks: tasks)
-                            .frame(maxHeight: DesignTokens.kanbanBoardMaxHeight)
-                        // v2.7 round-39 (= boss
-                        // 2026-10-10 "位置动一下"
-                        // directive). The
-                        // "重新调研所有失败"
-                        // button was moved from
-                        // here (= nested in
-                        // the 进度 form
-                        // section) to the
-                        // bottom toolbar
-                        // HStack, left-aligned.
-                        // See the toolbar
-                        // HStack below for the
-                        // new position and
-                        // layout.
-                    }
+            // The per-step content. Each step
+            // is a focused view (= no
+            // conditional button rows hidden
+            // inside; = the state machine is
+            // linear; = the per-step view
+            // contains exactly the widgets
+            // for that step).
+            Group {
+                switch currentStep {
+                case .configure:
+                    step1ConfigureView
+                case .running:
+                    step2RunningView
+                case .results:
+                    step3ResultsView
+                case .done:
+                    step4DoneView
                 }
             }
-            .formStyle(.grouped)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
-            HStack {
-                // v2.7 round-39 (= boss
-                // 2026-10-10 "位置动一下，和
-                // 跳过失败，和重试一排，
-                // 居左" directive). The
-                // "重新调研所有失败" button
-                // moves from the progress
-                // section (= it was nested
-                // inside the 进度 form
-                // section) to the bottom
-                // toolbar HStack, left-aligned
-                // (= Apple HIG macOS dialog
-                // button row = primary
-                // actions on the right; =
-                // secondary actions on the
-                // left; = the retry button
-                // is a secondary action;
-                // = "重新调研所有失败" is
-                // a tertiary action and
-                // belongs furthest left).
-                // Only visible when there
-                // is at least one
-                // "读取文件失败" task
-                // (= same condition as
-                // before; = LLM-routing
-                // failures are NOT
-                // eligible for title-only
-                // retry).
-                if canRetryFailedTitleOnly {
-                    Button {
-                        Task { await retryFailedTitleOnly() }
-                    } label: {
-                        if isRetryingFailed {
-                            HStack(spacing: DesignTokens.spacingIconic) {
-                                ProgressView()
-                                    .controlSize(.small)
-                                Text("重新调研中…")
-                            }
-                        } else {
-                            Text("重新调研所有失败 (\(failedReadFileCount) 个)")
-                        }
-                    }
-                    .disabled(isRetryingFailed)
-                }
-                Spacer()
-                Button(cancelButtonLabel) {
-                    // The cancel button + every
-                    // dismiss path (ESC / Cmd+W /
-                    // toolbar X / clicking outside)
-                    // all flip the same flag (= the
-                    // `confirmationDialog` modifier
-                    // presents immediately; = the
-                    // user can't dismiss the sheet
-                    // without picking "确认取消" or
-                    // "返回"; = the dialog is the
-                    // single source of truth for the
-                    // cancel-and-rollback path).
-                    showCancelConfirmation()
-                }
-                .keyboardShortcut(.cancelAction)
-                // Do NOT disable the cancel button
-                // while the import is mid-flight:
-                // the user NEEDS this button (= and
-                // its bound ESC key) as the only way
-                // to surface the confirmation dialog
-                // when `interactiveDismissDisabled`
-                // is blocking the OS dismiss verbs.
-                // The button's label still changes
-                // (= "取消" → "跳过失败") so the
-                // visual state is informative.
-                .disabled(false)
-                Button(actionButtonLabel) {
-                    // The action button's behavior
-                    // varies with the state machine:
-                    // - "开始导入" / "重试" /
-                    //   "导入中…" → start the import
-                    //   (or wait for the running
-                    //   import; = `canStart` is
-                    //   gated on `!isImporting`).
-                    // - "完成" (= 100% + zero
-                    //   failures) → dismiss the
-                    //   sheet (= the user's 2026-10-09
-                    //   round-17 feedback "3 个全完成
-                    //   了，但按钮还是再次导入，应该
-                    //   是完成"; = "完成" is a
-                    //   terminal state; = the user
-                    //   expects to close the sheet,
-                    //   not re-run an already-finished
-                    //   batch; = the previous
-                    //   "再次导入" label
-                    //   mis-represents the state).
-                    if isRunComplete && !hasFailures {
-                        isPresented = false
-                    } else {
-                        startImport()
-                    }
-                }
-                .keyboardShortcut(.defaultAction)
-                .disabled(!canStart)
+            // v2.7 round-44: the bottom
+            // nav bar (= the canonical
+            // Apple HIG macOS 14+
+            // wizard pattern; = "上
+            // 一步" on the left +
+            // primary action on the
+            // right; = the primary
+            // action's label varies
+            // with the current step;
+            // = "开始" / "下一步" /
+            // "完成").
+            WizardStepNavBar(
+                currentStep: $currentStep,
+                canGoPrev: canGoPrev,
+                canGoNext: canGoNext,
+                primaryActionLabel: primaryActionLabel,
+                onPrev: goPrev,
+                onNext: goNext
+            )
+        }
+        // v2.7 round-44: auto-advance from
+        // .running to .results once the
+        // import finishes (= the user
+        // doesn't have to tap "下一步"
+        // to see the results; = the
+        // orchestrator's `isImporting`
+        // flag flips to false when the
+        // import completes; = the
+        // `isRunComplete` derived state
+        // becomes true; = the
+        // `.onChange` modifier below
+        // advances the wizard to
+        // .results automatically). The
+        // transition is guarded on
+        // `currentStep == .running` so
+        // the user can still manually
+        // re-navigate to .running (e.g.
+        // to re-watch the per-file
+        // strip) without being yanked
+        // back to .results on every
+        // state flip.
+        .onChange(of: isRunComplete) { newValue in
+            if newValue && currentStep == .running {
+                currentStep = .results
             }
         }
-        // Boss's 2026-10-09 directive: "ESC，cmd+w
-        // 应该还是可以关掉了，不要让用户可关闭。
-        // 只能通过取消退出". The intended UX is:
-        // ESC + Cmd+W + the toolbar X button +
-        // clicking outside DO close the sheet
-        // (= the user is in control of the
-        // window-chrome dismiss verbs); = but the
-        // sheet re-opens with the confirmation
-        // dialog immediately (= the
-        // `onDisappear` hook flips
-        // `confirmCancelPresented = true`; = the
-        // parent binding is restored via
-        // `isPresented = true` in the same hook;
-        // = the dialog is the only way out). The
-        // `interactiveDismissDisabled` modifier is
-        // NOT used (= the user wanted ESC to
-        // "still work"; = blocking it would be the
-        // wrong UX). The behavior: any dismiss path
-        // = user sees the confirmation dialog =
-        // "返回" keeps the sheet open + the import
-        // running; = "确认取消" runs the rollback +
-        // dismisses the sheet for real (= the
-        // `isPresented = false` flag flips AFTER
-        // the rollback Task completes).
-        // (previous onChange-of-isPresented
-        // interceptor was removed = the
-        // SwiftUI lifecycle fires it after the
-        // sheet has already torn down; = the
-        // new interception model is
-        // `interactiveDismissDisabled(isImporting)`
-        // below = blocks the OS dismiss paths
-        // while an import is mid-flight; = the
-        // 取消 button + ESC + Cmd+W all flip
-        // `confirmCancelPresented` to show the
-        // boss's 确认 / 返回 dialog = the
-        // dialog is the single source of truth
         // for the cancel-and-rollback path.
         .interactiveDismissDisabled(isImporting)
         .padding(DesignTokens.spacingSection)
@@ -1256,6 +1025,317 @@ struct ImportSheet: View {
     }
 }
 
+// MARK: - 4-step wizard helpers
+
+extension ImportSheet {
+    /// True if the user can go back one step (= not on
+    /// the first step; = never go back from .running
+    /// because the import is mid-flight; = the boss's
+    /// "不点 '开始导入' 不能进步骤 2" rule implies the
+    /// "上一步" button is only enabled in .configure).
+    fileprivate var canGoPrev: Bool {
+        currentStep == .configure
+    }
+
+    /// True if the user can advance to the next step.
+    /// The rules (= the boss's "不点 '开始导入' 不能
+    /// 进步骤 2" answer):
+    /// - .configure → .running iff `canStart` (= the
+    ///   user has filled the required fields).
+    /// - .running → .results iff `isRunComplete` (=
+    ///   the orchestrator has finished; = the user
+    ///   can review the results).
+    /// - .results → .done always (= just a "next" tap
+    ///   to dismiss the per-file list).
+    /// - .done: no next (= terminal).
+    fileprivate var canGoNext: Bool {
+        switch currentStep {
+        case .configure:
+            return canStart && !isImporting
+        case .running:
+            return isRunComplete
+        case .results:
+            return true
+        case .done:
+            return false
+        }
+    }
+
+    /// The primary action button's label (= the
+    /// right side of the nav bar). Apple HIG
+    /// canonical: a single label that reflects what
+    /// tapping it WILL do (= "开始" → start the
+    /// import; = "下一步" → advance; = "完成" →
+    /// dismiss the sheet).
+    fileprivate var primaryActionLabel: String {
+        switch currentStep {
+        case .configure: return "开始"
+        case .running:   return "下一步"
+        case .results:   return "完成"
+        case .done:      return "完成"
+        }
+    }
+
+    /// The previous-step action (= Apple HIG
+    /// canonical: a simple "上一步" label; = the
+    /// button is disabled when `canGoPrev` is
+    /// false; = never go back from .running).
+    fileprivate func goPrev() {
+        guard canGoPrev else { return }
+        switch currentStep {
+        case .configure: break
+        case .running:   currentStep = .configure
+        case .results:   currentStep = .running
+        case .done:      currentStep = .results
+        }
+    }
+
+    /// The next-step action. Apple HIG canonical:
+    /// tapping the primary action advances the
+    /// wizard. Side effects per step:
+    /// - .configure → .running: starts the import
+    ///   (= `startImport()` kicks off the
+    ///   orchestrator; = the user lands on
+    ///   .running + the progress view animates).
+    /// - .running → .results: no-op (the auto-
+    ///   advance via .onChange of isRunComplete
+    ///   already fired; = this path is the user
+    ///   manually tapping "下一步" while still
+    ///   on .running; = advancing is idempotent).
+    /// - .results → .done: no-op (the .done view
+    ///   presents a summary).
+    /// - .done: dismiss the sheet (= the boss's
+    ///   terminal state).
+    fileprivate func goNext() {
+        guard canGoNext else { return }
+        switch currentStep {
+        case .configure:
+            // "开始" button. Triggers the import
+            // + advances the wizard. The
+            // orchestrator's `importFiles` runs
+            // asynchronously (= the user lands
+            // on .running; = the progress view
+            // animates as the orchestrator emits
+            // `onProgress` ticks).
+            startImport()
+            currentStep = .running
+        case .running:
+            // "下一步" while on .running. The
+            // user can manually advance once
+            // `isRunComplete` flips (= the
+            // orchestrator has finished; = the
+            // user might be reviewing the
+            // progress while waiting for the
+            // next onProgress tick).
+            currentStep = .results
+        case .results:
+            // "完成" button. Advance to .done
+            // (= the summary view).
+            currentStep = .done
+        case .done:
+            // Terminal state. The "完成"
+            // button dismisses the sheet.
+            isPresented = false
+        }
+    }
+
+    // MARK: - Per-step views
+
+    /// Step 1: 选目标. The original Form's
+    /// first section (= source dir + file
+    /// type + destination + book + AI 程度
+    /// + 并发数). No progress UI, no
+    /// action button, no retry button.
+    @ViewBuilder
+    fileprivate var step1ConfigureView: some View {
+        Form {
+            Section {
+                Picker(selection: $fileType) {
+                    ForEach(ImportFileType.allCases) { type in
+                        HStack {
+                            SFIcon(type.iconName, style: .toolbarButton, color: .tint)
+                            Text(type.displayName)
+                            if !type.isSupported {
+                                Text("（即将支持）")
+                                    .foregroundStyle(.tertiary)
+                            }
+                        }
+                        .tag(type)
+                    }
+                } label: {
+                    HStack(spacing: DesignTokens.spacingStandard) {
+                        SFIcon(fileType.iconName, style: .toolbarButton, color: .tint)
+                        Text("文件类型")
+                    }
+                }
+                .pickerStyle(.menu)
+                .disabled(isImporting)
+
+                HStack {
+                    if let url = sourceDirectory {
+                        Text(url.path)
+                            .font(.callout)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                            .help(url.path)
+                            .textSelection(.enabled)
+                    } else {
+                        Text("选择一个包含 .md 文件的目录")
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Button("选择…") { pickSourceDirectory() }
+                        .disabled(isImporting)
+                }
+
+                Picker("目标", selection: $importDestination) {
+                    ForEach(ImportDestination.allCases) { d in
+                        Text(d.label).tag(d)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .disabled(isImporting)
+
+                if importDestination == .book {
+                    Picker("目标书籍", selection: $selectedBookID) {
+                        Text("请选择书籍").tag(UUID?.none)
+                        ForEach(bookStore.books) { book in
+                            Text(book.title).tag(Optional(book.id))
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .disabled(isImporting)
+                }
+
+                Picker("AI 重写程度", selection: $rewriteMode) {
+                    ForEach(ImportFileInput.RewriteMode.allCases, id: \.self) { mode in
+                        Text(mode.label).tag(mode)
+                    }
+                }
+                .pickerStyle(.menu)
+                .disabled(isImporting)
+
+                Picker("同时处理文件数", selection: $maxParallel) {
+                    ForEach(1...5, id: \.self) { n in
+                        Text("\(n)").tag(n)
+                    }
+                }
+                .pickerStyle(.menu)
+                .disabled(isImporting)
+            }
+        }
+        .formStyle(.grouped)
+    }
+
+    /// Step 2: 进度. The original Form's
+    /// "进度" section. No pickers, no
+    /// action button, no retry. Just the
+    /// progress bar + the per-file strip.
+    @ViewBuilder
+    fileprivate var step2RunningView: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingStandard) {
+            if totalCount > 0 {
+                ProgressView(
+                    value: Double(completedCount) + Double(inFlightCount) * 0.5,
+                    total: Double(max(totalCount, 1))
+                ) {
+                    Text("已完成 \(completedCount) / \(totalCount)")
+                        .font(.callout.monospacedDigit())
+                } currentValueLabel: {
+                    Text(progressLabel)
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                }
+                .progressViewStyle(.linear)
+            }
+            ImportProgressStrip(tasks: tasks)
+                .frame(maxHeight: DesignTokens.kanbanBoardMaxHeight)
+        }
+    }
+
+    /// Step 3: 结果. The per-file list
+    /// (= the same strip as Step 2) +
+    /// a "重新调研所有失败" total button
+    /// at the top + per-row "重试"
+    /// buttons. No pickers, no
+    /// progress bar (= the import
+    /// already finished; = the user
+    /// is now in review/retry mode).
+    @ViewBuilder
+    fileprivate var step3ResultsView: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingStandard) {
+            // The "重新调研所有失败" total
+            // button at the top of the
+            // results view (= same
+            // condition as before; = the
+            // boss's "不变" answer to
+            // the Q1 clarify).
+            if canRetryFailedTitleOnly {
+                Button {
+                    Task { await retryFailedTitleOnly() }
+                } label: {
+                    if isRetryingFailed {
+                        HStack(spacing: DesignTokens.spacingIconic) {
+                            ProgressView()
+                                .controlSize(.small)
+                            Text("重新调研中…")
+                        }
+                    } else {
+                        Text("重新调研所有失败 (\(failedReadFileCount) 个)")
+                    }
+                }
+                .disabled(isRetryingFailed)
+            }
+            // The per-file list (= the
+            // same strip as Step 2;
+            // = per-row "重试" buttons
+            // are inside the
+            // ImportProgressStrip /
+            // ImportTaskRow).
+            ImportProgressStrip(tasks: tasks)
+                .frame(maxHeight: DesignTokens.kanbanBoardMaxHeight)
+        }
+    }
+
+    /// Step 4: 完成. The summary
+    /// (= "完成 N, 跳过 M, 失败 K")
+    /// + a "完成" button to dismiss
+    /// the sheet. No pickers, no
+    /// progress bar, no per-file
+    /// list (= the user is
+    /// already done with the
+    /// import).
+    @ViewBuilder
+    fileprivate var step4DoneView: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingStandard) {
+            let doneCount = tasks.filter { $0.state == .done }.count
+            let skippedCount = tasks.filter { $0.state == .skipped }.count
+            let failedCount = tasks.filter { $0.state == .failed }.count
+
+            Text("导入完成")
+                .font(.headline)
+            HStack(spacing: DesignTokens.spacingLoose) {
+                Label("\(doneCount) 完成", systemImage: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+                if skippedCount > 0 {
+                    Label("\(skippedCount) 跳过", systemImage: "arrow.uturn.forward.circle")
+                        .foregroundStyle(.secondary)
+                }
+                if failedCount > 0 {
+                    Label("\(failedCount) 失败", systemImage: "xmark.circle.fill")
+                        .foregroundStyle(.red)
+                }
+            }
+            .font(.callout)
+            Text("文件已写入资料库 / 目标书。点 '完成' 关闭弹窗。")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(DesignTokens.spacingStandard)
+    }
+}
+
 /// Per-file progress strip (= one row per `ImportTask`).
 /// Apple HIG canonical list pattern (= vertical stack of
 /// short rows; = the row shows the file name + the state
@@ -1332,5 +1412,140 @@ private struct StubImportRouterForSheet: ImportRouter {
             confidence: 1.0,
             rewrittenBody: nil
         )
+    }
+}
+
+// MARK: - Wizard chrome (= step indicator + nav bar)
+
+/// v2.7 round-44 (= boss 2026-10-10
+/// "引导式多步骤交互" directive).
+/// The 4-step dot indicator at the
+/// top of the sheet. Apple HIG
+/// canonical: a horizontal row of 4
+/// dots + labels (= one per step; =
+/// the current step is highlighted;
+/// = completed steps show a
+/// checkmark; = future steps are
+/// dim). The dots are also
+/// clickable to jump to that
+/// step (= same UX as the Mail
+/// composer / Pages onboarding;
+/// = the boss's "混合: 顶部 dot
+/// + 底部 '下一步' 按钮"
+/// answer to the Q3 clarify).
+private struct WizardStepIndicator: View {
+    @Binding var currentStep: ImportSheet.WizardStep
+
+    var body: some View {
+        HStack(spacing: DesignTokens.spacingModerate) {
+            ForEach(ImportSheet.WizardStep.allCases) { step in
+                Button {
+                    // The user can jump to any
+                    // step directly (= the boss's
+                    // "混合" answer). We don't
+                    // gate the jump on a
+                    // "canReach" predicate; =
+                    // the user is in control;
+                    // = the per-step view's
+                    // content reflects the
+                    // current tasks state (= if
+                    // the user jumps to
+                    // .results before .running
+                    // has run, the strip is
+                    // empty + the summary
+                    // shows 0/0/0).
+                    currentStep = step
+                } label: {
+                    VStack(spacing: DesignTokens.spacingCaption) {
+                        Image(systemName: dotIcon(for: step))
+                            .font(.title3)
+                            .foregroundStyle(dotColor(for: step))
+                        Text(step.label)
+                            .font(.caption)
+                            .foregroundStyle(dotColor(for: step))
+                    }
+                }
+                .buttonStyle(.plain)
+                if step.rawValue < ImportSheet.WizardStep.done.rawValue {
+                    // Connector line between
+                    // adjacent dots (= the
+                    // Apple HIG canonical
+                    // onboarding pattern; = a
+                    // thin line that fills
+                    // based on completion;
+                    // = for the wenshu
+                    // v3.0 design system, we
+                    // use a `Divider` with
+                    // a tinted foreground
+                    // when the next step
+                    // has been reached).
+                    Rectangle()
+                        .fill(connectorColor(for: step))
+                        .frame(height: 2)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+        }
+    }
+
+    private func dotIcon(for step: ImportSheet.WizardStep) -> String {
+        if step == currentStep { return step.iconName }
+        if step.rawValue < currentStep.rawValue { return "checkmark.circle.fill" }
+        return "\(step.rawValue + 1).circle"
+    }
+
+    private func dotColor(for step: ImportSheet.WizardStep) -> Color {
+        if step == currentStep { return .accentColor }
+        if step.rawValue < currentStep.rawValue { return .green }
+        return .secondary
+    }
+
+    private func connectorColor(for step: ImportSheet.WizardStep) -> Color {
+        if step.rawValue < currentStep.rawValue { return .green }
+        return .secondary.opacity(0.3)
+    }
+}
+
+/// v2.7 round-44 (= boss 2026-10-10
+/// "引导式多步骤交互"
+/// directive). The bottom nav
+/// bar (= "上一步" on the left +
+/// primary action on the right;
+/// = the primary action's label
+/// varies with the current
+/// step). Apple HIG canonical
+/// macOS 14+ wizard pattern.
+private struct WizardStepNavBar: View {
+    @Binding var currentStep: ImportSheet.WizardStep
+    let canGoPrev: Bool
+    let canGoNext: Bool
+    let primaryActionLabel: String
+    let onPrev: () -> Void
+    let onNext: () -> Void
+
+    var body: some View {
+        HStack {
+            Button("上一步") { onPrev() }
+                .disabled(!canGoPrev)
+            Spacer()
+            Button(primaryActionLabel) { onNext() }
+                .keyboardShortcut(.defaultAction)
+                .disabled(!canGoNext)
+                // v2.7 round-44: the
+                // primary action is
+                // the highlighted
+                // button (= Apple
+                // HIG macOS 14+
+                // dialog convention
+                // = the "do the
+                // thing" button
+                // gets the
+                // .borderedProminent
+                // style; = the
+                // "上一步" is a
+                // .bordered plain
+                // button).
+                .buttonStyle(.borderedProminent)
+        }
     }
 }
