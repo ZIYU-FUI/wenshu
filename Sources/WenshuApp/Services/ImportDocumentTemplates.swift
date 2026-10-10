@@ -444,15 +444,174 @@ enum ImportDocumentTemplate: String, CaseIterable, Sendable {
     static func stripUselessLines(_ rawBody: String) -> String {
         return rawBody
             .components(separatedBy: "\n")
+            .map { line -> String in
+                let trimmed = line.trimmingCharacters(in: .whitespaces)
+                if trimmed.isEmpty { return line } // keep blank lines as-is
+                // v2.7 round-67 boss
+                // 2026-10-10 "强制去
+                // 反链" feedback =
+                // code-side strip of
+                // Obsidian backlinks
+                // (= even when they
+                // appear mid-paragraph;
+                // = the LLM-prompt-side
+                // rule is in
+                // WenshuConductorImportRouter.rewriteModeBlock.reorganize;
+                // = the code-side rule
+                // catches any stragglers
+                // the LLM missed; = the
+                // user can have
+                // `[[xxx]]` in any of:
+                //   - whole line (e.g.
+                //     "[[故事宪法]]"
+                //     alone)
+                //   - mid-paragraph
+                //     (e.g. "见
+                //     [[02-朝代]]")
+                //   - image embed
+                //     (e.g.
+                //     "![[图片.png]]")
+                // We strip all `[[...]]`
+                // AND `![[...]]` from
+                // every line; = leaves
+                // the surrounding text
+                // intact (= the LLM's
+                // reorg work isn't
+                // lost).
+                let strippedLine = Self.stripBacklinksInline(in: line)
+                // v2.7 round-67 boss
+                // 2026-10-10 "强制去
+                // 版本记录" feedback
+                // (= wenshu's doc body
+                // is pure content; =
+                // version metadata
+                // lives in
+                // entities.json / file
+                // mtime; = A's body
+                // should NOT carry
+                // version lines like
+                // "上次更新: 2026-XX-XX"
+                // / "修改记录: v1 / v2"
+                // / "Created: ..."
+                // etc.). The LLM-side
+                // rule covers most
+                // cases; = this
+                // code-side filter
+                // drops any line
+                // whose leading label
+                // is a known version
+                // metadata prefix.
+                if Self.isVersionRecordLine(strippedLine.trimmingCharacters(in: .whitespaces)) {
+                    return "" // drop the line (= replace with empty)
+                }
+                return strippedLine
+            }
             .filter { line in
                 let trimmed = line.trimmingCharacters(in: .whitespaces)
                 if trimmed.isEmpty { return true } // keep blank lines
-                if trimmed.hasPrefix("[[") && trimmed.hasSuffix("]]") { return false } // Obsidian backlink
+                if trimmed.hasPrefix("[[") && trimmed.hasSuffix("]]") { return false } // whole-line backlink
                 if trimmed.hasPrefix("<!--") && trimmed.hasSuffix("-->") { return false } // plugin comment
                 if Self.isUselessMetadataLine(trimmed) { return false }
                 return true
             }
             .joined(separator: "\n")
+    }
+
+    /// v2.7 round-67 boss 2026-10-10
+    /// "强制去反链" feedback.
+    /// Strip Obsidian backlinks **inline**
+    /// (= anywhere in the line, not just
+    /// whole-line matches). The pattern is
+    /// `[[xxx]]` OR `![[xxx]]` (= image
+    /// embed); = returns the line with
+    /// those tokens removed. Also cleans
+    /// up the spaces around the deletion
+    /// (= "见 [[02-朝代]] 这边" → "见  这边"
+    /// then a follow-up pass removes
+    /// double spaces; = the cost of
+    /// careful inline stripping).
+    private static func stripBacklinksInline(in line: String) -> String {
+        var result = line
+        // `![[xxx]]` first (= longer match; =
+        // would match `[[xxx]]` as a prefix
+        // if we tried the latter first).
+        // Regex: `!\[\[xxx\]\]` where `xxx`
+        // is anything that's not `]`.
+        let imageEmbed = #"!\[\[[^\]]*\]\]"#
+        if let regex = try? NSRegularExpression(pattern: imageEmbed) {
+            let range = NSRange(result.startIndex..., in: result)
+            result = regex.stringByReplacingMatches(
+                in: result, range: range, withTemplate: ""
+            )
+        }
+        let backlink = #"\[\[[^\]]*\]\]"#
+        if let regex = try? NSRegularExpression(pattern: backlink) {
+            let range = NSRange(result.startIndex..., in: result)
+            result = regex.stringByReplacingMatches(
+                in: result, range: range, withTemplate: ""
+            )
+        }
+        // Collapse runs of 2+ spaces (= leftover
+        // from "见 [[xxx]] 这边" → "见  这边") into
+        // a single space. The single-space
+        // collapse preserves the LLM's reorg
+        // text alignment.
+        let multiSpace = #" {2,}"#
+        if let regex = try? NSRegularExpression(pattern: multiSpace) {
+            let range = NSRange(result.startIndex..., in: result)
+            result = regex.stringByReplacingMatches(
+                in: result, range: range, withTemplate: " "
+            )
+        }
+        return result
+    }
+
+    /// v2.7 round-67 boss 2026-10-10
+    /// "强制去版本记录, 这些东西在我们的
+    /// 项目没有意思" feedback. A line is a
+    /// "version record" if its leading label
+    /// (= the substring before the first
+    /// `:`) matches one of the known version
+    /// metadata prefixes (= Chinese or
+    /// English). The pattern is intentionally
+    /// narrow (= exact-prefix match) so it
+    /// doesn't false-positive on legitimate
+    /// body text like "日期: 2026 春节" (= the
+    /// label is "日期" = NOT in our
+    /// no-list; = the line stays). The full
+    /// list:
+    ///   Chinese: 上次更新 / 修改记录 /
+    ///            版本 / 修订 / 更新于 /
+    ///            创建于
+    ///   English: Created / Modified /
+    ///            Updated / Revision /
+    ///            Last edited / Date / Time
+    ///            (= the LLM-prompt-side
+    ///            also lists these; = the
+    ///            code-side is the
+    ///            last-mile safety net).
+    private static func isVersionRecordLine(_ trimmedLine: String) -> Bool {
+        let versionPrefixes: [String] = [
+            // Chinese
+            "上次更新", "修改记录", "版本", "修订",
+            "更新于", "创建于",
+            // English
+            "Created", "Modified", "Updated",
+            "Revision", "Last edited",
+            "Date", "Time"
+        ]
+        // Only consider lines that have a ":"
+        // (= the version record is a key:value
+        // line; = a body sentence that happens
+        // to start with "Created" is rare
+        // without a colon; = safe to require
+        // the colon).
+        guard let colonIndex = trimmedLine.firstIndex(of: ":") else {
+            return false
+        }
+        let label = String(trimmedLine[..<colonIndex])
+            .trimmingCharacters(in: .whitespaces)
+        return versionPrefixes.contains { label == $0 }
     }
 
     /// The canonical "useless metadata line" detector
