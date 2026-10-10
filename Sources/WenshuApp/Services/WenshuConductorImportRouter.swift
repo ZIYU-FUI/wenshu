@@ -679,7 +679,20 @@ actor WenshuConductorImportRouter: ImportRouter {
         //    on disk is verbatim from the source).
         return ImportRoutingResult(
             destination: destination,
-            title: parsed.title.isEmpty ? fallbackTitle : parsed.title,
+            // v2.7 round-37 (= boss "不能用
+            // 提示词控制" directive): the
+            // title is run through
+            // `acceptTitle` (= programmatic
+            // sanitization + fallback; = the
+            // user never sees a path / a
+            // filename-with-extension / a
+            // body-fragment / gibberish as a
+            // title; = the LLM's trust is
+            // zero; = the contract is
+            // "title is either the LLM's
+            // clean answer or the
+            // filename-stem fallback").
+            title: Self.acceptTitle(parsed: parsed, filePath: filePath),
             summary: parsed.summary,
             tags: Set(parsed.tags),
             entityType: "other",
@@ -720,6 +733,146 @@ actor WenshuConductorImportRouter: ImportRouter {
         let fileName = (filePath as NSString).lastPathComponent
         let stem = (fileName as NSString).deletingPathExtension
         return stem.isEmpty ? "未命名" : stem
+    }
+
+    /// v2.7 round-37 (= boss 2026-10-10 "我觉
+    /// 的那个名字的问题，不能用提示词控
+    /// 制，应该是程序化控制，不能出错"
+    /// directive). Programmatic title
+    /// sanitization (= the LLM's title is
+    /// not trusted; = any of the failure
+    /// modes below → the LLM's title is
+    /// discarded and `fallbackTitle` is
+    /// used; = the user sees a clean
+    /// filename-based title regardless of
+    /// what the LLM did).
+    ///
+    /// Failure modes (= each is a single
+    /// `if` so adding a new one is a
+    /// one-line change):
+    /// 1. Empty / whitespace-only title
+    ///    (= the LLM returned "" or
+    ///    just spaces; = we already
+    ///    handled this in the
+    ///    `parsed.title.isEmpty` check;
+    ///    = now we also reject
+    ///    whitespace-only).
+    /// 2. Title contains a path
+    ///    separator (`/` or `\`) (= the
+    ///    LLM copied a path; = the
+    ///    user's "目录树当名字" bug
+    ///    returns).
+    /// 3. Title ends with a file
+    ///    extension (= `.md` / `.txt`
+    ///    / ...; = the LLM copied a
+    ///    filename verbatim).
+    /// 4. Title is the same string as
+    ///    the source file's full path
+    ///    (= the LLM copied
+    ///    `input.filePath`; = the
+    ///    round-31 failure mode; = we
+    ///    now reject it explicitly).
+    /// 5. Title is the same string as
+    ///    the source file's `lastPathComponent`
+    ///    (= the LLM copied the
+    ///    filename including `.md`; =
+    ///    the round-31 failure mode
+    ///    catches the extension strip
+    ///    but not the bare
+    ///    `lastPathComponent`).
+    /// 6. Title length > 50 chars (= the
+    ///    LLM likely copied a body
+    ///    fragment; = not a real
+    ///    title).
+    /// 7. Title is mostly digits / spaces
+    ///    / punctuation (= the LLM
+    ///    returned gibberish; = not a
+    ///    real title).
+    ///
+    /// Note: the LLM can still return a
+    /// real, valid title that just
+    /// happens to share a character with
+    /// a path (= e.g. "冰箱/冷柜 史话"
+    /// with a slash; = rejected).
+    /// That's the trade-off boss accepted
+    /// in round-37 (= "不能用提示词控
+    /// 制" = programmatic guarantee
+    /// beats LLM trust; = titles that
+    /// contain a slash get the
+    /// fallback; = the user can rename
+    /// the file if the title really
+    /// needs a slash).
+    static func sanitizeTitle(
+        _ candidate: String,
+        from filePath: String
+    ) -> String? {
+        // 1. Empty / whitespace-only.
+        let trimmed = candidate.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty { return nil }
+        // 2. Path separator (= "/"
+        // or "\") in the title.
+        if candidate.contains("/") || candidate.contains("\\") {
+            return nil
+        }
+        // 3. File extension at the end
+        // (= .md / .txt / .markdown /
+        // .docx ...). The LLM should
+        // strip the extension itself
+        // (= the title is the human
+        // name of the entity, not the
+        // filename).
+        let knownExtensions: Set<String> = [
+            "md", "markdown", "txt", "text",
+            "docx", "doc", "pdf", "rtf",
+            "html", "htm"
+        ]
+        let lower = candidate.lowercased()
+        for ext in knownExtensions {
+            if lower.hasSuffix("." + ext) {
+                return nil
+            }
+        }
+        // 4. Title equals the full
+        // source path (= LLM copied
+        // `input.filePath`).
+        if candidate == filePath { return nil }
+        // 5. Title equals the source
+        // file's lastPathComponent (= the
+        // LLM copied the filename
+        // including its extension; = the
+        // user wants the
+        // extension-stripped form).
+        let fileName = (filePath as NSString).lastPathComponent
+        if candidate == fileName { return nil }
+        // 6. Title too long (= not a
+        // real title).
+        if candidate.count > 50 { return nil }
+        // 7. Mostly digits / spaces /
+        // punctuation (= gibberish).
+        let alnumCount = candidate.unicodeScalars.filter { scalar in
+            CharacterSet.alphanumerics.contains(scalar)
+        }.count
+        if Double(alnumCount) / Double(max(candidate.count, 1)) < 0.3 {
+            return nil
+        }
+        // 8. Path-prefix match (= the
+        // title starts with the user's
+        // home directory path or any
+        // system-known long directory;
+        // = the LLM copied a partial
+        // path; = catch the case where
+        // the LLM truncated the path
+        // but still left enough
+        // characters to be a giveaway).
+        let homeDir = NSHomeDirectory()
+        if !homeDir.isEmpty, candidate.hasPrefix(homeDir) {
+            return nil
+        }
+        // All checks pass; = return the
+        // trimmed candidate (= the
+        // surrounding whitespace, if
+        // any, is stripped).
+        return trimmed
     }
 
     /// v2.7 (= boss 2026-10-09 round-20
@@ -879,6 +1032,54 @@ actor WenshuConductorImportRouter: ImportRouter {
             if lower.hasPrefix(p.lowercased()) { return true }
         }
         return false
+    }
+
+    /// v2.7 round-37 (= boss 2026-10-10 "我觉
+    /// 的那个名字的问题，不能用提示词控
+    /// 制，应该是程序化控制，不能出错"
+    /// directive). The LLM-supplied title
+    /// is NOT trusted as-is (= the LLM
+    /// can echo the file path, the
+    /// filename, an extension, a body
+    /// fragment, or gibberish; = the
+    /// "目录树当名字" bug surfaced
+    /// repeatedly). The programmatic
+    /// `sanitizeTitle` check runs FIRST
+    /// (= any of the 8 failure modes
+    /// below returns nil = we use
+    /// `fallbackTitle` instead; = the
+    /// user sees a clean filename-based
+    /// title regardless of what the LLM
+    /// did; = programmatic guarantee
+    /// beats LLM trust).
+    ///
+    /// The flow (= boss round-37 spec):
+    /// 1. `parsed.title` (= the LLM's
+    ///    answer).
+    /// 2. \`Self.sanitizeTitle(parsed.title,
+    ///    from: filePath)\` returns
+    ///    `String?` (= nil = any of the
+    ///    8 failure modes hit; = use
+    ///    `fallbackTitle`).
+    /// 3. The accepted title is trimmed
+    ///    (= sanitizeTitle returns the
+    ///    trimmed form).
+    /// 4. The fallback path
+    ///    (`fallbackTitle`) is the
+    ///    filename without extension
+    ///    (= guaranteed clean).
+    ///
+    /// `static` (= `parseAndMap` is a
+    /// static method on the actor; = the
+    /// title sanitizer doesn't need any
+    /// actor state; = calling
+    /// `Self.sanitizeTitle` keeps the
+    /// call site free of `self`).
+    private static func acceptTitle(parsed: ImportDecision, filePath: String) -> String {
+        if let sanitized = Self.sanitizeTitle(parsed.title, from: filePath) {
+            return sanitized
+        }
+        return Self.fallbackTitle(from: filePath)
     }
 
     // MARK: - Private parsing
