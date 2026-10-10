@@ -53,6 +53,45 @@ protocol ImportRouter: Sendable {
     /// metadata); = the orchestrator dispatches on the
     /// destination to decide the write path.
     func route(_ input: ImportFileInput) async throws -> ImportRoutingResult
+    /// v2.7 round-66 commit F (= boss
+    /// 2026-10-10 "我选
+    /// 故事宪法，直
+    /// 接跳到了步
+    /// 骤 3，没
+    /// 有重新
+    /// 分析是
+    /// 不是
+    /// 内容
+    /// 相同
+    /// " 反馈).
+    /// Phase 2 LLM
+    /// decision: are
+    /// the source body
+    /// and the existing
+    /// body "the same
+    /// content"? (=
+    /// the orchestrator
+    /// invokes this
+    /// ONLY when
+    /// Phase 1 found a
+    /// same-titled file
+    /// in the destination
+    /// folder; = the
+    /// LLM returns
+    /// `isContentSame`
+    /// + `confidence`;
+    /// = the orchestrator
+    /// uses the
+    /// threshold from
+    /// `ImportDocumentTemplate.contentSameConfidenceThreshold`
+    /// to decide
+    /// between skip
+    /// and overwrite).
+    func isContentSame(
+        sourceBody: String,
+        existingBody: String,
+        sourceTitle: String
+    ) async throws -> ContentSameResult
 }
 
 // MARK: - ImportTask (per-file state)
@@ -300,9 +339,29 @@ struct ImportTask: Identifiable, Sendable, Hashable {
     /// progress strip).
     var state: ImportTaskState
     /// Optional error message (= populated when `state ==
-    /// .failed`; = the sheet renders it inline next to the
-    /// row).
+    /// .failed`; = the sheet renders it inline next to
+    /// the row).
     var errorMessage: String?
+    /// v2.7 round-66 commit F: the
+    /// reason the task was
+    /// `.skipped` (= shown
+    /// inline next to the
+    /// row when state is
+    /// `.skipped`; = the
+    /// canonical "已跳过
+    /// - 内容相同" message
+    /// comes from the
+    /// Phase 2 LLM
+    /// content-same
+    /// decision; = the
+    /// "已跳过 - 同名
+    /// 已重试" message
+    /// from the title-only
+    /// retry path; = nil
+    /// for `.done` /
+    /// `.failed` / in-
+    /// flight states).
+    var skippedReason: String?
     /// Routing result from the LLM (= populated when `state
     /// >= .writing`; = cached for the sheet's low-confidence
     /// warning indicator).
@@ -315,6 +374,7 @@ struct ImportTask: Identifiable, Sendable, Hashable {
         self.contentHash = ""  // populated at the read step
         self.state = .pending
         self.errorMessage = nil
+        self.skippedReason = nil
         self.routing = nil
     }
 }
@@ -1481,7 +1541,10 @@ actor ImportService {
         contentHash: String,
         target: ImportTarget,
         sourcePath: String,
-        cache: inout [String: CacheEntry]
+        cache: inout [String: CacheEntry],
+        router: any ImportRouter,
+        tasksBox: TasksBox,
+        i: Int
     ) async throws {
         switch routing.destination {
         case .bookFolder(let folder):
@@ -1572,6 +1635,138 @@ actor ImportService {
                 title: routing.title
             )
             if let existingURL = existing {
+                // v2.7 round-66 commit F (= boss
+                // 2026-10-10 "我
+                // 选故事宪
+                // 法，直接
+                // 跳到了步
+                // 骤 3，没有
+                // 重新分析
+                // 是不是内
+                // 容相同" 反馈).
+                // A same-titled
+                // .md file was
+                // found in the
+                // destination
+                // folder. Before
+                // overwriting, the
+                // orchestrator now
+                // asks the LLM (=
+                // Phase 2 of the
+                // 2-stage dedup) to
+                // compare the source
+                // body against the
+                // existing body. The
+                // LLM returns
+                // `isContentSame`
+                // + `confidence`;
+                // = if same AND
+                // confidence >=
+                // threshold = skip
+                // (= treat as a
+                // no-op = the
+                // existing file is
+                // already correct);
+                // = otherwise
+                // overwrite (=
+                // the source has
+                // new content the
+                // user wants to
+                // land). The
+                // existing per-file
+                // dedup is now
+                // LLM-driven (= the
+                // previous
+                // "filename ==
+                // sanitized title"
+                // check was too
+                // coarse = the user
+                // reported
+                // 故事宪法 as a
+                // false skip =
+                // the folder had
+                // *other* .md
+                // files but the
+                // 故事宪法 file
+                // didn't actually
+                // exist by the
+                // same name; =
+                // the old
+                // `cachedDestinationExists`
+                // check
+                // returned true
+                // for any
+                // non-empty folder;
+                // = wrong
+                // conclusion).
+                let existingBody = (try? String(
+                    contentsOf: existingURL,
+                    encoding: .utf8
+                )) ?? ""
+                let sourceBodyForCompare = try String(
+                    contentsOfFile: tasksBox.value[i].sourcePath,
+                    encoding: .utf8
+                )
+                let sameResult = try await router.isContentSame(
+                    sourceBody: sourceBodyForCompare,
+                    existingBody: existingBody,
+                    sourceTitle: routing.title
+                )
+                if WenshuConductorImportRouter.shouldSkip(result: sameResult) {
+                    // LLM says same
+                    // content; = skip
+                    // (= the existing
+                    // file is the
+                    // correct
+                    // representation;
+                    // = the user
+                    // sees "已跳过
+                    // - 内容相同"
+                    // in the
+                    // per-row result
+                    // strip).
+                    NSLog("WSImport: content-same skip title='\(routing.title)' confidence=\(sameResult.confidence) reasoning='\(sameResult.reasoning)'")
+                    // Set the .skipped
+                    // state + the
+                    // reason on the
+                    // task; = the
+                    // outer processFile
+                    // sees the .skipped
+                    // state and won't
+                    // overwrite to
+                    // .done. We throw
+                    // `ImportServiceError.contentSameSkipped`
+                    // (= a sentinel
+                    // error type) so
+                    // the outer
+                    // catch block
+                    // recognises the
+                    // "skip via
+                    // throw" pattern
+                    // (= the outer
+                    // block also
+                    // catches genuine
+                    // errors = the
+                    // sentinel
+                    // pattern is
+                    // idiomatic
+                    // for this
+                    // orchestrator's
+                    // existing
+                    // structure).
+                    tasksBox.value[i].state = .skipped
+                    tasksBox.value[i].errorMessage = nil
+                    tasksBox.value[i].skippedReason = "内容相同 (LLM confidence \(sameResult.confidence)): \(sameResult.reasoning)"
+                    throw ImportServiceError.contentSameSkipped
+                } else {
+                    // LLM says
+                    // different
+                    // content (or low
+                    // confidence);
+                    // = overwrite the
+                    // existing file.
+                    NSLog("WSImport: content-different overwrite title='\(routing.title)' reasoning='\(sameResult.reasoning)'")
+                }
                 // Match (= re-import of an existing
                 // entity); = overwrite the existing
                 // file at its current path; = the
@@ -1749,11 +1944,65 @@ actor ImportService {
     /// otherwise crash on a force-unwrap).
     enum ImportServiceError: Error, LocalizedError {
         case missingBookForBookFolderDestination
+        /// v2.7 round-66 commit F
+        /// (= boss 2026-10-10
+        /// "故事宪
+        /// 法，没
+        /// 有重
+        /// 新分
+        /// 析是
+        /// 不是
+        /// 内容
+        /// 相同
+        /// " 反馈).
+        /// Sentinel error
+        /// thrown by
+        /// `writeFile`
+        /// when the Phase
+        /// 2 LLM
+        /// content-same
+        /// decision says
+        /// "skip" (= the
+        /// existing file
+        /// already has
+        /// the same
+        /// content; = the
+        /// orchestrator
+        /// catches this
+        /// sentinel and
+        /// recognizes
+        /// "the task was
+        /// already marked
+        /// .skipped" =
+        /// no overwrite
+        /// to .done; = the
+        /// user sees
+        /// "已跳过 -
+        /// 内容相同"
+        /// in the
+        /// per-row
+        /// result
+        /// strip).
+        /// The sentinel
+        /// is NOT a real
+        /// error (= the
+        /// catch block
+        /// checks for
+        /// this specific
+        /// case and
+        /// treats it as
+        /// the
+        /// non-error
+        /// "skip"
+        /// path).
+        case contentSameSkipped
 
         var errorDescription: String? {
             switch self {
             case .missingBookForBookFolderDestination:
                 return "user pinned a book as the destination, but the import target has no bookId; = the orchestrator cannot resolve a book folder path"
+            case .contentSameSkipped:
+                return "sentinel (= the Phase 2 LLM content-same decision said skip; = the task is .skipped, not .failed)"
             }
         }
     }
@@ -2369,7 +2618,10 @@ extension ImportService {
                 contentHash: tasksBox.value[i].contentHash,
                 target: target,
                 sourcePath: tasksBox.value[i].sourcePath,
-                cache: &cacheBox.value
+                cache: &cacheBox.value,
+                router: router,
+                tasksBox: tasksBox,
+                i: i
             )
             tasksBox.value[i].state = .done
             tasksBox.value[i].destination = routing.destination
@@ -2379,6 +2631,35 @@ extension ImportService {
             // source of truth for the in-memory
             // cache (= the next dedup pass sees the
             // prior write via the same `cacheBox`).
+        } catch let error as ImportServiceError
+            where error == .contentSameSkipped {
+            // v2.7 round-66 commit F:
+            // Phase 2 LLM said
+            // "skip" (= the
+            // existing file is
+            // already correct);
+            // = the inner
+            // writeFile already
+            // set state = .skipped
+            // + skippedReason
+            // before throwing
+            // the sentinel; = we
+            // just break out
+            // (= the .done
+            // assignment is
+            // skipped; = the
+            // onProgress emit
+            // below still fires
+            // so the sheet sees
+            // the .skipped
+            // state).
+            // Emit progress so
+            // the sheet sees
+            // the .skipped
+            // state for this
+            // row.
+            await onProgress?(tasksBox.value)
+            return
         } catch {
             tasksBox.value[i].state = .failed
             tasksBox.value[i].errorMessage = "写入失败: \(error.localizedDescription)"

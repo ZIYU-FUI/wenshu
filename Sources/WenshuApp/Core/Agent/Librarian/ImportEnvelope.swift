@@ -221,6 +221,109 @@ struct ImportRoutingResult: Codable, Sendable, Hashable {
     let rewrittenBody: String?
 }
 
+/// v2.7 round-66 commit F (= boss
+/// 2026-10-10 "我选
+/// 故事宪法，直
+/// 接跳到了步
+/// 骤 3，没
+/// 有重新
+/// 分析是
+/// 不是
+/// 内容
+/// 相同
+/// " 反馈).
+/// The Phase 2
+/// LLM-driven
+/// content-same
+/// decision (= the
+/// LLM compares
+/// the source body
+/// against an
+/// existing file's
+/// body and
+/// reports whether
+/// they are
+/// "the same
+/// content";
+/// = the
+/// orchestrator
+/// uses this to
+/// decide between
+/// `.skipped` (=
+/// same content,
+/// no write) and
+/// `.done` (=
+/// different
+/// content,
+/// overwrite the
+/// existing file)).
+/// This is a
+/// separate envelope
+/// from
+/// `ImportRoutingResult`
+/// because the
+/// Phase 2 LLM call
+/// is OPT-IN (= only
+/// fires when
+/// Phase 1 found a
+/// same-titled
+/// file in the
+/// destination
+/// folder; = most
+/// imports skip
+/// Phase 2
+/// entirely).
+struct ContentSameResult: Codable, Sendable, Hashable {
+    /// Whether the
+    /// source body and
+    /// the existing
+    /// body are the
+    /// "same content"
+    /// (= the LLM's
+    /// binary decision;
+    /// = the LLM
+    /// returns true
+    /// when the two
+    /// bodies are
+    /// semantically
+    /// the same; =
+    /// false when
+    /// they differ in
+    /// any meaningful
+    /// way).
+    let isContentSame: Bool
+    /// The LLM's
+    /// confidence in
+    /// the decision
+    /// (= 0.0...1.0).
+    /// Above
+    /// `ImportDocumentTemplates.contentSameConfidenceThreshold`
+    /// (= 0.7) = trust
+    /// the LLM and
+    /// skip the
+    /// write; below
+    /// = the orchestrator
+    /// overwrites
+    /// (= conservative
+    /// = the user
+    /// would rather
+    /// see a fresh
+    /// import than
+    /// a false skip).
+    let confidence: Float
+    /// The LLM's brief
+    /// reasoning (= shown
+    /// to the user in
+    /// the sheet's
+    /// per-row result;
+    /// = a short Chinese
+    /// sentence like
+    /// "内容完全相同"
+    /// or "existing 多
+    /// 了一段新内容").
+    let reasoning: String
+}
+
 // MARK: - ImportEnvelope (the wire envelope)
 
 /// Discriminated union of wire envelopes the user can

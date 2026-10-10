@@ -614,6 +614,175 @@ actor WenshuConductorImportRouter: ImportRouter {
     /// safe default (bookFolder .drafts) so the
     /// orchestrator never receives an invalid
     /// destination.
+    /// v2.7 round-66 commit F (= boss
+    /// 2026-10-10 "我选
+    /// 故事宪法，直
+    /// 接跳到了步
+    /// 骤 3，没
+    /// 有重新
+    /// 分析是
+    /// 不是
+    /// 内容
+    /// 相同
+    /// " 反馈).
+    /// Phase 2 LLM
+    /// decision: are
+    /// the source body
+    /// and the existing
+    /// body "the same
+    /// content"? (= a
+    /// separate LLM
+    /// call from the
+    /// Phase 1 routing;
+    /// = the orchestrator
+    /// invokes this
+    /// ONLY when
+    /// Phase 1 found a
+    /// same-titled file
+    /// in the destination
+    /// folder; = most
+    /// imports never
+    /// reach this
+    /// path).
+    /// The LLM is
+    /// asked to return
+    /// a JSON object
+    /// with 3 fields:
+    /// `isContentSame` (=
+    /// true / false),
+    /// `confidence` (=
+    /// 0.0 - 1.0), and
+    /// `reasoning` (=
+    /// a short Chinese
+    /// explanation
+    /// shown to the
+    /// user).
+    func isContentSame(
+        sourceBody: String,
+        existingBody: String,
+        sourceTitle: String
+    ) async throws -> ContentSameResult {
+        let userPrompt = Self.contentSamePrompt(
+            sourceBody: sourceBody,
+            existingBody: existingBody,
+            sourceTitle: sourceTitle
+        )
+        let options = LLMCallOptions(
+            model: modelSlug,
+            maxTokens: 1024,
+            systemPrompt: SystemPrompt.librarianRole(.chinese),
+            temperature: 0.1,
+            reasoningEffort: nil,
+            tools: []
+        )
+        let response = try await connector.send(
+            messages: [.user(userPrompt)],
+            options: options
+        )
+        // Extract the text content from the
+        // response (= the LLM returns a
+        // structured response with
+        // `text` blocks).
+        let rawText = response.blocks.compactMap { block -> String? in
+            if case let .text(text) = block { return text }
+            return nil
+        }.joined(separator: "\n")
+        // Parse the JSON (= the same
+        // defensive parse as Phase 1).
+        guard let json = Self.extractFirstJSONObject(rawText) else {
+            // Parse failed (= LLM
+            // didn't return
+            // JSON; = the
+            // conservative
+            // default is
+            // "different" so
+            // the user gets
+            // the new content
+            // rather than a
+            // false skip).
+            return ContentSameResult(
+                isContentSame: false,
+                confidence: 0.0,
+                reasoning: "LLM 未返回可解析的 JSON；按不同内容处理。"
+            )
+        }
+        guard let data = json.data(using: .utf8),
+              let parsed = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else {
+            return ContentSameResult(
+                isContentSame: false,
+                confidence: 0.0,
+                reasoning: "JSON 解析失败；按不同内容处理。"
+            )
+        }
+        let isContentSame = (parsed["isContentSame"] as? Bool) ?? false
+        let confidence = (parsed["confidence"] as? Double ?? parsed["confidence"] as? Float as? Double) ?? 0.0
+        let reasoning = (parsed["reasoning"] as? String) ?? ""
+        return ContentSameResult(
+            isContentSame: isContentSame,
+            confidence: Float(confidence),
+            reasoning: reasoning
+        )
+    }
+
+    /// Build the user prompt for the
+    /// content-same decision. The LLM gets
+    /// 2 bodies + a title (= the title is
+    /// the same on both sides because
+    /// Phase 1 found a same-titled file;
+    /// = the LLM uses the title as a
+    /// context anchor + the bodies as
+    /// evidence).
+    private static func contentSamePrompt(
+        sourceBody: String,
+        existingBody: String,
+        sourceTitle: String
+    ) -> String {
+        // Cap each body to keep the
+        // prompt manageable (= the LLM
+        // doesn't need the full
+        // 10k-char bodies to detect
+        // sameness; = 4000 chars per
+        // side = 8000 total = well
+        // under the 4096-token budget).
+        let sBody = String(sourceBody.prefix(4000))
+        let eBody = String(existingBody.prefix(4000))
+        return """
+        你要判断两段 markdown 正文是否讲**同一个内容**。标题都是「\(sourceTitle)」。
+
+        ## 新文件 (= 用户刚刚选择的)
+        \(sBody)
+
+        ## 已有文件 (= 已经存在于目标文件夹)
+        \(eBody)
+
+        ## 任务
+        1) 判断两段正文是否讲同一件事 (= 同样的人物 / 设定 / 故事)
+        2) 给一个 0-1 的 confidence (= 1 = 完全相同, 0 = 完全无关)
+        3) 写一句话中文 reasoning (= 给用户看的简短解释)
+
+        ## 输出格式
+        严格一行 JSON，不要任何其他文字、解释或 markdown 代码块：
+        {"isContentSame":<true|false>,"confidence":<0-1>,"reasoning":"<一句话中文解释>"}
+        """
+    }
+
+    /// v2.7 round-66 commit F:
+    /// Decide whether a Phase 2
+    /// `ContentSameResult` should
+    /// short-circuit the import (=
+    /// treat as a no-op skip) or
+    /// trigger an overwrite. Centralized
+    /// so the threshold is tuned in
+    /// one place (= see
+    /// `ImportDocumentTemplate.contentSameConfidenceThreshold`).
+    static func shouldSkip(
+        result: ContentSameResult
+    ) -> Bool {
+        return result.isContentSame
+            && result.confidence >= ImportDocumentTemplate.contentSameConfidenceThreshold
+    }
+
     static func parseAndMap(
         raw: String,
         body: String,

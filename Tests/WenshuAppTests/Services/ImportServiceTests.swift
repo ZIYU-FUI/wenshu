@@ -36,6 +36,29 @@ final class ImportServiceTests: XCTestCase {
                 rewrittenBody: nil
             )
         }
+        // v2.7 round-66 commit F:
+        // the stub's
+        // Phase 2
+        // decision is
+        // "always
+        // different" (=
+        // the test
+        // fixtures
+        // expect a
+        // fresh
+        // import; = no
+        // false skip).
+        func isContentSame(
+            sourceBody: String,
+            existingBody: String,
+            sourceTitle: String
+        ) async throws -> ContentSameResult {
+            return ContentSameResult(
+                isContentSame: false,
+                confidence: 0.0,
+                reasoning: "Stub router; 测试中始终按不同内容处理。"
+            )
+        }
     }
 
     private func makeSourceDir(_ files: [String: String]) throws -> URL {
@@ -108,6 +131,23 @@ final class ImportServiceTests: XCTestCase {
         let svc = ImportService()
         struct ThrowRouter: ImportRouter {
             func route(_ input: ImportFileInput) async throws -> ImportRoutingResult {
+                throw NSError(domain: "test", code: 1)
+            }
+            // v2.7 round-66 commit F:
+            // the throw router
+            // also throws on
+            // Phase 2 (= the
+            // test exercises
+            // the error path;
+            // = the orchestrator
+            // catches the
+            // throw and marks
+            // the task .failed).
+            func isContentSame(
+                sourceBody: String,
+                existingBody: String,
+                sourceTitle: String
+            ) async throws -> ContentSameResult {
                 throw NSError(domain: "test", code: 1)
             }
         }
@@ -225,6 +265,29 @@ final class ImportServiceTests: XCTestCase {
                     destination: .referenceLibrary, title: "t", summary: "s",
                     tags: [], entityType: "other", category: nil, confidence: 1.0,
                     rewrittenBody: nil
+                )
+            }
+            // v2.7 round-66 commit F:
+            // the sleeping
+            // router also
+            // returns a
+            // conservative
+            // "always
+            // different"
+            // (= the test
+            // exercises the
+            // happy path; =
+            // no false skip).
+            func isContentSame(
+                sourceBody: String,
+                existingBody: String,
+                sourceTitle: String
+            ) async throws -> ContentSameResult {
+                try await Task.sleep(nanoseconds: 10_000_000)
+                return ContentSameResult(
+                    isContentSame: false,
+                    confidence: 0.0,
+                    reasoning: "Sleeping router; 测试中始终按不同内容处理。"
                 )
             }
         }

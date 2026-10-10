@@ -202,10 +202,77 @@ enum ImportDocumentTemplate: String, CaseIterable, Sendable {
         }
     }
 
-    /// v2.7 round-66 commit E (= boss
-    /// 2026-10-10 "导入
-    /// 的文件，内容
-    /// 大量缺失" 反馈).
+    /// v2.7 round-66 commit F (= boss
+    /// 2026-10-10 "我选
+    /// 故事宪法，直
+    /// 接跳到了步
+    /// 骤 3，没
+    /// 有重新
+    /// 分析是
+    /// 不是
+    /// 内容
+    /// 相同
+    /// " 反馈).
+    /// The LLM-driven
+    /// content-same
+    /// decision
+    /// threshold (= the
+    /// orchestrator
+    /// uses this to
+    /// decide between
+    /// `.skipped` and
+    /// `.done` when
+    /// the LLM says
+    /// `isContentSame
+    /// == true`).
+    /// Boss's
+    /// 2026-10-10
+    /// grill
+    /// response:
+    /// "你来定,
+    /// 现在反
+    /// 正是拍
+    /// 脑
+    /// 袋,
+    /// 这个
+    /// 参数
+    /// 大概
+    /// 率需
+    /// 要调
+    /// ". The
+    /// current value
+    /// is 0.7 (= a
+    /// permissive
+    /// threshold =
+    /// the LLM has
+    /// to be 70%
+    /// confident
+    /// before we
+    /// trust the
+    /// skip; = below
+    /// 0.7 we err on
+    /// the side of
+    /// overwriting
+    /// = the user
+    /// sees the
+    /// new content
+    /// rather than
+    /// a false
+    /// "已跳过"
+    /// pill). The
+    /// value is
+    /// exposed as a
+    /// static
+    /// constant
+    /// (= testable
+    /// in isolation;
+    /// = easy to
+    /// tune later
+    /// without
+    /// touching the
+    /// import
+    /// service).
+    static let contentSameConfidenceThreshold: Float = 0.7
     /// The LLM in
     /// `.consolidate` mode was
     /// "compressing" the

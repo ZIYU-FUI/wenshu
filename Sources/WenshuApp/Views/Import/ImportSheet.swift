@@ -1963,6 +1963,27 @@ private struct ImportTaskRow: View {
                 .font(.caption)
                 .foregroundStyle(.red)
         }
+        // v2.7 round-66 commit F (= boss
+        // 2026-10-10 "故事宪法，没有
+        // 重新分析是不是
+        // 内容相同" 反馈).
+        // The skip reason (= a
+        // short explanation
+        // for the user; =
+        // "内容相同 (LLM
+        // confidence 0.95):
+        // 两段完全相同" or
+        // "同 title retry skip"
+        // from the title-only
+        // path). Shown as a
+        // secondary caption
+        // below the state pill.
+        if let reason = task.skippedReason {
+            Text(reason)
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+                .lineLimit(2)
+        }
     }
 
     @ViewBuilder
@@ -1999,6 +2020,32 @@ private struct StubImportRouterForSheet: ImportRouter {
             category: nil,
             confidence: 1.0,
             rewrittenBody: nil
+        )
+    }
+    // v2.7 round-66 commit F:
+    // the stub's
+    // isContentSame
+    // is a
+    // conservative
+    // "always different"
+    // default (= the
+    // user always
+    // sees a fresh
+    // import in
+    // stub mode;
+    // = no false
+    // skips in
+    // the stub
+    // path).
+    func isContentSame(
+        sourceBody: String,
+        existingBody: String,
+        sourceTitle: String
+    ) async throws -> ContentSameResult {
+        return ContentSameResult(
+            isContentSame: false,
+            confidence: 0.0,
+            reasoning: "Stub router; 始终按不同内容处理。"
         )
     }
 }
