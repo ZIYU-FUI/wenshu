@@ -3021,11 +3021,13 @@ extension ImportService {
                 // log lines land in
                 // the per-row
                 // activityLog.
+                // (= NSLog debug from
+                // round-71 NSLog was
+                // removed after the
+                // callback path was
+                // verified working in
+                // commit b34d3edfa).
                 let result = try await router.route(input) { message in
-                    NSLog(
-                        "[wenshu.import.progress] i=%d message=%@",
-                        i, message
-                    )
                     await self.appendActivity(
                         to: tasksBox, i: i,
                         message: message,

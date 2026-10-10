@@ -10880,6 +10880,40 @@
           }
         }
       }
+    },
+    "import.row.needs_filling": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "needs filling"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "待补充"
+          }
+        }
+      }
+    },
+    "import.row.needs_filling.tooltip": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Some sub-files are empty placeholders waiting for content."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "部分子文件是空占位, 等待补充内容。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

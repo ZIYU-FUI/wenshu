@@ -2257,6 +2257,23 @@ private struct ImportTaskRow: View {
         if task.extraFilesTotal > 0 {
             extraFilesCaption
         }
+        // v2.7 round-72 (= boss 2026-10-10
+        // final pick: "让 LLM 必须拆,
+        // 但真的没有内容, 拆不出来就
+        // 拆不出来, 但拆的东西必须要
+        // 做"). When the LLM could not
+        // extract the 6 必填 (= phase 2
+        // empty), show a small ⚠️
+        // needs-attention badge next
+        // to the row so the user knows
+        // there are empty 占位子文件
+        // (= Apple HIG needs-attention
+        // pattern; = SF Symbol
+        // exclamationmark.triangle.fill
+        // + orange + caption font).
+        if task.needsFilling {
+            needsFillingBadge
+        }
         // v2.7 round-70 (= boss 2026-10-10
         // "能在这个导入
         // 的过程中, 事
@@ -2368,6 +2385,42 @@ private struct ImportTaskRow: View {
         .font(.caption)
         .foregroundStyle(.tertiary)
         .lineLimit(1)
+    }
+
+    /// v2.7 round-72 (= boss 2026-10-10
+    /// "让 LLM 必须拆, 但真的没有内
+    /// 容, 拆不出来就拆不出来, 但
+    /// 拆的东西必须要做"). When
+    /// `task.needsFilling == true`
+    /// (= phase 2 empty; = the
+    /// orchestrator wrote 6 占位子
+    /// 文件 with empty body), show a
+    /// small ⚠️ badge next to the
+    /// row (= Apple HIG needs-
+    /// attention pattern; = SF
+    /// Symbol 6 hierarchical glyph
+    /// `exclamationmark.triangle.fill`
+    /// + orange + caption font;
+    /// = placed inline so the user
+    /// sees the row is partially
+    /// done without reading the
+    /// activity log). Tooltip via
+    /// `.help()` (= Apple HIG;
+    /// = hover-only on macOS) tells
+    /// the user that some sub-files
+    /// are empty placeholders waiting
+    /// to be filled.
+    @ViewBuilder
+    private var needsFillingBadge: some View {
+        Label(
+            NSLocalizedString("import.row.needs_filling", comment: ""),
+            systemImage: "exclamationmark.triangle.fill"
+        )
+        .font(.caption)
+        .foregroundStyle(.orange)
+        .labelStyle(.titleAndIcon)
+        .lineLimit(1)
+        .help(NSLocalizedString("import.row.needs_filling.tooltip", comment: ""))
     }
 
     @ViewBuilder
