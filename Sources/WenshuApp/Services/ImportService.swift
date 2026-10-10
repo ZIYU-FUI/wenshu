@@ -442,6 +442,30 @@ struct ImportTask: Identifiable, Sendable, Hashable {
     /// without scrolling
     /// forever).
     var activityLog: [String] = []
+    /// v2.7 round-71 (= boss 2026-10-10
+    /// "B" pick for
+    /// LLM 偷懒 = "⚠️
+    /// LLM 没返回
+    /// extraFiles"; =
+    /// multi-turn LLM
+    /// calls; = the user
+    /// sees which of
+    /// the 3 LLM calls
+    /// (= phase 1/2/3) is
+    /// currently running).
+    /// nil = no LLM call
+    /// yet (= before
+    /// phase 1); = a
+    /// non-nil value
+    /// means "this LLM
+    /// call is currently
+    /// active" (= useful
+    /// for the sheet UI
+    /// to show a
+    /// progress
+    /// indicator on the
+    /// specific phase).
+    var activePhase: LLMCallPhase? = nil
 
     init(sourcePath: String) {
         self.id = UUID()
@@ -455,6 +479,7 @@ struct ImportTask: Identifiable, Sendable, Hashable {
         self.extraFilesTotal = 0
         self.extraFilesDone = 0
         self.activityLog = []
+        self.activePhase = nil
     }
 }
 

@@ -272,18 +272,112 @@ struct ImportRoutingResult: Codable, Sendable, Hashable {
     let extraFiles: [ExtraFile]
 }
 
-/// v2.7 round-67 (= see boss 2026-10-10 OOB
-/// on auto-splitting A's non-B content into
-/// separate .md files). One element of
-/// `ImportRoutingResult.extraFiles`. The LLM
-/// decides: which `BookFolder` to route to
-/// (within the same book), what human-readable
-/// `title` to give the new file (= Chinese is
-/// fine; = the sidebar uses this as the card
-/// title), and the `body` to write (= a
-/// self-contained markdown file = no
-/// backlinks / no frontmatter; = same shape
-/// as a hand-written book doc).
+/// v2.7 round-71 (= boss 2026-10-10
+/// "B" pick for
+/// "⚠️ LLM 没返回
+/// extraFiles" =
+/// multi-turn LLM
+/// calls; = the
+/// previous single-LLM-
+/// call approach had
+/// the LLM doing 5
+/// things at once
+/// (= classification +
+/// metadata + main
+/// body + 6 必填 +
+/// N 自定义) and
+/// the LLM would
+/// silently drop the
+/// `extraFiles` array
+/// (= the boss saw
+/// "导入后文件没
+/// 有重新组织"
+/// = a single LLM
+/// call with too
+/// much responsibility).
+/// Fix: split the
+/// `reorganize` mode
+/// into 3 separate
+/// LLM calls (= each
+/// call does 1
+/// thing; = the LLM
+/// can't "forget" any
+/// part; = the user
+/// sees each call in
+/// real time via the
+/// round-70
+/// `activityLog`).
+enum LLMCallPhase: String, Codable, Sendable, Hashable, CaseIterable {
+    /// Phase 1/3 (= the FIRST LLM call
+    /// in .reorganize mode). The LLM
+    /// reads A, decides the
+    /// destination (= skipped if
+    /// the user pinned it), and
+    /// returns the metadata
+    /// (= title + summary + tags)
+    /// + the main INDEX file body
+    /// (= the `rewrittenBody`
+    /// field; = metadata header
+    /// + 6 必填子文件路径引用
+    /// + 1 段简短概述).
+    /// This phase does NOT
+    /// return `extraFiles` (= the
+    /// orchestrator only fills
+    /// the metadata fields from
+    /// this call; = phase 2/3
+    /// fills the extraFiles).
+    case classifyAndIndex = "phase1_classify_and_index"
+    /// Phase 2/3 (= the SECOND LLM
+    /// call in .reorganize mode).
+    /// The LLM reads A again
+    /// (= the orchestrator
+    /// caches the source body
+    /// in `route(input)`) and
+    /// returns the 6 必填
+    /// sub-files (= the 6
+    /// world/ H2 sections
+    /// filled with content
+    /// from A). `required: true`
+    /// on all 6.
+    case splitRequired = "phase2_split_6_required"
+    /// Phase 3/3 (= the THIRD LLM
+    /// call in .reorganize mode).
+    /// The LLM returns 0-5
+    /// custom world/ files
+    /// (= A's non-B content;
+    /// = "约等于备注" per
+    /// boss; = LLM names
+    /// them freely). If A
+    /// has nothing else,
+    /// return empty array
+    /// (= that's the
+    /// canonical case).
+    case splitCustom = "phase3_split_custom"
+
+    /// 1-based human-readable
+    /// number for the activity
+    /// log (= "phase 1/3" /
+    /// "phase 2/3" / "phase
+    /// 3/3").
+    var displayIndex: Int {
+        switch self {
+        case .classifyAndIndex: return 1
+        case .splitRequired: return 2
+        case .splitCustom: return 3
+        }
+    }
+
+    /// Chinese description for
+    /// the activity log.
+    var displayName: String {
+        switch self {
+        case .classifyAndIndex: return "分类 + 元数据 + 主索引"
+        case .splitRequired: return "拆 6 必填子文件"
+        case .splitCustom: return "拆 N 自定义子文件"
+        }
+    }
+}
+
 struct ExtraFile: Codable, Sendable, Hashable {
     /// Which book folder to write this file
     /// into (= the LLM's routing decision;
