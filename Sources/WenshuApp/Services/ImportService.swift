@@ -3386,7 +3386,7 @@ extension ImportService {
                 // 西必须要做").
                 if routing.needsFilling {
                     NSLog(
-                        "[wenshu.import] .reorganize mode + needsFilling=true; SKIPPING main file write (= boss 2026-10-10 不兜底落库)"
+                        "[wenshu.import] .reorganize mode + needsFilling=true; SKIPPING main file write"
                     )
                     bodyToWrite = ""
                 } else if let rewritten = routing.rewrittenBody,
@@ -3570,7 +3570,7 @@ extension ImportService {
                     let placeholderExtra = ExtraFile(
                         folder: placeholderFolder,
                         title: placeholderTitle,
-                        body: "[待补充] 需调研补齐\n",
+                        body: "",
                         required: true
                     )
                     do {
@@ -3584,7 +3584,7 @@ extension ImportService {
                         await appendActivity(
                             to: tasksBox, i: i,
                             message: String(
-                                format: "  📝 占位子文件 %@/%@.md ([待补充] 需调研补齐)",
+                                format: "  📝 %@/%@.md",
                                 mainFolderName, placeholderTitle
                             ),
                             onProgress: onProgress
@@ -3593,13 +3593,13 @@ extension ImportService {
                         tasksBox.value[i].extraFilesDone += 1
                     } catch {
                         NSLog(
-                            "[wenshu.import] 占位子文件 %@ failed: %@",
+                            "[wenshu.import] placeholder sub-file %@ failed: %@",
                             placeholderTitle,
                             String(describing: error)
                         )
                         await appendActivity(
                             to: tasksBox, i: i,
-                            message: "  ❌ 占位子文件 \(placeholderTitle).md 写失败: \(String(describing: error))",
+                            message: "  ❌ \(placeholderTitle).md 写失败: \(String(describing: error))",
                             onProgress: onProgress
                         )
                     }
@@ -3627,7 +3627,7 @@ extension ImportService {
                       case .reorganize = target.rewriteMode {
                 await appendActivity(
                     to: tasksBox, i: i,
-                    message: "❌ 主文件未写 (= LLM 没拆出 6 必填; = boss 2026-10-10 不兜底落库; = 6 占位子文件已建, 等待用户补齐)",
+                    message: "❌ 主文件未写 (= LLM 未拆出 6 必填)",
                     onProgress: onProgress
                 )
             }

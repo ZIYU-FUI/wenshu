@@ -399,7 +399,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         // 败就是导入失败").
         let needsFilling = phase2Extras.isEmpty
         if needsFilling {
-            await progress?("  ⚠️ phase 2/3 返回空 → needsFilling=true → 6 占位子文件 = 待补充, 主文件不写")
+            await progress?("  ⚠️ phase 2/3 返回空 → 6 占位子文件 = 待补充, 主文件不写")
         }
         return ImportRoutingResult(
             destination: .bookFolder(phase1.folder),
