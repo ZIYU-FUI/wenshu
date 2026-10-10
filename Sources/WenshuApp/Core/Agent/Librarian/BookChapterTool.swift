@@ -150,8 +150,244 @@ actor BookChapterActor {
         return (dir, chaptersDirectory, indexURL)
     }
 
+    // MARK: - Agent gate v2.7 round-61
+
+    /// v2.7 round-61 (= boss 2026-10-10
+    /// "Agent 行为 gate.
+    /// 这个行来不是全
+    /// 部这样，是我让
+    /// agent 推进小说
+    /// 写作的时候，
+    /// 才这样，我如
+    /// 果让他改世界
+    /// 观，他还是
+    /// 要能改的" +
+    /// "Agent 写正文一
+    /// 律先写草稿。
+    /// 写正文时先写
+    /// 草稿，由用户
+    /// 手动提升级正
+    /// 文. 其它文件
+    /// 正常修改.
+    /// 提升为正文的
+    /// 内容，成为
+    /// 下阶段的约束
+    /// ，Agent 在没
+    /// 有用户允许的
+    /// 情况下，不能
+    /// 编辑正文的文
+    /// 档内容" +
+    /// "这个你来决定
+    /// ，需求就是，
+    /// 写正文时先写
+    /// 草稿，由用户
+    /// 手动提升级正
+    /// 文。其它文件
+    /// 正常修改.
+    /// 提升为正文的
+    /// 内容，成为
+    /// 下阶段的约束
+    /// ，Agent 在没
+    /// 有用户允许的
+    /// 情况下，不能
+    /// 编辑正文的
+    /// 文档内容.
+    /// 这个后面要有
+    /// 限制，如果正
+    /// 文设定被改
+    /// ，有可能很多
+    /// 正文要同步改
+    /// . 这个暂存.
+    /// 本需求先把目
+    /// 录和模版搞定
+    /// . 然后把权限
+    /// 门做了"
+    /// directive). The
+    /// agent gate is
+    /// implemented at
+    /// the `createChapter`
+    /// level (= the
+    /// entry point the
+    /// LLM uses to
+    /// "write a new
+    /// chapter"). Two
+    /// rules:
+    /// 1. **Agent
+    ///    chapter
+    ///    writes go to
+    ///    `drafts/`**
+    ///    (= the
+    ///    boss's "Agent
+    ///    写正文一律
+    ///    先写草稿");
+    ///    = the `create`
+    ///    action
+    ///    resolves a
+    ///    `drafts/`
+    ///    directory
+    ///    instead of
+    ///    `chapters/`.
+    ///    The dedup
+    ///    check (= same
+    ///    title already
+    ///    exists) also
+    ///    runs against
+    ///    `drafts/`
+    ///    (= a chapter
+    ///    can be re-edited
+    ///    in place in
+    ///    `drafts/` before
+    ///    promotion).
+    /// 2. **Update
+    ///    rejected
+    ///    when target
+    ///    is in
+    ///    `chapters/`**
+    ///    (= the
+    ///    boss's "Agent
+    ///    在没有用
+    ///    户允许的
+    ///    情况下
+    ///    不能编辑
+    ///    正文的文
+    ///    档内容";
+    ///    = the LLM
+    ///    gets a
+    ///    structured
+    ///    error that
+    ///    says "ask
+    ///    the user
+    ///    first"; = the
+    ///    user can
+    ///    then call
+    ///    `updateChapter`
+    ///    with the
+    ///    same id and
+    ///    the gate
+    ///    flips
+    ///    (= TODO:
+    ///    future
+    ///    commit).
+    ///
+    /// Other tools
+    /// (= `BookWorldTool`
+    /// / `BookCharacterTool`
+    /// / `BookOutlineTool`
+    /// / `BookIdeaTool` /
+    /// `ReferenceLibraryTool`)
+    /// are NOT gated (= the
+    /// boss's "其它文
+    /// 件正常修改";
+    /// = those folders
+    /// have no draft
+    /// stage; = the
+    /// LLM can write
+    /// directly to
+    /// world/ /
+    /// characters/ /
+    /// outlines/ /
+    /// ideas/ /
+    /// reference-library/
+    /// as the LLM
+    /// judges
+    /// appropriate).
+    ///
+    /// The `import`
+    /// path
+    /// (`ImportService.importFiles`)
+    /// is also NOT gated
+    /// (= the import is
+    /// user-initiated; =
+    /// the user pins the
+    /// destination; =
+    /// the user controls
+    /// the chapter write
+    /// directly).
+
+    /// v2.7 round-61: the
+    /// drafts/ path
+    /// resolver (= mirrors
+    /// `resolvePaths` but
+    /// returns the `drafts/`
+    /// directory instead
+    /// of `chapters/`).
+    /// The `drafts/` folder
+    /// is the agent's
+    /// canonical staging
+    /// area for chapter
+    /// content (= the
+    /// folder matches the
+    /// `BookFolder.drafts`
+    /// case; = the
+    /// `BookFolderCatalog`
+    /// spec for `drafts`
+    /// is `directoryName
+    /// = "drafts"`; = the
+    /// folder exists
+    /// because the
+    /// `LibraryBootstrapper`
+    /// creates all 8
+    /// standard folders
+    /// at book creation).
+    /// The index file is
+    /// `drafts.json` (=
+    /// parallel to
+    /// `chapters.json`; =
+    /// keeps the drafts
+    /// chapter metadata
+    /// separate from the
+    /// confirmed-chapter
+    /// metadata; = the
+    /// user promotes a
+    /// draft by moving
+    /// the file from
+    /// `drafts/<id>.md` to
+    /// `chapters/<id>.md`
+    /// and updating
+    /// `chapters.json`).
+    private func resolveDraftsPaths() throws -> (
+        bookDirectory: URL,
+        draftsDirectory: URL,
+        indexURL: URL
+    ) {
+        guard let dir = bookDirectoryProvider() else {
+            throw BookChapterError.invalidInput(
+                reason: "no chat session book bound (= scope guard should have caught this earlier)"
+            )
+        }
+        try PathGuard.assertInsideLibrary(path: LibraryPath(rawValue: dir.path))
+        let draftsDirectory = dir.appendingPathComponent("drafts", isDirectory: true)
+        let indexURL = dir.appendingPathComponent("drafts.json")
+        return (dir, draftsDirectory, indexURL)
+    }
+
     // MARK: - CRUD
 
+    /// v2.7 round-61: agent
+    /// chapter writes go to
+    /// `drafts/` (= the boss's
+    /// "Agent 写正文一律
+    /// 先写草稿" rule).
+    /// The dedup check
+    /// (= same title already
+    /// exists) also runs
+    /// against `drafts/`
+    /// (= an agent that
+    /// re-writes the same
+    /// chapter title is
+    /// re-editing the
+    /// existing draft; =
+    /// the agent doesn't
+    /// accidentally create
+    /// duplicates in
+    /// `drafts/`).
+    /// Returns the new /
+    /// updated chapter
+    /// descriptor (= the
+    /// caller can read
+    /// back the file path
+    /// or update the
+    /// UI).
     func createChapter(
         bookId: UUID,
         title: String,
@@ -163,12 +399,21 @@ actor BookChapterActor {
             throw BookChapterError.emptyTitle
         }
 
-        // Silent dedup (= v2.2, 2026-09-25): if a chapter with
-        // the same title already exists in this book, fall back to
-        // an in-place update (= preserves id / createdAt). LLM
-        // never sees an error.
-        if let existing = try await findChapter(bookId: bookId, title: trimmed) {
-            return try await updateChapter(
+        // v2.7 round-61: the
+        // dedup check now
+        // looks in `drafts/`
+        // (= the agent's
+        // canonical staging
+        // area). The
+        // `findChapter`
+        // helper below was
+        // updated to
+        // consult both
+        // folders but
+        // prefer drafts/ for
+        // agent writes.
+        if let existing = try await findDraftChapter(bookId: bookId, title: trimmed) {
+            return try await updateDraftChapter(
                 id: existing.id,
                 title: trimmed,
                 bodyMarkdown: bodyMarkdown,
@@ -184,12 +429,12 @@ actor BookChapterActor {
             summary: summary
         )
         do {
-            let (bookDirectory, chaptersDirectory, indexURL) = try resolvePaths()
+            let (bookDirectory, draftsDirectory, indexURL) = try resolveDraftsPaths()
             try Self.saveFileSystemChapter(
                 chapter: document,
                 bodyMarkdown: bodyMarkdown,
                 bookDirectory: bookDirectory,
-                chaptersDirectory: chaptersDirectory,
+                chaptersDirectory: draftsDirectory,
                 indexURL: indexURL
             )
         } catch let err as BookChapterError {
@@ -233,13 +478,91 @@ actor BookChapterActor {
         guard !trimmed.isEmpty else {
             throw BookChapterError.emptyTitle
         }
-        let (_, chaptersDirectory, _) = try resolvePaths()
+        // v2.7 round-61: the
+        // agent gate (= boss
+        // 2026-10-10 "提升为
+        // 正文的内容，成
+        // 为下阶段的约
+        // 束，Agent 在
+        // 没有用户允许
+        // 的情况下，不
+        // 能编辑正文的
+        // 文档内容"
+        // directive). The
+        // gate checks
+        // whether the
+        // chapter file
+        // already lives
+        // under
+        // `<bookDir>/chapters/`
+        // (= a confirmed
+        // chapter; = the
+        // user has
+        // promoted this
+        // draft to a
+        // real chapter;
+        // = the agent must
+        // NOT edit it
+        // without user
+        // permission). If
+        // the file is
+        // under
+        // `<bookDir>/drafts/`
+        // (= a still-
+        // unconfirmed
+        // draft; = the
+        // agent can edit
+        // it freely =
+        // the boss's
+        // "其它文件正
+        // 常修改"), the
+        // update proceeds
+        // (= but we still
+        // require the
+        // target to be a
+        // known draft =
+        // = the LLM
+        // can't escape
+        // into other
+        // folders). The
+        // check is
+        // "find the
+        // chapter file
+        // on disk; if
+        // its parent
+        // directory ends
+        // in 'chapters',
+        // reject".
+        let (bookDirectory, draftsDirectory, _) = try resolveDraftsPaths()
+        let fileOnDisk = bookDirectory
+            .appendingPathComponent("chapters", isDirectory: true)
+            .appendingPathComponent("\(id.uuidString).md")
+        if FileManager.default.fileExists(atPath: fileOnDisk.path) {
+            throw BookChapterError.underlying(
+                "agent gate: this chapter is confirmed (= the user promoted it from drafts/ to chapters/). Agent 写正文一律先写草稿. The user must explicitly approve edits to confirmed chapters. Tell the user: 'I want to edit chapter `<title>` (id `<id>`). It's currently in `chapters/`, not `drafts/`. Please confirm the edit or move it back to `drafts/`.'"
+            )
+        }
+        // Otherwise the file
+        // is in `drafts/`
+        // (or doesn't exist
+        // = a new draft; =
+        // we proceed and
+        // write to drafts/).
+        // The actual write
+        // below uses
+        // `resolveDraftsPaths`
+        // to keep the
+        // agent on the
+        // drafts/ path
+        // even if the file
+        // was somehow
+        // missing.
         // chapter-focus-lock 2026-09-28: gate the update path on
         // the single-focus lock. Same shape as EditChapterActor:
-        // resolve the canonical chapter path (= <bookDir>/chapters/<id>.md)
+        // resolve the canonical chapter path (= <bookDir>/drafts/<id>.md
+        // in v2.7 round-61; = was chapters/<id>.md before)
         // and throw ChapterFocusLockedError when the user has
-        // this chapter's editor tab focused. WenshuConductor
-        // catches this and offers an Allow / Deny dialog.
+        // this chapter's editor tab focused.
         let chapterPath = ChapterFocusLockGuard.resolveChapterPath(
             chapterId: id,
             bookDirectoryProvider: bookDirectoryProvider
@@ -252,11 +575,10 @@ actor BookChapterActor {
         )
         let documents: [Document]
         do {
-            let (_, chaptersDirectory, indexURL) = try resolvePaths()
             documents = (try? FileSystemChapterStore.loadChaptersFromFileSystem(
-                bookDirectory: chaptersDirectory,
-                chaptersDirectory: chaptersDirectory,
-                indexURL: indexURL
+                bookDirectory: draftsDirectory,
+                chaptersDirectory: draftsDirectory,
+                indexURL: draftsDirectory.deletingLastPathComponent().appendingPathComponent("drafts.json")
             )) ?? []
         } catch {
             throw BookChapterError.underlying(String(describing: error))
@@ -270,12 +592,12 @@ actor BookChapterActor {
         updated.byteSize = bodyMarkdown.utf8.count
         updated.updatedAt = Date()
         do {
-            let (bookDirectory, chaptersDirectory, indexURL) = try resolvePaths()
+            let (_, draftsDir, indexURL) = try resolveDraftsPaths()
             try Self.writeFileSystemChapter(
                 chapter: updated,
                 bodyMarkdown: bodyMarkdown,
                 bookDirectory: bookDirectory,
-                chaptersDirectory: chaptersDirectory,
+                chaptersDirectory: draftsDir,
                 indexURL: indexURL
             )
         } catch {
@@ -335,6 +657,114 @@ actor BookChapterActor {
             document.title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == trimmed
         }
         return match.map { ChapterDescriptor($0) }
+    }
+
+    /// v2.7 round-61: drafts/
+    /// counterpart of
+    /// `findChapter` (= looks
+    /// in `drafts/` only;
+    /// = used by
+    /// `createChapter`'s
+    /// dedup so the agent
+    /// can't create
+    /// duplicate drafts).
+    private func findDraftChapter(bookId: UUID, title: String) async throws -> ChapterDescriptor? {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let (_, draftsDirectory, indexURL) = try resolveDraftsPaths()
+        let documents: [Document]
+        do {
+            documents = (try? FileSystemChapterStore.loadChaptersFromFileSystem(
+                bookDirectory: draftsDirectory,
+                chaptersDirectory: draftsDirectory,
+                indexURL: indexURL
+            )) ?? []
+        } catch {
+            throw BookChapterError.underlying(String(describing: error))
+        }
+        let match = documents.first { document in
+            document.bookId == bookId &&
+            document.title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == trimmed
+        }
+        return match.map { ChapterDescriptor($0) }
+    }
+
+    /// v2.7 round-61: drafts/
+    /// counterpart of
+    /// `updateChapter` (=
+    /// re-edits an existing
+    /// draft in place; =
+    /// used by
+    /// `createChapter`'s
+    /// dedup-fallback
+    /// branch; = the agent
+    /// re-writing the same
+    /// chapter title
+    /// updates the draft,
+    /// not creates a
+    /// duplicate).
+    private func updateDraftChapter(
+        id: UUID,
+        title: String,
+        bodyMarkdown: String,
+        summary: String?
+    ) async throws -> ChapterDescriptor {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Mirror `updateChapter`'s
+        // scope guard (= the
+        // chapter focus lock
+        // = the user is
+        // currently editing
+        // the chapter in a
+        // tab; = the agent
+        // is told to wait;
+        // = this still
+        // applies in
+        // `drafts/` because
+        // the user might
+        // also be reviewing
+        // a draft).
+        let chapterPath = ChapterFocusLockGuard.resolveChapterPath(
+            chapterId: id,
+            bookDirectoryProvider: bookDirectoryProvider
+        )
+        try await ChapterFocusLockGuard.assertNotLocked(
+            documentPath: chapterPath,
+            focusedChapterPathProvider: { @Sendable in
+                await ChapterFocusLockGuard.currentFocusedChapterPath()
+            }
+        )
+        let documents: [Document]
+        do {
+            let (_, draftsDirectory, indexURL) = try resolveDraftsPaths()
+            documents = (try? FileSystemChapterStore.loadChaptersFromFileSystem(
+                bookDirectory: draftsDirectory,
+                chaptersDirectory: draftsDirectory,
+                indexURL: indexURL
+            )) ?? []
+        } catch {
+            throw BookChapterError.underlying(String(describing: error))
+        }
+        guard let existing = documents.first(where: { $0.id == id }) else {
+            throw BookChapterError.entryNotFound(id: id)
+        }
+        var updated = existing
+        updated.title = trimmed
+        if let summary { updated.summary = summary }
+        updated.byteSize = bodyMarkdown.utf8.count
+        updated.updatedAt = Date()
+        do {
+            let (bookDirectory, draftsDirectory, indexURL) = try resolveDraftsPaths()
+            try Self.writeFileSystemChapter(
+                chapter: updated,
+                bodyMarkdown: bodyMarkdown,
+                bookDirectory: bookDirectory,
+                chaptersDirectory: draftsDirectory,
+                indexURL: indexURL
+            )
+        } catch {
+            throw BookChapterError.underlying(String(describing: error))
+        }
+        return ChapterDescriptor(updated)
     }
 
     // MARK: - Tool-protocol entry-point (LLM-facing dispatcher)
@@ -908,7 +1338,7 @@ extension BookChapterTool {
                 toolset: "library",
                 schema: ToolRegistrySchema(
                     name: "book_chapter",
-                    description: "Per-book chapter CRUD (= wraps FileSystemChapterStore). LLM-friendly verbs: create / read / update / delete / list / find.",
+                    description: "Per-book chapter CRUD (= wraps FileSystemChapterStore). LLM-friendly verbs: create / read / update / delete / list / find. v2.7 round-61: the `create` action ALWAYS writes to the book's `drafts/` folder (= the boss's \"Agent 写正文一律先写草稿\" rule; = the user promotes drafts/ → chapters/ manually). The `update` action is BLOCKED when the target chapter lives in `chapters/` (= confirmed; = the user must explicitly approve). To write a new chapter, use `create` (= it goes to `drafts/`). To re-edit a draft, use `update` with the draft's id. To edit a confirmed chapter, ASK the user first; = the tool will return an error with a message for the user.",
                     inputSchema: [
                         "action": ToolRegistrySchemaProperty(
                             type: "string",
