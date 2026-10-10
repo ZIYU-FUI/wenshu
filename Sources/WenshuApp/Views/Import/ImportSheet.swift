@@ -159,6 +159,52 @@ struct ImportSheet: View {
     /// the target; = no book is involved).
     @State private var selectedBookID: UUID?
 
+    /// v2.7 round-66 commit C (= boss
+    /// 2026-10-10 "用
+    /// 户在
+    /// 导入
+    /// 书的
+    /// 时候，
+    /// 要选
+    /// 择二
+    /// 级目
+    /// 录"
+    /// 反馈).
+    /// The user-picked
+    /// 2nd-level folder
+    /// for the book
+    /// destination (= the
+    /// 6 import folders
+    /// = world /
+    /// characters /
+    /// outlines /
+    /// chapters / drafts
+    /// / ideas). Nil
+    /// when
+    /// `importDestination
+    /// == .referenceLibrary`
+    /// (= the reference
+    /// library has no
+    /// folder hierarchy;
+    /// = this state is
+    /// ignored). When
+    /// the user picks
+    /// a book, the
+    /// `canStart` gate
+    /// requires a
+    /// non-nil value
+    /// (= no default
+    /// = the user
+    /// must explicitly
+    /// decide which
+    /// folder the
+    /// batch lands in;
+    /// = the boss's
+    /// "让用户
+    /// 决定"
+    /// directive).
+    @State private var selectedBookFolder: BookFolder?
+
     /// v2.7 user-pinned import destination (= boss
     /// 2026-10-09 round-18 "导入目标加一个资料库，
     /// 用户指定了资料库的，就自动全进到资料库。
@@ -800,7 +846,36 @@ struct ImportSheet: View {
                   bookStore.books.contains(where: { $0.id == bookID }) else {
                 return false
             }
-            return true
+            // v2.7 round-66 commit C (= boss
+            // 2026-10-10 "用
+            // 户来
+            // 决定"
+            // directive).
+            // The user must
+            // also pick a
+            // 2nd-level
+            // folder (= no
+            // default; =
+            // the boss's
+            // "让用户
+            // 决定哪
+            // 些是
+            // 世界观
+            // ，哪
+            // 些是
+            // 角色"
+            // requirement;
+            // = the user
+            // explicitly
+            // chooses
+            // world/characters
+            // /etc.; = the
+            // LLM is
+            // reduced to
+            // metadata
+            // extraction
+            // only).
+            return selectedBookFolder != nil
         }
     }
 
@@ -943,6 +1018,22 @@ struct ImportSheet: View {
                   bookStore.books.contains(where: { $0.id == bookID }) else {
                 return
             }
+            // v2.7 round-66 commit C: the
+            // user-picked
+            // 2nd-level
+            // folder is
+            // passed
+            // through to
+            // `ImportTarget`;
+            // = the
+            // orchestrator
+            // forces the
+            // destination
+            // to that
+            // folder
+            // (overriding
+            // the LLM's
+            // pick).
             target = ImportTarget(
                 destination: .book,
                 wsRoot: libraryRoot(),
@@ -952,8 +1043,8 @@ struct ImportSheet: View {
                     referenceLibraryRoot: libraryRoot().appendingPathComponent("reference-library")
                 ),
                 rewriteMode: rewriteMode,
-            maxParallel: maxParallel
-
+            maxParallel: maxParallel,
+            bookFolder: selectedBookFolder
             )
         }
         isImporting = true
@@ -1081,12 +1172,12 @@ struct ImportSheet: View {
                     referenceLibraryRoot: libraryRoot().appendingPathComponent("reference-library")
                 ),
                 rewriteMode: rewriteMode,
-            maxParallel: maxParallel
-
+            maxParallel: maxParallel,
+            bookFolder: selectedBookFolder
             )
-        }
-        isRetryingFailed = true
-        Task {
+            }
+            isRetryingFailed = true
+            Task {
             let onProgress: @Sendable ([ImportTask]) async -> Void = { snapshot in
                 await MainActor.run {
                     tasks = snapshot
@@ -1618,6 +1709,80 @@ extension ImportSheet {
                     .pickerStyle(.menu)
                     .labelsHidden()
                     .disabled(isImporting)
+                }
+                // v2.7 round-66 commit C (= boss
+                // 2026-10-10 "用
+                // 户在
+                // 导入
+                // 书的
+                // 时候，
+                // 要选
+                // 择二
+                // 级目
+                // 录
+                // ... 资料
+                // 库不用"
+                // 反馈).
+                // The 2nd-level
+                // folder Picker
+                // (= the
+                // "目标目录"
+                // row). Only
+                // shown when
+                // `importDestination
+                // == .book` AND
+                // a book is
+                // selected (=
+                // the Picker
+                // needs a
+                // bookId
+                // context to
+                // resolve the
+                // folder's
+                // path; = the
+                // user can't
+                // pick a
+                // folder before
+                // picking a
+                // book). Uses
+                // the same
+                // `Picker`
+                // + `PickerRow`
+                // pattern as
+                // the 目标书籍
+                // row above (=
+                // consistent
+                // visual
+                // treatment;
+                // = the
+                // segmented
+                // style is NOT
+                // used here
+                // because the
+                // 6 options are
+                // too long to
+                // fit; = the
+                // menu style
+                // shows a
+                // compact
+                // dropdown).
+                if selectedBookID != nil {
+                    PickerRow {
+                        Text("目标目录")
+                            .foregroundStyle(.primary)
+                    } trailing: {
+                        Picker("目标目录", selection: $selectedBookFolder) {
+                            Text("请选择目录").tag(BookFolder?.none)
+                            ForEach(BookFolder.allCases, id: \.self) { folder in
+                                if folder.importTemplate != nil {
+                                    Text(folder.displayName).tag(Optional(folder))
+                                }
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .labelsHidden()
+                        .disabled(isImporting)
+                    }
                 }
             }
 

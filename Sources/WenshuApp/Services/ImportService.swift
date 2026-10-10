@@ -2351,6 +2351,67 @@ struct ImportTarget: Sendable {
     /// `destination == .referenceLibrary` (= same
     /// reason as `bookId`).
     let shelfId: UUID?
+    /// v2.7 round-66 commit C (= boss
+    /// 2026-10-10 "用
+    /// 户在
+    /// 导入
+    /// 书的
+    /// 时候，
+    /// 要选
+    /// 择二
+    /// 级目
+    /// 录
+    /// ...
+    /// 让用
+    /// 户来
+    /// 决定
+    /// 哪
+    /// 些是
+    /// 世界
+    /// 观，
+    /// 哪
+    /// 些是
+    /// 角色
+    /// " 反馈).
+    /// The user-picked
+    /// book folder (= the
+    /// "二级目录"
+    /// option in the
+    /// sheet; = the
+    /// sheet now shows a
+    /// folder picker
+    /// after the book
+    /// picker; = the
+    /// user picks ONE
+    /// of the 6 import
+    /// folders:
+    /// world / characters
+    /// / outlines /
+    /// chapters / drafts
+    /// / ideas). When
+    /// `target.destination
+    /// == .book` AND
+    /// `bookFolder` is
+    /// non-nil, the
+    /// orchestrator
+    /// forces
+    /// `routing.destination
+    /// = .bookFolder(bookFolder)`
+    /// (= the LLM's
+    /// classification is
+    /// ignored; = the
+    /// user is the source
+    /// of truth). Nil
+    /// when
+    /// `destination ==
+    /// .referenceLibrary`
+    /// (= reference library
+    /// has no folder
+    /// hierarchy; = every
+    /// file lands at the
+    /// flat reference
+    /// library root).
+    let bookFolder: BookFolder?
     /// The reference library's `ReferenceStoring` (= the
     /// existing storage handle; = passed in by the
     /// `LibraryStores` factory at launch).
@@ -2427,7 +2488,28 @@ struct ImportTarget: Sendable {
         shelfId: UUID?,
         referenceStore: any ReferenceStoring,
         rewriteMode: ImportFileInput.RewriteMode,
-        maxParallel: Int = 3
+        maxParallel: Int = 3,
+        // v2.7 round-66 commit C:
+        // `bookFolder` is a new
+        // optional field
+        // (= the user-picked
+        // 2nd-level folder
+        // for the book
+        // destination; =
+        // nil = the old
+        // "LLM picks" /
+        // "drafts fallback"
+        // behavior; = the
+        // default keeps all
+        // existing call
+        // sites compiling).
+        // Callers that want
+        // the user-pinned
+        // 2nd-level folder
+        // (= ImportSheet)
+        // pass a non-nil
+        // value.
+        bookFolder: BookFolder? = nil
     ) {
         // Clamp to the supported range (= 1..5;
         // = the Picker UI exposes these five
@@ -2445,6 +2527,7 @@ struct ImportTarget: Sendable {
         self.referenceStore = referenceStore
         self.rewriteMode = rewriteMode
         self.maxParallel = Swift.max(1, Swift.min(5, maxParallel))
+        self.bookFolder = bookFolder
     }
 }
 
@@ -2677,18 +2760,77 @@ extension ImportService {
         case .referenceLibrary:
             routing.destination = .referenceLibrary
         case .book:
-            // If the LLM routed to .referenceLibrary
-            // but the user picked a book as the
-            // target, fall back to .drafts (= the
-            // LLM's classification is downgraded
-            // to "this needs a closer look"; = the
-            // user can move it manually after the
-            // batch completes). This is rare
-            // because the user-pinned destination
-            // prompt steers the LLM away from
-            // referenceLibrary, but the fallback is
-            // here for safety.
-            if case .referenceLibrary = routing.destination {
+            // v2.7 round-66 commit C (= boss
+            // 2026-10-10 "用
+            // 户在
+            // 导入
+            // 书的
+            // 时候
+            // ，
+            // 要选
+            // 择二
+            // 级目
+            // 录"
+            // 反馈):
+            // when the user
+            // pinned a
+            // 2nd-level
+            // folder (= the
+            // "目标目录"
+            // picker in the
+            // sheet; = the
+            // boss's
+            // 6-folder
+            // classification
+            // = world /
+            // characters /
+            // outlines /
+            // chapters /
+            // drafts /
+            // ideas), the
+            // orchestrator
+            // forces the
+            // destination
+            // to that folder
+            // (= the LLM's
+            // classification
+            // is overridden
+            // = the user is
+            // the source of
+            // truth; = "我
+            // 要把这些
+            // 全部
+            // 当成
+            // 角色"
+            // = every file
+            // in the batch
+            // lands in
+            // characters/;
+            // = the LLM is
+            // reduced to
+            // title +
+            // summary +
+            // tags
+            // extraction
+            // only).
+            if let folder = target.bookFolder {
+                routing.destination = .bookFolder(folder)
+            } else if case .referenceLibrary = routing.destination {
+                // Fallback: the
+                // LLM routed
+                // to .referenceLibrary
+                // but the user
+                // picked a
+                // book (= no
+                // 2nd-level
+                // folder
+                // picked;
+                // = the old
+                // behavior; =
+                // .drafts is
+                // the
+                // safe
+                // default).
                 routing.destination = .bookFolder(.drafts)
             }
         }
