@@ -86,6 +86,8 @@ wenshu/                                                ← project root
 │       ├── Resources/                                 ← AppIcon.icns + Info.plist
 │       ├── Settings/                                  ← user settings pane
 │       ├── State/                                     ← @Observable state layer
+│       ├── Services/                                 ← import / migration / document-template services (= ImportService / ImportDocumentTemplates / ImportAgentDriver / WenshuConductorImportRouter / ImportSOPLoader)
+│       ├── AI/                                       ← SSE + agent-runtime errors (= SSEClient / UserFacingError)
 │       ├── Storage/                                   ← file-system stores (LibraryMigrator / FileSystemReferenceStore)
 │       ├── UI/                                        ← reusable SwiftUI components (IconStyles / DesignTokens / Layout / Segmented / Memory / PaneTabBar / ComponentIndex.md)
 │       └── Views/                                     ← feature views (Chat / Library / Onboarding / SpecializedTools / Workspace / Kanban / Graph / Outline / LinkGraph / LinkBack / Windows / Tools / Todo / LayoutPicker / Inspection)
