@@ -139,7 +139,7 @@ enum RetryUtils {
     //     1:1 (= a future ticket can wire it to minimax cn if
     //     minimax adopts a similar overload code).
     //   - `adaptive_rate_limit_backoff` returns `(default_wait, nil)`
-    //     when the provider isn't Z.AI Coding (= wenshu's 7 connectors
+    //     when the provider isn't Z.AI Coding (= wenshu's 14 first-class + custom profiles
     //     all get default exponential backoff).
     //   - `_error_text` (= hermes L82-L88) is private in Python; = wenshu
     //     uses `String(describing:)` directly in the public helper

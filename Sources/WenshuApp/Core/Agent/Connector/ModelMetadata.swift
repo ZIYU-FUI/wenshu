@@ -117,7 +117,7 @@ struct WenshuModelCatalog: Sendable, Equatable {
         static let localOllama: Features = [.tools, .streaming]
     }
 
-    /// All 7 connector profiles' model catalogs (= AGENTS.md §11.2).
+    /// All 14 first-class + custom connector profiles' model catalogs (= AGENTS.md §11.2).
     static let allProfiles: [WenshuModelCatalog] = [
         WenshuModelCatalog(provider: .anthropic),
         WenshuModelCatalog(provider: .openaiCodex),

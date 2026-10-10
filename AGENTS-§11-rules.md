@@ -17,20 +17,20 @@ Current state (= deviation from §11.4 spec):
 
 Migration plan (= 6 phases, ~42 commits, 3-4 weeks):
 
-  NOTE: phase 1 introduced 22 @Model classes (= commits 15,
+  NOTE: phase 1 introduced 28 @Model classes (= 22 base + 4 from WSLayoutTreeState in a later batch) (= commits 15,
   16, 17, 19 each introduced 2 classes; = 21 commits × 1-2 classes each).
   This is why each @Model file says "Phase 1 commit X/21" (= the commit number
   out of 21) while the schema array contains 22 .self entries. See Container.swift
   header for the authoritative mapping.
 
-## Phase 1: Define @Model classes (= 22 @Model classes)
+## Phase 1: Define @Model classes (= 28 @Model classes)
 - 22 separate WS*.swift files under Sources/WenshuApp/Persistence/ (= one
   per @Model class; = NOT consolidated into a single Models.swift; =
   per-file commits were chosen for easier review + blame per AGENTS.md
   §11.1 pre-v0.72 convention)
 - Sources/WenshuApp/Persistence/Container.swift = ModelContainer setup
   (= the 21st commit; = introduced Container but no new @Model class;
-  = the schema array lists all 22 explicit @Model classes)
+  = the schema array lists all 28 explicit @Model classes)
 - Mirror existing 20+ tables with explicit relationships
 - Single container (= no more "10 stores in 10 files" pattern)
 
@@ -463,7 +463,7 @@ Kanban helper = `HermesKanbanDB.swift` (994 LOC raw sqlite3) is REPLACED by
 
 | # | Item | Why deferred |
 |---|---|---|
-| 1 | SwiftData @Model for `WSChatMessage` / `WSSummary` already exists per §11.4 phase 1-5 | DONE in phase 1-5 (= 22 @Models) |
+| 1 | SwiftData @Model for `WSChatMessage` / `WSSummary` already exists per §11.4 phase 1-5 | DONE in phase 1-5 (= 28 @Models) |
 | 2 | `WenshuWorkspaceMigrator` cleanup | out of v1.55 scope (= separate ticket per §11.4.2 bonus) |
 | 3 | `HermesKanbanDB.swift` SQLite helper reuse for `WSMigrationPerStore.migrateChatSessionStore` (= reads `chat.sqlite` directly) | **N/A after v1.55d closure** — both `HermesKanbanDB.swift` (= §11.7 v1.55) and `WSMigrationPerStore.swift` (= §11.7d) are deleted; = no SQLite helper reuse to track |
 
@@ -505,7 +505,7 @@ production code = **0**.
 | 4 | `import SQLite3` count in production code | **0** (= was 2 pre-v1.55d: SQLiteConstants + WSMigrationPerStore; = both deleted) |
 | 5 | `import GRDB` count in production code | **0** (= unchanged from §11.7 v1.55 ship) |
 | 6 | Legacy `.ws/*.sqlite` files on disk | **orphaned** (= `chat.sqlite`, `indexes.sqlite`, `search.db`, `kanban.sqlite`; = no production code reads them; = safe to manually delete if boss wants disk space back; = wenshu does not delete them automatically = per wenshu-pollution-defense principle "never mutate user state without explicit consent") |
-| 7 | New chat history path | SwiftData only (= `WSChatRepository.shared` writes to `ZWSCHATMESSAGE`; = see §11.4 phase 1-5 for the 22 @Model definitions) |
+| 7 | New chat history path | SwiftData only (= `WSChatRepository.shared` writes to `ZWSCHATMESSAGE`; = see §11.4 phase 1-5 for the 28 @Model definitions) |
 
 ### What was NOT preserved (= post-v1.55d behavior change)
 

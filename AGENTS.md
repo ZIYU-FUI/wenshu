@@ -37,8 +37,8 @@ When in doubt about which file owns a §11.X reference: ACTIVE rules affecting c
 - Stack = Swift / SwiftUI + Swift Observation (@Observable) + filesystem JSON + Markdown (per-book private content) + Apple HIG (.fcpbundle-style directory, single-process). NO CoreData. NO external AI platform calls (any code file).
 - §11 product positioning (boss 2026-09-03 拍): Wenshu is a writing tool, NOT an LLM platform. Wenshu never resells or bundles LLM access, never holds user tokens on its own backend, never charges for token consumption. LLM is a layer below Wenshu that the user provides via the §11.2 connector layer. Any PR that adds metering, billing, quota tracking, or token-bundling is out of scope.
 - wenshu stack baseline 修正 — 第三方库允许（前提 = 见 §11.1 UI 控件例外清单）。
-- v1 LLM connector architecture: 7 connector profiles (Anthropic / OpenAI / Gemini / DeepSeek / Ollama / OpenRouter / minimax cn). Provider-agnostic. User BYOK (bring your own key). NO default recommendation. Wenshu ships with the connector layer wired but every profile is empty until user supplies credentials. See §11.2 for the 7 profiles.
-- `.ws` directory (= macOS package, NSOpenPanel-selected at onboarding) = per-library container. Holds: Info.plist (= Apple HIG bundle metadata; CFBundlePackageType=WSPC + WSSchemaVersion) + chat.sqlite (= global LLM chat history; 45 KB at v0.24 ship) + Icon (= Finder icon) + shelves/ (= user-created bookshelves; multiple) + reference-library/ (= library's default bookshelf; system-managed, ONE instance, user CANNOT delete or rename; holds LLM Wiki 4 layers: raw/ + entities/ + abstracts/ + indexes/) + cache/ (= thumbnails + search index + export temp). Per-book structure = `shelves/<shelf-uuid>/books/<book-uuid>/` with 8 standard folders (world/ characters/ outlines/ chapters/ drafts/ sessions/ foreshadowing/ placeholders/) + 8 JSON sidecars + 2 per-book JSON data files (kanban.json, todo.json). Per-book private world + characters + foreshadowing + placeholders; reference-library is library-public (= cross-book reusable raw materials).
+- v1 LLM connector architecture: 14 first-class + custom provider profiles (Anthropic / OpenAI / Gemini / DeepSeek / Ollama / OpenRouter / minimax / minimax cn / Nous / OpenAI Codex / GitHub Copilot / Copilot ACP / xAI OAuth / StepFun + a `custom` Provider entry for BYOK endpoints). Provider-agnostic. User BYOK (bring your own key). NO default recommendation. Wenshu ships with the connector layer wired but every profile is empty until user supplies credentials. See §11.2 for the canonical list (= `Sources/WenshuApp/Core/Provider/Provider.swift` Provider.all).
+- `.ws` directory (= macOS package, NSOpenPanel-selected at onboarding) = per-library container. Holds: a `.ws` Info.plist (= Apple HIG bundle metadata; **`.ws` ships `CFBundlePackageType=WSPC`**; = note: wenshu App's own `Sources/WenshuApp/Resources/Info.plist` ships `CFBundlePackageType=APPL` (= standard macOS app type) — these are two different Info.plist files; = see LibraryRootView:706 / LibraryBootstrapper:117 for the `.ws` Info.plist writer) + WSSchemaVersion + chat.sqlite (= global LLM chat history; 45 KB at v0.24 ship) + Icon (= Finder icon) + shelves/ (= user-created bookshelves; multiple) + reference-library/ (= library's default bookshelf; system-managed, ONE instance, user CANNOT delete or rename; holds LLM Wiki 4 layers: raw/ + entities/ + abstracts/ + indexes/) + cache/ (= thumbnails + search index + export temp). Per-book structure = `shelves/<shelf-uuid>/books/<book-uuid>/` with 8 standard folders (world/ characters/ outlines/ chapters/ drafts/ sessions/ foreshadowing/ placeholders/) + a per-bucket JSON set: book-level metadata (= book.json + chapters.json + entities.json + outlines.json), per-book data (= kanban.json + todo.json + chapter-scoped kanban-chapters.json + todo-chapters.json), library-level (= library.json + library-kanban.json + library-todo.json + shelf.json + project-config.json). Canonical enumeration lives in Sources/WenshuApp/Storage/ (= grep`\.json` on that directory gives the current count).. Per-book private world + characters + foreshadowing + placeholders; reference-library is library-public (= cross-book reusable raw materials).
 - Apple stack exclusive (macOS / iPad / iPhone). Current target = macOS-only single platform (老板 8/18 拍).
 - Project root = `/Volumes/ANAN/Engineering/wenshu/`.
 - Apple Developer Program paid on release (individual $99 / year).
@@ -137,25 +137,34 @@ matter for ADR-0009 / code-duplication-forbidden principle) are:
 The 43 hermes modules per spec §2.1 + §2.2 are covered across the wenshu tree
 (= `Sources/WenshuApp/Core/Agent/`, `Core/Provider/`, `Core/Memory/`, `Core/Skills/`,
 `Core/Tools/`, `Core/Chat/`, plus `UI/LLMConnector/` for the Settings UI). The
-ground-truth tally per the parallel gap audit at
-`.scratch/2026-09-04-hermes-port-gap-audit.md` (read-only static analysis
-2026-09-04):
+ground-truth tally (= per the 2026-09-04 static-analysis snapshot; = the
+original parallel `.scratch/2026-09-04-hermes-port-gap-audit.md` file has
+been superseded by the manifest below; = the manifest is now the
+canonical live tally source):
 
-- 6 ✅ direct port (14%) — have a dedicated wenshu Swift file that ports the
-  behavior 1:1 (= prompt_caching, error_classifier, turn_retry_state,
-  context_breakdown, rate_limit_tracker, runtime_cwd).
+- ✅ direct port — see `.scratch/2026-09-03-hermes-core-translation/hermes-port-manifest.md`
+  Coverage table for the live tally (= post-H/P-series closure; =
+  the original 2026-09-04 static-analysis snapshot numbers are stale;
+  = the manifest is the canonical source). Modules at last audit:
+  prompt_caching, error_classifier, turn_retry_state, context_breakdown,
+  rate_limit_tracker, runtime_cwd (+ chat_completion_helpers per the
+  2026-09-04 TICKET-HERMES-GAP-002 closure).
 - 11 ✅ wenshu-side wins (26%) — existing wenshu Core module (= pre-dates the
   hermes port) is the source of truth; hermes-port = thin adapter that delegates
   to it. The 5 pairs below account for 5 of the 11; the other 6 wenshu-side wins
   modules (= context_compressor, tool_guardrails, display, background_review,
   curator, credits_tracker) have no hermes-overlap conflict but use the
   wenshu-source-of-truth + thin-adapter pattern per ADR-0009.
-- 18 ⚠️ partial (42%) — Swift file exists but is a stub / minimum-surface /
-  wire-up-not-yet-done; Z-contract golden tests on most would fail.
-- 8 ❌ missing (19%) — no Swift file exists; spec §3.1 target file has not been
-  authored (= prompt_builder, chat_completion_helpers, agent_runtime_helpers,
-  tool_dispatch_helpers, skill_bundles, secret_sources + secret_scope, retry_utils,
-  shell_hooks).
+- ⚠️ partial — see the manifest Coverage table for the live tally.
+  Per the 2026-09-19 re-audit (= the manifest's "Honest re-audit tally"
+  block), 14/43 modules still carry documented gaps. Swift files exist
+  with doc-comment stubs / minimum-surface / wire-up-not-yet-done.
+- ❌ missing — see the manifest Coverage table for the live tally.
+  Modules per last audit: prompt_builder, agent_runtime_helpers,
+  tool_dispatch_helpers, skill_bundles, secret_sources + secret_scope,
+  retry_utils, shell_hooks. (= chat_completion_helpers was previously
+  listed here but landed 2026-09-04 via TICKET-HERMES-GAP-002 commit
+  1b5b038de; = see manifest ✅ direct port row.)
 
 Per boss OOB 2026-09-04 (see OOB.md #2026-09-04) = the 26 incomplete
 (= 18 ⚠️ partial + 8 ❌ missing) are the work-tree to fill in.
@@ -179,8 +188,9 @@ Decision (= wenshu-side wins, per ADR-0009):
    wenshu-side" requires explicit boss拍. Default = wenshu-side wins. No silent
    replacement.
 5. **Work-tree coverage** (boss OOB 2026-09-04 (see OOB.md #2026-09-04)): the 26
-   incomplete hermes modules (= 18 ⚠️ partial + 8 ❌ missing per the gap audit at
-   `.scratch/2026-09-04-hermes-port-gap-audit.md`) are tracked in the manifest's
+   incomplete hermes modules (= 18 ⚠️ partial + 8 ❌ missing per the 2026-09-04
+   static-analysis snapshot; = the manifest below is the live tally source)
+   are tracked in the manifest's
    Coverage section. The 8 ❌ missing modules (= prompt_builder,
    chat_completion_helpers, agent_runtime_helpers, tool_dispatch_helpers,
    skill_bundles, secret_sources + secret_scope, retry_utils, shell_hooks) have

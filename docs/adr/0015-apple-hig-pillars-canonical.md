@@ -1,4 +1,4 @@
-# ADR-0014: Apple HIG + Swift engineering principles — canonical pillars
+# ADR-0015: Apple HIG + Swift engineering principles — canonical pillars
 
 > Status: accepted
 > Date: 2026-09-24

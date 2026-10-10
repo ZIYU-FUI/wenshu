@@ -73,7 +73,7 @@ struct ToolResult: Sendable, Equatable {
 
 /// Placeholder for an LLM request (= pre-llm-call + post-llm-call payload).
 /// Future: real struct will wrap `LLMConnector.send(messages:options:)`
-/// = the canonical wire envelope used by all 7 connector profiles.
+/// = the canonical wire envelope used by all 14 first-class + custom profiles.
 /// Currently `LLMCallOptions` + `[LLMMessage]` are passed separately; a
 /// unified request type is a future refactor.
 struct LLMRequest: Sendable {

@@ -4,7 +4,7 @@
 //  disk persistence. Ported from hermes-agent
 //  `agent/credential_pool.py` (2,384 LOC Python) +
 //  `agent/credential_persistence.py` (174 LOC) per the dispatch-layer
-//  spec (= the wenshu 7-connector + BYOK stack survives the first
+//  spec (= the wenshu 14-first-class + custom + BYOK stack survives the first
 //  429 / 503 / 401 it encounters).
 //
 //  Per AGENTS.md §11.3 wenshu-side wins pattern:

@@ -677,8 +677,10 @@ extension PromptBuilder {
     ///     target = macOS-only single platform).
     ///   - Wenshu uses Apple stack exclusive (= per AGENTS.md §11.1
     ///     = SwiftUI / AppKit only by default).
-    ///   - Wenshu has its own backend (= chat.sqlite + per-book
-    ///     JSON + GRDB.swift).
+    ///   - Wenshu uses SwiftData (= the post-v0.72 replacement for
+    ///     the historical chat.sqlite + GRDB.swift backend; see
+    ///     AGENTS.md §11.4 SwiftData migration roadmap) +
+    ///     per-book JSON sidecars (= Sources/WenshuApp/Storage/).
     ///
     /// - Returns: a wenshu-flavored environment-hint string (= empty
     ///   when on a non-macOS platform).
@@ -692,7 +694,7 @@ extension PromptBuilder {
         ## Environment
         - Platform: macOS \(macOSVersion)
         - Apple stack: SwiftUI + AppKit (per AGENTS.md §11.1)
-        - Backend: filesystem JSON + chat.sqlite (GRDB.swift)
+        - Backend: SwiftData (= post-v0.72 chat history) + filesystem JSON
         - Model: wenshu-side; not a hermes user
         """
         #else
