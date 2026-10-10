@@ -177,21 +177,84 @@ enum CardOpenOps {
             // (see OOB.md #2026-09-08) — fix: if the caller passed a .bookDoc source,
             // use its doc (= correct book doc).
             if case .bookDoc(let doc) = source {
-                // BookDoc doesn't carry an absolute path (= only
-                // fileName + folderName per PreviewPane L159).
-                // path = nil (= PreviewPane's own loadBookDocs owns
-                // the path resolution; = ticket 027-35 will lift
-                // BookDocLoader into a shared service that returns
-                // the absolute path).
-                //
-                // PreviewPane.loadBookDocs (= L764) returns docs
-                // with .summary as the only body content (= real
-                // .md body loading is deferred to ticket 027-35;
-                // = the previous behavior was silent no-op).
-                // Use .summary here (= matches the fallback that
-                // loadReferenceBody → first.summary already uses for
-                // reference docs).
-                return CardTriad(path: nil, content: doc.summary, title: doc.title)
+                // v2.7 round-66 commit H (= boss
+                // 2026-10-10 "指
+                // 定目录
+                // 实现
+                // 了
+                // ，
+                // 但
+                // 导
+                // 入
+                // 的
+                // 内
+                // 容
+                // 少
+                // 了
+                // 好
+                // 我"
+                // feedback):
+                // the previous
+                // implementation
+                // returned only
+                // `doc.summary`
+                // (= the 200-char
+                // preview prefix
+                // = the user
+                // saw only
+                // 元信息 + 8 行
+                // 反链 but
+                // NOT the
+                // actual
+                // 534-line
+                // 故事宪法
+                // body).
+                // Fix: read
+                // the full .md
+                // file via
+                // the same
+                // path
+                // resolution
+                // that
+                // `SidebarService.findBookDocFile`
+                // uses for
+                // rename/delete;
+                // = the user
+                // now sees
+                // the complete
+                // body
+                // (= ~200x
+                // more
+                // content
+                // for the
+                // 故事宪法
+                // case).
+                if let body = CardOpenOps.loadBookDocBody(
+                    bookStore: bookStore,
+                    doc: doc
+                ) {
+                    return CardTriad(
+                        path: nil,
+                        content: body,
+                        title: doc.title
+                    )
+                }
+                // Fallback (= the file
+                // is gone
+                // OR path
+                // resolution
+                // failed):
+                // show the
+                // 200-char
+                // summary
+                // (= better
+                // than
+                // blank).
+                return CardTriad(
+                    path: nil,
+                    content: doc.summary,
+                    title: doc.title
+                )
             }
             return CardTriad(path: nil, content: "", title: "book-doc")
         case .shelfScope, .empty:
@@ -322,5 +385,111 @@ enum CardOpenOps {
         return OpenCardResult(openedTabId: newTab.id,
                              didSwitchExistingTab: false,
                              contentLength: content.count)
+    }
+
+    // MARK: - v2.7 round-66 commit H: book doc body loader
+
+    /// Load the full .md body for a `BookDoc` (= the
+    /// per-file .md body in a book's folder; = e.g.
+    /// the 534-line 故事宪法.md body in
+    /// `12地仙/world/故事宪法.md`). The
+    /// `BookDoc.id` is a UUID v5 derived from
+    /// `(bookId, folderName, fileName)` (= stable
+    /// across re-evaluations; = unique per .md
+    /// file; = the canonical wenshu BookDoc
+    /// identity). To find the file on disk, we
+    /// walk the shelves root and match the
+    /// `(bookId, folderName, fileName)` triple
+    /// that re-derives the same UUID (= same
+    /// algorithm as `SidebarService.findBookDocFile`
+    /// and the orchestrator's Stage 2
+    /// content-same check). Returns the body
+    /// string, or `nil` if the file is gone or
+    /// the walk fails (= the caller falls back to
+    /// `doc.summary` for the 200-char preview).
+    ///
+    /// Boss 2026-10-10 feedback: "指定目录实现
+    /// 了，但导入的内容少了好我"; = the
+    /// 故事宪法 was imported correctly (= 534
+    /// lines on disk; = see round-66 commit E's
+    /// `prepareBodyForWrite`), but the editor
+    /// only showed the 200-char `doc.summary`.
+    /// Root cause: the previous
+    /// `CardOpenOps.computeCardTriad` used
+    /// `doc.summary` (= the 200-char thumbnail)
+    /// for `.bookDoc` cases, with a comment
+    /// deferring real body loading to "ticket
+    /// 027-35". This helper implements that
+    /// ticket (= the path resolution is small
+    /// enough to inline; = no new service
+    /// needed; = the test suite can mock
+    /// `BookStore` and verify the walk).
+    static func loadBookDocBody(
+        bookStore: BookStore?,
+        doc: BookDoc
+    ) -> String? {
+        guard let shelvesRoot = bookStore?.stores.shelvesRoot else {
+            return nil
+        }
+        return loadBookDocBody(shelvesRoot: shelvesRoot, doc: doc)
+    }
+
+    /// Overload that takes the shelves root URL directly (= the
+    /// unit-test entry point; = the integration entry point is
+    /// the `bookStore`-taking overload above). The path
+    /// resolution is the same UUID v5 walk as
+    /// `SidebarService.findBookDocFile` (= see the
+    /// orchestrator's Stage 2 content-same check for the
+    /// identical algorithm).
+    static func loadBookDocBody(
+        shelvesRoot: URL,
+        doc: BookDoc
+    ) -> String? {
+        guard FileManager.default.fileExists(atPath: shelvesRoot.path) else {
+            return nil
+        }
+        let shelfDirs = (try? FileManager.default.contentsOfDirectory(
+            at: shelvesRoot,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        )) ?? []
+        for shelfDir in shelfDirs {
+            let booksDir = shelfDir.appendingPathComponent("books")
+            guard FileManager.default.fileExists(atPath: booksDir.path) else { continue }
+            let bookDirs = (try? FileManager.default.contentsOfDirectory(
+                at: booksDir,
+                includingPropertiesForKeys: nil,
+                options: [.skipsHiddenFiles]
+            )) ?? []
+            for bookDir in bookDirs {
+                guard UUID(uuidString: bookDir.lastPathComponent) == doc.bookId else { continue }
+                let folderDirs = (try? FileManager.default.contentsOfDirectory(
+                    at: bookDir,
+                    includingPropertiesForKeys: nil,
+                    options: [.skipsHiddenFiles]
+                )) ?? []
+                for folderDir in folderDirs where folderDir.lastPathComponent == doc.folderName {
+                    let mdFiles = (try? FileManager.default.contentsOfDirectory(
+                        at: folderDir,
+                        includingPropertiesForKeys: nil,
+                        options: [.skipsHiddenFiles]
+                    )) ?? []
+                    for mdFile in mdFiles where mdFile.pathExtension == "md" {
+                        let candidate = PreviewPane.stableBookDocId(
+                            bookId: doc.bookId,
+                            folderName: doc.folderName,
+                            fileName: mdFile.lastPathComponent
+                        )
+                        if candidate == doc.id {
+                            return try? String(
+                                contentsOf: mdFile,
+                                encoding: .utf8
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        return nil
     }
 }
