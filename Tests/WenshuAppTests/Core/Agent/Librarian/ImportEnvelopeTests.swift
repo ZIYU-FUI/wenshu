@@ -14,11 +14,43 @@ final class ImportEnvelopeTests: XCTestCase {
     // MARK: - BookFolder (the SSOT for "5 standard folders")
 
     func testBookFolder_hasEightCases() throws {
-        // The 8-case enum is the source of truth for the on-disk
-        // folder layout; = the user-visible "5 standard folders"
-        // are its first 5 cases (= the 5 with sidebar UI = world,
-        // characters, outlines, chapters, drafts).
-        XCTAssertEqual(BookFolder.allCases.count, 8)
+        // v2.7 round-60: the enum
+        // now has 9 cases
+        // (= the boss's
+        // "看样需要加一
+        // 个目录，放你
+        // 现在的草稿
+        // ，类似构思"
+        // directive added
+        // `ideas` after
+        // `drafts`; = the
+        // first 5 are still
+        // the sidebar-
+        // visible standard
+        // folders; = the
+        // remaining 4 are
+        // non-sidebar: ideas
+        // / sessions /
+        // foreshadowing /
+        // placeholders).
+        // The first 5 (= user
+        // visible) stay
+        // world / characters
+        // / outlines /
+        // chapters / drafts
+        // (= the boss's
+        // established
+        // sidebar UX). The
+        // 6th case is
+        // `ideas` (= the
+        // 构思 folder for
+        // "loose settings +
+        // future ideas";
+        // = a separate
+        // import folder
+        // per the round-60
+        // directive).
+        XCTAssertEqual(BookFolder.allCases.count, 9)
     }
 
     func testBookFolder_firstFiveAreUserVisible() throws {

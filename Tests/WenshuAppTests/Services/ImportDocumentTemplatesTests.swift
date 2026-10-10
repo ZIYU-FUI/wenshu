@@ -31,15 +31,21 @@ import XCTest
 
 final class ImportDocumentTemplatesTests: XCTestCase {
 
-    /// The 5 import folders
+    /// The 6 import folders
     /// (= world / characters /
     /// outlines / chapters /
-    /// drafts) each map to a
-    /// template (= the 5 templates
-    /// are the canonical import
-    /// surface).
+    /// drafts / ideas) each
+    /// map to a template
+    /// (= the templates are
+    /// the canonical import
+    /// surface). The boss
+    /// 2026-10-10 round-60
+    /// added `ideas` (= 构思)
+    /// as a 6th import folder
+    /// for "loose settings +
+    /// future ideas".
     func test_allFiveFoldersHaveTemplate() {
-        let importFolders: [BookFolder] = [.world, .characters, .outlines, .chapters, .drafts]
+        let importFolders: [BookFolder] = [.world, .characters, .outlines, .chapters, .drafts, .ideas]
         for folder in importFolders {
             XCTAssertNotNil(
                 folder.importTemplate,
@@ -62,6 +68,123 @@ final class ImportDocumentTemplatesTests: XCTestCase {
                 "\(folder.rawValue) must not have an import template"
             )
         }
+    }
+
+    /// v2.7 round-60: drafts and
+    /// chapters templates are
+    /// structurally identical
+    /// (= the boss's "drafts/
+    /// 草稿和正文模版一
+    /// 致" directive; = the
+    /// only difference is the
+    /// 字数目标 line: drafts
+    /// = "状态：草稿",
+    /// chapters = "状态：定
+    /// 稿"; = the user can
+    /// move a file from
+    /// drafts/ to chapters/
+    /// without rewriting; =
+    /// the file is already
+    /// in the right shape).
+    /// We compare the section
+    /// heading sequence (split
+    /// on "## ") and assert
+    /// they're equal modulo
+    /// the status line.
+    func test_draftsAndChaptersTemplatesAreStructurallyIdentical() {
+        let chaptersSections = ImportDocumentTemplate.chapters.skeleton
+            .components(separatedBy: "## ")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        let draftsSections = ImportDocumentTemplate.drafts.skeleton
+            .components(separatedBy: "## ")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        // The drafts/chapters
+        // share the same
+        // ## headings; the
+        // 字数目标 line is
+        // the only diff
+        // (= "状态：草稿"
+        // vs "状态：定稿");
+        // = strip BOTH status
+        // values before
+        // comparison (= 草
+        // 稿 = 定稿; = they
+        // represent the
+        // same field at
+        // different points
+        // in the
+        // chapter's
+        // lifecycle).
+        let normalize: (String) -> String = { section in
+            section.replacingOccurrences(of: "状态：草稿", with: "")
+                     .replacingOccurrences(of: "状态：定稿", with: "")
+                     // Strip the "/ <status>" suffix
+                     // (= the word "草稿"
+                     // or "定稿" alone, with
+                     // any leading space and
+                     // slash). The drafts
+                     // skeleton has " /
+                     // 状态：草稿"; the
+                     // chapters skeleton
+                     // has " / 状态：定稿";
+                     // after the previous
+                     // "状态：xxx" replace,
+                     // a leading space +
+                     // "草稿" or "定稿"
+                     // may remain.
+                     .replacingOccurrences(of: " / 草稿", with: "")
+                     .replacingOccurrences(of: " / 定稿", with: "")
+                     .replacingOccurrences(of: "草稿", with: "")
+                     .replacingOccurrences(of: "定稿", with: "")
+                     // Collapse multiple
+                     // spaces + newlines.
+                     .replacingOccurrences(
+                        of: "  ",
+                        with: " "
+                     )
+                     .trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        XCTAssertEqual(
+            chaptersSections.map(normalize),
+            draftsSections.map(normalize),
+            "drafts and chapters must have identical section structure"
+        )
+    }
+
+    /// v2.7 round-60: ideas
+    /// template exists and is
+    /// distinct from drafts
+    /// (= ideas = "things that
+    /// might become X later";
+    /// = drafts = "this IS a
+    /// chapter but not
+    /// finalized"; = the
+    /// product rule "新文
+    /// 件夹构思，是
+    /// 一些零散的设
+    /// 定，和未来
+    /// 的一些想法
+    /// ，不是草稿").
+    func test_ideasTemplateIsDistinct() {
+        let ideasBody = ImportDocumentTemplate.ideas.skeleton
+        // Must contain 灵感来源
+        // (= where the idea came
+        // from) and 可能成为
+        // (= what it might become)
+        // = the two key
+        // differentiators.
+        XCTAssertTrue(ideasBody.contains("灵感来源"), "ideas missing 灵感来源")
+        XCTAssertTrue(ideasBody.contains("可能成为"), "ideas missing 可能成为")
+        // Must NOT contain the
+        // chapter-only "章节
+        // 目标" heading (= the
+        // idea is not yet a
+        // chapter; = a chapter
+        // body would be
+        // premature).
+        XCTAssertFalse(ideasBody.contains("章节目标"), "ideas should not have 章节目标")
     }
 
     /// Every template contains the

@@ -164,7 +164,7 @@
 
 import Foundation
 
-/// The 5 import document templates.
+/// The 6 import document templates.
 /// Each template is a markdown
 /// skeleton that the LLM
 /// produces content for (= the
@@ -179,6 +179,7 @@ enum ImportDocumentTemplate: String, CaseIterable, Sendable {
     case outlines
     case chapters
     case drafts
+    case ideas
 
     /// The markdown skeleton (= the
     /// LLM fills the body of each
@@ -197,6 +198,7 @@ enum ImportDocumentTemplate: String, CaseIterable, Sendable {
         case .outlines:   return Self.outlinesSkeleton
         case .chapters:   return Self.chaptersSkeleton
         case .drafts:     return Self.draftsSkeleton
+        case .ideas:      return Self.ideasSkeleton
         }
     }
 
@@ -491,54 +493,195 @@ enum ImportDocumentTemplate: String, CaseIterable, Sendable {
     // MARK: - Drafts template
 
     /// 草稿 (drafts/) template.
-    /// A drafts document is the
-    /// raw working area (= a
-    /// scratchpad for scenes,
-    /// ideas, fragments, scenes
-    /// that don't fit a chapter
-    /// yet; = the user can
-    /// re-organize drafts into
-    /// chapters/ later). This
-    /// is the most permissive
-    /// template (= the user is
-    /// encouraged to write freely;
-    /// = 4 mandatory sections; =
-    /// the 4th section "未来走向"
-    /// tells the LLM to think
-    /// about where the draft
-    /// might go; = the test
-    /// requires >= 4 sections to
-    /// keep the drafts template
-    /// structurally consistent
-    /// with the other 4).
+    /// v2.7 round-60 (= boss
+    /// 2026-10-10 "drafts/
+    /// 草稿和正文模版
+    /// 一至" + "Agent
+    /// 写的正文一律
+    /// 先进草稿. 由
+    /// 用户确认后进
+    /// 入正文" + "
+    /// 正式章节的
+    /// 内容，除了导
+    /// 入，草稿确认
+    /// 后的，Agent 不
+    /// 可以在里面新
+    /// 增内容"
+    /// directive). The
+    /// drafts template
+    /// is now structurally
+    /// identical to the
+    /// chapters template
+    /// (= the only
+    /// difference between
+    /// a draft and a
+    /// chapter is the
+    /// folder it lives
+    /// in; = a draft
+    /// becomes a chapter
+    /// when the user
+    /// right-clicks the
+    /// card and picks
+    /// "确定为正式章节"
+    /// (= the
+    /// `drafts/chapters`
+    /// folder becomes
+    /// `chapters/`; = the
+    /// status flips from
+    /// 草稿 to 定稿)).
+    /// Both templates
+    /// share the same
+    /// section structure
+    /// (= 章节目标 /
+    /// 主要事件 / 出场
+    /// 角色 / 伏笔 / 字
+    /// 数目标 + 正文);
+    /// = the user can
+    /// move a file from
+    /// drafts/ to
+    /// chapters/ without
+    /// any rewriting
+    /// (= the file is
+    /// already in the
+    /// correct shape; =
+    /// only the
+    /// folder + status
+    /// change). The
+    /// product rule
+    /// "Agent 写的正
+    /// 文一律先进草
+    /// 稿" means the
+    /// LLM router MUST
+    /// write to drafts/
+    /// (= not chapters/;
+    /// = this is enforced
+    /// in a separate
+    /// future commit;
+    /// = the template is
+    /// the structural
+    /// foundation).
     private static let draftsSkeleton = """
-    # <草稿标题>
+    # 第 <N> 章 <章节标题>
 
-    实体类型: <character | location | event | concept | other>
+    实体类型: event
     标签: <tag1>; <tag2>; <tag3>
-    摘要: <一句话中文摘要，描述这个草稿的核心想法>
+    摘要: <一句话中文摘要，描述本章发生什么>
 
-    ## 想法起源
+    ## 章节目标
 
-    <这个草稿是因为什么而写？不超过 100 字>
+    <本章要让读者知道/感受到什么？不超过 50 字>
 
-    ## 关键内容
+    ## 主要事件
 
-    <草稿的核心内容；可自由写>
+    <2-3 句：发生了什么；本章结束时与开始时有什么不同>
 
-    [TODO: 内容 = 需调研: <具体未知的细节>]
+    ## 出场角色
 
-    ## 未来走向
+    - <角色 A>（= A 在 characters/ 目录下有对应 .md）
+    - <角色 B>
+    - <新引入角色 C>[TODO: 角色 C = 需调研: <这个角色还没有正式 profile>]
 
-    <这个草稿可能成为哪个章节的一部分 / 哪个角色 / 哪段世界观？可省略>
+    ## 伏笔
+
+    - **埋设**: <本章埋下一个细节，指向未来章节>
+    - **兑现**: <本章兑现之前的某个伏笔，源自第 X 章>
+
+    ## 字数目标
+
+    <计划字数 / 实际字数 / 状态：草稿>
+
+    ---
+
+    <章节正文；按时间顺序的叙述；如果原文有正文，请尽量保留原内容>
+
+    """
+
+    // MARK: - Ideas template
+
+    /// 构思 (ideas/) template.
+    /// v2.7 round-60 (= boss
+    /// 2026-10-10 "需
+    /// 要加一个目录
+    /// ，放你现在的
+    /// 草稿，类似
+    /// 构思" + "新
+    /// 文件夹构思
+    /// ，是一些零
+    /// 散的设定，
+    /// 和未来的
+    /// 一些想法，
+    /// 不是草稿"
+    /// directive). The
+    /// ideas/ folder is
+    /// a scratchpad for
+    /// loose world-
+    /// building fragments
+    /// and future-story
+    /// ideas (= NOT a
+    /// draft; = the
+    /// distinction
+    /// between `ideas`
+    /// and `drafts` is:
+    /// `ideas` = "things
+    /// that MIGHT become
+    /// characters /
+    /// locations /
+    /// events / chapters
+    /// later, but I
+    /// don't know what
+    /// yet"; = `drafts` =
+    /// "this IS a chapter
+    /// but I haven't
+    /// finalized it yet";
+    /// = `chapters` = "I
+    /// confirmed this is
+    /// the final text").
+    /// The ideas template
+    /// is the lightest
+    /// template (= 4
+    /// sections; = no
+    /// chapter body; = no
+    /// character profile;
+    /// = just a quick
+    /// capture). The
+    /// `可能成为` section
+    /// (= "what it might
+    /// become") is the
+    /// key differentiator
+    /// (= forces the
+    /// user to commit to
+    /// a destination when
+    /// they promote the
+    /// idea to a folder;
+    /// = the user can
+    /// also leave it
+    /// blank if the
+    /// idea is too
+    /// unformed).
+    private static let ideasSkeleton = """
+    # <想法名>
+
+    实体类型: <character | location | event | concept | artifact | organization | era | work | other>
+    标签: <tag1>; <tag2>; <tag3>
+    摘要: <一句话中文摘要，描述这个想法的核心>
+
+    ## 灵感来源
+
+    <这个想法是因为什么而产生？读了什么 / 看了什么 / 想到了什么？不超过 100 字>
+
+    ## 当前形态
+
+    <现在这个想法是什么状态？一段话 / 几个关键词 / 一个场景？可省略>
+
+    [TODO: 当前形态 = 需调研: <这个想法还不够具体，需要更深入的研究或思考>]
+
+    ## 可能成为
+
+    <这个想法未来可能成为什么？character / location | event | chapter | outline | 世界观的一个子项？可省略>
 
     ## 备注
 
     <其他元数据、来源、研究笔记；可省略>
-
-    ---
-
-    <草稿正文；自由写；如果原文有内容，请尽量保留原内容>
 
     """
 }

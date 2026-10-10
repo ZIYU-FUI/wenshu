@@ -56,12 +56,57 @@ private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "previewpan
 // Sessions/foreshadowing/placeholders can still be reached via the
 // PreviewPane when the user picks them via API (= no UI yet for
 // picking non-sidebar folders; deferred to v0.31).
+//
+// v2.7 round-60 (= boss 2026-10-10
+// "看样需要加一个目录
+// ，放你现在的草稿
+// ，类似构思"
+// directive). The
+// `ideas` (= 构思)
+// case is added
+// (= 9 cases now;
+// = the 6 import
+// folders: world /
+// characters /
+// outlines /
+// chapters /
+// drafts / ideas;
+// = the 3
+// non-import
+// folders:
+// sessions /
+// foreshadowing /
+// placeholders).
+// `ideas/` is a
+// scratchpad for
+// loose world-
+// building fragments
+// and future-
+// story ideas (= the
+// boss's "零散的
+// 设定, 和未来
+// 的一些想法";
+// = NOT a draft
+// = `drafts/` is
+// for undecided
+// chapter content;
+// = `ideas/` is for
+// "things that
+// might become
+// characters /
+// locations /
+// events /
+// chapters later"
+// that don't fit
+// any specific
+// folder yet).
 enum BookFolder: String, CaseIterable, Codable, Sendable, Hashable {
     case world
     case characters
     case outlines
     case chapters
     case drafts
+    case ideas
     case sessions
     case foreshadowing
     case placeholders
@@ -102,6 +147,33 @@ enum BookFolder: String, CaseIterable, Codable, Sendable, Hashable {
     /// placeholders; =
     /// not in the import
     /// path yet).
+    ///
+    /// v2.7 round-60
+    /// (= boss 2026-10-10
+    /// "看样需要加一个
+    /// 目录，放你现在
+    /// 的草稿，类似
+    /// 构思" directive).
+    /// `ideas` (= 构思)
+    /// returns a light-
+    /// weight template
+    /// (= the boss's
+    /// "零散的设定
+    /// 和未来的一些
+    /// 想法"; = 4
+    /// sections only;
+    /// = the user uses
+    /// ideas/ to dump
+    /// fragments that
+    /// might become
+    /// characters /
+    /// locations /
+    /// events / chapters
+    /// later; = no full
+    /// chapter structure;
+    /// = no commitment to
+    /// any specific
+    /// type).
     var importTemplate: ImportDocumentTemplate? {
         switch self {
         case .world:      return .world
@@ -109,6 +181,7 @@ enum BookFolder: String, CaseIterable, Codable, Sendable, Hashable {
         case .outlines:   return .outlines
         case .chapters:   return .chapters
         case .drafts:     return .drafts
+        case .ideas:      return .ideas
         case .sessions, .foreshadowing, .placeholders:
             return nil
         }
