@@ -255,9 +255,20 @@ actor ImportService {
     /// pressure below the Anthropic / MiniMax
     /// per-second burst limit; = the LLMConnector
     /// adapter handles its own rate limiting for
-    /// the actual provider). The boss can retune
-    /// it in one place.
-    static let maxParallel = 5
+    /// v2.7 round-42 (= boss 2026-10-10
+    /// "多数用户的 LLM 并发不能太高"
+    /// directive). The historical
+    /// default was 5; = we kept
+    /// `defaultMaxParallel = 5` as a
+    /// reference (= the docs and the
+    /// `ImportTarget` Picker UI's max
+    /// = 5) but the actual cap is
+    /// `target.maxParallel` (= the
+    /// per-import user-picked value;
+    /// = the default ImportTarget init
+    /// defaults to 3; = the Picker
+    /// exposes 1..5).
+    static let defaultMaxParallel = 5
 
     /// Where the sidecar cache lives (= per-library;
     /// = `<wsRoot>/.import-cache/`; = deletable by the user
@@ -517,7 +528,7 @@ actor ImportService {
             // tasksBox.value but the snapshot the
             // sheet received was the STALE local
             // `tasks`).
-            while inFlight < Self.maxParallel, nextIndex < dispatchIndices.count {
+            while inFlight < target.maxParallel, nextIndex < dispatchIndices.count {
                 let i = dispatchIndices[nextIndex]
                 tasksBox.value[i].state = .routing
                 await onProgress?(tasksBox.value)
@@ -713,7 +724,7 @@ actor ImportService {
             var inFlight = 0
             var nextIndex = 0
             let dispatchIndices = retryIndices
-            while inFlight < Self.maxParallel, nextIndex < dispatchIndices.count {
+            while inFlight < target.maxParallel, nextIndex < dispatchIndices.count {
                 let i = dispatchIndices[nextIndex]
                 let siblingContext = contextByPath[tasks[i].sourcePath] ?? ""
                 let synthesizedBody = Self.titleOnlyBody(
@@ -1476,6 +1487,36 @@ struct ImportTarget: Sendable {
     /// the `web_search` tool loop).
     let rewriteMode: ImportFileInput.RewriteMode
 
+    /// v2.7 round-42 (= boss 2026-10-10
+    /// "多数用户的 LLM 并发不能太高，
+    /// 所以同时处理 5 个文件有可能
+    /// 会撞限流，要不慢一点就慢一点
+    /// ，加一个同时处理文件数量。1 2
+    /// 3 4 5，给五个选择。默认选3"
+    /// directive). The user-picked
+    /// parallelism for the 5-way
+    /// concurrent LLM dispatch loop.
+    /// Range: 1..5 (the boss's five
+    /// options; = the user picks
+    /// ONCE in the sheet). The LLM
+    /// provider's rate limit is the
+    /// upper bound (= 1 = most
+    /// conservative; = 5 = the
+    /// historical default). Boss's
+    /// default: 3 (= the middle
+    /// option; = a safe rate for
+    /// most LLM providers; = the
+    /// tradeoff between throughput
+    /// and rate-limit risk). The
+    /// orchestrator reads this in
+    /// `importFiles` and
+    /// `retryFailedTasksTitleOnly`
+    /// to size the TaskGroup's seed
+    /// + drain loop (= the in-flight
+    /// count is capped at
+    /// `target.maxParallel`).
+    let maxParallel: Int
+
     enum ImportTargetDestination: Sendable, Equatable {
         case book              // → LLM picks world/characters/outlines/chapters/drafts
         case referenceLibrary  // → everything lands in the reference library
@@ -1490,6 +1531,42 @@ struct ImportTarget: Sendable {
     /// powers the idempotent re-import).
     var cacheRoot: URL {
         wsRoot.appendingPathComponent(".import-cache")
+    }
+
+    /// v2.7 round-42: custom init that defaults
+    /// `maxParallel` to 3 (= the boss's "默认
+    /// 选3" directive). Synthesized memberwise
+    /// init would require every call site to
+    /// pass `maxParallel:` explicitly (= 5
+    /// call sites; = brittle to the next
+    /// `ImportTarget` field addition; = the
+    /// custom init keeps existing call sites
+    /// compiling).
+    init(
+        destination: ImportTargetDestination,
+        wsRoot: URL,
+        bookId: UUID?,
+        shelfId: UUID?,
+        referenceStore: any ReferenceStoring,
+        rewriteMode: ImportFileInput.RewriteMode,
+        maxParallel: Int = 3
+    ) {
+        // Clamp to the supported range (= 1..5;
+        // = the Picker UI exposes these five
+        // options; = the sheet's `maxParallel`
+        // `@State` is constrained to the
+        // same range; = out-of-range values
+        // (= 0 / 6 / negative) would cause the
+        // TaskGroup loop to either spin (5) or
+        // never seed (0); = the clamp is
+        // defensive).
+        self.destination = destination
+        self.wsRoot = wsRoot
+        self.bookId = bookId
+        self.shelfId = shelfId
+        self.referenceStore = referenceStore
+        self.rewriteMode = rewriteMode
+        self.maxParallel = Swift.max(1, Swift.min(5, maxParallel))
     }
 }
 

@@ -149,6 +149,35 @@ struct ImportSheet: View {
     /// shows one row per file).
     @State private var tasks: [ImportTask] = []
 
+    /// v2.7 round-42 (= boss 2026-10-10
+    /// "多数用户的 LLM 并发不能
+    /// 太高，所以同时处理 5
+    /// 个文件有可能会撞限流
+    /// ，要不慢一点就慢一点，
+    /// 加一个同时处理文件数
+    /// 量。1 2 3 4 5，给五
+    /// 个选择。默认选3"
+    /// directive). The user-picked
+    /// parallelism for the 5-way
+    /// concurrent LLM dispatch
+    /// loop. Range: 1..5 (= the
+    /// boss's five options). Default
+    /// 3 (= the middle option; = a
+    /// safe rate for most LLM
+    /// providers; = the tradeoff
+    /// between throughput and
+    /// rate-limit risk; = the
+    /// user can adjust to 1 if
+    /// they hit 429 from their
+    /// provider; = adjust to 5
+    /// for fast quota). The
+    /// Picker below exposes
+    /// 1..5 (= the user's UI
+    /// surface); = the
+    /// `ImportTarget` init clamps
+    /// to 1..5 defensively.
+    @State private var maxParallel: Int = 3
+
     /// Flipped while a batch is importing. Disables
     /// the pickers + the action button.
     @State private var isImporting: Bool = false
@@ -337,6 +366,35 @@ struct ImportSheet: View {
                     Picker("AI 重写程度", selection: $rewriteMode) {
                         ForEach(ImportFileInput.RewriteMode.allCases, id: \.self) { mode in
                             Text(mode.label).tag(mode)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .disabled(isImporting)
+                    // v2.7 round-42 (= boss
+                    // 2026-10-10 "多数用户的
+                    // LLM 并发不能太高" +
+                    // "加一个同时处理文件数
+                    // 量。1 2 3 4 5，给五
+                    // 个选择。默认选3"
+                    // directive). The
+                    // concurrency knob for
+                    // the 5-way LLM dispatch
+                    // loop (= 1..5; = the
+                    // boss's five options; =
+                    // 1 = most conservative
+                    // for rate-limited
+                    // providers; = 5 = the
+                    // historical default;
+                    // = 3 = the boss's
+                    // recommended default).
+                    // Picker is menu-style
+                    // (= matches the rewrite-
+                    // mode Picker above; =
+                    // consistent wenshu
+                    // sidebar UX).
+                    Picker("同时处理文件数", selection: $maxParallel) {
+                        ForEach(1...5, id: \.self) { n in
+                            Text("\(n)").tag(n)
                         }
                     }
                     .pickerStyle(.menu)
@@ -961,7 +1019,9 @@ struct ImportSheet: View {
                 referenceStore: FileSystemReferenceStore(
                     referenceLibraryRoot: libraryRoot().appendingPathComponent("reference-library")
                 ),
-                rewriteMode: rewriteMode
+                rewriteMode: rewriteMode,
+            maxParallel: maxParallel
+
             )
         case .book:
             guard let bookID = selectedBookID,
@@ -976,7 +1036,9 @@ struct ImportSheet: View {
                 referenceStore: FileSystemReferenceStore(
                     referenceLibraryRoot: libraryRoot().appendingPathComponent("reference-library")
                 ),
-                rewriteMode: rewriteMode
+                rewriteMode: rewriteMode,
+            maxParallel: maxParallel
+
             )
         }
         isImporting = true
@@ -1086,7 +1148,9 @@ struct ImportSheet: View {
                 referenceStore: FileSystemReferenceStore(
                     referenceLibraryRoot: libraryRoot().appendingPathComponent("reference-library")
                 ),
-                rewriteMode: rewriteMode
+                rewriteMode: rewriteMode,
+            maxParallel: maxParallel
+
             )
         case .book:
             guard let bookID = selectedBookID,
@@ -1101,7 +1165,9 @@ struct ImportSheet: View {
                 referenceStore: FileSystemReferenceStore(
                     referenceLibraryRoot: libraryRoot().appendingPathComponent("reference-library")
                 ),
-                rewriteMode: rewriteMode
+                rewriteMode: rewriteMode,
+            maxParallel: maxParallel
+
             )
         }
         isRetryingFailed = true
