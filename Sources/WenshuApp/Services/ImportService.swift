@@ -24,6 +24,7 @@
 
 import Foundation
 import CryptoKit
+import UniformTypeIdentifiers
 
 // MARK: - ImportRouter (the seam between ImportService and the LLM agent)
 
@@ -221,6 +222,48 @@ enum ImportFileType: String, CaseIterable, Identifiable, Codable, Sendable, Hash
         case .epub:     return ["epub"]
         case .pdf:      return ["pdf"]
         case .text:     return ["txt"]
+        }
+    }
+
+    /// v2.7 round-57: the
+    /// `UTType` array
+    /// used by
+    /// `NSOpenPanel.allowedContentTypes`
+    /// to filter the
+    /// file picker's
+    /// selectable
+    /// files (= the
+    /// Apple canonical
+    /// way to filter
+    /// an open panel
+    /// by content
+    /// type; = the
+    /// user sees only
+    /// the file types
+    /// the walker
+    /// understands; =
+    /// `UTType.text` is
+    /// the umbrella
+    /// for plain text
+    /// + markdown; =
+    /// `UTType.pdf` for
+    /// PDF; =
+    /// `UTType.epub` is
+    /// derived from
+    /// the EPUB
+    /// filename
+    /// extension).
+    var allowedContentTypes: [UTType] {
+        switch self {
+        case .markdown:
+            return [UTType(filenameExtension: "md") ?? .plainText,
+                    UTType(filenameExtension: "markdown") ?? .plainText]
+        case .epub:
+            return [UTType(filenameExtension: "epub") ?? .data]
+        case .pdf:
+            return [.pdf]
+        case .text:
+            return [.plainText, .text]
         }
     }
 }
@@ -1309,13 +1352,72 @@ actor ImportService {
     /// file type is a one-line change at the
     /// enum-definition site (= the orchestrator
     /// never hard-codes a single extension).
+    /// v2.7 round-57 (= boss
+    /// 2026-10-10 "现在
+    /// 有个问题, 我
+    /// 们只能选目
+    /// 录, 而不能
+    /// 选择单文件"
+    /// directive). The
+    /// walker now
+    /// accepts BOTH a
+    /// directory (= the
+    /// old behavior) AND
+    /// a single file (= a
+    /// file the user
+    /// picked directly
+    /// from the open
+    /// panel; = the
+    /// walker returns
+    /// just that one
+    /// file; = the
+    /// import pipeline
+    /// (= walk + dedup +
+    /// LLM + write)
+    /// is unchanged; =
+    /// the user can
+    /// pick a single
+    /// file OR a
+    /// directory; = the
+    /// orchestrator's
+    /// 5-way parallel
+    /// TaskGroup still
+    /// runs, but with
+    /// only 1 task).
     private func walkSourceDir(
-        _ sourceDir: URL,
+        _ source: URL,
         extensions: Set<String>
     ) -> [(path: String, url: URL)] {
         let fm = FileManager.default
+        // v2.7 round-57: if
+        // `source` is a
+        // regular file
+        // (= the user
+        // picked a
+        // single file
+        // from the open
+        // panel), return
+        // it directly
+        // (after
+        // validating the
+        // extension
+        // matches).
+        if let values = try? source.resourceValues(forKeys: [.isRegularFileKey, .isDirectoryKey]),
+           values.isRegularFile == true {
+            guard extensions.contains(source.pathExtension.lowercased()) else { return [] }
+            return [(source.path, source)]
+        }
+        // v2.7 round-57: the
+        // old walk =
+        // recursive
+        // enumerator. The
+        // caller can pass
+        // a directory; the
+        // walker recurses
+        // and filters by
+        // extension.
         guard let enumerator = fm.enumerator(
-            at: sourceDir,
+            at: source,
             includingPropertiesForKeys: [.isRegularFileKey, .nameKey],
             options: [.skipsHiddenFiles, .skipsPackageDescendants]
         ) else { return [] }

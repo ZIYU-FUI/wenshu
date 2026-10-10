@@ -804,14 +804,89 @@ struct ImportSheet: View {
         }
     }
 
-    /// Present the system open panel (= Apple HIG
-    /// canonical directory picker). Starts at the
-    /// last-used URL if any.
+    /// v2.7 round-57 (= boss 2026-10-10
+    /// "现在有个问题, 我
+    /// 们只能选目录, 而
+    /// 不能选择单文件"
+    /// directive). The
+    /// NSOpenPanel now
+    /// allows BOTH file
+    /// and directory
+    /// selection (= the
+    /// user can pick a
+    /// single .md file
+    /// OR a directory
+    /// of .md files;
+    /// = `canChooseFiles
+    /// = true` +
+    /// `canChooseDirectories
+    /// = true`); the
+    /// open panel's UI
+    /// shows a toggle
+    /// between "files"
+    /// and "folders"
+    /// (= the standard
+    /// macOS file
+    /// picker; = the
+    /// user picks
+    /// whichever the
+    /// workflow
+    /// requires).
+    /// The `allowsMultiple
+    /// Selection` flag
+    /// stays false (= a
+    /// single pick; = if
+    /// the user wants
+    /// multiple files,
+    /// they pick a
+    /// directory).
     private func pickSourceDirectory() {
         let panel = NSOpenPanel()
-        panel.canChooseFiles = false
+        // v2.7 round-57: both
+        // files and
+        // directories
+        // are selectable.
+        // `canChooseFiles`
+        // + `canChooseDirectories`
+        // both = true
+        // makes the
+        // system open
+        // panel show a
+        // toggle between
+        // "files" and
+        // "folders" mode.
+        panel.canChooseFiles = true
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = false
+        // v2.7 round-57: filter
+        // to the selected
+        // file type's
+        // extension (= the
+        // open panel
+        // shows .md files
+        // when the user
+        // picks Markdown;
+        // = the user
+        // can't accidentally
+        // pick a .pdf
+        // when they meant
+        // to import .md).
+        // UTType is
+        // Apple canonical
+        // (= a
+        // `UTType` array
+        // = the
+        // `allowedContentTypes`
+        // parameter on
+        // NSOpenPanel;
+        // = the system
+                // file picker
+                // uses it to
+                // filter the
+                // list of
+                // selectable
+                // files).
+        panel.allowedContentTypes = fileType.allowedContentTypes
         panel.prompt = "选择"
         if !lastSourceURLString.isEmpty {
             panel.directoryURL = URL(fileURLWithPath: lastSourceURLString)
