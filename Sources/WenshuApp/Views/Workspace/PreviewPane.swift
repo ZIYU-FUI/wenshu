@@ -517,6 +517,69 @@ struct PreviewPane: View {
     /// re-render = no I/O storm = no layout cycle).
     @State private var cachedShelfBooks: [UUID: [Book]] = [:]
 
+    /// v2.7 round-66 commit I (= boss
+    /// 2026-10-10 "两
+    /// 个
+    /// 卡
+    /// 片
+    /// 右
+    /// 键
+    /// 删
+    /// 除
+    /// ，
+    /// 删
+    /// 除
+    /// 成
+    /// 功
+    /// 后
+    /// ，
+    /// 目
+    /// 录
+    /// 树
+    /// 没
+    /// 有
+    /// 刷
+    /// 新
+    /// "
+    /// feedback).
+    /// A monotonically-
+    /// increasing tick
+    /// that bumps
+    /// whenever
+    /// `wenshuLibraryDidChange`
+    /// fires. The
+    /// card-grid view
+    /// depends on
+    /// this tick
+    /// (= the @State
+    /// change forces
+    /// SwiftUI to
+    /// re-evaluate
+    /// the body;
+    /// = the `loadBookDocs`
+    /// walk runs
+    /// again; = the
+    /// deleted card
+    /// disappears).
+    /// Without this
+    /// tick, the
+    /// card grid
+    /// would not
+    /// notice the FS
+    /// change (= the
+    /// `loadBookDocs`
+    /// call is inside
+    /// a ViewBuilder
+    /// body; = the
+    /// body's inputs
+    /// don't change
+    /// when the FS
+    /// changes; =
+    /// SwiftUI doesn't
+    /// re-render the
+    /// grid).
+    @State private var libraryChangeTick: Int = 0
+
     /// scope of documents to display. Driven by
     /// sidebar selection (= WorkspaceView computes from sidebarSelection).
     let scope: PreviewScope
@@ -715,6 +778,7 @@ struct PreviewPane: View {
     // 350 PT = stays in 2-column mode.
     static let twoColumnBreakpoint: CGFloat = 350
 
+    @ViewBuilder
     var body: some View {
         // (see OOB.md #2026-09-07) — 'yes, top bar, search can editor, yes':
         // the search bar
@@ -1125,6 +1189,9 @@ struct PreviewPane: View {
             .padding(.horizontal, DesignTokens.spacingModerate)
             .padding(.bottom, DesignTokens.spacingStandard)
                 }
+            .onReceive(NotificationCenter.default.publisher(for: .wenshuLibraryDidChange)) { _ in
+                libraryChangeTick &+= 1
+            }
             // Cards fade in on sidebar tap (= no-flicker-stutter,
             // scope-switch entry animation). 2026-09-24 followup
             // No visible animation: the original approach
@@ -1149,7 +1216,7 @@ struct PreviewPane: View {
             // Scale 0.96 + opacity over 220 ms = the Apple Photos
             // library-day navigation feel (= the reference for
             // the entry transition).
-            .animation(.smooth(duration: 0.22), value: scope)
+        .animation(.smooth(duration: 0.22), value: scope)
             // v2.7 round-64: the
             // right-click
             // "重命名"
@@ -1274,6 +1341,70 @@ struct PreviewPane: View {
                         }
                         cardPendingDelete = nil
                         Task { await ensureCardService().reload() }
+                        // v2.7 round-66 commit I (= boss
+                        // 2026-10-10 "两
+                        // 个
+                        // 卡
+                        // 片
+                        // 右
+                        // 键
+                        // 删
+                        // 除
+                        // ，
+                        // 删
+                        // 除
+                        // 成
+                        // 功
+                        // 后
+                        // ，
+                        // 目
+                        // 录
+                        // 树
+                        // 没
+                        // 有
+                        // 刷
+                        // 新
+                        // "
+                        // feedback):
+                        // post the
+                        // canonical
+                        // library
+                        // change
+                        // notification
+                        // (= same
+                        // notification
+                        // ImportSheet
+                        // posts after
+                        // a successful
+                        // import;
+                        // = AppleSidebarView
+                        // observes
+                        // this and
+                        // reloads its
+                        // tree; =
+                        // PreviewPane's
+                        // card grid
+                        // also
+                        // re-evaluates
+                        // because
+                        // the
+                        // notification
+                        // carries a
+                        // timestamp
+                        // change that
+                        // SwiftUI
+                        // treats as a
+                        // new body
+                        // input; = the
+                        // user sees
+                        // the deleted
+                        // card
+                        // disappear
+                        // immediately).
+                        NotificationCenter.default.post(
+                            name: .wenshuLibraryDidChange,
+                            object: nil
+                        )
                     } catch {
                         wenshuLogger.info("[wenshu.preview] delete failed: \(String(describing: error))")
                         cardPendingDelete = nil
@@ -1288,7 +1419,7 @@ struct PreviewPane: View {
             }
         }
 
-    /// 
+    ///
     /// preview-pane search bar (= 30 PT tall, = matches
     /// `LayoutTokens.toolbarHeight` = the editor's pencil/arrow toolbar
     /// inside EditorView). Pattern matches the editor:
@@ -1345,6 +1476,28 @@ struct PreviewPane: View {
     /// just that folder.
     @ViewBuilder
     private func bookScopeView(bookId: UUID, folderName: String?) -> some View {
+        // v2.7 round-66 commit I:
+        // the `libraryChangeTick`
+        // `@State` is read in
+        // the body's
+        // `.onReceive` (= the
+        // parent's body
+        // re-evaluates when
+        // the tick changes;
+        // = this view is
+        // re-instantiated as
+        // part of the body
+        // re-render; = the
+        // `loadBookDocs`
+        // call below
+        // re-walks the
+        // FS; = the deleted
+        // card disappears).
+        // No explicit read
+        // needed here (= the
+        // body's
+        // re-evaluation is
+        // enough).
         let allDocs = loadBookDocs(bookId: bookId, folderName: folderName)
         // Search-field padding rationale:
         // actually filter the cards' (= typing in the search field did not
@@ -1380,6 +1533,18 @@ struct PreviewPane: View {
     /// to books whose `shelfId == shelfId`).
     @ViewBuilder
     private func shelfScopeView(shelfId: UUID) -> some View {
+        // v2.7 round-66 commit I:
+        // see the comment
+        // on
+        // `bookScopeView` (=
+        // the body's
+        // `.onReceive` reads
+        // the
+        // `libraryChangeTick`
+        // @State;
+        // = no explicit
+        // read needed
+        // here).
         // Stable-id root-cause fix:
         // the v1.69n original ran FileManager I/O (= walk
         // shelves tree + read every .md) inside this ViewBuilder

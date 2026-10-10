@@ -1766,23 +1766,89 @@ extension ImportSheet {
                 // shows a
                 // compact
                 // dropdown).
-                if selectedBookID != nil {
-                    PickerRow {
-                        Text("目标目录")
-                            .foregroundStyle(.primary)
-                    } trailing: {
-                        Picker("目标目录", selection: $selectedBookFolder) {
-                            Text("请选择目录").tag(BookFolder?.none)
-                            ForEach(BookFolder.allCases, id: \.self) { folder in
-                                if folder.importTemplate != nil {
-                                    Text(folder.displayName).tag(Optional(folder))
-                                }
+                // v2.7 round-66 commit C+1 (= boss
+                // 2026-10-10 "这
+                // 个选择
+                // 目录
+                // 的，
+                // 不用
+                // 选书
+                // 后
+                // 再
+                // 显
+                // 示，
+                // 就
+                // 长
+                // 显
+                // 就
+                // 可
+                // 以
+                // 了"
+                // feedback).
+                // The 2nd-level
+                // folder
+                // Picker is
+                // now ALWAYS
+                // shown when
+                // `importDestination
+                // == .book` (=
+                // no
+                // conditional
+                // on
+                // `selectedBookID
+                // != nil`;
+                // = the user
+                // sees the
+                // folder
+                // picker
+                // immediately
+                // when they
+                // pick
+                // "导入到书";
+                // = the Picker
+                // is disabled
+                // (greyed out)
+                // until a
+                // book is
+                // selected
+                // for the
+                // Picker to
+                // make sense
+                // visually;
+                // = but the
+                // row itself is
+                // always
+                // there so
+                // the user
+                // doesn't
+                // see the
+                // layout
+                // jump when
+                // they pick
+                // a book).
+                // The same row
+                // format as
+                // 目标书籍 (=
+                // PickerRow +
+                // .menu
+                // picker;
+                // = visually
+                // consistent).
+                PickerRow {
+                    Text("目标目录")
+                        .foregroundStyle(.primary)
+                } trailing: {
+                    Picker("目标目录", selection: $selectedBookFolder) {
+                        Text("请选择目录").tag(BookFolder?.none)
+                        ForEach(BookFolder.allCases, id: \.self) { folder in
+                            if folder.importTemplate != nil {
+                                Text(folder.displayName).tag(Optional(folder))
                             }
                         }
-                        .pickerStyle(.menu)
-                        .labelsHidden()
-                        .disabled(isImporting)
                     }
+                    .pickerStyle(.menu)
+                    .labelsHidden()
+                    .disabled(isImporting || selectedBookID == nil)
                 }
             }
 

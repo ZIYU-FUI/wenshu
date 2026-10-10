@@ -695,6 +695,52 @@ struct AppleSidebarView: View {
                     }
                     pendingDelete = nil
                     Task { await service?.reload() }
+                    // v2.7 round-66 commit I (= boss
+                    // 2026-10-10 "两
+                    // 个
+                    // 卡
+                    // 片
+                    // 右
+                    // 键
+                    // 删
+                    // 除
+                    // ，
+                    // 删
+                    // 除
+                    // 成
+                    // 功
+                    // 后
+                    // ，
+                    // 目
+                    // 录
+                    // 树
+                    // 没
+                    // 有
+                    // 刷
+                    // 新
+                    // "
+                    // feedback).
+                    // Post the
+                    // canonical
+                    // library
+                    // change
+                    // notification
+                    // so the
+                    // PreviewPane
+                    // card grid
+                    // re-evaluates
+                    // (= the
+                    // card grid
+                    // re-walks
+                    // the FS;
+                    // = the
+                    // deleted
+                    // card
+                    // disappears).
+                    NotificationCenter.default.post(
+                        name: .wenshuLibraryDidChange,
+                        object: nil
+                    )
                 } catch {
                     wenshuLogger.info("[wenshu.sidebar] delete failed: \(String(describing: error))")
                     pendingDelete = nil
