@@ -936,6 +936,159 @@ extension SidebarService {
         return all.filter { $0.id != id }.map { $0.title }
     }
 
+    // MARK: v2.7 round-65b: bookDoc (= one .md file in a
+    // book folder) rename / delete / duplicate-name helpers.
+    // The right-click context menu on the workspace card
+    // grid now also fires for `.bookDoc` cards (= the boss
+    // 2026-10-10 "你把书的加上就行了" directive). The methods
+    // mirror the reference shape (= delegate to the file
+    // system under the books root; = the sidebar's reference
+    // store path is `reference-library/`; = the bookDoc path
+    // is `shelves/<shelf-uuid>/books/<book-uuid>/<folder>/<file>.md`).
+    //
+    // The `BookDoc.id` is a UUID v5 derived from
+    // `(bookId, folderName, fileName)` (= stable across
+    // re-evaluations of the same .md file). To act on a doc
+    // by id, the service walks the shelves root to find
+    // which `(bookId, folderName, fileName)` triple
+    // produces that id (= matches the same hash function
+    // used at load time).
+
+    /// Walk the shelves root and resolve a `BookDoc.id` to
+    /// its on-disk file URL. Returns `nil` if the file is
+    /// not found (= deleted concurrently; = the user
+    /// sees the rename / delete action silently no-op with
+    /// a `wenshuLogger.info`).
+    func findBookDocFile(id: UUID) -> URL? {
+        guard let bookStore else { return nil }
+        let shelvesRoot = bookStore.stores.shelvesRoot
+        guard FileManager.default.fileExists(atPath: shelvesRoot.path) else {
+            return nil
+        }
+        let shelfDirs = (try? FileManager.default.contentsOfDirectory(
+            at: shelvesRoot,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        )) ?? []
+        for shelfDir in shelfDirs {
+            let booksDir = shelfDir.appendingPathComponent("books")
+            guard FileManager.default.fileExists(atPath: booksDir.path) else { continue }
+            let bookDirs = (try? FileManager.default.contentsOfDirectory(
+                at: booksDir,
+                includingPropertiesForKeys: nil,
+                options: [.skipsHiddenFiles]
+            )) ?? []
+            for bookDir in bookDirs {
+                let folderDirs = (try? FileManager.default.contentsOfDirectory(
+                    at: bookDir,
+                    includingPropertiesForKeys: nil,
+                    options: [.skipsHiddenFiles]
+                )) ?? []
+                for folderDir in folderDirs {
+                    let mdFiles = (try? FileManager.default.contentsOfDirectory(
+                        at: folderDir,
+                        includingPropertiesForKeys: nil,
+                        options: [.skipsHiddenFiles]
+                    )) ?? []
+                    for mdFile in mdFiles where mdFile.pathExtension == "md" {
+                        let bookId = UUID(uuidString: bookDir.lastPathComponent) ?? UUID()
+                        let folderName = folderDir.lastPathComponent
+                        let fileName = mdFile.lastPathComponent
+                        let candidate = PreviewPane.stableBookDocId(
+                            bookId: bookId,
+                            folderName: folderName,
+                            fileName: fileName
+                        )
+                        if candidate == id {
+                            return mdFile
+                        }
+                    }
+                }
+            }
+        }
+        return nil
+    }
+
+    /// Rename a book doc's .md file on disk (= the
+    /// new filename = `<newTitle>.md`; = the file's
+    /// H1 heading is also rewritten from `# <oldTitle>`
+    /// to `# <newTitle>` so the in-file title stays in
+    /// sync with the filename). Throws if the file is
+    /// not found OR the new name is empty / contains
+    /// invalid path characters.
+    func renameBookDoc(id: UUID, newTitle: String) throws {
+        guard let url = findBookDocFile(id: id) else {
+            throw MutationError.bookNotFound
+        }
+        let trimmed = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { throw MutationError.duplicateName("") }
+        guard !trimmed.contains("/") && !trimmed.contains(":") else {
+            throw MutationError.duplicateName(trimmed)
+        }
+        let newURL = url.deletingLastPathComponent()
+            .appendingPathComponent(trimmed + ".md")
+        if FileManager.default.fileExists(atPath: newURL.path) {
+            throw MutationError.duplicateName(trimmed)
+        }
+        // Read current body, rewrite H1 heading if present, then write to new path.
+        let body = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+        let oldTitle = url.deletingPathExtension().lastPathComponent
+        let updatedBody = Self.rewriteH1(in: body, from: oldTitle, to: trimmed)
+        try? FileManager.default.removeItem(at: url)
+        try updatedBody.write(to: newURL, atomically: true, encoding: .utf8)
+        sidebarLogger.info("[wenshu.bookdoc] renamed: \(url.lastPathComponent) -> \(newURL.lastPathComponent)")
+    }
+
+    /// Helper: rewrite the file's H1 heading (= the first
+    /// non-blank line in the file, if it starts with `# `)
+    /// from `oldTitle` to `newTitle`. If the H1 doesn't
+    /// match, the body is returned unchanged.
+    static func rewriteH1(in body: String, from oldTitle: String, to newTitle: String) -> String {
+        let lines = body.components(separatedBy: "\n")
+        var found = false
+        var updated: [String] = []
+        for line in lines {
+            if !found, line.hasPrefix("# "), line.dropFirst(2).trimmingCharacters(in: .whitespaces) == oldTitle {
+                updated.append("# \(newTitle)")
+                found = true
+            } else {
+                updated.append(line)
+            }
+        }
+        return updated.joined(separator: "\n")
+    }
+
+    /// Delete a book doc's .md file from disk (= the
+    /// file IS the entire book doc; = no separate index
+    /// entry to remove; = the file deletion is the
+    /// complete delete). Throws if the file is not
+    /// found.
+    func deleteBookDoc(id: UUID) throws {
+        guard let url = findBookDocFile(id: id) else {
+            throw MutationError.bookNotFound
+        }
+        try FileManager.default.removeItem(at: url)
+        sidebarLogger.info("[wenshu.bookdoc] deleted: \(url.lastPathComponent)")
+    }
+
+    /// List of other book doc titles in the SAME folder
+    /// (= the duplicate-name check for the rename sheet;
+    /// = the user shouldn't be able to rename a doc to a
+    /// name that already exists in the same folder).
+    /// Returns empty array if the doc is not found.
+    func otherBookDocTitles(excluding id: UUID) -> [String] {
+        guard let url = findBookDocFile(id: id) else { return [] }
+        let folder = url.deletingLastPathComponent()
+        let entries = (try? FileManager.default.contentsOfDirectory(
+            at: folder,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        )) ?? []
+        return entries
+            .filter { $0.pathExtension == "md" && $0 != url }
+            .map { $0.deletingPathExtension().lastPathComponent }
+    }
+
     // MARK: v1.69y: picker / state query helpers (= consumed by
     // AppleSidebarView when presenting NewBookSheet /
     // RenameItemSheet; = pure reads of the current SidebarService

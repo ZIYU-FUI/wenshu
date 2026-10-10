@@ -584,6 +584,40 @@ struct AppleSidebarView: View {
                             try service?.renameBook(id: target.itemId, newTitle: newName)
                         case .reference:
                             try service?.renameReference(id: target.itemId, newTitle: newName)
+                        case .bookDoc:
+                            // v2.7 round-65b: the
+                            // sidebar's own
+                            // rename / delete
+                            // dispatch
+                            // also gains a
+                            // `.bookDoc`
+                            // case (=
+                            // the same
+                            // SidebarService
+                            // methods
+                            // used by
+                            // PreviewPane's
+                            // right-click
+                            // menu on
+                            // bookDoc
+                            // cards; = the
+                            // sidebar
+                            // doesn't
+                            // currently
+                            // render
+                            // bookDoc
+                            // rows but the
+                            // exhaustive
+                            // switch must
+                            // cover the
+                            // case for
+                            // future
+                            // tickets that
+                            // may surface
+                            // a bookDoc
+                            // sidebar
+                            // entry).
+                            try service?.renameBookDoc(id: target.itemId, newTitle: newName)
                         }
                         renaming = nil
                         Task { await service?.reload() }
@@ -639,6 +673,25 @@ struct AppleSidebarView: View {
                         // the
                         // tree.
                         try service?.deleteReference(id: target.itemId)
+                    case .bookDoc:
+                        // v2.7 round-65b:
+                        // the
+                        // sidebar's
+                        // own
+                        // delete
+                        // dispatch
+                        // also
+                        // gains a
+                        // `.bookDoc`
+                        // case
+                        // (= same
+                        // SidebarService
+                        // method
+                        // used by
+                        // PreviewPane's
+                        // right-click
+                        // menu).
+                        try service?.deleteBookDoc(id: target.itemId)
                     }
                     pendingDelete = nil
                     Task { await service?.reload() }
@@ -697,6 +750,24 @@ struct AppleSidebarView: View {
             return service?.otherBookTitles(excluding: target.itemId) ?? []
         case .reference:
             return service?.otherReferenceTitles(excluding: target.itemId) ?? []
+        case .bookDoc:
+            // v2.7 round-65b: the
+            // sidebar's
+            // own
+            // otherNames
+            // dispatch
+            // also
+            // gains a
+            // `.bookDoc`
+            // case
+            // (= same
+            // SidebarService
+            // method
+            // used by
+            // PreviewPane's
+            // rename
+            // sheet).
+            return service?.otherBookDocTitles(excluding: target.itemId) ?? []
         }
     }
 

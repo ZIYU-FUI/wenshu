@@ -54,7 +54,7 @@ import UniformTypeIdentifiers
 /// `PendingDelete` (= same shape; = Identifiable so
 /// `.alert(item:)` presents by id).
 struct SidebarPendingDelete: Identifiable, Equatable {
-    enum Kind: Equatable { case shelf, book, reference }
+    enum Kind: Equatable { case shelf, book, reference, bookDoc }
     let kind: Kind
     let itemId: UUID
     let itemName: String
@@ -67,7 +67,7 @@ struct SidebarPendingDelete: Identifiable, Equatable {
 /// `RenameItemSheet` (= a focused single-field sheet with
 /// validation = duplicate name check + reserved name check).
 struct SidebarRenamingTarget: Identifiable, Equatable {
-    enum Kind: Equatable { case shelf, book, reference }
+    enum Kind: Equatable { case shelf, book, reference, bookDoc }
     let kind: Kind
     let itemId: UUID
     let originalName: String

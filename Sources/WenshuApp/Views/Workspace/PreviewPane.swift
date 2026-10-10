@@ -1190,14 +1190,18 @@ struct PreviewPane: View {
                     originalName: target.originalName,
                     otherNames: target.kind == .reference
                         ? (ensureCardService().otherReferenceTitles(excluding: target.itemId))
-                        : (target.kind == .shelf
-                            ? ensureCardService().otherShelfNames(excluding: target.itemId)
-                            : ensureCardService().otherBookTitles(excluding: target.itemId)),
+                        : (target.kind == .bookDoc
+                            ? ensureCardService().otherBookDocTitles(excluding: target.itemId)
+                            : (target.kind == .shelf
+                                ? ensureCardService().otherShelfNames(excluding: target.itemId)
+                                : ensureCardService().otherBookTitles(excluding: target.itemId))),
                     onSave: { newName in
                         do {
                             switch target.kind {
                             case .reference:
                                 try ensureCardService().renameReference(id: target.itemId, newTitle: newName)
+                            case .bookDoc:
+                                try ensureCardService().renameBookDoc(id: target.itemId, newTitle: newName)
                             case .shelf:
                                 try ensureCardService().renameShelf(id: target.itemId, newName: newName)
                             case .book:
@@ -1261,6 +1265,8 @@ struct PreviewPane: View {
                         switch target.kind {
                         case .reference:
                             try ensureCardService().deleteReference(id: target.itemId)
+                        case .bookDoc:
+                            try ensureCardService().deleteBookDoc(id: target.itemId)
                         case .shelf:
                             try ensureCardService().deleteShelf(id: target.itemId)
                         case .book:
@@ -1762,7 +1768,7 @@ struct PreviewPane: View {
         )
     }
 
-    /// v2.7 round-64: begin
+    /// v2.7 round-65b: begin
     /// the delete flow
     /// for a single
     /// reference card (=
@@ -1780,6 +1786,75 @@ struct PreviewPane: View {
             kind: .reference,
             itemId: entity.id,
             itemName: entity.title
+        )
+    }
+
+    /// v2.7 round-65b: begin
+    /// the rename flow
+    /// for a single
+    /// book doc card (=
+    /// set
+    /// `cardRenaming` to
+    /// a `.bookDoc`
+    /// target). Mirrors
+    /// the reference
+    /// helper (= the
+    /// rename sheet's
+    /// `.bookDoc` case
+    /// shows the file's
+    /// current title
+    /// + uses
+    /// `otherBookDocTitles`
+    /// for the duplicate
+    /// check; = the
+    /// underlying
+    /// service method
+    /// `renameBookDoc`
+    /// updates the .md
+    /// file's filename
+    /// + content
+    /// heading).
+    private func beginBookDocRename(_ doc: BookDoc) {
+        cardRenaming = SidebarRenamingTarget(
+            kind: .bookDoc,
+            itemId: doc.id,
+            originalName: doc.title,
+            shelfId: nil
+        )
+    }
+
+    /// v2.7 round-65b: begin
+    /// the delete flow
+    /// for a single
+    /// book doc card (=
+    /// set
+    /// `cardPendingDelete`
+    /// to a `.bookDoc`
+    /// target). The
+    /// delete alert
+    /// shows the
+    /// file's title
+    /// + a destructive
+    /// confirm button.
+    /// The underlying
+    /// `deleteBookDoc`
+    /// service method
+    /// removes the .md
+    /// file from
+    /// disk (= the
+    /// book doc is
+    /// JUST a file; =
+    /// no entities.json
+    /// index entry to
+    /// remove; = the
+    /// file deletion
+    /// IS the complete
+    /// delete).
+    private func beginBookDocDelete(_ doc: BookDoc) {
+        cardPendingDelete = SidebarPendingDelete(
+            kind: .bookDoc,
+            itemId: doc.id,
+            itemName: doc.title
         )
     }
 
@@ -1860,8 +1935,8 @@ struct PreviewPane: View {
                             onDoubleClick: { source in
                                 onDoubleClick(source)
                             },
-                            onRename: { /* bookDoc rename = future ticket */ },
-                            onDelete: { /* bookDoc delete = future ticket */ }
+                            onRename: { beginBookDocRename(doc) },
+                            onDelete: { beginBookDocDelete(doc) }
                         )
                         // per-card transition (= see
                         // categoryGrid comment for rationale).
@@ -2307,8 +2382,129 @@ private struct Card: View {
         // cards per the
         // boss's "素材
         // 区" wording).
+        // v2.7 round-65b: the
+        // right-click
+        // context menu on
+        // the card. The
+        // menu shows
+        // for BOTH
+        // `.reference`
+        // AND
+        // `.bookDoc`
+        // sources (=
+        // the boss
+        // 2026-10-10
+        // "资料
+        // 库
+        // 的
+        // 卡
+        // 片
+        // 已
+        // 经
+        // 实
+        // 现
+        // 了
+        // 右
+        // 键
+        // 菜
+        // 单
+        // ，
+        // 但
+        // 十
+        // 二
+        // 地
+        // 仙
+        // 书
+        // 的
+        // 卡
+        // 片
+        // 没
+        // 有
+        // 生
+        // 效
+        // ，
+        // 应
+        // 该
+        // 不
+        // 是
+        // 同
+        // 一
+        // 个
+        // 卡
+        // 片
+        // 控
+        // 件
+        // ，
+        // 你
+        // 把
+        // 书
+        // 的
+        // 加
+        // 上
+        // 就
+        // 行
+        // 了
+        // "
+        // directive;
+        // = the
+        // round-64
+        // conditional
+        // was
+        // `if case
+        // .reference =
+        // source`
+        // which
+        // made the
+        // contextMenu
+        // empty for
+        // bookDoc
+        // cards
+        // (= the
+        // macOS
+        // 14+ List
+        // first-
+        // click bug
+        // doesn't
+        // apply
+        // because
+        // the Card
+        // is in a
+        // LazyVGrid,
+        // NOT a List
+        // row; = the
+        // menu just
+        // didn't
+        // show
+        // because
+        // the items
+        // array was
+        // empty).
+        // The
+        // contextMenu
+        // is
+        // always
+        // attached
+        // (=
+        // unconditional);
+        // the items
+        // list
+        // varies by
+        // source
+        // case.
         .contextMenu {
-            if case .reference = source {
+            switch source {
+            case .reference:
+                Button(String(localized: "sidebar_context_menu_rename")) {
+                    onRename()
+                }
+                Divider()
+                Button(
+                    String(localized: "sidebar_context_menu_delete"),
+                    role: .destructive
+                ) {
+                    onDelete()
+                }
+            case .bookDoc:
                 Button(String(localized: "sidebar_context_menu_rename")) {
                     onRename()
                 }
