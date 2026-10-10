@@ -307,6 +307,36 @@ struct ExtraFile: Codable, Sendable, Hashable {
     /// write time; = no frontmatter
     /// required).
     let body: String
+    /// v2.7 round-69 (= boss 2026-10-10
+    /// "6 份必填, 其它不在
+    /// 6 份里的, 可以自
+    /// 定义名字" feedback).
+    /// True = this is one of
+    /// the 6 mandatory
+    /// world/ sub-files
+    /// (= filename = H2
+    /// title, = wenshu
+    /// canonical). False
+    /// = this is a custom
+    /// world/ file (= LLM
+    /// chose the title =
+    /// e.g. "十二生肖原
+    /// 型" / "元炁体系"
+    /// / "时间线" etc.;
+    /// = "约等于备注" per
+    /// boss; = no fixed
+    /// filename, = LLM
+    /// names them
+    /// freely). The 6
+    /// mandatory ones
+    /// always get priority
+    /// in the orchestrator
+    /// (= if the LLM
+    /// returns 11+
+    /// elements, we keep
+    /// the first 6 required
+    /// + up to 5 custom).
+    let required: Bool
 }
 
 /// v2.7 round-66 commit F (= boss
