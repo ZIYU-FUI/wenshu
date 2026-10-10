@@ -1335,7 +1335,7 @@ extension ImportSheet {
                             .help(url.path)
                             .textSelection(.enabled)
                     } else {
-                        Text("选择一个包含 .md 文件的目录")
+                        Text(fileType.placeholderHint)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
                     }

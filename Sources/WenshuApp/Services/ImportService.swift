@@ -119,7 +119,72 @@ enum ImportFileType: String, CaseIterable, Identifiable, Codable, Sendable, Hash
         }
     }
 
-    /// `true` when the v2.7 orchestrator can
+    /// v2.7 round-54 (= boss 2026-10-10
+    /// "这个提示文字没有根
+    /// 据上面选的文件类型变
+    /// 化, 可以先把提示做
+    /// 完整" directive). The
+    /// placeholder hint for
+    /// the 源目录 row (= "选
+    /// 择一个包含 .X 文件
+    /// 的目录" where X
+    /// matches the user's
+    /// selected file type).
+    /// The previous
+    /// implementation
+    /// hardcoded ".md" in
+    /// the source row's
+    /// `Text` (= the
+    /// placeholder was
+    /// wrong when the
+    /// user picked PDF
+    /// / EPUB / text;
+    /// = the user sees
+    /// a stale hint
+    /// that doesn't
+    /// match the file
+    /// type they just
+    /// selected; = the
+    /// boss's exact
+    /// critique).
+    /// Each file type
+    /// gets a hint that
+    /// matches its file
+    /// extension + a
+    /// concise Chinese
+    /// description.
+    var placeholderHint: String {
+        switch self {
+        case .markdown: return "选择一个包含 .md 文件的目录"
+        case .epub:     return "选择一个包含 .epub 电子书的目录"
+        case .pdf:      return "选择一个包含 .pdf 文件的目录"
+        case .text:     return "选择一个包含 .txt 文件的目录"
+        }
+    }
+
+    /// v2.7 round-54: the file
+    /// extension list (= what
+    /// `walkSourceDir` filters on;
+    /// = the placeholder + the
+    /// walker agree on the same
+    /// extension list; = the user
+    /// can't pick a PDF when the
+    /// walker only knows .md).
+    /// Returns a small set of
+    /// extensions; = e.g. for
+    /// .epub = ["epub"]; = for
+    /// .markdown = ["md",
+    /// "markdown"]; = the walker
+    /// is case-insensitive
+    /// (`FileManager.enumerator`
+    /// normalizes the
+    /// comparison; = the user
+    /// can have
+    /// `Notes.MD` /
+    /// `Notes.Md` / `Notes.md`
+    /// and they all get
+    /// walked).
+    ///  when the v2.7 orchestrator can
     /// import this file type end-to-end (= the
     /// walker + writer both understand it; = a
     /// false value means the picker row renders
