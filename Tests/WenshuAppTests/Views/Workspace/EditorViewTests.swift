@@ -147,14 +147,16 @@ struct EditorViewTests {
         let endOfStruct = section.range(of: "struct EditorPaperCanvas")?.lowerBound
             ?? section.endIndex
         let editorPlaceholderSection = String(section[..<endOfStruct])
-        // Per v1.0.0-m1-shell boss 2026-09-10 OOB: the editor top bar =
-        // Safari-style tab strip ONLY (= no formatting toolbar).
+        // v2.x editor-tab-strip-spec (-v1.0.0-m1 OOB): the editor top bar =
+        // Safari-style multi-tab strip rendered through EditorTabStrip (=
+        // the new self-written SwiftUI component). Replaces the v1.73
+        // ad-hoc HStack that showed only the active tab.
         #expect(editorPlaceholderSection.contains("VStack(spacing: 0) {"),
                 "EditorView body must wrap tab strip + content in VStack(spacing: 0)")
-        #expect(editorPlaceholderSection.contains("HStack(spacing: 0)"),
-                "EditorView body must render tab strip with HStack(spacing: 0)")
-        #expect(editorPlaceholderSection.contains("if let active = appState.openTabs.first"),
-                "EditorView body must locate the active tab via openTabs.first(= v1.73 full-width active-only design)")
+        #expect(editorPlaceholderSection.contains("EditorTabStrip("),
+                "EditorView body must render the tab strip via EditorTabStrip(= Safari-style multi-tab component)")
+        #expect(editorPlaceholderSection.contains("tabs: appState.openTabs"),
+                "EditorView body must bind AppState.openTabs into the EditorTabStrip(= single source of truth)")
     }
 
     @Test("body shows dirty-discard confirm alert on close-with-unsaved-changes")
