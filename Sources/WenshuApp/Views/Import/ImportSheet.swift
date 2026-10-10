@@ -2251,12 +2251,12 @@ private struct ImportTaskRow: View {
             // 止
             // 了" 反馈).
             // The
-            // `ellipsis.circle.fill`
+            // `ellipsis`
             // SF Symbol
             // (= three
-            // dots in a
-            // circle) +
-            // the
+            // dots, no
+            // background)
+            // + the
             // `.variableColor`
             // effect (= the
             // dots
@@ -2313,10 +2313,57 @@ private struct ImportTaskRow: View {
             // 了"
             // feedback).
             HStack(spacing: DesignTokens.spacingCaption) {
+                // v2.7 round-66 commit G2 (= boss
+                // 2026-10-10 "那
+                // 个
+                // 圆
+                // 背
+                // 景
+                // 去
+                // 掉
+                // ，
+                // 只
+                // 留
+                // ICON
+                // "
+                // feedback).
+                // Switched
+                // from
+                // `ellipsis.circle.fill`
+                // (= three
+                // dots inside
+                // a filled
+                // circle; =
+                // the "gray
+                // circle" the
+                // boss
+                // disliked)
+                // to
+                // `ellipsis`
+                // (= three
+                // dots, no
+                // background;
+                // = matches
+                // the Apple
+                // HIG macOS
+                // 14+
+                // 'system
+                // progress
+                // indicator'
+                // pattern; =
+                // the `variableColor`
+                // rendering
+                // still
+                // animates
+                // the dots
+                // as the
+                // canonical
+                // "thinking"
+                // cue).
                 SFIcon(
-                    "ellipsis.circle.fill",
+                    "ellipsis",
                     style: .toolbar,
-                    color: Color.secondary,
+                    color: IconColor.secondary,
                     rendering: .variableColor
                 )
                 Text("分析中")
