@@ -323,8 +323,31 @@ struct ImportSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingModerate) {
-            Text("导入 Markdown 文件")
-                .font(.title2.weight(.semibold))
+            // v2.7 round-46 (= boss 2026-10-10
+            // "截图红框的大标题
+            // 不需要. 用户点
+            // 导入进来的，知道
+            // 这个弹窗就是导入
+            // ，不需要标题"
+            // directive). The
+            // "导入 Markdown 文件"
+            // title is REMOVED
+            // (= redundant; = the
+            // user just clicked
+            // 导入 from the File
+            // menu OR the
+            // sidebar contextMenu;
+            // = the wizard's
+            // top-of-sheet title
+            // is dead weight; =
+            // the Pages inspector
+            // has no such title
+            // either; = removing
+            // it gives the dot
+            // indicator + the
+            // first picker card
+            // more vertical
+            // breathing room).
 
             // v2.7 round-44 (= boss 2026-10-10
             // "引导式多步骤交互"
