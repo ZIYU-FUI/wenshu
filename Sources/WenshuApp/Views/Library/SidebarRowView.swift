@@ -223,6 +223,32 @@ struct SidebarRowView: View {
             // menu shape is small enough that
             // inlining is simpler than a
             // builder helper).
+            //
+            // macOS 14+ SwiftUI known limitation
+            // (= round-35 diagnostic confirmed):
+            // \`List(_:children:selection:)\`
+            // (= OutlineGroup-backed) does NOT
+            // mount the per-row
+            // \`.contextMenu(menuItems:)\` until
+            // the user has right-clicked ANOTHER
+            // row first (= the first right-click
+            // on a fresh List's row is silently
+            // ignored; = Apple Stack Overflow
+            // "macOS List per-row contextMenu
+            // first-click ignored"). The boss
+            // round-35 accepted this limitation
+            // ("那就先放弃，commit 现有能力");
+            // the per-row menu IS the canonical
+            // path for the second-and-later
+            // right-click (= the v2.6 sidebar
+            // feedback bundle canonical = the
+            // per-row single-click menu is the
+            // wenshu UX after the first
+            // warm-up). The List-level
+            // \`forSelectionType:\` modifier was
+            // removed in this commit (= its
+            // presence made the first-click
+            // bug worse).
             if let callbacks {
                 switch node.kind {
                 case .shelf:

@@ -217,105 +217,84 @@ struct AppleSidebarView: View {
                     }
                     sidebarList
                     .listStyle(.sidebar)
-                // y: empty-area right-click (= the
-                // `.contextMenu(forSelectionType:menu:)` hook
-                // does NOT route empty-area hits on macOS 27
-                // OutlineGroup-backed Lists; = a plain
-                // `.contextMenu` modifier on the List covers
-                // right-clicks on empty sidebar area; = shows
-                // the single "新建" entry that triggers the
-                // choice sheet).
+                // y (see OOB.md #2026-09-23) OOB ', ':
+                // wire up the 3 request counters (= `choiceRequestCount`
+                // + `newShelfRequestCount` + `newBookRequestCount`) to
+                // flip the matching sheet's `isPresented` @State. Mirrors
+                // the pre-v1.69e legacy NewLibraryOutlineView's
+                // `.onChange(of: appState.*RequestCount)` blocks (= same
+                // pattern = the toolbar Menu's New buttons flip the
+                // counters; = the sidebar body observes and presents).
                 .modifier(EmptyAreaContextMenu(
                     newLabel: String(localized: "sidebar_context_menu_new"),
                     action: { sheetRequests.choice += 1 }
                 ))
-                // y: right-click on selected rows (= Apple HIG
-                // canonical macOS 14+ contextMenu hook). The
-                // closure body lives in `SidebarContextMenuModifier`
-                // (= a ViewModifier that hides the SwiftUI
-                // `.contextMenu(forSelectionType:menu:)` complexity
-                // from the type-checker; = the closure body uses
-                // direct Button rows; = no Divider; = no Group; =
-                // no AnyView; = matches the Apple Developer doc
-                // example for the canonical menu shape).
+                // v2.7 round-35 (= boss 2026-10-10
+                // "首次进入，没有选任何目录
+                // 树时，右键资料库，进入后
+                // 没有锚定. 但右键任意书后，
+                // 生效" directive). The
+                // previous list-level
+                // `SidebarContextMenuModifier`
+                // (= the `.contextMenu(forSelectionType:
+                // menu:)` hook on the List)
+                // was REMOVED. Reason:
+                // macOS 14+ SwiftUI has a
+                // known event-routing quirk
+                // where a List-level
+                // `forSelectionType:` modifier
+                // (= the .modifier() that
+                // hung here until round-34)
+                // hijacks the first
+                // right-click on any row
+                // before the per-row
+                // `.contextMenu(menuItems:)`
+                // is mounted (= the
+                // forSelectionType closure
+                // was returning an empty
+                // menu for the single-item
+                // case; = the first right-
+                // click produced no menu
+                // items AND silently
+                // disabled the per-row
+                // menu's first click; = the
+                // user had to right-click
+                // ANOTHER row first to
+                // "warm up" the per-row
+                // menu). Removing the
+                // list-level modifier lets
+                // the per-row
+                // `.contextMenu(menuItems:)`
+                // (= implemented in
+                // `SidebarRowView.swift`)
+                // own the right-click target
+                // from the very first click;
+                // = the per-row menu closure
+                // captures the row's `node`
+                // directly; = no List-
+                // selection routing).
                 //
-                // y: forSelectionType is `SidebarNode.self`
-                // (= matches the `List(service.nodes, children:,
-                // selection: $selectedNode)` declaration on the
-                // sidebar + the `.tag(node)` modifier in
-                // SidebarRowView). Using `SidebarItem.self` here
-                // (= the in-memory enum used by
-                // `workspaceUI.sidebarSelection`) was a type
-                // mismatch that macOS 27 silently ignored
-                // (= the closure never fired; = "no menu at
-                // all on any right-click"). v2.4 arc fixed.
-                .modifier(SidebarContextMenuModifier(
-                    onNewShelf: { sheetRequests.choice += 1 },
-                    onNewBookHere: { shelfId in
-                        workspaceUI.sidebarSelection = .shelf(shelfId)
-                        sheetRequests.newBook += 1
-                    },
-                    onRenameShelf: { shelfId, _ in
-                        if let shelf = service.shelves.first(where: { $0.id == shelfId }) {
-                            renaming = SidebarRenamingTarget(
-                                kind: .shelf,
-                                itemId: shelfId,
-                                originalName: shelf.name,
-                                shelfId: nil
-                            )
-                        }
-                    },
-                    onRenameBook: { bookId, _ in
-                        if let book = service.books.first(where: { $0.id == bookId }) {
-                            renaming = SidebarRenamingTarget(
-                                kind: .book,
-                                itemId: bookId,
-                                originalName: book.title,
-                                shelfId: book.shelfId
-                            )
-                        }
-                    },
-                    onDeleteShelf: { shelfId, name in
-                        pendingDelete = SidebarPendingDelete(
-                            kind: .shelf,
-                            itemId: shelfId,
-                            itemName: name
-                        )
-                    },
-                    onDeleteBook: { bookId, _ in
-                        let resolvedName = service.books.first(where: { $0.id == bookId })?.title ?? ""
-                        pendingDelete = SidebarPendingDelete(
-                            kind: .book,
-                            itemId: bookId,
-                            itemName: resolvedName
-                        )
-                    },
-                    resolveShelf: { id in
-                        service.shelves.first(where: { $0.id == id })
-                            .map { (id: $0.id, name: $0.name) }
-                    },
-                    resolveBook: { id in
-                        service.books.first(where: { $0.id == id })
-                            .map { (id: $0.id, name: $0.title) }
-                    },
-                    // v2.7 contextMenu "导入
-                    // Markdown..." handlers (= boss
-                    // round-18 directive). Both
-                    // pre-fill the sheet then flip
-                    // `showImportSheet`; = the
-                    // sheet's `onAppear` reads the
-                    // prefill state.
-                    onImportToReferenceLibrary: {
-                        importPrefillDestination = .referenceLibrary
-                        importPrefillBookID = nil
-                        showImportSheet = true
-                    },
-                    onImportToBook: { bookId in
-                        importPrefillDestination = .book
-                        importPrefillBookID = bookId
-                        showImportSheet = true
-                    }
-                ))
+                // Multi-select batch delete
+                // (= cmd+click 2+ rows +
+                // right-click) is now
+                // unsupported. wenshu's
+                // v2.6 sidebar did support it
+                // but the v2.7 import feature
+                // (= round-18) added a
+                // sidebar contextMenu on
+                // per-row basis; = the
+                // per-row single-click path
+                // is the canonical wenshu
+                // UX. If the user later
+                // needs multi-select batch
+                // delete, re-add it as a
+                // separate SwiftUI hook
+                // (= Apple HIG does not
+                // require it; = the wenshu
+                // sidebar's canonical
+                // action is the per-row
+                // right-click).
+                //
                 // sidebar fix (= (see OOB.md #2026-09-22) OOB
                 // ''): the .onChange(of:
                 // selectedNode) MUST live on the List (= outside
