@@ -119,46 +119,56 @@ enum ImportFileType: String, CaseIterable, Identifiable, Codable, Sendable, Hash
         }
     }
 
-    /// v2.7 round-54 (= boss 2026-10-10
-    /// "这个提示文字没有根
-    /// 据上面选的文件类型变
-    /// 化, 可以先把提示做
-    /// 完整" directive). The
-    /// placeholder hint for
-    /// the 源目录 row (= "选
-    /// 择一个包含 .X 文件
-    /// 的目录" where X
-    /// matches the user's
-    /// selected file type).
-    /// The previous
-    /// implementation
-    /// hardcoded ".md" in
-    /// the source row's
-    /// `Text` (= the
-    /// placeholder was
-    /// wrong when the
-    /// user picked PDF
-    /// / EPUB / text;
-    /// = the user sees
-    /// a stale hint
-    /// that doesn't
-    /// match the file
-    /// type they just
-    /// selected; = the
+    /// v2.7 round-56 (= boss 2026-10-10
+    /// "让提示更短不需截断
+    /// (= 重新设计文案)"
+    /// directive). The
+    /// placeholders are
+    /// shortened to fit
+    /// the row without
+    /// truncation (= the
+    /// sheet's
+    /// 源目录 row
+    /// has a fixed
+    /// "选择…" button
+    /// on the right;
+    /// = the available
+    /// width for the
+    /// Text is
+    /// limited; = the
+    /// previous hints
+    /// were long enough
+    /// to be truncated
+    /// in the middle;
+    /// = the middle
+    /// truncation hid
+    /// the file
+    /// extension; = the
     /// boss's exact
-    /// critique).
-    /// Each file type
-    /// gets a hint that
-    /// matches its file
-    /// extension + a
-    /// concise Chinese
-    /// description.
+    /// critique "其实
+    /// 应该是 .md
+    /// 吧？"). The new
+    /// hints are 9-11
+    /// characters (= fit
+    /// in the available
+    /// space at body
+    /// text size; =
+    /// no truncation
+    /// needed). The hint
+    /// is still
+    /// "选择一个目录"
+    /// (= the action)
+    /// + the file type
+    /// extension
+    /// (= the type of
+    /// file the walker
+    /// will import).
     var placeholderHint: String {
         switch self {
-        case .markdown: return "选择一个包含 .md 文件的目录"
-        case .epub:     return "选择一个包含 .epub 电子书的目录"
-        case .pdf:      return "选择一个包含 .pdf 文件的目录"
-        case .text:     return "选择一个包含 .txt 文件的目录"
+        case .markdown: return "选目录 (.md)"
+        case .epub:     return "选目录 (.epub)"
+        case .pdf:      return "选目录 (.pdf)"
+        case .text:     return "选目录 (.txt)"
         }
     }
 
