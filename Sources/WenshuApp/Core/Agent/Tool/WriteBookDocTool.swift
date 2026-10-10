@@ -3,7 +3,7 @@
 //
 //  v2.7 round-73: the wenshu 文档管理员
 //  (= wenshu main agent)'s dedicated write
-//  tool (= "writeFile"). The agent is
+//  tool (= "writeBookDoc"). The agent is
 //  told via `ImportWorldPrompt.md` (and
 //  future per-folder SOPs) to call this
 //  tool once per sub-file (= 1 主索引 + 6

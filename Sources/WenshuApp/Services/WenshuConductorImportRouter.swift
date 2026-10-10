@@ -411,18 +411,60 @@ actor WenshuConductorImportRouter: ImportRouter {
         let context = ImportAgentBookContext(
             bookPath: { bookPath }
         )
-        let agentInput = ImportAgentDriver.TaskInput(
-            filePath: input.filePath,
-            body: body,
-            bookPath: bookPath ?? "",
-            bookTitle: bookTitle,
-            targetFolder: Self.folder(from: classification.destination)
-        )
-        _ = try await driver.run(
-            input: agentInput,
-            bookContext: context,
-            progress: progress
-        )
+        // v2.7 round-73 (boss 2026-10-10
+            // PO 双轴 FAIL #7/8 fix): if the
+            // LLM classified the source as a
+            // reference-library import (= no
+            // folder), there is no SOP to
+            // apply; = surface this as a
+            // clear failed-task outcome
+            // rather than launching the
+            // agent against a wrong SOP.
+            // The driver will already throw
+            // `noSOPForFolder` for nil
+            // folders (= see the driver
+            // guard at TaskInput init).
+            // Re-throw with a clearer
+            // message here so the row
+            // activity log tells the user
+            // "no SOP for reference
+            // library" instead of the
+            // raw driver error.
+            guard let folder = Self.folder(
+                from: classification.destination
+            ) else {
+                await progress?(
+                    "  ⚠️ 参考库没有 SOP (= 路由到失败 task)"
+                )
+                // The reference library has no
+                // folder (= no BookFolder can
+                // map to it); = throw a
+                // generic error so the
+                // orchestrator's failed-task
+                // path picks it up cleanly.
+                // We can't construct a
+                // BookFolder for it (= no
+                // `.referenceLibrary` case
+                // in BookFolder).
+                throw NSError(
+                    domain: "wenshu.import",
+                    code: -1,
+                    userInfo: [NSLocalizedDescriptionKey:
+                        "reference library imports have no SOP (= per-folder SOPs only apply to book folders). Use a book-bound import instead."]
+                )
+            }
+            let agentInput = ImportAgentDriver.TaskInput(
+                filePath: input.filePath,
+                body: body,
+                bookPath: bookPath ?? "",
+                bookTitle: bookTitle,
+                targetFolder: folder
+            )
+            _ = try await driver.run(
+                input: agentInput,
+                bookContext: context,
+                progress: progress
+            )
         await progress?("  ✅ 文档管理员 完成")
         return ImportRoutingResult(
             destination: classification.destination,
@@ -441,20 +483,21 @@ actor WenshuConductorImportRouter: ImportRouter {
     /// routing result's destination (= the
     /// `routeReorganizeMultiTurn` driver
     /// needs the folder to look up the SOP).
-    /// Falls back to `.world` for
-    /// reference-library destinations (=
-    /// the SOP won't trigger there; =
-    /// `ImportAgentDriver` will throw
-    /// `noSOPForFolder` and the orchestrator
-    /// surfaces that as a failed task).
+    /// Returns nil for `.referenceLibrary`
+    /// destinations (= there is no folder
+    /// in the reference library; = the
+    /// driver will throw `noSOPForFolder`
+    /// rather than silently picking a
+    /// random SOP to apply to a library
+    /// that has no folder semantics).
     private static func folder(
         from destination: ImportDestination
-    ) -> BookFolder {
+    ) -> BookFolder? {
         switch destination {
         case .bookFolder(let folder):
             return folder
         case .referenceLibrary:
-            return .world
+            return nil
         }
     }
 

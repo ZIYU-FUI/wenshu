@@ -3350,26 +3350,6 @@ extension ImportService {
                     folder: folder
                 )
             case .reorganize:
-                // Reorganize: use the LLM's rewrittenBody
-                // (= complete B-template body) directly.
-                // v2.7 round-72 (= boss 2026-10-10
-                // "B" pick for "让 LLM 必
-                // 须拆, 但真的没有内容, 拆
-                // 不出来就拆不出来, 但拆的
-                // 东西必须要做"). When
-                // `routing.needsFilling ==
-                // true` (= phase 2 empty),
-                // skip writing the main B
-                // file entirely (= boss's
-                // "导入失败就是导入失败";
-                // = no
-                // `prepareBodyForWrite`
-                // fallback). The orchestrator
-                // synthesizes the 6 必填 as
-                // 占位子文件 with a `[待补
-                // 充] 需调研补齐` body
-                // below (= boss's "拆的东
-                // 西必须要做").
                 // v2.7 round-73 (= the agent owns writing;
                 // = ImportAgentDriver delegates to the
                 // writeBookDoc tool for every sub-file; =
