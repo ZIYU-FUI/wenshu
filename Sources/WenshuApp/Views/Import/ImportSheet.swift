@@ -2218,6 +2218,78 @@ private struct ImportTaskRow: View {
                 .foregroundStyle(.tertiary)
                 .lineLimit(2)
         }
+        // v2.7 round-67 ticket 04 (= boss
+        // 2026-10-10 "甚至原
+        // 文件 A 的内容,
+        // 与我们的 B 模版
+        // 不符合, 多了很
+        // 我非模版的内
+        // 容, 我希望能自
+        // 动拆出一个文
+        // 件, 放在合适的
+        // 目录中去"
+        // feedback).
+        // When the LLM
+        // suggested N
+        // extra files
+        // (= the
+        // split-out
+        // content), show
+        // a caption below
+        // the state pill
+        // counting how
+        // many were
+        // written.
+        // Examples:
+        //   - " + 3 拆出"
+        //     (= all done)
+        //   - " + 1/3 拆出"
+        //     (= mid-flight)
+        //   - " + 2 拆出, 1 失败"
+        //     (= some
+        //     failed)
+        // Hidden when
+        // extraFilesTotal = 0
+        // (= the canonical
+        // case where the
+        // LLM had nothing
+        // to split out).
+        if task.extraFilesTotal > 0 {
+            extraFilesCaption
+        }
+    }
+
+    /// v2.7 round-67 ticket 04: caption for
+    /// the per-file extraFiles count
+    /// (= the row's
+    /// " + N 拆出"
+    /// subline). Renders
+    /// the live count vs
+    /// total (= updated
+    /// every time the
+    /// orchestrator
+    /// writes an extra
+    /// file).
+    @ViewBuilder
+    private var extraFilesCaption: some View {
+        let total = task.extraFilesTotal
+        let done = task.extraFilesDone
+        Group {
+            if done < total {
+                Text(String(
+                    format: NSLocalizedString("import.row.extras_in_progress", comment: ""),
+                    done, total
+                ))
+            } else {
+                Text(String(
+                    format: NSLocalizedString("import.row.extras_done", comment: ""),
+                    done
+                ))
+            }
+        }
+        .font(.caption)
+        .foregroundStyle(.tertiary)
+        .lineLimit(1)
     }
 
     @ViewBuilder

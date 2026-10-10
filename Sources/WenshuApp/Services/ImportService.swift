@@ -366,6 +366,39 @@ struct ImportTask: Identifiable, Sendable, Hashable {
     /// >= .writing`; = cached for the sheet's low-confidence
     /// warning indicator).
     var routing: ImportRoutingResult?
+    /// v2.7 round-67 ticket 04 (= boss
+    /// 2026-10-10 "甚至原文
+    /// 件 A 的内容, 与我们
+    /// 的 B 模版不符合, 多
+    /// 了很我非模版的内容,
+    /// 我希望能自动拆出一个
+    /// 文件, 放在合适的目
+    /// 录中去" feedback).
+    /// Number of extra files
+    /// (= the LLM-suggested
+    /// split-out files for
+    /// A's non-B content).
+    /// Default = 0 (= no
+    /// extras; = the
+    /// canonical case for
+    /// A → B mappings
+    /// where the entire
+    /// source fits the
+    /// template). Bumped
+    /// by the orchestrator
+    /// before the extraFiles
+    /// loop.
+    var extraFilesTotal: Int = 0
+    /// Number of extra files
+    /// successfully written
+    /// (= 0 .. extraFilesTotal).
+    /// Bumped in the
+    /// orchestrator's
+    /// extraFiles loop. (= the
+    /// per-file progress
+    /// strip shows "1 主 + N
+    /// 拆出").
+    var extraFilesDone: Int = 0
 
     init(sourcePath: String) {
         self.id = UUID()
@@ -376,6 +409,8 @@ struct ImportTask: Identifiable, Sendable, Hashable {
         self.errorMessage = nil
         self.skippedReason = nil
         self.routing = nil
+        self.extraFilesTotal = 0
+        self.extraFilesDone = 0
     }
 }
 
@@ -2069,6 +2104,103 @@ actor ImportService {
         )
     }
 
+    /// v2.7 round-67 ticket 03 (= boss
+    /// 2026-10-10 "甚至原文
+    /// 件 A 的内容, 与我们
+    /// 的 B 模版不符合, 多了
+    /// 很我非模版的内容, 我
+    /// 希望能自动拆出一个文
+    /// 件, 放在合适的目录中
+    /// 去" feedback). Write
+    /// one LLM-suggested
+    /// split-out file (= A's
+    /// non-B content) to
+    /// disk. Resolves the
+    /// folder URL from the
+    /// `extra.folder` (= LLM
+    /// decided which
+    /// BookFolder; = the
+    /// orchestrator doesn't
+    /// override = this is
+    /// the canonical
+    /// LLM-routed path).
+    /// Dedup logic mirrors
+    /// the main file: same-
+    /// title in the target
+    /// folder = overwrite
+    /// the existing .md; =
+    /// no match = write a
+    /// new file.
+    private func writeExtraFile(
+        extra: ExtraFile,
+        target: ImportTarget,
+        tasksBox: TasksBox,
+        i: Int,
+        extraIndex: Int
+    ) async throws {
+        guard let bookId = target.bookId,
+              let shelfId = target.shelfId else {
+            throw ImportServiceError.missingBookForBookFolderDestination
+        }
+        let folderURL = target.shelvesRoot
+            .appendingPathComponent(shelfId.uuidString)
+            .appendingPathComponent("books")
+            .appendingPathComponent(bookId.uuidString)
+            .appendingPathComponent(extra.folder.directoryName)
+        // Sanitize title (= same canonical path as the
+        // main file; = path-unsafe chars stripped; =
+        // empty / unsafe-only title falls back to a UUID
+        // prefix; = the LLM is trusted zero).
+        let basename = Self.sanitizeFilename(
+            raw: extra.title,
+            fallback: "extra-\(UUID().uuidString.prefix(8))"
+        )
+        // Dedup against the target folder's existing
+        // .md files. Match by normalized title stem (=
+        // the .md filename without the .md extension);
+        // = the canonical "same content" path. If a
+        // match exists, overwrite (= the LLM may have
+        // refined the body in a re-import).
+        let fm = FileManager.default
+        var bodyForFile = extra.body
+        if fm.fileExists(atPath: folderURL.appendingPathComponent(basename + ".md").path) {
+            NSLog(
+                "[wenshu.import] extraFile %d (%@) overwriting existing file in %@",
+                extraIndex, basename, extra.folder.directoryName
+            )
+        } else if fm.fileExists(atPath: folderURL.path) {
+            // folder exists; = check for any .md with
+            // matching basename stem (= dedup scan
+            // across the existing .md files in the
+            // folder).
+            let existing = (try? fm.contentsOfDirectory(atPath: folderURL.path)) ?? []
+            for entry in existing where entry.hasSuffix(".md") {
+                let stem = (entry as NSString).deletingPathExtension
+                if stem == basename {
+                    NSLog(
+                        "[wenshu.import] extraFile %d (%@) overwriting existing file in %@",
+                        extraIndex, basename, extra.folder.directoryName
+                    )
+                    break
+                }
+            }
+        }
+        // Make sure the folder exists (= create
+        // intermediate directories; = safe across
+        // multi-level).
+        try fm.createDirectory(at: folderURL, withIntermediateDirectories: true)
+        // Write the body (= the LLM-supplied content;
+        // = no prepareBodyForWrite = the LLM already
+        // produced a complete, focused body for this
+        // single-file split-out).
+        let fileURL = folderURL.appendingPathComponent(basename + ".md")
+        try bodyForFile.write(to: fileURL, atomically: true, encoding: .utf8)
+        NSLog(
+            "[wenshu.import] extraFile %d wrote %@ -> %@",
+            extraIndex, basename, extra.folder.directoryName
+        )
+    }
+
     /// Write the file to the reference library. Reuses
     /// the existing `FileSystemReferenceStore.saveReferenceToFileSystem`
     /// (= see the e2e scaffold's 4-phase pattern; = the
@@ -3001,27 +3133,147 @@ extension ImportService {
                 if case .bookFolder(let f) = routing.destination { return f }
                 return .drafts
             }()
+            // v2.7 round-67 ticket 05 (= boss
+            // 2026-10-10 "重新组织
+            // 内容, 没有实现" 反馈).
+            // The previous code only
+            // handled .consolidate and
+            // .searchAndRewrite; =
+            // .reorganize fell into
+            // the catch-all `else`
+            // (= original + prepareBodyForWrite);
+            // = the LLM's
+            // `rewrittenBody` was
+            // ignored; = the file
+            // got the verbatim
+            // source + appended
+            // [TODO: 需调研补齐]
+            // placeholders; = the
+            // boss saw 6 empty H2s.
+            // Fix: handle .reorganize
+            // explicitly (= the LLM
+            // already produced a
+            // complete B-template
+            // body in `rewrittenBody`;
+            // = use it directly,
+            // skipping
+            // prepareBodyForWrite
+            // because that would
+            // append MORE H2
+            // placeholders on top
+            // of the LLM's complete
+            // body).
             let bodyToWrite: String
-            if target.rewriteMode == .consolidate {
+            switch target.rewriteMode {
+            case .consolidate:
                 // Consolidate: always original verbatim + prepareBodyForWrite.
                 bodyToWrite = ImportDocumentTemplate.prepareBodyForWrite(
                     rawBody: originalBody,
                     folder: folder
                 )
-            } else if let rewritten = routing.rewrittenBody, !rewritten.isEmpty {
-                // SearchAndRewrite with LLM-supplied body: still run through prepareBodyForWrite
-                // (= strip noise + append missing H2; = the LLM may have skipped some
-                // required H2s; = the user gets the canonical skeleton).
-                bodyToWrite = ImportDocumentTemplate.prepareBodyForWrite(
-                    rawBody: rewritten,
-                    folder: folder
-                )
-            } else {
-                // SearchAndRewrite without LLM-supplied body: original + prepareBodyForWrite.
-                bodyToWrite = ImportDocumentTemplate.prepareBodyForWrite(
-                    rawBody: originalBody,
-                    folder: folder
-                )
+            case .reorganize:
+                // Reorganize: use the LLM's rewrittenBody
+                // (= complete B-template body) directly.
+                // If the LLM returned empty/nil
+                // (= LLM errored out, or the prompt was
+                // mis-parsed), fall through to the
+                // prepareBodyForWrite path (= the canonical
+                // fallback; = the user still gets the
+                // original body + B-template H2s).
+                if let rewritten = routing.rewrittenBody,
+                   !rewritten.isEmpty {
+                    bodyToWrite = rewritten
+                } else {
+                    // LLM didn't return a body (= rare;
+                    // = most likely a transient LLM
+                    // failure or the prompt was
+                    // mis-parsed); = use the
+                    // prepareBodyForWrite fallback (= the
+                    // user gets at least the canonical
+                    // B-template structure; = the
+                    // [TODO: 需调研补齐] placeholders
+                    // are then editable; = no data loss).
+                    NSLog(
+                        "[wenshu.import] .reorganize mode but rewrittenBody empty; falling back to prepareBodyForWrite"
+                    )
+                    bodyToWrite = ImportDocumentTemplate.prepareBodyForWrite(
+                        rawBody: originalBody,
+                        folder: folder
+                    )
+                }
+            case .searchAndRewrite:
+                if let rewritten = routing.rewrittenBody, !rewritten.isEmpty {
+                    // SearchAndRewrite with LLM-supplied body: still run through prepareBodyForWrite
+                    // (= strip noise + append missing H2; = the LLM may have skipped some
+                    // required H2s; = the user gets the canonical skeleton).
+                    bodyToWrite = ImportDocumentTemplate.prepareBodyForWrite(
+                        rawBody: rewritten,
+                        folder: folder
+                    )
+                } else {
+                    // SearchAndRewrite without LLM-supplied body: original + prepareBodyForWrite.
+                    bodyToWrite = ImportDocumentTemplate.prepareBodyForWrite(
+                        rawBody: originalBody,
+                        folder: folder
+                    )
+                }
+            }
+            // v2.7 round-67 ticket 03 (= boss
+            // 2026-10-10 "甚至原
+            // 文件 A 的内容, 与
+            // 我们的 B 模版不符
+            // 合, 多了很我非模版
+            // 的内容, 我希望能自
+            // 动拆出一个文件, 放
+            // 在合适的目录中去"
+            // feedback). After the
+            // main file is
+            // written, loop
+            // through
+            // `routing.extraFiles`
+            // (= the LLM's
+            // optional split-out
+            // files) and write
+            // each one to its
+            // folder. Each extra
+            // file uses the SAME
+            // book + shelf (= same
+            // UUIDs) but a
+            // DIFFERENT folder (=
+            // the LLM's
+            // `element.folder`;
+            // = the orchestrator
+            // resolves the folder
+            // URL). Extra file
+            // write failures are
+            // non-fatal: main file
+            // stays .done; = the
+            // failed extra file is
+            // recorded separately
+            // in tasksBox.
+            let extraFilesTotal = routing.extraFiles.count
+            tasksBox.value[i].extraFilesTotal = extraFilesTotal
+            tasksBox.value[i].extraFilesDone = 0
+            for (extraIndex, extra) in routing.extraFiles.enumerated() {
+                let extraResult: Bool
+                do {
+                    try await writeExtraFile(
+                        extra: extra,
+                        target: target,
+                        tasksBox: tasksBox,
+                        i: i,
+                        extraIndex: extraIndex
+                    )
+                    extraResult = true
+                } catch {
+                    NSLog(
+                        "[wenshu.import] extraFile %d (%@) failed: %@",
+                        extraIndex, extra.title, String(describing: error)
+                    )
+                    extraResult = false
+                }
+                tasksBox.value[i].extraFilesDone += 1
+                _ = extraResult
             }
             try await writeFile(
                 body: bodyToWrite,
