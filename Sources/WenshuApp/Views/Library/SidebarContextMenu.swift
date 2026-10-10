@@ -121,11 +121,34 @@ struct SidebarContextMenuModifier: ViewModifier {
     let onImportToBook: (UUID) -> Void
 
     func body(content: Content) -> some View {
+        // v2.7 round-33 (= boss "如果当前选中
+        // 是别的，但鼠标直接在十二地仙处
+        // 右键，点导入，就不能带入" directive):
+        // the per-row context menu (=
+        // `SidebarRowView`'s
+        // `.contextMenu(menuItems:)`) is now the
+        // canonical right-click target source
+        // (= the right-click hit target IS the
+        // row that hosts the menu; = no
+        // List-selection routing). The
+        // list-level `forSelectionType:` here
+        // is now used ONLY for the multi-select
+        // batch delete path (= the closure body
+        // returns an empty menu when items.count
+        // <= 1; = the per-row menu owns the
+        // single-click case; = the forSelectionType
+        // menu owns the multi-select case).
         content.contextMenu(forSelectionType: SidebarNode.self) { items in
-            // Apple HIG canonical menu shape (= direct Button
-            // rows; = no Divider; = no Group; = no AnyView).
+            // Single-item case: per-row menu owns
+            // this (= the per-row .contextMenu
+            // fires first; = returning EmptyView
+            // from the forSelectionType closure
+            // suppresses the duplicate menu).
+            // Multi-select = batch destructive
+            // only (= the v2.6 sidebar feedback
+            // bundle canonical = cmd+click 2+
+            // rows + right-click = batch delete).
             if items.count > 1 {
-                // Multi-select = batch destructive only.
                 Button(
                     String(localized: "sidebar_context_menu_delete_batch"),
                     role: .destructive
@@ -145,92 +168,14 @@ struct SidebarContextMenuModifier: ViewModifier {
                         }
                     }
                 }
-            } else if let node = items.first {
-                // Single selection = per-item menu.
-                switch node.kind {
-                case .shelf:
-                    if let shelf = resolveShelf(node.id) {
-                        Button(String(localized: "sidebar_context_menu_new_book_here")) {
-                            onNewBookHere(shelf.id)
-                        }
-                        Button(String(localized: "sidebar_context_menu_rename")) {
-                            onRenameShelf(shelf.id, shelf.name)
-                        }
-                        Button(
-                            String(localized: "sidebar_context_menu_delete"),
-                            role: .destructive
-                        ) {
-                            onDeleteShelf(shelf.id, shelf.name)
-                        }
-                    }
-                case .book:
-                    if let book = resolveBook(node.id) {
-                        // v2.7 "导入" row (= boss
-                        // round-18 "右键点书的时
-                        // 候目标自动选好对应的
-                        // 书" directive; = the
-                        // sheet opens with
-                        // prefillDestination = .book
-                        // + prefillBookID = book.id;
-                        // = boss round-21 "改成导
-                        // 入，不要导入 MD" = the
-                        // label is format-agnostic;
-                        // = the sheet's file-type
-                        // picker is the source of
-                        // truth for accepted
-                        // extensions).
-                        Button("导入") {
-                            onImportToBook(book.id)
-                        }
-                        Button(String(localized: "sidebar_context_menu_rename")) {
-                            onRenameBook(book.id, book.name)
-                        }
-                        Button(
-                            String(localized: "sidebar_context_menu_delete"),
-                            role: .destructive
-                        ) {
-                            onDeleteBook(book.id, book.name)
-                        }
-                    }
-                case .reference, .referenceCategory, .divider, .tag:
-                    // v2.7 (= boss 2026-10-09 round-20
-                    // "资料库右键不需要'新建'，只保
-                    // 留'导入'即可，点资料库右建
-                    // 也改成'导入'" directive; = the
-                    // right-click menu on the
-                    // reference library, on a
-                    // reference category (= tag
-                    // group), AND on an individual
-                    // tag row all show ONLY "导入";
-                    // = the user can import into the
-                    // reference library from any of
-                    // these surfaces; = the "新建"
-                    // entry is reserved for the .shelf
-                    // / .book nodes where a new
-                    // shelf or book is the right
-                    // outcome; = creating a "new
-                    // reference" (= a new tag or
-                    // category) is not a thing the
-                    // user does; = the tag is
-                    // derived from the body of
-                    // imported files). Boss
-                    // 2026-10-09 round-21: label =
-                    // "导入" (= format-agnostic; = the
-                    // sheet's file-type picker is
-                    // the source of truth for which
-                    // file types the import accepts;
-                    // = the row label must NOT bind
-                    // to a single extension like
-                    // "Markdown").
-                    Button("导入") {
-                        onImportToReferenceLibrary()
-                    }
-                    // No destructive operations on these
-                    // node types in v2.6 (= Apple HIG
-                    // canonical = empty menu).
-                    EmptyView()
-                }
             }
+            // items.count <= 1: no list-level
+            // menu items (= the per-row
+            // .contextMenu owns the single-
+            // click case; = returning nothing
+            // = SwiftUI shows no list-level
+            // menu; = the per-row menu is
+            // the only menu the user sees).
         }
     }
 }
