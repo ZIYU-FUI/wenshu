@@ -429,6 +429,79 @@ extension PreviewPane {
 struct PreviewPane: View {
     @Environment(BookStore.self) private var bookStore
 
+    /// v2.7 round-64 (= boss
+    /// 2026-10-10 "没
+    /// 有实现，
+    /// 右键卡片
+    /// 没有菜
+    /// 单" + "素
+    /// 材栏，
+    /// 不是
+    /// tree，
+    /// 是第
+    /// 二栏"
+    /// directive).
+    /// The right-click
+    /// context-menu
+    /// state (= the
+    /// rename sheet
+    /// target + the
+    /// pending-delete
+    /// alert target).
+    /// Mirrors the
+    /// `AppleSidebarView`
+    /// pattern (= the
+    /// sidebar's
+    /// `renaming` /
+    /// `pendingDelete`
+    /// state uses the
+    /// same `SidebarRenamingTarget`
+    /// / `SidebarPendingDelete`
+    /// structs; = the
+    /// PreviewPane
+    /// reuses those
+    /// types for the
+    /// second column's
+    /// reference
+    /// cards; = a
+    /// single rename
+    /// sheet / delete
+    /// alert = the
+    /// user can rename
+    /// / delete from
+    /// either surface;
+    /// = but the
+    /// PreviewPane
+    /// gets its own
+    /// local sheet
+    /// state since
+    /// `AppleSidebarView`'s
+    /// sheet is local
+    /// to that view).
+    @State private var cardRenaming: SidebarRenamingTarget?
+    @State private var cardPendingDelete: SidebarPendingDelete?
+    /// v2.7 round-64: a
+    /// local SidebarService
+    /// (= the second
+    /// column's
+    /// reference cards
+    /// need a service
+    /// to call
+    /// `renameReference`
+    /// / `deleteReference`).
+    /// The service is
+    /// @State (= the
+    /// service is an
+    /// actor-isolated
+    /// class; = @State
+    /// holds the
+    /// reference; =
+    /// the closures
+    /// capture it for
+    /// the card's
+    /// `.contextMenu`).
+    @State private var cardService: SidebarService?
+
     /// 
     /// cached snapshot of `(shelfId → books)` so the shelf
     /// subtree can be cheaply skipped across body re-renders.
@@ -1077,6 +1150,136 @@ struct PreviewPane: View {
             // library-day navigation feel (= the reference for
             // the entry transition).
             .animation(.smooth(duration: 0.22), value: scope)
+            // v2.7 round-64: the
+            // right-click
+            // "重命名"
+            // sheet (= the
+            // same
+            // RenameItemSheet
+            // the
+            // sidebar
+            // uses).
+            // The
+            // `kind:
+            // .reference`
+            // case is
+            // already
+            // handled
+            // in
+            // `RenameItemSheet.init`
+            // (= the
+            // sheet
+            // shows
+            // a
+            // single
+            // TextField
+            // + the
+            // duplicate-name
+            // error; =
+            // the
+            // reference
+            // case
+            // uses
+            // `otherReferenceTitles`
+            // for the
+            // duplicate
+            // check).
+            .sheet(item: $cardRenaming) { target in
+                RenameItemSheet(
+                    kind: target.kind,
+                    originalName: target.originalName,
+                    otherNames: target.kind == .reference
+                        ? (ensureCardService().otherReferenceTitles(excluding: target.itemId))
+                        : (target.kind == .shelf
+                            ? ensureCardService().otherShelfNames(excluding: target.itemId)
+                            : ensureCardService().otherBookTitles(excluding: target.itemId)),
+                    onSave: { newName in
+                        do {
+                            switch target.kind {
+                            case .reference:
+                                try ensureCardService().renameReference(id: target.itemId, newTitle: newName)
+                            case .shelf:
+                                try ensureCardService().renameShelf(id: target.itemId, newName: newName)
+                            case .book:
+                                try ensureCardService().renameBook(id: target.itemId, newTitle: newName)
+                            }
+                            cardRenaming = nil
+                            Task { await ensureCardService().reload() }
+                        } catch {
+                            wenshuLogger.info("[wenshu.preview] rename failed: \(String(describing: error))")
+                            cardRenaming = nil
+                        }
+                    },
+                    onCancel: { cardRenaming = nil }
+                )
+            }
+            // v2.7 round-64: the
+            // delete
+            // alert (= the
+            // same
+            // `.alert`
+            // the
+            // sidebar
+            // uses).
+            // Only
+            // the
+            // `.reference`
+            // case
+            // fires
+            // for
+            // now
+            // (= the
+            // card
+            // menu
+            // is
+            // reference-only);
+            // = the
+            // sheet/alert
+            // plumbing
+            // supports
+            // all
+            // kinds
+            // anyway
+            // (= future
+            // bookDoc
+            // menu
+            // can
+            // reuse
+            // the
+            // same
+            // state).
+            .alert(
+                String(localized: "sidebar_delete_alert_title"),
+                isPresented: Binding(
+                    get: { cardPendingDelete != nil },
+                    set: { if !$0 { cardPendingDelete = nil } }
+                ),
+                presenting: cardPendingDelete
+            ) { target in
+                Button(String(localized: "sidebar_context_menu_delete"), role: .destructive) {
+                    do {
+                        switch target.kind {
+                        case .reference:
+                            try ensureCardService().deleteReference(id: target.itemId)
+                        case .shelf:
+                            try ensureCardService().deleteShelf(id: target.itemId)
+                        case .book:
+                            try ensureCardService().deleteBook(id: target.itemId)
+                        }
+                        cardPendingDelete = nil
+                        Task { await ensureCardService().reload() }
+                    } catch {
+                        wenshuLogger.info("[wenshu.preview] delete failed: \(String(describing: error))")
+                        cardPendingDelete = nil
+                    }
+                }
+                Button(String(localized: "auto.shared.cancel"), role: .cancel) {
+                    cardPendingDelete = nil
+                }
+            } message: { target in
+                Text(String(localized: "sidebar_delete_alert_message")
+                    .replacingOccurrences(of: "%@", with: target.itemName))
+            }
         }
 
     /// 
@@ -1352,18 +1555,45 @@ struct PreviewPane: View {
     /// argument; = forwards to PreviewPane's `onDoubleClick`,
     /// which opens THIS specific card in the editor; = the
     /// previous filtered.first bug).
+    /// v2.7 round-64: the
+    /// single-card render
+    /// helper for the
+    /// per-category
+    /// grid (= the
+    /// per-card
+    /// `onRename` /
+    /// `onDelete`
+    /// closures are
+    /// wired here).
+    /// Extracted from
+    /// the inline
+    /// ForEach body so
+    /// the closures
+    /// can capture
+    /// `entity` (= the
+    /// right-clicked
+    /// card's
+    /// reference; = the
+    /// closures set
+    /// `cardRenaming` /
+    /// `cardPendingDelete`
+    /// to that specific
+    /// entity; = the
+    /// user sees a
+    /// rename / delete
+    /// flow for the
+    /// exact card they
+    /// right-clicked).
     @ViewBuilder
     private func referenceCategoryCard(_ entity: Reference) -> some View {
-        Card(source: .reference(entity)) { source in
-            // (see OOB.md #2026-09-08) — 'card, show': the
-            // trailing closure here IS Card's onDoubleClick
-            // (= now takes the CardSource as a parameter).
-            // Forward that source to PreviewPane's onDoubleClick
-            // (= which opens THIS specific card in the editor,
-            // not the topmost card = the previous filtered.first
-            // bug).
-            onDoubleClick(source)
-        }
+        Card(
+            source: .reference(entity),
+            onDoubleClick: { source in
+                onDoubleClick(source)
+            },
+            onRename: { beginReferenceRename(entity) },
+            onDelete: { beginReferenceDelete(entity) }
+        )
     }
 
     /// Mode 3: all-entities overview grid (= group by category inline).
@@ -1390,15 +1620,14 @@ struct PreviewPane: View {
                 ScrollView {
                     LazyVGrid(columns: adaptiveColumns(width: geometry.size.width), spacing: 16) {
                         ForEach(sorted) { entity in
-                            Card(source: .reference(entity)) { source in
-                                // (see OOB.md #2026-09-08) — 'card,
-                                // show':
-                                // the trailing closure is Card's
-                                // onDoubleClick (= takes CardSource);
-                                // forward to PreviewPane's onDoubleClick
-                                // (= which opens THIS specific card).
-                                onDoubleClick(source)
-                            }
+                            Card(
+                                source: .reference(entity),
+                                onDoubleClick: { source in
+                                    onDoubleClick(source)
+                                },
+                                onRename: { beginReferenceRename(entity) },
+                                onDelete: { beginReferenceDelete(entity) }
+                            )
                             // per-card transition (= see
                             // categoryGrid comment for rationale).
                             .transition(.opacity.combined(with: .scale(scale: 0.96)))
@@ -1457,6 +1686,101 @@ struct PreviewPane: View {
             wenshuLogger.info("[wenshu.preview] loadAllEntities failed: \(err)")
         }
         return result.entities
+    }
+
+    /// v2.7 round-64: the
+    /// 3 helpers that
+    /// the right-click
+    /// `Card` callbacks
+    /// call into. They
+    /// mirror the
+    /// `AppleSidebarView`
+    /// `renaming` /
+    /// `pendingDelete`
+    /// state pattern
+    /// (= the rename
+    /// sheet + delete
+    /// alert pick up
+    /// the local @State
+    /// and show the
+    /// corresponding
+    /// UI). The service
+    /// is built lazily
+    /// from the same
+    /// closures the
+    /// sidebar uses (=
+    /// the same source
+    /// of truth for
+    /// the business
+    /// methods
+    /// `renameReference` /
+    /// `deleteReference`).
+
+    /// Lazy service init
+    /// (= the service is
+    /// an actor; = we
+    /// build it on
+    /// first access and
+    /// cache it in
+    /// `cardService`).
+    /// Returns the
+    /// service (= creates
+    /// a new one if the
+    /// cache is empty).
+    private func ensureCardService() -> SidebarService {
+        if let cached = cardService {
+            return cached
+        }
+        let service = SidebarService(
+            loadShelves: { try self.bookStore.sidebarLoadShelves() },
+            loadAllBooks: { try self.bookStore.sidebarLoadAllBooks() },
+            loadReferences: { try self.bookStore.loadAllReferences() },
+            bookStore: self.bookStore
+        )
+        cardService = service
+        return service
+    }
+
+    /// v2.7 round-64: begin
+    /// the rename flow
+    /// for a single
+    /// reference card (=
+    /// set
+    /// `cardRenaming` to
+    /// a `.reference`
+    /// target). The
+    /// `originalName` is
+    /// read from the
+    /// `Reference`'s
+    /// current title.
+    private func beginReferenceRename(_ entity: Reference) {
+        cardRenaming = SidebarRenamingTarget(
+            kind: .reference,
+            itemId: entity.id,
+            originalName: entity.title,
+            shelfId: nil
+        )
+    }
+
+    /// v2.7 round-64: begin
+    /// the delete flow
+    /// for a single
+    /// reference card (=
+    /// set
+    /// `cardPendingDelete`
+    /// to a `.reference`
+    /// target). The
+    /// delete alert
+    /// shows the
+    /// reference's title
+    /// + a destructive
+    /// confirm button.
+    private func beginReferenceDelete(_ entity: Reference) {
+        cardPendingDelete = SidebarPendingDelete(
+            kind: .reference,
+            itemId: entity.id,
+            itemName: entity.title
+        )
     }
 
     /// helper for shelfScopeView.
@@ -1531,14 +1855,14 @@ struct PreviewPane: View {
                     spacing: 16
                 ) {
                     ForEach(sorted) { doc in
-                        Card(source: .bookDoc(doc)) { source in
-                            // (see OOB.md #2026-09-08) — 'card,
-                            // show':
-                            // forward the BookDoc CardSource
-                            // to PreviewPane's onDoubleClick so
-                            // the EXACT clicked book doc opens.
-                            onDoubleClick(source)
-                        }
+                        Card(
+                            source: .bookDoc(doc),
+                            onDoubleClick: { source in
+                                onDoubleClick(source)
+                            },
+                            onRename: { /* bookDoc rename = future ticket */ },
+                            onDelete: { /* bookDoc delete = future ticket */ }
+                        )
                         // per-card transition (= see
                         // categoryGrid comment for rationale).
                         .transition(.opacity.combined(with: .scale(scale: 0.96)))
@@ -1724,6 +2048,39 @@ internal enum CardSource {
 private struct Card: View {
     let source: CardSource
     let onDoubleClick: (CardSource) -> Void
+    /// v2.7 round-64 (= boss
+    /// 2026-10-10 "没有
+    /// 实现，右键卡
+    /// 片没有菜单"
+    /// + "素材栏，不是
+    /// tree，是第二
+    /// 栏，也就是
+    /// 我们常说的中
+    /// 左栏. 里面全
+    /// 是 MD 卡片"
+    /// directive). The
+    /// right-click menu
+    /// callbacks. The
+    /// `Card` view
+    /// doesn't have
+    /// access to the
+    /// `SidebarService`
+    /// (= the sidebar-
+    /// owned delete /
+    /// rename flow); =
+    /// the `PreviewPane`
+    /// parent owns the
+    /// `SidebarService`
+    /// reference (= via
+    /// `@Environment(BookStore.self)`);
+    /// = the parent
+    /// passes the
+    /// callbacks down
+    /// (= same shape as
+    /// the sidebar's
+    /// `SidebarRowCallbacks`).
+    let onRename: () -> Void
+    let onDelete: () -> Void
 
     @State private var isHovered: Bool = false
 
@@ -1908,5 +2265,61 @@ private struct Card: View {
         // label and get its full name; = matches macOS Finder /
         // TextEdit tab bar tooltip behavior).
         .help(source.title)
+        // v2.7 round-64: the
+        // right-click context
+        // menu on the card
+        // (= the boss's
+        // "素材区，卡片
+        // ，右键菜单，做
+        // 删除、重命名"
+        // directive; = the
+        // per-card context
+        // menu uses the
+        // per-card callback
+        // pattern; = the
+        // macOS 14+ List
+        // first-click bug
+        // doesn't apply here
+        // because the Card
+        // is a standalone
+        // view inside a
+        // LazyVGrid, NOT a
+        // List row; = the
+        // menu fires on first
+        // right-click
+        // reliably). Only
+        // `.reference`
+        // cards get the
+        // delete / rename
+        // menu (= the
+        // `.bookDoc` cards
+        // are managed by
+        // the chapter flow
+        // = a separate
+        // ticket; = for now
+        // we add the menu
+        // only to the
+        // reference case =
+        // the v0.31
+        // round-63 / 64
+        // focused on
+        // reference-library
+        // cards per the
+        // boss's "素材
+        // 区" wording).
+        .contextMenu {
+            if case .reference = source {
+                Button(String(localized: "sidebar_context_menu_rename")) {
+                    onRename()
+                }
+                Divider()
+                Button(
+                    String(localized: "sidebar_context_menu_delete"),
+                    role: .destructive
+                ) {
+                    onDelete()
+                }
+            }
+        }
     }
 }
