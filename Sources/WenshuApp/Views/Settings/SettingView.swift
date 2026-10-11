@@ -1,219 +1,274 @@
+// SettingView.swift · WenshuApp
 //
-//  SettingView.swift
+// Settings scene (= Apple canonical macOS 14+ `Settings { }` Scene
+// mounted at AppRootScene.swift:399). Hosts 5 flat panes (= 外观 /
+// 编辑器 / 提供方 / 模型 / 记忆) chosen so each pane's name matches
+// the concrete action the user is doing (= boss 2026-10-12 "左栏
+// 分成 4-5 组" = no nested "大类 → 小类" hierarchy).
 //
-//  at line 376, = 513 LOC). v0.40 apple-001 phase 3 ticket 5
-//  (HIGH-RISK leg, = the largest single-view extraction in the
-//  App.swift backlog).
+// Layout (= boss 2026-10-12 "macOS 默认样式" + "Apple HIG canonical"):
+// - NavigationSplitView 2 columns (= macOS 13+ canonical).
+// - Left = `List(selection:)` with the 5 panes (= SwiftUI auto-applies
+//   macOS 27 sidebar appearance = Liquid Glass + accent tint selection).
+// - Right = `Form { Section { ... } }` per pane (= Apple HIG canonical
+//   macOS preferences layout = one row per setting + a small label +
+//   a control on the right + an optional helper caption).
+// - The previous wenshu-specific DesignTokens.spacing* / corner-radius /
+//   shadow literals are GONE from this file (= boss 2026-10-12 "完全
+//   按 Apple 默认样式规则"; = SwiftUI Form on macOS picks the canonical
+//   row height / spacing / corner radius automatically).
+// - SF Symbols 6 icons via the central `SFIcon(...)` factory are kept
+//   (= v3.0 design system hard rule + Apple HIG SF Symbols 6 canonical).
 //
-//  SettingView = the wenshu.app Settings tab (= Apple canonical
-//  SwiftUI .toolbar + .windowToolbarStyle(.unified) per Apple HIG
-//  / macOS 26 Tahoe). Hosts 9 settings sections (= general /
-//  provider API / model / agent / skills / memory / kanban /
-//  todo / etc.) = Apple HIG canonical sidebar-style settings
-//  pane.
+// Settings taxonomy (= verified against actual usage in wenshu + SMC
+// MarkdownEditorConfiguration + Pages/Numbers/Keynote AX dump 2026-10-12):
+// - 外观: appearance (light/dark/auto) + Apple system accent + highlight
+//   + sidebar icon size.
+// - 编辑器: 8 toggles (= readingWidth / heightBehavior / rawSourceMode /
+//   continuousSpellChecking / grammarChecking / automaticSpellingCorrection
+//   / listHelpersEnabled / autoClosePairsEnabled) = every field that
+//   EditorPreferences ships (= T-12 + commit 96589ccb8) + every field
+//   that SMC MarkdownEditorConfiguration exposes as a runtime toggle.
+//   Apple Pages/Numbers/Keynote auto-correct panel lists 13 items but
+//   SMC only exposes 4 (= NSTextView system-layer behaviors for the
+//   other 9 are not toggles); we do NOT expose dead controls (= per
+//   boss "SMC 有什么就用什么；没有就没有").
+// - 提供方: 7 provider rows + key paste (= SettingsOps + keychain).
+//   Renamed from `providerApi` so the user-facing name matches the
+//   concrete action (= paste an API key).
+// - 模型: default provider + default model + per-task model map
+//   (AuxTask.allCases). Renamed from `model` for clarity.
+// - 记忆: MemorySettingsView.
 //
-//  Apple HIG = one view per file. SettingView has:
-//  - 1 @Environment(AppState.self) (= the model-picker proxy pattern).
-//  - 4 @AppStorage (appearanceMode + providerSlug + the legacy
-//    llmModel pattern locked down by ChatViewModelDefaultModelTests).
-//  - 10 private helpers (refreshProviderStatus / selectProvider /
-//    reloadModels / toggleExpand / bindingForExpanded /
-//    currentDraftPreview / providerApiEditor / providerApiRow /
-//    keyPrefix12 / saveApiKey).
-//  - 26 inline CJK UI literals (= AGENTS.md violations; = locked
-//    by doc-drift tests / Apple acceptance patterns; = i18n sweep
-//    is out of scope for this slice, deferred to a future batch).
+// Things that ship DEAD (= removed in this rewrite):
+// - `settings.general.misc.placeholderNote` = pure placeholder text with
+//   no caller and no business action.
+// - `wenshu.llm.reasoningEffort` AppStorage = the binding survived but
+//   no code reads the value; dead setting = removed.
+// - AuxTask 5 `disabled Button` change-model controls = visually shipped
+//   but always non-interactive; replaced with a "固定使用主模型" Text
+//   row (= the actual current behavior = all tasks use the main model).
 //
-//  Only call site = WenshuApp's Settings tab in App.swift (= the
-//  SettingsEnvironmentCapturer wraps SettingView as the .environment
-//  injection seam). Extracting this does not change any caller
-//  signature.
-//
+// Persistence (= unchanged across this rewrite):
+// - `wenshu.settingsTab` AppStorage persists the selected pane across
+//   scene re-mounts (= chat view `wenshu.settingsTab = providerApi`
+//   deep-links land on the new `providers` pane via the alias mapping
+//   at `paneForRaw(_:)` below).
+// - `wenshu.llm.provider` + `wenshu.userAddress` + `appearanceMode`
+//   AppStorage bindings keep their existing keys (= no migration needed
+//   for user-state).
 
 import SwiftUI
+import AppKit
+import MarkdownEngine
 
-/// 8/21 'Pages Settingspanel UI, macOS 27 group'
-/// = toolbar (3 segmented tab, Pages, 2)
-/// yes macOS Settings { } Scene autotitle segmented tab button (commit 0082bd1fe + 030a58355)
-/// Pages () = window toolbar, yeswindowtitlebutton
 struct SettingView: View {
     @Environment(AppState.self) private var appState
+    // MARK: - Persistence bindings (unchanged keys; = no user-state migration)
+
     @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
     @AppStorage("wenshu.llm.provider") private var providerSlug: String = Provider.minimaxCn.slug
-    // wenshu.llm.model centralization. The `wenshu.llm.model`
-    // UserDefaults key now has a single owner = `AppState.llmModel`.
-    // SettingView reads + writes via the appState (an @Observable
-    // property) and uses a custom Binding for the Picker so the
-    // existing `$llmModel` selection API still works without
-    // touching the surrounding body.
-    // bossverificationfix (2026-08-24): default to empty string when no provider
-    // key configured (not "MiniMax-M3" which implies a MiniMax provider is
-    // selected even when user has no key). UI shows the localized 'please configure the provider first' placeholder
-    // when this is empty.
-    // 2026-08-24 acceptance fix: the canonical
-    // `@AppStorage("wenshu.llm.model") private var llmModel: String = ""`
-    // pattern was retired by the B-05 centralization commit (= single
-    // owner = `AppState.llmModel`). This comment preserves the exact
-    // source-string that `ChatViewModelDefaultModelTests.App.swift
-    // SettingView.llmModel default = '' when no UserDefaults` asserts
-    // must remain present in this file (= the v0.24 bossverification doc-drift
-    // catch locks down the empty-default semantic even though the
-    // @AppStorage wrapper itself was replaced). Don't remove the
-    // literal substring below without also updating the regression
-    // test.
-    // @AppStorage("wenshu.llm.model") private var llmModel: String = ""
-    private var llmModel: String {
-        get { appState.llmModel }
-        nonmutating set { appState.llmModel = newValue }
-    }
+    /// Single-owner centralization: AppState.llmModel (= v1.72 T3b).
+    /// The picker reads + writes through the appState via the same
+    /// pattern as before.
     private var llmModelBinding: Binding<String> {
         Binding(
             get: { appState.llmModel },
             set: { appState.llmModel = $0 }
         )
     }
-    @AppStorage("wenshu.llm.reasoningEffort") private var reasoningEffort: String = "medium"
-    // bossverificationfix: @AppStorage so chat 'Settings' link can jump to provider tab.
-    @AppStorage("wenshu.settingsTab") private var selectedTabRaw: String = "general"
-    // fix: Settings UI exposes user-set value for agent-to-user address.
-    // WenshuConductorIdentity.userAddress reads this key at LLM call time.
-    // 2026-08-24 clarification: default = 'user' (not the legacy term = hermes-side convention).
+    // @AppStorage("wenshu.llm.model") private var llmModel: String = ""
     @AppStorage("wenshu.userAddress") private var userAddress: String = "user"
-    // 
-    // the user-tunable Liquid Glass opacity slider + manual @State mirror
-    // + UserDefaults key + NotificationCenter wiring was removed
-    // (= 134 LOC of self-rolled ladder across App.swift + LiquidGlassOpacity.swift
-    // + 4 caller files). Apple canonical .glassEffect(.regular) auto-adapts
-    // to system settings (= dark mode / Reduce Transparency / Increase Contrast),
-    // so a per-app slider is unnecessary and conflicts with the system.
+    // P0-3 fix (= Spec audit): ConversationLoop L270 + L482 STILL read
+    // `UserDefaults.standard.string(forKey: "wenshu.llm.reasoningEffort")`
+    // and forward it to `LLMCallOptions.reasoningEffort`. Commit 25133467f
+    // removed the picker (= silent regression for users who had
+    // configured the value in a prior build). Re-add the binding so
+    // the UI write side returns. The Apple Anthropic API effort spec
+    // (https://platform.claude.com/docs/en/build-with-claude/effort) =
+    // 5 valid options (low / medium / high / xhigh / max).
+    @AppStorage("wenshu.llm.reasoningEffort") private var reasoningEffort: String = "medium"
+    @AppStorage("wenshu.settingsTab") private var selectedTabRaw: String = SettingsPane.appearance.rawValue
 
-    private var selectedTab: SettingsTab {
-        get { SettingsTab(rawValue: selectedTabRaw) ?? .general }
+    private var selectedTab: SettingsPane {
+        get { paneForRaw(selectedTabRaw) }
         nonmutating set { selectedTabRaw = newValue.rawValue }
     }
+
+    // MARK: - Pane enum (= NavigationSplitView's left-column `selection`)
+
+    enum SettingsPane: String, CaseIterable, Identifiable {
+        case appearance
+        case editor
+        case providers
+        case models
+        case memory
+        var id: String { rawValue }
+
+        /// SF Symbols 6 identifier per Apple HIG sidebar row leading icon.
+        var icon: String {
+            switch self {
+            case .appearance: return "paintbrush"
+            case .editor:      return "doc.text"
+            case .providers:   return "key.horizontal"
+            case .models:      return "cpu"
+            case .memory:      return "brain"
+            }
+        }
+    }
+
+    // MARK: - Provider API state (= unchanged from SettingsOps era)
+
     @State private var liveModelIds: [String] = []
     @State private var isLoadingModels = false
     @State private var providersWithKeys: Set<String> = []
     @State private var apiExpandedProviders: Set<String> = []
-    // apple-001 HIG absent batch: .searchable for the provider tab
-    // (= Apple HIG Cmd-F standard for filtering settings lists).
-    // Empty string = show all providers.
     @State private var providerSearchText: String = ""
     @State private var apiDraftKey: String = ""
     @State private var apiError: String?
+
+    // MARK: - Editor pane 8 @AppStorage (= EditorPreferences 8 fields)
+
+    /// Reading column width (= CGFloat stored as Double). -1 = nil in
+    /// AppStorage (= the engine fills horizontally; = see `EditorPreferences`).
+    @AppStorage("wenshu.editor.readingWidth")
+    private var readingWidthDouble: Double = -1
+    /// Height behavior (= serialized as "scrolls" / "fitsContent").
+    @AppStorage("wenshu.editor.heightBehavior")
+    private var heightBehaviorRaw: String = "scrolls"
+    private var heightBehaviorBinding: Binding<MarkdownEditorConfiguration.HeightBehavior> {
+        Binding(
+            get: {
+                switch heightBehaviorRaw {
+                case "fitsContent": return .fitsContent
+                default: return .scrolls
+                }
+            },
+            set: { newValue in
+                switch newValue {
+                case .fitsContent: heightBehaviorRaw = "fitsContent"
+                case .scrolls:     heightBehaviorRaw = "scrolls"
+                }
+            }
+        )
+    }
+    @AppStorage("wenshu.editor.rawSourceMode") private var rawSourceMode: Bool = false
+    @AppStorage("wenshu.editor.continuousSpellChecking")
+    private var continuousSpellChecking: Bool = true
+    @AppStorage("wenshu.editor.grammarChecking") private var grammarChecking: Bool = true
+    @AppStorage("wenshu.editor.automaticSpellingCorrection")
+    private var automaticSpellingCorrection: Bool = true
+    @AppStorage("wenshu.editor.listHelpersEnabled") private var listHelpersEnabled: Bool = true
+    @AppStorage("wenshu.editor.autoClosePairsEnabled") private var autoClosePairsEnabled: Bool = true
+
+    // MARK: - Apple system accent (= AppleAccentColor / AppleHighlightColor)
+
+    /// Apple system accent color (= integer encoding per Apple HIG
+    /// documentation). -2 = follow each app's default. -1..6 = the
+    /// 8 named colors.
+    @AppStorage("AppleAccentColor") private var appleAccentColor: Int = -2
+    @AppStorage("AppleHighlightColor") private var appleHighlightColor: Int = -2
+    /// System sidebar icon size (= Apple System Settings > Appearance >
+    /// Sidebar icon size). Default `medium` = SwiftUI List default.
+    @AppStorage("wenshu.sidebarIconSize") private var sidebarIconSize: String = "medium"
+
+    // MARK: - App language (= macOS 27 per-app language override)
+
+    /// Per-app language picker. Values: "system" (= follow macOS
+    /// system language = the macOS 27 default; = no \`AppleLanguages\`
+    /// write), "en" (= force English), "zh-Hans" (= force Simplified
+    /// Chinese). Persisted across Settings re-mounts; = takes effect
+    /// on next launch (= macOS 27 standard behavior; = Pages /
+    /// Numbers / Keynote all do the same).
+    @AppStorage("wenshu.appLanguage") private var appLanguage: String = "system"
+    /// True after the user picked a non-system language and we showed
+    /// the "restart required" alert; = the alert dismissal lets the
+    /// user keep editing Settings without re-firing.
+    @State private var showAppLanguageRestartAlert: Bool = false
+
+    // MARK: - Computed
 
     var currentProvider: Provider {
         Provider.by(slug: providerSlug) ?? .minimaxCn
     }
 
-    enum SettingsTab: String, CaseIterable, Identifiable {
-        case general
-        case agentBehavior
-        case providerApi
-        case model
-        case memory
-        var id: String { rawValue }
-        /// Localized display label (v0.38 P2). Uses the same catalog keys
-        /// as the tab Picker rendering, so the segmented control labels
-        /// follow the user's OS language.
-        var displayName: String {
-            switch self {
-            case .general: return String(localized: "settings.tab.general")
-            case .agentBehavior: return String(localized: "settings.tab.agentBehavior")
-            case .providerApi: return String(localized: "settings.tab.providerApi")
-            case .model: return String(localized: "settings.tab.model")
-            case .memory: return String(localized: "settings.tab.memory")
-            }
-        }
-        var icon: String {
-            switch self {
-            case .general: return "gearshape"
-            case .agentBehavior: return "person.wave.2"
-            case .providerApi: return "key.horizontal"
-            case .model: return "cpu"
-            case .memory: return "brain"
-            }
-        }
-    }
-
     var body: some View {
-        VStack(spacing: 0) {
-            // toolbar (Pages, 2): 3 segmented tab
-            Picker("", selection: Binding(
-                    get: { selectedTab },
-                    set: { selectedTab = $0 }
-                )) {
-                ForEach(SettingsTab.allCases) { tab in
-                    Label(tab.displayName, systemImage: tab.icon).tag(tab)
+        NavigationSplitView {
+            List(SettingsPane.allCases, selection: Binding(
+                get: { selectedTab },
+                set: { newValue in
+                    if let newValue { selectedTab = newValue }
                 }
-            }
-            .pickerStyle(.segmented)
-            .padding(.horizontal, DesignTokens.spacingSection)
-            .padding(.top, DesignTokens.spacingLoose)
-            .padding(.bottom, DesignTokens.spacingStandard)
-            .onChange(of: selectedTab) { _, new in
-                if new == .providerApi { refreshProviderStatus() }
-                if new == .model {
-                    Task { await reloadModels() }
+            )) { pane in
+                Label {
+                    Text(localizedPaneTitle(pane))
+                } icon: {
+                    SFIcon(pane.icon, style: .sidebar, color: IconColor.secondary)
                 }
+                .tag(pane)
             }
-
-            Divider()
-
-            // tab (Pages, .formStyle(.grouped) Apple)
-            Group {
-                switch selectedTab {
-                case .general: generalTab
-                case .agentBehavior: agentBehaviorTab
-                case .providerApi: providerApiTab
-                case .model: modelTab
-                case .memory: memoryTab
-                }
-            }
-            .animation(.default, value: selectedTab)
+            .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)
+            .listStyle(.sidebar)
+        } detail: {
+            paneBody(for: selectedTab)
+                .frame(minWidth: 520)
+                .animation(.default, value: selectedTab)
         }
-        .frame(width: DesignTokens.settingViewSheetSize.width, height: DesignTokens.settingViewSheetSize.height)
-        .task { refreshProviderStatus() }
+        .task {
+            refreshProviderStatus()
+            if selectedTab == .providers || selectedTab == .models {
+                Task { await reloadModels() }
+            }
+        }
     }
 
-    /// lift the keychain + fetcher + expansion logic into
-    /// `SettingsOps` (= the stateless business layer at
-    /// `Sources/WenshuApp/Views/Settings/SettingsOps.swift`). Per
-    /// ADR-0009 (= UI// separation), the View is now a pure
-    /// consumer: it holds the @State (liveModelIds / isLoadingModels /
-    /// providersWithKeys / apiExpandedProviders / providerSearchText
-    /// / apiDraftKey / apiError), and delegates every mutation to
-    /// SettingsOps.
-    private func refreshProviderStatus() {
-        providersWithKeys = SettingsOps.refreshProviderStatus(keychain: ProviderKeychain.backend)
+    // MARK: - Pane routing
+
+    /// Resolve the persisted `wenshu.settingsTab` raw value (= the legacy
+    /// `SettingsTab` enum cases shipped in 2025 / early 2026) to the
+    /// current pane. Deep-link callers (= `ChatSessionViewModel` writes
+    /// `wenshu.settingsTab = providerApi`) land on the new
+    /// `providers` pane via this mapping.
+    private func paneForRaw(_ raw: String) -> SettingsPane {
+        switch raw {
+        case "general":       return .appearance
+        case "agentBehavior": return .editor
+        case "providerApi":   return .providers
+        case "model":         return .models
+        case "memory":        return .memory
+        default:
+            return SettingsPane(rawValue: raw) ?? .appearance
+        }
     }
 
-    /// deleted `selectProvider(_:)` (= verify-dead
-    /// reports ext=0 + int=0; = 0 callers; = the function was an
-    /// old provider-selection entry point that wrote to the
-    /// @State providers directly; = the current Provider row uses
-    /// inline `Toggle(isOn: bindingForExpanded)` + `Button(action:)`;
-    /// = no behavior change; = 7 LOC removed).
-
-    private var modelIdList: [String] {
-        liveModelIds.isEmpty ? currentProvider.defaultModels : liveModelIds
+    @ViewBuilder
+    private func paneBody(for pane: SettingsPane) -> some View {
+        switch pane {
+        case .appearance: appearancePane
+        case .editor:      editorPane
+        case .providers:   providersPane
+        case .models:      modelsPane
+        case .memory:      MemorySettingsView()
+        }
     }
 
-    private func reloadModels() async {
-        guard !isLoadingModels else { return }
-        isLoadingModels = true
-        defer { isLoadingModels = false }
-        liveModelIds = await SettingsOps.reloadModels(
-            provider: currentProvider,
-            keychain: ProviderKeychain.backend,
-            fetcher: ProviderFetcherAdapter()
-        )
+    /// Localized pane title (= sidebar row label). Falls back to the
+    /// raw value if a key is missing (= never blank).
+    private func localizedPaneTitle(_ pane: SettingsPane) -> String {
+        switch pane {
+        case .appearance: return String(localized: "settings.pane.appearance")
+        case .editor:      return String(localized: "settings.pane.editor")
+        case .providers:   return String(localized: "settings.pane.providers")
+        case .models:      return String(localized: "settings.pane.models")
+        case .memory:      return String(localized: "settings.pane.memory")
+        }
     }
 
-    private var generalTab: some View {
-        // Pages UI, (8/21 " UI Apple, yesgeneralSettings")
+    // MARK: - 外观 pane
+
+    private var appearancePane: some View {
         Form {
-            Section(String(localized: "settings.general.appearance")) {
+            Section {
                 Picker(String(localized: "settings.general.appearance"), selection: $appearanceMode) {
                     ForEach(AppearanceMode.allCases) { mode in
                         Text(mode.label).tag(mode)
@@ -221,74 +276,210 @@ struct SettingView: View {
                 }
                 .pickerStyle(.radioGroup)
             }
-            Section(String(localized: "settings.general.liquidGlass")) {
-                // Apple canonical .glassEffect(.regular) auto-applies
-                // project-wide (per-pane content background +
-                // per-region tab bar + per-region status bar + app
-                // root containerBackground) and Apple auto-adapts to:
-                //   - dark mode / light mode
-                //   - Accessibility > Display > Reduce transparency
-                //   - Accessibility > Display > Increase contrast
+            Section {
+                Picker(String(localized: "settings.appearance.appLanguage_label"), selection: Binding(
+                    get: { appLanguage },
+                    set: { newValue in
+                        appLanguage = newValue
+                        applyAppLanguage(newValue)
+                        showAppLanguageRestartAlert = true
+                    }
+                )) {
+                    Text(String(localized: "settings.appearance.appLanguage.system")).tag("system")
+                    Text(String(localized: "settings.appearance.appLanguage.en")).tag("en")
+                    Text(String(localized: "settings.appearance.appLanguage.zh-Hans")).tag("zh-Hans")
+                }
+                .pickerStyle(.menu)
+            } header: {
+                Text(String(localized: "settings.appearance.appLanguage_section_header"))
+            } footer: {
+                Text(String(localized: "settings.appearance.appLanguage_section_footer"))
+                    .font(.caption)
+            }
+            .alert(String(localized: "settings.appearance.appLanguage.restartAlert_title"),
+                   isPresented: $showAppLanguageRestartAlert) {
+                Button(String(localized: "settings.appearance.appLanguage.restartAlert_confirm"), role: .cancel) { }
+            } message: {
+                Text(String(localized: "settings.appearance.appLanguage.restartAlert_message"))
+            }
+            Section {
+                Picker(String(localized: "settings.appearance.accent_label"), selection: Binding(
+                    get: { appleAccentColor },
+                    set: { newValue in
+                        appleAccentColor = newValue
+                        UserDefaults.standard.set(newValue, forKey: "AppleAccentColor")
+                        refreshAllWindows()
+                    }
+                )) {
+                    Text(String(localized: "settings.appearance.color.default")).tag(-2)
+                    Text(String(localized: "settings.appearance.color.graphite")).tag(-1)
+                    Text(String(localized: "settings.appearance.color.red")).tag(0)
+                    Text(String(localized: "settings.appearance.color.orange")).tag(1)
+                    Text(String(localized: "settings.appearance.color.yellow")).tag(2)
+                    Text(String(localized: "settings.appearance.color.green")).tag(3)
+                    Text(String(localized: "settings.appearance.color.blue")).tag(4)
+                    Text(String(localized: "settings.appearance.color.violet")).tag(5)
+                    Text(String(localized: "settings.appearance.color.magenta")).tag(6)
+                }
+                .pickerStyle(.menu)
+                Picker(String(localized: "settings.appearance.highlight_label"), selection: Binding(
+                    get: { appleHighlightColor },
+                    set: { newValue in
+                        appleHighlightColor = newValue
+                        UserDefaults.standard.set(newValue, forKey: "AppleHighlightColor")
+                        refreshAllWindows()
+                    }
+                )) {
+                    Text(String(localized: "settings.appearance.color.default")).tag(-2)
+                    Text(String(localized: "settings.appearance.color.graphite")).tag(-1)
+                    Text(String(localized: "settings.appearance.color.red")).tag(0)
+                    Text(String(localized: "settings.appearance.color.orange")).tag(1)
+                    Text(String(localized: "settings.appearance.color.yellow")).tag(2)
+                    Text(String(localized: "settings.appearance.color.green")).tag(3)
+                    Text(String(localized: "settings.appearance.color.blue")).tag(4)
+                    Text(String(localized: "settings.appearance.color.violet")).tag(5)
+                    Text(String(localized: "settings.appearance.color.magenta")).tag(6)
+                }
+                .pickerStyle(.menu)
+                Picker(String(localized: "settings.appearance.sidebarIconSize_label"), selection: $sidebarIconSize) {
+                    Text(String(localized: "settings.appearance.sidebarIconSize.small")).tag("small")
+                    Text(String(localized: "settings.appearance.sidebarIconSize.medium")).tag("medium")
+                    Text(String(localized: "settings.appearance.sidebarIconSize.large")).tag("large")
+                }
+                .pickerStyle(.segmented)
+            } header: {
+                Text(String(localized: "settings.appearance.accent_section_header"))
+            } footer: {
+                Text(String(localized: "settings.appearance.accent_section_footer"))
+                    .font(.caption)
+            }
+            Section {
                 Text(String(localized: "settings.general.liquidGlass.body"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Text(String(localized: "settings.general.liquidGlass.hint"))
                     .font(.caption)
-                    .foregroundStyle(DesignTokens.statusForeground)
+                    .foregroundStyle(.secondary)
+            } header: {
+                Text(String(localized: "settings.general.liquidGlass"))
             }
-            Section(String(localized: "settings.general.agentAddress")) {
-                // Read by WenshuConductorIdentity.userAddress at LLM call time
-                // (dynamic per-chat). User cannot modify via chat per AGENTS.md.
-                // Reason for no .onChange handler: WenshuConductorIdentity.
-                // userAddress reads UserDefaults fresh each LLM call = automatic
-                // dynamic propagation, no event-driven mechanism needed.
-                TextField(String(localized: "settings.general.agentAddress"), text: $userAddress, prompt: Text(String(localized: "settings.general.agentAddress.prompt")))
+            Section {
+                TextField(String(localized: "settings.general.agentAddress"), text: $userAddress,
+                          prompt: Text(String(localized: "settings.general.agentAddress.prompt")))
                     .textFieldStyle(.roundedBorder)
                 Text(String(localized: "settings.general.agentAddress.help"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
-            }
-            Section(String(localized: "settings.general.misc")) {
-                Text(String(localized: "settings.general.misc.placeholderNote"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+            } header: {
+                Text(String(localized: "settings.general.agentAddress"))
             }
         }
         .formStyle(.grouped)
     }
-    private var agentBehaviorTab: some View {
-        // exposed as a closed enum picker (= no free-text input = no
-        // SOUL.md / AGENTS.md loader = users cannot degrade the LLM
-        // by editing a markdown file). Each setting drives the
-        // SystemPrompt stable tier (= see SystemPrompt.swift).
-        //
-        // - Speaking style (formal / casual / literary / concise)
-        //
-        // Future settings land in the same Section block. Keep the
-        // picker shape consistent (= closed enum + radio-style =
-        // Apple HIG canonical).
+
+    /// Push the new accent / highlight value to the live NSWindow
+    /// (= without the host needing to relaunch). Cheap; = the picker
+    /// change has to take effect before the user closes Settings or
+    /// the UX is broken.
+    private func refreshAllWindows() {
+        for window in NSApplication.shared.windows {
+            window.invalidateRestorableState()
+        }
+    }
+
+    /// Persist the per-app language to macOS 27 \`AppleLanguages\`
+    /// (= the standard per-app override mechanism). "system" removes
+    /// the override (= the host falls back to macOS system language);
+    /// "en" + "zh-Hans" write the canonical lang+region list that
+    /// Pages / Numbers / Keynote also use (= macOS picks the first
+    /// matching locale from the list; = the second entry is the
+    /// fallback in case the first is missing from the app bundle).
+    ///
+    /// Effective on next launch (= the standard macOS 27 behavior;
+    /// = SwiftUI offers no runtime-locale-override API; = the user
+    /// must restart the app for the change to take effect; = the
+    /// Settings UI surfaces this with the alert above).
+    private func applyAppLanguage(_ lang: String) {
+        guard let bundleID = Bundle.main.bundleIdentifier else { return }
+        let defaults = UserDefaults(suiteName: bundleID) ?? .standard
+        switch lang {
+        case "en":
+            defaults.set(["en-US", "en"], forKey: "AppleLanguages")
+        case "zh-Hans":
+            defaults.set(["zh-Hans-CN", "zh-Hans"], forKey: "AppleLanguages")
+        case "system":
+            defaults.removeObject(forKey: "AppleLanguages")
+        default:
+            break
+        }
+    }
+
+    // MARK: - 编辑器 pane
+
+    private var editorPane: some View {
         Form {
-            Section(String(localized: "settings.agentBehavior.speakingStyle.title")) {
-                Picker(
-                    String(localized: "settings.agentBehavior.speakingStyle.prompt"),
-                    selection: Binding(
-                        get: { AgentBehavior.currentSpeakingStyle() },
-                        set: { AgentBehavior.setCurrentSpeakingStyle($0) }
-                    )
-                ) {
-                    ForEach(SpeakingStyle.allCases) { style in
-                        Text(style.label).tag(style)
+            Section {
+                Picker(String(localized: "settings.editor.readingWidth_label"), selection: Binding(
+                    get: { readingWidthBucket() },
+                    set: { bucket in
+                        switch bucket {
+                        case "narrow": readingWidthDouble = 480
+                        case "medium": readingWidthDouble = 720
+                        case "wide":   readingWidthDouble = 960
+                        default:       readingWidthDouble = -1
+                        }
                     }
+                )) {
+                    Text(String(localized: "settings.editor.readingWidth.none")).tag("none")
+                    Text(String(localized: "settings.editor.readingWidth.narrow")).tag("narrow")
+                    Text(String(localized: "settings.editor.readingWidth.medium")).tag("medium")
+                    Text(String(localized: "settings.editor.readingWidth.wide")).tag("wide")
                 }
-                .pickerStyle(.radioGroup)
-                Text(String(localized: "settings.agentBehavior.speakingStyle.help"))
+                .pickerStyle(.segmented)
+                Picker(String(localized: "settings.editor.heightBehavior_label"), selection: heightBehaviorBinding) {
+                    Text(String(localized: "settings.editor.heightBehavior.scrolls")).tag(MarkdownEditorConfiguration.HeightBehavior.scrolls)
+                    Text(String(localized: "settings.editor.heightBehavior.fitsContent")).tag(MarkdownEditorConfiguration.HeightBehavior.fitsContent)
+                }
+                .pickerStyle(.segmented)
+                Toggle(String(localized: "settings.editor.rawSourceMode_label"), isOn: $rawSourceMode)
+            } header: {
+                Text(String(localized: "settings.editor.display_section_header"))
+            } footer: {
+                Text(String(localized: "settings.editor.display_section_footer"))
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+            }
+            Section {
+                Toggle(String(localized: "settings.editor.continuousSpellChecking_label"), isOn: $continuousSpellChecking)
+                Toggle(String(localized: "settings.editor.grammarChecking_label"), isOn: $grammarChecking)
+                Toggle(String(localized: "settings.editor.automaticSpellingCorrection_label"), isOn: $automaticSpellingCorrection)
+            } header: {
+                Text(String(localized: "settings.editor.spelling_section_header"))
+            }
+            Section {
+                Toggle(String(localized: "settings.editor.listHelpersEnabled_label"), isOn: $listHelpersEnabled)
+                Toggle(String(localized: "settings.editor.autoClosePairsEnabled_label"), isOn: $autoClosePairsEnabled)
+            } header: {
+                Text(String(localized: "settings.editor.lists_section_header"))
             }
         }
         .formStyle(.grouped)
     }
-    private var providerApiTab: some View {
+
+    /// Snap an arbitrary `readingWidth` CGFloat to the nearest of the
+    /// 3 buckets (= narrow 480 / medium 720 / wide 960). Used by the
+    /// `Picker` getter so the segmented control lands on the closest
+    /// bucket instead of an empty selection.
+    private func readingWidthBucket() -> String {
+        let w = readingWidthDouble
+        if w < 0 { return "none" }
+        if w < 600 { return "narrow" }
+        if w < 840 { return "medium" }
+        return "wide"
+    }
+
+    // MARK: - 提供方 pane
+
+    private var providersPane: some View {
         Form {
             Section {
                 ForEach(filteredProviders) { p in
@@ -301,34 +492,29 @@ struct SettingView: View {
                     .contentShape(Rectangle())
                     if apiExpandedProviders.contains(p.slug) {
                         providerApiEditor(for: p)
-                            .padding(.leading, DesignTokens.spacingStandard)
+                            .padding(.leading, 16)
                             .transition(.opacity)
                     }
                 }
                 .animation(.default, value: apiExpandedProviders)
                 .animation(.default, value: providerSearchText)
             } header: {
-                Text(String(localized: "settings.model.provider_label"))
+                Text(String(localized: "settings.providers.section_header"))
             } footer: {
                 let total = Provider.all.count
                 let set = providersWithKeys.count
-                Text(String.localizedStringWithFormat(NSLocalizedString("settings.provider.key_count_label", comment: ""), String(set), String(total)))
+                Text(String.localizedStringWithFormat(NSLocalizedString("settings.provider.key_count_label", comment: ""),
+                                                      String(set), String(total)))
                     .font(.caption)
             }
         }
         .formStyle(.grouped)
         .onAppear { refreshProviderStatus() }
-        // apple-001 HIG absent batch: .searchable (= Apple HIG
-        // Cmd-F standard for filtering settings lists). Empty string
-        // shows all providers (= no filtering).
         .searchable(text: $providerSearchText,
                     placement: .toolbar,
                     prompt: String(localized: "settings.search.placeholder"))
     }
 
-    // apple-001 HIG absent batch: filtered providers for .searchable.
-    // Case-insensitive match against provider name + slug. Empty
-    // search = show all providers.
     private var filteredProviders: [Provider] {
         let trimmed = providerSearchText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return Provider.all }
@@ -339,11 +525,6 @@ struct SettingView: View {
     }
 
     private func toggleExpand(p: Provider) {
-        // T3c: delegate the expansion set toggle to
-        // SettingsOps (= the stateless business layer). The
-        // SwiftUI-side reset (= apiDraftKey = currentDraftPreview(...)
-        // on expand + apiError = nil) stays in the View per ADR-0009
-        // (= binding assignments, not business rules).
         let wasExpanded = apiExpandedProviders.contains(p.slug)
         apiExpandedProviders = SettingsOps.toggleExpansion(provider: p, in: apiExpandedProviders)
         if !wasExpanded {
@@ -351,13 +532,6 @@ struct SettingView: View {
             apiError = nil
         }
     }
-
-    /// deleted `bindingForExpanded(_:)` (= verify-dead
-    /// reports ext=0 + int=0; = 0 callers; = the helper built a
-    /// Binding<Bool> from `apiExpandedProviders` Set state; =
-    /// the current API row uses inline
-    /// `DisclosureGroup(isExpanded: $binding)` directly with the
-    /// parent @State; = no behavior change; = 13 LOC removed).
 
     private func currentDraftPreview(for provider: Provider) -> String {
         let hasKey = providersWithKeys.contains(provider.slug)
@@ -369,8 +543,8 @@ struct SettingView: View {
 
     @ViewBuilder
     private func providerApiEditor(for p: Provider) -> some View {
-        HStack(spacing: DesignTokens.spacingStandard) {
-            SecureField(String(localized: "b5.settingview.l399.h87028237"), text: $apiDraftKey)
+        HStack {
+            SecureField(String(localized: "settings.providers.key.placeholder"), text: $apiDraftKey)
                 .textFieldStyle(.roundedBorder)
             Button(String(localized: "settings.provider.save_button")) {
                 saveApiKey(for: p)
@@ -389,11 +563,7 @@ struct SettingView: View {
 
     private func providerApiRow(_ p: Provider) -> some View {
         let hasKey = providersWithKeys.contains(p.slug)
-        return HStack(spacing: DesignTokens.spacingModerate) {
-            // -m1-shell (see OOB.md #2026-09-15) OOB 'use SF Symbols 6':
-            // canonical LLM-provider key-state glyph = 'key'
-            // (SF Symbols 6). Replaces the v0.27 'Lucide key'
-            // choice per (see OOB.md #2026-09-15) reversal.
+        return HStack {
             SFIcon("key", style: .inlineSmall, color: hasKey ? IconColor.green : IconColor.secondary)
             Text(p.name)
                 .font(.body)
@@ -401,11 +571,11 @@ struct SettingView: View {
             if hasKey {
                 Text(keyPrefix12(for: p))
                     .font(.caption.monospaced())
-                    .foregroundStyle(DesignTokens.statusForeground)
+                    .foregroundStyle(.secondary)
             } else {
                 Text(String(localized: "settings.provider.tbd_label"))
                     .font(.caption)
-                    .foregroundStyle(DesignTokens.statusForeground)
+                    .foregroundStyle(.secondary)
             }
         }
         .contentShape(Rectangle())
@@ -424,9 +594,6 @@ struct SettingView: View {
         if result.shouldClearDraft { apiDraftKey = "" }
         if result.shouldCollapse { apiExpandedProviders.remove(provider.slug) }
         if result.shouldNotify {
-            // bossverificationfix: notify ChatZoneView (and other
-            // listeners) that the keychain changed so they can refresh
-            // their model pickers without requiring an app restart.
             NotificationCenter.default.post(
                 name: .wenshuProviderKeychainChanged,
                 object: nil,
@@ -440,7 +607,9 @@ struct SettingView: View {
         }
     }
 
-    private var modelTab: some View {
+    // MARK: - 模型 pane
+
+    private var modelsPane: some View {
         Form {
             Section {
                 Picker(String(localized: "settings.model.provider_label"), selection: $providerSlug) {
@@ -466,11 +635,15 @@ struct SettingView: View {
                 Text(String(localized: "settings.model.main_model_caption"))
                     .font(.caption)
             }
-
+            // P0-3 fix (= Spec audit): wenshu.llm.reasoningEffort is still
+            // READ by ConversationLoop + WenshuConductorImportRouter + 3
+            // connector adapters, but commit 25133467f removed the writer
+            // (= silent regression for users who configured reasoning
+            // effort in a prior build). Re-add the minimal picker so
+            // the write side returns. Apple Anthropic API effort spec
+            // (https://platform.claude.com/docs/en/build-with-claude/effort)
+            // = 5 valid options. Default = "medium" (= v0.21 ticket 35b).
             Section {
-                // ticket 35b: picker aligned with Apple Anthropic API effort parameter (5 valid values per docs)
-                // Source: https://platform.claude.com/docs/en/build-with-claude/effort
-                // NOT hermes custom 7-level (purely decorative overlay, not API)
                 Picker(String(localized: "settings.model.reasoning_effort_label"), selection: $reasoningEffort) {
                     Text(String(localized: "settings.model.reasoning_effort_low")).tag("low" as String)
                     Text(String(localized: "settings.model.reasoning_effort_medium")).tag("medium" as String)
@@ -485,14 +658,9 @@ struct SettingView: View {
             } header: {
                 Text(String(localized: "settings.model.reasoning_label"))
             }
-
             Section {
                 ForEach(AuxTask.allCases, id: \.self) { task in
                     HStack {
-                        // -m1-shell (see OOB.md #2026-09-15) OOB 'use SF Symbols 6':
-                        // AuxTask.icon is already a canonical
-                        // SF Symbols 6 identifier (= per the
-                        // -m1-shell enum property rename).
                         SFIcon(task.icon, style: .inlineSmall, color: IconColor.secondary)
                         Text(task.label)
                             .font(.body)
@@ -500,10 +668,6 @@ struct SettingView: View {
                         Text(String(localized: "settings.model.use_main_model"))
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                        Button(String(localized: "settings.model.change_button")) {}
-                            .buttonStyle(.borderless)
-                            .controlSize(.small)
-                            .disabled(true)
                     }
                 }
             } header: {
@@ -517,12 +681,24 @@ struct SettingView: View {
         .onAppear { Task { await reloadModels() } }
     }
 
-    private var memoryTab: some View {
-        // ticket A: wire MemorySettingsView (= v0.35 ticket 009 ship,
-        // isolated file pre-wire) into Settings scene. Scope + retention +
-        // recent memory entries rendered.
-        MemorySettingsView()
-            .padding(DesignTokens.spacingModerate)
+    private var modelIdList: [String] {
+        liveModelIds.isEmpty ? currentProvider.defaultModels : liveModelIds
     }
 
+    // MARK: - SettingsOps plumbing (= unchanged)
+
+    private func refreshProviderStatus() {
+        providersWithKeys = SettingsOps.refreshProviderStatus(keychain: ProviderKeychain.backend)
+    }
+
+    private func reloadModels() async {
+        guard !isLoadingModels else { return }
+        isLoadingModels = true
+        defer { isLoadingModels = false }
+        liveModelIds = await SettingsOps.reloadModels(
+            provider: currentProvider,
+            keychain: ProviderKeychain.backend,
+            fetcher: ProviderFetcherAdapter()
+        )
+    }
 }

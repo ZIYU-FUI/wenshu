@@ -656,8 +656,8 @@ struct WenshuMarkdownEditorAdapterTests {
     /// Source-content gate: if anyone removes the struct the
     /// AppStorage schema silently reverts (= a future Settings
     /// panel has no place to bind).
-    @Test("EditorPreferences schema exists with 6 keys (= T-12)")
-    func editorPreferencesSchemaHasSixKeys() throws {
+    @Test("EditorPreferences schema exists with 8 keys (= 6 T-12 + 2 list-editing)")
+    func editorPreferencesSchemaHasEightKeys() throws {
         let prefPath = resolve("Sources/WenshuApp/Editor/EditorPreferences.swift")
         let pref = try String(contentsOfFile: prefPath, encoding: .utf8)
         #expect(pref.contains("struct EditorPreferences"),
@@ -674,19 +674,27 @@ struct WenshuMarkdownEditorAdapterTests {
                 "EditorPreferences must declare a field named grammarChecking (= AppStorage schema key)")
         #expect(pref.contains("automaticSpellingCorrection"),
                 "EditorPreferences must declare a field named automaticSpellingCorrection (= AppStorage schema key)")
+        #expect(pref.contains("listHelpersEnabled"),
+                "EditorPreferences must declare a field named listHelpersEnabled (= AppStorage schema key)")
+        #expect(pref.contains("autoClosePairsEnabled"),
+                "EditorPreferences must declare a field named autoClosePairsEnabled (= AppStorage schema key)")
         #expect(pref.contains("case readingWidth"),
                 "EditorPreferences.AppStorageKey must declare readingWidth case")
         #expect(pref.contains("case heightBehavior"),
                 "EditorPreferences.AppStorageKey must declare heightBehavior case")
         #expect(pref.contains("case rawSourceMode"),
                 "EditorPreferences.AppStorageKey must declare rawSourceMode case")
+        #expect(pref.contains("case listHelpersEnabled"),
+                "EditorPreferences.AppStorageKey must declare listHelpersEnabled case")
+        #expect(pref.contains("case autoClosePairsEnabled"),
+                "EditorPreferences.AppStorageKey must declare autoClosePairsEnabled case")
     }
 
     /// The factory must forward the EditorPreferences snapshot to
-    /// MarkdownEditorConfiguration (= 4 binding lines; = if any
+    /// MarkdownEditorConfiguration (= 5 binding lines; = if any
     /// disappears the host's settings silently stop flowing into
     /// the editor).
-    @Test("WenshuEditorServicesFactory forwards EditorPreferences to config (= T-12)")
+    @Test("WenshuEditorServicesFactory forwards EditorPreferences to config (= 5 binding lines)")
     func servicesFactoryForwardsEditorPreferences() throws {
         let factoryPath = resolve("Sources/WenshuApp/Editor/WenshuEditorServicesFactory.swift")
         let factory = try String(contentsOfFile: factoryPath, encoding: .utf8)
@@ -698,6 +706,8 @@ struct WenshuMarkdownEditorAdapterTests {
                 "Factory must bind config.rawSourceMode from preferences.rawSourceMode")
         #expect(factory.contains("config.spellChecking = SpellCheckingPolicy("),
                 "Factory must build SpellCheckingPolicy from preferences")
+        #expect(factory.contains("config.lists = ListStyle("),
+                "Factory must build ListStyle from preferences (= listHelpersEnabled + autoClosePairsEnabled)")
     }
 
     // MARK: - ed-smc-defaults T-13: scroll-memory persistence
