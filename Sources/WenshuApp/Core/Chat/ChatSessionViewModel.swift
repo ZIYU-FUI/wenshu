@@ -356,10 +356,14 @@ final class ChatViewModel {
     /// UI layer must not call the data layer directly (= the
     /// canonical separation rule). Sets the canonical
     /// `wenshu.settingsTab` to `providerApi` so the Settings
-    /// window opens on the LLM Connector pane. The canonical
-    /// pattern (= the `@AppStorage` mirror in Settings reads from
-    /// `UserDefaults`) is unchanged; = the write moves here from
-    /// `ChatZoneView` (= UI layer) into the business layer.
+    /// window opens on the providers pane (= the legacy 'LLM Connector
+    /// pane' label was renamed to 'providers' in commit 25133467f;
+    /// = the underlying raw value 'providerApi' is preserved by the
+    /// paneForRaw alias map at SettingView.swift so existing deep
+    /// links still resolve). The canonical pattern (= the
+    /// `@AppStorage` mirror in Settings reads from `UserDefaults`)
+    /// is unchanged; = the write moves here from `ChatZoneView`
+    /// (= UI layer) into the business layer.
     func openSettingsToProviderApi() {
         UserDefaultsStore.shared.setString("providerApi", forKey: .settingsTab)
     }
