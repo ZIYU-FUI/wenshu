@@ -162,6 +162,20 @@ struct SettingView: View {
     /// Sidebar icon size). Default `medium` = SwiftUI List default.
     @AppStorage("wenshu.sidebarIconSize") private var sidebarIconSize: String = "medium"
 
+    // MARK: - App language (= macOS 27 per-app language override)
+
+    /// Per-app language picker. Values: "system" (= follow macOS
+    /// system language = the macOS 27 default; = no \`AppleLanguages\`
+    /// write), "en" (= force English), "zh-Hans" (= force Simplified
+    /// Chinese). Persisted across Settings re-mounts; = takes effect
+    /// on next launch (= macOS 27 standard behavior; = Pages /
+    /// Numbers / Keynote all do the same).
+    @AppStorage("wenshu.appLanguage") private var appLanguage: String = "system"
+    /// True after the user picked a non-system language and we showed
+    /// the "restart required" alert; = the alert dismissal lets the
+    /// user keep editing Settings without re-firing.
+    @State private var showAppLanguageRestartAlert: Bool = false
+
     // MARK: - Computed
 
     var currentProvider: Provider {
@@ -253,6 +267,32 @@ struct SettingView: View {
                 .pickerStyle(.radioGroup)
             }
             Section {
+                Picker(String(localized: "settings.appearance.appLanguage_label"), selection: Binding(
+                    get: { appLanguage },
+                    set: { newValue in
+                        appLanguage = newValue
+                        applyAppLanguage(newValue)
+                        showAppLanguageRestartAlert = true
+                    }
+                )) {
+                    Text(String(localized: "settings.appearance.appLanguage.system")).tag("system")
+                    Text(String(localized: "settings.appearance.appLanguage.en")).tag("en")
+                    Text(String(localized: "settings.appearance.appLanguage.zh-Hans")).tag("zh-Hans")
+                }
+                .pickerStyle(.menu)
+            } header: {
+                Text(String(localized: "settings.appearance.appLanguage_section_header"))
+            } footer: {
+                Text(String(localized: "settings.appearance.appLanguage_section_footer"))
+                    .font(.caption)
+            }
+            .alert(String(localized: "settings.appearance.appLanguage.restartAlert_title"),
+                   isPresented: $showAppLanguageRestartAlert) {
+                Button(String(localized: "settings.appearance.appLanguage.restartAlert_confirm"), role: .cancel) { }
+            } message: {
+                Text(String(localized: "settings.appearance.appLanguage.restartAlert_message"))
+            }
+            Section {
                 Picker(String(localized: "settings.appearance.accent_label"), selection: Binding(
                     get: { appleAccentColor },
                     set: { newValue in
@@ -334,6 +374,33 @@ struct SettingView: View {
     private func refreshAllWindows() {
         for window in NSApplication.shared.windows {
             window.invalidateRestorableState()
+        }
+    }
+
+    /// Persist the per-app language to macOS 27 \`AppleLanguages\`
+    /// (= the standard per-app override mechanism). "system" removes
+    /// the override (= the host falls back to macOS system language);
+    /// "en" + "zh-Hans" write the canonical lang+region list that
+    /// Pages / Numbers / Keynote also use (= macOS picks the first
+    /// matching locale from the list; = the second entry is the
+    /// fallback in case the first is missing from the app bundle).
+    ///
+    /// Effective on next launch (= the standard macOS 27 behavior;
+    /// = SwiftUI offers no runtime-locale-override API; = the user
+    /// must restart the app for the change to take effect; = the
+    /// Settings UI surfaces this with the alert above).
+    private func applyAppLanguage(_ lang: String) {
+        guard let bundleID = Bundle.main.bundleIdentifier else { return }
+        let defaults = UserDefaults(suiteName: bundleID) ?? .standard
+        switch lang {
+        case "en":
+            defaults.set(["en-US", "en"], forKey: "AppleLanguages")
+        case "zh-Hans":
+            defaults.set(["zh-Hans-CN", "zh-Hans"], forKey: "AppleLanguages")
+        case "system":
+            defaults.removeObject(forKey: "AppleLanguages")
+        default:
+            break
         }
     }
 
