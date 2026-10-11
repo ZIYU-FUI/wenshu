@@ -478,8 +478,8 @@ hermes-port parity verification infrastructure (= spec §6.1 + §6.2).
    - ticket 006: LLM Connector Settings UI (7 profiles, BYOK) 🟥
    - ticket 007: GeminiNativeConnector (P1)
    - ticket 008: WenshuModelCatalog (P2, OpenRouter metadata)
-   - ticket 009: Memory subsystem thin adapter + MemorySettingsView 🟥
-   - ticket 010: Skill subsystem thin adapter + SkillsSettingsView 🟥
+   - ticket 009: Memory subsystem thin adapter + MemorySettingsView 🟥 (= now lives inside SettingView's memory pane; see commit 25133467f)
+   - ticket 010: SkillsSettingsView 🟥 (= superseded by NavigationSplitView 5-pane Settings; = the skills concept never had a row in SettingView per boss cadence 'git grep BEFORE patch'; = ticket 010 superseded by commit 25133467f)
    - ticket 011: AGENTS.md §11 + §11.2 + §11.3 rewrite (docs only)
 
 2. **Iron rule 6 sweep** (10 fix commits):
@@ -520,7 +520,7 @@ hermes-port parity verification infrastructure (= spec §6.1 + §6.2).
 
 5. **UI activation** (3 acts):
    - act-1: ChatView compression pill + manual button 🟨+🟥
-   - act-2: AgentSettingsView 3-pane Settings 🟥🟥🟥 (= LLM Connector / Memory / Skills)
+   - act-2: SettingView 5-pane NavigationSplitView Settings (= appearance / editor / providers / models / memory; supersedes the planned AgentSettingsView 3-pane; commit 25133467f + commit f5ccf6df8 merge)
    - act-3: MemoryRetrievalPanel as DynamicZone right-bottom 🟨
 
 ### v0.36 acceptance (= all met)
