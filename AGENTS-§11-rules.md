@@ -882,7 +882,7 @@ The tradeoff: wenshu sacrifices user expression freedom for system-managed stabl
 |---|---|---|
 | 1 | `Sources/WenshuApp/Settings/AgentBehavior.swift` | NEW — `SpeakingStyle` enum (= 4 closed cases: formal / casual / literary / concise) + `AgentBehavior` UserDefaults bridge |
 | 2 | `Sources/WenshuApp/Core/Agent/Conversation/SystemPrompt.swift` | MODIFY — `stableTier()` appends `speakingStyle.promptGuidance` as the last section |
-| 3 | `Sources/WenshuApp/Views/Settings/SettingView.swift` | MODIFY — new `agentBehavior` SettingsTab + radio-group picker |
+| 3 | `Sources/WenshuApp/Views/Settings/SettingView.swift` | SUPERSEDED (= `agentBehavior` SettingsTab was renamed to SettingsPane.editor in commit 25133467f; = the radio-group picker now lives in the editor pane; = `AgentBehavior.swift` data model still ships at `Sources/WenshuApp/Settings/AgentBehavior.swift` but its UI tab never landed) |
 | 4 | `Sources/WenshuApp/Resources/{en,zh-Hans}.lproj/Localizable.strings` | MODIFY — 4 new i18n keys |
 | 5 | `Tests/WenshuAppTests/Settings/AgentBehaviorTests.swift` | NEW — 12 tests |
 
@@ -892,7 +892,7 @@ Any future agent-behavior setting follows this exact pattern (= Q112 = 1 source 
 
 1. Add a new enum case under the existing or new enum type (= closed set; = users pick, never type free text).
 2. Add a `current<X>(defaults:)` + `setCurrent<X>(_:defaults:)` pair on `AgentBehavior` (= centralized UserDefaults bridge).
-3. Add a Picker row in `SettingView.swift` `agentBehaviorTab` (= radio-group = Apple HIG canonical).
+3. Add a Picker row in `SettingView.swift` editor pane (= the renamed `agentBehavior` SettingsTab; = radio-group = Apple HIG canonical; = see commit 25133467f for the SettingsPane enum renaming)
 5. Inject the new setting into `SystemPrompt.stableTier()` as a new section (= stable tier = cacheable across turns).
 4. Add the same i18n key in both en.lproj + zh-Hans.lproj (= dual-locale policy).
 
