@@ -139,7 +139,22 @@ struct WenshuMarkdownEditor: View {
             isEditable: isEditable,
             onLinkClick: onLinkClick,
             placeholder: placeholder,
-            header: header
+            header: header,
+            // T-13: scroll-memory persistence (= the engine posts
+            // (docId, offsetY) on every scroll via
+            // `onPersistScrollOffset`; = the host writes the JSON
+            // file via `EditorScrollMemory.persist`; =
+            // `restoreScrollOffset` reads the JSON file so the host
+            // app reopens at the last scroll position = the
+            // canonical Apple HIG "remember what you were reading"
+            // pattern = Pages / Numbers reopen at the last scroll).
+            retainedScrollDocumentIds: EditorScrollMemory.retainedDocumentIds,
+            onPersistScrollOffset: { documentId, offset in
+                EditorScrollMemory.persist(offset, for: documentId)
+            },
+            restoreScrollOffset: { documentId in
+                EditorScrollMemory.restore(for: documentId)
+            }
         )
     }
 }

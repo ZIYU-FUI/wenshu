@@ -699,6 +699,46 @@ struct WenshuMarkdownEditorAdapterTests {
         #expect(factory.contains("config.spellChecking = SpellCheckingPolicy("),
                 "Factory must build SpellCheckingPolicy from preferences")
     }
+
+    // MARK: - ed-smc-defaults T-13: scroll-memory persistence
+
+    /// T-13 ships `EditorScrollMemory` (= the host-side persistence
+    /// layer that wires the engine's 3 scroll-memory closures).
+    /// Source-content gate: if anyone removes the struct or stops
+    /// calling the persist/restore entry points the host silently
+    /// loses scroll memory.
+    @Test("EditorScrollMemory persists + restores scroll offsets (= T-13)")
+    func editorScrollMemoryPersistsAndRestores() throws {
+        let memoryPath = resolve("Sources/WenshuApp/Editor/EditorScrollMemory.swift")
+        let memory = try String(contentsOfFile: memoryPath, encoding: .utf8)
+        #expect(memory.contains("struct EditorScrollMemory"),
+                "EditorScrollMemory struct must exist (= host-side scroll-memory persistence)")
+        #expect(memory.contains("static func persist("),
+                "EditorScrollMemory must declare a static persist(_:for:) entry point (= the engine calls onPersistScrollOffset)")
+        #expect(memory.contains("static func restore("),
+                "EditorScrollMemory must declare a static restore(for:) entry point (= the engine calls restoreScrollOffset)")
+    }
+
+    /// `WenshuMarkdownEditor` must wire the 3 engine scroll-memory
+    /// closures (= retainedScrollDocumentIds + onPersistScrollOffset
+    /// + restoreScrollOffset). Source-content gate: if any of the
+    /// 3 wiring lines disappears, the host silently loses scroll
+    /// memory on next session.
+    @Test("WenshuMarkdownEditor wires the 3 scroll-memory closures (= T-13)")
+    func wenshuMarkdownEditorWiresScrollMemory() throws {
+        let editorPath = resolve("Sources/WenshuApp/Editor/WenshuMarkdownEditor.swift")
+        let editor = try String(contentsOfFile: editorPath, encoding: .utf8)
+        #expect(editor.contains("retainedScrollDocumentIds:"),
+                "WenshuMarkdownEditor must wire retainedScrollDocumentIds (= the engine's opt-in subset)")
+        #expect(editor.contains("onPersistScrollOffset:"),
+                "WenshuMarkdownEditor must wire onPersistScrollOffset (= the engine's persist callback)")
+        #expect(editor.contains("restoreScrollOffset:"),
+                "WenshuMarkdownEditor must wire restoreScrollOffset (= the engine's restore callback)")
+        #expect(editor.contains("EditorScrollMemory.persist"),
+                "WenshuMarkdownEditor's onPersistScrollOffset must call EditorScrollMemory.persist")
+        #expect(editor.contains("EditorScrollMemory.restore"),
+                "WenshuMarkdownEditor's restoreScrollOffset must call EditorScrollMemory.restore")
+    }
 }
 
 
