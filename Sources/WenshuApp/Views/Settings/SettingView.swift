@@ -282,7 +282,19 @@ struct SettingView: View {
                     set: { newValue in
                         appLanguage = newValue
                         applyAppLanguage(newValue)
-                        showAppLanguageRestartAlert = true
+                        // P1-1 fix (= Q99 Spec audit, commit to be authored):
+                        // the restart-required alert must NOT fire when the
+                        // user re-selects the 'system' tag (= no AppleLanguages
+                        // write happened; = applyAppLanguage("system") removes
+                        // the key; = no restart is needed because there is no
+                        // override to take effect). Firing the alert on a no-op
+                        // select is the user-reported UX bug from commit
+                        // bc1d9bbeb (= user picked 'system' after a previous
+                        // explicit pick; = alert popped without any AppleLanguages
+                        // change to confirm).
+                        if newValue != "system" {
+                            showAppLanguageRestartAlert = true
+                        }
                     }
                 )) {
                     Text(String(localized: "settings.appearance.appLanguage.system")).tag("system")

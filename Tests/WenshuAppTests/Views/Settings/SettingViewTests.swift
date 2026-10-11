@@ -488,5 +488,13 @@ struct SettingViewTests {
                 "applyAppLanguage must write the canonical zh-Hans lang+region pair")
         #expect(codeRegion.contains("defaults.removeObject(forKey: \"AppleLanguages\")"),
                 "applyAppLanguage must remove AppleLanguages on system (= inherit OS language)")
+        // P1-1 fix (= Q99 Spec audit follow-up): the restart-required
+        // alert must NOT fire when the user selects the 'system' tag,
+        // because applyAppLanguage("system") is a no-op (= it removes
+        // the AppleLanguages key; = no override is in flight; = no
+        // restart is needed). The picker setter must guard the alert
+        // behind a non-system check.
+        #expect(codeRegion.contains("if newValue != \"system\""),
+                "appLanguage picker setter must guard the restart alert behind a non-system check (= P1-1 UX fix; = alert must not pop when the user re-selects 'system' after a previous explicit pick)")
     }
 }
