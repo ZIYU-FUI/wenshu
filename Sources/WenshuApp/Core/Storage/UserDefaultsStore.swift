@@ -35,9 +35,23 @@
 
 import Foundation
 
-/// Centralized UserDefaults key namespace (= every setting key lives
-/// here so renaming / migration / R2-Spotlight indexing all touch one
-/// file). Cases map 1:1 to the `wenshu.<name>` raw value.
+/// Centralized UserDefaults key namespace (= the `wenshu.<name>` raw
+/// values that drive UI-scene cross-mount persistence = chat-side
+/// deep links + Settings tab selection + sidebar selection + the
+/// open-tabs array). Cases map 1:1 to the `wenshu.<name>` raw value.
+///
+/// Note: per-scene editor + appearance settings live in dedicated
+/// AppStorageKey enums (= `EditorPreferences.AppStorageKey` for the
+/// 8 `wenshu.editor.*` keys; = `@AppStorage` declarations in
+/// `SettingView.swift` for `wenshu.sidebarIconSize` /
+/// `wenshu.appLanguage` / `AppleAccentColor` / `AppleHighlightColor`).
+/// Those are intentionally NOT in this enum (= the namespace scope
+/// here is 'I observe and serialize state across scene re-mounts';
+/// = per-pane Settings UI state is owned by the SwiftUI `@AppStorage`
+/// declaration at the use site, per Apple's canonical AppStorage
+/// pattern). Renaming or migrating a key in this enum must update
+/// every `UserDefaultsStore.shared.setXxx(_:forKey:)` / `string(forKey:)`
+/// callsite (= single source of truth for the cross-scene state).
 public enum WenshuDefaultsKey: String, CaseIterable, Sendable {
     case debugNoKeychain     = "wenshu.debugNoKeychain"
     // `libraryPath` (= "wenshu.libraryPath") was removed when the
