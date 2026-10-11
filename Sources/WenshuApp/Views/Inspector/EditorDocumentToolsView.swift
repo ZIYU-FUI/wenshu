@@ -145,11 +145,11 @@ private struct EditorDocumentToolsSubToolPicker: View {
             // picker source.
             switch selected {
             case .formatReadout:
-                EditorDocumentToolsPlaceholder(
-                    titleKey: "inspector.documentTools.formatReadout.title",
-                    bodyKey: "inspector.documentTools.formatReadout.placeholder",
-                    wiredIn: "T-05"
-                )
+                // T-05: real body shipped. Listens to selectionBoldDidChange
+                // / selectionItalicDidChange / selectionHighlightDidChange
+                // (= the engine's bus names) and renders the live toggle
+                // state for the 3 icons.
+                EditorFormatReadoutView(bus: bus)
             case .findReplace:
                 EditorDocumentToolsPlaceholder(
                     titleKey: "inspector.documentTools.findReplace.title",
