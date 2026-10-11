@@ -37,6 +37,16 @@ enum WenshuEditorServicesFactory {
         )
         var config = MarkdownEditorConfiguration.default
         config.services = services
+        // T-11: explicitly bind the engine's default theme so the
+        // host (= wenshu) records its intent in source (= future
+        // tickets that want to retint the editor surface a single
+        // place to land = the `MarkdownEditorTheme` declaration
+        // below). The engine's `MarkdownEditorTheme.default` ships
+        // with light + dark color pairs that match Pages / Numbers
+        // inspector colors (= bodyText = NSColor.labelColor mirror,
+        // mutedText = NSColor.tertiaryLabelColor mirror, code =
+        // NSColor.textBackgroundColor mirror).
+        config.theme = MarkdownEditorTheme.default
         return config
     }
 
@@ -56,6 +66,8 @@ enum WenshuEditorServicesFactory {
         )
         var config = MarkdownEditorConfiguration.default
         config.services = services
+        // T-11: same explicit-theme binding (= see above).
+        config.theme = MarkdownEditorTheme.default
         return config
     }
 }

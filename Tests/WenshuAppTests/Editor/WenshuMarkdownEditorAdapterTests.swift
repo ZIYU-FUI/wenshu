@@ -631,6 +631,23 @@ struct WenshuMarkdownEditorAdapterTests {
         #expect(view.contains(".disabled(true)"),
                 "EditorSpellTogglesView's toggles must be disabled (= inspector reflects engine state; mutation happens in the editor's context menu = Apple HIG system Settings pattern)")
     }
+
+    // MARK: - ed-smc-defaults T-11: explicit default-theme binding
+
+    /// T-11 binds `MarkdownEditorTheme.default` explicitly in
+    /// `WenshuEditorServicesFactory.make`. The binding is the
+    /// single landing-spot for future retheme work (= a future
+    /// ticket that wants to swap the default theme for a
+    /// wenshu-tuned one has one place to edit).
+    @Test("WenshuEditorServicesFactory binds MarkdownEditorTheme.default (= T-11)")
+    func servicesFactoryBindsMarkdownEditorThemeDefault() throws {
+        let factoryPath = resolve("Sources/WenshuApp/Editor/WenshuEditorServicesFactory.swift")
+        let factory = try String(contentsOfFile: factoryPath, encoding: .utf8)
+        #expect(
+            factory.contains("config.theme = MarkdownEditorTheme.default"),
+            "WenshuEditorServicesFactory.make must explicitly bind MarkdownEditorTheme.default (= single landing-spot for future retheme work)"
+        )
+    }
 }
 
 
