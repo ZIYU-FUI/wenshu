@@ -79,6 +79,15 @@ struct SettingView: View {
     }
     // @AppStorage("wenshu.llm.model") private var llmModel: String = ""
     @AppStorage("wenshu.userAddress") private var userAddress: String = "user"
+    // P0-3 fix (= Spec audit): ConversationLoop L270 + L482 STILL read
+    // `UserDefaults.standard.string(forKey: "wenshu.llm.reasoningEffort")`
+    // and forward it to `LLMCallOptions.reasoningEffort`. Commit 25133467f
+    // removed the picker (= silent regression for users who had
+    // configured the value in a prior build). Re-add the binding so
+    // the UI write side returns. The Apple Anthropic API effort spec
+    // (https://platform.claude.com/docs/en/build-with-claude/effort) =
+    // 5 valid options (low / medium / high / xhigh / max).
+    @AppStorage("wenshu.llm.reasoningEffort") private var reasoningEffort: String = "medium"
     @AppStorage("wenshu.settingsTab") private var selectedTabRaw: String = SettingsPane.appearance.rawValue
 
     private var selectedTab: SettingsPane {
@@ -625,6 +634,29 @@ struct SettingView: View {
             } footer: {
                 Text(String(localized: "settings.model.main_model_caption"))
                     .font(.caption)
+            }
+            // P0-3 fix (= Spec audit): wenshu.llm.reasoningEffort is still
+            // READ by ConversationLoop + WenshuConductorImportRouter + 3
+            // connector adapters, but commit 25133467f removed the writer
+            // (= silent regression for users who configured reasoning
+            // effort in a prior build). Re-add the minimal picker so
+            // the write side returns. Apple Anthropic API effort spec
+            // (https://platform.claude.com/docs/en/build-with-claude/effort)
+            // = 5 valid options. Default = "medium" (= v0.21 ticket 35b).
+            Section {
+                Picker(String(localized: "settings.model.reasoning_effort_label"), selection: $reasoningEffort) {
+                    Text(String(localized: "settings.model.reasoning_effort_low")).tag("low" as String)
+                    Text(String(localized: "settings.model.reasoning_effort_medium")).tag("medium" as String)
+                    Text(String(localized: "settings.model.reasoning_effort_high")).tag("high" as String)
+                    Text(String(localized: "settings.model.reasoning_effort_xhigh")).tag("xhigh" as String)
+                    Text(String(localized: "settings.model.reasoning_effort_max")).tag("max" as String)
+                }
+                .pickerStyle(.menu)
+                Text(String(localized: "settings.model.reasoning.effortHint"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } header: {
+                Text(String(localized: "settings.model.reasoning_label"))
             }
             Section {
                 ForEach(AuxTask.allCases, id: \.self) { task in
