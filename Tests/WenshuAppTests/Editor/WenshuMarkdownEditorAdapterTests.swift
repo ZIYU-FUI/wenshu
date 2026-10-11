@@ -275,4 +275,105 @@ struct WenshuMarkdownEditorAdapterTests {
             "EditorHeaderView must expose the dirty-state enum so EditorView can drive the dot color"
         )
     }
+
+    // MARK: - ed-smc-defaults T-02: format toolbar pinned + 12-button contract
+
+    /// The 12-button format toolbar (= Pages / Numbers / Keynote
+    /// document-chrome idiom). Each button posts a `MarkdownEditorBus`
+    /// request name that the engine observes internally. The toolbar
+    /// must cover exactly 12 actions (= the engine's full format
+    /// surface: bold / italic / highlight / strikethrough /
+    /// inline-code / heading / blockquote / unordered-list /
+    /// ordered-list / link / code-block / horizontal-rule). If
+    /// anyone adds a 13th case, this test fails (= the toolbar
+    /// contract drift surface). If anyone drops a case, this test
+    /// fails (= the toolbar silently loses a button).
+    @Test("EditorFormatAction covers the engine's 12-button format surface (= T-02)")
+    func formatActionCoverage() throws {
+        let toolbarPath = resolve("Sources/WenshuApp/UI/Editor/EditorFormatToolbar.swift")
+        let toolbar = try String(contentsOfFile: toolbarPath, encoding: .utf8)
+        #expect(
+            toolbar.contains("enum EditorFormatAction"),
+            "EditorFormatAction enum must live in EditorFormatToolbar.swift"
+        )
+        #expect(
+            toolbar.contains("var iconName: String"),
+            "EditorFormatAction.iconName must be defined (= SF Symbol mapping per case)"
+        )
+        #expect(
+            EditorFormatAction.allCases.count == 12,
+            "EditorFormatAction.allCases must cover exactly 12 buttons (= engine's full format surface)"
+        )
+        let expectedCases: Set<String> = [
+            "bold", "italic", "highlight", "strikethrough",
+            "inlineCode", "heading", "blockquote",
+            "unorderedList", "orderedList",
+            "link", "codeBlock", "horizontalRule"
+        ]
+        let actualCases = Set(EditorFormatAction.allCases.map(\.rawValue))
+        #expect(
+            actualCases == expectedCases,
+            "EditorFormatAction cases must match the engine's 12-button contract (= names below must match the bus public surface)"
+        )
+    }
+
+    /// The toolbar dispatches via `FormatDispatcher` (= canonical helper
+    /// in EditorActions.swift) and the raw `bus.apply…Request`
+    /// notification names. Source-content test gates both the helper
+    /// use (= bold) AND the bus-name dispatch (= the other 11).
+    @Test("EditorFormatToolbar dispatches via FormatDispatcher + bus names (= T-02)")
+    func formatToolbarDispatchContract() throws {
+        let toolbarPath = resolve("Sources/WenshuApp/UI/Editor/EditorFormatToolbar.swift")
+        let toolbar = try String(contentsOfFile: toolbarPath, encoding: .utf8)
+        #expect(
+            toolbar.contains("FormatDispatcher(bus: bus)"),
+            "EditorFormatToolbar must construct FormatDispatcher (= canonical bus-dispatch helper)"
+        )
+        #expect(
+            toolbar.contains("post(bus.applyBoldRequest)")
+                || toolbar.contains("dispatcher.applyBold()"),
+            "Bold dispatch must be wired (= the engine's contract for format-surface parity)"
+        )
+        // The toolbar must reach into every bus name at least once
+        // (= the contract is "12 names, 12 dispatches"). Source-grep
+        // each so a future dropped case fails this test.
+        let busNames = [
+            "applyItalicRequest", "applyHighlightRequest",
+            "applyStrikethroughRequest", "applyInlineCodeRequest",
+            "applyHeadingRequest", "applyBlockquoteRequest",
+            "applyUnorderedListRequest", "applyOrderedListRequest",
+            "applyLinkRequest", "applyCodeBlockRequest",
+            "applyHorizontalRuleRequest"
+        ]
+        for name in busNames {
+            #expect(
+                toolbar.contains("bus.\(name)"),
+                "EditorFormatToolbar must reference `bus.\(name)` (= dropped case in the 12-button contract)"
+            )
+        }
+    }
+
+    /// `EditorEditContent` (= the edit-mode wrapper) must forward the
+    /// `editorHeader` + `editorPlaceholder` slots added in T-02 so the
+    /// chrome band stays visible while editing (= canonical Pages /
+    /// Numbers document-chrome-survives-WYSIWYG-toggle pattern).
+    @Test("EditorEditContent forwards SMC `editorHeader:` + `editorPlaceholder:` (= T-02)")
+    func editorEditContentForwardsChromeSlots() throws {
+        let editPath = resolve("Sources/WenshuApp/Views/Workspace/EditorEditContent.swift")
+        let edit = try String(contentsOfFile: editPath, encoding: .utf8)
+        #expect(
+            edit.contains("var editorHeader: AnyView? = nil"),
+            "EditorEditContent must expose `editorHeader: AnyView? = nil` (= SMC chrome slot)"
+        )
+        #expect(
+            edit.contains("var editorPlaceholder: NSAttributedString? = nil"),
+            "EditorEditContent must expose `editorPlaceholder: NSAttributedString? = nil` (= SMC chrome slot)"
+        )
+        #expect(
+            edit.contains("header: editorHeader") && edit.contains("placeholder: editorPlaceholder"),
+            "EditorEditContent body must forward both slots into the inner WenshuMarkdownEditor"
+        )
+    }
 }
+
+

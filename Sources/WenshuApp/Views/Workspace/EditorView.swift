@@ -169,6 +169,29 @@ struct EditorView: View {
         )
     }
 
+    // MARK: - SMC format toolbar (= T-02)
+    //
+    // The 12-button document toolbar (= Pages / Numbers / Keynote
+    // document chrome idiom). The bus is the same instance the engine
+    // observes internally for selection-state events; = posting here
+    // reaches the same listener chain the engine's coordinator reads.
+    // We rebuild a fresh bus here (= not cached) because:
+    // 1. `MarkdownEditorBus.buildWenshu()` is a single-screen object
+    //    (= no instance data); = rebuild cost = trivial.
+    // 2. The toolbar should NOT survive the editor mount (= if the
+    //    view is torn down, we want the toolbar to drop too; = each
+    //    view-body rebuild gets a fresh bus, = each button tap hits
+    //    the freshly-registered name).
+    //
+    // Why NOT cached (= one bus per view life): the toolbar lives at
+    // the editor zone's outer VStack (= above the scrollable area; =
+    // pinned). The NSTextView's view-of-engine never sees this toolbar
+    // directly (= it lives outside the engine's `header:` slot for
+    // exactly this reason: the toolbar must NEVER scroll away).
+    private var editorFormatToolbar: EditorFormatToolbar {
+        EditorFormatToolbar(bus: MarkdownEditorBus.buildWenshu())
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // Tab strip = Safari-style multi-tab bar (Apple HIG
@@ -240,6 +263,29 @@ struct EditorView: View {
             } message: {
                 Text(String(localized: "workspace.editor.discard_changes_confirm"))
             }
+
+            // ed-smc-defaults T-02 (= format toolbar pinned above the
+            // typing surface). 28 PT Apple HIG document-format
+            // toolbar (= bold / italic / highlight / strikethrough /
+            // inline-code / heading / blockquote / unordered-list /
+            // ordered-list / link / code-block / horizontal-rule).
+            // Pinned at the editor zone's outer VStack (= above the
+            // scrollable area; = never scrolls away with the
+            // document; = canonical Pages / Numbers / Keynote
+            // document-toolbar idiom).
+            //
+            // Why outside the engine's `header:` slot: the engine pins
+            // its `header:` to the scrolled content (= scrolls with
+            // the document). The format toolbar MUST stay visible
+            // while typing (= formatting affects the selection; = the
+            // user has to see what mode they're toggling); = a
+            // separately-pinned row in the outer VStack is the right
+            // place. The engine's `header:` slot still hosts the
+            // EditorHeaderView chrome band (= T-01; = title + dirty
+            // dot); = the 2 chrome rows stack vertically above the
+            // NSTextView (= format toolbar on top, then 28 PT chrome
+            // band, then the NSTextView).
+            editorFormatToolbar
 
             // Body: placeholder content.  swaps this for
             // swift-markdown rendered Text when mode = .preview
@@ -456,7 +502,16 @@ struct EditorView: View {
                             // click to the navigation flow.
                             onLinkClick: { linkId in
                                 handleEditorWikiLink(linkId: linkId)
-                            }
+                            },
+                            // ed-smc-defaults T-02: forward the
+                            // chrome band + placeholder (= same
+                            // shape the preview-mode site forwards
+                            // in T-01). Mirror so the chrome stays
+                            // present across the visible / edit mode
+                            // toggle (= canonical Pages / Numbers
+                            // document-chrome-survives-WYSIWYG-toggle).
+                            editorHeader: AnyView(editorChromeHeader),
+                            editorPlaceholder: editorEmptyDocumentPlaceholder
                         )
                             }
                         }

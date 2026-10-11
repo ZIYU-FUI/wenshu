@@ -6,22 +6,31 @@
 // engine-side wiki-link clicks back to the host.
 //
 // One view per file (Apple HIG). `EditorEditContent` has 1 `@Binding`
-// (draft: `String`) + 7 `let` parameters (`originalBody`, `onSave`,
+// (draft: `String`) + 9 `let` parameters (`originalBody`, `onSave`,
 //  onWordCountChange, onDirtyChange, configuration, draftId,
-//  onLinkClick) + 1 computed property (isDirty). No @State /
-//  @Environment / @Observable = pure rendering surface.
+//  onLinkClick, editorHeader, editorPlaceholder) + 1 computed
+// property (isDirty). No @State / @Environment / @Observable =
+// pure rendering surface.
 //
 //  This struct is intentionally minimal (= all persistence /
 //  routing / auto-save Task management lives in the host
-//  WorkspaceView, which passes the 7 let callbacks as the seam).
+//  WorkspaceView, which passes the let callbacks as the seam).
 //  Per v0.34 B-22 decision (= (see OOB.md #2026-09-02)), the host owns Task
 //  internals; EditorEditContent is decoupled from Task.
 //
 //  Only call site = WorkspaceView's editor pane edit mode;
 //  invoked as `EditorEditContent(draft:..., originalBody:...,
 //  onSave:..., onWordCountChange:..., onDirtyChange:...,
-//  configuration:..., draftId:..., onLinkClick:...)`.
+//  configuration:..., draftId:..., onLinkClick:...,
+//  editorHeader:..., editorPlaceholder:...)`.
 //  Extracting it does not change any caller signature.
+//
+//  ed-smc-defaults T-02 (= the chrome band wiring for edit mode):
+//  the preview-mode site already forwarded `editorChromeHeader` +
+//  `editorEmptyDocumentPlaceholder` in T-01. We mirror them here so
+//  edit mode shows the same 28 PT chrome band (= the chrome stays
+//  present across the mode switch; = the canonical Pages / Numbers
+//  document-chrome-survives-WYSIWYG-toggle pattern).
 //
 
 import SwiftUI
@@ -58,7 +67,7 @@ struct EditorEditContent: View {
     // The configuration owns the 4 service protocols (= wenshu implements
     // 2: WikiLinkResolver + EmbeddedImageProvider; the engine's
     // HighlighterSwiftBridge is transitive via MarkdownEngineCodeBlocks;
-    // LaTeX is not wired in 001).
+    // LaTeX is rendered by SwiftMathBridge (= boss拍 2026-10-11)).
     let configuration: MarkdownEditorConfiguration
     // Stable per-tab id, passed to engine as `documentId`
     let draftId: String
@@ -66,6 +75,16 @@ struct EditorEditContent: View {
     // The engine fires this when the user clicks a `[[Name]]`
     // token in the live editor surface.
     var onLinkClick: ((String) -> Void)? = nil
+    // SMC `header:` slot — forwarded to the engine's own scrolled
+    // container so the chrome band (= EditorHeaderView, see
+    // Sources/WenshuApp/UI/Editor/) sits above the typing surface
+    // without ever scrolling away. nil = engine draws no chrome.
+    // The host (= EditorView) supplies this once per active-tab
+    // switch (= the header is decoupled from draft text edits).
+    var editorHeader: AnyView? = nil
+    // SMC `placeholder:` slot — first-line ghost text shown while
+    // the document is empty. nil = engine draws no placeholder.
+    var editorPlaceholder: NSAttributedString? = nil
 
     /// Read-only dirty flag (= computed from the binding's current value).
     private var isDirty: Bool { draft != originalBody }
@@ -100,7 +119,15 @@ struct EditorEditContent: View {
             // lockout for chapter edits by the LLM). Other chapters
             // (= the LLM is editing a different chapter) keep
             // `isEditable: true`.
-            isEditable: !isChapterLockedByLLM
+            isEditable: !isChapterLockedByLLM,
+            // ed-smc-defaults T-02: forward the same chrome slots
+            // (= header + placeholder) that preview-mode forwards,
+            // so the 28 PT chrome band stays visible while editing.
+            // The engine reserves the header in its scrolled
+            // container (= doesn't scroll with text); the placeholder
+            // hides on first keystroke (= engine-internal).
+            header: editorHeader,
+            placeholder: editorPlaceholder
         )
             // (= per-keystroke; = Foundation-only recompute). Host
             // (EditorView) routes the value into
