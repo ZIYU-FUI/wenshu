@@ -563,6 +563,39 @@ struct WenshuMarkdownEditorAdapterTests {
             "EditorHeadingOutlineView must render an empty-state hint (= no-outline headings alert)"
         )
     }
+
+    // MARK: - ed-smc-defaults T-08: code-block list sub-tool body shipped
+
+    /// The `.codeBlocks` case in `EditorDocumentToolsView` must now
+    /// construct the real `EditorCodeBlocksView` (= T-04 shipped a
+    /// placeholder; = T-08 wires the live fenced-block panel that
+    /// parses ```/~~~ rows from the current draft).
+    @Test("EditorDocumentToolsView wires .codeBlocks → EditorCodeBlocksView (= T-08)")
+    func editorDocumentToolsWiresCodeBlocks() throws {
+        let viewPath = resolve("Sources/WenshuApp/Views/Inspector/EditorDocumentToolsView.swift")
+        let view = try String(contentsOfFile: viewPath, encoding: .utf8)
+        #expect(
+            view.contains("EditorCodeBlocksView(activeDocumentText: activeDocumentText)"),
+            "EditorDocumentToolsView's .codeBlocks case must construct EditorCodeBlocksView (= T-08 live body)"
+        )
+    }
+
+    /// `EditorCodeBlocksView` parses the canonical CommonMark fence
+    /// markers (` ``` ` AND `~~~` = both are valid CommonMark fenced
+    /// code-block openers). Source-content gate: if anyone removes
+    /// either marker the Swift / shell / python / json code-block
+    /// surfaces silently drop from the inspector.
+    @Test("EditorCodeBlocksView parses both fence markers (= T-08)")
+    func editorCodeBlocksParsesBothFences() throws {
+        let viewPath = resolve("Sources/WenshuApp/Views/Inspector/EditorCodeBlocksView.swift")
+        let view = try String(contentsOfFile: viewPath, encoding: .utf8)
+        #expect(view.contains(#"triple backtick"#) || view.contains("```"),
+                        "EditorCodeBlocksView must parse the triple-backtick fence (= the canonical CommonMark code-block opener)")
+                #expect(view.contains(#"triple tilde"#) || view.contains("~~~"),
+                        "EditorCodeBlocksView must parse the triple-tilde fence (= the alternate CommonMark code-block opener)")
+        #expect(view.contains("inspector.documentTools.codeBlocks.empty"),
+                "EditorCodeBlocksView must render an empty-state hint (= no-code-blocks alert)")
+    }
 }
 
 

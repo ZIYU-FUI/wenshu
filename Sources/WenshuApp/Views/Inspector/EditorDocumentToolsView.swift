@@ -161,11 +161,10 @@ private struct EditorDocumentToolsSubToolPicker: View {
                 // ticket wires via a parent callback).
                 EditorHeadingOutlineView(activeDocumentText: activeDocumentText)
             case .codeBlocks:
-                EditorDocumentToolsPlaceholder(
-                    titleKey: "inspector.documentTools.codeBlocks.title",
-                    bodyKey: "inspector.documentTools.codeBlocks.placeholder",
-                    wiredIn: "T-08"
-                )
+                // T-08: real body shipped. Pure-parser code-block
+                // list (= parses ```/~~~ fences from the current
+                // draft). Tap-to-scroll deferred (= future ticket).
+                EditorCodeBlocksView(activeDocumentText: activeDocumentText)
             case .spellToggles:
                 EditorDocumentToolsPlaceholder(
                     titleKey: "inspector.documentTools.spellToggles.title",
