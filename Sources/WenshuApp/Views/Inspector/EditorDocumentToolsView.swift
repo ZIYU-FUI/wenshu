@@ -155,11 +155,11 @@ private struct EditorDocumentToolsSubToolPicker: View {
                 // + 4 buttons + observer of bus.findResults.
                 EditorFindReplaceView(bus: bus)
             case .headingOutline:
-                EditorDocumentToolsPlaceholder(
-                    titleKey: "inspector.documentTools.headingOutline.title",
-                    bodyKey: "inspector.documentTools.headingOutline.placeholder",
-                    wiredIn: "T-07"
-                )
+                // T-07: real body shipped. Pure-parser outline (= no
+                // engine API; = host re-parses `^#{1,6}\s` rows from
+                // the current draft). Tap-to-scroll deferred (= future
+                // ticket wires via a parent callback).
+                EditorHeadingOutlineView(activeDocumentText: activeDocumentText)
             case .codeBlocks:
                 EditorDocumentToolsPlaceholder(
                     titleKey: "inspector.documentTools.codeBlocks.title",

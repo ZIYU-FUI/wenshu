@@ -521,6 +521,48 @@ struct WenshuMarkdownEditorAdapterTests {
         #expect(view.contains("bus.findResults"),
                 "EditorFindReplaceView must observe bus.findResults (= the engine's find-count response)")
     }
+
+    // MARK: - ed-smc-defaults T-07: heading outline sub-tool body shipped
+
+    /// The `.headingOutline` case in `EditorDocumentToolsView` must now
+    /// construct the real `EditorHeadingOutlineView` (= T-04 shipped
+    /// a placeholder; = T-07 wires the live outline panel that
+    /// parses `^#{1,6}\s` rows from the current draft).
+    @Test("EditorDocumentToolsView wires .headingOutline → EditorHeadingOutlineView (= T-07)")
+    func editorDocumentToolsWiresHeadingOutline() throws {
+        let viewPath = resolve("Sources/WenshuApp/Views/Inspector/EditorDocumentToolsView.swift")
+        let view = try String(contentsOfFile: viewPath, encoding: .utf8)
+        #expect(
+            view.contains("EditorHeadingOutlineView(activeDocumentText: activeDocumentText)"),
+            "EditorDocumentToolsView's .headingOutline case must construct EditorHeadingOutlineView (= T-07 live body)"
+        )
+    }
+
+    /// `EditorHeadingOutlineView` parses `^#{1,6}\s` rows (= the engine
+    /// has no public outline API; = we re-parse on every body
+    /// invocation). The pattern is the only thing that gates the
+    /// format = if anyone replaces the regex with a different
+    /// heading syntax (= `**bold**` etc.) the canonical CommonMark
+    /// outline contract breaks.
+    @Test("EditorHeadingOutlineView parses the CommonMark heading pattern (= T-07)")
+    func editorHeadingOutlineParsesCommonMark() throws {
+        let viewPath = resolve("Sources/WenshuApp/Views/Inspector/EditorHeadingOutlineView.swift")
+        let view = try String(contentsOfFile: viewPath, encoding: .utf8)
+        // Test the heading pattern pieces (= CommonMark requires
+        // leading 1-6 hashes followed by whitespace; = a token-level
+        // check survives the regex-string dance without escaping).
+        #expect(view.contains("#{1,6}"),
+                "EditorHeadingOutlineView must use the CommonMark heading regex (starts with #{1,6})")
+        #expect(view.contains("\\s"),
+                "EditorHeadingOutlineView must include backslash-s whitespace match in the regex (= the canonical markdown heading format)")
+        // Empty-state hint (= the Apple HIG inspector "no outline"
+        // placeholder so the panel is not blank when the document has
+        // no headings).
+        #expect(
+            view.contains("inspector.documentTools.headingOutline.empty"),
+            "EditorHeadingOutlineView must render an empty-state hint (= no-outline headings alert)"
+        )
+    }
 }
 
 
