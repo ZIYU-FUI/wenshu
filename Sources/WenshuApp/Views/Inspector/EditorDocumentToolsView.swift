@@ -166,11 +166,12 @@ private struct EditorDocumentToolsSubToolPicker: View {
                 // draft). Tap-to-scroll deferred (= future ticket).
                 EditorCodeBlocksView(activeDocumentText: activeDocumentText)
             case .spellToggles:
-                EditorDocumentToolsPlaceholder(
-                    titleKey: "inspector.documentTools.spellToggles.title",
-                    bodyKey: "inspector.documentTools.spellToggles.placeholder",
-                    wiredIn: "T-09"
-                )
+                // T-09: real body shipped. 3-toggle inspector row
+                // (= continuous / grammar / autocorrect). Reflects
+                // the engine's `SpellCheckingPolicy`; = mutating
+                // happens in the editor's context menu (= Apple HIG
+                // system Settings pattern).
+                EditorSpellTogglesView(bus: bus, initialPolicy: .default)
             }
         }
     }

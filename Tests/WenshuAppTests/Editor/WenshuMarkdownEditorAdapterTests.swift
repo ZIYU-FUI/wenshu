@@ -596,6 +596,41 @@ struct WenshuMarkdownEditorAdapterTests {
         #expect(view.contains("inspector.documentTools.codeBlocks.empty"),
                 "EditorCodeBlocksView must render an empty-state hint (= no-code-blocks alert)")
     }
+
+    // MARK: - ed-smc-defaults T-09: spell-check toggles sub-tool body shipped
+
+    /// The `.spellToggles` case in `EditorDocumentToolsView` must now
+    /// construct the real `EditorSpellTogglesView` (= T-04 shipped
+    /// a placeholder; = T-09 wires the live 3-toggle inspector row).
+    /// This is the LAST of the 5 sub-tool bodies.
+    @Test("EditorDocumentToolsView wires .spellToggles → EditorSpellTogglesView (= T-09)")
+    func editorDocumentToolsWiresSpellToggles() throws {
+        let viewPath = resolve("Sources/WenshuApp/Views/Inspector/EditorDocumentToolsView.swift")
+        let view = try String(contentsOfFile: viewPath, encoding: .utf8)
+        #expect(
+            view.contains("EditorSpellTogglesView("),
+            "EditorDocumentToolsView's .spellToggles case must construct EditorSpellTogglesView (= T-09 live body)"
+        )
+    }
+
+    /// `EditorSpellTogglesView` ships 3 disabled Toggles (= one per
+    /// `SpellCheckingPolicy` field = continuous / grammar /
+    /// autocorrect). Source-content gate: if anyone drops a Toggle
+    /// (= e.g. only 2 of 3 fields exposed) the inspector silently
+    /// hides that affordance.
+    @Test("EditorSpellTogglesView renders all 3 spell toggles (= T-09)")
+    func editorSpellTogglesRendersAllThree() throws {
+        let viewPath = resolve("Sources/WenshuApp/Views/Inspector/EditorSpellTogglesView.swift")
+        let view = try String(contentsOfFile: viewPath, encoding: .utf8)
+        #expect(view.contains("continuousSpellChecking"),
+                "EditorSpellTogglesView must reflect initialPolicy.continuousSpellChecking (= NSTextView.isContinuousSpellCheckingEnabled mirror)")
+        #expect(view.contains("grammarChecking"),
+                "EditorSpellTogglesView must reflect initialPolicy.grammarChecking (= NSTextView.isGrammarCheckingEnabled mirror)")
+        #expect(view.contains("automaticSpellingCorrection"),
+                "EditorSpellTogglesView must reflect initialPolicy.automaticSpellingCorrection (= NSTextView.isAutomaticSpellingCorrectionEnabled mirror)")
+        #expect(view.contains(".disabled(true)"),
+                "EditorSpellTogglesView's toggles must be disabled (= inspector reflects engine state; mutation happens in the editor's context menu = Apple HIG system Settings pattern)")
+    }
 }
 
 
