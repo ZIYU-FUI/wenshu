@@ -361,6 +361,12 @@ final class EditorTab: Identifiable {
     // 3-second timer must follow the active tab).
     var autoSaveTask: Task<Void, Never>?
 
+    // T-03: cached caret rect (= the engine posts this via
+    // `onCaretRectChange`; = the tab caches it; = the status bar
+    // reads it via `EditorView.cursorRect`). nil = no caret yet
+    // (= the user hasn't focused the editor).
+    var cursorRect: CGRect?
+
     // (per-tab): file-system watcher (= DispatchSource).
     // Survives only while the tab is mounted (= cancelled on tab
     // close or documentPath change).

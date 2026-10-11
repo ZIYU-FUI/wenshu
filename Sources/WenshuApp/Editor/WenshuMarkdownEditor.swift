@@ -46,7 +46,12 @@ struct WenshuMarkdownEditor: View {
     // = the wenshu "在此处撰写章节内容..." line). Default nil = no
     // placeholder text.
     var placeholder: NSAttributedString? = nil
-    // The engine's NativeTextView has an internal `baseFont` field
+    /// T-03: caret-rect callback (= the engine posts the live caret
+    /// rect on every cursor move via `onCaretRectChange`; = the
+    /// host forwards it to `EditorTab.cursorRect` so the status
+    /// bar can show the current line number).
+    var onCaretRectChange: ((CGRect) -> Void)? = nil
+    /// The engine's NativeTextView has an internal `baseFont` field
     // (= NSFont.systemFont(ofSize: NSFont.systemFontSize) by default,
     // = Apple canonical system default font size).
     // EditorPreviewContent (= preview mode) uses SwiftUI's Apple
@@ -138,6 +143,11 @@ struct WenshuMarkdownEditor: View {
             documentId: draftId,
             isEditable: isEditable,
             onLinkClick: onLinkClick,
+            // T-03: forward caret-rect callback to the engine (= the
+            // engine posts the live caret rect on every cursor move;
+            // = the host writes it to `EditorTab.cursorRect` so the
+            // status bar can read it back via `EditorView.cursorRect`).
+            onCaretRectChange: onCaretRectChange,
             placeholder: placeholder,
             header: header,
             // T-13: scroll-memory persistence (= the engine posts

@@ -85,6 +85,11 @@ struct EditorEditContent: View {
     // SMC `placeholder:` slot — first-line ghost text shown while
     // the document is empty. nil = engine draws no placeholder.
     var editorPlaceholder: NSAttributedString? = nil
+    // T-03: caret-rect callback forwarded from EditorView (= the
+    // engine posts the live caret rect on every cursor move; =
+    // the host writes it to `EditorTab.cursorRect` so the status
+    // bar can read it back via `EditorView.cursorRect`).
+    var editorCaretRectChange: ((CGRect) -> Void)? = nil
 
     /// Read-only dirty flag (= computed from the binding's current value).
     private var isDirty: Bool { draft != originalBody }
@@ -127,7 +132,9 @@ struct EditorEditContent: View {
             // container (= doesn't scroll with text); the placeholder
             // hides on first keystroke (= engine-internal).
             header: editorHeader,
-            placeholder: editorPlaceholder
+            placeholder: editorPlaceholder,
+            // T-03: forward caret-rect callback to the engine.
+            onCaretRectChange: editorCaretRectChange
         )
             // (= per-keystroke; = Foundation-only recompute). Host
             // (EditorView) routes the value into

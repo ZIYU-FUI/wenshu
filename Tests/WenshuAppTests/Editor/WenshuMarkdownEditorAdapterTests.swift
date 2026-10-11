@@ -739,6 +739,51 @@ struct WenshuMarkdownEditorAdapterTests {
         #expect(editor.contains("EditorScrollMemory.restore"),
                 "WenshuMarkdownEditor's restoreScrollOffset must call EditorScrollMemory.restore")
     }
+
+    // MARK: - ed-smc-defaults T-03: editor status bar (= bottom chrome)
+
+    /// T-03 ships `EditorStatusBarView` (= the 24 PT bottom chrome
+    /// band of the editor zone; = 3 chunks = word count / cursor
+    /// location / autosave state). Source-content gate: if anyone
+    /// removes the View the editor zone silently loses its bottom
+    /// chrome (= the canonical Pages / Numbers inspector status bar).
+    @Test("EditorStatusBarView exists as the 24 PT bottom chrome (= T-03)")
+    func editorStatusBarViewExists() throws {
+        let barPath = resolve("Sources/WenshuApp/UI/Editor/EditorStatusBarView.swift")
+        let bar = try String(contentsOfFile: barPath, encoding: .utf8)
+        #expect(bar.contains("struct EditorStatusBarView"),
+                "EditorStatusBarView must exist (= the bottom chrome band of the editor zone)")
+        #expect(bar.contains(".frame(height: 24)"),
+                "EditorStatusBarView must be 24 PT (= Apple HIG status bar height)")
+    }
+
+    /// The status bar mounts inside `EditorView` (= the outer zone
+    /// VStack between the NSTextView and the closing brace). If
+    /// anyone removes the mount, the editor zone silently loses the
+    /// bottom chrome.
+    @Test("EditorView mounts EditorStatusBarView in zone outer VStack (= T-03)")
+    func editorViewMountsStatusBar() throws {
+        let editorPath = resolve("Sources/WenshuApp/Views/Workspace/EditorView.swift")
+        let editor = try String(contentsOfFile: editorPath, encoding: .utf8)
+        #expect(editor.contains("EditorStatusBarView("),
+                "EditorView must construct EditorStatusBarView (= the bottom chrome band mount)")
+        #expect(editor.contains("textProvider: { self.draft }"),
+                "EditorView must wire textProvider to the active tab's draft (= live word count source)")
+        #expect(editor.contains("cursorRectProvider: { self.cursorRect }"),
+                "EditorView must wire cursorRectProvider to its cursorRect computed property (= live cursor location source)")
+    }
+
+    /// `WenshuMarkdownEditor` must forward the caret-rect callback to
+    /// the engine. Source-content gate: if the forwarding line
+    /// disappears the status bar silently loses the live cursor
+    /// location (= falls back to the "Ln —, Col —" placeholder).
+    @Test("WenshuMarkdownEditor forwards onCaretRectChange to engine (= T-03)")
+    func wenshuMarkdownEditorForwardsCaretRectChange() throws {
+        let editorPath = resolve("Sources/WenshuApp/Editor/WenshuMarkdownEditor.swift")
+        let editor = try String(contentsOfFile: editorPath, encoding: .utf8)
+        #expect(editor.contains("onCaretRectChange: onCaretRectChange"),
+                "WenshuMarkdownEditor must forward onCaretRectChange to NativeTextViewWrapper")
+    }
 }
 
 

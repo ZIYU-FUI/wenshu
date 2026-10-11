@@ -511,12 +511,39 @@ struct EditorView: View {
                             // toggle (= canonical Pages / Numbers
                             // document-chrome-survives-WYSIWYG-toggle).
                             editorHeader: AnyView(editorChromeHeader),
-                            editorPlaceholder: editorEmptyDocumentPlaceholder
+                            editorPlaceholder: editorEmptyDocumentPlaceholder,
+                            // T-03: wire caret-rect callback so the
+                            // status bar can show the live cursor
+                            // position (= writes the live caret rect
+                            // to the active tab's `cursorRect`
+                            // field; = the status bar reads it back
+                            // via `EditorView.cursorRect`).
+                            editorCaretRectChange: { rect in
+                                if let idx = self.activeTabIndex {
+                                    self.appState.openTabs[idx].cursorRect = rect
+                                }
+                            }
                         )
                             }
                         }
                     }                }
             }
+            // T-03: editor status bar (= the bottom chrome band of
+            // the editor zone; = 24 PT; = pinned below the
+            // NSTextView; = the format toolbar is above and the
+            // status bar is below = the canonical Pages / Numbers
+            // 3-chrome-band layout = header / toolbar + body / status).
+            // Live word count / cursor location / autosave state
+            // (= the bar is a dumb renderer; = the parent supplies
+            // the 4 closures; = the bar re-evaluates them on every
+            // body invocation = the standard SwiftUI re-render
+            // cadence = no manual subscription needed).
+            EditorStatusBarView(
+                textProvider: { self.draft },
+                cursorRectProvider: { self.cursorRect },
+                isDirtyProvider: { self.isDirty },
+                isAutosavingProvider: { self.isAutosaving }
+            )
             // drop the outer VStack's `.frame(maxWidth: .infinity,
             // maxHeight: .infinity)`. Apple HIG canonical 6-zone layout
             // has no custom frame on the column body (= NavigationSplitView
@@ -691,6 +718,20 @@ struct EditorView: View {
     private var isDirty: Bool {
         guard let tab = activeTab else { return false }
         return tab.draft != tab.originalBody
+    }
+    /// T-03: cursor rect accessor (= returns the active tab's
+    /// live caret rect = the engine posts this via
+    /// `onCaretRectChange`; = the tab caches it; = this getter
+    /// returns the cached value). nil = no caret yet (= the user
+    /// hasn't focused the editor).
+    private var cursorRect: CGRect? {
+        activeTab?.cursorRect
+    }
+    /// T-03: autosave-in-progress accessor (= true while a save
+    /// task is in flight; = the tab's autoSaveTask is the
+    /// canonical source = its presence = "saving").
+    private var isAutosaving: Bool {
+        activeTab?.autoSaveTask != nil
     }
     /// Per-tab auto-save Task. Reads from / writes to the active tab.
     private var autoSaveTask: Task<Void, Never>? {
