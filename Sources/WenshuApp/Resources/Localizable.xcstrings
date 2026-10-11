@@ -8467,23 +8467,6 @@
         }
       }
     },
-    "settings.general.misc.placeholderNote": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pages-style, behavior not the focus"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pages 范式，不用管功能"
-          }
-        }
-      }
-    },
     "settings.memory.enable": {
       "extractionState": "manual",
       "localizations": {

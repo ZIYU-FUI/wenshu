@@ -992,8 +992,6 @@
 	<string>调整外观：系统设置 → 外观；调整透明度：系统设置 → 辅助功能 → 显示 → 减少透明度。</string>
 	<key>settings.general.misc</key>
 	<string>通用设置</string>
-	<key>settings.general.misc.placeholderNote</key>
-	<string>Pages 范式，不用管功能</string>
 	<key>settings.memory.enable</key>
 	<string>开启 Memory 子系统</string>
 	<key>settings.memory.purge.count</key>

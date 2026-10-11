@@ -992,8 +992,6 @@ Or just chat normally.</string>
 	<string>Adjust appearance: System Settings → Appearance. Adjust transparency: System Settings → Accessibility → Display → Reduce transparency.</string>
 	<key>settings.general.misc</key>
 	<string>General</string>
-	<key>settings.general.misc.placeholderNote</key>
-	<string>Pages-style, behavior not the focus</string>
 	<key>settings.memory.enable</key>
 	<string>Enable memory subsystem</string>
 	<key>settings.memory.purge.count</key>
