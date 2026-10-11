@@ -5,9 +5,9 @@ All OOB mentions in code/comments reference this file by date.
 
 This file is dev-time only (= wenshu repo root = not in .app bundle = not in release).
 
-Generated: 2026-10-10 (= last refreshed post Q99 dual-axis sweep 2026-10-10)
-Total unique OOB entries: 65
-Unique dates: 16
+Generated: 2026-10-12 (= last refreshed post wenshu settings restructure arc merge f5ccf6df8 + post Q99 dual-axis Spec audit follow-up cleanup commits 7c91309bd / e04c541ff / e2456f82b / 35cdbd298 / f37224842 / 9d88672f8 / f490c6812 / 56d1be0a3)
+Total unique OOB entries: 71
+Unique dates: 17
 
 ---
 
@@ -124,3 +124,24 @@ Unique dates: 16
 - OOB directive (= 来源 = 当前 conversation): "多语言怎么又丢了" (= 截图 5 个 onboarding 元素显示 key 字面量, 不是英文 fallback, 不是中文)
 - OOB directive (= 来源 = 当前 conversation): "你自己确认下，现在按钮显示的是 key" (= 老板亲口确认是 key 字面量 fallback)
 - OOB 已知 bug pattern: NSLocalizedString 在 .app bundle 拿不到 SPM nested bundle 的 .lproj → fallback 到 key 字面量本身 (= 不是英文, 不是 nil). 根因 = Scripts/build-app.sh 没把 Wenshu_WenshuApp.bundle/Contents/Resources/*.lproj 复制到 .app/Contents/Resources/. 修复: build-app.sh 加 3 行 cp.
+
+## 2026-10-12 (= wenshu settings restructure arc)
+
+- OOB directive (= 来源 = 当前 conversation, commit 7c91309bd context): "设置窗口的 UI，按导入弹窗的 UI 布局调整，核心就是用分割线分组，左标题，右操作" (= initial brief = 1:1 replica of ImportSheet = list rows + Dividers)
+- OOB directive (= 来源 = 当前 conversation): "导入弹窗其实也是仿造苹果办公三件套的右栏和设置页面，不知道 是不是 apple 推荐的样式" (= boss asking = is the existing pattern Apple canonical?)
+- OOB directive (= 来源 = 当前 conversation): "我想做成 Mac os 27 的系统设置的样式，双栏的那种" (= re-pivot = NavigationSplitView 2-col = Apple HIG canonical macOS preferences shell)
+- OOB directive (= 来源 = 当前 conversation): "所有视觉全按 apple 默认样式规则，完全参考 Mac os 27 的系统设置" (= hard rule = NO wenshu-invented visual layers in Settings)
+- OOB directive (= 来源 = 当前 conversation): "我们基本上用的就是 apple 的默认框架，有一些设置项应该是框架自带的，但我们没有放出来，比如，主题色。这些应该可以一并解决。你要多方验证下，也可以打开办公三件套的设置看一下" (= boss asking = audit which Apple-default Settings rows are missing; = e.g. accent color)
+- OOB directive (= 来源 = 当前 conversation): "标尺那些对文书意义不大，不需要接" + "自动大写首字母 / 自动检测列表 / 自动添加链接 / 上标序数词后缀 / 自动格式化分数 / 智能引号破折号 / 符号和文本替换 Apple 没有直接 API，需要 app 自己接，这些应该用 SMC 的能力，SMC 有什么就在编辑器设置里体现什么，如果 SMC 没有那就没有" (= hard rule = NO invented toggles; = only SMC-exposed = 8 editor toggles ship)
+- OOB directive (= 来源 = 当前 conversation): "pane 是哪个层级？就是设置的第一层是吗" (= clarification = pane = first-level left-column item; = section = second-level)
+- OOB directive (= 来源 = 当前 conversation): "我建议是这样的，因为我们的设置项有些少，我建议你用第二层放首层，然后分组代替第一层" (= boss suggestion = use section-as-top-level for compact settings; = final landed as 5 panes in NavigationSplitView with internal sections)
+- OOB directive (= 来源 = 当前 conversation): "我和你确认一下，左栏的 list 就是一个一个我说的第一程，因为我们现在第一层才 4-5 个。这样用户找对应的设置项，比如设置一个模型的 key 大概率，要先进入智能体，提供方，找到 minimax cn 然后贴 key。我的想法是，左栏分成 4-5 组，让原来的第二层的，就是智能体下面那一层，比如提供方，放在第一层，这样点左边的提供方，右边就展开可配置的 7 大供应商，用户直接贴 key 就行了" (= boss re-pivot = promote provider-api from second-level to first-level pane; = 5 panes landed)
+- OOB directive (= 来源 = 当前 conversation): "可以开始了" (= boss green-lit = start the arc)
+- OOB directive (= 来源 = 当前 conversation): "先让多语言正确" (= boss re-pivot mid-arc = prioritize i18n correctness over UI launch verify; = commit d31b44c72 shipped 42 i18n keys before commit bc1d9bbeb shipped the per-app Language picker)
+- OOB directive (= 来源 = 当前 conversation): "在外观里加一个设置项，语言，默认是跟随系统，然后能手动指定，英文，中文简体" (= boss add = per-app Language picker with 3 options = system / en / zh-Hans; = commit bc1d9bbeb)
+- OOB directive (= 来源 = 当前 conversation): "全按你的推荐" (= boss delegation = agent to recommend Language picker implementation details; = commit bc1d9bbeb followed agent recommendation = macOS 27 AppleLanguages standard pattern)
+- OOB directive (= 来源 = 当前 conversation): "好，你跑吧" (= boss delegation = agent autonomous execute; = dispatched Q99 Spec axis sub-agent deleg_72505167)
+- OOB directive (= 来源 = 当前 conversation): "所有待办都清完了吗" (= boss check-in mid-arc)
+- OOB directive (= 来源 = 当前 conversation): "按你的建议，推进吧。记得把文档不一致的问题后面起工单清理掉" (= boss green-lit merge + delegated follow-up doc cleanup ticket; = ticket at .scratch/2026-10-12-q99-spec-doc-drift-cleanup/ticket.md)
+- OOB directive (= 来源 = 当前 conversation): "你来决策如何推进把" (= boss full delegation = agent picks commit cadence and follow-up order; = agent shipped push + Cleanup 1.1 / 1.2 / 1.3 + blocked on CLAUDE.md edit = 35cdbd298 + Cleanup 3 = f37224842 + Cleanup 4.1 / 4.4 / 4.5 = 9d88672f8 / f490c6812 / 56d1be0a3)
+- OOB directive (= 来源 = 当前 conversation): "好的，按你的建议走" (= boss green-lit Cleanup 4 batch; = blocked on P1-9 CLAUDE.md directory tree edit = approval prompt timed out; = deferred to follow-up PR)
