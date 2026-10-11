@@ -41,13 +41,25 @@
 // - 记忆: MemorySettingsView.
 //
 // Things that ship DEAD (= removed in this rewrite):
-// - `settings.general.misc.placeholderNote` = pure placeholder text with
-//   no caller and no business action.
-// - `wenshu.llm.reasoningEffort` AppStorage = the binding survived but
-//   no code reads the value; dead setting = removed.
-// - AuxTask 5 `disabled Button` change-model controls = visually shipped
-//   but always non-interactive; replaced with a "固定使用主模型" Text
-//   row (= the actual current behavior = all tasks use the main model).
+// - `settings.general.misc.placeholderNote` i18n key = pure placeholder
+//   text with no UI caller. Removed from all 3 catalogs in commit
+//   `9d88672f8` (= en.lproj/Localizable.strings +
+//   zh-Hans.lproj/Localizable.strings + Localizable.xcstrings).
+// - AuxTask 5 `disabled Button` change-model controls = visually
+//   shipped but always non-interactive; replaced with a Text row that
+//   shows \`settings.model.use_main_model\` (= 'Use main model'; =
+//   the actual current behavior = all AuxTask values use the main
+//   model).
+//
+// Things that were REMOVED then RESTORED (= history):
+// - `wenshu.llm.reasoningEffort` AppStorage was REMOVED in commit
+//   `25133467f` (= the picker died with the SettingsTab → SettingsPane
+//   rename), but the read-side in ConversationLoop +
+//   WenshuConductorImportRouter + PlanModeEngine + RequestHelpers was
+//   still alive (= silent regression for any user who had configured
+//   the value in a prior build). RESTORED in commit `90d6b35f8` (= the
+//   picker now lives in the models pane; = the 5-option menu reads
+//   / writes `wenshu.llm.reasoningEffort` with a default of "medium").
 //
 // Persistence (= unchanged across this rewrite):
 // - `wenshu.settingsTab` AppStorage persists the selected pane across
