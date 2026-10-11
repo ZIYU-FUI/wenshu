@@ -53,7 +53,7 @@ enum WenshuEditorServicesFactory {
         // T-12: forward the host's `EditorPreferences` snapshot to
         // the configuration. Each field binds the matching engine
         // field (= readingWidth / heightBehavior / rawSourceMode /
-        // spellChecking triple).
+        // spellChecking triple / listEditing toggles).
         config.readingWidth = preferences.readingWidth
         config.heightBehavior = preferences.heightBehavior
         config.rawSourceMode = preferences.rawSourceMode
@@ -61,6 +61,10 @@ enum WenshuEditorServicesFactory {
             continuousSpellChecking: preferences.continuousSpellChecking,
             grammarChecking: preferences.grammarChecking,
             automaticSpellingCorrection: preferences.automaticSpellingCorrection
+        )
+        config.lists = ListStyle(
+            helpersEnabled: preferences.listHelpersEnabled,
+            autoClosePairsEnabled: preferences.autoClosePairsEnabled
         )
         return config
     }
