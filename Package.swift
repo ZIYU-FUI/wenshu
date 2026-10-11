@@ -66,7 +66,12 @@ let package = Package(
         // via HighlighterSwiftBridge, which is referenced at runtime by WenshuEditorServicesFactory).
         // Consumer wiring lands with v0.39 ticket 001 (= WenshuMarkdownEditor wrapper + 2 service
         // adapters in `Sources/WenshuApp/Editor/`).
-        .package(url: "https://github.com/nodes-app/swift-markdown-engine", from: "0.12.0"),
+        // Lock to the 0.13.x line (= directive-by-extension seam + LaTeX display mode +
+        // code-block stale-cache crash fix + per-marker thematic break). 0.14.0 adds
+        // the directive glyph + autocomplete surface (= a wider API delta; = planned
+        // upgrade ticket once 0.14.1 lands). Range "0.13.0"..<"0.14.0" keeps the
+        // pre-1.0 SemVer rule anchored at 0.13.0 (= SPM does NOT climb to 0.14.x).
+        .package(url: "https://github.com/nodes-app/swift-markdown-engine", "0.13.0"..<"0.14.0"),
 
         // RUNTIME — UI enhancement: code-fence syntax highlight (transitive via
         // MarkdownEngineCodeBlocks.HighlighterSwiftBridge which constructs a Highlighter instance
