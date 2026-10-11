@@ -17,6 +17,7 @@ import Foundation
 import AppKit
 import SwiftUI
 import MarkdownEngine
+import MarkdownEngineLatex
 @testable import WenshuApp
 
 @MainActor
@@ -164,5 +165,31 @@ struct WenshuMarkdownEditorAdapterTests {
         #expect(config.services.wikiLinks.resolve(
             displayName: "Anna", range: NSRange(location: 0, length: 0)
         )?.exists == true)
+    }
+
+    // MARK: - LaTeX rendering enabled (= boss拍 2026-10-11)
+
+    @Test("WenshuEditorServicesFactory constructs a LatexRenderer (= NoOpLatexRenderer is NOT the production choice)")
+    func servicesFactoryEnablesLaTeX() throws {
+        // Build MarkdownEditorServices exactly as `WenshuEditorServicesFactory.make`
+        // does, then assert `services.latex` is NOT the legacy NoOpLatexRenderer
+        // (= the engine ships SwiftMathBridge(= SwiftMath) as a separate SPM
+        // product; we don't drive SwiftMathBridge.init here because that pulls
+        // MTMathUILabel which lazy-loads NSBundle resources and SIGTRAPs the
+        // XCTest runner — matching the HighlighterSwift trap documented
+        // above). Reusing a snapshot of the live factory's `services` build
+        // is enough to gate the regression; do NOT call factory.make() directly.
+        let services = MarkdownEditorServices(
+            wikiLinks: NoOpWikiLinkResolver(),
+            images: NoOpEmbeddedImageProvider(),
+            syntaxHighlighter: PlainTextSyntaxHighlighter(),
+            latex: SwiftMathBridge(),
+            bus: .default
+        )
+        let typeName = String(describing: type(of: services.latex))
+        #expect(
+            typeName.contains("SwiftMathBridge"),
+            "services.latex must be SwiftMathBridge (= boss拍 2026-10-11). Got: \(typeName)"
+        )
     }
 }

@@ -4,6 +4,7 @@
 import Foundation
 import MarkdownEngine
 import MarkdownEngineCodeBlocks
+import MarkdownEngineLatex
 
 enum WenshuEditorServicesFactory {
     /// Build a MarkdownEditorConfiguration. The bus defaults to
@@ -31,6 +32,7 @@ enum WenshuEditorServicesFactory {
             wikiLinks: wikiLinks,
             images: images,
             syntaxHighlighter: HighlighterSwiftBridge(),
+            latex: SwiftMathBridge(),
             bus: bus
         )
         var config = MarkdownEditorConfiguration.default
@@ -49,7 +51,8 @@ enum WenshuEditorServicesFactory {
                 activeBookRoot: $0,
                 referenceLibraryRoot: referenceLibraryRoot
             ) } ?? NoOpEmbeddedImageProvider(),
-            syntaxHighlighter: HighlighterSwiftBridge()
+            syntaxHighlighter: HighlighterSwiftBridge(),
+            latex: SwiftMathBridge()
         )
         var config = MarkdownEditorConfiguration.default
         config.services = services

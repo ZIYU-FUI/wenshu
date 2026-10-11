@@ -103,6 +103,10 @@ let package = Package(
                 .product(name: "Markdown", package: "swift-markdown"),
                 // v0.39 ticket 001: chapter editor.
                 .product(name: "MarkdownEngineCodeBlocks", package: "swift-markdown-engine"),
+                // LaTeX rendering via SwiftMathBridge (= enable 2026-10-11 boss拍).
+                // Same Package, separate product. Hosts SwiftMath 1.7.3 transitively
+                // (= Package.resolved already pins it).
+                .product(name: "MarkdownEngineLatex", package: "swift-markdown-engine"),
                 // Highlighter product (= the SPM product name is `Highlighter` even though
                 // the repo URL is HighlighterSwift; see upstream Package.swift). Required at
                 // runtime because MarkdownEngineCodeBlocks.HighlighterSwiftBridge instantiates
@@ -179,6 +183,8 @@ let package = Package(
                 // (= drag-lost regression suite). Pairs with ViewInspector: structure
                 // assertions vs pixel snapshots. README warns NOT to add to runtime target.
                 .product(name: "SnapshotTesting", package: "swift-snapshot-testing"),
+                // 2026-10-11 LaTeX regression gate (= factory wires SwiftMathBridge).
+                .product(name: "MarkdownEngineLatex", package: "swift-markdown-engine"),
             ],
             path: "Tests/WenshuAppTests",
             // v0.46 fix: 'wenshu' found 13 unhandled files in
