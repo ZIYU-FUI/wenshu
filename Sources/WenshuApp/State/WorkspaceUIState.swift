@@ -179,6 +179,14 @@ enum InspectorPage: Hashable, CaseIterable {
     case authoringStyle
     case authoringCharacters
     case projectManagement
+    // ed-smc-defaults T-04: documents-tools page (= the engine-side
+    // format / find / outline / code-block / spell-check affordances
+    // that Apple HIG places in the right-column document inspector
+    // for Pages / Numbers / Keynote. Wenshu slots all five on one
+    // page (= the engine's `MarkdownEditorBus` is one surface; =
+    // splitting the URL on multiple pages would scatter the
+    // bus-coordinated tools). Sub-tools wire in T-05..09.
+    case documentTools
 
     var localizedTitle: String {
         switch self {
@@ -186,6 +194,7 @@ enum InspectorPage: Hashable, CaseIterable {
         case .authoringStyle:       return String(localized: "inspector.page.authoringStyle")
         case .authoringCharacters:  return String(localized: "inspector.page.authoringCharacters")
         case .projectManagement:    return String(localized: "inspector.page.projectManagement")
+        case .documentTools:        return String(localized: "inspector.page.documentTools")
         }
     }
 
@@ -195,6 +204,11 @@ enum InspectorPage: Hashable, CaseIterable {
         case .authoringStyle:       return "paintpalette"
         case .authoringCharacters:  return "person.2"
         case .projectManagement:    return "folder.badge.gearshape"
+        // documentTools page icon (= SF Symbols 6 / picker / inlineSmall
+        // per SFIcon central abstraction). 5 sub-tools live here; =
+        // the page itself is "tools for this document" so the icon
+        // reads as a generic document-with-controls surface.
+        case .documentTools:        return "textformat"
         }
     }
 }

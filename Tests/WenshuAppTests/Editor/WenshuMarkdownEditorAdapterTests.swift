@@ -374,6 +374,77 @@ struct WenshuMarkdownEditorAdapterTests {
             "EditorEditContent body must forward both slots into the inner WenshuMarkdownEditor"
         )
     }
+
+    // MARK: - ed-smc-defaults T-04: 5th InspectorPage (= documentTools)
+
+    /// InspectorPage (= the right-column 5-tab segmented picker) now
+    /// hosts a 5th case `documentTools` that aggregates the engine's
+    /// format / find / outline / code-block / spell-check surfaces.
+    /// This source-content test fails if anyone removes the case
+    /// (= the right-column document-tools surface silently drops) or
+    /// changes its icon (= the toolbar picks this page on the icon).
+    @Test("InspectorPage adds the 5th documentTools case (= T-04)")
+    func inspectorPageAddsDocumentToolsCase() throws {
+        let statePath = resolve("Sources/WenshuApp/State/WorkspaceUIState.swift")
+        let state = try String(contentsOfFile: statePath, encoding: .utf8)
+        #expect(
+            state.contains("case documentTools"),
+            "InspectorPage must declare `case documentTools` (= the 5th page in the right-column picker)"
+        )
+        #expect(
+            state.contains("case .documentTools:        return \"textformat\""),
+            "InspectorPage.documentTools must use the SF Symbol 'textformat' (= Apple HIG document-with-controls surface)"
+        )
+    }
+
+    /// The 5 sub-tools (= formatReadout / findReplace / headingOutline /
+    /// codeBlocks / spellToggles) all live behind `EditorDocumentToolsSubToolPicker`.
+    /// Source-content test gates the contract: if anyone removes a
+    /// case, the picker source contract drift surface triggers a fail.
+    @Test("EditorDocumentToolsSubTool covers the engine's 5-sub-tool surface (= T-04)")
+    func documentToolsSubToolCoverage() throws {
+        let viewPath = resolve("Sources/WenshuApp/Views/Inspector/EditorDocumentToolsView.swift")
+        let view = try String(contentsOfFile: viewPath, encoding: .utf8)
+        #expect(
+            view.contains("enum EditorDocumentToolsSubTool"),
+            "EditorDocumentToolsSubTool enum must live in EditorDocumentToolsView.swift"
+        )
+        let expectedCases: Set<String> = [
+            "formatReadout", "findReplace", "headingOutline",
+            "codeBlocks", "spellToggles"
+        ]
+        #expect(
+            EditorDocumentToolsSubTool.allCases.count == 5,
+            "EditorDocumentToolsSubTool.allCases must cover exactly 5 sub-tools (= Apple HIG document-inspector surface)"
+        )
+        let actualCases = Set(EditorDocumentToolsSubTool.allCases.map(\.rawValue))
+        #expect(
+            actualCases == expectedCases,
+            "EditorDocumentToolsSubTool cases must match the 5-sub-tool contract (= T-05..09 each fill one case body)"
+        )
+    }
+
+    /// InspectorView's `toolsForCurrentPage` must wire the new
+    /// `.documentTools` case to the page host (= if anyone removes
+    /// the switch arm the right-column picker silently shows an empty
+    /// body when the user selects the 5th tab).
+    @Test("InspectorView routes .documentTools → EditorDocumentToolsView (= T-04)")
+    func inspectorViewRoutesDocumentTools() throws {
+        let inspectorPath = resolve("Sources/WenshuApp/Views/Inspector/InspectorView.swift")
+        let inspector = try String(contentsOfFile: inspectorPath, encoding: .utf8)
+        #expect(
+            inspector.contains("case .documentTools:"),
+            "InspectorView.toolsForCurrentPage must declare `case .documentTools`"
+        )
+        #expect(
+            inspector.contains("EditorDocumentToolsView("),
+            "InspectorView's .documentTools case must construct EditorDocumentToolsView (= the page host)"
+        )
+        #expect(
+            inspector.contains("bus: MarkdownEditorBus.buildWenshu()"),
+            "EditorDocumentToolsView must receive a fresh MarkdownEditorBus (= the engine's bus factory exposes the bus = sub-tool post surface)"
+        )
+    }
 }
 
 
