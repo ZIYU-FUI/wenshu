@@ -322,11 +322,9 @@ view (= expand–contract wide-refactor pattern, to-tickets §3).
 
 ### UI activation (v0.35 activation commits)
 
-- **AgentSettingsView**: 🟥🟥🟥 Settings → Agent 3-pane (= LLM Connector + Memory + Skills). Tabs via Apple SwiftUI `Picker`. Ticket 006 + 009 + 010.
-- **LLMConnectorSettingsView**: 7 profile rows × (auth field + endpoint + test button). `ConnectorProfileRow` + `ConnectorAuthField` + `ConnectorTestButton`. Ticket 006.
-- **MemorySettingsView**: Memory scope + retention policy + recent entries. Ticket 009.
+- **SettingView (= Apple macOS 14+ Settings { } Scene at AppRootScene.swift:399)**: 5-pane NavigationSplitView (= appearance / editor / providers / models / memory; = each pane name matches the concrete action the user is doing per boss 2026-10-12 "左栏分成 4-5 组"). Replaces the legacy VStack { Picker(.segmented) + ... } + SettingsTab enum (general / agentBehavior / providerApi / model / memory) that commit 25133467f (= Q99 dual-axis audit P0-1 follow-up) superseded. = `LLMConnectorSettingsView` (ticket 006) + `MemorySettingsView` (ticket 009) are now rows inside the providers / memory panes, not standalone files.
+- **MemorySettingsView**: Memory scope + retention policy + recent entries. Ticket 009. (= Now rendered inside SettingView's memory pane per commit 25133467f.)
 - **MemoryRetrievalPanel**: 🟨 DynamicZone right-bottom panel. Embeddable in `DynamicZoneView` (= ticket 009 canonical name; activation pending v0.34 ship sequence merge). v0.36 ticket 013 sub-step 1 deleted the duplicate `DynamicZoneMemoryPanel` (act-3 placeholder) + its test (= 0 production callers per boss cadence "git grep BEFORE patch" = safe to delete). Ticket 013 sub-step 2 = doc reconcile only; sub-step 3 = wire into `DynamicZoneView` when v0.34 ship sequence merges (= NOT in-flight now per boss cadence "不破坏 v0.34 ship sequence").
-- **SkillsSettingsView**: Skill list + slash-command tester. Ticket 010.
 - **ChatViewCompressionRow**: Compression pill + manual button (above `Divider()` in `ChatView`). Act-1.
 - **DynamicZoneMemoryPanel**: REMOVED in v0.36 ticket 013 sub-step 1 (= duplicate of MemoryRetrievalPanel; 0 production callers per boss cadence). See CONTEXT.md ticket 013 entry above for deletion rationale.
 
