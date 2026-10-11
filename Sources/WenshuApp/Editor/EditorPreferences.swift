@@ -47,6 +47,14 @@ struct EditorPreferences: Equatable, Sendable {
     /// Auto-correct as the user types (= `NSTextView.isAutomatic-
     /// SpellingCorrectionEnabled` mirror).
     var automaticSpellingCorrection: Bool
+    /// Master switch for list-editing helpers (auto-continue, auto-indent,
+    /// marker conversion). When `false`, lists are still rendered but
+    /// typing-time conveniences are skipped (= `ListStyle.helpersEnabled`
+    /// in the SMC engine).
+    var listHelpersEnabled: Bool
+    /// Master switch for auto-closing pairs `()`, `{}`, `[]` while typing
+    /// (= `ListStyle.autoClosePairsEnabled` in the SMC engine).
+    var autoClosePairsEnabled: Bool
 
     /// Engine-default snapshot (= matches
     /// `MarkdownEditorConfiguration.default`).
@@ -56,7 +64,9 @@ struct EditorPreferences: Equatable, Sendable {
         rawSourceMode: false,
         continuousSpellChecking: true,
         grammarChecking: true,
-        automaticSpellingCorrection: true
+        automaticSpellingCorrection: true,
+        listHelpersEnabled: true,
+        autoClosePairsEnabled: true
     )
 
     /// Live snapshot (= reads from `UserDefaults` via the
@@ -84,6 +94,8 @@ extension EditorPreferences {
         case continuousSpellChecking = "wenshu.editor.continuousSpellChecking"
         case grammarChecking = "wenshu.editor.grammarChecking"
         case automaticSpellingCorrection = "wenshu.editor.automaticSpellingCorrection"
+        case listHelpersEnabled = "wenshu.editor.listHelpersEnabled"
+        case autoClosePairsEnabled = "wenshu.editor.autoClosePairsEnabled"
     }
 
     /// Live snapshot (= reads from `UserDefaults.standard`; = the
@@ -116,6 +128,12 @@ extension EditorPreferences {
             ) as? Bool ?? true,
             automaticSpellingCorrection: defaults.object(
                 forKey: AppStorageKey.automaticSpellingCorrection.rawValue
+            ) as? Bool ?? true,
+            listHelpersEnabled: defaults.object(
+                forKey: AppStorageKey.listHelpersEnabled.rawValue
+            ) as? Bool ?? true,
+            autoClosePairsEnabled: defaults.object(
+                forKey: AppStorageKey.autoClosePairsEnabled.rawValue
             ) as? Bool ?? true
         )
     }
