@@ -534,7 +534,7 @@ struct SettingView: View {
 
     @ViewBuilder
     private func providerApiEditor(for p: Provider) -> some View {
-        HStack(spacing: 8) {
+        HStack {
             SecureField(String(localized: "settings.providers.key.placeholder"), text: $apiDraftKey)
                 .textFieldStyle(.roundedBorder)
             Button(String(localized: "settings.provider.save_button")) {
@@ -554,7 +554,7 @@ struct SettingView: View {
 
     private func providerApiRow(_ p: Provider) -> some View {
         let hasKey = providersWithKeys.contains(p.slug)
-        return HStack(spacing: 12) {
+        return HStack {
             SFIcon("key", style: .inlineSmall, color: hasKey ? IconColor.green : IconColor.secondary)
             Text(p.name)
                 .font(.body)
@@ -628,7 +628,7 @@ struct SettingView: View {
             }
             Section {
                 ForEach(AuxTask.allCases, id: \.self) { task in
-                    HStack(spacing: 12) {
+                    HStack {
                         SFIcon(task.icon, style: .inlineSmall, color: IconColor.secondary)
                         Text(task.label)
                             .font(.body)
