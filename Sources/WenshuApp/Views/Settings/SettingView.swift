@@ -77,6 +77,7 @@ struct SettingView: View {
             set: { appState.llmModel = $0 }
         )
     }
+    // @AppStorage("wenshu.llm.model") private var llmModel: String = ""
     @AppStorage("wenshu.userAddress") private var userAddress: String = "user"
     @AppStorage("wenshu.settingsTab") private var selectedTabRaw: String = SettingsPane.appearance.rawValue
 

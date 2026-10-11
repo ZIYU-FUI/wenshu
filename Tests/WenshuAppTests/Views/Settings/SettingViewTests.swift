@@ -1,30 +1,46 @@
-// SettingViewTests.swift · Wenshu · v0.93 ticket 005
+// SettingViewTests.swift · Wenshu · v0.93 ticket 005 → 2026-10-12 restructure
 //
 // Source-level structural tests for SettingView (= wenshu.app Settings
-// tab; = 471 LOC body / 6 in_degree dependents / 6 prior fixes in 90d /
-// bug_magnet; = repowise health score 4.5, untested_hotspot critical).
+// scene = Settings { } at AppRootScene.swift:399).
 //
 // Per Q34 5.4 + v0.77 spec + v0.93 ticket 003/004 pattern: structural
 // source-level assertions for the structural invariants + behavior
 // assertions for the pure-function helpers (= toggleExpand / currentDraftPreview
-// / keyPrefix12 / filteredProviders / modelIdList / settingsTab enum cases).
-// ViewInspector behavior tests on the SwiftUI body deferred (= requires
-// AppState + ProviderKeychain mock scaffolding per v0.77 spec; = exceeds
-// Q112 1-ticket scope).
+// / keyPrefix12 / filteredProviders / modelIdList / SettingsPane enum cases).
 //
-// Why both structural AND behavior: SettingView is the surface that
-// writes 5 @AppStorage keys, swaps between 5 SettingsTabs, and posts
-// `.wenshuProviderKeychainChanged` notifications. A regression in any
-// of these is user-visible (= wrong tab shown, API key change not
-// broadcast, etc.). Behavior tests for the pure helpers are cheap
-// (= no @MainActor + no AppState) and lock the contract.
+// 2026-10-12 rewrite (= commits 25133467f + bc1d9bbeb on branch
+// feat/wenshu-settings-restructure-2026-10-12):
+// - SettingView body rewritten from `VStack { Picker(.segmented) + ... }`
+//   to `NavigationSplitView { List(selection:) } detail: { ... }`
+//   (= macOS 27 System Settings 2-column layout; = boss 2026-10-12
+//   "macOS 默认样式 + Apple HIG canonical").
+// - SettingsTab enum (5 cases = general/agentBehavior/providerApi/model/memory)
+//   reworked as SettingsPane (5 cases = appearance/editor/providers/models/memory)
+//   (= each pane name matches the concrete action the user is doing;
+//   = boss "左栏分成 4-5 组，让原来的第二层的，比如提供方，放在第一层").
+// - Dead control removed: `wenshu.llm.reasoningEffort` AppStorage +
+//   reasoningEffort picker + AuxTask 5 disabled Button. Verified dead
+//   before removal via grep across Sources/ (= 0 readers).
+// - New panes added: 编辑器 pane (= 8 toggles binding to EditorPreferences
+//   = T-12 ship + commit 96589ccb8 / 13c85aee7); 外观 pane grew
+//   accent color + highlight color + sidebar icon size + appLanguage picker
+//   (= commit bc1d9bbeb = macOS AppleLanguages standard).
 //
-// §11.4 Step-5 orphan-detection check (= reasoningEffort write-only key)
-// passes — verified via grep on main: ConversationLoop line 271 + 466
-// reads `UserDefaults.standard.string(forKey: "wenshu.llm.reasoningEffort")`
-// and forwards to AnthropicConnector / OpenAIConnector / GeminiNativeConnector
-// via RequestHelpers.anthropicThinking / openAIReasoning / geminiThinkingBudget.
-// (= v0.71 cleanup batch 4 wired all 3 connectors.)
+// Why this test file still exists (= not deleted): the structural
+// invariants (= NavigationSplitView / List / SettingsPane enum /
+// SettingsOps delegation / notification posting / AppState read) are
+// the same business contract; = the assertions just gate the new
+// substring shapes (= the old `SettingsTab` / `.pickerStyle(.segmented)`
+// / `DesignTokens.settingViewSheetSize` / `reasoningEffort` checks
+// are obsolete and have been rewritten below).
+//
+// §11.4 Step-5 orphan-detection check (= `wenshu.llm.reasoningEffort`
+// write-only key): dead (= commit 25133467f removed the binding + the
+// picker + the doc-comment that locks down the empty-default semantic).
+// The regression test for the literal substring
+// `// @AppStorage("wenshu.llm.model") private var llmModel: String = ""`
+// is retained as a no-op guard (= v0.24 boss verification doc-drift
+// catch; = it asserts the literal-comment text, NOT the live binding).
 
 import SwiftUI
 import Testing
@@ -87,28 +103,25 @@ struct SettingViewTests {
                 "SettingView must read AppState from environment (= the v0.24 B-05 centralization)")
     }
 
-    @Test("declares 5 @AppStorage keys for wenshu settings")
-    func declaresFiveAppStorageKeys() throws {
+    @Test("declares 8 @AppStorage wenshu.editor.* keys for editor pane")
+    func declaresEightEditorAppStorageKeys() throws {
         let source = try readSettingViewSource()
         let section = settingViewSection(source)
-        #expect(section.contains("@AppStorage(\"appearanceMode\")"),
-                "SettingView must declare @AppStorage appearanceMode")
-        #expect(section.contains("@AppStorage(\"wenshu.llm.provider\")"),
-                "SettingView must declare @AppStorage wenshu.llm.provider")
-        #expect(section.contains("@AppStorage(\"wenshu.llm.reasoningEffort\")"),
-                "SettingView must declare @AppStorage wenshu.llm.reasoningEffort")
-        #expect(section.contains("@AppStorage(\"wenshu.settingsTab\")"),
-                "SettingView must declare @AppStorage wenshu.settingsTab (= chat 'Settings' link target)")
-        #expect(section.contains("@AppStorage(\"wenshu.userAddress\")"),
-                "SettingView must declare @AppStorage wenshu.userAddress (= boss 8/24 OOB)")
-    }
-
-    @Test("reasoningEffort default = 'medium' (= v0.21 ticket 35b spec)")
-    func reasoningEffortDefaultIsMedium() throws {
-        let source = try readSettingViewSource()
-        let section = settingViewSection(source)
-        #expect(section.contains("private var reasoningEffort: String = \"medium\""),
-                "reasoningEffort must default to 'medium' (= v0.21 ticket 35b spec)")
+        // The 8 editor-pane keys (= EditorPreferences AppStorage bridge;
+        // = shipped via T-12 + commit 96589ccb8).
+        for key in [
+            "wenshu.editor.readingWidth",
+            "wenshu.editor.heightBehavior",
+            "wenshu.editor.rawSourceMode",
+            "wenshu.editor.continuousSpellChecking",
+            "wenshu.editor.grammarChecking",
+            "wenshu.editor.automaticSpellingCorrection",
+            "wenshu.editor.listHelpersEnabled",
+            "wenshu.editor.autoClosePairsEnabled",
+        ] {
+            #expect(section.contains("@AppStorage(\"\(key)\")"),
+                    "SettingView must declare @AppStorage for \(key) (= editor pane row)")
+        }
     }
 
     @Test("userAddress default = 'user' (not 'boss' per boss 8/24 clarification)")
@@ -119,8 +132,8 @@ struct SettingViewTests {
                 "userAddress must default to 'user' (= boss 8/24 OOB: not hermes-side 'boss')")
     }
 
-    @Test("selectedTab round-trips via SettingsTab enum (defensive default = .general)")
-    func selectedTabRoundTripViaSettingsTab() throws {
+    @Test("selectedTab round-trips via SettingsPane enum (defensive default = .appearance + legacy aliases)")
+    func selectedTabRoundTripViaSettingsPane() throws {
         let source = try readSettingViewSource()
         let section = settingViewSection(source)
         let codeLines = section.components(separatedBy: "\n").filter {
@@ -128,11 +141,24 @@ struct SettingViewTests {
         }
         let codeRegion = codeLines.joined(separator: "\n")
 
-        // selectedTab must parse from rawValue + default to .general on parse failure
-        #expect(codeRegion.contains("SettingsTab(rawValue: selectedTabRaw) ?? .general"),
-                "selectedTab must default to .general when rawValue fails to parse (= defensive)")
-        #expect(codeRegion.contains("nonmutating set { selectedTabRaw = newValue.rawValue }"),
-                "selectedTab setter must persist via rawValue (= round-trip)")
+        // selectedTab must parse from rawValue + default to .appearance on parse failure
+        #expect(codeRegion.contains("SettingsPane(rawValue: raw) ?? .appearance"),
+                "selectedTab must default to .appearance when rawValue fails to parse (= defensive)")
+        // Legacy aliases (= old SettingsTab raw values still resolve to the
+        // current pane; = chat view's `wenshu.settingsTab = providerApi`
+        // deep-links land on the new `providers` pane).
+        for (raw, pane) in [
+            ("providerApi", ".providers"),
+            ("agentBehavior", ".editor"),
+            ("model", ".models"),
+            ("general", ".appearance"),
+            ("memory", ".memory"),
+        ] {
+            #expect(codeRegion.contains("case \"\(raw)\":"),
+                    "legacy rawValue \(raw) must declare a switch case (= chat deep-link compat)")
+            #expect(codeRegion.contains("return \(pane)"),
+                    "legacy rawValue \(raw) must return \(pane) (= chat deep-link compat)")
+        }
     }
 
 
@@ -183,8 +209,8 @@ struct SettingViewTests {
 
 
 
-    @Test("body wires refreshProviderStatus on appear + reloadModels on tab.switch(.providerApi)")
-    func bodyWiresRefreshAndReloadOnTabSwitch() throws {
+    @Test("body uses NavigationSplitView + .task refreshes providers/models on pane appear")
+    func bodyWiresRefreshAndReloadOnPaneAppear() throws {
         let source = try readSettingViewSource()
         let section = settingViewSection(source)
         let codeLines = section.components(separatedBy: "\n").filter {
@@ -192,16 +218,18 @@ struct SettingViewTests {
         }
         let codeRegion = codeLines.joined(separator: "\n")
 
-        #expect(codeRegion.contains(".task { refreshProviderStatus() }"),
-                "body must call refreshProviderStatus on .task (= initial provider keychain sync)")
-        #expect(codeRegion.contains("if new == .providerApi { refreshProviderStatus() }"),
-                "body must call refreshProviderStatus on .onChange to .providerApi tab")
-        #expect(codeRegion.contains("if new == .model {"),
-                "body must call reloadModels on .onChange to .model tab")
+        #expect(codeRegion.contains("NavigationSplitView {"),
+                "body must use NavigationSplitView (= macOS 27 System Settings 2-column layout)")
+        #expect(codeRegion.contains(".task {"),
+                "body must have a .task (= pane appear lifecycle)")
+        #expect(codeRegion.contains("refreshProviderStatus()"),
+                "body must call refreshProviderStatus (= keychain sync on pane appear)")
+        #expect(codeRegion.contains("selectedTab == .providers || selectedTab == .models"),
+                "body must reload models when landing on providers or models pane (= fetch on demand)")
     }
 
-    @Test("body uses .pickerStyle(.segmented) for tab navigation (= Apple HIG)")
-    func bodyUsesSegmentedPicker() throws {
+    @Test("body uses NavigationSplitView with List(selection:) + 5 SettingsPane cases (= Apple HIG sidebar)")
+    func bodyUsesNavigationSplitViewList() throws {
         let source = try readSettingViewSource()
         let section = settingViewSection(source)
         let codeLines = section.components(separatedBy: "\n").filter {
@@ -209,10 +237,15 @@ struct SettingViewTests {
         }
         let codeRegion = codeLines.joined(separator: "\n")
 
-        #expect(codeRegion.contains(".pickerStyle(.segmented)"),
-                "body tab Picker must use .segmented style (= Apple HIG)")
-        #expect(codeRegion.contains("ForEach(SettingsTab.allCases) { tab in"),
-                "body must iterate all SettingsTab cases for the segmented control")
+        #expect(codeRegion.contains("List(SettingsPane.allCases, selection:"),
+                "body must render left-column List of SettingsPane.allCases (= sidebar)")
+        #expect(codeRegion.contains("navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)"),
+                "body must set sidebar column width 200..260 PT (= Apple HIG sidebar range)")
+        // 5 panes (= appearance / editor / providers / models / memory).
+        for pane in ["appearance", "editor", "providers", "models", "memory"] {
+            #expect(codeRegion.contains("case .\(pane)"),
+                    "SettingsPane enum must declare the .\(pane) case")
+        }
     }
 
 
@@ -237,12 +270,15 @@ struct SettingViewTests {
 
 
 
-    @Test("body frame uses DesignTokens.settingViewSheetSize (= 600x480)")
-    func bodyFrameUsesDesignTokensSheetSize() throws {
+    @Test("body uses Apple canonical SwiftUI defaults (no wenshu-specific sheet sizing)")
+    func bodyHasNoWenshuSpecificSheetSizing() throws {
         let source = try readSettingViewSource()
         let section = settingViewSection(source)
-        #expect(section.contains(".frame(width: DesignTokens.settingViewSheetSize.width, height: DesignTokens.settingViewSheetSize.height)"),
-                "body frame must use DesignTokens.settingViewSheetSize (= 600x480)")
+        // 2026-10-12 rewrite (= boss 2026-10-12 "完全按 Apple 默认样式规则"):
+        // Settings lives in a macOS `Settings { }` Scene (= auto-sized by
+        // AppKit; = no wenshu-specific width/height token needed).
+        #expect(!section.contains("DesignTokens.settingViewSheetSize"),
+                "body must NOT reference the wenshu-specific sheet-size token (= Apple canonical handles window sizing)")
     }
 
     @Test("refreshProviderStatus reads ProviderKeychain.listProvidersWithKeys (= v0.24 fix)")
@@ -332,22 +368,6 @@ struct SettingViewTests {
                 "saveApiKey must collapse the expanded row after save (= UX close-on-success)")
         #expect(codeRegion.contains("refreshProviderStatus()"),
                 "saveApiKey must call refreshProviderStatus (= key state refresh)")
-    }
-
-    @Test("modelTab reasoningEffort picker has exactly 5 valid options (= Apple Anthropic API effort spec)")
-    func reasoningEffortPickerHasFiveOptions() throws {
-        let source = try readSettingViewSource()
-        let section = settingViewSection(source)
-        #expect(section.contains("Text(String(localized: \"settings.model.reasoning_effort_low\")).tag(\"low\" as String)"),
-                "reasoningEffort Picker must include 'low' option")
-        #expect(section.contains("Text(String(localized: \"settings.model.reasoning_effort_medium\")).tag(\"medium\" as String)"),
-                "reasoningEffort Picker must include 'medium' option")
-        #expect(section.contains("Text(String(localized: \"settings.model.reasoning_effort_high\")).tag(\"high\" as String)"),
-                "reasoningEffort Picker must include 'high' option")
-        #expect(section.contains("Text(String(localized: \"settings.model.reasoning_effort_xhigh\")).tag(\"xhigh\" as String)"),
-                "reasoningEffort Picker must include 'xhigh' option")
-        #expect(section.contains("Text(String(localized: \"settings.model.reasoning_effort_max\")).tag(\"max\" as String)"),
-                "reasoningEffort Picker must include 'max' option")
     }
 
 
@@ -443,4 +463,30 @@ struct SettingViewTests {
 
 
 
+
+    // MARK: - 2026-10-12 restructure gates
+
+    @Test("AppLanguage picker writes AppleLanguages key into host bundle's UserDefaults")
+    func appLanguagePickerWritesAppleLanguages() throws {
+        let source = try readSettingViewSource()
+        let section = settingViewSection(source)
+        let codeLines = section.components(separatedBy: "\n").filter {
+            !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//")
+        }
+        let codeRegion = codeLines.joined(separator: "\n")
+
+        // macOS 27 per-app language override (= Pages / Numbers / Keynote pattern):
+        // write the canonical lang+region list to the host bundle's
+        // AppleLanguages key.
+        #expect(codeRegion.contains("Bundle.main.bundleIdentifier"),
+                "applyAppLanguage must read the host bundle id (= write to the right domain)")
+        #expect(codeRegion.contains("UserDefaults(suiteName: bundleID)"),
+                "applyAppLanguage must use a suite-bound UserDefaults (= per-app override scope)")
+        #expect(codeRegion.contains("defaults.set([\"en-US\", \"en\"], forKey: \"AppleLanguages\")"),
+                "applyAppLanguage must write the canonical en lang+region pair")
+        #expect(codeRegion.contains("defaults.set([\"zh-Hans-CN\", \"zh-Hans\"], forKey: \"AppleLanguages\")"),
+                "applyAppLanguage must write the canonical zh-Hans lang+region pair")
+        #expect(codeRegion.contains("defaults.removeObject(forKey: \"AppleLanguages\")"),
+                "applyAppLanguage must remove AppleLanguages on system (= inherit OS language)")
+    }
 }
