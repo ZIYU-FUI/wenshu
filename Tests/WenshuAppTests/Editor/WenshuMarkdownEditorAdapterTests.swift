@@ -167,6 +167,22 @@ struct WenshuMarkdownEditorAdapterTests {
         )?.exists == true)
     }
 
+    // MARK: - Fixture helpers for content-sniff tests (= T-01 source-content gate)
+
+    /// Resolve a path relative to the wenshu repo root from this test
+    /// file's location. The worktree lays the file under
+    /// `.worktrees/editor-smc-defaults/Tests/WenshuAppTests/Editor/` →
+    /// walking up 4 segments lands on `.worktrees/editor-smc-defaults/`
+    /// (= the worktree root, = the canonical "repo root" inside the
+    /// worktree). One more segment up (5) would step out of the
+    /// worktree into the wenshu main repo; = don't do that.
+    private func resolve(_ relative: String) -> String {
+        var url = URL(fileURLWithPath: #filePath)
+        for _ in 0..<4 { url.deleteLastPathComponent() }
+        url.appendPathComponent(relative)
+        return url.path
+    }
+
     // MARK: - LaTeX rendering enabled (= boss拍 2026-10-11)
 
     @Test("WenshuEditorServicesFactory constructs a LatexRenderer (= NoOpLatexRenderer is NOT the production choice)")
@@ -190,6 +206,73 @@ struct WenshuMarkdownEditorAdapterTests {
         #expect(
             typeName.contains("SwiftMathBridge"),
             "services.latex must be SwiftMathBridge (= boss拍 2026-10-11). Got: \(typeName)"
+        )
+    }
+
+    // MARK: - ed-smc-defaults T-01: chrome band + placeholder slot wired
+
+    /// SMC exposes `header:` and `placeholder:` slots on
+    /// `NativeTextViewWrapper`. We extended `WenshuMarkdownEditor` (=
+    /// the wenshu-side SwiftUI view that wraps the engine wrapper) to
+    /// forward both slots. This source-content test catches a
+    /// regression where someone removes either forwarding and the
+    /// chrome band silently disappears (= the visible UI failure
+    /// mode the user reports first).
+    ///
+    /// Why source-content instead of `swift-mock-test`: we don't drive
+    /// NSViewRepresentable here (= AppKit NSWindow needed, = outside
+    /// the Swift Testing sandbox); = verify the contract literally.
+    /// If anyone walks the slot away, the contract disclaims.
+    @Test("WenshuMarkdownEditor forwards SMC `header:` and `placeholder:`")
+    func forwardsSMCHeaderAndPlaceholderSlots() throws {
+        let editorPath = resolve("Sources/WenshuApp/Editor/WenshuMarkdownEditor.swift")
+        let content = try String(contentsOfFile: editorPath, encoding: .utf8)
+
+        // Header slot forwarded — the wenshu view MUST pass a non-nil
+        // header to NativeTextViewWrapper (= otherwise the chrome band
+        // disappears, = invisible UI regression).
+        #expect(
+            content.contains("placeholder: placeholder"),
+            "WenshuMarkdownEditor must forward the new `placeholder: placeholder` argument to NativeTextViewWrapper (= ed-smc-defaults T-01)"
+        )
+        #expect(
+            content.contains("header: header"),
+            "WenshuMarkdownEditor must forward the new `header: header` argument to NativeTextViewWrapper (= ed-smc-defaults T-01)"
+        )
+
+        // Padding removal — the previous `.padding(.all,
+        // DesignTokens.zoneContentInset)` wrap was what produced the
+        // white rectangle the user reported as superfluous. The
+        // wrapper now sits flush against the editor zone's own
+        // background. If anyone reintroduces a `.padding(.all,
+        // DesignTokens.zoneContentInset)` wrap around
+        // NativeTextViewWrapper, the rectangle comes back.
+        let pattern = #"\.padding\(\.all,\s*DesignTokens\.zoneContentInset\)"#
+        #expect(
+            content.range(of: pattern, options: .regularExpression) == nil,
+            "WenshuMarkdownEditor must NOT re-wrap NativeTextViewWrapper in `.padding(.all, DesignTokens.zoneContentInset)` (= T-01: the white-card rectangle is removed)"
+        )
+    }
+
+    /// `EditorHeaderView` (= the 28 PT Apple HIG document-toolbar
+    /// chrome band that the engine hosts above the NSTextView). It
+    /// is the user-visible chrome that the `header:` slot renders.
+    /// Source-content gate: if anyone walks the file, this fails.
+    @Test("EditorHeaderView owns the 28 PT document-toolbar chrome (= T-01)")
+    func editorHeaderViewExists() throws {
+        let headerPath = resolve("Sources/WenshuApp/UI/Editor/EditorHeaderView.swift")
+        let content = try String(contentsOfFile: headerPath, encoding: .utf8)
+        #expect(
+            content.contains("struct EditorHeaderView: View"),
+            "EditorHeaderView must be the chrome-band public type"
+        )
+        #expect(
+            content.contains("paneTabHotArea"),
+            "EditorHeaderView height must come from DesignTokens.paneTabHotArea (= Safari tab stop = Apple HIG document toolbar height)"
+        )
+        #expect(
+            content.contains("EditorHeaderDirtyState"),
+            "EditorHeaderView must expose the dirty-state enum so EditorView can drive the dot color"
         )
     }
 }

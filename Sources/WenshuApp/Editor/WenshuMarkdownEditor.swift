@@ -32,6 +32,20 @@ struct WenshuMarkdownEditor: View {
     // edit = editable NSTextView, same component, same font scale,
     // same line height, same textContainerInset, same NSTextLayoutManager.
     var isEditable: Bool = true
+
+    // SMC `header:` slot (= a SwiftUI view hosted inside the engine's
+    // scrolled container, sibling of the NSTextView). Lets the embedder
+    // (= wenshu) sit the EditorHeaderView chrome band above the typing
+    // surface. Default nil = no header (= the engine draws no chrome
+    // and the NSTextView fills the full container height).
+    var header: AnyView? = nil
+
+    // SMC `placeholder:` slot (= first-line ghost text shown while the
+    // document is empty; the first typed character hides it). Native
+    // attribute-string surface (= supports tinted / styled placeholders
+    // = the wenshu "在此处撰写章节内容..." line). Default nil = no
+    // placeholder text.
+    var placeholder: NSAttributedString? = nil
     // The engine's NativeTextView has an internal `baseFont` field
     // (= NSFont.systemFont(ofSize: NSFont.systemFontSize) by default,
     // = Apple canonical system default font size).
@@ -92,23 +106,22 @@ struct WenshuMarkdownEditor: View {
     }
 
     var body: some View {
-        // Apply the same horizontal inset as preview mode (= 18 PT
-        // each side = DesignTokens.spacingStandard /
-        // chromePaddingTrailing = wenshu standard read-only text
-        // inset per the sidebar / chrome spec). Edit mode
-        // NativeTextView default textContainerInset is 0
-        // horizontally, so the SwiftUI .padding(.horizontal) here
-        // is the canonical way (= the engine wrapper inherits the
-        // surrounding SwiftUI environment; = no need to reach into
-        // the engine's private NSTextView).
-        //
-        // top/bottom = 0 (= matches preview mode; = matches
-        // NSTextView tight top/bottom inset).
-        //
         // Pass `isEditable` so the SAME NSTextView renders both
         // preview (= read-only) and edit (= editable) modes
         // (= zero visual scaling between modes; = Apple HIG
         // canonical for WYSIWYG surfaces).
+        //
+        // Forward the host-supplied `header:` and `placeholder:` so the
+        // engine's own scrolled container hosts the chrome band (= 28 PT
+        // EditorHeaderView, see UI/Editor/EditorHeaderView.swift) and
+        // shows the "在此处撰写章节内容..." placeholder when the document
+        // is empty. The engine reserves its own scroll for these slots;
+        // wenshu does NOT wrap the wrapper in any additional `.padding(.all)`
+        // (= the previous `DesignTokens.zoneContentInset = 8` wrap was
+        // what produced the "paper card" background under the NSTextView
+        // = the visible white rectangle the user reports as superfluous).
+        // Removing it lets the NSTextView sit flush against the editor
+        // zone's own background (matches Pages / Numbers canvas feel).
         NativeTextViewWrapper(
             text: $text,
             configuration: adjustedConfiguration,
@@ -123,17 +136,10 @@ struct WenshuMarkdownEditor: View {
             fontName: "SF Pro",
             fontSize: caption1BaseFontSize,
             documentId: draftId,
-            isEditable: isEditable,            onLinkClick: onLinkClick
+            isEditable: isEditable,
+            onLinkClick: onLinkClick,
+            placeholder: placeholder,
+            header: header
         )
-        // ZoneContentView's outer .padding(.all, zoneContentInset)
-        // was REMOVED in an earlier commit (= was doubled with Apple
-        // HIG built-in insets in List / LazyVGrid zones = caused
-        // zones to look "too large"). The editor still needs an
-        // explicit inset because WenshuMarkdownEditor wraps
-        // NativeTextViewWrapper (= no Apple built-in content margins).
-        // Re-applied the 18 PT all-sides inset here directly (= uses
-        // the same canonical token DesignTokens.zoneContentInset =
-        // 18 PT for consistency).
-        .padding(.all, DesignTokens.zoneContentInset)
     }
 }

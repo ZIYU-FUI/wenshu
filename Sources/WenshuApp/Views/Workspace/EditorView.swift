@@ -96,6 +96,79 @@ struct EditorView: View {
             ?? "wenshu-editor-no-tab"
     }
 
+    // MARK: - SMC `header:` chrome band (= T-01)
+    //
+    // 28 PT Apple HIG document-toolbar strip (= Pages / Numbers
+    // chrome idiom = title cluster left + chrome-cluster right). Hosted
+    // inside `NativeTextViewWrapper`'s own scrolled container (= the
+    // engine pins it; the NSTextView scrolls under it). The title
+    // segment falls back to "Untitled" until chapter focus-lock
+    // resolves (= same shape as SectionHeader but at toolbar
+    // height, not 28+10+10 column-header height).
+    private var editorChromeHeader: EditorHeaderView {
+        EditorHeaderView(
+            title: activeTabDisplayTitle,
+            // Dirty-state marker (= the dot color follows the same
+            // state machine as `EditorPersistence.handleDirtyTransition`):
+            // orange = unsaved edits, gray = autosaving, red = external
+            // file change with conflict. nil = clean (= no dot).
+            dirtyState: isDirty ? .unsaved : nil,
+            // Right-side chrome cluster. T-01 ships an autosave pulse
+            // (= a tiny spinning icon while `tab.autoSaveTask` is
+            // active). Future T-N tickets add code-block count, find-
+            // in-document badge, and the spell-check toggle.
+            chrome: editorChromeTrailingCluster
+        )
+    }
+
+    /// Right-side chrome widget cluster (= the autosave pulse for now).
+    /// Computed on every view body invocation (= cheap because each
+    /// widget is just an SFIcon + .frame; = no business logic on the
+    /// render path).
+    private var editorChromeTrailingCluster: [EditorHeaderChrome] {
+        guard let tab = activeTab, tab.autoSaveTask != nil else {
+            return []
+        }
+        return [
+            EditorHeaderChrome {
+                SFIcon("arrow.triangle.2.circlepath", style: .paneTab, color: IconColor.secondary)
+                    .help(String(localized: "editor.header.autosaving.tooltip"))
+                    .accessibilityLabel(String(localized: "editor.header.autosaving.a11y"))
+            }
+        ]
+    }
+
+    /// Display title for the active editor tab (= shown in the chrome
+    /// band's left cluster). Falls back to "Untitled" (= Apple HIG
+    /// document-chrome no-document placeholder) until the tab's
+    /// `documentPath` resolves. Mirrors the right-side tab strip
+    /// title computation but uses a stable, never-empty string so
+    /// the chrome band never shows a blank cluster.
+    private var activeTabDisplayTitle: String {
+        guard let tab = activeTab else { return String(localized: "editor.header.untitled") }
+        let display = EditorTab.displayTitle(tab)
+        return display.isEmpty ? String(localized: "editor.header.untitled") : display
+    }
+
+    /// SMC `placeholder:` slot (= ghost text shown while the document
+    /// is empty; the engine hides it on first keystroke). Built once
+    /// per SwiftUI body invocation (= cheap = a single
+    /// NSAttributedString allocation).
+    private var editorEmptyDocumentPlaceholder: NSAttributedString? {
+        let paragraph = NSMutableParagraphStyle()
+        // No indent (= the engine's own textContainerInset handles margin).
+        paragraph.firstLineHeadIndent = 0
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.preferredFont(forTextStyle: .caption1),
+            .foregroundColor: NSColor.tertiaryLabelColor,
+            .paragraphStyle: paragraph
+        ]
+        return NSAttributedString(
+            string: String(localized: "editor.placeholder.start_writing"),
+            attributes: attributes
+        )
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // Tab strip = Safari-style multi-tab bar (Apple HIG
@@ -290,7 +363,23 @@ struct EditorView: View {
                             // mode = read-only NSTextView (= same engine
                             // wrapper as edit, = no scaling between
                             // modes).
-                            isEditable: false
+                            isEditable: false,
+                            // ed-smc-defaults T-01 (= Apple HIG
+                            // document-toolbar strip): preview mode
+                            // gets the chrome band above the typing
+                            // surface (= the EditorHeaderView; = 28 PT
+                            // Apple HIG document-toolbar idiom). Edit
+                            // mode (= EditorEditContent) wires the same
+                            // chrome in T-02 (= its own booking; =
+                            // preview-mode chrome first keeps this
+                            // commit to 1 file + 1 file per Q112).
+                            // `header: AnyView?` and `placeholder:
+                            // NSAttributedString?` are SMC `header:` /
+                            // `placeholder:` slots on
+                            // NativeTextViewWrapper (= engine hosts
+                            // the header inside its scrolled container).
+                            header: AnyView(editorChromeHeader),
+                            placeholder: editorEmptyDocumentPlaceholder
                         )
                     } else {
                         // edit mode uses Apple SwiftUI
