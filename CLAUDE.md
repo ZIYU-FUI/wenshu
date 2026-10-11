@@ -84,7 +84,7 @@ wenshu/                                                ← project root
 │       ├── Editor/                                    ← markdown editor (EditorActions / EditorView)
 │       ├── Persistence/                               ← SwiftData @Model + Container + Repositories
 │       ├── Resources/                                 ← AppIcon.icns + Info.plist
-│       ├── Settings/                                  ← user settings pane
+│       ├── Settings/                                  ← user settings data model (AgentBehavior.swift; = speakingStyle enum + UserDefaults bridge; = UI lives in Views/Settings/SettingView.swift)
 │       ├── State/                                     ← @Observable state layer
 │       ├── Services/                                 ← import / migration / document-template services (= ImportService / ImportDocumentTemplates / ImportAgentDriver / WenshuConductorImportRouter / ImportSOPLoader)
 │       ├── AI/                                       ← SSE + agent-runtime errors (= SSEClient / UserFacingError)
