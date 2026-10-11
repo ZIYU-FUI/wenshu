@@ -27,7 +27,7 @@
 - Sandbox = `~/Engineering/llm-call-test/` + `~/Engineering/wenshu-arch-experiments/{Exp5-CoreData,Exp6-Concurrency}/`
 - Legacy monorepo fork (read-only) = `/Volumes/ANAN/Engineering/.archive/wenshu-monorepo-fork/v0.x-monorepo-fork-2026-08-06/` (9.7 GB)
 - LICENSE = MIT (project itself). Connector protocols honored separately (Anthropic-compatible protocol for minimax cn is one of the 14 first-class profiles).
-- LLM API key = self-configured (stored in macOS Keychain). Never in project. User picks profile in Settings → LLM Connector pane; no default.
+- LLM API key = self-configured (stored in macOS Keychain). Never in project. User picks profile in Settings → providers pane (5-pane NavigationSplitView; see commit 25133467f); no default.
 
 ## 2. Tech Stack
 
@@ -218,7 +218,7 @@ swift run swiftlint
 - Content block types = `text` / `thinking` / `tool_use` / `image`.
 - Tool use = `tools: [{name, description, input_schema}]` + `tool_choice: {type: auto}`.
 
-**Other 6 connector profile endpoints** (per AGENTS.md §11.2; user self-configures base URL + key in Settings → LLM Connector pane):
+**Other 6 connector profile endpoints** (per AGENTS.md §11.2; user self-configures base URL + key in Settings → providers pane; = SettingsPane enum supersedes the legacy 'LLM Connector pane' name from SettingsTab; see commit 25133467f):
 
 - Anthropic: `https://api.anthropic.com/v1/messages` (Anthropic native; `x-api-key` + `anthropic-version: 2023-06-01`).
 - OpenAI: `https://api.openai.com/v1/chat/completions` (OpenAI native; `Authorization: Bearer ***`).`).`)`).`).
