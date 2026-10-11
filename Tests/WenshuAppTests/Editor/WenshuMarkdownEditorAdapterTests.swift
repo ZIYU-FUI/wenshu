@@ -484,6 +484,43 @@ struct WenshuMarkdownEditorAdapterTests {
         #expect(view.contains("bus.selectionHighlightDidChange"),
                 "EditorFormatReadoutView must register an observer for bus.selectionHighlightDidChange (= the engine's highlight-toggle notification)")
     }
+
+    // MARK: - ed-smc-defaults T-06: find & replace sub-tool body shipped
+
+    /// The `.findReplace` case in `EditorDocumentToolsView` must now
+    /// construct the real `EditorFindReplaceView` (= T-04 shipped a
+    /// placeholder; = T-06 wires the live find & replace panel that
+    /// posts `bus.findQuery` / `bus.replaceCurrent` / `bus.replaceAll`
+    /// and observes `bus.findResults` for the live count).
+    @Test("EditorDocumentToolsView wires .findReplace → EditorFindReplaceView (= T-06)")
+    func editorDocumentToolsWiresFindReplace() throws {
+        let viewPath = resolve("Sources/WenshuApp/Views/Inspector/EditorDocumentToolsView.swift")
+        let view = try String(contentsOfFile: viewPath, encoding: .utf8)
+        #expect(
+            view.contains("EditorFindReplaceView(bus: bus)"),
+            "EditorDocumentToolsView's .findReplace case must construct EditorFindReplaceView (= T-06 live body)"
+        )
+    }
+
+    /// `EditorFindReplaceView` posts the 3 find/replace request names
+    /// AND observes `findResults` for the count badge. Source-content
+    /// gate: if any of these disappear the find panel silently breaks
+    /// (= AND from the user's perspective).
+    @Test("EditorFindReplaceView wires the 4 bus names (= T-06)")
+    func editorFindReplaceWiresBusNames() throws {
+        let viewPath = resolve("Sources/WenshuApp/Views/Inspector/EditorFindReplaceView.swift")
+        let view = try String(contentsOfFile: viewPath, encoding: .utf8)
+        // Request direction (= 3 names).
+        #expect(view.contains("bus.findQuery"),
+                "EditorFindReplaceView must post on bus.findQuery (= the engine's find-request notification)")
+        #expect(view.contains("bus.replaceCurrent"),
+                "EditorFindReplaceView must post on bus.replaceCurrent (= the engine's replace-current notification)")
+        #expect(view.contains("bus.replaceAll"),
+                "EditorFindReplaceView must post on bus.replaceAll (= the engine's replace-all notification)")
+        // Response direction (= 1 name).
+        #expect(view.contains("bus.findResults"),
+                "EditorFindReplaceView must observe bus.findResults (= the engine's find-count response)")
+    }
 }
 
 

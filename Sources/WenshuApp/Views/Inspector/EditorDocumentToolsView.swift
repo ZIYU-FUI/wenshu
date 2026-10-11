@@ -151,11 +151,9 @@ private struct EditorDocumentToolsSubToolPicker: View {
                 // state for the 3 icons.
                 EditorFormatReadoutView(bus: bus)
             case .findReplace:
-                EditorDocumentToolsPlaceholder(
-                    titleKey: "inspector.documentTools.findReplace.title",
-                    bodyKey: "inspector.documentTools.findReplace.placeholder",
-                    wiredIn: "T-06"
-                )
+                // T-06: real body shipped. Two text fields + count
+                // + 4 buttons + observer of bus.findResults.
+                EditorFindReplaceView(bus: bus)
             case .headingOutline:
                 EditorDocumentToolsPlaceholder(
                     titleKey: "inspector.documentTools.headingOutline.title",
