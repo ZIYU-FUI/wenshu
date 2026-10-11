@@ -96,6 +96,102 @@ struct EditorView: View {
             ?? "wenshu-editor-no-tab"
     }
 
+    // MARK: - SMC `header:` chrome band (= T-01)
+    //
+    // 28 PT Apple HIG document-toolbar strip (= Pages / Numbers
+    // chrome idiom = title cluster left + chrome-cluster right). Hosted
+    // inside `NativeTextViewWrapper`'s own scrolled container (= the
+    // engine pins it; the NSTextView scrolls under it). The title
+    // segment falls back to "Untitled" until chapter focus-lock
+    // resolves (= same shape as SectionHeader but at toolbar
+    // height, not 28+10+10 column-header height).
+    private var editorChromeHeader: EditorHeaderView {
+        EditorHeaderView(
+            title: activeTabDisplayTitle,
+            // Dirty-state marker (= the dot color follows the same
+            // state machine as `EditorPersistence.handleDirtyTransition`):
+            // orange = unsaved edits, gray = autosaving, red = external
+            // file change with conflict. nil = clean (= no dot).
+            dirtyState: isDirty ? .unsaved : nil,
+            // Right-side chrome cluster. T-01 ships an autosave pulse
+            // (= a tiny spinning icon while `tab.autoSaveTask` is
+            // active). Future T-N tickets add code-block count, find-
+            // in-document badge, and the spell-check toggle.
+            chrome: editorChromeTrailingCluster
+        )
+    }
+
+    /// Right-side chrome widget cluster (= the autosave pulse for now).
+    /// Computed on every view body invocation (= cheap because each
+    /// widget is just an SFIcon + .frame; = no business logic on the
+    /// render path).
+    private var editorChromeTrailingCluster: [EditorHeaderChrome] {
+        guard let tab = activeTab, tab.autoSaveTask != nil else {
+            return []
+        }
+        return [
+            EditorHeaderChrome {
+                SFIcon("arrow.triangle.2.circlepath", style: .paneTab, color: IconColor.secondary)
+                    .help(String(localized: "editor.header.autosaving.tooltip"))
+                    .accessibilityLabel(String(localized: "editor.header.autosaving.a11y"))
+            }
+        ]
+    }
+
+    /// Display title for the active editor tab (= shown in the chrome
+    /// band's left cluster). Falls back to "Untitled" (= Apple HIG
+    /// document-chrome no-document placeholder) until the tab's
+    /// `documentPath` resolves. Mirrors the right-side tab strip
+    /// title computation but uses a stable, never-empty string so
+    /// the chrome band never shows a blank cluster.
+    private var activeTabDisplayTitle: String {
+        guard let tab = activeTab else { return String(localized: "editor.header.untitled") }
+        let display = EditorTab.displayTitle(tab)
+        return display.isEmpty ? String(localized: "editor.header.untitled") : display
+    }
+
+    /// SMC `placeholder:` slot (= ghost text shown while the document
+    /// is empty; the engine hides it on first keystroke). Built once
+    /// per SwiftUI body invocation (= cheap = a single
+    /// NSAttributedString allocation).
+    private var editorEmptyDocumentPlaceholder: NSAttributedString? {
+        let paragraph = NSMutableParagraphStyle()
+        // No indent (= the engine's own textContainerInset handles margin).
+        paragraph.firstLineHeadIndent = 0
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.preferredFont(forTextStyle: .caption1),
+            .foregroundColor: NSColor.tertiaryLabelColor,
+            .paragraphStyle: paragraph
+        ]
+        return NSAttributedString(
+            string: String(localized: "editor.placeholder.start_writing"),
+            attributes: attributes
+        )
+    }
+
+    // MARK: - SMC format toolbar (= T-02)
+    //
+    // The 12-button document toolbar (= Pages / Numbers / Keynote
+    // document chrome idiom). The bus is the same instance the engine
+    // observes internally for selection-state events; = posting here
+    // reaches the same listener chain the engine's coordinator reads.
+    // We rebuild a fresh bus here (= not cached) because:
+    // 1. `MarkdownEditorBus.buildWenshu()` is a single-screen object
+    //    (= no instance data); = rebuild cost = trivial.
+    // 2. The toolbar should NOT survive the editor mount (= if the
+    //    view is torn down, we want the toolbar to drop too; = each
+    //    view-body rebuild gets a fresh bus, = each button tap hits
+    //    the freshly-registered name).
+    //
+    // Why NOT cached (= one bus per view life): the toolbar lives at
+    // the editor zone's outer VStack (= above the scrollable area; =
+    // pinned). The NSTextView's view-of-engine never sees this toolbar
+    // directly (= it lives outside the engine's `header:` slot for
+    // exactly this reason: the toolbar must NEVER scroll away).
+    private var editorFormatToolbar: EditorFormatToolbar {
+        EditorFormatToolbar(bus: MarkdownEditorBus.buildWenshu())
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // Tab strip = Safari-style multi-tab bar (Apple HIG
@@ -167,6 +263,29 @@ struct EditorView: View {
             } message: {
                 Text(String(localized: "workspace.editor.discard_changes_confirm"))
             }
+
+            // ed-smc-defaults T-02 (= format toolbar pinned above the
+            // typing surface). 28 PT Apple HIG document-format
+            // toolbar (= bold / italic / highlight / strikethrough /
+            // inline-code / heading / blockquote / unordered-list /
+            // ordered-list / link / code-block / horizontal-rule).
+            // Pinned at the editor zone's outer VStack (= above the
+            // scrollable area; = never scrolls away with the
+            // document; = canonical Pages / Numbers / Keynote
+            // document-toolbar idiom).
+            //
+            // Why outside the engine's `header:` slot: the engine pins
+            // its `header:` to the scrolled content (= scrolls with
+            // the document). The format toolbar MUST stay visible
+            // while typing (= formatting affects the selection; = the
+            // user has to see what mode they're toggling); = a
+            // separately-pinned row in the outer VStack is the right
+            // place. The engine's `header:` slot still hosts the
+            // EditorHeaderView chrome band (= T-01; = title + dirty
+            // dot); = the 2 chrome rows stack vertically above the
+            // NSTextView (= format toolbar on top, then 28 PT chrome
+            // band, then the NSTextView).
+            editorFormatToolbar
 
             // Body: placeholder content.  swaps this for
             // swift-markdown rendered Text when mode = .preview
@@ -290,7 +409,23 @@ struct EditorView: View {
                             // mode = read-only NSTextView (= same engine
                             // wrapper as edit, = no scaling between
                             // modes).
-                            isEditable: false
+                            isEditable: false,
+                            // ed-smc-defaults T-01 (= Apple HIG
+                            // document-toolbar strip): preview mode
+                            // gets the chrome band above the typing
+                            // surface (= the EditorHeaderView; = 28 PT
+                            // Apple HIG document-toolbar idiom). Edit
+                            // mode (= EditorEditContent) wires the same
+                            // chrome in T-02 (= its own booking; =
+                            // preview-mode chrome first keeps this
+                            // commit to 1 file + 1 file per Q112).
+                            // `header: AnyView?` and `placeholder:
+                            // NSAttributedString?` are SMC `header:` /
+                            // `placeholder:` slots on
+                            // NativeTextViewWrapper (= engine hosts
+                            // the header inside its scrolled container).
+                            header: AnyView(editorChromeHeader),
+                            placeholder: editorEmptyDocumentPlaceholder
                         )
                     } else {
                         // edit mode uses Apple SwiftUI
@@ -367,12 +502,48 @@ struct EditorView: View {
                             // click to the navigation flow.
                             onLinkClick: { linkId in
                                 handleEditorWikiLink(linkId: linkId)
+                            },
+                            // ed-smc-defaults T-02: forward the
+                            // chrome band + placeholder (= same
+                            // shape the preview-mode site forwards
+                            // in T-01). Mirror so the chrome stays
+                            // present across the visible / edit mode
+                            // toggle (= canonical Pages / Numbers
+                            // document-chrome-survives-WYSIWYG-toggle).
+                            editorHeader: AnyView(editorChromeHeader),
+                            editorPlaceholder: editorEmptyDocumentPlaceholder,
+                            // T-03: wire caret-rect callback so the
+                            // status bar can show the live cursor
+                            // position (= writes the live caret rect
+                            // to the active tab's `cursorRect`
+                            // field; = the status bar reads it back
+                            // via `EditorView.cursorRect`).
+                            editorCaretRectChange: { rect in
+                                if let idx = self.activeTabIndex {
+                                    self.appState.openTabs[idx].cursorRect = rect
+                                }
                             }
                         )
                             }
                         }
                     }                }
             }
+            // T-03: editor status bar (= the bottom chrome band of
+            // the editor zone; = 24 PT; = pinned below the
+            // NSTextView; = the format toolbar is above and the
+            // status bar is below = the canonical Pages / Numbers
+            // 3-chrome-band layout = header / toolbar + body / status).
+            // Live word count / cursor location / autosave state
+            // (= the bar is a dumb renderer; = the parent supplies
+            // the 4 closures; = the bar re-evaluates them on every
+            // body invocation = the standard SwiftUI re-render
+            // cadence = no manual subscription needed).
+            EditorStatusBarView(
+                textProvider: { self.draft },
+                cursorRectProvider: { self.cursorRect },
+                isDirtyProvider: { self.isDirty },
+                isAutosavingProvider: { self.isAutosaving }
+            )
             // drop the outer VStack's `.frame(maxWidth: .infinity,
             // maxHeight: .infinity)`. Apple HIG canonical 6-zone layout
             // has no custom frame on the column body (= NavigationSplitView
@@ -547,6 +718,20 @@ struct EditorView: View {
     private var isDirty: Bool {
         guard let tab = activeTab else { return false }
         return tab.draft != tab.originalBody
+    }
+    /// T-03: cursor rect accessor (= returns the active tab's
+    /// live caret rect = the engine posts this via
+    /// `onCaretRectChange`; = the tab caches it; = this getter
+    /// returns the cached value). nil = no caret yet (= the user
+    /// hasn't focused the editor).
+    private var cursorRect: CGRect? {
+        activeTab?.cursorRect
+    }
+    /// T-03: autosave-in-progress accessor (= true while a save
+    /// task is in flight; = the tab's autoSaveTask is the
+    /// canonical source = its presence = "saving").
+    private var isAutosaving: Bool {
+        activeTab?.autoSaveTask != nil
     }
     /// Per-tab auto-save Task. Reads from / writes to the active tab.
     private var autoSaveTask: Task<Void, Never>? {

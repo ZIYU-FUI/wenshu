@@ -13,6 +13,7 @@
 
 import SwiftUI
 import os
+import MarkdownEngine
 
 private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "inspectorview")
 
@@ -126,8 +127,29 @@ struct InspectorView: View {
                 (String(localized: "tab.title.bookmark"), "bookmark", AnyView(BookmarkView())),
                 (String(localized: "tab.title.background_review"), "checkmark.circle.badge.questionmark", AnyView(BackgroundReviewView()))
             ]
+        // ed-smc-defaults T-04: 5th inspector page (= document tools).
+        // All 5 sub-tools share the engine's MarkdownEditorBus; =
+        // the slot picker source contract lives in
+        // `EditorDocumentToolsSubToolPicker` (= the inner picker;
+        // = each sub-tool body is a switch case below; = T-05..09
+        // each ship their body there). Today all 5 bodies are
+        // placeholders naming the upcoming ticket.
+        case .documentTools:
+            return [
+                (
+                    String(localized: "inspector.documentTools.entry.title"),
+                    "textformat",
+                    AnyView(
+                        EditorDocumentToolsView(
+                            activeDocumentText: { nil },
+                            bus: MarkdownEditorBus.buildWenshu()
+                        )
+                    )
+                )
+            ]
         }
     }
+
 
     var body: some View {
         // The 4-page Picker (= Authoring (Fiction) / Style /

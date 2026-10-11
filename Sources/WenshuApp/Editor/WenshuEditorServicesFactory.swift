@@ -9,10 +9,13 @@ import MarkdownEngineLatex
 enum WenshuEditorServicesFactory {
     /// Build a MarkdownEditorConfiguration. The bus defaults to
     /// .default; callers pass MarkdownEditorBus.buildWenshu() to
-    /// activate format / find / replace routing.
+    /// activate format / find / replace routing. Preferences
+    /// default to `.live` (= the AppStorage-backed snapshot; =
+    /// the factory always sees the user's current settings).
     static func make(
         bookStore: BookStore?,
-        bus: MarkdownEditorBus = .default
+        bus: MarkdownEditorBus = .default,
+        preferences: EditorPreferences = .live
     ) -> MarkdownEditorConfiguration {
         let wikiLinks: any WikiLinkResolver
         let images: any EmbeddedImageProvider
@@ -37,6 +40,28 @@ enum WenshuEditorServicesFactory {
         )
         var config = MarkdownEditorConfiguration.default
         config.services = services
+        // T-11: explicitly bind the engine's default theme so the
+        // host (= wenshu) records its intent in source (= future
+        // tickets that want to retint the editor surface a single
+        // place to land = the `MarkdownEditorTheme` declaration
+        // below). The engine's `MarkdownEditorTheme.default` ships
+        // with light + dark color pairs that match Pages / Numbers
+        // inspector colors (= bodyText = NSColor.labelColor mirror,
+        // mutedText = NSColor.tertiaryLabelColor mirror, code =
+        // NSColor.textBackgroundColor mirror).
+        config.theme = MarkdownEditorTheme.default
+        // T-12: forward the host's `EditorPreferences` snapshot to
+        // the configuration. Each field binds the matching engine
+        // field (= readingWidth / heightBehavior / rawSourceMode /
+        // spellChecking triple).
+        config.readingWidth = preferences.readingWidth
+        config.heightBehavior = preferences.heightBehavior
+        config.rawSourceMode = preferences.rawSourceMode
+        config.spellChecking = SpellCheckingPolicy(
+            continuousSpellChecking: preferences.continuousSpellChecking,
+            grammarChecking: preferences.grammarChecking,
+            automaticSpellingCorrection: preferences.automaticSpellingCorrection
+        )
         return config
     }
 
@@ -56,6 +81,8 @@ enum WenshuEditorServicesFactory {
         )
         var config = MarkdownEditorConfiguration.default
         config.services = services
+        // T-11: same explicit-theme binding (= see above).
+        config.theme = MarkdownEditorTheme.default
         return config
     }
 }
