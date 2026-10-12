@@ -60,34 +60,43 @@ struct EditorPaperCanvas<Content: View>: View {
         // images). The Spacers then have room to push the
         // paper to the visual center of the column.
         //
-        // 2026-10-12 boss directive "还是不对, 距离底部有
-        // 边距, 看一下是边距的问题, 还是整体的尺寸设定的
-        // 问题" — the prior commit `54e9d90d3` (= round 1
-        // status-bar fix) added `.frame(maxHeight: .infinity,
-        // alignment: .top)` to the body ZStack in
-        // `EditorView.swift` so the body fills the editor
-        // zone (= the status bar drops to the bottom of the
-        // zone). The body ZStack's primary content is THIS
-        // `ScrollView`. The ScrollView without an explicit
-        // maxHeight modifier sizes to its intrinsic content
-        // (= the 842 PT A4 paper); the `.frame(maxHeight:
-        // .infinity, alignment: .top)` on the ZStack made
-        // the ScrollView's intrinsic 842 PT top-align inside
-        // the zone = the rest of the zone below the paper
-        // (= 880 - 842 - 28 toolbar = 10 PT + 20 PT self-pad
-        // below) renders as transparent editor-column
-        // background, leaving a visible gap between the
-        // paper and the status bar. Apple HIG editor
-        // surface recipe (= Pages / Numbers / Xcode) keeps
-        // the paper filling the available height (= the
-        // paper can scroll when content > visible area).
-        // Add `.frame(maxHeight: .infinity)` on the
-        // ScrollView so the paper expands to fill the
-        // editor zone (= no visible gap between the paper
-        // and the status bar); the ScrollView's own
-        // vertical scroll kicks in when the document is
-        // longer than the visible area (= the standard
-        // SwiftUI NSScrollView bridge behavior).
+        // 2026-10-12 boss directive "还是不对, 现在这个底栏,
+        // 实际上有我红框画的大小, 上面的文档的白色区域都
+        // 被挡住了一半. 虽然你的低栏的内容看起来像是已经
+        // 调整对了, 但这个整体区域看起来占了编辑器区的一
+        // 半" — root cause is the `.padding(.vertical,
+        // DesignTokens.spacingSection = 20 PT)` and
+        // `.defaultScrollAnchor(.center)` combo in this
+        // view. With `.frame(maxHeight: .infinity)` on the
+        // ScrollView (round-3 fix), the ScrollView fills the
+        // editor zone; `.defaultScrollAnchor(.center)` then
+        // centers the 842 PT A4 paper inside the available
+        // height (= 814 PT visible area = 880 - 28 toolbar -
+        // 38 status bar = the paper overflows by 28 PT and
+        // centers = the paper's top sits 14 PT below the
+        // toolbar AND the paper's bottom sits 14 PT above
+        // the status bar). The `.padding(.vertical, 20 PT)`
+        // adds another 20 PT on each side, so the user sees
+        // a 280 PT transparent gap (= ~14 + 20 + 200 + 20 +
+        // 14 = paper centered with 14 PT above and below,
+        // minus the paper's self-frame, leaving the rest as
+        // transparent editor-column background).
+        // Apple HIG editor surface recipe (= Pages / Numbers
+        // / Xcode) is: paper top-aligns to the toolbar
+        // bottom, paper bottom = visible area bottom (=
+        // status bar top, = NO gap), scroll naturally if
+        // content > visible. Drop the bottom-anchored
+        // center scroll anchor (= `.defaultScrollAnchor(.top)`
+        // instead of `.center`) AND drop the paper's
+        // `.padding(.vertical, 20 PT)` (= the 20 PT was
+        // a "page-margin" shape that made the paper float
+        // inside the ScrollView; = we want the paper flush
+        // to the ScrollView's top and bottom edges so the
+        // status bar can sit immediately below the paper).
+        // The paper's own 72 PT inner padding (= Apple HIG
+        // A4 page margins = `Self.paperMargin`) is
+        // preserved (= the typing area still has the
+        // canonical A4 page margin).
         ScrollView([.horizontal, .vertical]) {
             content
                 .padding(Self.paperMargin)
@@ -107,11 +116,10 @@ struct EditorPaperCanvas<Content: View>: View {
                 .background(Color.white)
                 .environment(\.colorScheme, .light)
                 .shadow(color: .black.opacity(0.35), radius: DesignTokens.surfaceShadowRadiusButton, y: DesignTokens.surfaceShadowOffsetButton)
-                .padding(.vertical, DesignTokens.spacingSection)
                 .frame(maxWidth: .infinity, alignment: .center)
         }
         .frame(maxHeight: .infinity)
-        .defaultScrollAnchor(.center)
+        .defaultScrollAnchor(.top)
         .scrollContentBackground(.hidden)
     }
 }
