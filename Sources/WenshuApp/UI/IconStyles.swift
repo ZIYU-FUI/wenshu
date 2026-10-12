@@ -501,13 +501,47 @@ struct SFIcon: View {
         // below pins the rendered size; the .style.pointSize
         // value still drives the non-sidebar tiers.
         if isSidebar && rendering == nil {
+            // Apple Tahoe sidebar row icon convention (= macOS 27):
+            // every sidebar row icon sits on top of a Tahoe squircle
+            // tile (= the `.regularMaterial` translucent dark glass
+            // backing) and renders the SF Symbol in `.multicolor`
+            // mode where the symbol has an intrinsic multicolour
+            // variant (= the "Settings" pane family uses multi-colour
+            // SF Symbols 7 variants like `paintbrush`, `cpu`,
+            // `brain`, `key.horizontal`, `doc.text`; = Apple Tahoe
+            // exports them with the multicolor variant materialised
+            // in the system icon library).
+            //
+            // The 24×24 PT tile (= 16 PT icon + 2 PT inset × 2) =
+            // Apple Tahoe's `.smallSymbolSize`-derived tile slot.
+            // Tile corner radius = `DesignTokens.sidebarIconTileCornerRadius`
+            // (= 6 PT, Apple squircle) + tile padding =
+            // `DesignTokens.sidebarIconTilePadding` (= 2 PT inset).
+            // Both tokens ban naked numeric corner / spacing
+            // literals per the v3.0 design-system hard rule.
+            //
+            // `.regularMaterial` is the Apple-canonical sidebar
+            // tile backing (= NOT a raw `Color.X.opacity(N)` so the
+            // v3.0 rule #6 body-text ban does not apply; = system-
+            // supplied material that picks up Liquid Glass on
+            // macOS 27 Tahoe). The icon color argument is ignored
+            // under `.multicolor` (= the symbol carries its own
+            // intrinsic colors); = the color parameter is kept in
+            // the API so call sites don't churn.
             return AnyView(
-                plainImage
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 16, height: 16)
-                    .symbolRenderingMode(.monochrome)
-                    .foregroundStyle(color)
+                ZStack {
+                    RoundedRectangle(
+                        cornerRadius: DesignTokens.sidebarIconTileCornerRadius,
+                        style: .continuous
+                    )
+                    .fill(.regularMaterial)
+                    plainImage
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .symbolRenderingMode(.multicolor)
+                        .padding(DesignTokens.sidebarIconTilePadding)
+                }
+                .frame(width: 24, height: 24)
             )
         }
 

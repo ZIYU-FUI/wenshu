@@ -57,6 +57,41 @@ enum DesignTokens {
     /// row surface. They are different.
     static let sidebarRowHeight: CGFloat = 22
 
+    /// Apple Tahoe sidebar row icon tile corner radius (= 6 PT).
+    /// Used by the SFIcon `.sidebar` tier (= and any other surface
+    /// that draws a sidebar icon on top of a squircle tile
+    /// background). Distinct from `surfaceCornerRadiusSmallButton`
+    /// (= 5 PT = the chip / pill corner used inside toolbar / hover
+    /// wash / kanban-card chrome) — a sidebar icon tile is one size
+    /// class larger than a chip so the rounded corners read as the
+    /// Apple Tahoe squircle and not as a generic button.
+    ///
+    /// Apple HIG source: macOS 27 Tahoe System Settings sidebar
+    /// (= developer.apple.com/design/human-interface-guidelines/
+    /// sidebars + measured on Apple Mail / Notes / Xcode sidebar row
+    /// icon tiles on macOS 27).
+    ///
+    /// Per the v3.0 design-system hard rule: naked `cornerRadius: N`
+    /// literals are banned inside `Sources/WenshuApp/**/*.swift`;
+    /// route every sidebar icon tile through this token.
+    static let sidebarIconTileCornerRadius: CGFloat = 6
+
+    /// Apple Tahoe sidebar row icon tile inner padding (= 2 PT =
+    /// the gap between the icon edges and the tile edges inside
+    /// the 24×24 PT tile). Pinned by the v3.0 icon policy so
+    /// every sidebar row icon tile renders with identical optical
+    /// breathing room regardless of the underlying SF Symbol's
+    /// intrinsic bounds.
+    ///
+    /// Apple HIG source: macOS 27 Tahoe System Settings sidebar
+    /// (= the tile + 2 PT inset + 20 PT SF Symbol sample used by
+    /// Apple for every sidebar row icon in Settings / Mail / Notes).
+    ///
+    /// Per the v3.0 design-system hard rule: naked numeric spacing
+    /// is banned inside `Sources/WenshuApp/**/*.swift`; route every
+    /// sidebar icon tile padding through this token.
+    static let sidebarIconTilePadding: CGFloat = 2
+
     /// ZONE-INSET-002 (2026-09-07): canonical zone-content inset
     /// (= 8 PT on all 4 sides per Apple HIG) applied by
     /// ZoneContentView (= the shared chrome wrapper for sidebar /
