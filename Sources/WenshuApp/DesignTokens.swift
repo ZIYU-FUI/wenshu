@@ -57,27 +57,31 @@ enum DesignTokens {
     /// row surface. They are different.
     static let sidebarRowHeight: CGFloat = 22
 
-    /// Apple Tahoe sidebar row icon tile size (= 28 PT). The wenshu
+    /// Apple Tahoe sidebar row icon tile size (= 32 PT). The wenshu
     /// v3.0 design-system hard rule bans naked numeric frame widths
     /// inside the source tree; route every sidebar icon tile through
     /// this token so future tickets (= Apple re-measure of Tahoe
-    /// squircle = 26 vs 28 vs 30 PT) update one value, not N sites.
+    /// squircle = 28 vs 32 vs 36 PT) update one value, not N sites.
     ///
     /// Apple HIG source: macOS 27 System Settings sidebar row
     /// icon squircle tile (= the Tahoe Liquid Glass dark surface
     /// that hosts every sidebar row's multicolor SF Symbol; =
     /// measured on Apple System Settings, Mail, Notes, and Xcode
-    /// sidebars on macOS 27 Golden Gate).
-    static let sidebarIconTileSize: CGFloat = 28
+    /// sidebars on macOS 27 Golden Gate). 32 PT = Apple HIG
+    /// `.controlSize(.regular)` sidebar row icon slot (= the canonical
+    /// size used by every first-party Apple sidebar row icon at the
+    /// Tahoe Liquid Glass density).
+    static let sidebarIconTileSize: CGFloat = 32
 
-    /// Apple Tahoe sidebar row icon tile corner radius (= 7 PT).
+    /// Apple Tahoe sidebar row icon tile corner radius (= 8 PT).
     /// Used by the SFIcon `.sidebar` tier (= and any other surface
     /// that draws a sidebar icon on top of a squircle tile
     /// background). Distinct from `surfaceCornerRadiusSmallButton`
     /// (= 5 PT = the chip / pill corner used inside toolbar / hover
     /// wash / kanban-card chrome) and from the icon-tile size
-    /// token (= 28 PT = the tile edge, not the corner) — a sidebar
-    /// icon tile is the macOS Tahoe canonical squircle.
+    /// token (= 32 PT = the tile edge, not the corner) — a sidebar
+    /// icon tile is the macOS Tahoe canonical squircle at the
+    /// `.controlSize(.regular)` density (= the 32 PT row).
     ///
     /// Apple HIG source: macOS 27 Tahoe System Settings sidebar
     /// (= developer.apple.com/design/human-interface-guidelines/
@@ -87,25 +91,29 @@ enum DesignTokens {
     /// Per the v3.0 design-system hard rule: naked `cornerRadius: N`
     /// literals are banned inside `Sources/WenshuApp/**/*.swift`;
     /// route every sidebar icon tile through this token.
-    static let sidebarIconTileCornerRadius: CGFloat = 7
+    static let sidebarIconTileCornerRadius: CGFloat = 8
 
-    /// Apple Tahoe sidebar row icon tile inner padding (= 4 PT =
+    /// Apple Tahoe sidebar row icon tile inner padding (= 9 PT =
     /// the gap between the icon edges and the tile edges inside
-    /// the 28×28 PT tile). Pinned by the v3.0 icon policy so
-    /// every sidebar row icon tile renders with identical optical
-    /// breathing room regardless of the underlying SF Symbol's
-    /// intrinsic bounds. Distinct from `sidebarIconTileCornerRadius`
-    /// (= the corner = 7 PT) — the inset is what the SF Symbol
-    /// sits inside.
+    /// the 32×32 PT tile = 28 % of the tile edge each side; =
+    /// produces the canonical Apple Tahoe sidebar row anatomy
+    /// where the icon occupies ≈ 44 % of the tile (= 14 PT icon
+    /// inside a 32 PT tile, with the rest as glass breathing
+    /// room around the multicolor symbol).
     ///
     /// Apple HIG source: macOS 27 Tahoe System Settings sidebar
-    /// (= the tile + 4 PT inset + 20 PT SF Symbol sample used by
-    /// Apple for every sidebar row icon in Settings / Mail / Notes).
+    /// (= the tile + 9 PT inset + 14 PT SF Symbol; = the same
+    /// measurements as Apple System Settings, Mail, Notes, and
+    /// Xcode sidebars; = the prior 4 PT inset (commit `381d7d4d7`)
+    /// was over-correction toward `controlSize(.small)` density —
+    /// the user flagged on 2026-10-12 that the icon was too large
+    /// inside the tile, and Apple's actual sidebar icon at Tahoe
+    /// density takes ≈ 50 % of the tile, NOT ≈ 70 %).
     ///
     /// Per the v3.0 design-system hard rule: naked numeric spacing
     /// is banned inside `Sources/WenshuApp/**/*.swift`; route every
     /// sidebar icon tile padding through this token.
-    static let sidebarIconTilePadding: CGFloat = 4
+    static let sidebarIconTilePadding: CGFloat = 9
 
     /// ZONE-INSET-002 (2026-09-07): canonical zone-content inset
     /// (= 8 PT on all 4 sides per Apple HIG) applied by
