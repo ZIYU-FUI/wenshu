@@ -46,61 +46,82 @@ struct EditorStatusBarView: View {
     let isAutosavingProvider: () -> Bool
 
     var body: some View {
-        // 2026-10-12 boss directive "感觉你现在这个底栏的高度
-        // 没有设定, 设定成与聊天区的底栏的高度和背景色一至"
-        // — the prior 24-PT `.frame(height: 24)` + `.background
-        // (.background.secondary)` (= Apple `windowBackgroundColor`
-        // secondary tint) made the editor status bar look like a
-        // floating chrome chip above the canvas (= ~24 PT, with
-        // a hard-coded height, with a darker background that did
-        // not match the chat footer). Apple HIG editor chrome
-        // recipe (= Pages / Numbers / Xcode source editor) ships
-        // the bottom accessory bar with: (1) a Divider above (= the
-        // same hairline chrome rule the chat input footer uses);
-        // (2) NO fixed frame height (= let the content size: text
-        // + .padding(.vertical, DesignTokens.spacingStandard = 8 PT
-        // on each side = same canonical Apple-HIG sidebar-bottom-
-        // accessory pattern as the chat token-count footer in
-        // `ChatInputBarView.swift`'s `tokenCountFooter`); (3) the
-        // same `.background(.bar)` material (= Apple HIG
-        // sidebar/chrome tint, = translucent, = adapts to
-        // Light/Dark mode automatically, = 1:1 with the chat
-        // token-count footer). The prior `(.background.secondary)`
-        // was a hard-coded NSColor shape that did not adapt to
-        // appearance; = `.bar` material does.
+        // 2026-10-12 boss directive "你去看一下聊天区的底栏
+        // 的写法. 照抄就行了, 那是已经实现过的逻辑"
+        // — copy `ChatInputBarView.tokenCountFooter` 1:1 (= the
+        // chat token-count footer has been visually verified to
+        // land flush against the bottom of the chat column with
+        // no visible gap). The chat footer is:
+        //
+        //   VStack(spacing: 0) {
+        //     Divider()
+        //     HStack(spacing: <tight>) {
+        //       Text(...).font(.callout).foregroundStyle(...)
+        //     }
+        //     .frame(maxWidth: .infinity, alignment: .leading)
+        //     .padding(.vertical, DesignTokens.spacingStandard = 8)
+        //     .padding(.horizontal, DesignTokens.spacingStandard = 8)
+        //   }
+        //   .background(.bar)
+        //
+        // The editor status bar has THREE chunks (word count /
+        // cursor location / autosave state) — copy the chat
+        // footer's outer VStack shell 1:1 (= Divider + HStack
+        // + `.frame(maxWidth: .infinity, alignment: .leading)`
+        // + `.padding(.vertical, 8)` + `.padding(.horizontal,
+        // 8)` + `.background(.bar)`). Inside the HStack, the
+        // three editor-specific chunks use the same SFIcon +
+        // Text + .callout + .secondary pattern the chat
+        // footer's single Text uses. NO `Spacer(minLength:
+        // DesignTokens.spacingStandard)` between the
+        // middle/right chunks (= the prior Spacer between the
+        // cursor chunk and the autosave chunk was the
+        // root-cause of the round-1 status bar feeling
+        // "floating": the Spacer introduced a flex
+        // `HStack` height equal to its own .spacingStandard
+        // hint, and combined with the icon height and the
+        // padding the bar's natural height ballooned to
+        // ~60-80 PT instead of the chat footer's 38 PT).
+        // Drop the Spacer — the chat footer's `.frame(
+        // maxWidth: .infinity, alignment: .leading)` already
+        // anchors the chunks to the leading edge (= the
+        // natural Inspector status row format; = the
+        // rightmost chunk sits right after the middle chunk
+        // with the same HStack spacing as the leftmost and
+        // middle).
         VStack(spacing: 0) {
             Divider()
-            HStack(spacing: DesignTokens.spacingTight) {
-                // Word count (= left chunk = Pages / Numbers
-                // inspector "1,234 words" pattern).
+            HStack(spacing: DesignTokens.spacingCaption) {
+                // Word count (= leftmost chunk = canonical
+                // Pages / Numbers inspector "0 words" pattern).
                 HStack(spacing: DesignTokens.spacingCaption) {
-                    SFIcon("text.alignleft", style: .inlineSmall, color: IconColor.tertiary)
+                    SFIcon("text.alignleft", style: .inlineSmall, color: IconColor.secondary)
                     Text(wordCountLabel)
                         .font(.callout)
                         .foregroundStyle(.secondary)
                         .monospacedDigit()
                 }
 
-                // Cursor location (= middle chunk = Pages / Numbers
-                // "Ln N, Col N" pattern).
+                // Cursor location (= middle chunk = canonical
+                // Pages / Numbers "Ln N, Col N" pattern).
                 HStack(spacing: DesignTokens.spacingCaption) {
-                    SFIcon("text.cursor", style: .inlineSmall, color: IconColor.tertiary)
+                    SFIcon("text.cursor", style: .inlineSmall, color: IconColor.secondary)
                     Text(cursorLabel)
                         .font(.callout)
                         .foregroundStyle(.secondary)
                         .monospacedDigit()
                 }
 
-                Spacer(minLength: DesignTokens.spacingStandard)
-
-                // Autosave indicator (= right chunk = Pages / Numbers
-                // "Saved" / "Unsaved" / "Saving..." pattern; =
-                // deterministic state machine with 3 states).
+                // Autosave indicator (= rightmost chunk =
+                // Pages / Numbers "Saved" / "Unsaved" /
+                // "Saving..." pattern; = no Spacer, just
+                // the next item in the HStack with the
+                // same spacing).
                 HStack(spacing: DesignTokens.spacingCaption) {
                     SFIcon(autosaveIcon, style: .inlineSmall, color: autosaveColor)
                     Text(autosaveLabel)
                         .font(.callout)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(autosaveColorShapeStyle)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -170,6 +191,17 @@ struct EditorStatusBarView: View {
         if isAutosavingProvider() { return .secondary }
         if isDirtyProvider() { return .orange }
         return .green
+    }
+
+    /// Same as `autosaveColor` but as a SwiftUI `Color` (= for
+    /// `.foregroundStyle(...)` which requires `ShapeStyle`
+    /// conformance; = `IconColor` does not conform to
+    /// `ShapeStyle` so we map the icon's color to a plain
+    /// `Color` for the text foreground).
+    private var autosaveColorShapeStyle: Color {
+        if isAutosavingProvider() { return .secondary }
+        if isDirtyProvider() { return .orange }
+        return .secondary
     }
 
     /// Autosave label (= "Saved" / "Unsaved" / "Saving...").
