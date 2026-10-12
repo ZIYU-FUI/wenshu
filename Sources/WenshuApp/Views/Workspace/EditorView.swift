@@ -548,20 +548,32 @@ struct EditorView: View {
                         }
                     }                }
             }
-            // Pin the body ZStack to the top of the available
-            // height so the `EditorStatusBarView` (= pinned
-            // below) is pushed to the bottom of the editor zone.
-            // Without this marker the body sizes to its intrinsic
-            // content (= empty NSTextView = small) and the
-            // status bar floats below it, leaving a visible gap.
-            // Apple HIG editor chrome recipe (= Pages / Numbers /
-            // Xcode source editor) uses the same `.frame(
-            // maxHeight: .infinity, alignment: .top)` shape on
-            // the body — the format toolbar stays at the top, the
-            // body fills the available space, the status bar
-            // drops to the bottom. = no manual Spacer, no .offset,
-            // no per-bar .padding-bottom hack.
-            .frame(maxHeight: .infinity, alignment: .top)
+            // 2026-10-12 round-5 fix — the prior `.frame(
+            // maxHeight: .infinity, alignment: .top)` here (=
+            // round-1 fix `54e9d90d3`) made the body ZStack
+            // (= the 842 PT A4 paper) fill the entire editor
+            // zone; the ScrollView inside `EditorPaperCanvas`
+            // (= round-3 fix `b6493c3a8`) was `.frame(maxHeight:
+            // .infinity)`; the paper's bottom 28 PT was clipped
+            // by the status bar overlay; the user perceived
+            // "the paper floats in the upper half" (= the
+            // bottom 28 PT was hidden by the status bar). Drop
+            // the ZStack's `.frame(maxHeight: .infinity,
+            // alignment: .top)`; let the ZStack size to its
+            // content (= 842 PT A4 paper). The Spacer between
+            // the ZStack and the status bar (= see `Spacer(
+            // minLength: 0)` inserted below) is the canonical
+            // Apple HIG 3-chrome-band layout: toolbar + body +
+            // Spacer + status; = the Spacer pushes the status
+            // bar to the bottom of the zone; = the paper sits
+            // flush below the toolbar; = the status bar sits
+            // flush below the paper (= NO visible gap between
+            // the paper's bottom and the status bar's top).
+            // When the user's window is shorter than 842 + 28
+            // + 38 = 908 PT (= paper + toolbar + status), the
+            // paper overflows the zone and the ScrollView
+            // inside `EditorPaperCanvas` scrolls naturally (= the
+            // standard SwiftUI NSScrollView bridge behavior).
             // T-03: editor status bar (= the bottom chrome band of
             // the editor zone; = 24 PT; = pinned below the
             // NSTextView; = the format toolbar is above and the
@@ -572,6 +584,7 @@ struct EditorView: View {
             // the 4 closures; = the bar re-evaluates them on every
             // body invocation = the standard SwiftUI re-render
             // cadence = no manual subscription needed).
+            Spacer(minLength: 0)
             EditorStatusBarView(
                 textProvider: { self.draft },
                 cursorRectProvider: { self.cursorRect },

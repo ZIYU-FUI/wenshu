@@ -60,43 +60,22 @@ struct EditorPaperCanvas<Content: View>: View {
         // images). The Spacers then have room to push the
         // paper to the visual center of the column.
         //
-        // 2026-10-12 boss directive "还是不对, 现在这个底栏,
-        // 实际上有我红框画的大小, 上面的文档的白色区域都
-        // 被挡住了一半. 虽然你的低栏的内容看起来像是已经
-        // 调整对了, 但这个整体区域看起来占了编辑器区的一
-        // 半" — root cause is the `.padding(.vertical,
-        // DesignTokens.spacingSection = 20 PT)` and
-        // `.defaultScrollAnchor(.center)` combo in this
-        // view. With `.frame(maxHeight: .infinity)` on the
-        // ScrollView (round-3 fix), the ScrollView fills the
-        // editor zone; `.defaultScrollAnchor(.center)` then
-        // centers the 842 PT A4 paper inside the available
-        // height (= 814 PT visible area = 880 - 28 toolbar -
-        // 38 status bar = the paper overflows by 28 PT and
-        // centers = the paper's top sits 14 PT below the
-        // toolbar AND the paper's bottom sits 14 PT above
-        // the status bar). The `.padding(.vertical, 20 PT)`
-        // adds another 20 PT on each side, so the user sees
-        // a 280 PT transparent gap (= ~14 + 20 + 200 + 20 +
-        // 14 = paper centered with 14 PT above and below,
-        // minus the paper's self-frame, leaving the rest as
-        // transparent editor-column background).
-        // Apple HIG editor surface recipe (= Pages / Numbers
-        // / Xcode) is: paper top-aligns to the toolbar
-        // bottom, paper bottom = visible area bottom (=
-        // status bar top, = NO gap), scroll naturally if
-        // content > visible. Drop the bottom-anchored
-        // center scroll anchor (= `.defaultScrollAnchor(.top)`
-        // instead of `.center`) AND drop the paper's
-        // `.padding(.vertical, 20 PT)` (= the 20 PT was
-        // a "page-margin" shape that made the paper float
-        // inside the ScrollView; = we want the paper flush
-        // to the ScrollView's top and bottom edges so the
-        // status bar can sit immediately below the paper).
-        // The paper's own 72 PT inner padding (= Apple HIG
-        // A4 page margins = `Self.paperMargin`) is
-        // preserved (= the typing area still has the
-        // canonical A4 page margin).
+        // Round-5 fix moves to `EditorView.swift`: replace the
+        // body ZStack's `.frame(maxHeight: .infinity, alignment:
+        // .top)` (= round-1 fix) with a Spacer between the
+        // body ZStack and the status bar (= the canonical
+        // Apple HIG 3-chrome-band layout: toolbar + body +
+        // Spacer + status, = the Spacer pushes the status bar
+        // to the bottom of the zone while the body ZStack
+        // sizes to its content = the 842 PT A4 paper). This
+        // file's round-3 / round-4 changes (= `.frame(
+        // maxHeight: .infinity)` on the ScrollView + drop
+        // `.padding(.vertical, 20)` + flip scroll anchor to
+        // `.top`) are kept and are still correct: the
+        // ScrollView fills the parent ZStack; the paper 842 PT
+        // A4 sheet is the ScrollView's content; the ScrollView
+        // scrolls naturally if the parent ZStack is shorter
+        // than 842 PT (= window resize case).
         ScrollView([.horizontal, .vertical]) {
             content
                 .padding(Self.paperMargin)
