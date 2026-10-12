@@ -107,6 +107,7 @@ extension BookDoc {
             fileName: "test.md",
             modifiedAt: Date(),
             createdAt: Date(),
+            tags: [],
             body: "# Test"
         )
     }

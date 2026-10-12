@@ -92,6 +92,7 @@ final class BookDocBodyLoaderTests: XCTestCase {
             fileName: fileName,
             modifiedAt: Date(),
             createdAt: Date(),
+            tags: [],
             body: String(body.prefix(200))
         )
         // The shelvesRoot is the
@@ -153,6 +154,7 @@ final class BookDocBodyLoaderTests: XCTestCase {
             fileName: fileName,
             modifiedAt: Date(),
             createdAt: Date(),
+            tags: [],
             body: "ghost"
         )
         // Don't create the file
@@ -193,6 +195,7 @@ final class BookDocBodyLoaderTests: XCTestCase {
             fileName: "ghost.md",
             modifiedAt: Date(),
             createdAt: Date(),
+            tags: [],
             body: "ghost"
         )
         // No shelves/<shelf>/books/<bookId> directory exists

@@ -90,6 +90,7 @@ struct PreviewPaneOpsTests {
                 fileName: "b.md",
                 modifiedAt: Date.distantPast,
                 createdAt: Date.distantPast,
+                tags: [],
                 body: "second"
             ),
             BookDoc(
@@ -99,6 +100,7 @@ struct PreviewPaneOpsTests {
                 fileName: "a.md",
                 modifiedAt: Date.distantFuture,
                 createdAt: Date.distantFuture,
+                tags: [],
                 body: "first"
             ),
         ]
