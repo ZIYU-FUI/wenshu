@@ -226,6 +226,25 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
     /// app accent color).
     case sidebar
 
+    /// Sidebar row icon tier for the main-window library tree
+    /// (= `Sources/WenshuApp/Views/Library/SidebarRowView.swift`'s
+    /// `SFLabelRow`).  Distinct from `.sidebar` (= which is
+    /// reserved for the Settings scene's 5-pane sidebar per the
+    /// user's 2026-10-12 directive "目录树中的大纲的 ICON, 不用
+    /// 设置成多色. 只有就是设置中的 ICON 用多色, 主页目录树不用"):
+    /// this tier renders the SF Symbol in `.monochrome` with the
+    /// system-primary color (= no multicolor, no squircle tile,
+    /// = the Apple HIG canonical "chrome" sidebar row icon) while
+    /// `.sidebar` keeps the multicolor + dark squircle tile that
+    /// the Settings scene uses (= the Apple System Settings
+    /// "每个 pane 是 macOS Tahoe 主题色 chip" canonical look).
+    ///
+    /// Apple HIG source: macOS 27 Tahoe `Sidebars > List >
+    /// Sidebar row anatomy` (the chrome side — the library tree
+    /// is chrome, not an Apple system-settings surface; =
+    /// system primary color, no multicolor, no squircle tile).
+    case sidebarTree
+
     /// Apple HIG point size for this case. Values follow Apple-shipped
     /// app defaults (= not wenshu-invented).
     var pointSize: CGFloat {
@@ -242,6 +261,7 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
         case .toolbarButton: 32
         case .surface: 56
         case .sidebar: 16
+        case .sidebarTree: 16
         }
     }
 
@@ -483,6 +503,18 @@ struct SFIcon: View {
         // the app accent), monochrome is the canonical
         // rendering for the .sidebar tier.
         let isSidebar = style == .sidebar
+        // `.sidebarTree` (= 2026-10-12 boss directive) is the
+        // library-tree side of the same surface (= it is the
+        // chrome sidebar on the main window, NOT a system-
+        // settings surface). It renders the SF Symbol in
+        // `.monochrome` with the system-primary color (= the
+        // canonical Apple HIG chrome-sidebar look, = no
+        // multicolor, no squircle tile). The optical slot
+        // dimensions still apply (= the `sidebarWidth` /
+        // `sidebarInset` extensions on `IconStyle` cover both
+        // tiers; = `SFLabelRow`'s leading-icon frame still
+        // matches across the two surfaces).
+        let isSidebarTree = style == .sidebarTree
 
         // .sidebar tier: lock the row icon to a 16×16 square
         // frame and force the SF Symbol to fill it via
@@ -550,6 +582,35 @@ struct SFIcon: View {
                     width: DesignTokens.sidebarIconTileSize,
                     height: DesignTokens.sidebarIconTileSize
                 )
+            )
+        }
+        // .sidebarTree tier (= 2026-10-12 boss directive
+        // "目录树中的大纲的 ICON, 不用设置成多色"): the library
+        // tree's leading icon.  Per the Apple HIG chrome-sidebar
+        // row anatomy (= Mail / Notes / Finder sidebars) the icon
+        // renders as a plain SF Symbol in `.monochrome` with the
+        // system-primary color (= black in light mode, white in
+        // dark mode, = NOT the app accent; = the same as the
+        // pre-`a3053bad5` Apple System Settings sidebar look
+        // before the multicolor + dark squircle surface was added
+        // for the Settings scene).  No squircle tile (= the tile
+        // is reserved for `.sidebar` / Settings-scene icons);
+        // the symbol sits directly on the row's clear background.
+        // The optical slot is still applied via the same
+        // `sidebarWidth` / `sidebarInset` extension properties
+        // (= the SF Symbol is `.resizable().aspectRatio(.fit)`'d
+        // to the same 16×16 frame as the `.sidebar` tier, so
+        // symbols of different intrinsic bounds look uniform
+        // across the two tiers).
+        if isSidebarTree && rendering == nil {
+            return AnyView(
+                plainImage
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 16, height: 16)
+                    .symbolRenderingMode(.monochrome)
+                    .foregroundStyle(color)
+                    .padding(.horizontal, style.sidebarInset)
             )
         }
 
@@ -711,7 +772,7 @@ struct SFLabelRow: View {
         title: String,
         systemImage: String,
         subtitle: String? = nil,
-        iconStyle: IconStyle = .sidebar
+        iconStyle: IconStyle = .sidebarTree
     ) {
         self.title = title
         self.systemImage = systemImage
