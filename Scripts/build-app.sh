@@ -90,17 +90,21 @@ if [ -n "$SPM_BUNDLE_PATH" ]; then
     done
 fi
 
-# Source catalogs are the per-language truth in this repository. The
-# SPM resource bundle can retain a stale incremental copy, so refresh the
-# top-level app catalogs from source after every release build.
-for source_lproj in Sources/WenshuApp/Resources/*.lproj; do
-    if [ -d "$source_lproj" ]; then
-        locale="$(basename "$source_lproj" .lproj)"
-        mkdir -p "$RES_DIR/${locale}.lproj"
-        cp "$source_lproj/Localizable.strings" "$RES_DIR/${locale}.lproj/Localizable.strings"
-        echo ">>> refreshed source localization: ${locale}.lproj"
-    fi
-done
+# Per-language runtime catalog is the SPM-compiled output (= Apple Xcode 15+
+# String Catalog native support). `Localizable.xcstrings` is the single
+# source of truth; SPM 6.4 compiles it at swift-build time into
+# `Wenshu_WenshuApp.bundle/Contents/Resources/{locale}.lproj/Localizable.strings`,
+# which the promote step above copies into the .app. The historical hand-
+# written `Sources/WenshuApp/Resources/{en,zh-Hans}.lproj/Localizable.strings`
+# files are excluded from the SPM target (`Package.swift` `exclude:` list)
+# and stay in git as a static snapshot only — they do not feed runtime.
+# A prior "refresh from source tree" step here silently overrode the
+# SPM-compiled output with the stale source snapshot, dropping every key
+# added after the snapshot was last regenerated (notably the 102
+# `settings.appearance.*` / `settings.pane.*` keys introduced by the
+# Settings restructure). The canonical promote step above is the only
+# path that reaches `Bundle.main`, so this section is intentionally empty.
+: # noop — runtime catalog arrives via the SPM promote step above
 # Copy all third-party SPM-generated resource bundles into the .app
 # (= Highlighter_Highlighter, GRDB_GRDB, Defaults_Defaults, etc.) so
 # their `Bundle.module` lookups succeed at runtime. Without these,
