@@ -8320,13 +8320,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Assistant tasks default to the main model. You can assign a dedicated model to any task. (wenshu canonical: assistant task scheduling not yet implemented, placeholder shows Hermes AUX_TASKS canonical list)"
+            "value": "Pick a dedicated model for each writing task."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "辅助任务默认使用主模型. 你可以为任意任务指定专用模型. (wenshu 真值: 辅助任务调度暂未实现, 占位显示 Hermes AUX_TASKS 真值列表)"
+            "value": "为每个写作任务指定专用模型。"
           }
         }
       }

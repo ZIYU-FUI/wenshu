@@ -975,7 +975,7 @@ Or just chat normally.</string>
 	<key>settings.agentBehavior.speakingStyle.title</key>
 	<string>Speaking style</string>
 	<key>settings.assistant.caption</key>
-	<string>Assistant tasks default to the main model. You can assign a dedicated model to any task. (wenshu canonical: assistant task scheduling not yet implemented, placeholder shows Hermes AUX_TASKS canonical list)</string>
+	<string>Pick a dedicated model for each writing task.</string>
 	<key>settings.general.agentAddress</key>
 	<string>Agent address</string>
 	<key>settings.general.agentAddress.help</key>

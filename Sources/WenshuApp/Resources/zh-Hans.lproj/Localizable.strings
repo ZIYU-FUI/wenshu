@@ -975,7 +975,7 @@
 	<key>settings.agentBehavior.speakingStyle.title</key>
 	<string>说话风格</string>
 	<key>settings.assistant.caption</key>
-	<string>辅助任务默认使用主模型. 你可以为任意任务指定专用模型. (wenshu 真值: 辅助任务调度暂未实现, 占位显示 Hermes AUX_TASKS 真值列表)</string>
+	<string>为每个写作任务指定专用模型。</string>
 	<key>settings.general.agentAddress</key>
 	<string>Agent 称呼</string>
 	<key>settings.general.agentAddress.help</key>
