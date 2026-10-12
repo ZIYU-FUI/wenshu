@@ -46,45 +46,68 @@ struct EditorStatusBarView: View {
     let isAutosavingProvider: () -> Bool
 
     var body: some View {
-        // 24 PT chrome band (= the Apple HIG status-bar height; =
-        // 4 PT less than the 28 PT chrome band of T-01 = the
-        // convention is "status bar is shorter than the toolbar").
-        HStack(spacing: DesignTokens.spacingModerate) {
-            // Word count (= left chunk = Pages / Numbers
-            // inspector "1,234 words" pattern).
-            HStack(spacing: DesignTokens.spacingCaption) {
-                SFIcon("text.alignleft", style: .inlineSmall, color: IconColor.tertiary)
-                Text(wordCountLabel)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
-            }
+        // 2026-10-12 boss directive "感觉你现在这个底栏的高度
+        // 没有设定, 设定成与聊天区的底栏的高度和背景色一至"
+        // — the prior 24-PT `.frame(height: 24)` + `.background
+        // (.background.secondary)` (= Apple `windowBackgroundColor`
+        // secondary tint) made the editor status bar look like a
+        // floating chrome chip above the canvas (= ~24 PT, with
+        // a hard-coded height, with a darker background that did
+        // not match the chat footer). Apple HIG editor chrome
+        // recipe (= Pages / Numbers / Xcode source editor) ships
+        // the bottom accessory bar with: (1) a Divider above (= the
+        // same hairline chrome rule the chat input footer uses);
+        // (2) NO fixed frame height (= let the content size: text
+        // + .padding(.vertical, DesignTokens.spacingStandard = 8 PT
+        // on each side = same canonical Apple-HIG sidebar-bottom-
+        // accessory pattern as the chat token-count footer in
+        // `ChatInputBarView.swift`'s `tokenCountFooter`); (3) the
+        // same `.background(.bar)` material (= Apple HIG
+        // sidebar/chrome tint, = translucent, = adapts to
+        // Light/Dark mode automatically, = 1:1 with the chat
+        // token-count footer). The prior `(.background.secondary)`
+        // was a hard-coded NSColor shape that did not adapt to
+        // appearance; = `.bar` material does.
+        VStack(spacing: 0) {
+            Divider()
+            HStack(spacing: DesignTokens.spacingTight) {
+                // Word count (= left chunk = Pages / Numbers
+                // inspector "1,234 words" pattern).
+                HStack(spacing: DesignTokens.spacingCaption) {
+                    SFIcon("text.alignleft", style: .inlineSmall, color: IconColor.tertiary)
+                    Text(wordCountLabel)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                }
 
-            // Cursor location (= middle chunk = Pages / Numbers
-            // "Ln N, Col N" pattern).
-            HStack(spacing: DesignTokens.spacingCaption) {
-                SFIcon("text.cursor", style: .inlineSmall, color: IconColor.tertiary)
-                Text(cursorLabel)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
-            }
+                // Cursor location (= middle chunk = Pages / Numbers
+                // "Ln N, Col N" pattern).
+                HStack(spacing: DesignTokens.spacingCaption) {
+                    SFIcon("text.cursor", style: .inlineSmall, color: IconColor.tertiary)
+                    Text(cursorLabel)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                }
 
-            Spacer(minLength: DesignTokens.spacingStandard)
+                Spacer(minLength: DesignTokens.spacingStandard)
 
-            // Autosave indicator (= right chunk = Pages / Numbers
-            // "Saved" / "Unsaved" / "Saving..." pattern; =
-            // deterministic state machine with 3 states).
-            HStack(spacing: DesignTokens.spacingCaption) {
-                SFIcon(autosaveIcon, style: .inlineSmall, color: autosaveColor)
-                Text(autosaveLabel)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                // Autosave indicator (= right chunk = Pages / Numbers
+                // "Saved" / "Unsaved" / "Saving..." pattern; =
+                // deterministic state machine with 3 states).
+                HStack(spacing: DesignTokens.spacingCaption) {
+                    SFIcon(autosaveIcon, style: .inlineSmall, color: autosaveColor)
+                    Text(autosaveLabel)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, DesignTokens.spacingStandard)
+            .padding(.horizontal, DesignTokens.spacingStandard)
         }
-        .frame(height: 24)
-        .padding(.horizontal, DesignTokens.spacingStandard)
-        .background(.background.secondary)
+        .background(.bar)
         .help(String(localized: "editor.statusBar.help"))
     }
 
