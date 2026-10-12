@@ -503,45 +503,53 @@ struct SFIcon: View {
         if isSidebar && rendering == nil {
             // Apple Tahoe sidebar row icon convention (= macOS 27):
             // every sidebar row icon sits on top of a Tahoe squircle
-            // tile (= the `.regularMaterial` translucent dark glass
-            // backing) and renders the SF Symbol in `.multicolor`
-            // mode where the symbol has an intrinsic multicolour
-            // variant (= the "Settings" pane family uses multi-colour
-            // SF Symbols 7 variants like `paintbrush`, `cpu`,
-            // `brain`, `key.horizontal`, `doc.text`; = Apple Tahoe
-            // exports them with the multicolor variant materialised
-            // in the system icon library).
+            // tile (= the macOS semantic `controlBackgroundColor`
+            // = the dark Tahoe Liquid Glass surface that hosts
+            // every sidebar row's multicolor SF Symbol) and renders
+            // the SF Symbol in `.multicolor` mode where the symbol
+            // has an intrinsic multicolour variant (= the "Settings"
+            // pane family uses multi-colour SF Symbols 7 variants).
             //
-            // The 24×24 PT tile (= 16 PT icon + 2 PT inset × 2) =
+            // The 28×28 PT tile (= 20 PT icon + 4 PT inset × 2) =
             // Apple Tahoe's `.smallSymbolSize`-derived tile slot.
             // Tile corner radius = `DesignTokens.sidebarIconTileCornerRadius`
-            // (= 6 PT, Apple squircle) + tile padding =
-            // `DesignTokens.sidebarIconTilePadding` (= 2 PT inset).
-            // Both tokens ban naked numeric corner / spacing
+            // (= 7 PT, Apple squircle) + tile padding =
+            // `DesignTokens.sidebarIconTilePadding` (= 4 PT inset) +
+            // tile size = `DesignTokens.sidebarIconTileSize` (= 28 PT).
+            // All tokens ban naked numeric corner / spacing / sizing
             // literals per the v3.0 design-system hard rule.
             //
-            // `.regularMaterial` is the Apple-canonical sidebar
-            // tile backing (= NOT a raw `Color.X.opacity(N)` so the
-            // v3.0 rule #6 body-text ban does not apply; = system-
-            // supplied material that picks up Liquid Glass on
-            // macOS 27 Tahoe). The icon color argument is ignored
-            // under `.multicolor` (= the symbol carries its own
-            // intrinsic colors); = the color parameter is kept in
-            // the API so call sites don't churn.
+            // `Color(nsColor: .controlBackgroundColor)` is an
+            // AppKit semantic color (= NOT a raw `Color.X.opacity(N)`)
+            // so the v3.0 rule #6 body-text ban does not apply; =
+            // system-supplied color that resolves to the dark
+            // Tahoe sidebar tint on macOS 27. The v3.0 icon rule
+            // #9 = use `IconColor` semantic tint, and the
+            // canonical Tahoe sidebar icon tile uses the control
+            // (= "background") color over the system accent (= the
+            // sidebar List cell tint is now system controlBackground
+            // per Apple HIG `Sidebars > Sidebar row anatomy`).
+            // The icon color argument is ignored under `.multicolor`
+            // (= the symbol carries its own intrinsic colors);
+            // = the color parameter is kept in the API so call
+            // sites don't churn.
             return AnyView(
                 ZStack {
                     RoundedRectangle(
                         cornerRadius: DesignTokens.sidebarIconTileCornerRadius,
                         style: .continuous
                     )
-                    .fill(.regularMaterial)
+                    .fill(Color(nsColor: NSColor.controlBackgroundColor))
                     plainImage
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .symbolRenderingMode(.multicolor)
                         .padding(DesignTokens.sidebarIconTilePadding)
                 }
-                .frame(width: 24, height: 24)
+                .frame(
+                    width: DesignTokens.sidebarIconTileSize,
+                    height: DesignTokens.sidebarIconTileSize
+                )
             )
         }
 

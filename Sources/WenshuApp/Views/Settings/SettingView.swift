@@ -183,9 +183,6 @@ struct SettingView: View {
     /// 8 named colors.
     @AppStorage("AppleAccentColor") private var appleAccentColor: Int = -2
     @AppStorage("AppleHighlightColor") private var appleHighlightColor: Int = -2
-    /// System sidebar icon size (= Apple System Settings > Appearance >
-    /// Sidebar icon size). Default `medium` = SwiftUI List default.
-    @AppStorage("wenshu.sidebarIconSize") private var sidebarIconSize: String = "medium"
 
     // MARK: - App language (= macOS 27 per-app language override)
 
@@ -196,6 +193,7 @@ struct SettingView: View {
     /// on next launch (= macOS 27 standard behavior; = Pages /
     /// Numbers / Keynote all do the same).
     @AppStorage("wenshu.appLanguage") private var appLanguage: String = "system"
+
     /// True after the user picked a non-system language and we showed
     /// the "restart required" alert; = the alert dismissal lets the
     /// user keep editing Settings without re-firing.
@@ -414,12 +412,6 @@ struct SettingView: View {
                     Text(String(localized: "settings.appearance.color.magenta")).tag(6)
                 }
                 .pickerStyle(.menu)
-                Picker(String(localized: "settings.appearance.sidebarIconSize_label"), selection: $sidebarIconSize) {
-                    Text(String(localized: "settings.appearance.sidebarIconSize.small")).tag("small")
-                    Text(String(localized: "settings.appearance.sidebarIconSize.medium")).tag("medium")
-                    Text(String(localized: "settings.appearance.sidebarIconSize.large")).tag("large")
-                }
-                .pickerStyle(.segmented)
             } header: {
                 Text(String(localized: "settings.appearance.accent_section_header"))
             } footer: {

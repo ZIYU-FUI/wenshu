@@ -43,10 +43,9 @@ import Foundation
 /// Note: per-scene editor + appearance settings live in dedicated
 /// AppStorageKey enums (= `EditorPreferences.AppStorageKey` for the
 /// 8 `wenshu.editor.*` keys; = `@AppStorage` declarations in
-/// `SettingView.swift` for `wenshu.sidebarIconSize` /
-/// `wenshu.appLanguage` / `AppleAccentColor` / `AppleHighlightColor`).
-/// Those are intentionally NOT in this enum (= the namespace scope
-/// here is 'I observe and serialize state across scene re-mounts';
+/// `SettingView.swift` for `wenshu.appLanguage` / `AppleAccentColor` /
+/// AppleHighlightColor`). Those are intentionally NOT in this enum
+/// (= the namespace scope here is 'I observe and serialize state across scene re-mounts';
 /// = per-pane Settings UI state is owned by the SwiftUI `@AppStorage`
 /// declaration at the use site, per Apple's canonical AppStorage
 /// pattern). Renaming or migrating a key in this enum must update
