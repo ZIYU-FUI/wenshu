@@ -1748,6 +1748,37 @@ struct PreviewPane: View {
                 // which doesn't apply to LazyVGrid (= the grid's
                 // rows are not text).
                 .contentInsetStyle(.none, edges: .vertical)
+                // 2026-10-12 round-18 boss directive "还是有
+                // 一点间距" — the prior `.frame(maxHeight:
+                // .infinity) + .safeAreaInset(edge: .bottom,
+                // spacing: 0)` (= round-17 fix) anchored
+                // the chrome footer at the column's
+                // bottom BUT the safe area inset did NOT
+                // extend down to the bottom of the inner
+                // ScrollView's content (= SwiftUI's
+                // `safeAreaInset` only adds the chrome's
+                // outer height to the receiver's bottom
+                // safe area, but the inner ScrollView's
+                // own bottom safe area stays at 0 = the
+                // last card's natural position is at the
+                // ScrollView's natural bottom = the gap
+                // between the last card and the chrome's
+                // Divider = `chrome.padding-top 8 PT + 1 PT
+                // Divider` ≈ 9 PT visible column-bg gap).
+                // Mirror the chat's `contentMargins(.bottom,
+                // chatInputBarHeight, for: .scrollContent)`
+                // pattern (= explicit content bottom margin
+                // equal to the chrome footer's total height;
+                // = the last card is pushed up by the full
+                // chrome height = 0 PT visible gap between
+                // the last card and the chrome footer's
+                // Divider). 33 PT = `1 (Divider) + 8
+                // (padding-top) + 16 (text intrinsic) + 8
+                // (padding-bottom)` = the chrome footer's
+                // total height (= matches the chat's
+                // `chatInputBarHeight` which is also the
+                // chrome footer's total height).
+                .contentMargins(.bottom, 33, for: .scrollContent)
             }
         }
     }
@@ -1845,6 +1876,19 @@ struct PreviewPane: View {
                     .animation(.smooth(duration: 0.18), value: sorted.map(\.id))
                 }
                 .padding(.vertical, DesignTokens.spacingStandard)
+                // 2026-10-12 round-18 — see the
+                // `categoryGridContent` LazyVGrid for the
+                // doc on the `.contentMargins(.bottom,
+                // 33, for: .scrollContent)` chrome-footer
+                // gap-absorber (= 33 PT = the chrome
+                // footer's total height; = the last card
+                // is pushed up by the full chrome
+                // height; = 0 PT visible gap between the
+                // last card and the chrome footer's
+                // Divider; = 1:1 with the chat footer
+                // pattern; = matches the chat's
+                // `chatInputBarHeight` content margin).
+                .contentMargins(.bottom, 33, for: .scrollContent)
             }
         }
     }
@@ -2199,6 +2243,12 @@ struct PreviewPane: View {
                 // filter add/remove within bookDocsGrid).
                 .animation(.smooth(duration: 0.18), value: sorted.map(\.id))
                 .padding(.vertical, DesignTokens.spacingStandard)
+                // 2026-10-12 round-18 — see the
+                // `categoryGridContent` LazyVGrid for the
+                // doc on the `.contentMargins(.bottom,
+                // 33, for: .scrollContent)` chrome-footer
+                // gap-absorber.
+                .contentMargins(.bottom, 33, for: .scrollContent)
             }
         }
     }
