@@ -60,22 +60,25 @@ struct EditorPaperCanvas<Content: View>: View {
         // images). The Spacers then have room to push the
         // paper to the visual center of the column.
         //
-        // Round-5 fix moves to `EditorView.swift`: replace the
-        // body ZStack's `.frame(maxHeight: .infinity, alignment:
-        // .top)` (= round-1 fix) with a Spacer between the
-        // body ZStack and the status bar (= the canonical
-        // Apple HIG 3-chrome-band layout: toolbar + body +
-        // Spacer + status, = the Spacer pushes the status bar
-        // to the bottom of the zone while the body ZStack
-        // sizes to its content = the 842 PT A4 paper). This
-        // file's round-3 / round-4 changes (= `.frame(
-        // maxHeight: .infinity)` on the ScrollView + drop
-        // `.padding(.vertical, 20)` + flip scroll anchor to
-        // `.top`) are kept and are still correct: the
-        // ScrollView fills the parent ZStack; the paper 842 PT
-        // A4 sheet is the ScrollView's content; the ScrollView
-        // scrolls naturally if the parent ZStack is shorter
-        // than 842 PT (= window resize case).
+        // Round-3/4 paper-canvas changes (= `.frame(maxHeight:
+        // .infinity)` on the ScrollView + drop `.padding(
+        // .vertical, 20)` + flip scroll anchor to `.top`)
+        // were scrapped: the user did not accept any of them
+        // and reported "整体区域看起来占了编辑器区的一半" (= the
+        // ScrollView inflating to the zone height made the
+        // paper background visible as a large floating sheet
+        // with transparent gaps above and below). Revert to
+        // the original `EditorPaperCanvas` shape (= `.frame(
+        // minHeight: 842)` + `.padding(.vertical, 20)` +
+        // `.defaultScrollAnchor(.center)` + the ScrollView
+        // sizes to its intrinsic content = the 842 PT A4
+        // paper). The editor status bar's flush-with-the-
+        // bottom behavior is now driven by `Spacer(minLength:
+        // 0)` in `EditorView.swift` (= inserted between the
+        // body ZStack and the status bar in the outer
+        // VStack) — the body ZStack sizes to its content (=
+        // the 842 PT paper) and the Spacer pushes the status
+        // bar to the bottom of the zone.
         ScrollView([.horizontal, .vertical]) {
             content
                 .padding(Self.paperMargin)
@@ -95,10 +98,10 @@ struct EditorPaperCanvas<Content: View>: View {
                 .background(Color.white)
                 .environment(\.colorScheme, .light)
                 .shadow(color: .black.opacity(0.35), radius: DesignTokens.surfaceShadowRadiusButton, y: DesignTokens.surfaceShadowOffsetButton)
+                .padding(.vertical, DesignTokens.spacingSection)
                 .frame(maxWidth: .infinity, alignment: .center)
         }
-        .frame(maxHeight: .infinity)
-        .defaultScrollAnchor(.top)
+        .defaultScrollAnchor(.center)
         .scrollContentBackground(.hidden)
     }
 }

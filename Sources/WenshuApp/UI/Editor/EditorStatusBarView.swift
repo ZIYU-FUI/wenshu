@@ -47,50 +47,28 @@ struct EditorStatusBarView: View {
 
     var body: some View {
         // 2026-10-12 boss directive "你去看一下聊天区的底栏
-        // 的写法. 照抄就行了, 那是已经实现过的逻辑"
-        // — copy `ChatInputBarView.tokenCountFooter` 1:1 (= the
-        // chat token-count footer has been visually verified to
-        // land flush against the bottom of the chat column with
-        // no visible gap). The chat footer is:
-        //
-        //   VStack(spacing: 0) {
-        //     Divider()
-        //     HStack(spacing: <tight>) {
-        //       Text(...).font(.callout).foregroundStyle(...)
-        //     }
-        //     .frame(maxWidth: .infinity, alignment: .leading)
-        //     .padding(.vertical, DesignTokens.spacingStandard = 8)
-        //     .padding(.horizontal, DesignTokens.spacingStandard = 8)
-        //   }
-        //   .background(.bar)
-        //
-        // The editor status bar has THREE chunks (word count /
-        // cursor location / autosave state) — copy the chat
-        // footer's outer VStack shell 1:1 (= Divider + HStack
-        // + `.frame(maxWidth: .infinity, alignment: .leading)`
-        // + `.padding(.vertical, 8)` + `.padding(.horizontal,
-        // 8)` + `.background(.bar)`). Inside the HStack, the
-        // three editor-specific chunks use the same SFIcon +
-        // Text + .callout + .secondary pattern the chat
-        // footer's single Text uses. NO `Spacer(minLength:
-        // DesignTokens.spacingStandard)` between the
-        // middle/right chunks (= the prior Spacer between the
-        // cursor chunk and the autosave chunk was the
-        // root-cause of the round-1 status bar feeling
-        // "floating": the Spacer introduced a flex
-        // `HStack` height equal to its own .spacingStandard
-        // hint, and combined with the icon height and the
-        // padding the bar's natural height ballooned to
-        // ~60-80 PT instead of the chat footer's 38 PT).
-        // Drop the Spacer — the chat footer's `.frame(
-        // maxWidth: .infinity, alignment: .leading)` already
-        // anchors the chunks to the leading edge (= the
-        // natural Inspector status row format; = the
-        // rightmost chunk sits right after the middle chunk
-        // with the same HStack spacing as the leftmost and
-        // middle).
-        VStack(spacing: 0) {
-            Divider()
+        // 的写法. 照抄就行了, 那是已经实现过的逻辑. 或者你
+        // 把聊天区的低栏抽象个组件. 让编辑器区直接应用也
+        // 可以" — both call sites (= editor status bar AND
+        // chat token-count footer) now go through the
+        // canonical Apple HIG sidebar-bottom-accessory chrome
+        // shell `ChromeBottomFooter` (= the shared
+        // `Sources/WenshuApp/UI/Chrome/ChromeBottomFooter.swift`
+        // component = VStack { Divider + content + .frame(
+        // maxWidth: .infinity, alignment: .leading) + .padding(
+        // .vertical, 8) + .padding(.horizontal, 8) } +
+        // .background(.bar)). The editor status bar is the
+        // 3-chunk Inspector status row shape (= word count /
+        // cursor location / autosave state) = canonical
+        // Pages / Numbers / Xcode inspector single-line
+        // status row. NO `Spacer(minLength: ...)` between
+        // chunks (= the Spacer inflated the HStack's natural
+        // height because SwiftUI reserves the Spacer's
+        // minLength as the HStack's flex baseline; = the
+        // bar was 60-80 PT tall instead of the canonical
+        // 38 PT). All three chunks are 1:1 with the chat
+        // footer's `HStack { SFIcon + Text }` shape.
+        ChromeBottomFooter(help: "editor.statusBar.help") {
             HStack(spacing: DesignTokens.spacingCaption) {
                 // Word count (= leftmost chunk = canonical
                 // Pages / Numbers inspector "0 words" pattern).
@@ -124,12 +102,7 @@ struct EditorStatusBarView: View {
                         .foregroundStyle(autosaveColorShapeStyle)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.vertical, DesignTokens.spacingStandard)
-            .padding(.horizontal, DesignTokens.spacingStandard)
         }
-        .background(.bar)
-        .help(String(localized: "editor.statusBar.help"))
     }
 
     // MARK: - Live label computation (= the bar re-evaluates these

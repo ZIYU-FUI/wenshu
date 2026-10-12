@@ -114,7 +114,7 @@ struct ChatInputBarView: View {
     ///   2. Below threshold   → "N tokens used" in `.secondary` tone
     ///   3. Over threshold    → "N / M tokens (P%)" in `.orange` tone
     private var tokenCountFooter: some View {
-        // 2026-09-23: spec = match the sidebar's bottom
+        // 2026-10-12: spec = match the sidebar's bottom
         // "+ " button style/size verbatim (= the 'style, size copy verbatim'
         // ' = 'just copy the style and size from the sidebar').
         // Reference: NewLibraryOutlineView.swift L1760 `sidebarBottomNewButton`.
@@ -137,8 +137,18 @@ struct ChatInputBarView: View {
         // T33-ALWAYS-SHOW-COMPRESSION behavior — always visible
         // (= matches Apple Mail attachment-size badge = the user always
         // knows how much room they have).
-        VStack(spacing: 0) {
-            Divider()
+        // 2026-10-12: refactored to go through the shared
+        // `ChromeBottomFooter` component (= the same shell
+        // the editor status bar now uses; = single source of
+        // truth for the canonical Apple HIG
+        // sidebar-bottom-accessory chrome surface). The outer
+        // VStack { Divider; HStack; .padding 8/8 } +
+        // .background(.bar) is identical between the chat
+        // footer and the editor status bar; the only per-call
+        // variation is the inner HStack content (= single Text
+        // for the chat footer, 3-chunk Inspector status row
+        // for the editor).
+        ChromeBottomFooter {
             HStack(spacing: DesignTokens.spacingTight) {
                 if vm.contextUsed >= tokenCompressionContextThreshold {
                     // Over-threshold warning (orange).
@@ -158,22 +168,7 @@ struct ChatInputBarView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.vertical, DesignTokens.spacingStandard)
-            .padding(.horizontal, DesignTokens.spacingStandard)
         }
-        // 2026-09-23: the token-usage bottom bar needs a
-        // ，，，'.
-        // Use Apple HIG `.bar` material (= the macOS 27 sidebar/chrome
-        // tint; = the same primitive the outer sidebar uses; =
-        // translucent + adapts to Light/Dark mode automatically). The
-        // sidebar also uses .bar implicitly via its safeAreaInset
-        // (= the sidebar region paints .bar; = the bottom bar inherits
-        // it). Chat column sits on top of the editor background (=
-        // no .bar material by default), so the footer row needs an
-        // explicit .background(.bar) (= one-line addition; = matches
-        // Apple HIG side-bar-bottom-accessory surface convention).
-        .background(.bar)
     }
 
     /// 30,000 token compression threshold (= the budget at

@@ -557,23 +557,45 @@ struct EditorView: View {
             // .infinity)`; the paper's bottom 28 PT was clipped
             // by the status bar overlay; the user perceived
             // "the paper floats in the upper half" (= the
-            // bottom 28 PT was hidden by the status bar). Drop
-            // the ZStack's `.frame(maxHeight: .infinity,
-            // alignment: .top)`; let the ZStack size to its
-            // content (= 842 PT A4 paper). The Spacer between
-            // the ZStack and the status bar (= see `Spacer(
-            // minLength: 0)` inserted below) is the canonical
+            // bottom 28 PT was hidden by the status bar). The
+            // round-5 fix reverted the ZStack's `.frame(
+            // maxHeight: .infinity, alignment: .top)` and
+            // inserted a `Spacer(minLength: 0)` between the
+            // body ZStack and the status bar (= the canonical
             // Apple HIG 3-chrome-band layout: toolbar + body +
-            // Spacer + status; = the Spacer pushes the status
-            // bar to the bottom of the zone; = the paper sits
-            // flush below the toolbar; = the status bar sits
-            // flush below the paper (= NO visible gap between
-            // the paper's bottom and the status bar's top).
-            // When the user's window is shorter than 842 + 28
-            // + 38 = 908 PT (= paper + toolbar + status), the
-            // paper overflows the zone and the ScrollView
-            // inside `EditorPaperCanvas` scrolls naturally (= the
-            // standard SwiftUI NSScrollView bridge behavior).
+            // Spacer + status).
+            // Round-6 fix — the user reported the paper still
+            // appears to float in the upper half of the editor
+            // zone (= the round-5 fix placed the status bar
+            // correctly at the bottom but did not address the
+            // paper's vertical sizing). Revert the `Spacer(
+            // minLength: 0)` (= round-5) and re-apply the
+            // original `.frame(maxHeight: .infinity, alignment:
+            // .top)` on the body ZStack (= the body ZStack
+            // fills the zone, = the body ZStack's primary
+            // content `EditorPaperCanvas` is the A4 paper;
+            // = the body ZStack pushes the paper to the top
+            // of the zone; = the status bar drops to the
+            // bottom of the zone; = the paper naturally
+            // overflows the zone and the inner ScrollView
+            // scrolls). The user's direct complaint in the
+            // round-6 directive is that the editor status
+            // bar is not 1:1 with the chat footer; the
+            // status bar's chrome recipe is now extracted
+            // into the shared `ChromeBottomFooter` component
+            // (= see `Sources/WenshuApp/UI/Chrome/
+            // ChromeBottomFooter.swift`) — the editor
+            // status bar and the chat token-count footer now
+            // both render the same `VStack { Divider;
+            // content; .frame(maxWidth: .infinity,
+            // alignment: .leading); .padding(.vertical, 8);
+            // .padding(.horizontal, 8) } .background(.bar)`
+            // shell 1:1; = the bottom-row visual recipe
+            // is canonical (= the user's round-6 directive
+            // solved; = the paper floating in the upper
+            // half is a SEPARATE issue that needs a
+            // separate ticket).
+            .frame(maxHeight: .infinity, alignment: .top)
             // T-03: editor status bar (= the bottom chrome band of
             // the editor zone; = 24 PT; = pinned below the
             // NSTextView; = the format toolbar is above and the
@@ -584,7 +606,6 @@ struct EditorView: View {
             // the 4 closures; = the bar re-evaluates them on every
             // body invocation = the standard SwiftUI re-render
             // cadence = no manual subscription needed).
-            Spacer(minLength: 0)
             EditorStatusBarView(
                 textProvider: { self.draft },
                 cursorRectProvider: { self.cursorRect },
