@@ -9028,23 +9028,6 @@
         }
       }
     },
-    "settings.search.placeholder": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Search"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "搜索"
-          }
-        }
-      }
-    },
     "settings.tab.agentBehavior": {
       "extractionState": "manual",
       "localizations": {
@@ -11761,6 +11744,23 @@
           "stringUnit": {
             "state": "translated",
             "value": "请退出并重新打开 wenshu 以应用新语言。"
+          }
+        }
+      }
+    },
+    "settings.search.global.placeholder": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Global search"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "全局搜索"
           }
         }
       }

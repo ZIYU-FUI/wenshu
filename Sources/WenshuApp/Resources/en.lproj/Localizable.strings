@@ -1058,8 +1058,6 @@ Or just chat normally.</string>
 	<string>Save failed:</string>
 	<key>settings.provider.tbd_label</key>
 	<string>To be configured</string>
-	<key>settings.search.placeholder</key>
-	<string>Search</string>
 	<key>settings.tab.agentBehavior</key>
 	<string>Agent behavior</string>
 	<key>settings.tab.general</key>

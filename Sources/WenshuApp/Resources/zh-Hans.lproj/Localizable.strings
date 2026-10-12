@@ -1058,8 +1058,6 @@
 	<string>保存失败:</string>
 	<key>settings.provider.tbd_label</key>
 	<string>待配置</string>
-	<key>settings.search.placeholder</key>
-	<string>搜索</string>
 	<key>settings.tab.agentBehavior</key>
 	<string>智能体</string>
 	<key>settings.tab.general</key>

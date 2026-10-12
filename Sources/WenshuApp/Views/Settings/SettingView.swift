@@ -135,9 +135,12 @@ struct SettingView: View {
     @State private var isLoadingModels = false
     @State private var providersWithKeys: Set<String> = []
     @State private var apiExpandedProviders: Set<String> = []
-    @State private var providerSearchText: String = ""
     @State private var apiDraftKey: String = ""
     @State private var apiError: String?
+    /// Global Settings search query (= lives in the sidebar-top TextField,
+    /// drives BOTH the sidebar pane row filter AND the per-pane filtering;
+    /// replaces the previous provider-only `.searchable(placement: .toolbar)`).
+    @State private var globalSearchQuery: String = ""
 
     // MARK: - Editor pane 8 @AppStorage (= EditorPreferences 8 fields)
 
@@ -204,35 +207,63 @@ struct SettingView: View {
         Provider.by(slug: providerSlug) ?? .minimaxCn
     }
 
+    /// Sidebar pane rows filtered by the global search query (= empty
+    /// string = show every pane). The query uses the localized pane title
+    /// (= the same labels SwiftUI displays in each row) so a user typing
+    /// any visible word hides the panes that don't match. The pane labels
+    /// are short noun phrases (= 外观 / 编辑器 / 提供方 / 模型 / 记忆) so
+    /// the substring match is forgiving on zh-Hans input.
+    private var visiblePanes: [SettingsPane] {
+        let query = globalSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return SettingsPane.allCases }
+        return SettingsPane.allCases.filter { pane in
+            localizedPaneTitle(pane).localizedCaseInsensitiveContains(query)
+        }
+    }
+
     var body: some View {
         // `columnVisibility: .constant(.all)` pins the sidebar so the user
         // cannot drag the column divider closed (= macOS 27 NavigationSplitView
         // would otherwise let the user collapse the sidebar and find no way
         // back once `.toolbar(removing: .sidebarToggle)` removes the toggle).
         NavigationSplitView(columnVisibility: .constant(.all)) {
-            List(SettingsPane.allCases, selection: Binding(
-                get: { selectedTab },
-                set: { newValue in
-                    if let newValue { selectedTab = newValue }
+            // Sidebar column = global search field on top + filtered pane
+            // list below. Apple HIG has no canonical "sidebar-top inline
+            // TextField" API (`.searchable(placement: .sidebar)` resolves to
+            // the toolbar on macOS 27), so a plain `.textFieldStyle(.roundedBorder)`
+            // TextField above the List is the clean visual match for the
+            // sidebar-leading search row.
+            VStack(spacing: DesignTokens.spacingTight) {
+                TextField(String(localized: "settings.search.global.placeholder"),
+                          text: $globalSearchQuery)
+                    .textFieldStyle(.roundedBorder)
+                    .padding(.horizontal, DesignTokens.spacingTight)
+                    .padding(.top, DesignTokens.spacingTight)
+                List(visiblePanes, selection: Binding(
+                    get: { selectedTab },
+                    set: { newValue in
+                        if let newValue { selectedTab = newValue }
+                    }
+                )) { pane in
+                    Label {
+                        Text(localizedPaneTitle(pane))
+                    } icon: {
+                        SFIcon(pane.icon, style: .sidebar, color: IconColor.secondary)
+                    }
+                    .tag(pane)
                 }
-            )) { pane in
-                Label {
-                    Text(localizedPaneTitle(pane))
-                } icon: {
-                    SFIcon(pane.icon, style: .sidebar, color: IconColor.secondary)
-                }
-                .tag(pane)
+                .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)
+                .listStyle(.sidebar)
+                // `toolbar(removing: .sidebarToggle)` strips the system-rendered
+                // `sidebar.leading` collapse button (= Apple canonical hide-sidebar
+                // toggle = SO 75296044 + Apple dev doc `View/toolbar(removing:)`).
+                .toolbar(removing: .sidebarToggle)
             }
-            .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)
-            .listStyle(.sidebar)
-            // `toolbar(removing: .sidebarToggle)` strips the system-rendered
-            // `sidebar.leading` collapse button (= Apple canonical hide-sidebar
-            // toggle = SO 75296044 + Apple dev doc `View/toolbar(removing:)`).
-            .toolbar(removing: .sidebarToggle)
         } detail: {
             paneBody(for: selectedTab)
                 .frame(minWidth: 520)
                 .animation(.default, value: selectedTab)
+                .animation(.default, value: globalSearchQuery)
         }
         // macOS 27 SwiftUI Settings scene bug: `.windowResizability(.contentMinSize)`
         // alone does NOT add `.resizable` to the underlying NSWindow's styleMask
@@ -539,7 +570,7 @@ struct SettingView: View {
                     }
                 }
                 .animation(.default, value: apiExpandedProviders)
-                .animation(.default, value: providerSearchText)
+                .animation(.default, value: globalSearchQuery)
             } header: {
                 Text(String(localized: "settings.providers.section_header"))
             } footer: {
@@ -552,13 +583,13 @@ struct SettingView: View {
         }
         .formStyle(.grouped)
         .onAppear { refreshProviderStatus() }
-        .searchable(text: $providerSearchText,
-                    placement: .toolbar,
-                    prompt: String(localized: "settings.search.placeholder"))
     }
 
     private var filteredProviders: [Provider] {
-        let trimmed = providerSearchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        // The previous per-pane `.searchable` toolbar field is gone; the
+        // sidebar-top global search query drives this filter when non-empty,
+        // so the providers row list narrows as the user types.
+        let trimmed = globalSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return Provider.all }
         return Provider.all.filter { p in
             p.name.localizedCaseInsensitiveContains(trimmed) ||
