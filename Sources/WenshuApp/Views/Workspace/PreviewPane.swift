@@ -1198,7 +1198,7 @@ struct PreviewPane: View {
             // right breathing room (= single source of truth for
             // the PreviewPane gutter = chromePaddingContentHorizontal).
             //
-            // 
+            //
             // (= the user wants 10 PT inner padding on the cards
             // column; = the v1.84b column-level padding was the
             // Column-level padding (= not affected by header inset, per Apple HIG):
@@ -1207,8 +1207,23 @@ struct PreviewPane: View {
             // own chromePaddingContentHorizontal (= 10 PT) horizontal
             // padding here = the same visual result as v1.84b but
             // without affecting the SectionHeader.
+            //
+            // 2026-10-12 round-16 boss directive "这个素材栏是
+            // 不是写了内边距, 你看一下, 如果是写了, 把
+            // 下边的内边距取消掉" — drop the column-level
+            // `.padding(.bottom, DesignTokens.spacingStandard)`
+            // (= 8 PT bottom padding before the column's
+            // last content; = creates an 8 PT visible gap
+            // between the last card and the floating
+            // `ChromeBottomFooter` from commit `1d3d8a404`; =
+            // the user reports "还差点, 素材栏底栏上面
+            // 还有空白"). The horizontal padding
+            // (`.padding(.horizontal, DesignTokens.spacingModerate
+            // = 12 PT`) is preserved (= the cards' gutter
+            // rhythm with the sidebar / editor column gutters
+            // is unchanged; = the user only flagged the
+            // bottom padding).
             .padding(.horizontal, DesignTokens.spacingModerate)
-            .padding(.bottom, DesignTokens.spacingStandard)
                 }
             .onReceive(NotificationCenter.default.publisher(for: .wenshuLibraryDidChange)) { _ in
                 libraryChangeTick &+= 1
