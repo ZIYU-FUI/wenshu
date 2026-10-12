@@ -563,7 +563,31 @@ struct AssetsPane: View {
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 ChromeBottomFooter {
                     HStack(spacing: DesignTokens.spacingTight) {
-                        SFIcon("rectangle.stack", style: .inlineSmall, color: IconColor.secondary)
+                        // 2026-10-12 round-15 boss directive "先这
+                        // 个底栏的高度, 现在高一点的原因, 是
+                        // 因为你用的这个 ICON 比左栏的新建的+
+                        // 号, 高出来几个 PT, 你把 ICON 的高
+                        // 度和那个+号拉成一样高就行了" —
+                        // the prior `rectangle.stack` SF
+                        // Symbol renders visually several
+                        // PT taller than the sidebar's `plus`
+                        // glyph (= the stacked-rectangle
+                        // glyph's bounding box reaches the
+                        // full cap height while `plus` is
+                        // a thin cross centered in the cap;
+                        // = the chrome row's natural height
+                        // becomes 4 PT taller than the
+                        // sidebar's). Swap to `tray.full`
+                        // (= a flat tray with content, =
+                        // semantically the same "library
+                        // tray with N items" idea, = the
+                        // glyph's visual height is
+                        // intrinsically shorter than
+                        // `rectangle.stack` and aligns with
+                        // the `+` glyph's cap height; = the
+                        // 4 column-bottom chrome rows now
+                        // share the same icon cap height).
+                        SFIcon("tray.full", style: .inlineSmall, color: IconColor.secondary)
                         Text(String.localizedStringWithFormat(
                             NSLocalizedString("assets.count.label", comment: ""),
                             PreviewPaneOps.countCardsInScope(
