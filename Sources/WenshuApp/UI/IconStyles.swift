@@ -125,7 +125,14 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
     /// point size). Chat-input bar action icons live here.
     ///
     /// Apple HIG source: `ControlSize.small` / SwiftUI `.controlSize(.small)`
-    /// / macOS standard toolbar button icon.
+    /// / macOS standard toolbar button icon = 18 PT.
+    /// (= Updated 2026-10-12 from the prior 22 PT; = the prior
+    /// value was the NSToolbar item macOS 14+ default but
+    /// over-shot the SwiftUI `.controlSize(.small)` toolbar
+    /// button — the user's "脑 icon 过于大了" feedback pinned
+    /// the visual mismatch against the sibling `Label`-form
+    /// export button = 18 PT; = 18 is the canonical macOS
+    /// `.controlSize(.small)` toolbar glyph.)
     ///
     /// Used by: chat input bar buttons (= ChatInputBarView GlassIconButton),
     /// format toolbar (kicker / superscript / etc.). Weight: .regular.
@@ -252,7 +259,7 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
         case .inlineSmall: 14
         case .small: 16
         case .paneTab: 18
-        case .toolbar: 22
+        case .toolbar: 18
         case .nav: 24
         case .hitArea: 28
         case .emptyStateHero: 76

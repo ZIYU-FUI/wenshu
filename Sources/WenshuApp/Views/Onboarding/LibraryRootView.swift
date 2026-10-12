@@ -208,12 +208,27 @@ struct LibraryRootView: View {
             // moves from a settings-pane toggle to a main-toolbar
             // entry; = matches the macOS 27 Tahoe canonical pattern
             // for utility-panel entry points).
+            //
+            // 2026-10-12 follow-up: the brain icon was rendering at
+            // 22 PT (= the prior `IconStyle.toolbar` point size,
+            // which targeted the macOS toolbar 22 PT slot) and read
+            // as visibly larger than the sibling export button
+            // (= which uses SwiftUI's `Label` form, = macOS
+            // `.controlSize(.small)` = 18 PT). The user's "尺寸不对,
+            // 过于大了, 你要看一下工具栏中的其它 ICON 是怎么设置的"
+            // = match the canonical `.controlSize(.small)` toolbar
+            // size (= 18 PT). = dropped to `SFIcon(style: .small)`
+            // (= 18 PT, the same tier `case .small` /
+            // `.controlSize(.small)` doc-ascribed; = 1:1 with the
+            // native `Label` form). The brain icon now sits in the
+            // same optical slot as the export / share / activity
+            // buttons in every Apple first-party toolbar.
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button {
                         openWindow(id: WindowID.memoryHistory)
                     } label: {
-                        SFIcon("brain", style: .toolbar, color: .accent)
+                        SFIcon("brain", style: .small, color: .accent)
                     }
                     .help(String(localized: "window.memoryHistory.title"))
                 }
