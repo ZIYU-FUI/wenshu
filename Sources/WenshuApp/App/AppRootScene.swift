@@ -409,6 +409,13 @@ struct AppRootScene: Scene {
         // modifier (= only the WindowGroup's content view had one).
         .environment(appState)
         .environment(repositories)
+        // Apple-default `Settings { }` uses `.windowResizability(.contentSize)`
+        // (= window = content size = not resizable). Apply `.contentMinSize`
+        // so the user can drag the window edges (= the NSV's
+        // `.navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)`
+        // + detail's `.frame(minWidth: 520)` set the floor; upper bound
+        // = SwiftUI default = `.infinity`).
+        .windowResizability(.contentMinSize)
         // add 2 dedicated `Window` scenes (= the SwiftUI macOS
         // 13+ API for SINGLE-INSTANCE independent windows; = the
         // canonical Apple pattern for an 'always one' panel

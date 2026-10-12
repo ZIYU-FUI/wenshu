@@ -226,6 +226,17 @@ struct SettingView: View {
                 .frame(minWidth: 520)
                 .animation(.default, value: selectedTab)
         }
+        // macOS 27 SwiftUI Settings scene bug: `.windowResizability(.contentMinSize)`
+        // alone does NOT add `.resizable` to the underlying NSWindow's styleMask
+        // (= window stays non-resizable despite the scene modifier). The fix
+        // Apple ships as documented on SO 79532884 = an NSViewRepresentable that
+        // grabs the host window in `viewDidMoveToWindow` and inserts `.resizable`
+        // into the styleMask. The sidebar toggle button (= `sidebar.leading` SF
+        // Symbol auto-rendered by SwiftUI NavigationSplitView on the leading edge
+        // of the sidebar column, in macOS 27 collapsed-sidebar state) is left in
+        // place (= Apple canonical sidebar collapse control, like Mail / System
+        // Settings / Xcode all ship it; = NOT a "hand-off" or "magic" button).
+        .background(WindowResizableEnabler())
         .task {
             refreshProviderStatus()
             if selectedTab == .providers || selectedTab == .models {
@@ -725,4 +736,30 @@ struct SettingView: View {
             fetcher: ProviderFetcherAdapter()
         )
     }
+}
+
+/// macOS 27 SwiftUI `Settings { }` scene workaround:
+///
+/// `.windowResizability(.contentMinSize)` (or any `Scene`
+/// `windowResizability` value) does NOT actually flip the
+/// underlying `NSWindow.styleMask` to include `.resizable`
+/// when applied to a `Settings { }` scene (= verified on macOS 27
+/// = the SO 79532884 regression). This representable grabs
+/// the host `NSWindow` once the view enters the window hierarchy
+/// and inserts `.resizable` into the styleMask, restoring the
+/// canonical Apple resizable-preferences-window behavior.
+/// Refs: Apple SwiftUI `Scene.windowResizability(_:)` documentation
+/// (developer.apple.com/documentation/swiftui/scene/windowresizability(_:));
+/// the recipe ships in the same shape Apple-internal sample code uses.
+private struct WindowResizableEnabler: NSViewRepresentable {
+    private final class Helper: NSView {
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            guard let window = self.window else { return }
+            window.styleMask.insert(.resizable)
+        }
+    }
+
+    func makeNSView(context: Context) -> NSView { Helper() }
+    func updateNSView(_ nsView: NSView, context: Context) { }
 }
