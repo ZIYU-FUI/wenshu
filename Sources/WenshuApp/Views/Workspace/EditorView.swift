@@ -290,6 +290,26 @@ struct EditorView: View {
             // Body: placeholder content.  swaps this for
             // swift-markdown rendered Text when mode = .preview
             // swaps for Apple TextEditor when mode = .edit.
+            // 2026-10-12 boss directive "昨天加入的编辑器底栏, 没
+            // 有真正居底" — the prior commit `39c3bd4d4` (=
+            // same fix-shape, search-field transparent) shipped the
+            // `EditorStatusBarView` (= T-03 chrome band) into the
+            // outer VStack WITHOUT a Spacer / maxHeight marker on
+            // the body. The body ZStack sizes to its intrinsic
+            // content (= the NSTextView with empty draft = small
+            // intrinsic height); the status bar then stacks flush
+            // below the body, not at the bottom of the editor
+            // zone. Result = a visible gap between the canvas and
+            // the status bar. Apple HIG editor chrome recipe
+            // (= Pages / Numbers / Xcode source editor) pins the
+            // body to the top of the available height with
+            // `.frame(maxHeight: .infinity, alignment: .top)` —
+            // the format toolbar stays at the top, the body fills
+            // the available space (= the canvas paper stays
+            // flush with the toolbar, the rest is below), and the
+            // status bar is pushed to the bottom of the zone.
+            // = no manual Spacer, no .offset, no per-bar
+            // .padding-bottom hack.
             ZStack {
                 // preview mode uses swift-markdown
                 // (= AGENTS.md §11.1 pinned 0.4.0) AttributedString render
@@ -528,6 +548,20 @@ struct EditorView: View {
                         }
                     }                }
             }
+            // Pin the body ZStack to the top of the available
+            // height so the `EditorStatusBarView` (= pinned
+            // below) is pushed to the bottom of the editor zone.
+            // Without this marker the body sizes to its intrinsic
+            // content (= empty NSTextView = small) and the
+            // status bar floats below it, leaving a visible gap.
+            // Apple HIG editor chrome recipe (= Pages / Numbers /
+            // Xcode source editor) uses the same `.frame(
+            // maxHeight: .infinity, alignment: .top)` shape on
+            // the body — the format toolbar stays at the top, the
+            // body fills the available space, the status bar
+            // drops to the bottom. = no manual Spacer, no .offset,
+            // no per-bar .padding-bottom hack.
+            .frame(maxHeight: .infinity, alignment: .top)
             // T-03: editor status bar (= the bottom chrome band of
             // the editor zone; = 24 PT; = pinned below the
             // NSTextView; = the format toolbar is above and the
