@@ -437,9 +437,29 @@ struct AssetsPane: View {
                     .padding(.horizontal, DesignTokens.spacingModerate)
                     .padding(.vertical, DesignTokens.spacingStandard)
                     .frame(maxWidth: .infinity)
+                    // 2026-10-12 boss directive "素材栏里写的搜索
+                    // 框, 背景色改为透明" — the prior
+                    // `RoundedRectangle.fill(Color(nsColor:
+                    // .textBackgroundColor).opacity(0.5))` (= a
+                    // 50% textBackgroundColor fill on a
+                    // RoundedRectangle with the progress-card
+                    // corner radius) made the search bar look
+                    // like a toolbar widget (= a hard visual
+                    // break between the search field and the
+                    // cards below). Apple HIG `Search`
+                    // (= macOS 27 Mail / Notes / Finder
+                    // column-header search fields) ships the
+                    // placeholder + magnifier icon WITHOUT a
+                    // fill = the field is invisible until the
+                    // user types; = the search affordance reads
+                    // as part of the column, not as a tool.
+                    // Drop the fill entirely (= `Color.clear` =
+                    // no background draw; = the RoundedRectangle
+                    // shape is preserved so the hit area is
+                    // unchanged but the surface is transparent).
                     .background(
                         RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusProgressCard, style: .continuous)
-                            .fill(Color(nsColor: .textBackgroundColor).opacity(0.5))
+                            .fill(Color.clear)
                     )
                     // The search field,
                     // spacing between it and the first card — is there a hand-written padding, and if
