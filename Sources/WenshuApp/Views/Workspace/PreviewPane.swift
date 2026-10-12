@@ -317,8 +317,25 @@ struct BookDoc: Identifiable, Hashable {
     let modifiedAt: Date
     /// File creation date (= used for sort: createdAt).
     let createdAt: Date
-    /// Full .md body content (= used for card summary preview +
-    /// future editor binding).
+    /// First H1 markdown heading stripped of the leading `# ` (= the
+    /// chapter's first-line heading). Per the user's 2026-10-12
+    /// directive "书的卡片, 和资料库的卡片样式不同, 标签还在用
+    /// #加文字显示, 向资料库卡片对齐. 统一样式" = the book's
+    /// first H1 is now surfaced as a `Reference.tags`-style chip pill
+    /// in the card (= not as a literal `# xxx` grey subtitle), so
+    /// the book card visually matches the reference card. The
+    /// literal `# ` prefix is stripped (= Apple HIG card style
+    /// never shows raw markdown syntax) and the rest of the
+    /// heading text becomes a single tag.
+    ///
+    /// `nil` if the file has no H1 line (= the card silently omits
+    /// the chip row, same as a reference with `tags = []`).
+    let tags: [String]
+    /// Full .md body content with the first H1 line stripped (= used
+    /// for card summary preview + future editor binding). Stripping
+    /// the first H1 (= the user's directive) removes the literal
+    /// `# xxx` line that previously bled into the summary and made
+    /// the book card look different from the reference card.
     let body: String
 
     /// Display title (= filename without extension).
@@ -326,7 +343,11 @@ struct BookDoc: Identifiable, Hashable {
         (fileName as NSString).deletingPathExtension
     }
 
-    /// Truncated body for card preview (= first 200 chars).
+    /// Truncated body for card preview (= first 200 chars of the
+    /// post-H1 body). The summary deliberately does NOT include
+    /// the H1 line (= the chip row above already shows the heading
+    /// text; = putting the H1 in both the chip row and the summary
+    /// body was the prior visual misalignment).
     var summary: String {
         String(body.prefix(200))
     }
@@ -2317,9 +2338,14 @@ internal enum CardSource {
     /// = reference cards show
     /// `Reference.tags` (= ≤ 3 entries
     /// after the round-20 cap); = bookDoc
-    /// cards have no tag concept yet (= the
-    /// book folder structure is its own
-    /// navigation; = return [] for that case).
+    /// cards show `BookDoc.tags` (= the
+    /// 2026-10-12 follow-up = parse the
+    /// file's first H1 markdown heading and
+    /// surface it as the book's single tag,
+    /// = the book card now visually matches
+    /// the reference card = no more literal
+    /// `# xxx` grey subtitle, = chip pill
+    /// style, = same row).
     var tags: [String] {
         switch self {
         case .reference(let r):
@@ -2330,8 +2356,13 @@ internal enum CardSource {
             // when SwiftUI re-evaluates the
             // body).
             return r.tags.sorted()
-        case .bookDoc:
-            return []
+        case .bookDoc(let d):
+            // BookDoc.tags is the parsed first H1
+            // (= single element array; = sorted
+            // is a no-op for one element but
+            // keeps the rendering code shape
+            // identical to the .reference case).
+            return d.tags.sorted()
         }
     }
 }

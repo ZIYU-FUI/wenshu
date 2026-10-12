@@ -144,7 +144,20 @@ enum PreviewPaneOps {
                 options: [.skipsHiddenFiles]
             ) else { continue }
             for url in entries where url.pathExtension == "md" {
-                let body = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+                let rawBody = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+                // 2026-10-12 boss directive "书的卡片, 和资料库的卡片样式
+                // 不同, 标签还在用 #加文字显示, 向资料库卡片对齐.
+                // 统一样式" = the book's first H1 is the canonical
+                // single-tag source for the chip row. Strip the
+                // leading "# " (= raw markdown syntax never appears
+                // on a card surface) and lift the rest of the H1
+                // text into the `tags` array. Strip the H1 line
+                // from the body so the summary body no longer
+                // starts with "# 大纲\n" (= the same literal text
+                // would otherwise reappear in the summary row).
+                let (firstH1, bodyWithoutH1) = PreviewPaneOps.splitFirstH1(rawBody)
+                let body = bodyWithoutH1
+                let tags: [String] = firstH1.map { [$0] } ?? []
                 let attrs = try? url.resourceValues(forKeys: [
                     URLResourceKey.contentModificationDateKey,
                     URLResourceKey.creationDateKey
@@ -162,6 +175,7 @@ enum PreviewPaneOps {
                     fileName: url.lastPathComponent,
                     modifiedAt: modifiedAt,
                     createdAt: createdAt,
+                    tags: tags,
                     body: body
                 ))
             }
@@ -292,6 +306,80 @@ enum PreviewPaneOps {
     /// via BookDocIDFactory (= SHA256 hash of canonical path).
     nonisolated static func stableBookDocId(bookId: UUID, folderName: String, fileName: String) -> UUID {
         return BookDocIDFactory.make(bookId: bookId, folderName: folderName, fileName: fileName)
+    }
+
+    /// Split a `.md` body into (firstH1, bodyWithoutH1) for the
+    /// book's card chip row. The H1 line (= the markdown `# xxx`
+    /// line at the very top of the file) is stripped from the body
+    /// and surfaced as the first tag (= the 2026-10-12 boss
+    /// directive "书的卡片, 和资料库的卡片样式不同, 标签还在用
+    /// #加文字显示, 向资料库卡片对齐. 统一样式"). Rules:
+    /// - the first non-blank line of the body must start with `# `;
+    ///   only the leading single `#` (= ATX-style H1) is treated
+    ///   as a chip. `## xxx` / `### xxx` etc. (= H2 / H3 / etc.)
+    ///   are body content (= the chip row only ever shows the
+    ///   file's first H1).
+    /// - the matched line is stripped from the returned body
+    ///   (= the summary row no longer re-renders the literal
+    ///   `# xxx` line that was the prior visual mismatch).
+    /// - if no H1 line is present, returns `(nil, body)` (= the
+    ///   card silently omits the chip row, same as a reference
+    ///   with `tags = []`).
+    /// - the H1 text is trimmed of surrounding whitespace but
+    ///   otherwise returned verbatim (= no slugification, no
+    ///   case folding; = the chip displays the raw chapter
+    ///   heading text).
+    nonisolated static func splitFirstH1(_ body: String) -> (String?, String) {
+        // Split into lines preserving order. Swift's `String` does
+        // not expose `components(separatedBy:omittingEmptySubsequences:)`
+        // (= that's an NSString API on a different surface) — use
+        // a one-shot `Character`-set split that lets us set
+        // `omittingEmptySubsequences: false` (= we need the
+        // blank-line trim to land on a real element of the
+        // array, not a missing one) and `maxSplits: .max` to
+        // preserve every line.  The `Character` predicate
+        // `isNewline` matches LF / CR / CRLF / VT / FF — every
+        // .md line break on Apple platforms is LF on macOS 27, but
+        // the `Character`-set route keeps the function robust to
+        // CRLF imports from Windows-authored chapter files.
+        let lines: [String] = body
+            .split(omittingEmptySubsequences: false, whereSeparator: { $0.isNewline })
+            .map { String($0) }
+        // Find the first non-blank line that begins with "# ".
+        var h1Index: Int? = nil
+        var h1Text: String? = nil
+        for (i, raw) in lines.enumerated() {
+            let line = String(raw)
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.isEmpty {
+                continue
+            }
+            // Only the single-`#` H1 is treated as a chip. H2+ and
+            // Setext-style (= underlined with `===`) headings are
+            // body content (= the user's directive = strip the
+            // first H1 only).
+            if trimmed.hasPrefix("# ") && !trimmed.hasPrefix("## ") {
+                h1Text = String(trimmed.dropFirst(2))
+                    .trimmingCharacters(in: .whitespaces)
+                h1Index = i
+            }
+            break  // first non-blank line is the only candidate
+        }
+        guard let i = h1Index, let text = h1Text else {
+            return (nil, body)
+        }
+        // Drop the H1 line + the blank line(s) immediately after
+        // it (= typical `.md` files put a blank line between the
+        // H1 and the first paragraph; = the summary should not
+        // start with a leading blank).
+        var dropped = lines
+        dropped.remove(at: i)
+        while !dropped.isEmpty,
+              let next = dropped.first,
+              String(next).trimmingCharacters(in: .whitespaces).isEmpty {
+            dropped.removeFirst()
+        }
+        return (text.isEmpty ? nil : text, dropped.joined(separator: "\n"))
     }
 
     /// Convert Chinese title to its pinyin first letter (= uppercase).
