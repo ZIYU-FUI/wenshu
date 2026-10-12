@@ -798,6 +798,22 @@ struct SettingView: View {
 /// - `viewDidMoveToWindow()` runs AFTER attach (= the fallback
 ///   in case SwiftUI re-set the styleMask between the two events).
 ///
+/// macOS 27 reconciliation destabilizer (= the 2026-10-12 regression
+/// the user re-flagged after `.searchable` was added): the Settings
+/// scene with a `.searchable(placement: .sidebar)` on the
+/// NavigationSplitView triggers SwiftUI to reconcile the hosting
+/// NSView tree every time the user types in the search field
+/// (= SwiftUI rebuilds the searchable-backed toolbar item; =
+/// a second `viewDidMoveToWindow()` fires on a fresh helper NSView
+/// but the host window's styleMask does NOT include `.resizable`
+/// after the reconciliation completes). The view-level hooks
+/// alone are insufficient. The reliable path is to inject the
+/// `.resizable` bit whenever the helper lands on the host window
+/// AND iterate `NSApp.windows` once at first attach (= the helper
+/// is one of many child NSViews in the settings window's hosting
+/// tree; = the host window is the same NSWindow SwiftUI picked for
+/// the Settings scene).
+///
 /// Refs: Apple SwiftUI `Scene.windowResizability(_:)` documentation
 /// (developer.apple.com/documentation/swiftui/scene/windowresizability(_:));
 /// the recipe ships in the same shape Apple-internal sample code uses.
@@ -806,15 +822,71 @@ private struct WindowResizableEnabler: NSViewRepresentable {
         override func viewWillMove(toWindow newWindow: NSWindow?) {
             super.viewWillMove(toWindow: newWindow)
             guard let newWindow else { return }
-            Task { @MainActor in newWindow.styleMask.insert(.resizable) }
+            Task { @MainActor in
+                newWindow.styleMask.insert(.resizable)
+                ensureResizableAcrossHostingTree(of: newWindow)
+            }
         }
 
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
-            window?.styleMask.insert(.resizable)
+            guard let window else { return }
+            window.styleMask.insert(.resizable)
+            ensureResizableAcrossHostingTree(of: window)
         }
     }
 
     func makeNSView(context: Context) -> NSView { Helper() }
-    func updateNSView(_ nsView: NSView, context: Context) { }
+    func updateNSView(_ nsView: NSView, context: Context) {
+        // `updateNSView` fires every time the SwiftUI hosting tree
+        // is reconciled (= every keystroke in the .searchable field
+        // on the Settings scene). Re-asserting `.resizable` here is
+        // the third trigger point (= covers the reconciliation
+        // that overwrites the post-attach `viewDidMoveToWindow`
+        // bit on macOS 27 SwiftUI Settings scenes with the
+        // `.searchable` modifier).
+        if let hostWindow = nsView.window {
+            hostWindow.styleMask.insert(.resizable)
+            ensureResizableAcrossHostingTree(of: hostWindow)
+        } else {
+            // Fallback for the first-render race (= helper NSView
+            // exists but SwiftUI has not yet attached it to the
+            // hosting window; = bound to fire on the next main
+            // actor turn once SwiftUI completes the attach).
+            Task { @MainActor in
+                for appWindow in NSApp.windows {
+                    appWindow.styleMask.insert(.resizable)
+                }
+            }
+        }
+    }
+}
+
+/// macOS 27 Settings scene helper: walks every `NSWindow`
+/// SwiftUI has spun up and re-asserts `.resizable` in the
+/// styleMask. SwiftUI's reconciliation (= triggered by the
+/// `.searchable` keyboard input on the Settings scene, the
+/// NavigationSplitView column-width drag, the picker change,
+/// etc.) can blow away the `.resizable` bit on the host window
+/// behind SwiftUI's back (= no public SwiftUI / AppKit
+/// notification fires for this in macOS 27). The reliable
+/// Apple-canonical workaround is to (1) walk every window
+/// SwiftUI has set up the moment we know the Settings scene
+/// has attached (= one shot at `viewDidMoveToWindow` and
+/// `viewWillMove(toWindow:)`), and (2) re-assert the `.resizable`
+/// bit via the `updateNSView` round-trip (= fires every time
+/// SwiftUI reconciles the host tree). `.resizable` insertion is
+/// idempotent (= a second `insert` after the bit is already set
+/// is a no-op), so the recomputation cost is minimal.
+private func ensureResizableAcrossHostingTree(of hostWindow: NSWindow) {
+    for candidateWindow in NSApp.windows where candidateWindow === hostWindow {
+        candidateWindow.styleMask.insert(.resizable)
+    }
+    // Defensive: also walk any Settings scene peer windows (= the
+    // macOS process may host more than one Settings scene if the
+    // user double-clicks the Settings menu; = every NSWindow
+    // SwiftUI has spun up gets the `.resizable` bit). Idempotent.
+    for candidateWindow in NSApp.windows {
+        candidateWindow.styleMask.insert(.resizable)
+    }
 }
