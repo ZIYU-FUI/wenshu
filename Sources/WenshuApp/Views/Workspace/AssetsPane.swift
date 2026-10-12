@@ -538,6 +538,46 @@ struct AssetsPane: View {
                     // '' aesthetic per the search-field rhythm.
                 )
             )
+            // 2026-10-12 boss directive "在素材栏也加一个底栏,
+            // 然后文字显示的是, 当前栏中显示的卡片总数,
+            // XX 项" — assets column now has a bottom chrome
+            // footer that displays the total visible card
+            // count for the active scope (= "N 项"; = the
+            // same 1:1 visual recipe the sidebar '+' button
+            // / chat token-count footer / editor status
+            // bar use via the shared `ChromeBottomFooter`
+            // component). The chrome is attached via
+            // `.safeAreaInset(edge: .bottom, spacing: 0)`
+            // (= the same chat / editor attachment pattern;
+            // = the chrome floats over the PreviewPane
+            // content; = the inner `PreviewPane`'s
+            // ScrollView's contentMargins bottom gets the
+            // chrome height baked in so the last card peeks
+            // behind the chrome). The count resolves from
+            // `PreviewPaneOps.countCardsInScope` (= applies
+            // the same scope semantics the `PreviewPane`'s
+            // `*ScopeView`s use + the current
+            // `envAppState.searchText` filter; = the chrome
+            // count always matches the visible card count
+            // the user sees in the grid).
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                ChromeBottomFooter {
+                    HStack(spacing: DesignTokens.spacingTight) {
+                        SFIcon("rectangle.stack", style: .inlineSmall, color: IconColor.secondary)
+                        Text(String.localizedStringWithFormat(
+                            NSLocalizedString("assets.count.label", comment: ""),
+                            PreviewPaneOps.countCardsInScope(
+                                scope: previewScope(),
+                                bookStore: bookStore,
+                                searchQuery: envAppState.searchText
+                            )
+                        ))
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                    }
+                }
+            }
             // Header (= assets + divider
             // , , 
             // , ': drop the

@@ -252,6 +252,89 @@ enum PreviewPaneOps {
         return entities.filter { matchesSearch(title: $0.title, summary: $0.summary, query: query) }
     }
 
+    // MARK: - Card count (= the column-bottom chrome footer source)
+
+    /// 2026-10-12 boss directive "在素材栏也加一个底栏, 然后
+    /// 文字显示的是, 当前栏中显示的卡片总数, XX 项" — the
+    /// assets column's bottom chrome footer displays the
+    /// total card count for the active scope (= the chrome
+    /// text reads "N 项"; = same 1:1 visual recipe the
+    /// sidebar '+' button / chat token-count footer /
+    /// editor status bar use via the shared
+    /// `ChromeBottomFooter` component). This helper resolves
+    /// the count for a given scope (= applies the same scope
+    /// semantics the corresponding `*ScopeView` in
+    /// `PreviewPane.swift` uses: reference scope = filter
+    /// `loadAllEntities()` by `layer == .layerEntities` and
+    /// the optional category; tag scope = additionally
+    /// filter by `tags.contains(tag)`; book scope = file
+    /// scan of `loadBookDocs(bookId:, folderName:)`; shelf
+    /// scope = union of every book's `loadBookDocs` results
+    /// filtered to books whose `shelfId == shelfId`).
+    /// The search filter (= `envAppState.searchText`) is
+    /// applied on top so the chrome shows the COUNT OF
+    /// VISIBLE CARDS (= matches what the user sees in the
+    /// grid; = empty search query = full count, search
+    /// query = filtered count).
+    static func countCardsInScope(
+        scope: PreviewScope,
+        bookStore: BookStore?,
+        searchQuery: String
+    ) -> Int {
+        switch scope {
+        case .referenceScope(let category):
+            let entities = loadAllEntities(bookStore: bookStore).entities
+                .filter { entity in
+                    entity.layer == .layerEntities
+                        && (category == nil || entity.category == category)
+                }
+            return searchFilteredEntities(entities, query: searchQuery).count
+
+        case .tagScope(let tag):
+            // v2.6 facet model: dedicated tag scope; = the
+            // chrome count = the same `loadAllEntities()`
+            // prefilter + tag contains + search query
+            // (= 1:1 with `referenceScopeView(category: nil,
+            // tagOverride: tag)` semantics).
+            let entities = loadAllEntities(bookStore: bookStore).entities
+                .filter { entity in
+                    entity.layer == .layerEntities && entity.tags.contains(tag)
+                }
+            return searchFilteredEntities(entities, query: searchQuery).count
+
+        case .bookScope(let bookId, let folderName):
+            let docs = loadBookDocs(
+                bookStore: bookStore,
+                bookId: bookId,
+                folderName: folderName
+            ).docs
+            return searchFilteredBookDocs(docs, query: searchQuery).count
+
+        case .shelfScope(let shelfId):
+            // The shelf scope is the union of every book's
+            // .md docs under the shelf (= 1:1 with
+            // `shelfScopeView`); = per-book loadBookDocs +
+            // flatten + search filter.
+            guard let bookStore else { return 0 }
+            let booksInShelf = (try? bookStore.sidebarLoadAllBooks())?
+                .filter { $0.shelfId == shelfId } ?? []
+            let allDocs = booksInShelf.flatMap { book in
+                loadBookDocs(
+                    bookStore: bookStore,
+                    bookId: book.id,
+                    folderName: nil
+                ).docs
+            }
+            return searchFilteredBookDocs(allDocs, query: searchQuery).count
+
+        case .empty:
+            // No sidebar selection (= the empty-state hint
+            // path in `PreviewPane`); = the chrome count is
+            // 0 (= no cards visible).
+            return 0
+        }
+    }
+
     /// Filter book docs by the current search query.
     /// Same filter shape as `searchFilteredEntities` but for book
     /// docs (= filesystem .md files loaded by `loadBookDocs`).
