@@ -66,6 +66,15 @@ enum WindowID {
     // cannot use the system close button to bypass the upgrade =
     // must walk through the panel's 重试 / 退出 button path).
     static let libraryMigration = "wenshu-library-migration"
+    // Independent 记忆 history window (= the per-conversation
+    // memory write list, moved out of the inline `MemorySettingsView`
+    // list per the user's 2026-10-12 directive "最近记忆不应该在
+    // 设置中, 而是在一个独立的 weindows, 在工具栏加一个 ICON 入口,
+    // 做一个独立 windows 放记忆历史"). Single-instance Window
+    // (= macOS HIG canonical for utility panels) opened from
+    // `LibraryRootView`'s toolbar via
+    // `openWindow(id: WindowID.memoryHistory)`.
+    static let memoryHistory = "wenshu-memory-history"
 }
 
 struct AppRootScene: Scene {
@@ -609,5 +618,26 @@ struct AppRootScene: Scene {
         }
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
+        // Independent 记忆 history window (= the per-conversation
+        // memory write list, moved out of `MemorySettingsView`'s
+        // inline list per the user's 2026-10-12 directive
+        // "最近记忆不应该在设置中, 而是在一个独立的 weindows, 在工具栏
+        // 加一个 ICON 入口, 做一个独立 windows 放记忆历史").
+        //
+        // Mounted as a single-instance `Window` Scene (= macOS 13+
+        // HIG canonical for utility panels; = the user can't open
+        // duplicates and tapping the toolbar entry while the window
+        // is already shown brings it to front). Opens from
+        // `LibraryRootView`'s toolbar via
+        // `openWindow(id: WindowID.memoryHistory)`. The
+        // `SummariesWindow` / `AttachmentsWindow` neighbors use the
+        // same `.windowResizability(.contentSize)` + `.unified`
+        // toolbar style shape (= per the v2.9b independent-window
+        // pattern), so this window matches them visually.
+        Window(String(localized: "window.memoryHistory.title"), id: WindowID.memoryHistory) {
+            MemoryHistoryView()
+        }
+        .windowResizability(.contentSize)
+        .windowToolbarStyle(.unified)
     }
 }

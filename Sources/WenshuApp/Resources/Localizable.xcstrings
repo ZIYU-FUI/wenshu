@@ -11696,6 +11696,40 @@
           }
         }
       }
+    },
+    "window.memoryHistory.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Memory history"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最近记忆"
+          }
+        }
+      }
+    },
+    "window.memoryHistory.subtitle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Every memory write across this session. Use the toolbar entry on the main window to open this list."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本次会话所有记忆写入。通过主窗口工具栏入口打开此列表。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

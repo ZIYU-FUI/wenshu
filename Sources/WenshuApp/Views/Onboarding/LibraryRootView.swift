@@ -192,6 +192,32 @@ struct LibraryRootView: View {
             // to expose a feature Apple does not expose in office
             // apps). The toolbar now hosts only wenshu's own
             // chrome (= no NSV-default buttons added).
+            //
+            // 2026-10-12 boss directive: add a brain-Symbol toolbar
+            // entry that opens the independent 记忆 history
+            // window (= moved out of `MemorySettingsView` per the
+            // user's "最近记忆不应该在设置中, 而是在一个独立的
+            // weindows, 在工具栏加一个 ICON 入口" instruction). The
+            // `ToolbarItem(placement: .primaryAction)` placement is
+            // Apple HIG canonical for the rightmost toolbar slot on
+            // a `.windowToolbarStyle(.unified)` toolbar (= the same
+            // slot every Apple first-party app uses for the share /
+            // profile / activity button). The brain SF Symbol was
+            // already the prior sidebar icon for the 记忆 pane
+            // (= now repurposed as the toolbar entry; = the user
+            // moves from a settings-pane toggle to a main-toolbar
+            // entry; = matches the macOS 27 Tahoe canonical pattern
+            // for utility-panel entry points).
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button {
+                        openWindow(id: WindowID.memoryHistory)
+                    } label: {
+                        SFIcon("brain", style: .toolbar, color: .accent)
+                    }
+                    .help(String(localized: "window.memoryHistory.title"))
+                }
+            }
             .task(id: activeLibraryPath) { await runLaunch() }
             .sheet(isPresented: $commandPaletteVisible) {
                 CommandPaletteView(model: commandPaletteModel)

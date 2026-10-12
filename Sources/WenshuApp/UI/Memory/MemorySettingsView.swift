@@ -25,8 +25,13 @@ struct MemorySettingsView: View {
     @AppStorage(MemoryAdapter.DefaultsKey.retentionDays)
     var retentionDays: Int = 90
 
-    @State var recentEntries: [MemoryAdapter.MemoryEntry] = []
-    @State var isLoadingEntries: Bool = false
+    // The recent-entries / loading-state trio was moved to the
+    // independent `MemoryHistoryView` per the user's 2026-10-12
+    // directive (= the inline list that used to live here is now
+    // a separate `Window` Scene). The retention-change callback
+    // (= `lastPurgeCount` + `reloadEntries`) is preserved because
+    // the configuration surface still wants to surface "N memories
+    // purged" after a retention-change.
     @State var lastPurgeCount: Int = 0
 
     init() {}
@@ -36,6 +41,16 @@ struct MemorySettingsView: View {
     }
 
     var body: some View {
+        // The inline "最近记忆" list (= 100-row cap, scrollable)
+        // that used to live here was moved to the independent
+        // `MemoryHistoryView` (= `Sources/WenshuApp/UI/Memory/
+        // MemoryHistoryView.swift`) per the user's 2026-10-12
+        // directive "最近记忆不应该在设置中, 而是在一个独立的
+        // weindows, 在工具栏加一个 ICON 入口, 做一个独立
+        // windows 放记忆历史". This pane now owns the configuration
+        // surface only (= enable / scope / retention) and the
+        // list entry lives in its own `Window` Scene
+        // (`WindowID.memoryHistory`).
         VStack(alignment: .leading, spacing: DesignTokens.spacingModerate) {
             Text(String(localized: "settings.memory.title"))
                 .font(.headline)
@@ -56,10 +71,10 @@ struct MemorySettingsView: View {
             .disabled(!isMemoryEnabled)
 
             // Closed-enum retention picker (= wenshu v2.4 product philosophy:
-// = users pick from a closed set, no free-text input).
-// The numeric slider becomes a Picker over 30 / 90 / 180 / 365 days.
-// Each preset maps to a fixed retention budget (= per retentionDays
-// in hermes MEMORY_RETENTION_BUCKETS).
+            // = users pick from a closed set, no free-text input).
+            // The numeric slider becomes a Picker over 30 / 90 / 180 / 365 days.
+            // Each preset maps to a fixed retention budget (= per retentionDays
+            // in hermes MEMORY_RETENTION_BUCKETS).
 
             HStack {
                 Text(String(localized: "settings.memory.retention"))
@@ -75,9 +90,16 @@ struct MemorySettingsView: View {
             }
             .onChange(of: retentionDays) { _, newValue in
                 Task {
+                    // The `reloadEntries()` call was removed when
+                    // the inline list was moved to the independent
+                    // `MemoryHistoryView` (= the configuration
+                    // surface no longer holds the entries array,
+                    // = reload is the new window's responsibility).
+                    // The purge count stays here so the "N memories
+                    // purged" footer keeps updating on retention
+                    // changes.
                     let deleted = MemoryAdapter().setRetentionDays(newValue)
                     await MainActor.run { self.lastPurgeCount = deleted }
-                    await reloadEntries()
                 }
             }
 
@@ -86,52 +108,17 @@ struct MemorySettingsView: View {
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
-
-            Divider()
-
-            HStack {
-                Text(String.localizedStringWithFormat(NSLocalizedString("settings.memory.recent", comment: ""), recentEntries.count))
-                    .font(.subheadline)
-                Spacer()
-                if isLoadingEntries {
-                    ProgressView()
-                        .controlSize(.small)
-                }
-            }
-
-            if recentEntries.isEmpty {
-                Text(String(localized: "settings.memory.recent.empty"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .padding(.vertical, DesignTokens.spacingTight)
-            } else {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
-                        ForEach(recentEntries) { entry in
-                            MemoryEntryRow(entry: entry, compact: false)
-                        }
-                    }
-                }
-                .frame(maxHeight: DesignTokens.settingsListMaxHeight)
-            }
         }
         .padding(DesignTokens.spacingModerate)
         // Removed the chrome tier background tint (= .windowBackgroundColor
         // = #1E = creates a visible lighter strip = gone per the
         // 'go up another layer and remove the background' cleanup).
         // Settings panel now matches the surrounding Settings content.
-        .task {
-            await reloadEntries()
-        }
-    }
-
-    private func reloadEntries() async {
-        await MainActor.run { self.isLoadingEntries = true }
-        let entries = MemoryAdapter().recentEntries(limit: 20)
-        await MainActor.run {
-            self.recentEntries = entries
-            self.isLoadingEntries = false
-        }
+        // The `.task { await reloadEntries() }` block was removed
+        // alongside the inline list (= `recentEntries` /
+        // `isLoadingEntries` no longer exist; = the configuration
+        // surface reads from `lastPurgeCount` only, which the
+        // retention-change callback updates in place).
     }
 }
 

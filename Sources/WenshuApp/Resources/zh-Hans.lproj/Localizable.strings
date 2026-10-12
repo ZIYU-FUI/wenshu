@@ -1214,6 +1214,10 @@
 	<string>文枢版本</string>
 	<key>window.manifest.workspace_uuid</key>
 	<string>工作区 UUID</string>
+	<key>window.memoryHistory.subtitle</key>
+	<string>本次会话所有记忆写入。通过主窗口工具栏入口打开此列表。</string>
+	<key>window.memoryHistory.title</key>
+	<string>最近记忆</string>
 	<key>window.summaries.empty</key>
 	<string>暂无会话摘要</string>
 	<key>window.summaries.title</key>
