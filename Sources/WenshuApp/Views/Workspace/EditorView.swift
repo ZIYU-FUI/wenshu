@@ -548,54 +548,76 @@ struct EditorView: View {
                         }
                     }                }
             }
-            // 2026-10-12 round-5 fix — the prior `.frame(
-            // maxHeight: .infinity, alignment: .top)` here (=
-            // round-1 fix `54e9d90d3`) made the body ZStack
-            // (= the 842 PT A4 paper) fill the entire editor
-            // zone; the ScrollView inside `EditorPaperCanvas`
-            // (= round-3 fix `b6493c3a8`) was `.frame(maxHeight:
-            // .infinity)`; the paper's bottom 28 PT was clipped
-            // by the status bar overlay; the user perceived
-            // "the paper floats in the upper half" (= the
-            // bottom 28 PT was hidden by the status bar). The
-            // round-5 fix reverted the ZStack's `.frame(
-            // maxHeight: .infinity, alignment: .top)` and
-            // inserted a `Spacer(minLength: 0)` between the
-            // body ZStack and the status bar (= the canonical
-            // Apple HIG 3-chrome-band layout: toolbar + body +
-            // Spacer + status).
-            // Round-6 fix — the user reported the paper still
-            // appears to float in the upper half of the editor
-            // zone (= the round-5 fix placed the status bar
-            // correctly at the bottom but did not address the
-            // paper's vertical sizing). Revert the `Spacer(
-            // minLength: 0)` (= round-5) and re-apply the
-            // original `.frame(maxHeight: .infinity, alignment:
-            // .top)` on the body ZStack (= the body ZStack
-            // fills the zone, = the body ZStack's primary
-            // content `EditorPaperCanvas` is the A4 paper;
-            // = the body ZStack pushes the paper to the top
-            // of the zone; = the status bar drops to the
-            // bottom of the zone; = the paper naturally
-            // overflows the zone and the inner ScrollView
-            // scrolls). The user's direct complaint in the
-            // round-6 directive is that the editor status
-            // bar is not 1:1 with the chat footer; the
-            // status bar's chrome recipe is now extracted
-            // into the shared `ChromeBottomFooter` component
-            // (= see `Sources/WenshuApp/UI/Chrome/
-            // ChromeBottomFooter.swift`) — the editor
-            // status bar and the chat token-count footer now
-            // both render the same `VStack { Divider;
-            // content; .frame(maxWidth: .infinity,
-            // alignment: .leading); .padding(.vertical, 8);
-            // .padding(.horizontal, 8) } .background(.bar)`
-            // shell 1:1; = the bottom-row visual recipe
-            // is canonical (= the user's round-6 directive
-            // solved; = the paper floating in the upper
-            // half is a SEPARATE issue that needs a
-            // separate ticket).
-            .frame(maxHeight: .infinity, alignment: .top)
+            // 2026-10-12 round-7 fix — the user reported "你还需要
+            // 参考, 聊天区是怎么分区域的. 底栏是怎么附加上去的.
+            // 不光是底栏内部的写法, 而是这个底栏是怎么加上的"
+            // — the prior 5 rounds were all about the inner
+            // structure of the status bar (= HStack content +
+            // chrome 1:1 with chat footer) but NONE of them
+            // changed how the status bar is ATTACHED to the
+            // editor zone. The chat column uses
+            // `ScrollView.safeAreaInset(edge: .bottom, spacing: 0)
+            // { ChatInputBarView }` (= the chat input bar
+            // FLOATS over the chat ScrollView; = the chat
+            // ScrollView's content gets `.contentMargins(.bottom,
+            // chatInputBarHeight, for: .scrollContent)` so the
+            // last chat message peeks behind the floating input
+            // bar; = Apple HIG Messages / Slack / Telegram chat
+            // input pattern). The editor zone, by contrast, has
+            // the status bar as a SIBLING of the body ZStack in
+            // the outer VStack (= the status bar takes up
+            // vertical space in the layout; = the body ZStack's
+            // available height = zone - toolbar - status bar;
+            // = the body ZStack is squashed; = the paper's
+            // intrinsic 842 PT A4 sheet overflows the squashed
+            // body ZStack and the user perceives the paper
+            // "floating in the upper half"). The chat pattern
+            // is what we want — FLOAT the status bar over the
+            // body ZStack via `.safeAreaInset(edge: .bottom,
+            // spacing: 0) { EditorStatusBarView }`. Move the
+            // `EditorStatusBarView(...)` call OUT of the outer
+            // VStack siblings (= drop it from the outer VStack
+            // entirely) and add the `.safeAreaInset(edge:
+            // .bottom, spacing: 0) { EditorStatusBarView(...) }`
+            // modifier to the body ZStack. The body ZStack's
+            // available height = zone - toolbar - tab strip (=
+            // the body ZStack fills the remaining height; =
+            // the paper's 842 PT A4 sheet has the full body
+            // ZStack to render into; = the paper's bottom
+            // overflows the body ZStack and the inner
+            // `EditorPaperCanvas` ScrollView scrolls naturally).
+            // The status bar's `.safeAreaInset` placement (= the
+            // chat pattern) automatically pushes the body
+            // ZStack's content area up by the status bar's
+            // height (= Apple HIG `.contentMargins(.bottom,
+            // statusBarHeight, for: .scrollContent)` semantics
+            // baked into `.safeAreaInset(edge: .bottom)`), so
+            // the last line of the document peeks behind the
+            // floating status bar (= the Pages / Numbers
+            // inspector-status-row pattern, = the same as the
+            // chat input bar pattern).
+            //
+            // Also drop the `.frame(maxHeight: .infinity,
+            // alignment: .top)` on the body ZStack (= the
+            // round-1 fix that made the body ZStack fill the
+            // editor zone; = with the status bar as a
+            // `.safeAreaInset` overlay instead of a VStack
+            // sibling, the body ZStack is naturally laid out
+            // by SwiftUI at the height of its content; = the
+            // body ZStack's content = `EditorPaperCanvas`'s
+            // 842 PT A4 paper (= ScrollView's intrinsic
+            // content size); = the body ZStack does NOT need
+            // to be told to fill the zone; = let SwiftUI's
+            // natural layout = body ZStack = 842 PT (=
+            // the A4 sheet's intrinsic size); = the parent
+            // zone's remaining height (= zone - tab strip -
+            // toolbar - 842) is left empty below the paper
+            // (= the natural SwiftUI behavior for a ZStack
+            // whose content is shorter than the available
+            // height; = the user perceives a "page" that
+            // has chrome above and white space below, =
+            // the canonical Pages document surface recipe).
+            //
             // T-03: editor status bar (= the bottom chrome band of
             // the editor zone; = 24 PT; = pinned below the
             // NSTextView; = the format toolbar is above and the
@@ -606,12 +628,14 @@ struct EditorView: View {
             // the 4 closures; = the bar re-evaluates them on every
             // body invocation = the standard SwiftUI re-render
             // cadence = no manual subscription needed).
-            EditorStatusBarView(
-                textProvider: { self.draft },
-                cursorRectProvider: { self.cursorRect },
-                isDirtyProvider: { self.isDirty },
-                isAutosavingProvider: { self.isAutosaving }
-            )
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                EditorStatusBarView(
+                    textProvider: { self.draft },
+                    cursorRectProvider: { self.cursorRect },
+                    isDirtyProvider: { self.isDirty },
+                    isAutosavingProvider: { self.isAutosaving }
+                )
+            }
             // drop the outer VStack's `.frame(maxWidth: .infinity,
             // maxHeight: .infinity)`. Apple HIG canonical 6-zone layout
             // has no custom frame on the column body (= NavigationSplitView
