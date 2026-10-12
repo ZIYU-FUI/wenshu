@@ -225,24 +225,25 @@ struct SettingView: View {
         // would otherwise let the user collapse the sidebar and find no way
         // back once `.toolbar(removing: .sidebarToggle)` removes the toggle).
         NavigationSplitView(columnVisibility: .constant(.all)) {
-            // Sidebar column = global search field on top + filtered pane
-            // list below. Apple HIG has no canonical "sidebar-top inline
-            // TextField" API (`.searchable(placement: .sidebar)` resolves to
-            // the toolbar on macOS 27), so a plain `.textFieldStyle(.roundedBorder)`
-            // TextField above the List is the clean visual match for the
-            // sidebar-leading search row.
-            VStack(spacing: DesignTokens.spacingTight) {
-                TextField(String(localized: "settings.search.global.placeholder"),
-                          text: $globalSearchQuery)
-                    .textFieldStyle(.roundedBorder)
-                    .padding(.horizontal, DesignTokens.spacingTight)
-                    .padding(.top, DesignTokens.spacingTight)
-                List(visiblePanes, selection: Binding(
-                    get: { selectedTab },
-                    set: { newValue in
-                        if let newValue { selectedTab = newValue }
-                    }
-                )) { pane in
+            // Sidebar column = the filtered pane list only. The
+            // search field is attached to the NavigationSplitView
+            // (= below) via `.searchable(placement: .sidebar)` =
+            // Apple HIG canonical SwiftUI macOS 14+ search field
+            // (= the pill-shaped, Liquid Glass backed text editor
+            // with the magnifyingglass SF Symbol leading; =
+            // Apple System Settings > General > Software Update uses
+            // the exact same widget). `.searchable` on macOS 27
+            // resolves the visible placement to the toolbar row,
+            // not to the leading column, because Apple does not
+            // ship a sidebar-leading inline search API (= see
+            // Apple HIG `Search fields in macOS` sidebar rule;
+            // = the platform chooses the canonical spot).
+            List(visiblePanes, selection: Binding(
+                get: { selectedTab },
+                set: { newValue in
+                    if let newValue { selectedTab = newValue }
+                }
+            )) { pane in
                     Label {
                         Text(localizedPaneTitle(pane))
                     } icon: {
@@ -256,7 +257,17 @@ struct SettingView: View {
                 // `sidebar.leading` collapse button (= Apple canonical hide-sidebar
                 // toggle = SO 75296044 + Apple dev doc `View/toolbar(removing:)`).
                 .toolbar(removing: .sidebarToggle)
-            }
+            // `.searchable(text: ..., placement: .sidebar)` attaches the
+            // Apple canonical macOS 14+ search field (= Liquid Glass
+            // pill editor with the magnifyingglass SF Symbol leading) to
+            // the NavigationSplitView; macOS 27 SwiftUI resolves the
+            // visible placement to the toolbar row (= the Apple HIG
+            // canonical spot for sidebar search).
+            .searchable(
+                text: $globalSearchQuery,
+                placement: .sidebar,
+                prompt: String(localized: "settings.search.global.placeholder")
+            )
         } detail: {
             paneBody(for: selectedTab)
                 .frame(minWidth: 520)

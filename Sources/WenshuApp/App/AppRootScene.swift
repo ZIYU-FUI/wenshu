@@ -416,20 +416,7 @@ struct AppRootScene: Scene {
         // + detail's `.frame(minWidth: 520)` set the floor; upper bound
         // = SwiftUI default = `.infinity`).
         .windowResizability(.contentMinSize)
-        // Apple System Settings on a 14" MacBook Pro opens at roughly
-        // 880 PT wide × 600 PT tall (= ~62% × 80% of a 1512×982
-        // default Retina workspace; = the macOS 27 SwiftUI Settings
-        // scene default size bracket; = Pages / Numbers / Keynote
-        // preferences windows all sit in the same 5/8 × 4/5
-        // screen fraction per Apple HIG `Window Sizes for Modal
-        // Dialogs` recommendation). wenshu's previous default
-        // (= no `.defaultSize` modifier = whatever NavigationSplitView's
-        // intrinsic content minimum is = ~720 PT × ~520 PT) was tighter
-        // than Apple System Settings; the user's visual feedback
-        // (= 2026-10-12 "打开设置页面的默认尺寸参考 MAC OS 的尺寸设置")
-        // is to match the Apple canonical size.
-        .defaultSize(width: 880, height: 600)
-        // add 2 dedicated `Window` scenes (= the SwiftUI macOS
+        // Add 2 dedicated `Window` scenes (= the SwiftUI macOS
         // 13+ API for SINGLE-INSTANCE independent windows; = the
         // canonical Apple pattern for an 'always one' panel
         // surface like kanban / todo / system Settings).
