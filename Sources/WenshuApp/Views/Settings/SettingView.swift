@@ -117,14 +117,25 @@ struct SettingView: View {
         case memory
         var id: String { rawValue }
 
-        /// SF Symbols 6 identifier per Apple HIG sidebar row leading icon.
+        /// SF Symbols 7 identifier per Apple HIG sidebar row leading icon.
+        /// The macOS 27 SwiftUI multicolor variant set (= paintpalette,
+        /// apple.writing.tools, network, sparkles, bonjour) gives each of
+        /// these icons intrinsic multi-colour layers (= Apple's curated
+        /// 5 pane icons mirror Apple System Settings' sidebar on macOS 27
+        /// Tahoe; = the prior `paintbrush` / `doc.text` / `key.horizontal`
+        /// / `cpu` / `brain` were not all in the multicolor variant set,
+        /// = the user-replacement swaps them for symbols that all have
+        /// intrinsic multicolor layers). See `IconStyle.sidebar` body in
+        /// `IconStyles.swift` for the optical-uniformity recipe (= the
+        /// same 28×28 PT Tahoe squircle + 16 PT inner frame + 4 PT inset,
+        /// = every sidebar row icon occupies the identical optical width).
         var icon: String {
             switch self {
-            case .appearance: return "paintbrush"
-            case .editor:      return "doc.text"
-            case .providers:   return "key.horizontal"
-            case .models:      return "cpu"
-            case .memory:      return "brain"
+            case .appearance: return "paintpalette"
+            case .editor:      return "apple.writing.tools"
+            case .providers:   return "network"
+            case .models:      return "sparkles"
+            case .memory:      return "bonjour"
             }
         }
     }
