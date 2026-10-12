@@ -498,9 +498,34 @@ struct AssetsPane: View {
                     // wider but the icon stays at the field's own
                     // left; = no visual change inside the field).
                     .frame(maxWidth: .infinity)
+                    // 2026-10-12 boss directive round 2 "还在, 黑
+                    // 色的背景色, 再排查一次" — the prior
+                    // commit `1ab8234c2` only flipped the INNER
+                    // HStack's `.background` (= the magnifier
+                    // icon + TextField surface) to `Color.clear`
+                    // but LEFT the OUTER `.background` block (= the
+                    // `.frame(maxWidth: .infinity)` wrapper)
+                    // untouched. The outer RoundedRectangle still
+                    // had `Color(nsColor: .textBackgroundColor)
+                    // .opacity(0.5)` (= 50 % textBackgroundColor
+                    // fill on the progress-card corner radius) =
+                    // the user-visible black box around the search
+                    // field at runtime was actually the outer
+                    // wrapper, not the inner HStack. Two .background
+                    // blocks existed (= one inside the HStack chain
+                    // around line 440 and one outside the .frame
+                    // around line 501); the prior fix only touched
+                    // the first. Now both are transparent (= the
+                    // inner one for symmetry with the icon + field,
+                    // the outer one for the actual user-visible
+                    // fill). Apple HIG `Search` (= macOS 27 Mail /
+                    // Notes / Finder column-header search fields)
+                    // ships the placeholder + magnifier icon
+                    // WITHOUT a fill on either layer; = the field is
+                    // invisible until the user types.
                     .background(
                         RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusProgressCard, style: .continuous)
-                            .fill(Color(nsColor: .textBackgroundColor).opacity(0.5))
+                            .fill(Color.clear)
                     )
                     // Search field
                     // , ': drop the stroke
