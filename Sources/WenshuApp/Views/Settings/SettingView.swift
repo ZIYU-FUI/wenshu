@@ -731,6 +731,19 @@ struct SettingView: View {
                 Text(String(localized: "settings.model.reasoning.effortHint"))
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    // `.lineLimit(nil)` (= drop SwiftUI's default `.caption`
+                    // single-line cap) lets the helper text wrap to two
+                    // or more lines if a future locale is longer than
+                    // the column can hold (= the prior cap forced the
+                    // helper text to a single horizontal line, and a
+                    // long single line silently forced SwiftUI to
+                    // expand the Settings window past the user's
+                    // requested `.defaultSize(950, 517)`; = the user
+                    // asked us to shorten the helper text because the
+                    // longer footer was the root cause of the autosized
+                    // Settings window widening past the intended size).
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
             } header: {
                 Text(String(localized: "settings.model.reasoning_label"))
             }

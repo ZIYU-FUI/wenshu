@@ -1033,7 +1033,7 @@
 	<key>settings.model.provider_label</key>
 	<string>提供方</string>
 	<key>settings.model.reasoning.effortHint</key>
-	<string>EFFORT = Anthropic output_config.effort (low/medium/high/xhigh/max). 模型可用级别看 minimax 文档.</string>
+	<string>级别:低/中/高/极高/最大。详见模型文档。</string>
 	<key>settings.model.reasoning_effort_high</key>
 	<string>高</string>
 	<key>settings.model.reasoning_effort_label</key>

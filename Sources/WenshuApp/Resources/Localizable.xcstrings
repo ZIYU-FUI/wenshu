@@ -8813,13 +8813,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "EFFORT = Anthropic output_config.effort (low/medium/high/xhigh/max). See minimax docs for available levels."
+            "value": "Levels: low / medium / high / xhigh / max. See model docs."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "EFFORT = Anthropic output_config.effort (low/medium/high/xhigh/max). 模型可用级别看 minimax 文档."
+            "value": "级别:低/中/高/极高/最大。详见模型文档。"
           }
         }
       }

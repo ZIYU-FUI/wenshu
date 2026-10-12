@@ -1033,7 +1033,7 @@ Or just chat normally.</string>
 	<key>settings.model.provider_label</key>
 	<string>Provider</string>
 	<key>settings.model.reasoning.effortHint</key>
-	<string>EFFORT = Anthropic output_config.effort (low/medium/high/xhigh/max). See minimax docs for available levels.</string>
+	<string>Levels: low / medium / high / xhigh / max. See model docs.</string>
 	<key>settings.model.reasoning_effort_high</key>
 	<string>High</string>
 	<key>settings.model.reasoning_effort_label</key>
