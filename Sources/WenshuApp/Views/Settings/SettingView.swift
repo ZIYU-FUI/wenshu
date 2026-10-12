@@ -205,7 +205,11 @@ struct SettingView: View {
     }
 
     var body: some View {
-        NavigationSplitView {
+        // `columnVisibility: .constant(.all)` pins the sidebar so the user
+        // cannot drag the column divider closed (= macOS 27 NavigationSplitView
+        // would otherwise let the user collapse the sidebar and find no way
+        // back once `.toolbar(removing: .sidebarToggle)` removes the toggle).
+        NavigationSplitView(columnVisibility: .constant(.all)) {
             List(SettingsPane.allCases, selection: Binding(
                 get: { selectedTab },
                 set: { newValue in
@@ -221,6 +225,10 @@ struct SettingView: View {
             }
             .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)
             .listStyle(.sidebar)
+            // `toolbar(removing: .sidebarToggle)` strips the system-rendered
+            // `sidebar.leading` collapse button (= Apple canonical hide-sidebar
+            // toggle = SO 75296044 + Apple dev doc `View/toolbar(removing:)`).
+            .toolbar(removing: .sidebarToggle)
         } detail: {
             paneBody(for: selectedTab)
                 .frame(minWidth: 520)
@@ -229,13 +237,12 @@ struct SettingView: View {
         // macOS 27 SwiftUI Settings scene bug: `.windowResizability(.contentMinSize)`
         // alone does NOT add `.resizable` to the underlying NSWindow's styleMask
         // (= window stays non-resizable despite the scene modifier). The fix
-        // Apple ships as documented on SO 79532884 = an NSViewRepresentable that
-        // grabs the host window in `viewDidMoveToWindow` and inserts `.resizable`
-        // into the styleMask. The sidebar toggle button (= `sidebar.leading` SF
-        // Symbol auto-rendered by SwiftUI NavigationSplitView on the leading edge
-        // of the sidebar column, in macOS 27 collapsed-sidebar state) is left in
-        // place (= Apple canonical sidebar collapse control, like Mail / System
-        // Settings / Xcode all ship it; = NOT a "hand-off" or "magic" button).
+        // Apple ships as documented on SO 79532884 + 79127814 = an
+        // NSViewRepresentable that inserts `.resizable` into the host window's
+        // styleMask. We hook BOTH `viewWillMove(toWindow:)` (= the pre-attach
+        // point when the styleMask is still mutable) AND `viewDidMoveToWindow()`
+        // (= post-attach fallback) so the resizability survives SwiftUI's
+        // inner reconciliation on macOS 27.
         .background(WindowResizableEnabler())
         .task {
             refreshProviderStatus()
@@ -744,19 +751,33 @@ struct SettingView: View {
 /// `windowResizability` value) does NOT actually flip the
 /// underlying `NSWindow.styleMask` to include `.resizable`
 /// when applied to a `Settings { }` scene (= verified on macOS 27
-/// = the SO 79532884 regression). This representable grabs
-/// the host `NSWindow` once the view enters the window hierarchy
-/// and inserts `.resizable` into the styleMask, restoring the
-/// canonical Apple resizable-preferences-window behavior.
+/// = the SO 79532884 regression). This representable inserts
+/// `.resizable` into the host `NSWindow.styleMask` from BOTH
+/// pre-attach and post-attach points so the canonical Apple
+/// resizable-preferences-window behavior survives SwiftUI's
+/// inner styleMask reconciliation on macOS 27.
+///
+/// Two trigger points (ref: SO 79532884 + 79127814):
+/// - `viewWillMove(toWindow:)` runs BEFORE the hosting NSWindow
+///   does any post-attach reconciliation (= the styleMask is
+///   still in its initial state).
+/// - `viewDidMoveToWindow()` runs AFTER attach (= the fallback
+///   in case SwiftUI re-set the styleMask between the two events).
+///
 /// Refs: Apple SwiftUI `Scene.windowResizability(_:)` documentation
 /// (developer.apple.com/documentation/swiftui/scene/windowresizability(_:));
 /// the recipe ships in the same shape Apple-internal sample code uses.
 private struct WindowResizableEnabler: NSViewRepresentable {
     private final class Helper: NSView {
+        override func viewWillMove(toWindow newWindow: NSWindow?) {
+            super.viewWillMove(toWindow: newWindow)
+            guard let newWindow else { return }
+            Task { @MainActor in newWindow.styleMask.insert(.resizable) }
+        }
+
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
-            guard let window = self.window else { return }
-            window.styleMask.insert(.resizable)
+            window?.styleMask.insert(.resizable)
         }
     }
 
