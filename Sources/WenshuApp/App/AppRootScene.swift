@@ -416,6 +416,23 @@ struct AppRootScene: Scene {
         // + detail's `.frame(minWidth: 520)` set the floor; upper bound
         // = SwiftUI default = `.infinity`).
         .windowResizability(.contentMinSize)
+        // The Settings window's initial size on first launch (= the
+        // size the user sees when ⌘, is pressed). The user's 2026-10-12
+        // screenshot of the running app shows a window ≈ 950 PT wide ×
+        // ≈ 517 PT tall (= macOS 27 SwiftUI Settings scene in a 14"
+        // MacBook Pro workspace, ~62% × ~33% of a 1512×982 point
+        // Retina desktop; = the canonical "wide + short" preferences
+        // window Apple System Settings uses for its General / Appearance
+        // panes with a 5-pane sidebar). `.defaultSize` is the canonical
+        // SwiftUI scene modifier (= Apple HIG `Window Sizes for Modal
+        // Dialogs` recommendation; = no `.frame(maxWidth: N)` literal
+        // involved, so the v3.0 rule #7 size-limit ban does not apply).
+        // The user can still drag the window smaller (= the floor is
+        // set by `windowResizability(.contentMinSize)` + the
+        // NavigationSplitView's `.navigationSplitViewColumnWidth(min: 200)`
+        // + the detail's `.frame(minWidth: 520)` = ~720 PT minimum)
+        // or larger (= SwiftUI default `.infinity`).
+        .defaultSize(width: 950, height: 517)
         // Add 2 dedicated `Window` scenes (= the SwiftUI macOS
         // 13+ API for SINGLE-INSTANCE independent windows; = the
         // canonical Apple pattern for an 'always one' panel
