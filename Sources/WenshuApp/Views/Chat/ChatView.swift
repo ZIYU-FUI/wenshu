@@ -308,6 +308,20 @@ struct ChatView: View {
             // detail pane). Apple's HIG 'Readable Content' default
             // is around 60-75 characters per line; 720 PT × ~10 PT
             // / char ≈ 72 chars per line, in the right band.
+            // 2026-10-12 round-19 boss directive "还在, 先
+            // 不调整了, 给聊天区的上边, 加一个 10 的
+            // 内边距" — applied to the ScrollView
+            // chain below (= the 10 PT top padding
+            // applies to the ScrollView's content
+            // area; = the sticky user message
+            // bubble (= the first item in
+            // `LazyVStack(pinnedViews: [.sectionHeaders])`)
+            // is pushed down 10 PT inside the scroll
+            // viewport; = 10 PT visible gap between
+            // the editor zone's bottom status bar
+            // above and the first user message
+            // bubble). 10 PT is the user's verbatim
+            // spec.
             ScrollViewReader { proxy in
                 ScrollView {
                     // 2026-09-23: 'the user's message bubble, like
@@ -404,6 +418,20 @@ struct ChatView: View {
                     // Telegram chat input pattern where the last message
                     // peeks behind the input bar).
                     .contentMargins(.bottom, DesignTokens.chatInputBarHeight, for: .scrollContent)
+                    // 2026-10-12 round-19 — add 10 PT top
+                    // padding to the chat ScrollView
+                    // (= the 10 PT applies to the scroll
+                    // content area; = the sticky user
+                    // message bubble (=
+                    // `LazyVStack(pinnedViews:
+                    // [.sectionHeaders])` first item) is
+                    // pushed down 10 PT inside the scroll
+                    // viewport; = 10 PT visible gap between
+                    // the editor zone's bottom status bar
+                    // above and the first user message
+                    // bubble). 10 PT is the user's verbatim
+                    // spec.
+                    .padding(.top, 10)
                     // -cleanup E3 (see OOB.md #2026-09-21) '
                     // ，' (= the chat
                     // transcript area was using the macOS default
