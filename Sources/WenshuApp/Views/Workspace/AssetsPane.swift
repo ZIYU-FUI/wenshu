@@ -298,6 +298,50 @@ struct AssetsPane: View {
         // to the live `envAppState.searchText` (= the filter applies
         // correctly; = survives PreviewPane re-instantiation).
         VStack(spacing: 0) {
+            // 2026-10-12 round-17 boss directive "你看其它三
+            // 栏, 都没有这一点点小边, 你先别改, 去看看
+            // 其它三栏和素材栏有什么不同. 为什么去掉了
+            // 下的内边距, 还有这一点间隙" — the prior
+            // `.safeAreaInset(edge: .bottom, spacing: 0)
+            // { ChromeBottomFooter { ... } }` was applied
+            // to the `PreviewPane(...)` call (= a CHILD
+            // of the outer VStack). The chrome therefore
+            // anchored to `PreviewPane`'s bottom edge (= the
+            // bottom of the cards' content area) rather than
+            // to the OUTER VStack's bottom (= the bottom
+            // of the assets column itself). The other 3
+            // column-bottom chrome footers (= sidebar
+            // `AppleSidebarBottomNewButton` / chat
+            // `ChatInputBarView` / editor `EditorStatusBarView`)
+            // are applied to the COLUMN BODY (= the outer
+            // view that fills the entire column) — that
+            // guarantees the chrome's safe-area-inset
+            // pushes the column body's CONTENT up by the
+            // chrome's 38 PT height, = the chrome
+            // OVERLAPS the bottom 38 PT of the column body
+            // = the canonical Apple HIG Pages / Numbers
+            // inspector pattern (no visible gap between the
+            // last content row and the floating chrome
+            // footer). The assets column had the chrome
+            // on a CHILD view (= PreviewPane), so the
+            // chrome anchored to PreviewPane's bottom (= the
+            // last card's bottom) rather than to the
+            // COLUMN's bottom — the chrome DID NOT overlap
+            // the column body at all (= the empty space
+            // below the last card was outside the
+            // safe-area-inset scope). Round-17 fix = move
+            // the `.safeAreaInset(edge: .bottom, spacing: 0)
+            // { ... }` from the `PreviewPane(...)` call to
+            // the OUTER VStack (= the column body; = the
+            // chrome now anchors to the column's bottom
+            // edge; = the outer VStack's content (= search
+            // field + PreviewPane) gets pushed up by 38 PT;
+            // = the chrome OVERLAPS the bottom 38 PT of the
+            // column body; = 0 PT visible gap between the
+            // last card and the chrome footer; = 1:1 with
+            // the sidebar / chat / editor chrome-attachment
+            // pattern).
+            //
             // Place the search field at the LEADING (= left) edge of the cards
             // column's top bar (= flush to the column's left margin).
             // The SwiftUI `.searchable` modifier is hard-wired to
@@ -560,6 +604,32 @@ struct AssetsPane: View {
             // `envAppState.searchText` filter; = the chrome
             // count always matches the visible card count
             // the user sees in the grid).
+            // 2026-10-12 round-17 boss directive "你看其它三
+            // 栏, 都没有这一点点小边, 你先别改, 去看看
+            // 其它三栏和素材栏有什么不同. 为什么去掉
+            // 下的内边距, 还有这一点间隙" — add
+            // `.frame(maxHeight: .infinity)` on the
+            // `PreviewPane(...)` call (= the chrome
+            // `.safeAreaInset` below is on PreviewPane, =
+            // a CHILD of the outer VStack; = the chrome
+            // was anchored to PreviewPane's bottom edge
+            // (= the last card's bottom) rather than to
+            // the COLUMN's bottom; = the empty space
+            // below the last card was outside the
+            // safe-area-inset scope; = the chrome
+            // appeared as a separate row BELOW the last
+            // card rather than overlapping the bottom of
+            // the column body). With `.frame(maxHeight:
+            // .infinity)`, PreviewPane fills the column
+            // (= its bottom edge = the column's bottom
+            // edge; = the chrome's safe-area-inset
+            // pushes the LAST CARD up by 38 PT; = the
+            // chrome OVERLAPS the bottom 38 PT of the
+            // column body; = 0 PT visible gap between the
+            // last card and the chrome footer; = 1:1
+            // with the sidebar / chat / editor chrome-
+            // attachment pattern).
+            .frame(maxHeight: .infinity)
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 ChromeBottomFooter {
                     HStack(spacing: DesignTokens.spacingTight) {
