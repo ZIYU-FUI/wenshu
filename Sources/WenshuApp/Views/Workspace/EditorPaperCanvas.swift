@@ -42,7 +42,7 @@ struct EditorPaperCanvas<Content: View>: View {
     @ViewBuilder var content: Content
 
     var body: some View {
-        // 
+        //
         // the sheet used to be left-aligned inside its
         // ScrollView (= the 595 PT paper sat flush against the
         // ScrollView's leading edge = ~370 PT of black empty
@@ -59,6 +59,35 @@ struct EditorPaperCanvas<Content: View>: View {
         // same mechanism SwiftUI uses for centered hero
         // images). The Spacers then have room to push the
         // paper to the visual center of the column.
+        //
+        // 2026-10-12 boss directive "还是不对, 距离底部有
+        // 边距, 看一下是边距的问题, 还是整体的尺寸设定的
+        // 问题" — the prior commit `54e9d90d3` (= round 1
+        // status-bar fix) added `.frame(maxHeight: .infinity,
+        // alignment: .top)` to the body ZStack in
+        // `EditorView.swift` so the body fills the editor
+        // zone (= the status bar drops to the bottom of the
+        // zone). The body ZStack's primary content is THIS
+        // `ScrollView`. The ScrollView without an explicit
+        // maxHeight modifier sizes to its intrinsic content
+        // (= the 842 PT A4 paper); the `.frame(maxHeight:
+        // .infinity, alignment: .top)` on the ZStack made
+        // the ScrollView's intrinsic 842 PT top-align inside
+        // the zone = the rest of the zone below the paper
+        // (= 880 - 842 - 28 toolbar = 10 PT + 20 PT self-pad
+        // below) renders as transparent editor-column
+        // background, leaving a visible gap between the
+        // paper and the status bar. Apple HIG editor
+        // surface recipe (= Pages / Numbers / Xcode) keeps
+        // the paper filling the available height (= the
+        // paper can scroll when content > visible area).
+        // Add `.frame(maxHeight: .infinity)` on the
+        // ScrollView so the paper expands to fill the
+        // editor zone (= no visible gap between the paper
+        // and the status bar); the ScrollView's own
+        // vertical scroll kicks in when the document is
+        // longer than the visible area (= the standard
+        // SwiftUI NSScrollView bridge behavior).
         ScrollView([.horizontal, .vertical]) {
             content
                 .padding(Self.paperMargin)
@@ -81,6 +110,7 @@ struct EditorPaperCanvas<Content: View>: View {
                 .padding(.vertical, DesignTokens.spacingSection)
                 .frame(maxWidth: .infinity, alignment: .center)
         }
+        .frame(maxHeight: .infinity)
         .defaultScrollAnchor(.center)
         .scrollContentBackground(.hidden)
     }
