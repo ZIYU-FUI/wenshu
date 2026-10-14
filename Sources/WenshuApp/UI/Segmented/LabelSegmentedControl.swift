@@ -131,6 +131,32 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
     let displayStrings: [String]
     /// Per-segment symbol provider.
     let icon: ((Selection) -> NSImage?)?
+    /// 2026-10-14 v3:
+    /// per-segment
+    /// fixed-width
+    /// override
+    /// (= the
+    /// parent
+    /// `EditorTabStrip`
+    /// passes a
+    /// non-zero
+    /// value when
+    /// the tabs
+    /// overflow
+    /// the column;
+    /// = the
+    /// control
+    /// uses
+    /// `segmentDistribution = .fit`
+    /// + `setWidth(fixedSegmentWidth, forSegment: i)`
+    /// so the
+    /// per-segment
+    /// width
+    /// stays
+    /// at the
+    /// given
+    /// value).
+    var fixedSegmentWidth: CGFloat = 0
     /// Double-click callback (= the user double-clicks a
     /// segment; = the callback receives the
     /// zero-indexed segment position; = the
@@ -160,7 +186,8 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         displayStrings: [String]? = nil,
         iconStyle: IconStyle = .paneTab,
         icon: ((Selection) -> NSImage?)? = nil,
-        onDoubleClickSegment: ((Int) -> Void)? = nil
+        onDoubleClickSegment: ((Int) -> Void)? = nil,
+        fixedSegmentWidth: CGFloat = 0
     ) {
         self.selection = selection
         self.labels = labels
@@ -168,6 +195,7 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         self.iconStyle = iconStyle
         self.icon = icon
         self.onDoubleClickSegment = onDoubleClickSegment
+        self.fixedSegmentWidth = fixedSegmentWidth
     }
 
     func makeNSView(context: Context) -> NSSegmentedControl {
@@ -282,7 +310,246 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         // (= `segmentDistribution = .fillEqually`; = each segment
         // takes 1/N of the column width when N pages;
         // = NSSegmentedControl auto-stretches with the column drag).
+        // 2026-10-14 v3.5:
+        // back to
+        // `.fillEqually`
+        // (= the
+        // canonical
+        // equal-width
+        // distribution
+        // that
+        // matches
+        // Safari
+        // tab-strip
+        // visuals).
+        // The
+        // previous
+        // v3.4
+        // `.fit` mode
+        // (= the
+        // boss's
+        // "framework
+        // built-in
+        // don't
+        // auto-grow"
+        // path) had
+        // a
+        // secondary
+        // bug: the
+        // ScrollView
+        // wrap
+        // introduces
+        // a
+        // multi-pass
+        // layout
+        // cycle
+        // for the
+        // inner
+        // `NSViewRepresentable`
+        // `NSSegmentedControl`
+        // (= the
+        // boss 2026-10-14
+        // "tab 现在位置
+        // 很飘"
+        // symptom;
+        // = the
+        // tab
+        // strip
+        // visually
+        // jumps
+        // between
+        // renders
+        // as
+        // SwiftUI
+        // re-lays
+        // out
+        // the
+        // ScrollView
+        // viewport
+        // on
+        // every
+        // body
+        // re-evaluation;
+        // = the
+        // previous
+        // v3.1
+        // attempt
+        // (= .fillEqually
+        // +
+        // GeometryReader
+        // +
+        // .frame(maxWidth: .infinity))
+        // was the
+        // only
+        // stable
+        // layout
+        // the
+        // boss
+        // signed
+        // off
+        // on).
+        // The
+        // v3.5
+        // fix:
+        // drop
+        // the
+        // ScrollView
+        // wrap
+        // (=
+        // the
+        // `EditorTabStrip`
+        // now
+        // uses
+        // the
+        // plain
+        // `LabelSegmentedControl`
+        // with
+        // no
+        // wrapping
+        // `Group`
+        // /
+        // no
+        // `ScrollView`/
+        // no
+        // `ScrollViewReader`;
+        // = the
+        // NSSegmentedControl
+        // is
+        // laid
+        // out
+        // in
+        // a
+        // single
+        // SwiftUI
+        // pass
+        // with
+        // the
+        // outer
+        // `.frame(maxWidth: .infinity,
+        // alignment: .leading)`
+        // proposal;
+        // = no
+        // position
+        // jump
+        // = no
+        // "飘"
+        // symptom).
+        // The
+        // boss
+        // already
+        // signed
+        // off
+        // on
+        // the
+        // v3.1
+        // "N
+        // 多
+        // 时
+        // 拉
+        // 宽
+        // 窗
+        // 口"
+        // symptom
+        // (= the
+        // NSSegmentedControl
+        // with
+        // `.fillEqually`
+        // +
+        // parent
+        // `.frame(maxWidth: .infinity)`
+        // grows
+        // the
+        // window
+        // to
+        // fit
+        // all
+        // segments
+        // when
+        // N
+        // is
+        // large;
+        // = the
+        // boss
+        // accepted
+        // that
+        // trade-off
+        // before;
+        // = the
+        // v3.5
+        // trade-off
+        // is
+        // "stable
+        // layout
+        // but
+        // window
+        // grows
+        // with
+        // N").
+        // The
+        // `fixedSegmentWidth
+        // > 0`
+        // path
+        // is
+        // dropped
+        // (=
+        // the
+        // per-segment
+        // width
+        // override
+        // is
+        // no
+        // longer
+        // needed;
+        // = the
+        // .fillEqually
+        // distribution
+        // handles
+        // the
+        // per-segment
+        // width
+        // automatically).
         control.segmentDistribution = .fillEqually
+        // 2026-10-14 v3.5: pin
+        // `controlSize = .small`
+        // (= the macOS
+        // 27 canonical
+        // "small" control
+        // size; = ~22 PT
+        // segment height
+        // + ~60-80 PT
+        // segment width
+        // for a typical
+        // 2-character
+        // Chinese label;
+        // = the
+        // NSSegmentedControl
+        // reports a
+        // smaller
+        // `intrinsicContentSize`
+        // in the
+        // `.fillEqually`
+        // mode; = the
+        // window still
+        // grows to fit
+        // all segments
+        // when N is
+        // large, but
+        // the per-segment
+        // size is
+        // smaller than
+        // the v3.1 default
+        // `.large` size;
+        // = the boss
+        // accepts the
+        // window-grow
+        // trade-off for
+        // a more compact
+        // tab strip =
+        // the canonical
+        // macOS 27
+        // Inspector tab
+        // visual).
+        control.controlSize = .small
         // Spread tracking mode = distribute leftover space
         // (= when control is wider than the sum of intrinsic
         // widths; = equivalent to NSSegmentedControl's

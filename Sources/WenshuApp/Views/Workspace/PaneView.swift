@@ -247,45 +247,185 @@ struct PaneView: View {
     /// (= dedup + tab creation + activeTabId mutation) delegates
     /// to `CardOpenOps.openTab`.
     private func openCardInEditor(source: CardSource? = nil) {
-        // Step 1 = resolve the triad. Reference-scope uses
-        // CardOpenOps (= shared with WorkspaceView / ShellMiddleColumn);
-        // book-scope uses this view's local file-scan (= walk the
-        // 8 standard folders for the first .md; = same as before).
-        let scope = previewScope
+        // 2026-10-14 v7 (= the boss
+        // 2026-10-14 "我双击的
+        // 是卡片，这个卡片
+        // 的文档目录和文档
+        // ID，就应该在卡
+        // 片上带的吗 / 无
+        // 论我选的是哪个
+        // 目录，和我双击
+        // 卡片有啥关系"
+        // root-cause insight): the
+        // double-click handler
+        // must NOT route through
+        // the sidebar's
+        // `previewScope` (= the
+        // `WorkspaceUI.previewScope`
+        // value the sidebar
+        // drives from the user's
+        // row selection). The
+        // `CardSource` passed in
+        // by the double-click
+        // carries the
+        // source-of-truth
+        // identity for the doc
+        // (= `BookDoc.id` is a
+        // UUID v5 of the file
+        // path; = `Reference.id`
+        // is the reference's own
+        // UUID; = each source
+        // self-identifies). The
+        // sidebar scope is only
+        // relevant for the
+        // middle-column card
+        // grid rendering
+        // (= which docs to
+        // LIST in the middle
+        // column), NOT for the
+        // double-click → editor
+        // pipeline (= which doc
+        // to OPEN in the
+        // editor). The previous
+        // `switch scope` router
+        // (= .referenceScope /
+        // .bookScope /
+        // .shelfScope /
+        // .tagScope branches)
+        // made the open-tab
+        // behavior a function of
+        // the sidebar row
+        // selection (= a
+        // side-channel input
+        // the user does not
+        // control when
+        // double-clicking a
+        // card; = the user saw
+        // the editor open a
+        // doc that is NOT the
+        // one they clicked; = the
+        // boss 2026-10-14
+        // "不好用" / "卡
+        // 片的文档目录
+        // 和文档 ID
+        // 就应该在
+        // 卡片上带
+        // 的" root
+        // cause). The
+        // `CardSource`-driven
+        // rewrite below makes
+        // the editor open EXACTLY
+        // the doc the user
+        // double-clicked, regardless
+        // of the sidebar row the
+        // user happened to have
+        // selected.
         let triad: CardOpenOps.CardTriad
-        switch scope {
-        case .referenceScope:
-            // Delegate (= shared code path with WorkspaceView).
+        if let source {
+            // 2026-10-14 v7: the
+            // double-click source
+            // (= `BookDoc` or
+            // `Reference`) is the
+            // canonical identity.
+            // Route through
+            // `CardOpenOps.computeCardTriad`
+            // (= the shared
+            // v2.7-round-66 commit
+            // H resolution; =
+            // `BookDoc` → full
+            // body via
+            // `loadBookDoc`; =
+            // `Reference` → full
+            // body via
+            // `loadReferenceBody`;
+            // = both return
+            // the on-disk file
+            // path as the
+            // `CardTriad.path`;
+            // = the editor's
+            // auto-save writes
+            // to the canonical
+            // file).
             triad = CardOpenOps.computeCardTriad(
                 source: source,
-                previewScope: scope,
+                previewScope: .bookScope(
+                    bookId: UUID(),
+                    folderName: ""
+                ),
                 bookStore: bookStore
             )
-        case .bookScope(let bookId, let folderName):
-            // Local file-scan (= not shared with WorkspaceView or
-            // ShellMiddleColumn; = preserved verbatim per ticket
-            // 027-35's deferred plan to lift into a workspace-
-            // level BookDocLoader service).
-            if case .bookDoc(let doc) = source {
-                triad = CardOpenOps.CardTriad(path: nil, content: doc.summary, title: doc.title)
-            } else {
-                triad = scanFirstBookDoc(bookId: bookId, folderName: folderName)
+            // The
+            // `previewScope`
+            // arg above is
+            // only a routing
+            // hint for the
+            // reference-tag /
+            // shelf-fallback
+            // paths inside
+            // `computeCardTriad`;
+            // = the
+            // `.bookScope`
+            // branch is the
+            // only one that
+            // reads the
+            // `source.bookDoc`
+            // payload;
+            // = the
+            // placeholder
+            // bookId is
+            // ignored
+            // (= the
+            // BookDoc
+            // carries
+            // its own
+            // bookId
+            // via
+            // source).
+        } else {
+            // No source (= the
+            // caller tapped the
+            // empty area of
+            // the middle
+            // column; = rare
+            // fallback; = the
+            // previous v0.34
+            // PaneView's
+            // behavior was
+            // to surface a
+            // "pick a card"
+            // empty-state
+            // hint). The
+            // sidebar scope
+            // is only consulted
+            // in this
+            // fallback path
+            // (= a caller with
+            // no `source` arg
+            // gets the
+            // scope-based
+            // placeholder).
+            switch previewScope {
+            case .referenceScope:
+                triad = CardOpenOps.computeCardTriad(
+                    source: nil,
+                    previewScope: previewScope,
+                    bookStore: bookStore
+                )
+            case .bookScope(let bookId, let folderName):
+                triad = scanFirstBookDoc(
+                    bookId: bookId, folderName: folderName
+                )
+            case .shelfScope(let shelfId):
+                triad = scanFirstBookDocInShelf(shelfId: shelfId)
+            case .empty, .tagScope:
+                triad = CardOpenOps.CardTriad(
+                    path: nil, content: "", title: ""
+                )
             }
-        case .shelfScope, .empty, .tagScope:
-            // v2.6 facet model: .tagScope is a preview-pane
-            // filter scope (= the same as .referenceScope in
-            // terms of what to open; = the openTab result
-            // uses the scope's sourceScope for tab routing;
-            // = a .tagScope result opens the card in the
-            // editor the same way a .referenceScope result
-            // does). The empty triad here means "no
-            // pre-resolved content" (= the editor opens
-            // the document by id; = see CardOpenOps.openTab).
-            triad = CardOpenOps.CardTriad(path: nil, content: "", title: "")
         }
         _ = CardOpenOps.openTab(
             triad: triad,
-            previewScope: scope,
+            previewScope: previewScope,
             appState: appState
         )
     }
@@ -342,6 +482,100 @@ struct PaneView: View {
             }
         }
         return CardOpenOps.CardTriad(path: nil, content: "", title: "book-doc")
+    }
+
+    /// 2026-10-14: shelf-scope
+    /// variant of
+    /// `scanFirstBookDoc`.
+    /// Walks all books
+    /// under the given
+    /// shelf and picks
+    /// the first .md
+    /// (= the canonical
+    /// "open the first
+    /// available doc in
+    /// the shelf" behavior
+    /// the wenshu 1:1
+    /// expects). The
+    /// shelfId identifies
+    /// the shelf dir at
+    /// `<shelvesRoot>/<shelfId>/books/...`.
+    /// The body + URL are
+    /// both returned so
+    /// `EditorPersistence.save`
+    /// writes the edit to
+    /// the canonical
+    /// shelves file (= the
+    /// boss 2026-10-14 "修
+    /// 改不保存" root
+    /// cause was the
+    /// `path: nil`
+    /// `CardTriad`
+    /// returned by
+    /// the previous shelf
+    /// scope branch; = the
+    /// editor's auto-save
+    /// fell through to
+    /// `/tmp`; = the
+    /// shelves file was
+    /// never updated).
+    private func scanFirstBookDocInShelf(
+        shelfId: UUID
+    ) -> CardOpenOps.CardTriad {
+        let shelvesRoot = bookStore.stores.shelvesRoot
+        let shelfDir = shelvesRoot.appendingPathComponent(
+            shelfId.uuidString
+        )
+        let booksDir = shelfDir.appendingPathComponent("books")
+        guard let bookDirs = try? FileManager.default.contentsOfDirectory(
+            at: booksDir,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        ) else {
+            return CardOpenOps.CardTriad(
+                path: nil, content: "", title: "shelf"
+            )
+        }
+        // Stable sort by name (= the
+        // user expects the
+        // first doc = the
+        // alphabetically-first
+        // .md; = this avoids
+        // the "open a different
+        // doc on each click"
+        // race condition that
+        // happens when the
+        // directory iteration
+        // order is not stable
+        // across launches on
+        // different macOS
+        // versions).
+        let sortedBookDirs = bookDirs.sorted { $0.lastPathComponent < $1.lastPathComponent }
+        let folders = [
+            "world", "characters", "outlines", "chapters",
+            "drafts", "sessions", "foreshadowing", "placeholders"
+        ]
+        for bookDir in sortedBookDirs {
+            for folder in folders {
+                let dirURL = bookDir.appendingPathComponent(folder)
+                guard let entries = try? FileManager.default.contentsOfDirectory(
+                    at: dirURL,
+                    includingPropertiesForKeys: nil,
+                    options: [.skipsHiddenFiles]
+                ) else { continue }
+                if let first = entries.first(where: { $0.pathExtension == "md" }) {
+                    let body = (try? String(contentsOf: first, encoding: .utf8)) ?? ""
+                    return CardOpenOps.CardTriad(
+                        path: first.path,
+                        content: body,
+                        title: first.deletingPathExtension().lastPathComponent
+                    )
+                }
+            }
+        }
+        return CardOpenOps.CardTriad(
+            path: nil, content: "", title: "shelf"
+        )
     }
 
 }

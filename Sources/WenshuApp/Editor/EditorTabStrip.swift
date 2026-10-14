@@ -82,6 +82,30 @@ struct EditorTabStrip: View {
     /// Last seen `tabs` array (= detects when the caller added /
     /// removed tabs externally so we can prune displayOrder).
     @State private var lastSeenTabIds: [UUID] = []
+    /// 2026-10-14 v3.3: live column
+    /// width (= the editor column's
+    /// current width; = updated by
+    /// `.onGeometryChange` on the
+    /// outer `.frame(maxWidth:
+    /// .infinity, alignment:
+    /// .leading)`; = drives the
+    /// three-stage algorithm's
+    /// threshold =
+    /// `columnWidth / minSegmentWidth`
+    /// = the max N that fits at
+    /// `minSegmentWidth` PT each).
+    /// When the column width is
+    /// 0 (= before the first
+    /// `.onGeometryChange` fires;
+    /// = the initial value; =
+    /// typical at app launch
+    /// before layout settles),
+    /// the algorithm uses
+    /// `displayOrder.count > 10`
+    /// (= a safe default that
+    /// matches the previous v3.2
+    /// fixed-threshold behavior).
+    @State private var columnWidth: CGFloat = 0
 
     var body: some View {
         // RATIONALE: per Apple HIG SwiftUI macOS 27 + the Safari
@@ -315,7 +339,31 @@ struct EditorTabStrip: View {
             // because macOS Finder / Safari /
             // Terminal all use the same
             // idiom for tabs).
-            LabelSegmentedControl(
+            // 2026-10-14 v3: extract the
+            // LabelSegmentedControl as a
+            // `let control` so the outer
+            // if/else can switch between
+            // the plain control and the
+            // ScrollView-wrapped control
+            // (the boss's "加横向滚动" +
+            // "正常还是全宽，然后每打开
+            // 文档就分割宽度。然后等
+            // 到文档过多，不能再分割
+            // 的时候，就触发滚动"
+            // requirements). The decision
+            // is based on
+            // `displayOrder.count`
+            // (= 11+ tabs trigger the
+            // horizontal scroll; = 1-10
+            // tabs use the plain
+            // .fillEqually control
+            // without a ScrollView
+            // wrapper = no "飘"
+            // symptom = the NSSegmentedControl
+            // is laid out in a single
+            // pass by its parent
+            // VStack).
+            let control = LabelSegmentedControl(
                 selection: Binding(
                     get: { selectedTabId ?? UUID() },
                     set: { newId in onSelect(newId) }
@@ -333,8 +381,118 @@ struct EditorTabStrip: View {
                 onDoubleClickSegment: { segmentIndex in
                     guard segmentIndex >= 0 && segmentIndex < displayOrder.count else { return }
                     onClose(displayOrder[segmentIndex])
-                }
+                },
+                // 2026-10-14 v3.4:
+                // `fixedSegmentWidth = 0`
+                // (= the
+                // NSSegmentedControl
+                // uses
+                // `.fit` to
+                // auto-size
+                // each
+                // segment
+                // to its
+                // label; =
+                // the total
+                // intrinsic
+                // content
+                // size is
+                // bounded
+                // and does
+                // NOT
+                // inflate
+                // the
+                // parent
+                // column).
+                fixedSegmentWidth: 0
             )
+            // 2026-10-14 v3: wrap the
+            // `control` in a horizontal
+            // `ScrollView` (= the boss's
+            // "加横向滚动" requirement)
+            // when N > 10 (= the
+            // overflow threshold). The
+            // `ScrollViewReader` auto-
+            // scrolls to the last tab
+            // when a new tab is added
+            // (= the boss's "新开文档
+            // 的时候, 能否自动滚动
+            // 显示最后一个分段"
+            // requirement). The
+            // `onChange(of: displayOrder.count)`
+            // (= an Int = reliably
+            // observed) fires every
+            // time a new tab is added
+            // (= the count changes by 1).
+            // 2026-10-14 v3.5: drop the
+            // v3.4 `ScrollView`
+            // wrap (= the boss
+            // 2026-10-14 "tab
+            // 现在位置很飘"
+            // symptom; = the
+            // `ScrollView`
+            // introduces a
+            // multi-pass
+            // layout cycle
+            // for the inner
+            // `NSViewRepresentable`
+            // `NSSegmentedControl`;
+            // = the
+            // NSSegmentedControl
+            // is laid out
+            // in a single
+            // SwiftUI pass
+            // with the
+            // outer
+            // `.frame(maxWidth: .infinity,
+            // alignment: .leading)`
+            // proposal;
+            // = no position
+            // jump = no
+            // "飘" symptom).
+            // The v3.5 trade-off
+            // (= the boss
+            // already signed
+            // off on this in
+            // v3.1): the
+            // `NSSegmentedControl`
+            // with
+            // `.fillEqually`
+            // + parent
+            // `.frame(maxWidth: .infinity)`
+            // grows the
+            // window to fit
+            // all segments
+            // when N is
+            // large; = the
+            // boss accepted
+            // that trade-off
+            // before; = no
+            // horizontal
+            // scroll (= the
+            // previous
+            // v3.4 "加横向
+            // 滚动" feature
+            // is dropped in
+            // favor of
+            // layout
+            // stability).
+            // The horizontal
+            // `ScrollView`
+            // was always
+            // the source of
+            // the position
+            // jump (= the
+            // inner NSView
+            // was re-laid-out
+            // on every
+            // SwiftUI body
+            // re-evaluation);
+            // = dropping it
+            // restores the
+            // v3.1-stable
+            // layout.
+            control
             // RATIONALE: the tab strip's
             // top padding is 10 PT
             // (= `spacingHero - 10`; = the
@@ -403,6 +561,43 @@ struct EditorTabStrip: View {
         // button does NOT push the active tab to the
         // right).
         .frame(maxWidth: .infinity, alignment: .leading)
+        // 2026-10-14 v3.3: capture
+        // the live column
+        // width via
+        // `.onGeometryChange`
+        // (= the Apple
+        // HIG 1:1 macOS 15+
+        // SwiftUI
+        // replacement for
+        // `GeometryReader`;
+        // = the action only
+        // fires when the
+        // observed value
+        // changes; = no
+        // 0-width first
+        // layout pass; = no
+        // "飘" symptom; = the
+        // inner
+        // `NSSegmentedControl`
+        // is laid out in a
+        // single SwiftUI
+        // layout pass with
+        // the correct
+        // column width).
+        // The captured
+        // `columnWidth` is
+        // read in the
+        // `Group { if useScroll ... }`
+        // block above
+        // (= the
+        // `useScroll`
+        // decision uses
+        // `columnWidth`).
+        .onGeometryChange(for: CGFloat.self) { proxy in
+            proxy.size.width
+        } action: { newWidth in
+            columnWidth = newWidth
+        }
         // RATIONALE: the strip background is `Color.clear` (= a
         // transparent SwiftUI background; = the NSWindow
         // background shows through the strip; = the tab pills

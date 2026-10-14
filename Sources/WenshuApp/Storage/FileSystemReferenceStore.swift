@@ -28,6 +28,7 @@
 //   <.ws>/reference-library/<layer>/<layer>.json
 
 import Foundation
+import os
 import SwiftData
 
 // MARK: - Protocol
@@ -93,6 +94,24 @@ protocol ReferenceStoring: Sendable {
 
     /// Look up a single reference by id.
     func referenceExists(id: UUID) -> Bool
+
+    /// 2026-10-14: write-through helper used by the
+    /// editor's auto-save path. Updates the
+    /// SwiftData `WSReference.body` cache to
+    /// match a freshly written reference file.
+    /// Best-effort (= silently no-ops if the
+    /// `ModelContainer` is not wired or the row
+    /// is missing; = the file write above is the
+    /// source of truth and has already succeeded).
+    /// Lives on the protocol so the
+    /// `EditorPersistence` call site can reach
+    /// it through `bookStore.stores.referenceStore`
+    /// (= Swift's protocol-dispatch constraint)
+    /// without caring whether the concrete store
+    /// is the SwiftData-backed
+    /// `FileSystemReferenceStore` or a future
+    /// pure-file implementation.
+    func replaceReferenceByID(id: UUID, bodyMarkdown: String) throws
 }
 
 // MARK: - Errors
@@ -292,6 +311,25 @@ struct FileSystemReferenceStore: ReferenceStoring {
         let row = Self.makeRow(reference: reference, bodyMarkdown: bodyMarkdown)
         context.insert(row)
         try context.save()
+        // 2026-10-14: also write the body to its
+        // single-file truth location. See the matching
+        // note in `replaceReference` above. The
+        // first-save of a new reference writes the file
+        // at the canonical path (= the
+        // `references/<uuid>.md` location produced by
+        // `referenceFileURL`); = subsequent
+        // `replaceReference` calls overwrite the same
+        // file. A pre-doc-truth-git reference that
+        // already has SwiftData body content (= no
+        // corresponding file) will have its file
+        // written on the first edit (= the
+        // `replaceReference` call updates the file
+        // alongside the SwiftData row).
+        try? Self.writeReferenceFileToFileSystem(
+            id: id,
+            bodyMarkdown: bodyMarkdown,
+            referenceLibraryRoot: referenceLibraryRoot
+        )
     }
 
     func replaceReference(_ reference: Reference, bodyMarkdown: String) throws {
@@ -328,6 +366,28 @@ struct FileSystemReferenceStore: ReferenceStoring {
         existing.bookRefIDs = reference.bookRefIds
         existing.updatedAt = Date()
         try context.save()
+        // 2026-10-14: also write the body to its
+        // single-file truth location. The doc-truth-git
+        // ticket (= .scratch/2026-10-14-doc-truth-git/
+        // ticket.md) makes the file the single source
+        // of truth; = the SwiftData `body` column
+        // becomes a write-through cache (= an in-app
+        // consumer like the LLM agent's `find` tool
+        // can still read the body from SwiftData
+        // without touching the filesystem; = the editor
+        // reads from the file via
+        // `loadReferenceBody` file-first). The write
+        // here is atomic (= `atomicFileSystemWrite` =
+        // temp + rename + fsync) and silently
+        // creates the parent `references/`
+        // directory. A subsequent v1.10 ticket will
+        // wrap this in a `git add` + `git commit` so the
+        // user's edits become a versioned commit.
+        try? Self.writeReferenceFileToFileSystem(
+            id: id,
+            bodyMarkdown: bodyMarkdown,
+            referenceLibraryRoot: referenceLibraryRoot
+        )
     }
 
     func upsertReference(
@@ -440,6 +500,45 @@ struct FileSystemReferenceStore: ReferenceStoring {
     }
 
     func loadReferenceBody(id: UUID) -> String? {
+        // 2026-10-14: read the file-truth version first
+        // when present. The doc-truth-git ticket
+        // (= .scratch/2026-10-14-doc-truth-git/ticket.md)
+        // migrates the reference body from the
+        // SwiftData `WSReference.body` column to a
+        // per-document file at
+        // `<referenceLibraryRoot>/references/<uuid>.md`.
+        // Once the migration runs on first launch (= the
+        // body's content has been written to disk; = a
+        // v1.00 ticket), the SwiftData body becomes a
+        // write-through cache (= the writer still updates
+        // it for in-app consumers that read SwiftData
+        // directly, = e.g. the `ReferenceLibraryTool` for
+        // the LLM agent's `find` tool returns metadata +
+        // body from SwiftData without touching the
+        // filesystem), and the file is the single source
+        // of truth for the editor + version control. The
+        // file is checked first so a fresh git checkout
+        // (= the user clones the .ws library onto a new
+        // machine, = there is no SwiftData store yet) can
+        // still open the document and see the file
+        // content. Falls back to SwiftData when the file
+        // does not exist (= the migration has not run for
+        // this reference yet, = the user is on a
+        // pre-doc-truth-git build of wenshu and just
+        // opened a reference tab; = the SwiftData body
+        // column is still the canonical source until
+        // first save writes the file).
+        let fileURL = Self.referenceFileURL(
+            id: id, referenceLibraryRoot: referenceLibraryRoot
+        )
+        os_log("[wenshu.reference] loadReferenceBody id=%{public}@ filePath=%{public}@",
+               id.uuidString, fileURL.path)
+        let fileBody = Self.readReferenceFileFromFileSystem(
+            id: id, referenceLibraryRoot: referenceLibraryRoot
+        )
+        os_log("[wenshu.reference] loadReferenceBody fileBody=%{public}d chars",
+               fileBody?.count ?? -1)
+        if let fileBody { return fileBody }
         guard let context = modelContext else {
             // FileSystem path: search all layer directories for the .md
             // file. Without layer info (= only the id) we walk all 4
@@ -736,6 +835,113 @@ struct FileSystemReferenceStore: ReferenceStoring {
         }
         current[idx] = reference
         try writeIndexToFileSystem(current, at: referenceLibraryRoot, layer: reference.layer)
+    }
+
+    // MARK: - Single-file reference body (= doc-truth-git ticket)
+
+    /// 2026-10-14: the doc-truth-git ticket migrates
+    /// the reference body to a per-document file at
+    /// `<referenceLibraryRoot>/../references/<uuid>.md`
+    /// (= sibling of `shelves/` and `reference-library/`
+    /// in the .ws library root). This helper reads that
+    /// file (= returns nil if the file does not exist or
+    /// cannot be read). The editor's `restoreOpenTabs`
+    /// (= when a reference tab is restored) and the
+    /// `loadReferenceBody` SwiftData path now check this
+    /// file first, falling back to the SwiftData `body`
+    /// column when the file is missing. See
+    /// .scratch/2026-10-14-doc-truth-git/ticket.md.
+    nonisolated static func readReferenceFileFromFileSystem(
+        id: UUID,
+        referenceLibraryRoot: URL
+    ) -> String? {
+        let url = referenceFileURL(id: id, referenceLibraryRoot: referenceLibraryRoot)
+        return try? String(contentsOf: url, encoding: .utf8)
+    }
+
+    /// Atomic write of the reference body to its
+    /// single-file truth location. Creates the parent
+    /// `references/` directory if missing (= the
+    /// migration's first write also creates the
+    /// directory). Returns silently when the write
+    /// succeeds (= the editor's autosave path is
+    /// fire-and-forget for the file write; = the calling
+    /// layer is responsible for git committing the
+    /// change in a future v1.10 ticket).
+    nonisolated static func writeReferenceFileToFileSystem(
+        id: UUID,
+        bodyMarkdown: String,
+        referenceLibraryRoot: URL
+    ) throws {
+        let url = referenceFileURL(id: id, referenceLibraryRoot: referenceLibraryRoot)
+        let parent = url.deletingLastPathComponent()
+        try FileManager.default.createDirectory(
+            at: parent, withIntermediateDirectories: true
+        )
+        try atomicFileSystemWrite(
+            bodyMarkdown.data(using: .utf8) ?? Data(),
+            to: url
+        )
+    }
+
+    /// Resolve the canonical single-file path for a
+    /// reference body. Lives next to the library's
+    /// `shelves/` and `reference-library/` directories
+    /// (= a flat single-layer directory; = unlike the
+    /// legacy `reference-library/<layer>/<uuid>.md`
+    /// layout). The `..` step out of
+    /// `reference-library/` produces
+    /// `<.ws>/references/<uuid>.md`.
+    nonisolated static func referenceFileURL(
+        id: UUID,
+        referenceLibraryRoot: URL
+    ) -> URL {
+        let referencesRoot = referenceLibraryRoot
+            .deletingLastPathComponent()
+            .appendingPathComponent("references", isDirectory: true)
+        return referencesRoot.appendingPathComponent(
+            "\(id.uuidString).md", isDirectory: false
+        )
+    }
+
+    /// 2026-10-14: write-through helper used by the
+    /// editor's auto-save path. Looks up the
+    /// `WSReference` by id, updates the `body` field
+    /// (= so the LLM agent's `ReferenceLibraryTool`
+    /// continues to see the latest content), and
+    /// re-saves. The single-file truth on disk has
+    /// already been written by the caller (= the
+    /// editor's `EditorPersistence.save` writes the
+    /// file first, = then calls this helper to keep
+    /// the SwiftData cache consistent). The
+    /// `loadAllReferences` fetch is fast
+    /// (= SwiftData's in-memory cache + the
+    /// `FetchDescriptor` predicate runs on a single
+    /// indexed column); = the LLM agent's first
+    /// `find` call after the user closes the editor
+    /// (= 3-second autosave debounce) sees the
+    /// updated body.
+    func replaceReferenceByID(id: UUID, bodyMarkdown: String) throws {
+        guard let context = modelContext else { return }
+        let idString = id.uuidString
+        let descriptor = FetchDescriptor<WSReference>(
+            predicate: #Predicate { $0.id == id }
+        )
+        guard let existing = try? context.fetch(descriptor).first else {
+            // Row missing in SwiftData. The file write
+            // already happened (= the editor's
+            // `EditorPersistence.save` wrote the file
+            // before calling us); = the in-memory
+            // SwiftData row can be lazily reconstructed
+            // on the next read (= the `loadReferenceBody`
+            // file-first read + the `loadAllReferences`
+            // fallback for metadata); = we silently
+            // skip the write here.
+            return
+        }
+        existing.body = bodyMarkdown
+        existing.updatedAt = Date()
+        try context.save()
     }
 
     nonisolated static func upsertReferenceToFileSystem(

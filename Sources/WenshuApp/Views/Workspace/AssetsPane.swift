@@ -219,13 +219,110 @@ struct AssetsPane: View {
     /// WorkspaceView + PaneView). Same `mode = .edit` per
     /// ShellMiddleColumn's specific UX (= WenshuMarkdownEditor's
     /// editable NSTextView from the start).
+    ///
+    /// 2026-10-14 v7.6 (= the boss
+    /// 2026-10-14 "我双击的
+    /// 是卡片，这个卡片
+    /// 的文档目录和文档
+    /// ID，就应该在卡
+    /// 片上带的吗 / 无
+    /// 论我选的是哪个
+    /// 目录，和我双击
+    /// 卡片有啥关系"
+    /// root-cause insight, take 2):
+    /// the v7 attempt focused
+    /// on `PaneView.openCardInEditor`
+    /// (= wrong file; = the
+    /// comment at L122-124
+    /// of `PaneView.swift`
+    /// documents that the
+    /// projectPreview path
+    /// is a LEGACY pane
+    /// registry path that
+    /// defaults to `.empty`
+    /// scope; = the active
+    /// preview path for the
+    /// wenshu's main window
+    /// is `AssetsPane.swift`,
+    /// which hosts
+    /// `PreviewPane(...)`
+    /// directly; = the
+    /// `onDoubleClick` from
+    /// `Card` reaches this
+    /// function via
+    /// `onDoubleClick: { source
+    /// in openCardInEditor(source: source) }`
+    /// at L408. Fix: route
+    /// the open through the
+    /// source (= the v7
+    /// pattern; = the
+    /// `previewScope` becomes
+    /// a hint only, not the
+    /// primary dispatch key).
+    /// The placeholder
+    /// `.bookScope(bookId: UUID(), folderName: "")`
+    /// is unused inside
+    /// `computeCardTriad`'s
+    /// `.bookScope` branch
+    /// (= that branch reads
+    /// the `source.bookDoc`
+    /// payload directly, not
+    /// the scope's bookId; =
+    /// the UUID() is a
+    /// throwaway).
     private func openCardInEditor(source: CardSource?) {
         let scope = previewScope()
-        let triad = CardOpenOps.computeCardTriad(
-            source: source,
-            previewScope: scope,
-            bookStore: bookStore
-        )
+        let triad: CardOpenOps.CardTriad
+        if let source {
+            // v7.6: source-driven
+            // routing (= the
+            // boss's
+            // 2026-10-14 OOB
+            // "无论我选的是
+            // 哪个目录，
+            // 和我双击卡
+            // 片有啥关
+            // 系" insight;
+            // = the sidebar
+            // scope only
+            // affects which
+            // cards are
+            // LISTED in the
+            // middle column;
+            // = the
+            // double-click
+            // opens the
+            // doc the user
+            // clicked, not
+            // the doc
+            // implied by
+            // the sidebar
+            // scope).
+            triad = CardOpenOps.computeCardTriad(
+                source: source,
+                previewScope: .bookScope(
+                    bookId: UUID(),
+                    folderName: ""
+                ),
+                bookStore: bookStore
+            )
+        } else {
+            // No source (= the
+            // caller tapped
+            // the empty
+            // area; = rare
+            // fallback; =
+            // preserve the
+            // previous
+            // scope-based
+            // behavior for
+            // compatibility).
+            triad = CardOpenOps.computeCardTriad(
+                source: nil,
+                previewScope: scope,
+                bookStore: bookStore
+            )
+        }
         _ = CardOpenOps.openTab(
             triad: triad,
             previewScope: scope,

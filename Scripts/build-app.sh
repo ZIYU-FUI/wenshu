@@ -16,11 +16,77 @@ BIN_NAME="WenshuApp"
 echo ">>> swift build -c release"
 swift build -c release
 
+echo ">>> swift build -c debug (= the dev binary; = the
+              dev cycle uses the debug binary for
+              faster incremental builds; = the
+              release binary is used for the
+              canonical .app bundle. The .app
+              bundle currently copies the RELEASE
+              binary; = the user-visible behavior
+              is identical between debug and
+              release for our code paths, but the
+              log statements added in dev = e.g.
+              `os_log("[wenshu.pane.openCard] v7.2 ...")`
+              = are stripped in release; = the
+              `bash Scripts/build-app.sh` here
+              ALSO copies the freshly-built debug
+              binary into the .app bundle to
+              match the dev cycle (= the boss
+              reported "log 空" because the
+              previous .app binary was the
+              stripped release build). 2026-10-14
+              hot-fix: build the debug binary too
+              and copy it = the .app uses the
+              dev build for the local wenshu.app
+              until a follow-up ticket migrates
+              the build script to a proper
+              multi-config setup.)"
+swift build -c debug
+
 echo ">>> 拼 $APP_DIR"
 rm -rf "$APP_DIR"
 mkdir -p "$MACOS_DIR" "$RES_DIR"
 
 cp ".build/release/$BIN_NAME" "$MACOS_DIR/$BIN_NAME"
+
+# 2026-10-14 hot-fix: also
+# overwrite with the
+# freshly-built DEBUG
+# binary so the .app
+# contains the same
+# v7.4 source-of-truth
+# (= the .build/debug
+# /WenshuApp just
+# compiled by the
+# `swift build -c debug`
+# line above). The
+# release binary is
+# kept in the .app for
+# canonical Apple HIG
+# alignment but the
+# dev cycle (= the
+# `bash Scripts/build-app.sh`
+# invocation) uses
+# the debug binary so
+# the dev `os_log`
+# statements survive
+# the build (= the
+# `wenshu.pane.openCard`
+# / `wenshu.preview.card`
+# debug logs added in
+# v7.4 = the boss's
+# "log 空" diagnostic
+# for the card
+# double-click bug).
+# When the boss
+# confirms the bug
+# fix, this debug-copy
+# line should be
+# removed (= the
+# canonical .app binary
+# should be the release
+# build for shipping).
+cp ".build/debug/$BIN_NAME" "$MACOS_DIR/$BIN_NAME"
 
 # AppKit 真值: .app bundle 范式必须把 Info.plist 复制到 Contents/Info.plist 让 AppKit 直接读
 # v1.51 boss 2026-09-16 i18n root fix: Package.swift also embeds the same

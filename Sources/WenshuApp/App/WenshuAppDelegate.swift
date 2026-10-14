@@ -296,6 +296,276 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // rationale). Idempotent: calling startSubAgentDrainLoop
         // twice is a no-op.
         Self.startSubAgentDrainLoop()
+        // 2026-10-14: enable macOS 27
+        // Window Tabs (= NSWindow
+        // tabbingMode = .preferred)
+        // for every window the
+        // app owns (= the
+        // canonical "框架自带"
+        // tab mechanism; = the
+        // View → Show Tab Bar
+        // menu command toggles
+        // this state; = the
+        // system-drawn tab bar
+        // appears under the
+        // window title bar;
+        // = cmd+T / cmd+shift+B
+        // work natively; = no
+        // wenshu code maintains
+        // the tab list). This
+        // is the Apple HIG 1:1
+        // path the boss asked
+        // for (= the
+        // "NSWindow.tabbingMode
+        // = .preferred" path
+        // from the 2026-10-14
+        // OOB). The wenshu
+        // business tabs (= the
+        // per-document editor
+        // tabs in the editor
+        // zone) are
+        // still wenshu-managed;
+        // = the Window Tabs
+        // and the business
+        // tabs are orthogonal
+        // (= the Window Tabs
+        // = a whole window
+        // per document, the
+        // business tabs = many
+        // documents in one
+        // window). The boss
+        // can compare the two
+        // visual side by side.
+        //
+        // 2026-10-14 v2 (=
+        // boss 2026-10-14
+        // "我们不光
+        // 用不了，
+        // 而且要
+        // 把这个
+        // 功能封
+        // 起来 /
+        // 我们不
+        // 能使用
+        // 这两个
+        // 功能"
+        // directive):
+        // the Window Tabs
+        // feature is
+        // REMOVED. The
+        // `tabbingMode = .preferred`
+        // path that the
+        // previous block
+        // enabled is
+        // REVERTED below
+        // (= the iteration
+        // variable is
+        // empty; = no
+        // window gets
+        // `tabbingMode = .preferred`;
+        // = no
+        // `tabbingIdentifier`
+        // is set; = the
+        // macOS 27 "Show
+        // Tab Bar" / "Show
+        // All Tabs"
+        // menu items in
+        // the View menu
+        // become
+        // unavailable
+        // (= the
+        // framework
+        // hides them
+        // when no
+        // window in
+        // the app is
+        // tabbing-enabled)).
+        // The
+        // `NSWindow.allowsAutomaticWindowTabbing
+        // = false` static
+        // guard below
+        // (= set once at
+        // app launch;
+        // = affects
+        // every future
+        // NSWindow the
+        // app creates;
+        // = the canonical
+        // AppKit guard
+        // for "this app
+        // does not use
+        // window tabbing")
+        // is the final
+        // lock = even if
+        // some third-party
+        // framework
+        // enables it,
+        // the OS-level
+        // menu hooks
+        // still hide the
+        // View menu
+        // items. Reason
+        // for removal
+        // (= the boss
+        // 2026-10-14
+        // "每一下
+        // 都独立
+        // 持久化
+        // 一份数
+        // 据" /
+        // "这不
+        // 是我们
+        // 想要的
+        // 东西"
+        // root
+        // cause): each
+        // macOS Window
+        // Tab creates
+        // an independent
+        // NSWindow;
+        // = each
+        // NSWindow
+        // hydrates its
+        // own SwiftData
+        // ModelContainer
+        // (= the warehouse
+        // file is shared
+        // on disk but
+        // each window
+        // opens its own
+        // sqlite handle
+        // + its own
+        // in-memory
+        // SwiftData
+        // cache; = a 12-tab
+        // set = 12 sqlite
+        // handles + 12
+        // caches; = memory
+        // +12x + 12
+        // write-coordination
+        // risks). The
+        // wenshu business
+        // tabs (= the
+        // single-window-
+        // N-docs pattern)
+        // share ONE
+        // SwiftData
+        // container
+        // (= the canonical
+        // wenshu 1:1
+        // pattern; = the
+        // user opens many
+        // docs in one
+        // window;
+        // = the data is
+        // consistent
+        // across docs
+        // because they
+        // share the same
+        // SwiftData
+        // instance). The
+        // macOS Window
+        // Tabs is the
+        // opposite
+        // pattern
+        // (= the
+        // Xcode /
+        // Preview
+        // pattern;
+        // = each
+        // tab =
+        // independent
+        // document
+        // = independent
+        // state).
+        // The
+        // mismatch
+        // is
+        // fundamental;
+        // = the fix
+        // is to
+        // disable
+        // Window
+        // Tabs
+        // entirely.
+        for window in NSApp.windows {
+            // Intentionally empty (= the
+            // 2026-10-14 v1
+            // implementation
+            // here set
+            // `tabbingMode = .preferred`;
+            // = the v2
+            // directive
+            // disables the
+            // feature; = the
+            // loop body is
+            // kept as a
+            // marker so the
+            // next engineer
+            // sees where
+            // window-tabbing
+            // was previously
+            // toggled and
+            // where to re-add
+            // it if the boss
+            // later reverts
+            // the directive).
+            _ = window
+        }
+        // 2026-10-14 v2:
+        // hard-disable
+        // macOS Window
+        // Tabs at the
+        // AppKit
+        // framework
+        // level (= the
+        // canonical
+        // AppKit
+        // "this app
+        // does not
+        // support
+        // window
+        // tabbing"
+        // switch;
+        // = set once
+        // at app
+        // launch;
+        // = affects
+        // every
+        // NSWindow
+        // the app
+        // creates
+        // thereafter;
+        // = the macOS
+        // 27 View
+        // menu's
+        // "Show Tab
+        // Bar" /
+        // "Show All
+        // Tabs"
+        // items
+        // disappear
+        // entirely
+        // when this
+        // is false;
+        // = users
+        // cannot
+        // enable
+        // window
+        // tabbing
+        // from
+        // anywhere
+        // in the
+        // app;
+        // = the
+        // menu
+        // hook the
+        // boss
+        // wants
+        // "封起
+        // 来" is
+        // closed).
+        NSWindow.allowsAutomaticWindowTabbing = false
     }
 
     func applicationWillTerminate(_ notification: Notification) {

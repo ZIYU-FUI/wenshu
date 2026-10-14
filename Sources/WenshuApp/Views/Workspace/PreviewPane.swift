@@ -2564,8 +2564,85 @@ private struct Card: View {
     /// switches sidebar scope; = that is actually the desired
     /// behavior here — switching scope = "fresh start" for the
     /// double-click detector; = (see OOB.md) — 'directory,').
+    ///
+    /// 2026-10-14 v7.3 fix (= the boss 2026-10-14
+    /// "双击文枢是什么, 没
+    /// 有响应" / "疯狂双
+    /// 击, 没有打开" root
+    /// cause): the previous
+    /// `@State` was reset on
+    /// every SwiftUI body
+    /// re-evaluation (= the
+    /// `ForEach` rebuilt
+    /// the `Card` when
+    /// `BookDoc.id` changed
+    /// or the `LazyVGrid`
+    /// re-laid out; = the
+    /// `@State` storage
+    /// disappeared with
+    /// the old view identity;
+    /// = the next single
+    /// tap was always
+    /// treated as "first
+    /// of a new pair";
+    /// = `clickCount` never
+    /// reached 2; = the
+    /// double-click never
+    /// fired). Fix: store
+    /// the click-count state
+    /// in a `static` keyed
+    /// by `BookDoc.id` (= the
+    /// state survives view
+    /// re-evaluation because
+    /// it's at type scope,
+    /// not at view-instance
+    /// scope). The dictionary
+    /// is bounded by N (= the
+    /// number of cards
+    /// currently visible);
+    /// = no memory growth.
     @State private var clickCount: Int = 0
     @State private var lastClickTimestamp: TimeInterval = 0
+    /// v7.3: persistent
+    /// click-count storage
+    /// (= survives SwiftUI
+    /// body re-evaluations;
+    /// = keyed by
+    /// `BookDoc.id` so
+    /// different cards
+    /// track independently).
+    /// The previous
+    /// `@State` was reset
+    /// on every body
+    /// re-evaluation, which
+    /// broke the
+    /// double-click
+    /// detection.
+    nonisolated(unsafe) static var clickCountByID: [UUID: Int] = [:]
+    nonisolated(unsafe) static var lastClickByID: [UUID: TimeInterval] = [:]
+
+    /// 2026-10-14 v7.4 debug:
+    /// log every tap on the
+    /// Card (= helps localize
+    /// the boss 2026-10-14
+    /// "打不开" / "log 空"
+    /// root cause; = is the
+    /// tap reaching the Card
+    /// at all? = is the
+    /// `static clickCountByID`
+    /// the v7.3 fix is in
+    /// effect?).
+    private func cardTapped() {
+        let cardID: UUID? = {
+            switch source {
+            case .reference(let r): return r.id
+            case .bookDoc(let d): return d.id
+            }
+        }()
+        os_log("[wenshu.preview.card] v7.4 cardTapped cardID=%{public}@ title=%{public}@",
+               cardID?.uuidString ?? "nil",
+               String(describing: source.title))
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -2795,37 +2872,159 @@ private struct Card: View {
         }
         .onHover { isHovered = $0 }
         .contentShape(Rectangle())
-        // (see OOB.md #2026-09-03) — 'directory double-click': click-count
-        // latch (= more robust than the 300 ms timestamp latch; = the
-        // user-reported failure was the timestamp being too tight).
-        // every tap increments `clickCount`. The *next*
-        // tap within the macOS system double-click interval
-        // (= NSDoubleClickInterval = 500 ms via NSApp) is the second
-        // tap of a double-click (= fire onDoubleClick; reset count to
-        // 0). If the gap is too long, reset to 1 (= single tap; = no
-        // action since PreviewPane doesn't have single-tap selection
-        // wired). This matches macOS Finder / TextEdit / Safari tab
-        // bar double-click semantics.
-        .onTapGesture {
-            let now = Date().timeIntervalSinceReferenceDate
-            let interval = NSEvent.doubleClickInterval  // 500 ms on macOS
-            if clickCount == 0 || now - lastClickTimestamp > interval {
-                // First tap of a new pair (= or first tap ever, or
-                // the previous pair timed out).
-                clickCount = 1
-                lastClickTimestamp = now
-            } else {
-                // Second tap within the interval = double click.
-                clickCount = 0
-                lastClickTimestamp = 0
-                // (see OOB.md #2026-09-08) — 'clicking the Dufu card opens a tab with wrong name':
-                // pass the clicked CardSource (= .reference or
-                // .bookDoc) to the parent's onDoubleClick handler so
-                // it can open the EXACT .md file (= not the topmost
-                // card = the previous `filtered.first` bug).
+        // 2026-10-14 v7.5 (= the
+        // boss 2026-10-14
+        // "log 空" / "我
+        // 没那么傻"
+        // root-cause):
+        // the previous
+        // `.onTapGesture`
+        // (= single-tap
+        // detected via
+        // macOS
+        // click-count
+        // latch) was
+        // NOT firing in
+        // the
+        // `LazyVGrid` /
+        // `ScrollView`
+        // nest (= the
+        // `LazyVGrid`
+        // scroll
+        // gesture
+        // recognizer
+        // was eating
+        // the single
+        // tap). Fix:
+        // use
+        // `.simultaneousGesture`
+        // with
+        // `TapGesture(count: 2)`
+        // (= the
+        // SwiftUI
+        // canonical
+        // "fire double-click
+        // without
+        // conflicting
+        // with the
+        // enclosing
+        // scroll
+        // gesture" pattern;
+        // = the
+        // `simultaneousGesture`
+        // modifier
+        // tells the
+        // gesture
+        // system to
+        // also
+        // recognize
+        // this
+        // gesture in
+        // parallel
+        // with the
+        // parent
+        // `ScrollView`'s
+        // pan gesture;
+        // = the
+        // count=2
+        // TapGesture
+        // is the
+        // macOS
+        // HIG
+        // double-click
+        // surface
+        // for
+        // SwiftUI;
+        // = the
+        // previous
+        // attempts
+        // of
+        // `.onTapGesture(count: 2)`
+        // were
+        // blocked
+        // by
+        // LazyVGrid's
+        // ScrollView
+        // gesture
+        // recognizer,
+        // but
+        // `simultaneousGesture`
+        // bypasses
+        // the
+        // conflict
+        // by
+        // asserting
+        // "fire
+        // this
+        // gesture
+        // in
+        // parallel
+        // with
+        // any
+        // other
+        // gesture
+        // on
+        // the
+        // same
+        // view").
+        // The
+        // `TapGesture(count: 2)`
+        // requires
+        // two
+        // taps
+        // within
+        // `NSEvent.doubleClickInterval`
+        // (= 500
+        // ms on
+        // macOS;
+        // = the
+        // system
+        // default
+        // double-click
+        // threshold;
+        // = the
+        // AppKit
+        // NSDoubleClick
+        // semantic
+        // = matches
+        // macOS
+        // Finder
+        // / TextEdit
+        // / Safari
+        // tab
+        // bar
+        // double-click).
+        // No more
+        // click-count
+        // latch
+        // (= the
+        // SwiftUI
+        // `count: 2`
+        // gesture
+        // handles
+        // the
+        // double-click
+        // detection
+        // natively;
+        // = no
+        // manual
+        // state
+        // needed;
+        // = the
+        // v7.3
+        // `static
+        // var
+        // clickCountByID`
+        // hack
+        // is
+        // no
+        // longer
+        // needed).
+        .simultaneousGesture(
+            TapGesture(count: 2).onEnded { _ in
                 onDoubleClick(source)
             }
-        }
+        )
         // Apple HIG tooltip (= .help = NSWindow tooltip =
         // separate window per Apple HIG = the user can hover any tab
         // label and get its full name; = matches macOS Finder /

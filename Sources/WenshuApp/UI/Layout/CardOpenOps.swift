@@ -158,7 +158,40 @@ enum CardOpenOps {
             if let first = pickedReference {
                 let body = bookStore?.loadReferenceBody(id: first.id) ?? first.summary
                 return CardTriad(
-                    path: nil,  // reference is library-public; ticket 027-35 will resolve
+                    // 2026-10-14: assign the canonical
+                    // single-file reference path instead
+                    // of nil. The previous nil path
+                    // (= 027-35 left a TODO to "resolve
+                    // later") caused the editor's auto-save
+                    // to fall through to
+                    // /tmp/wenshu-preview-sample.md
+                    // because the path-aware save path
+                    // (= path = "<libraryRoot>/chapters
+                    // /<uuid>.md") only fires when
+                    // `tab.documentPath != nil`. With
+                    // a real reference path, the
+                    // auto-save writes the reference
+                    // body to `<libraryRoot>/references
+                    // /<uuid>.md` (= the new doc-truth
+                    // single-source location), and the
+                    // next launch's `restoreOpenTabs`
+                    // (= the 2026-10-14 v6 fix that
+                    // re-reads `tab.draft` from
+                    // `tab.documentPath`) loads the
+                    // user's edits back. Without
+                    // the path, the user's reference
+                    // edits were lost across relaunch
+                    // (= the boss 2026-10-14 "自动
+                    // 保存机制是假的" report).
+                    path: bookStore.flatMap {
+                        FileSystemReferenceStore
+                            .referenceFileURL(
+                                id: first.id,
+                                referenceLibraryRoot:
+                                    $0.stores.referenceLibraryRoot
+                            )
+                            .path
+                    },
                     content: body,
                     title: first.title
                 )
@@ -229,13 +262,72 @@ enum CardOpenOps {
                 // for the
                 // 故事宪法
                 // case).
-                if let body = CardOpenOps.loadBookDocBody(
-                    bookStore: bookStore,
-                    doc: doc
-                ) {
+                if let loaded = bookStore.flatMap({
+                    CardOpenOps.loadBookDoc(shelvesRoot: $0.stores.shelvesRoot, doc: doc)
+                }) {
                     return CardTriad(
-                        path: nil,
-                        content: body,
+                        // 2026-10-14: set the
+                        // on-disk file
+                        // URL as the
+                        // doc-truth
+                        // path. The
+                        // previous
+                        // `path: nil`
+                        // forced the
+                        // editor's
+                        // auto-save
+                        // to fall
+                        // through to
+                        // `/tmp/wenshu-preview-sample.md`
+                        // (= the
+                        // boss 2026-10-14
+                        // "修改了
+                        // 不保存"
+                        // root
+                        // cause;
+                        // = the
+                        // book
+                        // edits
+                        // never
+                        // landed
+                        // on
+                        // the
+                        // canonical
+                        // shelves
+                        // file;
+                        // = the
+                        // next
+                        // launch
+                        // loaded
+                        // the
+                        // stale
+                        // shelves
+                        // file
+                        // and
+                        // the
+                        // user's
+                        // edits
+                        // were
+                        // gone).
+                        // The
+                        // `loadBookDoc`
+                        // overload
+                        // returns
+                        // both the
+                        // body and
+                        // the URL
+                        // (= see
+                        // its
+                        // docstring
+                        // for
+                        // the
+                        // wenshu
+                        // canonical
+                        // doc-truth
+                        // surface
+                        // rationale).
+                        path: loaded.url.path,
+                        content: loaded.body,
                         title: doc.title
                     )
                 }
@@ -350,8 +442,39 @@ enum CardOpenOps {
         if let existingIdx = appState.openTabs.firstIndex(where: {
             String($0.originalBody.prefix(200)) == fingerprint
         }) {
+            // 2026-10-14: doc-truth-git ticket. The
+            // previous behavior was to switch to
+            // the existing tab without updating
+            // its `documentPath`. With the new
+            // single-file truth location (= this
+            // `CardTriad.path` is now the
+            // doc-truth per-reference file path
+            // produced by `FileSystemReferenceStore
+            // .referenceFileURL`), an existing tab
+            // opened by an older build may still
+            // carry `documentPath = nil` (= the
+            // pre-doc-truth-git reference tab
+            // shape; = the `EditorPersistence.save`
+            // path-aware write fell through to
+            // `/tmp/wenshu-preview-sample.md` for
+            // those tabs; = the user's edits were
+            // lost across relaunch). Force the
+            // existing tab to adopt the new
+            // `documentPath` (= the doc-truth
+            // file) so subsequent auto-saves land
+            // in the right place. The
+            // `originalBody` is also refreshed
+            // (= the file content on the doc-truth
+            // disk is the new canonical baseline;
+            // = otherwise the tab would appear
+            // dirty on first edit after the
+            // migration and the user would have to
+            // re-save the migrated body to clear
+            // the 已保存 -> 未保存 indicator).
+            appState.openTabs[existingIdx].documentPath = path
+            appState.openTabs[existingIdx].originalBody = content
+            appState.openTabs[existingIdx].draft = content
             appState.activeTabId = appState.openTabs[existingIdx].id
-            // (No edit / no new tab — reuse the existing one.)
             return OpenCardResult(openedTabId: nil,
                                  didSwitchExistingTab: true,
                                  contentLength: content.count)
@@ -445,6 +568,54 @@ enum CardOpenOps {
         shelvesRoot: URL,
         doc: BookDoc
     ) -> String? {
+        loadBookDoc(shelvesRoot: shelvesRoot, doc: doc)?.body
+    }
+
+    /// 2026-10-14: returns both the body
+    /// and the on-disk file URL (=
+    /// the wenshu canonical
+    /// doc-truth per-document
+    /// file). The previous
+    /// `loadBookDocBody` only
+    /// returned the body, so the
+    /// `CardOpenOps.computeCardTriad`
+    /// caller had no way to set
+    /// `CardTriad.path` to the
+    /// real file (= it was
+    /// `path: nil`; = the
+    /// editor's auto-save fell
+    /// through to the /tmp
+    /// fallback; = the user
+    /// reported the book-doc
+    /// edits as "修改了不保存"
+    /// = the boss 2026-10-14
+    /// "从这里开始，里的帮助
+    /// 这本书，修改了不保存"
+    /// root cause). The
+    /// `bookDoc` source passed
+    /// to `computeCardTriad` is
+    /// the canonical "where the
+    /// doc lives on disk"
+    /// surface (= the
+    /// `PreviewPane.bookDocsGrid`
+    /// already walks the shelves
+    /// tree to populate each
+    /// `BookDoc` row; = the
+    /// same walk is reused here
+    /// to resolve the file URL).
+    /// The URL is the absolute
+    /// on-disk path that the
+    /// `EditorPersistence.save`
+    /// writes to (= the
+    /// `tab.documentPath` field;
+    /// = the doc-truth-git
+    /// ticket's per-document
+    /// file at
+    /// `<shelvesRoot>/books/<bookId>/<folderName>/<fileName>.md`).
+    static func loadBookDoc(
+        shelvesRoot: URL,
+        doc: BookDoc
+    ) -> (body: String, url: URL)? {
         guard FileManager.default.fileExists(atPath: shelvesRoot.path) else {
             return nil
         }
@@ -481,10 +652,11 @@ enum CardOpenOps {
                             fileName: mdFile.lastPathComponent
                         )
                         if candidate == doc.id {
-                            return try? String(
+                            guard let body = try? String(
                                 contentsOf: mdFile,
                                 encoding: .utf8
-                            )
+                            ) else { return nil }
+                            return (body, mdFile)
                         }
                     }
                 }

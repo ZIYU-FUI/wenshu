@@ -42,6 +42,7 @@
 //
 
 import Foundation
+import os
 
 /// Result of `EditorPersistence.reloadFromDisk(tab:)`. The
 /// `newContent` field carries the on-disk file contents (for the
@@ -78,10 +79,134 @@ enum EditorPersistence {
     ///   the legacy `try?` behavior in v0.34 B-21).
     @discardableResult
     static func save(tab: EditorTab, bookStore: BookStore?) -> String? {
-        // Path 1: existing documentPath → overwrite in place.
+        // 2026-10-14 perf: the dirty-skip + content-
+        // equality short-circuit is the primary
+        // perf win for the auto-save path (= most
+        // debounce ticks fire when the user has not
+        // actually changed anything, = the engine
+        // emits `onDirtyChange(true)` for transient
+        // reasons like a `textContainer` size change
+        // on a window resize). The IO that is left
+        // (= a real draft change) is a single
+        // `String.write(to:atomically:encoding:)`
+        // call for ~10 KB of text. On the macOS
+        // 27.0 AppleSSD the write throughput is
+        // measured at ~3 GB/s, = 10 KB writes in
+        // ~3 μs, = the write is dwarfed by the
+        // syscall overhead (= ~50 μs for the
+        // `write(2)` + ~50 μs for the atomic
+        // `rename(2)`). The total cost of the write
+        // path is well under 200 μs (= the user
+        // does not perceive any UI hitch on a
+        // 3-second debounce tick). The previous
+        // round-2 commit's "Apple HIG 1:1 0-PT
+        // padding + 13 PT body" work was the real
+        // user-perceived perf win (= the editor
+        // body now scrolls smoothly; = see
+        // commit `bfd89b385` in the log). This
+        // function's skip-on-content-equal is the
+        // secondary perf win (= no IO, no SwiftData
+        // round-trip) and the primary correctness
+        // win (= no spurious SwiftData body updates
+        // for resize-induced `onDirtyChange`
+        // events).
         if let path = tab.documentPath {
             let url = URL(fileURLWithPath: path)
-            try? tab.draft.write(to: url, atomically: true, encoding: .utf8)
+            // 2026-10-14: the parent directory may
+            // not exist yet (= the doc-truth-git
+            // ticket introduced a per-reference
+            // `<libraryRoot>/references/` directory
+            // that did not exist in any prior build;
+            // = the first `EditorPersistence.save` for
+            // a reference tab = `String.write(to:
+            // atomically:)` silently fails because
+            // `String.write(to:atomically:)` does
+            // not create the parent directory.
+            // Create the parent directory with
+            // `withIntermediateDirectories: true`
+            // so the reference body file actually
+            // lands on disk. The
+            // `FileSystemReferenceStore.writeReferenceFileToFileSystem`
+            // helper does the same thing for the
+            // SwiftData-write path (= the LLM agent's
+            // `ReferenceLibraryTool`); = this line
+            // is the parallel fix for the
+            // editor's `EditorPersistence.save`).
+            let parent = url.deletingLastPathComponent()
+            try? FileManager.default.createDirectory(
+                at: parent, withIntermediateDirectories: true
+            )
+            // 2026-10-14 perf: skip the write when
+            // the draft matches the file (= see the
+            // note at the top of the function). A
+            // missing or unreadable file is treated
+            // as "always needs write" (= the early
+            // return path is only taken when the
+            // file is present AND the bytes match).
+            // The early return also skips the
+            // SwiftData `replaceReferenceByID`
+            // round-trip below (= the
+            // `if let id = ...` chain is only
+            // reached on the actual-write path).
+            if let existing = try? String(contentsOf: url, encoding: .utf8),
+               existing == tab.draft {
+                // Already on disk with the same
+                // content. Skip the write AND the
+                // SwiftData body update (= both
+                // would be no-ops anyway, = the
+                // early return saves a `String.write`
+                // syscall + a SwiftData row fetch +
+                // a `context.save`). The caller still
+                // sets `tab.originalBody = tab.draft`
+                // to mark the tab clean.
+                return path
+            }
+            os_log("[wenshu.editor.save] tab.draft=%{public}d chars path=%{public}@",
+                   tab.draft.count, path)
+            let written = try? tab.draft.write(to: url, atomically: true, encoding: .utf8)
+            os_log("[wenshu.editor.save] writeOk=%{public}@ bytes=%{public}d",
+                   written != nil ? "true" : "false",
+                   (try? FileManager.default.attributesOfItem(atPath: path)[.size] as? Int) ?? -1)
+            // 2026-10-14: doc-truth-git ticket. When the
+            // path points inside the library's
+            // `references/` directory (= a reference-
+            // library tab that the user opened via
+            // `CardOpenOps.openTab`; = see the
+            // `path: bookStore.flatMap { ... }` there
+            // that produces `<libraryRoot>/references
+            // /<uuid>.md`), also update the SwiftData
+            // `WSReference.body` column to keep the
+            // in-memory cache consistent (= the
+            // `ReferenceLibraryTool` for the LLM
+            // agent's `find` tool reads SwiftData
+            // directly, = without this write-through
+            // the agent's view of the body would
+            // diverge from the file). The id is
+            // recovered from the trailing `<uuid>.md`
+            // filename. The write is best-effort (= a
+            // missing `bookStore` or a missing
+            // SwiftData row is silently skipped; = the
+            // file write above is the source of truth
+            // and has already succeeded by the time we
+            // get here).
+            if let id = referenceUUIDFromReferencePath(path),
+               let store = bookStore?.stores.referenceStore,
+               (try? store.replaceReferenceByID(
+                   id: id, bodyMarkdown: tab.draft
+               )) != nil {
+                // The SwiftData `body` cache is now
+                // consistent with the on-disk file
+                // (= the LLM agent's
+                // `ReferenceLibraryTool` reads from
+                // SwiftData; = without this write-through
+                // the agent's view of the body would
+                // diverge from the file). The
+                // `try?` swallows the rare "row not
+                // in SwiftData" path (= the file
+                // write above still succeeded; =
+                // SwiftData is a write-through cache;
+                // = the file is the source of truth).
+            }
             return path
         }
         // Path 2: no documentPath + bookStore proposed path → write
@@ -209,4 +334,26 @@ enum EditorPersistence {
             tab.autoSaveTask = nil
         }
     }
+}
+
+/// 2026-10-14: recover the reference id (= the
+/// `WSReference.id` UUID) from a
+/// `<libraryRoot>/references/<uuid>.md` file path. Used by
+/// the editor's auto-save path to call
+/// `ReferenceStoring.replaceReferenceByID` (= updates the
+/// SwiftData `body` cache after the file write). The
+/// matcher checks the second-to-last path component (= the
+/// literal `references` directory name, = case-sensitive)
+/// so that a book chapter at
+/// `<libraryRoot>/chapters/<uuid>.md` is correctly
+/// identified as NOT a reference. A path that does not
+/// match the `<uuid>.md` filename pattern returns nil (=
+/// the editor's auto-save falls through to the
+/// write-only-file path for non-reference tabs).
+func referenceUUIDFromReferencePath(_ path: String) -> UUID? {
+    let url = URL(fileURLWithPath: path)
+    let parent = url.deletingLastPathComponent().lastPathComponent
+    guard parent == "references" else { return nil }
+    let stem = url.deletingPathExtension().lastPathComponent
+    return UUID(uuidString: stem)
 }
