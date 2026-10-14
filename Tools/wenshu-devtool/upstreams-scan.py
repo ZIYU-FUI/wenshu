@@ -31,9 +31,14 @@ def parse_package_swift(text: str) -> list[dict]:
     - reason (= one-line description; = extracted from the comment
       block above the dependency, if present)
     """
-    # Block: .package(url: "...", exact: "X") or .package(url: "...", from: "X")
+    # Block: .package(url: "...", exact: "X") or
+    #        .package(url: "...", from: "X") or
+    #        .package(url: "...", "X"..<"Y") (= SPM range syntax
+    #        = wenshu uses "0.13.0"..<"0.14.0" for swift-markdown-engine).
     pkg_re = re.compile(
-        r'\.package\(\s*url:\s*"([^"]+)",\s*(?:exact:\s*"([^"]+)"|from:\s*"([^"]+)")\s*\)',
+        r'\.package\(\s*url:\s*"([^"]+)",\s*'
+        r'(?:exact:\s*"([^"]+)"|from:\s*"([^"]+)"|"([^"]+)"\.\.<"([^"]+)")'
+        r'\s*\)',
         re.MULTILINE,
     )
     # Comment block above the .package line (= 1+ comment lines,
@@ -106,6 +111,7 @@ LICENSE_MAP = {
     "weichsel/ZIPFoundation":             "MIT",
     "groue/GRDB.swift":                   "MIT",
     "swiftlang/swift-markdown":           "Apache-2.0",
+    "nodes-app/swift-markdown-engine":    "Apache-2.0",
     "mattt/EventSource":                  "MIT",
     "gonzalezreal/Textual":               "MIT",
     "gonzalezreal/textual":               "MIT",
@@ -128,6 +134,7 @@ REASON_MAP = {
     "weichsel/ZIPFoundation":             "ZIP 读写 (Apple Compression 替代品)",
     "groue/GRDB.swift":                   "SQLite 工具包 + FTS5 全文检索 (Apple CoreData 替代品)",
     "swiftlang/swift-markdown":           "CommonMark/GFM 解析 (Apple AttributedString 替代品)",
+    "nodes-app/swift-markdown-engine":    "Markdown 渲染引擎 + LaTeX (Apple AttributedString 替代品)",
     "mattt/EventSource":                  "SSE 客户端 (Apple URLSession.bytes 替代品)",
     "gonzalezreal/Textual":               "SwiftUI 富文本引擎 (Apple TextKit 替代品)",
     "gonzalezreal/textual":               "SwiftUI 富文本引擎 (Apple TextKit 替代品; 同上 slug 变体)",

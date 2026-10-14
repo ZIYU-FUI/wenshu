@@ -17,9 +17,9 @@ Total upstreams: **7**.
 ## nodes-app/swift-markdown-engine
 
 - **URL**: https://github.com/nodes-app/swift-markdown-engine
-- **Version**: 0.12.0
-- **License**: Unknown
-- **Reason**: Wenshu SPM dependency.
+- **Version**: unknown
+- **License**: Apache-2.0
+- **Reason**: Markdown 渲染引擎 + LaTeX (Apple AttributedString 替代品)
 
 ## smittytone/HighlighterSwift
 

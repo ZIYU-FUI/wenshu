@@ -14,9 +14,9 @@
     {
       "name": "nodes-app/swift-markdown-engine",
       "url": "https://github.com/nodes-app/swift-markdown-engine",
-      "version": "0.12.0",
-      "license": "Unknown",
-      "reason": "Wenshu SPM dependency."
+      "version": "unknown",
+      "license": "Apache-2.0",
+      "reason": "Markdown 渲染引擎 + LaTeX (Apple AttributedString 替代品)"
     },
     {
       "name": "smittytone/HighlighterSwift",
