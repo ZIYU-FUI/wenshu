@@ -274,6 +274,120 @@ struct EditorPaperCanvas<Content: View>: View {
         // the Group expand to the parent column's
         // full width and propagate that width to its
         // `WenshuMarkdownEditor` child).
+        // 2026-10-14 v4: drop the SwiftUI
+        // `ScrollView` wrapper again. The v3
+        // re-introduction (= wrap the
+        // `NativeTextViewWrapper` in a SwiftUI
+        // `ScrollView` to insulate the engine
+        // from the parent NSV / NSSplitView
+        // resize cascade) re-introduced the
+        // "text not rendered" regression. The
+        // root cause: when a SwiftUI
+        // `NSViewRepresentable` is hosted inside a
+        // SwiftUI `ScrollView` wrapper (= a
+        // SwiftUI `ScrollView` whose content is
+        // a single NSViewRepresentable), the
+        // engine's internal
+        // `scrollView.contentView.bounds.width` is
+        // 0 PT at the engine's first
+        // `makeNSView(context:)` call (= the
+        // SwiftUI `ScrollView` has not yet
+        // committed its content size to its
+        // embedded NSScrollView; = the engine's
+        // `centerReadingColumn(forClipWidth: 0)`
+        // sets the engine's container frame to
+        // 0 PT wide; = the engine's NSTextContainer
+        // is 0 PT wide; = the engine renders no
+        // text; = even when the SwiftUI
+        // `ScrollView` later commits a non-zero
+        // content size, the engine's container
+        // is still 0 PT because the engine's
+        // `scrollView.contentView` bounds
+        // notification fires once (= with
+        // bounds.width = 0) and the engine does
+        // not re-receive a non-zero bounds change
+        // from the SwiftUI `ScrollView` host).
+        //
+        // The v3 scroll-jank diagnosis was
+        // correct (= on every NSV / NSSplitView
+        // parent resize, the engine re-asserts
+        // `centerReadingColumn` with the new clip
+        // width, = the engine re-centers the
+        // `NSTextContainer`, = the engine re-lays
+        // out the document on every parent
+        // resize; = the user perceives this as
+        // scroll jank). The v3 fix attempted to
+        // insulate the engine from parent resize
+        // by wrapping it in a SwiftUI
+        // `ScrollView` (= the SwiftUI
+        // `ScrollView` is a stable outer slot).
+        // The trade-off (= no resize-triggered
+        // relayout) was correct in principle, but
+        // the v3 implementation broke the
+        // `centerReadingColumn(forClipWidth: 0)`
+        // initial call.
+        //
+        // The correct v4 design (= this file):
+        // the `EditorPaperCanvas` body is back
+        // to a minimal `content.frame(maxWidth:
+        // .infinity, maxHeight: .infinity)`
+        // wrapper (= no SwiftUI `ScrollView`).
+        // The scroll-jank is now addressed
+        // upstream in the
+        // `WenshuEditorServicesFactory` (= see
+        // `WenshuEditorServicesFactory.swift`'s
+        // `readingWidth` and `textInsets`
+        // comments) by setting
+        // `readingWidth = nil` (= the engine
+        // takes the `vpSize.width` path) and
+        // `textInsets = TextInsets(horizontal: 10,
+        // vertical: 0)` (= the engine's
+        // `NSTextContainer.size` follows the
+        // NSTextView frame = the engine does NOT
+        // invoke `centerReadingColumn` because
+        // `readingWidth` is `nil`). The
+        // `centerReadingColumn` re-layout
+        // cascade is therefore not triggered
+        // on parent resize (= the engine
+        // follows the parent NSTextView frame,
+        // = the textContainer.width follows the
+        // NSTextView frame's intrinsic width).
+        //
+        // Trade-off vs the v1 design (= the
+        // original `EditorPaperCanvas` with the
+        // A4 paper): v4 keeps the engine's
+        // `NSTextContainer` glued to the
+        // NSTextView's frame (= the text fills
+        // the column; = the visible 10 PT
+        // left/right padding is supplied by the
+        // engine's `textInsets`; = the engine
+        // does NOT center a 600-PT reading column
+        // inside a 1100+ PT column, = the
+        // previous "上左右都有内边距" symptom is
+        // gone because the 1100+ PT column has
+        // 10 PT text padding on each side of the
+        // text glyphs, = the text fills the
+        // column with only the 10 PT padding
+        // visible).
+        //
+        // Scroll-jank trade-off accepted: with
+        // `readingWidth = nil` and no
+        // `centerReadingColumn`, the engine's
+        // `widthTracksTextView = true` policy
+        // re-lays out the document on every
+        // NSTextView frame change. The user's
+        // reported scroll jank is the lesser of
+        // two evils (= the alternative is a
+        // completely blank editor surface; =
+        // the user can re-test the scroll-jank
+        // after this v4 fix; = if the v4
+        // scroll-jank is unacceptable, a
+        // future ticket can introduce an
+        // `EditorChatNSController` host-side
+        // debounce that delays the engine's
+        // `frameDidChangeNotification` observer
+        // to coalesce multiple NSV resize events
+        // into a single engine relayout pass).
         content
             .frame(maxWidth: .infinity, maxHeight: .infinity)
     }

@@ -256,31 +256,49 @@ struct EditorFormatToolbar: View {
     /// to the same bus instance the engine observes internally for
     /// selection-state events).
     let bus: MarkdownEditorBus
-    /// RATIONALE: the 2 trailing icons
+    /// RATIONALE: the 1 trailing icon
     /// on the right of the format toolbar
-    /// are save + close (= canonical
+    /// is close (= canonical
     /// Pages / Numbers format toolbar
     /// rhythm = "formatting buttons on
     /// the left, document-level actions
     /// on the right").
-    /// The `onSave` / `onClose` callbacks
-    /// are owned by the parent (= `EditorView`;
+    /// The `onClose` callback
+    /// is owned by the parent (= `EditorView`;
     /// = the same parent that already owns
     /// the `onSelect` / `onClose` callbacks
-    /// for `EditorTabStrip`). The save
-    /// callback fires the active tab's
-    /// manual-save (= the same path the green
-    /// saved-indicator status bar uses).
+    /// for `EditorTabStrip`).
     /// The close
     /// callback fires `appState.closeTab(id:)`
     /// (= the same path the tab strip's
-    /// per-tab close X uses). The two
-    /// callbacks default to `nil` (= when
-    /// nil, the trailing buttons are hidden;
+    /// per-tab close X uses). The
+    /// callback defaults to `nil` (= when
+    /// nil, the trailing button is hidden;
     /// = the toolbar is forward-compatible
     /// with any caller that doesn't supply
     /// them).
-    let onSave: (() -> Void)?
+    ///
+    /// 2026-10-14: the previous 2-trailing-icon
+    /// layout (= save + close) dropped the save
+    /// icon. Wenshu has a built-in autosave
+    /// mechanism (= the `EditorStatusBarView`
+    /// shows the green "已保存" indicator when
+    /// the autosave task writes the active
+    /// tab's draft to disk; = the user can
+    /// see the save state in the status bar
+    /// at the bottom of the editor zone; =
+    /// a manual save button in the format
+    /// toolbar is redundant with the
+    /// always-on autosave; = the boss
+    /// 2026-10-14 OOB instruction was to
+    /// drop the save button (= "因为我们有自动
+    /// 保存机制, 多余"). The `onSave` callback
+    /// was also dropped from this struct
+    /// because the only caller was
+    /// `EditorView.editorFormatToolbar` (= no
+    /// other call site; = the closure had
+    /// exactly one user; = the closure is
+    /// dropped with the button).
     let onClose: (() -> Void)?
 
     var body: some View {
@@ -660,48 +678,33 @@ struct EditorFormatToolbar: View {
 extension EditorFormatToolbar {
     /// RATIONALE 2026-10-13 OOB: the
     /// `trailingIconGroup` (= a small
-    /// HStack containing the 2 trailing
-    /// icons = save + close). The
+    /// HStack containing the 1 trailing
+    /// icon = close). The
     /// `HStack(spacing:
     /// DesignTokens.spacingStandard)`
-    /// (= 8 PT) sets the gap between the
-    /// save and close icons to 8 PT (=
-    /// the same `DesignTokens.spacingStandard`
-    /// that the outer toolbar HStack uses
-    /// between the 3 chunks; = matches
-    /// the canonical Pages / Numbers
-    /// toolbar-item spacing (= 8 PT
-    /// gap between document-level
-    /// toolbar items). The
+    /// (= 8 PT) sets the gap between
+    /// the icons (= now just close; =
+    /// the 8 PT remains as a no-op
+    /// spacing in case a future ticket
+    /// adds a 2nd trailing icon). The
     /// `Spacer()` (= NOT used here) is
     /// the parent's responsibility (= it
     /// pushes the whole `trailingIconGroup`
     /// to the right edge of the toolbar).
+    ///
+    /// 2026-10-14: the previous
+    /// 2-icon `trailingIconGroup` (= save +
+    /// close) was reduced to 1 icon (= close
+    /// only). The save icon was removed
+    /// because wenshu has autosave (= the
+    /// `EditorStatusBarView` already shows
+    /// the save state at the bottom of the
+    /// editor zone; = a manual save button
+    /// in the format toolbar would be
+    /// redundant).
     private var trailingIconGroup: some View {
         HStack(spacing: DesignTokens.spacingStandard) {
-            trailingSaveButton
             trailingCloseButton
-        }
-    }
-
-    /// RATIONALE 2026-10-13 OOB: the save icon
-    /// (= `tray.and.arrow.down` = the
-    /// macOS canonical "save to inbox"
-    /// symbol = a widescreen tray with a
-    /// down arrow = closer to a square
-    /// than the previous `square.and.arrow.down`;
-    /// = the previous glyph's document
-    /// rectangle was tall + narrow; = the
-    /// new glyph's tray is wider + more
-    /// square-ish; = matches the wenshu
-    /// 1:1 macOS Mail toolbar item).
-    private var trailingSaveButton: some View {
-        trailingToolbarButton(
-            iconName: "tray.and.arrow.down",
-            tooltipKey: "editor.format.save_tab.tooltip",
-            defaultLabel: "Save"
-        ) {
-            onSave?()
         }
     }
 
@@ -712,6 +715,15 @@ extension EditorFormatToolbar {
     /// button in the Recent Files
     /// list = the same as Safari's
     /// "Close Tab" item).
+    ///
+    /// 2026-10-14: the previous
+    /// `trailingSaveButton` private
+    /// property (= the `tray.and.arrow.down`
+    /// save icon) was removed alongside the
+    /// `onSave` field (= both halves of the
+    /// save-button feature were dropped
+    /// together; = no dead code left
+    /// behind).
     private var trailingCloseButton: some View {
         trailingToolbarButton(
             iconName: "xmark.circle",

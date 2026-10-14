@@ -227,25 +227,20 @@ enum WenshuEditorServicesFactory {
         // would add a redundant line of padding between the
         // toolbar and the first line of text).
         //
-        // 2026-10-14 v3: with `readingWidth = nil` and the
-        // SwiftUI `EditorPaperCanvas` body's
-        // `.frame(maxWidth: .infinity, maxHeight: .infinity)`
-        // (= `WenshuMarkdownEditor.swift` / the engine's
-        // NSViewRepresentable is hosted in a SwiftUI column
-        // that gives the engine a known non-zero width at
-        // `makeNSView(context:)` time), the engine's
+        // 2026-10-14 v4: with `readingWidth = nil` (= the v4
+        // design restored in this file), the engine's
         // `NSTextContainer` follows the parent NSScrollView
         // viewport (= `widthTracksTextView = true`; = the
         // container grows to the full column width; = no
         // `centerReadingColumn` is invoked because
-        // `readingWidth` is `nil`). The 10 PT `textInsets`
-        // now correctly acts as the visible left + right
-        // padding of the rendered text (= 10 PT on each
-        // side, = the boss 2026-10-14 standing preference
-        // "上 0 / 左 10 / 右 10 / 下 0" = 10 PT padding on the
-        // left + right; = zero PT padding on the top + bottom
-        // so the text body is flush with the format toolbar
-        // above and the status bar below).
+        // `readingWidth` is `nil`). The 10 PT horizontal
+        // `textInsets` now correctly acts as the visible left
+        // + right padding of the rendered text (= 10 PT on
+        // each side; = the boss 2026-10-14 standing preference
+        // "上 0 / 左 10 / 右 10 / 下 0"; = the text body
+        // fills the column with only the 10 PT padding
+        // visible on each side; = no 600-PT reading column
+        // centering).
         config.textInsets = TextInsets(horizontal: 10, vertical: 0)
         return config
     }

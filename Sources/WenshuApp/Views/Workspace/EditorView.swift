@@ -191,38 +191,27 @@ struct EditorView: View {
     private var editorFormatToolbar: EditorFormatToolbar {
         EditorFormatToolbar(
             bus: MarkdownEditorBus.buildWenshu(),
-            onSave: {
-                // RATIONALE 2026-10-13: the
-                // manual-save action
-                // (= the wenshu 1:1 macOS
-                // canonical "Save" toolbar
-                // item behavior; = the
-                // active tab's draft is
-                // written to disk; = the
-                // `EditorStatusBarView`
-                // shows the green
-                // saved-indicator status
-                // when the write
-                // completes). We call the
-                // existing private
-                // `saveDraft()` (= the same
-                // helper that the Cmd+S
-                // menu shortcut uses; = the
-                // same helper that the
-                // inspector's "Save" button
-                // uses; = no new code path
-                // for the wenshu persistence
-                // flow).
-                saveDraft()
-            },
+            // 2026-10-14: the previous `onSave` callback
+            // (= the `tray.and.arrow.down` save button in
+            // the format toolbar's trailing icon group)
+            // was dropped. Wenshu has a built-in autosave
+            // mechanism (= the `EditorStatusBarView`
+            // shows the green "已保存" indicator when
+            // the autosave task writes the active tab's
+            // draft to disk; = the user can see the
+            // save state in the status bar at the
+            // bottom of the editor zone; = a manual
+            // save button in the format toolbar is
+            // redundant with the always-on autosave;
+            // = the boss 2026-10-14 OOB instruction
+            // was "因为我们有自动保存机制, 多余").
+            // The `private func saveDraft()` is still
+            // available (= Cmd+S menu shortcut +
+            // Inspector "Save" button + future call
+            // sites can still trigger it; = the helper
+            // is not removed because the autosave task
+            // and Cmd+S still need it).
             onClose: {
-                // RATIONALE 2026-10-13: the
-                // close action (= the
-                // wenshu 1:1 macOS canonical
-                // "Close" toolbar item
-                // behavior; = closes the
-                // active tab; = the same
-                // path the tab strip's
                 // per-tab close X uses).
                 // The active-tab id is a
                 // non-optional `UUID` (= the
