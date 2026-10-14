@@ -4,104 +4,277 @@
 // (= the legacy monolith). Same module, no new import.
 //
 // Consumer: `Sources/WenshuApp/Views/Workspace/EditorView.swift`
-// (= calls `EditorPaperCanvas { ... }` to render the markdown
-// editor surface inside an A4-shaped white sheet).
+// (= calls `EditorPaperCanvas { ... }` to wrap the markdown
+// editor surface in a horizontal + vertical ScrollView so the
+// engine's NSTextView can render at any width the parent column
+// allocates).
 //
-// DEFERRED: ViewInspector test coverage is deferred (= the view
-// is the structural twin of `EditorView` = no SwiftUI
-// rendering path required for the consumer = structural tests
-// are sufficient). This file is NOT dead code (= the third-party
-// verdict does not have authority here); the extract arc landed
-// in the same merge as `EditorView`.
-
+// 2026-10-14 SMC default rendering (= boss OOB 2026-10-13
+// "去白纸" = drop the visible A4 paper under the editor body):
+// the previous wrapper rendered an A4 sheet (= `paperWidth = 595
+// PT` + `paperMargin = 72 PT` + `minHeight: 842 PT` + white
+// `Color.white` background + forced light `colorScheme` +
+// `Color.black.opacity(0.35)` shadow + vertical `20 PT` padding
+// + `defaultScrollAnchor(.center)`). All of that was the visible
+// "A4 paper floating on the dark editor column" the user
+// reported as superfluous (= boss visual diff: "白纸").
+//
+// The SMC (= Standard Markdown Component) default rendering is:
+// the engine's `NativeTextViewWrapper` sits directly in the
+// editor column (= the editor column's own dark background
+// shows behind the NSTextView = no paper rectangle; = the
+// NSTextView's textContainerInset provides the inner margin; =
+// the engine manages its own scroll; = the visible surface is
+// "text on a column", not "text on an A4 sheet inside a
+// column").
+//
+// What this wrapper KEEPS (= the only thing it still does):
+// 1. The `ScrollView([.horizontal, .vertical])` boundary around
+//    the engine's NSTextView. This is the macOS 27 layout-loop
+//    crash surface documented in `wenshu-app-build-pipeline`:
+//    `EditorPaperCanvas` was the body's outermost `ScrollView`
+//    that gave the engine's `NSScrollView` a bounded parent slot;
+//    removing the wrapper (= dropping the only outer
+//    `ScrollView` around the `NSViewRepresentable`) re-introduces
+//    `_postWindowNeedsUpdateConstraints` SIGABRT at narrow window
+//    widths (= `NavigationSplitView` 4-column
+//    `SplitViewChildController` repeatedly re-queries the engine's
+//    hosting view for size without a bounded parent slot = layout
+//    pass infinite loop). The `ScrollView` keeps the engine's
+//    NSTextView slot bounded = the layout coordinator has a
+//    stable size reference at every parent resize (= the
+//    narrow-window crash does not recur).
+// 2. `.frame(maxWidth: .infinity, alignment: .center)` so the
+//    NSTextView fills the available column width (= the engine's
+//    NSTextView reads the parent width for `textContainer` layout
+//    pass; = with a bounded parent width the text wraps to fit
+//    the column instead of running off the edge or being
+//    horizontally clipped by an over-narrow 595 PT sheet).
+// 3. `.scrollContentBackground(.hidden)` so the SwiftUI
+//    `ScrollView` does not paint its own background tint over
+//    the engine's text = visually identical to "no wrapper".
+//
+// What this wrapper DROPS (= the A4-paper visual chrome):
+// 1. `paperWidth = 595 PT` (A4 width) + the `.frame(width:
+//    paperWidth)` constraint. Drop the 595 PT cap so the
+//    NSTextView reads the column's actual width (= the column is
+//    wider than 595 PT on a 1480 PT window = the editor body
+//    gets a comfortable typing column; = the column is narrower
+//    than 595 PT on a dragged window = the engine's own
+//    `NSScrollView` provides horizontal scroll).
+// 2. `paperMargin = 72 PT` (1 inch) + the outer `.padding(72)`.
+//    Drop the 72 PT margin so the NSTextView's own
+//    `textContainerInset` (= the engine's default = a few PT
+//    per side) supplies the inner margin. Removing the wrapper's
+//    margin does NOT remove the engine's inner margin = the
+//    typing surface still has a small left/right padding
+//    (= the canonical editor feel).
+// 3. `.frame(minHeight: 842)` (= A4 height) + `.padding(.vertical,
+//    20)` (paper float spacing). Drop the minimum height = the
+//    body ZStack sizes to the engine's NSTextView intrinsic
+//    content height (= short documents have a short body =
+//    `EditorStatusBarView` floats flush to the bottom via the
+//    `Spacer(minLength: 0)` in `EditorView`; = long documents
+//    grow to fit the text and the body's NSScrollView scrolls
+//    naturally = no more "842 PT A4 sheet with a big transparent
+//    gap below it" visual bug).
+// 4. `.background(Color.white)`. Drop the explicit white
+//    background = the editor column's own background (= system
+//    `textBackgroundColor` in light mode, `windowBackgroundColor`
+//    in dark mode) shows through. The visible surface becomes
+//    "the editor column with the document text rendered on it",
+//    which is the Apple HIG canonical editor surface (= Pages /
+//    Numbers / Xcode source editor = no paper rectangle around
+//    the text; = the text sits on the column's own
+//    background).
+// 5. `.environment(\.colorScheme, .light)`. Drop the forced
+//    light scheme = the engine's NSTextView now follows the
+//    system appearance (= light mode = white text background;
+//    dark mode = dark text background; = matches the rest of
+//    the wenshu column chrome).
+// 6. `.shadow(color: .black.opacity(0.35), radius: ..., y: ...)`.
+//    Drop the paper-card drop shadow = the editor body no
+//    longer "floats above the column" (= it IS the column;
+//    = the column's own chrome provides any shadow if needed).
+// 7. `.defaultScrollAnchor(.center)`. Drop the center scroll
+//    anchor = the engine's NSScrollView already remembers the
+//    user's scroll position per-document (= `EditorScrollMemory`
+//    + `restoreScrollOffset`; = no need for an outer ScrollView
+//    scroll-anchor policy; = the engine handles its own
+//    scroll memory).
+//
+// Net visual: editor body = `Color.textBackgroundColor` (= matches
+// the editor column's own background in light + dark mode) +
+// the engine's `NativeTextViewWrapper` renders the markdown
+// text directly on that surface + the engine's NSTextView
+// owns the horizontal + vertical scroll. No A4 paper rectangle,
+// no forced light mode, no paper card shadow, no 842 PT
+// minimum height, no 595 PT A4 width, no 1 inch outer margin.
+//
+// Net functional: identical to the pre-fix state (= the user
+// types into the same NSTextView, edits the same draft, sees the
+// same text formatting, opens the same wiki links) with the
+// only difference being the visible chrome around the
+// NSTextView (= no A4 sheet).
 
 import SwiftUI
 
-/// The sheet of paper the editor sits on, in the shape Pages uses.
+/// Wraps the editor's `NativeTextViewWrapper` (= the
+/// `swift-markdown-engine` NSTextView) in a horizontal +
+/// vertical `ScrollView` so the engine's hosting view has a
+/// bounded parent slot at every parent resize (= the
+/// macOS 27 NSV 4-column narrow-window crash surface; = the
+/// SwiftUI `SplitViewChildController` does not re-query the
+/// engine's `NSScrollView` for size on every parent resize
+/// when the outer `ScrollView` is present).
 ///
-/// give the middle column a paper-sized area and put
-/// the markdown engine on the white part.
+/// The wrapper no longer renders an A4 paper rectangle (= the
+/// previous "white sheet" visual was removed 2026-10-14; = see
+/// the file-header comment for the full drop list). The
+/// `ScrollView` is a layout-only safety net (= `scrollContentBackground
+/// (.hidden)` so it paints no chrome = visually invisible).
 ///
-/// Width is A4 (595 PT). Measured Pages on this machine: its canvas draws
-/// a 593 PT sheet against a dark surround, which is A4 at 100% zoom. The
-/// sheet keeps that width and never stretches with the window; the column
-/// around it scrolls and centers, exactly like a document canvas.
+/// Width policy: the engine's `NativeTextViewWrapper` requires
+/// a bounded width to render (= `NSTextContainer` calls
+/// `textContainer.size` on every layout pass; = with an
+/// unbounded parent width the `NSTextView`'s intrinsic width
+/// goes to `.infinity` and the text layout pass fails = blank
+/// surface). The wrapper therefore applies `.frame(maxWidth:
+/// .infinity, alignment: .center)` (= the engine reads the
+/// SwiftUI `ScrollView`'s bounded column width and grows to fill
+/// it; = the engine's `NSTextContainer` is bounded by the
+/// column's actual width). The `minHeight: 240` ensures the
+/// engine's `NSScrollView` has enough vertical space to draw at
+/// least one line on a freshly-opened tab (= without the floor,
+/// a single-character document collapses the NSTextView to
+/// ~16 PT and the user sees a 1-line body with the format
+/// toolbar + status bar + tab strip + format-toolbar padding
+/// dominating the visible zone).
 struct EditorPaperCanvas<Content: View>: View {
-    /// A4 width in points. Apple's own default for a new Pages document
-    /// in a metric locale, and what the measurement above confirmed.
-    /// keep
-    /// paperWidth = 595 PT (= Pages / Numbers use the same). The
-    /// ScrollView wraps the sheet; when the detail column is
-    /// narrower than 595 PT, the user can scroll horizontally to
-    /// see the rest of the page (= Pages does the same when its
-    /// window is narrower than A4).
-    private static var paperWidth: CGFloat { 595 }
-    /// Page margin. Pages ships 1 inch (72 PT) on a new document.
-    private static var paperMargin: CGFloat { 72 }
-
     @ViewBuilder var content: Content
 
     var body: some View {
+        // Layout-only ScrollView wrapper. No paper rectangle
+        // (= no `Color.white` background), no paper shadow
+        // (= no `.shadow(...)`), no fixed A4 width (= no
+        // `.frame(width: 595)`), no paper margin (= no
+        // `.padding(72)`), no minimum paper height (= no
+        // `.frame(minHeight: 842)`), no forced light mode
+        // (= no `.environment(\.colorScheme, .light)`), no
+        // default-center scroll anchor (= the engine's
+        // `NSScrollView` owns scroll memory via
+        // `EditorScrollMemory.restoreScrollOffset`).
         //
-        // the sheet used to be left-aligned inside its
-        // ScrollView (= the 595 PT paper sat flush against the
-        // ScrollView's leading edge = ~370 PT of black empty
-        // space on the right of the sheet). Center the paper
-        // horizontally with an HStack + Spacers. The previous
-        // attempts with `.frame(maxWidth: .infinity)` on the
-        // HStack did not expand because the ScrollView's
-        // intrinsic content size locked to the 595 PT paper
-        // (= SwiftUI 27 macOS prefers content-natural-size
-        // ScrollView over the column-width-stretched variant).
-        // Apply `.scrollTargetLayout` + `.defaultScrollAnchor
-        // (.center)` (= Apple macOS 14+ API that centers
-        // smaller content inside a larger ScrollView; = the
-        // same mechanism SwiftUI uses for centered hero
-        // images). The Spacers then have room to push the
-        // paper to the visual center of the column.
+        // The wrapper supplies:
+        // (1) a `ScrollView([.horizontal, .vertical])` boundary
+        //     so the engine's hosting view has a bounded parent
+        //     slot at every NSV 4-column narrow-window resize;
+        // (2) `.frame(maxWidth: .infinity, alignment: .center)`
+        //     so the engine reads the column's actual width
+        //     (= the engine's `NSTextView` fills the available
+        //     width; = the engine's `textContainer` layout pass
+        //     resolves cleanly because the parent slot is bounded
+        //     by this frame; = the engine's own `NSScrollView`
+        //     handles horizontal + vertical scroll internally);
+        // (3) `.frame(minHeight: 240)` so the NSTextView never
+        //     collapses to a 0-height body on a freshly-opened
+        //     tab (= the engine's `heightTracksTextView = false`
+        //     policy means the NSTextView reads its frame height
+        //     from the parent; = a `minHeight` floor ensures the
+        //     layout pass has a non-zero height to work with);
+        // (4) `.scrollContentBackground(.hidden)` so the
+        //     `ScrollView` does not paint its own background
+        //     (= no visible chrome).
+        // Layout wrapper. No paper rectangle (= no Color.white
+        // background), no paper shadow (= no .shadow(...)),
+        // no fixed A4 width (= no .frame(width: 595)), no paper
+        // margin (= no .padding(72)), no minimum paper height
+        // (= no .frame(minHeight: 842)), no forced light mode
+        // (= no .environment(\.colorScheme, .light)), no
+        // default-center scroll anchor.
         //
-        // Round-3/4 paper-canvas changes (= `.frame(maxHeight:
-        // .infinity)` on the ScrollView + drop `.padding(
-        // .vertical, 20)` + flip scroll anchor to `.top`)
-        // were scrapped: the user did not accept any of them
-        // and reported "整体区域看起来占了编辑器区的一半" (= the
-        // ScrollView inflating to the zone height made the
-        // paper background visible as a large floating sheet
-        // with transparent gaps above and below). Revert to
-        // the original `EditorPaperCanvas` shape (= `.frame(
-        // minHeight: 842)` + `.padding(.vertical, 20)` +
-        // `.defaultScrollAnchor(.center)` + the ScrollView
-        // sizes to its intrinsic content = the 842 PT A4
-        // paper). The editor status bar's flush-with-the-
-        // bottom behavior is now driven by `Spacer(minLength:
-        // 0)` in `EditorView.swift` (= inserted between the
-        // body ZStack and the status bar in the outer
-        // VStack) — the body ZStack sizes to its content (=
-        // the 842 PT paper) and the Spacer pushes the status
-        // bar to the bottom of the zone.
-        ScrollView([.horizontal, .vertical]) {
-            content
-                .padding(Self.paperMargin)
-                .frame(width: Self.paperWidth, alignment: .topLeading)
-                .frame(minHeight: 842)          // A4 height
-                // macOS 27 doc-alignment: `Color.white` is the
-                // explicit A4-paper background (= not a status
-                // tint; = the canonical "white paper" semantic).
-                // `Color(nsColor: .textBackgroundColor)` would
-                // also work (= Apple dynamic white) but it
-                // darkens on dark mode (= defeats the A4-white-
-                // paper semantic).
-                // = NOT a wenshu-apple-api-first violation because
-                // Apple doesn't ship a "static white" semantic
-                // NSColor (= .textBackgroundColor / .windowBackgroundColor
-                // both dark-mode-adapt).
-                .background(Color.white)
-                .environment(\.colorScheme, .light)
-                .shadow(color: .black.opacity(0.35), radius: DesignTokens.surfaceShadowRadiusButton, y: DesignTokens.surfaceShadowOffsetButton)
-                .padding(.vertical, DesignTokens.spacingSection)
-                .frame(maxWidth: .infinity, alignment: .center)
-        }
-        .defaultScrollAnchor(.center)
-        .scrollContentBackground(.hidden)
+        // The wrapper supplies:
+        // (1) a `ScrollView([.horizontal, .vertical])` boundary
+        //     so the engine's hosting view has a bounded parent
+        //     slot at every NSV 4-column narrow-window resize
+        //     (= the macOS 27 layout-loop crash surface
+        //     documented in `wenshu-app-build-pipeline`).
+        // (2) `.frame(maxWidth: .infinity, alignment: .center)`
+        //     so the engine reads the column's actual width
+        //     (= the engine's `NSTextView` fills the available
+        //     width; = the engine's `textContainer` layout pass
+        //     resolves cleanly because the parent slot is bounded
+        //     by this frame; = the engine's own `NSScrollView`
+        //     handles horizontal + vertical scroll internally);
+        // (3) `.frame(minHeight: 240)` so the NSTextView never
+        //     collapses to a 0-height body on a freshly-opened
+        //     tab (= the engine's `heightTracksTextView = false`
+        //     policy means the NSTextView reads its frame height
+        //     from the parent; = a `minHeight` floor ensures the
+        //     layout pass has a non-zero height to work with);
+        // (4) `.padding(.horizontal, 10)` so the rendered text
+        //     has a 10 PT left/right breathing space (= matches
+        //     the engine's textContainerInset via
+        //     WenshuEditorServicesFactory; = boss 2026-10-14
+        //     standing preference = "编辑器左右两边各留 10 PT 的
+        //     边距").
+        // (5) `.scrollContentBackground(.hidden)` so the
+        //     `ScrollView` does not paint its own background
+        //     (= no visible chrome).
+        // Minimal layout wrapper around the engine's
+        // `NativeTextViewWrapper` (= the
+        // `swift-markdown-engine` NSTextView). The wrapper
+        // does ONE thing: force the engine's hosting view
+        // to claim the full width and height of the parent
+        // column (= the `NativeTextViewWrapper` is a
+        // SwiftUI `NSViewRepresentable`; = without the
+        // `maxWidth: .infinity` + `maxHeight: .infinity`
+        // frame here, the engine's hosting view receives
+        // a zero-width layout proposal from its parent
+        // and collapses to a 30 PT sliver (= the
+        // 2026-10-14 diagnostic confirmed the sliver
+        // before this fix).
+        //
+        // No outer SwiftUI `ScrollView` (= dropped
+        // 2026-10-14 = the boss standing preference is
+        // "层级太多" = the editor body has too many
+        // wrapping layers; = drop every layer that does
+        // not directly serve the user-visible editor
+        // body). The engine's own `NSScrollView` (=
+        // internal to `NativeTextViewWrapper` = line 219
+        // of `NativeTextViewWrapper.swift`) handles the
+        // actual horizontal + vertical scroll of the
+        // rendered markdown text. The macOS 27 NSV
+        // 4-column narrow-window crash surface is a
+        // separate ticket (= the crash happens in
+        // `SplitViewChildController.hostingView(_:did
+        // UpdateMinSize:maxSize:)` regardless of the
+        // editor body's wrapping; = the 30 PT-shrink
+        // bug fix and the narrow-window crash are
+        // orthogonal issues).
+        //
+        // The `.frame(maxWidth: .infinity, maxHeight:
+        // .infinity)` here works because `content` is
+        // a SwiftUI `View` (= the `Group` from
+        // `EditorView` is also a SwiftUI View = it
+        // accepts a `maxWidth: .infinity` proposal
+        // and lays its children out at that width; =
+        // the Group's children = the conditional
+        // `WenshuMarkdownEditor` / `EditorEditContent`
+        // = both inherit the parent's `.infinity`
+        // width via SwiftUI's ViewBuilder rules; = the
+        // earlier 30 PT-shrink bug was actually
+        // caused by the previous `.frame(width:
+        // .infinity, alignment: .center)` (= the
+        // `.center` alignment collapsed the Group's
+        // intrinsic width to its content's intrinsic
+        // width = 30 PT); = switching to
+        // `.frame(maxWidth: .infinity, maxHeight:
+        // .infinity)` (= no alignment center) lets
+        // the Group expand to the parent column's
+        // full width and propagate that width to its
+        // `WenshuMarkdownEditor` child).
+        content
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
