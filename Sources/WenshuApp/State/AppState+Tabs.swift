@@ -35,12 +35,37 @@ extension AppState {
     /// Restore openTabs from UserDefaults. Called from init() so
     /// subsequent view code reads the restored state on the first
     /// render.
+    ///
+    /// RATIONALE: the `restoreOpenTabs`
+    /// function filters out the legacy
+    /// welcome tab from the persisted
+    /// list (= the empty state is
+    /// truly empty; = no welcome
+    /// tab is restored on next launch).
+    /// `documentPath == nil && draft == "" &&
+    /// originalBody == ""`; = this is the
+    /// canonical wenshu 1:1 fingerprint of
+    /// "empty placeholder"; = restoring it
+    /// would re-introduce the placeholder the
+    /// boss just asked us to remove; = the
+    /// `compactMap` filter below drops it). Real
+    /// documents (= `documentPath != nil`) are
+    /// restored as before.
     func restoreOpenTabs() {
         guard let data = UserDefaultsStore.shared.data(forKey: .openTabs),
               let snapshot = try? JSONDecoder().decode([PersistedEditorTab].self, from: data) else {
             return
         }
         self.openTabs = snapshot.compactMap { p in
+            // Drop the legacy welcome/placeholder tab (= a
+            // tab with no `documentPath` AND empty body; = the
+            // empty-state placeholder that the boss asked
+            // us to remove; = the `compactMap` here means a
+            // future session with no real documents opens
+            // to a truly empty editor).
+            if p.documentPath == nil && p.draft.isEmpty && p.originalBody.isEmpty {
+                return nil
+            }
             guard let mode = EditorMode(rawValue: p.mode) else { return nil }
             return EditorTab(
                 id: p.id,

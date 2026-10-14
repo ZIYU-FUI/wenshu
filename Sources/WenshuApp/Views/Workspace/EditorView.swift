@@ -189,7 +189,52 @@ struct EditorView: View {
     // directly (= it lives outside the engine's `header:` slot for
     // exactly this reason: the toolbar must NEVER scroll away).
     private var editorFormatToolbar: EditorFormatToolbar {
-        EditorFormatToolbar(bus: MarkdownEditorBus.buildWenshu())
+        EditorFormatToolbar(
+            bus: MarkdownEditorBus.buildWenshu(),
+            onSave: {
+                // RATIONALE 2026-10-13: the
+                // manual-save action
+                // (= the wenshu 1:1 macOS
+                // canonical "Save" toolbar
+                // item behavior; = the
+                // active tab's draft is
+                // written to disk; = the
+                // `EditorStatusBarView`
+                // shows the green
+                // saved-indicator status
+                // when the write
+                // completes). We call the
+                // existing private
+                // `saveDraft()` (= the same
+                // helper that the Cmd+S
+                // menu shortcut uses; = the
+                // same helper that the
+                // inspector's "Save" button
+                // uses; = no new code path
+                // for the wenshu persistence
+                // flow).
+                saveDraft()
+            },
+            onClose: {
+                // RATIONALE 2026-10-13: the
+                // close action (= the
+                // wenshu 1:1 macOS canonical
+                // "Close" toolbar item
+                // behavior; = closes the
+                // active tab; = the same
+                // path the tab strip's
+                // per-tab close X uses).
+                // The active-tab id is a
+                // non-optional `UUID` (= the
+                // wenshu standing convention;
+                // = the empty-state has
+                // `openTabs = []` so we guard
+                // on the openTabs count
+                // instead of the id).
+                guard !appState.openTabs.isEmpty else { return }
+                appState.closeTab(id: appState.activeTabId, bookStore: bookStore)
+            }
+        )
     }
 
     var body: some View {
@@ -285,19 +330,60 @@ struct EditorView: View {
             // dot); = the 2 chrome rows stack vertically above the
             // NSTextView (= format toolbar on top, then 28 PT chrome
             // band, then the NSTextView).
+            // RATIONALE: a 1 PT hairline separates
+            // the segmented control (= above)
+            // from the format toolbar (= below);
+            // = the rectangle uses
+            // `Color(nsColor: .separatorColor)`
+            // (= the AppKit canonical hairline
+            // color; = the same color
+            // SwiftUI's `Divider()` uses
+            // internally; = explicit 1 PT
+            // height because `Divider()`
+            // collapses to 0 PT inside
+            // a `VStack(spacing: 0)`).
+            // 6 PT top padding separates
+            // the hairline from the
+            // segmented control above
+            // (= `spacingTight` = the
+            // wenshu canonical 6 PT
+            // tight inset; = the user
+            // sees the hairline as a
+            // distinct separator
+            // rather than as part of
+            // the segmented control's
+            // bottom border).
+            Rectangle()
+                .fill(Color(nsColor: .separatorColor))
+                .frame(height: 1)
+                .padding(.top, DesignTokens.spacingTight)
+            // RATIONALE: 0 PT top padding
+            // (= `padding(.top, 0)`; = the
+            // user's "工具栏上边距再-2"
+            // directive = 2 - 2 = 0 PT;
+            // = the format toolbar sits
+            // flush with the 1 PT
+            // separator = the segmented
+            // control and the toolbar
+            // form a single chrome band
+            // with a 1 PT internal
+            // hairline).
             editorFormatToolbar
+                .padding(.top, 0)
 
             // Body: placeholder content.  swaps this for
             // swift-markdown rendered Text when mode = .preview
             // swaps for Apple TextEditor when mode = .edit.
-            // 2026-10-12 boss directive "昨天加入的编辑器底栏, 没
-            // 有真正居底" — the prior commit `39c3bd4d4` (=
-            // same fix-shape, search-field transparent) shipped the
-            // `EditorStatusBarView` (= T-03 chrome band) into the
-            // outer VStack WITHOUT a Spacer / maxHeight marker on
-            // the body. The body ZStack sizes to its intrinsic
-            // content (= the NSTextView with empty draft = small
-            // intrinsic height); the status bar then stacks flush
+            // RATIONALE: the `EditorStatusBarView`
+            // (= T-03 chrome band) sits at the
+            // bottom of the outer VStack; = the
+            // body ZStack grows with
+            // `.frame(maxHeight: .infinity, alignment: .top)`;
+            // = the status bar is the canonical
+            // bottom-of-editor-column chrome
+            // surface (= matches the wenshu 1:1
+            // macOS Pages / Numbers format
+            // toolbar + status bar rhythm).
             // below the body, not at the bottom of the editor
             // zone. Result = a visible gap between the canvas and
             // the status bar. Apple HIG editor chrome recipe
@@ -439,12 +525,32 @@ struct EditorView: View {
                             // chrome in T-02 (= its own booking; =
                             // preview-mode chrome first keeps this
                             // commit to 1 file + 1 file per Q112).
-                            // `header: AnyView?` and `placeholder:
-                            // NSAttributedString?` are SMC `header:` /
-                            // `placeholder:` slots on
-                            // NativeTextViewWrapper (= engine hosts
-                            // the header inside its scrolled container).
-                            header: AnyView(editorChromeHeader),
+                            // RATIONALE: the
+                            // document-title
+                            // chrome header
+                            // (= `EditorHeaderView`
+                            // rendered with the
+                            // title + bottom-divider)
+                            // is removed from
+                            // the white-paper
+                            // canvas.
+                            // SMC engine's `header:` slot) was
+                            // visually redundant with the active
+                            // tab's title in the `EditorTabStrip` (=
+                            // the user already knows which tab is
+                            // open; = the in-canvas title was a
+                            // double-header). Drop the slot (= the
+                            // `header:` parameter becomes `nil`;
+                            // = SMC engine hosts no header; = the
+                            // white paper starts at the format
+                            // toolbar; = the document body content
+                            // uses its own H1 inside the markdown
+                            // (= the document body's own
+                            // first-line H1 is the
+                            // canonical page title;
+                            // = the in-canvas title chrome
+                            // is redundant with this H1)).
+                            header: nil,
                             placeholder: editorEmptyDocumentPlaceholder
                         )
                     } else {
@@ -526,11 +632,21 @@ struct EditorView: View {
                             // ed-smc-defaults T-02: forward the
                             // chrome band + placeholder (= same
                             // shape the preview-mode site forwards
-                            // in T-01). Mirror so the chrome stays
-                            // present across the visible / edit mode
-                            // toggle (= canonical Pages / Numbers
-                            // document-chrome-survives-WYSIWYG-toggle).
-                            editorHeader: AnyView(editorChromeHeader),
+                            // in T-01). RATIONALE: boss visual diff
+                            // 2026-10-13 — drop the `editorHeader`
+                            // chrome band here too (= same reason
+                            // as the preview-mode patch: the
+                            // `EditorTabStrip` already shows the
+                            // active tab title; = the in-canvas
+                            // title was a double-header). The
+                            // `editorHeader: nil` keeps the
+                            // `EditorEditContent` API surface
+                            // unchanged but the rendered chrome
+                            // is gone (= the white paper starts at
+                            // the format toolbar; = the document
+                            // body's own H1 is the canonical
+                            // title).
+                            editorHeader: nil,
                             editorPlaceholder: editorEmptyDocumentPlaceholder,
                             // T-03: wire caret-rect callback so the
                             // status bar can show the live cursor
@@ -548,23 +664,20 @@ struct EditorView: View {
                         }
                     }                }
             }
-            // 2026-10-12 round-7 fix — the user reported "你还需要
-            // 参考, 聊天区是怎么分区域的. 底栏是怎么附加上去的.
-            // 不光是底栏内部的写法, 而是这个底栏是怎么加上的"
-            // — the prior 5 rounds were all about the inner
-            // structure of the status bar (= HStack content +
-            // chrome 1:1 with chat footer) but NONE of them
-            // changed how the status bar is ATTACHED to the
-            // editor zone. The chat column uses
-            // `ScrollView.safeAreaInset(edge: .bottom, spacing: 0)
-            // { ChatInputBarView }` (= the chat input bar
-            // FLOATS over the chat ScrollView; = the chat
-            // ScrollView's content gets `.contentMargins(.bottom,
-            // chatInputBarHeight, for: .scrollContent)` so the
-            // last chat message peeks behind the floating input
-            // bar; = Apple HIG Messages / Slack / Telegram chat
-            // input pattern). The editor zone, by contrast, has
-            // the status bar as a SIBLING of the body ZStack in
+            // RATIONALE: the `EditorStatusBarView`
+            // sits at the bottom of the
+            // outer VStack (= the wenshu 1:1
+            // macOS Pages / Numbers editor
+            // chrome recipe; = the canvas
+            // grows to fill the available
+            // space via
+            // `.frame(maxHeight: .infinity, alignment: .top)`;
+            // = the status bar is the
+            // single source of truth for
+            // the live cursor position +
+            // auto-save state).
+            // The editor zone uses the
+            // sibling-of-body VStack pattern
             // the outer VStack (= the status bar takes up
             // vertical space in the layout; = the body ZStack's
             // available height = zone - toolbar - status bar;

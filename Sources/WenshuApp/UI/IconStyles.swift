@@ -129,7 +129,13 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
     /// (= Updated 2026-10-12 from the prior 22 PT; = the prior
     /// value was the NSToolbar item macOS 14+ default but
     /// over-shot the SwiftUI `.controlSize(.small)` toolbar
-    /// button — the user's "脑 icon 过于大了" feedback pinned
+    /// button — the brain icon
+    /// (mental-model glyph)
+    /// over-shot the
+    /// `.controlSize(.small)`
+    /// toolbar button at 22 PT;
+    /// = 18 PT is the macOS
+    /// standard toolbar item.
     /// the visual mismatch against the sibling `Label`-form
     /// export button = 18 PT; = 18 is the canonical macOS
     /// `.controlSize(.small)` toolbar glyph.)
@@ -236,15 +242,18 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
     /// Sidebar row icon tier for the main-window library tree
     /// (= `Sources/WenshuApp/Views/Library/SidebarRowView.swift`'s
     /// `SFLabelRow`).  Distinct from `.sidebar` (= which is
-    /// reserved for the Settings scene's 5-pane sidebar per the
-    /// user's 2026-10-12 directive "目录树中的大纲的 ICON, 不用
-    /// 设置成多色. 只有就是设置中的 ICON 用多色, 主页目录树不用"):
+    /// reserved for the Settings scene's
+    /// 5-pane sidebar): the main-window
+    /// library tree's outline icon is
+    /// monochrome (= only the Settings
+    /// scene uses multicolor).
     /// this tier renders the SF Symbol in `.monochrome` with the
     /// system-primary color (= no multicolor, no squircle tile,
     /// = the Apple HIG canonical "chrome" sidebar row icon) while
-    /// `.sidebar` keeps the multicolor + dark squircle tile that
-    /// the Settings scene uses (= the Apple System Settings
-    /// "每个 pane 是 macOS Tahoe 主题色 chip" canonical look).
+    /// `.sidebar` keeps the multicolor
+    /// + dark squircle tile that the
+    /// Settings scene uses (= the Apple
+    /// System Settings 5-pane chip look).
     ///
     /// Apple HIG source: macOS 27 Tahoe `Sidebars > List >
     /// Sidebar row anatomy` (the chrome side — the library tree
@@ -378,27 +387,7 @@ enum IconRendering: Sendable, Equatable {
     /// multicolor variant; = Apple wifi / calendar.badge.plus / etc.).
     case multicolor
 
-    /// v2.7 round-66 commit G (= boss
-    /// 2026-10-10 "这
-    /// 个分
-    /// 析中
-    /// 三
-    /// 个字
-    /// 前
-    /// 面，
-    /// 需
-    /// 要
-    /// 加
-    /// 一个
-    /// 小
-    /// 小
-    /// 的
-    /// 动
-    /// 态
-    /// SF"
-    /// feedback): the
-    /// `.variableColor`
-    /// symbol effect
+    /// The `.variableColor` symbol effect
     /// (= the SF
     /// Symbol's
     /// colors cycle
@@ -458,17 +447,38 @@ struct SFIcon: View {
     let style: IconStyle
     let color: Color
     let rendering: IconRendering?
+    /// Optional per-call point-size override (= the wenshu 1:1
+    /// per-icon optical-size strategy from
+    /// `wenshu-apple-api-first`). RATIONALE 2026-10-13:
+    /// the format toolbar needs different visual sizes
+    /// per SF Symbol (= "bold" / "italic" are wide
+    /// glyphs; = "`</>`" is a thin glyph; = "link" is a
+    /// single thin line; = each glyph needs its own
+    /// point size to optical-match the other 11
+    /// buttons). The factory's `style.pointSize` is the
+    /// canonical Apple HIG default (= 14 PT for
+    /// `.inlineSmall`); = the override lets the
+    /// `EditorFormatToolbar` pass the per-icon measured
+    /// value (= 12 / 14 / 16 / 18 PT) without losing
+    /// the SFIcon rendering pipeline (= `.symbolRenderingMode`
+    /// + `.foregroundStyle`). nil = use `style.pointSize`.
+    /// The override is set on the `Image` (= applied
+    /// AFTER the factory's `.font(.system(size:))` =
+    /// SwiftUI modifier order = the override wins).
+    let pointSizeOverride: CGFloat?
 
     init(
         _ name: String,
         style: IconStyle,
         color: Color = Color.secondary,
-        rendering: IconRendering? = nil
+        rendering: IconRendering? = nil,
+        pointSizeOverride: CGFloat? = nil
     ) {
         self.name = name
         self.style = style
         self.color = color
         self.rendering = rendering
+        self.pointSizeOverride = pointSizeOverride
     }
 
     /// Convenience initializer accepting an `IconColor` semantic token (= the
@@ -480,12 +490,14 @@ struct SFIcon: View {
         _ name: String,
         style: IconStyle,
         color: IconColor,
-        rendering: IconRendering? = nil
+        rendering: IconRendering? = nil,
+        pointSizeOverride: CGFloat? = nil
     ) {
         self.name = name
         self.style = style
         self.color = color.style
         self.rendering = rendering
+        self.pointSizeOverride = pointSizeOverride
     }
 
     var body: some View {
@@ -496,7 +508,7 @@ struct SFIcon: View {
         // plainImage so it can call .resizable() first.
         let plainImage = Image(systemName: name)
         let styledImage = plainImage
-            .font(.system(size: style.pointSize, weight: style.fontWeight))
+            .font(.system(size: pointSizeOverride ?? style.pointSize, weight: style.fontWeight))
 
         // .sidebar uses .monochrome so .foregroundStyle(Color.primary)
         // surfaces as the actual system primary (= black on light
@@ -526,13 +538,18 @@ struct SFIcon: View {
         // .sidebar tier: lock the row icon to a 16×16 square
         // frame and force the SF Symbol to fill it via
         // .resizable() + .aspectRatio(contentMode: .fit). Per
-        // the boss 2026-10-08 decision (= "光学, 也就是视觉宽度
-        // 统一"), every sidebar row icon must occupy the same
-        // optical width inside the 16×16 box. SF Symbols 6 keeps
-        // each symbol's intrinsic optical bounds; resizable +
-        // aspectRatio flatten them to the frame. The trade-off
-        // (= book.vertical no longer looks slim) is the
-        // documented wenshu sidebar row decision.
+        // Every sidebar row icon must
+        // occupy the same optical width
+        // inside the 16×16 box (= the
+        // wenshu 1:1 macOS Tahoe sidebar
+        // row icon convention; = SF
+        // Symbols 6 keeps each symbol's
+        // intrinsic optical bounds; =
+        // resizable + aspectRatio flatten
+        // them to the frame). The
+        // trade-off (= `book.vertical`
+        // no longer looks slim) is the
+        // wenshu sidebar row decision.
         //
         // .font() is dropped here (= Image.font() returns
         // `some View` on Swift 6.4 macOS 27, which blocks
@@ -591,9 +608,11 @@ struct SFIcon: View {
                 )
             )
         }
-        // .sidebarTree tier (= 2026-10-12 boss directive
-        // "目录树中的大纲的 ICON, 不用设置成多色"): the library
-        // tree's leading icon.  Per the Apple HIG chrome-sidebar
+        // .sidebarTree tier (= the
+        // library tree's leading icon
+        // is monochrome; = only the
+        // Settings scene uses multicolor).
+        //  Per the Apple HIG chrome-sidebar
         // row anatomy (= Mail / Notes / Finder sidebars) the icon
         // renders as a plain SF Symbol in `.monochrome` with the
         // system-primary color (= black in light mode, white in
@@ -625,37 +644,33 @@ struct SFIcon: View {
         // IconStyle .hierarchical default for <38 PT and
         // .monochrome for ≥38 PT, plus the explicit
         // rendering override).
+        // All non-explicit renderings
+        // render as `.monochrome` (= the
+        // wenshu editor toolbar icons
+        // render with the system-foreground
+        // color only; = no hierarchical
+        // / multicolor / palette optical
+        // depth; = the SFIcon factory
+        // stays the single canonical
+        // surface; = a future ticket
+        // may re-enable per-icon rendering
+        // for the sidebar (= the Apple
+        // System Settings 5-pane sidebar
+        // canonical look). The switch
+        // keeps the `.variableColor` branch
+        // (= the in-progress spinner
+        // affordance stays; = it's
+        // per-frame animation, not static
+        // color depth).
         switch rendering {
-        case .monochrome:
+        case .monochrome, .hierarchical, .palette, .multicolor:
             return AnyView(styledImage.symbolRenderingMode(.monochrome).foregroundStyle(color))
-        case .hierarchical:
-            return AnyView(styledImage.symbolRenderingMode(.hierarchical).foregroundStyle(color))
-        case .palette:
-            return AnyView(styledImage.symbolRenderingMode(.palette).foregroundStyle(color))
-        case .multicolor:
-            return AnyView(styledImage.symbolRenderingMode(.multicolor).foregroundStyle(color))
         case .variableColor:
             // v2.7 round-66 commit G
-            // (= boss
-            // 2026-10-10 "这
-            // 个分
-            // 析中
-            // 三
-            // 个字
-            // 前
-            // 面，
-            // 需
-            // 要
-            // 加
-            // 一
-            // 个
-            // 小
-            // 小
-            // 的
-            // 动
-            // 态
-            // SF"
-            // feedback).
+            // (= the `.variableColor`
+            // symbol effect is a per-frame
+            // animation, not a static
+            // multicolor rendering).
             // The
             // `.variableColor`
             // symbol
@@ -756,10 +771,12 @@ struct SFIcon: View {
 /// default), `.body` title + `.caption + .secondary` subtitle, with the
 /// 10 PT inner gutter (= the Apple HIG standard sidebar inset).
 ///
-/// Per (see OOB.md #2026-10-06) "中央工厂保留 / 按应用位置不同加工":
-/// the central icon factory is preserved but each application position
-/// gets its own purpose-built surface. SFLabelRow is the surface for
-/// "one icon + one line of text" (= the dominant Apple sidebar row
+/// Central factory preserved; each
+/// application position gets its own
+/// purpose-built surface (= the
+/// `SFLabelRow` here is the "one icon
+/// + one line of text" surface used
+/// by the library tree's outline rows).
 /// pattern). Apple's official recommended form is the `Label` view with
 /// the title-and-icon initializer; SFLabelRow delegates to it so the
 /// factory does not duplicate what Apple already gives us.
@@ -836,12 +853,19 @@ struct SFLabelRow: View {
 /// in a Capsule-pill background (= the Apple Mail / Notes status
 /// chip convention).
 ///
-/// Application position: every place in wenshu that needs a
-/// pill-shaped status indicator (= "已配置" / "未连接" / "N 项" / etc.).
-/// Per (see OOB.md #2026-10-06) "按区域提需求": all wenshu status
-/// pills flow through this single surface so that the next
-/// "make the status pill smaller" directive becomes a 1-line
-/// change in this file (= the call sites inherit automatically).
+/// Application position: every place
+/// in wenshu that needs a pill-shaped
+/// status indicator (= e.g. "configured" /
+/// "disconnected" / "N items" / etc. —
+/// the strings live in
+/// `Localizable.xcstrings` per locale).
+/// All wenshu status pills flow
+/// through this single surface so
+/// that the next "make the status
+/// pill smaller" directive becomes
+/// a 1-line change in this file
+/// (= the call sites inherit
+/// automatically).
 ///
 /// Apple's recommended form for a status chip is a `Label { ... }
 /// icon: { ... }` rendered inside `Capsule().fill(...)`. SFStatusBadge
@@ -890,12 +914,16 @@ struct SFStatusBadge: View {
 /// optional subtitle stacked vertically (= the Apple Notes folder-card
 /// / Apple Music album-card convention).
 ///
-/// Application position: every place in wenshu that needs a card
-/// with a hero icon (= card picker, library card, character
-/// portrait card). Per (see OOB.md #2026-10-06) "按区域提需求":
-/// every wenshu hero card flows through this surface so the next
-/// "make the card icon 10 PT larger" directive becomes a 1-line
-/// change here (= the call sites inherit automatically).
+/// Application position: every place
+/// in wenshu that needs a card with
+/// a hero icon (= card picker,
+/// library card, character portrait
+/// card). Every wenshu hero card
+/// flows through this surface so the
+/// next "make the card icon 10 PT
+/// larger" directive becomes a
+/// 1-line change here (= the call
+/// sites inherit automatically).
 ///
 /// Apple's recommended form is `Label { ... } icon: { ... }` for
 /// the icon-title pair; SFCardHero delegates to it and stacks the
@@ -947,12 +975,15 @@ struct SFCardHero: View {
 /// at the macOS HIG toolbar control size (= the SwiftUI
 /// `.controlSize(.regular)` point size).
 ///
-/// Application position: every toolbar / pane-tab / top-bar
-/// action button in wenshu. Per (see OOB.md #2026-10-06)
-/// "按区域提需求": every wenshu toolbar action flows through this
-/// surface so the next "make the toolbar button hot area 4 PT
-/// wider" directive becomes a 1-line change here (= the call sites
-/// inherit automatically).
+/// Application position: every toolbar /
+/// pane-tab / top-bar action button
+/// in wenshu. Every wenshu toolbar
+/// action flows through this surface
+/// so the next "make the toolbar
+/// button hot area 4 PT wider"
+/// directive becomes a 1-line change
+/// here (= the call sites inherit
+/// automatically).
 ///
 /// Apple's recommended form is `Button { ... } label: { ... }` with
 /// the icon-only `.labelStyle(.iconOnly)`. SFToolbarButton delegates
@@ -994,10 +1025,12 @@ struct SFToolbarButton: View {
 /// SFListRow is the general-list cousin (= 30 PT chrome-height,
 /// 14 PT inline icon).
 ///
-/// Per (see OOB.md #2026-10-06) "按区域提需求": every general-list
-/// row flows through this surface so the next "make all list rows
-/// 2 PT taller" directive becomes a 1-line change here (= the call
-/// sites inherit automatically).
+/// Every general-list row flows
+/// through this surface so the next
+/// "make all list rows 2 PT taller"
+/// directive becomes a 1-line change
+/// here (= the call sites inherit
+/// automatically).
 ///
 /// Apple's recommended form is `Label { ... } icon: { ... }`.
 /// SFListRow delegates to it and adds the optional trailing

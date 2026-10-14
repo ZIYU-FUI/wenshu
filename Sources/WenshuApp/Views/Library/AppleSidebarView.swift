@@ -88,11 +88,13 @@ struct AppleSidebarView: View {
     @State private var showNewBookSheet = false
     @State private var showExportSheet = false
     @State private var showImportSheet = false
-    /// v2.7 prefill state for the import sheet
-    /// (= boss 2026-10-09 round-18 "右键点资料
-    /// 库，点导入，进到弹窗后，目标自动选
-    /// 好资料库。右键点书的时候目标自动选
-    /// 好对应的书" directive). The
+    /// prefill state for the import sheet
+    /// (= the import target is pre-selected
+    /// based on the right-clicked node;
+    /// = the library-level import prefills
+    /// the library; = the book-level import
+    /// prefills the book).
+    /// The
     /// `onImportToReferenceLibrary` /
     /// `onImportToBook` contextMenu handlers
     /// set these then flip `showImportSheet`;
@@ -128,11 +130,7 @@ struct AppleSidebarView: View {
                         children: \.children,
                         selection: $selectedNode
                     ) { node in
-                        // v2.7 round-33 (= boss "如果当前
-                        // 选中是别的，但鼠标直接在
-                        // 十二地仙处右键，点导入，就
-                        // 不能带入" directive): the
-                        // per-row `SidebarRowView` now
+                        // The per-row `SidebarRowView`
                         // carries its own
                         // `.contextMenu(menuItems:)`
                         // (= the right-click hit
@@ -212,16 +210,6 @@ struct AppleSidebarView: View {
                                     importPrefillBookID = bookId
                                     showImportSheet = true
                                 },
-                                // v2.7 round-63
-                                // (= boss
-                                // 2026-10-10
-                                // "素材区,
-                                // 卡片,
-                                // 右键菜
-                                // 单, 做
-                                // 删除、
-                                // 重命名"
-                                // directive).
                                 // The
                                 // rename
                                 // callback
@@ -287,12 +275,7 @@ struct AppleSidebarView: View {
                     newLabel: String(localized: "sidebar_context_menu_new"),
                     action: { sheetRequests.choice += 1 }
                 ))
-                // v2.7 round-35 (= boss 2026-10-10
-                // "首次进入，没有选任何目录
-                // 树时，右键资料库，进入后
-                // 没有锚定. 但右键任意书后，
-                // 生效" directive). The
-                // previous list-level
+                // The previous list-level
                 // `SidebarContextMenuModifier`
                 // (= the `.contextMenu(forSelectionType:
                 // menu:)` hook on the List)
@@ -482,8 +465,13 @@ struct AppleSidebarView: View {
         // `SidebarService.reload()` path (= the same path
         // the create / rename / delete sheets trigger when
         // they mutate the library; = no new refresh code).
-        // The user's 2026-10-09 feedback: "点取消返回后，
-        // 目录树没有刷新".
+        // The library tree reloads on
+        // `wenshuLibraryDidChange` (= posted
+        // after create / rename / delete
+        // operations; = the create/rename/
+        // delete sheets post this on commit;
+        // = the cancel path doesn't post =
+        // the tree stays unchanged).
         .onReceive(NotificationCenter.default.publisher(for: .wenshuLibraryDidChange)) { _ in
             Task { await service?.reload() }
         }
@@ -695,31 +683,6 @@ struct AppleSidebarView: View {
                     }
                     pendingDelete = nil
                     Task { await service?.reload() }
-                    // v2.7 round-66 commit I (= boss
-                    // 2026-10-10 "两
-                    // 个
-                    // 卡
-                    // 片
-                    // 右
-                    // 键
-                    // 删
-                    // 除
-                    // ，
-                    // 删
-                    // 除
-                    // 成
-                    // 功
-                    // 后
-                    // ，
-                    // 目
-                    // 录
-                    // 树
-                    // 没
-                    // 有
-                    // 刷
-                    // 新
-                    // "
-                    // feedback).
                     // Post the
                     // canonical
                     // library
@@ -755,16 +718,7 @@ struct AppleSidebarView: View {
         }
     }
 
-    // MARK: v2.7 round-63
-    // (= boss 2026-10-10
-    // "素材区，卡
-    // 片，右键菜
-    // 单，做删
-    // 除、重命
-    // 名" directive).
-    // Helpers for the
-    // reference-row
-    // right-click menu
+    // MARK: Reference-row right-click helpers
     // (= the rename
     // sheet needs the
     // reference's
@@ -885,7 +839,8 @@ struct AppleSidebarView: View {
     /// Group, no Divider between buttons). The `AnyView` wrapper
     /// collapses the @ContentBuilder tuple type and the menu
     /// item extractor drops trailing items (= the v1.69y
-    /// symptom = "only 新建 shows"). The `?` shorthand below
+    /// symptom: the menu only renders the
+    /// "create new" item). The `?` shorthand below
     /// ensures both return paths produce the same @ContentBuilder
     /// tuple (= Apple HIG canonical shape).
 
@@ -901,6 +856,26 @@ struct AppleSidebarView: View {
     /// rows forward their selection to AppState.sidebarSelection
     /// AND open the folder in the editor's tab strip).
     private func forwardSelection(_ node: SidebarNode?) {
+        // RATIONALE: the sidebar click
+        // is a scope filter only (= NOT
+        // a tab-opener; = the previous
+        // behavior fired
+        // `openFolderInEditor` /
+        // `openBookInEditor` on every
+        // click; = that mutates
+        // `appState.openTabs`; = the
+        // wenshu 1:1 macOS Finder
+        // canonical = "click to scope,
+        // double-click to open"). The
+        // sidebar selection is still
+        // recorded in
+        // `workspaceUI.sidebarSelection`
+        // (= the middle column re-scopes
+        // to show the cards inside the
+        // selected folder / book; = the
+        // user can see what's inside the
+        // folder without the editor
+        // automatically opening a tab).
         guard let node else { return }
         switch node.kind {
         case .shelf:
@@ -913,12 +888,26 @@ struct AppleSidebarView: View {
             // are children of a shelf. Walk the tree to disambiguate.
             if let parent = Self.parentBookInfo(for: node.id, in: service?.nodes ?? []) {
                 // Folder row.
+                // RATIONALE 2026-10-13: the
+                // `openFolderInEditor(...)` call
+                // is removed (= the boss asked
+                // the sidebar click to NOT
+                // open a tab; = the sidebar
+                // click only records the
+                // selection in
+                // `workspaceUI.sidebarSelection`;
+                // = the middle column re-scopes
+                // to show the cards inside the
+                // folder; = the user can
+                // double-click a card to open
+                // a tab if they want to edit).
                 workspaceUI.sidebarSelection = .folder(bookId: parent.bookId, folderName: parent.folderName)
-                openFolderInEditor(bookId: parent.bookId, folderName: parent.folderName)
             } else {
-                // Real book row.
+                // Real book row. RATIONALE 2026-10-13:
+                // the `openBookInEditor(...)` call
+                // is removed (= same reason as
+                // the folder row above).
                 workspaceUI.sidebarSelection = .book(node.id)
-                openBookInEditor(bookId: node.id)
             }
         case .reference:
             // reference-library leaf (= a single Reference

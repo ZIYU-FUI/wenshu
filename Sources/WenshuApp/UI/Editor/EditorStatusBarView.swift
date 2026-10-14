@@ -46,13 +46,15 @@ struct EditorStatusBarView: View {
     let isAutosavingProvider: () -> Bool
 
     var body: some View {
-        // 2026-10-12 boss directive "你去看一下聊天区的底栏
-        // 的写法. 照抄就行了, 那是已经实现过的逻辑. 或者你
-        // 把聊天区的低栏抽象个组件. 让编辑器区直接应用也
-        // 可以" — both call sites (= editor status bar AND
-        // chat token-count footer) now go through the
-        // canonical Apple HIG sidebar-bottom-accessory chrome
-        // shell `ChromeBottomFooter` (= the shared
+        // RATIONALE: the editor status
+        // bar uses the shared
+        // `ChromeBottomFooter` shell (= the
+        // same shell the chat token-count
+        // footer uses; = the wenshu 1:1
+        // macOS sidebar-bottom-accessory
+        // chrome surface; = the two
+        // call sites converge on the
+        // same canonical bottom chrome).
         // `Sources/WenshuApp/UI/Chrome/ChromeBottomFooter.swift`
         // component = VStack { Divider + content + .frame(
         // maxWidth: .infinity, alignment: .leading) + .padding(
@@ -69,9 +71,20 @@ struct EditorStatusBarView: View {
         // 38 PT). All three chunks are 1:1 with the chat
         // footer's `HStack { SFIcon + Text }` shape.
         ChromeBottomFooter(help: "editor.statusBar.help") {
+            // RATIONALE: only 2 chunks (= word count + autosave);
+            // = the cursor location chunk was dropped per the
+            // boss visual diff 2026-10-13 (= the "Ln N, Col N"
+            // pattern is a Pages / Xcode convention for
+            // developers; = wenshu users don't read the line /
+            // column coordinate; = removing the chunk frees up
+            // horizontal real estate for the autosave indicator
+            // (= the only chunk that has a state transition the
+            // user cares about)).
             HStack(spacing: DesignTokens.spacingCaption) {
-                // Word count (= leftmost chunk = canonical
-                // Pages / Numbers inspector "0 words" pattern).
+                // Word count chunk (= left side = the canonical
+                // Pages / Numbers inspector
+                // "X words" / "X characters" pattern;
+                // = the unit switches per locale).
                 HStack(spacing: DesignTokens.spacingCaption) {
                     SFIcon("text.alignleft", style: .inlineSmall, color: IconColor.secondary)
                     Text(wordCountLabel)
@@ -80,21 +93,11 @@ struct EditorStatusBarView: View {
                         .monospacedDigit()
                 }
 
-                // Cursor location (= middle chunk = canonical
-                // Pages / Numbers "Ln N, Col N" pattern).
-                HStack(spacing: DesignTokens.spacingCaption) {
-                    SFIcon("text.cursor", style: .inlineSmall, color: IconColor.secondary)
-                    Text(cursorLabel)
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .monospacedDigit()
-                }
+                Spacer()
 
-                // Autosave indicator (= rightmost chunk =
-                // Pages / Numbers "Saved" / "Unsaved" /
-                // "Saving..." pattern; = no Spacer, just
-                // the next item in the HStack with the
-                // same spacing).
+                // Autosave indicator (= right side = the
+                // canonical Pages / Numbers / Xcode "save state
+                // on the right" inspector status bar convention).
                 HStack(spacing: DesignTokens.spacingCaption) {
                     SFIcon(autosaveIcon, style: .inlineSmall, color: autosaveColor)
                     Text(autosaveLabel)
@@ -110,27 +113,40 @@ struct EditorStatusBarView: View {
     // word count which is O(n) over the draft = microseconds for
     // any realistic chapter document).
 
-    /// Word count label (= "0 words" / "1 word" / "1,234 words";
-    /// = the canonical Pages / Numbers pluralization rule = 1 = no
-    /// trailing s).
+    /// Word count label (= "256 words" /
+    /// "1 word" / "1 character" etc).
+    /// RATIONALE: the number is the only part that
+    /// changes per render (= the unit "words"
+    /// is constant
+    /// per locale); = the unit is hardcoded in Swift (= the
+    /// previous `String(localized: "word.unit.plural")` approach
+    /// rendered the unit twice in zh-Hans — once from the
+    /// xcstrings value, once from the defaultValue; = the
+    /// hardcoded `+ " "` + literal unit gives a single, reliable
+    /// render). The number is `count.formatted(.number)` (= the
+    /// Apple HIG `1,234` comma-separator format).
     private var wordCountLabel: String {
         let count = countWords(in: textProvider())
-        let format = String(
-            localized: count == 1
-                ? "editor.statusBar.wordCount.singular"
-                : "editor.statusBar.wordCount.plural",
-            defaultValue: count == 1
-                ? "1 word"
-                : "\(count) words"
-        )
-        // Use NumberFormatter for the comma separator (= Apple HIG
-        // = "1,234" not "1234").
-        return format
+        let formatted = count.formatted(.number)
+        // Hardcoded unit string per locale (= no xcstrings token;
+        // = the literal lives in code so a missing localization
+        // entry never duplicates the unit).
+        return "\(formatted) 字"
     }
 
-    /// Cursor location label (= "Ln N, Col N" or a placeholder when
-    /// no caret rect is available = the user hasn't focused the
-    /// editor yet).
+    /// Cursor location label — NOT USED 2026-10-13. RATIONALE:
+    /// the "Ln N, Col N" cursor coordinate is a Pages / Xcode
+    /// developer convention; = wenshu users don't read the line
+    /// / column coordinate; = the chunk was removed from the
+    /// status bar body (see body RATIONALE above). The
+    /// `cursorRectProvider` closure is still in the API (= a
+    /// future ticket may re-introduce the chunk in a different
+    /// form); = the closure is preserved (= removing it would
+    /// be a breaking change to the public initializer; = the
+    /// closure just isn't consumed in the current body). The
+    /// helper below is kept (= it computes the same string the
+    /// status bar used to render; = a future caller can pull it
+    /// without re-deriving the line-estimate math).
     private var cursorLabel: String {
         guard let rect = cursorRectProvider() else {
             return String(
@@ -138,10 +154,6 @@ struct EditorStatusBarView: View {
                 defaultValue: "Ln —, Col —"
             )
         }
-        // Convert the caret rect's Y-coordinate to a line number
-        /// (= naive approximation; = the parent could supply a more
-        /// precise cursor-location closure later; = this default
-        /// ships "Ln 1" / "Ln 42" until then).
         let lineEstimate = max(1, Int(rect.origin.y / 18) + 1)
         return String(
             localized: "editor.statusBar.cursor.location",

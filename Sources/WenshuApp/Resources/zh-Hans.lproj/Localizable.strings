@@ -767,7 +767,7 @@
 	<key>cron.refresh</key>
 	<string>刷新</string>
 	<key>editor.empty.description</key>
-	<string>打开一本书或新建一个文档开始书写。</string>
+	<string>请双击素材栏卡片打开一个文档</string>
 	<key>editor.empty.title</key>
 	<string>没有打开文档</string>
 	<key>error.api_key.invalid</key>

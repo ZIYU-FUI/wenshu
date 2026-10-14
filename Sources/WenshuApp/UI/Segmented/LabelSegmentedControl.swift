@@ -131,24 +131,76 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
     let displayStrings: [String]
     /// Per-segment symbol provider.
     let icon: ((Selection) -> NSImage?)?
+    /// Double-click callback (= the user double-clicks a
+    /// segment; = the callback receives the
+    /// zero-indexed segment position; = the
+    /// `LabelSegmentedControl` is in the editor
+    /// tab strip in this role, the callback
+    /// closes the corresponding tab = the
+    /// wenshu 1:1 Safari canonical "double-click
+    /// a tab to close it" behavior). RATIONALE:
+    /// the segmented control wires
+    /// `NSClickGestureRecognizer(numberOfClicksRequired: 2)`;
+    /// = the gesture's `target` fires
+    /// `onDoubleClickSegment` (= the canonical
+    /// way to bridge SwiftUI's `NSViewRepresentable`
+    /// to AppKit's double-click event).
+    /// SwiftUI HStack tab strip could have had a
+    /// SwiftUI `.onTapGesture(count: 2)` modifier;
+    /// = the AppKit `NSSegmentedControl` does NOT
+    /// auto-bridge SwiftUI gestures; = we need
+    /// an AppKit `NSClickGestureRecognizer`
+    /// (= the macOS canonical native double-click
+    /// detector) wired up to fire the callback).
+    let onDoubleClickSegment: ((Int) -> Void)?
 
     init(
         selection: Binding<Selection>,
         labels: [Selection],
         displayStrings: [String]? = nil,
         iconStyle: IconStyle = .paneTab,
-        icon: ((Selection) -> NSImage?)? = nil
+        icon: ((Selection) -> NSImage?)? = nil,
+        onDoubleClickSegment: ((Int) -> Void)? = nil
     ) {
         self.selection = selection
         self.labels = labels
         self.displayStrings = displayStrings ?? labels.map { String(describing: $0) }
         self.iconStyle = iconStyle
         self.icon = icon
+        self.onDoubleClickSegment = onDoubleClickSegment
     }
 
     func makeNSView(context: Context) -> NSSegmentedControl {
         let control = NSSegmentedControl()
         configure(control, coordinator: context.coordinator)
+        // RATIONALE 2026-10-13: the AppKit
+        // `NSSegmentedControl` does NOT auto-bridge
+        // SwiftUI gestures (= the previous SwiftUI
+        // HStack tab strip could have used
+        // `.onTapGesture(count: 2)`; = the AppKit
+        // native control needs an explicit
+        // `NSClickGestureRecognizer` to fire on
+        // double-click). The recognizer
+        // (= `numberOfClicksRequired = 2`) calls
+        // `handleDoubleClick` on the coordinator
+        // (= which forwards the click location
+        // → segment index → `onDoubleClickSegment`).
+        // The recognizer is attached once at
+        // make-time (= not in `updateNSView` to
+        // avoid stacking duplicates; = the
+        // recognizer's target is the coordinator
+        // which captures the latest `parent` via
+        // `coordinator.parent = self` in
+        // `configure`).
+        if onDoubleClickSegment != nil {
+            let dblClick = NSClickGestureRecognizer(
+                target: context.coordinator,
+                action: #selector(Coordinator.handleDoubleClick(_:))
+            )
+            dblClick.numberOfClicksRequired = 2
+            dblClick.delaysPrimaryMouseButtonEvents = false
+            control.addGestureRecognizer(dblClick)
+        }
         return control
     }
 
@@ -235,7 +287,35 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         // (= when control is wider than the sum of intrinsic
         // widths; = equivalent to NSSegmentedControl's
         // 'fillProportionally' default but applies to .fillEqually).
-        control.controlSize = .regular
+        // RATIONALE: `controlSize = .large`
+        // (= the wenshu 1:1 macOS 27
+        // Tahoe inspector-body tab pill
+        // canonical; = 32 PT height;
+        // = the inspector body uses
+        // the same control size for
+        // consistency). The segment
+        // distribution is `.fillEqually`
+        // so each segment takes 1/N of
+        // the column width (= NSSegmentedControl
+        // auto-stretches with the column
+        // drag during NSV resize).
+        // `.large` (= 30 PT; = the macOS 27
+        // canonical "large" control size; = the
+        // closest canonical size to the 32 PT
+        // target; = using `.large` is preferable
+        // to a custom `NSSegmentedControl` height
+        // because the size affects Apple's
+        // accessibility math, the standard hit
+        // area, and the system-supplied
+        // Liquid Glass rendering at the OS
+        // level). The two call sites (= the
+        // inspector body and the editor tab
+        // strip) both move up by 10 PT (= the
+        // delta from `.regular` to `.large`; =
+        // a small visual change for the
+        // inspector; = the expected change for
+        // the tab strip).
+        control.controlSize = .large
 
         // Sync selection state (= in case SwiftUI re-evaluates
         // the body and `selection` changed but the control is
@@ -263,6 +343,31 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         var parent: LabelSegmentedControl
         init(parent: LabelSegmentedControl) {
             self.parent = parent
+        }
+
+        @objc func handleDoubleClick(_ sender: NSClickGestureRecognizer) {
+            // RATIONALE 2026-10-13: the
+            // `NSClickGestureRecognizer` fires
+            // AFTER the underlying control's
+            // `target/action` (=
+            // `segmentChanged`) runs (= the
+            // first click selects the segment
+            // via AppKit's normal
+            // single-click handler; = the
+            // second click fires the gesture
+            // recognizer). By the time
+            // `handleDoubleClick` runs, the
+            // control's `selectedSegment`
+            // (= the `Int` index of the
+            // segment the user just clicked
+            // on) is already up-to-date.
+            // The `selectedSegment` is -1 if
+            // no segment is selected (= the
+            // click missed; = we guard).
+            guard let control = sender.view as? NSSegmentedControl else { return }
+            let segmentIndex = control.selectedSegment
+            guard segmentIndex >= 0 && segmentIndex < parent.labels.count else { return }
+            parent.onDoubleClickSegment?(segmentIndex)
         }
 
         @objc func segmentChanged(_ sender: NSSegmentedControl) {

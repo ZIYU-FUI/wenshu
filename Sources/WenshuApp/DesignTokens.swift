@@ -110,9 +110,12 @@ enum DesignTokens {
     /// Settings, Mail, Notes, and Xcode sidebar row icons). The
     /// user reverted the prior commit `2643a3b70` on 2026-10-12
     /// (= `.windowResizability` + 9 PT inset) — the prior 9 PT
-    /// inset made the dark squircle tile dominate the row (= the
-    /// tile was the part the user was seeing as "整体过大了");
-    /// = the fix is to keep the 4 PT inset (= small inside-padding
+    /// inset made the dark squircle tile
+    /// dominate the row (= the wenshu
+    /// canonical 4 PT inset is the
+    /// Apple-default; = a wider inset
+    /// makes the squircle tile visually
+    /// dominant).
     /// per Apple's small-density sidebar row) but shrink the tile
     /// itself (= 32 → 24, = `controlSize(.regular)` → `.small`),
     /// = the dark squircle shrinks but the icon-vs-tile spacing
@@ -354,6 +357,19 @@ enum DesignTokens {
     /// 18 PT is a compromise that fits inside `paneTabHotArea` (= 28 PT)
     /// without padding artifacts (= Safari/Chrome/Terminal convention).
     static let tabCloseFrameSize: CGFloat = 18
+
+    /// Per-pane tab close-X icon point size (= 8 PT; = Apple HIG "small"
+    /// tier per WWDC21-10097; = the X
+    /// glyph sits in the center of the
+    /// 18 PT `tabCloseFrameSize` hit area
+    /// with 5 PT of optical padding
+    /// on all sides; = the user gets a smaller visual X (= the X is
+    /// no longer the same optical weight as the tab title's body font)
+    /// while the hit area stays at 18 PT for mouse precision). The
+    /// 8 PT value follows the Apple canonical `Image.Scale.small`
+    /// (≈ 12 PT) scaled further by 0.67 (= the wenshu boss's calibrated
+    /// visual preference for the close affordance).
+    static let tabCloseIconPointSize: CGFloat = 8
 
     /// Per-pane tab selected-state underline height (= 1 PT, Apple HIG
     /// standard for tab bar selected indicator). The line is rendered

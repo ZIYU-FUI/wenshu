@@ -50,7 +50,7 @@ final class AppState {
     /// opening the panel window; = the panel's complete() / fail() +
     /// resetForRetry() callbacks clear it (= along with the
     /// completion path that flips the AppState flag when the user
-    /// presses 退出 so the app exits cleanly).
+    /// presses the "quit" button so the app exits cleanly).
     var migrationInFlight: Bool = false
 
     // open document tabs in the editor zone. Each tab = one
@@ -179,10 +179,23 @@ final class AppState {
     /// Called by WorkspaceView.body at first render if openTabs
     /// is empty (= injects one welcome tab so the editor top tab
     /// bar is visible at launch).
+    ///
+    /// RATIONALE: the empty state
+    /// is truly empty (= no welcome
+    /// tab is injected at launch; =
+    /// the previous behavior added a
+    /// placeholder document; = the
+    /// function body is now a no-op).
+    /// pass-through). The function is kept (not
+    /// deleted) so the existing call site
+    /// (= `WorkspaceView.body` calls this on
+    /// first render) continues to compile (= the
+    /// function is part of the public AppState
+    /// surface used by other callers; = a future
+    /// ticket can decide whether to delete the
+    /// function entirely or repurpose it).
     func ensureWelcomeTabIfEmpty() {
-        guard openTabs.isEmpty else { return }
-        openTabs = [welcomeTab]
-        activeTabId = openTabs[0].id
+        // No-op: the empty state is the empty state.
     }
 
     // Tab close button: the business entry point for the new X
@@ -242,11 +255,37 @@ final class AppState {
         // 5. If the closed tab was active, pick a neighbor.
         if activeTabId == id {
             if openTabs.isEmpty {
-                // All tabs closed = re-inject welcome (= tab strip
-                // stays visible per the welcomeTab invariant).
-                let welcome = welcomeTab
-                openTabs.append(welcome)
-                activeTabId = welcome.id
+                // RATIONALE: closing the
+                // last tab leaves the
+                // editor column empty
+                // (= no welcome tab is
+                // re-injected; = the
+                // empty state is truly
+                // empty). The previous
+                // round's `openTabs.append(welcome)`
+                // is dropped; = the
+                // active-tab-id stays
+                // `nil` (= the empty
+                // state is the user's
+                // signal that no
+                // document is open).
+                // `ensureWelcomeTabIfEmpty`
+                // call; = this is the second
+                // half of the same BUG = the
+                // close-last-tab path was
+                // also re-injecting the
+                // welcome). The
+                // `activeTabId` is left
+                // untouched (= it's a stale
+                // UUID pointing at the
+                // closed tab; = the next
+                // `openTab(...)` call will
+                // overwrite it with the new
+                // tab's id; = if the user
+                // reopens the same document,
+                // the new tab's id will be
+                // assigned and the previous
+                // stale id is harmless).
             } else if idx < openTabs.count {
                 // Closed a non-last tab = next tab in the list wins.
                 activeTabId = openTabs[idx].id
@@ -416,47 +455,42 @@ final class EditorTab: Identifiable {
     // updated to reflect the now-eliminated drift risk).
     //
     // Precedence:
-    //   1. documentPath basename (= the real file wins; = strips
-    //      the .md extension). If the path is set and the
-    //      basename is non-empty, use it.
-    //   2. tab.title (= the entity / book-doc title = 'Red Cliffs'
-    //      / 'Du Fu' / 'What is Wenshu' etc.). For reference-library
-    //      cards without a real documentPath (= the deferred
-    //      path resolution), this is the only source of a
-    //      meaningful name.
+    //   1. tab.title (= the entity / book-doc / reference name
+    //      captured at openCardInEditor time = "Red Cliffs" /
+    //      "Du Fu" / "What is Wenshu" etc.). This is the
+    //      canonical user-facing label for the document and
+    //      SURVIVES Path 2's `<uuid>.md` auto-bind in
+    //      `EditorPersistence.save` (= once `tab.documentPath`
+    //      is set to `<book>/chapters/<uuid>.md`, the basename
+    //      is the UUID; = the title must take precedence so the
+    //      user still sees the entity name in the tab strip).
+    //   2. documentPath basename (= the file's stem; = falls
+    //      back to a UUID only when no entity title was captured;
+    //      = this is the previous order; = reverted here to fix
+    //      the "title flashes to UUID after first auto-save" bug).
     //   3. 'preview.tab.placeholder' (= the legacy
     //      placeholder; = only reached when
     //      neither documentPath nor title is
     //      set; = the deferred path-resolution
     //      will narrow this fallback to the
     //      empty / placeholder tabs).
-    // v2.7 round-68 (= boss 2026-10-10
-    // "打包的应用不动, 没有要苹果钥
-    // 匙串密码, 少了几个多语言. 重
-    // 新拉应用" feedback). The previous
-    // return value was the literal English
-    // string "preview-sample" (= raw
-    // placeholder; = not localized;
-    // = showed "preview-sample" in the
-    // 3rd-column tab strip when the user
-    // has not yet picked a document). Now
-    // uses the `preview.tab.placeholder`
-    // i18n key via `NSLocalizedString` (=
-    // reads from the binary .strings
+    // The return value uses the
+    // `preview.tab.placeholder` i18n key
+    // via `NSLocalizedString` (=
     // files at runtime; = the .xcstrings
     // String Catalog is the human/LLM
     // source of truth but is not shipped
     // to the bundle; = see PreviewPane's
     // emptyState comment for the full
     // rationale). Translations: "Preview"
-    // (en) / "预览" (zh-Hans).
+    // (en) / preview (zh-Hans).
     static func displayTitle(_ tab: EditorTab) -> String {
+        if let title = tab.title, !title.isEmpty { return title }
         if let path = tab.documentPath, !path.isEmpty {
             let url = URL(fileURLWithPath: path)
             let basename = url.deletingPathExtension().lastPathComponent
             if !basename.isEmpty { return basename }
         }
-        if let title = tab.title, !title.isEmpty { return title }
         return NSLocalizedString("preview.tab.placeholder", comment: "")
     }
 }
