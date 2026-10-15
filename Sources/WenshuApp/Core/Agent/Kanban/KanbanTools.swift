@@ -192,7 +192,11 @@ actor KanbanTools {
             return KanbanToolResult(success: false, output: "task_id is required for show")
         }
         do {
-            let taskOpt = try await MainActor.run { try store.get(id: id) }
+            // A1 boundary: convert WSKanbanTask -> KanbanTask INSIDE MainActor.run
+            // (PersistentModel is NOT Sendable across actor boundaries).
+            let taskOpt: KanbanTask? = try await MainActor.run {
+                try store.get(id: id).map(Self.toDomain)
+            }
             guard let task = taskOpt else {
                 return KanbanToolResult(success: false, output: "Task not found: \(id)")
             }
@@ -210,9 +214,15 @@ actor KanbanTools {
     private func list(params: KanbanParams) async -> KanbanToolResult {
         let statusFilter: KanbanStatus? = params.status.flatMap { KanbanStatus(rawValue: $0) }
         do {
-            let tasks = try await MainActor.run { try store.list(status: statusFilter) }
-            let limited = params.limit.map { Array(tasks.prefix($0)) } ?? tasks
-            let summary = limited.map { "\($0.id): \($0.title) [\($0.status.rawValue)]" }
+            // A1 boundary: build Sendable scalar array inside MainActor.run.
+            let data: [(id: String, title: String, status: String)] = try await MainActor.run {
+                try store.list(status: statusFilter).map { model in
+                    let task = Self.toDomain(model)
+                    return (id: task.id, title: task.title, status: task.status.rawValue)
+                }
+            }
+            let limited = data.prefix(params.limit ?? data.count)
+            let summary = limited.map { "\($0.id): \($0.title) [\($0.status)]" }
                 .joined(separator: "\n")
             return KanbanToolResult(
                 success: true,
@@ -367,5 +377,24 @@ actor KanbanTools {
         } catch {
             return KanbanToolResult(success: false, output: "transition failed: \(error)")
         }
+    }
+
+    /// A1 boundary bridge (Sendable-safe). Static + nonisolated so the
+    /// converter can be called from inside MainActor.run closures without
+    /// capturing actor-isolated state.
+    nonisolated private static func toDomain(_ model: WSKanbanTask) -> KanbanTask {
+        KanbanTask(
+            id: model.id,
+            title: model.title,
+            status: KanbanStatus(rawValue: model.status) ?? .new,
+            createdAt: model.createdAt,
+            updatedAt: model.updatedAt,
+            priority: model.priority,
+            assignee: model.assignee,
+            startedAt: model.startedAt,
+            completedAt: model.completedAt,
+            modelOverride: model.modelOverride,
+            body: model.body
+        )
     }
 }

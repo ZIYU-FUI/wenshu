@@ -73,7 +73,7 @@ struct SubAgentProgressView: View {
     }
 
     private func refreshTasks() {
-        tasks = (try? repositories.kanban.list()) ?? []
+        tasks = (try? repositories.kanban.list().map(toDomain)) ?? []
     }
 
     // (runningCount / doneCount removed 2026-10 in q99-spec-p0-batch2 —
@@ -84,6 +84,22 @@ struct SubAgentProgressView: View {
     //  visible task list itself is the source of truth. See
     //  wenshu-pocock-workflow references/v3.0-design-system-rule.md
     //  + wenshu-dead-code-cleanup SKILL.md.)
+}
+
+private nonisolated func toDomain(_ model: WSKanbanTask) -> KanbanTask {
+    KanbanTask(
+        id: model.id,
+        title: model.title,
+        status: KanbanStatus(rawValue: model.status) ?? .new,
+        createdAt: model.createdAt,
+        updatedAt: model.updatedAt,
+        priority: model.priority,
+        assignee: model.assignee,
+        startedAt: model.startedAt,
+        completedAt: model.completedAt,
+        modelOverride: model.modelOverride,
+        body: model.body
+    )
 }
 
 private struct TaskRowView: View {

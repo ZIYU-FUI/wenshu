@@ -1,23 +1,27 @@
 //
 //  Persistence/Repositories/WSKanbanRepository.swift
 //
-//  Migration commit 26 of 42: WSKanbanRepository.
-//  Per AGENTS.md §11.4.
+//  v3.1 governance A1 refactor (= boundary probe 5/8).
+//  Apple canonical layering per Backyard Birds:
+//    - write API = domain-in/domain-out (Repository converts
+//      KanbanTask -> WSKanbanTask @Model internally, returns the
+//      persisted domain type for fresh inserts).
+//    - read  API = @Model out (caller converts WSKanbanTask -> KanbanTask).
 //
-//  Thin wrapper for KanbanStore actor (= v0.23 ticket 013.003).
-//
-//  Public API (preserved 1:1 from old KanbanStore actor):
-//    - add(...) throws -> KanbanTask
-//    - transition(id:to:) throws
-//    - get(id:) throws -> KanbanTask?
-//    - list(status:) throws -> [KanbanTask]
+//  Public API after A1 probe:
+//    - add(...) throws -> KanbanTask                      (write: domain-in/domain-out)
+//    - transition(id:to:) throws                        (KanbanStatus in, no return)
+//    - get(id:) throws -> WSKanbanTask?                 (read:  raw @Model out)
+//    - list(status:) throws -> [WSKanbanTask]            (read:  raw @Model out)
 //    - delete(id:) throws
 //    - count(status:) throws -> Int
 //
-//  Domain types (preserved): KanbanTask + KanbanStatus
+//  Per AGENTS.md §11.4. Mapping (via static toDomain):
+//    KanbanStatus rawValue = "new"/"triage"/"ready"/"running"/"blocked"/"review"/"done"/"failed"
 //
-//  Status mapping (KanbanStatus ↔ WSKanbanTask.status string):
-//    new / triage / ready / running / blocked / review / done / failed
+//  Note on sendability: WSKanbanTask (PersistentModel) is NOT Sendable.
+//  Caller must convert INSIDE the @MainActor scope (e.g. inside
+//  MainActor.run {}) or use Sendable scalar tuples across actor boundary.
 
 import Foundation
 import SwiftData
@@ -60,19 +64,7 @@ final class WSKanbanRepository {
         }
         context.insert(model)
         try context.save()
-        return KanbanTask(
-            id: id,
-            title: title,
-            status: status,
-            createdAt: model.createdAt,
-            updatedAt: model.updatedAt,
-            priority: priority,
-            assignee: assignee,
-            startedAt: model.startedAt,
-            completedAt: model.completedAt,
-            modelOverride: modelOverride,
-            body: model.body
-        )
+        return Self.toDomain(model)
     }
 
     func transition(id: String, to newStatus: KanbanStatus) throws {
@@ -100,14 +92,14 @@ final class WSKanbanRepository {
         try context.save()
     }
 
-    func get(id: String) throws -> KanbanTask? {
+    func get(id: String) throws -> WSKanbanTask? {
         let descriptor = FetchDescriptor<WSKanbanTask>(
             predicate: #Predicate { $0.id == id }
         )
-        return try context.fetch(descriptor).first.map { mapToDomain(model: $0) }
+        return try context.fetch(descriptor).first
     }
 
-    func list(status: KanbanStatus? = nil) throws -> [KanbanTask] {
+    func list(status: KanbanStatus? = nil) throws -> [WSKanbanTask] {
         let descriptor: FetchDescriptor<WSKanbanTask>
         if let status = status {
             descriptor = FetchDescriptor<WSKanbanTask>(
@@ -119,7 +111,7 @@ final class WSKanbanRepository {
                 sortBy: [SortDescriptor(\.priority, order: .reverse), SortDescriptor(\.createdAt, order: .reverse)]
             )
         }
-        return try context.fetch(descriptor).map { mapToDomain(model: $0) }
+        return try context.fetch(descriptor)
     }
 
     func delete(id: String) throws {
@@ -144,7 +136,8 @@ final class WSKanbanRepository {
         return try context.fetchCount(descriptor)
     }
 
-    private func mapToDomain(model: WSKanbanTask) -> KanbanTask {
+    /// A1 boundary bridge (Sendable-safe; = static nonisolated).
+    nonisolated private static func toDomain(_ model: WSKanbanTask) -> KanbanTask {
         KanbanTask(
             id: model.id,
             title: model.title,
