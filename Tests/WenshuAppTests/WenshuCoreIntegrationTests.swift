@@ -54,11 +54,11 @@ struct WenshuCoreIntegrationTests {
         let memResult = try await MainActor.run {
             try WSMemoryRepository.shared.add(userId: "u1", content: "test memory")
         }
-        #expect(memResult.userId == "u1")
+        #expect(memResult.userID == "u1")
 
         // 2. KanbanStore (kanban_db)
         let kanban = try Self.makeKanbanRepository()
-                let task1 = try await kanban.add(title: "Integration task 1", status: .new)
+                let task1 = try await kanban.add(title: "Integration task 1", status: "new")
         try await kanban.transition(id: task1.id, to: .running)
         let running = try await kanban.list(status: .running)
         #expect(running.count == 1)
