@@ -1,23 +1,19 @@
 //
 //  Persistence/Repositories/WSLinkRepository.swift
 //
-//  Migration commit 27 of 42: WSLinkRepository.
+//  v3.1 governance A1 refactor (= boundary probe 3/8).
+//  Apple canonical layering per Backyard Birds:
+//    - write API = domain in (Repository converts Link -> WSLink @Model)
+//    - read  API = @Model out (caller converts WSLink -> Link)
+//
+//  Public API after A1 probe:
+//    - add(_ link: Link) throws                (write: domain in)
+//    - removeAll(sourceDocId:) throws          (delete by source)
+//    - searchForward(sourceDocId:) -> [WSLink]  (read: raw @Model out)
+//    - searchBackward(targetRef:) -> [WSLink]
+//    - searchBackward(targetDocId:) -> [WSLink]
+//
 //  Per AGENTS.md §11.4.
-//
-//  Thin wrapper for LinkIndex actor (= v0.19 ticket 12 Internal Link).
-//
-//  Public API (preserved 1:1 from old LinkIndex actor):
-//    - add(_ link: Link) throws
-//    - removeAll(sourceDocId:) throws
-//    - searchForward(sourceDocId:) throws -> [Link]
-//    - searchBackward(targetRef:) throws -> [Link]
-//    - searchBackward(targetDocId:) throws -> [Link]
-//
-//  Domain type (preserved): Link (= sourceDocId + targetRef + targetDocId +
-//  line + offset + createdAt).
-//
-//  Composite id: "<sourceDocID>:<line>:<targetRef>" (= unique per source +
-//  line + target; = matches WSLink.init +  fix).
 
 import Foundation
 import SwiftData
@@ -69,47 +65,27 @@ final class WSLinkRepository {
         try context.save()
     }
 
-    func searchForward(sourceDocId: String) throws -> [Link] {
+    func searchForward(sourceDocId: String) throws -> [WSLink] {
         let descriptor = FetchDescriptor<WSLink>(
             predicate: #Predicate { $0.sourceDocID == sourceDocId },
             sortBy: [SortDescriptor(\.line)]
         )
-        return try context.fetch(descriptor).map { model in
-            Link(
-                sourceDocId: model.sourceDocID,
-                targetRef: model.targetRef,
-                targetDocId: model.targetDocID,
-                line: model.line,
-                offset: model.offset,
-                createdAt: model.createdAt
-            )
-        }
+        return try context.fetch(descriptor)
     }
 
-    func searchBackward(targetRef: String) throws -> [Link] {
+    func searchBackward(targetRef: String) throws -> [WSLink] {
         let descriptor = FetchDescriptor<WSLink>(
             predicate: #Predicate { $0.targetRef == targetRef },
             sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
         )
-        return try context.fetch(descriptor).map { mapToDomain(model: $0) }
+        return try context.fetch(descriptor)
     }
 
-    func searchBackward(targetDocId: String) throws -> [Link] {
+    func searchBackward(targetDocId: String) throws -> [WSLink] {
         let descriptor = FetchDescriptor<WSLink>(
             predicate: #Predicate { $0.targetDocID == targetDocId },
             sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
         )
-        return try context.fetch(descriptor).map { mapToDomain(model: $0) }
-    }
-
-    private func mapToDomain(model: WSLink) -> Link {
-        Link(
-            sourceDocId: model.sourceDocID,
-            targetRef: model.targetRef,
-            targetDocId: model.targetDocID,
-            line: model.line,
-            offset: model.offset,
-            createdAt: model.createdAt
-        )
+        return try context.fetch(descriptor)
     }
 }
