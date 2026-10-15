@@ -896,27 +896,26 @@ struct EditorView: View {
 
     /// P2 #19 (WIRE-PARAGRAPH-002): fire the requested paragraph transform
     /// against the active LLM connector and replace the current selection with
-    /// the rewritten text.
-    /// Pipeline (= matches the spec): 1. guard on `selectedText` non-empty (=
-    /// matches the `disabled(vm.selectedText.isEmpty)` rule on the toolbar
-    /// buttons; if the engine selection bridge hasn't reported anything,
-    /// no-op). 2. delegate to the testable static helper
-    /// `EditorParagraphAI.apply(...)` (= internal static; = the pure function
-    /// the test target exercises). The helper builds the prompt prefix, calls
-    /// the connector, extracts the response text, and returns it (= no draft
-    /// mutation = no SwiftUI dependency = trivially unit-testable). 3. replace
-    /// the selection (= today: whole draft) with the returned text.
-    /// Concurrency: Swift 6 strict concurrency. The view is @MainActor (=
-    /// EditorView is a SwiftUI View; = the compiler infers MainActor
-    /// isolation). `await connector.send(...)` hops off MainActor for the URL
-    /// session, then returns; the final `replaceSelectedText` write stays on
-    /// MainActor (= the @State mutation requires it).
-    /// Failure mode (= matches the wenshu S4 graceful-degradation rule): any
-    /// throw from the connector (= transport / auth / missing API key / decode)
-    /// is logged via NSLog and the method returns without touching the draft.
-    /// The user sees no error UI (= consistent with how WenshuConductor.handle
-    /// handles ConversationLoop.runTurn failures); the dirty flag stays
-    /// unchanged.
+    /// the rewritten text. Pipeline (= matches the spec): 1. guard on
+    /// `selectedText` non-empty (= matches the
+    /// `disabled(vm.selectedText.isEmpty)` rule on the toolbar buttons; if the
+    /// engine selection bridge hasn't reported anything, no-op). 2. delegate to
+    /// the testable static helper `EditorParagraphAI.apply(...)` (= internal
+    /// static; = the pure function the test target exercises). The helper
+    /// builds the prompt prefix, calls the connector, extracts the response
+    /// text, and returns it (= no draft mutation = no SwiftUI dependency =
+    /// trivially unit-testable). 3. replace the selection (= today: whole
+    /// draft) with the returned text. Concurrency: Swift 6 strict concurrency.
+    /// The view is @MainActor (= EditorView is a SwiftUI View; = the compiler
+    /// infers MainActor isolation). `await connector.send(...)` hops off
+    /// MainActor for the URL session, then returns; the final
+    /// `replaceSelectedText` write stays on MainActor (= the @State mutation
+    /// requires it). Failure mode (= matches the wenshu S4 graceful-degradation
+    /// rule): any throw from the connector (= transport / auth / missing API
+    /// key / decode) is logged via NSLog and the method returns without
+    /// touching the draft. The user sees no error UI (= consistent with how
+    /// WenshuConductor.handle handles ConversationLoop.runTurn failures); the
+    /// dirty flag stays unchanged.
     func applyParagraphAI(_ transform: EditorTransform) async {
         guard !selectedText.isEmpty else { return }
         isApplyingParagraphAI = true
