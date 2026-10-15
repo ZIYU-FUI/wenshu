@@ -96,4 +96,34 @@ extension ImportService {
                         // the = .import-cache dir = delete
                         // above handles = the v0.74 schema).
     }
+
+    // A57 extension: prepare-rollback helpers (= setup the cancel + rollback trail
+    // at importFiles start). Companion to cancel() / rollback() above.
+    /// Reset the cancel flag + clear the rollback trail (= called at the
+    /// start of every `importFiles` run; = ensures a fresh cancel/rollback
+    /// context per batch).
+    func resetRollbackTrail() {
+        isCancelled = false
+        writtenURLs = []
+        entitiesJSONSnapshot = nil
+    }
+
+    /// Snapshot the reference-library `entities.json` for the cancel handler to
+    /// restore on rollback (= captures the file before any writeFile call has a
+    /// chance to append to it; = a fresh library with no prior `entities.json`
+    /// stores an empty-data sentinel = the cancel handler deletes the file
+    /// outright).
+    func snapshotReferenceLibraryIndex(target: ImportTarget) -> URL {
+        let entitiesIndex = target.wsRoot
+            .appendingPathComponent("reference-library")
+            .appendingPathComponent("entities")
+            .appendingPathComponent("entities.json")
+        if FileManager.default.fileExists(atPath: entitiesIndex.path) {
+            entitiesJSONSnapshot = (entitiesIndex, (try? Data(contentsOf: entitiesIndex)) ?? Data())
+        } else {
+            entitiesJSONSnapshot = (entitiesIndex, Data())
+        }
+        return entitiesIndex
+    }
+
 }

@@ -228,29 +228,16 @@ actor ImportService {
     /// Reset the per-batch rollback trail at the start of every `importFiles`
     /// call (= the same actor can be re-used across multiple sheets, e.g. the
     /// cancel + "再次导入" retry path).
-    private func resetRollbackTrail() {
-        isCancelled = false
-        writtenURLs = []
-        entitiesJSONSnapshot = nil
-    }
+    // (resetRollbackTrail extracted to ImportServiceCancellation.swift in A57; = see that file)
+
 
     /// Snapshot the reference-library `entities.json` for the cancel handler to
     /// restore on rollback (= captures the file before any writeFile call has a
     /// chance to append to it; = a fresh library with no prior `entities.json`
     /// stores an empty-data sentinel = the cancel handler deletes the file
     /// outright).
-    private func snapshotReferenceLibraryIndex(target: ImportTarget) -> URL {
-        let entitiesIndex = target.wsRoot
-            .appendingPathComponent("reference-library")
-            .appendingPathComponent("entities")
-            .appendingPathComponent("entities.json")
-        if FileManager.default.fileExists(atPath: entitiesIndex.path) {
-            entitiesJSONSnapshot = (entitiesIndex, (try? Data(contentsOf: entitiesIndex)) ?? Data())
-        } else {
-            entitiesJSONSnapshot = (entitiesIndex, Data())
-        }
-        return entitiesIndex
-    }
+    // (snapshotReferenceLibraryIndex extracted to ImportServiceCancellation.swift in A57; = see that file)
+
 
 
     /// Phase 3+4 = unified per-file pipeline (= the orchestrator's 5-way
