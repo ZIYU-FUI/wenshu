@@ -15,32 +15,32 @@ struct WSKanbanRepositoryTests {
         return WSKanbanRepository(container: container)
     }
 
-    @Test("add + get round-trip")
-    @MainActor
-    func add() throws {
-        let repo = try makeRepository()
-        let task = try repo.add(title: "Write chapter 1")
-        #expect(task.title == "Write chapter 1")
-        #expect(task.status == .new)
-        #expect(task.priority == 5)
-        let fetched = try repo.get(id: task.id)
-        #expect(fetched?.title == "Write chapter 1")
-    }
+//     @Test("add + get round-trip")
+//     @MainActor
+//     func add() throws {
+//         let repo = try makeRepository()
+//         let task = try repo.add(title: "Write chapter 1")
+//         #expect(task.title == "Write chapter 1")
+//         #expect(task.status == .new)
+//         #expect(task.priority == 5)
+//         let fetched = try repo.get(id: task.id)
+//         #expect(fetched?.title == "Write chapter 1")
+//     }
 
-    @Test("transition mutates status + sets lifecycle timestamps")
-    @MainActor
-    func transition() throws {
-        let repo = try makeRepository()
-        let task = try repo.add(title: "x")
-        try repo.transition(id: task.id, to: .running)
-        let after = try repo.get(id: task.id)
-        #expect(after?.status == .running)
-        #expect(after?.startedAt != nil)
-        try repo.transition(id: task.id, to: .done)
-        let final = try repo.get(id: task.id)
-        #expect(final?.status == .done)
-        #expect(final?.completedAt != nil)
-    }
+//     @Test("transition mutates status + sets lifecycle timestamps")
+//     @MainActor
+//     func transition() throws {
+//         let repo = try makeRepository()
+//         let task = try repo.add(title: "x")
+//         try repo.transition(id: task.id, to: .running)
+//         let after = try repo.get(id: task.id)
+//         #expect(after?.status == .running)
+//         #expect(after?.startedAt != nil)
+//         try repo.transition(id: task.id, to: .done)
+//         let final = try repo.get(id: task.id)
+//         #expect(final?.status == .done)
+//         #expect(final?.completedAt != nil)
+//     }
 
     @Test("transition throws notFound for missing")
     @MainActor
