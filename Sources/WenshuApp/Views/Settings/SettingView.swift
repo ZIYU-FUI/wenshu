@@ -902,7 +902,13 @@ private struct WindowResizableEnabler: NSViewRepresentable {
 /// SwiftUI reconciles the host tree). `.resizable` insertion is
 /// idempotent (= a second `insert` after the bit is already set
 /// is a no-op), so the recomputation cost is minimal.
+@MainActor
 private func ensureResizableAcrossHostingTree(of hostWindow: NSWindow) {
+    // RATIONALE: Swift 6 can't always infer @MainActor across file + extension seams;
+    // = explicit Annotation beats the "nonisolated context" warning cluster at
+    // SettingView:906/907/913/914 (NSApp.windows reference + styleMask mutation).
+    // ASSUMPTION: callers already run on the main actor (= SwiftUI NSViewRepresentable
+    // updateNSView, viewDidMoveToWindow, and viewWillMove are all main-actor-isolated).
     for candidateWindow in NSApp.windows where candidateWindow === hostWindow {
         candidateWindow.styleMask.insert(.resizable)
     }
