@@ -1,7 +1,7 @@
 //
 //  ImportService.swift
 //
-//  T2 of the v2.7 markdown import feature. Orchestrates
+//  T2 of the markdown import feature. Orchestrates
 //  the 4-phase pipeline that turns a user-picked source
 //  directory into a batch of written entities (= either
 //  book-folder files or reference-library entries; =
@@ -158,7 +158,7 @@ enum ImportFileType: String, CaseIterable, Identifiable, Codable, Sendable, Hash
 
     /// The SF Symbol name for the row's leading
     /// icon (= Apple HIG canonical "leading icon"
-    /// for a picker row; = the wenshu v3.0 design
+    /// for a picker row; = the wenshu design
     /// system uses the `SFIcon` central factory; =
     /// no naked `Image(systemName:)`).
     var iconName: String {
@@ -244,7 +244,7 @@ enum ImportFileType: String, CaseIterable, Identifiable, Codable, Sendable, Hash
     /// `Notes.Md` / `Notes.md`
     /// and they all get
     /// walked).
-    ///  when the v2.7 orchestrator can
+    ///  when the orchestrator can
     /// import this file type end-to-end (= the
     /// walker + writer both understand it; = a
     /// false value means the picker row renders
@@ -1112,7 +1112,7 @@ actor ImportService {
         return tasksBox.value
     }
 
-    // MARK: - v2.7 round-36: "重新调研所有失败" (= title-only retry)
+    // MARK: - title-only retry
 
     /// Re-run the failed "读取文件失败" tasks (= the
     /// source `.md` file was unreadable on disk; = the
@@ -1217,14 +1217,14 @@ actor ImportService {
         // don't re-run the LLM").
         let cacheFile = target.cacheRoot.appendingPathComponent("import-cache.json")
         let cache = readCache(cacheFile: cacheFile)
-        // 3.5. v2.7 round-43: the tasks
+        // 3.5. the tasks
         // box (= mutates `tasks` in
         // place; = the dedup loop
         // marks `.skipped`; = the
         // retry loop later marks
         // `.routing`).
         let tasksBox = TasksBox(value: tasks)
-        // 4. v2.7 round-43 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+        // 4. (= boss 2026-10-10 (see OOB.md #2026-10-10)
         // 浪费" directive). The
         // smart skip (= per-file
         // dedup; = the boss's
@@ -1376,7 +1376,7 @@ actor ImportService {
                 }
             }
         }
-        // 8. v2.7 round-43 (= boss
+        // 8. (= boss
         // 2026-10-10 "如果已经
         // 重复过了，再重新调
         // 研一次，有些浪费"
@@ -1441,7 +1441,7 @@ actor ImportService {
         return """
         # \(titleStem)
 
-        <!-- v2.7 round-36: title-only retry.
+        <!-- title-only retry.
              The original .md file at the same path
              failed to read on disk (= malformed utf-8
              or unsupported format). The orchestrator

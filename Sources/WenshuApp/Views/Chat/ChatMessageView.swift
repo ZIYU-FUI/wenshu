@@ -6,7 +6,7 @@
 //  per-message bubble rendering from ChatView (= 1954 LOC → 1702
 //  LOC = -13% LOC; = the first god-view split step).
 //
-//  Per work-tree v1.28 C3.4.1 spec: extract ChatMessageView (which is
+//  Per work-tree spec: extract ChatMessageView (which is
 //  already a self-contained struct with 4 SwiftUI dependencies =
 //  ChatBubble / ChatBubblePosition / ChatBubbleShape / ChatMessage /
 //  DesignTokens / String(localized:); = the only cross-file references are
@@ -66,7 +66,7 @@ struct ChatMessageView: View {
     ) {
         self.message = message
         // (see OOB.md #2026-09-21) — isLatestUser is accepted for API
-        // compatibility (= the v1.65-cleanup sticky-top attempt was
+        // compatibility (= the sticky-top attempt was
         // reverted; = external callers still pass it; = accepting the
         // value here keeps the public surface stable for the next
         // ticket that may reintroduce sticky in a different form).
@@ -111,7 +111,7 @@ struct ChatMessageView: View {
         // STICKY NOTE: hermes user-message.tsx:46 renders the latest user
         // bubble sticky at the top of the scroll viewport. wenshu already
         // has the floating chat input row claiming that scroll-viewport
-        // top zone (= v1.57-floating-chat-input), so a sticky user bubble
+        // top zone (= floating-chat-input), so a sticky user bubble
         // would overlap the input. MC2 deliberately drops the sticky
         // behaviour. If a future ticket wants to re-introduce it, the
         // right hook is a `.sticky()` modifier on the userCard wrapper
@@ -135,7 +135,7 @@ struct ChatMessageView: View {
                     // 1:1 implementation uses 3 SwiftUI public primitives:
                     //
                     //   1. `.padding(.top, 80)` on the latest user row
-                    //      (= reserves the v1.57-floating-chat-input zone;
+                    //      (= reserves the floating-chat-input zone;
                     //      = the row sits ABOVE the input instead of
                     //      underneath).
                     //   2. `.zIndex(40)` on the latest user row (= mirrors
@@ -236,7 +236,7 @@ struct ChatMessageView: View {
                 //     `text-foreground/95`, assistant has `text-foreground`).
                 //   - All wenshu-side chrome (= source label row + 9 icon +
                 //     status dot + paperplane + checkmarks + PLAN badge) is
-                //     REMOVED in this commit (= C1 of the v1.65-cleanup arc).
+                //     REMOVED in this commit (= C1 of the cleanup arc).
                 if message.isPlaceholder {
                     // C-8c (refactor chat-mvvm-3layer): placeholder
                     // row extracted to its own leaf view
@@ -266,7 +266,7 @@ struct ChatMessageView: View {
                     // the streaming contentTransition to the text parts
                     // only (= the canonical SwiftUI "no flicker" pattern
                     //
-                    // When parts is empty (= back-compat with v0.34
+                    // When parts is empty (= back-compat with previous
                     // messages that didn't carry parts), ChatMessageBodyView
                     // falls back to rendering message.content as a single
                     // text part (= the same Text(Self.markdown(...)) path
@@ -314,7 +314,7 @@ struct ChatMessageView: View {
                         }
                     }
                     // CHATIMG-001: render attached image thumbnail above the parts.
-                    // (= unchanged structure; = v1.65-cleanup C2 dropped
+                    // (= unchanged structure; = C2 dropped
                     // the wenshu-side Reveal-in-Finder button (= T34 +
                     // T35 i18n) — a macOS-specific add-on; = hermes
                     // has attachment directive chips inline with the
@@ -332,7 +332,7 @@ struct ChatMessageView: View {
                     // ChatMessageBodyView (= the
                     // Hermes-style per-part renderer) wraps each part
                     // in the bubble background. Falls back to the
-                    // single-text rendering for v0.34 messages with no
+                    // single-text rendering for legacy messages with no
                     // parts.
                     //
                     // 

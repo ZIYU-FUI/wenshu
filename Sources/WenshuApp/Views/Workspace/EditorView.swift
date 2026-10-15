@@ -69,7 +69,7 @@ struct EditorView: View {
     // (= setSelection(_:)) that future wiring can call from the
     // engine's coordinator; today the buttons act on the whole
     // draft when no selection is reported (= matches the existing
-    // FormatToolbarButtons fallback behavior in v0.34 B-20).
+    // FormatToolbarButtons fallback behavior).
     @State private var selectedText: String = ""
 
     /// P2 #19 (WIRE-PARAGRAPH-002): applyParagraphAI spinner flag.
@@ -393,7 +393,7 @@ struct EditorView: View {
                 // Obsidian wikilink syntax) to make [[name]] clickable.
                 // Placeholder sample body
                 // real document load (= the Apple HIG DocumentGroup
-                // file-open path is the v0.35+ ticket).
+                // file-open path is the ticket).
                 // (= (see OOB.md #2026-09-03) — 'preview BUG is still there'): EditorView
                 // preview mode previously rendered `Self.samplePreviewBody`
                 // (= static placeholder string) regardless of which tab
@@ -402,7 +402,7 @@ struct EditorView: View {
                 // so the preview shows the active tab's content = when
                 // openCardInEditor creates/updates a tab with the .md body
                 // read from disk, the preview updates immediately. This
-                // is the v0.34 B-25 root-cause fix (= the closure chain
+                // is the root-cause fix (= the closure chain
                 // WAS firing correctly; = the bug was the view rendering
                 // the placeholder instead of the active tab).
                 // (see OOB.md #2026-09-07) — 'delete': when no
@@ -598,7 +598,7 @@ struct EditorView: View {
                             // configuration is captured by the editor view
                             // (= stable across onChange of draft).
                             // ticket-id (history)-B: pass bookStore directly;
-                            // factory handles nil (= the v0.39 path that
+                            // factory handles nil (= the path that
                             // survives the AnyView-wrapped EditorView
                             // when the environment chain hasn't propagated
                             // BookStore yet on early zone activation).
@@ -740,12 +740,12 @@ struct EditorView: View {
             // drop the outer VStack's `.frame(maxWidth: .infinity,
             // maxHeight: .infinity)`. Apple HIG canonical 6-zone layout
             // has no custom frame on the column body (= NavigationSplitView
-            // owns the natural-width algorithm). The previous v0.30 fix
+            // owns the natural-width algorithm). The previous fix
             // (which kept this frame in to "prevent window shrink")
             // inflated the detail column to 1763 because WenshuMarkdownEditor's
             // NSTextView intrinsic width is unbounded. Removing this
             // frame is what the canonical 6-zone probe (= window 1449,
-            // detail 648) requires. v0.30 window-shrink protection has
+            // detail 648) requires. The window-shrink protection has
             // to come from elsewhere (= .frame on toolbar / status bar,
             // not on the column body).
             //
@@ -763,7 +763,7 @@ struct EditorView: View {
             // minimum width = ~400 PT; = leaves the right side of the
             // detail column empty (= the 'width didn't fill' symptom).
             //
-            // The v0.30 'inflated the detail column to 1763' concern
+            // The 'inflated the detail column to 1763' concern
             // (= caused by the previous NavigationSplitView layout)
             // no longer applies because NSSplitViewController does
             // not have the unbounded-width issue (= NSSplitViewItem
@@ -959,7 +959,7 @@ struct EditorView: View {
         }
     }
     // save action writes draft back over originalBody (= dirty
-    // detection clears). When documentPath is non-nil (= v0.35+ ticket
+    // detection clears). When documentPath is non-nil (= the ticket
     // 027-35 wires real document load), also write to disk (= atomic
     // UTF-8 = Apple HIG file write pattern). Cmd+S hotkey (canonical surface) and
     // Save toolbar button both call this directly.

@@ -179,7 +179,7 @@ enum BookFolder: String, CaseIterable, Codable, Sendable, Hashable {
     /// SwiftUI renders them as blank rectangles. Verified against
     /// /Applications/SF Symbols Beta.app/Contents/Executables/
     /// sfsymbols search 2026-09-16. Mapping mirrors the
-    /// pre-v1.69e legacy NewLibraryOutlineView.standardFolderNames
+    /// legacy NewLibraryOutlineView.standardFolderNames
     /// (= the sidebar's folder row ICON, to keep both surfaces
     /// visually consistent).
     ///
@@ -238,7 +238,7 @@ enum EntitySortOrder: String, CaseIterable, Identifiable {
 /// design guideline §"Make illegal states unrepresentable" rules
 /// out combining scopes with a single optional / nil case (= the
 /// ambiguity was the only reason a nil was
-/// ever legal here; the v2.6 facet model resolves that by giving
+/// ever legal here; the facet model resolves that by giving
 /// tag + category separate, dedicated cases below).
 ///
 /// tag is a cross-cutting facet (= a single
@@ -253,7 +253,7 @@ enum PreviewScope: Hashable, Codable {
     case referenceScope(EntityCategory?)
     /// Reference library tag scope. The string is a tag value;
     /// the preview pane filters references by `tags.contains(tag)`.
-    /// (= v2.6 facet model: tag is a cross-cutting facet; =
+    /// (= tag is a cross-cutting facet; =
     /// dedicated case, not a nil-fallback to referenceScope.)
     case tagScope(String)
     /// Book scope. folderName nil = all folders in this book; non-nil
@@ -514,7 +514,7 @@ struct PreviewPane: View {
     /// 
     /// cached snapshot of `(shelfId → books)` so the shelf
     /// subtree can be cheaply skipped across body re-renders.
-    /// The v1.69n shelfScopeView ran FileManager I/O (= walk
+    /// The shelfScopeView ran FileManager I/O (= walk
     /// shelves tree + read every .md) on EVERY SwiftUI body
     /// re-render of PreviewPane (= every Observation tick =
     /// every sidebarSelection change = every AppState mutation
@@ -1083,7 +1083,7 @@ struct PreviewPane: View {
                         // .md cards under the shelf).
                         //
                         // Crash-fix rationale:
-                        // Stable-id root-cause (v1.69n-era):
+                        // Stable-id root-cause:
                         // shelfScopeView launched a SwiftUI
                         // constraint loop because the shelf
                         // subtree re-ran FileManager I/O inside
@@ -1124,7 +1124,7 @@ struct PreviewPane: View {
                 // .smooth)` (= SwiftUI's structural transitions
                 // only animate when the change is wrapped in a
                 // withAnimation block; = without it the transition
-                // is instant and identical to the unfindable pre-v1.79
+                // is instant and identical to the unfindable legacy
                 // behavior).
                 .id(scope)
                 .transition(.opacity.combined(with: .scale(scale: 0.96)))
@@ -1172,13 +1172,13 @@ struct PreviewPane: View {
             // drifted from the search field's 8 PT horizontal
             // padding) to 10 PT (= chromePaddingContentHorizontal
             // = the canonical PreviewPane content gutter; = same
-            // value the search field now uses after v1.83; = one
+            // value the search field now uses; = one
             // gutter = one source = no horizontal drift between
             // search field and card grid).
             //
             // : the
             // cards' horizontal padding MOVED to the outer
-            // PreviewPane column (= the v1.84 column-level inset).
+            // PreviewPane column (= the column-level inset).
             // Drop the inner horizontal padding here (= would
             // stack with the column padding = 10 + 10 = 20 PT
             // total = the explicit complaint). Cards now

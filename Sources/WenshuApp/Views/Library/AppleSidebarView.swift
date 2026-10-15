@@ -4,7 +4,7 @@
 // .listStyle(.sidebar)). The canonical sidebar surface for
 // the wenshu NavigationSplitView shell.
 //
-// arc (= 27 commits v1.69a → v1.69bb per AGENTS.md):
+// arc (= 27 commits per AGENTS.md):
 //   - v1.68b: initial Apple HIG rewrite replacing the v1.64-v1.67
 //     hand-rolled LazySidebarView (= SwiftUI List(.sidebar)).
 //   - v1.69a-e: MVVM cleanup (= extract SidebarItem, BottomNewButton,
