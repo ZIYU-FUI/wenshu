@@ -3,7 +3,7 @@
 //
 //  AppleSidebarView's openBook/openFolder business layer, extracted from
 //  AppleSidebarView (= the P1 view listed in
-//  .scratch/2026-09-23-mvvm-audit/spec.md §9 v1.75 arc).
+//  .scratch/2026-09-23-mvvm-audit/spec.md §9 arc).
 //
 //  Per v1.72 KanbanOps template (= @MainActor enum + Result types +
 //  static funcs). Per one ticket per file. Per the rule:

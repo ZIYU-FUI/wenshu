@@ -45,7 +45,7 @@
 //  orphaned; = chat history from the previous ChatSessionStore era
 //  is no longer imported into SwiftData; = legacy history is not
 //  restored). New chat history lives entirely in SwiftData.
-//  HermesKanbanDB + FullTextSearch were REMOVED in v1.55 sqlite3-zero.
+//  HermesKanbanDB + FullTextSearch were REMOVED in sqlite3-zero.
 //
 //  See .scratch/2026-09-13-swiftdata-migration-spec.md for full plan
 //  (= NOT /tmp/...; = the canonical path is .scratch/).

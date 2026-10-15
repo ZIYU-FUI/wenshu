@@ -24,7 +24,7 @@ public final class WSChapter {
     /// Short summary (= editable; = shown in the sidebar list).
     public var summary: String
     /// The chapter body markdown (= was a separate .md file in the
-    /// pre-v2.6 FileSystemChapterStore; = now stored inline in the
+    /// previous FileSystemChapterStore; = now stored inline in the
     /// SwiftData row so chapter content is fully captured by the
     /// SwiftData schema).
     public var body: String

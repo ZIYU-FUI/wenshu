@@ -55,7 +55,7 @@ private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "previewpan
 // outlines / chapters / drafts), but the disk layout has all 8.
 // Sessions/foreshadowing/placeholders can still be reached via the
 // PreviewPane when the user picks them via API (= no UI yet for
-// picking non-sidebar folders; deferred to v0.31).
+// picking non-sidebar folders; deferred).
 //
 // (= boss 2026-10-10 (see OOB.md #2026-10-10)
 // directive). The
@@ -759,7 +759,7 @@ struct PreviewPane: View {
     /// - preview pane width <  twoColumnBreakpoint: 1 column (= narrow)
     ///
     /// Why 280 PT threshold:
-    /// - Per v0.28 LayoutTokens.projectPreviewRatio = 0.20 (= preview
+    /// - Per LayoutTokens.projectPreviewRatio = 0.20 (= preview
     ///   pane gets 20% of total workspace width = 384 PT at 1920 PT total)
     /// - Card min content + padding needs ~120-150 PT (= readable summary
     ///   + thumbnail)
@@ -3042,7 +3042,7 @@ private struct Card: View {
         // we add the menu
         // only to the
         // reference case =
-        // the v0.31
+        // the
         // round-63 / 64
         // focused on
         // reference-library

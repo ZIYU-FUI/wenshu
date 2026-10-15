@@ -148,7 +148,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // add NSLog for chat store init + bootstrap errors (silent catch
         // makes debugging hard), and post .wenshuChatStoreReady notification
         // so ChatView can retry load when store becomes available.
-        // SwiftData migration history (= per v1.55 sqlite3-zero arc):
+        // SwiftData migration history (= per sqlite3-zero arc):
         // WSMigrationRunner + WSMigrationPerStore were removed (= the
         // one-shot legacy sqlite3 importer). Legacy `.ws/chat.sqlite`
         // files (= previous data written by the deleted

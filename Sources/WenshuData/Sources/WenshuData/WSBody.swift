@@ -32,7 +32,7 @@
 //  load everything from entities/*.md into WSBody rows; = write
 //  goes through to both).
 //
-//  For v2.3 first ship: WSEntity holds `bodyID` as a FK to
+//  For first ship: WSEntity holds `bodyID` as a FK to
 //  WSBody. The WSBody row is created alongside the WSEntity
 //  row in one repository method. Body markdown IS persisted in
 //  WSBody (= SQLite TEXT column; = plenty of space).

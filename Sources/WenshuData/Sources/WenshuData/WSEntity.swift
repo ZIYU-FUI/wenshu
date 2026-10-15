@@ -1,16 +1,16 @@
 //
 //  WSEntity.swift
 //
-//  Canonical SwiftData @Model for the v2.3 entity schema.
+//  Canonical SwiftData @Model for the entity schema.
 //
-//  Replaces WSCharacter + WSWorld (= v0.72/v2.0) with a single
+//  Replaces WSCharacter + WSWorld (= ) with a single
 //  kind-discriminated model. One row per entity (= the main
 //  character / a city / a magical item / a technique / a key
 //  plot event).
 //
-//  Diff from v2.0 WSCharacter / WSWorld:
-//  - Single model (= the v2.0 split by source-type was wrong
-//    abstraction; = per spec v2.3).
+//  Diff from WSCharacter / WSWorld:
+//  - Single model (= the split by source-type was wrong
+//    abstraction; = per spec).
 //  - 5 kindSpecific fields (= per EntityKindSpecific).
 //  - aliases / tags / attributes as the structured free-form
 //    surface (= "protagonist" / "mentor" / "swordsman" all live as tags).

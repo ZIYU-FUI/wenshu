@@ -750,7 +750,7 @@ actor WenshuConductor {
         "background_review", // Core/Agent/Tool/BackgroundReviewTool.swift  (= v2.8c manual + auto BackgroundReview consolidation surface)
         "book_chapter",     // Core/Agent/Librarian/BookChapterTool.swift
         "book_edit_chapter", // Core/Agent/Librarian/EditChapterTool.swift  (= v1.85 hermes 0.21.5 edit_file 1:1)
-        "book_entity",      // Core/Agent/Librarian/BookEntityTool.swift  (= v2.3 entity schema redesign)
+        "book_entity",      // Core/Agent/Librarian/BookEntityTool.swift  (= entity schema redesign)
         "book_manager",     // Core/Agent/Librarian/BookManagerTool.swift
         "book_outline",     // Core/Agent/Librarian/BookOutlineTool.swift
         "file",             // Core/Tools/FileTools.swift

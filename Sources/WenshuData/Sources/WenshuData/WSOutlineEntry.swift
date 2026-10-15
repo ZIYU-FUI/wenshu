@@ -1,7 +1,7 @@
 //
 //  Persistence/WSOutlineEntry.swift
 //
-//  SwiftData @Model for the v2.3 outline-entry schema. One row
+//  SwiftData @Model for the outline-entry schema. One row
 //  per OutlineEntry (= high-level story structure = volume /
 //  chapter / scene / beat).
 //

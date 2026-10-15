@@ -227,13 +227,13 @@ Each component has:
 ### 5.4 DropAffordance / NativeControlsInspector
 
 - **Path**: `Sources/WenshuApp/UI/Drag/*.swift`
-- **Purpose**: Drag-and-drop infrastructure (= drop zone highlight, control inspector). EscapeLayers + TabStripScroll were retired in v0.31 (= deleted; see v0.31 audit §2.3 + §2.6).
+- **Purpose**: Drag-and-drop infrastructure (= drop zone highlight, control inspector). EscapeLayers + TabStripScroll were retired in v0.31 (= deleted; see audit §2.3 + §2.6).
 
 ---
 
 ## 🧩 LEVEL 6: Icon 组件
 
-### 6.1 SFIcon (= canonical SF Symbols 6 renderer; v1.0.0-m1-shell 2026-09-15)
+### 6.1 SFIcon (= canonical SF Symbols 6 renderer; the m1 shell 2026-09-15)
 - **Path**: `Sources/WenshuApp/UI/IconStyles.swift`
 - **Purpose**: Apple SF Symbols 6 icon renderer (= built into macOS 27 = zero SPM dependency). The 2026-09-15 directive 'use SF Symbols 6 (3rd gen) with palette rendering' replaced the Lucide era.
 - **Use when**: Any tab button, button, or icon needs an icon
@@ -271,7 +271,7 @@ Window chrome = 100% Apple canonical per macOS 26 Tahoe. LibraryRootView uses Sw
 
 ## 🚫 LEVEL 8: 已删除的废弃实现 (= 不要重新写)
 
-These were removed in various phases (= v0.32 Apple-API-first sweep + v0.34 iron-rules pass). **If you find yourself writing these patterns, STOP and use the canonical replacement.**
+These were removed in various phases (= Apple-API-first sweep + iron-rules pass). **If you find yourself writing these patterns, STOP and use the canonical replacement.**
 
 ### 8.1 ❌ ZoneModule
 - **Was in**: `Sources/WenshuApp/App.swift`
@@ -327,8 +327,8 @@ This index is the **single source of truth** for "what's reusable in Wenshu". Ne
 
 ## 📚 历史 (= 已 ship 的重构)
 
-- **Round 26** (v0.28): RegionTabBar / RegionStatusBar / RegionContentBackground introduced (= unified 1 PT .separator + Liquid Glass)
-- **Round 50-52** (v0.28): NativeSplitter visibility fix (= white 0.25 divider; = superseded by ADR-0011 in 2026-10-04; = the v0.28 file was deleted from tree in the 2026-10-03 Apple multi-column rewrite)
+- **Round 26** (RegionTabBar / RegionStatusBar / RegionContentBackground introduced (= unified 1 PT .separator + Liquid Glass)
+- **Round 50-52** (NativeSplitter visibility fix (= white 0.25 divider; = superseded by ADR-0011 in 2026-10-04; = the v0.28 file was deleted from tree in the 2026-10-03 Apple multi-column rewrite)
 - **Round 53** (v0.28): ZoneBottomToolbar → Liquid Glass (= fixes sidebar mismatch)
 - **Phase 1-5** (this commit): Style tokens + PaneIconTab + PaneTabBar + delete ZoneBottomToolbar/ZoneModule + PaneStatusBar
 
@@ -410,7 +410,7 @@ The Workspace editor surface is decomposed into 9 single-file sub-views (= extra
 
 ## 🎨 STYLES (= (see OOB.md #2026-09-07) 'ui 与功能分离' architecture)
 
-2026-09-07 directive: 'make a styles-component file, for managing control styles, this file is like css, so we can manage it better in the future, separating function from style' = abstract ALL chrome/content/icon styling into CSS-like style files (= single source of truth for visual tokens + modifiers; = zones own only FUNCTIONAL wiring). Ponytail principle 'use stdlib / Apple-native / existing dependencies before writing new code': the 4 STYLES files below all wrap Apple canonical APIs (= SwiftUI .padding, .font, .buttonStyle, SF Symbols 6 Image) = no new abstractions over Apple primitives. (v1.0.0-m1-shell 2026-09-15: replaced Lucide library with SF Symbols 6.)
+2026-09-07 directive: 'make a styles-component file, for managing control styles, this file is like css, so we can manage it better in the future, separating function from style' = abstract ALL chrome/content/icon styling into CSS-like style files (= single source of truth for visual tokens + modifiers; = zones own only FUNCTIONAL wiring). Ponytail principle 'use stdlib / Apple-native / existing dependencies before writing new code': the 4 STYLES files below all wrap Apple canonical APIs (= SwiftUI .padding, .font, .buttonStyle, SF Symbols 6 Image) = no new abstractions over Apple primitives. (the m1 shell 2026-09-15: replaced Lucide library with SF Symbols 6.)
 
 ### The 4 STYLES files (= the "CSS-like" layer)
 
@@ -419,7 +419,7 @@ The Workspace editor surface is decomposed into 9 single-file sub-views (= extra
 | `DesignTokens.swift` | VALUES | All chrome dimensions, paddings, font sizes, divider thicknesses (= raw `static let CGFloat` + `Color`) |
 | `ChromeStyles.swift` | CHROME | Background + top bar + bottom bar (= what ZonePerRegionChrome wraps each zone with) |
 | `ContentStyles.swift` | CONTENT | Content-level inset / typography / button styles (= what each zone's inner UI applies) |
-| `IconStyles.swift` | ICONS | SF Symbols 6 icon size + rendering mode + color presets (= canonical icon appearance; v1.0.0-m1-shell 2026-09-15 replaces Lucide library) |
+| `IconStyles.swift` | ICONS | SF Symbols 6 icon size + rendering mode + color presets (= canonical icon appearance; the m1 shell 2026-09-15 replaces Lucide library) |
 
 ### STYLES-001 ContentStyles.swift
 - **Path**: `Sources/WenshuApp/UI/ContentStyles.swift` (NEW, 2026-09-07 round 3)
@@ -448,7 +448,7 @@ The Workspace editor surface is decomposed into 9 single-file sub-views (= extra
 
 ### STYLES-002 IconStyles.swift
 - **Path**: `Sources/WenshuApp/UI/IconStyles.swift` (NEW, 2026-09-07 round 3)
-- **Purpose**: Canonical SF Symbols 6 icon size + color presets (= single source of truth for icon appearance; = v1.0.0-m1-shell 2026-09-15 replaced the Lucide library with Apple SF Symbols 6).
+- **Purpose**: Canonical SF Symbols 6 icon size + color presets (= single source of truth for icon appearance; = the m1 shell 2026-09-15 replaced the Lucide library with Apple SF Symbols 6).
 - **API**:
   ```swift
   SFIcon("books.vertical", size: .medium, color: .secondary)   // chrome top bar identity

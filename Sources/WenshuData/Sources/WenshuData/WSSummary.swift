@@ -2,7 +2,7 @@
 // Persistence/WSSummary.swift · Wenshu
 //
 // SwiftData @Model: chat summary per session (= 1↔1 to WSSession).
-// SwiftData migration  (= see CHANGELOG.md v0.72 section
+// SwiftData migration  (= see CHANGELOG.md section
 // for the full migration narrative from raw sqlite3 to SwiftData).
 //
 

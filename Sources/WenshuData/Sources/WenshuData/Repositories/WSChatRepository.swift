@@ -378,7 +378,7 @@ public final class WSChatRepository {
         try context.save()
     }
 
-    // MARK: - Predicates (v1.79 chat-by-book row-level split)
+    // MARK: - Predicates (chat-by-book row-level split)
     //
     // SwiftData #Predicate macros capture local variables by reference at
     // macro-expansion time, which means the predicate body cannot reference
@@ -414,7 +414,7 @@ public final class WSChatRepository {
             return #Predicate { $0.bookID == bookIDRaw }
         } else {
             // Per §11.11: global bucket = `bookID == nil` only.
-            // Pre-v1.79 predicate leaked per-book sessions into the
+            // Previous predicate leaked per-book sessions into the
             // global includeArchived=true view (= mirror of the
             // combinedPredicate bug fixed in §11.30).
             return #Predicate { $0.bookID == nil }
@@ -427,10 +427,10 @@ public final class WSChatRepository {
             let bookIDRaw = bookID
             return #Predicate { $0.archivedAt == nil && $0.bookID == bookIDRaw }
         } else {
-            // Per §11.11 v1.79 chat-by-book row-level split: the
+            // Per §11.11 chat-by-book row-level split: the
             // global un-attached bucket is exactly those sessions
             // whose `bookID` column is nil (= not "all sessions").
-            // The pre-v1.79 predicate (= `archivedAt == nil` alone)
+            // The previous predicate (= `archivedAt == nil` alone)
             // leaked per-book sessions into the global view.
             return #Predicate { $0.archivedAt == nil && $0.bookID == nil }
         }
@@ -453,7 +453,7 @@ public final class WSChatRepository {
             return #Predicate { $0.sessionID == sessionId && $0.bookID == bookIDLocal }
         } else {
             // Per §11.11: global bucket = `bookID == nil` only.
-            // Pre-v1.79 predicate leaked per-book messages into the
+            // Previous predicate leaked per-book messages into the
             // global view (= mirror of the listSessions bug).
             //
             // SwiftData #Predicate macro does NOT reliably translate
@@ -503,7 +503,7 @@ public final class WSChatRepository {
 
 // MARK: - Errors
 
-/// Errors surfaced from chat persistence (= v1.79 chat-by-book split).
+/// Errors surfaced from chat persistence (= chat-by-book split).
 /// Currently only the cross-scope guard (= append/load against a sessionID
 /// that doesn't exist under the requested book scope). Adding more cases
 /// here as the chat pipeline evolves; = keep the public API minimal.

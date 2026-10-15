@@ -38,7 +38,7 @@ public final class WSBook {
     public var shelf: WSBookShelf?
 
     /// 1↔N WSEntity (= per-book entities of any kind: person /
-    /// location / object / ability / event). Replaces the v2.0
+    /// location / object / ability / event). Replaces the
     /// `worlds` + `characters` relationships with a single
     /// `entities` collection (= kind-discriminated; = see
     /// WSEntity.swift for the 5-kind enum).

@@ -76,7 +76,7 @@ struct TabContentDispatcher: View {
             // No outer top (= internal PaneTabBar for edit / outline
             // IS the top chrome). Bottom status = backlinks count
             // (= replaced the legacy "N%" progress text per
-            // spec v0.34 B-15).
+            // spec).
             PaneView(zoneSlot: .editor)
 
             // trigger backlinks load on first appear.
