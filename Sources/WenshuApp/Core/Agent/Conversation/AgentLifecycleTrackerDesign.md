@@ -1,13 +1,13 @@
 //
 //  AgentLifecycleTrackerDesign.md · Wenshu ticket 004
 //
-//  Design doc for wiring `AgentLifecycleTracker` (= the v0.28
+//  Design doc for wiring `AgentLifecycleTracker` (= the
 //  hermes-port in `Sources/WenshuApp/Core/Agent/Conversation/AgentLifecycleTracker.swift`)
 //  into the sub-agent spawn / heartbeat / complete surface that
 //  `SubAgentProgressView` (= the aiDynamic-zone user-visible progress
 //  card) consumes today.
 //
-//  Generated 2026-09-14 as part of v0.73 hermes agent wiring audit.
+//  Generated 2026-09-14 as part of the hermes agent wiring audit.
 //  Per (see OOB.md #2026-09-14) OOB "我们迁移了两回, 早期的一回漏接很普遍",
 //  this design doc is the inventory of why the tracker is currently
 //  orphaned + the decision matrix for wiring it in a future ticket.
@@ -17,7 +17,7 @@
 
 ## Why this file exists
 
-`AgentLifecycleTracker` (= the v0.28 verbatim port of hermes
+`AgentLifecycleTracker` (= the verbatim port of hermes
 `agent/subagent_lifecycle.py`) defines:
 
 - `AgentLifecycleTracker` (= @unchecked Sendable; spawn / heartbeat /
@@ -30,7 +30,7 @@
 - `AgentInitDefaults.pocock` (= per-profile defaults aligned with
   hermes' `agent_init.py`)
 
-It was ported in v0.28 but never wired into:
+It was ported but never wired into:
 
 1. **`AsyncDelegation`** (= `Core/Agent/Conversation/AsyncDelegation.swift`),
    the production sub-agent dispatch surface (Round 1 HERMES-PARTIAL-018)
@@ -40,7 +40,7 @@ It was ported in v0.28 but never wired into:
    the user-visible progress card
 
 The user-visible progress card today reads from `WSKanbanRepository.shared`
-(= SwiftData wrapper added in v0.72 Phase 5 ticket 6; = the KanbanStore
+(= SwiftData wrapper added in the Phase 5 ticket 6; = the KanbanStore
 actor's SwiftData replacement), not from `AgentLifecycleTracker`. This is
 the source of the orphaned-tracker pattern (= Q57: third-party verdict is
 data, not authority; the tracker is real code, but its natural consumer
@@ -114,9 +114,9 @@ Per AGENTS.md §11.3 wenshu-side wins + (see OOB.md #2026-09-04) OOB 'A':
 - The diagnostic pane gives the user a way to inspect the tracker
   state (= per Q90: "kanban = work-in-progress 明盒")
 
-## Recommended next ticket (= v0.74+)
+## Recommended next ticket
 
-A future ticket (= separate from v0.73) should:
+A future ticket should:
 
 1. Land Option B as 1 file 1 commit per Q112 (= atomic)
 2. Move the `SubAgentProgressView` reading source from

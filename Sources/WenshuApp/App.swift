@@ -8,12 +8,12 @@ import AppKit
 import SwiftUI
 import WenshuData
 
-// MARK: - v0.25.1  — Apple recommended approach
+// MARK: - Apple recommended approach
 /// Per Apple SwiftUI docs (developer.apple.com/documentation/swiftui/buttonstyle
 /// + developer.apple.com/documentation/swiftui/primitivebuttonstyle/plain),
 /// the canonical way to extend a plain-style button's hit area (= Apple
 /// "How do I make icon buttons easier to click on macOS?") is to implement
-/// `IconButtonStyle` REMOVED in v0.34 Apple-API-first #3.
+/// `IconButtonStyle` REMOVED in the Apple-API-first pass.
 /// Was a pass-through `makeBody { configuration.label }` (= no-op);
 /// the previous call site + outer Button style (formerly App.swift
 /// L1820 + L1839 before the Q2 split moved those features out
@@ -195,7 +195,7 @@ struct WenshuApp: App {
     /// for `llmModel` + `openTabs`.
     /// The 3 other signals declared in the original spec
     /// (selectedEntity / selectedEntityCategory / previewSortOrder)
-    /// are tracked in v0.31 backlog (= see CONTEXT.md AppState row).
+    /// are tracked in the backlog (= see CONTEXT.md AppState row).
     /// Descendants read it via `@Environment(AppState.self) var appState`.
     @State private var appState = AppState()
 
@@ -297,10 +297,10 @@ enum AuxTask: String, CaseIterable, Identifiable {
 // MARK: - Library outline (sidebar)
 //
 // sidebar MVVM cleanup: `LibraryOutlineViewContent` was a
-// wiring wrapper that rendered the pre-v1.69e legacy
+// wiring wrapper that rendered the legacy
 // `NewLibraryOutlineView` (the 2366-LOC mega-file sidebar).
-// Both are removed in v1.69e (= commit 6bd3eb7f); = the sidebar
+// Both are removed (= commit 6bd3eb7f); = the sidebar
 // surface in production lives in NavigationSplitShell.swift
-// (= AppleSidebarView = the v1.68b Apple HIG List(.sidebar) +
+// (= AppleSidebarView = the Apple HIG List(.sidebar) +
 // post-v1.69 split sheets/context-menu/business files). No
 // replacement needed here.

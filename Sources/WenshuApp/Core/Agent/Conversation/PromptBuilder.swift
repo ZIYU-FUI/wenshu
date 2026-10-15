@@ -155,7 +155,7 @@ struct PromptBuilder: Sendable {
     ///     no skill summary section.
     ///   - callerExtras: Per-call extra context (= e.g. today's date,
     ///     user request summary). Empty dict = no caller extras section.
-    ///   - ephemeralHint: Per-turn hint (= back-compat with the v0.35
+    ///   - ephemeralHint: Per-turn hint (= back-compat with the
     ///     `"Context: {ephemeralHint}"` literal; preserved as a final
     ///     section in the dynamic tier when non-empty).
     init(
@@ -275,7 +275,7 @@ struct PromptBuilder: Sendable {
         return sections.joined(separator: "\n\n---\n\n")
     }
 
-    /// Byte-stable joined prompt (= back-compat with v0.35
+    /// Byte-stable joined prompt (= back-compat with
     /// `SystemPrompt.build` callers; same separator as OpenAI/Gemini).
     var joinedPrompt: String {
         buildGeminiSystemInstruction()
@@ -293,7 +293,7 @@ extension PromptBuilder {
     ///   1. Context bundle (= ContextEngine.formatContextBundle)
     ///   2. Memory retrieval entries (= formatted with source + snippet)
     ///   3. Caller extras (= rendered as "Key: Value" lines)
-    ///   4. Ephemeral hint (= final section, back-compat with v0.35 literal)
+    ///   4. Ephemeral hint (= final section, back-compat with the literal)
     fileprivate static func composeDynamicTier(
         contextBundle: ContextEngine.ContextBundle,
         memories: [MemoryAdapter.MemoryEntry],
@@ -328,7 +328,7 @@ extension PromptBuilder {
             sections.append("Caller extras:\n\(extrasLines)")
         }
 
-        // 5. Ephemeral hint (= final section, back-compat with v0.35 literal)
+        // 5. Ephemeral hint (= final section, back-compat with the literal)
         if !ephemeralHint.isEmpty {
             sections.append("Context: \(ephemeralHint)")
         }
@@ -676,7 +676,7 @@ extension PromptBuilder {
     ///     target = macOS-only single platform).
     ///   - Wenshu uses Apple stack exclusive (= per AGENTS.md §11.1
     ///     = SwiftUI / AppKit only by default).
-    ///   - Wenshu uses SwiftData (= the post-v0.72 replacement for
+    ///   - Wenshu uses SwiftData (= the replacement for
     ///     the historical chat.sqlite + GRDB.swift backend; see
     ///     AGENTS.md §11.4 SwiftData migration roadmap) +
     ///     per-book JSON sidecars (= Sources/WenshuApp/Storage/).
@@ -693,7 +693,7 @@ extension PromptBuilder {
         ## Environment
         - Platform: macOS \(macOSVersion)
         - Apple stack: SwiftUI + AppKit (per AGENTS.md §11.1)
-        - Backend: SwiftData (= post-v0.72 chat history) + filesystem JSON
+        - Backend: SwiftData (= chat history) + filesystem JSON
         - Model: wenshu-side; not a hermes user
         """
         #else

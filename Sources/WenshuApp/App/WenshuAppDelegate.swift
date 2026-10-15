@@ -161,7 +161,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         //
         // Idempotency note: previously this hook ran
         // `Task { try await WSMigrationRunner.migrateIfNeeded() }` once per launch.
-        // Post-v1.55d that call is gone (= no code path left; = the entire
+        // Post-migration that call is gone (= no code path left; = the entire
         // legacy-import mechanism is deleted alongside the file removal).
 
         // wenshu-verification-fix ((see OOB.md #2026-08-25) — 'yes
@@ -196,16 +196,16 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // Post-: all 7 of the planned sqlite3 stores are deleted
         // (= KanbanStore + TodoStore + MemoryStore + LinkIndex + ChatSessionStore +
         // BookmarkStore + WenshuWorkspace). The warehouse container is the canonical
-        // SwiftData home for all live data. Post-v1.55d (= sqlite3 fully
+        // SwiftData home for all live data. Post-migration (= sqlite3 fully
         // removed): the one-shot legacy sqlite3 importer
         // (WSMigrationPerStore + WSMigrationRunner + SQLiteConstants) is DELETED
         // (= no legacy `.ws/*.sqlite` file is read by wenshu anymore; = legacy
         // chat.sqlite etc. become orphaned files on disk; = no chat history
         // migration). New chat history is written directly to SwiftData
         // (= WSChatRepository.shared → ZWSCHATMESSAGE).
-        // HermesKanbanDB + FullTextSearch were REMOVED in v1.55
+        // HermesKanbanDB + FullTextSearch were REMOVED in the migration
         // sqlite3-zero (= Apple-default-first + zero SPM dep).
-        // `import SQLite3` count in production code = 0 (= was 2 pre-v1.55d:
+        // `import SQLite3` count in production code = 0 (= was 2 pre-migration:
         // SQLiteConstants.swift SQLITE_TRANSIENT helper + WSMigrationPerStore
         // raw-sqlite3 import; = both files removed).
         // save path).
@@ -282,13 +282,13 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
             SelfScreenshot.run()
         }
 
-        // Sub-agent runner drain loop (= v2.7d team-link consolidation):
+        // Sub-agent runner drain loop (= the team-link consolidation):
         // Start the sub-agent runner drain loop after all other
         // bootstraps (= the SwiftData container + conductor + runtime
         // + connector must be ready before the runner first fires).
         // The runner reads from AsyncDelegationRegistry.shared (= the
         // singleton the LLM-facing DelegateResearchTool writes to; =
-        // see v2.7 arc §11.17 history note for the shared-singleton
+        // see the arc §11.17 history note for the shared-singleton
         // rationale). Idempotent: calling startSubAgentDrainLoop
         // twice is a no-op.
         Self.startSubAgentDrainLoop()
@@ -555,7 +555,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        // bossverificationfix (v2.7d): cancel the sub-agent drain
+        // bossverificationfix: cancel the sub-agent drain
         // loop (= future handles do not start; = the in-flight LLM
         // call, if any, continues to completion via the runner's own
         // cancellation-handling path).
@@ -578,7 +578,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     /// are running). Cancelled in `applicationWillTerminate`.
     private nonisolated(unsafe) static var subAgentDrainTask: Task<Void, Never>?
 
-    /// Start the sub-agent runner drain loop (= v2.7d team-link
+    /// Start the sub-agent runner drain loop (= the team-link
     /// consolidation): every 1s (= or sooner when a new handle lands),
     /// the runner picks up pending `BackgroundDelegationHandle` records
     /// from `AsyncDelegationRegistry.shared` (= the source-of-truth
