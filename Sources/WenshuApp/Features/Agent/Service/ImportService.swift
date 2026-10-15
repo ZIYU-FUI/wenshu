@@ -1068,7 +1068,7 @@ actor ImportService {
                     existingBody: existingBody,
                     sourceTitle: routing.title
                 )
-                if WenshuConductorImportRouter.shouldSkip(result: sameResult) {
+                if WCIRHelpers.shouldSkip(result: sameResult) {
                     // LLM says same content; = skip (= the existing file is the correct
                     // representation; = the user sees "已跳过 - 内容相同"
                     // in the per-row result strip).
@@ -1146,7 +1146,7 @@ actor ImportService {
                     existingBody: existingBody,
                     sourceTitle: routing.title
                 )
-                if WenshuConductorImportRouter.shouldSkip(result: sameResult) {
+                if WCIRHelpers.shouldSkip(result: sameResult) {
                     NSLog("WSImport: ref-library content-same skip title='\(routing.title)' confidence=\(sameResult.confidence)")
                     // No need to write; = the file is already correct. Mark the task as
                     // .skipped + set the reason; = throw the

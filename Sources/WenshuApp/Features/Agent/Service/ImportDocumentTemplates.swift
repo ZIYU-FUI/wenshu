@@ -411,7 +411,7 @@ enum ImportDocumentTemplate: String, CaseIterable, Sendable {
                 // boss 2026-10-10 "强制去 反链" feedback = code-side strip of Obsidian
                 // backlinks (= even when they appear mid-paragraph; =
                 // the LLM-prompt-side rule is in
-                // WenshuConductorImportRouter.rewriteModeBlock.reorganize;
+                // WCIRHelpers.rewriteModeBlock.reorganize;
                 // = the code-side rule catches any stragglers the LLM
                 // missed; = the user can have `[[xxx]]` in any of: -
                 // whole line (e.g. "[[故事宪法]]" alone) - mid-paragraph

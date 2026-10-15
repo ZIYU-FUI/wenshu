@@ -17,7 +17,7 @@
 //     = "日期" is not in the no-list)
 //
 //  Combined with the LLM-prompt-side rule in
-//  WenshuConductorImportRouter.rewriteModeBlock.reorganize
+//  WCIRHelpers.rewriteModeBlock.reorganize
 //  (= the "双机制" boss requested 2026-10-10; = rule-level
 //  + LLM-level strip; = same pattern as round-66
 //  dedup).

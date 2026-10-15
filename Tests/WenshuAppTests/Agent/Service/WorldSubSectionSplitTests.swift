@@ -6,7 +6,7 @@
 //  标题的文档. 其它不在六份里的, 可以单独写文档,
 //  约等于备注").
 //
-//  Tests `WenshuConductorImportRouter.parseAndMap` (= the
+//  Tests `WCIRHelpers.parseAndMap` (= the
 //  public LLM-response parser) handling of the new
 //  round-69 `required: Bool` field in extraFiles:
 //   - 6 必填 elements are kept (= they have `required =
@@ -107,7 +107,7 @@ final class WorldSubSectionSplitTests: XCTestCase {
         ]
         """)
         // Act.
-        let result = WenshuConductorImportRouter.parseAndMap(
+        let result = WCIRHelpers.parseAndMap(
             raw: rawJSON,
             body: "original",
             fallbackTitle: "fallback",
@@ -141,7 +141,7 @@ final class WorldSubSectionSplitTests: XCTestCase {
         ]
         """)
         // Act.
-        let result = WenshuConductorImportRouter.parseAndMap(
+        let result = WCIRHelpers.parseAndMap(
             raw: rawJSON,
             body: "original",
             fallbackTitle: "fallback",
@@ -171,7 +171,7 @@ final class WorldSubSectionSplitTests: XCTestCase {
         }
         let rawJSON = makeRawJSON(extraFilesJSON: "[\(elements.joined(separator: ","))]")
         // Act.
-        let result = WenshuConductorImportRouter.parseAndMap(
+        let result = WCIRHelpers.parseAndMap(
             raw: rawJSON,
             body: "original",
             fallbackTitle: "fallback",
@@ -201,7 +201,7 @@ final class WorldSubSectionSplitTests: XCTestCase {
         }
         let rawJSON = makeRawJSON(extraFilesJSON: "[\(elements.joined(separator: ","))]")
         // Act.
-        let result = WenshuConductorImportRouter.parseAndMap(
+        let result = WCIRHelpers.parseAndMap(
             raw: rawJSON,
             body: "original",
             fallbackTitle: "fallback",
@@ -228,7 +228,7 @@ final class WorldSubSectionSplitTests: XCTestCase {
         ]
         """)
         // Act.
-        let result = WenshuConductorImportRouter.parseAndMap(
+        let result = WCIRHelpers.parseAndMap(
             raw: rawJSON,
             body: "original",
             fallbackTitle: "fallback",
@@ -253,7 +253,7 @@ final class WorldSubSectionSplitTests: XCTestCase {
         ]
         """)
         // Act.
-        let result = WenshuConductorImportRouter.parseAndMap(
+        let result = WCIRHelpers.parseAndMap(
             raw: rawJSON,
             body: "original",
             fallbackTitle: "fallback",

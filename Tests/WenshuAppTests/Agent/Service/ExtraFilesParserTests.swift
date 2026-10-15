@@ -2,7 +2,7 @@
 //  ExtraFilesParserTests.swift
 //
 //  Round-67 ticket 02 tests (= v2.7 round-67).
-//  Tests `WenshuConductorImportRouter.parseAndMap` (= public surface)
+//  Tests `WCIRHelpers.parseAndMap` (= public surface)
 //  handling of the new `extraFiles` field in the LLM's
 //  JSON response (= A's content that doesn't fit B's
 //  template; = split out to separate .md files in the
@@ -54,7 +54,7 @@ final class ExtraFilesParserTests: XCTestCase {
         ]
         """)
         // Act.
-        let result = WenshuConductorImportRouter.parseAndMap(
+        let result = WCIRHelpers.parseAndMap(
             raw: rawJSON,
             body: "original",
             fallbackTitle: "fallback",
@@ -77,7 +77,7 @@ final class ExtraFilesParserTests: XCTestCase {
         {"title":"测试","summary":"测试摘要","tags":[],"destination":"bookFolder","folder":"world","rewrittenBody":""}
         """
         // Act.
-        let result = WenshuConductorImportRouter.parseAndMap(
+        let result = WCIRHelpers.parseAndMap(
             raw: rawJSON,
             body: "original",
             fallbackTitle: "fallback",
@@ -99,7 +99,7 @@ final class ExtraFilesParserTests: XCTestCase {
         ]
         """)
         // Act.
-        let result = WenshuConductorImportRouter.parseAndMap(
+        let result = WCIRHelpers.parseAndMap(
             raw: rawJSON,
             body: "original",
             fallbackTitle: "fallback",
@@ -123,7 +123,7 @@ final class ExtraFilesParserTests: XCTestCase {
         }
         let rawJSON = makeRawJSON(extraFilesJSON: "[\(elements.joined(separator: ","))]")
         // Act.
-        let result = WenshuConductorImportRouter.parseAndMap(
+        let result = WCIRHelpers.parseAndMap(
             raw: rawJSON,
             body: "original",
             fallbackTitle: "fallback",
@@ -143,7 +143,7 @@ final class ExtraFilesParserTests: XCTestCase {
         ]
         """)
         // Act.
-        let result = WenshuConductorImportRouter.parseAndMap(
+        let result = WCIRHelpers.parseAndMap(
             raw: rawJSON,
             body: "original",
             fallbackTitle: "fallback",
@@ -164,7 +164,7 @@ final class ExtraFilesParserTests: XCTestCase {
         ]
         """)
         // Act.
-        let result = WenshuConductorImportRouter.parseAndMap(
+        let result = WCIRHelpers.parseAndMap(
             raw: rawJSON,
             body: "original",
             fallbackTitle: "fallback",
@@ -183,7 +183,7 @@ final class ExtraFilesParserTests: XCTestCase {
         [{"folder":"world","title":"多行","body":"第一行\\n第二行\\n第三行"}]
         """)
         // Act.
-        let result = WenshuConductorImportRouter.parseAndMap(
+        let result = WCIRHelpers.parseAndMap(
             raw: rawJSON,
             body: "original",
             fallbackTitle: "fallback",
@@ -212,7 +212,7 @@ final class ExtraFilesParserTests: XCTestCase {
         ]
         """)
         // Act.
-        let result = WenshuConductorImportRouter.parseAndMap(
+        let result = WCIRHelpers.parseAndMap(
             raw: rawJSON,
             body: "original",
             fallbackTitle: "fallback",

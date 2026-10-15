@@ -73,7 +73,7 @@ struct ContentSameDecisionTests {
             confidence: 0.95,
             reasoning: "两段完全相同"
         )
-        #expect(WenshuConductorImportRouter.shouldSkip(result: result) == true)
+        #expect(WCIRHelpers.shouldSkip(result: result) == true)
     }
 
     /// v2.7 round-66 commit F: when
@@ -95,7 +95,7 @@ struct ContentSameDecisionTests {
             confidence: 0.5,
             reasoning: "可能是同的, 但 confidence 低"
         )
-        #expect(WenshuConductorImportRouter.shouldSkip(result: result) == false)
+        #expect(WCIRHelpers.shouldSkip(result: result) == false)
     }
 
     /// v2.7 round-66 commit F: when
@@ -122,8 +122,8 @@ struct ContentSameDecisionTests {
             confidence: 0.3,
             reasoning: "可能是不同的"
         )
-        #expect(WenshuConductorImportRouter.shouldSkip(result: highConfDifferent) == false)
-        #expect(WenshuConductorImportRouter.shouldSkip(result: lowConfDifferent) == false)
+        #expect(WCIRHelpers.shouldSkip(result: highConfDifferent) == false)
+        #expect(WCIRHelpers.shouldSkip(result: lowConfDifferent) == false)
     }
 
     /// v2.7 round-66 commit F: edge
@@ -143,6 +143,6 @@ struct ContentSameDecisionTests {
             confidence: ImportDocumentTemplate.contentSameConfidenceThreshold,
             reasoning: "刚好达到阈值"
         )
-        #expect(WenshuConductorImportRouter.shouldSkip(result: result) == true)
+        #expect(WCIRHelpers.shouldSkip(result: result) == true)
     }
 }
