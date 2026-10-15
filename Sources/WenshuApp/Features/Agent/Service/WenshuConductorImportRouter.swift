@@ -20,34 +20,27 @@
 
 import Foundation
 
-/// The production `ImportRouter` that the sheet uses.
-/// Each `route(_:)` invocation makes a real LLM call
-/// (= the `LLMConnector` from
+/// The production `ImportRouter` that the sheet uses. Each `route(_:)`
+/// invocation makes a real LLM call (= the `LLMConnector` from
 /// `WenshuAppDelegateLLMHelpers.activeLLMConnector()`; = the same
-/// connector the rest of wenshu ships with out of the
-/// box per AGENTS.md §11.2 P0 profile list).
+/// connector the rest of wenshu ships with out of the box per AGENTS.md §11.2
+/// P0 profile list).
 actor WenshuConductorImportRouter: ImportRouter {
 
-    /// The resolved LLM connector (= resolved lazily
-    /// once at first `route(_:)` call; = the connector
-    /// is `nonisolated` and `Sendable`; = safe to capture
+    /// The resolved LLM connector (= resolved lazily once at first `route(_:)`
+    /// call; = the connector is `nonisolated` and `Sendable`; = safe to capture
     /// into the actor's stored state).
     private let connector: any LLMConnector
 
-    /// The model slug (= the user-picked model from
-    /// `wenshu.llm.model`; = falls back to the
-    /// connector's default; = the active connector's
-    /// `connectorID` is the canonical default
-    /// identifier).
+    /// The model slug (= the user-picked model from `wenshu.llm.model`; = falls
+    /// back to the connector's default; = the active connector's `connectorID`
+    /// is the canonical default identifier).
     private let modelSlug: String
 
-    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
-    /// 看板任务一样, 让一个 agent 跑完"). The
-    /// driver (= the wenshu 文档管理员's
-    /// orchestrator) wraps the SOP lookup + the
-    /// agent conversation loop (= replaces the
-    /// previous round-71/72 multi-turn LLM
-    /// pipeline).
+    /// (= boss 2026-10-10 (see OOB.md #2026-10-10) 看板任务一样, 让一个 agent 跑完"). The
+    /// driver (= the wenshu 文档管理员's orchestrator) wraps the SOP lookup + the
+    /// agent conversation loop (= replaces the previous round-71/72 multi-turn
+    /// LLM pipeline).
     private lazy var driver: ImportAgentDriver = {
         ImportAgentDriver(
             connector: connector,
@@ -76,14 +69,10 @@ actor WenshuConductorImportRouter: ImportRouter {
         self.modelSlug = modelSlug ?? WenshuAppDelegateLLMHelpers.activeModelSlug() ?? "default-model"
     }
 
-    /// Classify one file via the LLM (= the prompt
-    /// asks the LLM to return a single JSON object
-    /// with the structured fields the orchestrator
-    /// needs).
-    /// `progress` callback emits
-    /// human-readable Chinese activity lines (= the
-    /// orchestrator wires this into the per-row
-    /// `activityLog`).
+    /// Classify one file via the LLM (= the prompt asks the LLM to return a
+    /// single JSON object with the structured fields the orchestrator needs).
+    /// `progress` callback emits human-readable Chinese activity lines (= the
+    /// orchestrator wires this into the per-row `activityLog`).
     func route(
         _ input: ImportFileInput,
         progress: (@Sendable (String) async -> Void)? = nil
@@ -134,10 +123,8 @@ actor WenshuConductorImportRouter: ImportRouter {
         }
     }
 
-    /// C2. The single-LLM-call
-    /// path (= the pre-round-71 behavior; = used by
-    /// `.consolidate` + `.searchAndRewrite`; = kept
-    /// for backward compat).
+    /// C2. The single-LLM-call path (= the pre-round-71 behavior; = used by
+    /// `.consolidate` + `.searchAndRewrite`; = kept for backward compat).
     private func routeSingleTurn(
         input: ImportFileInput,
         body: String,
@@ -191,8 +178,8 @@ actor WenshuConductorImportRouter: ImportRouter {
     /// Build the LLM call options for a route pass. The `.searchAndRewrite`
     /// mode is the ONLY mode that exposes the `web_search` tool schema (=
     /// `consolidate` = LLM no tools = previous behavior); the tool schema
-    /// mirrors `WebSearchTool`'s registration (= canonical wenshu tools are
-    /// NOT re-implemented here; = the LLM calls the same `web_search` name
+    /// mirrors `WebSearchTool`'s registration (= canonical wenshu tools are NOT
+    /// re-implemented here; = the LLM calls the same `web_search` name
     /// regardless of mode).
     private func buildLLMCallOptions(
         input: ImportFileInput,
@@ -211,32 +198,17 @@ actor WenshuConductorImportRouter: ImportRouter {
         )
     }
 
-    /// C2. The 3-phase multi-turn
-    /// path (= the new default for `.reorganize`;
-    /// = the fix for "⚠️ LLM 没返回
-    /// extraFiles"). Each phase makes 1 LLM call
-    /// with a focused prompt; = the results are
-    /// merged into 1 `ImportRoutingResult`.
-    ///
-    /// Phase 1/3 = `classifyAndIndex`:
-    ///   - LLM reads A
-    ///   - returns title + summary + tags
-    ///   - returns rewrittenBody (= the main
-    ///     INDEX file body; = metadata header
-    ///     + 6 必填子文件路径引用 + 1 段简短概述)
-    ///   - decides the destination folder
-    ///   - does NOT return extraFiles
-    ///
-    /// Phase 2/3 = `splitRequired`:
-    ///   - LLM reads A again
-    ///   - returns 6 必填 extraFiles (= 核心设定 /
-    ///     地理或位置 / 体系或规则 / 历史脉络 /
-    ///     与其他元素的关系 / 关键场景种子)
-    ///
-    /// Phase 3/3 = `splitCustom`:
-    ///   - LLM reads A again
-    ///   - returns 0-5 自定义 extraFiles (= A's
-    ///     non-B content; = "约等于备注")
+    /// C2. The 3-phase multi-turn path (= the new default for `.reorganize`; =
+    /// the fix for "⚠️ LLM 没返回 extraFiles"). Each phase makes 1 LLM call with a
+    /// focused prompt; = the results are merged into 1 `ImportRoutingResult`.
+    /// Phase 1/3 = `classifyAndIndex`: - LLM reads A - returns title + summary
+    /// + tags - returns rewrittenBody (= the main INDEX file body; = metadata
+    /// header + 6 必填子文件路径引用 + 1 段简短概述) - decides the destination folder - does
+    /// NOT return extraFiles
+    /// Phase 2/3 = `splitRequired`: - LLM reads A again - returns 6 必填
+    /// extraFiles (= 核心设定 / 地理或位置 / 体系或规则 / 历史脉络 / 与其他元素的关系 / 关键场景种子)
+    /// Phase 3/3 = `splitCustom`: - LLM reads A again - returns 0-5 自定义
+    /// extraFiles (= A's non-B content; = "约等于备注")
     private func routeReorganizeMultiTurn(
         input: ImportFileInput,
         body: String,
@@ -309,10 +281,10 @@ actor WenshuConductorImportRouter: ImportRouter {
         return (bookPath, bookTitle)
     }
 
-    /// Launch the agent against the per-folder SOP. If the LLM classified
-    /// the source as reference-library (= no folder = no SOP), surface
-    /// this as a clear failed-task outcome (= the user sees "no SOP for
-    /// reference library" rather than a raw driver error).
+    /// Launch the agent against the per-folder SOP. If the LLM classified the
+    /// source as reference-library (= no folder = no SOP), surface this as a
+    /// clear failed-task outcome (= the user sees "no SOP for reference
+    /// library" rather than a raw driver error).
     private func runAgentAgainstFolder(
         input: ImportFileInput,
         body: String,
@@ -345,17 +317,12 @@ actor WenshuConductorImportRouter: ImportRouter {
         )
     }
 
-    /// Extract the BookFolder from the
-    /// routing result's destination (= the
-    /// `routeReorganizeMultiTurn` driver
-    /// needs the folder to look up the SOP).
-    /// Returns nil for `.referenceLibrary`
-    /// destinations (= there is no folder
-    /// in the reference library; = the
-    /// driver will throw `noSOPForFolder`
-    /// rather than silently picking a
-    /// random SOP to apply to a library
-    /// that has no folder semantics).
+    /// Extract the BookFolder from the routing result's destination (= the
+    /// `routeReorganizeMultiTurn` driver needs the folder to look up the SOP).
+    /// Returns nil for `.referenceLibrary` destinations (= there is no folder
+    /// in the reference library; = the driver will throw `noSOPForFolder`
+    /// rather than silently picking a random SOP to apply to a library that has
+    /// no folder semantics).
     private static func folder(
         from destination: ImportDestination
     ) -> BookFolder? {
@@ -369,32 +336,17 @@ actor WenshuConductorImportRouter: ImportRouter {
 
     // MARK: - Tool-use loop (= searchAndRewrite)
 
-    /// (= the
-    /// `searchAndRewrite` rewriteMode's
-    /// LLM-call pattern). Drives the LLM
-    /// through a series of `web_search`
-    /// tool_use blocks; = each tool_use
-    /// block is dispatched to
-    /// `WebSearchTool.shared.execute` and
-    /// the result is sent back as a
-    /// `tool_result` block; = the loop
-    /// terminates when the LLM responds
-    /// with `stopReason = .endTurn` (= the
-    /// LLM has produced its final
-    /// classification + the rewritten
-    /// body); = a hard turn cap (= 5)
-    /// prevents runaway token spend
-    /// (= the boss's "Token 高消耗"
-    /// concern; = a search call that
-    /// doesn't converge in 5 turns is
-    /// a clear signal of a misbehaving
-    /// LLM or a stale web result; = the
-    /// orchestrator still produces a
-    /// result (= the last response's
-    /// text is the best effort); =
-    /// = in practice the LLM converges
-    /// in 1-2 turns for typical
-    /// reference-library imports).
+    /// (= the `searchAndRewrite` rewriteMode's LLM-call pattern). Drives the
+    /// LLM through a series of `web_search` tool_use blocks; = each tool_use
+    /// block is dispatched to `WebSearchTool.shared.execute` and the result is
+    /// sent back as a `tool_result` block; = the loop terminates when the LLM
+    /// responds with `stopReason = .endTurn` (= the LLM has produced its final
+    /// classification + the rewritten body); = a hard turn cap (= 5) prevents
+    /// runaway token spend (= the boss's "Token 高消耗" concern; = a search call
+    /// that doesn't converge in 5 turns is a clear signal of a misbehaving LLM
+    /// or a stale web result; = the orchestrator still produces a result (= the
+    /// last response's text is the best effort); = = in practice the LLM
+    /// converges in 1-2 turns for typical reference-library imports).
     private func runToolUseLoop(
         initialUserPrompt: String,
         options: LLMCallOptions,
@@ -457,13 +409,10 @@ actor WenshuConductorImportRouter: ImportRouter {
         return try await connector.send(messages: messages, options: options)
     }
 
-    /// Dispatch a `web_search` tool call. The LLM
-    /// passes the tool's `input` field as a JSON
-    /// string (= the Anthropic shape); = we hand
-    /// that string straight to
-    /// `WebSearchTool.shared.execute` which
-    /// understands the same JSON shape (= the
-    /// canonical wenshu tool dispatcher).
+    /// Dispatch a `web_search` tool call. The LLM passes the tool's `input`
+    /// field as a JSON string (= the Anthropic shape); = we hand that string
+    /// straight to `WebSearchTool.shared.execute` which understands the same
+    /// JSON shape (= the canonical wenshu tool dispatcher).
     private func dispatchWebSearch(input: String) async -> String {
         do {
             return try await WebSearchTool.shared.execute(input: input)
@@ -472,10 +421,9 @@ actor WenshuConductorImportRouter: ImportRouter {
         }
     }
 
-    /// Canonical `web_search` tool schema (= mirrors
-    /// the registration in `WebSearchTool`; = the
-    /// LLM sees this schema and decides when to
-    /// call `web_search` for an entity).
+    /// Canonical `web_search` tool schema (= mirrors the registration in
+    /// `WebSearchTool`; = the LLM sees this schema and decides when to call
+    /// `web_search` for an entity).
     // see WCIRHelpers.webSearchToolSchema (extracted in A19 for §6.6 god-class split).
     // see WCIRHelpers.userPrompt (extracted in A19 for §6.6 god-class split).
     // see WCIRHelpers.rewriteModeBlock (extracted in A19 for §6.6 god-class split).
@@ -538,14 +486,10 @@ actor WenshuConductorImportRouter: ImportRouter {
         )
     }
 
-    /// Build the user prompt for the
-    /// content-same decision. The LLM gets
-    /// 2 bodies + a title (= the title is
-    /// the same on both sides because
-    /// Phase 1 found a same-titled file;
-    /// = the LLM uses the title as a
-    /// context anchor + the bodies as
-    /// evidence).
+    /// Build the user prompt for the content-same decision. The LLM gets 2
+    /// bodies + a title (= the title is the same on both sides because Phase 1
+    /// found a same-titled file; = the LLM uses the title as a context anchor +
+    /// the bodies as evidence).
     // see WCIRHelpers.contentSamePrompt (extracted in A19 for §6.6 god-class split).
     // see WCIRHelpers.shouldSkip (extracted in A19 for §6.6 god-class split).
     // see WCIRHelpers.fallbackTitle (extracted in A19 for §6.6 god-class split).
@@ -553,75 +497,41 @@ actor WenshuConductorImportRouter: ImportRouter {
     // see WCIRHelpers.stripObsidianBacklinks (extracted in A19 for §6.6 god-class split).
     // see WCIRHelpers.isUselessMetadataLine (extracted in A19 for §6.6 god-class split).
 
-    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
-    /// directive). The LLM-supplied title
-    /// is NOT trusted as-is (= the LLM
-    /// can echo the file path, the
-    /// filename, an extension, a body
-    /// fragment, or gibberish; = the
-    /// "目录树当名字" bug surfaced
-    /// repeatedly). The programmatic
-    /// `sanitizeTitle` check runs FIRST
-    /// (= any of the 8 failure modes
-    /// below returns nil = we use
-    /// `fallbackTitle` instead; = the
-    /// user sees a clean filename-based
-    /// title regardless of what the LLM
-    /// did; = programmatic guarantee
-    /// beats LLM trust).
-    ///
-    /// The flow (= boss round-37 spec):
-    /// 1. `parsed.title` (= the LLM's
-    ///    answer).
-    /// 2. \`WCIRHelpers.sanitizeTitle(parsed.title,
-    ///    from: filePath)\` returns
-    ///    `String?` (= nil = any of the
-    ///    8 failure modes hit; = use
-    ///    `fallbackTitle`).
-    /// 3. The accepted title is trimmed
-    ///    (= sanitizeTitle returns the
-    ///    trimmed form).
-    /// 4. The fallback path
-    ///    (`fallbackTitle`) is the
-    ///    filename without extension
-    ///    (= guaranteed clean).
-    ///
-    /// `static` (= `parseAndMap` is a
-    /// static method on the actor; = the
-    /// title sanitizer doesn't need any
-    /// actor state; = calling
-    /// `WCIRHelpers.sanitizeTitle` keeps the
-    /// call site free of `self`).
+    /// (= boss 2026-10-10 (see OOB.md #2026-10-10) directive). The LLM-supplied
+    /// title is NOT trusted as-is (= the LLM can echo the file path, the
+    /// filename, an extension, a body fragment, or gibberish; = the "目录树当名字"
+    /// bug surfaced repeatedly). The programmatic `sanitizeTitle` check runs
+    /// FIRST (= any of the 8 failure modes below returns nil = we use
+    /// `fallbackTitle` instead; = the user sees a clean filename-based title
+    /// regardless of what the LLM did; = programmatic guarantee beats LLM
+    /// trust).
+    /// The flow (= boss round-37 spec): 1. `parsed.title` (= the LLM's answer).
+    /// 2. \`WCIRHelpers.sanitizeTitle(parsed.title, from: filePath)\` returns
+    /// `String?` (= nil = any of the 8 failure modes hit; = use
+    /// `fallbackTitle`). 3. The accepted title is trimmed (= sanitizeTitle
+    /// returns the trimmed form). 4. The fallback path (`fallbackTitle`) is the
+    /// filename without extension (= guaranteed clean).
+    /// `static` (= `parseAndMap` is a static method on the actor; = the title
+    /// sanitizer doesn't need any actor state; = calling
+    /// `WCIRHelpers.sanitizeTitle` keeps the call site free of `self`).
     // see WCIRHelpers.acceptTitle (extracted in A19 for §6.6 god-class split).
     // see WCIRHelpers.extractFirstJSONObject (extracted in A19 for §6.6 god-class split).
     // see WCIRHelpers.parseImportDecision (extracted in A19 for §6.6 god-class split).
     // see WCIRHelpers.bookFolder (extracted in A19 for §6.6 god-class split).
 
-    /// (= boss 2026-10-09 (see OOB.md #2026-10-09)
-    /// punctuation (= the LLM sometimes emits
-    /// `,` to separate what should be two
-    /// tags, or `()` to wrap a parenthetical
-    /// that snuck in; = the wenshu tag facet is
-    /// a navigation filter; = the user can
-    /// only navigate to a tag that matches a
-    /// real entity; = punctuation breaks the
-    /// facet match).
-    ///
-    /// "Punctuation" here = anything that is
-    /// not a Unicode letter, digit, or CJK
-    /// character. CJK Unified Ideographs (= the
-    /// U+4E00..U+9FFF block + extensions) are
-    /// all valid tag characters. CJK
-    /// punctuation blocks (= U+3000..U+303F
-    /// "CJK Symbols and Punctuation", U+FF00
-    /// "Halfwidth and Fullwidth Forms", U+FE30
-    /// "CJK Compatibility Forms") are dropped.
-    /// ASCII punctuation (= `,` / `.` / `-` /
-    /// `:` / `(` / `)` / `/` / `'` / `"` /
-    /// `[` / `]`) is dropped. Whitespace and
-    /// underscore are also dropped (= the tag
-    /// facet matches on the canonical string;
-    /// = the user never types spaces or
+    /// (= boss 2026-10-09 (see OOB.md #2026-10-09) punctuation (= the LLM
+    /// sometimes emits `,` to separate what should be two tags, or `()` to wrap
+    /// a parenthetical that snuck in; = the wenshu tag facet is a navigation
+    /// filter; = the user can only navigate to a tag that matches a real
+    /// entity; = punctuation breaks the facet match).
+    /// "Punctuation" here = anything that is not a Unicode letter, digit, or
+    /// CJK character. CJK Unified Ideographs (= the U+4E00..U+9FFF block +
+    /// extensions) are all valid tag characters. CJK punctuation blocks (=
+    /// U+3000..U+303F "CJK Symbols and Punctuation", U+FF00 "Halfwidth and
+    /// Fullwidth Forms", U+FE30 "CJK Compatibility Forms") are dropped. ASCII
+    /// punctuation (= `,` / `.` / `-` / `:` / `(` / `)` / `/` / `'` / `"` / `[`
+    /// / `]`) is dropped. Whitespace and underscore are also dropped (= the tag
+    /// facet matches on the canonical string; = the user never types spaces or
     /// underscores when navigating).
     // see WCIRHelpers.tagContainsPunctuation (extracted in A19 for §6.6 god-class split).
 }
