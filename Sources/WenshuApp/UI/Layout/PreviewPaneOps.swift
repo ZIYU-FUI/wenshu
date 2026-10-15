@@ -5,7 +5,7 @@
 //  PreviewPane (= the largest P0 view listed in
 //  .scratch/2026-09-23-mvvm-audit/spec.md §9 v1.75 arc).
 //
-//  Per v1.72 KanbanOps template (= @MainActor enum + Result types +
+//  Per KanbanOps template (= @MainActor enum + Result types +
 //  static funcs). Per one ticket per file. Per the rule:
 //  "PreviewPane single-consumer (B)" (= BookDocLoaderOps is
 //  PreviewPane's private copy; = future ticket lifts to shared service

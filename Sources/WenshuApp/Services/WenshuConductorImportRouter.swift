@@ -1583,7 +1583,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         return trimmed
     }
 
-    /// v2.7 (= boss 2026-10-09 (see OOB.md #2026-10-09)
+    /// (= boss 2026-10-09 (see OOB.md #2026-10-09)
     /// (= the sidebar's linkgraph =
     /// "关系链") is a different surface
     /// that should be derived from
@@ -1646,7 +1646,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         return stripped.joined(separator: "\n")
     }
 
-    /// v2.7 (= boss 2026-10-09 (see OOB.md #2026-10-09)
+    /// (= boss 2026-10-09 (see OOB.md #2026-10-09)
     /// (= boss 2026-10-09 (see OOB.md #2026-10-09)
     /// header). Anything that looks like the
     /// OLD pre-v2.7 template (= 类型 / 状态 /
@@ -1781,7 +1781,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         var tags: [String]
         var destination: String
         var bookFolder: BookFolder?
-        /// v2.7 (= boss 2026-10-09 (see OOB.md #2026-10-09)
+        /// (= boss 2026-10-09 (see OOB.md #2026-10-09)
         /// "重写同时搜索校对"). The LLM's
         /// .ws-format body in `searchAndRewrite`
         /// mode (= nil in `consolidate` mode OR
@@ -1916,7 +1916,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         // sidebar tag facet remains
         // navigable).
         let cappedTags = Array(tags.prefix(3))
-        // v2.7 (= boss 2026-10-09 (see OOB.md #2026-10-09)
+        // (= boss 2026-10-09 (see OOB.md #2026-10-09)
         // redundant (= the title is the
         // canonical name; = the tag is a
         // navigation facet; = having both
@@ -1937,7 +1937,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         // might emit "活字印刷" as title and
         // " 活字印刷 " as a tag).
         let titleNorm = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        // v2.7 (= boss 2026-10-09 (see OOB.md #2026-10-09)
+        // (= boss 2026-10-09 (see OOB.md #2026-10-09)
         // filter (= the user clicks a tag to
         // see every reference carrying that
         // tag); = punctuation in a tag breaks
@@ -2157,7 +2157,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         }
     }
 
-    /// v2.7 (= boss 2026-10-09 (see OOB.md #2026-10-09)
+    /// (= boss 2026-10-09 (see OOB.md #2026-10-09)
     /// punctuation (= the LLM sometimes emits
     /// `,` to separate what should be two
     /// tags, or `()` to wrap a parenthetical

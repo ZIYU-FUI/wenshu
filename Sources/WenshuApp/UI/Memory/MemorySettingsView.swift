@@ -11,7 +11,7 @@ import SwiftUI
 //  subtleSurfaceAlpha = 0.05 for subtle surface tint) but the
 //  MemorySettingsView now uses DesignTokens.surfaceCornerRadiusSmallChip
 //  + .accentTintOpacitySubtle (= the canonical Apple HIG-measured
-//  token set; = wenshu-pocock-workflow references/v3.0-design-system-rule.md).
+//  token set; = wenshu-pocock-workflow/references/design-system-rule.md).
 //  See wenshu-dead-code-cleanup SKILL.md.)
 
 
@@ -70,7 +70,7 @@ struct MemorySettingsView: View {
             .pickerStyle(.segmented)
             .disabled(!isMemoryEnabled)
 
-            // Closed-enum retention picker (= wenshu v2.4 product philosophy:
+            // Closed-enum retention picker (= product philosophy:
             // = users pick from a closed set, no free-text input).
             // The numeric slider becomes a Picker over 30 / 90 / 180 / 365 days.
             // Each preset maps to a fixed retention budget (= per retentionDays

@@ -590,7 +590,7 @@ actor BookManagerTool: Tool {
     /// first access, before any concurrency becomes relevant, so the
     /// unsafe escape hatch is safe here.
     ///
-    /// v1.55d+ (A option): promoted to `@MainActor static let` so Swift 6
+    /// promoted to `@MainActor static let` so Swift 6
     /// strict concurrency ensures first access lands on the main
     /// actor (= eliminates the SIGTRAP / `dispatch_assert_queue_fail`
     /// that previously fired when the static-let initializer ran from

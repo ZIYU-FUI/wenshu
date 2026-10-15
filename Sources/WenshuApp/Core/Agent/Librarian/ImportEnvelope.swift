@@ -116,7 +116,7 @@ struct ImportFileInput: Codable, Sendable, Hashable {
     /// Nil when `targetBookId` is nil (= same reason).
     let targetShelfId: UUID?
 
-    /// v2.7 (= boss 2026-10-09 (see OOB.md #2026-10-09)
+    /// (= boss 2026-10-09 (see OOB.md #2026-10-09)
     /// LLM-rewritten body).
     let rewriteMode: RewriteMode
 
@@ -224,7 +224,7 @@ struct ImportRoutingResult: Codable, Sendable, Hashable {
     /// override the routing via chat (= the `confidence`
     /// field is plumbing for that feature).
     let confidence: Double
-    /// v2.7 (= boss 2026-10-09 (see OOB.md #2026-10-09)
+    /// (= boss 2026-10-09 (see OOB.md #2026-10-09)
     /// 搜索校对" mode). When the user picked the
     /// `searchAndRewrite` rewriteMode, the LLM is
     /// expected to search the web for the

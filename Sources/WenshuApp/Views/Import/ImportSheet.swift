@@ -112,7 +112,7 @@ struct ImportSheet: View {
         self._isPresented = isPresented
         self.prefillDestination = prefillDestination
         self.prefillBookID = prefillBookID
-        // v2.7 boss 2026-10-09 (see OOB.md #2026-10-09)
+        // boss 2026-10-09 (see OOB.md #2026-10-09)
         // 定十二地仙" (= `.onAppear` only
         // fires once per sheet instance; =
         // re-opening via contextMenu after a
@@ -232,7 +232,7 @@ struct ImportSheet: View {
     }
     @State private var importDestination: ImportDestination = .book
 
-    /// v2.7 (= boss 2026-10-09 (see OOB.md #2026-10-09)
+    /// (= boss 2026-10-09 (see OOB.md #2026-10-09)
     /// 重写程度"). The user picks ONCE at sheet
     /// open; = the LLM's tool set + the
     /// orchestrator's write path both
@@ -2767,18 +2767,10 @@ private struct PickerRow<Leading: View, Trailing: View>: View {
 /// separated by a single
 /// `Divider`; = no label
 /// needed). Kept here as
-/// an unused stub for
-/// the moment (= a future
-/// ticket might need it
-/// for a different
-/// surface; = deleting it
-/// would be a dead-code
-/// sweep that violates
-/// Q112's "don't mix
-/// dead-code cleanup with
-/// feature commits"; =
-/// leave it for the next
-/// dead-code sweep).
+/// (= kept for future use;
+/// deleting it = dead-code
+/// sweep, deferred to a
+/// dedicated cleanup pass).
 
 /// a Pages-style
 /// section label (= the bold

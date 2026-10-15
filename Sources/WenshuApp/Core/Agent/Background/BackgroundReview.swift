@@ -17,7 +17,7 @@ import Foundation
 
 /// Type of background proposal (= what kind of change is being proposed).
 enum ProposalKind: String, Sendable, Equatable, Codable {
-    // v2.8c (B8): auto-call hook = ConversationLoop submits a
+    // auto-call hook = ConversationLoop submits a
     // .turnSummary proposal per turn (= the operator reviews the
     // turn in the inspector's BackgroundReview tab).
     case turnSummary        // auto-call hook: agent submits turn summary
@@ -75,7 +75,7 @@ struct BackgroundProposal: Sendable, Equatable, Codable, Identifiable {
 /// delegates to existing wenshu approval flow via Notification).
 actor BackgroundReview {
 
-    /// v2.8c (B8): canonical shared instance (= the consolidation
+    /// canonical shared instance (= the consolidation
     /// surface for both manual + auto callers via
     /// `BackgroundReviewOps`).
     static let shared = BackgroundReview()

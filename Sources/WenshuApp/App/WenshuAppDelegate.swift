@@ -676,7 +676,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     /// same logic on WenshuAppDelegate (= module-internal) keeps the
     /// test + production in lockstep without leaking the view API.
     nonisolated static func activeConnectorSlug() -> String {
-        // v0.74: lightweight introspection used by the import flow's
+        // lightweight introspection used by the import flow's
         // activity log so the user can see WHICH connector is being
         // hit when the LLM is unreachable. Resolves the same
         // UserDefaults + keychain signal as `activeLLMConnector`

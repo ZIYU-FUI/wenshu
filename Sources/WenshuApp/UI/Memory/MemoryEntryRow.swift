@@ -76,7 +76,7 @@ struct MemoryEntryRow: View {
         .padding(DesignTokens.spacingIconic)
         // `.fixedSize(horizontal: false, vertical: true)` (= horizontal
         // `flexible` so the row respects the parent's horizontal cap;
-        // vertical `fit` so row height grows with content) is the v3.0
+        // vertical `fit` so row height grows with content)
         // design-system canonical way to let a long snippet wrap to
         // multiple lines without expanding the parent (= SwiftUI
         // macOS 27 Form/VStack otherwise expands horizontally to fit

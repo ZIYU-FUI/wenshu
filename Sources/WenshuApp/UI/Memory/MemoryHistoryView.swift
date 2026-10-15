@@ -16,7 +16,7 @@
 //        `MemoryAdapter.recentEntries(limit:)` (= the canonical
 //        fetch path shared with the original inline list).
 //
-//  Matched on the v2.9b independent-window pattern (= Kanban /
+//  Matched on the independent-window pattern (= Kanban /
 //  Todo / Summaries / Attachments / Manifest / Foreshadowing /
 //  Canvas / Composer / Cron): `Window(id: WindowID.memoryHistory)`
 //  mounted as a single-instance Scene = the user can't open

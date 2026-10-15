@@ -14,7 +14,7 @@
 //    (= computed var / func / @Environment read); = Ops accepts
 //    a value `PreviewScope` (= the seam that lets tests pass any
 //    scope without standing up a view).
-//  - Per the v1.72 settings-kanban-todo precedent (= KanbanOps /
+//  - Per the settings-kanban-todo precedent (= KanbanOps /
 //    TodoOps / SettingsOps = stateless enums with @MainActor
 //    static funcs), the wenshu MVVM shape is "enum + static +
 //    Result types", not "@Observable class ViewModel".
@@ -156,7 +156,7 @@ enum CardOpenOps {
                 if case .reference(let r) = source { return r }
                 return filtered.first
             }()
-            // v0.74 boss OOB: "多次双击"清明"，没有打开" — log (see OOB.md #2026-07-23)
+            // "多次双击"清明"，没有打开" — log (see OOB.md #2026-07-23)
             // the picked reference's body + summary so the boss
             // can grep whether the body came back empty (= the
             // silent no-op in openTab fires when triad.content = ""
@@ -219,7 +219,7 @@ enum CardOpenOps {
         case .bookScope:
             // Deferred to ticket 027-35: PreviewPane's private
             // loadBookDocs helper is the source of truth for bookDoc
-            // discovery; = WorkspaceView doesn't share it. v0.34
+            // discovery; = WorkspaceView doesn't share it.
             // fallback = silent no-op (= no .alert, no popup = user
             // feedback comes from PreviewPane being empty).
             // (see OOB.md #2026-09-08) — fix: if the caller passed a .bookDoc source,
@@ -480,7 +480,7 @@ enum CardOpenOps {
             // instead of 'preview-sample'.
             title: title.isEmpty ? nil : title
         )
-        // v0.74 boss OOB: "多次双击"清明"，没有打开" (= the (see OOB.md #2026-07-23)
+        // "多次双击"清明"，没有打开" (= the (see OOB.md #2026-07-23)
         // double-click fires onDoubleClick on the Card, but the
         // tab never appears in the strip; = either the append
         // hits an exception, or activeTabId is not set, or
@@ -513,7 +513,7 @@ enum CardOpenOps {
                              contentLength: content.count)
     }
 
-    // MARK: - v2.7 round-66 commit H: book doc body loader
+    // MARK: - book doc body loader
 
     /// Load the full .md body for a `BookDoc` (= the
     /// per-file .md body in a book's folder; = e.g.

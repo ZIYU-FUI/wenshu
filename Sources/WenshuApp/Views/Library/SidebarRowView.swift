@@ -405,7 +405,7 @@ struct SidebarRowCallbacks {
     let onDeleteBook: (UUID, String) -> Void
     let resolveShelf: (UUID) -> (id: UUID, name: String)?
     let resolveBook: (UUID) -> (id: UUID, name: String)?
-    /// v2.7 (= boss 2026-10-09 (see OOB.md #2026-10-09)
+    /// (= boss 2026-10-09 (see OOB.md #2026-10-09)
     /// 标自动选好对应的书" directive).
     let onImportToReferenceLibrary: () -> Void
     let onImportToBook: (UUID) -> Void

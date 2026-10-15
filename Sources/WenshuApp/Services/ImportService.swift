@@ -2565,7 +2565,7 @@ struct ImportTarget: Sendable {
     /// `LibraryStores` factory at launch).
     let referenceStore: any ReferenceStoring
 
-    /// v2.7 (= boss 2026-10-09 (see OOB.md #2026-10-09)
+    /// (= boss 2026-10-09 (see OOB.md #2026-10-09)
     /// 程度"). The user-picked rewrite mode; = the
     /// orchestrator reads this in `processFile` and
     /// forwards to the LLM router (= the LLM

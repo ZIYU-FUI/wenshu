@@ -203,7 +203,7 @@ struct PaneTabItem: Identifiable, Sendable {
 // self-written copies that had drifted between WorkspaceView.swift
 // (= EditorExpandShrinkTrailingButton) and TabContentDispatcher.swift
 // (= chat-zone archive button; was inlined into TabContentDispatcher when
-// the wrapper was deleted in v0.34).
+// the wrapper was deleted in an earlier refactor).
 @MainActor
 struct PaneTrailingIconButton: View {
     let icon: String

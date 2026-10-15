@@ -112,7 +112,7 @@ struct ChatZoneView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        // v2.1 (2026-09-25): wire the four book_X tools to honor
+        // wire the four book_X tools to honor
         // the chat session's currently-bound book + the user's
         // sidebar-selected book directory. Without this, the agent
         // can pass any book_id in JSON envelopes (= scope guard

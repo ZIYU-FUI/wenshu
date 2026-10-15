@@ -97,7 +97,7 @@ final class LLMWikiTool: Tool, @unchecked Sendable {
         // (= caller receives a typed error) when no library is
         // bound (= the inspector's "no library" state).
         //
-        // v2.9a: delegate to `LLMWikiOps.runAllFromActiveLibrary`'s
+        // delegate to `LLMWikiOps.runAllFromActiveLibrary`'s
         // resolution (= SSOT = both the LLM tool path and the
         // operator-button path read the same `ActiveLibrary.path`).
         guard let path = ActiveLibrary.path,

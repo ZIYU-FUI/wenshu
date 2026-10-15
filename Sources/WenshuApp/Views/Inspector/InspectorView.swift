@@ -413,7 +413,7 @@ struct InspectorView: View {
                 }
                 .help(String(localized: "window.todo.help"))
 
-                // v2.8a ((see OOB.md #2026-09-28) OOB B3): explicit
+                // explicit
                 // CommandPalette toolbar button. The palette
                 // sheet host in LibraryRootView already listens
                 // for `.wenshuShowCommandPalette` notifications;
@@ -430,7 +430,7 @@ struct InspectorView: View {
                 }
                 .help(String(localized: "command_palette.open.help"))
 
-                // v2.8b ((see OOB.md #2026-09-28) OOB B6 + B7 + B9): 4
+                // 4
                 // toolbar buttons that open 4 independent windows
                 // for previously-unwired features (= same shape as
                 // kanban + todo).
@@ -518,7 +518,7 @@ struct InspectorView: View {
                                 }
                                 .help(String(localized: "window.summaries.title"))
 
-                                // v2.9a ((see OOB.md #2026-09-28) OOB A4): LLM Wiki
+                                // LLM Wiki
                                 // operator button = the manual surface for
                                 // LLMWikiOps.runAll. LLM can already call the
                                 // 'llm_wiki' tool (= v2.8d T17), and every
@@ -548,7 +548,7 @@ struct InspectorView: View {
                                 }
                                 .help(String(localized: "llm_wiki.operator.help"))
 
-                                // v2.9c ((see OOB.md #2026-09-28) OOB B5
+                                // ((see OOB.md #2026-09-28) OOB B5
                 // follow-up): Restore operator (= the Backup
                 // restore UI per AGENTS.md §11 baseline; = the
                 // canonical backup path is
@@ -568,7 +568,7 @@ struct InspectorView: View {
         .environment(appState)
     }
 
-    /// v2.9c ((see OOB.md #2026-09-28) OOB B5 follow-up): restore from the
+    /// follow-up): restore from the
     /// latest available backup (= the user-facing restore
     /// surface per AGENTS.md §11 baseline).
     ///

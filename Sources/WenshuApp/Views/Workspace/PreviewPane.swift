@@ -2378,7 +2378,7 @@ internal enum CardSource {
         }
     }
 
-    /// v2.7 boss 2026-10-09 (see OOB.md #2026-10-09)
+    /// boss 2026-10-09 (see OOB.md #2026-10-09)
     /// set (= the .ws library's cross-cutting
     /// facet; = the user previously had no
     /// way to see which 3 tags a card
@@ -2662,7 +2662,7 @@ private struct Card: View {
                     .font(.headline)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
-                // v2.7 boss 2026-10-09 (see OOB.md #2026-10-09)
+                // boss 2026-10-09 (see OOB.md #2026-10-09)
                 // spacing (= 6 PT = spacingTight
                 // inside the VStack) and the
                 // secondary-tint foreground so the
@@ -2674,7 +2674,7 @@ private struct Card: View {
                             Text(tag)
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
-                                // v2.7 boss 2026-10-09 (see OOB.md #2026-10-09)
+                                // boss 2026-10-09 (see OOB.md #2026-10-09)
                                 // (= 2 PT) was too tight; =
                                 // tag text was visually flush
                                 // against the chip border;
@@ -2970,7 +2970,7 @@ private struct Card: View {
         // state
         // needed;
         // = the
-        // v7.3
+        // 
         // `static
         // var
         // clickCountByID`
@@ -2981,7 +2981,7 @@ private struct Card: View {
         // needed).
         .simultaneousGesture(
             TapGesture(count: 2).onEnded { _ in
-                // v0.74 boss OOB: "多次双击"清明"，没有打开" (see OOB.md #2026-07-23)
+                // "多次双击"清明"，没有打开" (see OOB.md #2026-07-23)
                 // (= the double-click does not reach the Card;
                 // = the user can see the card highlight, the
                 // tap lands, but neither the onTap path nor the

@@ -23,7 +23,7 @@
 //    - `.transition(.symbolEffect(...))` requires a mount /
 //      unmount boundary; = the empty-state icon is permanently
 //      mounted; = the transition never fires.
-//  Resolution for v1.78: drop the symbolEffect modifier and
+//  Drop the symbolEffect modifier and
 //  keep the monochrome tint. The icon renders correctly
 //  (= no animation, but visible). The draw-on animation is
 //  deferred to a future ticket (= will require either a macOS
@@ -39,7 +39,7 @@
 //  Icon (= SF Symbols 6):
 //    - SF Symbol 6 identifier (= canonical Apple SF Symbol
 //      name; = dot.case form like 'books.vertical')
-//    - size: 76 PT (= 2x the v0.54 38 PT; = the user's '2x size'
+//    - size: 76 PT (= 2x the canonical '2x size'
 //      directive)
 //    - color: .secondary (= adapts to dark/light mode; =
 //      Apple's 2-step hierarchy for empty-state icons)
@@ -66,7 +66,7 @@
 //      = Apple HIG modal sheet width = the empty-state body
 //      should wrap to the same width as a standard modal sheet)
 //    - icon size: IconStyle.emptyStateHero (= 76 PT
-//      = 2x the v0.54 38 PT default = the canonical empty-state
+//      = 2x the canonical empty-state
 //      icon size; = not a magic number = semantic token)
 
 import SwiftUI

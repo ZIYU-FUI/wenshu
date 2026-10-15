@@ -96,7 +96,7 @@ struct SidebarContextMenuModifier: ViewModifier {
     let onDeleteBook: (UUID, String) -> Void
     let resolveShelf: (UUID) -> (id: UUID, name: String)?
     let resolveBook: (UUID) -> (id: UUID, name: String)?
-    /// v2.7 (= boss 2026-10-09 (see OOB.md #2026-10-09)
+    /// (= boss 2026-10-09 (see OOB.md #2026-10-09)
     /// 候目标自动选好对应的书" directive).
     /// When the user right-clicks the
     /// reference library, the menu adds

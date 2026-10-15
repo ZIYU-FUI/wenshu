@@ -84,7 +84,7 @@ enum LLMWikiOps {
         )
     }
 
-    /// v2.9a: operator one-click entry point that resolves the
+    /// operator one-click entry point that resolves the
     /// active library from `ActiveLibrary` (= the security-scoped
     /// bookmark; = canonical single source of truth for the .ws
     /// bundle URL) and runs the full derivation + lint pipeline.

@@ -84,7 +84,7 @@ public final class WSChatRepository {
     // MARK: - Messages
 
     public func loadMessages(sessionId: String, bookID: String? = nil) throws -> [WSChatMessage] {
-        // v0.74 boss OOB: "持久化的聊天记录, 重新渲染顺序有问题, 问答先后顺序混乱"
+        // "持久化的聊天记录, 重新渲染顺序有问题, 问答先后顺序混乱"
         // The previous sortBy: [SortDescriptor(\.position)] was the
         // buggy path. Position is a count-then-insert int (= see
         // append()) and races when the user sends a quick 2nd message
@@ -147,7 +147,7 @@ public final class WSChatRepository {
             predicate: Self.chatMessagePredicate(sessionId: sessionId, bookID: bookID)
         )
         let count = try context.fetchCount(descriptor)
-        // v0.74 boss OOB: "持久化的聊天记录, 重新渲染顺序有问题, 问答先后顺序混乱"
+        // "持久化的聊天记录, 重新渲染顺序有问题, 问答先后顺序混乱"
         // The previous `position: count + 1` (= the count-then-insert
         // pattern) had a race condition when the user sends a
         // 2nd message while the AI's 1st reply is still streaming:
