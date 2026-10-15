@@ -21,17 +21,17 @@ struct EditorView: View {
     // EditorTab can reference it). The nested Mode enum was removed; =
     // EditorView.Mode.iconName / .tooltip helpers became EditorMode.iconName /
     // .tooltip (= same shape; = one-line update at every usage).
-    /// mode lives on the active tab (= AppState.openTabs
-    /// [activeTabId].mode). Reading the active tab's mode instead of a
-    /// View-local @State = each tab keeps its own preview/edit state
-    /// (= switching tabs preserves mode; = matches Safari behavior).
+    /// mode lives on the active tab (= AppState.openTabs [activeTabId].mode).
+    /// Reading the active tab's mode instead of a View-local @State = each tab
+    /// keeps its own preview/edit state (= switching tabs preserves mode; =
+    /// matches Safari behavior).
     private var mode: EditorMode {
         appState.openTabs.first(where: { $0.id == appState.activeTabId })?.mode ?? .preview
     }
-    /// derive the display title for a tab (= file basename
-    /// without the .md extension; = (see OOB.md #2026-09-03) — 'no .md extension either'). Placeholder tab = 'preview-sample' (= no .md extension,
-    /// = no path = render the short placeholder name).
-    ///
+    /// derive the display title for a tab (= file basename without the .md
+    /// extension; = (see OOB.md #2026-09-03) — 'no .md extension either').
+    /// Placeholder tab = 'preview-sample' (= no .md extension, = no path =
+    /// render the short placeholder name).
     @Environment(AppState.self) private var appState
     // EditorCounters (= the editor-zone live counter).
     @Environment(EditorCounters.self) private var editorCounters
@@ -58,25 +58,22 @@ struct EditorView: View {
     // fallback behavior).
     @State private var selectedText: String = ""
 
-    /// P2 #19 (WIRE-PARAGRAPH-002): applyParagraphAI spinner flag.
-    /// Disables the 3 toolbar buttons + the menu while an LLM call
-    /// is in flight (= prevents double-fire; = Apple HIG
-    /// actionable-control-while-busy rule).
+    /// P2 #19 (WIRE-PARAGRAPH-002): applyParagraphAI spinner flag. Disables the
+    /// 3 toolbar buttons + the menu while an LLM call is in flight (= prevents
+    /// double-fire; = Apple HIG actionable-control-while-busy rule).
     @State private var isApplyingParagraphAI: Bool = false
 
-    /// P2 #19 (WIRE-PARAGRAPH-002): public selection setter.
-    /// Future ticket will bridge this from the engine's
-    /// NSTextViewDelegate. Today the setter is unused (= the
-    /// buttons fall through to the whole-draft path; see
+    /// P2 #19 (WIRE-PARAGRAPH-002): public selection setter. Future ticket will
+    /// bridge this from the engine's NSTextViewDelegate. Today the setter is
+    /// unused (= the buttons fall through to the whole-draft path; see
     /// applyParagraphAI's guard).
     func setSelection(_ text: String) {
         selectedText = text
     }
 
-    /// lookup the active tab's id (= the engine's
-    /// `documentId` for undo + replacement scoping). Falls back to
-    /// a deterministic placeholder id when no tab is open (=
-    /// editor in initial state with no document).
+    /// lookup the active tab's id (= the engine's `documentId` for undo +
+    /// replacement scoping). Falls back to a deterministic placeholder id when
+    /// no tab is open (= editor in initial state with no document).
     private var activeTabIdString: String {
         appState.openTabs.first(where: { $0.id == appState.activeTabId })?.id.uuidString
             ?? "wenshu-editor-no-tab"
@@ -106,9 +103,8 @@ struct EditorView: View {
     }
 
     /// Right-side chrome widget cluster (= the autosave pulse for now).
-    /// Computed on every view body invocation (= cheap because each
-    /// widget is just an SFIcon + .frame; = no business logic on the
-    /// render path).
+    /// Computed on every view body invocation (= cheap because each widget is
+    /// just an SFIcon + .frame; = no business logic on the render path).
     private var editorChromeTrailingCluster: [EditorHeaderChrome] {
         guard let tab = activeTab, tab.autoSaveTask != nil else {
             return []
@@ -122,22 +118,20 @@ struct EditorView: View {
         ]
     }
 
-    /// Display title for the active editor tab (= shown in the chrome
-    /// band's left cluster). Falls back to "Untitled" (= Apple HIG
-    /// document-chrome no-document placeholder) until the tab's
-    /// `documentPath` resolves. Mirrors the right-side tab strip
-    /// title computation but uses a stable, never-empty string so
-    /// the chrome band never shows a blank cluster.
+    /// Display title for the active editor tab (= shown in the chrome band's
+    /// left cluster). Falls back to "Untitled" (= Apple HIG document-chrome
+    /// no-document placeholder) until the tab's `documentPath` resolves.
+    /// Mirrors the right-side tab strip title computation but uses a stable,
+    /// never-empty string so the chrome band never shows a blank cluster.
     private var activeTabDisplayTitle: String {
         guard let tab = activeTab else { return String(localized: "editor.header.untitled") }
         let display = EditorTab.displayTitle(tab)
         return display.isEmpty ? String(localized: "editor.header.untitled") : display
     }
 
-    /// SMC `placeholder:` slot (= ghost text shown while the document
-    /// is empty; the engine hides it on first keystroke). Built once
-    /// per SwiftUI body invocation (= cheap = a single
-    /// NSAttributedString allocation).
+    /// SMC `placeholder:` slot (= ghost text shown while the document is empty;
+    /// the engine hides it on first keystroke). Built once per SwiftUI body
+    /// invocation (= cheap = a single NSAttributedString allocation).
     private var editorEmptyDocumentPlaceholder: NSAttributedString? {
         let paragraph = NSMutableParagraphStyle()
         // No indent (= the engine's own textContainerInset handles margin).
@@ -747,24 +741,23 @@ struct EditorView: View {
             appState.openTabs[idx].documentPath = newValue
         }
     }
-    /// Computed dirty flag (= the Save
-    /// button's .tint highlight). Plain computed (= re-evaluated on
-    /// each render from the active tab's draft / originalBody).
+    /// Computed dirty flag (= the Save button's .tint highlight). Plain
+    /// computed (= re-evaluated on each render from the active tab's draft /
+    /// originalBody).
     private var isDirty: Bool {
         guard let tab = activeTab else { return false }
         return tab.draft != tab.originalBody
     }
-    /// T-03: cursor rect accessor (= returns the active tab's
-    /// live caret rect = the engine posts this via
-    /// `onCaretRectChange`; = the tab caches it; = this getter
-    /// returns the cached value). nil = no caret yet (= the user
+    /// T-03: cursor rect accessor (= returns the active tab's live caret rect =
+    /// the engine posts this via `onCaretRectChange`; = the tab caches it; =
+    /// this getter returns the cached value). nil = no caret yet (= the user
     /// hasn't focused the editor).
     private var cursorRect: CGRect? {
         activeTab?.cursorRect
     }
-    /// T-03: autosave-in-progress accessor (= true while a save
-    /// task is in flight; = the tab's autoSaveTask is the
-    /// canonical source = its presence = "saving").
+    /// T-03: autosave-in-progress accessor (= true while a save task is in
+    /// flight; = the tab's autoSaveTask is the canonical source = its presence
+    /// = "saving").
     private var isAutosaving: Bool {
         activeTab?.autoSaveTask != nil
     }
@@ -776,15 +769,14 @@ struct EditorView: View {
             appState.openTabs[idx].autoSaveTask = newValue
         }
     }
-    /// per-tab file-system watcher state
-    /// (= `tab.fileWatcher` + `tab.watchedFD`) is now owned by
-    /// `EditorFileWatcher` (= the extracted helper). The view
-    /// passes the active tab into `EditorFileWatcher.start(path:
-    /// tab:onChange:)` / `.stop(tab:)` and the helper mutates
-    /// the tab fields directly. No computed-property wrapper is
-    /// needed on the view side anymore (= the helper is the
-    /// single entry point for the fd + DispatchSource lifecycle).
-    /// Per-tab external-change notification (= B-23 conflict).
+    /// per-tab file-system watcher state (= `tab.fileWatcher` +
+    /// `tab.watchedFD`) is now owned by `EditorFileWatcher` (= the extracted
+    /// helper). The view passes the active tab into
+    /// `EditorFileWatcher.start(path: tab:onChange:)` / `.stop(tab:)` and the
+    /// helper mutates the tab fields directly. No computed-property wrapper is
+    /// needed on the view side anymore (= the helper is the single entry point
+    /// for the fd + DispatchSource lifecycle). Per-tab external-change
+    /// notification (= B-23 conflict).
     private var externalChangeNotice: String? {
         get { activeTab?.externalChangeNotice }
         nonmutating set {
@@ -854,9 +846,9 @@ struct EditorView: View {
     // entry point) is now a thin call site above.
 
     // Handle a preview-mode wiki-link click.
-    /// Looks up the display name in the reference library first
-    /// (= library-public entities), then in the active book.
-    /// On hit, opens the target as a new tab and switches to it.
+    /// Looks up the display name in the reference library first (=
+    /// library-public entities), then in the active book. On hit, opens the
+    /// target as a new tab and switches to it.
     private func handlePreviewWikiLink(displayName: String) {
         guard !displayName.isEmpty else { return }
         guard let result = WikiLinkNavigation.handle(
@@ -886,12 +878,11 @@ struct EditorView: View {
         appState.activeTabId = newTab.id
     }
 
-    /// handle a wiki-link click from the live
-    /// editor surface (= the engine fires onLinkClick with the
-    /// resolved link id, NOT the display name). Resolve the id
-    /// back to the display name via the active
-    /// WikiLinkResolver's name(forID:) and route through the
-    /// preview-mode navigation flow.
+    /// handle a wiki-link click from the live editor surface (= the engine
+    /// fires onLinkClick with the resolved link id, NOT the display name).
+    /// Resolve the id back to the display name via the active
+    /// WikiLinkResolver's name(forID:) and route through the preview-mode
+    /// navigation flow.
     private func handleEditorWikiLink(linkId: String) {
         guard !linkId.isEmpty else { return }
         let resolver = ReferenceLibraryWikiLinkResolver(
@@ -903,39 +894,29 @@ struct EditorView: View {
 
     // MARK: - P2 #19 paragraph_ai apply
 
-    /// P2 #19 (WIRE-PARAGRAPH-002): fire the requested paragraph
-    /// transform against the active LLM connector and replace the
-    /// current selection with the rewritten text.
-    ///
-    /// Pipeline (= matches the spec):
-    /// 1. guard on `selectedText` non-empty (= matches the
-    ///    `disabled(vm.selectedText.isEmpty)` rule on the toolbar
-    ///    buttons; if the engine selection bridge hasn't reported
-    ///    anything, no-op).
-    /// 2. delegate to the testable static helper
-    ///    `EditorParagraphAI.apply(...)` (= internal static; = the
-    ///    pure function the test target exercises). The helper
-    ///    builds the prompt prefix, calls the connector, extracts
-    ///    the response text, and returns it (= no draft mutation
-    ///    = no SwiftUI dependency = trivially unit-testable).
-    /// 3. replace the selection (= today: whole draft) with the
-    ///    returned text.
-    ///
-    /// Concurrency: Swift 6 strict concurrency. The view is
-    /// @MainActor (= EditorView is a SwiftUI View; = the
-    /// compiler infers MainActor isolation). `await
-    /// connector.send(...)` hops off MainActor for the URL
-    /// session, then returns; the final `replaceSelectedText`
-    /// write stays on MainActor (= the @State mutation requires
-    /// it).
-    ///
-    /// Failure mode (= matches the wenshu S4 graceful-degradation
-    /// rule): any throw from the connector (= transport / auth /
-    /// missing API key / decode) is logged via NSLog and the
-    /// method returns without touching the draft. The user sees
-    /// no error UI (= consistent with how WenshuConductor.handle
-    /// handles ConversationLoop.runTurn failures); the dirty flag
-    /// stays unchanged.
+    /// P2 #19 (WIRE-PARAGRAPH-002): fire the requested paragraph transform
+    /// against the active LLM connector and replace the current selection with
+    /// the rewritten text.
+    /// Pipeline (= matches the spec): 1. guard on `selectedText` non-empty (=
+    /// matches the `disabled(vm.selectedText.isEmpty)` rule on the toolbar
+    /// buttons; if the engine selection bridge hasn't reported anything,
+    /// no-op). 2. delegate to the testable static helper
+    /// `EditorParagraphAI.apply(...)` (= internal static; = the pure function
+    /// the test target exercises). The helper builds the prompt prefix, calls
+    /// the connector, extracts the response text, and returns it (= no draft
+    /// mutation = no SwiftUI dependency = trivially unit-testable). 3. replace
+    /// the selection (= today: whole draft) with the returned text.
+    /// Concurrency: Swift 6 strict concurrency. The view is @MainActor (=
+    /// EditorView is a SwiftUI View; = the compiler infers MainActor
+    /// isolation). `await connector.send(...)` hops off MainActor for the URL
+    /// session, then returns; the final `replaceSelectedText` write stays on
+    /// MainActor (= the @State mutation requires it).
+    /// Failure mode (= matches the wenshu S4 graceful-degradation rule): any
+    /// throw from the connector (= transport / auth / missing API key / decode)
+    /// is logged via NSLog and the method returns without touching the draft.
+    /// The user sees no error UI (= consistent with how WenshuConductor.handle
+    /// handles ConversationLoop.runTurn failures); the dirty flag stays
+    /// unchanged.
     func applyParagraphAI(_ transform: EditorTransform) async {
         guard !selectedText.isEmpty else { return }
         isApplyingParagraphAI = true
@@ -967,10 +948,9 @@ struct EditorView: View {
         }
     }
 
-    /// P2 #19: replace the current selection (= today: whole
-    /// draft) with the supplied text. Once the engine selection
-    /// bridge lands, this becomes a surgical NSRange replace
-    /// (= same signature; only the body changes).
+    /// P2 #19: replace the current selection (= today: whole draft) with the
+    /// supplied text. Once the engine selection bridge lands, this becomes a
+    /// surgical NSRange replace (= same signature; only the body changes).
     private func replaceSelectedText(with newText: String) {
         // Fallback behavior (= mirrors FormatToolbarButtons in when the
         // TextEditor selection isn't observable, wrap/overwrite the whole
@@ -1030,15 +1010,13 @@ struct EditorView: View {
     // content with an onboarding welcome. Now removed entirely per (see OOB.md
     // #2026-09-07).
 
-    /// Empty-state hint when no editor tab is open (= columns-workspace-CTA shape).
-    /// The computed var returned the empty-state hint when no
-    /// editor tab was open. The earlier `emptyStateHint` call site
-    /// was removed in the samplePreviewBody cleanup (= the editor
-    /// zone now uses an inline empty-state directly via the
-    /// empty-tab guard in `body`); = no behavior change; = 28 LOC
-    /// removed including the long Apple HIG empty-state docstring
-    /// preserved as historical note).
-
+    /// Empty-state hint when no editor tab is open (= columns-workspace-CTA
+    /// shape). The computed var returned the empty-state hint when no editor
+    /// tab was open. The earlier `emptyStateHint` call site was removed in the
+    /// samplePreviewBody cleanup (= the editor zone now uses an inline
+    /// empty-state directly via the empty-tab guard in `body`); = no behavior
+    /// change; = 28 LOC removed including the long Apple HIG empty-state
+    /// docstring preserved as historical note).
     // placeholder type alias for the wikilink navigation closure (= the
     // wikilink routing lands in a follow-on surface).
 }
