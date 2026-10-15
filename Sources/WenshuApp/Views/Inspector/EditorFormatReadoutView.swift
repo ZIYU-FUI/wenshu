@@ -126,8 +126,19 @@ struct EditorFormatReadoutView: View {
                 object: nil,
                 queue: .main
             ) { notification in
+                // RATIONALE: the NotificationCenter handler signature is @Sendable
+                // (the second closure param of addObserver(forName:object:queue:using:)).
+                // Swift 6 isolation inference treats it as nonisolated, so writing
+                // self.isBold (= @MainActor-isolated View @State) triggers
+                // "main actor-isolated property mutated from Sendable closure".
+                // queue: .main guarantees the callback runs on the main thread; the
+                // canonical Swift 6 wrap is MainActor.assumeIsolated (macOS 14+)
+                // which gives the compiler the @MainActor contract without an
+                // extra dispatch hop (= no Task spawn cost per notification).
                 if let isBold = notification.userInfo?["isBold"] as? Bool {
-                    self.isBold = isBold
+                    MainActor.assumeIsolated {
+                        self.isBold = isBold
+                    }
                 }
             },
             NotificationCenter.default.addObserver(
@@ -136,7 +147,9 @@ struct EditorFormatReadoutView: View {
                 queue: .main
             ) { notification in
                 if let isItalic = notification.userInfo?["isItalic"] as? Bool {
-                    self.isItalic = isItalic
+                    MainActor.assumeIsolated {
+                        self.isItalic = isItalic
+                    }
                 }
             },
             NotificationCenter.default.addObserver(
@@ -145,7 +158,9 @@ struct EditorFormatReadoutView: View {
                 queue: .main
             ) { notification in
                 if let isHighlight = notification.userInfo?["isHighlight"] as? Bool {
-                    self.isHighlight = isHighlight
+                    MainActor.assumeIsolated {
+                        self.isHighlight = isHighlight
+                    }
                 }
             }
         ]
