@@ -92,6 +92,9 @@ let package = Package(
         // TEST — SwiftUI view hierarchy inspection (testTarget only, no runtime)
         .package(url: "https://github.com/nalexn/ViewInspector", from: "0.10.3"),
 
+        // v3.1 governance A1g.4.1: local WenshuData package (= data layer; = extracted per ADR-0016).
+        .package(name: "WenshuData", path: "Sources/WenshuData"),
+
         // TEST — SwiftUI pixel snapshot tests (batch 1 issue 05; testTarget only)
         // Adopted per 2026-08-28-six-module-audit M1 (drag-lost regression suite).
         // Pairs with ViewInspector: structure assertions vs pixel snapshots.
@@ -103,7 +106,17 @@ let package = Package(
             name: "WenshuApp",
             dependencies: [
                 // Canonical icon rendering goes through Image(systemName: ...)
-                // on Apple SF Symbols 6 (built into macOS 27; = zero SPM
+                // on Apple SF Symbols 6 (built into m
+
+                // v3.1 governance A1g.4.1: WenshuData product is declared in
+                // the WenshuData Package.swift but NOT added to WenshuApp's
+                // dependency list yet. The .product wire-up arrives in
+                // A1g.4.4 (= when the 38 Persistence files have been moved
+                // and the boundary has been smoke-tested). Adding it here
+                // now would break the build (= the empty WenshuData target
+                // has no sources = SPM rejects the .product reference).
+
+                // RUNTIME — Apple SF Symbols 6 (= built into macOS 27; = zero SPM
                 // dependency; = see top-level note in the dependencies array).
                 .product(name: "Markdown", package: "swift-markdown"),
                 // v0.39 ticket 001: chapter editor.
