@@ -68,13 +68,10 @@ private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "previewpan
 // (5 pure data types extracted to PreviewPaneModels.swift; = see that file)
 
 
-extension PreviewPane {
-    /// Convenience: delegate to BookDocIDFactory.make. (= keeps the call site
-    /// compact and centralises the hash algorithm choice.)
-    nonisolated static func stableBookDocId(bookId: UUID, folderName: String, fileName: String) -> UUID {
-        BookDocIDFactory.make(bookId: bookId, folderName: folderName, fileName: fileName)
-    }
-}
+// (extracted to PreviewPaneDocId.swift in A49; = see that file)
+// (= the cross-file `extension PreviewPane { ... stableBookDocId }`
+// = 8 LOC moved out of the main file. The `nonisolated` qualifier
+// is preserved; = safe to call from any actor.)
 
 /// Content for the material management zone (= projectPreview). Renders cards
 /// in scope-driven modes: - .referenceScope(nil): all entities (= overview
