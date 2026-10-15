@@ -21,7 +21,7 @@ struct WSKanbanRepositoryTests {
         let repo = try makeRepository()
         let task = try repo.add(title: "Write chapter 1")
         #expect(task.title == "Write chapter 1")
-        #expect(task.status == .new)
+        #expect(task.status == TodoStatus.new.rawValue)
         #expect(task.priority == 5)
         let fetched = try repo.get(id: task.id)
         #expect(fetched?.title == "Write chapter 1")
@@ -34,11 +34,11 @@ struct WSKanbanRepositoryTests {
         let task = try repo.add(title: "x")
         try repo.transition(id: task.id, to: .running)
         let after = try repo.get(id: task.id)
-        #expect(after?.status == .running)
+        #expect(after?.status == TodoStatus.running.rawValue)
         #expect(after?.startedAt != nil)
         try repo.transition(id: task.id, to: .done)
         let final = try repo.get(id: task.id)
-        #expect(final?.status == .done)
+        #expect(final?.status == TodoStatus.done.rawValue)
         #expect(final?.completedAt != nil)
     }
 
@@ -58,8 +58,8 @@ struct WSKanbanRepositoryTests {
         let a = try repo.add(title: "a")
         let b = try repo.add(title: "b")
         try repo.transition(id: a.id, to: .running)
-        let running = try repo.list(status: .running)
-        let new = try repo.list(status: .new)
+        let running = try repo.list(status: TodoStatus.running)
+        let new = try repo.list(status: TodoStatus.new)
         #expect(running.count == 1)
         #expect(new.count == 1)
     }
@@ -82,7 +82,7 @@ struct WSKanbanRepositoryTests {
         _ = try repo.add(title: "b")
         _ = try repo.add(title: "c")
         #expect(try repo.count() == 3)
-        #expect(try repo.count(status: .new) == 3)
-        #expect(try repo.count(status: .done) == 0)
+        #expect(try repo.count(status: TodoStatus.new) == 3)
+        #expect(try repo.count(status: TodoStatus.done) == 0)
     }
 }

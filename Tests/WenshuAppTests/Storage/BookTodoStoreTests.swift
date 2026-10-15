@@ -32,10 +32,10 @@ struct BookTodoStoreTests {
     func saveLoadRoundtrip() throws {
         let (store, _) = try makeStore()
         let original = [
-            PerBookTodoItem(title: "buy milk", status: .pending, priority: .low),
-            PerBookTodoItem(title: "ship B-09", status: .inProgress, priority: .urgent),
-            PerBookTodoItem(title: "write spec", status: .completed, priority: .high),
-            PerBookTodoItem(title: "old idea", status: .cancelled, priority: .medium),
+            PerBookTodoItem(title: "buy milk", status: TodoStatus.pending, priority: TodoPriority.low),
+            PerBookTodoItem(title: "ship B-09", status: TodoStatus.inProgress, priority: TodoPriority.urgent),
+            PerBookTodoItem(title: "write spec", status: TodoStatus.completed, priority: TodoPriority.high),
+            PerBookTodoItem(title: "old idea", status: TodoStatus.cancelled, priority: TodoPriority.medium),
         ]
         try store.save(original)
         let loaded = try store.load()
@@ -48,7 +48,7 @@ struct BookTodoStoreTests {
     @Test("save writes todo.json inside the book directory")
     func saveWritesInsideBookDirectory() throws {
         let (store, bookDir) = try makeStore()
-        let item = PerBookTodoItem(title: "write test", priority: .high)
+        let item = PerBookTodoItem(title: "write test", priority: TodoPriority.high)
         try store.save([item])
         let jsonURL = bookDir.appendingPathComponent("todo.json")
         #expect(FileManager.default.fileExists(atPath: jsonURL.path))

@@ -31,8 +31,8 @@ struct BookTodoStoreScopeTests {
         let store = BookTodoStore(bookId: bookId, directory: bookDir, scope: .book)
         #expect(store.jsonURL.lastPathComponent == "todo.json")
         try store.save([
-            PerBookTodoItem(title: "buy milk", status: .pending, priority: .low),
-            PerBookTodoItem(title: "ship B-13", status: .inProgress, priority: .urgent),
+            PerBookTodoItem(title: "buy milk", status: TodoStatus.pending, priority: TodoPriority.low),
+            PerBookTodoItem(title: "ship B-13", status: TodoStatus.inProgress, priority: TodoPriority.urgent),
         ])
         let loaded = try store.load()
         #expect(loaded.count == 2)
@@ -53,11 +53,11 @@ struct BookTodoStoreScopeTests {
         )
         #expect(store.jsonURL.lastPathComponent == "todo-chapters.json")
         try store.save([
-            PerBookTodoItem(title: "polish chapter 3 opening", status: .pending, priority: .high),
+            PerBookTodoItem(title: "polish chapter 3 opening", status: TodoStatus.pending, priority: TodoPriority.high),
         ])
         let loaded = try store.load()
         #expect(loaded.first?.title == "polish chapter 3 opening")
-        #expect(loaded.first?.priority == .high)
+        #expect(loaded.first?.priority == TodoPriority.high.rawValue)
         #expect(FileManager.default.fileExists(
             atPath: chaptersDir.appendingPathComponent("todo-chapters.json").path
         ))
@@ -76,7 +76,7 @@ struct BookTodoStoreScopeTests {
         )
         #expect(store.jsonURL.lastPathComponent == "todo-world.json")
         try store.save([
-            PerBookTodoItem(title: "document magic system limits", status: .pending, priority: .medium),
+            PerBookTodoItem(title: "document magic system limits", status: TodoStatus.pending, priority: TodoPriority.medium),
         ])
         let loaded = try store.load()
         #expect(loaded.first?.title == "document magic system limits")
@@ -93,7 +93,7 @@ struct BookTodoStoreScopeTests {
         )
         #expect(store.jsonURL.lastPathComponent == "library-todo.json")
         try store.save([
-            PerBookTodoItem(title: "re-tag paper references", status: .pending, priority: .high),
+            PerBookTodoItem(title: "re-tag paper references", status: TodoStatus.pending, priority: TodoPriority.high),
         ])
         let loaded = try store.load()
         #expect(loaded.first?.title == "re-tag paper references")

@@ -56,7 +56,7 @@ struct BookKanbanStoreScopeTests {
             scope: .folder(.chapters)
         )
         #expect(store.jsonURL.lastPathComponent == "kanban-chapters.json")
-        try store.save([KanbanTicket(title: "chapter three open question", status: .new)])
+        try store.save([KanbanTicket(title: "chapter three open question", status: TodoStatus.new)])
         let loaded = try store.load()
         #expect(loaded.first?.title == "chapter three open question")
         #expect(FileManager.default.fileExists(
@@ -96,7 +96,7 @@ struct BookKanbanStoreScopeTests {
             scope: .referenceLibrary
         )
         #expect(store.jsonURL.lastPathComponent == "library-kanban.json")
-        try store.save([KanbanTicket(title: "refactor pass on Wenshu paper", status: .running)])
+        try store.save([KanbanTicket(title: "refactor pass on Wenshu paper", status: TodoStatus.running)])
         let loaded = try store.load()
         #expect(loaded.first?.title == "refactor pass on Wenshu paper")
         #expect(FileManager.default.fileExists(

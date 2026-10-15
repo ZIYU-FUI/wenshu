@@ -179,7 +179,7 @@ struct WenshuReplicatedKanbanEndToEndTests {
 
         // Inspect the SwiftData row directly to confirm startedAt set.
         let mid = try store.get(id: taskID)
-        #expect(mid?.status == .running, "row status must be .running")
+        #expect(mid?.status == TodoStatus.running.rawValue, "row status must be .running")
         #expect(mid?.startedAt != nil, ".running transition must populate startedAt")
 
         // Complete — should set completedAt.
@@ -189,7 +189,7 @@ struct WenshuReplicatedKanbanEndToEndTests {
         Self.expectOK(completeOut, label: "complete")
 
         let done = try store.get(id: taskID)
-        #expect(done?.status == .done, "row status must be .done after complete")
+        #expect(done?.status == TodoStatus.done.rawValue, "row status must be .done after complete")
         #expect(done?.completedAt != nil, ".complete must populate completedAt")
         #expect(done?.startedAt != nil, "startedAt must persist across the running -> done transition")
     }
@@ -456,7 +456,7 @@ struct WenshuReplicatedKanbanEndToEndTests {
         ]))
         Self.expectOK(completeViaRegistry, label: "complete via registry")
         let finalRow = try store.get(id: taskID)
-        #expect(finalRow?.status == .done, "complete via registry must drive the same .done transition as the direct path")
+        #expect(finalRow?.status == TodoStatus.done.rawValue, "complete via registry must drive the same .done transition as the direct path")
         #expect(finalRow?.completedAt != nil, "lifecycle hook (completedAt) must fire through the registry path")
     }
 

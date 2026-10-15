@@ -58,14 +58,14 @@ struct WenshuCoreIntegrationTests {
 
         // 2. KanbanStore (kanban_db)
         let kanban = try Self.makeKanbanRepository()
-                let task1 = try await kanban.add(title: "Integration task 1", status: .new)
+                let task1 = try await kanban.add(title: "Integration task 1", status: TodoStatus.new)
         try await kanban.transition(id: task1.id, to: .running)
-        let running = try await kanban.list(status: .running)
+        let running = try await kanban.list(status: TodoStatus.running)
         #expect(running.count == 1)
 
         // 3. TodoStore
         let todo = try Self.makeTodoRepository()
-        _ = try await todo.add(title: "Todo 1", priority: .high)
+        _ = try await todo.add(title: "Todo 1", priority: TodoPriority.high)
 
         // 4. AgentRuntime + AgentProtocol (A2A + agent) — verifier (key → LLM fail path, S3)
         let card = AgentCard(

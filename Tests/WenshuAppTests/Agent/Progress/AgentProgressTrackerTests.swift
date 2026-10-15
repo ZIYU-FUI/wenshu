@@ -41,7 +41,7 @@ struct AgentProgressTrackerTests {
         #expect(entry.label == "Reading user message")
         #expect(entry.stepNumber == 1)
         #expect(entry.totalSteps == AgentProgressTracker.standardStepCount)
-        #expect(entry.status == .running)
+        #expect(entry.status == TodoStatus.running.rawValue)
         #expect(entry.etaSeconds == nil)
 
         // list(sessionId:) should include the new entry.
@@ -68,7 +68,7 @@ struct AgentProgressTrackerTests {
         #expect(updated.id == entry.id)
         #expect(updated.stepNumber == 2)
         #expect(updated.label == "Compressing context if needed")
-        #expect(updated.status == .running)
+        #expect(updated.status == TodoStatus.running.rawValue)
         // advance() clears the ETA (= caller can set a new ETA via setStep()).
         #expect(updated.etaSeconds == nil)
     }
@@ -109,7 +109,7 @@ struct AgentProgressTrackerTests {
         let listed = await tracker.list(sessionId: "session-A")
         #expect(listed.count == 1)
         let cancelled = try #require(listed.first)
-        #expect(cancelled.status == .cancelled)
+        #expect(cancelled.status == TodoStatus.cancelled.rawValue)
         // current() should now return nil (= cancelled entries skip the lookup).
         let current = await tracker.current(sessionId: "session-A")
         #expect(current == nil)
@@ -150,6 +150,6 @@ struct AgentProgressTrackerTests {
         #expect(resolved.id == second.id)
         #expect(resolved.label == "Parsing response")
         #expect(resolved.stepNumber == 2)
-        #expect(resolved.status == .running)
+        #expect(resolved.status == TodoStatus.running.rawValue)
     }
 }

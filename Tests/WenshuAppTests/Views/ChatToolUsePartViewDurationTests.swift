@@ -50,7 +50,7 @@ struct ChatToolUsePartViewDurationTests {
             contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatToolUsePartView.swift",
             encoding: .utf8
         )
-        #expect(src.contains("if let duration = toolUse.durationSeconds,\n                   toolUse.status != .running"))
+        #expect(src.contains("if let duration = toolUse.durationSeconds,\n                   toolUse.status != TodoStatus.running.rawValue"))
     }
 
     @Test func t44_status_icon_preserved() throws {

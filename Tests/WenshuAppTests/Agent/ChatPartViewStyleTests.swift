@@ -36,7 +36,7 @@ struct ChatPartViewStyleTests {
             ChatReasoningPartView(text: "reasoning", isRunning: false)
             ChatToolUsePartView(toolUse: ChatMessagePart.ToolUsePart(
                 id: ToolCallID(rawValue: "t1"), name: "read_file", args: "{}",
-                context: nil, status: .running,
+                context: nil, status: TodoStatus.running,
                 result: nil, errorMessage: nil, durationSeconds: nil
             ), isOutgoing: false)
             ChatToolResultPartView(toolResult: ChatMessagePart.ToolResultPart(toolUseID: ToolCallID(rawValue: "t1"), content: "ok", isError: false), isOutgoing: false)

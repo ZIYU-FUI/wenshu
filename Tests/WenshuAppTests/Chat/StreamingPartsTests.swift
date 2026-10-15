@@ -148,7 +148,7 @@ struct StreamingPartsTests {
 
     /// 
     /// `.toolUse(ToolUsePart)` kind + the canonical initial
-    /// `status: .running` (= the streaming pipeline updates
+    /// `status: TodoStatus.running` (= the streaming pipeline updates
     /// status → .complete when the .toolResult event arrives).
     @Test("toolUseFactory_createsToolUsePartWithRunningStatus")
     func toolUseFactory_createsToolUsePartWithRunningStatus() {
@@ -161,7 +161,7 @@ struct StreamingPartsTests {
             #expect(tu.id.rawValue == "call_abc")
             #expect(tu.name == "search")
             #expect(tu.args == "{\"query\": \"test\"}")
-            #expect(tu.status == .running)
+            #expect(tu.status == TodoStatus.running.rawValue)
             #expect(tu.result == nil)
         } else {
             Issue.record("Expected .toolUse kind, got \(part.kind)")
@@ -433,7 +433,7 @@ struct StreamingPartsTests {
         if case let .toolUse(tu) = final.parts[2].kind {
             #expect(tu.id.rawValue == "call_1")
             #expect(tu.name == "search")
-            #expect(tu.status == .running)
+            #expect(tu.status == TodoStatus.running.rawValue)
         } else { Issue.record("part 2 not toolUse") }
         // Part 3: .toolResult (= the .complete status update
         // doesn't add a part; the result content does).

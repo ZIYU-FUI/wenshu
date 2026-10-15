@@ -41,7 +41,7 @@ struct ChatToolUsePartViewStatusPulseTests {
             encoding: .utf8
         )
         #expect(src.contains("private var isRunningStatus: Bool {"))
-        #expect(src.contains("toolUse.status == .running"))
+        #expect(src.contains("toolUse.status == TodoStatus.running.rawValue"))
     }
 
     /// T45 contract: runningStatusOpacity = 0.5 (= dimmer than

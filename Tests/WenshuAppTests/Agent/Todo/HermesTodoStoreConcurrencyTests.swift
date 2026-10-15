@@ -103,7 +103,7 @@ struct HermesTodoStoreConcurrencyTests {
                 let item = HermesTodoItem(
                     id: "task-\(i)",
                     content: "Concurrent write #\(i)",
-                    status: .pending
+                    status: TodoStatus.pending
                 )
                 let written = store.write(todos: [item], merge: true)
                 // Sanity: the write should report our item back (plus
@@ -142,7 +142,7 @@ struct HermesTodoStoreConcurrencyTests {
         let seed = HermesTodoItem(
             id: "shared",
             content: "the shared value",
-            status: .pending
+            status: TodoStatus.pending
         )
         _ = store.write(todos: [seed], merge: false)
         #expect(store.read().count == 1)
@@ -176,7 +176,7 @@ struct HermesTodoStoreConcurrencyTests {
             #expect(snapshot.count == 1, "observation \(index) must have exactly 1 item; got \(snapshot.count)")
             #expect(snapshot.first?.id == "shared", "observation \(index) must have id=shared")
             #expect(snapshot.first?.content == "the shared value", "observation \(index) must have content='the shared value'")
-            #expect(snapshot.first?.status == .pending, "observation \(index) must have status=.pending")
+            #expect(snapshot.first?.status == TodoStatus.pending.rawValue, "observation \(index) must have status=.pending")
         }
     }
 
@@ -188,7 +188,7 @@ struct HermesTodoStoreConcurrencyTests {
         let store = HermesTodoStore()
         // Seed with one item so reads have something to read.
         _ = store.write(todos: [
-            HermesTodoItem(id: "loop-target", content: "loop", status: .pending)
+            HermesTodoItem(id: "loop-target", content: "loop", status: TodoStatus.pending)
         ], merge: false)
 
         let group = DispatchGroup()

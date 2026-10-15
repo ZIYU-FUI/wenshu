@@ -185,7 +185,7 @@ struct KanbanOpsTests {
         #expect(next.savedTickets.count == 1)
         #expect(next.savedTickets[0].title == "New kanban",
                 "Title must round-trip verbatim (= the title the user typed in the inline TextField)")
-        #expect(next.savedTickets[0].status == .new,
+        #expect(next.savedTickets[0].status == TodoStatus.new.rawValue,
                 "Default status for a freshly added kanban ticket is .new (= B-09 acceptance: \"new ticket goes to .new\")")
         #expect(next.savedTickets[0].id != UUID(),
                 "Each new ticket gets a fresh UUID (= per KanbanTicket.init default)")
@@ -215,13 +215,13 @@ struct KanbanOpsTests {
         defer { cleanup(dir) }
         let bookId = UUID()
         let resolver = FixedResolver(dir: dir)
-        var ticket = KanbanTicket(title: "T", status: .new, createdAt: Date(timeIntervalSince1970: 0),
+        var ticket = KanbanTicket(title: "T", status: TodoStatus.new, createdAt: Date(timeIntervalSince1970: 0),
                                    updatedAt: Date(timeIntervalSince1970: 0))
         let originalCreated = ticket.createdAt
         let result = KanbanOps.updateStatus(bookId: bookId, scope: .book, resolver: resolver,
                                              ticket: ticket, to: .running, in: [ticket])
         #expect(result.savedTickets.count == 1)
-        #expect(result.savedTickets[0].status == .running,
+        #expect(result.savedTickets[0].status == TodoStatus.running.rawValue,
                 "updateStatus must move the ticket to the new status (= the column-move invariant)")
         #expect(result.savedTickets[0].createdAt == originalCreated,
                 "updateStatus must NOT touch createdAt (= the immutable creation timestamp invariant)")

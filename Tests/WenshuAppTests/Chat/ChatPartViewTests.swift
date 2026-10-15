@@ -167,7 +167,7 @@ struct ChatPartViewTests {
             name: "search",
             args: "{\"q\":\"x\"}",
             context: nil,
-            status: .running,
+            status: TodoStatus.running,
             result: nil,
             errorMessage: nil,
             durationSeconds: nil
@@ -297,7 +297,7 @@ struct ChatPartViewTests {
             name: "search",
             args: "{}",
             context: nil,
-            status: .running,
+            status: TodoStatus.running,
             result: nil,
             errorMessage: nil,
             durationSeconds: nil
@@ -317,12 +317,12 @@ struct ChatPartViewTests {
     func ToolUsePart_equatable_sameFieldsAreEqual() {
         let a = ChatMessagePart.ToolUsePart(
             id: ToolCallID(rawValue: "call_1"), name: "search", args: "{\"q\":\"x\"}",
-            context: nil, status: .running,
+            context: nil, status: TodoStatus.running,
             result: nil, errorMessage: nil, durationSeconds: nil
         )
         let b = ChatMessagePart.ToolUsePart(
             id: ToolCallID(rawValue: "call_1"), name: "search", args: "{\"q\":\"x\"}",
-            context: nil, status: .running,
+            context: nil, status: TodoStatus.running,
             result: nil, errorMessage: nil, durationSeconds: nil
         )
         #expect(a == b)

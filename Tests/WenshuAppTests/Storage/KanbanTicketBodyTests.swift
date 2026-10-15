@@ -19,7 +19,7 @@ struct KanbanTicketBodyTests {
 
     @Test("KanbanTicket init accepts body: String?")
     func initAcceptsBody() {
-        let t = KanbanTicket(title: "x", status: .new, body: "**Goal:** ...")
+        let t = KanbanTicket(title: "x", status: TodoStatus.new, body: "**Goal:** ...")
         #expect(t.body == "**Goal:** ...")
     }
 

@@ -40,7 +40,7 @@ struct AgentLifecycleTrackerTests {
         #expect(record != nil)
         #expect(record?.profileSlug == "test-profile")
         #expect(record?.prompt == "hello")
-        #expect(record?.status == .pending)
+        #expect(record?.status == TodoStatus.pending.rawValue)
         tracker.stopHeartbeatLoop()
     }
 
@@ -49,7 +49,7 @@ struct AgentLifecycleTrackerTests {
         let tracker = AgentLifecycleTracker()
         let id = tracker.registerSpawn(profileSlug: "p", prompt: "")
         tracker.markRunning(id: id)
-        #expect(tracker.record(for: id)?.status == .running)
+        #expect(tracker.record(for: id)?.status == TodoStatus.running.rawValue)
         tracker.stopHeartbeatLoop()
     }
 
@@ -59,7 +59,7 @@ struct AgentLifecycleTrackerTests {
         let id = tracker.registerSpawn(profileSlug: "p", prompt: "")
         tracker.markCompleted(id: id, result: "task done")
         let record = tracker.record(for: id)
-        #expect(record?.status == .completed)
+        #expect(record?.status == TodoStatus.completed.rawValue)
         #expect(record?.result == "task done")
         tracker.stopHeartbeatLoop()
     }
@@ -80,7 +80,7 @@ struct AgentLifecycleTrackerTests {
         let tracker = AgentLifecycleTracker()
         let id = tracker.registerSpawn(profileSlug: "p", prompt: "")
         tracker.cancel(id: id)
-        #expect(tracker.record(for: id)?.status == .cancelled)
+        #expect(tracker.record(for: id)?.status == TodoStatus.cancelled.rawValue)
         tracker.stopHeartbeatLoop()
     }
 

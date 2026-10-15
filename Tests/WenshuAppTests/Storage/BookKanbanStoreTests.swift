@@ -38,9 +38,9 @@ struct BookKanbanStoreTests {
     func saveLoadRoundtrip() throws {
         let (store, _) = try makeStore()
         let original = [
-            KanbanTicket(title: "task one", status: .new),
-            KanbanTicket(title: "task two", status: .running),
-            KanbanTicket(title: "task three", status: .done),
+            KanbanTicket(title: "task one", status: TodoStatus.new),
+            KanbanTicket(title: "task two", status: TodoStatus.running),
+            KanbanTicket(title: "task three", status: TodoStatus.done),
         ]
         try store.save(original)
         let loaded = try store.load()
