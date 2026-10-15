@@ -1,47 +1,21 @@
-// LLMWikiTool.swift
-//
-// LLM-facing tool that lets the agent run the LLM Wiki
-// derivation + lint (= the auto-call surface per the core-
-// capability directive: research-to-document pipeline =
-// wenshu's central capability, used for grounded novel writing).
-//
-// Per the pipeline-must-be-complete directive: the LLM Wiki
-// pipeline (= `LLMWikiLayerDeriver` + `LLMWikiLinter`) was dead
-// code per §11 baseline (= zero callers). Wiring covers:
-//   1. Manual tool-call (= LLM invokes the `llm_wiki` tool).
-//      This file is the manual surface.
-//   2. Auto-call (= `FileSystemReferenceStore.create` triggers
-//      `LLMWikiOps.runDerivation`).
-//   3. UI trigger (= the reference-library inspector's
-//      'Re-derive wiki' button for the operator; follows).
-//
-// Wire format (= the LLM tool-use input):
-//   {
-//     "action": "runAll" | "runDerivation" | "runLint" | "status",
-//     "library_path": "/path/to/.ws"  (= optional; = derived
-//       from the active library when omitted)
-//   }
-//
-// Result (= the tool-use output):
-//   {
-//     "ok": true,
-//     "action": "runAll",
-//     "stats": {
-//       "raw_count": 5,
-//       "abstracts_written": 5,
-//       "indexes_written": 12,
-//       "duration_ms": 8
-//     },
-//     "lint_findings": [
-//       {"severity": "warning", "code": "LLM-ORPHAN-ENTITY",
-//        "message": "Entity 'X' has no provenance link"}
-//     ]
-//   }
-//
-// Scope: this commit adds the tool + registers it. The
-// `FileSystemReferenceStore.create` auto-call hook is in this
-// same commit (= the pipeline must complete end to end; =
-// manual + auto in one arc).
+// LLMWikiTool.swift LLM-facing tool that lets the agent run the LLM Wiki derivation +
+// lint (= the auto-call surface per the core- capability directive: research-to-
+// document pipeline = wenshu's central capability, used for grounded novel writing).
+// Per the pipeline-must-be-complete directive: the LLM Wiki pipeline (=
+// `LLMWikiLayerDeriver` + `LLMWikiLinter`) was dead code per §11 baseline (= zero
+// callers). Wiring covers: 1. Manual tool-call (= LLM invokes the `llm_wiki` tool).
+// This file is the manual surface. 2. Auto-call (= `FileSystemReferenceStore.create`
+// triggers `LLMWikiOps.runDerivation`). 3. UI trigger (= the reference-library
+// inspector's 'Re-derive wiki' button for the operator; follows). Wire format (= the
+// LLM tool-use input): { "action": "runAll" | "runDerivation" | "runLint" | "status",
+// "library_path": "/path/to/.ws"  (= optional; = derived from the active library when
+// omitted) } Result (= the tool-use output): { "ok": true, "action": "runAll",
+// "stats": { "raw_count": 5, "abstracts_written": 5, "indexes_written": 12,
+// "duration_ms": 8 }, "lint_findings": [ {"severity": "warning", "code": "LLM-ORPHAN-
+// ENTITY", "message": "Entity 'X' has no provenance link"} ] } Scope: this commit adds
+// the tool + registers it. The `FileSystemReferenceStore.create` auto-call hook is in
+// this same commit (= the pipeline must complete end to end; = manual + auto in one
+// arc).
 
 import Foundation
 import WenshuData
@@ -62,8 +36,8 @@ final class LLMWikiTool: Tool, @unchecked Sendable {
         }
         let action = parsed["action"] as? String ?? "status"
 
-        // Resolve the active ReferenceStoring. v2.8d MVP: walk the
-        // current library root from UserDefaults (= wenshu.libraryPath).
+        // Resolve the active ReferenceStoring. v2.8d MVP: walk the current library root
+        // from UserDefaults (= wenshu.libraryPath).
         guard let store = await resolveActiveStore() else {
             return "{\"ok\":false,\"error\":\"LLMWikiTool: no active library resolved (= wenshu.libraryPath missing or .ws bundle absent)\"}"
         }
@@ -91,25 +65,22 @@ final class LLMWikiTool: Tool, @unchecked Sendable {
     }
 
     private func resolveActiveStore() async -> (any ReferenceStoring)? {
-        // Use the wenshu-pollution-defense invariant: read the
-        // active library path from UserDefaults (= the AppState
-        // surface the rest of the app uses). Falls back to nil
-        // (= caller receives a typed error) when no library is
-        // bound (= the inspector's "no library" state).
-        //
-        // delegate to `LLMWikiOps.runAllFromActiveLibrary`'s
-        // resolution (= SSOT = both the LLM tool path and the
-        // operator-button path read the same `ActiveLibrary.path`).
+        // Use the wenshu-pollution-defense invariant: read the active library path from
+        // UserDefaults (= the AppState surface the rest of the app uses).
+        // Falls back to nil (= caller receives a typed error) when no library
+        // is bound (= the inspector's "no library" state). delegate to
+        // `LLMWikiOps.runAllFromActiveLibrary`'s resolution (= SSOT = both the
+        // LLM tool path and the operator-button path read the same
+        // `ActiveLibrary.path`).
         guard let path = ActiveLibrary.path,
               !path.isEmpty else { return nil }
         let url = URL(fileURLWithPath: path)
         guard FileManager.default.fileExists(atPath: url.path) else { return nil }
-        // Per boss 2026-10-05 (see OOB.md #2026-10-05)
-        // struct is @MainActor-isolated (= SwiftData's ModelContext
-        // contract). Hop to the main actor to construct the
-        // SwiftData-backed instance (= the production path). Falls
-        // back to the FileSystem path when no ModelContainer is
-        // wired (= dev tools + tests).
+        // Per boss 2026-10-05 (see OOB.md #2026-10-05) struct is @MainActor-isolated (=
+        // SwiftData's ModelContext contract). Hop to the main actor to
+        // construct the SwiftData-backed instance (= the production path).
+        // Falls back to the FileSystem path when no ModelContainer is wired (=
+        // dev tools + tests).
         return await MainActor.run {
             FileSystemReferenceStore(
                 referenceLibraryRoot: url,

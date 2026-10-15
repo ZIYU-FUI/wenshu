@@ -1,31 +1,18 @@
-// FileSystemChapterStore.swift
-//
-// Per-book chapter storage layer, backed by SwiftData (= the
-// WSChapter @Model class declared in Persistence/WSChapter.swift).
-//
-// Per boss 2026-10-05 (see OOB.md #2026-10-05)
-// FileSystem*Store → SwiftData migration commit 1.
-//
-// Apple HIG canonical pattern for SwiftData from an actor-based
-// store: the ModelContainer (= thread-safe; = Sendable) is shared
-// across actors; = each actor hop resolves to MainActor to grab the
-// ModelContext (= SwiftData enforces MainActor isolation on
-// contexts; = contexts are non-Sendable by design). The store
-// therefore accepts a ModelContainer and resolves the
-// ModelContext inside each CRUD call (= the caller doesn't have to
-// know about SwiftData's isolation contract; = the store handles
-// the MainActor hop).
-//
-// Per boss 2026-10-05 (see OOB.md #2026-10-05)
-// no migration code from the old FileSystem JSON to SwiftData
-// (= a returning user with chapters on disk would have to import
-// them via the future Import-from-v1-JSON feature; = not in scope
-// here).
-//
-// Storage path (= removed):
-//   <.ws>/shelves/<shelf-uuid>/books/<book-uuid>/
-//     chapters/<chapter-uuid>.md   <- REMOVED (now in SwiftData WSChapter.body)
-//     chapters.json                <- REMOVED (now in SwiftData WSChapter row)
+// FileSystemChapterStore.swift Per-book chapter storage layer, backed by SwiftData (= the
+// WSChapter @Model class declared in Persistence/WSChapter.swift). Per boss 2026-10-05
+// (see OOB.md #2026-10-05) FileSystem*Store → SwiftData migration commit 1. Apple HIG
+// canonical pattern for SwiftData from an actor-based store: the ModelContainer (=
+// thread-safe; = Sendable) is shared across actors; = each actor hop resolves to
+// MainActor to grab the ModelContext (= SwiftData enforces MainActor isolation on
+// contexts; = contexts are non-Sendable by design). The store therefore accepts a
+// ModelContainer and resolves the ModelContext inside each CRUD call (= the caller
+// doesn't have to know about SwiftData's isolation contract; = the store handles the
+// MainActor hop). Per boss 2026-10-05 (see OOB.md #2026-10-05) no migration code from
+// the old FileSystem JSON to SwiftData (= a returning user with chapters on disk would
+// have to import them via the future Import-from-v1-JSON feature; = not in scope
+// here). Storage path (= removed): <.ws>/shelves/<shelf-uuid>/books/<book-uuid>/
+// chapters/<chapter-uuid>.md   <- REMOVED (now in SwiftData WSChapter.body)
+// chapters.json                <- REMOVED (now in SwiftData WSChapter row)
 
 import Foundation
 import SwiftData
@@ -120,8 +107,8 @@ struct FileSystemChapterStore: ChapterStoring {
     /// are encoded into the SwiftData bookID field; = the legacy
     /// Document.bookId is a plain UUID so we use that here).
     private var bookID: UUID {
-        // Derive the book UUID from the bookDirectory's last path
-        // component (= the convention = .ws/shelves/<shelf>/books/<book-uuid>/).
+        // Derive the book UUID from the bookDirectory's last path component (= the
+        // convention = .ws/shelves/<shelf>/books/<book-uuid>/).
         let lastComponent = bookDirectory.lastPathComponent
         return UUID(uuidString: lastComponent) ?? UUID()
     }
@@ -151,12 +138,12 @@ struct FileSystemChapterStore: ChapterStoring {
     // MARK: ChapterStoring
 
     func loadChapters() throws -> [Document] {
-        // Apple HIG dual-write pattern: if a ModelContainer is
-        // provided, read from SwiftData (= the canonical path
-        // post-#8 migration). Otherwise (= legacy dev-tool path
-        // where callers instantiate FileSystemChapterStore without
-        // a container; = actor-based callers that can't reach
-        // MainActor), fall back to the legacy FileSystem JSON.
+        // Apple HIG dual-write pattern: if a ModelContainer is provided, read from
+        // SwiftData (= the canonical path post-#8 migration). Otherwise (=
+        // legacy dev-tool path where callers instantiate
+        // FileSystemChapterStore without a container; = actor-based callers
+        // that can't reach MainActor), fall back to the legacy FileSystem
+        // JSON.
         guard modelContainer != nil else {
             return try Self.loadChaptersFromFileSystem(
                 bookDirectory: bookDirectory,
@@ -165,10 +152,9 @@ struct FileSystemChapterStore: ChapterStoring {
             )
         }
         guard let context = modelContext else {
-            // No SwiftData container wired (= legacy dev-tool
-            // path). Return an empty list (= callers fall back
-            // to the built-in Default preset or show an empty
-            // chapter list).
+            // No SwiftData container wired (= legacy dev-tool path). Return an empty list
+            // (= callers fall back to the built-in Default preset or show
+            // an empty chapter list).
             return []
         }
         // Fetch WSChapter rows for this book.
@@ -190,13 +176,12 @@ struct FileSystemChapterStore: ChapterStoring {
     }
 
     func saveChapter(_ chapter: Document, bodyMarkdown: String) throws {
-        // Apple HIG dual-write pattern: if no ModelContainer is
-        // wired, fall back to the legacy FileSystem path (= actor-
-        // based callers that can't reach MainActor; = the existing
-        // test suite that instantiates FileSystemChapterStore
-        // without a container; = the #8 commit 1 transition). Once
-        // the production app wires a container (= commit 2 of #8),
-        // the SwiftData path takes precedence.
+        // Apple HIG dual-write pattern: if no ModelContainer is wired, fall back to the
+        // legacy FileSystem path (= actor- based callers that can't reach
+        // MainActor; = the existing test suite that instantiates
+        // FileSystemChapterStore without a container; = the #8 commit 1
+        // transition). Once the production app wires a container (= commit 2
+        // of #8), the SwiftData path takes precedence.
         guard modelContainer != nil else {
             try Self.saveChapterToFileSystem(
                 chapter: chapter,
@@ -210,14 +195,13 @@ struct FileSystemChapterStore: ChapterStoring {
         guard let context = modelContext else {
             throw ChapterStoreError.bookDirectoryMissing(path: bookDirectory.path)
         }
-        // Force the document category (= the caller might have
-        // set it to something else; = the chapter store owns this
-        // invariant).
+        // Force the document category (= the caller might have set it to something else;
+        // = the chapter store owns this invariant).
         var chapter = chapter
         chapter.category = .chapter
 
-        // Refuse to overwrite an existing chapter (= matches the
-        // legacy FileSystem behavior).
+        // Refuse to overwrite an existing chapter (= matches the legacy FileSystem
+        // behavior).
         let chapterIDString = chapter.id.uuidString
         if let _ = try? context.fetch(
             FetchDescriptor<WSChapter>(predicate: #Predicate { $0.id == chapterIDString })
@@ -277,8 +261,8 @@ struct FileSystemChapterStore: ChapterStoring {
             throw ChapterStoreError.chapterNotFound(id: chapter.id)
         }
 
-        // Update the existing row in place (= SwiftData observes
-        // the field writes and auto-persists on save).
+        // Update the existing row in place (= SwiftData observes the field writes and
+        // auto-persists on save).
         existing.title = chapter.title ?? existing.title
         existing.summary = chapter.summary
         existing.body = bodyMarkdown
@@ -358,10 +342,10 @@ struct FileSystemChapterStore: ChapterStoring {
         do {
             let data = try Data(contentsOf: indexURL)
             let decoder = JSONDecoder()
-            // ASSUMPTION: chapter indexes written by either
-            // FileSystemReferenceStore or older wenshu versions use
-            // different date formats; = the forgiving-date strategy
-            // (= ISO8601 + numeric fallback) lets both round-trip.
+            // ASSUMPTION: chapter indexes written by either FileSystemReferenceStore or
+            // older wenshu versions use different date formats; = the
+            // forgiving-date strategy (= ISO8601 + numeric fallback) lets
+            // both round-trip.
             decoder.dateDecodingStrategy = .custom { dec in
                 let container = try dec.singleValueContainer()
                 if let double = try? container.decode(Double.self) {
@@ -379,8 +363,8 @@ struct FileSystemChapterStore: ChapterStoring {
             }
             return try decoder.decode([Document].self, from: data)
         } catch {
-            // Apple HIG forgiving reset (= corrupt index = empty
-            // list, not a throw that bricks the per-book UI).
+            // Apple HIG forgiving reset (= corrupt index = empty list, not a throw that
+            // bricks the per-book UI).
             return []
         }
     }
@@ -406,9 +390,9 @@ struct FileSystemChapterStore: ChapterStoring {
     }
 
     // MARK: - Static FileSystem fallback for protocol methods
-    // (= used when the actor-based caller has no ModelContainer
-    // wired; = preserves the existing FileSystem JSON + .md shape
-    // so the test suite + dev tools continue to work).
+    // (= used when the actor-based caller has no ModelContainer wired; = preserves the
+    // existing FileSystem JSON + .md shape so the test suite + dev tools continue
+    // to work).
 
     nonisolated static func saveChapterToFileSystem(
         chapter: Document,

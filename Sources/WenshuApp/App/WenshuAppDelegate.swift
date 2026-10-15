@@ -7,9 +7,8 @@ private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "wenshuappd
 
 /// AppDelegate: WenshuCore runtime + macOS app init
 final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
-    // wenshu-verification-fix ((see OOB.md #2026-08-25) Spec axis
-    // GAP): one-time migration
-    // from legacy chat.sqlite to warehouse. Preserves chat history when
+    // wenshu-verification-fix ((see OOB.md #2026-08-25) Spec axis GAP): one-time
+    // migration from legacy chat.sqlite to warehouse. Preserves chat history when
     // user first picks a .ws warehouse in onboarding (= avoids silent data loss).
     // Idempotent: if legacy file doesn't exist or new file already exists, skip.
     private static func migrateLegacyChatIfNeeded(warehousePath: String, chatDbPath: String?) {
@@ -43,10 +42,10 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    // Swift 6 strict concurrency fix (= the dual-axis sweep pattern):
-    // was `nonisolated(unsafe) static var` (= race-prone).
-    // Replaced with @MainActor accessors (= safe under any
-    // concurrency model). Reads via @MainActor; writes via @MainActor.
+    // Swift 6 strict concurrency fix (= the dual-axis sweep pattern): was
+    // `nonisolated(unsafe) static var` (= race-prone). Replaced with @MainActor
+    // accessors (= safe under any concurrency model). Reads via @MainActor; writes
+    // via @MainActor.
     @MainActor private static var _openSettings: OpenSettingsAction?
     @MainActor static var openSettings: OpenSettingsAction? {
         get { _openSettings }
@@ -80,12 +79,10 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
 
     static let sharedRuntime = AgentRuntime()
     static let sharedVerifier = WenshuVerifier()
-    // Chat history now lives in
-    // WSChatRepository.shared (= @MainActor SwiftData wrapper).
-    // No per-actor sqlite3 bootstrap needed.
-    // Swift 6 strict concurrency fix: was `nonisolated(unsafe) static var`
-    // (= race-prone). Replaced with @MainActor accessor (= safe;
-    // = SwiftUI-compliant).
+    // Chat history now lives in WSChatRepository.shared (= @MainActor SwiftData wrapper).
+    // No per-actor sqlite3 bootstrap needed. Swift 6 strict concurrency fix: was
+    // `nonisolated(unsafe) static var` (= race-prone). Replaced with @MainActor
+    // accessor (= safe; = SwiftUI-compliant).
     @MainActor private static var _sharedConductor: WenshuConductor?
     @MainActor static var sharedConductor: WenshuConductor? {
         get { _sharedConductor }
@@ -97,15 +94,13 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         NotificationCenter.default.post(name: .wenshuResetLayout, object: nil)
     }
 
-    // SwiftData library upgrade panel wiring (see OOB.md #2026-10-06). WenshuAppDelegate owns the state and
-    // the retry closure because the Window scene body in
-    // AppRootScene has no constructor arguments (= Scene content
-    // closures are static). applicationDidFinishLaunching populates
-    // both fields BEFORE opening the panel window; = the Window
-    // body reads them via these static accessors.
-    //
-    // Threading: MainActor (= both the panel view and the
-    // AppDelegate's launch hook live on the main thread).
+    // SwiftData library upgrade panel wiring (see OOB.md #2026-10-06). WenshuAppDelegate
+    // owns the state and the retry closure because the Window scene body in
+    // AppRootScene has no constructor arguments (= Scene content closures are
+    // static). applicationDidFinishLaunching populates both fields BEFORE opening
+    // the panel window; = the Window body reads them via these static accessors.
+    // Threading: MainActor (= both the panel view and the AppDelegate's launch
+    // hook live on the main thread).
     @MainActor static var sharedMigrationState: LibraryMigrationState?
     @MainActor static var sharedMigrationRetry: (() -> Void)?
 
@@ -116,99 +111,84 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // One-shot legacy cleanup: drop the 'wenshu.libraryPath'
-        // UserDefaults string (= retired when the active library
-        // became a security-scoped bookmark via LibraryBookmark;
-        // see State/ActiveLibrary.swift). The previous bind wrote
-        // the .ws bundle path to UserDefaults.standard on every
-        // launch (= via LibraryRootView's @AppStorage binding),
-        // so any pre-Q2 user still has the legacy string in
-        // UserDefaults. After this commit, no production code reads
-        // 'wenshu.libraryPath' (= all reads go through
-        // ActiveLibrary.path), so the legacy string is dead weight
-        // (= it would still bind through the @AppStorage binding in
-        // LibraryRootView, = now removed in a follow-up commit).
-        // Dropping it here means the next launch starts clean.
+        // One-shot legacy cleanup: drop the 'wenshu.libraryPath' UserDefaults string (=
+        // retired when the active library became a security-scoped bookmark
+        // via LibraryBookmark; see State/ActiveLibrary.swift). The previous
+        // bind wrote the .ws bundle path to UserDefaults.standard on every
+        // launch (= via LibraryRootView's @AppStorage binding), so any pre-Q2
+        // user still has the legacy string in UserDefaults. After this commit,
+        // no production code reads 'wenshu.libraryPath' (= all reads go
+        // through ActiveLibrary.path), so the legacy string is dead weight (=
+        // it would still bind through the @AppStorage binding in
+        // LibraryRootView, = now removed in a follow-up commit). Dropping it
+        // here means the next launch starts clean.
         if UserDefaults.standard.string(forKey: "wenshu.libraryPath") != nil {
             UserDefaults.standard.removeObject(forKey: "wenshu.libraryPath")
         }
-        // button, not okdouble-click, ' =
-        // titlebarAppearsTransparent + titleVisibility = .hidden
-        // removes traffic lights AND double-click-to-zoom
-        // (= breaks macOS standard window controls). Don't do that.
-        // Keep the macOS native titlebar (= 28 PT compact with
-        // traffic lights + double-click-to-zoom) and put the titlebar
-        // icons INSIDE it via .toolbar { ToolbarItem(.principal) }
-        // (= exactly macOS standard = native toolbar buttons next to
-        // traffic lights = matches Apple Pages / Xcode / Mail etc.).
-        //
-        // ( removed ChatSessionStore from this bootstrap)
+        // button, not okdouble-click, ' = titlebarAppearsTransparent + titleVisibility =
+        // .hidden removes traffic lights AND double-click-to-zoom (= breaks
+        // macOS standard window controls). Don't do that. Keep the macOS
+        // native titlebar (= 28 PT compact with traffic lights + double-click-
+        // to-zoom) and put the titlebar icons INSIDE it via .toolbar {
+        // ToolbarItem(.principal) } (= exactly macOS standard = native toolbar
+        // buttons next to traffic lights = matches Apple Pages / Xcode / Mail
+        // etc.). ( removed ChatSessionStore from this bootstrap)
         // unsafeMutablePointer / instance var — static let yes immutable,
 // wenshu-verification-fix ((see OOB.md #2026-08-24) — 'chat,'):
-        // add NSLog for chat store init + bootstrap errors (silent catch
-        // makes debugging hard), and post .wenshuChatStoreReady notification
-        // so ChatView can retry load when store becomes available.
-        // SwiftData migration history (= per sqlite3-zero arc):
-        // WSMigrationRunner + WSMigrationPerStore were removed (= the
-        // one-shot legacy sqlite3 importer). Legacy `.ws/chat.sqlite`
-        // files (= previous data written by the deleted
-        // ChatSessionStore actor) are now treated as orphaned files
-        // (= no importer reads them; = no chat history migrates from
-        // raw sqlite to SwiftData). New chat history lives entirely
-        // in SwiftData
-        // (= WSChatRepository.shared writes to ZWSCHATMESSAGE; = see
-        // WenshuAppDelegate.swift:178-204 below).
-        //
-        // Idempotency note: previously this hook ran
-        // `Task { try await WSMigrationRunner.migrateIfNeeded() }` once per launch.
-        // Post-migration that call is gone (= no code path left; = the entire
-        // legacy-import mechanism is deleted alongside the file removal).
+        // add NSLog for chat store init + bootstrap errors (silent catch makes debugging
+        // hard), and post .wenshuChatStoreReady notification so ChatView can
+        // retry load when store becomes available. SwiftData migration history
+        // (= per sqlite3-zero arc): WSMigrationRunner + WSMigrationPerStore
+        // were removed (= the one-shot legacy sqlite3 importer). Legacy
+        // `.ws/chat.sqlite` files (= previous data written by the deleted
+        // ChatSessionStore actor) are now treated as orphaned files (= no
+        // importer reads them; = no chat history migrates from raw sqlite to
+        // SwiftData). New chat history lives entirely in SwiftData (=
+        // WSChatRepository.shared writes to ZWSCHATMESSAGE; = see
+        // WenshuAppDelegate.swift:178-204 below). Idempotency note: previously
+        // this hook ran `Task { try await WSMigrationRunner.migrateIfNeeded()
+        // }` once per launch. Post-migration that call is gone (= no code path
+        // left; = the entire legacy-import mechanism is deleted alongside the
+        // file removal).
 
-        // wenshu-verification-fix ((see OOB.md #2026-08-25) — 'yes
-        // .ws file'): Chat persistence location = wenshu warehouse
-        // (anbaiqiang.ws/) if set, else fall back to legacy
-        // ~/Library/Application Support/wenshu/chat.sqlite.
-        // chat data must be part of the warehouse file so the
-        // customer can copy the warehouse to another Mac and continue the
-        // session history directly.
+        // wenshu-verification-fix ((see OOB.md #2026-08-25) — 'yes .ws file'): Chat
+        // persistence location = wenshu warehouse (anbaiqiang.ws/) if set,
+        // else fall back to legacy ~/Library/Application
+        // Support/wenshu/chat.sqlite. chat data must be part of the warehouse
+        // file so the customer can copy the warehouse to another Mac and
+        // continue the session history directly.
         let warehousePath = ActiveLibrary.path
         let chatDbPath: String? = warehousePath.map { path in
-            // Warehouse is the directory selected via onboarding (.ws folder).
-            // Place chat.sqlite inside it.
+            // Warehouse is the directory selected via onboarding (.ws folder). Place
+            // chat.sqlite inside it.
             (path as NSString).appendingPathComponent("chat.sqlite")
         }
 
-        //  sub-task 1b.3: activate the warehouse ModelContainer.
-        //
-        // When the warehouse URL is set (= UserDefaults "wenshu.libraryPath"),
-        // makeContainerForWarehouse tries to build a SwiftData ModelContainer
-        // inside that warehouse directory ((see OOB.md #2026-08-25)
-        // — 'chat data must live in .ws warehouse' rule).
-        //
-        // On success: all Repository.shared singletons (= WSChatRepository,
-        // WSKanbanRepository, etc.) will read from the warehouse container.
-        //
-        // On failure: activateWarehouseContainer(nil) keeps the default
-        // Application Support path (= silent fallback; = logged for diagnosis).
-        //
-        // This runs BEFORE any chat-history view reads from the repository
-        // (= so SwiftData repositories are ready before any view reads from them).
-        // Post-: all 7 of the planned sqlite3 stores are deleted
-        // (= KanbanStore + TodoStore + MemoryStore + LinkIndex + ChatSessionStore +
-        // BookmarkStore + WenshuWorkspace). The warehouse container is the canonical
-        // SwiftData home for all live data. Post-migration (= sqlite3 fully
-        // removed): the one-shot legacy sqlite3 importer
-        // (WSMigrationPerStore + WSMigrationRunner + SQLiteConstants) is DELETED
-        // (= no legacy `.ws/*.sqlite` file is read by wenshu anymore; = legacy
-        // chat.sqlite etc. become orphaned files on disk; = no chat history
-        // migration). New chat history is written directly to SwiftData
-        // (= WSChatRepository.shared → ZWSCHATMESSAGE).
+        // sub-task 1b.3: activate the warehouse ModelContainer. When the warehouse URL is
+        // set (= UserDefaults "wenshu.libraryPath"), makeContainerForWarehouse
+        // tries to build a SwiftData ModelContainer inside that warehouse
+        // directory ((see OOB.md #2026-08-25) — 'chat data must live in .ws
+        // warehouse' rule). On success: all Repository.shared singletons (=
+        // WSChatRepository, WSKanbanRepository, etc.) will read from the
+        // warehouse container. On failure: activateWarehouseContainer(nil)
+        // keeps the default Application Support path (= silent fallback; =
+        // logged for diagnosis). This runs BEFORE any chat-history view reads
+        // from the repository (= so SwiftData repositories are ready before
+        // any view reads from them). Post-: all 7 of the planned sqlite3
+        // stores are deleted (= KanbanStore + TodoStore + MemoryStore +
+        // LinkIndex + ChatSessionStore + BookmarkStore + WenshuWorkspace). The
+        // warehouse container is the canonical SwiftData home for all live
+        // data. Post-migration (= sqlite3 fully removed): the one-shot legacy
+        // sqlite3 importer (WSMigrationPerStore + WSMigrationRunner +
+        // SQLiteConstants) is DELETED (= no legacy `.ws/*.sqlite` file is read
+        // by wenshu anymore; = legacy chat.sqlite etc. become orphaned files
+        // on disk; = no chat history migration). New chat history is written
+        // directly to SwiftData (= WSChatRepository.shared → ZWSCHATMESSAGE).
         // HermesKanbanDB + FullTextSearch were REMOVED in the migration
-        // sqlite3-zero (= Apple-default-first + zero SPM dep).
-        // `import SQLite3` count in production code = 0 (= was 2 pre-migration:
+        // sqlite3-zero (= Apple-default-first + zero SPM dep). `import
+        // SQLite3` count in production code = 0 (= was 2 pre-migration:
         // SQLiteConstants.swift SQLITE_TRANSIENT helper + WSMigrationPerStore
-        // raw-sqlite3 import; = both files removed).
-        // save path).
+        // raw-sqlite3 import; = both files removed). save path).
         let warehouseURL = warehousePath.map { URL(fileURLWithPath: $0) }
         do {
             let warehouseContainer = try WSPersistenceContainer.makeContainerForWarehouse(warehouseURL)
@@ -219,47 +199,41 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
             WSPersistenceContainer.activateWarehouseContainer(nil)
         }
 
-        // wenshu-verification-fix ((see OOB.md #2026-08-25) Spec axis
-        // GAP): one-time migration
-        // from legacy chat.sqlite to warehouse (preserves chat history when
-        // user first picks a .ws warehouse in onboarding).
+        // wenshu-verification-fix ((see OOB.md #2026-08-25) Spec axis GAP): one-time
+        // migration from legacy chat.sqlite to warehouse (preserves chat
+        // history when user first picks a .ws warehouse in onboarding).
         if let warehouse = warehousePath {
             Self.migrateLegacyChatIfNeeded(warehousePath: warehouse, chatDbPath: chatDbPath)
         }
 
-        // SwiftData library upgrade check (see OOB.md #2026-10-06). When the user's .ws Info.plist
-        // WSSchemaVersion is below ModelsSchemaV2 (= the current
-        // SwiftData version), open the migration panel BEFORE the
-        // main app mounts the NavigationSplitView (= the columns
-        // would otherwise read half-migrated SwiftData state).
-        // The panel runs the .lightweight V1 -> V2 migration
-        // driven by WenshuMigrationPlan (= 002 ticket); = on
-        // success the main window appears and the user continues
-        // normally.
-        //
-        // NOTE (= TODO): the trigger condition
-        // `LibraryInfo(wsRoot: ...).needsMigration` compares
-        // Info.plist's WSSchemaVersion (= application-layer schema
-        // version) against CURRENT_SCHEMA_VERSION (= which is 1
-        // today; = same as the SwiftData ModelsSchemaV1). To
-        // actually trigger the migration path for real users, the
-        // .ws Info.plist's WSSchemaVersion would need to be
-        // BUMPED to 2 in a future release (= the .ws layout-side
-        // bump happens via LibraryMigrator.writeOrUpdateSchemaVersion
-        // when CURRENT_SCHEMA_VERSION is raised). For this commit
-        // the wire-up is in place (= panel + state + openWindow +
-        // AppState flag); = the trigger fires when the bump
-        // arrives (= no manual trigger needed; = the next
-        // CURRENT_SCHEMA_VERSION bump lands the migration on
-        // every user's next launch automatically).
+        // SwiftData library upgrade check (see OOB.md #2026-10-06). When the user's .ws
+        // Info.plist WSSchemaVersion is below ModelsSchemaV2 (= the current
+        // SwiftData version), open the migration panel BEFORE the main app
+        // mounts the NavigationSplitView (= the columns would otherwise read
+        // half-migrated SwiftData state). The panel runs the .lightweight V1
+        // -> V2 migration driven by WenshuMigrationPlan (= 002 ticket); = on
+        // success the main window appears and the user continues normally.
+        // NOTE (= TODO): the trigger condition `LibraryInfo(wsRoot:
+        // ...).needsMigration` compares Info.plist's WSSchemaVersion (=
+        // application-layer schema version) against CURRENT_SCHEMA_VERSION (=
+        // which is 1 today; = same as the SwiftData ModelsSchemaV1). To
+        // actually trigger the migration path for real users, the .ws
+        // Info.plist's WSSchemaVersion would need to be BUMPED to 2 in a
+        // future release (= the .ws layout-side bump happens via
+        // LibraryMigrator.writeOrUpdateSchemaVersion when
+        // CURRENT_SCHEMA_VERSION is raised). For this commit the wire-up is in
+        // place (= panel + state + openWindow + AppState flag); = the trigger
+        // fires when the bump arrives (= no manual trigger needed; = the next
+        // CURRENT_SCHEMA_VERSION bump lands the migration on every user's next
+        // launch automatically).
         if let warehousePath, let wsRoot = URL(string: "file://\(warehousePath)") {
             Self.attemptSwiftDataMigrationIfNeeded(wsRoot: wsRoot)
         }
 
-        // : ChatSessionStore actor + sqlite3 raw connection
-        // removed. Chat history now lives in WSChatRepository.shared
-        // (= @MainActor SwiftData wrapper; = warehouse container activated
-        // above). No per-actor sqlite3 chat store bootstrap needed.
+        // : ChatSessionStore actor + sqlite3 raw connection removed. Chat history now
+        // lives in WSChatRepository.shared (= @MainActor SwiftData wrapper; =
+        // warehouse container activated above). No per-actor sqlite3 chat
+        // store bootstrap needed.
         Self.sharedConductor = WenshuConductor(
             runtime: Self.sharedRuntime,
             verifier: Self.sharedVerifier
@@ -282,283 +256,76 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
             SelfScreenshot.run()
         }
 
-        // Sub-agent runner drain loop (= the team-link consolidation):
-        // Start the sub-agent runner drain loop after all other
-        // bootstraps (= the SwiftData container + conductor + runtime
-        // + connector must be ready before the runner first fires).
-        // The runner reads from AsyncDelegationRegistry.shared (= the
-        // singleton the LLM-facing DelegateResearchTool writes to; =
-        // see the arc §11.17 history note for the shared-singleton
-        // rationale). Idempotent: calling startSubAgentDrainLoop
-        // twice is a no-op.
+        // Sub-agent runner drain loop (= the team-link consolidation): Start the sub-
+        // agent runner drain loop after all other bootstraps (= the SwiftData
+        // container + conductor + runtime + connector must be ready before the
+        // runner first fires). The runner reads from
+        // AsyncDelegationRegistry.shared (= the singleton the LLM-facing
+        // DelegateResearchTool writes to; = see the arc §11.17 history note
+        // for the shared-singleton rationale). Idempotent: calling
+        // startSubAgentDrainLoop twice is a no-op.
         Self.startSubAgentDrainLoop()
-        // 2026-10-14: enable macOS 27
-        // Window Tabs (= NSWindow
-        // tabbingMode = .preferred)
-        // for every window the
-        // app owns (= the
-        // canonical "框架自带"
-        // tab mechanism; = the
-        // View → Show Tab Bar
-        // menu command toggles
-        // this state; = the
-        // system-drawn tab bar
-        // appears under the
-        // window title bar;
-        // = cmd+T / cmd+shift+B
-        // work natively; = no
-        // wenshu code maintains
-        // the tab list). This
-        // is the Apple HIG 1:1
-        // path the boss asked
-        // for (= the
-        // "NSWindow.tabbingMode
-        // = .preferred" path
-        // from the 2026-10-14
-        // OOB). The wenshu
-        // business tabs (= the
-        // per-document editor
-        // tabs in the editor
-        // zone) are
-        // still wenshu-managed;
-        // = the Window Tabs
-        // and the business
-        // tabs are orthogonal
-        // (= the Window Tabs
-        // = a whole window
-        // per document, the
-        // business tabs = many
-        // documents in one
-        // window). The boss
-        // can compare the two
-        // visual side by side.
-        //
-        // 2026-10-14 v2 (=
-        // boss 2026-10-14 (see OOB.md #2026-10-14)
-        // directive):
-        // the Window Tabs
-        // feature is
-        // REMOVED. The
-        // `tabbingMode = .preferred`
-        // path that the
-        // previous block
-        // enabled is
-        // REVERTED below
-        // (= the iteration
-        // variable is
-        // empty; = no
-        // window gets
-        // `tabbingMode = .preferred`;
-        // = no
-        // `tabbingIdentifier`
-        // is set; = the
-        // macOS 27 "Show
-        // Tab Bar" / "Show
-        // All Tabs"
-        // menu items in
-        // the View menu
-        // become
-        // unavailable
-        // (= the
-        // framework
-        // hides them
-        // when no
-        // window in
-        // the app is
-        // tabbing-enabled)).
-        // The
-        // `NSWindow.allowsAutomaticWindowTabbing
-        // = false` static
-        // guard below
-        // (= set once at
-        // app launch;
-        // = affects
-        // every future
-        // NSWindow the
-        // app creates;
-        // = the canonical
-        // AppKit guard
-        // for "this app
-        // does not use
-        // window tabbing")
-        // is the final
-        // lock = even if
-        // some third-party
-        // framework
-        // enables it,
-        // the OS-level
-        // menu hooks
-        // still hide the
-        // View menu
-        // items. Reason
-        // for removal
-        // (= the boss
-        // 2026-10-14
-        // "每一下
-        // 都独立
-        // 持久化
-        // 一份数
-        // 据" /
-        // "这不
-        // 是我们
-        // 想要的
-        // 东西"
-        // root
-        // cause): each
-        // macOS Window
-        // Tab creates
-        // an independent
-        // NSWindow;
-        // = each
-        // NSWindow
-        // hydrates its
-        // own SwiftData
-        // ModelContainer
-        // (= the warehouse
-        // file is shared
-        // on disk but
-        // each window
-        // opens its own
-        // sqlite handle
-        // + its own
-        // in-memory
-        // SwiftData
-        // cache; = a 12-tab
-        // set = 12 sqlite
-        // handles + 12
-        // caches; = memory
-        // +12x + 12
-        // write-coordination
-        // risks). The
-        // wenshu business
-        // tabs (= the
-        // single-window-
-        // N-docs pattern)
-        // share ONE
-        // SwiftData
-        // container
-        // (= the canonical
-        // wenshu 1:1
-        // pattern; = the
-        // user opens many
-        // docs in one
-        // window;
-        // = the data is
-        // consistent
-        // across docs
-        // because they
-        // share the same
-        // SwiftData
-        // instance). The
-        // macOS Window
-        // Tabs is the
-        // opposite
-        // pattern
-        // (= the
-        // Xcode /
-        // Preview
-        // pattern;
-        // = each
-        // tab =
-        // independent
-        // document
-        // = independent
-        // state).
-        // The
-        // mismatch
-        // is
-        // fundamental;
-        // = the fix
-        // is to
-        // disable
-        // Window
-        // Tabs
-        // entirely.
+        // 2026-10-14: enable macOS 27 Window Tabs (= NSWindow tabbingMode = .preferred)
+        // for every window the app owns (= the canonical "框架自带" tab mechanism;
+        // = the View → Show Tab Bar menu command toggles this state; = the
+        // system-drawn tab bar appears under the window title bar; = cmd+T /
+        // cmd+shift+B work natively; = no wenshu code maintains the tab list).
+        // This is the Apple HIG 1:1 path the boss asked for (= the
+        // "NSWindow.tabbingMode = .preferred" path from the 2026-10-14 OOB).
+        // The wenshu business tabs (= the per-document editor tabs in the
+        // editor zone) are still wenshu-managed; = the Window Tabs and the
+        // business tabs are orthogonal (= the Window Tabs = a whole window per
+        // document, the business tabs = many documents in one window). The
+        // boss can compare the two visual side by side. 2026-10-14 v2 (= boss
+        // 2026-10-14 (see OOB.md #2026-10-14) directive): the Window Tabs
+        // feature is REMOVED. The `tabbingMode = .preferred` path that the
+        // previous block enabled is REVERTED below (= the iteration variable
+        // is empty; = no window gets `tabbingMode = .preferred`; = no
+        // `tabbingIdentifier` is set; = the macOS 27 "Show Tab Bar" / "Show
+        // All Tabs" menu items in the View menu become unavailable (= the
+        // framework hides them when no window in the app is tabbing-enabled)).
+        // The `NSWindow.allowsAutomaticWindowTabbing = false` static guard
+        // below (= set once at app launch; = affects every future NSWindow the
+        // app creates; = the canonical AppKit guard for "this app does not use
+        // window tabbing") is the final lock = even if some third-party
+        // framework enables it, the OS-level menu hooks still hide the View
+        // menu items. Reason for removal (= the boss 2026-10-14 "每一下 都独立 持久化
+        // 一份数 据" / "这不 是我们 想要的 东西" root cause): each macOS Window Tab creates
+        // an independent NSWindow; = each NSWindow hydrates its own SwiftData
+        // ModelContainer (= the warehouse file is shared on disk but each
+        // window opens its own sqlite handle + its own in-memory SwiftData
+        // cache; = a 12-tab set = 12 sqlite handles + 12 caches; = memory +12x
+        // + 12 write-coordination risks). The wenshu business tabs (= the
+        // single-window- N-docs pattern) share ONE SwiftData container (= the
+        // canonical wenshu 1:1 pattern; = the user opens many docs in one
+        // window; = the data is consistent across docs because they share the
+        // same SwiftData instance). The macOS Window Tabs is the opposite
+        // pattern (= the Xcode / Preview pattern; = each tab = independent
+        // document = independent state). The mismatch is fundamental; = the
+        // fix is to disable Window Tabs entirely.
         for window in NSApp.windows {
-            // Intentionally empty (= the
-            // 2026-10-14 v1
-            // implementation
-            // here set
-            // `tabbingMode = .preferred`;
-            // = the v2
-            // directive
-            // disables the
-            // feature; = the
-            // loop body is
-            // kept as a
-            // marker so the
-            // next engineer
-            // sees where
-            // window-tabbing
-            // was previously
-            // toggled and
-            // where to re-add
-            // it if the boss
-            // later reverts
-            // the directive).
+            // Intentionally empty (= the 2026-10-14 v1 implementation here set
+            // `tabbingMode = .preferred`; = the v2 directive disables the
+            // feature; = the loop body is kept as a marker so the next
+            // engineer sees where window-tabbing was previously toggled
+            // and where to re-add it if the boss later reverts the
+            // directive).
             _ = window
         }
-        // 2026-10-14 v2:
-        // hard-disable
-        // macOS Window
-        // Tabs at the
-        // AppKit
-        // framework
-        // level (= the
-        // canonical
-        // AppKit
-        // "this app
-        // does not
-        // support
-        // window
-        // tabbing"
-        // switch;
-        // = set once
-        // at app
-        // launch;
-        // = affects
-        // every
-        // NSWindow
-        // the app
-        // creates
-        // thereafter;
-        // = the macOS
-        // 27 View
-        // menu's
-        // "Show Tab
-        // Bar" /
-        // "Show All
-        // Tabs"
-        // items
-        // disappear
-        // entirely
-        // when this
-        // is false;
-        // = users
-        // cannot
-        // enable
-        // window
-        // tabbing
-        // from
-        // anywhere
-        // in the
-        // app;
-        // = the
-        // menu
-        // hook the
-        // boss
-        // wants
-        // "封起
-        // 来" is
-        // closed).
+        // 2026-10-14 v2: hard-disable macOS Window Tabs at the AppKit framework level (=
+        // the canonical AppKit "this app does not support window tabbing"
+        // switch; = set once at app launch; = affects every NSWindow the app
+        // creates thereafter; = the macOS 27 View menu's "Show Tab Bar" /
+        // "Show All Tabs" items disappear entirely when this is false; = users
+        // cannot enable window tabbing from anywhere in the app; = the menu
+        // hook the boss wants "封起 来" is closed).
         NSWindow.allowsAutomaticWindowTabbing = false
     }
 
     func applicationWillTerminate(_ notification: Notification) {
-        // bossverificationfix: cancel the sub-agent drain
-        // loop (= future handles do not start; = the in-flight LLM
-        // call, if any, continues to completion via the runner's own
-        // cancellation-handling path).
+        // bossverificationfix: cancel the sub-agent drain loop (= future handles do not
+        // start; = the in-flight LLM call, if any, continues to completion via
+        // the runner's own cancellation-handling path).
         Self.stopSubAgentDrainLoop()
     }
 
@@ -605,17 +372,15 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // Idempotency guard (= already running).
         guard subAgentDrainTask == nil else { return }
 
-        // Lazy runner creation (= resolves the active LLM connector
-        // at startup time; = mirrors `WenshuAppDelegate.activeLLMConnector()`
-        // used by the main agent's ChatView). ToolRegistry.shared is
-        // safe to read here (= it's an actor; = init is synchronous).
-        //
-        // adapters: Archivist + Auditor sub-agents
-        // bypass the LLM tool dispatch path (= their domains are
-        // deterministic storage / memory reads). Inject
-        // LiveArchivistStorage + LiveAuditorStorage at startup so
-        // the runner's per-agent dispatch can route Archivist +
-        // Auditor to the storage path instead of runRealSubAgent.
+        // Lazy runner creation (= resolves the active LLM connector at startup time; =
+        // mirrors `WenshuAppDelegate.activeLLMConnector()` used by the main
+        // agent's ChatView). ToolRegistry.shared is safe to read here (= it's
+        // an actor; = init is synchronous). adapters: Archivist + Auditor sub-
+        // agents bypass the LLM tool dispatch path (= their domains are
+        // deterministic storage / memory reads). Inject LiveArchivistStorage +
+        // LiveAuditorStorage at startup so the runner's per-agent dispatch can
+        // route Archivist + Auditor to the storage path instead of
+        // runRealSubAgent.
         let archiveRoot: URL
         if let path = ActiveLibrary.path {
             archiveRoot = URL(fileURLWithPath: path).appendingPathComponent("archives", isDirectory: true)
@@ -634,10 +399,10 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         sharedSubAgentRunner = runner
 
         subAgentDrainTask = Task.detached(priority: .background) {
-            // Detached loop: drain pending handles; = sleep 1s when
-            // nothing pending (= no busy-wait). The runner's
-            // `drainPending()` method processes up to `maxBatchSize`
-            // handles per call (= 3 by default; = caps burst rate).
+            // Detached loop: drain pending handles; = sleep 1s when nothing pending (= no
+            // busy-wait). The runner's `drainPending()` method processes
+            // up to `maxBatchSize` handles per call (= 3 by default; =
+            // caps burst rate).
             while !Task.isCancelled {
                 let n = await runner.drainPending()
                 if n == 0 {
@@ -676,11 +441,11 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     /// same logic on WenshuAppDelegate (= module-internal) keeps the
     /// test + production in lockstep without leaking the view API.
     nonisolated static func activeConnectorSlug() -> String {
-        // lightweight introspection used by the import flow's
-        // activity log so the user can see WHICH connector is being
-        // hit when the LLM is unreachable. Resolves the same
-        // UserDefaults + keychain signal as `activeLLMConnector`
-        // but returns the slug string (= no connector allocation).
+        // lightweight introspection used by the import flow's activity log so the user
+        // can see WHICH connector is being hit when the LLM is unreachable.
+        // Resolves the same UserDefaults + keychain signal as
+        // `activeLLMConnector` but returns the slug string (= no connector
+        // allocation).
         if let slug = UserDefaults.standard.string(forKey: "wenshu.llm.activeConnector"),
            Provider.by(slug: slug) != nil {
             return slug
@@ -693,46 +458,41 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
 
     nonisolated static func activeLLMConnector() -> any LLMConnector {
         let slug = UserDefaults.standard.string(forKey: "wenshu.llm.activeConnector")
-        // ProviderCatalog cannot resolve) must fall back to the
-        // first provider that has a key in the keychain (= NOT
-        // AnthropicConnector). The previous behavior (= default
-        // to anthropic) caused a "Missing API key for provider
-        // 'anthropic'" error in the v2.7 markdown import flow
-        // whenever the user had configured MiniMax (China) /
-        // OpenAI / etc. in the chat Settings picker (= the
-        // picker is per-chat; = the v2.7 import connector is
-        // resolved independently and should follow the
-        // keychain-side signal). The new behavior: ask the
-        // keychain which providers have keys; = pick the
-        // first one (= wenshu only ships 1 key for non-test
-        // users in practice; = the order is the user's own
+        // ProviderCatalog cannot resolve) must fall back to the first provider that has a
+        // key in the keychain (= NOT AnthropicConnector). The previous
+        // behavior (= default to anthropic) caused a "Missing API key for
+        // provider 'anthropic'" error in the v2.7 markdown import flow
+        // whenever the user had configured MiniMax (China) / OpenAI / etc. in
+        // the chat Settings picker (= the picker is per-chat; = the v2.7
+        // import connector is resolved independently and should follow the
+        // keychain-side signal). The new behavior: ask the keychain which
+        // providers have keys; = pick the first one (= wenshu only ships 1 key
+        // for non-test users in practice; = the order is the user's own
         // configure order).
         let provider: Provider
         if let slug = slug, let resolved = Provider.by(slug: slug) {
             provider = resolved
         } else {
-            // Ask the keychain which providers have keys (= the
-            // canonical signal that the user has configured a
-            // provider end-to-end; = UserDefaults alone doesn't
-            // prove the key is real).
+            // Ask the keychain which providers have keys (= the canonical signal that the
+            // user has configured a provider end-to-end; = UserDefaults
+            // alone doesn't prove the key is real).
             let configuredSlugs = ProviderKeychain.listProvidersWithKeys()
             if let first = configuredSlugs.first(where: { Provider.by(slug: $0) != nil }),
                let resolved = Provider.by(slug: first) {
                 provider = resolved
             } else {
-                // Last resort: AnthropicConnector for unit tests
-                // (= the unit-test contract in
-                // TriggerClosureWiringTests pins this so the
-                // production long-running-goal button can never
+                // Last resort: AnthropicConnector for unit tests (= the unit-test
+                // contract in TriggerClosureWiringTests pins this so
+                // the production long-running-goal button can never
                 // hit a connector it cannot drive).
                 provider = Provider.by(slug: "anthropic") ?? .minimaxCn
             }
         }
         switch provider.apiMode {
         case "anthropic_messages":
-            // MinimaxConnector is the Anthropic-compatible wrapper
-            // (= wenshu's default provider per AGENTS.md §11.2);
-            // AnthropicConnector is the native Anthropic API.
+            // MinimaxConnector is the Anthropic-compatible wrapper (= wenshu's default
+            // provider per AGENTS.md §11.2); AnthropicConnector is the
+            // native Anthropic API.
             if provider.slug == "anthropic" {
                 return AnthropicConnector()
             }
@@ -740,9 +500,9 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         case "openai_chat":
             return OpenAICompatibleConnector(provider: provider)
         default:
-            // Gemini + any other apiMode lands here until the matching
-            // connector lands (= Gemini native connector is a separate
-            // ticket per ConnectorTestButton.runTest).
+            // Gemini + any other apiMode lands here until the matching connector lands (=
+            // Gemini native connector is a separate ticket per
+            // ConnectorTestButton.runTest).
             return AnthropicConnector()
         }
     }
@@ -759,101 +519,83 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     /// `LLMCallOptions.model`).
     nonisolated static func activeModelSlug() -> String? {
         let slug = UserDefaults.standard.string(forKey: "wenshu.llm.model")
-        // Empty string (= the user explicitly cleared
-        // the picker; = a real value) is returned
-        // unchanged. nil (= the user never picked
-        // anything; = the connector default) is
-        // returned as nil too.
+        // Empty string (= the user explicitly cleared the picker; = a real value) is
+        // returned unchanged. nil (= the user never picked anything; = the
+        // connector default) is returned as nil too.
         return (slug?.isEmpty == false) ? slug : nil
     }
 
     // SwiftData library upgrade entry point (see OOB.md #2026-10-06). Wired from
-    // applicationDidFinishLaunching; = called once per launch with
-    // the user's active .ws root. Detection: read Info.plist's
-    // WSSchemaVersion (= the application-layer schema version),
-    // compare against ModelsSchemaV2 (= the current SwiftData
-    // version). When the application layer is below, we open the
-    // migration panel and run the 3-stage pipeline.
-    //
-    // 3-stage pipeline (= real progress; = not a fake timer):
-    //   preparing = back up the user's .ws/WenshuStore.store to
-    //               .ws/migration-backups/v<old>-<ts>.store; =
-    //               bookkeeping so a catastrophic migration failure
-    //               never costs the user their library.
-    //   executing = ModelContainer init with the plan in place
-    //               (= SwiftData runs WenshuMigrationPlan.lightweight
-    //               V1 -> V2 internally); = this is where the real
-    //               schema diff is applied.
-    //   finalizing = write the new WSSchemaVersion (= 2) to the
-    //                .ws Info.plist so the next launch skips the
-    //                panel (= the user is on V2).
-    //
-    // The pipeline drives LibraryMigrationState (= 003 ticket)
-    // through begin / beginExecuting / beginFinalizing / complete /
-    // fail; = the LibraryMigrationPanel renders that state. The
-    // retry closure is stashed on the AppDelegate so the panel's
-    // 重试 button can call back into here (= re-runs the same
-    // pipeline).
-    //
-    // Idempotent: if needsMigration is false (= the user's .ws is
-    // already on the current schema version), the function returns
-    // immediately without opening the panel or touching state.
+    // applicationDidFinishLaunching; = called once per launch with the user's
+    // active .ws root. Detection: read Info.plist's WSSchemaVersion (= the
+    // application-layer schema version), compare against ModelsSchemaV2 (= the
+    // current SwiftData version). When the application layer is below, we open the
+    // migration panel and run the 3-stage pipeline. 3-stage pipeline (= real
+    // progress; = not a fake timer): preparing = back up the user's
+    // .ws/WenshuStore.store to .ws/migration-backups/v<old>-<ts>.store; =
+    // bookkeeping so a catastrophic migration failure never costs the user their
+    // library. executing = ModelContainer init with the plan in place (= SwiftData
+    // runs WenshuMigrationPlan.lightweight V1 -> V2 internally); = this is where
+    // the real schema diff is applied. finalizing = write the new WSSchemaVersion
+    // (= 2) to the .ws Info.plist so the next launch skips the panel (= the user
+    // is on V2). The pipeline drives LibraryMigrationState (= 003 ticket) through
+    // begin / beginExecuting / beginFinalizing / complete / fail; = the
+    // LibraryMigrationPanel renders that state. The retry closure is stashed on
+    // the AppDelegate so the panel's 重试 button can call back into here (= re-runs
+    // the same pipeline). Idempotent: if needsMigration is false (= the user's .ws
+    // is already on the current schema version), the function returns immediately
+    // without opening the panel or touching state.
     @MainActor
     static func attemptSwiftDataMigrationIfNeeded(wsRoot: URL) {
         guard let info = try? LibraryInfoReader.read(from: wsRoot) else {
-            // Could not read the .ws Info.plist (= LibraryInfo throws
-            // on missing or malformed plist). LibraryMigrator would
-            // heal this on the next LibraryLifecycleHook call, but
-            // that is the onboarding-time hook (= not the launch
-            // path). Skip the migration panel for this launch; =
-            // the user sees the normal main window and the next
-            // lifecycle hook will run when they re-enter the app.
+            // Could not read the .ws Info.plist (= LibraryInfo throws on missing or
+            // malformed plist). LibraryMigrator would heal this on the
+            // next LibraryLifecycleHook call, but that is the onboarding-
+            // time hook (= not the launch path). Skip the migration panel
+            // for this launch; = the user sees the normal main window and
+            // the next lifecycle hook will run when they re-enter the app.
             return
         }
         guard info.needsMigration else { return }
 
-        // Construct the state machine + populate the static
-        // accessors that the Window scene body reads (= see
-        // AppRootScene Window with id WindowID.libraryMigration).
+        // Construct the state machine + populate the static accessors that the Window
+        // scene body reads (= see AppRootScene Window with id
+        // WindowID.libraryMigration).
         let state = LibraryMigrationState()
         Self.sharedMigrationState = state
 
-        // Set the AppState flag (= the bridge that LibraryRootView
-        // reads to render an empty main window). WenshuAppDelegate
-        // holds the AppState reference via AppState.shared (= the
-        // canonical singleton injected into the .environment chain
-        // by AppRootScene); = the AppState is reachable here.
+        // Set the AppState flag (= the bridge that LibraryRootView reads to render an
+        // empty main window). WenshuAppDelegate holds the AppState reference
+        // via AppState.shared (= the canonical singleton injected into the
+        // .environment chain by AppRootScene); = the AppState is reachable
+        // here.
         if let appState = Self.sharedAppState {
             appState.migrationInFlight = true
         }
 
-        // Single retry closure (= captures wsRoot + state). The
-        // panel's onRetry callback invokes it (= after
-        // state.resetForRetry() has rolled progress back to 0
-        // and bumped retryCount).
+        // Single retry closure (= captures wsRoot + state). The panel's onRetry callback
+        // invokes it (= after state.resetForRetry() has rolled progress back
+        // to 0 and bumped retryCount).
         let runPipeline: () -> Void = {
             Self.runSwiftDataMigrationPipeline(wsRoot: wsRoot, state: state)
         }
         Self.sharedMigrationRetry = runPipeline
         state.begin()
 
-        // Open the panel window (= single-instance; = bringing an
-        // already-open panel to front if it exists). openWindow
-        // resolves the Window by id.
+        // Open the panel window (= single-instance; = bringing an already-open panel to
+        // front if it exists). openWindow resolves the Window by id.
         if let openWindow = Self.openWindowAction {
             openWindow(id: WindowID.libraryMigration)
         } else {
-            // No openWindow handle (= shouldn't happen because
-            // AppRootScene injects it via .environment; = defensive
-            // log so a future ticket can diagnose if the panel
-            // fails to show).
+            // No openWindow handle (= shouldn't happen because AppRootScene injects it
+            // via .environment; = defensive log so a future ticket can
+            // diagnose if the panel fails to show).
             wenshuLogger.info("[wenshu.migration] openWindow action unavailable; panel not opened")
         }
 
-        // Drive the pipeline asynchronously (= the panel shows
-        // preparing state immediately; = the executing ModelContainer
-        // init happens on a Task so the panel's animations stay
-        // smooth).
+        // Drive the pipeline asynchronously (= the panel shows preparing state
+        // immediately; = the executing ModelContainer init happens on a Task
+        // so the panel's animations stay smooth).
         Task { @MainActor in
             runPipeline()
         }
@@ -885,41 +627,40 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
                 max(1, Int(preparingElapsed * 4))
             )
 
-            // Stage 2: executing (= SwiftData ModelContainer init
-            // with the plan in place). This is where the lightweight
-            // migration actually runs; = SwiftData throws if the
-            // migration cannot complete (= the panel will surface
-            // the error string in the red failure block).
+            // Stage 2: executing (= SwiftData ModelContainer init with the plan in
+            // place). This is where the lightweight migration actually
+            // runs; = SwiftData throws if the migration cannot complete (=
+            // the panel will surface the error string in the red failure
+            // block).
             let storeURL = wsRoot.appendingPathComponent("WenshuStore.store")
             _ = try WSPersistenceContainer.makeContainer(at: storeURL)
             state.beginFinalizing()
             state.updateEstimatedSecondsRemaining(1)
 
-            // Stage 3: finalizing (= write the new WSSchemaVersion
-            // to Info.plist). LibraryMigrator already wrote 1 when
-            // the .ws was first migrated to v0.26; = we now bump to
-            // 2 (= the new application-layer schema version that
-            // matches ModelsSchemaV2's versionIdentifier).
+            // Stage 3: finalizing (= write the new WSSchemaVersion to Info.plist).
+            // LibraryMigrator already wrote 1 when the .ws was first
+            // migrated to v0.26; = we now bump to 2 (= the new
+            // application-layer schema version that matches
+            // ModelsSchemaV2's versionIdentifier).
             try bumpSchemaVersion(wsRoot: wsRoot, newVersion: 2)
             state.complete()
 
-            // Clear the bridge state so a subsequent launch sees a
-            // clean AppDelegate (= the migration is one-shot per
-            // session).
+            // Clear the bridge state so a subsequent launch sees a clean AppDelegate (=
+            // the migration is one-shot per session).
             Self.sharedMigrationState = nil
             Self.sharedMigrationRetry = nil
             Self.sharedAppState?.migrationInFlight = false
         } catch {
-            // Roll back to 0 (see OOB.md #2026-10-06). The user then sees
-            // the red failure block with the error string and the
-            // backup path; = they can press 重试 (= up to 3 times;
-            // = the panel hides the 重试 button after 3 failures
-            // and only 退出 remains) or 退出 (= NSApp.terminate).
+            // Roll back to 0 (see OOB.md #2026-10-06). The user then sees the red failure
+            // block with the error string and the backup path; = they can
+            // press 重试 (= up to 3 times; = the panel hides the 重试 button
+            // after 3 failures and only 退出 remains) or 退出 (=
+            // NSApp.terminate).
             state.fail(String(describing: error))
-            // Leave migrationInFlight = true (= the main window
-            // stays empty while the user decides whether to 重试
-            // or 退出). Only clear on success or on the user's
-            // 退出 path (= NSApp.terminate kills the process anyway).
+            // Leave migrationInFlight = true (= the main window stays empty while the
+            // user decides whether to 重试 or 退出). Only clear on success or
+            // on the user's 退出 path (= NSApp.terminate kills the process
+            // anyway).
         }
     }
 

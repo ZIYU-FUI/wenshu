@@ -1,72 +1,40 @@
-//
-//  CardOpenOps.swift · Wenshu
-//
-//  Card-open business layer (= reference filter + body load +
-//  bookDoc load + duplicate-tab detection + EditorTab construction
-//  + appState mutation) is a single concern that was duplicated 3x.
-//  This helper lifts the business layer into a stateless enum so
-//  the 3 views call one shared function.
-//
-//  Why a stateless enum (not an @Observable class):
-//  - The business logic is a single, atomic operation (= open
-//    one card in the editor) with no persistent state.
-//  - The 3 callers differ only in how they expose `previewScope`
-//    (= computed var / func / @Environment read); = Ops accepts
-//    a value `PreviewScope` (= the seam that lets tests pass any
-//    scope without standing up a view).
-//  - Per the settings-kanban-todo precedent (= KanbanOps /
-//    TodoOps / SettingsOps = stateless enums with @MainActor
-//    static funcs), the wenshu MVVM shape is "enum + static +
-//    Result types", not "@Observable class ViewModel".
-//
-//  Why `bookStore: BookStore?` (nil-able):
-//  - `referenceStore.loadAllReferences()` is the only IO call (=
-//    optional anyway: `(try? bookStore.referenceStore.loadAllRef…)`
-//    in the original View code).
-//  - nil bookStore (= the rare on-launch race where the sidebar's
-//    click lands before BookStore is ready) → empty entities →
-//    silent no-op (= matches the existing 3 view bodies' behaviour
-//    verbatim).
-//
-//  All methods are @MainActor-isolated because:
-//  - The 3 callers are @MainActor views.
-//  - The mutation (`appState.openTabs.append` + activeTabId =
-//    newTab.id) is on @MainActor.
-//
-//  Public surface (= 2 entry points):
-//    - computeCardTriad(source:previewScope:bookStore:) -> CardTriad
-//    - openTab(triad:previewScope:appState:) -> OpenCardResult
-//
-//  Why 2 entry points (not 1):
-//  - WorkspaceView's openCardInEditor handles only the reference-
-//    scope + bookScope-deferred paths (= ticket 027-35 will lift
-//    the BookDocLoader into a shared service).
-//  - PaneView's openCardInEditor adds a filesystem scan
-//    in the bookScope case (= walk shelves/<shelf-uuid>/books/
-//    <book-uuid>/<folder>/*.md and pick the first .md). That scan
-//    stays in the View (= too PaneView-specific to lift; =
-//    ticket 027-35 will replace it).
-//  - The shared part = the dedup check + EditorTab construction +
-//    appState.openTabs.append + activeTabId mutation. That's what
-//    `openTab` does (= the body that all 3 views duplicated
-//    verbatim after the scope switch).
-//  - `computeCardTriad` wraps the reference-scope filter + body
-//    load (= the part all 3 views duplicated verbatim). The book-
-//    scope case in `computeCardTriad` returns a "deferred" triad
-//    (= silent no-op); PaneView's view-local file-scan
-//    overrides that triad before calling `openTab`.
-//
-//
-//  Out of scope (= NOT moved here, stays in View):
-//    - `previewScope` derivation (= the view-local computed var /
-//      func that reads `workspaceUI.sidebarSelection`). Ops accepts
-//      a value `PreviewScope`; = the view computes the value
-//      first then calls Ops.
-//    - The view-local `previewScope` + call sites (= the .button
-//      action that triggers the open). Ops is invoked from each
-//      view's call site; = the gesture / button stays in the
-//      view.
-//
+// CardOpenOps.swift · Wenshu Card-open business layer (= reference filter + body load +
+// bookDoc load + duplicate-tab detection + EditorTab construction + appState mutation)
+// is a single concern that was duplicated 3x. This helper lifts the business layer
+// into a stateless enum so the 3 views call one shared function. Why a stateless enum
+// (not an @Observable class): - The business logic is a single, atomic operation (=
+// open one card in the editor) with no persistent state. - The 3 callers differ only
+// in how they expose `previewScope` (= computed var / func / @Environment read); = Ops
+// accepts a value `PreviewScope` (= the seam that lets tests pass any scope without
+// standing up a view). - Per the settings-kanban-todo precedent (= KanbanOps / TodoOps
+// / SettingsOps = stateless enums with @MainActor static funcs), the wenshu MVVM shape
+// is "enum + static + Result types", not "@Observable class ViewModel". Why
+// `bookStore: BookStore?` (nil-able): - `referenceStore.loadAllReferences()` is the
+// only IO call (= optional anyway: `(try? bookStore.referenceStore.loadAllRef…)` in
+// the original View code). - nil bookStore (= the rare on-launch race where the
+// sidebar's click lands before BookStore is ready) → empty entities → silent no-op (=
+// matches the existing 3 view bodies' behaviour verbatim). All methods are @MainActor-
+// isolated because: - The 3 callers are @MainActor views. - The mutation
+// (`appState.openTabs.append` + activeTabId = newTab.id) is on @MainActor. Public
+// surface (= 2 entry points): - computeCardTriad(source:previewScope:bookStore:) ->
+// CardTriad - openTab(triad:previewScope:appState:) -> OpenCardResult Why 2 entry
+// points (not 1): - WorkspaceView's openCardInEditor handles only the reference- scope
+// + bookScope-deferred paths (= ticket 027-35 will lift the BookDocLoader into a
+// shared service). - PaneView's openCardInEditor adds a filesystem scan in the
+// bookScope case (= walk shelves/<shelf-uuid>/books/ <book-uuid>/<folder>/*.md and
+// pick the first .md). That scan stays in the View (= too PaneView-specific to lift; =
+// ticket 027-35 will replace it). - The shared part = the dedup check + EditorTab
+// construction + appState.openTabs.append + activeTabId mutation. That's what
+// `openTab` does (= the body that all 3 views duplicated verbatim after the scope
+// switch). - `computeCardTriad` wraps the reference-scope filter + body load (= the
+// part all 3 views duplicated verbatim). The book- scope case in `computeCardTriad`
+// returns a "deferred" triad (= silent no-op); PaneView's view-local file-scan
+// overrides that triad before calling `openTab`. Out of scope (= NOT moved here, stays
+// in View): - `previewScope` derivation (= the view-local computed var / func that
+// reads `workspaceUI.sidebarSelection`). Ops accepts a value `PreviewScope`; = the
+// view computes the value first then calls Ops. - The view-local `previewScope` + call
+// sites (= the .button action that triggers the open). Ops is invoked from each view's
+// call site; = the gesture / button stays in the view.
 
 import Foundation
 import os.log
@@ -148,19 +116,18 @@ enum CardOpenOps {
                 entity.layer == .layerEntities
                     && (category == nil || entity.category == category)
             }
-            // (see OOB.md #2026-09-08) — fix: if the caller passed the actually-
-            // clicked CardSource, use its entity (= correct card).
-            // Otherwise fall back to filtered.first (= legacy
-            // behavior for callers that don't pass source).
+            // (see OOB.md #2026-09-08) — fix: if the caller passed the actually- clicked
+            // CardSource, use its entity (= correct card). Otherwise fall
+            // back to filtered.first (= legacy behavior for callers that
+            // don't pass source).
             let pickedReference: Reference? = {
                 if case .reference(let r) = source { return r }
                 return filtered.first
             }()
-            // "多次双击"清明"，没有打开" — log (see OOB.md #2026-07-23)
-            // the picked reference's body + summary so the boss
-            // can grep whether the body came back empty (= the
-            // silent no-op in openTab fires when triad.content = ""
-            // and no tab is appended).
+            // "多次双击"清明"，没有打开" — log (see OOB.md #2026-07-23) the picked reference's body
+            // + summary so the boss can grep whether the body came back
+            // empty (= the silent no-op in openTab fires when
+            // triad.content = "" and no tab is appended).
             if let first = pickedReference {
                 let body = bookStore?.loadReferenceBody(id: first.id) ?? first.summary
                 let bodyPreview = body.isEmpty ? "EMPTY" : String(body.prefix(80))
@@ -173,30 +140,24 @@ enum CardOpenOps {
                        summaryPreview,
                        bookStore == nil ? "true" : "false")
                 return CardTriad(
-                    // 2026-10-14: assign the canonical
-                    // single-file reference path instead
-                    // of nil. The previous nil path
-                    // (= 027-35 left a TODO to "resolve
-                    // later") caused the editor's auto-save
-                    // to fall through to
-                    // /tmp/wenshu-preview-sample.md
-                    // because the path-aware save path
-                    // (= path = "<libraryRoot>/chapters
-                    // /<uuid>.md") only fires when
-                    // `tab.documentPath != nil`. With
-                    // a real reference path, the
-                    // auto-save writes the reference
-                    // body to `<libraryRoot>/references
-                    // /<uuid>.md` (= the new doc-truth
-                    // single-source location), and the
-                    // next launch's `restoreOpenTabs`
-                    // (= the 2026-10-14 v6 fix that
-                    // re-reads `tab.draft` from
-                    // `tab.documentPath`) loads the
-                    // user's edits back. Without
-                    // the path, the user's reference
-                    // edits were lost across relaunch
-                    // (= the boss 2026-10-14 (see OOB.md #2026-10-14)
+                    // 2026-10-14: assign the canonical single-file reference path instead
+                    // of nil. The previous nil path (= 027-35 left
+                    // a TODO to "resolve later") caused the
+                    // editor's auto-save to fall through to
+                    // /tmp/wenshu-preview-sample.md because the
+                    // path-aware save path (= path =
+                    // "<libraryRoot>/chapters /<uuid>.md") only
+                    // fires when `tab.documentPath != nil`. With a
+                    // real reference path, the auto-save writes
+                    // the reference body to
+                    // `<libraryRoot>/references /<uuid>.md` (= the
+                    // new doc-truth single-source location), and
+                    // the next launch's `restoreOpenTabs` (= the
+                    // 2026-10-14 v6 fix that re-reads `tab.draft`
+                    // from `tab.documentPath`) loads the user's
+                    // edits back. Without the path, the user's
+                    // reference edits were lost across relaunch (=
+                    // the boss 2026-10-14 (see OOB.md #2026-10-14)
                     // 保存机制是假的" report).
                     path: bookStore.flatMap {
                         FileSystemReferenceStore
@@ -217,119 +178,43 @@ enum CardOpenOps {
                 title: category?.displayName ?? String(localized: "tab.title.reference_library")
             )
         case .bookScope:
-            // Deferred to ticket 027-35: PreviewPane's private
-            // loadBookDocs helper is the source of truth for bookDoc
-            // discovery; = WorkspaceView doesn't share it.
-            // fallback = silent no-op (= no .alert, no popup = user
-            // feedback comes from PreviewPane being empty).
-            // (see OOB.md #2026-09-08) — fix: if the caller passed a .bookDoc source,
-            // use its doc (= correct book doc).
+            // Deferred to ticket 027-35: PreviewPane's private loadBookDocs helper is the
+            // source of truth for bookDoc discovery; = WorkspaceView
+            // doesn't share it. fallback = silent no-op (= no .alert, no
+            // popup = user feedback comes from PreviewPane being empty).
+            // (see OOB.md #2026-09-08) — fix: if the caller passed a
+            // .bookDoc source, use its doc (= correct book doc).
             if case .bookDoc(let doc) = source {
-                // (= boss
-                // 2026-10-10 "指
-                // 定目录
-                // 实现
-                // 了
-                // ，
-                // 但
-                // 导
-                // 入
-                // 的
-                // 内
-                // 容
-                // 少
-                // 了
-                // 好
-                // 我"
-                // feedback):
-                // the previous
-                // implementation
-                // returned only
-                // `doc.summary`
-                // (= the 200-char
-                // preview prefix
-                // = the user
-                // saw only
-                // 元信息 + 8 行
-                // 反链 but
-                // NOT the
-                // actual
-                // 534-line
-                // 故事宪法
-                // body).
-                // Fix: read
-                // the full .md
-                // file via
-                // the same
-                // path
-                // resolution
-                // that
-                // `SidebarService.findBookDocFile`
-                // uses for
-                // rename/delete;
-                // = the user
-                // now sees
-                // the complete
-                // body
-                // (= ~200x
-                // more
-                // content
-                // for the
-                // 故事宪法
+                // (= boss 2026-10-10 "指 定目录 实现 了 ， 但 导 入 的 内 容 少 了 好 我" feedback): the
+                // previous implementation returned only `doc.summary`
+                // (= the 200-char preview prefix = the user saw only
+                // 元信息 + 8 行 反链 but NOT the actual 534-line 故事宪法 body).
+                // Fix: read the full .md file via the same path
+                // resolution that `SidebarService.findBookDocFile`
+                // uses for rename/delete; = the user now sees the
+                // complete body (= ~200x more content for the 故事宪法
                 // case).
                 if let loaded = bookStore.flatMap({
                     CardOpenOps.loadBookDoc(shelvesRoot: $0.stores.shelvesRoot, doc: doc)
                 }) {
                     return CardTriad(
-                        // 2026-10-14: set the
-                        // on-disk file
-                        // URL as the
-                        // doc-truth
-                        // path. The
-                        // previous
-                        // `path: nil`
-                        // forced the
-                        // editor's
-                        // auto-save
-                        // to fall
-                        // through to
-                        // `/tmp/wenshu-preview-sample.md`
-                        // (= the
-                        // boss 2026-10-14 (see OOB.md #2026-10-14)
-                        // gone).
-                        // The
-                        // `loadBookDoc`
-                        // overload
-                        // returns
-                        // both the
-                        // body and
-                        // the URL
-                        // (= see
-                        // its
-                        // docstring
-                        // for
-                        // the
-                        // wenshu
-                        // canonical
-                        // doc-truth
-                        // surface
-                        // rationale).
+                        // 2026-10-14: set the on-disk file URL as the doc-truth path. The
+                        // previous `path: nil` forced the
+                        // editor's auto-save to fall through
+                        // to `/tmp/wenshu-preview-sample.md`
+                        // (= the boss 2026-10-14 (see OOB.md
+                        // #2026-10-14) gone). The
+                        // `loadBookDoc` overload returns both
+                        // the body and the URL (= see its
+                        // docstring for the wenshu canonical
+                        // doc-truth surface rationale).
                         path: loaded.url.path,
                         content: loaded.body,
                         title: doc.title
                     )
                 }
-                // Fallback (= the file
-                // is gone
-                // OR path
-                // resolution
-                // failed):
-                // show the
-                // 200-char
-                // summary
-                // (= better
-                // than
-                // blank).
+                // Fallback (= the file is gone OR path resolution failed): show the
+                // 200-char summary (= better than blank).
                 return CardTriad(
                     path: nil,
                     content: doc.summary,
@@ -340,17 +225,13 @@ enum CardOpenOps {
         case .shelfScope, .empty:
             return CardTriad(path: nil, content: "", title: "")
         case .tagScope(let tag):
-            // tagScope opens a reference
-            // entity (= the same triad shape as
-            // .referenceScope; = the editor opens the
-            // document by id; = tag is a facet of the
-            // reference, not a separate document type).
-            // PaneView routes .tagScope through this
-            // helper via the .referenceScope branch
-            // (= see its switch; = this case is here for
-            // exhaustiveness and to keep the editor's
-            // sourceScope Codable for .tagScope
-            // pickling across launches).
+            // tagScope opens a reference entity (= the same triad shape as
+            // .referenceScope; = the editor opens the document by id; =
+            // tag is a facet of the reference, not a separate document
+            // type). PaneView routes .tagScope through this helper via the
+            // .referenceScope branch (= see its switch; = this case is
+            // here for exhaustiveness and to keep the editor's sourceScope
+            // Codable for .tagScope pickling across launches).
             let entities: [Reference] = (try? bookStore?.loadAllReferences()) ?? []
             let filtered = entities.filter { entity in
                 entity.layer == .layerEntities && entity.tags.contains(tag)
@@ -409,56 +290,42 @@ enum CardOpenOps {
         let content = triad.content
         let title = triad.title
 
-        // No content (= no reference in scope OR bookDoc deferred).
-        // Silent no-op per (see OOB.md #2026-09-03) — feedback (= no .alert noise).
+        // No content (= no reference in scope OR bookDoc deferred). Silent no-op per (see
+        // OOB.md #2026-09-03) — feedback (= no .alert noise).
         guard !content.isEmpty else {
             return OpenCardResult(openedTabId: nil,
                                  didSwitchExistingTab: false,
                                  contentLength: 0)
         }
 
-        // Duplicate-tab check ((see OOB.md #2026-09-03) — core requirement).
-        // If any existing tab's `originalBody` (= the on-disk content
-        // = canonical identity, more stable than draft which can be
-        // dirty) matches our new content, switch to that tab instead
-        // of opening a duplicate. Safari behavior.
-        //
-        // Content fingerprint = first 200 chars (= fast; = sufficient
-        // since the chance of two distinct .md files sharing the
+        // Duplicate-tab check ((see OOB.md #2026-09-03) — core requirement). If any
+        // existing tab's `originalBody` (= the on-disk content = canonical
+        // identity, more stable than draft which can be dirty) matches our new
+        // content, switch to that tab instead of opening a duplicate. Safari
+        // behavior. Content fingerprint = first 200 chars (= fast; =
+        // sufficient since the chance of two distinct .md files sharing the
         // first 200 chars is negligible).
         let fingerprint = String(content.prefix(200))
         if let existingIdx = appState.openTabs.firstIndex(where: {
             String($0.originalBody.prefix(200)) == fingerprint
         }) {
-            // 2026-10-14: doc-truth-git ticket. The
-            // previous behavior was to switch to
-            // the existing tab without updating
-            // its `documentPath`. With the new
-            // single-file truth location (= this
-            // `CardTriad.path` is now the
-            // doc-truth per-reference file path
-            // produced by `FileSystemReferenceStore
-            // .referenceFileURL`), an existing tab
-            // opened by an older build may still
-            // carry `documentPath = nil` (= the
-            // pre-doc-truth-git reference tab
-            // shape; = the `EditorPersistence.save`
-            // path-aware write fell through to
-            // `/tmp/wenshu-preview-sample.md` for
-            // those tabs; = the user's edits were
-            // lost across relaunch). Force the
-            // existing tab to adopt the new
-            // `documentPath` (= the doc-truth
-            // file) so subsequent auto-saves land
-            // in the right place. The
-            // `originalBody` is also refreshed
-            // (= the file content on the doc-truth
-            // disk is the new canonical baseline;
-            // = otherwise the tab would appear
-            // dirty on first edit after the
-            // migration and the user would have to
-            // re-save the migrated body to clear
-            // the 已保存 -> 未保存 indicator).
+            // 2026-10-14: doc-truth-git ticket. The previous behavior was to switch to
+            // the existing tab without updating its `documentPath`. With
+            // the new single-file truth location (= this `CardTriad.path`
+            // is now the doc-truth per-reference file path produced by
+            // `FileSystemReferenceStore .referenceFileURL`), an existing
+            // tab opened by an older build may still carry `documentPath =
+            // nil` (= the pre-doc-truth-git reference tab shape; = the
+            // `EditorPersistence.save` path-aware write fell through to
+            // `/tmp/wenshu-preview-sample.md` for those tabs; = the user's
+            // edits were lost across relaunch). Force the existing tab to
+            // adopt the new `documentPath` (= the doc-truth file) so
+            // subsequent auto-saves land in the right place. The
+            // `originalBody` is also refreshed (= the file content on the
+            // doc-truth disk is the new canonical baseline; = otherwise
+            // the tab would appear dirty on first edit after the migration
+            // and the user would have to re-save the migrated body to
+            // clear the 已保存 -> 未保存 indicator).
             appState.openTabs[existingIdx].documentPath = path
             appState.openTabs[existingIdx].originalBody = content
             appState.openTabs[existingIdx].draft = content
@@ -468,37 +335,33 @@ enum CardOpenOps {
                                  contentLength: content.count)
         }
 
-        // No duplicate. Open as new tab (= reuse current tab if clean,
-        // otherwise append).
+        // No duplicate. Open as new tab (= reuse current tab if clean, otherwise append).
         let newTab = EditorTab(
             id: UUID(),
             documentPath: path,
             draft: content,
             originalBody: content,
             mode: mode,
-            // Pass title so tab strip shows the real card name
-            // instead of 'preview-sample'.
+            // Pass title so tab strip shows the real card name instead of 'preview-
+            // sample'.
             title: title.isEmpty ? nil : title
         )
-        // "多次双击"清明"，没有打开" (= the (see OOB.md #2026-07-23)
-        // double-click fires onDoubleClick on the Card, but the
-        // tab never appears in the strip; = either the append
-        // hits an exception, or activeTabId is not set, or
-        // SwiftUI doesn't re-render the strip). Log every
-        // successful open so the boss can grep Console.app to
-        // confirm whether the tab was created at all.
+        // "多次双击"清明"，没有打开" (= the (see OOB.md #2026-07-23) double-click fires
+        // onDoubleClick on the Card, but the tab never appears in the strip; =
+        // either the append hits an exception, or activeTabId is not set, or
+        // SwiftUI doesn't re-render the strip). Log every successful open so
+        // the boss can grep Console.app to confirm whether the tab was created
+        // at all.
         let openTabsCountBefore = appState.openTabs.count
-        // Capture the scope where this doc was opened from (= drives
-        // sidebar selection + preview cards on restore). =
-        // .referenceScope(cat) for library refs, = .bookScope
-        // (bookId, folder) for book docs, etc.
+        // Capture the scope where this doc was opened from (= drives sidebar selection +
+        // preview cards on restore). = .referenceScope(cat) for library refs,
+        // = .bookScope (bookId, folder) for book docs, etc.
         newTab.sourceScope = previewScope
-        // Always append a new tab (= Safari multi-tab strip
-        // behavior). Duplicate-tab detection (= the fingerprint check
-        // earlier in this function) handles the "switch to existing
-        // tab if same .md is open" case (= check whether an existing
-        // tab already opened the current MD). = no replacement of
-        // the active tab; = no "second click fails" race.
+        // Always append a new tab (= Safari multi-tab strip behavior). Duplicate-tab
+        // detection (= the fingerprint check earlier in this function) handles
+        // the "switch to existing tab if same .md is open" case (= check
+        // whether an existing tab already opened the current MD). = no
+        // replacement of the active tab; = no "second click fails" race.
         appState.openTabs.append(newTab)
         appState.activeTabId = newTab.id
         let openTabsCountAfter = appState.openTabs.count

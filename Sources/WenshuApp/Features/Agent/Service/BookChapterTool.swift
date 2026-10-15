@@ -1,14 +1,7 @@
-//
-//  BookChapterTool.swift
-//
-//  Per-book chapter CRUD tool (= wraps FileSystemChapterStore).
-//  Mirrors BookWorldTool + BookCharacterTool patterns.
-//
-//  LLM-friendly verbs: create / read / update / delete / list / find.
-//
-//  Note: chapter identity uses the canonical Document struct with
-//  category=.chapter (= the canonical wenshu-side metadata shape).
-//
+// BookChapterTool.swift Per-book chapter CRUD tool (= wraps FileSystemChapterStore).
+// Mirrors BookWorldTool + BookCharacterTool patterns. LLM-friendly verbs: create /
+// read / update / delete / list / find. Note: chapter identity uses the canonical
+// Document struct with category=.chapter (= the canonical wenshu-side metadata shape).
 
 import Foundation
 
@@ -105,15 +98,13 @@ actor BookChapterActor {
     /// Test-only body accessor.
     func readBodyForTest(id: UUID) async -> String? {
         guard let dir = bookDirectoryProvider() else { return nil }
-        // Per boss 2026-10-05 (see OOB.md #2026-10-05)
-        // → SwiftData migration commit 1): actor-based callers
-        // can't instantiate the @MainActor-isolated
-        // FileSystemChapterStore struct (= SwiftData's ModelContext
-        // is MainActor-isolated; = the struct's init requires
-        // MainActor). Use the static FileSystem fallback methods
-        // (= the legacy .md file path) until the actor is migrated
-        // to a non-isolated form or the storage layer migrates to
-        // a Sendable protocol.
+        // Per boss 2026-10-05 (see OOB.md #2026-10-05) → SwiftData migration commit 1):
+        // actor-based callers can't instantiate the @MainActor-isolated
+        // FileSystemChapterStore struct (= SwiftData's ModelContext is
+        // MainActor-isolated; = the struct's init requires MainActor). Use the
+        // static FileSystem fallback methods (= the legacy .md file path)
+        // until the actor is migrated to a non-isolated form or the storage
+        // layer migrates to a Sendable protocol.
         return FileSystemChapterStore.loadChapterBodyFromFileSystem(
             id: id,
             chaptersDirectory: dir.appendingPathComponent("chapters", isDirectory: true)
@@ -137,13 +128,12 @@ actor BookChapterActor {
                 reason: "no chat session book bound (= scope guard should have caught this earlier)"
             )
         }
-        // wt/path-guard-v2-2026-09-25: PathGuard.assertInsideLibrary
-        // is the second line of defense (= the first is
-        // WenshuConductor.wireBookScopeGuard, which only protects
-        // against a wrong book_id in the JSON envelope). If a
-        // future caller wires bookDirectoryProvider to return a
-        // directory outside .ws/ (= e.g. a misconfigured library
-        // override), the tool body still refuses to write.
+        // wt/path-guard-v2-2026-09-25: PathGuard.assertInsideLibrary is the second line
+        // of defense (= the first is WenshuConductor.wireBookScopeGuard, which
+        // only protects against a wrong book_id in the JSON envelope). If a
+        // future caller wires bookDirectoryProvider to return a directory
+        // outside .ws/ (= e.g. a misconfigured library override), the tool
+        // body still refuses to write.
         try PathGuard.assertInsideLibrary(path: LibraryPath(rawValue: dir.path))
         let chaptersDirectory = dir.appendingPathComponent("chapters", isDirectory: true)
         let indexURL = dir.appendingPathComponent("chapters.json")
@@ -350,19 +340,9 @@ actor BookChapterActor {
             throw BookChapterError.emptyTitle
         }
 
-        // the
-        // dedup check now
-        // looks in `drafts/`
-        // (= the agent's
-        // canonical staging
-        // area). The
-        // `findChapter`
-        // helper below was
-        // updated to
-        // consult both
-        // folders but
-        // prefer drafts/ for
-        // agent writes.
+        // the dedup check now looks in `drafts/` (= the agent's canonical staging area).
+        // The `findChapter` helper below was updated to consult both folders
+        // but prefer drafts/ for agent writes.
         if let existing = try await findDraftChapter(bookId: bookId, title: trimmed) {
             return try await updateDraftChapter(
                 id: existing.id,
@@ -429,61 +409,16 @@ actor BookChapterActor {
         guard !trimmed.isEmpty else {
             throw BookChapterError.emptyTitle
         }
-        // the
-        // agent gate (= boss
-        // 2026-10-10 "提升为
-        // 正文的内容，成
-        // 为下阶段的约
-        // 束，Agent 在
-        // 没有用户允许
-        // 的情况下，不
-        // 能编辑正文的
-        // 文档内容"
-        // directive). The
-        // gate checks
-        // whether the
-        // chapter file
-        // already lives
-        // under
-        // `<bookDir>/chapters/`
-        // (= a confirmed
-        // chapter; = the
-        // user has
-        // promoted this
-        // draft to a
-        // real chapter;
-        // = the agent must
-        // NOT edit it
-        // without user
-        // permission). If
-        // the file is
-        // under
-        // `<bookDir>/drafts/`
-        // (= a still-
-        // unconfirmed
-        // draft; = the
-        // agent can edit
-        // it freely =
-        // the boss's
-        // "其它文件正
-        // 常修改"), the
-        // update proceeds
-        // (= but we still
-        // require the
-        // target to be a
-        // known draft =
-        // = the LLM
-        // can't escape
-        // into other
-        // folders). The
-        // check is
-        // "find the
-        // chapter file
-        // on disk; if
-        // its parent
-        // directory ends
-        // in 'chapters',
-        // reject".
+        // the agent gate (= boss 2026-10-10 "提升为 正文的内容，成 为下阶段的约 束，Agent 在 没有用户允许 的情况下，不
+        // 能编辑正文的 文档内容" directive). The gate checks whether the chapter file
+        // already lives under `<bookDir>/chapters/` (= a confirmed chapter; =
+        // the user has promoted this draft to a real chapter; = the agent must
+        // NOT edit it without user permission). If the file is under
+        // `<bookDir>/drafts/` (= a still- unconfirmed draft; = the agent can
+        // edit it freely = the boss's "其它文件正 常修改"), the update proceeds (= but
+        // we still require the target to be a known draft = = the LLM can't
+        // escape into other folders). The check is "find the chapter file on
+        // disk; if its parent directory ends in 'chapters', reject".
         let (bookDirectory, draftsDirectory, _) = try resolveDraftsPaths()
         let fileOnDisk = bookDirectory
             .appendingPathComponent("chapters", isDirectory: true)
@@ -493,27 +428,15 @@ actor BookChapterActor {
                 "agent gate: this chapter is confirmed (= the user promoted it from drafts/ to chapters/). Agent 写正文一律先写草稿. The user must explicitly approve edits to confirmed chapters. Tell the user: 'I want to edit chapter `<title>` (id `<id>`). It's currently in `chapters/`, not `drafts/`. Please confirm the edit or move it back to `drafts/`.'"
             )
         }
-        // Otherwise the file
-        // is in `drafts/`
-        // (or doesn't exist
-        // = a new draft; =
-        // we proceed and
-        // write to drafts/).
-        // The actual write
-        // below uses
-        // `resolveDraftsPaths`
-        // to keep the
-        // agent on the
-        // drafts/ path
-        // even if the file
-        // was somehow
-        // missing.
-        // chapter-focus-lock 2026-09-28: gate the update path on
-        // the single-focus lock. Same shape as EditChapterActor:
-        // resolve the canonical chapter path (= <bookDir>/drafts/<id>.md
-        // in v2.7 round-61; = was chapters/<id>.md before)
-        // and throw ChapterFocusLockedError when the user has
-        // this chapter's editor tab focused.
+        // Otherwise the file is in `drafts/` (or doesn't exist = a new draft; = we
+        // proceed and write to drafts/). The actual write below uses
+        // `resolveDraftsPaths` to keep the agent on the drafts/ path even if
+        // the file was somehow missing. chapter-focus-lock 2026-09-28: gate
+        // the update path on the single-focus lock. Same shape as
+        // EditChapterActor: resolve the canonical chapter path (=
+        // <bookDir>/drafts/<id>.md in v2.7 round-61; = was chapters/<id>.md
+        // before) and throw ChapterFocusLockedError when the user has this
+        // chapter's editor tab focused.
         let chapterPath = ChapterFocusLockGuard.resolveChapterPath(
             chapterId: id,
             bookDirectoryProvider: bookDirectoryProvider
@@ -660,20 +583,10 @@ actor BookChapterActor {
         summary: String?
     ) async throws -> ChapterDescriptor {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        // Mirror `updateChapter`'s
-        // scope guard (= the
-        // chapter focus lock
-        // = the user is
-        // currently editing
-        // the chapter in a
-        // tab; = the agent
-        // is told to wait;
-        // = this still
-        // applies in
-        // `drafts/` because
-        // the user might
-        // also be reviewing
-        // a draft).
+        // Mirror `updateChapter`'s scope guard (= the chapter focus lock = the user is
+        // currently editing the chapter in a tab; = the agent is told to wait;
+        // = this still applies in `drafts/` because the user might also be
+        // reviewing a draft).
         let chapterPath = ChapterFocusLockGuard.resolveChapterPath(
             chapterId: id,
             bookDirectoryProvider: bookDirectoryProvider
@@ -799,10 +712,10 @@ actor BookChapterActor {
                 let title = envelope["title"] as? String ?? ""
                 let summary = envelope["summary"] as? String
                 let body = Self.extractMarkdown(envelope)
-                // Read the existing body before the update so the success
-                // envelope can carry a unified-diff block (= the chat
-                // tool-result preview surfaces the change to the human).
-                // Mirrors hermes 0.21.5 tool-fallback.tsx, which augments
+                // Read the existing body before the update so the success envelope can
+                // carry a unified-diff block (= the chat tool-result
+                // preview surfaces the change to the human). Mirrors
+                // hermes 0.21.5 tool-fallback.tsx, which augments
                 // file-edit tool results with `diff` + `old_text` +
                 // `new_text` for the in-chat preview card.
                 let oldBody: String
@@ -810,9 +723,9 @@ actor BookChapterActor {
                     let (_, existing) = try await readChapter(id: id)
                     oldBody = existing ?? ""
                 } catch {
-                    // If the chapter didn't exist (= treat as create-flavored
-                    // update), we still want to surface the diff; = empty
-                    // old body means the entire new body is "+" lines.
+                    // If the chapter didn't exist (= treat as create-flavored update), we
+                    // still want to surface the diff; = empty old
+                    // body means the entire new body is "+" lines.
                     oldBody = ""
                 }
                 let chapter = try await updateChapter(
@@ -972,8 +885,8 @@ actor BookChapterActor {
     static func computeUnifiedDiff(old: String, new: String) -> UnifiedDiff {
         let oldLines = old.components(separatedBy: "\n")
         let newLines = new.components(separatedBy: "\n")
-        // Trailing-newline guard: split(separator:) drops empty trailing
-        // element. Bring it back so the diff stays newline-faithful.
+        // Trailing-newline guard: split(separator:) drops empty trailing element. Bring
+        // it back so the diff stays newline-faithful.
         var oldSplit = oldLines
         var newSplit = newLines
         if old.hasSuffix("\n") && oldSplit.last == "" { oldSplit.removeLast() }
@@ -1135,13 +1048,11 @@ actor BookChapterActor {
 }
 
 // MARK: - BookChapterActor static FileSystem helpers
-//
-// The actor-based callers (= BookChapterActor) can't call instance
-// methods on the @MainActor-isolated FileSystemChapterStore struct;
-// = they use these static helpers (= FileManager + JSONEncoder are
-// thread-safe; = the actor's isolation is fine). This file hosts
-// the helpers here (= duplicates the storage layer) so the actor
-// doesn't need a separate extension file.
+// The actor-based callers (= BookChapterActor) can't call instance methods on the
+// @MainActor-isolated FileSystemChapterStore struct; = they use these static helpers
+// (= FileManager + JSONEncoder are thread-safe; = the actor's isolation is fine). This
+// file hosts the helpers here (= duplicates the storage layer) so the actor doesn't
+// need a separate extension file.
 extension BookChapterActor {
     /// Write a NEW chapter to the legacy FileSystem path (.md file +
     /// chapters.json index update).
@@ -1163,8 +1074,8 @@ extension BookChapterActor {
         }
         try atomicWrite(bodyMarkdown.data(using: .utf8) ?? Data(), to: chapterURL)
 
-        // Append to the chapters.json index (= the legacy list
-        // path callers read via loadChaptersFromFileSystem).
+        // Append to the chapters.json index (= the legacy list path callers read via
+        // loadChaptersFromFileSystem).
         var current = (try? FileSystemChapterStore.loadChaptersFromFileSystem(
             bookDirectory: bookDirectory,
             chaptersDirectory: chaptersDirectory,
@@ -1338,9 +1249,9 @@ extension BookChapterTool {
     }()
 
     // MARK: - Static FileSystem helpers (actor-safe; = the actor
-    // can't instantiate the @MainActor-isolated FileSystemChapterStore
-    // struct, so the CRUD methods above call these static helpers
-    // (= FileManager + JSONEncoder are thread-safe).
+    // can't instantiate the @MainActor-isolated FileSystemChapterStore struct, so the
+    // CRUD methods above call these static helpers (= FileManager + JSONEncoder
+    // are thread-safe).
 
     /// Write a NEW chapter to the legacy FileSystem path (.md file +
     /// chapters.json index update).

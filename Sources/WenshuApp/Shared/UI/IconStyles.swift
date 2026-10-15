@@ -1,81 +1,48 @@
-//
-//  IconStyles.swift · Wenshu
-//
-//  Central SF Symbols 6 icon factory + Apple HIG walk for wenshu icon and
-//  text sizing (= (see OOB.md #2026-10-01): merge icon + font under one file;
-//  every token name = Apple HIG official terminology; every point value =
-//  Apple-default or Apple-shipped app default; zero ad-hoc numbers).
-//
-//  ============================ WHY THIS FILE EXISTS ============================
-//
-//  Pre-v3.0 wenshu had 13 icon-size tokens in `DesignTokens.swift`
-//  (= iconStandardSize, iconSmall, iconLargeSize, iconButtonSmall,
-//  toolbarButtonCompact, paneTabHotArea, tabIconSize, tabCloseFrameSize,
-//  tabCloseGlyphFontSize, emptyStateIconSize, avatarSize, coverThumbnailSize,
-//  surfaceSizeMedium). The v3.0 icon sweep series (= c5b897507 +
-//  f44266fb7 + ce7510708 + 1fbd0e610 + b56c3c22c + 029295b6b +
-//  638ae8996 + ef15e4595 + 40969fb0c + b9ef4ad7f + 83f5c8c78 +
-//  4d6c02270 + d5aba1d34 + dfe599868 + d55d9b06d + 5b801b8f9 +
-//  bf73ebfb4 + ae14835bf + 21ff18c43 + a39fb4f91) migrated every
-//  production-code call site into IconStyle (= 11 cases: inlineSmall,
-//  small, paneTab, toolbar, nav, hitArea, emptyStateHero, avatar,
-//  cover, toolbarButton, surface) and deleted the 5 token definitions
-//  that became 0-reference (= iconSmall, iconLargeSize, iconButtonSmall,
-//  tabIconSize, iconStandardSize, emptyStateIconSize). The remaining
-//  7 DesignTokens icon-related values (= paneTabHotArea, toolbarButtonCompact,
-//  surfaceSizeMedium, avatarSize, coverThumbnailSize, tabCloseFrameSize,
-//  tabCloseGlyphFontSize) are layout hit-area / container-frame sizes that
-//  SFIcon does not own (= SFIcon owns the icon glyph size; = layout tokens
-//  stay in DesignTokens).
-//
-//
-//    1.  (central abstraction) is mandatory — without it the
-//       single point of truth is missing and visual hierarchy drifts.
-//
-//    2. token names walk Apple HIG official terminology (= `.hitArea`
-//       for the macOS HIG minimum hit zone, `.paneTab` for the
-//       NSToolbar item default, `.toolbar` for ControlSize.small).
-//
-//    3. point values follow Apple-default (= Apple-shipped apps) values,
-//       not wenshu-invented numbers. Empty-state = 76 (= Apple
-//       ContentUnavailableView default). paneTab = 18 (= Apple
-//       NSToolbar item macOS 14+ default). toolbar = 22 (= .controlSize
-//       (.small)). hero / cover / avatar = .thin weight (= (see OOB.md #2026-09-17)
-//       SF Symbols 6 weight split rule for the ≥38 PT zone).
-//
-//    4. font styles walk Apple HIG text-style APIs (= .body, .callout,
-//       .caption). Status font = .body (= 13 PT). Hotkey font = .callout
-//       + monospaced. Tab title font = .callout + monospaced.
-//
-//  Each IconStyle case carries a doc-comment that names the exact HIG
-//  surface (= NSToolbar item / ControlSize.small / ContentUnavailableView /
-//  HIG minimum hit area) and the existing wenshu call sites that consume
-//  it. The comment policy applies (= engineering facts only, no
-//  ticket / status / Q-numbers / version narrative).
-//
-//  ============================ MIGRATION RULE ============================
-//
-//  The v3.0 sweep migrated `DesignTokens.tabIconSize` (18 PT) and
-//  `DesignTokens.iconStandardSize` (16 PT) into the `IconStyle` enum
-//  (= `.paneTab = 18` and `.inlineSmall = 14` cover the previous
-//  call sites). The tokens were deleted in this same PR series;
-//  SFIcon is now the sole canonical surface.
-//
-//  ============================ USAGE NOTES ============================
-//
-//  Production call sites migrate from:
-//
-//      Image(systemName: "paperplane")
-//          .symbolRenderingMode(.hierarchical)
-//          .foregroundStyle(.tint)
-//
-//  To:
-//
-//      SFIcon("paperplane", style: .paneTab, color: .tint)
-//
-//  Future ticket: sweep all 166 call sites to SFIcon, one surface per
-//  PR (= see the the per-commit 1-source-1-test rule <QQ-coupling> ladder in the per-case doc below).
-//
+// IconStyles.swift · Wenshu Central SF Symbols 6 icon factory + Apple HIG walk for wenshu
+// icon and text sizing (= (see OOB.md #2026-10-01): merge icon + font under one file;
+// every token name = Apple HIG official terminology; every point value = Apple-default
+// or Apple-shipped app default; zero ad-hoc numbers). ============================ WHY
+// THIS FILE EXISTS ============================ Pre-v3.0 wenshu had 13 icon-size
+// tokens in `DesignTokens.swift` (= iconStandardSize, iconSmall, iconLargeSize,
+// iconButtonSmall, toolbarButtonCompact, paneTabHotArea, tabIconSize,
+// tabCloseFrameSize, tabCloseGlyphFontSize, emptyStateIconSize, avatarSize,
+// coverThumbnailSize, surfaceSizeMedium). The v3.0 icon sweep series (= c5b897507 +
+// f44266fb7 + ce7510708 + 1fbd0e610 + b56c3c22c + 029295b6b + 638ae8996 + ef15e4595 +
+// 40969fb0c + b9ef4ad7f + 83f5c8c78 + 4d6c02270 + d5aba1d34 + dfe599868 + d55d9b06d +
+// 5b801b8f9 + bf73ebfb4 + ae14835bf + 21ff18c43 + a39fb4f91) migrated every
+// production-code call site into IconStyle (= 11 cases: inlineSmall, small, paneTab,
+// toolbar, nav, hitArea, emptyStateHero, avatar, cover, toolbarButton, surface) and
+// deleted the 5 token definitions that became 0-reference (= iconSmall, iconLargeSize,
+// iconButtonSmall, tabIconSize, iconStandardSize, emptyStateIconSize). The remaining 7
+// DesignTokens icon-related values (= paneTabHotArea, toolbarButtonCompact,
+// surfaceSizeMedium, avatarSize, coverThumbnailSize, tabCloseFrameSize,
+// tabCloseGlyphFontSize) are layout hit-area / container-frame sizes that SFIcon does
+// not own (= SFIcon owns the icon glyph size; = layout tokens stay in DesignTokens).
+// 1.  (central abstraction) is mandatory — without it the single point of truth is
+// missing and visual hierarchy drifts. 2. token names walk Apple HIG official
+// terminology (= `.hitArea` for the macOS HIG minimum hit zone, `.paneTab` for the
+// NSToolbar item default, `.toolbar` for ControlSize.small). 3. point values follow
+// Apple-default (= Apple-shipped apps) values, not wenshu-invented numbers. Empty-
+// state = 76 (= Apple ContentUnavailableView default). paneTab = 18 (= Apple NSToolbar
+// item macOS 14+ default). toolbar = 22 (= .controlSize (.small)). hero / cover /
+// avatar = .thin weight (= (see OOB.md #2026-09-17) SF Symbols 6 weight split rule for
+// the ≥38 PT zone). 4. font styles walk Apple HIG text-style APIs (= .body, .callout,
+// .caption). Status font = .body (= 13 PT). Hotkey font = .callout + monospaced. Tab
+// title font = .callout + monospaced. Each IconStyle case carries a doc-comment that
+// names the exact HIG surface (= NSToolbar item / ControlSize.small /
+// ContentUnavailableView / HIG minimum hit area) and the existing wenshu call sites
+// that consume it. The comment policy applies (= engineering facts only, no ticket /
+// status / Q-numbers / version narrative). ============================ MIGRATION RULE
+// ============================ The v3.0 sweep migrated `DesignTokens.tabIconSize` (18
+// PT) and `DesignTokens.iconStandardSize` (16 PT) into the `IconStyle` enum (=
+// `.paneTab = 18` and `.inlineSmall = 14` cover the previous call sites). The tokens
+// were deleted in this same PR series; SFIcon is now the sole canonical surface.
+// ============================ USAGE NOTES ============================ Production
+// call sites migrate from: Image(systemName: "paperplane")
+// .symbolRenderingMode(.hierarchical) .foregroundStyle(.tint) To: SFIcon("paperplane",
+// style: .paneTab, color: .tint) Future ticket: sweep all 166 call sites to SFIcon,
+// one surface per PR (= see the the per-commit 1-source-1-test rule <QQ-coupling>
+// ladder in the per-case doc below).
 
 import SwiftUI
 import AppKit
@@ -313,12 +280,11 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
 
 // MARK: - Sidebar slot (only meaningful on .sidebar)
 
-// Sidebar row iconography owns its own slot dimensions and tint so
-// callers do not need to know the optical difference between an SF
-// Symbol's intrinsic width and the row's leading icon frame. Apple
-// HIG does not define a sidebar row icon width; the 16 PT baseline
-// matches Apple Mail / Notes / Xcode / System Settings (= the
-// wenshu-declared default in the absence of a system override).
+// Sidebar row iconography owns its own slot dimensions and tint so callers do not need to
+// know the optical difference between an SF Symbol's intrinsic width and the row's
+// leading icon frame. Apple HIG does not define a sidebar row icon width; the 16 PT
+// baseline matches Apple Mail / Notes / Xcode / System Settings (= the wenshu-declared
+// default in the absence of a system override).
 extension IconStyle {
     /// Sidebar row leading icon width (= the row's leading icon
     /// frame; = the fixed visual slot the SF Symbol sits inside).
@@ -501,93 +467,72 @@ struct SFIcon: View {
     }
 
     var body: some View {
-        // The plain Image is needed for .resizable() (= .resizable()
-        // is Image-only and must follow Image(...) before any other
-        // modifier that returns `some View`). The styledImage carries
-        // .font() for the non-sidebar tiers. The .sidebar tier uses
-        // plainImage so it can call .resizable() first.
+        // The plain Image is needed for .resizable() (= .resizable() is Image-only and
+        // must follow Image(...) before any other modifier that returns `some
+        // View`). The styledImage carries .font() for the non-sidebar tiers.
+        // The .sidebar tier uses plainImage so it can call .resizable() first.
         let plainImage = Image(systemName: name)
         let styledImage = plainImage
             .font(.system(size: pointSizeOverride ?? style.pointSize, weight: style.fontWeight))
 
-        // .sidebar uses .monochrome so .foregroundStyle(Color.primary)
-        // surfaces as the actual system primary (= black on light
-        // mode, white on dark mode). In .hierarchical mode,
-        // Color.primary is interpreted as the foreground style's
-        // primary variant (= system tint = accent = blue on macOS),
-        // so the icon surfaces as blue regardless of the
-        // explicit foreground style. Per Apple HIG sidebar
-        // row anatomy (= Apple Mail / Notes / Xcode sidebar
-        // row icons render in the system primary color, not
-        // the app accent), monochrome is the canonical
-        // rendering for the .sidebar tier.
+        // .sidebar uses .monochrome so .foregroundStyle(Color.primary) surfaces as the
+        // actual system primary (= black on light mode, white on dark mode).
+        // In .hierarchical mode, Color.primary is interpreted as the
+        // foreground style's primary variant (= system tint = accent = blue on
+        // macOS), so the icon surfaces as blue regardless of the explicit
+        // foreground style. Per Apple HIG sidebar row anatomy (= Apple Mail /
+        // Notes / Xcode sidebar row icons render in the system primary color,
+        // not the app accent), monochrome is the canonical rendering for the
+        // .sidebar tier.
         let isSidebar = style == .sidebar
-        // `.sidebarTree` (= 2026-10-12 boss directive) is the
-        // library-tree side of the same surface (= it is the
-        // chrome sidebar on the main window, NOT a system-
-        // settings surface). It renders the SF Symbol in
-        // `.monochrome` with the system-primary color (= the
-        // canonical Apple HIG chrome-sidebar look, = no
-        // multicolor, no squircle tile). The optical slot
-        // dimensions still apply (= the `sidebarWidth` /
-        // `sidebarInset` extensions on `IconStyle` cover both
-        // tiers; = `SFLabelRow`'s leading-icon frame still
-        // matches across the two surfaces).
+        // `.sidebarTree` (= 2026-10-12 boss directive) is the library-tree side of the
+        // same surface (= it is the chrome sidebar on the main window, NOT a
+        // system- settings surface). It renders the SF Symbol in `.monochrome`
+        // with the system-primary color (= the canonical Apple HIG chrome-
+        // sidebar look, = no multicolor, no squircle tile). The optical slot
+        // dimensions still apply (= the `sidebarWidth` / `sidebarInset`
+        // extensions on `IconStyle` cover both tiers; = `SFLabelRow`'s
+        // leading-icon frame still matches across the two surfaces).
         let isSidebarTree = style == .sidebarTree
 
-        // .sidebar tier: lock the row icon to a 16×16 square
-        // frame and force the SF Symbol to fill it via
-        // .resizable() + .aspectRatio(contentMode: .fit). Per
-        // Every sidebar row icon must
-        // occupy the same optical width
-        // inside the 16×16 box (= the
-        // wenshu 1:1 macOS Tahoe sidebar
-        // row icon convention; = SF
-        // Symbols 6 keeps each symbol's
-        // intrinsic optical bounds; =
-        // resizable + aspectRatio flatten
-        // them to the frame). The
-        // trade-off (= `book.vertical`
-        // no longer looks slim) is the
-        // wenshu sidebar row decision.
-        //
-        // .font() is dropped here (= Image.font() returns
-        // `some View` on Swift 6.4 macOS 27, which blocks
-        // .resizable() from following). The 16×16 frame
-        // below pins the rendered size; the .style.pointSize
-        // value still drives the non-sidebar tiers.
+        // .sidebar tier: lock the row icon to a 16×16 square frame and force the SF
+        // Symbol to fill it via .resizable() + .aspectRatio(contentMode:
+        // .fit). Per Every sidebar row icon must occupy the same optical width
+        // inside the 16×16 box (= the wenshu 1:1 macOS Tahoe sidebar row icon
+        // convention; = SF Symbols 6 keeps each symbol's intrinsic optical
+        // bounds; = resizable + aspectRatio flatten them to the frame). The
+        // trade-off (= `book.vertical` no longer looks slim) is the wenshu
+        // sidebar row decision. .font() is dropped here (= Image.font()
+        // returns `some View` on Swift 6.4 macOS 27, which blocks .resizable()
+        // from following). The 16×16 frame below pins the rendered size; the
+        // .style.pointSize value still drives the non-sidebar tiers.
         if isSidebar && rendering == nil {
-            // Apple Tahoe sidebar row icon convention (= macOS 27):
-            // every sidebar row icon sits on top of a Tahoe squircle
-            // tile (= the macOS semantic `controlBackgroundColor`
-            // = the dark Tahoe Liquid Glass surface that hosts
-            // every sidebar row's multicolor SF Symbol) and renders
-            // the SF Symbol in `.multicolor` mode where the symbol
-            // has an intrinsic multicolour variant (= the "Settings"
-            // pane family uses multi-colour SF Symbols 7 variants).
-            //
-            // The 28×28 PT tile (= 20 PT icon + 4 PT inset × 2) =
-            // Apple Tahoe's `.smallSymbolSize`-derived tile slot.
-            // Tile corner radius = `DesignTokens.sidebarIconTileCornerRadius`
+            // Apple Tahoe sidebar row icon convention (= macOS 27): every sidebar row
+            // icon sits on top of a Tahoe squircle tile (= the macOS
+            // semantic `controlBackgroundColor` = the dark Tahoe Liquid
+            // Glass surface that hosts every sidebar row's multicolor SF
+            // Symbol) and renders the SF Symbol in `.multicolor` mode
+            // where the symbol has an intrinsic multicolour variant (= the
+            // "Settings" pane family uses multi-colour SF Symbols 7
+            // variants). The 28×28 PT tile (= 20 PT icon + 4 PT inset × 2)
+            // = Apple Tahoe's `.smallSymbolSize`-derived tile slot. Tile
+            // corner radius = `DesignTokens.sidebarIconTileCornerRadius`
             // (= 7 PT, Apple squircle) + tile padding =
-            // `DesignTokens.sidebarIconTilePadding` (= 4 PT inset) +
-            // tile size = `DesignTokens.sidebarIconTileSize` (= 28 PT).
-            // All tokens ban naked numeric corner / spacing / sizing
-            // literals per the v3.0 design-system hard rule.
-            //
-            // `Color(nsColor: .controlBackgroundColor)` is an
-            // AppKit semantic color (= NOT a raw `Color.X.opacity(N)`)
-            // so the v3.0 rule #6 body-text ban does not apply; =
-            // system-supplied color that resolves to the dark
-            // Tahoe sidebar tint on macOS 27. The v3.0 icon rule
-            // #9 = use `IconColor` semantic tint, and the
-            // canonical Tahoe sidebar icon tile uses the control
-            // (= "background") color over the system accent (= the
-            // sidebar List cell tint is now system controlBackground
-            // per Apple HIG `Sidebars > Sidebar row anatomy`).
-            // The icon color argument is ignored under `.multicolor`
-            // (= the symbol carries its own intrinsic colors);
-            // = the color parameter is kept in the API so call
+            // `DesignTokens.sidebarIconTilePadding` (= 4 PT inset) + tile
+            // size = `DesignTokens.sidebarIconTileSize` (= 28 PT). All
+            // tokens ban naked numeric corner / spacing / sizing literals
+            // per the v3.0 design-system hard rule. `Color(nsColor:
+            // .controlBackgroundColor)` is an AppKit semantic color (= NOT
+            // a raw `Color.X.opacity(N)`) so the v3.0 rule #6 body-text
+            // ban does not apply; = system-supplied color that resolves to
+            // the dark Tahoe sidebar tint on macOS 27. The v3.0 icon rule
+            // #9 = use `IconColor` semantic tint, and the canonical Tahoe
+            // sidebar icon tile uses the control (= "background") color
+            // over the system accent (= the sidebar List cell tint is now
+            // system controlBackground per Apple HIG `Sidebars > Sidebar
+            // row anatomy`). The icon color argument is ignored under
+            // `.multicolor` (= the symbol carries its own intrinsic
+            // colors); = the color parameter is kept in the API so call
             // sites don't churn.
             return AnyView(
                 ZStack {
@@ -608,26 +553,20 @@ struct SFIcon: View {
                 )
             )
         }
-        // .sidebarTree tier (= the
-        // library tree's leading icon
-        // is monochrome; = only the
-        // Settings scene uses multicolor).
-        //  Per the Apple HIG chrome-sidebar
-        // row anatomy (= Mail / Notes / Finder sidebars) the icon
-        // renders as a plain SF Symbol in `.monochrome` with the
-        // system-primary color (= black in light mode, white in
-        // dark mode, = NOT the app accent; = the same as the
-        // pre-`a3053bad5` Apple System Settings sidebar look
-        // before the multicolor + dark squircle surface was added
-        // for the Settings scene).  No squircle tile (= the tile
-        // is reserved for `.sidebar` / Settings-scene icons);
-        // the symbol sits directly on the row's clear background.
-        // The optical slot is still applied via the same
-        // `sidebarWidth` / `sidebarInset` extension properties
-        // (= the SF Symbol is `.resizable().aspectRatio(.fit)`'d
-        // to the same 16×16 frame as the `.sidebar` tier, so
-        // symbols of different intrinsic bounds look uniform
-        // across the two tiers).
+        // .sidebarTree tier (= the library tree's leading icon is monochrome; = only the
+        // Settings scene uses multicolor). Per the Apple HIG chrome-sidebar
+        // row anatomy (= Mail / Notes / Finder sidebars) the icon renders as a
+        // plain SF Symbol in `.monochrome` with the system-primary color (=
+        // black in light mode, white in dark mode, = NOT the app accent; = the
+        // same as the pre-`a3053bad5` Apple System Settings sidebar look
+        // before the multicolor + dark squircle surface was added for the
+        // Settings scene).  No squircle tile (= the tile is reserved for
+        // `.sidebar` / Settings-scene icons); the symbol sits directly on the
+        // row's clear background. The optical slot is still applied via the
+        // same `sidebarWidth` / `sidebarInset` extension properties (= the SF
+        // Symbol is `.resizable().aspectRatio(.fit)`'d to the same 16×16 frame
+        // as the `.sidebar` tier, so symbols of different intrinsic bounds
+        // look uniform across the two tiers).
         if isSidebarTree && rendering == nil {
             return AnyView(
                 plainImage
@@ -640,108 +579,32 @@ struct SFIcon: View {
             )
         }
 
-        // All other tiers: rendering decision only (= the
-        // IconStyle .hierarchical default for <38 PT and
-        // .monochrome for ≥38 PT, plus the explicit
-        // rendering override).
-        // All non-explicit renderings
-        // render as `.monochrome` (= the
-        // wenshu editor toolbar icons
-        // render with the system-foreground
-        // color only; = no hierarchical
-        // / multicolor / palette optical
-        // depth; = the SFIcon factory
-        // stays the single canonical
-        // surface; = a future ticket
-        // may re-enable per-icon rendering
-        // for the sidebar (= the Apple
-        // System Settings 5-pane sidebar
-        // canonical look). The switch
-        // keeps the `.variableColor` branch
-        // (= the in-progress spinner
-        // affordance stays; = it's
-        // per-frame animation, not static
-        // color depth).
+        // All other tiers: rendering decision only (= the IconStyle .hierarchical default
+        // for <38 PT and .monochrome for ≥38 PT, plus the explicit rendering
+        // override). All non-explicit renderings render as `.monochrome` (=
+        // the wenshu editor toolbar icons render with the system-foreground
+        // color only; = no hierarchical / multicolor / palette optical depth;
+        // = the SFIcon factory stays the single canonical surface; = a future
+        // ticket may re-enable per-icon rendering for the sidebar (= the Apple
+        // System Settings 5-pane sidebar canonical look). The switch keeps the
+        // `.variableColor` branch (= the in-progress spinner affordance stays;
+        // = it's per-frame animation, not static color depth).
         switch rendering {
         case .monochrome, .hierarchical, .palette, .multicolor:
             return AnyView(styledImage.symbolRenderingMode(.monochrome).foregroundStyle(color))
         case .variableColor:
-            // 
-            // (= the `.variableColor`
-            // symbol effect is a per-frame
-            // animation, not a static
-            // multicolor rendering).
-            // The
-            // `.variableColor`
-            // symbol
-            // effect
-            // (= the
-            // SF
-            // Symbol's
-            // colors
-            // cycle
-            // through
-            // the
-            // spectrum
-            // continuously;
-            // = the
-            // canonical
-            // "in
-            // progress"
-            // visual
-            // affordance).
-            // `.symbolEffect(.variableColor.iterative)`
-            // loops
-            // forever
-            // while
-            // the
-            // view
-            // is
-            // mounted;
-            // = the
-            // effect
-            // stops
-            // automatically
-            // when
-            // the
-            // view
-            // is
-            // removed
-            // (= the
-            // state
-            // pill
-            // is
-            // unmounted
-            // when
-            // the
-            // task
-            // transitions
-            // away
-            // from
-            // .routing
-            // / .writing;
-            // = no
-            // cleanup
-            // needed).
-            // The
-            // `.symbolRenderingMode(.monochrome)`
-            // is
-            // skipped
-            // for
-            // .variableColor
-            // (= the
-            // effect
-            // requires
-            // the
-            // multicolor
-            // rendering
-            // path;
-            // = the
-            // symbol's
-            // intrinsic
-            // colors
-            // are
-            // what's
+            // (= the `.variableColor` symbol effect is a per-frame animation, not a
+            // static multicolor rendering). The `.variableColor` symbol
+            // effect (= the SF Symbol's colors cycle through the spectrum
+            // continuously; = the canonical "in progress" visual
+            // affordance). `.symbolEffect(.variableColor.iterative)` loops
+            // forever while the view is mounted; = the effect stops
+            // automatically when the view is removed (= the state pill is
+            // unmounted when the task transitions away from .routing /
+            // .writing; = no cleanup needed). The
+            // `.symbolRenderingMode(.monochrome)` is skipped for
+            // .variableColor (= the effect requires the multicolor
+            // rendering path; = the symbol's intrinsic colors are what's
             // cycling).
             return AnyView(
                 styledImage
@@ -819,21 +682,19 @@ struct SFLabelRow: View {
                 }
             }
         } icon: {
-            // Sidebar rows use one fixed icon slot. The same nominal
-            // point size alone is not enough: SF Symbols with different
-            // intrinsic bounds can still look larger or smaller beside
-            // one another. A fixed slot plus the canonical regular
-            // weight keeps the tree visually aligned without tuning each
-            // symbol individually. Color follows Apple Tahoe sidebar
-            // default (= system primary, not app accent).
-            //
-            // No explicit .symbolRenderingMode here (= the SFIcon
-            // factory owns the rendering decision via IconStyle.sidebar
-            // = .monochrome; per the boss 2026-10-08 (see OOB.md #2026-10-08)
-            // .hierarchical + .foregroundStyle(Color.primary)
-            // surfaces the icon as system tint = accent = blue;
-            // only .monochrome renders Color.primary as the
-            // actual system primary color).
+            // Sidebar rows use one fixed icon slot. The same nominal point size alone is
+            // not enough: SF Symbols with different intrinsic bounds can
+            // still look larger or smaller beside one another. A fixed
+            // slot plus the canonical regular weight keeps the tree
+            // visually aligned without tuning each symbol individually.
+            // Color follows Apple Tahoe sidebar default (= system primary,
+            // not app accent). No explicit .symbolRenderingMode here (=
+            // the SFIcon factory owns the rendering decision via
+            // IconStyle.sidebar = .monochrome; per the boss 2026-10-08
+            // (see OOB.md #2026-10-08) .hierarchical +
+            // .foregroundStyle(Color.primary) surfaces the icon as system
+            // tint = accent = blue; only .monochrome renders Color.primary
+            // as the actual system primary color).
             SFIcon(
                 systemImage,
                 style: iconStyle,

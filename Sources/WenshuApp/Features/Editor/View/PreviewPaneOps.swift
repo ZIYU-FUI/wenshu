@@ -1,32 +1,21 @@
-//
-//  PreviewPaneOps.swift · Wenshu
-//
-//  Reference-card data loading + sorting business layer, extracted from
-//  PreviewPane (= the largest P0 view listed in
-//  .scratch/2026-09-23-mvvm-audit/spec.md §9 arc).
-//
-//  Per KanbanOps template (= @MainActor enum + Result types +
-//  static funcs). Per one ticket per file. Per the rule:
-//  "PreviewPane single-consumer (B)" (= BookDocLoaderOps is
-//  PreviewPane's private copy; = future ticket lifts to shared service
-//  when PaneView consumes it too).
-//
-//  Public surface (= 11 entry points + 5 Result types):
-//    1. loadAllEntities(bookStore:) -> LoadEntitiesResult
-//    2. loadBooksInShelf(bookStore:shelfId:) -> LoadBooksResult
-//    3. loadShelfBooksAsync(bookStore:shelfId:) async -> LoadBooksResult
-//    4. loadBody(bookStore:for:) -> LoadBodyResult
-//    5. loadBookDocs(bookStore:bookId:folderName:) -> LoadBookDocsResult
-//    6. sortBookDocs(_:by:) -> [BookDoc]
-//    7. sortEntities(_:by:) -> [Reference]
-//    8. searchFilteredEntities(_:query:) -> [Reference]   (= spec §9.2 row 6)
-//    9. searchFilteredBookDocs(_:query:) -> [BookDoc]      (= spec §9.2 row 6)
-//    10. matchesSearch(title:summary:query:) -> Bool       (= spec §9.2 row 6)
-//    11. pinyinFirstLetters(_:) -> String                  (= spec §9.2 row 6)
-//
-//  No actor involvement (= pure filesystem + JSON helpers).
-//  All bookStore input preserved as view-supplied.
-//
+// PreviewPaneOps.swift · Wenshu Reference-card data loading + sorting business layer,
+// extracted from PreviewPane (= the largest P0 view listed in
+// .scratch/2026-09-23-mvvm-audit/spec.md §9 arc). Per KanbanOps template (= @MainActor
+// enum + Result types + static funcs). Per one ticket per file. Per the rule:
+// "PreviewPane single-consumer (B)" (= BookDocLoaderOps is PreviewPane's private copy;
+// = future ticket lifts to shared service when PaneView consumes it too). Public
+// surface (= 11 entry points + 5 Result types): 1. loadAllEntities(bookStore:) ->
+// LoadEntitiesResult 2. loadBooksInShelf(bookStore:shelfId:) -> LoadBooksResult 3.
+// loadShelfBooksAsync(bookStore:shelfId:) async -> LoadBooksResult 4.
+// loadBody(bookStore:for:) -> LoadBodyResult 5.
+// loadBookDocs(bookStore:bookId:folderName:) -> LoadBookDocsResult 6.
+// sortBookDocs(_:by:) -> [BookDoc] 7. sortEntities(_:by:) -> [Reference] 8.
+// searchFilteredEntities(_:query:) -> [Reference]   (= spec §9.2 row 6) 9.
+// searchFilteredBookDocs(_:query:) -> [BookDoc]      (= spec §9.2 row 6) 10.
+// matchesSearch(title:summary:query:) -> Bool       (= spec §9.2 row 6) 11.
+// pinyinFirstLetters(_:) -> String                  (= spec §9.2 row 6) No actor
+// involvement (= pure filesystem + JSON helpers). All bookStore input preserved as
+// view-supplied.
 
 import Foundation
 
@@ -79,9 +68,8 @@ enum PreviewPaneOps {
 
     /// Async wrapper around `loadBooksInShelf` (= the picker reload trigger).
     static func loadShelfBooksAsync(bookStore: BookStore?, shelfId: UUID) async -> LoadBooksResult {
-        // Yield first so SwiftUI can finish rendering the empty state
-        // before we touch disk (= same yield discipline as the
-        // pre-extraction inline impl).
+        // Yield first so SwiftUI can finish rendering the empty state before we touch
+        // disk (= same yield discipline as the pre-extraction inline impl).
         await Task.yield()
         return loadBooksInShelf(bookStore: bookStore, shelfId: shelfId)
     }
@@ -99,8 +87,8 @@ enum PreviewPaneOps {
         folderName: String?
     ) -> LoadBookDocsResult {
         guard let bookStore else { return LoadBookDocsResult(docs: []) }
-        // Walk shelves root to find which shelf this bookId lives in.
-        // Layout = shelves/<shelf-uuid>/books/<book-uuid>/...
+        // Walk shelves root to find which shelf this bookId lives in. Layout =
+        // shelves/<shelf-uuid>/books/<book-uuid>/...
         let shelvesRoot = bookStore.stores.shelvesRoot
         guard FileManager.default.fileExists(atPath: shelvesRoot.path) else {
             return LoadBookDocsResult(docs: [])
@@ -145,16 +133,15 @@ enum PreviewPaneOps {
             ) else { continue }
             for url in entries where url.pathExtension == "md" {
                 let rawBody = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
-                // 2026-10-12 boss directive "书的卡片, 和资料库的卡片样式
-                // 不同, 标签还在用 #加文字显示, 向资料库卡片对齐.
-                // 统一样式" = the book's first H1 is the canonical
-                // single-tag source for the chip row. Strip the
-                // leading "# " (= raw markdown syntax never appears
-                // on a card surface) and lift the rest of the H1
-                // text into the `tags` array. Strip the H1 line
-                // from the body so the summary body no longer
-                // starts with "# 大纲\n" (= the same literal text
-                // would otherwise reappear in the summary row).
+                // 2026-10-12 boss directive "书的卡片, 和资料库的卡片样式 不同, 标签还在用 #加文字显示, 向资料库卡片对齐.
+                // 统一样式" = the book's first H1 is the canonical single-
+                // tag source for the chip row. Strip the leading "# "
+                // (= raw markdown syntax never appears on a card
+                // surface) and lift the rest of the H1 text into the
+                // `tags` array. Strip the H1 line from the body so the
+                // summary body no longer starts with "# 大纲\n" (= the
+                // same literal text would otherwise reappear in the
+                // summary row).
                 let (firstH1, bodyWithoutH1) = PreviewPaneOps.splitFirstH1(rawBody)
                 let body = bodyWithoutH1
                 let tags: [String] = firstH1.map { [$0] } ?? []
@@ -291,11 +278,10 @@ enum PreviewPaneOps {
             return searchFilteredEntities(entities, query: searchQuery).count
 
         case .tagScope(let tag):
-            // dedicated tag scope; = the
-            // chrome count = the same `loadAllEntities()`
-            // prefilter + tag contains + search query
-            // (= 1:1 with `referenceScopeView(category: nil,
-            // tagOverride: tag)` semantics).
+            // dedicated tag scope; = the chrome count = the same `loadAllEntities()`
+            // prefilter + tag contains + search query (= 1:1 with
+            // `referenceScopeView(category: nil, tagOverride: tag)`
+            // semantics).
             let entities = loadAllEntities(bookStore: bookStore).entities
                 .filter { entity in
                     entity.layer == .layerEntities && entity.tags.contains(tag)
@@ -311,9 +297,8 @@ enum PreviewPaneOps {
             return searchFilteredBookDocs(docs, query: searchQuery).count
 
         case .shelfScope(let shelfId):
-            // The shelf scope is the union of every book's
-            // .md docs under the shelf (= 1:1 with
-            // `shelfScopeView`); = per-book loadBookDocs +
+            // The shelf scope is the union of every book's .md docs under the shelf (=
+            // 1:1 with `shelfScopeView`); = per-book loadBookDocs +
             // flatten + search filter.
             guard let bookStore else { return 0 }
             let booksInShelf = (try? bookStore.sidebarLoadAllBooks())?
@@ -328,9 +313,8 @@ enum PreviewPaneOps {
             return searchFilteredBookDocs(allDocs, query: searchQuery).count
 
         case .empty:
-            // No sidebar selection (= the empty-state hint
-            // path in `PreviewPane`); = the chrome count is
-            // 0 (= no cards visible).
+            // No sidebar selection (= the empty-state hint path in `PreviewPane`); = the
+            // chrome count is 0 (= no cards visible).
             return 0
         }
     }
@@ -413,17 +397,15 @@ enum PreviewPaneOps {
     ///   case folding; = the chip displays the raw chapter
     ///   heading text).
     nonisolated static func splitFirstH1(_ body: String) -> (String?, String) {
-        // Split into lines preserving order. Swift's `String` does
-        // not expose `components(separatedBy:omittingEmptySubsequences:)`
-        // (= that's an NSString API on a different surface) — use
-        // a one-shot `Character`-set split that lets us set
-        // `omittingEmptySubsequences: false` (= we need the
-        // blank-line trim to land on a real element of the
-        // array, not a missing one) and `maxSplits: .max` to
-        // preserve every line.  The `Character` predicate
-        // `isNewline` matches LF / CR / CRLF / VT / FF — every
-        // .md line break on Apple platforms is LF on macOS 27, but
-        // the `Character`-set route keeps the function robust to
+        // Split into lines preserving order. Swift's `String` does not expose
+        // `components(separatedBy:omittingEmptySubsequences:)` (= that's an
+        // NSString API on a different surface) — use a one-shot
+        // `Character`-set split that lets us set `omittingEmptySubsequences:
+        // false` (= we need the blank-line trim to land on a real element of
+        // the array, not a missing one) and `maxSplits: .max` to preserve
+        // every line.  The `Character` predicate `isNewline` matches LF / CR /
+        // CRLF / VT / FF — every .md line break on Apple platforms is LF on
+        // macOS 27, but the `Character`-set route keeps the function robust to
         // CRLF imports from Windows-authored chapter files.
         let lines: [String] = body
             .split(omittingEmptySubsequences: false, whereSeparator: { $0.isNewline })
@@ -437,10 +419,9 @@ enum PreviewPaneOps {
             if trimmed.isEmpty {
                 continue
             }
-            // Only the single-`#` H1 is treated as a chip. H2+ and
-            // Setext-style (= underlined with `===`) headings are
-            // body content (= the user's directive = strip the
-            // first H1 only).
+            // Only the single-`#` H1 is treated as a chip. H2+ and Setext-style (=
+            // underlined with `===`) headings are body content (= the
+            // user's directive = strip the first H1 only).
             if trimmed.hasPrefix("# ") && !trimmed.hasPrefix("## ") {
                 h1Text = String(trimmed.dropFirst(2))
                     .trimmingCharacters(in: .whitespaces)
@@ -451,10 +432,9 @@ enum PreviewPaneOps {
         guard let i = h1Index, let text = h1Text else {
             return (nil, body)
         }
-        // Drop the H1 line + the blank line(s) immediately after
-        // it (= typical `.md` files put a blank line between the
-        // H1 and the first paragraph; = the summary should not
-        // start with a leading blank).
+        // Drop the H1 line + the blank line(s) immediately after it (= typical `.md`
+        // files put a blank line between the H1 and the first paragraph; = the
+        // summary should not start with a leading blank).
         var dropped = lines
         dropped.remove(at: i)
         while !dropped.isEmpty,

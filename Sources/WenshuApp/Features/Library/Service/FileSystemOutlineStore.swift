@@ -1,27 +1,15 @@
-//
-//  FileSystemOutlineStore.swift
-//
-//  Per-book outline storage layer, backed by SwiftData (= the
-//  WSOutlineEntry @Model class in Persistence/) with a FileSystem
-//  fallback for actor callers.
-//
-//  Per boss 2026-10-05 (see OOB.md #2026-10-05)
-//  SwiftData migration). This is commit 4 of #8.
-//
-//  Apple HIG canonical pattern: WSOutlineEntry holds the indexed
-//  metadata (= id, bookID, title, summary, parent, order,
-//  createdAt, updatedAt) in one row. The body markdown stays on
-//  the filesystem at <bookDir>/outlines/<uuid>.md (= too large +
-//  filesystem is the canonical source for body content; matches
-//  WSOutlineDocument's split-index pattern).
-//
-//  Storage paths (= unchanged at the public API level):
-//    <.ws>/shelves/<shelf>/books/<UUID>/outlines/<UUID>.md
-//    <.ws>/shelves/<shelf>/books/<UUID>/outlines.json
-//
-//  Apple HIG dual-write pattern: when no ModelContainer is wired
-//  (= legacy dev-tool path), fall back to the legacy FileSystem
-//  path (= per-outline .md body + outlines.json index).
+// FileSystemOutlineStore.swift Per-book outline storage layer, backed by SwiftData (= the
+// WSOutlineEntry @Model class in Persistence/) with a FileSystem fallback for actor
+// callers. Per boss 2026-10-05 (see OOB.md #2026-10-05) SwiftData migration). This is
+// commit 4 of #8. Apple HIG canonical pattern: WSOutlineEntry holds the indexed
+// metadata (= id, bookID, title, summary, parent, order, createdAt, updatedAt) in one
+// row. The body markdown stays on the filesystem at <bookDir>/outlines/<uuid>.md (=
+// too large + filesystem is the canonical source for body content; matches
+// WSOutlineDocument's split-index pattern). Storage paths (= unchanged at the public
+// API level): <.ws>/shelves/<shelf>/books/<UUID>/outlines/<UUID>.md
+// <.ws>/shelves/<shelf>/books/<UUID>/outlines.json Apple HIG dual-write pattern: when
+// no ModelContainer is wired (= legacy dev-tool path), fall back to the legacy
+// FileSystem path (= per-outline .md body + outlines.json index).
 
 import Foundation
 import SwiftData
@@ -127,9 +115,8 @@ struct FileSystemOutlineStore: OutlineStoring {
         let row = Self.makeRow(entry: entry)
         context.insert(row)
         try context.save()
-        // Write the body file too (= filesystem is the canonical
-        // source for body content per the WSOutlineDocument split-
-        // index pattern).
+        // Write the body file too (= filesystem is the canonical source for body content
+        // per the WSOutlineDocument split- index pattern).
         try Self.writeBodyFile(bodyMarkdown: bodyMarkdown, entry: entry, bookDirectory: bookDirectory)
     }
 
@@ -194,8 +181,8 @@ struct FileSystemOutlineStore: OutlineStoring {
                 bookDirectory: bookDirectory
             )
         }
-        // Body lives on disk (= filesystem is canonical for body
-        // content); = read directly even on the SwiftData path.
+        // Body lives on disk (= filesystem is canonical for body content); = read
+        // directly even on the SwiftData path.
         return Self.loadOutlineBodyFromFileSystem(
             id: id,
             bookDirectory: bookDirectory

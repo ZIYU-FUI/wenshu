@@ -1,44 +1,22 @@
-//
-//  WenshuConductorImportRouter.swift
-//
-//  T4 of the markdown import feature. The production
-//  `ImportRouter` (= the seam the orchestrator dispatches
-//  per file; = defined in `ImportService.swift`).
-//
-//  History:
-//   - 2026-10-09 (initial T4) used the `EntityClassifier`
-//     actor with a `nil` LLM callback (= the keyword
-//     pass + a stub fallback). The keyword pass produces
-//     CLC letter tags (= "K" / "B" / "N" / ...) and a
-//     fixed "drafts" book-folder destination, = the
-//     user feedback on 2026-10-09: "大量不应该进到五
-//     目录的进到了五目录，同时五目录没有进到对应的
-//     目录下，标题也没有显示中文标题", "分类有的只
-//     显示一个字母，不是中文标签，标签没有重新梳理
-//     生成", "在打标签时，按真实内容打标签，而不是
-//     去靠图书馆分类".
-//   - 2026-10-09 (this rewrite) drops the keyword
-//     fallback entirely and dispatches every file
-//     through a real LLM call (= the same LLMConnector
-//     the rest of wenshu uses, = no new inference
-//     path; = the LLM's role is the "调研员" the user
-//     asked for in the 2026-10-09 OOB; = the
-//     `SystemPrompt.librarianRole` adds the prompt
-//     fragment that defines this role). The LLM is the
-//     single source of truth for title (Chinese
-//     rewrite), tags (5-8 real-content Chinese terms,
-//     no CLC letters), summary (one-line Chinese
-//     description), and the per-file destination
-//     (= bookFolder of one of the 5 standard folders,
-//     or referenceLibrary for external knowledge).
-//
-//  Apple canonical pattern: the router is an actor (=
-//  it serializes LLM dispatch via its own state machine
-//  instead of relying on the orchestrator's lock; = the
-//  orchestrator still does the 4-way parallel dispatch
-//  via TaskGroup, but each individual `route(_:)` call
-//  is serialized at the LLM-boundary inside the actor).
-//
+// WenshuConductorImportRouter.swift T4 of the markdown import feature. The production
+// `ImportRouter` (= the seam the orchestrator dispatches per file; = defined in
+// `ImportService.swift`). History: - 2026-10-09 (initial T4) used the
+// `EntityClassifier` actor with a `nil` LLM callback (= the keyword pass + a stub
+// fallback). The keyword pass produces CLC letter tags (= "K" / "B" / "N" / ...) and a
+// fixed "drafts" book-folder destination, = the user feedback on 2026-10-09: "大量不应该进到五
+// 目录的进到了五目录，同时五目录没有进到对应的 目录下，标题也没有显示中文标题", "分类有的只 显示一个字母，不是中文标签，标签没有重新梳理 生成",
+// "在打标签时，按真实内容打标签，而不是 去靠图书馆分类". - 2026-10-09 (this rewrite) drops the keyword fallback
+// entirely and dispatches every file through a real LLM call (= the same LLMConnector
+// the rest of wenshu uses, = no new inference path; = the LLM's role is the "调研员" the
+// user asked for in the 2026-10-09 OOB; = the `SystemPrompt.librarianRole` adds the
+// prompt fragment that defines this role). The LLM is the single source of truth for
+// title (Chinese rewrite), tags (5-8 real-content Chinese terms, no CLC letters),
+// summary (one-line Chinese description), and the per-file destination (= bookFolder
+// of one of the 5 standard folders, or referenceLibrary for external knowledge). Apple
+// canonical pattern: the router is an actor (= it serializes LLM dispatch via its own
+// state machine instead of relying on the orchestrator's lock; = the orchestrator
+// still does the 4-way parallel dispatch via TaskGroup, but each individual
+// `route(_:)` call is serialized at the LLM-boundary inside the actor).
 
 import Foundation
 
@@ -81,25 +59,19 @@ actor WenshuConductorImportRouter: ImportRouter {
         connector: (any LLMConnector)? = nil,
         modelSlug: String? = nil
     ) {
-        // The connector resolution is intentionally
-        // synchronous (= WenshuAppDelegate.activeLLMConnector()
-        // is `nonisolated`; = the cost is one UserDefaults
-        // read + one ProviderCatalog lookup; = the actor
-        // initializer runs at most once per sheet
-        // presentation; = the lookup is cheap enough to
-        // not need a lazy property).
+        // The connector resolution is intentionally synchronous (=
+        // WenshuAppDelegate.activeLLMConnector() is `nonisolated`; = the cost
+        // is one UserDefaults read + one ProviderCatalog lookup; = the actor
+        // initializer runs at most once per sheet presentation; = the lookup
+        // is cheap enough to not need a lazy property).
         self.connector = connector ?? WenshuAppDelegate.activeLLMConnector()
-        // `LLMCallOptions.model` is non-optional; =
-        // the active connector knows its own default
-        // model slug (= `connectorID` for the wenshu
-        // canonical case; = the connector falls back to
-        // its provider default if the user hasn't picked
-        // anything in the Settings picker). Passing the
-        // active LLMConnector's `connectorID` (= a
-        // stable identifier like "anthropic" /
-        // "minimax-cn") lets the connector route to the
-        // right model family without a wenshu-side
-        // hardcoded model list (= AGENTS.md §11.2 P0
+        // `LLMCallOptions.model` is non-optional; = the active connector knows its own
+        // default model slug (= `connectorID` for the wenshu canonical case; =
+        // the connector falls back to its provider default if the user hasn't
+        // picked anything in the Settings picker). Passing the active
+        // LLMConnector's `connectorID` (= a stable identifier like "anthropic"
+        // / "minimax-cn") lets the connector route to the right model family
+        // without a wenshu-side hardcoded model list (= AGENTS.md §11.2 P0
         // profile list is the canonical cross-check).
         self.modelSlug = modelSlug ?? WenshuAppDelegate.activeModelSlug() ?? "default-model"
     }
@@ -116,27 +88,17 @@ actor WenshuConductorImportRouter: ImportRouter {
         _ input: ImportFileInput,
         progress: (@Sendable (String) async -> Void)? = nil
     ) async throws -> ImportRoutingResult {
-        // (= boss 2026-10-09 (see OOB.md #2026-10-09)
-        // 就是基于标题重新调研" directive).
-        // Body resolution (= three sources,
-        // precedence high to low):
-        // 1. `input.body` (= the orchestrator's
-        //    override; = the "title-only" retry
-        //    path = the orchestrator synthesized
-        //    a body from the filename + sibling
-        //    .md names = the source file is
-        //    unreadable on disk = the router
-        //    must not try to read it)
-        // 2. `try String(contentsOfFile: input.filePath)`
-        //    (= the normal `importFiles` path; =
-        //    the source file is readable; = the
-        //    router reads it from disk)
-        // 3. `throw` (= neither is available; =
-        //    the file was deleted between the
-        //    orchestrator's walk phase and the
-        //    route phase; = the orchestrator
-        //    catches the throw and marks the
-        //    task .failed with "读取文件失败: ...")
+        // (= boss 2026-10-09 (see OOB.md #2026-10-09) 就是基于标题重新调研" directive). Body
+        // resolution (= three sources, precedence high to low): 1.
+        // `input.body` (= the orchestrator's override; = the "title-only"
+        // retry path = the orchestrator synthesized a body from the filename +
+        // sibling .md names = the source file is unreadable on disk = the
+        // router must not try to read it) 2. `try String(contentsOfFile:
+        // input.filePath)` (= the normal `importFiles` path; = the source file
+        // is readable; = the router reads it from disk) 3. `throw` (= neither
+        // is available; = the file was deleted between the orchestrator's walk
+        // phase and the route phase; = the orchestrator catches the throw and
+        // marks the task .failed with "读取文件失败: ...")
         let body: String
         if let override = input.body {
             body = override
@@ -145,22 +107,12 @@ actor WenshuConductorImportRouter: ImportRouter {
         }
         let fallbackTitle = Self.fallbackTitle(from: input.filePath)
 
-        // C2 (= boss 2026-10-10 (see OOB.md #2026-10-10)
-        // OOB). In `.reorganize` mode
-        // (= the boss's new
-        // default mode), the
-        // pipeline now makes 3
-        // sequential LLM calls
-        // instead of 1 (= each call
-        // does 1 thing; = the LLM
-        // can't silently drop the
-        // extraFiles array; = the
-        // user sees each call in
-        // real time via the
-        // round-70 `activityLog`).
-        // Other modes (= .consolidate /
-        // .searchAndRewrite) still
-        // use 1 LLM call (= backward
+        // C2 (= boss 2026-10-10 (see OOB.md #2026-10-10) OOB). In `.reorganize` mode (=
+        // the boss's new default mode), the pipeline now makes 3 sequential
+        // LLM calls instead of 1 (= each call does 1 thing; = the LLM can't
+        // silently drop the extraFiles array; = the user sees each call in
+        // real time via the round-70 `activityLog`). Other modes (=
+        // .consolidate / .searchAndRewrite) still use 1 LLM call (= backward
         // compat).
         switch input.rewriteMode {
         case .reorganize:
@@ -171,9 +123,8 @@ actor WenshuConductorImportRouter: ImportRouter {
                 progress: progress
             )
         case .consolidate, .searchAndRewrite:
-            // .consolidate + .searchAndRewrite
-            // unchanged (= 1 LLM call;
-            // = the pre-round-71 path).
+            // .consolidate + .searchAndRewrite unchanged (= 1 LLM call; = the pre-
+            // round-71 path).
             return try await routeSingleTurn(
                 input: input,
                 body: body,
@@ -193,25 +144,20 @@ actor WenshuConductorImportRouter: ImportRouter {
         fallbackTitle: String,
         progress: (@Sendable (String) async -> Void)?
     ) async throws -> ImportRoutingResult {
-        // Build the prompt (= the librarian role's
-        // system prompt + the per-file user prompt).
+        // Build the prompt (= the librarian role's system prompt + the per-file user
+        // prompt).
         let userPrompt = Self.userPrompt(
             filePath: input.filePath,
             body: body,
             rewriteMode: input.rewriteMode
         )
-        // (= boss 2026-10-09 (see OOB.md #2026-10-09)
-        // round-18 "重写同时搜索校对"). The
-        // `searchAndRewrite` mode is the ONLY
-        // mode that passes tools (= the
-        // `consolidate` mode is the LLM-no-tools
-        // path that matches the previous
-        // behavior). The tool schema mirrors
-        // `WebSearchTool`'s registration; =
-        // canonical wenshu tools are NOT
-        // re-implemented here; = the LLM calls
-        // the same tool name (`web_search`)
-        // regardless of mode.
+        // (= boss 2026-10-09 (see OOB.md #2026-10-09) round-18 "重写同时搜索校对"). The
+        // `searchAndRewrite` mode is the ONLY mode that passes tools (= the
+        // `consolidate` mode is the LLM-no-tools path that matches the
+        // previous behavior). The tool schema mirrors `WebSearchTool`'s
+        // registration; = canonical wenshu tools are NOT re-implemented here;
+        // = the LLM calls the same tool name (`web_search`) regardless of
+        // mode.
         let tools: [ToolRegistrySchema]
         if input.rewriteMode == .searchAndRewrite {
             tools = Self.webSearchToolSchema
@@ -230,28 +176,19 @@ actor WenshuConductorImportRouter: ImportRouter {
         let response: LLMResponse
         switch input.rewriteMode {
         case .consolidate:
-            // Single-turn, no tool loop (= the
-            // previous behavior; = the LLM has
-            // no tools so `stopReason` is
-            // `endTurn` immediately).
+            // Single-turn, no tool loop (= the previous behavior; = the LLM has no tools
+            // so `stopReason` is `endTurn` immediately).
             response = try await connector.send(
                 messages: [.user(userPrompt)],
                 options: options
             )
         case .searchAndRewrite:
-            // Multi-turn tool-use loop (= the
-            // LLM is permitted to call
-            // `web_search`; = we route each
-            // tool_use block to the canonical
-            // `WebSearchTool.shared.execute`
-            // (= the same path the chat
-            // session uses; = no tool
-            // duplication); = the loop
-            // terminates on `stopReason =
-            // .endTurn` OR after a hard
-            // turn cap to prevent runaway
-            // token spend (= boss's
-            // "Token 高消耗" concern)).
+            // Multi-turn tool-use loop (= the LLM is permitted to call `web_search`; = we
+            // route each tool_use block to the canonical
+            // `WebSearchTool.shared.execute` (= the same path the chat
+            // session uses; = no tool duplication); = the loop terminates
+            // on `stopReason = .endTurn` OR after a hard turn cap to
+            // prevent runaway token spend (= boss's "Token 高消耗" concern)).
             response = try await runToolUseLoop(
                 initialUserPrompt: userPrompt,
                 options: options,
@@ -259,10 +196,8 @@ actor WenshuConductorImportRouter: ImportRouter {
                 filePath: input.filePath
             )
         case .reorganize:
-            // Unreachable (= the caller's
-            // switch dispatched .reorganize
-            // to the multi-turn path; = kept
-            // for switch exhaustiveness).
+            // Unreachable (= the caller's switch dispatched .reorganize to the multi-turn
+            // path; = kept for switch exhaustiveness).
             throw NSError(
                 domain: "WenshuConductorImportRouter",
                 code: 0,
@@ -310,96 +245,63 @@ actor WenshuConductorImportRouter: ImportRouter {
         fallbackTitle: String,
         progress: (@Sendable (String) async -> Void)?
     ) async throws -> ImportRoutingResult {
-        // (= boss 2026-10-10 (see OOB.md #2026-10-10)
-        // 能" + "入口永远只有 ImportSheet").
-        // The wenshu 文档管理员 (= wenshu
-        // main agent) runs the import via
-        // `ConversationLoop.runTurn`. The
-        // agent is told via the per-folder
-        // SOP (= `ImportWorldPrompt.md` for
-        // `world`; = future folders get
-        // their own SOP) what to write. The
-        // agent calls `writeBookDoc` (= the
-        // only tool registered with the
-        // orchestrator) to land each file on
-        // disk.
-        //
-        // This function is now a thin
-        // adapter (= delegates to
-        // `ImportAgentDriver`; = no LLM
-        // calls happen here).
+        // (= boss 2026-10-10 (see OOB.md #2026-10-10) 能" + "入口永远只有 ImportSheet"). The
+        // wenshu 文档管理员 (= wenshu main agent) runs the import via
+        // `ConversationLoop.runTurn`. The agent is told via the per-folder SOP
+        // (= `ImportWorldPrompt.md` for `world`; = future folders get their
+        // own SOP) what to write. The agent calls `writeBookDoc` (= the only
+        // tool registered with the orchestrator) to land each file on disk.
+        // This function is now a thin adapter (= delegates to
+        // `ImportAgentDriver`; = no LLM calls happen here).
         await progress?("  🔵 文档管理员 agent 启动 ...")
-        // Resolve the folder FIRST via a
-        // single LLM call (= the SOP
-        // lookup is keyed on the folder;
-        // = we need this before we can
-        // launch the agent).
+        // Resolve the folder FIRST via a single LLM call (= the SOP lookup is keyed on
+        // the folder; = we need this before we can launch the agent).
         let classification = try await routeSingleTurn(
             input: input,
             body: body,
             fallbackTitle: fallbackTitle,
             progress: progress
         )
-        // (boss 2026-10-10 (see OOB.md #2026-10-10)
-        // PO 双轴 HIGH finding): the
-        // agent's `writeBookDoc` tool
-        // needs the active book's
-        // on-disk root (= NOT the bare
-        // UUID; = the tool appends the
-        // relative path via NSString,
-        // which on a bare UUID would
-        // produce a non-existent path).
-        // Resolve `<shelvesRoot>/<shelfId>/books/<bookId>`
-        // from the canonical WS state.
+        // (boss 2026-10-10 (see OOB.md #2026-10-10) PO 双轴 HIGH finding): the agent's
+        // `writeBookDoc` tool needs the active book's on-disk root (= NOT the
+        // bare UUID; = the tool appends the relative path via NSString, which
+        // on a bare UUID would produce a non-existent path). Resolve
+        // `<shelvesRoot>/<shelfId>/books/<bookId>` from the canonical WS
+        // state.
         let bookPath: String?
         let bookTitle: String
         if let bookId = input.targetBookId,
            let shelfId = input.targetShelfId,
            let shelvesRoot = WenshuAppDelegate.activeShelvesRoot() {
-            // Real book-bound import. The
-            // agent writes inside the
-            // book's directory (= the
-            // agent's `writeBookDoc` tool
-            // prepends this path; = the
-            // agent's sub-files land under
-            // the book root, not the
-            // library root).
+            // Real book-bound import. The agent writes inside the book's directory (= the
+            // agent's `writeBookDoc` tool prepends this path; = the
+            // agent's sub-files land under the book root, not the library
+            // root).
             let booksRoot = shelvesRoot
                 .appendingPathComponent(shelfId.uuidString, isDirectory: true)
                 .appendingPathComponent("books", isDirectory: true)
             bookPath = booksRoot
                 .appendingPathComponent(bookId.uuidString, isDirectory: true)
                 .path
-            // The orchestrator should give us a real
-            // book title via the picker (= we do
-            // not improvise from `filePath`; =
-            // the SOP substitutes it into the
-            // agent's prompt as the bookmark label).
-            // The picker still doesn't surface a
-            // display name through `ImportFileInput`;
-            // the round-73 ships this as the
-            // file's stem (= no slash collisions;
-            // = the agent uses it as the SOP's
-            // `{bookTitle}` substitution; = a
-            // future round wires `ImportFileInput`
-            // to carry the picker-selected display
-            // title).
+            // The orchestrator should give us a real book title via the picker (= we do
+            // not improvise from `filePath`; = the SOP substitutes it into
+            // the agent's prompt as the bookmark label). The picker still
+            // doesn't surface a display name through `ImportFileInput`;
+            // the round-73 ships this as the file's stem (= no slash
+            // collisions; = the agent uses it as the SOP's `{bookTitle}`
+            // substitution; = a future round wires `ImportFileInput` to
+            // carry the picker-selected display title).
             bookTitle = (input.filePath as NSString)
                 .lastPathComponent
                 .replacingOccurrences(of: ".md", with: "")
         } else {
-            // Reference-library import (=
-            // no book is bound; = the user
-            // pinned the library root as the
-            // destination). The SOP trigger
-            // is folder-keyed (= only `world`
-            // has one today); = the reference
-            // library has no folder = we set
-            // `bookPath = nil` and the agent's
-            // `writeBookDoc` tool will reject
-            // any writes (= the user sees a
-            // clean "no SOP" failure rather than
-            // a silent zero-write outcome).
+            // Reference-library import (= no book is bound; = the user pinned the library
+            // root as the destination). The SOP trigger is folder-keyed (=
+            // only `world` has one today); = the reference library has no
+            // folder = we set `bookPath = nil` and the agent's
+            // `writeBookDoc` tool will reject any writes (= the user sees
+            // a clean "no SOP" failure rather than a silent zero-write
+            // outcome).
             bookPath = nil
             bookTitle = "参考库"
         }
@@ -407,40 +309,25 @@ actor WenshuConductorImportRouter: ImportRouter {
             bookPath: { bookPath }
         )
         // (boss 2026-10-10 (see OOB.md #2026-10-10)
-            // PO 双轴 FAIL #7/8 fix): if the
-            // LLM classified the source as a
-            // reference-library import (= no
-            // folder), there is no SOP to
-            // apply; = surface this as a
-            // clear failed-task outcome
-            // rather than launching the
-            // agent against a wrong SOP.
-            // The driver will already throw
-            // `noSOPForFolder` for nil
-            // folders (= see the driver
-            // guard at TaskInput init).
-            // Re-throw with a clearer
-            // message here so the row
-            // activity log tells the user
-            // "no SOP for reference
-            // library" instead of the
-            // raw driver error.
+            // PO 双轴 FAIL #7/8 fix): if the LLM classified the source as a reference-
+            // library import (= no folder), there is no SOP to apply; =
+            // surface this as a clear failed-task outcome rather than
+            // launching the agent against a wrong SOP. The driver will
+            // already throw `noSOPForFolder` for nil folders (= see the
+            // driver guard at TaskInput init). Re-throw with a clearer
+            // message here so the row activity log tells the user "no SOP
+            // for reference library" instead of the raw driver error.
             guard let folder = Self.folder(
                 from: classification.destination
             ) else {
                 await progress?(
                     "  ⚠️ 参考库没有 SOP (= 路由到失败 task)"
                 )
-                // The reference library has no
-                // folder (= no BookFolder can
-                // map to it); = throw a
-                // generic error so the
-                // orchestrator's failed-task
-                // path picks it up cleanly.
-                // We can't construct a
-                // BookFolder for it (= no
-                // `.referenceLibrary` case
-                // in BookFolder).
+                // The reference library has no folder (= no BookFolder can map to it); =
+                // throw a generic error so the orchestrator's failed-
+                // task path picks it up cleanly. We can't construct a
+                // BookFolder for it (= no `.referenceLibrary` case in
+                // BookFolder).
                 throw NSError(
                     domain: "wenshu.import",
                     code: -1,
@@ -534,10 +421,8 @@ actor WenshuConductorImportRouter: ImportRouter {
         let maxTurns = 5
         for turn in 0..<maxTurns {
             let response = try await connector.send(messages: messages, options: options)
-            // Check stop reason (= endTurn = LLM
-            // finished; = toolUse = LLM wants to
-            // call a tool; = maxTokens = LLM hit
-            // the cap; = unknown = bail).
+            // Check stop reason (= endTurn = LLM finished; = toolUse = LLM wants to call
+            // a tool; = maxTokens = LLM hit the cap; = unknown = bail).
             switch response.stopReason {
             case .endTurn:
                 return response
@@ -546,10 +431,8 @@ actor WenshuConductorImportRouter: ImportRouter {
             case .toolUse:
                 break
             }
-            // Collect tool_use blocks (= one or
-            // more in a single response; = the
-            // Anthropic API allows parallel
-            // tool_use).
+            // Collect tool_use blocks (= one or more in a single response; = the
+            // Anthropic API allows parallel tool_use).
             var toolUseBlocks: [(id: String, name: String, input: String)] = []
             var assistantTextBlocks: [String] = []
             for block in response.blocks {
@@ -563,21 +446,15 @@ actor WenshuConductorImportRouter: ImportRouter {
                 }
             }
             if toolUseBlocks.isEmpty {
-                // LLM said toolUse but didn't
-                // emit any tool_use blocks; = the
-                // LLM misbehaved; = return the
-                // text we have.
+                // LLM said toolUse but didn't emit any tool_use blocks; = the LLM
+                // misbehaved; = return the text we have.
                 return response
             }
-            // Append the assistant message (= the
-            // full response blocks, not just
-            // text; = the LLMConnector serializes
-            // this into the wire request's
+            // Append the assistant message (= the full response blocks, not just text; =
+            // the LLMConnector serializes this into the wire request's
             // `messages` array).
             messages.append(LLMMessage(role: .assistant, blocks: response.blocks))
-            // Dispatch each tool_use; = collect
-            // tool_result blocks for the next
-            // request.
+            // Dispatch each tool_use; = collect tool_result blocks for the next request.
             for tool in toolUseBlocks {
                 let output: String
                 if tool.name == "web_search" {
@@ -591,10 +468,8 @@ actor WenshuConductorImportRouter: ImportRouter {
                 ))
             }
         }
-        // Fall through (= turn cap exceeded; = return
-        // the last response we have; = in practice
-        // unreachable because we return on .endTurn
-        // inside the loop).
+        // Fall through (= turn cap exceeded; = return the last response we have; = in
+        // practice unreachable because we return on .endTurn inside the loop).
         return try await connector.send(messages: messages, options: options)
     }
 
@@ -659,54 +534,33 @@ actor WenshuConductorImportRouter: ImportRouter {
     /// on one line so the parser can grab it
     /// deterministically).
     static func userPrompt(filePath: String, body: String, rewriteMode: ImportFileInput.RewriteMode = .consolidate) -> String {
-        // Cap the body sent to the LLM (= the fix
-        // default Anthropic context window is plenty
-        // for a classification + tag + title rewrite
-        // task; = 12,000 chars is more than enough for
-        // a 1-2 page markdown file's worth of
-        // classification signal; = the LLM never needs
-        // the full text body to make a routing
-        // decision; = the cap also keeps the cost
-        // low for a 456-file batch).
+        // Cap the body sent to the LLM (= the fix default Anthropic context window is
+        // plenty for a classification + tag + title rewrite task; = 12,000
+        // chars is more than enough for a 1-2 page markdown file's worth of
+        // classification signal; = the LLM never needs the full text body to
+        // make a routing decision; = the cap also keeps the cost low for a
+        // 456-file batch).
         let trimmed = String(body.prefix(12_000))
-        // (= boss 2026-10-09 (see OOB.md #2026-10-09)
-        // round-16 "三个问题" feedback):
-        // 1) "小说草稿里的卡片还是显示 ID":
-        //    = the previous prompt included the
-        //    `filePath` line (= the source path); =
-        //    the LLM sometimes echoed the path as
-        //    the title (= a long string with `/`
-        //    stripped → "UsersanbaiqiangLibraryMob
-        //    ileDocumentsiCloud~md..."); = the
-        //    filename = the LLM title = a path
-        //    echo; = the sidebar card title was
-        //    unreadable. Fix: drop the filePath
-        //    line from the prompt entirely (= the
-        //    body alone is enough for the LLM to
-        //    find the canonical entity name; = the
-        //    filePath was the leak that turned
-        //    into a filename).
-        // 2) "世界观混入了大量本来放在资料库
-        //    里的资料" (= 124 items in world/, all
-        //    folk-god / 五脊六兽 / 三台星 / generic
-        //    cosmic lore; = the LLM wrongly routed
-        //    generic-world-knowledge into world/).
-        //    Fix: world/ is now the STRICT
-        //    constitution-level folder; = the
-        //    default routing is referenceLibrary;
-        //    = world/ requires explicit "in this
-        //    novel" / "本小说独有" markers in
-        //    the body; = otherwise referenceLibrary.
-        // 3) "资料库多了一个 tag '十二地仙'":
-        //    = the LLM was leaking the target
-        //    novel's name into the tag list (= a
-        //    hard-rule violation; = tags must come
-        //    from the body content, NOT from the
-        //    novel context). Fix: explicit "no
-        //    book name in tags" rule + the
-        //    "target novel" mention is now ONLY
-        //    used as the routing signal; = tags
-        //    derive from the body.
+        // (= boss 2026-10-09 (see OOB.md #2026-10-09) round-16 "三个问题" feedback): 1)
+        // "小说草稿里的卡片还是显示 ID": = the previous prompt included the `filePath`
+        // line (= the source path); = the LLM sometimes echoed the path as the
+        // title (= a long string with `/` stripped →
+        // "UsersanbaiqiangLibraryMob ileDocumentsiCloud~md..."); = the
+        // filename = the LLM title = a path echo; = the sidebar card title was
+        // unreadable. Fix: drop the filePath line from the prompt entirely (=
+        // the body alone is enough for the LLM to find the canonical entity
+        // name; = the filePath was the leak that turned into a filename). 2)
+        // "世界观混入了大量本来放在资料库 里的资料" (= 124 items in world/, all folk-god / 五脊六兽 /
+        // 三台星 / generic cosmic lore; = the LLM wrongly routed generic-world-
+        // knowledge into world/). Fix: world/ is now the STRICT constitution-
+        // level folder; = the default routing is referenceLibrary; = world/
+        // requires explicit "in this novel" / "本小说独有" markers in the body; =
+        // otherwise referenceLibrary. 3) "资料库多了一个 tag '十二地仙'": = the LLM was
+        // leaking the target novel's name into the tag list (= a hard-rule
+        // violation; = tags must come from the body content, NOT from the
+        // novel context). Fix: explicit "no book name in tags" rule + the
+        // "target novel" mention is now ONLY used as the routing signal; =
+        // tags derive from the body.
         return """
         请阅读下面的 Markdown 资料，输出一行 JSON 描述如何整理它。
 
@@ -864,14 +718,10 @@ actor WenshuConductorImportRouter: ImportRouter {
                  fallback)。
             """
         case .reorganize:
-            // (= boss 2026-10-10 (see OOB.md #2026-10-10)
-            // 格式和样式" 反馈). The LLM's job
-            // is to **actively reorganize**
-            // the source A into the template
-            // B's structure (= world = 6 H2,
-            // characters = 4 H2, etc.). No
-            // tools (= the LLM has the source
-            // body).
+            // (= boss 2026-10-10 (see OOB.md #2026-10-10) 格式和样式" 反馈). The LLM's job is to
+            // **actively reorganize** the source A into the template B's
+            // structure (= world = 6 H2, characters = 4 H2, etc.). No
+            // tools (= the LLM has the source body).
             return """
             5) **重组正文 (A → B)**:
                - 输出**主索引文件**到
@@ -1101,40 +951,22 @@ actor WenshuConductorImportRouter: ImportRouter {
         case .consolidate:
             return "\"title\":\"<中文标题>\",\"summary\":\"<一句话中文摘要>\",\"tags\":[\"<tag1>\",\"<tag2>\",...]\""
         case .searchAndRewrite:
-            // CRITICAL: `rewrittenBody` must be a
-            // single-line JSON string (= the
-            // string-value `\\n` is the JSON
-            // escape for newline; = the LLM
-            // should NOT emit a literal newline
-            // inside the string-value; = the
-            // previous prompt said "可以包含换行
-            // \\\\n" which the LLM took as
-            // permission to insert a real
-            // newline; = the JSON parser then
+            // CRITICAL: `rewrittenBody` must be a single-line JSON string (= the string-
+            // value `\\n` is the JSON escape for newline; = the LLM should
+            // NOT emit a literal newline inside the string-value; = the
+            // previous prompt said "可以包含换行 \\\\n" which the LLM took as
+            // permission to insert a real newline; = the JSON parser then
             // bailed; = the boss 2026-10-09 (see OOB.md #2026-10-09)
-            // fallback title). Fix: tell the
-            // LLM to use JSON-escaped `\n`
-            // (= \\n) only; = the orchestrator
-            // un-escapes after parsing.
+            // fallback title). Fix: tell the LLM to use JSON-escaped `\n`
+            // (= \\n) only; = the orchestrator un-escapes after parsing.
             return "\"title\":\"<中文标题>\",\"summary\":\"<一句话中文摘要>\",\"tags\":[\"<tag1>\",\"<tag2>\",...],\"rewrittenBody\":\"<整理后的 .ws 格式正文; 用 \\\\n 表示换行, 不要在字符串值里写真实换行>\""
         case .reorganize:
-            // + round-69 (= boss 2026-10-10 (see OOB.md #2026-10-10)
-            // 其它自定义" 需求). The
-            // LLM returns BOTH
-            // `rewrittenBody` (= the
-            // main index file body;
-            // = round-69 = metadata
-            // + 6-必填子文件路径
-            // 引用) AND `extraFiles`
-            // (= 6 必填 + N 自定义
-            // 子文件). The `required`
-            // field tells the
-            // orchestrator which
-            // are the 6 mandatory
-            // (= filename = H2
-            // title, verbatim) vs
-            // the N custom ones
-            // (= LLM-chosen title).
+            // + round-69 (= boss 2026-10-10 (see OOB.md #2026-10-10) 其它自定义" 需求). The LLM
+            // returns BOTH `rewrittenBody` (= the main index file body; =
+            // round-69 = metadata + 6-必填子文件路径 引用) AND `extraFiles` (= 6 必填
+            // + N 自定义 子文件). The `required` field tells the orchestrator
+            // which are the 6 mandatory (= filename = H2 title, verbatim)
+            // vs the N custom ones (= LLM-chosen title).
             return "\"title\":\"<中文标题>\",\"summary\":\"<一句话中文摘要>\",\"tags\":[\"<tag1>\",\"<tag2>\",...],\"rewrittenBody\":\"<主索引文件 body: 元数据 + 6 必填子文件路径引用; 用 \\\\n 表示换行, 不要写真实换行>\",\"extraFiles\":[{\"folder\":\"<world|characters|outlines|chapters|drafts|ideas>\",\"title\":\"<必填=H2 标题 verbatim, 自定义=LLM 决定>\",\"body\":\"<子文件完整 markdown; 用 \\\\n 表示换行>\",\"required\":<true for 6 必填, false for 自定义>}]"
         }
     }
@@ -1211,26 +1043,16 @@ actor WenshuConductorImportRouter: ImportRouter {
             messages: [.user(userPrompt)],
             options: options
         )
-        // Extract the text content from the
-        // response (= the LLM returns a
-        // structured response with
-        // `text` blocks).
+        // Extract the text content from the response (= the LLM returns a structured
+        // response with `text` blocks).
         let rawText = response.blocks.compactMap { block -> String? in
             if case let .text(text) = block { return text }
             return nil
         }.joined(separator: "\n")
-        // Parse the JSON (= the same
-        // defensive parse as Phase 1).
+        // Parse the JSON (= the same defensive parse as Phase 1).
         guard let json = Self.extractFirstJSONObject(rawText) else {
-            // Parse failed (= LLM
-            // didn't return
-            // JSON; = the
-            // conservative
-            // default is
-            // "different" so
-            // the user gets
-            // the new content
-            // rather than a
+            // Parse failed (= LLM didn't return JSON; = the conservative default is
+            // "different" so the user gets the new content rather than a
             // false skip).
             return ContentSameResult(
                 isContentSame: false,
@@ -1270,13 +1092,9 @@ actor WenshuConductorImportRouter: ImportRouter {
         existingBody: String,
         sourceTitle: String
     ) -> String {
-        // Cap each body to keep the
-        // prompt manageable (= the LLM
-        // doesn't need the full
-        // 10k-char bodies to detect
-        // sameness; = 4000 chars per
-        // side = 8000 total = well
-        // under the 4096-token budget).
+        // Cap each body to keep the prompt manageable (= the LLM doesn't need the full
+        // 10k-char bodies to detect sameness; = 4000 chars per side = 8000
+        // total = well under the 4096-token budget).
         let sBody = String(sourceBody.prefix(4000))
         let eBody = String(existingBody.prefix(4000))
         return """
@@ -1321,21 +1139,16 @@ actor WenshuConductorImportRouter: ImportRouter {
         fallbackTitle: String,
         filePath: String
     ) -> ImportRoutingResult {
-        // 1. Extract the JSON object. The LLM is
-        //    instructed to reply with one line of
-        //    JSON; = grab the first {...} span in the
-        //    response (= tolerant of leading /
-        //    trailing whitespace / reasoning blocks
-        //    the model might emit before the JSON).
+        // 1. Extract the JSON object. The LLM is instructed to reply with one line of
+        // JSON; = grab the first {...} span in the response (= tolerant of
+        // leading / trailing whitespace / reasoning blocks the model might
+        // emit before the JSON).
         guard let json = extractFirstJSONObject(raw) else {
-            // LLM returned no parseable JSON. Fall
-            // back to a safe default (= drafts is the
-            // least-surprising place for an unparseable
-            // file; = the user sees the file with a
-            // "失败" status if the parser threw
-            // upstream; = here we synthesize a valid
-            // envelope so the orchestrator's downstream
-            // consumers don't crash).
+            // LLM returned no parseable JSON. Fall back to a safe default (= drafts is
+            // the least-surprising place for an unparseable file; = the
+            // user sees the file with a "失败" status if the parser threw
+            // upstream; = here we synthesize a valid envelope so the
+            // orchestrator's downstream consumers don't crash).
             return ImportRoutingResult(
                 destination: .bookFolder(.drafts),
                 title: fallbackTitle,
@@ -1350,14 +1163,10 @@ actor WenshuConductorImportRouter: ImportRouter {
         }
         // 2. Parse the JSON.
         let parsed = parseImportDecision(json)
-        // 3. Map the destination. The orchestrator
-        //    accepts a closed enum; = we coerce the
-        //    LLM's free-text destination into the
-        //    canonical `BookFolder` value (= the
-        //    Apple canonical pattern is "make illegal
-        //    states unrepresentable" so we never
-        //    write a string into the destination
-        //    field).
+        // 3. Map the destination. The orchestrator accepts a closed enum; = we coerce the
+        // LLM's free-text destination into the canonical `BookFolder` value (=
+        // the Apple canonical pattern is "make illegal states unrepresentable"
+        // so we never write a string into the destination field).
         let destination: ImportDestination
         switch parsed.destination {
         case "referenceLibrary":
@@ -1365,34 +1174,23 @@ actor WenshuConductorImportRouter: ImportRouter {
         case "bookFolder":
             destination = .bookFolder(parsed.bookFolder ?? .drafts)
         default:
-            // Unknown destination string from the LLM
-            // (= the model invented a value not in
-            // our schema). Fall back to drafts (= the
-            // conservative landing site; = the user
-            // can re-route via the sheet's "重试" +
+            // Unknown destination string from the LLM (= the model invented a value not
+            // in our schema). Fall back to drafts (= the conservative
+            // landing site; = the user can re-route via the sheet's "重试" +
             // chat override).
             destination = .bookFolder(.drafts)
         }
-        // 4. Final envelope. The LLM-supplied title
-        //    is the canonical title (= the
-        //    orchestrator's writeFile does NOT
-        //    rewrite the body; = the LLM's title
-        //    lives in the metadata; = the body file
-        //    on disk is verbatim from the source).
+        // 4. Final envelope. The LLM-supplied title is the canonical title (= the
+        // orchestrator's writeFile does NOT rewrite the body; = the LLM's
+        // title lives in the metadata; = the body file on disk is verbatim
+        // from the source).
         return ImportRoutingResult(
             destination: destination,
-            // (= boss "不能用
-            // 提示词控制" directive): the
-            // title is run through
-            // `acceptTitle` (= programmatic
-            // sanitization + fallback; = the
-            // user never sees a path / a
-            // filename-with-extension / a
-            // body-fragment / gibberish as a
-            // title; = the LLM's trust is
-            // zero; = the contract is
-            // "title is either the LLM's
-            // clean answer or the
+            // (= boss "不能用 提示词控制" directive): the title is run through `acceptTitle` (=
+            // programmatic sanitization + fallback; = the user never sees
+            // a path / a filename-with-extension / a body-fragment /
+            // gibberish as a title; = the LLM's trust is zero; = the
+            // contract is "title is either the LLM's clean answer or the
             // filename-stem fallback").
             title: Self.acceptTitle(parsed: parsed, filePath: filePath),
             summary: parsed.summary,
@@ -1400,21 +1198,15 @@ actor WenshuConductorImportRouter: ImportRouter {
             entityType: "other",
             category: nil,
             confidence: parsed.tags.isEmpty ? 0.3 : 0.9,
-            // the optional rewritten body
-            // (= the LLM's .ws-format body in
-            // `searchAndRewrite` mode; = nil = the
-            // orchestrator keeps the original body
-            // verbatim). The caller (= ImportService)
-            // checks `rewriteMode` and decides whether
-            // to use the rewritten body or fall back
-            // to the original (= see round-66 commit E
-            // for the mode-aware body selection).
+            // the optional rewritten body (= the LLM's .ws-format body in
+            // `searchAndRewrite` mode; = nil = the orchestrator keeps the
+            // original body verbatim). The caller (= ImportService) checks
+            // `rewriteMode` and decides whether to use the rewritten body
+            // or fall back to the original (= see round-66 commit E for
+            // the mode-aware body selection).
             rewrittenBody: parsed.rewrittenBody,
-            // extraFiles parsed
-            // by `parseImportDecision` (=
-            // see ticket 02). Empty array
-            // when LLM doesn't return any
-            // (= most common case).
+            // extraFiles parsed by `parseImportDecision` (= see ticket 02). Empty array
+            // when LLM doesn't return any (= most common case).
             extraFiles: parsed.extraFiles,
         )
     }
@@ -1517,18 +1309,13 @@ actor WenshuConductorImportRouter: ImportRouter {
         // 1. Empty / whitespace-only.
         let trimmed = candidate.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty { return nil }
-        // 2. Path separator (= "/"
-        // or "\") in the title.
+        // 2. Path separator (= "/" or "\") in the title.
         if candidate.contains("/") || candidate.contains("\\") {
             return nil
         }
-        // 3. File extension at the end
-        // (= .md / .txt / .markdown /
-        // .docx ...). The LLM should
-        // strip the extension itself
-        // (= the title is the human
-        // name of the entity, not the
-        // filename).
+        // 3. File extension at the end (= .md / .txt / .markdown / .docx ...). The LLM
+        // should strip the extension itself (= the title is the human name of
+        // the entity, not the filename).
         let knownExtensions: Set<String> = [
             "md", "markdown", "txt", "text",
             "docx", "doc", "pdf", "rtf",
@@ -1540,46 +1327,32 @@ actor WenshuConductorImportRouter: ImportRouter {
                 return nil
             }
         }
-        // 4. Title equals the full
-        // source path (= LLM copied
-        // `input.filePath`).
+        // 4. Title equals the full source path (= LLM copied `input.filePath`).
         if candidate == filePath { return nil }
-        // 5. Title equals the source
-        // file's lastPathComponent (= the
-        // LLM copied the filename
-        // including its extension; = the
-        // user wants the
-        // extension-stripped form).
+        // 5. Title equals the source file's lastPathComponent (= the LLM copied the
+        // filename including its extension; = the user wants the extension-
+        // stripped form).
         let fileName = (filePath as NSString).lastPathComponent
         if candidate == fileName { return nil }
-        // 6. Title too long (= not a
-        // real title).
+        // 6. Title too long (= not a real title).
         if candidate.count > 50 { return nil }
-        // 7. Mostly digits / spaces /
-        // punctuation (= gibberish).
+        // 7. Mostly digits / spaces / punctuation (= gibberish).
         let alnumCount = candidate.unicodeScalars.filter { scalar in
             CharacterSet.alphanumerics.contains(scalar)
         }.count
         if Double(alnumCount) / Double(max(candidate.count, 1)) < 0.3 {
             return nil
         }
-        // 8. Path-prefix match (= the
-        // title starts with the user's
-        // home directory path or any
-        // system-known long directory;
-        // = the LLM copied a partial
-        // path; = catch the case where
-        // the LLM truncated the path
-        // but still left enough
-        // characters to be a giveaway).
+        // 8. Path-prefix match (= the title starts with the user's home directory path or
+        // any system-known long directory; = the LLM copied a partial path; =
+        // catch the case where the LLM truncated the path but still left
+        // enough characters to be a giveaway).
         let homeDir = NSHomeDirectory()
         if !homeDir.isEmpty, candidate.hasPrefix(homeDir) {
             return nil
         }
-        // All checks pass; = return the
-        // trimmed candidate (= the
-        // surrounding whitespace, if
-        // any, is stripped).
+        // All checks pass; = return the trimmed candidate (= the surrounding whitespace,
+        // if any, is stripped).
         return trimmed
     }
 
@@ -1615,29 +1388,22 @@ actor WenshuConductorImportRouter: ImportRouter {
         for line in body.split(separator: "\n", omittingEmptySubsequences: false) {
             let lineStr = String(line)
             let trimmed = lineStr.trimmingCharacters(in: .whitespaces)
-            // Drop any line containing a relative
-            // upward path (= "../" or "/../"; =
-            // catches "- ../../x" / "  ../x" /
-            // "[text](../../x)" etc.; = the
-            // Obsidian relative-link family).
+            // Drop any line containing a relative upward path (= "../" or "/../"; =
+            // catches "- ../../x" / "  ../x" / "[text](../../x)" etc.; =
+            // the Obsidian relative-link family).
             if lineStr.contains("../") { continue }
-            // Drop any line containing a wikilink
-            // fragment (= "[[...]]"; = the
-            // Obsidian autolink form).
+            // Drop any line containing a wikilink fragment (= "[[...]]"; = the Obsidian
+            // autolink form).
             if lineStr.contains("[[") { continue }
-            // Drop Obsidian-era metadata markers
-            // (= boss 2026-10-09 (see OOB.md #2026-10-09)
-            // by prefix on the trimmed line).
+            // Drop Obsidian-era metadata markers (= boss 2026-10-09 (see OOB.md
+            // #2026-10-09) by prefix on the trimmed line).
             if Self.isUselessMetadataLine(trimmed) {
                 continue
             }
-            // Drop the "反链:" / "反链 :" header
-            // line too (= once we've stripped all
-            // the links underneath, the header
-            // becomes a dangling marker; = the
-            // canonical wenshu "关系链" feature
-            // will own this concept; = this line
-            // is the Obsidian-era marker).
+            // Drop the "反链:" / "反链 :" header line too (= once we've stripped all the
+            // links underneath, the header becomes a dangling marker; =
+            // the canonical wenshu "关系链" feature will own this concept; =
+            // this line is the Obsidian-era marker).
             if trimmed == "反链" || trimmed == "反链:" || trimmed == "反链 :" {
                 continue
             }
@@ -1661,13 +1427,9 @@ actor WenshuConductorImportRouter: ImportRouter {
     /// body never has these).
     private static func isUselessMetadataLine(_ trimmed: String) -> Bool {
         let prefixes: [String] = [
-            // The old previous template (= 老板
-            // 2026-10-09 round-25 "不要参考
-            // MD 的格式，而是盘点文枢的功
-            // 能，做出文枢的头部格式" = strip
-            // the old template; = the new
-            // template uses 实体类型/标签/摘
-            // 要 only).
+            // The old previous template (= 老板 2026-10-09 round-25 "不要参考 MD 的格式，而是盘点文枢的功
+            // 能，做出文枢的头部格式" = strip the old template; = the new template
+            // uses 实体类型/标签/摘 要 only).
             "类型:",
             "类型 :",
             "状态:",
@@ -1680,8 +1442,7 @@ actor WenshuConductorImportRouter: ImportRouter {
             "详细描述 :",
             "实体化:",
             "实体化 :",
-            // Timestamps (= entities.json has
-            // createdAt / updatedAt already).
+            // Timestamps (= entities.json has createdAt / updatedAt already).
             "上次更新:",
             "上次更新 :",
             "更新于",
@@ -1694,8 +1455,7 @@ actor WenshuConductorImportRouter: ImportRouter {
             "created :",
             "modified:",
             "modified :",
-            // Tags (= tags are a separate field
-            // in the Reference struct).
+            // Tags (= tags are a separate field in the Reference struct).
             "tags:",
             "tags :",
             "tag:",
@@ -1705,11 +1465,8 @@ actor WenshuConductorImportRouter: ImportRouter {
             "tags",
             "tag",
             "标签",
-            // Author / source markers (= the
-            // .ws Reference struct has a `source`
-            // field; = author markers are
-            // duplicated if they appear in the
-            // body).
+            // Author / source markers (= the .ws Reference struct has a `source` field; =
+            // author markers are duplicated if they appear in the body).
             "作者:",
             "作者 :",
             "author:",
@@ -1840,19 +1597,15 @@ actor WenshuConductorImportRouter: ImportRouter {
             if c == "\\" { escape = true; sanitized.append(c); continue }
             if c == "\"" { inString.toggle(); sanitized.append(c); continue }
             if inString {
-                // The LLM may have inserted literal
-                // newlines inside a string value
-                // (= the prompt now forbids this; =
-                // older runs or misbehaving models
-                // may still produce this form). Convert
-                // any literal newline inside a string
-                // value to the JSON-escaped `\n` so
-                // the rest of the parse can succeed.
+                // The LLM may have inserted literal newlines inside a string value (= the
+                // prompt now forbids this; = older runs or misbehaving
+                // models may still produce this form). Convert any
+                // literal newline inside a string value to the JSON-
+                // escaped `\n` so the rest of the parse can succeed.
                 if c == "\n" {
                     sanitized.append("\\n")
                 } else if c == "\r" {
-                    // Skip CR; = the \n already handled the
-                    // line break.
+                    // Skip CR; = the \n already handled the line break.
                 } else {
                     sanitized.append(c)
                 }
@@ -1901,97 +1654,60 @@ actor WenshuConductorImportRouter: ImportRouter {
             default: return nil
             }
         }()
-        // (= only set in
-        // `searchAndRewrite` mode; = empty
-        // string from the LLM = the user
-        // didn't actually search and rewrite
-        // = treat as nil so the orchestrator
-        // falls back to the original body).
+        // (= only set in `searchAndRewrite` mode; = empty string from the LLM = the user
+        // didn't actually search and rewrite = treat as nil so the
+        // orchestrator falls back to the original body).
         let rawRewritten = (parsed["rewrittenBody"] as? String) ?? ""
         let rewrittenBody: String? = rawRewritten.isEmpty ? nil : Self.stripObsidianBacklinks(rawRewritten)
-        // (= boss 2026-10-09 (see OOB.md #2026-10-09)
-        // (= the LLM may emit 4 or 5 if it
-        // ignored the prompt; = the cap is
-        // here as the canonical gate; = the
-        // sidebar tag facet remains
-        // navigable).
+        // (= boss 2026-10-09 (see OOB.md #2026-10-09) (= the LLM may emit 4 or 5 if it
+        // ignored the prompt; = the cap is here as the canonical gate; = the
+        // sidebar tag facet remains navigable).
         let cappedTags = Array(tags.prefix(3))
-        // (= boss 2026-10-09 (see OOB.md #2026-10-09)
-        // redundant (= the title is the
-        // canonical name; = the tag is a
-        // navigation facet; = having both
-        // is duplicate metadata that
-        // clutters the card view AND breaks
-        // the tag-based filter (= the
-        // user clicks the tag to find
-        // everything related; = the entity
-        // that has the title as a tag
-        // always shows up for that tag; =
-        // the redundancy is the same as no
-        // tag at all)). The LLM was
-        // instructed to avoid title-as-tag;
-        // this is the last-mile filter that
-        // drops it if the LLM still emitted
-        // it. Comparison is case- and
-        // whitespace-insensitive (= the LLM
-        // might emit "活字印刷" as title and
-        // " 活字印刷 " as a tag).
+        // (= boss 2026-10-09 (see OOB.md #2026-10-09) redundant (= the title is the
+        // canonical name; = the tag is a navigation facet; = having both is
+        // duplicate metadata that clutters the card view AND breaks the tag-
+        // based filter (= the user clicks the tag to find everything related;
+        // = the entity that has the title as a tag always shows up for that
+        // tag; = the redundancy is the same as no tag at all)). The LLM was
+        // instructed to avoid title-as-tag; this is the last-mile filter that
+        // drops it if the LLM still emitted it. Comparison is case- and
+        // whitespace-insensitive (= the LLM might emit "活字印刷" as title and "
+        // 活字印刷 " as a tag).
         let titleNorm = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        // (= boss 2026-10-09 (see OOB.md #2026-10-09)
-        // filter (= the user clicks a tag to
-        // see every reference carrying that
-        // tag); = punctuation in a tag breaks
-        // the facet UX (= "民俗神-A民俗神"
-        // parses as one opaque tag; = "民俗
-        // 神" parses as the same tag with a
-        // leading space; = the LLM is
-        // sometimes emitting tags like
-        // "民俗神-A喜丧" (= entityType
-        // codes) or "考古报告, 民俗" (= the
-        // comma is meant to be a tag
-        // separator that the LLM put inside
-        // one tag); = these don't match the
-        // user's mental model of "tag = a
-        // short, single-token Chinese
-        // word"). Drop any tag containing
-        // punctuation (= ASCII punctuation +
-        // common CJK punctuation; = the
-        // remaining tag is letters and digits
-        // only; = the LLM was instructed to
-        // emit single-word tags without
-        // punctuation; = the last-mile filter
-        // matches the user expectation).
+        // (= boss 2026-10-09 (see OOB.md #2026-10-09) filter (= the user clicks a tag to
+        // see every reference carrying that tag); = punctuation in a tag
+        // breaks the facet UX (= "民俗神-A民俗神" parses as one opaque tag; = "民俗 神"
+        // parses as the same tag with a leading space; = the LLM is sometimes
+        // emitting tags like "民俗神-A喜丧" (= entityType codes) or "考古报告, 民俗" (=
+        // the comma is meant to be a tag separator that the LLM put inside one
+        // tag); = these don't match the user's mental model of "tag = a short,
+        // single-token Chinese word"). Drop any tag containing punctuation (=
+        // ASCII punctuation + common CJK punctuation; = the remaining tag is
+        // letters and digits only; = the LLM was instructed to emit single-
+        // word tags without punctuation; = the last-mile filter matches the
+        // user expectation).
         let dedupedTags = cappedTags.compactMap { tag -> String? in
             let trimmedTag = tag.trimmingCharacters(in: .whitespacesAndNewlines)
             // Drop empties.
             if trimmedTag.isEmpty { return nil }
             // Drop title-match (= round-28).
             if trimmedTag == titleNorm { return nil }
-            // Drop any tag containing punctuation
-            // (= the canonical wenshu tag is a
-            // short single-token word like "民
-            // 俗神" / "唐朝" / "阎罗" / "印
-            // 度"; = punctuation in a tag is
-            // always an LLM error; = drop it
-            // silently; = the user gets fewer
-            // tags but every tag is meaningful).
+            // Drop any tag containing punctuation (= the canonical wenshu tag is a short
+            // single-token word like "民 俗神" / "唐朝" / "阎罗" / "印 度"; =
+            // punctuation in a tag is always an LLM error; = drop it
+            // silently; = the user gets fewer tags but every tag is
+            // meaningful).
             if Self.tagContainsPunctuation(trimmedTag) {
                 return nil
             }
             return trimmedTag
         }
-        // ticket 02: parse
-        // `extraFiles` (= LLM's optional
-        // array of split-out files).
-        // Defensive: missing / malformed
-        // elements are dropped (= the
-        // orchestrator never sees a
-        // half-parsed element). Capped at
-        // 5 (= safety cap on top of the
-        // LLM-prompt cap; = prevents an
-        // LLM that ignored the prompt from
-        // producing hundreds of extra
-        // files in one import).
+        // ticket 02: parse `extraFiles` (= LLM's optional array of split-out files).
+        // Defensive: missing / malformed elements are dropped (= the
+        // orchestrator never sees a half-parsed element). Capped at 5 (=
+        // safety cap on top of the LLM-prompt cap; = prevents an LLM that
+        // ignored the prompt from producing hundreds of extra files in one
+        // import).
         let extraFiles = Self.parseExtraFiles(from: parsed)
         return ImportDecision(
             title: title,
@@ -2020,51 +1736,22 @@ actor WenshuConductorImportRouter: ImportRouter {
         guard let rawArray = json["extraFiles"] as? [[String: Any]] else {
             return []
         }
-        // (= boss 2026-10-10 (see OOB.md #2026-10-10)
-        // 自定义 cap" chosen).
-        // = 6 mandatory world
-        // sub-files + 5 custom
-        // world files (= total
-        // 11) for the world/
-        // folder. The 6
-        // mandatory ones
-        // (= 核心设定 / 地理
-        // 或位置 / 体系或规则
-        // / 历史脉络 / 与其他
-        // 元素的关系 / 关键场
-        // 面种子) carry
-        // `required = true` in
-        // the LLM JSON; = the
-        // 5 custom ones carry
-        // `required = false`
-        // (= the LLM
-        // populates title +
-        // body for the
-        // custom content
-        // like 十二生肖原型 or
-        // 元炁体系 etc).
-        // The orchestrator
-        // dedup is per-folder
-        // (= same title in the
-        // same folder = overwrite).
+        // (= boss 2026-10-10 (see OOB.md #2026-10-10) 自定义 cap" chosen). = 6 mandatory
+        // world sub-files + 5 custom world files (= total 11) for the world/
+        // folder. The 6 mandatory ones (= 核心设定 / 地理 或位置 / 体系或规则 / 历史脉络 / 与其他
+        // 元素的关系 / 关键场 面种子) carry `required = true` in the LLM JSON; = the 5
+        // custom ones carry `required = false` (= the LLM populates title +
+        // body for the custom content like 十二生肖原型 or 元炁体系 etc). The
+        // orchestrator dedup is per-folder (= same title in the same folder =
+        // overwrite).
         var result: [ExtraFile] = []
         var requiredCount = 0
         var customCount = 0
         for element in rawArray {
-            // cap = 6 必填
-            // + 5 自定义 = 11
-            // total. The mandatory
-            // 6 always get
-            // priority; = the
-            // custom 5 only if
-            // the mandatory 6
-            // are all present.
-            // (= if the LLM
-            // returns 11+
-            // elements, we keep
-            // the first 6
-            // required + up to
-            // 5 custom.)
+            // cap = 6 必填 + 5 自定义 = 11 total. The mandatory 6 always get priority; = the
+            // custom 5 only if the mandatory 6 are all present. (= if the
+            // LLM returns 11+ elements, we keep the first 6 required + up
+            // to 5 custom.)
             let isRequired = (element["required"] as? Bool) ?? false
             if isRequired {
                 if requiredCount >= 6 { continue }
@@ -2091,27 +1778,17 @@ actor WenshuConductorImportRouter: ImportRouter {
                 )
                 continue
             }
-            // the boss
-            // explicitly said "不要
-            // 备注标题的文档"
-            // (= no fixed
-            // "备注.md" file).
-            // If the LLM
-            // returns a 备注
-            // element (= the old
-            // wenshu 7th H2), drop
-            // it (= the user's
-            // wishes).
+            // the boss explicitly said "不要 备注标题的文档" (= no fixed "备注.md" file). If the LLM
+            // returns a 备注 element (= the old wenshu 7th H2), drop it (=
+            // the user's wishes).
             if title == "备注" {
                 NSLog(
                     "[wenshu.import] extraFiles element is '备注' (= boss banned 2026-10-10); dropping"
                 )
                 continue
             }
-            // Body must be non-empty (= the LLM is
-            // supposed to put real content here; =
-            // empty body = no point in creating a
-            // blank .md).
+            // Body must be non-empty (= the LLM is supposed to put real content here; =
+            // empty body = no point in creating a blank .md).
             let body = element["body"] as? String ?? ""
             if body.isEmpty {
                 NSLog(
@@ -2120,11 +1797,9 @@ actor WenshuConductorImportRouter: ImportRouter {
                 )
                 continue
             }
-            // Un-escape JSON `\\n` to real newlines
-            // (= the LLM-prompt told it to use \n
-            // escape; = the orchestrator un-escapes
-            // here; = same pattern as rewrittenBody
-            // above).
+            // Un-escape JSON `\\n` to real newlines (= the LLM-prompt told it to use \n
+            // escape; = the orchestrator un-escapes here; = same pattern
+            // as rewrittenBody above).
             let unescapedBody = body
                 .replacingOccurrences(of: "\\n", with: "\n")
             result.append(ExtraFile(
@@ -2184,16 +1859,13 @@ actor WenshuConductorImportRouter: ImportRouter {
     /// = the user never types spaces or
     /// underscores when navigating).
     private static func tagContainsPunctuation(_ tag: String) -> Bool {
-        // Pre-resolve the underscore scalar (= the
-        // `Unicode.Scalar == String` overload doesn't
-        // exist; = the comparison is scalar-to-scalar).
+        // Pre-resolve the underscore scalar (= the `Unicode.Scalar == String` overload
+        // doesn't exist; = the comparison is scalar-to-scalar).
         let underscore: Unicode.Scalar = "_"
         for scalar in tag.unicodeScalars {
-            // ASCII letters / digits: keep (= use
-            // the scalar's `properties` set; =
-            // `Unicode.Scalar` has no `.isLetter`
-            // / `.isNumber` member directly; =
-            // those members live on `Character`).
+            // ASCII letters / digits: keep (= use the scalar's `properties` set; =
+            // `Unicode.Scalar` has no `.isLetter` / `.isNumber` member
+            // directly; = those members live on `Character`).
             if scalar.isASCII {
                 let p = scalar.properties
                 if p.isASCIIHexDigit || (scalar.value >= 0x41 && scalar.value <= 0x5A)
@@ -2202,13 +1874,10 @@ actor WenshuConductorImportRouter: ImportRouter {
                     continue
                 }
             }
-            // ASCII underscore: drop (= the
-            // user wouldn't navigate to a
-            // tag with an underscore in it).
+            // ASCII underscore: drop (= the user wouldn't navigate to a tag with an
+            // underscore in it).
             if scalar == underscore { return true }
-            // CJK Unified Ideographs and
-            // extensions: keep. CJK
-            // Compatibility Ideographs
+            // CJK Unified Ideographs and extensions: keep. CJK Compatibility Ideographs
             // (U+F900..U+FAFF): keep.
             let v = scalar.value
             if (0x4E00...0x9FFF).contains(v)       // CJK Unified
@@ -2221,10 +1890,8 @@ actor WenshuConductorImportRouter: ImportRouter {
             {
                 continue
             }
-            // Everything else (= ASCII
-            // punctuation, CJK punctuation,
-            // whitespace, control chars, emoji,
-            // symbols) is rejected.
+            // Everything else (= ASCII punctuation, CJK punctuation, whitespace, control
+            // chars, emoji, symbols) is rejected.
             return true
         }
         return false

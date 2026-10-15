@@ -1,56 +1,22 @@
-//
-//  WriteBookDocTool.swift · wenshu · round-73 (= boss 2026-10-10 (see OOB.md #2026-10-10)
-//  (= wenshu main agent)'s dedicated write
-//  tool (= "writeBookDoc"). The agent is
-//  told via `ImportWorldPrompt.md` (and
-//  future per-folder SOPs) to call this
-//  tool once per sub-file (= 1 主索引 + 6
-//  必填 + 0-5 自定义 sub-files for the
-//  world folder).
-//
-//  Why a NEW tool (= not the existing
-//  `WriteFileTool`):
-//
-//    - The existing `WriteFileTool` is a
-//      generic path-anywhere write (= it
-//      operates inside the wenshu library
-//      bundle via FileTools.pathDenied
-//      guard). = a different scope.
-//    - This tool is scoped to the
-//      currently-bound book (= the import
-//      task's `{bookPath}` root). = no
-//      path-arbitrary writes; = always
-//      relative to the active book.
-//    - This tool also returns structured
-//      feedback (= written path + bytes
-//      written) so the agent's tool_use
-//      loop has unambiguous success/fail
-//      signals.
-//    - The agent runs inside
-//      `ConversationLoop.runTurn` (= the
-//      multi-turn agent main loop; = tool
-//      use is dispatched by ToolExecutor,
-//      which calls back into ImportService
-//      to actually persist the file).
-//
-//  Why NOT a tool (= alternative design):
-//
-//    - Earlier round-71/72/73 designs
-//      used the orchestrator to drive
-//      the LLM (= orchestrator called the
-//      LLM 1-3 times, parsed JSON, wrote
-//      files). That was "the orchestrator
-//      IS the agent". The boss's 2026-10-10
-//      OOB "走类似看板任务一样, 让一
-//      个 agent 跑完" + "LLM 是一次
-//      调用一次回复模式" means the LLM
-//      cannot drive multi-step work
-//      without the agent runtime. Here,
-//      the wenshu agent runtime IS the
-//      driver (= via ConversationLoop.runTurn);
-//      = this tool is the agent's only
-//      write surface.
-//
+// WriteBookDocTool.swift · wenshu · round-73 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+// (= wenshu main agent)'s dedicated write tool (= "writeBookDoc"). The agent is told
+// via `ImportWorldPrompt.md` (and future per-folder SOPs) to call this tool once per
+// sub-file (= 1 主索引 + 6 必填 + 0-5 自定义 sub-files for the world folder). Why a NEW tool
+// (= not the existing `WriteFileTool`): - The existing `WriteFileTool` is a generic
+// path-anywhere write (= it operates inside the wenshu library bundle via
+// FileTools.pathDenied guard). = a different scope. - This tool is scoped to the
+// currently-bound book (= the import task's `{bookPath}` root). = no path-arbitrary
+// writes; = always relative to the active book. - This tool also returns structured
+// feedback (= written path + bytes written) so the agent's tool_use loop has
+// unambiguous success/fail signals. - The agent runs inside `ConversationLoop.runTurn`
+// (= the multi-turn agent main loop; = tool use is dispatched by ToolExecutor, which
+// calls back into ImportService to actually persist the file). Why NOT a tool (=
+// alternative design): - Earlier round-71/72/73 designs used the orchestrator to drive
+// the LLM (= orchestrator called the LLM 1-3 times, parsed JSON, wrote files). That
+// was "the orchestrator IS the agent". The boss's 2026-10-10 OOB "走类似看板任务一样, 让一 个
+// agent 跑完" + "LLM 是一次 调用一次回复模式" means the LLM cannot drive multi-step work without
+// the agent runtime. Here, the wenshu agent runtime IS the driver (= via
+// ConversationLoop.runTurn); = this tool is the agent's only write surface.
 
 import Foundation
 
@@ -87,13 +53,9 @@ struct WriteBookDocTool: Tool, Sendable {
 
     func execute(input: String) async throws -> String {
         let dict = try ToolInputParser.parseDictionary(input: input)
-        // Relative path (= within the
-        // current book). MUST NOT start
-        // with `/` (= absolute paths are
-        // rejected; = the tool is
-        // book-scoped; = if a future
-        // caller wants cross-book write,
-        // they pick a different tool).
+        // Relative path (= within the current book). MUST NOT start with `/` (= absolute
+        // paths are rejected; = the tool is book-scoped; = if a future caller
+        // wants cross-book write, they pick a different tool).
         let relPath = try ToolInputParser.requireString(dict, "path")
         guard !relPath.hasPrefix("/") else {
             throw ToolExecutorError.invalidInput(
@@ -102,8 +64,7 @@ struct WriteBookDocTool: Tool, Sendable {
             )
         }
         let body = try ToolInputParser.requireString(dict, "body")
-        // Path-guard (= the tool refuses
-        // to escape the book root).
+        // Path-guard (= the tool refuses to escape the book root).
         guard let bookRoot = await bookPathProvider() else {
             throw ToolExecutorError.invalidInput(
                 name: "writeBookDoc",
@@ -112,10 +73,8 @@ struct WriteBookDocTool: Tool, Sendable {
         }
         let fullPath = (bookRoot as NSString)
             .appendingPathComponent(relPath)
-        // Path-guard v2: reject `..`
-        // escapes (= canonicalize and
-        // verify the resolved path stays
-        // inside the book root).
+        // Path-guard v2: reject `..` escapes (= canonicalize and verify the resolved path
+        // stays inside the book root).
         let canonicalFull = (try? URL(
             fileURLWithPath: fullPath
         ).standardizedFileURL.path) ?? fullPath
@@ -131,24 +90,13 @@ struct WriteBookDocTool: Tool, Sendable {
                 )
             )
         }
-        // (boss 2026-10-10 (see OOB.md #2026-10-10)
-        // PO 双轴 test failure in worker):
-        // create the parent directory
-        // (= nested folders like
-        // `world/核心设定.md` need the
-        // `world/` parent; = a freshly
-        // imported book may not yet
-        // have any of the per-folder
-        // subdirs). Without this,
-        // `FileManager` returns
-        // `NSPOSIXErrorDomain Code=2`
-        // (= "No such file or
-        // directory") and the agent's
-        // first write call fails.
-        // `withIntermediateDirectories:
-        // true` is idempotent (= no
-        // error if the directory
-        // already exists).
+        // (boss 2026-10-10 (see OOB.md #2026-10-10) PO 双轴 test failure in worker): create
+        // the parent directory (= nested folders like `world/核心设定.md` need the
+        // `world/` parent; = a freshly imported book may not yet have any of
+        // the per-folder subdirs). Without this, `FileManager` returns
+        // `NSPOSIXErrorDomain Code=2` (= "No such file or directory") and the
+        // agent's first write call fails. `withIntermediateDirectories: true`
+        // is idempotent (= no error if the directory already exists).
         let parentDir = (canonicalFull as NSString)
             .deletingLastPathComponent
         do {
@@ -163,11 +111,8 @@ struct WriteBookDocTool: Tool, Sendable {
                 underlying: String(describing: error)
             )
         }
-        // Write the file (= use
-        // FileTools.write for the
-        // canonical wenshu file-writing
-        // path; = shared with the
-        // orchestrator's FileTools.write).
+        // Write the file (= use FileTools.write for the canonical wenshu file-writing
+        // path; = shared with the orchestrator's FileTools.write).
         let tools = FileTools()
         do {
             try tools.write(path: canonicalFull, content: body)
@@ -205,11 +150,9 @@ extension WriteBookDocTool {
     /// path-anywhere `WriteFileTool`).
     static let _registryBootstrap: Void = {
         Task {
-            // Default bookPathProvider =
-            // nil (= no active book). The
-            // ImportService replaces this
-            // before the agent run starts
-            // (= see `ImportAgentDriver`).
+            // Default bookPathProvider = nil (= no active book). The ImportService
+            // replaces this before the agent run starts (= see
+            // `ImportAgentDriver`).
             await ToolRegistry.shared.registerTool(
                 name: "writeBookDoc",
                 toolset: "world",

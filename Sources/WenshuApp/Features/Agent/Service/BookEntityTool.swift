@@ -1,24 +1,12 @@
-//
-//  BookEntityTool.swift
-//
-//  Per-book entity CRUD actor + 5-kind dispatcher.
-//
-//  Replaces BookCharacterActor + BookWorldActor from previous versions
-//  with a single kind-discriminated actor (= all 5 kinds go
-//  through the same 6 actions: create / read / update / delete
-//  / list / find).
-//
-//  Storage: FileSystemEntityStore (= the on-disk JSON index +
-//  per-entity .md body file).
-//
-//  Scope guard: every action MUST carry a `book_id` that
-//  matches the chat session's currently-bound book. Same
-//  BookScopeGuard helper.
-//
-//  Silent dedup: if an entity with the same name already
-//  exists in this book (= case-insensitive), falls back to
-//  in-place update. Same behavior as BookCharacterActor /
-//  BookWorldActor in an earlier version.
+// BookEntityTool.swift Per-book entity CRUD actor + 5-kind dispatcher. Replaces
+// BookCharacterActor + BookWorldActor from previous versions with a single kind-
+// discriminated actor (= all 5 kinds go through the same 6 actions: create / read /
+// update / delete / list / find). Storage: FileSystemEntityStore (= the on-disk JSON
+// index + per-entity .md body file). Scope guard: every action MUST carry a `book_id`
+// that matches the chat session's currently-bound book. Same BookScopeGuard helper.
+// Silent dedup: if an entity with the same name already exists in this book (= case-
+// insensitive), falls back to in-place update. Same behavior as BookCharacterActor /
+// BookWorldActor in an earlier version.
 
 import Foundation
 import WenshuData
@@ -80,10 +68,9 @@ actor BookEntityActor {
     /// Test-only body accessor.
     func readBodyForTest(id: EntityID) async -> String? {
         guard let dir = bookDirectoryProvider() else { return nil }
-        // Per boss 2026-10-05 (see OOB.md #2026-10-05)
-        // @MainActor-isolated (= SwiftData ModelContext contract);
-        // = the actor can't instantiate it. Use the nonisolated
-        // static FileSystem fallback helpers (= actor-safe).
+        // Per boss 2026-10-05 (see OOB.md #2026-10-05) @MainActor-isolated (= SwiftData
+        // ModelContext contract); = the actor can't instantiate it. Use the
+        // nonisolated static FileSystem fallback helpers (= actor-safe).
         return FileSystemEntityStore.loadEntityBodyFromFileSystem(
             id: id,
             bookDirectory: dir
@@ -107,8 +94,8 @@ actor BookEntityActor {
                 reason: "no chat session book bound (= scope guard should have caught this earlier)"
             )
         }
-        // wt/path-guard-v2-2026-09-25: PathGuard second-line defense
-        // (= see BookChapterActor.resolveStore for the rationale).
+        // wt/path-guard-v2-2026-09-25: PathGuard second-line defense (= see
+        // BookChapterActor.resolveStore for the rationale).
         try PathGuard.assertInsideLibrary(path: LibraryPath(rawValue: dir.path))
         return dir
     }
@@ -139,13 +126,11 @@ actor BookEntityActor {
             )
         }
 
-        // Silent dedup: if an entity with the
-        // same name already exists in this book (= case-
-        // insensitive), silently update in place. The fallback
-        // update uses either the caller's bodyMarkdown OR the
-        // rendered template (= same default as the fresh-create
-        // path; = ensures the body on disk is rewritten even when
-        // the caller doesn't pass a fresh bodyMarkdown).
+        // Silent dedup: if an entity with the same name already exists in this book (=
+        // case- insensitive), silently update in place. The fallback update
+        // uses either the caller's bodyMarkdown OR the rendered template (=
+        // same default as the fresh-create path; = ensures the body on disk is
+        // rewritten even when the caller doesn't pass a fresh bodyMarkdown).
         if let existing = try await findEntity(
             bookId: bookId, kind: parsedKind, name: trimmed
         ) {
@@ -410,8 +395,8 @@ actor BookEntityActor {
             )
         }
 
-        // Scope guard: every action MUST carry a
-        // `book_id` matching the chat session's currently-bound book.
+        // Scope guard: every action MUST carry a `book_id` matching the chat session's
+        // currently-bound book.
         do {
             try BookScopeGuard.validate(
                 providedBookID: Self.parseUUID(envelope["book_id"]),

@@ -1,24 +1,14 @@
-// SidebarService.swift · Wenshu
-//
-// Loads the wenshu sidebar tree from the existing data layer (= flat
-// Bookshelf / Book / Reference) and projects it into the SidebarNode
-// tree that the macOS 27 Apple HIG `List(_, children:)` initializer
-// needs.
-//
-// The projection lives at view-layer (= inside the sidebar's own
-// state object) — = the domain models stay flat (= the rest of
-// wenshu continues to use them as before).
-//
-// The service takes pure closures (= loadShelves, loadBooks,
-// loadReferences) instead of a LibraryStoring reference — = no change
-// to LibraryStores / BookStore.init / 12 test fixtures (= the
-// a leak that the user rejected).
-//
-// b differs from the previous attempt (= same idea, =
-// the user accepted the architecture but rejected the rest of the
-// a patch because it leaked changes into LibraryStores /
-// BookStore.init / 12 test fixtures — none of those are touched
-// here).
+// SidebarService.swift · Wenshu Loads the wenshu sidebar tree from the existing data
+// layer (= flat Bookshelf / Book / Reference) and projects it into the SidebarNode
+// tree that the macOS 27 Apple HIG `List(_, children:)` initializer needs. The
+// projection lives at view-layer (= inside the sidebar's own state object) — = the
+// domain models stay flat (= the rest of wenshu continues to use them as before). The
+// service takes pure closures (= loadShelves, loadBooks, loadReferences) instead of a
+// LibraryStoring reference — = no change to LibraryStores / BookStore.init / 12 test
+// fixtures (= the a leak that the user rejected). b differs from the previous attempt
+// (= same idea, = the user accepted the architecture but rejected the rest of the a
+// patch because it leaked changes into LibraryStores / BookStore.init / 12 test
+// fixtures — none of those are touched here).
 
 import Foundation
 import os
@@ -78,11 +68,10 @@ final class SidebarService {
         self.loadAllBooks = loadAllBooks
         self.loadReferences = loadReferences
         self.loadFolderDocCount = loadFolderDocCount
-        // y: optional bookStore reference (= used by
-        // create/delete/rename on the persistence layer; =
-        // shelvesRoot + per-shelf per-book paths live on bookStore.
-        // = nil for unit-test SidebarService instances that
-        // only exercise `nodes()` tree building).
+        // y: optional bookStore reference (= used by create/delete/rename on the
+        // persistence layer; = shelvesRoot + per-shelf per-book paths live on
+        // bookStore. = nil for unit-test SidebarService instances that only
+        // exercise `nodes()` tree building).
         self.bookStore = bookStore
     }
 
@@ -110,29 +99,23 @@ final class SidebarService {
             let allBooks = (try? loadAllBooks()) ?? []
             let references = (try? loadReferences()) ?? []
 
-            // y: cache the latest shelves + books (= the
-            // create / rename / delete business methods read
-            // these for duplicate-name validation; = avoids
-            // refetching on every UI event).
+            // y: cache the latest shelves + books (= the create / rename / delete
+            // business methods read these for duplicate-name validation; =
+            // avoids refetching on every UI event).
             self.shelves = shelves
             self.books = allBooks
 
             var roots: [SidebarNode] = []
 
-            // e (see OOB.md #2026-09-22) OOB '' (= the
-            // 5 standard folders under each book stay on disk;
-            // = LibraryMigrator seeds them).
-            //
-            // f (see OOB.md #2026-09-22) OOB '
-            // ，' (= the default
-            // help-doc book + the test novels seeded with '
-            // ' folders on first launch should show their
-            // 5 standard folders in the sidebar so the user can
-            // navigate to them). The fix re-adds the 5
-            // user-facing folders (= world / characters /
-            // outlines / chapters / drafts) as children of each
-            // book, but only for books that have those folders
-            // on disk (= default-seeded books).
+            // e (see OOB.md #2026-09-22) OOB '' (= the 5 standard folders under each book
+            // stay on disk; = LibraryMigrator seeds them). f (see OOB.md
+            // #2026-09-22) OOB ' ，' (= the default help-doc book + the
+            // test novels seeded with ' ' folders on first launch should
+            // show their 5 standard folders in the sidebar so the user can
+            // navigate to them). The fix re-adds the 5 user-facing folders
+            // (= world / characters / outlines / chapters / drafts) as
+            // children of each book, but only for books that have those
+            // folders on disk (= default-seeded books).
             for shelf in shelves {
                 let books = allBooks.filter { $0.shelfId == shelf.id }
                 let bookNodes = books
@@ -157,54 +140,41 @@ final class SidebarService {
                 ))
             }
 
-            // Reference library = one root node whose children
-            // are the tag facet (= cross-cutting tag cloud;
-            // = per boss 2026-10-08 (see OOB.md #2026-10-08)
-            // 删除' directive). The tag cloud is built from the
-            // union of `Reference.tags` across all references;
-            // = each tag row is one SidebarNode keyed by the tag
-            // string (= SidebarItem.tag(tagString), which the spec
-            // already wires to .referenceScope(nil) in the
-            // preview pane).
-            //
-            // Why pure tag (and not the 22-EntityCategory
-            // hierarchy): per AGENTS.md §11.16 facet model
-            // (= boss 2026-09-25 (see OOB.md #2026-09-25)
-            // model'), the tag is the cross-cutting facet that
-            // carries the user's mental model of how to find
-            // material. The 22 EntityCategory cases stay as a
-            // primary facet on the Reference struct (= still
-            // assigned by EntityClassifier), but they no longer
-            // drive the sidebar browse surface. The previous
-            // -category sidebar was too rigid for the
-            // wenshu use case (= users couldn't tag '唐代边塞诗'
-            // under both '唐朝' + '边塞诗' = the tag cloud
-            // collapses to one row per distinct tag).
-            //
-            // Tag row shape (= matches the reference-
-            // category row shape so the sidebar visual rhythm
-            // is preserved):
-            //   - title = the tag string (= '唐朝' / '诗人' / etc.)
-            //   - subtitle = 'N 项' (= tag count; = mirrors
-            //     the previous 'N 项' format on the 22-category
-            //     rows so the user has a consistent density cue)
-            //   - systemImage = 'tag.fill' (= SF Symbols 6 tag
-            //     glyph = the canonical 'tag' iconography; = the
-            //     boss can review every tag in one glance the
-            //     same way he wanted to review every category)
-            //   - children = nil (= leaf = no disclosure chevron
-            //     = single-click routes the preview pane to
-            //     .referenceScope(nil) with the active tag filter)
-            //   - routingKey = the tag string (= the same string
-            //     passed to SidebarItem.tag(tagString); =
-            //     forwardSelection can map the row to the
-            //     SidebarItem.tag case without ambiguity)
-            //
-            // Sort order = descending count (= '唐朝' N=10
-            // above '诗人' N=4), then by tag string ascending
-            // for tie-break (= stable order; = Swift Set has
-            // no inherent order so this sort is required for
-            // consistent rendering across launches).
+            // Reference library = one root node whose children are the tag facet (=
+            // cross-cutting tag cloud; = per boss 2026-10-08 (see OOB.md
+            // #2026-10-08) 删除' directive). The tag cloud is built from the
+            // union of `Reference.tags` across all references; = each tag
+            // row is one SidebarNode keyed by the tag string (=
+            // SidebarItem.tag(tagString), which the spec already wires to
+            // .referenceScope(nil) in the preview pane). Why pure tag (and
+            // not the 22-EntityCategory hierarchy): per AGENTS.md §11.16
+            // facet model (= boss 2026-09-25 (see OOB.md #2026-09-25)
+            // model'), the tag is the cross-cutting facet that carries the
+            // user's mental model of how to find material. The 22
+            // EntityCategory cases stay as a primary facet on the
+            // Reference struct (= still assigned by EntityClassifier), but
+            // they no longer drive the sidebar browse surface. The
+            // previous -category sidebar was too rigid for the wenshu use
+            // case (= users couldn't tag '唐代边塞诗' under both '唐朝' + '边塞诗' =
+            // the tag cloud collapses to one row per distinct tag). Tag
+            // row shape (= matches the reference- category row shape so
+            // the sidebar visual rhythm is preserved): - title = the tag
+            // string (= '唐朝' / '诗人' / etc.) - subtitle = 'N 项' (= tag
+            // count; = mirrors the previous 'N 项' format on the
+            // 22-category rows so the user has a consistent density cue) -
+            // systemImage = 'tag.fill' (= SF Symbols 6 tag glyph = the
+            // canonical 'tag' iconography; = the boss can review every tag
+            // in one glance the same way he wanted to review every
+            // category) - children = nil (= leaf = no disclosure chevron =
+            // single-click routes the preview pane to .referenceScope(nil)
+            // with the active tag filter) - routingKey = the tag string (=
+            // the same string passed to SidebarItem.tag(tagString); =
+            // forwardSelection can map the row to the SidebarItem.tag case
+            // without ambiguity) Sort order = descending count (= '唐朝'
+            // N=10 above '诗人' N=4), then by tag string ascending for tie-
+            // break (= stable order; = Swift Set has no inherent order so
+            // this sort is required for consistent rendering across
+            // launches).
             let tagCounts = references
                 .flatMap { $0.tags }
                 .reduce(into: [String: Int]()) { acc, tag in
@@ -218,54 +188,48 @@ final class SidebarService {
                 .map { (tag, count) -> SidebarNode in
                     SidebarNode(
                         id: Self.stableReferenceTagId(tag),
-                        // tag is a separate
-                        // SidebarNode.Kind (= NOT a
-                        // referenceCategory). This is the fix
-                        // for the preview-pane routing
-                        // bug (= the old code used
+                        // tag is a separate SidebarNode.Kind (= NOT a referenceCategory).
+                        // This is the fix for the preview-pane
+                        // routing bug (= the old code used
                         // .referenceCategory here; =
                         // forwardSelection mis-routed the
-                        // selection to SidebarItem.referenceCategory;
-                        // = AssetsPane.previewScope() took the
+                        // selection to
+                        // SidebarItem.referenceCategory; =
+                        // AssetsPane.previewScope() took the
                         // referenceCategory branch (= no
                         // activeTag set = no tag filter
                         // applied)). The new .tag kind = a
-                        // dedicated kind (= Apple canonical
-                        // = distinguish cross-cutting facets
-                        // by type) that forwardSelection
-                        // maps to SidebarItem.tag(<tagString>)
-                        // (= AssetsPane sets activeTag and
-                        // PreviewPane filters its card grid
-                        // by tags.contains(activeTag)).
+                        // dedicated kind (= Apple canonical =
+                        // distinguish cross-cutting facets by
+                        // type) that forwardSelection maps to
+                        // SidebarItem.tag(<tagString>) (=
+                        // AssetsPane sets activeTag and
+                        // PreviewPane filters its card grid by
+                        // tags.contains(activeTag)).
                         kind: .tag,
                         title: tag,
                         subtitle: "\(count) 项",
-                        // Boss 2026-10-09: tag row icon
-                        // is now the line / outline
-                        // variant (= 'tag' = SF Symbols
-                        // 6 outline) rather than the
-                        // filled variant 'tag.fill'.
-                        // The line variant matches the
-                        // Apple HIG section-row visual
-                        // weight (= thinner stroke =
-                        // less heavy in the sidebar =
-                        // a list-of-tags reads as a
-                        // set of labels, not a set
-                        // of buttons).
+                        // Boss 2026-10-09: tag row icon is now the line / outline variant
+                        // (= 'tag' = SF Symbols 6 outline)
+                        // rather than the filled variant
+                        // 'tag.fill'. The line variant matches
+                        // the Apple HIG section-row visual
+                        // weight (= thinner stroke = less
+                        // heavy in the sidebar = a list-of-
+                        // tags reads as a set of labels, not a
+                        // set of buttons).
                         systemImage: "tag",
                         children: nil,
                         routingKey: tag
                     )
                 }
-            // bb (see OOB.md #2026-09-23) OOB '
-            // ': insert a non-interactive divider
-            // row between the user shelves (= `roots` collected
-            // from bookStore.sidebarLoadShelves) and the
-            // reference library root (= synthetic `reference`
-            // kind). The Divider is rendered by SidebarRowView
-            // when `node.kind == .divider` (= it has no row
-            // chrome; = just a horizontal line; = Apple HIG
-            // section separator).
+            // bb (see OOB.md #2026-09-23) OOB ' ': insert a non-interactive divider row
+            // between the user shelves (= `roots` collected from
+            // bookStore.sidebarLoadShelves) and the reference library root
+            // (= synthetic `reference` kind). The Divider is rendered by
+            // SidebarRowView when `node.kind == .divider` (= it has no row
+            // chrome; = just a horizontal line; = Apple HIG section
+            // separator).
             roots.append(SidebarNode(
                 id: Self.dividerSentinelId,
                 kind: .divider,
@@ -310,12 +274,11 @@ final class SidebarService {
     /// (= the same UUID lives in LibraryMigrator; = duplicated here
     /// rather than imported so SidebarService has no transitive
     /// dependency on the Storage module.)
-    // (defaultHelpBookId removed 2026-10 in q99-spec-p0-batch2 — verify-dead.py
-    //  confirmed 0 external callers; = the constant was introduced as a
-    //  "duplicate for no transitive dep" affordance but never actually
-    //  used; = callers all reference LibraryMigrator.swift:216 directly.
-    //  See wenshu-pocock-workflow references/v3.0-design-system-rule.md
-    //  + wenshu-dead-code-cleanup SKILL.md.)
+    // (defaultHelpBookId removed 2026-10 in q99-spec-p0-batch2 — verify-dead.py confirmed
+    // 0 external callers; = the constant was introduced as a "duplicate for no
+    // transitive dep" affordance but never actually used; = callers all reference
+    // LibraryMigrator.swift:216 directly. See wenshu-pocock-workflow
+    // references/v3.0-design-system-rule.md + wenshu-dead-code-cleanup SKILL.md.)
 
     /// Folder list shown under each book in the sidebar (= 5
     /// user-facing folders:  /  /  / 
@@ -337,12 +300,11 @@ final class SidebarService {
     /// / foreshadowing / placeholders) are filtered here.
     private static let folderCatalog: [(name: String, displayName: String, icon: String)] =
         BookFolderCatalog.userFacing.map { spec in
-            // The icon field is non-nil for all 5 user-facing
-            // folders (= enforced by BookFolderCatalogTests' user-
-            // facing check); = the `?? "folder"` fallback is a
-            // defensive default if a future spec accidentally
-            // leaves icon = nil on a user-facing folder (= the
-            // sidebar would render a blank rectangle rather than
+            // The icon field is non-nil for all 5 user-facing folders (= enforced by
+            // BookFolderCatalogTests' user- facing check); = the `??
+            // "folder"` fallback is a defensive default if a future spec
+            // accidentally leaves icon = nil on a user-facing folder (=
+            // the sidebar would render a blank rectangle rather than
             // crashing).
             (spec.directoryName, spec.sidebarDisplayName, spec.icon ?? "folder")
         }
@@ -360,15 +322,12 @@ final class SidebarService {
     /// muscle memory still works; = future ticket can scope this
     /// to default-seeded books only if needed).
     private func folderChildren(for book: Book) -> [SidebarNode]? {
-        // Stable id = "<book-id>.<folder-name>" so two different
-        // books don't collide on the same folder name. Apple HIG
-        // List(.sidebar) requires unique row ids within the tree.
-        //
-        // add the "X " subtitle
-        // (= the .md file count under each folder) so the
-        // sidebar rows mirror the reference-library row shape
-        // (= same 2-line: icon + title + subtitle = icon +
-        // title + "X ").
+        // Stable id = "<book-id>.<folder-name>" so two different books don't collide on
+        // the same folder name. Apple HIG List(.sidebar) requires unique row
+        // ids within the tree. add the "X " subtitle (= the .md file count
+        // under each folder) so the sidebar rows mirror the reference-library
+        // row shape (= same 2-line: icon + title + subtitle = icon + title +
+        // "X ").
         return Self.folderCatalog.map { folder in
             let count = self.loadFolderDocCount(book.id, folder.name)
             return SidebarNode(
@@ -387,8 +346,8 @@ final class SidebarService {
     /// Used as the row id for folder rows in the sidebar so
     /// selection state survives reload.
     private static func stableFolderId(bookId: UUID, folderName: String) -> String {
-        // Compose a fixed string and hash it to a UUID-like
-        // namespace. Deterministic across processes).
+        // Compose a fixed string and hash it to a UUID-like namespace. Deterministic
+        // across processes).
         let raw = "wenshu.sidebar.folder.\(bookId.uuidString).\(folderName)"
         var hasher = Hasher()
         hasher.combine(raw)
@@ -409,13 +368,10 @@ final class SidebarService {
     }
 
     // MARK: - reference library auto-classification
-    // (= (see OOB.md #2026-09-22) OOB '').
-    //
-    // Group references into CLC top-level categories for the
-    // sidebar tree (= project the 22-bucket CLC taxonomy onto
-    // the reference library's display). Bucket key = the
-    // EntityCategory.directoryName (= "a" / "b" / ... / ""
-    // for official categories; "" for legacy references
+    // (= (see OOB.md #2026-09-22) OOB ''). Group references into CLC top-level categories
+    // for the sidebar tree (= project the 22-bucket CLC taxonomy onto the
+    // reference library's display). Bucket key = the EntityCategory.directoryName
+    // (= "a" / "b" / ... / "" for official categories; "" for legacy references
     // whose category is nil).
 
     /// Map a Reference to its sidebar-bucket key.
@@ -449,13 +405,11 @@ final class SidebarService {
     /// = the existing 22 cases cover CLC 5th edition
     /// simplified; future expansion would add new enum cases).
     private static func EntityCategoryFromDirectoryName(_ name: String) -> EntityCategory? {
-        // EntityCategory.directoryName returns the lowercase
-        // rawValue for the official 22 cases (= .a → "a",
-        // .i → "i", etc.) and "" for .z.
-        // EntityCategory(rawValue:) is case-sensitive — so we
-        // case-fold the input for the lookup. The official raw
-        // values are uppercase letters, so uppercase folding
-        // restores the canonical form before lookup.
+        // EntityCategory.directoryName returns the lowercase rawValue for the official 22
+        // cases (= .a → "a", .i → "i", etc.) and "" for .z.
+        // EntityCategory(rawValue:) is case-sensitive — so we case-fold the
+        // input for the lookup. The official raw values are uppercase letters,
+        // so uppercase folding restores the canonical form before lookup.
         let upper = name.uppercased()
         return EntityCategory(rawValue: upper)
     }
@@ -508,30 +462,19 @@ final class SidebarService {
 }
 
 // MARK: - v1.69y (see OOB.md #2026-09-23) OOB ', '
-//
-//  Create + delete + rename business layer for the sidebar.
-//  Restored from the deleted NewLibraryOutlineView.swift
-//  (2366 LOC) after `git rm`'d it without re-wiring
-//  (= per (see OOB.md #2026-09-23) OOB '，').
-//
-//  What lives here:
-//   - persistence surface (= FileManager + JSONEncoder/Decoder
-//     for shelvesRoot/, books/<bookId>/book.json, shelf.json).
-//   - reserved-name guard (= rejects "" / "Reference Library"
-//     legacy system-shelf names; = (see OOB.md #2026-09-20) OOB).
-//   - default-shelf-delete guard (= shelf 00000000-... cannot be
-//     deleted; = Reference Library is immutable).
-//   - duplicate-name validation for create + rename.
-//
-//  What does NOT live here:
-//   - UI (= sheets in SidebarSheets.swift + context menu in
-//     SidebarContextMenu.swift + alert + sheet wiring in
-//     AppleSidebarView.swift).
-//
-//  Error type = one enum with LocalizedError (= the m1
-//  legacy ShelfError / ShelfDeleteError pair merged into one
-//  with all cases; = same set of reserved + duplicate +
-//  cannot-delete-default guards preserved verbatim).
+// Create + delete + rename business layer for the sidebar. Restored from the deleted
+// NewLibraryOutlineView.swift (2366 LOC) after `git rm`'d it without re-wiring (= per
+// (see OOB.md #2026-09-23) OOB '，'). What lives here: - persistence surface (=
+// FileManager + JSONEncoder/Decoder for shelvesRoot/, books/<bookId>/book.json,
+// shelf.json). - reserved-name guard (= rejects "" / "Reference Library" legacy
+// system-shelf names; = (see OOB.md #2026-09-20) OOB). - default-shelf-delete guard (=
+// shelf 00000000-... cannot be deleted; = Reference Library is immutable). -
+// duplicate-name validation for create + rename. What does NOT live here: - UI (=
+// sheets in SidebarSheets.swift + context menu in SidebarContextMenu.swift + alert +
+// sheet wiring in AppleSidebarView.swift). Error type = one enum with LocalizedError
+// (= the m1 legacy ShelfError / ShelfDeleteError pair merged into one with all cases;
+// = same set of reserved + duplicate + cannot-delete-default guards preserved
+// verbatim).
 extension SidebarService {
     /// domain error for the create / delete / rename
     /// operations (= LocalizedError so the caller can present
@@ -687,8 +630,8 @@ extension SidebarService {
         guard let shelvesRoot = bookStore?.stores.shelvesRoot else {
             throw MutationError.bookNotFound
         }
-        // Find the shelf that contains the book (= walk shelves to
-        // find the dir containing shelves/<shelf>/books/<bookId>).
+        // Find the shelf that contains the book (= walk shelves to find the dir
+        // containing shelves/<shelf>/books/<bookId>).
         let fm = FileManager.default
         guard let shelfDirs = try? fm.contentsOfDirectory(
             at: shelvesRoot,
@@ -860,60 +803,27 @@ extension SidebarService {
         guard let referenceStore = bookStore?.stores.referenceStore else {
             throw MutationError.bookNotFound
         }
-        // Look up the
-        // reference across
-        // all 4 layers; =
-        // the reference
-        // id is unique
-        // across the
-        // library.
+        // Look up the reference across all 4 layers; = the reference id is unique across
+        // the library.
         let all = (try? referenceStore.loadAllReferences()) ?? []
         guard let existing = all.first(where: { $0.id == id }) else {
             throw MutationError.bookNotFound
         }
-        // Duplicate
-        // check: if
-        // another
-        // reference
-        // (in any layer)
-        // has the same
-        // title, reject.
+        // Duplicate check: if another reference (in any layer) has the same title,
+        // reject.
         let others = all.filter { $0.id != id }
         if others.contains(where: { $0.title.caseInsensitiveCompare(trimmed) == .orderedSame }) {
             throw MutationError.duplicateName(trimmed)
         }
-        // Build the
-        // updated
-        // reference
-        // (= the
-        // existing
-        // reference
-        // with the
-        // new title +
-        // updatedAt).
-        // We keep all
-        // other fields
-        // (= tags,
-        // summary,
-        // category,
-        // source, etc.)
-        // unchanged.
+        // Build the updated reference (= the existing reference with the new title +
+        // updatedAt). We keep all other fields (= tags, summary, category,
+        // source, etc.) unchanged.
         var updated = existing
         updated.title = trimmed
         updated.updatedAt = Date()
-        // Load the
-        // existing body
-        // (= the rename
-        // only touches
-        // the index
-        // entry; = the
-        // .md body file
-        // is preserved
-        // verbatim; =
-        // `replaceReference`
-        // writes both
-        // the index +
-        // the body).
+        // Load the existing body (= the rename only touches the index entry; = the .md
+        // body file is preserved verbatim; = `replaceReference` writes both
+        // the index + the body).
         let body = referenceStore.loadReferenceBody(id: id) ?? ""
         try referenceStore.replaceReference(updated, bodyMarkdown: body)
     }
@@ -936,22 +846,16 @@ extension SidebarService {
     }
 
     // MARK: v2.7 round-65b: bookDoc (= one .md file in a
-    // book folder) rename / delete / duplicate-name helpers.
-    // The right-click context menu on the workspace card
-    // grid now also fires for `.bookDoc` cards (= the boss
-    // 2026-10-10 "你把书的加上就行了" directive). The methods
-    // mirror the reference shape (= delegate to the file
-    // system under the books root; = the sidebar's reference
-    // store path is `reference-library/`; = the bookDoc path
-    // is `shelves/<shelf-uuid>/books/<book-uuid>/<folder>/<file>.md`).
-    //
-    // The `BookDoc.id` is a UUID v5 derived from
-    // `(bookId, folderName, fileName)` (= stable across
-    // re-evaluations of the same .md file). To act on a doc
-    // by id, the service walks the shelves root to find
-    // which `(bookId, folderName, fileName)` triple
-    // produces that id (= matches the same hash function
-    // used at load time).
+    // book folder) rename / delete / duplicate-name helpers. The right-click context menu
+    // on the workspace card grid now also fires for `.bookDoc` cards (= the boss
+    // 2026-10-10 "你把书的加上就行了" directive). The methods mirror the reference shape (=
+    // delegate to the file system under the books root; = the sidebar's reference
+    // store path is `reference-library/`; = the bookDoc path is `shelves/<shelf-
+    // uuid>/books/<book-uuid>/<folder>/<file>.md`). The `BookDoc.id` is a UUID v5
+    // derived from `(bookId, folderName, fileName)` (= stable across re-
+    // evaluations of the same .md file). To act on a doc by id, the service walks
+    // the shelves root to find which `(bookId, folderName, fileName)` triple
+    // produces that id (= matches the same hash function used at load time).
 
     /// Walk the shelves root and resolve a `BookDoc.id` to
     /// its on-disk file URL. Returns `nil` if the file is
@@ -1089,9 +993,8 @@ extension SidebarService {
     }
 
     // MARK: v1.69y: picker / state query helpers (= consumed by
-    // AppleSidebarView when presenting NewBookSheet /
-    // RenameItemSheet; = pure reads of the current SidebarService
-    // state).
+    // AppleSidebarView when presenting NewBookSheet / RenameItemSheet; = pure reads of
+    // the current SidebarService state).
 
     /// list of (id, name) for the shelf picker in
     /// NewBookSheet (= the user picks which shelf a new book

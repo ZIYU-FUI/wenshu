@@ -1,22 +1,14 @@
-//
-//  EditChapterActor.swift · wenshu · edit-chapter-tool 2026-09-28
-//
-//  Actor + domain types for hermes 0.21.5 `edit_file` 1:1 —
-//  patch-style chapter edits: replace `old_text` with `new_text`
-//  inside the chapter's body markdown. Returns the same
-//  `kind:"diff"` envelope shape that BookChapterTool.update
-//  emits (= ChatToolDiffPreview's input is stable across both
-//  surfaces; = hermes tool-fallback.tsx schema, 1:1).
-//
-//  Why a separate actor (= not just another action on BookChapterActor):
-//    - hermes splits write_file / edit_file / patch into separate
-//      tools (= each with its own dispatcher surface + tool schema).
-//      wenshu mirrors that for clarity (= future WenshuConductor
-//      wiring treats EditChapterTool as a sibling of BookChapterTool).
-//    - the edit semantics are different from update (= find substring
-//      vs. replace whole body). Keeping them in separate actors
-//      preserves the SSOT of each surface.
-//
+// EditChapterActor.swift · wenshu · edit-chapter-tool 2026-09-28 Actor + domain types for
+// hermes 0.21.5 `edit_file` 1:1 — patch-style chapter edits: replace `old_text` with
+// `new_text` inside the chapter's body markdown. Returns the same `kind:"diff"`
+// envelope shape that BookChapterTool.update emits (= ChatToolDiffPreview's input is
+// stable across both surfaces; = hermes tool-fallback.tsx schema, 1:1). Why a separate
+// actor (= not just another action on BookChapterActor): - hermes splits write_file /
+// edit_file / patch into separate tools (= each with its own dispatcher surface + tool
+// schema). wenshu mirrors that for clarity (= future WenshuConductor wiring treats
+// EditChapterTool as a sibling of BookChapterTool). - the edit semantics are different
+// from update (= find substring vs. replace whole body). Keeping them in separate
+// actors preserves the SSOT of each surface.
 
 import Foundation
 import os
@@ -57,12 +49,12 @@ actor EditChapterActor {
         newText: String,
         summary: String?
     ) async throws -> EditResult {
-        // chapter-focus-lock (= single-focus model): throws when the user's
-        // editor tab is focused on this chapter. The conductor
-        // (= WenshuConductor.executeIfUnlocked) catches this and
-        // presents an Allow / Deny dialog; = the user can override
-        // the lock by approving the agent's edit. Until then, the
-        // chapter is read-only on the agent side too.
+        // chapter-focus-lock (= single-focus model): throws when the user's editor tab is
+        // focused on this chapter. The conductor (=
+        // WenshuConductor.executeIfUnlocked) catches this and presents an
+        // Allow / Deny dialog; = the user can override the lock by approving
+        // the agent's edit. Until then, the chapter is read-only on the agent
+        // side too.
         let chapterPath = ChapterFocusLockGuard.resolveChapterPath(
             chapterId: chapterId,
             bookDirectoryProvider: bookDirectoryProvider
@@ -76,21 +68,19 @@ actor EditChapterActor {
         guard let dir = bookDirectoryProvider() else {
             throw EditChapterError.chapterNotFound
         }
-        // Per boss 2026-10-05 (see OOB.md #2026-10-05)
-        // → SwiftData migration commit 1): actor-based callers
-        // can't instantiate the @MainActor-isolated
-        // FileSystemChapterStore struct (= SwiftData's ModelContext
-        // is MainActor-isolated; = the struct's init requires
-        // MainActor). Use the static FileSystem fallback methods
-        // (= the legacy .md file path) until the actor is migrated
-        // to a non-isolated form or the storage layer migrates to
-        // a Sendable protocol.
+        // Per boss 2026-10-05 (see OOB.md #2026-10-05) → SwiftData migration commit 1):
+        // actor-based callers can't instantiate the @MainActor-isolated
+        // FileSystemChapterStore struct (= SwiftData's ModelContext is
+        // MainActor-isolated; = the struct's init requires MainActor). Use the
+        // static FileSystem fallback methods (= the legacy .md file path)
+        // until the actor is migrated to a non-isolated form or the storage
+        // layer migrates to a Sendable protocol.
         let chaptersDirectory = dir.appendingPathComponent("chapters", isDirectory: true)
         let indexURL = dir.appendingPathComponent("chapters.json")
 
-        // 1. Read the existing chapter + body (= via the FileSystem
-        // fallback; = the SwiftData path will be wired once the
-        // actor boundary is fixed in commit 2 of #8).
+        // 1. Read the existing chapter + body (= via the FileSystem fallback; = the
+        // SwiftData path will be wired once the actor boundary is fixed in
+        // commit 2 of #8).
         let documents = (try? FileSystemChapterStore.loadChaptersFromFileSystem(
             bookDirectory: dir,
             chaptersDirectory: chaptersDirectory,
@@ -106,22 +96,21 @@ actor EditChapterActor {
             throw EditChapterError.chapterNotFound
         }
 
-        // 2. Find `oldText` and replace once (= hermes semantics —
-        //    ambiguous matches throw so the LLM re-issues with
-        //    tighter context).
+        // 2. Find `oldText` and replace once (= hermes semantics — ambiguous matches
+        // throw so the LLM re-issues with tighter context).
         guard let range = oldBody.range(of: oldText) else {
             throw EditChapterError.oldTextNotFound
         }
         let newBody = oldBody.replacingOccurrences(of: oldText, with: newText, options: [], range: range)
 
         // 3. Compute the unified-diff stats (= same algorithm as
-        //    BookChapterTool.computeUnifiedDiff; = LCS-based).
+        // BookChapterTool.computeUnifiedDiff; = LCS-based).
         let diff = Self.computeUnifiedDiff(old: oldBody, new: newBody)
 
-        // 4. Persist the patched body. NOTE: writeFileSystemChapter
-        // is the legacy .md writer (= actor can write to the file
-        // system directly; = the SwiftData write path is gated on
-        // MainActor and will be wired in commit 2 of #8).
+        // 4. Persist the patched body. NOTE: writeFileSystemChapter is the legacy .md
+        // writer (= actor can write to the file system directly; = the
+        // SwiftData write path is gated on MainActor and will be wired in
+        // commit 2 of #8).
         var updated = document
         updated.updatedAt = Date()
         if let summary { updated.summary = summary }

@@ -1,13 +1,7 @@
-//
-//  BookOutlineTool.swift
-//
-//  Per-book outline CRUD tool (= wraps FileSystemOutlineStore).
-//  Mirrors BookWorldTool / BookCharacterTool / BookChapterTool
-//  patterns.
-//
-//  LLM-friendly verbs: create / read / update / delete / list / find.
-//  Optional `parent` (= UUID string) for hierarchy; `order` for sort.
-//
+// BookOutlineTool.swift Per-book outline CRUD tool (= wraps FileSystemOutlineStore).
+// Mirrors BookWorldTool / BookCharacterTool / BookChapterTool patterns. LLM-friendly
+// verbs: create / read / update / delete / list / find. Optional `parent` (= UUID
+// string) for hierarchy; `order` for sort.
 
 import Foundation
 
@@ -132,8 +126,8 @@ actor BookOutlineActor {
                 reason: "no chat session book bound (= scope guard should have caught this earlier)"
             )
         }
-        // wt/path-guard-v2-2026-09-25: PathGuard second-line defense
-        // (= see BookChapterActor.resolveStore for the rationale).
+        // wt/path-guard-v2-2026-09-25: PathGuard second-line defense (= see
+        // BookChapterActor.resolveStore for the rationale).
         try PathGuard.assertInsideLibrary(path: LibraryPath(rawValue: dir.path))
         return dir
     }
@@ -153,10 +147,9 @@ actor BookOutlineActor {
             throw BookOutlineError.emptyTitle
         }
 
-        // Silent dedup (see OOB.md #2026-09-25): if an outline with
-        // the same title already exists in this book, fall back to
-        // an in-place update (= preserves id / createdAt /
-        // parent / order). LLM never sees an error.
+        // Silent dedup (see OOB.md #2026-09-25): if an outline with the same title
+        // already exists in this book, fall back to an in-place update (=
+        // preserves id / createdAt / parent / order). LLM never sees an error.
         if let existing = try await findOutline(bookId: bookId, title: trimmed) {
             return try await updateOutline(
                 id: existing.id,
@@ -234,8 +227,8 @@ actor BookOutlineActor {
         var updated = existing
         updated.title = trimmed
         if let summary { updated.summary = summary }
-        // parent = nil means "don't change"; = to clear parent, send
-        // an empty string in the JSON envelope (= parsed below).
+        // parent = nil means "don't change"; = to clear parent, send an empty string in
+        // the JSON envelope (= parsed below).
         updated.parent = parent ?? existing.parent
         if let order { updated.order = order }
         updated.updatedAt = Date()

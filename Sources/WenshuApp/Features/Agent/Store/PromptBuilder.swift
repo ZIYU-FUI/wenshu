@@ -1,104 +1,55 @@
-//
-//  PromptBuilder.swift
-//
-//  Dynamic-tier system-prompt composition. Direct port of hermes
-//  `agent/prompt_builder.py` (1,971 LOC).
-//
-//  Per the parallel gap audit at
-//  `.scratch/2026-09-04-hermes-port-gap-audit.md` §2.1 #4, wenshu's
-//  `SystemPrompt.swift` previously returned a hardcoded string with no
-//  memory / skill / caller-extras composition. The dynamic tier was the
-//  literal `"Context: {ephemeralHint}"`. PromptBuilder.swift is the
-//  composition layer the system-prompt stack was missing.
-//
-//  Two-tier architecture (= cache-stable invariant per AGENTS.md §11.3):
-//    - Stable tier (= byte-stable, cacheable prefix): wenshu system
-//      identity + tool guidance + skill hints + caller identity block.
-//      This is the 1st cache_control breakpoint per PromptCaching.swift.
-//    - Dynamic tier (= turn-specific, NOT cached): ContextEngine bundle
-//      + MemoryAdapter retrieval + SkillAdapter registry summary +
-//      caller extras. The 2nd-3rd cache_control breakpoints.
-//
-//  Public API surface (3-provider, per AGENTS.md §11.2 connectors):
-//    - buildAnthropicSystem() -> [[String: Any]]
-//        → array of {type: "text", text: ..., cache_control: ...} blocks
-//        → goes into the Anthropic Messages API top-level `system` field
-//    - buildOpenAISystem() -> [String: Any]
-//        → single {role: "system", content: "...", cache_control: ...}
-//        → prepended to OpenAI chat-completions `messages` array
-//    - buildGeminiSystemInstruction() -> String
-//        → plain string → goes into Gemini native `systemInstruction`
-//
-//  Out of scope (= ticket scope says skip):
-//    - Python's cache_tier_layout (re-use existing wenshu
-//      PromptCaching.applyCacheControl instead)
-//    - Python's validate_prompt (= out-of-scope per spec; wenshu's
-//      SystemPrompt is the validator)
-//    - Python's mock-time helpers (those land in GAP-003)
-//
-//  Hermes correspondence (= what each section maps to):
-//    prompt_builder.py:
-//      L46-62  _scan_context_content          → PromptBuilder.scanContextContent
-//      L126-134 DEFAULT_AGENT_IDENTITY        → PromptBuilder.defaultIdentity
-//      L137-145 HERMES_AGENT_HELP_GUIDANCE    → PromptBuilder.helpGuidance
-//      L148-168 MEMORY_GUIDANCE               → (out of scope = guidance string)
-//      L171-174 SESSION_SEARCH_GUIDANCE       → (out of scope)
-//      L177-183 SKILLS_GUIDANCE               → (out of scope)
-//      L185-279 KANBAN_GUIDANCE               → (out of scope)
-//      L281-294 TOOL_USE_ENFORCEMENT_GUIDANCE → (out of scope)
-//      L470-575 computer_use_guidance(...)    → PromptBuilder.computerUseGuidance
-//      L595-597 format_steer_marker(...)      → PromptBuilder.formatSteerMarker
-//      L1047-1169 build_environment_hints()   → PromptBuilder.buildEnvironmentHints
-//      L1187-1220 _dynamic_context_file_max_chars
-//                                                → PromptBuilder.dynamicContextFileMaxChars
-//      L1261-1541 _build_skills_snapshot +
-//                       _load_skills_snapshot +
-//                       _write_skills_snapshot +
-//                       _build_snapshot_entry +
-//                       _parse_skill_file +
-//                       _skill_should_show
-//                                            → SkillAdapter.listSkills() (delegated)
-//      L1417-1685 build_skills_system_prompt  → PromptBuilder.formatSkillsSummary
-//      L1686-1755 build_nous_subscription_prompt
-//                                                → (out of scope = hermes-only;
-//                                                   = wenshu does NOT load
-//                                                   SOUL.md or any user-
-//                                                   editable markdown per
-//                                                   AGENTS.md §11.14:
-//                                                   commercial product must
-//                                                   not let users redefine
-//                                                   the agent / style / soul)
-//      L1756-1795 _truncate_content(...)      → PromptBuilder.truncateContent
-//      L1796-1824 load_soul_md(...)           → (out of scope = hermes-only;
-//                                                   = wenshu explicitly does
-//                                                   NOT implement SOUL.md
-//                                                   loading; = see AGENTS.md
-//                                                   §11.14 = Agent Behavior
-//                                                   settings live as closed-
-//                                                   enum pickers instead)
-//      L1827-1921 _load_hermes_md +
-//                       _load_agents_md +
-//                       _load_claude_md +
-//                       _load_cursorrules
-//                                                → (out of scope = hermes-only;
-//                                                   = wenshu does not load
-//                                                   any user-editable agent
-//                                                   definition file; = the
-//                                                   agent identity is owned
-//                                                   by wenshu source code;
-//                                                   = see AGENTS.md §11.14)
-//      L1924-1971 build_context_files_prompt  → (out of scope = hermes-only)
-//
-//  system_prompt.py (the caller that builds parts dict from prompt_builder):
-//      L113-339 build_system_prompt_parts(...) → wenshu's
-//                                                  SystemPrompt.buildParts(...)
-//                                                  (= thin wrapper routing through
-//                                                  PromptBuilder for the dynamic
-//                                                  tier composition)
-//
-// ticket GAP-001 (= the highest-priority ❌ missing module from
-//  the 2026-09-04 gap audit; unblocks GAP-009 conversation_loop wiring).
-//
+// PromptBuilder.swift Dynamic-tier system-prompt composition. Direct port of hermes
+// `agent/prompt_builder.py` (1,971 LOC). Per the parallel gap audit at
+// `.scratch/2026-09-04-hermes-port-gap-audit.md` §2.1 #4, wenshu's
+// `SystemPrompt.swift` previously returned a hardcoded string with no memory / skill /
+// caller-extras composition. The dynamic tier was the literal `"Context:
+// {ephemeralHint}"`. PromptBuilder.swift is the composition layer the system-prompt
+// stack was missing. Two-tier architecture (= cache-stable invariant per AGENTS.md
+// §11.3): - Stable tier (= byte-stable, cacheable prefix): wenshu system identity +
+// tool guidance + skill hints + caller identity block. This is the 1st cache_control
+// breakpoint per PromptCaching.swift. - Dynamic tier (= turn-specific, NOT cached):
+// ContextEngine bundle + MemoryAdapter retrieval + SkillAdapter registry summary +
+// caller extras. The 2nd-3rd cache_control breakpoints. Public API surface
+// (3-provider, per AGENTS.md §11.2 connectors): - buildAnthropicSystem() -> [[String:
+// Any]] → array of {type: "text", text: ..., cache_control: ...} blocks → goes into
+// the Anthropic Messages API top-level `system` field - buildOpenAISystem() ->
+// [String: Any] → single {role: "system", content: "...", cache_control: ...} →
+// prepended to OpenAI chat-completions `messages` array -
+// buildGeminiSystemInstruction() -> String → plain string → goes into Gemini native
+// `systemInstruction` Out of scope (= ticket scope says skip): - Python's
+// cache_tier_layout (re-use existing wenshu PromptCaching.applyCacheControl instead) -
+// Python's validate_prompt (= out-of-scope per spec; wenshu's SystemPrompt is the
+// validator) - Python's mock-time helpers (those land in GAP-003) Hermes
+// correspondence (= what each section maps to): prompt_builder.py: L46-62
+// _scan_context_content          → PromptBuilder.scanContextContent L126-134
+// DEFAULT_AGENT_IDENTITY        → PromptBuilder.defaultIdentity L137-145
+// HERMES_AGENT_HELP_GUIDANCE    → PromptBuilder.helpGuidance L148-168 MEMORY_GUIDANCE
+// → (out of scope = guidance string) L171-174 SESSION_SEARCH_GUIDANCE       → (out of
+// scope) L177-183 SKILLS_GUIDANCE               → (out of scope) L185-279
+// KANBAN_GUIDANCE               → (out of scope) L281-294
+// TOOL_USE_ENFORCEMENT_GUIDANCE → (out of scope) L470-575 computer_use_guidance(...)
+// → PromptBuilder.computerUseGuidance L595-597 format_steer_marker(...)      →
+// PromptBuilder.formatSteerMarker L1047-1169 build_environment_hints()   →
+// PromptBuilder.buildEnvironmentHints L1187-1220 _dynamic_context_file_max_chars →
+// PromptBuilder.dynamicContextFileMaxChars L1261-1541 _build_skills_snapshot +
+// _load_skills_snapshot + _write_skills_snapshot + _build_snapshot_entry +
+// _parse_skill_file + _skill_should_show → SkillAdapter.listSkills() (delegated)
+// L1417-1685 build_skills_system_prompt  → PromptBuilder.formatSkillsSummary
+// L1686-1755 build_nous_subscription_prompt → (out of scope = hermes-only; = wenshu
+// does NOT load SOUL.md or any user- editable markdown per AGENTS.md §11.14:
+// commercial product must not let users redefine the agent / style / soul) L1756-1795
+// _truncate_content(...)      → PromptBuilder.truncateContent L1796-1824
+// load_soul_md(...)           → (out of scope = hermes-only; = wenshu explicitly does
+// NOT implement SOUL.md loading; = see AGENTS.md §11.14 = Agent Behavior settings live
+// as closed- enum pickers instead) L1827-1921 _load_hermes_md + _load_agents_md +
+// _load_claude_md + _load_cursorrules → (out of scope = hermes-only; = wenshu does not
+// load any user-editable agent definition file; = the agent identity is owned by
+// wenshu source code; = see AGENTS.md §11.14) L1924-1971 build_context_files_prompt  →
+// (out of scope = hermes-only) system_prompt.py (the caller that builds parts dict
+// from prompt_builder): L113-339 build_system_prompt_parts(...) → wenshu's
+// SystemPrompt.buildParts(...) (= thin wrapper routing through PromptBuilder for the
+// dynamic tier composition) ticket GAP-001 (= the highest-priority ❌ missing module
+// from the 2026-09-04 gap audit; unblocks GAP-009 conversation_loop wiring).
 
 import Foundation
 import os
@@ -222,10 +173,10 @@ struct PromptBuilder: Sendable {
         }
 
         if !dynamicTier.isEmpty {
-            // No cache_control on the dynamic tier (= hermes pattern:
-            // the dynamic tier rides on the per-message cache_control
-            // markers that PromptCaching.applyCacheControl places on the
-            // last 3 non-system messages, NOT on the system field itself).
+            // No cache_control on the dynamic tier (= hermes pattern: the dynamic tier
+            // rides on the per-message cache_control markers that
+            // PromptCaching.applyCacheControl places on the last 3 non-
+            // system messages, NOT on the system field itself).
             blocks.append([
                 "type": "text",
                 "text": dynamicTier
@@ -338,9 +289,8 @@ extension PromptBuilder {
 
     /// Format a Double relevance score (= 0...1) for the memory line.
     private static func formatRelevance(_ score: Double) -> String {
-        // 2-decimal fixed notation (= deterministic across runs; hermes
-        // uses the default str() repr which is also 2-decimal for the
-        // 0.0...1.0 range).
+        // 2-decimal fixed notation (= deterministic across runs; hermes uses the default
+        // str() repr which is also 2-decimal for the 0.0...1.0 range).
         return String(format: "%.2f", score)
     }
 }
@@ -417,24 +367,23 @@ extension PromptBuilder {
     /// .ws library outline import or character-note import), this
     /// method becomes the single hook for threat-pattern scanning.
     static func scanContextContent(_ content: String, filename: String) -> String {
-        // Placeholder: future wenshu ticket will wire in threat-pattern
-        // library (mirroring hermes `tools.threat_patterns.scan_for_threats`).
+        // Placeholder: future wenshu ticket will wire in threat-pattern library
+        // (mirroring hermes `tools.threat_patterns.scan_for_threats`).
         _ = filename
         return content
     }
 }
 
-// (PromptBuilder.formatSteerMarker + .computerUseGuidance removed 2026-10-05 in
-//  dead-code-sweep-2026-10-05 batch — verify-dead.py strict-context grep
-//  confirmed 0 wenshu callers across Sources/ + Tests/; = the two
-//  functions were hermes-Python-port surfaces (agent/prompt_builder.py
-//  format_steer_marker + computer_use_guidance) kept as verbatim stubs
-//  per the prior "wins" rule; = per boss 2026-10-04 (see OOB.md #2026-10-04)
-//  "wenshu Agent capabilities are reimplemented (Swift clones of
-//  hermes Python), not direct hermes links", the stubs are removed; =
-//  any future wenshu reimplementation will be a regular PromptBuilder
-//  method written fresh, not a resurrection of these port stubs. See
-//  wenshu-dead-code-cleanup SKILL.md "Hermes-port contract dead code".)
+// (PromptBuilder.formatSteerMarker + .computerUseGuidance removed 2026-10-05 in dead-
+// code-sweep-2026-10-05 batch — verify-dead.py strict-context grep confirmed 0 wenshu
+// callers across Sources/ + Tests/; = the two functions were hermes-Python-port
+// surfaces (agent/prompt_builder.py format_steer_marker + computer_use_guidance) kept
+// as verbatim stubs per the prior "wins" rule; = per boss 2026-10-04 (see OOB.md
+// #2026-10-04) "wenshu Agent capabilities are reimplemented (Swift clones of hermes
+// Python), not direct hermes links", the stubs are removed; = any future wenshu
+// reimplementation will be a regular PromptBuilder method written fresh, not a
+// resurrection of these port stubs. See wenshu-dead-code-cleanup SKILL.md "Hermes-port
+// contract dead code".)
 
 // MARK: - Content truncation (= hermes _truncate_content)
 
@@ -455,17 +404,16 @@ extension PromptBuilder {
         guard content.count > cap else {
             return content
         }
-        // Record + drain the truncation (= hermes _record_truncation_warnings
-        // + drain; = wenshu reimplementation per (see OOB.md #2026-10-04) OOB "wenshu
-        // Agent capabilities are reimplemented, not direct hermes links";
-        // = calls into the truncationWarnings ring buffer that lives below
-        // in this file; = the ring buffer is exposed via
+        // Record + drain the truncation (= hermes _record_truncation_warnings + drain; =
+        // wenshu reimplementation per (see OOB.md #2026-10-04) OOB "wenshu
+        // Agent capabilities are reimplemented, not direct hermes links"; =
+        // calls into the truncationWarnings ring buffer that lives below in
+        // this file; = the ring buffer is exposed via
         // PromptBuilder.recordTruncationWarning + .drainTruncationWarnings
-        // public surface so future callers can plug into it).
-        // The lower-level PromptBuilderCaches API is used here
-        // (forward-reference to the public PromptBuilder surface
-        // would require splitting this body into a private helper
-        // declared after both recordTruncationWarning and
+        // public surface so future callers can plug into it). The lower-level
+        // PromptBuilderCaches API is used here (forward-reference to the
+        // public PromptBuilder surface would require splitting this body into
+        // a private helper declared after both recordTruncationWarning and
         // drainTruncationWarnings = a future refactor).
         PromptBuilderCaches.recordTruncationWarning(
             "\(filename): \(content.count) -> \(cap) chars (\(content.count - cap) truncated; = head 70% + tail 20% preserved)"
@@ -566,34 +514,28 @@ extension PromptBuilder {
 }
 
 // MARK: - H1 Hermes-Python gap port (= 1:1 faithful port of hermes
-//         `agent/prompt_builder.py` for the build_* public APIs).
-//
-// Direct port of hermes `agent/prompt_builder.py` per spec §3.1 #4 (= TICKET-
-// follow-up). The 4 generic public APIs
-// (`build_skills_system_prompt`, `build_nous_subscription_prompt`,
-// `build_context_files_prompt`, `build_environment_hints`) are ported
-// 1:1 (= same public function signatures + same body). The hermes-specific
-// prose blocks (= KANBAN_GUIDANCE / SESSION_SEARCH_GUIDANCE /
-// MEMORY_GUIDANCE / SKILLS_GUIDANCE) become wenshu-equivalent placeholders
-// (= per AGENTS.md §11.3 decision 4 = no silent replacement; = wenshu-side
-// wins on identity prose).
-//
-// Hermes Python line ranges cited in doc-comments below (= for traceability
-// back to the canonical Python source at `/Volumes/ANAN/.hermes/agent/
-// prompt_builder.py`).
+// `agent/prompt_builder.py` for the build_* public APIs). Direct port of hermes
+// `agent/prompt_builder.py` per spec §3.1 #4 (= TICKET- follow-up). The 4 generic
+// public APIs (`build_skills_system_prompt`, `build_nous_subscription_prompt`,
+// `build_context_files_prompt`, `build_environment_hints`) are ported 1:1 (= same
+// public function signatures + same body). The hermes-specific prose blocks (=
+// KANBAN_GUIDANCE / SESSION_SEARCH_GUIDANCE / MEMORY_GUIDANCE / SKILLS_GUIDANCE)
+// become wenshu-equivalent placeholders (= per AGENTS.md §11.3 decision 4 = no silent
+// replacement; = wenshu-side wins on identity prose). Hermes Python line ranges cited
+// in doc-comments below (= for traceability back to the canonical Python source at
+// `/Volumes/ANAN/.hermes/agent/ prompt_builder.py`).
 
 extension PromptBuilder {
-    // (PromptBuilder.buildNousSubscriptionPrompt removed 2026-10-05 in
-    //  dead-code-sweep-2026-10-05 batch — verify-dead.py strict-context
-    //  grep confirmed 0 wenshu callers across Sources/ + Tests/; = the
-    //  function was a hermes-Python-port surface (agent/prompt_builder.py
-    //  build_nous_subscription_prompt L1686-L1754) that always returned
-    //  "" since wenshu is not a Nous user; = per boss 2026-10-04 (see OOB.md #2026-10-04)
-    //  "wenshu Agent capabilities are reimplemented (Swift clones of
-    //  hermes Python), not direct hermes links", the stub is removed; =
-    //  any future wenshu reimplementation will be a regular PromptBuilder
-    //  method written fresh, not a resurrection of this port stub. See
-    //  wenshu-dead-code-cleanup SKILL.md "Hermes-port contract dead code".)
+    // (PromptBuilder.buildNousSubscriptionPrompt removed 2026-10-05 in dead-code-
+    // sweep-2026-10-05 batch — verify-dead.py strict-context grep confirmed 0
+    // wenshu callers across Sources/ + Tests/; = the function was a hermes-Python-
+    // port surface (agent/prompt_builder.py build_nous_subscription_prompt
+    // L1686-L1754) that always returned "" since wenshu is not a Nous user; = per
+    // boss 2026-10-04 (see OOB.md #2026-10-04) "wenshu Agent capabilities are
+    // reimplemented (Swift clones of hermes Python), not direct hermes links", the
+    // stub is removed; = any future wenshu reimplementation will be a regular
+    // PromptBuilder method written fresh, not a resurrection of this port stub.
+    // See wenshu-dead-code-cleanup SKILL.md "Hermes-port contract dead code".)
 
     // MARK: -- H1.3 build_context_files_prompt (hermes L1924-end)
 
@@ -623,9 +565,9 @@ extension PromptBuilder {
         cwdPath: String = FileManager.default.currentDirectoryPath,
         contextLength: Int? = nil,
     ) -> String {
-        // Wenshu-side wins: scan cwd for AGENTS.md only (= hermes
-        // scans for AGENTS.md + .cursorrules + SOUL.md + HERMES.md;
-        // = wenshu honors only AGENTS.md per project conventions).
+        // Wenshu-side wins: scan cwd for AGENTS.md only (= hermes scans for AGENTS.md +
+        // .cursorrules + SOUL.md + HERMES.md; = wenshu honors only AGENTS.md
+        // per project conventions).
         let agentsMDPath = URL(fileURLWithPath: cwdPath)
             .appendingPathComponent("AGENTS.md")
         guard FileManager.default.fileExists(atPath: agentsMDPath.path) else {
@@ -634,17 +576,16 @@ extension PromptBuilder {
         guard let content = try? String(contentsOf: agentsMDPath, encoding: .utf8) else {
             return ""
         }
-        // Apply scan-for-threats (= hermes L46-L63 = `scan_context_content`
-        // via `tools.threat_patterns.scan_for_threats`).
+        // Apply scan-for-threats (= hermes L46-L63 = `scan_context_content` via
+        // `tools.threat_patterns.scan_for_threats`).
         let sanitized = PromptBuilderCaches.scanContextContent(
             content: content,
             filename: "AGENTS.md",
         )
-        // Apply YAML-frontmatter strip (= hermes L105-L120 =
-        // `_strip_yaml_frontmatter`).
+        // Apply YAML-frontmatter strip (= hermes L105-L120 = `_strip_yaml_frontmatter`).
         let stripped = PromptBuilderCaches.stripYamlFrontmatter(sanitized)
-        // Apply context-length truncation (= hermes L1756-L1794 =
-        // `_truncate_content` + L1187-L1232 = `_dynamic_context_file_max_chars`).
+        // Apply context-length truncation (= hermes L1756-L1794 = `_truncate_content` +
+        // L1187-L1232 = `_dynamic_context_file_max_chars`).
         let maxChars = PromptBuilderCaches.dynamicContextFileMaxChars(
             contextLength: contextLength,
         )
@@ -684,9 +625,9 @@ extension PromptBuilder {
     /// - Returns: a wenshu-flavored environment-hint string (= empty
     ///   when on a non-macOS platform).
     static func buildEnvironmentHints() -> String {
-        // Wenshu-side wins: hermes probes a remote backend cache and
-        // builds a multi-line block; wenshu is single-platform macOS
-        // and just emits the platform + stack bullets.
+        // Wenshu-side wins: hermes probes a remote backend cache and builds a multi-line
+        // block; wenshu is single-platform macOS and just emits the platform +
+        // stack bullets.
         #if os(macOS)
         let macOSVersion = ProcessInfo.processInfo.operatingSystemVersionString
         return """
@@ -717,13 +658,10 @@ extension PromptBuilder {
 }
 
 // MARK: - H1 caches (= hermes `_SKILLS_PROMPT_CACHE` + `_TRUNCATION_WARNINGS`).
-//
-// Wenshu-side wins (= per AGENTS.md §11.3):
-//   - hermes uses OrderedDict + threading.Lock + LRU popitem.
-//     Wenshu uses NSCache<NSString, NSString> (= thread-safe by
-//     Apple contract; = countLimit = 16; = no manual LRU needed).
-//   - hermes uses list + append for truncation warnings.
-//     Wenshu uses NSCache for thread-safe bounded-buffer storage.
+// Wenshu-side wins (= per AGENTS.md §11.3): - hermes uses OrderedDict + threading.Lock +
+// LRU popitem. Wenshu uses NSCache<NSString, NSString> (= thread-safe by Apple
+// contract; = countLimit = 16; = no manual LRU needed). - hermes uses list + append
+// for truncation warnings. Wenshu uses NSCache for thread-safe bounded-buffer storage.
 
 enum PromptBuilderCaches {
 
@@ -737,10 +675,10 @@ enum PromptBuilderCaches {
 
     /// Scan context content (= hermes L46-L63 = `_scan_context_content`).
     static func scanContextContent(content: String, filename: String) -> String {
-        // Wenshu-side wins: hermes uses `tools.threat_patterns.scan_for_threats`;
-        // wenshu has a stub that's safe-by-default (= returns the
-        // content unchanged; = future ticket can port the actual
-        // threat-pattern library as a follow-up).
+        // Wenshu-side wins: hermes uses `tools.threat_patterns.scan_for_threats`; wenshu
+        // has a stub that's safe-by-default (= returns the content unchanged;
+        // = future ticket can port the actual threat-pattern library as a
+        // follow-up).
         _ = filename  // suppress unused warning; = real impl would use filename for logging
         return content
     }
@@ -759,8 +697,7 @@ enum PromptBuilderCaches {
     /// Compute dynamic context-file max chars (= hermes L1187-L1232 =
     /// `_dynamic_context_file_max_chars` + `_get_context_file_max_chars`).
     static func dynamicContextFileMaxChars(contextLength: Int?) -> Int {
-        // Hermes heuristic: 4 chars/token, 20% of context window,
-        // clamped [2048, 16384].
+        // Hermes heuristic: 4 chars/token, 20% of context window, clamped [2048, 16384].
         guard let ctx = contextLength, ctx > 0 else { return 8192 }
         let raw = (ctx * 4) / 5
         return min(max(raw, 2048), 16384)

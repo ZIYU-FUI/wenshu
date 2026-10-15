@@ -1,68 +1,38 @@
-//
-//  BookFolderCatalog.swift
-//  wenshu
-//
-// SSOT (= single source of truth) for the 8 standard
-//  book sub-folders (= world / characters / outlines / chapters
-//  / drafts / sessions / foreshadowing / placeholders). Prior
-//  history:
-//
-//  * SidebarService.swift folderCatalog = 5 user-facing
-//    (name, displayName, icon) tuples (= the sidebar row).
-//  * PreviewPane.swift BookFolder enum = 8 cases with
-//    (directoryName, displayName, icon) (= the card row + the
-//    per-book folder child nodes).
-//  * BookStore.swift StandardBookFolder enum = 8 cases with
-//    (folderName, displayName) (= the Kanban / Todo task scope
-//    enum).
-//
-//  These three (now four after v1.80) parallel sources all describe
-//  the same underlying 8 folders with overlapping but
-//  inconsistent field sets (= the 'change one folder, edit N
-//  sites' footgun). v1.80 caught one such instance (= the 4
-//  icon replacements landed in 3 sites instead of 1 because the
-//  caller-side review missed the BookFolder enum).
-//
-//  Resolution: this catalog is the canonical source. The other
-//  three sites become thin derivations:
-//
-//  * SidebarService.folderCatalog → BookFolderCatalog.userFacing
-//    mapped to (name, displayName, icon).
-//  * PreviewPane.BookFolder.icon / displayName / directoryName
-//    → BookFolderCatalog.spec(for: rawValue)?.[icon|displayName|
-//    directoryName].
-//  * BookStore.StandardBookFolder.folderName / displayName →
-//    BookFolderCatalog.spec(for: rawValue)?.[directoryName|
-//    displayName].
-//
-//  Each derived site keeps its own type (= enum vs struct vs
-//  tuple) for its caller compatibility (= caller-visible type
-//  signature stays unchanged), but the icon + name values
-//  flow from this catalog. To add a 9th folder: add one
-//  BookFolderSpec literal here (= 1 site edit) + register it
-//  in BookFolderCatalog.allBookFolders (= 1 site edit) = done.
-//
-// displays the sidebar name + card name differently on purpose:
-//  sidebar uses the full phrasing (e.g. the long form of the
-//  chapter title) to tell the user the folder's purpose; the card
-//  uses the short label (e.g. 'Chapter') to fit the grid cell
-//  width. Both names are stored in this catalog
-//  (= sidebarDisplayName / cardDisplayName). If a future
-//  ticket collapses the names, change the catalog fields and the
-//  two derived sites pick up the new values automatically.
-//
-// '8 folders total, but only 5 are user-visible; the icon field
-//  is optional (= nil for the 3 internal folders: sessions /
-//  foreshadowing / placeholders, which have no UI row to render
-//  into; = the catalog still defines the folder for filesystem /
-//  scope purposes, but the
-//  icon field is not meaningful). The `isUserFacing` flag is
-//  the canonical way to check whether the icon will ever
-//  draw. A future ticket could collapse sidebarIcon + cardIcon
-//  into a single `icon` (= the current 5 user-facing folders
-//  all share the same glyph at both surfaces = the 'one
-//  entity = one icon' rule that v1.80 established).
-//
+// BookFolderCatalog.swift wenshu SSOT (= single source of truth) for the 8 standard book
+// sub-folders (= world / characters / outlines / chapters / drafts / sessions /
+// foreshadowing / placeholders). Prior history: * SidebarService.swift folderCatalog =
+// 5 user-facing (name, displayName, icon) tuples (= the sidebar row). *
+// PreviewPane.swift BookFolder enum = 8 cases with (directoryName, displayName, icon)
+// (= the card row + the per-book folder child nodes). * BookStore.swift
+// StandardBookFolder enum = 8 cases with (folderName, displayName) (= the Kanban /
+// Todo task scope enum). These three (now four after v1.80) parallel sources all
+// describe the same underlying 8 folders with overlapping but inconsistent field sets
+// (= the 'change one folder, edit N sites' footgun). v1.80 caught one such instance (=
+// the 4 icon replacements landed in 3 sites instead of 1 because the caller-side
+// review missed the BookFolder enum). Resolution: this catalog is the canonical
+// source. The other three sites become thin derivations: *
+// SidebarService.folderCatalog → BookFolderCatalog.userFacing mapped to (name,
+// displayName, icon). * PreviewPane.BookFolder.icon / displayName / directoryName →
+// BookFolderCatalog.spec(for: rawValue)?.[icon|displayName| directoryName]. *
+// BookStore.StandardBookFolder.folderName / displayName → BookFolderCatalog.spec(for:
+// rawValue)?.[directoryName| displayName]. Each derived site keeps its own type (=
+// enum vs struct vs tuple) for its caller compatibility (= caller-visible type
+// signature stays unchanged), but the icon + name values flow from this catalog. To
+// add a 9th folder: add one BookFolderSpec literal here (= 1 site edit) + register it
+// in BookFolderCatalog.allBookFolders (= 1 site edit) = done. displays the sidebar
+// name + card name differently on purpose: sidebar uses the full phrasing (e.g. the
+// long form of the chapter title) to tell the user the folder's purpose; the card uses
+// the short label (e.g. 'Chapter') to fit the grid cell width. Both names are stored
+// in this catalog (= sidebarDisplayName / cardDisplayName). If a future ticket
+// collapses the names, change the catalog fields and the two derived sites pick up the
+// new values automatically. '8 folders total, but only 5 are user-visible; the icon
+// field is optional (= nil for the 3 internal folders: sessions / foreshadowing /
+// placeholders, which have no UI row to render into; = the catalog still defines the
+// folder for filesystem / scope purposes, but the icon field is not meaningful). The
+// `isUserFacing` flag is the canonical way to check whether the icon will ever draw. A
+// future ticket could collapse sidebarIcon + cardIcon into a single `icon` (= the
+// current 5 user-facing folders all share the same glyph at both surfaces = the 'one
+// entity = one icon' rule that v1.80 established).
 
 import Foundation
 

@@ -1,30 +1,14 @@
-//
-//  ImportSheet.swift · Wenshu
-//
-//  T3 of the v2.7 markdown import feature. A single-page
-//  sheet (= Apple HIG canonical macOS 14+ pattern) for
-//  the user to pick:
-//
-//  1. The source directory on disk (= the directory
-//     containing their existing markdown files; = e.g.
-//     an Obsidian vault).
-//  2. The target book (= a Book in the active library
-//     = the book they want the .md files to land
-//     inside; = the orchestrator writes book-folder
-//     content into `<book>/world`, `<book>/characters`,
-//     etc.; = the reference library content goes into
-//     the library's `reference-library/`).
-//
-//  Reachable from File → 导入… (= ⇧⌘I) via the
-//  `wenshuImportRequested` notification; the host
-//  (= AppleSidebarView) listens and flips
-//  `showImportSheet`.
-//
-//  The sheet body is the same VStack + Form pattern the
-//  ExportSheet uses (= 1 file = 1 sheet = no per-section
-//  view files; = the import flow is structurally simple
-//  enough to not need that split).
-//
+// ImportSheet.swift · Wenshu T3 of the v2.7 markdown import feature. A single-page sheet
+// (= Apple HIG canonical macOS 14+ pattern) for the user to pick: 1. The source
+// directory on disk (= the directory containing their existing markdown files; = e.g.
+// an Obsidian vault). 2. The target book (= a Book in the active library = the book
+// they want the .md files to land inside; = the orchestrator writes book-folder
+// content into `<book>/world`, `<book>/characters`, etc.; = the reference library
+// content goes into the library's `reference-library/`). Reachable from File → 导入… (=
+// ⇧⌘I) via the `wenshuImportRequested` notification; the host (= AppleSidebarView)
+// listens and flips `showImportSheet`. The sheet body is the same VStack + Form
+// pattern the ExportSheet uses (= 1 file = 1 sheet = no per-section view files; = the
+// import flow is structurally simple enough to not need that split).
 
 import SwiftUI
 import UniformTypeIdentifiers
@@ -112,24 +96,15 @@ struct ImportSheet: View {
         self._isPresented = isPresented
         self.prefillDestination = prefillDestination
         self.prefillBookID = prefillBookID
-        // boss 2026-10-09 (see OOB.md #2026-10-09)
-        // 定十二地仙" (= `.onAppear` only
-        // fires once per sheet instance; =
-        // re-opening via contextMenu after a
-        // File-menu first-open left the
-        // prefill stale; = the fix is to
-        // initialize the @State values in
-        // the init (= SwiftUI's
-        // `_State(wrappedValue:)` initializer
-        // accepts an `initialValue`; = the
-        // value is set when the sheet is
-        // constructed; = every contextMenu
-        // click that calls `showImportSheet =
-        // true` rebuilds the sheet (= the
-        // @State is initialized fresh on
-        // each construction); = the
-        // prefill is honored on EVERY
-        // presentation)).
+        // boss 2026-10-09 (see OOB.md #2026-10-09) 定十二地仙" (= `.onAppear` only fires once
+        // per sheet instance; = re-opening via contextMenu after a File-menu
+        // first-open left the prefill stale; = the fix is to initialize the
+        // @State values in the init (= SwiftUI's `_State(wrappedValue:)`
+        // initializer accepts an `initialValue`; = the value is set when the
+        // sheet is constructed; = every contextMenu click that calls
+        // `showImportSheet = true` rebuilds the sheet (= the @State is
+        // initialized fresh on each construction); = the prefill is honored on
+        // EVERY presentation)).
         if let d = prefillDestination {
             self._importDestination = State(initialValue: d)
         }
@@ -355,75 +330,34 @@ struct ImportSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingModerate) {
-            // (= boss 2026-10-10 (see OOB.md #2026-10-10)
-            // directive). The
-            // "导入 Markdown 文件"
-            // title is REMOVED
-            // (= redundant; = the
-            // user just clicked
-            // 导入 from the File
-            // menu OR the
-            // sidebar contextMenu;
-            // = the wizard's
-            // top-of-sheet title
-            // is dead weight; =
-            // the Pages inspector
-            // has no such title
-            // either; = removing
-            // it gives the dot
-            // indicator + the
-            // first picker card
-            // more vertical
+            // (= boss 2026-10-10 (see OOB.md #2026-10-10) directive). The "导入 Markdown
+            // 文件" title is REMOVED (= redundant; = the user just clicked
+            // 导入 from the File menu OR the sidebar contextMenu; = the
+            // wizard's top-of-sheet title is dead weight; = the Pages
+            // inspector has no such title either; = removing it gives the
+            // dot indicator + the first picker card more vertical
             // breathing room).
 
-            // (= boss 2026-10-10 (see OOB.md #2026-10-10)
-            // directive). The 4-step
-            // dot indicator at the top of
-            // the sheet (= canonical
-            // Apple HIG macOS 14+
-            // multi-step pattern; = the
-            // user can see which step
-            // they're on + how many
-            // remain; = the dots are
-            // also clickable to jump
-            // back; = this replaces the
-            // old single-page Form).
-            //
-            // (= boss
-            // 2026-10-10 "dot 如果没
-            // 有进到下一步，dot
-            // 就不能跳到下一
-            // 步骤" directive).
-            // The dot jumps are
-            // GATED on
-            // `canReachStep(step)`;
-            // = the user can
-            // only click a dot
-            // for a step they
-            // have already
-            // reached; = a
-            // fresh sheet on
-            // ① 选目标 only
-            // has ① clickable;
-            // = ②③④ are
-            // dimmed and
-            // disabled; = the
-            // user MUST walk
-            // through the
-            // wizard linearly.
+            // (= boss 2026-10-10 (see OOB.md #2026-10-10) directive). The 4-step dot
+            // indicator at the top of the sheet (= canonical Apple HIG
+            // macOS 14+ multi-step pattern; = the user can see which step
+            // they're on + how many remain; = the dots are also clickable
+            // to jump back; = this replaces the old single-page Form). (=
+            // boss 2026-10-10 "dot 如果没 有进到下一步，dot 就不能跳到下一 步骤" directive).
+            // The dot jumps are GATED on `canReachStep(step)`; = the user
+            // can only click a dot for a step they have already reached; =
+            // a fresh sheet on ① 选目标 only has ① clickable; = ②③④ are
+            // dimmed and disabled; = the user MUST walk through the wizard
+            // linearly.
             WizardStepIndicator(
                 currentStep: $currentStep,
                 canReach: canReachStep
             )
                 .padding(.bottom, DesignTokens.spacingTight)
 
-            // The per-step content. Each step
-            // is a focused view (= no
-            // conditional button rows hidden
-            // inside; = the state machine is
-            // linear; = the per-step view
-            // contains exactly the widgets
-            // for that step).
+            // The per-step content. Each step is a focused view (= no conditional button
+            // rows hidden inside; = the state machine is linear; = the
+            // per-step view contains exactly the widgets for that step).
             Group {
                 switch currentStep {
                 case .configure:
@@ -438,38 +372,14 @@ struct ImportSheet: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
-            // the bottom
-            // nav bar (= the canonical
-            // Apple HIG macOS 14+
-            // wizard pattern; = "上
-            // 一步" on the left +
-            // primary action on the
-            // right; = the primary
-            // action's label varies
-            // with the current step;
-            // = "开始" / "下一步" /
-            // "完成").
-            // (= boss
-            // 2026-10-10 "我画的
-            // 红线处, 缺一条
-            // 分割先. 让操作
-            // 区和设定区分
-            // 开" directive).
-            // A hairline
-            // Divider between
-            // the per-step
-            // content (= 设定
-            // 区) and the nav
-            // bar (= 操作
-            // 区). The Divider
-            // is on every
-            // step (= the
-            // boss's "演示
-            // 要每一步骤
-            // 的页面都
-            // 一样"
-            // directive from
-            // round-50).
+            // the bottom nav bar (= the canonical Apple HIG macOS 14+ wizard pattern; =
+            // "上 一步" on the left + primary action on the right; = the
+            // primary action's label varies with the current step; = "开始"
+            // / "下一步" / "完成"). (= boss 2026-10-10 "我画的 红线处, 缺一条 分割先. 让操作
+            // 区和设定区分 开" directive). A hairline Divider between the per-
+            // step content (= 设定 区) and the nav bar (= 操作 区). The Divider
+            // is on every step (= the boss's "演示 要每一步骤 的页面都 一样" directive
+            // from round-50).
             WizardActionDivider()
             WizardStepNavBar(
                 currentStep: $currentStep,
@@ -480,27 +390,15 @@ struct ImportSheet: View {
                 onNext: goNext
             )
         }
-        // auto-advance from
-        // .running to .results once the
-        // import finishes (= the user
-        // doesn't have to tap "下一步"
-        // to see the results; = the
-        // orchestrator's `isImporting`
-        // flag flips to false when the
-        // import completes; = the
-        // `isRunComplete` derived state
-        // becomes true; = the
-        // `.onChange` modifier below
-        // advances the wizard to
-        // .results automatically). The
-        // transition is guarded on
-        // `currentStep == .running` so
-        // the user can still manually
-        // re-navigate to .running (e.g.
-        // to re-watch the per-file
-        // strip) without being yanked
-        // back to .results on every
-        // state flip.
+        // auto-advance from .running to .results once the import finishes (= the user
+        // doesn't have to tap "下一步" to see the results; = the orchestrator's
+        // `isImporting` flag flips to false when the import completes; = the
+        // `isRunComplete` derived state becomes true; = the `.onChange`
+        // modifier below advances the wizard to .results automatically). The
+        // transition is guarded on `currentStep == .running` so the user can
+        // still manually re-navigate to .running (e.g. to re-watch the per-
+        // file strip) without being yanked back to .results on every state
+        // flip.
         .onChange(of: isRunComplete) { newValue in
             if newValue && currentStep == .running {
                 currentStep = .results
@@ -509,18 +407,12 @@ struct ImportSheet: View {
         // for the cancel-and-rollback path.
         .interactiveDismissDisabled(isImporting)
         .padding(DesignTokens.spacingSection)
-        // on first appear (= the
-        // boss's 2026-10-09 round-18 "右键点
-        // 资料库，点导入，进到弹窗后，目标
-        // 自动选好资料库。右键点书的时候
-        // 目标自动选好对应的书" directive; =
-        // when the user right-clicks the
-        // reference library, the sheet opens
-        // with `prefillDestination = .referenceLibrary`;
-        // = when the user right-clicks a book,
-        // the sheet opens with
-        // `prefillDestination = .book` +
-        // `prefillBookID = book.id`).
+        // on first appear (= the boss's 2026-10-09 round-18 "右键点 资料库，点导入，进到弹窗后，目标
+        // 自动选好资料库。右键点书的时候 目标自动选好对应的书" directive; = when the user right-clicks
+        // the reference library, the sheet opens with `prefillDestination =
+        // .referenceLibrary`; = when the user right-clicks a book, the sheet
+        // opens with `prefillDestination = .book` + `prefillBookID =
+        // book.id`).
         .onAppear {
             if let d = prefillDestination {
                 importDestination = d
@@ -529,70 +421,47 @@ struct ImportSheet: View {
                 selectedBookID = id
             }
         }
-        // Sheet sizing: the canonical Apple HIG macOS 14+
-        // pattern is `minWidth: N` (= a minimum so the
-        // sheet is always wide enough to be readable) +
-        // no `minHeight` (= the sheet hugs the content; =
-        // the empty / fresh sheet is a small 2-picker
-        // card; = the post-import sheet grows to fit
-        // the per-file progress strip; = the boss's
-        // 2026-10-09 feedback "这个弹窗留白太多了"
-        // referred to the fixed 360 PT minHeight on
-        // the fresh sheet; = dropping the minHeight
-        // lets SwiftUI pick the right intrinsic
-        // height). The sheet does not bound
-        // `maxHeight` either (= no upper cap; = the
-        // progress strip's own `maxHeight` constrains
-        // its scroll surface; = the sheet body itself
-        // can grow as needed for the 1-N error
-        // captions in the failure list).
+        // Sheet sizing: the canonical Apple HIG macOS 14+ pattern is `minWidth: N` (= a
+        // minimum so the sheet is always wide enough to be readable) + no
+        // `minHeight` (= the sheet hugs the content; = the empty / fresh sheet
+        // is a small 2-picker card; = the post-import sheet grows to fit the
+        // per-file progress strip; = the boss's 2026-10-09 feedback
+        // "这个弹窗留白太多了" referred to the fixed 360 PT minHeight on the fresh
+        // sheet; = dropping the minHeight lets SwiftUI pick the right
+        // intrinsic height). The sheet does not bound `maxHeight` either (= no
+        // upper cap; = the progress strip's own `maxHeight` constrains its
+        // scroll surface; = the sheet body itself can grow as needed for the
+        // 1-N error captions in the failure list).
         .frame(minWidth: 480)
-        // The boss's 2026-10-09 follow-up: "那你要
-        // 在取消的时候弹一个拦截弹窗，用户确认才
-        // 取消，不然 ESC 容易误触". The dismiss
-        // path (ESC + Cmd+W + the toolbar X button +
-        // clicking outside the sheet) fires SwiftUI's
-        // `.onDisappear`; = we DO NOT auto-rollback
-        // here (= that was the previous version; =
-        // the user was right that ESC can be a
-        // reflexive muscle-memory press; = the
-        // auto-rollback would nuke the partial batch
-        // without confirmation). Instead, every
-        // dismiss path (ESC / Cmd+W / toolbar close
-        // / clicking outside) routes through the
-        // `confirmCancelPresented` confirmation
-        // dialog (= the user explicitly confirms
-        // "yes, throw away the partial batch"; = the
-        // dialog is an Apple HIG canonical
-        // macOS 14+ `confirmationDialog` pattern; =
-        // a "返回" option lets the user dismiss the
-        // dialog and keep importing). If the user
-        // clicks "返回" (= cancel the cancel), the
-        // sheet stays open + the import keeps
-        // running. If the user clicks "确认取消",
-        // the orchestrator's cancel + rollback
-        // fire (= the partial batch is gone, = the
-        // sheet dismisses to the "no trace" state
-        // the boss asked for).
+        // The boss's 2026-10-09 follow-up: "那你要 在取消的时候弹一个拦截弹窗，用户确认才 取消，不然 ESC 容易误触". The
+        // dismiss path (ESC + Cmd+W + the toolbar X button + clicking outside
+        // the sheet) fires SwiftUI's `.onDisappear`; = we DO NOT auto-rollback
+        // here (= that was the previous version; = the user was right that ESC
+        // can be a reflexive muscle-memory press; = the auto-rollback would
+        // nuke the partial batch without confirmation). Instead, every dismiss
+        // path (ESC / Cmd+W / toolbar close / clicking outside) routes through
+        // the `confirmCancelPresented` confirmation dialog (= the user
+        // explicitly confirms "yes, throw away the partial batch"; = the
+        // dialog is an Apple HIG canonical macOS 14+ `confirmationDialog`
+        // pattern; = a "返回" option lets the user dismiss the dialog and keep
+        // importing). If the user clicks "返回" (= cancel the cancel), the sheet
+        // stays open + the import keeps running. If the user clicks "确认取消",
+        // the orchestrator's cancel + rollback fire (= the partial batch is
+        // gone, = the sheet dismisses to the "no trace" state the boss asked
+        // for).
         .onDisappear {
-            // Intentionally no-op. The
-            // `confirmCancelPresented` flow owns
-            // the dismiss path (= the sheet's
-            // parent binding flips to false ONLY
-            // after the user confirms; = this hook
-            // is the no-op tail of the dismiss
-            // path so we don't double-rollback).
+            // Intentionally no-op. The `confirmCancelPresented` flow owns the dismiss
+            // path (= the sheet's parent binding flips to false ONLY after
+            // the user confirms; = this hook is the no-op tail of the
+            // dismiss path so we don't double-rollback).
         }
-        // The confirmation dialog (= the canonical
-        // Apple HIG macOS 14+ `confirmationDialog`
-        // pattern; = a popup the user can't miss; =
-        // the dismiss is blocked until the user
-        // explicitly picks an outcome). Apple
-        // canonical: the dialog presents ONLY when
-        // `confirmCancelPresented = true`; = the
-        // `isPresented` binding reads the
-        // user-pick (= a Bool return = "true" means
-        // "yes, throw it all away").
+        // The confirmation dialog (= the canonical Apple HIG macOS 14+
+        // `confirmationDialog` pattern; = a popup the user can't miss; = the
+        // dismiss is blocked until the user explicitly picks an outcome).
+        // Apple canonical: the dialog presents ONLY when
+        // `confirmCancelPresented = true`; = the `isPresented` binding reads
+        // the user-pick (= a Bool return = "true" means "yes, throw it all
+        // away").
         .confirmationDialog(
             "确认取消导入？",
             isPresented: $confirmCancelPresented,
@@ -608,11 +477,9 @@ struct ImportSheet: View {
                 }
             }
             Button("返回", role: .cancel) {
-                // No-op; = the user changed their
-                // mind; = the sheet stays open + the
-                // import keeps running; = the
-                // `isPresented` binding already flipped
-                // back to false by SwiftUI's
+                // No-op; = the user changed their mind; = the sheet stays open + the
+                // import keeps running; = the `isPresented` binding
+                // already flipped back to false by SwiftUI's
                 // `confirmationDialog` machinery.
             }
         } message: {
@@ -686,18 +553,12 @@ struct ImportSheet: View {
         tasks.contains { $0.state == .failed }
     }
 
-    // (= boss 2026-10-09 (see OOB.md #2026-10-09)
-    // 于标题重新调研" directive). The
-    // "重新调研所有失败" button is only
-    // visible when at least one task failed
-    // because the file was unreadable on
-    // disk (= `errorMessage` starts with
-    // "读取文件失败"). LLM-routing failures
-    // and write failures are NOT retried by
-    // this button (= those are bugs in the
-    // pipeline config, not file problems;
-    // = the user re-imports the whole batch
-    // if the LLM is misconfigured).
+    // (= boss 2026-10-09 (see OOB.md #2026-10-09) 于标题重新调研" directive). The "重新调研所有失败"
+    // button is only visible when at least one task failed because the file was
+    // unreadable on disk (= `errorMessage` starts with "读取文件失败"). LLM-routing
+    // failures and write failures are NOT retried by this button (= those are bugs
+    // in the pipeline config, not file problems; = the user re-imports the whole
+    // batch if the LLM is misconfigured).
     private var failedReadFileCount: Int {
         tasks.filter {
             $0.state == .failed
@@ -736,32 +597,23 @@ struct ImportSheet: View {
     /// `confirmationDialog` body is the single source
     /// of truth for the cancel-and-rollback path.
     private func showCancelConfirmation() {
-        // The cancel-confirmation dialog is only
-        // meaningful while an import is mid-flight
-        // (= the boss's 2026-10-09 follow-up "那你要
-        // 在取消的时候弹一个拦截弹窗"; = an empty
-        // sheet's "取消" click = no partial batch to
-        // confirm = the dialog would feel like a
-        // roadblock for a no-op dismiss). Two paths:
-        // - `isImporting == true` (= the click
-        //   arrives after 开始导入; = the partial
-        //   batch is on disk; = the dialog is the
-        //   boss's "确认取消 / 返回" UX).
-        // - `isImporting == false` (= the click
-        //   arrives before the user ever clicked
-        //   开始导入; = no batch to confirm; = the
-        //   dismiss is unconditional).
+        // The cancel-confirmation dialog is only meaningful while an import is mid-flight
+        // (= the boss's 2026-10-09 follow-up "那你要 在取消的时候弹一个拦截弹窗"; = an empty
+        // sheet's "取消" click = no partial batch to confirm = the dialog would
+        // feel like a roadblock for a no-op dismiss). Two paths: -
+        // `isImporting == true` (= the click arrives after 开始导入; = the partial
+        // batch is on disk; = the dialog is the boss's "确认取消 / 返回" UX). -
+        // `isImporting == false` (= the click arrives before the user ever
+        // clicked 开始导入; = no batch to confirm; = the dismiss is
+        // unconditional).
         if isImporting {
             confirmCancelPresented = true
         } else {
-            // Pre-run state: just close the sheet.
-            // The dialog would be a roadblock with
-            // nothing to roll back (= the
-            // `ImportService.rollback` path is a
-            // no-op when `writtenURLs` is empty +
-            // `entitiesJSONSnapshot` is the empty
-            // sentinel; = the dialog adds friction
-            // with no upside).
+            // Pre-run state: just close the sheet. The dialog would be a roadblock with
+            // nothing to roll back (= the `ImportService.rollback` path is
+            // a no-op when `writtenURLs` is empty + `entitiesJSONSnapshot`
+            // is the empty sentinel; = the dialog adds friction with no
+            // upside).
             isPresented = false
         }
     }
@@ -800,13 +652,10 @@ struct ImportSheet: View {
             "进行中 \(inFlightCount)"
         ]
         if skipped > 0 {
-            // Insert "跳过 N" between 完成 and 失败
-            // (= matches the pre-fix segment order; =
-            // = 完成 · 跳过 · 失败 · 进行中 = the
-            // canonical Apple HIG progress
-            // annotation pattern; = no surprise
-            // when the user re-imports and sees
-            // the skip count appear).
+            // Insert "跳过 N" between 完成 and 失败 (= matches the pre-fix segment order; = =
+            // 完成 · 跳过 · 失败 · 进行中 = the canonical Apple HIG progress
+            // annotation pattern; = no surprise when the user re-imports
+            // and sees the skip count appear).
             parts.insert("跳过 \(skipped)", at: 1)
         }
         return parts.joined(separator: " · ")
@@ -825,35 +674,11 @@ struct ImportSheet: View {
                   bookStore.books.contains(where: { $0.id == bookID }) else {
                 return false
             }
-            // (= boss
-            // 2026-10-10 "用
-            // 户来
-            // 决定"
-            // directive).
-            // The user must
-            // also pick a
-            // 2nd-level
-            // folder (= no
-            // default; =
-            // the boss's
-            // "让用户
-            // 决定哪
-            // 些是
-            // 世界观
-            // ，哪
-            // 些是
-            // 角色"
-            // requirement;
-            // = the user
-            // explicitly
-            // chooses
-            // world/characters
-            // /etc.; = the
-            // LLM is
-            // reduced to
-            // metadata
-            // extraction
-            // only).
+            // (= boss 2026-10-10 "用 户来 决定" directive). The user must also pick a 2nd-
+            // level folder (= no default; = the boss's "让用户 决定哪 些是 世界观 ，哪
+            // 些是 角色" requirement; = the user explicitly chooses
+            // world/characters /etc.; = the LLM is reduced to metadata
+            // extraction only).
             return selectedBookFolder != nil
         }
     }
@@ -893,50 +718,18 @@ struct ImportSheet: View {
     /// directory).
     private func pickSourceDirectory() {
         let panel = NSOpenPanel()
-        // both
-        // files and
-        // directories
-        // are selectable.
-        // `canChooseFiles`
-        // + `canChooseDirectories`
-        // both = true
-        // makes the
-        // system open
-        // panel show a
-        // toggle between
-        // "files" and
-        // "folders" mode.
+        // both files and directories are selectable. `canChooseFiles` +
+        // `canChooseDirectories` both = true makes the system open panel show
+        // a toggle between "files" and "folders" mode.
         panel.canChooseFiles = true
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = false
-        // filter
-        // to the selected
-        // file type's
-        // extension (= the
-        // open panel
-        // shows .md files
-        // when the user
-        // picks Markdown;
-        // = the user
-        // can't accidentally
-        // pick a .pdf
-        // when they meant
-        // to import .md).
-        // UTType is
-        // Apple canonical
-        // (= a
-        // `UTType` array
-        // = the
-        // `allowedContentTypes`
-        // parameter on
-        // NSOpenPanel;
+        // filter to the selected file type's extension (= the open panel shows .md files
+        // when the user picks Markdown; = the user can't accidentally pick a
+        // .pdf when they meant to import .md). UTType is Apple canonical (= a
+        // `UTType` array = the `allowedContentTypes` parameter on NSOpenPanel;
         // = the system
-                // file picker
-                // uses it to
-                // filter the
-                // list of
-                // selectable
-                // files).
+                // file picker uses it to filter the list of selectable files).
         panel.allowedContentTypes = fileType.allowedContentTypes
         panel.prompt = "选择"
         if !lastSourceURLString.isEmpty {
@@ -967,13 +760,10 @@ struct ImportSheet: View {
     /// without manually re-launching.
     private func startImport() {
         guard let source = sourceDirectory else { return }
-        // (= boss
-        // 2026-10-09 round-18 "强制让用户分开导
-        // 入" directive). The `canStart` gate
-        // already validated the picker state
-        // (= book is selected when destination =
-        // .book; = no book is required when
-        // destination = .referenceLibrary).
+        // (= boss 2026-10-09 round-18 "强制让用户分开导 入" directive). The `canStart` gate
+        // already validated the picker state (= book is selected when
+        // destination = .book; = no book is required when destination =
+        // .referenceLibrary).
         let target: ImportTarget
         switch importDestination {
         case .referenceLibrary:
@@ -994,22 +784,9 @@ struct ImportSheet: View {
                   bookStore.books.contains(where: { $0.id == bookID }) else {
                 return
             }
-            // the
-            // user-picked
-            // 2nd-level
-            // folder is
-            // passed
-            // through to
-            // `ImportTarget`;
-            // = the
-            // orchestrator
-            // forces the
-            // destination
-            // to that
-            // folder
-            // (overriding
-            // the LLM's
-            // pick).
+            // the user-picked 2nd-level folder is passed through to `ImportTarget`; = the
+            // orchestrator forces the destination to that folder
+            // (overriding the LLM's pick).
             target = ImportTarget(
                 destination: .book,
                 wsRoot: libraryRoot(),
@@ -1026,29 +803,23 @@ struct ImportSheet: View {
         isImporting = true
         completedCount = 0
         Task {
-            // The closure is `@Sendable` (=
-            // ImportService's signature) and runs on the
-            // orchestrator's actor; = hop to @MainActor
-            // before mutating @State so SwiftUI sees the
-            // updates on the right isolation domain.
+            // The closure is `@Sendable` (= ImportService's signature) and runs on the
+            // orchestrator's actor; = hop to @MainActor before mutating
+            // @State so SwiftUI sees the updates on the right isolation
+            // domain.
             let onProgress: @Sendable ([ImportTask]) async -> Void = { snapshot in
                 await MainActor.run {
                     tasks = snapshot
                     totalCount = snapshot.count
-                    // The ProgressView's bar value
-                    // counts terminal states (= the
-                    // done counter); = the
-                    // `currentValueLabel` row shows
-                    // the per-state breakdown so the
-                    // user sees live activity from
-                    // the in-flight count too (= the
-                    // user's 2026-10-09 feedback
-                    // "进度条还是不会跟着走，还在憋
-                    // 大招，最后给一个 100%"; = the
-                    // done counter ticks one row at
-                    // a time as the 5-way parallel
-                    // LLM dispatch finishes, = the
-                    // bar visibly moves).
+                    // The ProgressView's bar value counts terminal states (= the done
+                    // counter); = the `currentValueLabel` row
+                    // shows the per-state breakdown so the user
+                    // sees live activity from the in-flight count
+                    // too (= the user's 2026-10-09 feedback
+                    // "进度条还是不会跟着走，还在憋 大招，最后给一个 100%"; = the done
+                    // counter ticks one row at a time as the 5-way
+                    // parallel LLM dispatch finishes, = the bar
+                    // visibly moves).
                     completedCount = snapshot.filter {
                         switch $0.state {
                         case .done, .skipped, .failed: return true
@@ -1077,46 +848,30 @@ struct ImportSheet: View {
                 }.count
                 isImporting = false
                 hasRunOnce = true
-                // Post the library-change notification so
-                // AppleSidebarView (= the canonical sidebar
-                // host) re-reads the on-disk library state
-                // (= the existing SidebarService.reload()
-                // path; = same pattern the create / rename
-                // / delete sheets use today). The user's
-                // 2026-10-09 feedback: "点取消返回后，目录
-                // 树没有刷新".
+                // Post the library-change notification so AppleSidebarView (= the
+                // canonical sidebar host) re-reads the on-disk library
+                // state (= the existing SidebarService.reload() path;
+                // = same pattern the create / rename / delete sheets
+                // use today). The user's 2026-10-09 feedback:
+                // "点取消返回后，目录 树没有刷新".
                 NotificationCenter.default.post(name: .wenshuLibraryDidChange, object: nil)
             }
         }
     }
 
-    // (= boss 2026-10-09 (see OOB.md #2026-10-09)
-    // 研" directive). The
-    // "重新调研所有失败" button
-    // handler. Reuses the same
-    // `ImportTarget` and `router` as
-    // the original `startImport`; the
-    // difference is the orchestrator's
-    // `retryFailedTasksTitleOnly`
-    // method bypasses the disk read
-    // (= the source files failed
-    // `String(contentsOfFile:)`; = the
-    // orchestrator synthesizes a body
-    // from the filename + sibling
-    // .md names in the same folder).
+    // (= boss 2026-10-09 (see OOB.md #2026-10-09) 研" directive). The "重新调研所有失败" button
+    // handler. Reuses the same `ImportTarget` and `router` as the original
+    // `startImport`; the difference is the orchestrator's
+    // `retryFailedTasksTitleOnly` method bypasses the disk read (= the source
+    // files failed `String(contentsOfFile:)`; = the orchestrator synthesizes a
+    // body from the filename + sibling .md names in the same folder).
     private func retryFailedTitleOnly() {
         guard !isRetryingFailed else { return }
-        // The retry path doesn't need the
-        // source directory URL (= each
-        // task already carries its absolute
-        // `sourcePath`; = the orchestrator
-        // synthesizes the body from the
-        // filename + sibling .md names
-        // walked from the same parent dir).
-        // Reuse the same `ImportTarget` shape
-        // as `startImport` (= the user
-        // pinned destination in the sheet
-        // is the same for retry).
+        // The retry path doesn't need the source directory URL (= each task already
+        // carries its absolute `sourcePath`; = the orchestrator synthesizes
+        // the body from the filename + sibling .md names walked from the same
+        // parent dir). Reuse the same `ImportTarget` shape as `startImport` (=
+        // the user pinned destination in the sheet is the same for retry).
         let target: ImportTarget
         switch importDestination {
         case .referenceLibrary:
@@ -1161,30 +916,15 @@ struct ImportSheet: View {
                         default: return false
                         }
                     }.count
-                    // (= boss
-                    // 2026-10-10 "补充，
-                    // 重新调研时，进行
-                    // 中，不统计"
-                    // directive). The
-                    // "进行中 N" counter
-                    // is suppressed for
-                    // the duration of the
-                    // retry (= the retry's
-                    // in-flight .routing
-                    // tasks are not
-                    // visible to the user
-                    // as "进行中"; = the
-                    // user just sees the
-                    // completedCount
-                    // ticking up; = the
-                    // progress bar moves
-                    // by completedCount
-                    // alone; = the boss's
-                    // intent is "retry is
-                    // a different mode
-                    // from the import;
-                    // = don't conflate
-                    // the two activity
+                    // (= boss 2026-10-10 "补充， 重新调研时，进行 中，不统计" directive). The "进行中 N"
+                    // counter is suppressed for the duration of
+                    // the retry (= the retry's in-flight .routing
+                    // tasks are not visible to the user as "进行中";
+                    // = the user just sees the completedCount
+                    // ticking up; = the progress bar moves by
+                    // completedCount alone; = the boss's intent is
+                    // "retry is a different mode from the import;
+                    // = don't conflate the two activity
                     // counters").
                     inFlightCount = 0
                 }
@@ -1402,31 +1142,23 @@ extension ImportSheet {
         guard canGoNext else { return }
         switch currentStep {
         case .configure:
-            // "开始" button. Triggers the import
-            // + advances the wizard. The
-            // orchestrator's `importFiles` runs
-            // asynchronously (= the user lands
-            // on .running; = the progress view
-            // animates as the orchestrator emits
-            // `onProgress` ticks).
+            // "开始" button. Triggers the import + advances the wizard. The orchestrator's
+            // `importFiles` runs asynchronously (= the user lands on
+            // .running; = the progress view animates as the orchestrator
+            // emits `onProgress` ticks).
             startImport()
             currentStep = .running
         case .running:
-            // "下一步" while on .running. The
-            // user can manually advance once
-            // `isRunComplete` flips (= the
-            // orchestrator has finished; = the
-            // user might be reviewing the
-            // progress while waiting for the
-            // next onProgress tick).
+            // "下一步" while on .running. The user can manually advance once `isRunComplete`
+            // flips (= the orchestrator has finished; = the user might be
+            // reviewing the progress while waiting for the next onProgress
+            // tick).
             currentStep = .results
         case .results:
-            // "完成" button. Advance to .done
-            // (= the summary view).
+            // "完成" button. Advance to .done (= the summary view).
             currentStep = .done
         case .done:
-            // Terminal state. The "完成"
-            // button dismisses the sheet.
+            // Terminal state. The "完成" button dismisses the sheet.
             isPresented = false
         }
     }
@@ -1475,104 +1207,41 @@ extension ImportSheet {
                         Text(fileType.placeholderHint)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
-                            // (= boss
-                            // 2026-10-10 "提示文
-                            // 案显示不全"
-                            // directive). The
-                            // previous
-                            // implementation
-                            // truncated the
-                            // placeholder
-                            // with the
-                            // default
-                            // truncation
-                            // mode (= tail)
-                            // which cut
-                            // off the
-                            // meaningful
-                            // portion of
-                            // the hint (=
-                            // "选择一个包
-                            // 含 .md 文"
-                            // = the user
-                            // couldn't see
-                            // the file
-                            // extension at
-                            // the end; =
-                            // the most
-                            // important
-                            // part of the
-                            // hint was
-                            // missing).
-                            // Fix: middle
-                            // truncation
-                            // (= the same
-                            // pattern the
-                            // path uses
-                            // above; = the
-                            // middle of
-                            // the hint is
-                            // omitted and
-                            // the file
-                            // extension
-                            // stays
-                            // visible at
-                            // the end; =
-                            // "选择...含
-                            // .md 文件
-                            // 的目录" =
-                            // the user
-                            // reads the
-                            // hint as
-                            // "choose a
-                            // directory
-                            // containing
-                            // .md files").
+                            // (= boss 2026-10-10 "提示文 案显示不全" directive). The previous
+                            // implementation truncated the
+                            // placeholder with the default
+                            // truncation mode (= tail)
+                            // which cut off the meaningful
+                            // portion of the hint (=
+                            // "选择一个包 含 .md 文" = the user
+                            // couldn't see the file
+                            // extension at the end; = the
+                            // most important part of the
+                            // hint was missing). Fix:
+                            // middle truncation (= the
+                            // same pattern the path uses
+                            // above; = the middle of the
+                            // hint is omitted and the file
+                            // extension stays visible at
+                            // the end; = "选择...含 .md 文件
+                            // 的目录" = the user reads the
+                            // hint as "choose a directory
+                            // containing .md files").
                             .truncationMode(.middle)
-                            // 
-                            // the Text
-                            // needs to
-                            // fill the
-                            // available
-                            // horizontal
-                            // space (= the
-                            // HStack
-                            // contains a
-                            // fixed-size
-                            // button on
-                            // the right;
-                            // = the Text
-                            // gets the
-                            // rest; =
-                            // without
-                            // maxWidth the
-                            // Text would
-                            // shrink-to-
-                            // fit and the
-                            // truncation
-                            // would kick
-                            // in even
-                            // when the
-                            // full hint
-                            // could fit
-                            // = the
-                            // shrink-
-                            // fit is
-                            // iOS-only;
-                            // = on
-                            // macOS the
-                            // Text
-                            // expands
-                            // until the
-                            // HStack
-                            // overflows;
-                            // = adding
-                            // maxWidth
-                            // makes the
-                            // Text
-                            // take the
-                            // remaining
-                            // space
+                            // the Text needs to fill the available horizontal space (=
+                            // the HStack contains a fixed-
+                            // size button on the right; =
+                            // the Text gets the rest; =
+                            // without maxWidth the Text
+                            // would shrink-to- fit and the
+                            // truncation would kick in
+                            // even when the full hint
+                            // could fit = the shrink- fit
+                            // is iOS-only; = on macOS the
+                            // Text expands until the
+                            // HStack overflows; = adding
+                            // maxWidth makes the Text take
+                            // the remaining space
                             // explicitly).
                             .frame(maxWidth: .infinity, alignment: .trailing)
                             .help(fileType.placeholderHint)
@@ -1580,74 +1249,34 @@ extension ImportSheet {
                     Button("选择…") { pickSourceDirectory() }
                         .disabled(isImporting)
                         .buttonStyle(.borderedProminent)
-                        // (= boss
-                        // 2026-10-10 "选择按钮
-                        // 的文字大小，和按
-                        // 钮高度，与其它
-                        // 按钮不同，需要
-                        // 拉成同意大小"
+                        // (= boss 2026-10-10 "选择按钮 的文字大小，和按 钮高度，与其它 按钮不同，需要 拉成同意大小"
                         // directive). REMOVED
-                        // `.controlSize(.small)`
-                        // (= the "选择…" button
-                        // is now the default
-                        // .controlSize(.regular)
-                        // = 28 PT tall + the
-                        // canonical Apple HIG
-                        // macOS body text size;
-                        // = the button height
-                        // matches the segmented
-                        // Picker (= "导入到
-                        // 资料库" / "导入到
-                        // 书") + the menu
-                        // Pickers (= Markdown /
-                        // 请选择书籍 / 基于
-                        // 现有内容整理 / 3);
-                        // = the visual rhythm
-                        // across the trailing
-                        // column is now
-                        // uniform; = the user
-                        // reads the row as
-                        // "all controls are
-                        // the same height").
-                        // The previous
-                        // `.small` (= 22 PT
-                        // tall + smaller text)
-                        // made "选择…" stand
-                        // out as visually
-                        // inconsistent with
-                        // its row neighbors.
+                        // `.controlSize(.small)` (= the "选择…"
+                        // button is now the default
+                        // .controlSize(.regular) = 28 PT tall
+                        // + the canonical Apple HIG macOS body
+                        // text size; = the button height
+                        // matches the segmented Picker (= "导入到
+                        // 资料库" / "导入到 书") + the menu Pickers
+                        // (= Markdown / 请选择书籍 / 基于 现有内容整理 /
+                        // 3); = the visual rhythm across the
+                        // trailing column is now uniform; =
+                        // the user reads the row as "all
+                        // controls are the same height"). The
+                        // previous `.small` (= 22 PT tall +
+                        // smaller text) made "选择…" stand out
+                        // as visually inconsistent with its
+                        // row neighbors.
                 }
             }
 
-            // Divider
-            // between the file /
-            // source section and
-            // the destination
-            // section (= the
-            // boss's "用一条
-            // 分割线分割"
-            // directive; = the
-            // previous
-            // `PickerSectionLabel
-            // ` + 24 PT gap is
-            // replaced with a
-            // single hairline
-            // Divider; = the
-            // small vertical
-            // padding around
-            // the Divider is
-            // 8 PT (= `spacing
-            // Standard`) =
-            // enough for the
-            // user to see the
-            // Divider as a
-            // deliberate
-            // separator; =
-            // matches the
-            // wenshu v3.0
-            // design system
-            // Divider padding
-            // convention).
+            // Divider between the file / source section and the destination section (=
+            // the boss's "用一条 分割线分割" directive; = the previous
+            // `PickerSectionLabel ` + 24 PT gap is replaced with a single
+            // hairline Divider; = the small vertical padding around the
+            // Divider is 8 PT (= `spacing Standard`) = enough for the user
+            // to see the Divider as a deliberate separator; = matches the
+            // wenshu v3.0 design system Divider padding convention).
             Divider()
                 .padding(.vertical, DesignTokens.spacingStandard)
 
@@ -1681,130 +1310,27 @@ extension ImportSheet {
                     .labelsHidden()
                     .disabled(isImporting)
                 }
-                // (= boss
-                // 2026-10-10 "用
-                // 户在
-                // 导入
-                // 书的
-                // 时候，
-                // 要选
-                // 择二
-                // 级目
-                // 录
-                // ... 资料
-                // 库不用"
-                // 反馈).
-                // The 2nd-level
-                // folder Picker
-                // (= the
-                // "目标目录"
-                // row). Only
-                // shown when
-                // `importDestination
-                // == .book` AND
-                // a book is
-                // selected (=
-                // the Picker
-                // needs a
-                // bookId
-                // context to
-                // resolve the
-                // folder's
-                // path; = the
-                // user can't
-                // pick a
-                // folder before
-                // picking a
-                // book). Uses
-                // the same
-                // `Picker`
-                // + `PickerRow`
-                // pattern as
-                // the 目标书籍
-                // row above (=
-                // consistent
-                // visual
-                // treatment;
-                // = the
-                // segmented
-                // style is NOT
-                // used here
-                // because the
-                // 6 options are
-                // too long to
-                // fit; = the
-                // menu style
-                // shows a
-                // compact
-                // dropdown).
-                // (= boss
-                // 2026-10-10 "这
-                // 个选择
-                // 目录
-                // 的，
-                // 不用
-                // 选书
-                // 后
-                // 再
-                // 显
-                // 示，
-                // 就
-                // 长
-                // 显
-                // 就
-                // 可
-                // 以
-                // 了"
-                // feedback).
-                // The 2nd-level
-                // folder
-                // Picker is
-                // now ALWAYS
-                // shown when
-                // `importDestination
-                // == .book` (=
-                // no
-                // conditional
-                // on
-                // `selectedBookID
-                // != nil`;
-                // = the user
-                // sees the
-                // folder
-                // picker
-                // immediately
-                // when they
-                // pick
-                // "导入到书";
-                // = the Picker
-                // is disabled
-                // (greyed out)
-                // until a
-                // book is
-                // selected
-                // for the
-                // Picker to
-                // make sense
-                // visually;
-                // = but the
-                // row itself is
-                // always
-                // there so
-                // the user
-                // doesn't
-                // see the
-                // layout
-                // jump when
-                // they pick
-                // a book).
-                // The same row
-                // format as
-                // 目标书籍 (=
-                // PickerRow +
-                // .menu
-                // picker;
-                // = visually
-                // consistent).
+                // (= boss 2026-10-10 "用 户在 导入 书的 时候， 要选 择二 级目 录 ... 资料 库不用" 反馈). The 2nd-
+                // level folder Picker (= the "目标目录" row). Only shown
+                // when `importDestination == .book` AND a book is
+                // selected (= the Picker needs a bookId context to
+                // resolve the folder's path; = the user can't pick a
+                // folder before picking a book). Uses the same
+                // `Picker` + `PickerRow` pattern as the 目标书籍 row above
+                // (= consistent visual treatment; = the segmented
+                // style is NOT used here because the 6 options are too
+                // long to fit; = the menu style shows a compact
+                // dropdown). (= boss 2026-10-10 "这 个选择 目录 的， 不用 选书 后 再
+                // 显 示， 就 长 显 就 可 以 了" feedback). The 2nd-level folder
+                // Picker is now ALWAYS shown when `importDestination
+                // == .book` (= no conditional on `selectedBookID !=
+                // nil`; = the user sees the folder picker immediately
+                // when they pick "导入到书"; = the Picker is disabled
+                // (greyed out) until a book is selected for the Picker
+                // to make sense visually; = but the row itself is
+                // always there so the user doesn't see the layout jump
+                // when they pick a book). The same row format as 目标书籍
+                // (= PickerRow + .menu picker; = visually consistent).
                 PickerRow {
                     Text("目标目录")
                         .foregroundStyle(.primary)
@@ -1823,11 +1349,7 @@ extension ImportSheet {
                 }
             }
 
-            // Divider
-            // between the
-            // destination
-            // section and the AI
-            // section.
+            // Divider between the destination section and the AI section.
             Divider()
                 .padding(.vertical, DesignTokens.spacingStandard)
 
@@ -1891,22 +1413,9 @@ extension ImportSheet {
                 }
                 .progressViewStyle(.linear)
             }
-            // 
-            // Divider between
-            // the progress
-            // section and the
-            // per-file list
-            // (= the boss's
-            // "演示要每一步
-            // 骤的页面都一
-            // 样" directive;
-            // = every step
-            // uses the same
-            // "section
-            // content +
-            // Divider +
-            // list"
-            // pattern).
+            // Divider between the progress section and the per-file list (= the boss's
+            // "演示要每一步 骤的页面都一 样" directive; = every step uses the same
+            // "section content + Divider + list" pattern).
             Divider()
                 .padding(.vertical, DesignTokens.spacingStandard)
             ImportProgressStrip(tasks: tasks)
@@ -1960,48 +1469,19 @@ extension ImportSheet {
     @ViewBuilder
     fileprivate var step3ResultsView: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // The per-file list (= the
-            // same strip as Step 2;
-            // = per-row "重试" buttons
-            // are inside the
-            // ImportProgressStrip /
-            // ImportTaskRow).
+            // The per-file list (= the same strip as Step 2; = per-row "重试" buttons are
+            // inside the ImportProgressStrip / ImportTaskRow).
             ImportProgressStrip(tasks: tasks)
                 .frame(maxHeight: DesignTokens.kanbanBoardMaxHeight)
-            // the
-            // "重新调研所有失败"
-            // button at the
-            // BOTTOM of the
-            // results view (= the
-            // boss's "挨着完成
-            // 放" directive;
-            // = the button is
-            // now visually
-            // adjacent to the
-            // nav bar's "完成"
-            // button; = the
-            // user reads the
-            // two buttons as
-            // "secondary action
-            // + primary action"
-            // = a standard
-            // dialog pattern).
-            // The button is only
-            // visible when at
-            // least one task
-            // failed because
-            // the file was
-            // unreadable on
-            // disk (= same
-            // condition as
-            // before; = the
+            // the "重新调研所有失败" button at the BOTTOM of the results view (= the boss's "挨着完成
+            // 放" directive; = the button is now visually adjacent to the
+            // nav bar's "完成" button; = the user reads the two buttons as
+            // "secondary action + primary action" = a standard dialog
+            // pattern). The button is only visible when at least one task
+            // failed because the file was unreadable on disk (= same
+            // condition as before; = the
             if canRetryFailedTitleOnly {
-                // hairline
-                // Divider above
-                // the action row
-                // (= the "操作
-                // 上面需要也加
-                // 一条分割线"
+                // hairline Divider above the action row (= the "操作 上面需要也加 一条分割线"
                 // requirement).
                 Divider()
                 HStack {
@@ -2157,103 +1637,37 @@ private struct ImportTaskRow: View {
                 .font(.caption)
                 .foregroundStyle(.red)
         }
-        // (= boss
-        // 2026-10-10 "故事宪法，没有
-        // 重新分析是不是
-        // 内容相同" 反馈).
-        // The skip reason (= a
-        // short explanation
-        // for the user; =
-        // "内容相同 (LLM
-        // confidence 0.95):
-        // 两段完全相同" or
-        // "同 title retry skip"
-        // from the title-only
-        // path). Shown as a
-        // secondary caption
-        // below the state pill.
+        // (= boss 2026-10-10 "故事宪法，没有 重新分析是不是 内容相同" 反馈). The skip reason (= a short
+        // explanation for the user; = "内容相同 (LLM confidence 0.95): 两段完全相同" or
+        // "同 title retry skip" from the title-only path). Shown as a secondary
+        // caption below the state pill.
         if let reason = task.skippedReason {
             Text(reason)
                 .font(.caption)
                 .foregroundStyle(.tertiary)
                 .lineLimit(2)
         }
-        // ticket 04 (= boss
-        // 2026-10-10 "甚至原
-        // 文件 A 的内容,
-        // 与我们的 B 模版
-        // 不符合, 多了很
-        // 我非模版的内
-        // 容, 我希望能自
-        // 动拆出一个文
-        // 件, 放在合适的
-        // 目录中去"
-        // feedback).
-        // When the LLM
-        // suggested N
-        // extra files
-        // (= the
-        // split-out
-        // content), show
-        // a caption below
-        // the state pill
-        // counting how
-        // many were
-        // written.
-        // Examples:
-        //   - " + 3 拆出"
-        //     (= all done)
-        //   - " + 1/3 拆出"
-        //     (= mid-flight)
-        //   - " + 2 拆出, 1 失败"
-        //     (= some
-        //     failed)
-        // Hidden when
-        // extraFilesTotal = 0
-        // (= the canonical
-        // case where the
-        // LLM had nothing
-        // to split out).
+        // ticket 04 (= boss 2026-10-10 "甚至原 文件 A 的内容, 与我们的 B 模版 不符合, 多了很 我非模版的内 容, 我希望能自
+        // 动拆出一个文 件, 放在合适的 目录中去" feedback). When the LLM suggested N extra
+        // files (= the split-out content), show a caption below the state pill
+        // counting how many were written. Examples: - " + 3 拆出" (= all done) -
+        // " + 1/3 拆出" (= mid-flight) - " + 2 拆出, 1 失败" (= some failed) Hidden
+        // when extraFilesTotal = 0 (= the canonical case where the LLM had
+        // nothing to split out).
         if task.extraFilesTotal > 0 {
             extraFilesCaption
         }
-        // (= boss 2026-10-10 (see OOB.md #2026-10-10)
-        // 做"). When the LLM could not
-        // extract the 6 必填 (= phase 2
-        // empty), show a small ⚠️
-        // needs-attention badge next
-        // to the row so the user knows
-        // there are empty 占位子文件
-        // (= Apple HIG needs-attention
-        // pattern; = SF Symbol
-        // exclamationmark.triangle.fill
-        // + orange + caption font).
-        // (= boss 2026-10-10 (see OOB.md #2026-10-10)
-        // 馈" feedback).
-        // Real-time LLM
-        // activity log
-        // (= scrolling
-        // terminal-like
-        // view; = the
-        // user sees what
-        // the LLM is
-        // doing RIGHT
-        // NOW; = the
-        // last 5 lines
-        // are shown;
-        // = each line
-        // gets a monospaced
-        // font + .caption
-        // + .secondary
-        // color; = the
-        // user can scroll
-        // to see older
-        // entries).
-        // Hidden when
-        // activityLog is
-        // empty (= before
-        // the orchestrator
-        // appends anything).
+        // (= boss 2026-10-10 (see OOB.md #2026-10-10) 做"). When the LLM could not extract
+        // the 6 必填 (= phase 2 empty), show a small ⚠️ needs-attention badge
+        // next to the row so the user knows there are empty 占位子文件 (= Apple HIG
+        // needs-attention pattern; = SF Symbol exclamationmark.triangle.fill +
+        // orange + caption font). (= boss 2026-10-10 (see OOB.md #2026-10-10)
+        // 馈" feedback). Real-time LLM activity log (= scrolling terminal-like
+        // view; = the user sees what the LLM is doing RIGHT NOW; = the last 5
+        // lines are shown; = each line gets a monospaced font + .caption +
+        // .secondary color; = the user can scroll to see older entries).
+        // Hidden when activityLog is empty (= before the orchestrator appends
+        // anything).
         if !task.activityLog.isEmpty {
             activityLogView
         }
@@ -2273,15 +1687,9 @@ private struct ImportTaskRow: View {
     /// activityLog is non-empty.
     @ViewBuilder
     private var activityLogView: some View {
-        // Show last 5 entries (= the
-        // most recent = the
-        // current LLM action;
-        // = older entries
-        // can be inferred from
-        // the sequence; = the
-        // 30-entry cap is
-        // still enforced in
-        // `appendActivity`).
+        // Show last 5 entries (= the most recent = the current LLM action; = older
+        // entries can be inferred from the sequence; = the 30-entry cap is
+        // still enforced in `appendActivity`).
         let visible = task.activityLog.suffix(5)
         VStack(alignment: .leading, spacing: 1) {
             ForEach(Array(visible.enumerated()), id: \.offset) { idx, line in
@@ -2335,143 +1743,26 @@ private struct ImportTaskRow: View {
         case .pending:
             Text("待处理").font(.caption).foregroundStyle(.secondary)
         case .routing:
-            // (= boss
-            // 2026-10-10 "这
-            // 个分析
-            // 中三
-            // 个字
-            // 前面
-            // ，需
-            // 要加
-            // 一个
-            // 小小
-            // 的动
-            // 态
-            // SF，
-            // 循环
-            // 播放
-            // ，
-            // 要
-            // 不
-            // 然
-            // 这
-            // 个
-            // 界
-            // 面
-            // 像
-            // 静
-            // 止
-            // 了" 反馈).
-            // The
-            // `ellipsis`
-            // SF Symbol
-            // (= three
-            // dots, no
-            // background)
-            // + the
-            // `.variableColor`
-            // effect (= the
-            // dots
-            // animate
-            // through
-            // colors
-            // in a
-            // loop) =
-            // the
-            // "wait / in
-            // progress"
-            // visual
-            // affordance;
-            // = the
-            // user
-            // sees
-            // continuous
-            // motion (= the
-            // `SFIcon`
-            // factory
-            // exposes the
-            // symbol via
-            // the canonical
-            // wenshu-icon-policy
-            // pipeline; = the
-            // `.symbolEffect`
-            // is
-            // attached
-            // to the
-            // underlying
-            // Image; = SF
-            // Symbols 6
-            // variableColor
-            // dots loop
-            // forever at
-            // ~1 Hz; = the
-            // user
-            // immediately
-            // sees
-            // "this is
-            // still
-            // running");
-            // = without
-            // this, the
-            // previous
-            // static
-            // "分析中"
-            // text felt
-            // frozen (=
-            // the boss's
-            // "像
-            // 静
-            // 止
-            // 了"
-            // feedback).
+            // (= boss 2026-10-10 "这 个分析 中三 个字 前面 ，需 要加 一个 小小 的动 态 SF， 循环 播放 ， 要 不 然 这 个 界
+            // 面 像 静 止 了" 反馈). The `ellipsis` SF Symbol (= three dots, no
+            // background) + the `.variableColor` effect (= the dots
+            // animate through colors in a loop) = the "wait / in progress"
+            // visual affordance; = the user sees continuous motion (= the
+            // `SFIcon` factory exposes the symbol via the canonical
+            // wenshu-icon-policy pipeline; = the `.symbolEffect` is
+            // attached to the underlying Image; = SF Symbols 6
+            // variableColor dots loop forever at ~1 Hz; = the user
+            // immediately sees "this is still running"); = without this,
+            // the previous static "分析中" text felt frozen (= the boss's "像
+            // 静 止 了" feedback).
             HStack(spacing: DesignTokens.spacingCaption) {
-                // (= boss
-                // 2026-10-10 "那
-                // 个
-                // 圆
-                // 背
-                // 景
-                // 去
-                // 掉
-                // ，
-                // 只
-                // 留
-                // ICON
-                // "
-                // feedback).
-                // Switched
-                // from
-                // `ellipsis.circle.fill`
-                // (= three
-                // dots inside
-                // a filled
-                // circle; =
-                // the "gray
-                // circle" the
-                // boss
-                // disliked)
-                // to
-                // `ellipsis`
-                // (= three
-                // dots, no
-                // background;
-                // = matches
-                // the Apple
-                // HIG macOS
-                // 14+
-                // 'system
-                // progress
-                // indicator'
-                // pattern; =
-                // the `variableColor`
-                // rendering
-                // still
-                // animates
-                // the dots
-                // as the
-                // canonical
-                // "thinking"
-                // cue).
+                // (= boss 2026-10-10 "那 个 圆 背 景 去 掉 ， 只 留 ICON " feedback). Switched from
+                // `ellipsis.circle.fill` (= three dots inside a filled
+                // circle; = the "gray circle" the boss disliked) to
+                // `ellipsis` (= three dots, no background; = matches
+                // the Apple HIG macOS 14+ 'system progress indicator'
+                // pattern; = the `variableColor` rendering still
+                // animates the dots as the canonical "thinking" cue).
                 SFIcon(
                     "ellipsis",
                     style: .toolbar,
@@ -2483,26 +1774,9 @@ private struct ImportTaskRow: View {
                     .foregroundStyle(.secondary)
             }
         case .writing:
-            // 
-            // same idea as
-            // `routing` —
-            // show a
-            // spinning
-            // icon to
-            // signal
-            // activity
-            // (= the
-            // user might
-            // be confused
-            // if the
-            // state went
-            // from
-            // "分析中"
-            // to
-            // "写入中"
-            // with no
-            // visible
-            // change).
+            // same idea as `routing` — show a spinning icon to signal activity (= the
+            // user might be confused if the state went from "分析中" to "写入中"
+            // with no visible change).
             HStack(spacing: DesignTokens.spacingCaption) {
                 SFIcon(
                     "arrow.down.circle.fill",
@@ -2545,21 +1819,8 @@ private struct StubImportRouterForSheet: ImportRouter {
             extraFiles: [],
         )
     }
-    // 
-    // the stub's
-    // isContentSame
-    // is a
-    // conservative
-    // "always different"
-    // default (= the
-    // user always
-    // sees a fresh
-    // import in
-    // stub mode;
-    // = no false
-    // skips in
-    // the stub
-    // path).
+    // the stub's isContentSame is a conservative "always different" default (= the user
+    // always sees a fresh import in stub mode; = no false skips in the stub path).
     func isContentSame(
         sourceBody: String,
         existingBody: String,
@@ -2600,28 +1861,12 @@ private struct WizardStepIndicator: View {
             ForEach(ImportSheet.WizardStep.allCases) { step in
                 let reachable = canReach(step)
                 Button {
-                    // (= boss
-                    // 2026-10-10 "dot
-                    // 如果没有进到下一
-                    // 步，dot 就不能
-                    // 跳到下一步骤
-                    // 不能一进来什么
-                    // 都没有，就可以
-                    // 跳到完成去"
-                    // directive). Only
-                    // jump if the step
-                    // is reachable
-                    // (= the button is
-                    // also .disabled
-                    // below; = the
-                    // guard is a
-                    // defense-in-depth
-                    // check). The
-                    // round-44
-                    // "可以跳到任意
-                    // 步骤" behavior
-                    // is the bug this
-                    // commit fixes.
+                    // (= boss 2026-10-10 "dot 如果没有进到下一 步，dot 就不能 跳到下一步骤 不能一进来什么 都没有，就可以
+                    // 跳到完成去" directive). Only jump if the step is
+                    // reachable (= the button is also .disabled
+                    // below; = the guard is a defense-in-depth
+                    // check). The round-44 "可以跳到任意 步骤" behavior is
+                    // the bug this commit fixes.
                     guard reachable else { return }
                     currentStep = step
                 } label: {
@@ -2653,20 +1898,10 @@ private struct WizardStepIndicator: View {
     }
 
     private func dotColor(for step: ImportSheet.WizardStep, reachable: Bool) -> Color {
-        // a step
-        // that is NOT reachable
-        // (= the user hasn't
-        // reached it yet) is
-        // dimmed more than a
-        // step that is just
-        // "future from the
-        // current" (= .secondary
-        // .opacity(0.4) = the
-        // visual reads as
-        // "disabled"; = the
-        // user understands
-        // "I can't click this
-        // yet").
+        // a step that is NOT reachable (= the user hasn't reached it yet) is dimmed more
+        // than a step that is just "future from the current" (= .secondary
+        // .opacity(0.4) = the visual reads as "disabled"; = the user
+        // understands "I can't click this yet").
         if !reachable { return .secondary.opacity(0.4) }
         if step == currentStep { return .accentColor }
         if step.rawValue < currentStep.rawValue { return .green }
@@ -2842,41 +2077,15 @@ private struct WizardStepNavBar: View {
 
     var body: some View {
         HStack {
-            // hide the
-            // back button on
-            // step 1 entirely.
-            // An `if` (not
-            // `.disabled`)
-            // because the
-            // boss explicitly
-            // said "不应该有"
-            // (= "should not
-            // exist"; = a
-            // disabled
-            // button is
-            // visible; = the
-            // boss wants it
-            // removed from
+            // hide the back button on step 1 entirely. An `if` (not `.disabled`) because
+            // the boss explicitly said "不应该有" (= "should not exist"; = a
+            // disabled button is visible; = the boss wants it removed from
             // the chrome).
             if canGoPrev {
                 Button("上一步") { onPrev() }
-                    // 
-                    // the back
-                    // button uses
-                    // the
-                    // .borderless
-                    // style (=
-                    // Pages
-                    // inspector
-                    // never uses
-                    // a prominent
-                    // back button;
-                    // = a plain
-                    // text button
-                    // is the
-                    // canonical
-                    // "I'm
-                    // secondary"
+                    // the back button uses the .borderless style (= Pages inspector never
+                    // uses a prominent back button; = a plain text
+                    // button is the canonical "I'm secondary"
                     // style).
                     .buttonStyle(.borderless)
             }
@@ -2884,19 +2093,10 @@ private struct WizardStepNavBar: View {
             Button(primaryActionLabel) { onNext() }
                 .keyboardShortcut(.defaultAction)
                 .disabled(!canGoNext)
-                // the
-                // primary action
-                // uses the
-                // .borderedProminent
-                // style with
-                // .controlSize(.regular)
-                // (= Pages inspector
-                // primary action
-                // = a 28 PT pill
-                // button; = the
-                // .borderedProminent
-                // is the canonical
-                // "do the thing"
+                // the primary action uses the .borderedProminent style with
+                // .controlSize(.regular) (= Pages inspector primary
+                // action = a 28 PT pill button; = the
+                // .borderedProminent is the canonical "do the thing"
                 // visual).
                 .buttonStyle(.borderedProminent)
                 .controlSize(.regular)
@@ -2905,55 +2105,18 @@ private struct WizardStepNavBar: View {
     }
 }
 
-// (= boss 2026-10-10 (see OOB.md #2026-10-10)
-// directive). The hairline
-// Divider between the
-// step's per-step content
-// (= the 设定区 = the
-// pickers / progress bar
-// / file list / summary)
-// and the bottom action
-// row (= the 操作区 = the
-// nav bar with "上一步"
-// + "下一步/开始/
-// 完成"). The Divider is
-// the visual seam that
-// separates "what the user
-// is configuring /
-// observing" from "what
-// the user does next" (=
-// Apple HIG canonical
-// dialog pattern; = the
-// Pages inspector uses
-// the same hairline
-// Divider between the
-// inspector body and the
-// toolbar at the bottom
-// of the panel).
-//
-// The Divider is applied
-// to the sheet body
-// (= ABOVE the
-// WizardStepNavBar; =
-// below the per-step
-// view's content; = on
-// every step) so the
-// action area is always
-// visually separated
-// from the content area.
-// The Divider has no
-// vertical padding (= the
-// Divider is a single
-// hairline; = the
-// padding above the
-// Divider is supplied by
-// the per-step view's
-// bottom padding; = the
-// padding below the
-// Divider is supplied by
-// the WizardStepNavBar's
-// `padding(.top, ...
-// spacingStandard)`).
+// (= boss 2026-10-10 (see OOB.md #2026-10-10) directive). The hairline Divider between
+// the step's per-step content (= the 设定区 = the pickers / progress bar / file list /
+// summary) and the bottom action row (= the 操作区 = the nav bar with "上一步" + "下一步/开始/
+// 完成"). The Divider is the visual seam that separates "what the user is configuring /
+// observing" from "what the user does next" (= Apple HIG canonical dialog pattern; =
+// the Pages inspector uses the same hairline Divider between the inspector body and
+// the toolbar at the bottom of the panel). The Divider is applied to the sheet body (=
+// ABOVE the WizardStepNavBar; = below the per-step view's content; = on every step) so
+// the action area is always visually separated from the content area. The Divider has
+// no vertical padding (= the Divider is a single hairline; = the padding above the
+// Divider is supplied by the per-step view's bottom padding; = the padding below the
+// Divider is supplied by the WizardStepNavBar's `padding(.top, ... spacingStandard)`).
 private struct WizardActionDivider: View {
     var body: some View {
         Divider()

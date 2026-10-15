@@ -1,33 +1,18 @@
-//
-//  ImportEnvelope.swift
-//
-//  Wire envelope types for the markdown import feature
-//  (= boss 2026-10-09 (see OOB.md #2026-10-09)
-//  entry; = the path that lets the user point wenshu at a
-//  folder of external .md files and have the agent route
-//  each one to either a book folder (= world / characters /
-//  outlines / chapters / drafts) or the reference library
-//  (= research notes; = external knowledge the book can
-//  reference).
-//
-//  This file holds the **data model** only (= the wire
-//  contract the ImportService and the Librarian agent pass
-//  back and forth; = the service / view / agent that produce
-//  and consume the envelope live in other files per the
-//  T1/T2/T3/T4 ticket split in
-//  .scratch/2026-10-09-md-import-feature/tickets.md).
-//
-//  Apple canonical shape:
-//   - The book-folder destination REUSES the existing
-//     `BookFolder` enum (= the 8-case enum
-//     that already carries the on-disk directoryName
-//     canonical mapping; = the source of truth for
-//     "5 standard folders" = its first 5 cases).
-//   - The destination is `bookFolder(BookFolder)`
-//     or `referenceLibrary` (= the same split).
-//   - Every Codable + Sendable type here is the wire contract
-//     (= the conductor hands these across actor boundaries).
-//
+// ImportEnvelope.swift Wire envelope types for the markdown import feature (= boss
+// 2026-10-09 (see OOB.md #2026-10-09) entry; = the path that lets the user point
+// wenshu at a folder of external .md files and have the agent route each one to either
+// a book folder (= world / characters / outlines / chapters / drafts) or the reference
+// library (= research notes; = external knowledge the book can reference). This file
+// holds the **data model** only (= the wire contract the ImportService and the
+// Librarian agent pass back and forth; = the service / view / agent that produce and
+// consume the envelope live in other files per the T1/T2/T3/T4 ticket split in
+// .scratch/2026-10-09-md-import-feature/tickets.md). Apple canonical shape: - The
+// book-folder destination REUSES the existing `BookFolder` enum (= the 8-case enum
+// that already carries the on-disk directoryName canonical mapping; = the source of
+// truth for "5 standard folders" = its first 5 cases). - The destination is
+// `bookFolder(BookFolder)` or `referenceLibrary` (= the same split). - Every Codable +
+// Sendable type here is the wire contract (= the conductor hands these across actor
+// boundaries).
 
 import Foundation
 
@@ -481,10 +466,8 @@ enum ImportEnvelope: Codable, Sendable, Hashable {
             let filePath = try c.decode(String.self, forKey: .filePath)
             let bookId = try c.decode(UUID.self, forKey: .targetBookId)
             let shelfId = try c.decode(UUID.self, forKey: .targetShelfId)
-            // (= if a pre-v2.7
-            // envelope omits `rewriteMode`, default to
-            // `consolidate`; = the orchestrator's
-            // previous behavior = no tools + original
+            // (= if a pre-v2.7 envelope omits `rewriteMode`, default to `consolidate`; =
+            // the orchestrator's previous behavior = no tools + original
             // body verbatim).
             let rewriteMode = (try? c.decode(ImportFileInput.RewriteMode.self, forKey: .rewriteMode)) ?? .consolidate
             self = .importFile(ImportFileInput(

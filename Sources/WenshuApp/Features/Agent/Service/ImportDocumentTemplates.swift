@@ -1,131 +1,34 @@
-//
-//  ImportDocumentTemplates.swift · Wenshu
-//
-//  (= boss 2026-10-10 (see OOB.md #2026-10-10)
-//  下" directive). The 5
-//  document templates that
-//  constrain the import
-//  rewrite (= each BookFolder
-//  type gets its own template;
-//  = the templates are NOT
-//  enforced by the LLM prompt
-//  alone; = the templates
-//  are the structural
-//  contract that the LLM must
-//  follow when generating
-//  content for the
-//  corresponding folder; =
-//  the templates use a
-//  fixed markdown skeleton
-//  that the user can scan to
-//  recognize "this is a
-//  wenshu-generated document"
-//  at a glance; = missing
-//  fields use the
-//  `[TODO: <field> = 需调研:
-//  <具体问题>]` placeholder
-//  (= the user can search for
-//  `TODO` to find gaps in
-//  their worldbuilding; = the
-//  placeholder names what
-//  needs to be researched; =
-//  the placeholder is NOT a
-//  failure marker; = the
-//  import is successful
-//  even with TODO fields; =
-//  the TODO is a prompt for
-//  the user to come back and
-//  fill the gap later).
-//
-//  The 5 templates correspond
-//  to the 5 BookFolder cases:
-//  world / characters /
-//  outlines / chapters /
-//  drafts. The reference
-//  library has its own
-//  schema (= boss 2026-10-09 (see OOB.md #2026-10-09)
-//  story-document template).
-//
-//  Each template is a
-//  markdown skeleton (= not
-//  a JSON schema; = the
-//  LLM produces markdown
-//  content that fills the
-//  template sections; = the
-//  template is the
-//  "shape" the content must
-//  take). The template
-//  design principles:
-//  1. **Format tightens** (=
-//     boss 2026-10-10 (see OOB.md #2026-10-10)
-//     structure immediately).
-//  2. **Missing fields use
-//     placeholders** (= boss
-//     2026-10-10 "不够的要去
-//     调研，或者用缺失
-//     占位，告诉用户当
-//     前世界观设定不足
-//     ，无法成为约
-//     束"; = the LLM uses
-//     `[TODO: <field> = 需
-//     调研: <具体问题>]`
-//     when the source
-//     doesn't provide the
-//     information; = the
-//     LLM does NOT invent
-//     or hallucinate; = the
-//     user can see what's
-//     missing and decide to
-//     research it).
-//  3. **Original content is
-//     preserved** (= boss
-//     2026-10-10 "重写尽
-//     量保留原文内容
-//     ，但如果按模版
-//     填入进缺失，需
-//     要调研补充. 如
-//     果原文内容的格
-//     式过重，不符合
-//     文档要求，需要
-//     重写去格式. 符
-//     合模版要求"; = the
-//     LLM is instructed
-//     to preserve the
-//     original content
-//     VERBATIM under the
-//     template headings;
-//     = reformatting is
-//     allowed (= strip
-//     Obsidian back-links
-//     / frontmatter /
-//     plugin comments; =
-//     re-organize content
-//     under the template
-//     headings); = the
-//     LLM does NOT delete
-//     or summarize the
-//     original content).
-//
-//  Each template is a
-//  `static let` string
-//  (= the LLM router embeds
-//  the template in the
-//  system prompt; = the
-//  template is the
-//  authoritative shape the
-//  LLM must follow). The
-//  templates are not
-//  validated by the system
-//  (= the LLM might produce
-//  slightly different
-//  content under each
-//  heading; = the user
-//  reads the result and
-//  edits as needed; = the
-//  template is a STRONG
-//  GUIDELINE not a strict
-//  schema).
-//
+// ImportDocumentTemplates.swift · Wenshu (= boss 2026-10-10 (see OOB.md #2026-10-10) 下"
+// directive). The 5 document templates that constrain the import rewrite (= each
+// BookFolder type gets its own template; = the templates are NOT enforced by the LLM
+// prompt alone; = the templates are the structural contract that the LLM must follow
+// when generating content for the corresponding folder; = the templates use a fixed
+// markdown skeleton that the user can scan to recognize "this is a wenshu-generated
+// document" at a glance; = missing fields use the `[TODO: <field> = 需调研: <具体问题>]`
+// placeholder (= the user can search for `TODO` to find gaps in their worldbuilding; =
+// the placeholder names what needs to be researched; = the placeholder is NOT a
+// failure marker; = the import is successful even with TODO fields; = the TODO is a
+// prompt for the user to come back and fill the gap later). The 5 templates correspond
+// to the 5 BookFolder cases: world / characters / outlines / chapters / drafts. The
+// reference library has its own schema (= boss 2026-10-09 (see OOB.md #2026-10-09)
+// story-document template). Each template is a markdown skeleton (= not a JSON schema;
+// = the LLM produces markdown content that fills the template sections; = the template
+// is the "shape" the content must take). The template design principles: 1. **Format
+// tightens** (= boss 2026-10-10 (see OOB.md #2026-10-10) structure immediately). 2.
+// **Missing fields use placeholders** (= boss 2026-10-10 "不够的要去 调研，或者用缺失 占位，告诉用户当
+// 前世界观设定不足 ，无法成为约 束"; = the LLM uses `[TODO: <field> = 需 调研: <具体问题>]` when the source
+// doesn't provide the information; = the LLM does NOT invent or hallucinate; = the
+// user can see what's missing and decide to research it). 3. **Original content is
+// preserved** (= boss 2026-10-10 "重写尽 量保留原文内容 ，但如果按模版 填入进缺失，需 要调研补充. 如 果原文内容的格 式过重，不符合
+// 文档要求，需要 重写去格式. 符 合模版要求"; = the LLM is instructed to preserve the original content
+// VERBATIM under the template headings; = reformatting is allowed (= strip Obsidian
+// back-links / frontmatter / plugin comments; = re-organize content under the template
+// headings); = the LLM does NOT delete or summarize the original content). Each
+// template is a `static let` string (= the LLM router embeds the template in the
+// system prompt; = the template is the authoritative shape the LLM must follow). The
+// templates are not validated by the system (= the LLM might produce slightly
+// different content under each heading; = the user reads the result and edits as
+// needed; = the template is a STRONG GUIDELINE not a strict schema).
 
 import Foundation
 
@@ -447,74 +350,21 @@ enum ImportDocumentTemplate: String, CaseIterable, Sendable {
         rawBody: String,
         folder: BookFolder
     ) -> String {
-        // 1. strip
-        // noise (= the
-        // round-25
-        // canonical
-        // `stripObsidianBacklinks`
-        // helper on the
-        // WenshuConductorImportRouter
-        // also covers the
-        // `isUselessMetadataLine`
-        // filter; = we
-        // re-implement the
-        // same strip
-        // in-place here
-        // because the
-        // orchestrator
-        // already calls
-        // the router
-        // helper above
-        // and we want
-        // this helper to
-        // be
-        // self-contained
-        // for unit
-        // testing).
+        // 1. strip noise (= the round-25 canonical `stripObsidianBacklinks` helper on the
+        // WenshuConductorImportRouter also covers the `isUselessMetadataLine`
+        // filter; = we re-implement the same strip in-place here because the
+        // orchestrator already calls the router helper above and we want this
+        // helper to be self-contained for unit testing).
         let stripped = stripUselessLines(rawBody)
-        // 2. collect
-        // the
-        // skeleton's
-        // H2
-        // titles
-        // (= the
-        // `## `
-        // lines
-        // in
-        // the
-        // skeleton
-        // string).
+        // 2. collect the skeleton's H2 titles (= the `## ` lines in the skeleton string).
         let skeletonH2s: [String]
         if let template = folder.importTemplate {
             skeletonH2s = extractH2Titles(from: template.skeleton)
         } else {
             skeletonH2s = []
         }
-        // 3. for
-        // each
-        // H2 in
-        // the
-        // skeleton,
-        // check
-        // if
-        // the
-        // body
-        // already
-        // has
-        // that
-        // header.
-        // If
-        // not,
-        // append
-        // it
-        // as
-        // an
-        // empty
-        // section
-        // with
-        // a
-        // [TODO]
-        // marker.
+        // 3. for each H2 in the skeleton, check if the body already has that header. If
+        // not, append it as an empty section with a [TODO] marker.
         var appended: [String] = []
         for h2 in skeletonH2s {
             if !stripped.contains("## \(h2)\n") && !stripped.contains("## \(h2)\r\n") {
@@ -536,19 +386,8 @@ enum ImportDocumentTemplate: String, CaseIterable, Sendable {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
             guard trimmed.hasPrefix("## ") else { return nil }
             let title = String(trimmed.dropFirst(3)).trimmingCharacters(in: .whitespaces)
-            // Skip
-            // empty
-            // titles
-            // (=
-            // guard
-            // against
-            // `## ` with
-            // no text;
-            // = shouldn't
-            // happen in
-            // the
-            // canonical
-            // skeletons).
+            // Skip empty titles (= guard against `## ` with no text; = shouldn't happen
+            // in the canonical skeletons).
             return title.isEmpty ? nil : title
         }
     }
@@ -569,60 +408,25 @@ enum ImportDocumentTemplate: String, CaseIterable, Sendable {
             .map { line -> String in
                 let trimmed = line.trimmingCharacters(in: .whitespaces)
                 if trimmed.isEmpty { return line } // keep blank lines as-is
-                // boss
-                // 2026-10-10 "强制去
-                // 反链" feedback =
-                // code-side strip of
-                // Obsidian backlinks
-                // (= even when they
-                // appear mid-paragraph;
-                // = the LLM-prompt-side
-                // rule is in
+                // boss 2026-10-10 "强制去 反链" feedback = code-side strip of Obsidian
+                // backlinks (= even when they appear mid-paragraph; =
+                // the LLM-prompt-side rule is in
                 // WenshuConductorImportRouter.rewriteModeBlock.reorganize;
-                // = the code-side rule
-                // catches any stragglers
-                // the LLM missed; = the
-                // user can have
-                // `[[xxx]]` in any of:
-                //   - whole line (e.g.
-                //     "[[故事宪法]]"
-                //     alone)
-                //   - mid-paragraph
-                //     (e.g. "见
-                //     [[02-朝代]]")
-                //   - image embed
-                //     (e.g.
-                //     "![[图片.png]]")
-                // We strip all `[[...]]`
-                // AND `![[...]]` from
-                // every line; = leaves
-                // the surrounding text
-                // intact (= the LLM's
-                // reorg work isn't
-                // lost).
+                // = the code-side rule catches any stragglers the LLM
+                // missed; = the user can have `[[xxx]]` in any of: -
+                // whole line (e.g. "[[故事宪法]]" alone) - mid-paragraph
+                // (e.g. "见 [[02-朝代]]") - image embed (e.g.
+                // "![[图片.png]]") We strip all `[[...]]` AND `![[...]]`
+                // from every line; = leaves the surrounding text
+                // intact (= the LLM's reorg work isn't lost).
                 let strippedLine = Self.stripBacklinksInline(in: line)
-                // boss
-                // 2026-10-10 "强制去
-                // 版本记录" feedback
-                // (= wenshu's doc body
-                // is pure content; =
-                // version metadata
-                // lives in
-                // entities.json / file
-                // mtime; = A's body
-                // should NOT carry
-                // version lines like
-                // "上次更新: 2026-XX-XX"
-                // / "修改记录: v1 / v2"
-                // / "Created: ..."
-                // etc.). The LLM-side
-                // rule covers most
-                // cases; = this
-                // code-side filter
-                // drops any line
-                // whose leading label
-                // is a known version
-                // metadata prefix.
+                // boss 2026-10-10 "强制去 版本记录" feedback (= wenshu's doc body is pure
+                // content; = version metadata lives in entities.json /
+                // file mtime; = A's body should NOT carry version
+                // lines like "上次更新: 2026-XX-XX" / "修改记录: v1 / v2" /
+                // "Created: ..." etc.). The LLM-side rule covers most
+                // cases; = this code-side filter drops any line whose
+                // leading label is a known version metadata prefix.
                 if Self.isVersionRecordLine(strippedLine.trimmingCharacters(in: .whitespaces)) {
                     return "" // drop the line (= replace with empty)
                 }
@@ -652,11 +456,9 @@ enum ImportDocumentTemplate: String, CaseIterable, Sendable {
     /// careful inline stripping).
     private static func stripBacklinksInline(in line: String) -> String {
         var result = line
-        // `![[xxx]]` first (= longer match; =
-        // would match `[[xxx]]` as a prefix
-        // if we tried the latter first).
-        // Regex: `!\[\[xxx\]\]` where `xxx`
-        // is anything that's not `]`.
+        // `![[xxx]]` first (= longer match; = would match `[[xxx]]` as a prefix if we
+        // tried the latter first). Regex: `!\[\[xxx\]\]` where `xxx` is
+        // anything that's not `]`.
         let imageEmbed = #"!\[\[[^\]]*\]\]"#
         if let regex = try? NSRegularExpression(pattern: imageEmbed) {
             let range = NSRange(result.startIndex..., in: result)
@@ -671,10 +473,8 @@ enum ImportDocumentTemplate: String, CaseIterable, Sendable {
                 in: result, range: range, withTemplate: ""
             )
         }
-        // Collapse runs of 2+ spaces (= leftover
-        // from "见 [[xxx]] 这边" → "见  这边") into
-        // a single space. The single-space
-        // collapse preserves the LLM's reorg
+        // Collapse runs of 2+ spaces (= leftover from "见 [[xxx]] 这边" → "见  这边") into a
+        // single space. The single-space collapse preserves the LLM's reorg
         // text alignment.
         let multiSpace = #" {2,}"#
         if let regex = try? NSRegularExpression(pattern: multiSpace) {
@@ -717,12 +517,9 @@ enum ImportDocumentTemplate: String, CaseIterable, Sendable {
             "Revision", "Last edited",
             "Date", "Time"
         ]
-        // Only consider lines that have a ":"
-        // (= the version record is a key:value
-        // line; = a body sentence that happens
-        // to start with "Created" is rare
-        // without a colon; = safe to require
-        // the colon).
+        // Only consider lines that have a ":" (= the version record is a key:value line;
+        // = a body sentence that happens to start with "Created" is rare
+        // without a colon; = safe to require the colon).
         guard let colonIndex = trimmedLine.firstIndex(of: ":") else {
             return false
         }

@@ -1,29 +1,16 @@
-// Sources/WenshuApp/Views/Workspace/PreviewPane.swift
-//
-// Deferred per spec: ViewInspector test coverage is deferred (=
-// the view has 3 distinct scope states + 3 sub-view modes; =
-// mocking all of them exceeds a single commit's scope). This
-// file is a documented deferral, not dead code.
-//
-// Scope model:
-// - .referenceScope(category): reference library entities. nil = all,
-//   non-nil = that category only.
-// - .bookScope(bookId, folderName): per-book documents. folderName nil =
-//   union of all 8 standard folders; folderName non-nil = that folder
-//   only.
-// - .shelfScope: shelf row selected = empty state hint.
-// - .empty: nothing selected = empty state hint.
-//
-// 3 sub-view modes (per scope):
-// 1. Overview grid (= when nothing selected within a scope).
-// 2. Category/folder-scoped grid (= filter active).
-// 3. Document detail (= single card with full body).
-//
-// Double-click on a card (= the editor open action). For now,
-// single-click selects.
-//
-// Grid uses `LazyVGrid` (= Apple standard for variable-height
-// grid; matches Finder icon view style).
+// Sources/WenshuApp/Views/Workspace/PreviewPane.swift Deferred per spec: ViewInspector
+// test coverage is deferred (= the view has 3 distinct scope states + 3 sub-view
+// modes; = mocking all of them exceeds a single commit's scope). This file is a
+// documented deferral, not dead code. Scope model: - .referenceScope(category):
+// reference library entities. nil = all, non-nil = that category only. -
+// .bookScope(bookId, folderName): per-book documents. folderName nil = union of all 8
+// standard folders; folderName non-nil = that folder only. - .shelfScope: shelf row
+// selected = empty state hint. - .empty: nothing selected = empty state hint. 3 sub-
+// view modes (per scope): 1. Overview grid (= when nothing selected within a scope).
+// 2. Category/folder-scoped grid (= filter active). 3. Document detail (= single card
+// with full body). Double-click on a card (= the editor open action). For now, single-
+// click selects. Grid uses `LazyVGrid` (= Apple standard for variable-height grid;
+// matches Finder icon view style).
 
 import SwiftUI
 import os
@@ -34,69 +21,29 @@ import CryptoKit
 private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "previewpane")
 
 // MARK: - Sort order
-//
-// 'all cards default sort is pinyin initial letter alphabetical, in the material preview top bar add an icon on the right side to implement re-sort. Current options: first letter, creation time, modification time'.
-//
-// 3 sort options:
-// 1. .pinyinFirstLetter (= default) — Chinese pinyin alphabetical
-//    using CFStringTransform (kCFStringTransformToLatin +
-//    kCFStringTransformStripDiacritics)
-// 2. .createdAt — newest first (= most useful for research material
-//    tracking)
-// 3. .modifiedAt — most recently edited first (= for active writing)
+// 'all cards default sort is pinyin initial letter alphabetical, in the material preview
+// top bar add an icon on the right side to implement re-sort. Current options: first
+// letter, creation time, modification time'. 3 sort options: 1. .pinyinFirstLetter (=
+// default) — Chinese pinyin alphabetical using CFStringTransform
+// (kCFStringTransformToLatin + kCFStringTransformStripDiacritics) 2. .createdAt —
+// newest first (= most useful for research material tracking) 3. .modifiedAt — most
+// recently edited first (= for active writing)
 // MARK: - BookFolder enum
-//
-// The 8 standard folders every book has on disk (= per AGENTS.md
-// §11 + LibraryMigrator.swift standardFolders). Used by PreviewPane
-// to scan all folders when scope = .bookScope(bookId, folderName: nil)
-// and to label each BookDoc's folder badge.
-//
-// Sidebar tree only displays 5 of these (= world / characters /
-// outlines / chapters / drafts), but the disk layout has all 8.
-// Sessions/foreshadowing/placeholders can still be reached via the
-// PreviewPane when the user picks them via API (= no UI yet for
-// picking non-sidebar folders; deferred).
-//
-// (= boss 2026-10-10 (see OOB.md #2026-10-10)
-// directive). The
-// `ideas` (= 构思)
-// case is added
-// (= 9 cases now;
-// = the 6 import
-// folders: world /
-// characters /
-// outlines /
-// chapters /
-// drafts / ideas;
-// = the 3
-// non-import
-// folders:
-// sessions /
-// foreshadowing /
-// placeholders).
-// `ideas/` is a
-// scratchpad for
-// loose world-
-// building fragments
-// and future-
-// story ideas (= the
-// boss's "零散的
-// 设定, 和未来
-// 的一些想法";
-// = NOT a draft
-// = `drafts/` is
-// for undecided
-// chapter content;
-// = `ideas/` is for
-// "things that
-// might become
-// characters /
-// locations /
-// events /
-// chapters later"
-// that don't fit
-// any specific
-// folder yet).
+// The 8 standard folders every book has on disk (= per AGENTS.md §11 +
+// LibraryMigrator.swift standardFolders). Used by PreviewPane to scan all folders when
+// scope = .bookScope(bookId, folderName: nil) and to label each BookDoc's folder
+// badge. Sidebar tree only displays 5 of these (= world / characters / outlines /
+// chapters / drafts), but the disk layout has all 8.
+// Sessions/foreshadowing/placeholders can still be reached via the PreviewPane when
+// the user picks them via API (= no UI yet for picking non-sidebar folders; deferred).
+// (= boss 2026-10-10 (see OOB.md #2026-10-10) directive). The `ideas` (= 构思) case is
+// added (= 9 cases now; = the 6 import folders: world / characters / outlines /
+// chapters / drafts / ideas; = the 3 non-import folders: sessions / foreshadowing /
+// placeholders). `ideas/` is a scratchpad for loose world- building fragments and
+// future- story ideas (= the boss's "零散的 设定, 和未来 的一些想法"; = NOT a draft = `drafts/` is
+// for undecided chapter content; = `ideas/` is for "things that might become
+// characters / locations / events / chapters later" that don't fit any specific folder
+// yet).
 enum BookFolder: String, CaseIterable, Codable, Sendable, Hashable {
     case world
     case characters
@@ -219,16 +166,12 @@ enum EntitySortOrder: String, CaseIterable, Identifiable {
 }
 
 // MARK: - PreviewScope
-//
-// Defines which documents the preview pane should display. Driven by
-// the sidebar selection (= WorkspaceView computes `previewScope` from
-// `sidebarSelection` and passes it here). Each scope knows how to load
-// its documents and what view mode to render.
-//
-// Note: PreviewScope is NOT Equatable (the underlying SidebarItem is,
-// but PreviewScope is constructed from it; equality comparisons
-// happen upstream via sidebarSelection).
-//
+// Defines which documents the preview pane should display. Driven by the sidebar
+// selection (= WorkspaceView computes `previewScope` from `sidebarSelection` and
+// passes it here). Each scope knows how to load its documents and what view mode to
+// render. Note: PreviewScope is NOT Equatable (the underlying SidebarItem is, but
+// PreviewScope is constructed from it; equality comparisons happen upstream via
+// sidebarSelection).
 /// the sidebar selection (= WorkspaceView computes `previewScope` from
 /// sidebarSelection + the routed SidebarItem; = drives the
 /// preview-pane card grid + tab sourceScope).
@@ -268,29 +211,21 @@ enum PreviewScope: Hashable, Codable {
 }
 
 // MARK: - BookDoc model
-//
-// Represents one .md file in a book folder. Loaded on demand from the
-// filesystem (= no caching yet; subsequent reads are fast on macOS
-// APFS). Used for the book-scope preview mode.
+// Represents one .md file in a book folder. Loaded on demand from the filesystem (= no
+// caching yet; subsequent reads are fast on macOS APFS). Used for the book-scope
+// preview mode.
 struct BookDoc: Identifiable, Hashable {
-    // Stable-id root-cause fix:
-    // the previous `let id: UUID = UUID()` default value made
-    // every BookDoc instance unique (= the SwiftUI ForEach
-    // inside bookDocsGrid saw "all rows changed" on every
-    // body re-render = full grid rebuild = NSHostingView
-    // size/invalidate cycle = the 'more Update Constraints
-    // in Window passes than there are views in the window'
-    // crash). Fixed: derive the id from the on-disk path
-    // (= bookId + folderName + fileName → SHA256 → first
-    // 16 bytes as UUID) so the id is STABLE across
-    // re-evaluations of the same .md file.
-    //
-    // y: simpler stable id = `bookId-folderName-fileName`
-    // UUID v5-style hash (UUID(uuidString:) from a deterministic
-    // namespace UUID + SHA256 of the path). The identifier
-    // matches Swift's Identifiable contract: two BookDocs for
-    // the same .md file on disk are == across SwiftUI body
-    // re-evaluations.
+    // Stable-id root-cause fix: the previous `let id: UUID = UUID()` default value made
+    // every BookDoc instance unique (= the SwiftUI ForEach inside bookDocsGrid saw
+    // "all rows changed" on every body re-render = full grid rebuild =
+    // NSHostingView size/invalidate cycle = the 'more Update Constraints in Window
+    // passes than there are views in the window' crash). Fixed: derive the id from
+    // the on-disk path (= bookId + folderName + fileName → SHA256 → first 16 bytes
+    // as UUID) so the id is STABLE across re-evaluations of the same .md file. y:
+    // simpler stable id = `bookId-folderName-fileName` UUID v5-style hash
+    // (UUID(uuidString:) from a deterministic namespace UUID + SHA256 of the
+    // path). The identifier matches Swift's Identifiable contract: two BookDocs
+    // for the same .md file on disk are == across SwiftUI body re-evaluations.
     let id: UUID
     /// Folder directory name (= "world", "characters", "outlines",
     /// "chapters", "drafts", "sessions", "foreshadowing",
@@ -376,10 +311,9 @@ enum BookDocIDFactory {
     /// within a single wenshu install).
     static func make(bookId: UUID, folderName: String, fileName: String) -> UUID {
         var hasher = Insecure.SHA1()
-        // Feed each component into the hasher. macOS 27
-        // CryptoKit `update(data:)` wants `Data`, so we wrap
-        // the raw bytes via `Data(_ buffer:)` (= the explicit
-        // UnsafeRawBufferPointer overload).
+        // Feed each component into the hasher. macOS 27 CryptoKit `update(data:)` wants
+        // `Data`, so we wrap the raw bytes via `Data(_ buffer:)` (= the
+        // explicit UnsafeRawBufferPointer overload).
         hasher.update(data: Self.dataForNamespace())
         hasher.update(data: Data("/".utf8))
         hasher.update(data: Self.dataForUUID(bookId))
@@ -388,9 +322,8 @@ enum BookDocIDFactory {
         hasher.update(data: Data(fileName.utf8))
         let digest = hasher.finalize()
         var bytes = Array(digest.prefix(16))
-        // Set RFC 4122 version (5) and variant bits so the
-        // UUID is a valid v5 namespaced UUID (= Swift's
-        // UUID(uuid:) tolerates but other consumers expect).
+        // Set RFC 4122 version (5) and variant bits so the UUID is a valid v5 namespaced
+        // UUID (= Swift's UUID(uuid:) tolerates but other consumers expect).
         bytes[6] = (bytes[6] & 0x0F) | 0x50
         bytes[8] = (bytes[8] & 0x3F) | 0x80
         let uuid: uuid_t = (
@@ -774,198 +707,171 @@ struct PreviewPane: View {
     ///   the 10/20/60/10 preset (= ~210 PT). With the old 280 PT
     ///   threshold, every launch collapsed to 1 column, defeating
     ///   the "preview pane shows 2 columns" expectation.
-    // (2026-09-08): raised from 130 to 350 (= the cards
-    // grid renders as a SINGLE column when embedded inside
-    // the M2 NavigationSplitShell's sidebar column = the
-    // red-line drawing shows 1 column for the cards zone.
-    // 350 (= higher than the typical sidebar sub-area width of ~250 PT in a 1452-wide window with a
-    // 200-PT sidebar column) ensures the cards grid falls
-    // back to 1 column when the preview pane is nested in the
-    // shell's sidebar sub-area. The legacy PaneSplitHost path
-    // (= the preview pane is a standalone 4th column at ~250-400
-    // PT) is unaffected because that column is still wider than
-    // 350 PT = stays in 2-column mode.
+    // (2026-09-08): raised from 130 to 350 (= the cards grid renders as a SINGLE column
+    // when embedded inside the M2 NavigationSplitShell's sidebar column = the red-
+    // line drawing shows 1 column for the cards zone. 350 (= higher than the
+    // typical sidebar sub-area width of ~250 PT in a 1452-wide window with a
+    // 200-PT sidebar column) ensures the cards grid falls back to 1 column when
+    // the preview pane is nested in the shell's sidebar sub-area. The legacy
+    // PaneSplitHost path (= the preview pane is a standalone 4th column at
+    // ~250-400 PT) is unaffected because that column is still wider than 350 PT =
+    // stays in 2-column mode.
     static let twoColumnBreakpoint: CGFloat = 350
 
     @ViewBuilder
     var body: some View {
-        // (see OOB.md #2026-09-07) — 'yes, top bar, search can editor, yes':
-        // the search bar
-        // belongs BELOW the ZoneContentView's tab strip (= at the same
-        // Y as the editor's pencil/arrow/refresh toolbar inside
-        // EditorView), NOT above the tab strip. Pattern matches
-        // the editor: ZoneContentView tab strip (= top layer) + tab
-        // content (= PreviewPane, = search bar BELOW tab strip + body
-        // content below the search bar).
-        //
-        // Search bar lives at the TOP of PreviewPane's body (= first
-        // element rendered after ZoneContentView's tab strip), so it
-        // aligns horizontally with the editor's toolbar in the right
-        // column. Body content (Group { switch scope }) goes below
-        // the search bar.
-        //
-        // (see OOB.md #2026-09-07) — 'top bar search: yes':
-        // the .padding(DesignTokens.spacingHero) was wrapping
-        // the entire VStack (= search bar + body), = creating a visual
-        // gap between the ZoneContentView tab strip and the search
-        // bar. The padding belongs ONLY on the body content (= scope
-        // Group), NOT on the search bar (= search bar should sit
-        // flush against the tab strip, = Apple HIG canonical toolbar
-        // pattern = no padding between tab strip and toolbar).
+        // (see OOB.md #2026-09-07) — 'yes, top bar, search can editor, yes': the search
+        // bar belongs BELOW the ZoneContentView's tab strip (= at the same Y
+        // as the editor's pencil/arrow/refresh toolbar inside EditorView), NOT
+        // above the tab strip. Pattern matches the editor: ZoneContentView tab
+        // strip (= top layer) + tab content (= PreviewPane, = search bar BELOW
+        // tab strip + body content below the search bar). Search bar lives at
+        // the TOP of PreviewPane's body (= first element rendered after
+        // ZoneContentView's tab strip), so it aligns horizontally with the
+        // editor's toolbar in the right column. Body content (Group { switch
+        // scope }) goes below the search bar. (see OOB.md #2026-09-07) — 'top
+        // bar search: yes': the .padding(DesignTokens.spacingHero) was
+        // wrapping the entire VStack (= search bar + body), = creating a
+        // visual gap between the ZoneContentView tab strip and the search bar.
+        // The padding belongs ONLY on the body content (= scope Group), NOT on
+        // the search bar (= search bar should sit flush against the tab strip,
+        // = Apple HIG canonical toolbar pattern = no padding between tab strip
+        // and toolbar).
         VStack(spacing: 0) {
-            // Per Apple HIG / platform-default style: the section-header block (= 'Assets'
-            // title + Pages hairline) and the search bar must STICK
-            // TO THE TOP of the cards column. The empty-state hint
-            // (= icon + 'Please pick a node on the left to view the document' + 'Pick a reference library,
-            // book, or folder on the left.') must stay vertically CENTERED in the
-            // REMAINING space below the header + search bar. This
-            // is the Apple HIG canonical 'sticky toolbar + centered
-            // empty state' pattern (= Finder / Photos / Music
-            // empty-state visuals when a sidebar selection is made
-            // but the right-hand column has no content yet).
-            //
-            // :
-            // the preview-pane search bar ALWAYS renders inline at
-            // the top of the middle column body (= same visual slot
-            // as the sidebar's `.searchable` field at the top of
-            // the sidebar column). The previous `if showsInternal
-            // SearchBar` branch (= commit 4a0453516) was the
-            // workaround for the `.searchable(placement: .toolbar)`
-            // routing-to-window-toolbar bug; with that workaround
-            // removed (= the next commit drops the column toolbar
-            // and lets PreviewPane render its own search bar at
-            // the top of the column body), PreviewPane is the
-            // single source of truth for the search bar visual
-            // (= the sidebar's `.searchable` is Apple's first-
-            // party widget for the sidebar column; the card pane's
-            // inline `previewSearchBar` is Apple's macOS 13+
-            // rounded-pill pattern hosted inline because `.searchable`
-            // has no 'middle column top' placement).
-            //
-            // Mirror the sidebar's Pages-style section header:
-            // - .font(.body) (= matches the card row text below; =
-            //   Pages sidebar visual reference).
-            // - .foregroundStyle(.primary) (= Pages uses primary
-            //   tint for sidebar title; = the previous small-
-            //   caption secondary-tint was the generic SwiftUI
-            //   sidebar style, not Pages).
-            // - Divider below with .padding(.top, 4) (= Pages
-            //   leaves ~4 PT gap between title text and hairline).
-            // - .padding(.bottom, 4) (= Pages hairline sits ~4 PT
-            //   above the search bar; = the canonical Apple HIG
-            //   toolbar-below-section-header spacing).
-            // - Always rendered (= present in BOTH the populated-
-            //   card state AND the empty state; = the previous
-            //   empty state hid the search bar visually but the
-            //   search bar still rendered at the top; = the
-            //   report 'in empty state the search bar still goes
-            //   to the top' = the search bar is
-            //   always there but the title was missing; = adding
-            //   the title above the search bar fixes the visual
-            //   alignment in both states).
-            // lift the preview column title bar to the shared
-            // SectionHeader component (= also used by AppleSidebarView
-            // 'library shelf' header (= same Apple HIG Mail / Notes / Finder
-            // section-header idiom; = SectionHeader owns the 10 PT /
-            // 4 PT / 10 PT insets; = PreviewPane no longer hardcodes
-            // the geometry here).
+            // Per Apple HIG / platform-default style: the section-header block (=
+            // 'Assets' title + Pages hairline) and the search bar must
+            // STICK TO THE TOP of the cards column. The empty-state hint
+            // (= icon + 'Please pick a node on the left to view the
+            // document' + 'Pick a reference library, book, or folder on
+            // the left.') must stay vertically CENTERED in the REMAINING
+            // space below the header + search bar. This is the Apple HIG
+            // canonical 'sticky toolbar + centered empty state' pattern (=
+            // Finder / Photos / Music empty-state visuals when a sidebar
+            // selection is made but the right-hand column has no content
+            // yet). : the preview-pane search bar ALWAYS renders inline at
+            // the top of the middle column body (= same visual slot as the
+            // sidebar's `.searchable` field at the top of the sidebar
+            // column). The previous `if showsInternal SearchBar` branch (=
+            // commit 4a0453516) was the workaround for the
+            // `.searchable(placement: .toolbar)` routing-to-window-toolbar
+            // bug; with that workaround removed (= the next commit drops
+            // the column toolbar and lets PreviewPane render its own
+            // search bar at the top of the column body), PreviewPane is
+            // the single source of truth for the search bar visual (= the
+            // sidebar's `.searchable` is Apple's first- party widget for
+            // the sidebar column; the card pane's inline
+            // `previewSearchBar` is Apple's macOS 13+ rounded-pill pattern
+            // hosted inline because `.searchable` has no 'middle column
+            // top' placement). Mirror the sidebar's Pages-style section
+            // header: - .font(.body) (= matches the card row text below; =
+            // Pages sidebar visual reference). -
+            // .foregroundStyle(.primary) (= Pages uses primary tint for
+            // sidebar title; = the previous small- caption secondary-tint
+            // was the generic SwiftUI sidebar style, not Pages). - Divider
+            // below with .padding(.top, 4) (= Pages leaves ~4 PT gap
+            // between title text and hairline). - .padding(.bottom, 4) (=
+            // Pages hairline sits ~4 PT above the search bar; = the
+            // canonical Apple HIG toolbar-below-section-header spacing). -
+            // Always rendered (= present in BOTH the populated- card state
+            // AND the empty state; = the previous empty state hid the
+            // search bar visually but the search bar still rendered at the
+            // top; = the report 'in empty state the search bar still goes
+            // to the top' = the search bar is always there but the title
+            // was missing; = adding the title above the search bar fixes
+            // the visual alignment in both states). lift the preview
+            // column title bar to the shared SectionHeader component (=
+            // also used by AppleSidebarView 'library shelf' header (= same
+            // Apple HIG Mail / Notes / Finder section-header idiom; =
+            // SectionHeader owns the 10 PT / 4 PT / 10 PT insets; =
+            // PreviewPane no longer hardcodes the geometry here).
             SectionHeader(title: String(localized: "preview.column.title"))
-            // Per Apple HIG / platform-default style: remove the custom
-            // top inset (= `chromePaddingSectionTop` = 18 PT) and the
-            // custom bottom inset (= 4 PT). The center column is the
-            // content column of a NavigationSplitView; = Apple HIG
-            // macOS 27 default content column rhythm places the
-            // section header at the natural List / ScrollView top
-            // margin (= NO custom padding required; = the Apple API
-            // default). Per the verbatim port discipline, the previous
-            // search-field `.padding(.top, 4)` (= 4 PT gap to the
+            // Per Apple HIG / platform-default style: remove the custom top inset (=
+            // `chromePaddingSectionTop` = 18 PT) and the custom bottom
+            // inset (= 4 PT). The center column is the content column of a
+            // NavigationSplitView; = Apple HIG macOS 27 default content
+            // column rhythm places the section header at the natural List
+            // / ScrollView top margin (= NO custom padding required; = the
+            // Apple API default). Per the verbatim port discipline, the
+            // previous search-field `.padding(.top, 4)` (= 4 PT gap to the
             // Divider) and the cards column layout are preserved (= no
             // unrelated changes).
         // Custom leading search field
-            // below the title and divider, above the first card': render the
-            // custom leading-aligned search field HERE (= below the
-            // 'Assets' title + Divider; above the first card grid) =
-            // the Apple HIG "sticky header + inline search field
-            // below" pattern (= the canonical Mail / Notes / Pages
-            // section-header-then-search layout). The previous
-            // attempt (commit 71daf8311) put the search field in
-            // a wrapper HStack ABOVE PreviewPane (= visually wrong
-            // = the search field rendered above the title and the
-            // immediate ask was to move it). The fix = move
-            // the search field into the PreviewPane body, between
-            // the title block and the scope body, so it sits
-            // exactly where requested (= below the divider,
-            // above the first card).
-            //
-            // Only render the custom field when the caller passed
-            // one (= `customLeadingSearch != nil`). Default = nil
-            // = no field (= legacy callers / tests still work).
+            // below the title and divider, above the first card': render the custom
+            // leading-aligned search field HERE (= below the 'Assets'
+            // title + Divider; above the first card grid) = the Apple HIG
+            // "sticky header + inline search field below" pattern (= the
+            // canonical Mail / Notes / Pages section-header-then-search
+            // layout). The previous attempt (commit 71daf8311) put the
+            // search field in a wrapper HStack ABOVE PreviewPane (=
+            // visually wrong = the search field rendered above the title
+            // and the immediate ask was to move it). The fix = move the
+            // search field into the PreviewPane body, between the title
+            // block and the scope body, so it sits exactly where requested
+            // (= below the divider, above the first card). Only render the
+            // custom field when the caller passed one (=
+            // `customLeadingSearch != nil`). Default = nil = no field (=
+            // legacy callers / tests still work).
             if let customSearch = customLeadingSearch {
-                // Per Apple HIG / platform-default style: render the
-                // search field at the FULL column width (= the
-                // outer `.frame(maxWidth: .infinity)` makes
-                // SwiftUI stretch this view to consume all
-                // available horizontal space in the parent VStack;
-                // = the search field now matches the LazyVGrid's
-                // full grid width; = as the user drags the column
-                // wider, both the cards and the search field
-                // stretch together).
-                //
-                // Why wrap with `.frame(maxWidth: .infinity,
-                // alignment: .center)` (= not just rely on the
-                // inner AnyView's `.frame`):
-                // SwiftUI AnyView wrappers lose layout intent
-                // (= the framework can't see through them at
-                // compile time; = the `customSearch` AnyView
-                // measures itself as its intrinsic content size,
-                // not the parent's full width). The OUTER
-                // `.frame(maxWidth: .infinity, alignment:
-                // .center)` (= applied by the parent VStack that
-                // can see the column width) is what forces the
+                // Per Apple HIG / platform-default style: render the search field at the
+                // FULL column width (= the outer `.frame(maxWidth:
+                // .infinity)` makes SwiftUI stretch this view to
+                // consume all available horizontal space in the parent
+                // VStack; = the search field now matches the
+                // LazyVGrid's full grid width; = as the user drags the
+                // column wider, both the cards and the search field
+                // stretch together). Why wrap with `.frame(maxWidth:
+                // .infinity, alignment: .center)` (= not just rely on
+                // the inner AnyView's `.frame`): SwiftUI AnyView
+                // wrappers lose layout intent (= the framework can't
+                // see through them at compile time; = the
+                // `customSearch` AnyView measures itself as its
+                // intrinsic content size, not the parent's full
+                // width). The OUTER `.frame(maxWidth: .infinity,
+                // alignment: .center)` (= applied by the parent VStack
+                // that can see the column width) is what forces the
                 // stretch.
                 customSearch
-                    // Per Apple HIG / platform-default style: use `.controlSize(.regular)`
-                    // on the inner TextField (= the canonical macOS
-                    // 13+ SwiftUI expression for the standard form-
-                    // control height = 22 PT = matches Apple's Mail /
+                    // Per Apple HIG / platform-default style: use
+                    // `.controlSize(.regular)` on the inner
+                    // TextField (= the canonical macOS 13+ SwiftUI
+                    // expression for the standard form- control
+                    // height = 22 PT = matches Apple's Mail /
                     // Notes / Finder search fields = NO hard-coded
-                    // `.frame(height: 30)`).
-                    //
-                    // Why not `.searchable`: `.searchable` is
-                    // hard-wired to render in the TRAILING edge of
-                    // any column toolbar (= a documented framework
-                    // limitation in NavigationSplit columns = the
-                    // earlier preference for a leading-positioned
-                    // search field can't be satisfied). The custom
-                    // TextField with `.controlSize(.regular)` gives
-                    // us Apple's canonical control size + leading
-                    // alignment in one package.
-                    //
-                    // Why not hard-code 30 PT: the explicit
-                    // direction was 'don't write a hard number;
-                    // = use Apple's semantic expression
-                    // (= `.controlSize(.regular)`) = SwiftUI maps
+                    // `.frame(height: 30)`). Why not
+                    // `.searchable`: `.searchable` is hard-wired
+                    // to render in the TRAILING edge of any column
+                    // toolbar (= a documented framework limitation
+                    // in NavigationSplit columns = the earlier
+                    // preference for a leading-positioned search
+                    // field can't be satisfied). The custom
+                    // TextField with `.controlSize(.regular)`
+                    // gives us Apple's canonical control size +
+                    // leading alignment in one package. Why not
+                    // hard-code 30 PT: the explicit direction was
+                    // 'don't write a hard number; = use Apple's
+                    // semantic expression (=
+                    // `.controlSize(.regular)`) = SwiftUI maps
                     // `.regular` to the canonical macOS 22 PT
                     // control height (= approximately 30 PT once
-                    // SwiftUI's vertical padding and the surrounding
-                    // HStack padding are added; = the intuition that
-                    // 30 PT feels right).
+                    // SwiftUI's vertical padding and the
+                    // surrounding HStack padding are added; = the
+                    // intuition that 30 PT feels right).
                     .frame(maxWidth: .infinity, alignment: .center)
-                    // Per Apple HIG / platform-default style: drop the manual BOTTOM padding
-                    // around the search field (= the previous
-                    // `.padding(.bottom, 6)` was a hand-rolled
-                    // vertical breathing room between the search
-                    // field and the first card; = removing it
-                    // makes the search field sit flush against the
-                    // first card below; = the cards' own LazyVGrid
-                    // spacing controls the gap to the next card).
-                    //
-                    // Per Apple HIG / platform-default style: per the
-                    // UPDATE 2026-09-11 — 'remove all custom padding
-                    // and switch to Apple-standard expressions — find
-                    // an approximate value': REMOVE both
-                    // `.padding(.top, 4)` (= 4 PT divider→search
-                    // gap) and `.padding(.horizontal, 8)` (= 8 PT
+                    // Per Apple HIG / platform-default style: drop the manual BOTTOM
+                    // padding around the search field (= the
+                    // previous `.padding(.bottom, 6)` was a hand-
+                    // rolled vertical breathing room between the
+                    // search field and the first card; = removing
+                    // it makes the search field sit flush against
+                    // the first card below; = the cards' own
+                    // LazyVGrid spacing controls the gap to the
+                    // next card). Per Apple HIG / platform-default
+                    // style: per the UPDATE 2026-09-11 — 'remove
+                    // all custom padding and switch to Apple-
+                    // standard expressions — find an approximate
+                    // value': REMOVE both `.padding(.top, 4)` (= 4
+                    // PT divider→search gap) and
+                    // `.padding(.horizontal, 8)` (= 8 PT
                     // horizontal inset). The Apple HIG macOS 27
                     // default layout for an inline search field
                     // within a content column places the field at
@@ -973,74 +879,61 @@ struct PreviewPane: View {
                     // padding required; = the canonical Mail /
                     // Notes column search pattern).
             }
-            // Per Apple HIG platform availability:
-            // just use it — don't roll our own search': the previous internal
-            // `previewSearchBar` view (= a hand-rolled HStack with
-            // Lucide search icon + TextField + clear-x button) is
-            // REMOVED. The search field now lives at the parent
-            // level (= ShellMiddleColumn) attached via Apple's
-            // canonical `.searchable(text:placement:prompt:)`
-            // modifier (= the system-styled search field rendered
-            // in the column's toolbar slot; = identical visual to
-            // Mail / Notes / Finder column search). Removing the
-            // internal search bar means:
-            //   - The cards column body no longer has a top
-            //     search field (the user sees only 'Assets' title +
-            //     cards grid below).
-            //   - The Apple `.searchable` field at the column's
-            //     toolbar slot hosts the search input.
-            //   - ⌘F focuses the field (= Apple standard keyboard
-            //     shortcut).
-            // (see OOB.md #2026-08-31) — scope-driven dispatch. Each scope
-            // branch handles its own toolbar (some hide toolbar, e.g.
-            // empty state). Padding applied here only (= doesn't
-            // affect the search bar's Y position).
-            //
-            // Per Apple HIG / platform-default style:
-            // wrap the scope Group in an explicit `VStack { Spacer;
-            // Group; Spacer }` (= top + bottom spacers push the
-            // Group to vertical center inside the remaining space
-            // BELOW the sticky header + search bar). Without the
-            // Spacers, the Group rendered at the top of its slot
-            // (= immediately below the search bar) and the empty-
-            // state hint appeared squashed against the search bar.
-            // With the Spacers, the empty-state hint stays centered
-            // in the residual space (= the canonical Apple HIG
-            // empty-state layout).
-            // Cards fade in on sidebar tap (= the no-flicker-stutter pattern): wrap the
-            // scope Group in `.id(scope)` (= stable subtree identity
-            // per scope = SwiftUI unmounts the previous scope and
-            // mounts the new one on scope change) + apply
-            // `.transition(.opacity.combined(with: .scale(scale: 0.96)))`
-            // (= the cards fade in + scale up from 96% to 100% on
-            // entry; = the same scale-fade-in Apple Photos uses
-            // when navigating between library days; = 220 ms =
-            // matches Apple's macOS 27 List / LazyVGrid default
-            // animation duration). The parent VStack wraps the
-            // transition in a `withAnimation(.smooth)` block
-            // triggered by `.onChange(of: scope)` (= the actual
-            // animation trigger; = without withAnimation the
-            // transition fires instantly with no visible motion).
-            //
-            // Why scope-level transition (= not per-card transition):
-            // when the user clicks a different sidebar row, ALL
-            // cards in the previous scope unmount and ALL cards in
-            // the new scope mount in one batch. Animating each card
-            // independently would create a staggered cascade that
-            // looks chaotic; = the report 'cards appear
-            // without any animation, looks ugly' was specifically
-            // about the scope-switch case. A single coordinated
-            // group-level fade-in reads as a deliberate state
-            // transition (= Apple Mail / Notes behavior on
-            // mailbox / folder switch).
-            //
-            // Per-card transition (.opacity + .scale 0.96) stays
-            // attached for the search-filter case (= typing in the
-            // search field adds/removes cards one at a time; =
-            // each card's own transition fires individually with
-            // the `.animation(.smooth, value: ids)` modifier on
-            // the ForEach; = search changes feel responsive
-            // without cascading the scope-level animation).
+            // Per Apple HIG platform availability: just use it — don't roll our own
+            // search': the previous internal `previewSearchBar` view (= a
+            // hand-rolled HStack with Lucide search icon + TextField +
+            // clear-x button) is REMOVED. The search field now lives at
+            // the parent level (= ShellMiddleColumn) attached via Apple's
+            // canonical `.searchable(text:placement:prompt:)` modifier (=
+            // the system-styled search field rendered in the column's
+            // toolbar slot; = identical visual to Mail / Notes / Finder
+            // column search). Removing the internal search bar means: -
+            // The cards column body no longer has a top search field (the
+            // user sees only 'Assets' title + cards grid below). - The
+            // Apple `.searchable` field at the column's toolbar slot hosts
+            // the search input. - ⌘F focuses the field (= Apple standard
+            // keyboard shortcut). (see OOB.md #2026-08-31) — scope-driven
+            // dispatch. Each scope branch handles its own toolbar (some
+            // hide toolbar, e.g. empty state). Padding applied here only
+            // (= doesn't affect the search bar's Y position). Per Apple
+            // HIG / platform-default style: wrap the scope Group in an
+            // explicit `VStack { Spacer; Group; Spacer }` (= top + bottom
+            // spacers push the Group to vertical center inside the
+            // remaining space BELOW the sticky header + search bar).
+            // Without the Spacers, the Group rendered at the top of its
+            // slot (= immediately below the search bar) and the empty-
+            // state hint appeared squashed against the search bar. With
+            // the Spacers, the empty-state hint stays centered in the
+            // residual space (= the canonical Apple HIG empty-state
+            // layout). Cards fade in on sidebar tap (= the no-flicker-
+            // stutter pattern): wrap the scope Group in `.id(scope)` (=
+            // stable subtree identity per scope = SwiftUI unmounts the
+            // previous scope and mounts the new one on scope change) +
+            // apply `.transition(.opacity.combined(with: .scale(scale:
+            // 0.96)))` (= the cards fade in + scale up from 96% to 100% on
+            // entry; = the same scale-fade-in Apple Photos uses when
+            // navigating between library days; = 220 ms = matches Apple's
+            // macOS 27 List / LazyVGrid default animation duration). The
+            // parent VStack wraps the transition in a
+            // `withAnimation(.smooth)` block triggered by `.onChange(of:
+            // scope)` (= the actual animation trigger; = without
+            // withAnimation the transition fires instantly with no visible
+            // motion). Why scope-level transition (= not per-card
+            // transition): when the user clicks a different sidebar row,
+            // ALL cards in the previous scope unmount and ALL cards in the
+            // new scope mount in one batch. Animating each card
+            // independently would create a staggered cascade that looks
+            // chaotic; = the report 'cards appear without any animation,
+            // looks ugly' was specifically about the scope-switch case. A
+            // single coordinated group-level fade-in reads as a deliberate
+            // state transition (= Apple Mail / Notes behavior on mailbox /
+            // folder switch). Per-card transition (.opacity + .scale 0.96)
+            // stays attached for the search-filter case (= typing in the
+            // search field adds/removes cards one at a time; = each card's
+            // own transition fires individually with the
+            // `.animation(.smooth, value: ids)` modifier on the ForEach; =
+            // search changes feel responsive without cascading the scope-
+            // level animation).
             VStack(spacing: 0) {
                 Spacer(minLength: 0)
                 Group {
@@ -1048,63 +941,57 @@ struct PreviewPane: View {
                     case .referenceScope(let category):
                         referenceScopeView(category: category)
                     case .tagScope(let tag):
-                        // dedicated preview
-                        // scope for tag rows. The tag string
-                        // flows in via the scope (= Apple
-                        // canonical = scope = the
-                        // single-source-of-truth for the
-                        // preview-pane content filter; =
-                        // PreviewPane does not need a
-                        // separate workspaceUI.activeTag
-                        // for this case (= the scope IS
-                        // the tag filter). The body
-                        // composes the existing
-                        // referenceScopeView's
-                        // overviewGrid with an in-scope
-                        // tag prefilter (= applies
-                        // tags.contains(tag) before the
-                        // search + category filter; =
-                        // search and activeTag remain
-                        // available for additive
-                        // narrowing).
+                        // dedicated preview scope for tag rows. The tag string flows in
+                        // via the scope (= Apple canonical =
+                        // scope = the single-source-of-truth
+                        // for the preview-pane content filter;
+                        // = PreviewPane does not need a
+                        // separate workspaceUI.activeTag for
+                        // this case (= the scope IS the tag
+                        // filter). The body composes the
+                        // existing referenceScopeView's
+                        // overviewGrid with an in-scope tag
+                        // prefilter (= applies
+                        // tags.contains(tag) before the search
+                        // + category filter; = search and
+                        // activeTag remain available for
+                        // additive narrowing).
                         referenceScopeView(category: nil, tagOverride: tag)
                     case .bookScope(let bookId, folderName: let folderName):
                         bookScopeView(bookId: bookId, folderName: folderName)
                     case .shelfScope(let shelfId):
-                        // The shelf row is a scope (= shows every
-                        // .md file clicking a shelf row should load
-                        // all .md cards from every book under that
-                        // shelf, not show an empty-state hint).
-                        // Previous behavior was
-                        // empty-state ((see OOB.md #2026-08-31) — 'shelves are a
-                        // tree level, not a document scope'); =
-                        // (see OOB.md #2026-09-22) — reversed: shelf IS a document
+                        // The shelf row is a scope (= shows every .md file clicking a
+                        // shelf row should load all .md cards
+                        // from every book under that shelf,
+                        // not show an empty-state hint).
+                        // Previous behavior was empty-state
+                        // ((see OOB.md #2026-08-31) — 'shelves
+                        // are a tree level, not a document
+                        // scope'); = (see OOB.md #2026-09-22)
+                        // — reversed: shelf IS a document
                         // scope (= the union of every book's
-                        // .md cards under the shelf).
-                        //
-                        // Crash-fix rationale:
-                        // Stable-id root-cause:
+                        // .md cards under the shelf). Crash-
+                        // fix rationale: Stable-id root-cause:
                         // shelfScopeView launched a SwiftUI
                         // constraint loop because the shelf
-                        // subtree re-ran FileManager I/O inside
-                        // its ViewBuilder body on every parent
-                        // re-render (= not on shelfId change =
-                        // = infinite I/O + NSHostingView size
-                        // invalidation cycle = the 'more Update
-                        // Constraints in Window passes than
-                        // there are views in the window'
-                        // crash). The fix:
-                        //   1. `.id(shelfId)` gives SwiftUI a
-                        //      stable subtree identity (= skips
-                        //      body re-evaluation when shelfId
-                        //      hasn't changed).
-                        //   2. `.task(id: shelfId)` pre-loads
-                        //      the shelf's books ONCE per
-                        //      shelfId change (= caches into
-                        //      @State cachedShelfBooks =
-                        //      shelfScopeView body now reads
-                        //      from cache, no I/O in body =
-                        //      no layout storm).
+                        // subtree re-ran FileManager I/O
+                        // inside its ViewBuilder body on every
+                        // parent re-render (= not on shelfId
+                        // change = = infinite I/O +
+                        // NSHostingView size invalidation
+                        // cycle = the 'more Update Constraints
+                        // in Window passes than there are
+                        // views in the window' crash). The
+                        // fix: 1. `.id(shelfId)` gives SwiftUI
+                        // a stable subtree identity (= skips
+                        // body re-evaluation when shelfId
+                        // hasn't changed). 2. `.task(id:
+                        // shelfId)` pre-loads the shelf's
+                        // books ONCE per shelfId change (=
+                        // caches into @State cachedShelfBooks
+                        // = shelfScopeView body now reads from
+                        // cache, no I/O in body = no layout
+                        // storm).
                         shelfScopeView(shelfId: shelfId)
                             .id(shelfId)
                             .task(id: shelfId) {
@@ -1114,167 +1001,111 @@ struct PreviewPane: View {
                         emptyScopeView()
                     }
                 }
-                // Cards fade in on sidebar tap (= no-flicker-stutter): the scope Group gets a stable per-scope
-                // identity (= `.id(scope)`) so SwiftUI treats each
-                // scope switch as a full subtree unmount / mount;
-                // = the matching `.transition` below plays the
-                // scope-switch entry animation. The animation is
-                // triggered by the parent `.onChange(of: scope)`
-                // wrapping the state mutation in `withAnimation(
-                // .smooth)` (= SwiftUI's structural transitions
-                // only animate when the change is wrapped in a
-                // withAnimation block; = without it the transition
-                // is instant and identical to the unfindable legacy
-                // behavior).
+                // Cards fade in on sidebar tap (= no-flicker-stutter): the scope Group
+                // gets a stable per-scope identity (= `.id(scope)`) so
+                // SwiftUI treats each scope switch as a full subtree
+                // unmount / mount; = the matching `.transition` below
+                // plays the scope-switch entry animation. The
+                // animation is triggered by the parent `.onChange(of:
+                // scope)` wrapping the state mutation in
+                // `withAnimation( .smooth)` (= SwiftUI's structural
+                // transitions only animate when the change is wrapped
+                // in a withAnimation block; = without it the
+                // transition is instant and identical to the
+                // unfindable legacy behavior).
                 .id(scope)
                 .transition(.opacity.combined(with: .scale(scale: 0.96)))
                 Spacer(minLength: 0)
             }
-            // (see OOB.md #2026-09-08) — round 1 'card, search card icon,
-            //, 18pt': body content padding was
-            // chromePaddingHero = 20 PT; = bumped to 18 PT.
-            //
-            // (see OOB.md #2026-09-08) — round 2: '18 is a bit wide; Apple API default
-            // spacing isn't PT, it's a semantic name'.
-            //
-            // (see OOB.md #2026-09-08) — round 3: 'cards zone having no spacing is
-            // not pretty, keep the spacing, all zones use round 2'.
-            //
-            // Apple HIG = chromePaddingLeading (= horizontal inset
-            // from zone edge to content) = 8 PT (= the canonical
+            // (see OOB.md #2026-09-08) — round 1 'card, search card icon, , 18pt': body
+            // content padding was chromePaddingHero = 20 PT; = bumped to
+            // 18 PT. (see OOB.md #2026-09-08) — round 2: '18 is a bit
+            // wide; Apple API default spacing isn't PT, it's a semantic
+            // name'. (see OOB.md #2026-09-08) — round 3: 'cards zone
+            // having no spacing is not pretty, keep the spacing, all zones
+            // use round 2'. Apple HIG = chromePaddingLeading (= horizontal
+            // inset from zone edge to content) = 8 PT (= the canonical
             // toolbar / inline content inset per SwiftUI 'Spacing.
-            // small'). Used padding(8) (= horizontal + vertical 8
-            // PT) so cards have visible breathing room (= not flush
-            // against the zone edge = not pretty) but match Apple
-            // HIG spacing scale (= 8-point grid).
-            //
-            // Note: per the Apple HIG card grid pattern (= Finder /
-            // Photos / Music), the gap between cards IS the spacing
-            // (= LazyVGrid's `spacing: 16` per GridItem + this outer
-            // 8 PT inset = the canonical 'comfortable but compact'
-            // grid per Apple Design Resources).
-            //
-            // Per Apple HIG / platform-default style: the previous `.padding(8)` (= 8 PT
-            // top + bottom + leading + trailing) added a hand-
-            // rolled 8 PT gap between the search field above and
-            // the first card below. Per the user's request to
-            // keep only Apple-HIG defaults, drop the manual
-            // top padding (= the cards' own LazyVGrid spacing
-            // controls vertical spacing between cards; = no extra
-            // top inset between the search field and the first
-            // card needed). Keep leading + bottom padding (= 8 PT)
-            // so cards still have breathing room from the column
-            // edges (= Apple HIG 8-point grid for inline content).
-            //
-            // Search-bar + cards padding (= 10pt inset per Apple HIG): the cards' left
-            // + right padding switches from 8 PT (= hand-written
-            // magic number, = a long-standing inline number that
-            // drifted from the search field's 8 PT horizontal
-            // padding) to 10 PT (= chromePaddingContentHorizontal
-            // = the canonical PreviewPane content gutter; = same
-            // value the search field now uses; = one
-            // gutter = one source = no horizontal drift between
-            // search field and card grid).
-            //
-            // : the
-            // cards' horizontal padding MOVED to the outer
-            // PreviewPane column (= the column-level inset).
-            // Drop the inner horizontal padding here (= would
-            // stack with the column padding = 10 + 10 = 20 PT
-            // total = the explicit complaint). Cards now
-            // rely solely on the column-level inset for left +
-            // right breathing room (= single source of truth for
-            // the PreviewPane gutter = chromePaddingContentHorizontal).
-            //
-            //
-            // (= the user wants 10 PT inner padding on the cards
-            // column; = the column-level padding was the
-            // Column-level padding (= not affected by header inset, per Apple HIG):
-            // be removed = the 10 PT gutter now lives on the
-            // per-element level = the cards grid re-asserts its
-            // own chromePaddingContentHorizontal (= 10 PT) horizontal
-            // padding here = the same visual result but
-            // without affecting the SectionHeader.
-            //
-            // 2026-10-12 round-16 boss directive "这个素材栏是
-            // 不是写了内边距, 你看一下, 如果是写了, 把
-            // 下边的内边距取消掉" — drop the column-level
-            // `.padding(.bottom, DesignTokens.spacingStandard)`
-            // (= 8 PT bottom padding before the column's
-            // last content; = creates an 8 PT visible gap
-            // between the last card and the floating
-            // `ChromeBottomFooter` from commit `1d3d8a404`; =
-            // the user reports "还差点, 素材栏底栏上面
-            // 还有空白"). The horizontal padding
-            // (`.padding(.horizontal, DesignTokens.spacingModerate
-            // = 12 PT`) is preserved (= the cards' gutter
-            // rhythm with the sidebar / editor column gutters
-            // is unchanged; = the user only flagged the
-            // bottom padding).
+            // small'). Used padding(8) (= horizontal + vertical 8 PT) so
+            // cards have visible breathing room (= not flush against the
+            // zone edge = not pretty) but match Apple HIG spacing scale (=
+            // 8-point grid). Note: per the Apple HIG card grid pattern (=
+            // Finder / Photos / Music), the gap between cards IS the
+            // spacing (= LazyVGrid's `spacing: 16` per GridItem + this
+            // outer 8 PT inset = the canonical 'comfortable but compact'
+            // grid per Apple Design Resources). Per Apple HIG / platform-
+            // default style: the previous `.padding(8)` (= 8 PT top +
+            // bottom + leading + trailing) added a hand- rolled 8 PT gap
+            // between the search field above and the first card below. Per
+            // the user's request to keep only Apple-HIG defaults, drop the
+            // manual top padding (= the cards' own LazyVGrid spacing
+            // controls vertical spacing between cards; = no extra top
+            // inset between the search field and the first card needed).
+            // Keep leading + bottom padding (= 8 PT) so cards still have
+            // breathing room from the column edges (= Apple HIG 8-point
+            // grid for inline content). Search-bar + cards padding (= 10pt
+            // inset per Apple HIG): the cards' left + right padding
+            // switches from 8 PT (= hand-written magic number, = a long-
+            // standing inline number that drifted from the search field's
+            // 8 PT horizontal padding) to 10 PT (=
+            // chromePaddingContentHorizontal = the canonical PreviewPane
+            // content gutter; = same value the search field now uses; =
+            // one gutter = one source = no horizontal drift between search
+            // field and card grid). : the cards' horizontal padding MOVED
+            // to the outer PreviewPane column (= the column-level inset).
+            // Drop the inner horizontal padding here (= would stack with
+            // the column padding = 10 + 10 = 20 PT total = the explicit
+            // complaint). Cards now rely solely on the column-level inset
+            // for left + right breathing room (= single source of truth
+            // for the PreviewPane gutter =
+            // chromePaddingContentHorizontal). (= the user wants 10 PT
+            // inner padding on the cards column; = the column-level
+            // padding was the Column-level padding (= not affected by
+            // header inset, per Apple HIG): be removed = the 10 PT gutter
+            // now lives on the per-element level = the cards grid re-
+            // asserts its own chromePaddingContentHorizontal (= 10 PT)
+            // horizontal padding here = the same visual result but without
+            // affecting the SectionHeader. 2026-10-12 round-16 boss
+            // directive "这个素材栏是 不是写了内边距, 你看一下, 如果是写了, 把 下边的内边距取消掉" — drop
+            // the column-level `.padding(.bottom,
+            // DesignTokens.spacingStandard)` (= 8 PT bottom padding before
+            // the column's last content; = creates an 8 PT visible gap
+            // between the last card and the floating `ChromeBottomFooter`
+            // from commit `1d3d8a404`; = the user reports "还差点, 素材栏底栏上面
+            // 还有空白"). The horizontal padding (`.padding(.horizontal,
+            // DesignTokens.spacingModerate = 12 PT`) is preserved (= the
+            // cards' gutter rhythm with the sidebar / editor column
+            // gutters is unchanged; = the user only flagged the bottom
+            // padding).
             .padding(.horizontal, DesignTokens.spacingModerate)
                 }
             .onReceive(NotificationCenter.default.publisher(for: .wenshuLibraryDidChange)) { _ in
                 libraryChangeTick &+= 1
             }
-            // Cards fade in on sidebar tap (= no-flicker-stutter,
-            // scope-switch entry animation). 2026-09-24 followup
-            // No visible animation: the original approach
-            // (= .onChange(of: scope) wrapping withAnimation) does
-            // NOT trigger the transition because `scope` is an
-            // immutable let-bound prop that arrives from the parent
-            // (= the parent triggers the value change outside any
-            // withAnimation block; = the closure runs in a non-
-            // animated transaction; = the .transition attached to
-            // the Group never plays).
-            //
-            // Resolution: attach `.animation(.smooth(duration:
-            // 0.22), value: scope)` directly on the body root.
-            // SwiftUI's value-based .animation modifier is the
-            // canonical replacement for withAnimation when the
-            // state mutation lives outside the current view (= the
-            // .animation modifier listens for value changes on the
-            // passed Equatable/Hashable and wraps the resulting
-            // render frames in an animation transaction; = the
-            // .transition on the Group below fires correctly).
-            //
-            // Scale 0.96 + opacity over 220 ms = the Apple Photos
-            // library-day navigation feel (= the reference for
-            // the entry transition).
+            // Cards fade in on sidebar tap (= no-flicker-stutter, scope-switch entry
+            // animation). 2026-09-24 followup No visible animation: the
+            // original approach (= .onChange(of: scope) wrapping
+            // withAnimation) does NOT trigger the transition because
+            // `scope` is an immutable let-bound prop that arrives from the
+            // parent (= the parent triggers the value change outside any
+            // withAnimation block; = the closure runs in a non- animated
+            // transaction; = the .transition attached to the Group never
+            // plays). Resolution: attach `.animation(.smooth(duration:
+            // 0.22), value: scope)` directly on the body root. SwiftUI's
+            // value-based .animation modifier is the canonical replacement
+            // for withAnimation when the state mutation lives outside the
+            // current view (= the .animation modifier listens for value
+            // changes on the passed Equatable/Hashable and wraps the
+            // resulting render frames in an animation transaction; = the
+            // .transition on the Group below fires correctly). Scale 0.96
+            // + opacity over 220 ms = the Apple Photos library-day
+            // navigation feel (= the reference for the entry transition).
         .animation(.smooth(duration: 0.22), value: scope)
-            // the
-            // right-click
-            // "重命名"
-            // sheet (= the
-            // same
-            // RenameItemSheet
-            // the
-            // sidebar
-            // uses).
-            // The
-            // `kind:
-            // .reference`
-            // case is
-            // already
-            // handled
-            // in
-            // `RenameItemSheet.init`
-            // (= the
-            // sheet
-            // shows
-            // a
-            // single
-            // TextField
-            // + the
-            // duplicate-name
-            // error; =
-            // the
-            // reference
-            // case
-            // uses
-            // `otherReferenceTitles`
-            // for the
-            // duplicate
-            // check).
+            // the right-click "重命名" sheet (= the same RenameItemSheet the sidebar uses).
+            // The `kind: .reference` case is already handled in
+            // `RenameItemSheet.init` (= the sheet shows a single TextField
+            // + the duplicate-name error; = the reference case uses
+            // `otherReferenceTitles` for the duplicate check).
             .sheet(item: $cardRenaming) { target in
                 RenameItemSheet(
                     kind: target.kind,
@@ -1308,40 +1139,10 @@ struct PreviewPane: View {
                     onCancel: { cardRenaming = nil }
                 )
             }
-            // the
-            // delete
-            // alert (= the
-            // same
-            // `.alert`
-            // the
-            // sidebar
-            // uses).
-            // Only
-            // the
-            // `.reference`
-            // case
-            // fires
-            // for
-            // now
-            // (= the
-            // card
-            // menu
-            // is
-            // reference-only);
-            // = the
-            // sheet/alert
-            // plumbing
-            // supports
-            // all
-            // kinds
-            // anyway
-            // (= future
-            // bookDoc
-            // menu
-            // can
-            // reuse
-            // the
-            // same
+            // the delete alert (= the same `.alert` the sidebar uses). Only the
+            // `.reference` case fires for now (= the card menu is
+            // reference-only); = the sheet/alert plumbing supports all
+            // kinds anyway (= future bookDoc menu can reuse the same
             // state).
             .alert(
                 String(localized: "sidebar_delete_alert_title"),
@@ -1365,66 +1166,18 @@ struct PreviewPane: View {
                         }
                         cardPendingDelete = nil
                         Task { await ensureCardService().reload() }
-                        // (= boss
-                        // 2026-10-10 "两
-                        // 个
-                        // 卡
-                        // 片
-                        // 右
-                        // 键
-                        // 删
-                        // 除
-                        // ，
-                        // 删
-                        // 除
-                        // 成
-                        // 功
-                        // 后
-                        // ，
-                        // 目
-                        // 录
-                        // 树
-                        // 没
-                        // 有
-                        // 刷
-                        // 新
-                        // "
-                        // feedback):
-                        // post the
-                        // canonical
-                        // library
-                        // change
-                        // notification
-                        // (= same
-                        // notification
-                        // ImportSheet
-                        // posts after
-                        // a successful
-                        // import;
-                        // = AppleSidebarView
-                        // observes
-                        // this and
-                        // reloads its
-                        // tree; =
-                        // PreviewPane's
-                        // card grid
-                        // also
-                        // re-evaluates
-                        // because
-                        // the
-                        // notification
-                        // carries a
-                        // timestamp
-                        // change that
-                        // SwiftUI
-                        // treats as a
-                        // new body
-                        // input; = the
-                        // user sees
-                        // the deleted
-                        // card
-                        // disappear
-                        // immediately).
+                        // (= boss 2026-10-10 "两 个 卡 片 右 键 删 除 ， 删 除 成 功 后 ， 目 录 树 没 有 刷 新
+                        // " feedback): post the canonical
+                        // library change notification (= same
+                        // notification ImportSheet posts after
+                        // a successful import; =
+                        // AppleSidebarView observes this and
+                        // reloads its tree; = PreviewPane's
+                        // card grid also re-evaluates because
+                        // the notification carries a timestamp
+                        // change that SwiftUI treats as a new
+                        // body input; = the user sees the
+                        // deleted card disappear immediately).
                         NotificationCenter.default.post(
                             name: .wenshuLibraryDidChange,
                             object: nil
@@ -1459,21 +1212,17 @@ struct PreviewPane: View {
     /// entities, flat grid per (see OOB.md #2026-08-30)); non-nil = category filter.
     @ViewBuilder
     private func referenceScopeView(category: EntityCategory?, tagOverride: String? = nil) -> some View {
-        // (see OOB.md #2026-09-07) — 'search,': apply the
-        // search filter (= previewSearchQuery) on top of the
-        // category filter. Both filters compose (= all entities →
-        // search filter → category filter).
+        // (see OOB.md #2026-09-07) — 'search,': apply the search filter (=
+        // previewSearchQuery) on top of the category filter. Both filters
+        // compose (= all entities → search filter → category filter).
         let searched = searchFilteredEntities(loadAllEntities())
-        // SidebarItem.tag preview-pane filter:
-        // apply the tag filter (= self.activeTag OR
-        // tagOverride from PreviewScope.tagScope) on top
-        // of the search + category filter. tag nil = show all
-        // (= the user picked the reference library root).
-        // tagOverride takes precedence (= the new
+        // SidebarItem.tag preview-pane filter: apply the tag filter (= self.activeTag OR
+        // tagOverride from PreviewScope.tagScope) on top of the search +
+        // category filter. tag nil = show all (= the user picked the reference
+        // library root). tagOverride takes precedence (= the new
         // PreviewScope.tagScope is the canonical route; =
-        // workspaceUI.activeTag remains supported for
-        // backward compatibility with the prior
-        // .referenceScope(nil) routing path that AssetsPane
+        // workspaceUI.activeTag remains supported for backward compatibility
+        // with the prior .referenceScope(nil) routing path that AssetsPane
         // uses to set activeTag in addition).
         let effectiveTag = tagOverride ?? activeTag
         let allEntities: [Reference] = {
@@ -1500,38 +1249,19 @@ struct PreviewPane: View {
     /// just that folder.
     @ViewBuilder
     private func bookScopeView(bookId: UUID, folderName: String?) -> some View {
-        // 
-        // the `libraryChangeTick`
-        // `@State` is read in
-        // the body's
-        // `.onReceive` (= the
-        // parent's body
-        // re-evaluates when
-        // the tick changes;
-        // = this view is
-        // re-instantiated as
-        // part of the body
-        // re-render; = the
-        // `loadBookDocs`
-        // call below
-        // re-walks the
-        // FS; = the deleted
-        // card disappears).
-        // No explicit read
-        // needed here (= the
-        // body's
-        // re-evaluation is
-        // enough).
+        // the `libraryChangeTick` `@State` is read in the body's `.onReceive` (= the
+        // parent's body re-evaluates when the tick changes; = this view is re-
+        // instantiated as part of the body re-render; = the `loadBookDocs`
+        // call below re-walks the FS; = the deleted card disappears). No
+        // explicit read needed here (= the body's re-evaluation is enough).
         let allDocs = loadBookDocs(bookId: bookId, folderName: folderName)
-        // Search-field padding rationale:
-        // actually filter the cards' (= typing in the search field did not
-        // filter cards in the book scope). The previous code passed
-        // the unfiltered `docs` to `bookDocsGrid(docs:)`; = the
+        // Search-field padding rationale: actually filter the cards' (= typing in the
+        // search field did not filter cards in the book scope). The previous
+        // code passed the unfiltered `docs` to `bookDocsGrid(docs:)`; = the
         // search field only filtered reference entities (= in
-        // `referenceScopeView`), but book .md cards bypassed the
-        // filter entirely. Apply the same shape as
-        // `searchFilteredEntities` (= title / summary / pinyin
-        // first-letter substring) to book docs.
+        // `referenceScopeView`), but book .md cards bypassed the filter
+        // entirely. Apply the same shape as `searchFilteredEntities` (= title
+        // / summary / pinyin first-letter substring) to book docs.
         let docs = searchFilteredBookDocs(allDocs)
         VStack(spacing: 0) {
             if docs.isEmpty {
@@ -1556,64 +1286,45 @@ struct PreviewPane: View {
     /// to books whose `shelfId == shelfId`).
     @ViewBuilder
     private func shelfScopeView(shelfId: UUID) -> some View {
-        // 
-        // see the comment
-        // on
-        // `bookScopeView` (=
-        // the body's
-        // `.onReceive` reads
-        // the
-        // `libraryChangeTick`
-        // @State;
-        // = no explicit
-        // read needed
-        // here).
-        // Stable-id root-cause fix:
-        // the original ran FileManager I/O (= walk
-        // shelves tree + read every .md) inside this ViewBuilder
-        // body. SwiftUI re-evaluates this body on EVERY
-        // Observation tick (= every AppState mutation, every
-        // sidebarSelection change, every parent re-render), so
-        // the I/O ran hundreds of times per second while the
-        // shelf was selected → NSHostingView size constraint
-        // invalidation storm → 'more Update Constraints in
-        // Window passes than there are views in the window'
-        // NSGenericException crash.
-        //
-        // Fix: read the pre-computed, cached book list from
-        // `@State cachedShelfBooks` (= populated exactly once
-        // per shelfId via `.task(id: shelfId)` at the call
-        // site below = the I/O runs at most once per shelfId
-        // change = no storm = no constraint cycle). The
-        // `.id(shelfId)` at the call site gives SwiftUI a
-        // stable identity for the subtree (= SwiftUI skips
-        // body re-evaluation entirely when the shelfId is
-        // unchanged = the cached state survives every
-        // observation tick).
+        // see the comment on `bookScopeView` (= the body's `.onReceive` reads the
+        // `libraryChangeTick` @State; = no explicit read needed here). Stable-
+        // id root-cause fix: the original ran FileManager I/O (= walk shelves
+        // tree + read every .md) inside this ViewBuilder body. SwiftUI re-
+        // evaluates this body on EVERY Observation tick (= every AppState
+        // mutation, every sidebarSelection change, every parent re-render), so
+        // the I/O ran hundreds of times per second while the shelf was
+        // selected → NSHostingView size constraint invalidation storm → 'more
+        // Update Constraints in Window passes than there are views in the
+        // window' NSGenericException crash. Fix: read the pre-computed, cached
+        // book list from `@State cachedShelfBooks` (= populated exactly once
+        // per shelfId via `.task(id: shelfId)` at the call site below = the
+        // I/O runs at most once per shelfId change = no storm = no constraint
+        // cycle). The `.id(shelfId)` at the call site gives SwiftUI a stable
+        // identity for the subtree (= SwiftUI skips body re-evaluation
+        // entirely when the shelfId is unchanged = the cached state survives
+        // every observation tick).
         let books = cachedShelfBooks[shelfId] ?? []
         let allDocs = books.flatMap { loadBookDocs(bookId: $0.id, folderName: nil) }
         let filteredDocs = searchFilteredBookDocs(allDocs)
         if filteredDocs.isEmpty {
-            // Empty shelf branch (= no books under the shelf,
-            // or every book has no .md cards, or the search
-            // filter excluded everything). Reuse the existing
-            // emptyState view (= matches the cross-scope fallback shape
-            // that the other scopes fall back to) but
-            // with a shelf-specific bodyKey.
+            // Empty shelf branch (= no books under the shelf, or every book has no .md
+            // cards, or the search filter excluded everything). Reuse the
+            // existing emptyState view (= matches the cross-scope fallback
+            // shape that the other scopes fall back to) but with a shelf-
+            // specific bodyKey.
             emptyState(
                 icon: "books.vertical",
                 titleKey: "preview.empty_state.shelf_empty",
                 bodyKey: "preview.empty.shelf_no_books"
             )
         } else {
-            // Non-empty: reuse the canonical bookDocsGrid (= same
-            // LazyVGrid + adaptiveColumns(width:) + sort + Card
-            // styling as bookScopeView). Avoids the draft
-            // duplicate LazyVGrid (= different .padding(24) vs
-            // .padding(.vertical, DesignTokens.spacingStandard);
-            // = the user's "width is wrong" complaint was the
-            // duplicate-render path bypassing the existing
-            // chromePaddingVertical / card chrome contract).
+            // Non-empty: reuse the canonical bookDocsGrid (= same LazyVGrid +
+            // adaptiveColumns(width:) + sort + Card styling as
+            // bookScopeView). Avoids the draft duplicate LazyVGrid (=
+            // different .padding(24) vs .padding(.vertical,
+            // DesignTokens.spacingStandard); = the user's "width is wrong"
+            // complaint was the duplicate-render path bypassing the
+            // existing chromePaddingVertical / card chrome contract).
             bookDocsGrid(docs: filteredDocs)
         }
     }
@@ -1641,24 +1352,22 @@ struct PreviewPane: View {
     @ViewBuilder
     private func categoryGrid(category: EntityCategory, allEntities: [Reference]) -> some View {
         let inCategory = allEntities.filter { $0.category == category }
-        // removed the category header HStack
-        // (= icon + category.displayName + count). Per the rule: 'in the reference
-        // library, the title in the red box in the material preview area is unused, not needed,
-        // delete it'. The sidebar already shows the category name (= when
-        // user clicks reference-library/History-Geography, the sidebar shows the
-        // selection); the preview pane's category header is
-        // redundant. Now the preview pane jumps directly to the
-        // card grid (= card thumbnails + card content).
+        // removed the category header HStack (= icon + category.displayName + count). Per
+        // the rule: 'in the reference library, the title in the red box in the
+        // material preview area is unused, not needed, delete it'. The sidebar
+        // already shows the category name (= when user clicks reference-
+        // library/History-Geography, the sidebar shows the selection); the
+        // preview pane's category header is redundant. Now the preview pane
+        // jumps directly to the card grid (= card thumbnails + card content).
         // preview area content isn't fully displayed when width was narrowed
-        // preview area doesn't auto-adapt the width' = preview pane content area is
-        // narrower than the pane (= 184 PT vs ~430 PT) because the
-        // outer VStack has no .frame(maxWidth: .infinity) = the
-        // inner GeometryReader takes the parent's intrinsic width
-        // (= 0) = the LazyVGrid falls back to a single column at
-        // narrow width = sort button / trailing icons at right edge
-        // get clipped by the content width, NOT the pane width.
-        // Fix = .frame(maxWidth: .infinity) on the outer VStack so
-        // GeometryReader reports the full pane width.
+        // preview area doesn't auto-adapt the width' = preview pane content
+        // area is narrower than the pane (= 184 PT vs ~430 PT) because the
+        // outer VStack has no .frame(maxWidth: .infinity) = the inner
+        // GeometryReader takes the parent's intrinsic width (= 0) = the
+        // LazyVGrid falls back to a single column at narrow width = sort
+        // button / trailing icons at right edge get clipped by the content
+        // width, NOT the pane width. Fix = .frame(maxWidth: .infinity) on the
+        // outer VStack so GeometryReader reports the full pane width.
         VStack(alignment: .leading, spacing: 0) {
             if inCategory.isEmpty {
                 emptyState(
@@ -1690,79 +1399,74 @@ struct PreviewPane: View {
             ScrollView {
                 LazyVGrid(columns: adaptiveColumns(width: geometry.size.width), spacing: 16) {
                     ForEach(inCategory) { entity in
-                        // (see OOB.md #2026-09-08) — 'card, show':
-                        // the trailing closure here IS Card's
-                        // onDoubleClick (= now takes the CardSource
-                        // as a parameter). Forward that source to
-                        // PreviewPane's onDoubleClick (= which opens
-                        // THIS specific card in the editor, not the
-                        // topmost card = the previous filtered.first
-                        // bug).
+                        // (see OOB.md #2026-09-08) — 'card, show': the trailing closure
+                        // here IS Card's onDoubleClick (= now
+                        // takes the CardSource as a
+                        // parameter). Forward that source to
+                        // PreviewPane's onDoubleClick (= which
+                        // opens THIS specific card in the
+                        // editor, not the topmost card = the
+                        // previous filtered.first bug).
                         referenceCategoryCard(entity)
-                            // Cards fade in on sidebar tap: individual
-                            // Card gets an opacity + scale entry
-                            // transition. When the user types in the
-                            // search field, matching cards fade +
-                            // scale in and non-matching cards fade out
-                            // (= the .animation(.smooth, value:) on
-                            // the LazyVGrid triggers each card's
-                            // transition as SwiftUI adds or removes it
+                            // Cards fade in on sidebar tap: individual Card gets an
+                            // opacity + scale entry
+                            // transition. When the user
+                            // types in the search field,
+                            // matching cards fade + scale
+                            // in and non-matching cards
+                            // fade out (= the
+                            // .animation(.smooth, value:)
+                            // on the LazyVGrid triggers
+                            // each card's transition as
+                            // SwiftUI adds or removes it
                             // from the diff).
                             .transition(.opacity.combined(with: .scale(scale: 0.96)))
                     }
                 }
-                // per-card animation trigger (= fires on every
-                // Card add/remove within this categoryGrid). Reading
-                // `inCategory.map(\.id)` produces an Equatable
-                // sequence SwiftUI can diff (= when the IDs change
-                // = some cards added/removed = the cards' .opacity /
-                // scale transitions play). 180 ms = matches the
-                // LazyVGrid default fade duration.
+                // per-card animation trigger (= fires on every Card add/remove within
+                // this categoryGrid). Reading `inCategory.map(\.id)`
+                // produces an Equatable sequence SwiftUI can diff (=
+                // when the IDs change = some cards added/removed = the
+                // cards' .opacity / scale transitions play). 180 ms =
+                // matches the LazyVGrid default fade duration.
                 .animation(.smooth(duration: 0.18), value: inCategory.map(\.id))
-                // STYLES-006 (2026-09-07): use the canonical content
-                // inset modifier (= 0 PT = matches sidebar / editor
-                // behavior = content sits right below the chrome
-                // tier separator with no extra gap). Previously
-                // (.contentInsetStyle(.standard, edges: .vertical)
-                // = 18 PT) created a 35 PT inconsistency vs zone 1
-                // sidebar / zone 3 editor ((see OOB.md #2026-09-07)
-                // — round 5 'region, ' = all 6 zones should share
-                // the same chrome-tier-to-content-tier inset). The
-                // previous 18 PT was Apple's
-                // .defaultContentMargins (= NSTextView internal),
-                // which doesn't apply to LazyVGrid (= the grid's
-                // rows are not text).
+                // STYLES-006 (2026-09-07): use the canonical content inset modifier (= 0
+                // PT = matches sidebar / editor behavior = content
+                // sits right below the chrome tier separator with no
+                // extra gap). Previously
+                // (.contentInsetStyle(.standard, edges: .vertical) =
+                // 18 PT) created a 35 PT inconsistency vs zone 1
+                // sidebar / zone 3 editor ((see OOB.md #2026-09-07) —
+                // round 5 'region, ' = all 6 zones should share the
+                // same chrome-tier-to-content-tier inset). The
+                // previous 18 PT was Apple's .defaultContentMargins (=
+                // NSTextView internal), which doesn't apply to
+                // LazyVGrid (= the grid's rows are not text).
                 .contentInsetStyle(.none, edges: .vertical)
-                // 2026-10-12 round-18 boss directive "还是有
-                // 一点间距" — the prior `.frame(maxHeight:
-                // .infinity) + .safeAreaInset(edge: .bottom,
-                // spacing: 0)` (= round-17 fix) anchored
-                // the chrome footer at the column's
-                // bottom BUT the safe area inset did NOT
-                // extend down to the bottom of the inner
-                // ScrollView's content (= SwiftUI's
-                // `safeAreaInset` only adds the chrome's
-                // outer height to the receiver's bottom
-                // safe area, but the inner ScrollView's
-                // own bottom safe area stays at 0 = the
-                // last card's natural position is at the
-                // ScrollView's natural bottom = the gap
-                // between the last card and the chrome's
-                // Divider = `chrome.padding-top 8 PT + 1 PT
-                // Divider` ≈ 9 PT visible column-bg gap).
-                // Mirror the chat's `contentMargins(.bottom,
-                // chatInputBarHeight, for: .scrollContent)`
-                // pattern (= explicit content bottom margin
-                // equal to the chrome footer's total height;
-                // = the last card is pushed up by the full
-                // chrome height = 0 PT visible gap between
-                // the last card and the chrome footer's
-                // Divider). 33 PT = `1 (Divider) + 8
-                // (padding-top) + 16 (text intrinsic) + 8
-                // (padding-bottom)` = the chrome footer's
-                // total height (= matches the chat's
-                // `chatInputBarHeight` which is also the
-                // chrome footer's total height).
+                // 2026-10-12 round-18 boss directive "还是有 一点间距" — the prior
+                // `.frame(maxHeight: .infinity) + .safeAreaInset(edge:
+                // .bottom, spacing: 0)` (= round-17 fix) anchored the
+                // chrome footer at the column's bottom BUT the safe
+                // area inset did NOT extend down to the bottom of the
+                // inner ScrollView's content (= SwiftUI's
+                // `safeAreaInset` only adds the chrome's outer height
+                // to the receiver's bottom safe area, but the inner
+                // ScrollView's own bottom safe area stays at 0 = the
+                // last card's natural position is at the ScrollView's
+                // natural bottom = the gap between the last card and
+                // the chrome's Divider = `chrome.padding-top 8 PT + 1
+                // PT Divider` ≈ 9 PT visible column-bg gap). Mirror
+                // the chat's `contentMargins(.bottom,
+                // chatInputBarHeight, for: .scrollContent)` pattern (=
+                // explicit content bottom margin equal to the chrome
+                // footer's total height; = the last card is pushed up
+                // by the full chrome height = 0 PT visible gap between
+                // the last card and the chrome footer's Divider). 33
+                // PT = `1 (Divider) + 8 (padding-top) + 16 (text
+                // intrinsic) + 8 (padding-bottom)` = the chrome
+                // footer's total height (= matches the chat's
+                // `chatInputBarHeight` which is also the chrome
+                // footer's total height).
                 .contentMargins(.bottom, 33, for: .scrollContent)
             }
         }
@@ -1829,15 +1533,16 @@ struct PreviewPane: View {
                 bodyKey: "preview.empty.import_hint"
             )
         } else {
-            // (per the rule 'the material preview area only displays cards of the currently selected directory,
-            // so only card flow is needed, just lay them out continuously' + 'material preview area doesn't need this title,
-            // cards just tile flat'.
-            //
-            // Single flat LazyVGrid (= no per-category section headers,
-            // no global count header). Cards flow continuously
-            // (= wubi-ji sticky-note style). Sort by current `previewSortOrder`
-            // (= (see OOB.md #2026-08-30) — default pinyin first letter; user can pick
-            // creation time or modification time via top-right sort menu icon).
+            // (per the rule 'the material preview area only displays cards of the
+            // currently selected directory, so only card flow is needed,
+            // just lay them out continuously' + 'material preview area
+            // doesn't need this title, cards just tile flat'. Single flat
+            // LazyVGrid (= no per-category section headers, no global
+            // count header). Cards flow continuously (= wubi-ji sticky-
+            // note style). Sort by current `previewSortOrder` (= (see
+            // OOB.md #2026-08-30) — default pinyin first letter; user can
+            // pick creation time or modification time via top-right sort
+            // menu icon).
             let sorted = sortEntities(allEntities, by: previewSortOrder)
             GeometryReader { geometry in
                 ScrollView {
@@ -1851,28 +1556,25 @@ struct PreviewPane: View {
                                 onRename: { beginReferenceRename(entity) },
                                 onDelete: { beginReferenceDelete(entity) }
                             )
-                            // per-card transition (= see
-                            // categoryGrid comment for rationale).
+                            // per-card transition (= see categoryGrid comment for
+                            // rationale).
                             .transition(.opacity.combined(with: .scale(scale: 0.96)))
                         }
                     }
-                    // per-card animation trigger (= search
-                    // filter add/remove within overviewGrid).
+                    // per-card animation trigger (= search filter add/remove within
+                    // overviewGrid).
                     .animation(.smooth(duration: 0.18), value: sorted.map(\.id))
                 }
                 .padding(.vertical, DesignTokens.spacingStandard)
-                // 2026-10-12 round-18 — see the
-                // `categoryGridContent` LazyVGrid for the
-                // doc on the `.contentMargins(.bottom,
-                // 33, for: .scrollContent)` chrome-footer
-                // gap-absorber (= 33 PT = the chrome
-                // footer's total height; = the last card
-                // is pushed up by the full chrome
-                // height; = 0 PT visible gap between the
-                // last card and the chrome footer's
-                // Divider; = 1:1 with the chat footer
-                // pattern; = matches the chat's
-                // `chatInputBarHeight` content margin).
+                // 2026-10-12 round-18 — see the `categoryGridContent` LazyVGrid for the
+                // doc on the `.contentMargins(.bottom, 33, for:
+                // .scrollContent)` chrome-footer gap-absorber (= 33 PT
+                // = the chrome footer's total height; = the last card
+                // is pushed up by the full chrome height; = 0 PT
+                // visible gap between the last card and the chrome
+                // footer's Divider; = 1:1 with the chat footer
+                // pattern; = matches the chat's `chatInputBarHeight`
+                // content margin).
                 .contentMargins(.bottom, 33, for: .scrollContent)
             }
         }
@@ -1887,77 +1589,38 @@ struct PreviewPane: View {
     /// icon. Caller can override per-call (= rare; most callers
     /// use the default).
     private func emptyState(
-        // Per Apple HIG / platform-default style:
-        // default icon 'book-open' is Lucide kebab-case (= NOT a
-        // valid SF Symbol 6 identifier) = renders as a blank
-        // rectangle in PreviewPane's empty states. Migrated to
-        // the dot.case SF Symbols 6 form ('book.pages'). Per
-        // /Applications/SF Symbols Beta.app/Contents/Executables/
-        // sfsymbols search 2026-09-16.
+        // Per Apple HIG / platform-default style: default icon 'book-open' is Lucide
+        // kebab-case (= NOT a valid SF Symbol 6 identifier) = renders as a
+        // blank rectangle in PreviewPane's empty states. Migrated to the
+        // dot.case SF Symbols 6 form ('book.pages'). Per /Applications/SF
+        // Symbols Beta.app/Contents/Executables/ sfsymbols search 2026-09-16.
         icon: String = "book.pages",
         titleKey: String,
         bodyKey: String
     ) -> some View {
-        // Empty-state shape rationale:
-        // a single component — can you abstract a UI component? While you're at it, on the
-        // empty-state icon: double the size and use the thinnest strokes. The goal is to unify all
-        // empty-state styles. The right column has 12 tabs and many are missing an empty state': migrate
-        // to the unified EmptyStateView (= 76 PT SF Symbols 6 icon
-        // + .regular weight = the canonical macOS 27
-        // inspector icon weight; = standard title /
-        // body hierarchy). Same visual treatment as the 12
-        // specialized tool tabs.
-        // (= boss
-        // 2026-10-10 "少了几个
-        // 多语言" feedback).
-        // The previous
-        // implementation used
-        // `String(localized:
-        // LocalizationValue(stringLiteral:))`
-        // which on macOS 14+ /
-        // Xcode 15+ reads from
-        // `Localizable.xcstrings`
-        // (= the String Catalog).
-        // = the SPM .process("Resources")
-        // pattern did NOT ship
-        // the .xcstrings into
-        // the runtime bundle (=
-        // it stays in the
-        // build cache; = the
-        // copy loop in
-        // Scripts/build-app.sh
-        // promotes only the
-        // compiled .lproj/
-        // Localizable.strings
-        // files; = the runtime
-        // never sees
-        // .xcstrings; = the
-        // 10 preview.empty*
-        // keys existed in
-        // the binary .strings
-        // but not in
-        // .xcstrings; = the
-        // runtime showed raw
-        // dotted keys). Fix:
-        // use `NSLocalizedString`
-        // (= reads from the
-        // binary .strings files
-        // which DO have the
-        // keys; = the canonical
-        // path for runtime
-        // lookup; = the
-        // `Localizable.xcstrings`
-        // becomes the source
-        // for humans + LLMs
-        // only; = the binary
-        // .strings files are
-        // the runtime truth).
-        // The .xcstrings is
-        // also updated (= 638
-        // keys vs 627; = source
-        // of truth for future
-        // Xcode String Catalog
-        // editing).
+        // Empty-state shape rationale: a single component — can you abstract a UI
+        // component? While you're at it, on the empty-state icon: double the
+        // size and use the thinnest strokes. The goal is to unify all empty-
+        // state styles. The right column has 12 tabs and many are missing an
+        // empty state': migrate to the unified EmptyStateView (= 76 PT SF
+        // Symbols 6 icon + .regular weight = the canonical macOS 27 inspector
+        // icon weight; = standard title / body hierarchy). Same visual
+        // treatment as the 12 specialized tool tabs. (= boss 2026-10-10 "少了几个
+        // 多语言" feedback). The previous implementation used `String(localized:
+        // LocalizationValue(stringLiteral:))` which on macOS 14+ / Xcode 15+
+        // reads from `Localizable.xcstrings` (= the String Catalog). = the SPM
+        // .process("Resources") pattern did NOT ship the .xcstrings into the
+        // runtime bundle (= it stays in the build cache; = the copy loop in
+        // Scripts/build-app.sh promotes only the compiled .lproj/
+        // Localizable.strings files; = the runtime never sees .xcstrings; =
+        // the 10 preview.empty* keys existed in the binary .strings but not in
+        // .xcstrings; = the runtime showed raw dotted keys). Fix: use
+        // `NSLocalizedString` (= reads from the binary .strings files which DO
+        // have the keys; = the canonical path for runtime lookup; = the
+        // `Localizable.xcstrings` becomes the source for humans + LLMs only; =
+        // the binary .strings files are the runtime truth). The .xcstrings is
+        // also updated (= 638 keys vs 627; = source of truth for future Xcode
+        // String Catalog editing).
         EmptyStateView(
             icon: icon,
             title: NSLocalizedString(titleKey, comment: ""),
@@ -2219,20 +1882,17 @@ struct PreviewPane: View {
                             onRename: { beginBookDocRename(doc) },
                             onDelete: { beginBookDocDelete(doc) }
                         )
-                        // per-card transition (= see
-                        // categoryGrid comment for rationale).
+                        // per-card transition (= see categoryGrid comment for rationale).
                         .transition(.opacity.combined(with: .scale(scale: 0.96)))
                     }
                 }
-                // per-card animation trigger (= search
-                // filter add/remove within bookDocsGrid).
+                // per-card animation trigger (= search filter add/remove within
+                // bookDocsGrid).
                 .animation(.smooth(duration: 0.18), value: sorted.map(\.id))
                 .padding(.vertical, DesignTokens.spacingStandard)
-                // 2026-10-12 round-18 — see the
-                // `categoryGridContent` LazyVGrid for the
-                // doc on the `.contentMargins(.bottom,
-                // 33, for: .scrollContent)` chrome-footer
-                // gap-absorber.
+                // 2026-10-12 round-18 — see the `categoryGridContent` LazyVGrid for the
+                // doc on the `.contentMargins(.bottom, 33, for:
+                // .scrollContent)` chrome-footer gap-absorber.
                 .contentMargins(.bottom, 33, for: .scrollContent)
             }
         }
@@ -2249,8 +1909,8 @@ struct PreviewPane: View {
         // Strip diacritics (e.g. "Lǐ Bái" → "Li Bai").
         CFStringTransform(mutable, nil, kCFStringTransformStripDiacritics, false)
         let latinized = (mutable as String).trimmingCharacters(in: .whitespaces)
-        // First non-whitespace character, uppercased. Empty titles bucket
-        // to "~" (= sorts last).
+        // First non-whitespace character, uppercased. Empty titles bucket to "~" (= sorts
+        // last).
         if let first = latinized.first {
             return String(first).uppercased()
         }
@@ -2397,18 +2057,13 @@ internal enum CardSource {
     var tags: [String] {
         switch self {
         case .reference(let r):
-            // Sort the tag list for stable
-            // rendering (= the underlying Set
-            // has no defined order; = the
-            // card layout should not jitter
-            // when SwiftUI re-evaluates the
-            // body).
+            // Sort the tag list for stable rendering (= the underlying Set has no defined
+            // order; = the card layout should not jitter when SwiftUI re-
+            // evaluates the body).
             return r.tags.sorted()
         case .bookDoc(let d):
-            // BookDoc.tags is the parsed first H1
-            // (= single element array; = sorted
-            // is a no-op for one element but
-            // keeps the rendering code shape
+            // BookDoc.tags is the parsed first H1 (= single element array; = sorted is a
+            // no-op for one element but keeps the rendering code shape
             // identical to the .reference case).
             return d.tags.sorted()
         }
@@ -2620,18 +2275,16 @@ private struct Card: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // THUMBNAIL: icon as a large prominent header
-            // (= cards need thumbnails).
+            // THUMBNAIL: icon as a large prominent header (= cards need thumbnails).
             ZStack {
                 LinearGradient(
                     colors: [Color.accentColor.opacity(DesignTokens.accentTintOpacityHero), Color(nsColor: .quaternaryLabelColor)],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
-                // 
-                // Per wenshu-icon-policy v1.5: 64 PT (= empty-state
-                // threshold >=38 PT) MUST pin .symbolRenderingMode(.monochrome).
-                // SF Symbols 6 on macOS 27 silently falls back to the
+                // Per wenshu-icon-policy v1.5: 64 PT (= empty-state threshold >=38 PT)
+                // MUST pin .symbolRenderingMode(.monochrome). SF
+                // Symbols 6 on macOS 27 silently falls back to the
                 // .fill variant (= the bold-blue book icon. Pinning
                 // .monochrome forces the outline glyph at 64 PT.
                 // Trade-off: .tint(.opacity 0.85) blue is replaced by
@@ -2653,38 +2306,38 @@ private struct Card: View {
                     topTrailingRadius: DesignTokens.surfaceCornerRadiusWindow
                 )
             )
-            // TEXT content below the thumbnail
-            // reference-library card standard = title + tag
-            // chips + one-line summary, no [type] badge, no
-            // timestamp chip, no iconSize split.
+            // TEXT content below the thumbnail reference-library card standard = title +
+            // tag chips + one-line summary, no [type] badge, no timestamp
+            // chip, no iconSize split.
             VStack(alignment: .leading, spacing: 6) {
                 Text(source.title)
                     .font(.headline)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
-                // boss 2026-10-09 (see OOB.md #2026-10-09)
-                // spacing (= 6 PT = spacingTight
-                // inside the VStack) and the
-                // secondary-tint foreground so the
-                // tags read as metadata not as
-                // primary content.
+                // boss 2026-10-09 (see OOB.md #2026-10-09) spacing (= 6 PT = spacingTight
+                // inside the VStack) and the secondary-tint foreground
+                // so the tags read as metadata not as primary content.
                 if !source.tags.isEmpty {
                     HStack(spacing: DesignTokens.spacingCaption) {
                         ForEach(source.tags, id: \.self) { tag in
                             Text(tag)
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
-                                // boss 2026-10-09 (see OOB.md #2026-10-09)
-                                // (= 2 PT) was too tight; =
-                                // tag text was visually flush
-                                // against the chip border;
-                                // = spacingStandard (= 8 PT
-                                // horizontal + 2 PT vertical)
-                                // gives the chip a proper
-                                // pill-shape with breathing
-                                // room around the text; = the
-                                // vertical stays tight (= 2 PT
-                                // = the chip is one line tall).
+                                // boss 2026-10-09 (see OOB.md #2026-10-09) (= 2 PT) was
+                                // too tight; = tag
+                                // text was visually
+                                // flush against the
+                                // chip border; =
+                                // spacingStandard (= 8
+                                // PT horizontal + 2 PT
+                                // vertical) gives the
+                                // chip a proper pill-
+                                // shape with breathing
+                                // room around the
+                                // text; = the vertical
+                                // stays tight (= 2 PT
+                                // = the chip is one
+                                // line tall).
                                 .padding(.horizontal, DesignTokens.spacingStandard)
                                 .padding(.vertical, DesignTokens.spacingCaption)
                                 .background(
@@ -2706,62 +2359,22 @@ private struct Card: View {
             .padding(DesignTokens.spacingModerate)
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
-        // parent component owns style, child component only does function.
-        // Hover tint (= matches PaneIconTab hover pattern).
+        // parent component owns style, child component only does function. Hover tint (=
+        // matches PaneIconTab hover pattern).
         .background(
             RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusWindow, style: .continuous)
                 .fill(isHovered ? AnyShapeStyle(.tertiary) : AnyShapeStyle(Color.clear))
         )
         .overlay(
-            // the
-            // border is now
-            // conditional on
-            // 3 states. `needsCompletion`
-            // overrides hover (= the
-            // card keeps the
-            // orange border
-            // whether the
-            // user is
-            // hovering or
-            // not; = the
-            // visual signal
-            // persists
-            // across
-            // mouse-off
-            // events; = the
-            // user can
-            // leave the
-            // card and the
-            // orange tint
-            // stays; =
-            // matches the
-            // boss's "需
-            // 要用户补
-            // 齐" wording
-            // = the
-            // card needs
-            // attention,
-            // not just
-            // a hover
-            // hint).
-            // The orange
-            // tint = Apple
-            // HIG
-            // "needs-
-            // attention"
-            // color (= the
-            // system
-            // orange; =
-            // not the
-            // wenshu
-            // accent
-            // color; = the
-            // user
-            // immediately
-            // recognizes
-            // "this
-            // needs
-            // action").
+            // the border is now conditional on 3 states. `needsCompletion` overrides
+            // hover (= the card keeps the orange border whether the user
+            // is hovering or not; = the visual signal persists across
+            // mouse-off events; = the user can leave the card and the
+            // orange tint stays; = matches the boss's "需 要用户补 齐" wording =
+            // the card needs attention, not just a hover hint). The orange
+            // tint = Apple HIG "needs- attention" color (= the system
+            // orange; = not the wenshu accent color; = the user
+            // immediately recognizes "this needs action").
             RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusWindow, style: .continuous)
                 .stroke(
                     needsCompletion
@@ -2770,31 +2383,11 @@ private struct Card: View {
                     lineWidth: needsCompletion ? 1.5 : 0.5
                 )
         )
-        // the
-        // top-right corner
-        // badge (= a small
-        // orange triangle
-        // icon in a white
-        // circle; = the
-        // Apple HIG
-        // "needs
-        // attention"
-        // pattern; = the
-        // badge persists
-        // across hover
-        // events; = the
-        // user can scroll
-        // the card into
-        // view and
-        // immediately
-        // see "this
-        // one needs
-        // 补齐" without
-        // hovering).
-        // Only shown
-        // when
-        // `needsCompletion
-        // == true`.
+        // the top-right corner badge (= a small orange triangle icon in a white circle; =
+        // the Apple HIG "needs attention" pattern; = the badge persists across
+        // hover events; = the user can scroll the card into view and
+        // immediately see "this one needs 补齐" without hovering). Only shown
+        // when `needsCompletion == true`.
         .overlay(alignment: .topTrailing) {
             if needsCompletion {
                 ZStack {
@@ -2811,185 +2404,46 @@ private struct Card: View {
                     )
                 }
                 .padding(DesignTokens.spacingCaption)
-                // The user can
-                // right-click
-                // the badge to
-                // see the
-                // "补齐" menu
-                // item (= the
-                // full menu is
-                // on the card
-                // body; = the
-                // badge itself
-                // has no gesture
-                // = clicking
-                // the badge
-                // passes
-                // through to
-                // the card's
-                // .contextMenu).
+                // The user can right-click the badge to see the "补齐" menu item (= the
+                // full menu is on the card body; = the badge itself
+                // has no gesture = clicking the badge passes through
+                // to the card's .contextMenu).
                 .allowsHitTesting(false)
             }
         }
         .onHover { isHovered = $0 }
         .contentShape(Rectangle())
-        // 2026-10-14 v7.5 (= the
-        // boss 2026-10-14 (see OOB.md #2026-10-14)
-        // root-cause):
-        // the previous
-        // `.onTapGesture`
-        // (= single-tap
-        // detected via
-        // macOS
-        // click-count
-        // latch) was
-        // NOT firing in
-        // the
-        // `LazyVGrid` /
-        // `ScrollView`
-        // nest (= the
-        // `LazyVGrid`
-        // scroll
-        // gesture
-        // recognizer
-        // was eating
-        // the single
-        // tap). Fix:
-        // use
-        // `.simultaneousGesture`
-        // with
-        // `TapGesture(count: 2)`
-        // (= the
-        // SwiftUI
-        // canonical
-        // "fire double-click
-        // without
-        // conflicting
-        // with the
-        // enclosing
-        // scroll
-        // gesture" pattern;
-        // = the
-        // `simultaneousGesture`
-        // modifier
-        // tells the
-        // gesture
-        // system to
-        // also
-        // recognize
-        // this
-        // gesture in
-        // parallel
-        // with the
-        // parent
-        // `ScrollView`'s
-        // pan gesture;
-        // = the
-        // count=2
-        // TapGesture
-        // is the
-        // macOS
-        // HIG
-        // double-click
-        // surface
-        // for
-        // SwiftUI;
-        // = the
-        // previous
-        // attempts
-        // of
-        // `.onTapGesture(count: 2)`
-        // were
-        // blocked
-        // by
-        // LazyVGrid's
-        // ScrollView
-        // gesture
-        // recognizer,
-        // but
-        // `simultaneousGesture`
-        // bypasses
-        // the
-        // conflict
-        // by
-        // asserting
-        // "fire
-        // this
-        // gesture
-        // in
-        // parallel
-        // with
-        // any
-        // other
-        // gesture
-        // on
-        // the
-        // same
-        // view").
-        // The
-        // `TapGesture(count: 2)`
-        // requires
-        // two
-        // taps
-        // within
-        // `NSEvent.doubleClickInterval`
-        // (= 500
-        // ms on
-        // macOS;
-        // = the
-        // system
-        // default
-        // double-click
-        // threshold;
-        // = the
-        // AppKit
-        // NSDoubleClick
-        // semantic
-        // = matches
-        // macOS
-        // Finder
-        // / TextEdit
-        // / Safari
-        // tab
-        // bar
-        // double-click).
-        // No more
-        // click-count
-        // latch
-        // (= the
-        // SwiftUI
-        // `count: 2`
-        // gesture
-        // handles
-        // the
-        // double-click
-        // detection
-        // natively;
-        // = no
-        // manual
-        // state
-        // needed;
-        // = the
-        // 
-        // `static
-        // var
-        // clickCountByID`
-        // hack
-        // is
-        // no
-        // longer
-        // needed).
+        // 2026-10-14 v7.5 (= the boss 2026-10-14 (see OOB.md #2026-10-14) root-cause):
+        // the previous `.onTapGesture` (= single-tap detected via macOS click-
+        // count latch) was NOT firing in the `LazyVGrid` / `ScrollView` nest
+        // (= the `LazyVGrid` scroll gesture recognizer was eating the single
+        // tap). Fix: use `.simultaneousGesture` with `TapGesture(count: 2)` (=
+        // the SwiftUI canonical "fire double-click without conflicting with
+        // the enclosing scroll gesture" pattern; = the `simultaneousGesture`
+        // modifier tells the gesture system to also recognize this gesture in
+        // parallel with the parent `ScrollView`'s pan gesture; = the count=2
+        // TapGesture is the macOS HIG double-click surface for SwiftUI; = the
+        // previous attempts of `.onTapGesture(count: 2)` were blocked by
+        // LazyVGrid's ScrollView gesture recognizer, but `simultaneousGesture`
+        // bypasses the conflict by asserting "fire this gesture in parallel
+        // with any other gesture on the same view"). The `TapGesture(count:
+        // 2)` requires two taps within `NSEvent.doubleClickInterval` (= 500 ms
+        // on macOS; = the system default double-click threshold; = the AppKit
+        // NSDoubleClick semantic = matches macOS Finder / TextEdit / Safari
+        // tab bar double-click). No more click-count latch (= the SwiftUI
+        // `count: 2` gesture handles the double-click detection natively; = no
+        // manual state needed; = the `static var clickCountByID` hack is no
+        // longer needed).
         .simultaneousGesture(
             TapGesture(count: 2).onEnded { _ in
-                // "多次双击"清明"，没有打开" (see OOB.md #2026-07-23)
-                // (= the double-click does not reach the Card;
-                // = the user can see the card highlight, the
-                // tap lands, but neither the onTap path nor the
-                // onDoubleClick path fires; = the gesture is
-                // eaten somewhere upstream). Log every double
-                // tap (= even if it ends up no-op) so the
-                // boss can grep `Console.app` to see whether
-                // the tap reached the Card at all.
+                // "多次双击"清明"，没有打开" (see OOB.md #2026-07-23) (= the double-click does not
+                // reach the Card; = the user can see the card
+                // highlight, the tap lands, but neither the onTap path
+                // nor the onDoubleClick path fires; = the gesture is
+                // eaten somewhere upstream). Log every double tap (=
+                // even if it ends up no-op) so the boss can grep
+                // `Console.app` to see whether the tap reached the
+                // Card at all.
                 let cardID: String
                 switch source {
                 case .reference(let r): cardID = r.id.uuidString
@@ -3002,185 +2456,37 @@ private struct Card: View {
                        cardID)
             }
         )
-        // Apple HIG tooltip (= .help = NSWindow tooltip =
-        // separate window per Apple HIG = the user can hover any tab
-        // label and get its full name; = matches macOS Finder /
-        // TextEdit tab bar tooltip behavior).
+        // Apple HIG tooltip (= .help = NSWindow tooltip = separate window per Apple HIG =
+        // the user can hover any tab label and get its full name; = matches
+        // macOS Finder / TextEdit tab bar tooltip behavior).
         .help(source.title)
-        // the
-        // right-click context
-        // menu on the card
-        // (= the boss's
-        // "素材区，卡片
-        // ，右键菜单，做
-        // 删除、重命名"
-        // directive; = the
-        // per-card context
-        // menu uses the
-        // per-card callback
-        // pattern; = the
-        // macOS 14+ List
-        // first-click bug
-        // doesn't apply here
-        // because the Card
-        // is a standalone
-        // view inside a
-        // LazyVGrid, NOT a
-        // List row; = the
-        // menu fires on first
-        // right-click
-        // reliably). Only
-        // `.reference`
-        // cards get the
-        // delete / rename
-        // menu (= the
-        // `.bookDoc` cards
-        // are managed by
-        // the chapter flow
-        // = a separate
-        // ticket; = for now
-        // we add the menu
-        // only to the
-        // reference case =
-        // the
-        // round-63 / 64
-        // focused on
-        // reference-library
-        // cards per the
-        // boss's "素材
-        // 区" wording).
-        // the
-        // right-click
-        // context menu on
-        // the card. The
-        // menu shows
-        // for BOTH
-        // `.reference`
-        // AND
-        // `.bookDoc`
-        // sources (=
-        // the boss
-        // 2026-10-10
-        // "资料
-        // 库
-        // 的
-        // 卡
-        // 片
-        // 已
-        // 经
-        // 实
-        // 现
-        // 了
-        // 右
-        // 键
-        // 菜
-        // 单
-        // ，
-        // 但
-        // 十
-        // 二
-        // 地
-        // 仙
-        // 书
-        // 的
-        // 卡
-        // 片
-        // 没
-        // 有
-        // 生
-        // 效
-        // ，
-        // 应
-        // 该
-        // 不
-        // 是
-        // 同
-        // 一
-        // 个
-        // 卡
-        // 片
-        // 控
-        // 件
-        // ，
-        // 你
-        // 把
-        // 书
-        // 的
-        // 加
-        // 上
-        // 就
-        // 行
-        // 了
-        // "
-        // directive;
-        // = the
-        // round-64
-        // conditional
-        // was
-        // `if case
-        // .reference =
-        // source`
-        // which
-        // made the
-        // contextMenu
-        // empty for
-        // bookDoc
-        // cards
-        // (= the
-        // macOS
-        // 14+ List
-        // first-
-        // click bug
-        // doesn't
-        // apply
-        // because
-        // the Card
-        // is in a
-        // LazyVGrid,
-        // NOT a List
-        // row; = the
-        // menu just
-        // didn't
-        // show
-        // because
-        // the items
-        // array was
-        // empty).
-        // The
-        // contextMenu
-        // is
-        // always
-        // attached
-        // (=
-        // unconditional);
-        // the items
-        // list
-        // varies by
-        // source
+        // the right-click context menu on the card (= the boss's "素材区，卡片 ，右键菜单，做 删除、重命名"
+        // directive; = the per-card context menu uses the per-card callback
+        // pattern; = the macOS 14+ List first-click bug doesn't apply here
+        // because the Card is a standalone view inside a LazyVGrid, NOT a List
+        // row; = the menu fires on first right-click reliably). Only
+        // `.reference` cards get the delete / rename menu (= the `.bookDoc`
+        // cards are managed by the chapter flow = a separate ticket; = for now
+        // we add the menu only to the reference case = the round-63 / 64
+        // focused on reference-library cards per the boss's "素材 区" wording).
+        // the right-click context menu on the card. The menu shows for BOTH
+        // `.reference` AND `.bookDoc` sources (= the boss 2026-10-10 "资料 库 的 卡
+        // 片 已 经 实 现 了 右 键 菜 单 ， 但 十 二 地 仙 书 的 卡 片 没 有 生 效 ， 应 该 不 是 同 一 个 卡 片
+        // 控 件 ， 你 把 书 的 加 上 就 行 了 " directive; = the round-64 conditional was
+        // `if case .reference = source` which made the contextMenu empty for
+        // bookDoc cards (= the macOS 14+ List first- click bug doesn't apply
+        // because the Card is in a LazyVGrid, NOT a List row; = the menu just
+        // didn't show because the items array was empty). The contextMenu is
+        // always attached (= unconditional); the items list varies by source
         // case.
         .contextMenu {
             switch source {
             case .reference:
-                // the
-                // "补齐" item
-                // shows when
-                // `needsCompletion
-                // == true` AND
-                // `onComplete` is
-                // wired. The
-                // item is the
-                // FIRST entry
-                // (= top of
-                // menu; = the
-                // user's primary
-                // intent when
-                // seeing an
-                // orange card
-                // is to补齐
-                // it; = putting
-                // it first
-                // reduces
-                // mouse travel).
+                // the "补齐" item shows when `needsCompletion == true` AND `onComplete` is
+                // wired. The item is the FIRST entry (= top of menu; =
+                // the user's primary intent when seeing an orange card
+                // is to补齐 it; = putting it first reduces mouse
+                // travel).
                 if needsCompletion, let onComplete {
                     Button(String(localized: "card_completion_context_menu_complete")) {
                         onComplete()
@@ -3198,19 +2504,9 @@ private struct Card: View {
                     onDelete()
                 }
             case .bookDoc:
-                // same
-                // "补齐" item
-                // for bookDoc
-                // cards (= the
-                // boss's "双
-                // 向" directive;
-                // = both card
-                // types support
-                // the chat
-                // 补齐 flow;
-                // = the wiring
-                // is identical
-                // to reference).
+                // same "补齐" item for bookDoc cards (= the boss's "双 向" directive; = both
+                // card types support the chat 补齐 flow; = the wiring is
+                // identical to reference).
                 if needsCompletion, let onComplete {
                     Button(String(localized: "card_completion_context_menu_complete")) {
                         onComplete()

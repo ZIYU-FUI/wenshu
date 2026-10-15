@@ -1,39 +1,26 @@
-// Sources/WenshuApp/State/LayoutTreeStore.swift
-//
-// Persistence + preset management for the user-customizable workspace.
-//
-// Atomic-coupling with LayoutTreeState.swift (= the
-// store reads / writes the LayoutTreeState schema; without one, the
-// other has no purpose. Shipped together per atomic-coupling rule.
-// This commit ALSO bumps the built-in default preset
-// (= makeBuiltinWorkspace) to the FCP Browser 3-pane paradigm.
-// 028-005 ticket will register the preset officially; this commit
-// sets the seed so the FCP Browser shape is in place from day one.
-//
-// DEAD-CODE NOTICE (= boss 2026-10-05 (see OOB.md #2026-10-05)
-// FileSystemLibraryStore / LayoutTreeStore class is currently
-// instantiated by 0 callers in production (= see
-// `grep -rln 'LayoutTreeStore(' Sources/ WenshuAppTests/` =
-// 0 hits). The struct is preserved (= not deleted) because:
-//   1. TreeHistory.swift adds 'undoTreeChange' / 'redoTreeChange'
-//      extensions to it (= see the bottom of TreeHistory).
-//   2. LayoutEditMode.swift references LayoutTreeStore's public
-//      API surface (= the edit-mode UI uses it as a type).
-// = the struct is type-referenced even though it's not
-// instantiated; = removing it would force a TreeHistory +
-// LayoutEditMode migration that is out of scope for this commit.
-//
-// Persistence model: UserDefaults JSON (= no FileManager / filesystem
-// writes; matches wenshu's preferences-only-on-UserDefaults pattern
-// for zone visibility flags).
-//
-// v2 migration (acceptance criterion): the store reads / writes
-// the v2 tree schema (= LayoutTreeState.root backed by a LayoutNode
-// tree). On detecting a v1 (= flat array) JSON blob in UserDefaults,
-// the store RETIRES it (= drops the v1 keys wholesale, starts fresh),
-// per the hermes retire-v1-wholesale pattern. This matches the
-// development-phase rationale (= no external users, the only
-// returning user is fine with a fresh tree for v2).
+// Sources/WenshuApp/State/LayoutTreeStore.swift Persistence + preset management for the
+// user-customizable workspace. Atomic-coupling with LayoutTreeState.swift (= the store
+// reads / writes the LayoutTreeState schema; without one, the other has no purpose.
+// Shipped together per atomic-coupling rule. This commit ALSO bumps the built-in
+// default preset (= makeBuiltinWorkspace) to the FCP Browser 3-pane paradigm. 028-005
+// ticket will register the preset officially; this commit sets the seed so the FCP
+// Browser shape is in place from day one. DEAD-CODE NOTICE (= boss 2026-10-05 (see
+// OOB.md #2026-10-05) FileSystemLibraryStore / LayoutTreeStore class is currently
+// instantiated by 0 callers in production (= see `grep -rln 'LayoutTreeStore('
+// Sources/ WenshuAppTests/` = 0 hits). The struct is preserved (= not deleted)
+// because: 1. TreeHistory.swift adds 'undoTreeChange' / 'redoTreeChange' extensions to
+// it (= see the bottom of TreeHistory). 2. LayoutEditMode.swift references
+// LayoutTreeStore's public API surface (= the edit-mode UI uses it as a type). = the
+// struct is type-referenced even though it's not instantiated; = removing it would
+// force a TreeHistory + LayoutEditMode migration that is out of scope for this commit.
+// Persistence model: UserDefaults JSON (= no FileManager / filesystem writes; matches
+// wenshu's preferences-only-on-UserDefaults pattern for zone visibility flags). v2
+// migration (acceptance criterion): the store reads / writes the v2 tree schema (=
+// LayoutTreeState.root backed by a LayoutNode tree). On detecting a v1 (= flat array)
+// JSON blob in UserDefaults, the store RETIRES it (= drops the v1 keys wholesale,
+// starts fresh), per the hermes retire-v1-wholesale pattern. This matches the
+// development-phase rationale (= no external users, the only returning user is fine
+// with a fresh tree for v2).
 
 import Foundation
 import SwiftUI
@@ -81,33 +68,29 @@ final class LayoutTreeStore {
         self.jsonEncoder = JSONEncoder()
         self.jsonEncoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         self.jsonDecoder = JSONDecoder()
-        // Per boss 2026-10-05 (see OOB.md #2026-10-05)
-        // repository when a ModelContext is provided (= the canonical
-        // production path). When nil, the store falls back to the
-        // legacy UserDefaults JSON path so the dev tools that don't
-        // wire a ModelContext (= LayoutPicker / LayoutEditBar) still
-        // work.
+        // Per boss 2026-10-05 (see OOB.md #2026-10-05) repository when a ModelContext is
+        // provided (= the canonical production path). When nil, the store
+        // falls back to the legacy UserDefaults JSON path so the dev tools
+        // that don't wire a ModelContext (= LayoutPicker / LayoutEditBar)
+        // still work.
         self.repository = modelContext.map {
             LayoutTreeRepository(context: $0, workspaceID: workspaceID)
         }
 
-        // Load persisted state (= falls back to the built-in Default
-        // preset if UserDefaults is empty or corrupted).
+        // Load persisted state (= falls back to the built-in Default preset if
+        // UserDefaults is empty or corrupted).
         let builtinPresets = Self.makeBuiltinPresets()
         let builtinDefault = builtinPresets.first { $0.isBuiltIn && $0.name == "默认" }!
 
-        // Honor currentPresetID on FIRST launch too (= not just when the
-        // persisted workspace is present). Without this, switching
-        // preset via `defaults write wenshu.workspace.currentPresetID`
-        // only works when the persisted workspace is also overwritten
-        // (= the current code only sets currentPresetID, but then init
-        // reads workspace JSON which has the OLD layout = preset
-        // display is correct but the actual layout is from the old
-        // preset).
-        //
-        // Now: if currentPresetID points to a valid builtin preset,
-        // use that preset's workspace as the seed (= before the
-        // persisted JSON fallback).
+        // Honor currentPresetID on FIRST launch too (= not just when the persisted
+        // workspace is present). Without this, switching preset via `defaults
+        // write wenshu.workspace.currentPresetID` only works when the
+        // persisted workspace is also overwritten (= the current code only
+        // sets currentPresetID, but then init reads workspace JSON which has
+        // the OLD layout = preset display is correct but the actual layout is
+        // from the old preset). Now: if currentPresetID points to a valid
+        // builtin preset, use that preset's workspace as the seed (= before
+        // the persisted JSON fallback).
         var forcedPreset: LayoutPreset? = nil
         if let uuidString = userDefaults.string(forKey: Self.currentPresetIDKey),
            let uuid = UUID(uuidString: uuidString),
@@ -115,15 +98,14 @@ final class LayoutTreeStore {
             forcedPreset = matched
         }
 
-        // Per boss 2026-10-05 (see OOB.md #2026-10-05)
-        // SwiftData migration for LayoutTree + FileSystem stores):
-        // prefer SwiftData over UserDefaults. When a ModelContext is
-        // provided, the repository handles the legacy JSON migration
-        // (= one-shot import into SwiftData + delete the UserDefaults
-        // key). When no ModelContext is provided (= dev tools that
-        // instantiate LayoutTreeStore without wiring the SwiftData
-        // container), fall back to the legacy UserDefaults path so
-        // the existing callers continue to work.
+        // Per boss 2026-10-05 (see OOB.md #2026-10-05) SwiftData migration for LayoutTree
+        // + FileSystem stores): prefer SwiftData over UserDefaults. When a
+        // ModelContext is provided, the repository handles the legacy JSON
+        // migration (= one-shot import into SwiftData + delete the
+        // UserDefaults key). When no ModelContext is provided (= dev tools
+        // that instantiate LayoutTreeStore without wiring the SwiftData
+        // container), fall back to the legacy UserDefaults path so the
+        // existing callers continue to work.
         if let modelContext = modelContext {
             let repository = LayoutTreeRepository(
                 context: modelContext,
@@ -140,10 +122,10 @@ final class LayoutTreeStore {
             }
         } else if let data = userDefaults.data(forKey: Self.workspaceKey),
                   let decoded = try? jsonDecoder.decode(LayoutTreeState.self, from: data) {
-            // Schema version check: if the persisted JSON is on a
-            // different schema version (= e.g. v1 = flat array from
-            // the previous schema), migrate it (= for v2 from v1:
-            // retire v1 wholesale, start fresh — see `migrateState`).
+            // Schema version check: if the persisted JSON is on a different schema
+            // version (= e.g. v1 = flat array from the previous schema),
+            // migrate it (= for v2 from v1: retire v1 wholesale, start
+            // fresh — see `migrateState`).
             if decoded.version == Self.currentSchemaVersion {
                 self.workspace = decoded
             } else {
@@ -152,27 +134,27 @@ final class LayoutTreeStore {
                 userDefaults.removeObject(forKey: Self.workspaceKey)
             }
         } else if let preset = forcedPreset {
-            // No persisted workspace, but user selected a non-default
-            // preset via currentPresetID = use that preset's tree.
+            // No persisted workspace, but user selected a non-default preset via
+            // currentPresetID = use that preset's tree.
             self.workspace = preset.workspace
         } else {
-            // First launch / no persisted JSON + no forced preset:
-            // start fresh from the built-in Default.
+            // First launch / no persisted JSON + no forced preset: start fresh from the
+            // built-in Default.
             self.workspace = builtinDefault.workspace
         }
 
         if let data = userDefaults.data(forKey: Self.presetsKey),
            let decoded = try? jsonDecoder.decode([LayoutPreset].self, from: data) {
             self.presets = decoded
-            // If the persisted presets contain a v1 workspace, retire
-            // them too (= same wholesale-retire logic).
+            // If the persisted presets contain a v1 workspace, retire them too (= same
+            // wholesale-retire logic).
             if decoded.contains(where: { $0.workspace.version != Self.currentSchemaVersion }) {
                 self.presets = builtinPresets
                 userDefaults.removeObject(forKey: Self.presetsKey)
             }
         } else {
-            // First launch (= no persisted presets): seed with the
-            // 4 builtin presets per 028-005.
+            // First launch (= no persisted presets): seed with the 4 builtin presets per
+            // 028-005.
             self.presets = builtinPresets
         }
 
@@ -201,9 +183,8 @@ final class LayoutTreeStore {
         case 1:
             return makeBuiltinWorkspace()
         default:
-            // Unknown version: also retire wholesale (= future
-            // versions can override this switch with their own
-            // forward-migration logic).
+            // Unknown version: also retire wholesale (= future versions can override this
+            // switch with their own forward-migration logic).
             return makeBuiltinWorkspace()
         }
     }
@@ -261,12 +242,12 @@ final class LayoutTreeStore {
         self.workspace = newWorkspace
         self.presets = newPresets
         self.currentPresetID = newPresetID
-        // Persist atomically: save workspace + presets + currentPresetID
-        // in a single observable update pass (= Apple HIG observable
-        // model coalesces these into one SwiftUI render). UserDefaults
-        // writes are per-blob atomic (= the worst case = 1 blob new +
-        // 1 blob old = a partial migration that next launch reads as the
-        // new state because workspace.json takes priority in load()).
+        // Persist atomically: save workspace + presets + currentPresetID in a single
+        // observable update pass (= Apple HIG observable model coalesces these
+        // into one SwiftUI render). UserDefaults writes are per-blob atomic (=
+        // the worst case = 1 blob new + 1 blob old = a partial migration that
+        // next launch reads as the new state because workspace.json takes
+        // priority in load()).
         save()
         savePresets()
     }
@@ -285,14 +266,12 @@ final class LayoutTreeStore {
         let builtinWorkspace = builtinDefault?.workspace ?? Self.makeBuiltinWorkspace()
         self.workspace = builtinWorkspace
         self.currentPresetID = builtinDefault?.id ?? presets.first(where: { $0.isBuiltIn })?.id
-        // Removed the dead `wenshu.zoneVisible.*` UserDefaults reset
-        // code (= no longer relevant after `NSSplitView.autosaveName`
-        // takes over zone collapsed/expanded state persistence;
-        // = the wenshu-side bookkeeping was a duplicate source of
-        // truth that diverged from Apple's built-in state; = the
-        // @AppStorage declarations in LibraryRootView that
-        // referenced these keys were already dead since the
-        // toolbar flatten).
+        // Removed the dead `wenshu.zoneVisible.*` UserDefaults reset code (= no longer
+        // relevant after `NSSplitView.autosaveName` takes over zone
+        // collapsed/expanded state persistence; = the wenshu-side bookkeeping
+        // was a duplicate source of truth that diverged from Apple's built-in
+        // state; = the @AppStorage declarations in LibraryRootView that
+        // referenced these keys were already dead since the toolbar flatten).
         save()
         savePresets()
     }
@@ -359,18 +338,15 @@ final class LayoutTreeStore {
     /// weights (= keeps their ratio, just shifts the total).
     func adjustSplitWeights(splitID: String, childIndex: Int, weightDelta: Double) {
         let minWeight = 0.05
-        // The previous implementation hardcoded `weightUnit = 100 PT`
-        // here AND had the renderer pass a PT delta (= double-
-        // conversion: PT -> weight via /100 here, then weight -> PT
-        // via *100 elsewhere). On a 997 PT window, the actual
-        // unit is 99.7 (= availableWidth / totalWeight), so the
-        // persisted weight after drag was 0.3% off from what the
-        // user saw during the drag (= drift across launches +
-        // visible jitter).
-        //
-        // Fix: callers (PaneRenderer.onDragEnd) now pass the WEIGHT
-        // delta (= already converted via the renderer's actual unit).
-        // No conversion here.
+        // The previous implementation hardcoded `weightUnit = 100 PT` here AND had the
+        // renderer pass a PT delta (= double- conversion: PT -> weight via
+        // /100 here, then weight -> PT via *100 elsewhere). On a 997 PT
+        // window, the actual unit is 99.7 (= availableWidth / totalWeight), so
+        // the persisted weight after drag was 0.3% off from what the user saw
+        // during the drag (= drift across launches + visible jitter). Fix:
+        // callers (PaneRenderer.onDragEnd) now pass the WEIGHT delta (=
+        // already converted via the renderer's actual unit). No conversion
+        // here.
         let newRoot = mapSplitWeights(splitID: splitID) { weights in
             guard weights.count > childIndex + 1 else { return weights }
             var w = weights
@@ -407,13 +383,12 @@ final class LayoutTreeStore {
     /// the tree's `normalize` (= called by removePane) prunes the
     /// empty group per the VS Code semantics.
     func movePaneWithinGroup(groupID: String, paneID: PaneID, targetPaneID: PaneID) {
-        // Find the target group id by walking the tree from the
-        // target pane.
+        // Find the target group id by walking the tree from the target pane.
         guard let targetGroup = findGroupOfPane(workspace.root, paneId: targetPaneID) else {
             return
         }
-        // Move via the file-scope pure function (= removes from
-        // source group + inserts as tab in target group with pos=.center).
+        // Move via the file-scope pure function (= removes from source group + inserts as
+        // tab in target group with pos=.center).
         let newRoot = movePane(
             workspace.root,
             paneId: paneID,
@@ -422,8 +397,8 @@ final class LayoutTreeStore {
         workspace.root = newRoot
         save()
         _ = groupID // suppress unused warning (= groupID is for future
-                    // direct-group addressing; current implementation
-                    // uses targetPaneID to locate the target group).
+                    // direct-group addressing; current implementation uses targetPaneID
+                    // to locate the target group).
     }
 
     /// Remove a pane from whatever group contains it (= the tab-close
@@ -435,12 +410,11 @@ final class LayoutTreeStore {
     /// PaneRenderer).
     func removePaneFromGroup(paneID: PaneID) {
         guard let newRoot = removePane(workspace.root, paneId: paneID) else {
-            // Tree emptied (= the user closed the last pane).
-            // We keep the workspace as-is (= root becomes nil but
-            // the panes/tabs metadata persists; the renderer
-            // shows the empty-pane fallback). Saving is a no-op
-            // for the tree but still useful for the JSON
-            // round-trip guarantee.
+            // Tree emptied (= the user closed the last pane). We keep the workspace as-is
+            // (= root becomes nil but the panes/tabs metadata persists;
+            // the renderer shows the empty-pane fallback). Saving is a no-
+            // op for the tree but still useful for the JSON round-trip
+            // guarantee.
             workspace = LayoutTreeState(
                 root: makeGroup(panes: []),
                 panes: workspace.panes,
@@ -508,10 +482,9 @@ final class LayoutTreeStore {
     }
 
     private static func builtinDefaultPreset() -> LayoutPreset {
-        // Same as the 6-zone AppRootScene shape (= upper 4 + lower 2
-        // horizontal). Kept here for the picker (= users who want the
-        // legacy 6-zone layout via the picker even after the FCP
-        // Browser 3-pane becomes default).
+        // Same as the 6-zone AppRootScene shape (= upper 4 + lower 2 horizontal). Kept
+        // here for the picker (= users who want the legacy 6-zone layout via
+        // the picker even after the FCP Browser 3-pane becomes default).
         let sidebar = TabSpec.make(kind: .projectSidebar, title: "项目管理区")
         let preview = TabSpec.make(kind: .projectPreview, title: "素材预览区")
         let editor = TabSpec.make(kind: .editor, title: "编辑器")
@@ -519,23 +492,19 @@ final class LayoutTreeStore {
         let chat = TabSpec.make(kind: .aiChat, title: "聊天区")
         let dynamic = TabSpec.make(kind: .aiDynamic, title: "动态区")
 
-        // Upper band column weights = [3, 4, 10, 3] (= 3+4+10+3 = 20,
-        // so sidebar=15%, preview=20%, editor=50%, tools=15%).
-        // The earlier 10/20/60/10 weights (= [1, 2, 6, 1]) were
-        // too narrow on sidebar and tools (= 145 PT each = users
-        // had to drag both edges wider on every fresh install).
-        // The current spec is symmetric 15/20/50/15 (= sidebar and
-        // tools at 217.8 PT each, preview at 290.4 PT, editor at
-        // 726 PT in a 1452 PT window).
-        //
-        // PaneFrame idealWidths (= PT) match the weights against
-        // the 1452 PT window so NSSplitView's natural layout
-        // already starts close to the target (= setPosition only
-        // needs to nudge, not redo, the layout). minWidths are
-        // kept low enough that the preset ratios can actually be
-        // achieved (= the previous 200 PT floor on sidebar/tools
-        // would have clamped both panes to 200 PT minimum and
-        // forced a 17/17/31/35 distribution, way off spec).
+        // Upper band column weights = [3, 4, 10, 3] (= 3+4+10+3 = 20, so sidebar=15%,
+        // preview=20%, editor=50%, tools=15%). The earlier 10/20/60/10 weights
+        // (= [1, 2, 6, 1]) were too narrow on sidebar and tools (= 145 PT each
+        // = users had to drag both edges wider on every fresh install). The
+        // current spec is symmetric 15/20/50/15 (= sidebar and tools at 217.8
+        // PT each, preview at 290.4 PT, editor at 726 PT in a 1452 PT window).
+        // PaneFrame idealWidths (= PT) match the weights against the 1452 PT
+        // window so NSSplitView's natural layout already starts close to the
+        // target (= setPosition only needs to nudge, not redo, the layout).
+        // minWidths are kept low enough that the preset ratios can actually be
+        // achieved (= the previous 200 PT floor on sidebar/tools would have
+        // clamped both panes to 200 PT minimum and forced a 17/17/31/35
+        // distribution, way off spec).
         let sidebarPane = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 80, idealWidth: 218, flex: 0.4), tabs: [sidebar.id])
         let previewPane = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 120, idealWidth: 290, flex: 0.5), tabs: [preview.id])
         let editorPane = PaneNode.make(split: .horizontal, frame: PaneFrame(minWidth: 200, idealWidth: 726, flex: 1.0), tabs: [editor.id])
@@ -546,28 +515,21 @@ final class LayoutTreeStore {
         let panes = [sidebarPane, previewPane, editorPane, toolsPane, chatPane, dynamicPane]
         let tabs = [sidebar, preview, editor, tools, chat, dynamic]
 
-        // Tree shape: outer column split (upper band + lower band)
-        // with each band being a horizontal row split.
-        // Upper band column weights = [1, 2, 6, 1] (= 1+2+6+1 = 10,
-        // so sidebar=10%, preview=20%, editor=60%, tools=10%).
-        // Previously [1, 1, 3.4, 1.25] ≈ 15/15/51/19.
-        // The earlier commit (04b3e7ed0) bumped toolsWRatio from
-        // 1 to 2 (= 18%) but the spec reverts to symmetric
-        // 10/20/60/10.
-        //
-        // To make preview visually = 2x sidebar (= preview really
-        // LOOKS twice as wide as sidebar), the preview pane
-        // content needs to fill the pane width (= use the full
-        // 20% width). Fix in PreviewPane.swift: enforce 2-column
-        // grid when pane width >= 280 PT (= 2 cards side by side
-        // = looks 2x the sidebar).
-        //
-        // Upper band weights = [3, 4, 10, 3] (= total 20, so
-        // sidebar=15%, preview=20%, editor=50%, tools=15%). The
-        // earlier 10/20/60/10 weights (= [1, 2, 6, 1]) made
-        // sidebar and tools too narrow (= 145 PT each in a 1452 PT
-        // window, users had to drag both edges wider on every
-        // fresh install). 15/20/50/15 is the new spec.
+        // Tree shape: outer column split (upper band + lower band) with each band being a
+        // horizontal row split. Upper band column weights = [1, 2, 6, 1] (=
+        // 1+2+6+1 = 10, so sidebar=10%, preview=20%, editor=60%, tools=10%).
+        // Previously [1, 1, 3.4, 1.25] ≈ 15/15/51/19. The earlier commit
+        // (04b3e7ed0) bumped toolsWRatio from 1 to 2 (= 18%) but the spec
+        // reverts to symmetric 10/20/60/10. To make preview visually = 2x
+        // sidebar (= preview really LOOKS twice as wide as sidebar), the
+        // preview pane content needs to fill the pane width (= use the full
+        // 20% width). Fix in PreviewPane.swift: enforce 2-column grid when
+        // pane width >= 280 PT (= 2 cards side by side = looks 2x the
+        // sidebar). Upper band weights = [3, 4, 10, 3] (= total 20, so
+        // sidebar=15%, preview=20%, editor=50%, tools=15%). The earlier
+        // 10/20/60/10 weights (= [1, 2, 6, 1]) made sidebar and tools too
+        // narrow (= 145 PT each in a 1452 PT window, users had to drag both
+        // edges wider on every fresh install). 15/20/50/15 is the new spec.
         let upperBand = makeSplit(
             orientation: .row,
             children: [
@@ -578,10 +540,9 @@ final class LayoutTreeStore {
             ],
             weights: [3, 4, 10, 3]
         )
-        // Lower band (chat + dynamic) gets a 70/30 ratio (= chat
-        // dominates, dynamic is a secondary Kanban/Todo pane).
-        // Previously this was 50/50 (= equal halves, which
-        // undervalued chat as the primary working surface for an
+        // Lower band (chat + dynamic) gets a 70/30 ratio (= chat dominates, dynamic is a
+        // secondary Kanban/Todo pane). Previously this was 50/50 (= equal
+        // halves, which undervalued chat as the primary working surface for an
         // authoring app).
         let lowerBand = makeSplit(
             orientation: .row,
@@ -591,10 +552,10 @@ final class LayoutTreeStore {
             ],
             weights: [7, 3]
         )
-        // Outer column split (= upper band + lower band stacked) is
-        // now 50/50 (= equal halves). Previously this was 75/25
-        // (= upper band dominated, lower band was a thin strip),
-        // which undervalued the chat + dynamic surface.
+        // Outer column split (= upper band + lower band stacked) is now 50/50 (= equal
+        // halves). Previously this was 75/25 (= upper band dominated, lower
+        // band was a thin strip), which undervalued the chat + dynamic
+        // surface.
         let root = makeSplit(
             orientation: .column,
             children: [upperBand, lowerBand],
@@ -615,9 +576,8 @@ final class LayoutTreeStore {
     }
 
     private static func builtinFocusPreset() -> LayoutPreset {
-        // 2-pane sidebar + everything-else-as-tabs (= single-stage
-        // editor with sidebar). Designed for distraction-free
-        // writing.
+        // 2-pane sidebar + everything-else-as-tabs (= single-stage editor with sidebar).
+        // Designed for distraction-free writing.
         let sidebar = TabSpec.make(kind: .projectSidebar, title: "项目管理区")
         let editor = TabSpec.make(kind: .editor, title: "编辑器")
         let preview = TabSpec.make(kind: .projectPreview, title: "素材预览区")
@@ -631,9 +591,9 @@ final class LayoutTreeStore {
         let panes = [sidebarPane, editorPane]
         let tabs = [sidebar, editor, preview, tools, chat, dynamic]
 
-        // Tree: row split with sidebar on the left and editor on
-        // the right; editor is a group with multiple tabs (= the
-        // "all 5 as tabs in editor" pattern from the spec).
+        // Tree: row split with sidebar on the left and editor on the right; editor is a
+        // group with multiple tabs (= the "all 5 as tabs in editor" pattern
+        // from the spec).
         let root = makeSplit(
             orientation: .row,
             children: [
@@ -701,8 +661,7 @@ final class LayoutTreeStore {
     }
 
     private static func builtinQuadPreset() -> LayoutPreset {
-        // 2x2 grid (= sidebar + editor on top; chat + dynamic on
-        // bottom).
+        // 2x2 grid (= sidebar + editor on top; chat + dynamic on bottom).
         let sidebar = TabSpec.make(kind: .projectSidebar, title: "项目管理区")
         let preview = TabSpec.make(kind: .projectPreview, title: "素材预览区")
         let editor = TabSpec.make(kind: .editor, title: "编辑器")
@@ -780,8 +739,7 @@ final class LayoutTreeStore {
         let panes = [sidebarPane, editorPane, chatPane, dynamicPane]
         let tabs = [sidebar, editor, chat, dynamic]
 
-        // Inspector pane = chat + dynamic tabs in one group (= FCP
-        // Browser paradigm).
+        // Inspector pane = chat + dynamic tabs in one group (= FCP Browser paradigm).
         let inspectorGroup = makeGroup(panes: [chatPane.id, dynamicPane.id], active: chatPane.id)
         // Top row = sidebar + editor + inspector, horizontally split.
         let root = makeSplit(

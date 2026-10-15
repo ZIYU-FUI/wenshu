@@ -1,24 +1,15 @@
-// FileSystemLibraryStore.swift
-//
-// Filesystem-backed LibraryStoring implementation. Swap for MetadataQuery /
-// CoreData / CloudKit later without changing the contract (= LibraryStoring)
-// or any caller (= view layer).
-//
-// Apple HIG document-based-app convention (= Pages / TextEdit / Numbers):
-//   ~/Documents/wenshu/<shelf-id-uuid>/
-//     shelf.json     ← encoded Bookshelf (the metadata)
-//     books/         ← v0.02.1
-//     chapters/      ← v0.02.1
-//
-// Atomic write strategy (= the Apple HIG pattern, also used by NSDocument
-// + FileWrapper.write(to:options:originalContents:)):
-//   1. write shelf.json.tmp
-//   2. fsync the temp file (FileManager doesn't expose fsync directly;
-//      use replaceItemAt on a separate backup file path so the rename
-//      through the kernel is atomic)
-//   3. atomic rename via FileManager.replaceItemAt
-// If the app crashes mid-write, the temp file is orphaned (harmless) and
-// shelf.json is untouched (= the previous-good-state stays on disk).
+// FileSystemLibraryStore.swift Filesystem-backed LibraryStoring implementation. Swap for
+// MetadataQuery / CoreData / CloudKit later without changing the contract (=
+// LibraryStoring) or any caller (= view layer). Apple HIG document-based-app
+// convention (= Pages / TextEdit / Numbers): ~/Documents/wenshu/<shelf-id-uuid>/
+// shelf.json     ← encoded Bookshelf (the metadata) books/         ← v0.02.1 chapters/
+// ← v0.02.1 Atomic write strategy (= the Apple HIG pattern, also used by NSDocument +
+// FileWrapper.write(to:options:originalContents:)): 1. write shelf.json.tmp 2. fsync
+// the temp file (FileManager doesn't expose fsync directly; use replaceItemAt on a
+// separate backup file path so the rename through the kernel is atomic) 3. atomic
+// rename via FileManager.replaceItemAt If the app crashes mid-write, the temp file is
+// orphaned (harmless) and shelf.json is untouched (= the previous-good-state stays on
+// disk).
 
 import Foundation
 import SwiftData
@@ -62,9 +53,9 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
 
     func loadShelves() throws -> [Bookshelf] {
         let fm = FileManager.default
-        // Apple HIG: don't fail loudly if the user's library root is missing
-        // on first launch (= they haven't created any shelf yet). Return
-        // empty; the user can pick a different root in Preferences.
+        // Apple HIG: don't fail loudly if the user's library root is missing on first
+        // launch (= they haven't created any shelf yet). Return empty; the
+        // user can pick a different root in Preferences.
         guard fm.fileExists(atPath: rootURL.path) else { return [] }
         guard let entries = try? fm.contentsOfDirectory(
             at: rootURL,
@@ -85,13 +76,13 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
                 let shelf = try JSONDecoder().decode(Bookshelf.self, from: data)
                 shelves.append(shelf)
             } catch {
-                // RATIONALE: corrupt shelf.json is a recoverable
-                // condition (= the user can hand-edit it back or
-                // re-create from the UI). Skip this shelf, leave the
-                // file alone (= the contract test for "corrupt shelf"
-                // covers the recoverable case), continue loading the
-                // rest. Logging is deferred (= the protocol stays
-                // free of logging deps).
+                // RATIONALE: corrupt shelf.json is a recoverable condition (= the user
+                // can hand-edit it back or re-create from the UI).
+                // Skip this shelf, leave the file alone (= the
+                // contract test for "corrupt shelf" covers the
+                // recoverable case), continue loading the rest.
+                // Logging is deferred (= the protocol stays free of
+                // logging deps).
                 continue
             }
         }
@@ -102,16 +93,16 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
         let fm = FileManager.default
         let dir = rootURL.appendingPathComponent(shelf.directoryName)
 
-        // First-save-wins: refuse to overwrite an existing shelf id. The
-        // rename operation = save with the same id + new name (caller
-        // responsibility to update updatedAt), which works because the
-        // directory already exists at this id.
+        // First-save-wins: refuse to overwrite an existing shelf id. The rename operation
+        // = save with the same id + new name (caller responsibility to update
+        // updatedAt), which works because the directory already exists at this
+        // id.
         if fm.fileExists(atPath: dir.path) {
             throw LibraryStoringError(kind: .shelfAlreadyExists(shelf.id))
         }
 
-        // Create the shelf directory. .createIntermediates = true so any
-        // missing parent (= the root) is also created (= first-ever save).
+        // Create the shelf directory. .createIntermediates = true so any missing parent
+        // (= the root) is also created (= first-ever save).
         do {
             try fm.createDirectory(at: dir, withIntermediateDirectories: true)
         } catch {
@@ -141,11 +132,11 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
             )
         }
 
-        // Atomic rename: replaceItemAt moves the tmp file to the final
-        // path. If a shelf.json already existed (= shouldn't happen given
-        // the shelfAlreadyExists guard above, but defense in depth),
-        // this would replace it; since we already returned the error,
-        // this branch only runs on the clean first-save path.
+        // Atomic rename: replaceItemAt moves the tmp file to the final path. If a
+        // shelf.json already existed (= shouldn't happen given the
+        // shelfAlreadyExists guard above, but defense in depth), this would
+        // replace it; since we already returned the error, this branch only
+        // runs on the clean first-save path.
         do {
             if fm.fileExists(atPath: jsonURL.path) {
                 _ = try fm.replaceItemAt(jsonURL, withItemAt: tmpURL)
@@ -160,18 +151,18 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
             )
         }
 
-        // Pre-create the books/ and chapters/ subdirs so the storage
-        // layout is consistent. ASSUMPTION: a document's bundle
-        // structure is set up once at creation, not lazily as files
-        // appear (= Apple HIG document-based-app convention).
+        // Pre-create the books/ and chapters/ subdirs so the storage layout is
+        // consistent. ASSUMPTION: a document's bundle structure is set up once
+        // at creation, not lazily as files appear (= Apple HIG document-based-
+        // app convention).
         let booksDir = dir.appendingPathComponent("books")
         let chaptersDir = dir.appendingPathComponent("chapters")
         do {
             try fm.createDirectory(at: booksDir, withIntermediateDirectories: true)
             try fm.createDirectory(at: chaptersDir, withIntermediateDirectories: true)
         } catch {
-            // Non-fatal: shelves can exist without these subdirs
-            // (= created on demand by the next save).
+            // Non-fatal: shelves can exist without these subdirs (= created on demand by
+            // the next save).
         }
     }
 
@@ -189,27 +180,25 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
     }
 
     func search(query: String) throws -> [SearchHit] {
-        // implementation: NSMetadataQuery on rootURL.
-        // : stub returns [] (= the protocol signature is locked
-        // now so the UI can wire up its search bar without an API
-        // change later).
+        // implementation: NSMetadataQuery on rootURL. : stub returns [] (= the protocol
+        // signature is locked now so the UI can wire up its search bar without
+        // an API change later).
         return []
     }
 
     // MARK: - Book ops
-    //
-    // Mirrors the shelf ops above: loadBooks reads, saveBook writes
-    // atomically (= tmp + replaceItemAt), deleteBook is idempotent.
-    // The books/ subdir under each shelf was pre-created by saveShelf.
+    // Mirrors the shelf ops above: loadBooks reads, saveBook writes atomically (= tmp +
+    // replaceItemAt), deleteBook is idempotent. The books/ subdir under each shelf
+    // was pre-created by saveShelf.
 
     func loadBooks(shelfId: UUID) throws -> [Book] {
         let fm = FileManager.default
         let booksDir = rootURL
             .appendingPathComponent(shelfId.uuidString)
             .appendingPathComponent("books")
-        // Apple HIG: a missing directory means "no books" (= shelf
-        // exists but is empty), not "error". Same forgiving convention
-        // as loadShelves on a missing root.
+        // Apple HIG: a missing directory means "no books" (= shelf exists but is empty),
+        // not "error". Same forgiving convention as loadShelves on a missing
+        // root.
         guard fm.fileExists(atPath: booksDir.path) else { return [] }
         guard let entries = try? fm.contentsOfDirectory(
             at: booksDir,
@@ -230,8 +219,8 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
                 let book = try JSONDecoder().decode(Book.self, from: data)
                 books.append(book)
             } catch {
-                // Same forgiveness policy as loadShelves: skip corrupt
-                // book.json, continue loading the rest.
+                // Same forgiveness policy as loadShelves: skip corrupt book.json,
+                // continue loading the rest.
                 continue
             }
         }
@@ -244,9 +233,9 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
         let booksDir = parentShelf.appendingPathComponent("books")
         let bookDir = booksDir.appendingPathComponent(book.directoryName)
 
-        // Orphan-prevention: the parent shelf has to be on disk before
-        // a book can be saved (= same constraint as the type system:
-        // Book.shelfId is required at init).
+        // Orphan-prevention: the parent shelf has to be on disk before a book can be
+        // saved (= same constraint as the type system: Book.shelfId is
+        // required at init).
         guard fm.fileExists(atPath: parentShelf.path) else {
             throw LibraryStoringError(kind: .parentShelfNotFound(book.shelfId))
         }
@@ -298,20 +287,20 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
             )
         }
 
-        // Pre-create chapters/ subdir so chapter content writes have
-        // a consistent bundle structure (= Apple HIG document-based-app
-        // convention: set up the bundle once at creation).
+        // Pre-create chapters/ subdir so chapter content writes have a consistent bundle
+        // structure (= Apple HIG document-based-app convention: set up the
+        // bundle once at creation).
         let chaptersDir = bookDir.appendingPathComponent("chapters")
         try? fm.createDirectory(at: chaptersDir, withIntermediateDirectories: true)
     }
 
     func deleteBook(id: UUID) throws {
         let fm = FileManager.default
-        // We don't know which shelf the book belongs to from the id alone.
-        // For idempotent delete, scan all shelves and remove matching
-        // <book-id> directories (= the contract is "idempotent no-op if
-        // missing", so a multi-match is acceptable as long as we don't
-        // crash and end up with no books remaining).
+        // We don't know which shelf the book belongs to from the id alone. For idempotent
+        // delete, scan all shelves and remove matching <book-id> directories
+        // (= the contract is "idempotent no-op if missing", so a multi-match
+        // is acceptable as long as we don't crash and end up with no books
+        // remaining).
         guard let shelfEntries = try? fm.contentsOfDirectory(
             at: rootURL,
             includingPropertiesForKeys: nil,
@@ -334,9 +323,9 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
 
     func loadBook(id: UUID) throws -> Book? {
         let fm = FileManager.default
-        // Same scan pattern as deleteBook (= book id alone doesn't know
-        // its shelf). Return the first match (= the contract says id is
-        // unique across the library; multi-match would be a bug upstream).
+        // Same scan pattern as deleteBook (= book id alone doesn't know its shelf).
+        // Return the first match (= the contract says id is unique across the
+        // library; multi-match would be a bug upstream).
         guard let shelfEntries = try? fm.contentsOfDirectory(
             at: rootURL,
             includingPropertiesForKeys: nil,
@@ -359,24 +348,18 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
     }
 
     // MARK: - Document ops
-    //
-    // Layout:
-    //   ~/Documents/wenshu/<shelf>/<book>/
-    //     book.json
-    //     chapters/<docId>.md   BookCategory.chapter
-    //     settings/<docId>.md   BookCategory.setting
-    //     research/<docId>.md   BookCategory.research
-    //
-    // RATIONALE: document metadata is NOT separately stored (= the
-    // .md IS the source of truth; = loadDocuments reads the .md,
-    // extracts title + summary, fills Document fields). The storage
+    // Layout: ~/Documents/wenshu/<shelf>/<book>/ book.json chapters/<docId>.md
+    // BookCategory.chapter settings/<docId>.md   BookCategory.setting
+    // research/<docId>.md   BookCategory.research RATIONALE: document metadata is
+    // NOT separately stored (= the .md IS the source of truth; = loadDocuments
+    // reads the .md, extracts title + summary, fills Document fields). The storage
     // layer never holds a derived copy of the .md.
 
     func loadDocuments(bookId: UUID, category: BookCategory) throws -> [Document] {
         let fm = FileManager.default
-        // Same forgiving pattern as loadBooks / loadShelves: a missing
-        // category dir means "no documents yet" (= just-created book,
-        // user hasn't added any chapters). Return [], not an error.
+        // Same forgiving pattern as loadBooks / loadShelves: a missing category dir means
+        // "no documents yet" (= just-created book, user hasn't added any
+        // chapters). Return [], not an error.
         guard let categoryDir = categoryDirectory(bookId: bookId, category: category),
               fm.fileExists(atPath: categoryDir.path)
         else { return [] }
@@ -390,10 +373,10 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
         for entry in entries {
             // Only .md files (= skip macOS resource forks, .DS_Store, etc.)
             guard entry.pathExtension == "md" else { continue }
-            // Filename must be <UUID>.md (= we don't tolerate arbitrary
-            // names so the storage contract is strict). If the filename
-            // doesn't parse, skip (= forensics: someone hand-edited a
-            // file with a non-UUID name; we ignore it).
+            // Filename must be <UUID>.md (= we don't tolerate arbitrary names so the
+            // storage contract is strict). If the filename doesn't parse,
+            // skip (= forensics: someone hand-edited a file with a non-
+            // UUID name; we ignore it).
             guard let id = Self.documentIdFromFilename(entry.lastPathComponent)
             else { continue }
             do {
@@ -416,13 +399,13 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
                 )
                 documents.append(doc)
             } catch {
-                // Corrupt .md: skip (= same forgiveness policy as the
-                // other loaders). Don't crash the card view.
+                // Corrupt .md: skip (= same forgiveness policy as the other loaders).
+                // Don't crash the card view.
                 continue
             }
         }
-        // Sort by updatedAt descending (= most-recent first; matches
-        // Finder 'Recents' and the rest of the library).
+        // Sort by updatedAt descending (= most-recent first; matches Finder 'Recents' and
+        // the rest of the library).
         return documents.sorted { $0.updatedAt > $1.updatedAt }
     }
 
@@ -438,18 +421,17 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
 
     func saveDocument(id: UUID, bookId: UUID, category: BookCategory, content: String) throws {
         let fm = FileManager.default
-        // Orphan-prevention: the parent book must be on disk first
-        // (= same constraint as saveBook checking parentShelf). A
-        // document without a parent book would be invisible to the
-        // rest of the system (= the cards view only loads docs for
-        // books that exist).
+        // Orphan-prevention: the parent book must be on disk first (= same constraint as
+        // saveBook checking parentShelf). A document without a parent book
+        // would be invisible to the rest of the system (= the cards view only
+        // loads docs for books that exist).
         guard let bookDir = bookDirectory(bookId: bookId),
               fm.fileExists(atPath: bookDir.path)
         else {
             throw LibraryStoringError(kind: .parentBookNotFound(bookId))
         }
-        // Create the category dir if it doesn't exist yet (= first save
-        // in a category for a book that's been around a while).
+        // Create the category dir if it doesn't exist yet (= first save in a category for
+        // a book that's been around a while).
         guard let categoryDir = categoryDirectory(bookId: bookId, category: category)
         else { return }  // unreachable; bookDirectory already returned
         do {
@@ -460,8 +442,8 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
             )
         }
 
-        // Atomic write: tmp file + rename. Same pattern as saveShelf /
-        // saveBook. Crash mid-write = tmp file orphaned, .md untouched.
+        // Atomic write: tmp file + rename. Same pattern as saveShelf / saveBook. Crash
+        // mid-write = tmp file orphaned, .md untouched.
         let path = try documentPath(id: id, bookId: bookId, category: category)
         let tmpPath = path.deletingLastPathComponent()
             .appendingPathComponent("\(id.uuidString).md.tmp")
@@ -490,8 +472,8 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
     func deleteDocument(id: UUID, bookId: UUID, category: BookCategory) throws {
         let fm = FileManager.default
         let path = try documentPath(id: id, bookId: bookId, category: category)
-        // Idempotent (= the contract is "no-op if missing", like
-        // deleteShelf and deleteBook).
+        // Idempotent (= the contract is "no-op if missing", like deleteShelf and
+        // deleteBook).
         guard fm.fileExists(atPath: path.path) else { return }
         do {
             try fm.removeItem(at: path)
@@ -506,9 +488,9 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
 
     /// <root>/<shelf-id>/books/<book-id>  (= the book's directory).
     private func bookDirectory(bookId: UUID) -> URL? {
-        // Book id is unique across the library; the book lives in
-        // exactly one shelf. We need the shelf to resolve the path,
-        // so scan (= same shape as loadBook).
+        // Book id is unique across the library; the book lives in exactly one shelf. We
+        // need the shelf to resolve the path, so scan (= same shape as
+        // loadBook).
         let fm = FileManager.default
         guard let shelfEntries = try? fm.contentsOfDirectory(
             at: rootURL,
@@ -582,9 +564,9 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
     /// unpredictably.
     static func extractSummary(from body: String) -> String {
         var content = body
-        // Strip frontmatter (= lines between the first '---' and the
-        // second '---', e.g. 'title: ...' / 'date: ...'). Standard
-        // Jekyll / Hugo / Pandoc frontmatter.
+        // Strip frontmatter (= lines between the first '---' and the second '---', e.g.
+        // 'title: ...' / 'date: ...'). Standard Jekyll / Hugo / Pandoc
+        // frontmatter.
         if content.hasPrefix("---\n") || content.hasPrefix("---\r\n") {
             let scanner = content.dropFirst(3)
             if let endRange = scanner.range(of: "\n---") {
@@ -592,21 +574,20 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
                     .trimmingCharacters(in: .whitespacesAndNewlines)
             }
         }
-        // Collapse all whitespace (= newlines, tabs, multi-space) to
-        // single spaces. The summary is shown in a fixed-width card
-        // body, so multi-line summaries would force the card to grow
-        // unpredictably.
+        // Collapse all whitespace (= newlines, tabs, multi-space) to single spaces. The
+        // summary is shown in a fixed-width card body, so multi-line summaries
+        // would force the card to grow unpredictably.
         let collapsed = content
             .components(separatedBy: .whitespacesAndNewlines)
             .filter { !$0.isEmpty }
             .joined(separator: " ")
-        // Cap at ~100 chars. Apple HIG card body fields typically
-        // hold 2-3 lines (= roughly 80-120 chars depending on font);
-        // 100 is a comfortable midpoint.
+        // Cap at ~100 chars. Apple HIG card body fields typically hold 2-3 lines (=
+        // roughly 80-120 chars depending on font); 100 is a comfortable
+        // midpoint.
         if collapsed.count <= 100 { return collapsed }
         let prefix = collapsed.prefix(100)
-        // Truncate at the last word boundary (= don't cut "first pa" out
-        // of "first paragraph").
+        // Truncate at the last word boundary (= don't cut "first pa" out of "first
+        // paragraph").
         if let lastSpace = prefix.lastIndex(of: " ") {
             return String(prefix[..<lastSpace]) + "…"
         }

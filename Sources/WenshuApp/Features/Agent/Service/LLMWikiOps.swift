@@ -1,33 +1,20 @@
-// LLMWikiOps.swift
-//
-// LLM Wiki pipeline unified ops (= the manual + auto facade per
-// the core-capability directive: research-to-document pipeline =
-// wenshu's central capability, must be complete end to end).
-//
-// Per the pipeline-must-be-complete directive: the LLM Wiki
-// pipeline (= `LLMWikiLayerDeriver` + `LLMWikiLinter`) was dead
-// code per §11 baseline (= zero callers). Wiring covers:
-//   1. Manual tool-call (= LLM invokes the `llm_wiki` tool).
-//   2. Auto-call (= the agent's `ConversationLoop` / a new
-//      raw-reference auto-derive hook runs the derivation).
-//   3. UI trigger (= the reference-library inspector's
-//      'Re-derive wiki' button for the operator).
-//
-// All three surfaces go through these 4 entry points (= the
-// unified manual + auto facade per the §11.3 wenshu-side wins
-// principle: the pipeline must complete end to end).
-//
-// Standards axis (= S1 + S3 + S4 + S5):
-//   S1 (Apple-API-first): the `LLMWikiLayerDeriver` +
-//       `LLMWikiLinter` (= pure-data deterministic derivation; =
-//       no LLM call) are the source of truth; `LLMWikiOps` is a
-//       thin `@MainActor` facade that delegates to them.
-//   S3 (single source of truth): one set of 4 entry points
-//       serves manual + auto callers.
-//   S4 (typed errors): `DerivationStats` + `LintReport` capture
-//       the result (= callers can render the library-health
-//       surface without re-running the derivation).
-//   S5 (no public surface): zero new public keywords.
+// LLMWikiOps.swift LLM Wiki pipeline unified ops (= the manual + auto facade per the
+// core-capability directive: research-to-document pipeline = wenshu's central
+// capability, must be complete end to end). Per the pipeline-must-be-complete
+// directive: the LLM Wiki pipeline (= `LLMWikiLayerDeriver` + `LLMWikiLinter`) was
+// dead code per §11 baseline (= zero callers). Wiring covers: 1. Manual tool-call (=
+// LLM invokes the `llm_wiki` tool). 2. Auto-call (= the agent's `ConversationLoop` / a
+// new raw-reference auto-derive hook runs the derivation). 3. UI trigger (= the
+// reference-library inspector's 'Re-derive wiki' button for the operator). All three
+// surfaces go through these 4 entry points (= the unified manual + auto facade per the
+// §11.3 wenshu-side wins principle: the pipeline must complete end to end). Standards
+// axis (= S1 + S3 + S4 + S5): S1 (Apple-API-first): the `LLMWikiLayerDeriver` +
+// `LLMWikiLinter` (= pure-data deterministic derivation; = no LLM call) are the source
+// of truth; `LLMWikiOps` is a thin `@MainActor` facade that delegates to them. S3
+// (single source of truth): one set of 4 entry points serves manual + auto callers. S4
+// (typed errors): `DerivationStats` + `LintReport` capture the result (= callers can
+// render the library-health surface without re-running the derivation). S5 (no public
+// surface): zero new public keywords.
 
 import Foundation
 import WenshuData
@@ -98,13 +85,11 @@ enum LLMWikiOps {
               !path.isEmpty else { return nil }
         let url = URL(fileURLWithPath: path)
         guard FileManager.default.fileExists(atPath: url.path) else { return nil }
-        // Per boss 2026-10-05 (see OOB.md #2026-10-05)
-        // struct is @MainActor-isolated (= SwiftData's ModelContext
-        // contract); = actor-based callers can't instantiate it
-        // directly. Hop to the main actor to grab a SwiftData-backed
-        // instance (= the production path); = falls back to the
-        // FileSystem path if no ModelContainer is wired (dev tools
-        // + tests).
+        // Per boss 2026-10-05 (see OOB.md #2026-10-05) struct is @MainActor-isolated (=
+        // SwiftData's ModelContext contract); = actor-based callers can't
+        // instantiate it directly. Hop to the main actor to grab a SwiftData-
+        // backed instance (= the production path); = falls back to the
+        // FileSystem path if no ModelContainer is wired (dev tools + tests).
         let store: any ReferenceStoring = await MainActor.run {
             FileSystemReferenceStore(
                 referenceLibraryRoot: url,

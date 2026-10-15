@@ -1,25 +1,15 @@
-//
-//  State/LayoutTreeRepository.swift
-//
-//  SwiftData-backed persistence for the workspace layout tree (= replaces
-//  the JSON-in-UserDefaults persistence that LayoutTreeStore.swift was
-//  using).
-//
-//  Per boss 2026-10-05 (see OOB.md #2026-10-05)
-//  for LayoutTree + FileSystem stores). This is commit 2 of the #9
-//  LayoutTreeState/Store → SwiftData migration.
-//
-//  LayoutTreeStore keeps its existing public API (= `workspace`,
-//  `presets`, `currentPresetID`, `save()`, `replaceAll(...)`, etc.);
-//  this repository sits underneath and translates every Codable struct
-//  the store mutates into the SwiftData @Model row updates (=
-//  Persistence/WSLayoutTreeState.swift).
-//
-//  Apple HIG canonical: SwiftData replaces the hand-rolled
-//  Codable + UserDefaults combination (= Apple HIG §6 persistence =
-//  prefer SwiftData / Core Data / FileManager for structured state).
-//  The repository pattern keeps the old public API stable so the 15
-//  caller files don't need to change in this commit.
+// State/LayoutTreeRepository.swift SwiftData-backed persistence for the workspace layout
+// tree (= replaces the JSON-in-UserDefaults persistence that LayoutTreeStore.swift was
+// using). Per boss 2026-10-05 (see OOB.md #2026-10-05) for LayoutTree + FileSystem
+// stores). This is commit 2 of the #9 LayoutTreeState/Store → SwiftData migration.
+// LayoutTreeStore keeps its existing public API (= `workspace`, `presets`,
+// `currentPresetID`, `save()`, `replaceAll(...)`, etc.); this repository sits
+// underneath and translates every Codable struct the store mutates into the SwiftData
+// @Model row updates (= Persistence/WSLayoutTreeState.swift). Apple HIG canonical:
+// SwiftData replaces the hand-rolled Codable + UserDefaults combination (= Apple HIG
+// §6 persistence = prefer SwiftData / Core Data / FileManager for structured state).
+// The repository pattern keeps the old public API stable so the 15 caller files don't
+// need to change in this commit.
 
 import Foundation
 import SwiftData
@@ -49,16 +39,15 @@ struct LayoutTreeRepository {
 
         guard let data = UserDefaults.standard.data(forKey: workspaceKey),
               let decoded = try? JSONDecoder().decode(LayoutTreeState.self, from: data) else {
-            // No JSON blob (= either SwiftData already has the data,
-            // or this is a first launch). Try SwiftData; return nil
-            // if empty (= caller will seed from the built-in Default).
+            // No JSON blob (= either SwiftData already has the data, or this is a first
+            // launch). Try SwiftData; return nil if empty (= caller will
+            // seed from the built-in Default).
             return loadWorkspace()
         }
 
-        // Found a JSON blob: convert each LayoutTreeState field into
-        // SwiftData @Model rows. We mirror the v2 tree shape (= panes
-        // + tab specs + recursive layout nodes) into the four @Model
-        // classes.
+        // Found a JSON blob: convert each LayoutTreeState field into SwiftData @Model
+        // rows. We mirror the v2 tree shape (= panes + tab specs + recursive
+        // layout nodes) into the four @Model classes.
         let state = WSLayoutTreeState(id: workspaceID, updatedAt: Date())
         context.insert(state)
 
@@ -87,14 +76,13 @@ struct LayoutTreeRepository {
             state.panes.append(paneModel)
         }
 
-        // Mirror the recursive layout node (= workspace has a single
-        // root; = mirror that one root into the SwiftData state via
-        // parentState).
+        // Mirror the recursive layout node (= workspace has a single root; = mirror that
+        // one root into the SwiftData state via parentState).
         mirrorLayoutNode(decoded.root, into: state)
 
         try? context.save()
-        // JSON has been imported; delete the legacy key so subsequent
-        // launches go straight to SwiftData.
+        // JSON has been imported; delete the legacy key so subsequent launches go
+        // straight to SwiftData.
         UserDefaults.standard.removeObject(forKey: workspaceKey)
         return decoded
     }
@@ -170,8 +158,8 @@ struct LayoutTreeRepository {
         case .split(let split):
             model.kind = "split"
             model.orientation = split.orientation.rawValue
-            // Encode the weights as JSON Data (= SwiftData doesn't
-            // store [Double] natively).
+            // Encode the weights as JSON Data (= SwiftData doesn't store [Double]
+            // natively).
             if let weightsData = try? JSONEncoder().encode(split.weights) {
                 model.childrenWeightsData = weightsData
             }

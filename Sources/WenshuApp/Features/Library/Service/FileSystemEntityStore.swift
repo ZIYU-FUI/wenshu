@@ -1,27 +1,16 @@
-//
-//  FileSystemEntityStore.swift
-//
-//  Per-book entity storage layer, backed by SwiftData (= the
-//  WSEntity + WSBody @Model classes in Persistence/) with a
-//  FileSystem fallback for actor callers.
-//
-//  Per boss 2026-10-05 (see OOB.md #2026-10-05)
-//  SwiftData migration). This is commit 3 of #8.
-//
-//  Apple HIG canonical pattern: WSEntity holds the indexed metadata
-//  (id, bookID, kind, name, aliases, tags, description, attributes,
-//  kindSpecific) in one row. The body markdown lives in a separate
-//  WSBody row (= FK via bodyID). SwiftData stores both as proper
-//  relational tables.
-//
-//  Storage paths (= unchanged at the public API level):
-//    <.ws>/shelves/<shelf>/books/<UUID>/entities/<UUID>.md
-//    <.ws>/shelves/<shelf>/books/<UUID>/entities.json
-//
-//  Apple HIG dual-write pattern: when no ModelContainer is wired
-//  (= legacy dev-tool path; = actor-based callers that can't reach
-//  MainActor), fall back to the legacy FileSystem path
-//  (= per-entity .md body + entities.json index).
+// FileSystemEntityStore.swift Per-book entity storage layer, backed by SwiftData (= the
+// WSEntity + WSBody @Model classes in Persistence/) with a FileSystem fallback for
+// actor callers. Per boss 2026-10-05 (see OOB.md #2026-10-05) SwiftData migration).
+// This is commit 3 of #8. Apple HIG canonical pattern: WSEntity holds the indexed
+// metadata (id, bookID, kind, name, aliases, tags, description, attributes,
+// kindSpecific) in one row. The body markdown lives in a separate WSBody row (= FK via
+// bodyID). SwiftData stores both as proper relational tables. Storage paths (=
+// unchanged at the public API level):
+// <.ws>/shelves/<shelf>/books/<UUID>/entities/<UUID>.md
+// <.ws>/shelves/<shelf>/books/<UUID>/entities.json Apple HIG dual-write pattern: when
+// no ModelContainer is wired (= legacy dev-tool path; = actor-based callers that can't
+// reach MainActor), fall back to the legacy FileSystem path (= per-entity .md body +
+// entities.json index).
 
 import Foundation
 import SwiftData
@@ -79,12 +68,10 @@ enum EntityStoreError: Error, LocalizedError {
 }
 
 // MARK: - SwiftData implementation
-//
 // Same isolation pattern as FileSystemChapterStore + FileSystemReferenceStore:
-// @MainActor-isolated (= SwiftData's ModelContext contract). The
-// actor-based callers (= CrossRefInject_v2, EntityIngestion) use
-// the nonisolated static FileSystem fallback helpers directly
-// when they need to avoid the MainActor hop.
+// @MainActor-isolated (= SwiftData's ModelContext contract). The actor-based callers
+// (= CrossRefInject_v2, EntityIngestion) use the nonisolated static FileSystem
+// fallback helpers directly when they need to avoid the MainActor hop.
 
 @MainActor
 struct FileSystemEntityStore: EntityStoring {
@@ -122,9 +109,9 @@ struct FileSystemEntityStore: EntityStoring {
             return try Self.loadEntitiesFromFileSystem(bookDirectory: bookDirectory)
         }
         guard let context = modelContext else { return [] }
-        // The bookID is encoded into the directory structure
-        // (= <shelves>/<shelf>/books/<UUID>/). The bookUUID is the
-        // directory's last path component.
+        // The bookID is encoded into the directory structure (=
+        // <shelves>/<shelf>/books/<UUID>/). The bookUUID is the directory's
+        // last path component.
         let bookID = bookDirectory.lastPathComponent
         let descriptor = FetchDescriptor<WSEntity>(
             predicate: #Predicate { $0.bookID == bookID }

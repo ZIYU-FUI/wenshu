@@ -1,47 +1,19 @@
-//
-//  ImportSOPLoader.swift · wenshu · round-73 (= boss 2026-10-10 (see OOB.md #2026-10-10)
-//  v2.7 round-73 (= boss 2026-10-10 (see OOB.md #2026-10-10)
-//  这个 SOP" + "用户不可见").
-//
-//  ImportSOPLoader = the lookup + loader
-//  for the SOP prompt files. Lives in
-//  Services (= data-layer concern) so
-//  ImportService (= caller) does the
-//  lookup, not ImportAgentDriver (= agent-
-//  side concern).
-//
-//  Two responsibilities:
-//
-//    1. `sopName(for folder:)` = the
-//       per-folder SOP lookup (= the
-//       trigger logic). Currently only
-//       `.world` has a SOP file; = other
-//       folders return `nil` (= future
-//       work; = the orchestrator will
-//       fall through to legacy multi-call
-//       router if no SOP matches; = the
-//       SOP coverage matrix grows with
-//       each per-folder SOP file landed
-//       in `Resources/SOPs/`).
-//
-//    2. `load(named:)` = read the SOP
-//       .md file from the .app bundle (=
-//       via `Bundle.module.url(forResource:)`);
-//       = does placeholder substitution
-//       for the SOP's `{filePath}`, `{body}`,
-//       `{bookPath}`, `{bookTitle}` slots.
-//
-//  Bundle lookup uses `Bundle.module`
-//  (= SPM's per-target bundle for the
-//  WenshuApp target's Resources/). The
-//  .md file is shipped via
-//  `.process("Resources")` in Package.swift.
-//
-//  Not user-visible: SOP files compile into
-//  the .app (= git tracked; = wenshu-
-//  engineer maintained; = the user
-//  cannot change them at runtime).
-//
+// ImportSOPLoader.swift · wenshu · round-73 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+// v2.7 round-73 (= boss 2026-10-10 (see OOB.md #2026-10-10) 这个 SOP" + "用户不可见").
+// ImportSOPLoader = the lookup + loader for the SOP prompt files. Lives in Services (=
+// data-layer concern) so ImportService (= caller) does the lookup, not
+// ImportAgentDriver (= agent- side concern). Two responsibilities: 1. `sopName(for
+// folder:)` = the per-folder SOP lookup (= the trigger logic). Currently only `.world`
+// has a SOP file; = other folders return `nil` (= future work; = the orchestrator will
+// fall through to legacy multi-call router if no SOP matches; = the SOP coverage
+// matrix grows with each per-folder SOP file landed in `Resources/SOPs/`). 2.
+// `load(named:)` = read the SOP .md file from the .app bundle (= via
+// `Bundle.module.url(forResource:)`); = does placeholder substitution for the SOP's
+// `{filePath}`, `{body}`, `{bookPath}`, `{bookTitle}` slots. Bundle lookup uses
+// `Bundle.module` (= SPM's per-target bundle for the WenshuApp target's Resources/).
+// The .md file is shipped via `.process("Resources")` in Package.swift. Not user-
+// visible: SOP files compile into the .app (= git tracked; = wenshu- engineer
+// maintained; = the user cannot change them at runtime).
 
 import Foundation
 
@@ -67,13 +39,9 @@ enum ImportSOPTrigger {
         switch folder {
         case .world:
             return "ImportWorldPrompt"
-        // Per boss 2026-10-10 (see OOB.md #2026-10-10)
-        // get its own SOP file (= a
-        // future round adds
-        // ImportCharacterPrompt /
-        // ImportOutlinePrompt / etc.).
-        // For now, only world is
-        // covered.
+        // Per boss 2026-10-10 (see OOB.md #2026-10-10) get its own SOP file (= a future
+        // round adds ImportCharacterPrompt / ImportOutlinePrompt / etc.). For
+        // now, only world is covered.
         default:
             return nil
         }
@@ -110,33 +78,21 @@ struct ImportSOPLoader {
     /// placeholder substitution yet = the
     /// caller calls `substitute(...)`).
     func loadRaw(named name: String) throws -> String {
-        // SPM `.process("Resources")`
-        // flattens the SOPs/ subdir (= the
-        // .md lands at
-        // `<spm-bundle>/Contents/Resources/<name>.md`,
-        // not at `<spm-bundle>/Contents/Resources/SOPs/<name>.md`).
-        //
-        // Bundle selection:
-        // - In production: pass
-        //   `Bundle.main.bundleURL.appendingPathComponent("Contents/Resources/Wenshu_WenshuApp.bundle")`
-        //   (= the SPM-generated bundle
-        //   sitting next to the binary).
-        //   Alternatively, call sites
-        //   should use the static
-        //   `ImportSOPLoader.production()`
-        //   factory (= same logic).
-        // - In unit tests: `Bundle.module`
-        //   resolves to the test target's
-        //   own `WenshuAppTests.bundle`;
-        //   the SPM resource bundle ships
-        //   at the parent directory (= use
-        //   `Bundle.module.bundleURL.deletingLastPathComponent()`).
+        // SPM `.process("Resources")` flattens the SOPs/ subdir (= the .md lands at
+        // `<spm-bundle>/Contents/Resources/<name>.md`, not at `<spm-
+        // bundle>/Contents/Resources/SOPs/<name>.md`). Bundle selection: - In
+        // production: pass
+        // `Bundle.main.bundleURL.appendingPathComponent("Contents/Resources/Wenshu_WenshuApp.bundle")`
+        // (= the SPM-generated bundle sitting next to the binary).
+        // Alternatively, call sites should use the static
+        // `ImportSOPLoader.production()` factory (= same logic). - In unit
+        // tests: `Bundle.module` resolves to the test target's own
+        // `WenshuAppTests.bundle`; the SPM resource bundle ships at the parent
+        // directory (= use
+        // `Bundle.module.bundleURL.deletingLastPathComponent()`).
         var triedPaths: [String] = []
-        // Pass 1: subdirectory candidates
-        // in the resolved bundle (= covers
-        // direct .process("Resources")
-        // where SOPs/ is preserved as a
-        // subdirectory).
+        // Pass 1: subdirectory candidates in the resolved bundle (= covers direct
+        // .process("Resources") where SOPs/ is preserved as a subdirectory).
         for sub in [nil, "SOPs", "Resources/SOPs"] {
             if let url = bundle.url(
                 forResource: name,
@@ -156,13 +112,9 @@ struct ImportSOPLoader {
                 }
             }
         }
-        // Pass 2: the SPM-generated bundle
-        // (= `Wenshu_WenshuApp.bundle` for
-        // the WenshuApp target; =
-        // `WenshuAppTests.bundle` for
-        // tests). Walk the parent directory
-        // for any `*_*.bundle` that
-        // contains the file.
+        // Pass 2: the SPM-generated bundle (= `Wenshu_WenshuApp.bundle` for the WenshuApp
+        // target; = `WenshuAppTests.bundle` for tests). Walk the parent
+        // directory for any `*_*.bundle` that contains the file.
         let parentDir = bundle.bundleURL.deletingLastPathComponent()
         if let entries = try? FileManager.default.contentsOfDirectory(
             at: parentDir,
@@ -190,11 +142,8 @@ struct ImportSOPLoader {
             }
             triedPaths.append(contentsOf: entries.map { $0.path })
         }
-        // Pass 3: look directly under the
-        // bundle's resource path (= e.g.
-        // test target's resource dir has
-        // the SPM nested bundle in a flat
-        // subdir).
+        // Pass 3: look directly under the bundle's resource path (= e.g. test target's
+        // resource dir has the SPM nested bundle in a flat subdir).
         let directSub = bundle.url(
             forResource: name,
             withExtension: "md",
@@ -227,8 +176,7 @@ struct ImportSOPLoader {
     /// production code does not depend on
     /// `Bundle.module`).
     static func production() throws -> ImportSOPLoader {
-        // Try direct bundle main first (= the
-        // .app's top-level Resources/).
+        // Try direct bundle main first (= the .app's top-level Resources/).
         let candidates: [Bundle] = {
             var result: [Bundle] = [.main]
             let mainResources = Bundle.main.resourceURL

@@ -1,20 +1,12 @@
-//
-//  ActiveLibrary.swift · Wenshu
-//
-//  Single canonical accessor for the user's active .ws library URL.
-//
-//  Per the boss 2026-10-05 (see OOB.md #2026-10-05)
-//  don't need forward-compat'. One source of truth (=
-//  LibraryBookmark's security-scoped bookmark Data; see
-//  State/LibraryBookmark.swift). No legacy fallback path. The
-//  previous 'wenshu.libraryPath' UserDefaults string is removed
-//  (= see State/LibraryBookmark.swift where the UserDefaults key is
-//  cleared on next launch).
-//
-//  Every Sources/WenshuApp consumer that needs the active library's
-//  URL must go through `ActiveLibrary.path` (= canonical single
-//  entry point). Reading 'wenshu.libraryPath' directly is removed.
-//
+// ActiveLibrary.swift · Wenshu Single canonical accessor for the user's active .ws
+// library URL. Per the boss 2026-10-05 (see OOB.md #2026-10-05) don't need forward-
+// compat'. One source of truth (= LibraryBookmark's security-scoped bookmark Data; see
+// State/LibraryBookmark.swift). No legacy fallback path. The previous
+// 'wenshu.libraryPath' UserDefaults string is removed (= see
+// State/LibraryBookmark.swift where the UserDefaults key is cleared on next launch).
+// Every Sources/WenshuApp consumer that needs the active library's URL must go through
+// `ActiveLibrary.path` (= canonical single entry point). Reading 'wenshu.libraryPath'
+// directly is removed.
 
 import Foundation
 

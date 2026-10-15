@@ -1,36 +1,16 @@
-//
-//  ImportAgentDriver.swift · wenshu · round-73 (= boss 2026-10-10 (see OOB.md #2026-10-10)
-//  wenshu 文档管理员 (= the wenshu main
-//  agent) into the ImportService flow.
-//
-//  Flow (= what this file implements):
-//
-//    1. Resolve the SOP file (= ImportSOPTrigger
-//       looks up by target folder; = `world` →
-//       `ImportWorldPrompt`).
-//    2. Load the SOP .md from the bundle
-//       (= ImportSOPLoader.loadRaw).
-//    3. Substitute placeholders (= body,
-//       filePath, bookPath, bookTitle).
-//    4. Run `ConversationLoop.runTurn` with
-//       the SOP as `systemMessage` and the
-//       `writeBookDoc` tool registered.
-//    5. The agent (= LLM) calls
-//       `writeBookDoc` 1+ times; = each call
-//       resolves to a file write on disk.
-//    6. When the agent returns with no
-//       tool_use (= says "完成" or similar),
-//       `runTurn` exits and the orchestrator
-//       receives `ConversationResult`.
-//
-//  The driver is intentionally thin (= it
-//  does NOT decide policy; = it only
-//  composes existing primitives =
-//  SOP loader + ConversationLoop + tool
-//  registry). The orchestrator (= ImportService)
-//  handles row state + per-row activity
-//  logging + task UI.
-//
+// ImportAgentDriver.swift · wenshu · round-73 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+// wenshu 文档管理员 (= the wenshu main agent) into the ImportService flow. Flow (= what
+// this file implements): 1. Resolve the SOP file (= ImportSOPTrigger looks up by
+// target folder; = `world` → `ImportWorldPrompt`). 2. Load the SOP .md from the bundle
+// (= ImportSOPLoader.loadRaw). 3. Substitute placeholders (= body, filePath, bookPath,
+// bookTitle). 4. Run `ConversationLoop.runTurn` with the SOP as `systemMessage` and
+// the `writeBookDoc` tool registered. 5. The agent (= LLM) calls `writeBookDoc` 1+
+// times; = each call resolves to a file write on disk. 6. When the agent returns with
+// no tool_use (= says "完成" or similar), `runTurn` exits and the orchestrator receives
+// `ConversationResult`. The driver is intentionally thin (= it does NOT decide policy;
+// = it only composes existing primitives = SOP loader + ConversationLoop + tool
+// registry). The orchestrator (= ImportService) handles row state + per-row activity
+// logging + task UI.
 
 import Foundation
 
@@ -107,10 +87,10 @@ struct ImportAgentDriver: Sendable {
         请处理这个文件: \(input.filePath)
         """
 
-        // ── Step 5: bind the active book path (= writeBookDoc needs it).
-        // The WriteBookDocTool handler reads `bookPathProvider()` per
-        // tool_use (= lazy; = the closure captures the current book
-        // path; = resets per driver invocation).
+        // ── Step 5: bind the active book path (= writeBookDoc needs it). The
+        // WriteBookDocTool handler reads `bookPathProvider()` per tool_use (=
+        // lazy; = the closure captures the current book path; = resets per
+        // driver invocation).
         let toolHandler = WriteBookDocTool(
             bookPathProvider: { [bookContext] in
                 await bookContext.bookPath()
@@ -123,11 +103,10 @@ struct ImportAgentDriver: Sendable {
         )
 
         // ── Step 7: run the agent. The tool dispatch loop is inside runTurn (= the
-        // wenshu agent main loop; = when the LLM returns a tool_use
-        // block, runTurn dispatches the tool (= our writeBookDoc here)
-        // and re-prompts the LLM with the tool result; = this loops
-        // until the LLM no longer returns tool_use (= "agent
-        // finished").
+        // wenshu agent main loop; = when the LLM returns a tool_use block,
+        // runTurn dispatches the tool (= our writeBookDoc here) and re-prompts
+        // the LLM with the tool result; = this loops until the LLM no longer
+        // returns tool_use (= "agent finished").
         let result = try await loop.runTurn(
             userMessage: userMessage,
             systemMessage: sop,
@@ -140,17 +119,11 @@ struct ImportAgentDriver: Sendable {
         // ── Step 8: return the outcome.
         await progress?("agent finished (= \(result.messages.count) messages)")
         let lastAssistant = result.messages.last
-        // (boss 2026-10-10 (see OOB.md #2026-10-10)
-        // PO 双轴 MED finding): count the
-        // number of assistant turns that
-        // made at least one tool_use call
-        // (= 1 turn = 1 task = "wenshu
-        // 文档管理员 wrote a book". = the
-        // previous double-count was
-        // counting the tool_result block
-        // of the previous turn as the
-        // current turn's tool_use; = the
-        // per-row log inflated by N).
+        // (boss 2026-10-10 (see OOB.md #2026-10-10) PO 双轴 MED finding): count the number
+        // of assistant turns that made at least one tool_use call (= 1 turn =
+        // 1 task = "wenshu 文档管理员 wrote a book". = the previous double-count
+        // was counting the tool_result block of the previous turn as the
+        // current turn's tool_use; = the per-row log inflated by N).
         let toolUseCount = result.messages.filter { msg in
             msg.blocks.contains { block in
                 if case .toolUse = block { return true } else { return false }
