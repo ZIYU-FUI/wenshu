@@ -30,15 +30,15 @@ struct TypedIDTests {
     @Test("BookID round-trips through rawValue")
     func bookIDRawValueRoundTrip() {
         let rawString = "550E8400-E29B-41D4-A716-446655440000"
-        let bookID = BookID(rawValue: rawString).rawValue
+        let bookID = BookID(rawValue: rawString)
         #expect(bookID.rawValue == rawString)
     }
 
     @Test("Two BookIDs with the same rawValue are equal (= Hashable identity)")
     func bookIDEquality() {
-        let a = BookID(rawValue: "book-1").rawValue
-        let b = BookID(rawValue: "book-1").rawValue
-        let c = BookID(rawValue: "book-2").rawValue
+        let a = BookID(rawValue: "book-1")
+        let b = BookID(rawValue: "book-1")
+        let c = BookID(rawValue: "book-2")
         #expect(a == b)
         #expect(a != c)
         #expect(a.hashValue == b.hashValue)
@@ -50,7 +50,7 @@ struct TypedIDTests {
         // the type system accepts the conformance without runtime
         // failure (= if BookID ever loses Sendable, this test
         // would not compile).
-        let bookID = BookID(rawValue: "book-1").rawValue
+        let bookID = BookID(rawValue: "book-1")
         nonisolated(unsafe) var stored: BookID? = nil
         stored = bookID
         #expect(stored?.rawValue == "book-1")
@@ -58,7 +58,7 @@ struct TypedIDTests {
 
     @Test("BookID is Codable (= JSON encode + decode round-trip)")
     func bookIDCodableRoundTrip() throws {
-        let original = BookID(rawValue: "book-codable-1").rawValue
+        let original = BookID(rawValue: "book-codable-1")
         let encoder = JSONEncoder()
         let data = try encoder.encode(original)
         let decoder = JSONDecoder()
@@ -72,7 +72,7 @@ struct TypedIDTests {
         // assertion below is a compile-time check; = if BookID
         // ever loses conformance to TypedID, this line fails to
         // compile (= the test runner never even gets to run).
-        let bookID: any TypedID = BookID(rawValue: "book-1").rawValue
+        let bookID: any TypedID = BookID(rawValue: "book-1")
         #expect(bookID.rawValue == "book-1")
     }
 
@@ -86,7 +86,7 @@ struct TypedIDTests {
 
         // Write a session + message with BookID wrapper at the API surface.
         let sessionID = "sess-typedid-1"
-        let bookID = BookID(rawValue: "book-typedid-1").rawValue
+        let bookID = BookID(rawValue: "book-typedid-1")
         let session = WSSession(sessionID: sessionID, bookID: bookID.rawValue)
         context.insert(session)
         let msg = WSChatMessage(
@@ -110,7 +110,7 @@ struct TypedIDTests {
 
         // The brand wrapper round-trips: build a BookID from the raw
         // String and verify equality with the original.
-        let roundTripped = BookID(rawValue: loaded[0].bookID ?? "").rawValue
+        let roundTripped = BookID(rawValue: loaded[0].bookID ?? "")
         #expect(roundTripped == bookID)
     }
 
@@ -131,9 +131,9 @@ struct TypedIDTests {
         let container = try ModelContainer(for: schema, configurations: [config])
         let context = ModelContext(container)
 
-        let bookA = BookID(rawValue: "book-A-predicate-test").rawValue
-        let bookB = BookID(rawValue: "book-B-predicate-test").rawValue
-        let bookC = BookID(rawValue: "book-C-predicate-test").rawValue
+        let bookA = BookID(rawValue: "book-A-predicate-test")
+        let bookB = BookID(rawValue: "book-B-predicate-test")
+        let bookC = BookID(rawValue: "book-C-predicate-test")
         context.insert(WSSession(sessionID: "sess-A", bookID: bookA.rawValue))
         context.insert(WSSession(sessionID: "sess-B", bookID: bookB.rawValue))
         context.insert(WSSession(sessionID: "sess-C", bookID: bookC.rawValue))
@@ -147,13 +147,13 @@ struct TypedIDTests {
         let matched = try context.fetch(descriptor)
         #expect(matched.count == 1)
         #expect(matched[0].sessionID == "sess-B")
-        #expect(BookID(rawValue: matched[0].bookID ?? "").rawValue == bookB)
+        #expect(BookID(rawValue: matched[0].bookID ?? "") == bookB)
     }
 
     @Test("ToolCallID brand wrapper (= tool-call ID type-safety scaffolding per P2-03 typed-ID rollout)")
     func toolCallIDBrandWrapper() {
         // Construction: rawValue-string initializer (= canonical).
-        let id = ToolCallID(rawValue: "tc-abc-123").rawValue
+        let id = ToolCallID(rawValue: "tc-abc-123")
         #expect(id.rawValue == "tc-abc-123")
         #expect(id.stringValue == "tc-abc-123")
 
@@ -162,8 +162,8 @@ struct TypedIDTests {
         #expect(!generated.rawValue.isEmpty)
 
         // Equatable + Hashable (= dictionary key + set membership work).
-        let same = ToolCallID(rawValue: "tc-abc-123").rawValue
-        let diff = ToolCallID(rawValue: "tc-xyz-999").rawValue
+        let same = ToolCallID(rawValue: "tc-abc-123")
+        let diff = ToolCallID(rawValue: "tc-xyz-999")
         #expect(id == same)
         #expect(id != diff)
         var set: Set<ToolCallID> = [id, same, diff]
@@ -179,15 +179,15 @@ struct TypedIDTests {
 
     @Test("SessionID brand wrapper (= chat-session ID type-safety scaffolding per P2-03 typed-ID rollout)")
     func sessionIDBrandWrapper() {
-        let id = SessionID(rawValue: "sess-001").rawValue
+        let id = SessionID(rawValue: "sess-001")
         #expect(id.rawValue == "sess-001")
         #expect(id.stringValue == "sess-001")
 
         let generated = SessionID.newID()
         #expect(!generated.rawValue.isEmpty)
 
-        let same = SessionID(rawValue: "sess-001").rawValue
-        let diff = SessionID(rawValue: "sess-002").rawValue
+        let same = SessionID(rawValue: "sess-001")
+        let diff = SessionID(rawValue: "sess-002")
         #expect(id == same)
         #expect(id != diff)
         var set: Set<SessionID> = [id, same, diff]
@@ -203,15 +203,15 @@ struct TypedIDTests {
 
     @Test("MemoryID brand wrapper (= memory-entry ID type-safety scaffolding per P2-03 typed-ID rollout)")
     func memoryIDBrandWrapper() {
-        let id = MemoryID(rawValue: "mem-abc").rawValue
+        let id = MemoryID(rawValue: "mem-abc")
         #expect(id.rawValue == "mem-abc")
         #expect(id.stringValue == "mem-abc")
 
         let generated = MemoryID.newID()
         #expect(!generated.rawValue.isEmpty)
 
-        let same = MemoryID(rawValue: "mem-abc").rawValue
-        let diff = MemoryID(rawValue: "mem-xyz").rawValue
+        let same = MemoryID(rawValue: "mem-abc")
+        let diff = MemoryID(rawValue: "mem-xyz")
         #expect(id == same)
         #expect(id != diff)
         var set: Set<MemoryID> = [id, same, diff]

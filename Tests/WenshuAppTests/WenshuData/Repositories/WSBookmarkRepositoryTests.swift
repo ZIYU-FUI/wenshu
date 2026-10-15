@@ -24,7 +24,7 @@ struct WSBookmarkRepositoryTests {
         #expect(list.count == 1)
         #expect(list[0].id == "bm-1")
         #expect(list[0].docID == "doc-1")
-        #expect(list[0].label == "My anchor")
+        #expect(list[0].title == "My anchor")
     }
 
     @Test("remove deletes the row")

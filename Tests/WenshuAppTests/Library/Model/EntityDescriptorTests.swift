@@ -32,21 +32,21 @@ struct EntityIDTests {
 
     @Test func rawValueRoundTrip() {
         let uuid = "12345678-1234-1234-1234-123456789012"
-        let id = EntityID(rawValue: uuid).rawValue
+        let id = EntityID(rawValue: uuid)
         #expect(id.rawValue == uuid)
     }
 
     @Test func equalityIsByRawValue() {
-        let a = EntityID(rawValue: "abc").rawValue
-        let b = EntityID(rawValue: "abc").rawValue
-        let c = EntityID(rawValue: "def").rawValue
+        let a = EntityID(rawValue: "abc")
+        let b = EntityID(rawValue: "abc")
+        let c = EntityID(rawValue: "def")
         #expect(a == b)
         #expect(a != c)
     }
 
     @Test func hashableByRawValue() {
-        let id1 = EntityID(rawValue: "abc").rawValue
-        let id2 = EntityID(rawValue: "abc").rawValue
+        let id1 = EntityID(rawValue: "abc")
+        let id2 = EntityID(rawValue: "abc")
         var set: Set<EntityID> = []
         set.insert(id1)
         set.insert(id2)

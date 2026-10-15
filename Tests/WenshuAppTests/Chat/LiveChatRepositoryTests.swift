@@ -37,7 +37,7 @@ struct LiveChatRepositoryTests {
         // Seed via the same container the Live adapter will use (= same ModelContext).
         let repo = WSChatRepository(container: container)
         let live = makeLive(container: container)
-        try repo.createSession(sessionID: "sess-A", bookID: BookID(rawValue: "book-A"))
+        try repo.createSession(sessionID: "sess-A", bookID: BookID(rawValue: "book-A").rawValue)
 
         let userMsg = ChatMessage(
             id: UUID(),
@@ -86,7 +86,7 @@ struct LiveChatRepositoryTests {
 
         // A session lookup under a non-matching bookID scope returns nil
         // (= the append under nil leaves no bookID on the session row).
-        let sessionInBookA = try repo.getSession(sessionID: "sess-global", bookID: BookID(rawValue: "book-A"))
+        let sessionInBookA = try repo.getSession(sessionID: "sess-global", bookID: BookID(rawValue: "book-A").rawValue)
         #expect(sessionInBookA == nil)
         let sessionGlobal = try repo.getSession(sessionID: "sess-global", bookID: nil)
         #expect(sessionGlobal != nil)

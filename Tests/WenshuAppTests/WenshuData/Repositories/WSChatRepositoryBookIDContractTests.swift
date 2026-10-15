@@ -33,24 +33,24 @@ struct WSChatRepositoryBookIDContractTests {
         return WSChatRepository(container: container)
     }
 
-    private static let bookA = BookID(rawValue: "book-A-uuid").rawValue
-    private static let bookB = BookID(rawValue: "book-B-uuid").rawValue
-    private static let bookC = BookID(rawValue: "book-C-uuid").rawValue
+    private static let bookA = BookID(rawValue: "book-A-uuid")
+    private static let bookB = BookID(rawValue: "book-B-uuid")
+    private static let bookC = BookID(rawValue: "book-C-uuid")
 
     @Test("listSessions(bookID: A) never returns sessions owned by B/C")
     @MainActor
     func listSessionsFilteredByBookID() throws {
         let repo = try makeRepository()
-        try repo.createSession(sessionID: "s-A-1", bookID: Self.bookA)
-        try repo.createSession(sessionID: "s-B-1", bookID: Self.bookB)
-        try repo.createSession(sessionID: "s-C-1", bookID: Self.bookC)
+        try repo.createSession(sessionID: "s-A-1", bookID: Self.bookA.rawValue)
+        try repo.createSession(sessionID: "s-B-1", bookID: Self.bookB.rawValue)
+        try repo.createSession(sessionID: "s-C-1", bookID: Self.bookC.rawValue)
         try repo.createSession(sessionID: "s-global-1", bookID: nil)
 
-        let aOnly = try repo.listSessions(includeArchived: false, bookID: Self.bookA)
+        let aOnly = try repo.listSessions(includeArchived: false, bookID: Self.bookA.rawValue)
         #expect(aOnly.count == 1)
         #expect(aOnly.first?.sessionID == "s-A-1")
 
-        let bOnly = try repo.listSessions(includeArchived: false, bookID: Self.bookB)
+        let bOnly = try repo.listSessions(includeArchived: false, bookID: Self.bookB.rawValue)
         #expect(bOnly.count == 1)
         #expect(bOnly.first?.sessionID == "s-B-1")
 
@@ -63,8 +63,8 @@ struct WSChatRepositoryBookIDContractTests {
     @MainActor
     func appendIsolatedByBookID() throws {
         let repo = try makeRepository()
-        try repo.createSession(sessionID: "shared", bookID: Self.bookA)
-        try repo.createSession(sessionID: "shared", bookID: Self.bookB)
+        try repo.createSession(sessionID: "shared", bookID: Self.bookA.rawValue)
+        try repo.createSession(sessionID: "shared", bookID: Self.bookB.rawValue)
 
         // Append a message to the book-A session.
         try repo.append(
@@ -111,8 +111,8 @@ struct WSChatRepositoryBookIDContractTests {
     func appendWithoutBookIDGoesToGlobal() throws {
         let repo = try makeRepository()
         // Two per-book sessions share the same sessionID.
-        try repo.createSession(sessionID: "shared", bookID: Self.bookA)
-        try repo.createSession(sessionID: "shared", bookID: Self.bookB)
+        try repo.createSession(sessionID: "shared", bookID: Self.bookA.rawValue)
+        try repo.createSession(sessionID: "shared", bookID: Self.bookB.rawValue)
 
         // Append with no bookID (= legacy call sites + onboarding).
         try repo.append(
@@ -145,7 +145,7 @@ struct WSChatRepositoryBookIDContractTests {
     @MainActor
     func getSessionRespectsBookIDScope() throws {
         let repo = try makeRepository()
-        try repo.createSession(sessionID: "shared", bookID: Self.bookA)
+        try repo.createSession(sessionID: "shared", bookID: Self.bookA.rawValue)
 
         let aHit = try repo.getSession(sessionID: "shared", bookID: Self.bookA)
         #expect(aHit?.sessionID == "shared")

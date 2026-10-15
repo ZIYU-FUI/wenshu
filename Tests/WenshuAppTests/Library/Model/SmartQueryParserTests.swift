@@ -76,8 +76,8 @@ struct SmartQueryParserTests {
         let character = Character(bookId: UUID(), name: "张三", role: .protagonist)
         try engine.entityStore.saveEntity(
             EntityDescriptor(
-                id: EntityID(rawValue: character.id.uuidString).rawValue,
-                bookID: BookID(rawValue: character.bookId.uuidString).rawValue,
+                id: EntityID(rawValue: character.id.uuidString),
+                bookID: BookID(rawValue: character.bookId.uuidString),
                 kind: .person,
                 name: character.name,
                 aliases: [],
@@ -103,8 +103,8 @@ struct SmartQueryParserTests {
         let entry = WorldEntry(bookId: UUID(), type: .geography, name: "Beijing", summary: "首都")
         try engine.entityStore.saveEntity(
             EntityDescriptor(
-                id: EntityID(rawValue: entry.id.uuidString).rawValue,
-                bookID: BookID(rawValue: entry.bookId.uuidString).rawValue,
+                id: EntityID(rawValue: entry.id.uuidString),
+                bookID: BookID(rawValue: entry.bookId.uuidString),
                 kind: .location,
                 name: entry.name,
                 aliases: [],
@@ -143,8 +143,8 @@ struct SmartQueryParserTests {
         let character = Character(bookId: UUID(), name: "李四", role: .supporting)
         try engine.entityStore.saveEntity(
             EntityDescriptor(
-                id: EntityID(rawValue: character.id.uuidString).rawValue,
-                bookID: BookID(rawValue: character.bookId.uuidString).rawValue,
+                id: EntityID(rawValue: character.id.uuidString),
+                bookID: BookID(rawValue: character.bookId.uuidString),
                 kind: .person,
                 name: character.name,
                 aliases: [],
@@ -161,8 +161,8 @@ struct SmartQueryParserTests {
         let entry = WorldEntry(bookId: UUID(), type: .object, name: "Sword", summary: "")
         try engine.entityStore.saveEntity(
             EntityDescriptor(
-                id: EntityID(rawValue: entry.id.uuidString).rawValue,
-                bookID: BookID(rawValue: entry.bookId.uuidString).rawValue,
+                id: EntityID(rawValue: entry.id.uuidString),
+                bookID: BookID(rawValue: entry.bookId.uuidString),
                 kind: .location,
                 name: entry.name,
                 aliases: [],

@@ -181,7 +181,7 @@ struct KanbanStoreToolTests {
         // 3) KanbanStore row is now status=done.
         let after = try await store.list()
         let task = after.first { $0.id == taskID }
-        #expect(task?.status == .done,
+        #expect(task?.status == KanbanStatus.done.rawValue,
                 "KanbanStore row must be status=done; got: \(String(describing: task?.status))")
         #expect(task?.completedAt != nil, "completed_at must be set when status=done")
     }

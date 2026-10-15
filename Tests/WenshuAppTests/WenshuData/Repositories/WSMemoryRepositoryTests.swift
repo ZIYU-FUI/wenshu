@@ -41,7 +41,7 @@ struct WSMemoryRepositoryTests {
     @MainActor
     func getMissing() throws {
         let repo = try makeRepository()
-        let fetched = try repo.get(memoryId: MemoryID(rawValue: "nope").rawValue)
+        let fetched = try repo.get(memoryId: MemoryID(rawValue: "nope"))
         #expect(fetched == nil)
     }
 
@@ -74,7 +74,7 @@ struct WSMemoryRepositoryTests {
     func updateMissing() throws {
         let repo = try makeRepository()
         #expect(throws: WSMemoryRepositoryError.notFound.self) {
-            try repo.update(memoryId: MemoryID(rawValue: "nope").rawValue, content: "x")
+            try repo.update(memoryId: MemoryID(rawValue: "nope"), content: "x")
         }
     }
 

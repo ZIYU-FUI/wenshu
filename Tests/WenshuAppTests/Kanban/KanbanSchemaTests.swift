@@ -44,19 +44,20 @@ struct KanbanSchemaTests {
     @Test("add task with priority + assignee + modelOverride round-trips")
     func testAddWithMetadata() async throws {
         let store = try makeStore("test")
-                let task = try await store.add(
+                let taskId = try await store.add(
             title: "writer: 续写捕快",
             status: KanbanStatus.running.rawValue,
             priority: 8,
             assignee: "writer",
             modelOverride: "MiniMax-M3"
         )
+        let task = try store.get(id: taskId)
         // startedAt auto-set when status = .running
-        #expect(task.priority == 8)
-        #expect(task.assignee == "writer")
-        #expect(task.modelOverride == "MiniMax-M3")
-        #expect(task.startedAt != nil)
-        #expect(task.completedAt == nil)
+        #expect(task?.priority == 8)
+        #expect(task?.assignee == "writer")
+        #expect(task?.modelOverride == "MiniMax-M3")
+        #expect(task?.startedAt != nil)
+        #expect(task?.completedAt == nil)
 
         // Round-trip via list()
         let loaded = try await store.list()

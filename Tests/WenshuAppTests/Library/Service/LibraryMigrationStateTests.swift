@@ -22,6 +22,7 @@
 //  WenshuAppTests. @MainActor isolation matches the production
 //  class (= @MainActor @Observable on LibraryMigrationState).
 
+import WenshuData
 import Foundation
 import Testing
 @testable import WenshuApp

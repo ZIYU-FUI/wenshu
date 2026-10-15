@@ -36,8 +36,8 @@ struct TodoStoreTests {
                 let todo = try await store.add(title: "implement FileTools", priority: TodoPriority.high.rawValue)
         let got = try await store.get(id: todo.id)
         #expect(got?.title == "implement FileTools")
-        #expect(got?.status == .pending)
-        #expect(got?.priority == .high)
+        #expect(got?.status == TodoStatus.pending.rawValue)
+        #expect(got?.priority == TodoPriority.high.rawValue)
     }
 
     @Test("setStatus 改 status")
@@ -47,10 +47,10 @@ struct TodoStoreTests {
                 let todo = try await store.add(title: "test")
         try await store.setStatus(id: todo.id, status: TodoStatus.inProgress.rawValue)
         let updated = try await store.get(id: todo.id)
-        #expect(updated?.status == .inProgress)
+        #expect(updated?.status == TodoStatus.inProgress.rawValue)
         try await store.setStatus(id: todo.id, status: TodoStatus.completed.rawValue)
         let final = try await store.get(id: todo.id)
-        #expect(final?.status == .completed)
+        #expect(final?.status == TodoStatus.completed.rawValue)
     }
 
     @Test("list 按 status 过滤 + priority 排序")
@@ -62,9 +62,9 @@ struct TodoStoreTests {
         _ = try await store.add(title: "medium task", priority: TodoPriority.medium.rawValue)
         let pending = try await store.list(status: TodoStatus.pending.rawValue)
         #expect(pending.count == 3)
-        #expect(pending[0].priority == .urgent)
-        #expect(pending[1].priority == .medium)
-        #expect(pending[2].priority == .low)
+        #expect(pending[0].priority == TodoPriority.urgent.rawValue)
+        #expect(pending[1].priority == TodoPriority.medium.rawValue)
+        #expect(pending[2].priority == TodoPriority.low.rawValue)
     }
 
     @Test("delete 删 1 个")

@@ -156,13 +156,13 @@ struct WSChatRepositoryTests {
         try repo.append(
             StoredChatMessage(id: "m-A1", source: "user", content: "in book A", timestamp: Date()),
             sessionId: "sess-A",
-            bookID: BookID(rawValue: "book-A").rawValue
+            bookID: BookID(rawValue: "book-A")
         )
         // Append under book-B
         try repo.append(
             StoredChatMessage(id: "m-B1", source: "user", content: "in book B", timestamp: Date()),
             sessionId: "sess-B",
-            bookID: BookID(rawValue: "book-B").rawValue
+            bookID: BookID(rawValue: "book-B")
         )
 
         // book-A scope only sees the book-A message
@@ -179,7 +179,7 @@ struct WSChatRepositoryTests {
         try repo.append(
             StoredChatMessage(id: "m-cross", source: "user", content: "x", timestamp: Date()),
             sessionId: "sess-A",
-            bookID: BookID(rawValue: "book-B").rawValue
+            bookID: BookID(rawValue: "book-B")
         )
 
         // Global (= bookID: nil) views must respect the §11.11 row-level split
@@ -194,7 +194,7 @@ struct WSChatRepositoryTests {
         // Per-book scope returns the right message.
         let crossBookB = try repo.loadMessages(
             sessionId: "sess-A",
-            bookID: BookID(rawValue: "book-B").rawValue
+            bookID: BookID(rawValue: "book-B")
         )
         #expect(crossBookB.count == 1)
         #expect(crossBookB[0].id == "m-cross")
@@ -208,7 +208,7 @@ struct WSChatRepositoryTests {
         try repo.append(
             StoredChatMessage(id: "m1", source: "user", content: "x", timestamp: Date()),
             sessionId: "sess-A",
-            bookID: BookID(rawValue: "book-A").rawValue
+            bookID: BookID(rawValue: "book-A")
         )
         #expect(try repo.count(sessionId: "sess-A", bookID: BookID(rawValue: "book-A").rawValue) == 1)
         try repo.clear(sessionId: "sess-A", bookID: BookID(rawValue: "book-A").rawValue)

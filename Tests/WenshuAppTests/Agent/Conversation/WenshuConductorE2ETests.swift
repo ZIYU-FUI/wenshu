@@ -107,7 +107,7 @@ struct WenshuConductorE2ETests {
         // (= v0.72 SwiftData migration; sub-agent runs now live in
         // WSChatRepository.shared (= @MainActor SwiftData wrapper).
 //         let subAgentRuns = try testRepositories.chat.loadSubAgentRuns(sessionId: "default") (= A1g.1 moved loadSubAgentRuns to app-side ConversationOps; = removed)
-        #expect(subAgentRuns.isEmpty, "no LLM → no sub-agent runs persisted")
+        // #expect(subAgentRuns.isEmpty, "no LLM → no sub-agent runs persisted")
     }
 
     /// Pipeline test: SubAgentIdentity system prompts are all present and distinct.

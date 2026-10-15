@@ -184,7 +184,7 @@ struct EntityMigrationTests {
         )
         _ = try EntityMigration.migrateFromLegacyIfNeeded(bookDirectory: bookDir)
         let store = FileSystemEntityStore(bookDirectory: bookDir)
-        let body = store.loadEntityBody(id: EntityID(rawValue: charID.uuidString).rawValue)
+        let body = store.loadEntityBody(id: EntityID(rawValue: charID.uuidString))
         #expect(body != nil)
         #expect(body!.contains("# Lin Fan"))
         #expect(body!.contains("Main character"))
