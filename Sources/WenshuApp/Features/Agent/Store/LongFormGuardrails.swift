@@ -87,32 +87,26 @@ import Foundation
 // MARK: - Kind enum
 
 /// 6 named guardrail kinds (= 1:1 with the hermes
-/// 
 enum LongFormGuardrailKind: String, Sendable, Codable, CaseIterable, Equatable {
-    /// Chapter-level constraints (= POV / tense / forbidden words)
-    /// enforced on every LLM response.
+    /// Chapter-level constraints (= POV / tense / forbidden words) enforced on
+    /// every LLM response.
     case constraint
-    /// Previous-chapter character state / plot threads injected
-    /// as constraints.
+    /// Previous-chapter character state / plot threads injected as constraints.
     case continuity
-    /// Every LLM claim must be backed by a citation (= from book
-    /// context).
+    /// Every LLM claim must be backed by a citation (= from book context).
     case selfProof
-    /// Character voice consistency (= voice sample from earlier
-    /// chapters).
+    /// Character voice consistency (= voice sample from earlier chapters).
     case persona
-    /// Character development trajectory (= will not contradict
-    /// established arc).
+    /// Character development trajectory (= will not contradict established
+    /// arc).
     case characterArc
-    /// Setting / lore consistency (= no new magic systems, no
-    /// contradictions).
+    /// Setting / lore consistency (= no new magic systems, no contradictions).
     case worldConsistency
 
     /// Stable identifier (= used in test assertions + logs).
     var identifier: String { rawValue }
 
-    /// Human-readable English label (= for the SpecializedTools
-    /// pane UI).
+    /// Human-readable English label (= for the SpecializedTools pane UI).
     var displayName: String {
         switch self {
         case .constraint:        return "Constraint"
@@ -124,10 +118,9 @@ enum LongFormGuardrailKind: String, Sendable, Codable, CaseIterable, Equatable {
         }
     }
 
-    /// SF Symbols 6 icon name (= Apple canonical; = used by
-    /// Image(systemName:) directly in the LongFormGuardrailsView
-    /// row rendering path). Replaces the Lucide-era names removed
-    /// Migrated to outline glyphs.
+    /// SF Symbols 6 icon name (= Apple canonical; = used by Image(systemName:)
+    /// directly in the LongFormGuardrailsView row rendering path). Replaces the
+    /// Lucide-era names removed Migrated to outline glyphs.
     var icon: String {
         switch self {
         case .constraint:        return "checklist"          // Lucide 'list-checks'
@@ -143,9 +136,9 @@ enum LongFormGuardrailKind: String, Sendable, Codable, CaseIterable, Equatable {
 // MARK: - Source enum
 
 /// Where the guardrail rule body comes from. The actor's
-/// `extractConstraints(from:)` returns one entry per (kind, source)
-/// pair (= 6 kinds × 4 sources = up to 24 candidate guardrails;
-/// the actor trims to the user-applicable subset).
+/// `extractConstraints(from:)` returns one entry per (kind, source) pair (= 6
+/// kinds × 4 sources = up to 24 candidate guardrails; the actor trims to the
+/// user-applicable subset).
 enum LongFormGuardrailSource: String, Sendable, Codable, CaseIterable, Equatable {
     /// Whole-book context (= characters, world, plot summary).
     case bookContext
@@ -171,18 +164,18 @@ enum LongFormGuardrailSource: String, Sendable, Codable, CaseIterable, Equatable
 // MARK: - Enforcement enum
 
 /// How the harness reacts on a violation. The actor's
-/// `applyEnforcement(_:violations:)` reads this per-guardrail and
-/// either rejects, appends a warning, or ignores (= (see OOB.md #2026-08-27)
-/// `strict / warn / off` triplet).
+/// `applyEnforcement(_:violations:)` reads this per-guardrail and either
+/// rejects, appends a warning, or ignores (= (see OOB.md #2026-08-27) `strict /
+/// warn / off` triplet).
 enum LongFormGuardrailEnforcement: String, Sendable, Codable, CaseIterable, Equatable {
-    /// LLM response rejected (= error returned to the caller)
-    /// if any violation is `.critical`.
+    /// LLM response rejected (= error returned to the caller) if any violation
+    /// is `.critical`.
     case strict
-    /// LLM response appended with a warning block (= visible to
-    /// the LLM on retry / the user in the diff).
+    /// LLM response appended with a warning block (= visible to the LLM on
+    /// retry / the user in the diff).
     case warn
-    /// No enforcement (= the rule is informational; violations
-    /// still surface in the UI as info-level rows).
+    /// No enforcement (= the rule is informational; violations still surface in
+    /// the UI as info-level rows).
     case off
 
     var identifier: String { rawValue }
@@ -198,12 +191,10 @@ enum LongFormGuardrailEnforcement: String, Sendable, Codable, CaseIterable, Equa
 
 // MARK: - Guardrail struct
 
-/// A single guardrail row (= one rule the LLM must follow for
-/// the active book). Persisted as one entry in the per-book
-/// `long-form-guardrails.json` sidecar.
-///
-/// `id` is the row's stable identifier (= used by the actor for
-/// add / remove / check); never re-used even across books.
+/// A single guardrail row (= one rule the LLM must follow for the active book).
+/// Persisted as one entry in the per-book `long-form-guardrails.json` sidecar.
+/// `id` is the row's stable identifier (= used by the actor for add / remove /
+/// check); never re-used even across books.
 struct LongFormGuardrail: Sendable, Codable, Equatable, Identifiable {
     let id: UUID
     let kind: LongFormGuardrailKind
@@ -211,18 +202,15 @@ struct LongFormGuardrail: Sendable, Codable, Equatable, Identifiable {
     let enforce: LongFormGuardrailEnforcement
     var name: String
     var description: String
-    /// Optional regex / pattern the `check(_:against:)` evaluator
-    /// applies when the kind = `.constraint` (= forbidden-word
-    /// list). Nil for non-constraint guardrails (= the actor
-    /// applies kind-specific heuristics instead).
+    /// Optional regex / pattern the `check(_:against:)` evaluator applies when
+    /// the kind = `.constraint` (= forbidden-word list). Nil for non-constraint
+    /// guardrails (= the actor applies kind-specific heuristics instead).
     var pattern: String?
     /// Severity the actor attaches to violations of this guardrail.
-    /// 
     var defaultSeverity: LongFormGuardrailViolation.Severity
-    /// Whether the row is auto-derived (= the actor built it from
-    /// book context) or user-authored. Auto-derived rows show in
-    /// the SpecializedTools pane with a "auto" badge; user rows
-    /// can be added / removed freely.
+    /// Whether the row is auto-derived (= the actor built it from book context)
+    /// or user-authored. Auto-derived rows show in the SpecializedTools pane
+    /// with a "auto" badge; user rows can be added / removed freely.
     let isAutoDerived: Bool
     var createdAt: Date
     var updatedAt: Date
@@ -256,10 +244,9 @@ struct LongFormGuardrail: Sendable, Codable, Equatable, Identifiable {
 
 // MARK: - Violation struct
 
-/// A single violation surfaced by `check(_:against:)`. Carries the
-/// offending guardrail id + a severity + a reason + the line where
-/// the violation fired (= best-effort; nil if the violation is
-/// text-wide like a missing citation).
+/// A single violation surfaced by `check(_:against:)`. Carries the offending
+/// guardrail id + a severity + a reason + the line where the violation fired (=
+/// best-effort; nil if the violation is text-wide like a missing citation).
 struct LongFormGuardrailViolation: Sendable, Codable, Equatable {
     let guardrailId: UUID
     let kind: LongFormGuardrailKind
@@ -290,9 +277,9 @@ struct LongFormGuardrailViolation: Sendable, Codable, Equatable {
 
 // MARK: - Continuity item (= the helper result shape)
 
-/// A single continuity item the `continuityState(for:bookId:)`
-/// helper extracts from a previous chapter. Feeds into continuity
-/// guardrails (= each item becomes a row with kind = .continuity).
+/// A single continuity item the `continuityState(for:bookId:)` helper extracts
+/// from a previous chapter. Feeds into continuity guardrails (= each item
+/// becomes a row with kind = .continuity).
 struct LongFormContinuityItem: Sendable, Codable, Equatable, Identifiable {
     let id: UUID
     let subject: String
@@ -309,10 +296,10 @@ struct LongFormContinuityItem: Sendable, Codable, Equatable, Identifiable {
 
 // MARK: - Sidecar on-disk shape
 
-/// On-disk shape of the per-book sidecar. The actor reads /
-/// writes one of these per book (= keyed by `bookId`). Carries
-/// the guardrail rows + a cache of the last-extracted continuity
-/// items (= the actor refreshes the cache on every chapter load).
+/// On-disk shape of the per-book sidecar. The actor reads / writes one of these
+/// per book (= keyed by `bookId`). Carries the guardrail rows + a cache of the
+/// last-extracted continuity items (= the actor refreshes the cache on every
+/// chapter load).
 struct LongFormGuardrailsSidecar: Codable, Sendable, Equatable {
     var bookId: UUID
     var guardrails: [LongFormGuardrail]
@@ -335,8 +322,8 @@ struct LongFormGuardrailsSidecar: Codable, Sendable, Equatable {
 // MARK: - Actor errors
 
 /// Errors thrown by the `LongFormGuardrails` actor. Mirrors the
-/// BookProjectConfigStore / BookTodoStore error conventions (= a
-/// LocalizedError for each case).
+/// BookProjectConfigStore / BookTodoStore error conventions (= a LocalizedError
+/// for each case).
 enum LongFormGuardrailsError: Error, LocalizedError, Sendable, Equatable {
     case bookDirectoryNotFound(bookId: UUID)
     case guardrailNotFound(id: UUID)
@@ -356,27 +343,19 @@ enum LongFormGuardrailsError: Error, LocalizedError, Sendable, Equatable {
 
 // MARK: - Actor
 
-/// Per-book guardrails store. Holds the in-memory cache + owns
-/// the on-disk JSON sidecar.
-///
-/// Persistence: `<bookDir>/long-form-guardrails.json`. The actor
-/// resolves `<bookDir>` by walking `<shelvesRoot>/<shelf>/books/<id>/`
-/// (= same forgiving walk as `BookStore.bookDirectory(bookId:)`).
-///
-/// Concurrency: actor (= Swift 6 strict concurrency). Reads /
-/// writes serialize cleanly across the SpecializedTools pane +
-/// any background LLM-side guardrail evaluators.
-///
-/// Forgiving semantics:
-///   - Missing sidecar = empty list (= first-load behavior).
-///   - Corrupt sidecar = log + return empty list (= never bricks
-///     the UI; matches `BookProjectConfigStore.loadConfig` policy).
-///   - Missing book directory = throws `.bookDirectoryNotFound`.
-///
-/// Access level: internal (= the actor accepts the internal
-/// `BookStore` type as a constructor parameter; = per wenshu
-/// convention the view layer accesses the actor through the
-/// module's internal scope).
+/// Per-book guardrails store. Holds the in-memory cache + owns the on-disk JSON
+/// sidecar. Persistence: `<bookDir>/long-form-guardrails.json`. The actor
+/// resolves `<bookDir>` by walking `<shelvesRoot>/<shelf>/books/<id>/` (= same
+/// forgiving walk as `BookStore.bookDirectory(bookId:)`). Concurrency: actor (=
+/// Swift 6 strict concurrency). Reads / writes serialize cleanly across the
+/// SpecializedTools pane + any background LLM-side guardrail evaluators.
+/// Forgiving semantics: - Missing sidecar = empty list (= first-load behavior).
+/// - Corrupt sidecar = log + return empty list (= never bricks the UI; matches
+/// `BookProjectConfigStore.loadConfig` policy). - Missing book directory =
+/// throws `.bookDirectoryNotFound`. Access level: internal (= the actor accepts
+/// the internal `BookStore` type as a constructor parameter; = per wenshu
+/// convention the view layer accesses the actor through the module's internal
+/// scope).
 actor LongFormGuardrails {
     private let bookStore: BookStore
     private let fileManager: FileManager
@@ -389,8 +368,8 @@ actor LongFormGuardrails {
 
     // MARK: - Public surface (= matches the task spec verbatim)
 
-    /// Load all guardrails for the current book (= reads from
-    /// sidecar; auto-derives the initial 6 if no sidecar exists).
+    /// Load all guardrails for the current book (= reads from sidecar;
+    /// auto-derives the initial 6 if no sidecar exists).
     func loadGuardrails(for bookId: UUID) async throws -> [LongFormGuardrail] {
         let sidecar = try await loadOrCreateSidecar(bookId: bookId)
         return sidecar.guardrails
@@ -412,9 +391,8 @@ actor LongFormGuardrails {
         try await persistSidecar(sidecar)
     }
 
-    /// Typed add (= the canonical entry point). Pass the bookId
-    /// the guardrail belongs to (= the actor resolves the on-disk
-    /// directory + sidecar).
+    /// Typed add (= the canonical entry point). Pass the bookId the guardrail
+    /// belongs to (= the actor resolves the on-disk directory + sidecar).
     func add(_ guardrail: LongFormGuardrail, to bookId: UUID) async throws {
         var sidecar = try await loadOrCreateSidecar(bookId: bookId)
         // Replace if a guardrail with the same id already exists
@@ -429,8 +407,7 @@ actor LongFormGuardrails {
         try await persistSidecar(sidecar)
     }
 
-    /// Remove a guardrail. Throws `.guardrailNotFound` if the id
-    /// is unknown.
+    /// Remove a guardrail. Throws `.guardrailNotFound` if the id is unknown.
     func remove(id: UUID) async throws {
         // Resolve which sidecar owns this id (= search the cache
         // + on-disk walk). Forgiving: if no sidecar holds the id,
@@ -460,9 +437,9 @@ actor LongFormGuardrails {
         try await persistSidecar(sidecar)
     }
 
-    /// Check an LLM response (= or chapter draft) against all
-    /// guardrails. Returns violations (= one row per match).
-    /// Pure function: does not mutate the sidecar.
+    /// Check an LLM response (= or chapter draft) against all guardrails.
+    /// Returns violations (= one row per match). Pure function: does not mutate
+    /// the sidecar.
     func check(_ text: String, against guardrails: [LongFormGuardrail]) async throws
         -> [LongFormGuardrailViolation]
     {
@@ -490,10 +467,10 @@ actor LongFormGuardrails {
     // MARK: - Helper methods (= the task spec §"Hermes's
     // long_form_guardrails.py also includes" trio)
 
-    /// Constraint extractor (= takes book context + produces the
-    /// initial 6-row guardrail set). Deterministic: derives one
-    /// row per kind from the book context string. Use this from
-    /// the SpecializedTools pane "Auto-derive" button.
+    /// Constraint extractor (= takes book context + produces the initial 6-row
+    /// guardrail set). Deterministic: derives one row per kind from the book
+    /// context string. Use this from the SpecializedTools pane "Auto-derive"
+    /// button.
     func extractConstraints(from bookContext: String) async -> [LongFormGuardrail] {
         let trimmed = bookContext.trimmingCharacters(in: .whitespacesAndNewlines)
         let kinds: [LongFormGuardrailKind] = LongFormGuardrailKind.allCases
@@ -519,11 +496,10 @@ actor LongFormGuardrails {
         }
     }
 
-    /// Voice sampler (= reads a previous chapter and produces a
-    /// short voice baseline string for the persona guardrail).
-    /// Deterministic: returns the first non-empty line as the
-    /// baseline (= a 1-line sample is enough for the persona
-    /// kind to detect voice drift).
+    /// Voice sampler (= reads a previous chapter and produces a short voice
+    /// baseline string for the persona guardrail). Deterministic: returns the
+    /// first non-empty line as the baseline (= a 1-line sample is enough for
+    /// the persona kind to detect voice drift).
     func sampleVoice(from chapterText: String) async -> String? {
         let lines = chapterText
             .components(separatedBy: "\n")
@@ -532,11 +508,10 @@ actor LongFormGuardrails {
         return lines.first
     }
 
-    /// Continuity checker (= scans a previous chapter and returns
-    /// the character-state / plot-thread items to feed as
-    /// continuity guardrails). Heuristic: lines starting with
-    /// `Character:` or `Thread:` (= the canonical convention the
-    /// LLM Wiki raw layer emits per AGENTS.md §11).
+    /// Continuity checker (= scans a previous chapter and returns the
+    /// character-state / plot-thread items to feed as continuity guardrails).
+    /// Heuristic: lines starting with `Character:` or `Thread:` (= the
+    /// canonical convention the LLM Wiki raw layer emits per AGENTS.md §11).
     func continuityState(for bookId: UUID, chapterIndex: Int = -1) async throws
         -> [LongFormContinuityItem]
     {
@@ -597,18 +572,14 @@ actor LongFormGuardrails {
         return items
     }
 
-    /// Apply enforcement (= strict / warn / off) to a draft
-    /// response. Returns either:
-    ///   - the original text unchanged (`.off` or no violations),
-    ///   - the original text + an appended warning block
-    ///     (`.warn` + any non-critical violation),
-    ///   - throws `LongFormGuardrailsError` (= `.strict` + any
-    ///     `.critical` violation).
-    ///
-    /// Marked `nonisolated` because the method is pure (= reads
-    /// no actor state; takes the guardrails + violations as
-    /// arguments). Without `nonisolated` the test harness cannot
-    /// call this synchronously from `#expect(throws:)`.
+    /// Apply enforcement (= strict / warn / off) to a draft response. Returns
+    /// either: - the original text unchanged (`.off` or no violations), - the
+    /// original text + an appended warning block (`.warn` + any non-critical
+    /// violation), - throws `LongFormGuardrailsError` (= `.strict` + any
+    /// `.critical` violation). Marked `nonisolated` because the method is pure
+    /// (= reads no actor state; takes the guardrails + violations as
+    /// arguments). Without `nonisolated` the test harness cannot call this
+    /// synchronously from `#expect(throws:)`.
     nonisolated func applyEnforcement(_ text: String, violations: [LongFormGuardrailViolation],
                                       against guardrails: [LongFormGuardrail]) throws -> String
     {
@@ -648,8 +619,8 @@ actor LongFormGuardrails {
     /// Sidecar on-disk filename (= parallel to kanban.json / todo.json).
     private static let sidecarFilename = "long-form-guardrails.json"
 
-    /// Resolve the sidecar on disk for the given book. Walks the
-    /// shelves tree (= same forgiving walk as BookStore.bookDirectory).
+    /// Resolve the sidecar on disk for the given book. Walks the shelves tree
+    /// (= same forgiving walk as BookStore.bookDirectory).
     private func sidecarURL(bookId: UUID) throws -> URL {
         guard let bookDir = bookStore.bookDirectory(bookId: bookId) else {
             throw LongFormGuardrailsError.bookDirectoryNotFound(bookId: bookId)
@@ -657,19 +628,16 @@ actor LongFormGuardrails {
         return bookDir.appendingPathComponent(Self.sidecarFilename)
     }
 
-    /// Load the sidecar from disk (= or create one + persist if
-    /// missing). Forgiving on corrupt JSON (= returns an empty
-    /// sidecar instead of throwing, matching
-    /// BookProjectConfigStore.loadConfig policy).
-    ///
-    /// First-load semantics: when no sidecar file is on disk, the
-    /// helper auto-derives the initial 6 guardrails (= one per
-    /// kind) via `extractConstraints(from:)` with a generic book
-    /// context, then returns the populated sidecar. This matches
-    /// the task spec ("Load all guardrails for the current book
-    /// (= from BookProjectConfig + auto-derived)") = the actor
-    /// surfaces the auto-derived rows on first read, then the
-    /// user can add / remove rows from there.
+    /// Load the sidecar from disk (= or create one + persist if missing).
+    /// Forgiving on corrupt JSON (= returns an empty sidecar instead of
+    /// throwing, matching BookProjectConfigStore.loadConfig policy). First-load
+    /// semantics: when no sidecar file is on disk, the helper auto-derives the
+    /// initial 6 guardrails (= one per kind) via `extractConstraints(from:)`
+    /// with a generic book context, then returns the populated sidecar. This
+    /// matches the task spec ("Load all guardrails for the current book (= from
+    /// BookProjectConfig + auto-derived)") = the actor surfaces the
+    /// auto-derived rows on first read, then the user can add / remove rows
+    /// from there.
     private func loadOrCreateSidecar(bookId: UUID) async throws -> LongFormGuardrailsSidecar {
         if let cached = cache[bookId] {
             return cached
@@ -711,8 +679,8 @@ actor LongFormGuardrails {
         }
     }
 
-    /// Persist the sidecar to disk (= atomic write via tmp +
-    /// rename; mirrors BookProjectConfigStore.atomicWrite).
+    /// Persist the sidecar to disk (= atomic write via tmp + rename; mirrors
+    /// BookProjectConfigStore.atomicWrite).
     private func persistSidecar(_ sidecar: LongFormGuardrailsSidecar) async throws {
         let url = try sidecarURL(bookId: sidecar.bookId)
         let encoder = JSONEncoder()
@@ -727,22 +695,20 @@ actor LongFormGuardrails {
         try fileManager.moveItem(at: tmpURL, to: url)
     }
 
-    /// Returns all currently-cached bookIds (= for the
-    /// `remove(id:)` global search).
+    /// Returns all currently-cached bookIds (= for the `remove(id:)` global
+    /// search).
     private func sidecarBookIds() -> [UUID] {
         Array(cache.keys)
     }
 
-    /// Extract the bookId from a guardrail (= sidecar routing
-    /// helper). The public `LongFormGuardrail` struct does not
-    /// carry a bookId (= keep Codable surface narrow per S5);
-    /// the actor routes via the typed `add(_:to:)` /
-    /// `remove(id:from:)` entry points. The untyped `add(_:)`
-    /// looks up the bookId via the caller-side scope (= when
-    /// the actor is constructed with a single BookStore, the
-    /// resolved bookId is the active selectedBookId; = the
-    /// `loadGuardrails(for:)` return value tells the caller
-    /// which bookId to use).
+    /// Extract the bookId from a guardrail (= sidecar routing helper). The
+    /// public `LongFormGuardrail` struct does not carry a bookId (= keep
+    /// Codable surface narrow per S5); the actor routes via the typed
+    /// `add(_:to:)` / `remove(id:from:)` entry points. The untyped `add(_:)`
+    /// looks up the bookId via the caller-side scope (= when the actor is
+    /// constructed with a single BookStore, the resolved bookId is the active
+    /// selectedBookId; = the `loadGuardrails(for:)` return value tells the
+    /// caller which bookId to use).
     private func sidecarBookIdForGuardrail(_ guardrail: LongFormGuardrail) async -> UUID? {
         // First pass: cache lookup (= any cached sidecar holding
         // this guardrail's id = the right bookId).
@@ -760,9 +726,8 @@ actor LongFormGuardrails {
 
     // MARK: - Per-kind evaluators (= `check(_:against:)` workers)
 
-    /// Constraint evaluator: scans for forbidden words (= if the
-    /// guardrail has a regex pattern, applies per-line substring
-    /// match; otherwise no-op).
+    /// Constraint evaluator: scans for forbidden words (= if the guardrail has
+    /// a regex pattern, applies per-line substring match; otherwise no-op).
     private func evaluateConstraint(
         guardrail: LongFormGuardrail,
         lines: [String]
@@ -794,10 +759,9 @@ actor LongFormGuardrails {
         return violations
     }
 
-    /// Continuity evaluator: flags lines that contradict a
-    /// known subject (= the guardrail's `description` is the
-    /// subject list; a line that mentions the subject in a
-    /// negation context is flagged).
+    /// Continuity evaluator: flags lines that contradict a known subject (= the
+    /// guardrail's `description` is the subject list; a line that mentions the
+    /// subject in a negation context is flagged).
     private func evaluateContinuity(
         guardrail: LongFormGuardrail,
         lines: [String]
@@ -832,9 +796,9 @@ actor LongFormGuardrails {
         return violations
     }
 
-    /// Self-proof evaluator: flags sentences that make a claim
-    /// without a citation token (= `according to`, `(see`, `ref:`
-    /// are the accepted citation tokens).
+    /// Self-proof evaluator: flags sentences that make a claim without a
+    /// citation token (= `according to`, `(see`, `ref:` are the accepted
+    /// citation tokens).
     private func evaluateSelfProof(
         guardrail: LongFormGuardrail,
         text: String,
@@ -861,10 +825,9 @@ actor LongFormGuardrails {
         return violations
     }
 
-    /// Persona evaluator: flags voice drift (= a persona guardrail
-    /// whose `description` is the voice baseline; a line that
-    /// drifts in length + word-choice beyond a heuristic
-    /// threshold is flagged).
+    /// Persona evaluator: flags voice drift (= a persona guardrail whose
+    /// `description` is the voice baseline; a line that drifts in length +
+    /// word-choice beyond a heuristic threshold is flagged).
     private func evaluatePersona(
         guardrail: LongFormGuardrail,
         text: String,
@@ -900,9 +863,8 @@ actor LongFormGuardrails {
         return violations
     }
 
-    /// Character-arc evaluator: flags lines that contradict an
-    /// established character trait (= the guardrail's description
-    /// is the trait list).
+    /// Character-arc evaluator: flags lines that contradict an established
+    /// character trait (= the guardrail's description is the trait list).
     private func evaluateCharacterArc(
         guardrail: LongFormGuardrail,
         lines: [String]
@@ -932,11 +894,10 @@ actor LongFormGuardrails {
         return violations
     }
 
-    /// World-consistency evaluator: flags introductions of new
-    /// setting elements that contradict a known world-lore fact.
-    /// Heuristic: a sentence that introduces a noun + "magic"
-    /// /"system" /"spell" when the guardrail description
-    /// explicitly says "no new magic" is flagged.
+    /// World-consistency evaluator: flags introductions of new setting elements
+    /// that contradict a known world-lore fact. Heuristic: a sentence that
+    /// introduces a noun + "magic" /"system" /"spell" when the guardrail
+    /// description explicitly says "no new magic" is flagged.
     private func evaluateWorldConsistency(
         guardrail: LongFormGuardrail,
         text: String,
@@ -968,8 +929,8 @@ actor LongFormGuardrails {
 
     // MARK: - extractConstraints helpers
 
-    /// Build a per-kind description from the book context (= one
-    /// short sentence the SpecializedTools pane can show).
+    /// Build a per-kind description from the book context (= one short sentence
+    /// the SpecializedTools pane can show).
     private func descriptionForKind(_ kind: LongFormGuardrailKind, bookContext: String) -> String {
         let context = bookContext.isEmpty ? "(no book context supplied)" : bookContext
         switch kind {
@@ -988,9 +949,8 @@ actor LongFormGuardrails {
         }
     }
 
-    /// Build a per-kind pattern (= only the constraint kind uses
-    /// the pattern; the other kinds use description-based
-    /// heuristics).
+    /// Build a per-kind pattern (= only the constraint kind uses the pattern;
+    /// the other kinds use description-based heuristics).
     private func patternForKind(_ kind: LongFormGuardrailKind, bookContext: String) -> String? {
         switch kind {
         case .constraint:

@@ -66,12 +66,12 @@ struct AppleSidebarView: View {
     @Environment(WorkspaceUIState.self) private var workspaceUI
     @Environment(SheetRequestState.self) private var sheetRequests
 
-    /// SidebarService owns the tree (= data + business logic;
-    /// = SwiftUI doesn't see it; = the List renders it).
+    /// SidebarService owns the tree (= data + business logic; = SwiftUI doesn't
+    /// see it; = the List renders it).
     @State private var service: SidebarService?
 
-    /// Selection state (= forwarded to ShellState.sidebarSelection
-    /// via .onChange below).
+    /// Selection state (= forwarded to ShellState.sidebarSelection via
+    /// .onChange below).
     @State private var selectedNode: SidebarNode?
 
     // y (see OOB.md #2026-09-23) OOB ', ':
@@ -88,29 +88,22 @@ struct AppleSidebarView: View {
     @State private var showNewBookSheet = false
     @State private var showExportSheet = false
     @State private var showImportSheet = false
-    /// prefill state for the import sheet
-    /// (= the import target is pre-selected
-    /// based on the right-clicked node;
-    /// = the library-level import prefills
-    /// the library; = the book-level import
-    /// prefills the book).
-    /// The
-    /// `onImportToReferenceLibrary` /
-    /// `onImportToBook` contextMenu handlers
-    /// set these then flip `showImportSheet`;
-    /// the sheet's `onAppear` reads them to
+    /// prefill state for the import sheet (= the import target is pre-selected
+    /// based on the right-clicked node; = the library-level import prefills the
+    /// library; = the book-level import prefills the book). The
+    /// `onImportToReferenceLibrary` / `onImportToBook` contextMenu handlers set
+    /// these then flip `showImportSheet`; the sheet's `onAppear` reads them to
     /// pick the right destination.
     @State private var importPrefillDestination: ImportSheet.ImportDestination = .book
     @State private var importPrefillBookID: UUID?
     @State private var renaming: SidebarRenamingTarget?
     @State private var pendingDelete: SidebarPendingDelete?
 
-    /// set of selected `SidebarItem` (= mirrors the
-    /// legacy NewLibraryOutlineView's `Set<SidebarItem>` selection
-    /// pattern; = macOS 14+ `.contextMenu(forSelectionType:)` reads
-    /// from the `List(selection:)` binding; = we forward the
-    /// current sidebarSelection into this set for the context
-    /// menu builder).
+    /// set of selected `SidebarItem` (= mirrors the legacy
+    /// NewLibraryOutlineView's `Set<SidebarItem>` selection pattern; = macOS
+    /// 14+ `.contextMenu(forSelectionType:)` reads from the `List(selection:)`
+    /// binding; = we forward the current sidebarSelection into this set for the
+    /// context menu builder).
     @State private var contextMenuSelection: Set<SidebarItem> = []
 
     var body: some View {
@@ -728,20 +721,9 @@ struct AppleSidebarView: View {
     // titles for the
     // duplicate check).
 
-    /// Resolve the
-    /// `otherNames` list
-    /// for the rename
-    /// sheet based on the
-    /// target's `Kind` (=
-    /// shelf / book /
-    /// reference). The
-    /// reference case
-    /// uses
-    /// `SidebarService.
-    /// otherReferenceTitles`
-    /// (= the v2.7
-    /// round-63
-    /// addition).
+    /// Resolve the `otherNames` list for the rename sheet based on the target's
+    /// `Kind` (= shelf / book / reference). The reference case uses
+    /// `SidebarService. otherReferenceTitles` (= the v2.7 round-63 addition).
     private func otherNamesForRename(target: SidebarRenamingTarget) -> [String] {
         switch target.kind {
         case .shelf:
@@ -771,37 +753,13 @@ struct AppleSidebarView: View {
         }
     }
 
-    /// Resolve the
-    /// current title of
-    /// a reference by id
-    /// (= the rename
-    /// sheet's
-    /// `originalName`
-    /// field; = the
-    /// existing
-    /// `renameShelf` /
-    /// `renameBook`
-    /// callbacks look up
-    /// the name from
-    /// `service.shelves`
-    /// / `service.books`
-    /// synchronously; =
-    /// the reference
-    /// equivalent reads
-    /// from
-    /// `bookStore.
-    /// loadAllReferences()`).
-    /// Returns nil if the
-    /// reference is
-    /// missing (= the
-    /// rename sheet
-    /// opens with an
-    /// empty name; =
-    /// the user can
-    /// still type a new
-    /// one; = the save
-    /// fails with
-    /// `bookNotFound`).
+    /// Resolve the current title of a reference by id (= the rename sheet's
+    /// `originalName` field; = the existing `renameShelf` / `renameBook`
+    /// callbacks look up the name from `service.shelves` / `service.books`
+    /// synchronously; = the reference equivalent reads from `bookStore.
+    /// loadAllReferences()`). Returns nil if the reference is missing (= the
+    /// rename sheet opens with an empty name; = the user can still type a new
+    /// one; = the save fails with `bookNotFound`).
     private func referenceTitle(for id: UUID) -> String? {
         guard let references = try? bookStore.loadAllReferences() else {
             return nil
@@ -809,52 +767,36 @@ struct AppleSidebarView: View {
         return references.first(where: { $0.id == id })?.title
     }
 
-    /// ', ':
-    /// context-menu builder (= extracted from the inline body
-    /// of `.contextMenu(forSelectionType:menuItems:)` above; =
-    /// the inline closure body was so large the Swift type
-    /// checker gave up; = extracting it to a focused method
-    /// gives the type-checker room to work). The handler
-    /// forwards to `SidebarContextMenuBuilder.build(...)` with
-    /// closures that flip `renaming` / `pendingDelete` /
-    /// `appState.*RequestCount` (= the sidebar's local
-    /// `@State` and the AppState shared counter; = the
-    /// .sheet + .alert modifiers elsewhere on this body
-    /// observe + present).
-    /// context-menu builder (= extracted from the inline body
-    /// of `.contextMenu(forSelectionType:menuItems:)` above; =
-    /// the inline closure body was so large the Swift type
-    /// checker gave up; = extracting it to a focused method
-    /// gives the type-checker room to work). The handler
-    /// forwards to `SidebarContextMenuBuilder.build(...)` with
-    /// closures that flip `renaming` / `pendingDelete` /
-    /// `appState.*RequestCount` (= the sidebar's local
-    /// `@State` and the AppState shared counter; = the
-    /// .sheet + .alert modifiers elsewhere on this body
-    /// observe + present).
-    ///
-    /// Apple HIG canonical: the closure passed to
-    /// `.contextMenu(forSelectionType:menu:)` must return a
-    /// @ViewBuilder block (= no `AnyView` wrapper, no explicit
-    /// Group, no Divider between buttons). The `AnyView` wrapper
-    /// collapses the @ContentBuilder tuple type and the menu
-    /// item extractor drops trailing items (= the v1.69y
-    /// symptom: the menu only renders the
-    /// "create new" item). The `?` shorthand below
-    /// ensures both return paths produce the same @ContentBuilder
-    /// tuple (= Apple HIG canonical shape).
-
-    /// Map the user-clicked sidebar row to the corresponding
-    /// AppState.sidebarSelection discriminator (= so the rest of
-    /// wenshu continues to read the same value it did before
-    /// the v1.69 MVVM split (= when SidebarItem still lived
-    /// inline inside NewLibraryOutlineView)).
-    ///
-    /// '
-    /// ，' (= the 5 standard folders under
-    /// each book are now visible in the sidebar; = the folder
-    /// rows forward their selection to AppState.sidebarSelection
-    /// AND open the folder in the editor's tab strip).
+    /// ', ': context-menu builder (= extracted from the inline body of
+    /// `.contextMenu(forSelectionType:menuItems:)` above; = the inline closure
+    /// body was so large the Swift type checker gave up; = extracting it to a
+    /// focused method gives the type-checker room to work). The handler
+    /// forwards to `SidebarContextMenuBuilder.build(...)` with closures that
+    /// flip `renaming` / `pendingDelete` / `appState.*RequestCount` (= the
+    /// sidebar's local `@State` and the AppState shared counter; = the .sheet +
+    /// .alert modifiers elsewhere on this body observe + present). context-menu
+    /// builder (= extracted from the inline body of
+    /// `.contextMenu(forSelectionType:menuItems:)` above; = the inline closure
+    /// body was so large the Swift type checker gave up; = extracting it to a
+    /// focused method gives the type-checker room to work). The handler
+    /// forwards to `SidebarContextMenuBuilder.build(...)` with closures that
+    /// flip `renaming` / `pendingDelete` / `appState.*RequestCount` (= the
+    /// sidebar's local `@State` and the AppState shared counter; = the .sheet +
+    /// .alert modifiers elsewhere on this body observe + present). Apple HIG
+    /// canonical: the closure passed to `.contextMenu(forSelectionType:menu:)`
+    /// must return a @ViewBuilder block (= no `AnyView` wrapper, no explicit
+    /// Group, no Divider between buttons). The `AnyView` wrapper collapses the
+    /// @ContentBuilder tuple type and the menu item extractor drops trailing
+    /// items (= the v1.69y symptom: the menu only renders the "create new"
+    /// item). The `?` shorthand below ensures both return paths produce the
+    /// same @ContentBuilder tuple (= Apple HIG canonical shape). Map the
+    /// user-clicked sidebar row to the corresponding AppState.sidebarSelection
+    /// discriminator (= so the rest of wenshu continues to read the same value
+    /// it did before the v1.69 MVVM split (= when SidebarItem still lived
+    /// inline inside NewLibraryOutlineView)). ' ，' (= the 5 standard folders
+    /// under each book are now visible in the sidebar; = the folder rows
+    /// forward their selection to AppState.sidebarSelection AND open the folder
+    /// in the editor's tab strip).
     private func forwardSelection(_ node: SidebarNode?) {
         // RATIONALE: the sidebar click
         // is a scope filter only (= NOT
@@ -978,9 +920,9 @@ struct AppleSidebarView: View {
         }
     }
 
-    /// Walk the sidebar tree to find the parent book + folder name
-    /// for a row id (= returns nil for top-level books, =
-    /// non-nil for folder rows under child books).
+    /// Walk the sidebar tree to find the parent book + folder name for a row id
+    /// (= returns nil for top-level books, = non-nil for folder rows under
+    /// child books).
     private static func parentBookInfo(for rowId: UUID, in nodes: [SidebarNode]) -> (bookId: UUID, folderName: String)? {
         // Walk each top-level shelf. If a shelf's direct child is
         // the rowId (= top-level book), return nil. If a book's
@@ -1004,11 +946,10 @@ struct AppleSidebarView: View {
         return nil
     }
 
-    /// Map a folder row's display title back to its filesystem
-    /// folder name (= the v1.68f SidebarService.folderCatalog
-    /// is private; = the canonical mapping lives here too; =
-    /// sync this with SidebarService.swift:181-187 if either side
-    /// changes).
+    /// Map a folder row's display title back to its filesystem folder name (=
+    /// the v1.68f SidebarService.folderCatalog is private; = the canonical
+    /// mapping lives here too; = sync this with SidebarService.swift:181-187 if
+    /// either side changes).
     private static func reverseFolderName(title: String) -> String {
         switch title {
         case "世界观":   return "world"
@@ -1020,10 +961,9 @@ struct AppleSidebarView: View {
         }
     }
 
-    /// Open the book's first chapter (= the
-    /// `<book-id>/chapters/<n>.md` file with the lowest `n`) in the
-    /// editor's tab strip. If the book has no chapters, open the
-    /// book itself (= the EditorView's tab strip handles a
+    /// Open the book's first chapter (= the `<book-id>/chapters/<n>.md` file
+    /// with the lowest `n`) in the editor's tab strip. If the book has no
+    /// chapters, open the book itself (= the EditorView's tab strip handles a
     /// missing-documentPath gracefully).
     private func openBookInEditor(bookId: UUID) {
         let result = SidebarOpenOps.openBookInEditor(appState: appState, bookId: bookId)
@@ -1033,15 +973,13 @@ struct AppleSidebarView: View {
         // didSwitchExistingTab: caller can no-op (= AppState.activeTabId set in Ops).
     }
 
-    /// Open a folder (= the `<book-id>/<folder-name>/` directory's
-    /// first .md file) in the editor's tab strip.
-    ///
-    /// minimal folder-open wiring (= future ticket
-    /// surfaces the folder's content in the editor's tab UI; =
-    /// for now the editor shows a placeholder until the file is
-    /// loaded). Matches the legacy v1.67 LazySidebarView's
-    /// onSelectFolder behavior (= .folder(bookId:, folderName:)
-    /// on sidebarSelection) preserved through the MVVM split.
+    /// Open a folder (= the `<book-id>/<folder-name>/` directory's first .md
+    /// file) in the editor's tab strip. minimal folder-open wiring (= future
+    /// ticket surfaces the folder's content in the editor's tab UI; = for now
+    /// the editor shows a placeholder until the file is loaded). Matches the
+    /// legacy v1.67 LazySidebarView's onSelectFolder behavior (=
+    /// .folder(bookId:, folderName:) on sidebarSelection) preserved through the
+    /// MVVM split.
     private func openFolderInEditor(bookId: UUID, folderName: String) {
         let result = SidebarOpenOps.openFolderInEditor(
             appState: appState,

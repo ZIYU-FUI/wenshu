@@ -34,77 +34,61 @@ import SwiftUI
 @MainActor
 struct EditorTabStrip: View {
 
-    /// The tabs to render, in display order (= `openTabs` array
-    /// order in AppState). Drag-reorder reorders this view's
-    /// internal display, then surfaces the new order back to the
-    /// caller via `onReorder`.
+    /// The tabs to render, in display order (= `openTabs` array order in
+    /// AppState). Drag-reorder reorders this view's internal display, then
+    /// surfaces the new order back to the caller via `onReorder`.
     let tabs: [EditorTab]
 
-    /// Currently active tab id (= drives the accent-tinted + bottom-
-    /// border render on the matching tab). Nil = no tab selected
-    /// (= the caller should hide the entire strip in that case).
+    /// Currently active tab id (= drives the accent-tinted + bottom- border
+    /// render on the matching tab). Nil = no tab selected (= the caller should
+    /// hide the entire strip in that case).
     let selectedTabId: UUID?
 
-    /// Fired when the user picks a different tab. Caller writes
-    /// this back to `AppState.activeTabId`.
+    /// Fired when the user picks a different tab. Caller writes this back to
+    /// `AppState.activeTabId`.
     let onSelect: (UUID) -> Void
 
-    /// Fired when the user clicks the close X. Caller routes
-    /// through `AppState.closeTab(id:bookStore:)` (= which handles
-    /// dirty-flush + confirmation alert in one place).
+    /// Fired when the user clicks the close X. Caller routes through
+    /// `AppState.closeTab(id:bookStore:)` (= which handles dirty-flush +
+    /// confirmation alert in one place).
     let onClose: (UUID) -> Void
 
-    /// Fired after the user drag-reorders tabs. The argument is
-    /// the new tab id order (= the caller's job to rewrite
-    /// `AppState.openTabs` to match and re-persist).
+    /// Fired after the user drag-reorders tabs. The argument is the new tab id
+    /// order (= the caller's job to rewrite `AppState.openTabs` to match and
+    /// re-persist).
     let onReorder: ([UUID]) -> Void
 
-    /// SwiftUI namespace for the matchedGeometryEffect underline
-    /// (= Apple's HIG convention for the slide animation between
-    /// tab selected states; = same pattern as PaneTabBar).
+    /// SwiftUI namespace for the matchedGeometryEffect underline (= Apple's HIG
+    /// convention for the slide animation between tab selected states; = same
+    /// pattern as PaneTabBar).
     @Namespace private var tabBarNamespace
 
-    /// Tab id currently being dragged (= E2E drag-reorder source of
-    /// truth during the gesture lifetime). = nil on idle.
+    /// Tab id currently being dragged (= E2E drag-reorder source of truth
+    /// during the gesture lifetime). = nil on idle.
     @State private var draggingTabId: UUID?
 
-    /// Tab id currently the drop target (= E2E drag-reorder
-    /// destination highlight). = nil on idle.
+    /// Tab id currently the drop target (= E2E drag-reorder destination
+    /// highlight). = nil on idle.
     @State private var dropTargetTabId: UUID?
 
-    /// Tab ids in display order (= tracked separately from
-    /// `tabs` parameter for two reasons: (1) drag-reorder mutates
-    /// the local order before the caller persists it; (2) SwiftUI
-    /// ForEach uses this id list for stable identity across
-    /// re-renders). Initialized from `tabs` on each render.
+    /// Tab ids in display order (= tracked separately from `tabs` parameter for
+    /// two reasons: (1) drag-reorder mutates the local order before the caller
+    /// persists it; (2) SwiftUI ForEach uses this id list for stable identity
+    /// across re-renders). Initialized from `tabs` on each render.
     @State private var displayOrder: [UUID] = []
 
-    /// Last seen `tabs` array (= detects when the caller added /
-    /// removed tabs externally so we can prune displayOrder).
+    /// Last seen `tabs` array (= detects when the caller added / removed tabs
+    /// externally so we can prune displayOrder).
     @State private var lastSeenTabIds: [UUID] = []
-    /// live column
-    /// width (= the editor column's
-    /// current width; = updated by
-    /// `.onGeometryChange` on the
-    /// outer `.frame(maxWidth:
-    /// .infinity, alignment:
-    /// .leading)`; = drives the
-    /// three-stage algorithm's
-    /// threshold =
-    /// `columnWidth / minSegmentWidth`
-    /// = the max N that fits at
-    /// `minSegmentWidth` PT each).
-    /// When the column width is
-    /// 0 (= before the first
-    /// `.onGeometryChange` fires;
-    /// = the initial value; =
-    /// typical at app launch
-    /// before layout settles),
-    /// the algorithm uses
-    /// `displayOrder.count > 10`
-    /// (= a safe default that
-    /// matches the previous
-    /// fixed-threshold behavior).
+    /// live column width (= the editor column's current width; = updated by
+    /// `.onGeometryChange` on the outer `.frame(maxWidth: .infinity, alignment:
+    /// .leading)`; = drives the three-stage algorithm's threshold =
+    /// `columnWidth / minSegmentWidth` = the max N that fits at
+    /// `minSegmentWidth` PT each). When the column width is 0 (= before the
+    /// first `.onGeometryChange` fires; = the initial value; = typical at app
+    /// launch before layout settles), the algorithm uses `displayOrder.count >
+    /// 10` (= a safe default that matches the previous fixed-threshold
+    /// behavior).
     @State private var columnWidth: CGFloat = 0
 
     var body: some View {
@@ -133,14 +117,13 @@ struct EditorTabStrip: View {
         stripContent
     }
 
-    /// The actual tab strip (= ScrollView of tabs + empty-state +
-    /// button). Extracted from `body` so the always-visible policy
-    /// (= see body RATIONALE) is centralized in `body` and the
-    /// shape variation lives here. The frame height stays at
-    /// `paneTabHotArea + tabUnderlineHeight` (= 29 PT) regardless
-    /// of how many tabs the caller passes (= the strip's
-    /// visual height is constant; = the + button lives in the
-    /// same row as the real tabs would).
+    /// The actual tab strip (= ScrollView of tabs + empty-state + button).
+    /// Extracted from `body` so the always-visible policy (= see body
+    /// RATIONALE) is centralized in `body` and the shape variation lives here.
+    /// The frame height stays at `paneTabHotArea + tabUnderlineHeight` (= 29
+    /// PT) regardless of how many tabs the caller passes (= the strip's visual
+    /// height is constant; = the + button lives in the same row as the real
+    /// tabs would).
     @ViewBuilder
     private var stripContent: some View {
         // RATIONALE: the strip body is a VStack (= tab-pill
@@ -667,25 +650,20 @@ struct EditorTabStrip: View {
         }
     }
 
-    /// Render a single tab (= title label + close X).
-    /// RATIONALE: the close X is hidden
-    /// by default and only appears when
-    /// the user hovers the tab (= the
-    /// wenshu 1:1 macOS Safari / Finder
-    /// / Mail hover-only close X
-    /// affordance). The state `@State private var
-    /// isHovered: Bool` is scoped to the per-tab view (= each tab has its
-    /// own hover state; = hovering one tab does NOT light up the X on
-    /// the neighboring tab). The X is conditionally rendered: when
-    /// `isHovered == false` the X slot is a transparent `Color.clear`
-    /// with the same `tabCloseFrameSize` hit area (= the tab's HStack
-    /// width stays constant regardless of hover state; = the X
-    /// appearing on hover does NOT shift the tab title left/right; =
-    /// the user sees a stable tab strip rhythm). When `isHovered == true`
-    /// the X is the wenshu `Button` + `hoverWash` + tooltip combo from
-    /// the previous round. The `.onHover` modifier (= Apple SwiftUI
-    /// canonical hover-detection) flips the `@State` on mouse
-    /// enter/leave; = the X is the Apple canonical hover affordance
+    /// Render a single tab (= title label + close X). RATIONALE: the close X is
+    /// hidden by default and only appears when the user hovers the tab (= the
+    /// wenshu 1:1 macOS Safari / Finder / Mail hover-only close X affordance).
+    /// The state `@State private var isHovered: Bool` is scoped to the per-tab
+    /// view (= each tab has its own hover state; = hovering one tab does NOT
+    /// light up the X on the neighboring tab). The X is conditionally rendered:
+    /// when `isHovered == false` the X slot is a transparent `Color.clear` with
+    /// the same `tabCloseFrameSize` hit area (= the tab's HStack width stays
+    /// constant regardless of hover state; = the X appearing on hover does NOT
+    /// shift the tab title left/right; = the user sees a stable tab strip
+    /// rhythm). When `isHovered == true` the X is the wenshu `Button` +
+    /// `hoverWash` + tooltip combo from the previous round. The `.onHover`
+    /// modifier (= Apple SwiftUI canonical hover-detection) flips the `@State`
+    /// on mouse enter/leave; = the X is the Apple canonical hover affordance
     /// used by Safari / Finder / Mail for list-row close buttons.
     @ViewBuilder
     private func tabButton(for tab: EditorTab) -> some View {
@@ -863,10 +841,10 @@ struct EditorTabStrip: View {
         ))
     }
 
-    /// Sync `displayOrder` with the caller's `tabs` array when the
-    /// array's id list changes (= external add / remove / reorder
-    /// from AppState). Drag-reorder mutates `displayOrder` directly,
-    /// so this sync must not undo it.
+    /// Sync `displayOrder` with the caller's `tabs` array when the array's id
+    /// list changes (= external add / remove / reorder from AppState).
+    /// Drag-reorder mutates `displayOrder` directly, so this sync must not undo
+    /// it.
     private func syncDisplayOrderIfNeeded() {
         let incomingIds = tabs.map(\.id)
 
@@ -899,9 +877,9 @@ struct EditorTabStrip: View {
 }
 
 /// Drag-and-drop delegate for tab reorder. SwiftUI's `.onDrop(of:delegate:)`
-/// pattern requires a delegate (= a NSObject + protocol witness). We
-/// use a per-tab delegate (= the closure captures the destination tab
-/// id + the binding setters).
+/// pattern requires a delegate (= a NSObject + protocol witness). We use a
+/// per-tab delegate (= the closure captures the destination tab id + the
+/// binding setters).
 @MainActor
 private struct TabDropDelegate: DropDelegate {
     let tabId: UUID
@@ -957,17 +935,14 @@ private struct TabDropDelegate: DropDelegate {
     }
 }
 
-/// Per-tab hover shell. RATIONALE 2026-10-13: the wenshu tab
-/// close-X is the Apple SwiftUI canonical hover affordance
-/// (Safari / Finder / Mail list-row close buttons). The shell
-/// owns the `@State private var isHovered: Bool` (= scoped
-/// to the per-tab view; = each tab has its own hover state)
-/// and exposes the bool to the content closure via a
-/// `Bool` parameter (= the conditional X rendering happens
-/// inside the closure). The `.onHover` modifier (= Apple
-/// SwiftUI canonical hover detection) flips the `@State` on
-/// mouse enter/leave; = the X is rendered iff the cursor
-/// is inside the tab's bounds.
+/// Per-tab hover shell. RATIONALE 2026-10-13: the wenshu tab close-X is the
+/// Apple SwiftUI canonical hover affordance (Safari / Finder / Mail list-row
+/// close buttons). The shell owns the `@State private var isHovered: Bool` (=
+/// scoped to the per-tab view; = each tab has its own hover state) and exposes
+/// the bool to the content closure via a `Bool` parameter (= the conditional X
+/// rendering happens inside the closure). The `.onHover` modifier (= Apple
+/// SwiftUI canonical hover detection) flips the `@State` on mouse enter/leave;
+/// = the X is rendered iff the cursor is inside the tab's bounds.
 private struct TabHoverShell<Content: View>: View {
     @State private var isHovered: Bool = false
     private let content: (Bool) -> Content

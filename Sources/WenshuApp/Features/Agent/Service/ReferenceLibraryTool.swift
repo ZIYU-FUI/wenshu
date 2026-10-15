@@ -92,8 +92,8 @@ struct ReferenceDescriptor: Sendable, Codable, Equatable, Identifiable {
         self.updatedAt = reference.updatedAt
     }
 
-    /// ReferenceLayer.wireRawValue: maps the internal layer enum to
-    /// the LLM-friendly wire string used in tool input / output.
+    /// ReferenceLayer.wireRawValue: maps the internal layer enum to the
+    /// LLM-friendly wire string used in tool input / output.
     static func wireLayer(_ layer: ReferenceLayer) -> String {
         switch layer {
         case .layerRaw:       return "raw"
@@ -115,15 +115,13 @@ enum ReferenceLibraryAction: String, Sendable, Codable, CaseIterable, Equatable 
     case find
     case upsert
     /// Append a new section to an existing reference's body (= the
-    /// self-evolution mechanism). When the user prompt adds more
-    /// context to a noun (= e.g. 'protagonist born in Xi'an'
-    /// → 'protagonist lives in the Ming dynasty' → 'protagonist
-    /// ate a bowl of Yangrou Paomo in Xi'an'), the agent extends
-    /// the existing reference with new sections rather than
-    /// rewriting the body from scratch. Sections whose
-    /// `section_title` already exists are merged (= later
-    /// occurrences update the older section instead of creating
-    /// duplicates).
+    /// self-evolution mechanism). When the user prompt adds more context to a
+    /// noun (= e.g. 'protagonist born in Xi'an' → 'protagonist lives in the
+    /// Ming dynasty' → 'protagonist ate a bowl of Yangrou Paomo in Xi'an'), the
+    /// agent extends the existing reference with new sections rather than
+    /// rewriting the body from scratch. Sections whose `section_title` already
+    /// exists are merged (= later occurrences update the older section instead
+    /// of creating duplicates).
     case extend
 }
 
@@ -268,33 +266,23 @@ final class ReferenceLibraryActor {
     }
 
     /// Append a new section to an existing reference's body (= the
-    /// self-evolution mechanism). When the user prompt adds more
-    /// context to a noun (= e.g. 'protagonist born in Xi'an'
-    /// → 'protagonist lives in the Ming dynasty' → 'protagonist
-    /// ate a bowl of Yangrou Paomo in Xi'an'), the agent extends
-    /// the existing reference with new sections rather than
-    /// rewriting the body from scratch. Sections whose
-    /// `section_title` already exists are merged (= later
-    /// occurrences update the older section content instead of
-    /// creating duplicates).
-    ///
-    /// Wire-format:
-    ///   - id (UUID, required): the reference to extend (= the agent
-    ///     should `find` the existing reference by title first, then
-    ///     call extend with that id).
-    ///   - section_title (string, required): the section heading to
-    ///     add or merge. Prepended with `## ` (= h2) in the body.
-    ///   - section_body (string, required): the new content for the
-    ///     section. Markdown is preserved.
-    ///   - tags (array of strings, optional): tags to add (= unioned
-    ///     with existing tags; = never replaces).
-    ///   - summary (string, optional): if non-empty, replaces the
-    ///     existing summary (the latest high-level blurb wins).
-    ///   - source / url (strings, optional): if non-empty, replaces
-    ///     existing source / url.
-    ///
-    /// Returns the updated `ReferenceDescriptor`. Throws
-    /// `entryNotFound` if the id doesn't exist.
+    /// self-evolution mechanism). When the user prompt adds more context to a
+    /// noun (= e.g. 'protagonist born in Xi'an' → 'protagonist lives in the
+    /// Ming dynasty' → 'protagonist ate a bowl of Yangrou Paomo in Xi'an'), the
+    /// agent extends the existing reference with new sections rather than
+    /// rewriting the body from scratch. Sections whose `section_title` already
+    /// exists are merged (= later occurrences update the older section content
+    /// instead of creating duplicates). Wire-format: - id (UUID, required): the
+    /// reference to extend (= the agent should `find` the existing reference by
+    /// title first, then call extend with that id). - section_title (string,
+    /// required): the section heading to add or merge. Prepended with `## ` (=
+    /// h2) in the body. - section_body (string, required): the new content for
+    /// the section. Markdown is preserved. - tags (array of strings, optional):
+    /// tags to add (= unioned with existing tags; = never replaces). - summary
+    /// (string, optional): if non-empty, replaces the existing summary (the
+    /// latest high-level blurb wins). - source / url (strings, optional): if
+    /// non-empty, replaces existing source / url. Returns the updated
+    /// `ReferenceDescriptor`. Throws `entryNotFound` if the id doesn't exist.
     func extendReference(
         id: UUID,
         sectionTitle: String,
@@ -347,16 +335,14 @@ final class ReferenceLibraryActor {
         }
     }
 
-    /// Merge `## <sectionTitle>` into `existingBody`. If a section
-    /// with that title already exists, its content is replaced with
-    /// the new body (= the most recent research wins; = no duplicate
-    /// sections). If no section with that title exists, the section
-    /// is appended at the end of the body.
-    ///
-    /// Markdown section parser: splits on lines that start with
-    /// exactly `## ` (= h2 sections; = we don't merge into h1 titles
-    /// or h3+ subsections because the reference body's top-level
-    /// structure is h2 per the writer convention).
+    /// Merge `## <sectionTitle>` into `existingBody`. If a section with that
+    /// title already exists, its content is replaced with the new body (= the
+    /// most recent research wins; = no duplicate sections). If no section with
+    /// that title exists, the section is appended at the end of the body.
+    /// Markdown section parser: splits on lines that start with exactly `## `
+    /// (= h2 sections; = we don't merge into h1 titles or h3+ subsections
+    /// because the reference body's top-level structure is h2 per the writer
+    /// convention).
     static func mergeSection(
         into existingBody: String,
         sectionTitle: String,
@@ -450,13 +436,12 @@ final class ReferenceLibraryActor {
         return match.map { ReferenceDescriptor($0) }
     }
 
-    /// Upsert by title within a layer (= the recurring-research path).
-    /// If an entry with the same case-insensitive trimmed title
-    /// already exists in the layer, its body + summary + source +
-    /// url + tags + updatedAt are refreshed in place (= tags from
-    /// the new payload are merged with existing tags, not replaced,
-    /// so the cross-cutting facet is monotonically growing);
-    /// otherwise a new reference is created with a fresh UUID.
+    /// Upsert by title within a layer (= the recurring-research path). If an
+    /// entry with the same case-insensitive trimmed title already exists in the
+    /// layer, its body + summary + source + url + tags + updatedAt are
+    /// refreshed in place (= tags from the new payload are merged with existing
+    /// tags, not replaced, so the cross-cutting facet is monotonically
+    /// growing); otherwise a new reference is created with a fresh UUID.
     func upsertReference(
         title: String,
         bodyMarkdown: String,
@@ -510,9 +495,9 @@ final class ReferenceLibraryActor {
 
     // MARK: - Layer parsing
 
-    /// Map LLM-facing string to ReferenceLayer. Defaults to .layerRaw
-    /// (= the most common research target). LLM-derived layers
-    /// (.layerAbstracts / .layerIndexes) are explicitly rejected.
+    /// Map LLM-facing string to ReferenceLayer. Defaults to .layerRaw (= the
+    /// most common research target). LLM-derived layers (.layerAbstracts /
+    /// .layerIndexes) are explicitly rejected.
     private func parseLayer(_ raw: String) -> ReferenceLayer {
         switch raw.lowercased() {
         case "raw", "sourcematerial":
@@ -531,9 +516,9 @@ final class ReferenceLibraryActor {
         }
     }
 
-    /// Same as parseLayer, but used by list / find (= returns nil if
-    /// the LLM asked for an LLM-derived layer = the operation
-    /// silently returns no results rather than crashing).
+    /// Same as parseLayer, but used by list / find (= returns nil if the LLM
+    /// asked for an LLM-derived layer = the operation silently returns no
+    /// results rather than crashing).
     private func parseLayerIfUserFacing(_ raw: String) -> ReferenceLayer? {
         switch raw.lowercased() {
         case "raw", "sourcematerial":
