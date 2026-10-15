@@ -46,7 +46,7 @@ struct KanbanSchemaTests {
         let store = try makeStore("test")
                 let task = try await store.add(
             title: "writer: 续写捕快",
-            status: TodoStatus.running,
+            status: .running,
             priority: 8,
             assignee: "writer",
             modelOverride: "MiniMax-M3"
@@ -70,7 +70,7 @@ struct KanbanSchemaTests {
     @Test("add task with default status (.new) does NOT auto-set startedAt")
     func testAddNewStatusNoStartedAt() async throws {
         let store = try makeStore("test")
-                let task = try await store.add(title: "backlog item", status: TodoStatus.new)
+                let task = try await store.add(title: "backlog item", status: .new)
         #expect(task.startedAt == nil)
         #expect(task.completedAt == nil)
         #expect(task.assignee == nil)
@@ -80,7 +80,7 @@ struct KanbanSchemaTests {
     @Test("transition to .running auto-sets startedAt")
     func testTransitionRunningAutoSetsStarted() async throws {
         let store = try makeStore("test")
-                let task = try await store.add(title: "task", status: TodoStatus.new)
+                let task = try await store.add(title: "task", status: .new)
         try await store.transition(id: task.id, to: .running)
         let loaded = try await store.get(id: task.id)
         #expect(loaded?.startedAt != nil)
@@ -90,18 +90,18 @@ struct KanbanSchemaTests {
     @Test("transition to .done auto-sets completedAt")
     func testTransitionDoneAutoSetsCompleted() async throws {
         let store = try makeStore("test")
-                let task = try await store.add(title: "task", status: TodoStatus.running)
+                let task = try await store.add(title: "task", status: .running)
         try await store.transition(id: task.id, to: .done)
         let loaded = try await store.get(id: task.id)
         #expect(loaded?.startedAt != nil)
         #expect(loaded?.completedAt != nil)
-        #expect(loaded?.status == TodoStatus.done.rawValue)
+        #expect(loaded?.status == .done)
     }
 
     @Test("transition preserves startedAt (COALESCE — only set on first .running)")
     func testTransitionStartedAtPreserved() async throws {
         let store = try makeStore("test")
-                let task = try await store.add(title: "task", status: TodoStatus.new)
+                let task = try await store.add(title: "task", status: .new)
         try await store.transition(id: task.id, to: .running)
         let firstStart = try await store.get(id: task.id)
         #expect(firstStart?.startedAt != nil)
@@ -116,7 +116,7 @@ struct KanbanSchemaTests {
     @Test("transition to .failed auto-sets completedAt (v0.23 task 013.003)")
     func testTransitionFailedAutoSetsCompleted() async throws {
         let store = try makeStore("test")
-                let task = try await store.add(title: "task", status: TodoStatus.running)
+                let task = try await store.add(title: "task", status: .running)
         try await store.transition(id: task.id, to: .failed)
         let loaded = try await store.get(id: task.id)
         #expect(loaded?.completedAt != nil)
@@ -126,10 +126,10 @@ struct KanbanSchemaTests {
     @Test("KanbanTask equality includes metadata fields")
     func testKanbanTaskEquality() {
         let now = Date()
-        let a = KanbanTask(id: "1", title: "t", status: TodoStatus.new, createdAt: now, updatedAt: now, priority: 5)
-        let b = KanbanTask(id: "1", title: "t", status: TodoStatus.new, createdAt: now, updatedAt: now, priority: 5)
+        let a = KanbanTask(id: "1", title: "t", status: .new, createdAt: now, updatedAt: now, priority: 5)
+        let b = KanbanTask(id: "1", title: "t", status: .new, createdAt: now, updatedAt: now, priority: 5)
         #expect(a == b)
-        let c = KanbanTask(id: "1", title: "t", status: TodoStatus.new, createdAt: now, updatedAt: now, priority: 8)
+        let c = KanbanTask(id: "1", title: "t", status: .new, createdAt: now, updatedAt: now, priority: 8)
         #expect(a != c)
     }
 }

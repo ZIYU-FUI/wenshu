@@ -90,7 +90,7 @@ struct WSChatRepositoryTests {
             id: "r1",
             agentName: "writer",
             title: "draft chapter 1",
-            status: TodoStatus.done,
+            status: .done,
             startedAt: Date(),
             completedAt: Date(),
             resultSummary: "done"

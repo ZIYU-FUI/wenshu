@@ -21,8 +21,8 @@ struct WSTodoRepositoryTests {
         let repo = try makeRepository()
         let item = try repo.add(title: "buy milk")
         #expect(item.title == "buy milk")
-        #expect(item.status == TodoStatus.pending.rawValue)
-        #expect(item.priority == TodoPriority.medium.rawValue)
+        #expect(item.status == .pending)
+        #expect(item.priority == .medium)
         let fetched = try repo.get(id: item.id)
         #expect(fetched?.id == item.id)
     }
@@ -32,9 +32,9 @@ struct WSTodoRepositoryTests {
     func setStatus() throws {
         let repo = try makeRepository()
         let item = try repo.add(title: "x")
-        try repo.setStatus(id: item.id, status: TodoStatus.completed)
+        try repo.setStatus(id: item.id, status: .completed)
         let fetched = try repo.get(id: item.id)
-        #expect(fetched?.status == TodoStatus.completed.rawValue)
+        #expect(fetched?.status == .completed)
     }
 
     @Test("setStatus throws notFound for missing")
@@ -42,7 +42,7 @@ struct WSTodoRepositoryTests {
     func setStatusMissing() throws {
         let repo = try makeRepository()
         #expect(throws: WSTodoRepositoryError.notFound.self) {
-            try repo.setStatus(id: "nope", status: TodoStatus.completed)
+            try repo.setStatus(id: "nope", status: .completed)
         }
     }
 
@@ -50,16 +50,16 @@ struct WSTodoRepositoryTests {
     @MainActor
     func listFilterAndSort() throws {
         let repo = try makeRepository()
-        _ = try repo.add(title: "low task", priority: TodoPriority.low)
-        _ = try repo.add(title: "high task", priority: TodoPriority.high)
-        _ = try repo.add(title: "urgent task", priority: TodoPriority.urgent)
+        _ = try repo.add(title: "low task", priority: .low)
+        _ = try repo.add(title: "high task", priority: .high)
+        _ = try repo.add(title: "urgent task", priority: .urgent)
         _ = try repo.add(title: "completed task")
-        let completed = try repo.list(status: TodoStatus.completed)
+        let completed = try repo.list(status: .completed)
         #expect(completed.count == 0)  // no items have .completed yet
         let all = try repo.list()
         #expect(all.count == 4)
         // highest priority first
-        #expect(all[0].priority == TodoPriority.urgent.rawValue)
+        #expect(all[0].priority == .urgent)
     }
 
     @Test("delete removes the row")
@@ -78,8 +78,8 @@ struct WSTodoRepositoryTests {
         let repo = try makeRepository()
         _ = try repo.add(title: "a")
         _ = try repo.add(title: "b")
-        let pending = try repo.count(status: TodoStatus.pending)
-        let completed = try repo.count(status: TodoStatus.completed)
+        let pending = try repo.count(status: .pending)
+        let completed = try repo.count(status: .completed)
         #expect(pending == 2)
         #expect(completed == 0)
     }

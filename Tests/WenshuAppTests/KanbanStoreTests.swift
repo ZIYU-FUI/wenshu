@@ -44,34 +44,34 @@ struct KanbanStoreTests {
     @MainActor
     func testAddGet() async throws {
         let store = try Self.makeKanbanRepository()
-                let task = try await store.add(title: "实现 MemoryStore", status: TodoStatus.new)
+                let task = try await store.add(title: "实现 MemoryStore", status: .new)
         let got = try await store.get(id: task.id)
         #expect(got?.title == "实现 MemoryStore")
-        #expect(got?.status == TodoStatus.new.rawValue)
+        #expect(got?.status == .new)
     }
 
     @Test("transition 改 status")
     @MainActor
     func testTransition() async throws {
         let store = try Self.makeKanbanRepository()
-                let task = try await store.add(title: "test", status: TodoStatus.new)
+                let task = try await store.add(title: "test", status: .new)
         try await store.transition(id: task.id, to: .running)
         let updated = try await store.get(id: task.id)
-        #expect(updated?.status == TodoStatus.running.rawValue)
+        #expect(updated?.status == .running)
         try await store.transition(id: task.id, to: .done)
         let final = try await store.get(id: task.id)
-        #expect(final?.status == TodoStatus.done.rawValue)
+        #expect(final?.status == .done)
     }
 
     @Test("list 按 status 过滤")
     @MainActor
     func testListByStatus() async throws {
         let store = try Self.makeKanbanRepository()
-                _ = try await store.add(title: "task 1", status: TodoStatus.new)
-        _ = try await store.add(title: "task 2", status: TodoStatus.new)
-        _ = try await store.add(title: "task 3", status: TodoStatus.running)
-        let newTasks = try await store.list(status: TodoStatus.new)
-        let runningTasks = try await store.list(status: TodoStatus.running)
+                _ = try await store.add(title: "task 1", status: .new)
+        _ = try await store.add(title: "task 2", status: .new)
+        _ = try await store.add(title: "task 3", status: .running)
+        let newTasks = try await store.list(status: .new)
+        let runningTasks = try await store.list(status: .running)
         #expect(newTasks.count == 2)
         #expect(runningTasks.count == 1)
     }
@@ -91,12 +91,12 @@ struct KanbanStoreTests {
     func testCount() async throws {
         let store = try Self.makeKanbanRepository()
                 #expect((try? await store.count()) ?? -1 == 0)
-        _ = try await store.add(title: "a", status: TodoStatus.new)
+        _ = try await store.add(title: "a", status: .new)
         _ = try await store.add(title: "b", status: .ready)
-        _ = try await store.add(title: "c", status: TodoStatus.done)
+        _ = try await store.add(title: "c", status: .done)
         let total = (try? await store.count()) ?? -1
         #expect(total == 3)
-        let done = (try? await store.count(status: TodoStatus.done)) ?? -1
+        let done = (try? await store.count(status: .done)) ?? -1
         #expect(done == 1)
     }
 
