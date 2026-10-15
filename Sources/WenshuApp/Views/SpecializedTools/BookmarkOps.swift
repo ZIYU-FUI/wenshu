@@ -29,12 +29,22 @@ enum BookmarkOps {
 
     /// All bookmarks for the active book (= the canonical list
     /// path; = the view never calls the repository directly).
+    /// A1 refactor: Repository returns [WSBookmark] raw; Ops converts
+    /// to Bookmark before exposing to the view (= data layer stays
+    /// framework-pure).
     static func load(repository: WSBookmarkRepository, activeBookId: UUID?) -> LoadOutcome {
         guard activeBookId != nil else {
             return .empty
         }
         do {
-            let rows = try repository.list()
+            let rows = try repository.list().map { model in
+                Bookmark(
+                    id: model.id,
+                    docId: model.docID ?? "",
+                    label: model.title,
+                    createdAt: model.createdAt
+                )
+            }
             return .loaded(rows)
         } catch {
             return .failed(String(describing: error))

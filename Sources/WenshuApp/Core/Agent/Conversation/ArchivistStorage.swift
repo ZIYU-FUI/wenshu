@@ -76,12 +76,12 @@ final class LiveArchivistStorage: ArchivistStorage {
     }
 
     func listBookmarks() async throws -> [ArchivistBookmark] {
-        try bookmarkRepo.list().map { bm in
+        try bookmarkRepo.list().map { model in
             ArchivistBookmark(
-                id: bm.id,
-                docId: bm.docId,
-                label: bm.label,
-                createdAt: bm.createdAt
+                id: model.id,
+                docId: model.docID ?? "",
+                label: model.title,
+                createdAt: model.createdAt
             )
         }
     }

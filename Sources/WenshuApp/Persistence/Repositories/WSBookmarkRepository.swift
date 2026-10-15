@@ -1,22 +1,21 @@
 //
 //  Persistence/Repositories/WSBookmarkRepository.swift
 //
-//  Migration commit 25 of 42: WSBookmarkRepository.
+//  v3.1 governance A1 refactor (= boundary probe continuation).
+//  Apple canonical layering per Backyard Birds:
+//    - write API = domain in (= Repository converts Bookmark -> WSBookmark @Model)
+//    - read  API = @Model out (= caller converts WSBookmark -> Bookmark)
+//
+//  Public API after A1 probe:
+//    - add(_ bookmark: Bookmark) throws            (write: domain in, persists @Model)
+//    - remove(id:) throws                          (delete by id)
+//    - list() throws -> [WSBookmark]               (read:  raw @Model out)
+//
+//  Caller-side conversion to Bookmark lives in caller =
+//  BookmarkOps.load(...) / ArchivistStorage.listBookmarks() now does the
+//  Bookmark() construction (not the data layer).
+//
 //  Per AGENTS.md §11.4.
-//
-//  SwiftData @Model replacement for BookmarkStore actor (= v0.19
-//  ticket 22).  deleted BookmarkStore.
-//
-//  Public API (preserved 1:1 from old BookmarkStore actor):
-//    - add(_ bookmark: Bookmark) throws
-//    - remove(id:) throws
-//    - list() throws -> [Bookmark]
-//
-//  Domain type (preserved): Bookmark (= id + docId + label + createdAt;
-//  = note: WSBookmark adds docID/bookID polymorphic anchor + note + position;
-//  = migration upgrade).
-//
-//  Bookmark mapping: WSBookmark.docID → Bookmark.docId; WSBookmark.title → Bookmark.label.
 
 import Foundation
 import os
@@ -77,17 +76,10 @@ final class WSBookmarkRepository {
         }
     }
 
-    func list() throws -> [Bookmark] {
+    func list() throws -> [WSBookmark] {
         let descriptor = FetchDescriptor<WSBookmark>(
             sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
         )
-        return try context.fetch(descriptor).map { model in
-            Bookmark(
-                id: model.id,
-                docId: model.docID ?? "",
-                label: model.title,
-                createdAt: model.createdAt
-            )
-        }
+        return try context.fetch(descriptor)
     }
 }
