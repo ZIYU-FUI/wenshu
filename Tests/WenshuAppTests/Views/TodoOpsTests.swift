@@ -119,18 +119,18 @@ struct TodoOpsTests {
         let resolver = FixedResolver(dir: dir)
 
         let afterFirst = TodoOps.addItem(bookId: bookId, scope: .book, resolver: resolver,
-                                          title: "First", priority: .high, to: [])
+                                          title: "First", priority: TodoPriority.high, to: [])
         let seeded = TodoOps.addItem(bookId: bookId, scope: .book, resolver: resolver,
-                                      title: "Second", priority: .low,
+                                      title: "Second", priority: TodoPriority.low,
                                       to: afterFirst.savedItems)
         #expect(seeded.savedItems.count == 2)
 
         let loaded = TodoOps.loadItems(bookId: bookId, scope: .book, resolver: resolver)
         #expect(loaded.items.count == 2)
         #expect(loaded.items.map(\.title) == ["First", "Second"])
-        #expect(loaded.items[0].priority == .high,
+        #expect(loaded.items[0].priority == TodoPriority.high.rawValue,
                 "Priority must round-trip (= the user-selected priority is preserved on disk)")
-        #expect(loaded.items[1].priority == .low)
+        #expect(loaded.items[1].priority == TodoPriority.low.rawValue)
     }
 
     // MARK: - add behavior
@@ -142,12 +142,12 @@ struct TodoOpsTests {
         let bookId = UUID()
         let resolver = FixedResolver(dir: dir)
         let next = TodoOps.addItem(bookId: bookId, scope: .book, resolver: resolver,
-                                    title: "New todo", priority: .urgent, to: [])
+                                    title: "New todo", priority: TodoPriority.urgent, to: [])
         #expect(next.savedItems.count == 1)
         #expect(next.savedItems[0].title == "New todo")
-        #expect(next.savedItems[0].status == .pending,
+        #expect(next.savedItems[0].status == TodoStatus.pending.rawValue,
                 "Default status for a freshly added todo is .pending (= mirrors Kanban's .new)")
-        #expect(next.savedItems[0].priority == .urgent,
+        #expect(next.savedItems[0].priority == TodoPriority.urgent.rawValue,
                 "Priority must round-trip verbatim (= the user-selected priority from the picker)")
     }
 
@@ -159,7 +159,7 @@ struct TodoOpsTests {
         let resolver = FixedResolver(dir: dir)
         for emptyTitle in ["", "   ", "\t\n  "] {
             let result = TodoOps.addItem(bookId: bookId, scope: .book, resolver: resolver,
-                                          title: emptyTitle, priority: .medium, to: [])
+                                          title: emptyTitle, priority: TodoPriority.medium, to: [])
             #expect(result.savedItems.isEmpty,
                     "Empty / whitespace title must not append (= mirrors TodoListView's `trimmed.isEmpty` guard)")
             #expect(result.didSave == false)
@@ -174,14 +174,14 @@ struct TodoOpsTests {
         defer { cleanup(dir) }
         let bookId = UUID()
         let resolver = FixedResolver(dir: dir)
-        let item = PerBookTodoItem(title: "T", status: .pending, priority: .medium,
+        let item = PerBookTodoItem(title: "T", status: TodoStatus.pending, priority: TodoPriority.medium,
                                     createdAt: Date(timeIntervalSince1970: 0),
                                     updatedAt: Date(timeIntervalSince1970: 0))
         let originalCreated = item.createdAt
         let result = TodoOps.updateStatus(bookId: bookId, scope: .book, resolver: resolver,
                                            item: item, to: .inProgress, in: [item])
         #expect(result.savedItems.count == 1)
-        #expect(result.savedItems[0].status == .inProgress)
+        #expect(result.savedItems[0].status == TodoStatus.inProgress.rawValue)
         #expect(result.savedItems[0].createdAt == originalCreated)
         #expect(result.savedItems[0].updatedAt > originalCreated,
                 "updateStatus must bump updatedAt (= TodoListView's `next[idx].updatedAt = .now`)")

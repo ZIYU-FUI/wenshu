@@ -353,10 +353,10 @@ struct IntegrationPlanEndToEndTests {
         let directTodoItem = HermesTodoItem(
             id: "p5-23-task",
             content: "plan outline",
-            status: .pending
+            status: TodoStatus.pending
         )
         _ = hermesTodoStore.write(todos: [directTodoItem], merge: true)
-        _ = try await todoStore.add(title: "plan outline", priority: .high)
+        _ = try await todoStore.add(title: "plan outline", priority: TodoPriority.high)
         #expect(hermesTodoStore.read().count == 1,
                 "P0 #4 HermesTodoStore.write should accept the todo (mirror path)")
         let todoListResult = try await todoStore.list()
@@ -684,7 +684,7 @@ struct IntegrationPlanEndToEndTests {
         // notification fan-out).
 
         print("[P2 #22: TodoStore reactivity] starting")
-        let reactiveTodo = try await todoStore.add(title: "reactive todo", priority: .high)
+        let reactiveTodo = try await todoStore.add(title: "reactive todo", priority: TodoPriority.high)
         let afterAddList = try await todoStore.list()
         #expect(afterAddList.contains(where: { $0.id == reactiveTodo.id }),
                 "P2 #22 TodoStore.add must persist the new row (= no reactive fan-out post-ticket 3)")
