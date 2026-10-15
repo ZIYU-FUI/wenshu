@@ -65,7 +65,7 @@ struct WenshuCoreIntegrationTests {
 
         // 3. TodoStore
         let todo = try Self.makeTodoRepository()
-        _ = try await todo.add(title: "Todo 1", priority: .high)
+        _ = try await todo.add(title: "Todo 1", priority: TodoPriority.high)
 
         // 4. AgentRuntime + AgentProtocol (A2A + agent) — verifier (key → LLM fail path, S3)
         let card = AgentCard(
