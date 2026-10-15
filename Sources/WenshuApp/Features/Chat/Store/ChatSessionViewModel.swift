@@ -962,7 +962,7 @@ final class ChatViewModel {
             // "provider" (= user-visible message looked like it was
             // binding them to MiniMax). We now pass the connector
             // slug, not the model id.
-            let activeProvider = WenshuAppDelegate.activeConnectorSlug()
+            let activeProvider = WenshuAppDelegateLLMHelpers.activeConnectorSlug()
             // also log the raw underlying error to the
             // chat.persist channel so the boss can grep the cause
             // when the user reports "未知错误" (= the previous

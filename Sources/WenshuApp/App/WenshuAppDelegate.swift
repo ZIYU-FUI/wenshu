@@ -373,7 +373,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         guard subAgentDrainTask == nil else { return }
 
         // Lazy runner creation (= resolves the active LLM connector at startup time; =
-        // mirrors `WenshuAppDelegate.activeLLMConnector()` used by the main
+        // mirrors `WenshuAppDelegateLLMHelpers.activeLLMConnector()` used by the main
         // agent's ChatView). ToolRegistry.shared is safe to read here (= it's
         // an actor; = init is synchronous). adapters: Archivist + Auditor sub-
         // agents bypass the LLM tool dispatch path (= their domains are
@@ -391,7 +391,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         let archivist = LiveArchivistStorage(archiveRoot: archiveRoot)
         let auditor = LiveAuditorStorage()
         let runner = SubAgentRunner(
-            connector: activeLLMConnector(),
+            connector: WenshuAppDelegateLLMHelpers.activeLLMConnector(),
             toolRegistry: ToolRegistry.shared,
             archivistStorage: archivist,
             auditorStorage: auditor
@@ -425,105 +425,10 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         wenshuLogger.info("[wenshu.subagent] drain loop stopped")
     }
 
-    /// 
-    /// canonical LLM connector resolver used by the production ChatView
-    /// long-running-goal button (= M14 fix) and the unit-test
-    /// TriggerClosureWiringTests. The resolver reads the
-    /// `wenshu.llm.activeConnector` UserDefaults slug (= the connector
-    /// profile the user picked in LLMConnectorSettingsView) and falls
-    /// back to AnthropicConnector for missing / unknown / unsupported
-    /// apiMode (= never nil, matches wenshu defensive-defaults rule).
-    ///
-    /// Why this lives on WenshuAppDelegate (= not just on WorkspaceView):
-    /// unit tests run in a swift-test helper process that does not
-    /// mount the full view hierarchy, so WorkspaceView.activeLLMConnector
-    /// (= private) is unreachable from the test target. Exposing the
-    /// same logic on WenshuAppDelegate (= module-internal) keeps the
-    /// test + production in lockstep without leaking the view API.
-    nonisolated static func activeConnectorSlug() -> String {
-        // lightweight introspection used by the import flow's activity log so the user
-        // can see WHICH connector is being hit when the LLM is unreachable.
-        // Resolves the same UserDefaults + keychain signal as
-        // `activeLLMConnector` but returns the slug string (= no connector
-        // allocation).
-        if let slug = UserDefaults.standard.string(forKey: "wenshu.llm.activeConnector"),
-           Provider.by(slug: slug) != nil {
-            return slug
-        }
-        if let first = ProviderKeychain.listProvidersWithKeys().first(where: { Provider.by(slug: $0) != nil }) {
-            return first
-        }
-        return "anthropic"
-    }
-
-    nonisolated static func activeLLMConnector() -> any LLMConnector {
-        let slug = UserDefaults.standard.string(forKey: "wenshu.llm.activeConnector")
-        // ProviderCatalog cannot resolve) must fall back to the first provider that has a
-        // key in the keychain (= NOT AnthropicConnector). The previous
-        // behavior (= default to anthropic) caused a "Missing API key for
-        // provider 'anthropic'" error in the v2.7 markdown import flow
-        // whenever the user had configured MiniMax (China) / OpenAI / etc. in
-        // the chat Settings picker (= the picker is per-chat; = the v2.7
-        // import connector is resolved independently and should follow the
-        // keychain-side signal). The new behavior: ask the keychain which
-        // providers have keys; = pick the first one (= wenshu only ships 1 key
-        // for non-test users in practice; = the order is the user's own
-        // configure order).
-        let provider: Provider
-        if let slug = slug, let resolved = Provider.by(slug: slug) {
-            provider = resolved
-        } else {
-            // Ask the keychain which providers have keys (= the canonical signal that the
-            // user has configured a provider end-to-end; = UserDefaults
-            // alone doesn't prove the key is real).
-            let configuredSlugs = ProviderKeychain.listProvidersWithKeys()
-            if let first = configuredSlugs.first(where: { Provider.by(slug: $0) != nil }),
-               let resolved = Provider.by(slug: first) {
-                provider = resolved
-            } else {
-                // Last resort: AnthropicConnector for unit tests (= the unit-test
-                // contract in TriggerClosureWiringTests pins this so
-                // the production long-running-goal button can never
-                // hit a connector it cannot drive).
-                provider = Provider.by(slug: "anthropic") ?? .minimaxCn
-            }
-        }
-        switch provider.apiMode {
-        case "anthropic_messages":
-            // MinimaxConnector is the Anthropic-compatible wrapper (= wenshu's default
-            // provider per AGENTS.md §11.2); AnthropicConnector is the
-            // native Anthropic API.
-            if provider.slug == "anthropic" {
-                return AnthropicConnector()
-            }
-            return MinimaxConnector()
-        case "openai_chat":
-            return OpenAICompatibleConnector(provider: provider)
-        default:
-            // Gemini + any other apiMode lands here until the matching connector lands (=
-            // Gemini native connector is a separate ticket per
-            // ConnectorTestButton.runTest).
-            return AnthropicConnector()
-        }
-    }
-
-    /// The user-picked model slug for the active
-    /// connector (= the `wenshu.llm.model`
-    /// UserDefaults entry; = same source
-    /// `ChatSessionViewModel.activeModel` reads).
-    /// Returns `nil` when the user has not picked a
-    /// model yet (= the connector then uses its
-    /// provider default; = the v2.7 markdown
-    /// import's `WenshuConductorImportRouter`
-    /// passes this `nil`-able value to
-    /// `LLMCallOptions.model`).
-    nonisolated static func activeModelSlug() -> String? {
-        let slug = UserDefaults.standard.string(forKey: "wenshu.llm.model")
-        // Empty string (= the user explicitly cleared the picker; = a real value) is
-        // returned unchanged. nil (= the user never picked anything; = the
-        // connector default) is returned as nil too.
-        return (slug?.isEmpty == false) ? slug : nil
-    }
+// (extracted to WenshuAppDelegateLLM.swift in A35; = see that file)
+// (= the 3 LLM/connector helper static funcs = activeConnectorSlug
+// + activeLLMConnector + activeModelSlug = 106 LOC moved out of
+// the main delegate class.)
 
     // SwiftData library upgrade entry point (see OOB.md #2026-10-06). Wired from
     // applicationDidFinishLaunching; = called once per launch with the user's

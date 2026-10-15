@@ -23,7 +23,7 @@ import Foundation
 /// The production `ImportRouter` that the sheet uses.
 /// Each `route(_:)` invocation makes a real LLM call
 /// (= the `LLMConnector` from
-/// `WenshuAppDelegate.activeLLMConnector()`; = the same
+/// `WenshuAppDelegateLLMHelpers.activeLLMConnector()`; = the same
 /// connector the rest of wenshu ships with out of the
 /// box per AGENTS.md §11.2 P0 profile list).
 actor WenshuConductorImportRouter: ImportRouter {
@@ -60,11 +60,11 @@ actor WenshuConductorImportRouter: ImportRouter {
         modelSlug: String? = nil
     ) {
         // The connector resolution is intentionally synchronous (=
-        // WenshuAppDelegate.activeLLMConnector() is `nonisolated`; = the cost
+        // WenshuAppDelegateLLMHelpers.activeLLMConnector() is `nonisolated`; = the cost
         // is one UserDefaults read + one ProviderCatalog lookup; = the actor
         // initializer runs at most once per sheet presentation; = the lookup
         // is cheap enough to not need a lazy property).
-        self.connector = connector ?? WenshuAppDelegate.activeLLMConnector()
+        self.connector = connector ?? WenshuAppDelegateLLMHelpers.activeLLMConnector()
         // `LLMCallOptions.model` is non-optional; = the active connector knows its own
         // default model slug (= `connectorID` for the wenshu canonical case; =
         // the connector falls back to its provider default if the user hasn't
@@ -73,7 +73,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         // / "minimax-cn") lets the connector route to the right model family
         // without a wenshu-side hardcoded model list (= AGENTS.md §11.2 P0
         // profile list is the canonical cross-check).
-        self.modelSlug = modelSlug ?? WenshuAppDelegate.activeModelSlug() ?? "default-model"
+        self.modelSlug = modelSlug ?? WenshuAppDelegateLLMHelpers.activeModelSlug() ?? "default-model"
     }
 
     /// Classify one file via the LLM (= the prompt

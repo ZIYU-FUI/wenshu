@@ -109,7 +109,7 @@ struct EditorParagraphAI {
     ///     apply.
     ///   - connector: the active `LLMConnector` (= injected for
     ///     testability; production calls
-    ///     `WenshuAppDelegate.activeLLMConnector()` (= the
+    ///     `WenshuAppDelegateLLMHelpers.activeLLMConnector()` (= the
     ///     module-internal bridge so the test target can resolve
     ///     a connector without mounting the full WorkspaceView);
     ///     tests inject `MockLLMConnector`).

@@ -947,7 +947,7 @@ struct EditorView: View {
             model: appState.llmModel.isEmpty ? providerDefaultModel : appState.llmModel,
             maxTokens: 2048
         )
-        let connector = WenshuAppDelegate.activeLLMConnector()
+        let connector = WenshuAppDelegateLLMHelpers.activeLLMConnector()
 
         do {
             let rewritten = try await EditorParagraphAI.apply(

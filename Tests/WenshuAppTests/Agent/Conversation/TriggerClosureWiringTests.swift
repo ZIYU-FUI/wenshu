@@ -132,7 +132,7 @@ struct TriggerClosureWiringTests {
                 "buildTools must surface at least one default-name handler when the shared registry has it (reachable: \(reachableDefaults))")
     }
 
-    @Test("WenshuAppDelegate.activeLLMConnector returns a usable connector for any slug (= ConversationLoop.runTurn reachable)")
+    @Test("WenshuAppDelegateLLMHelpers.activeLLMConnector returns a usable connector for any slug (= ConversationLoop.runTurn reachable)")
     @MainActor
     func testActiveLLMConnector_fallsBackToAnthropicForUnknownSlug() async {
         let priorValue = UserDefaults.standard.string(forKey: "wenshu.llm.activeConnector")
@@ -145,17 +145,17 @@ struct TriggerClosureWiringTests {
         }
 
         UserDefaults.standard.set("anthropic", forKey: "wenshu.llm.activeConnector")
-        let connector1 = WenshuAppDelegate.activeLLMConnector()
+        let connector1 = WenshuAppDelegateLLMHelpers.activeLLMConnector()
         #expect(connector1.connectorID == "anthropic",
                 "anthropic slug must resolve to AnthropicConnector (= M14 fix)")
 
         UserDefaults.standard.set("unknown-slug-xyz", forKey: "wenshu.llm.activeConnector")
-        let connector2 = WenshuAppDelegate.activeLLMConnector()
+        let connector2 = WenshuAppDelegateLLMHelpers.activeLLMConnector()
         #expect(connector2.connectorID == "anthropic",
                 "unknown slug must fall back to AnthropicConnector (= never nil)")
 
         UserDefaults.standard.removeObject(forKey: "wenshu.llm.activeConnector")
-        let connector3 = WenshuAppDelegate.activeLLMConnector()
+        let connector3 = WenshuAppDelegateLLMHelpers.activeLLMConnector()
         #expect(connector3.connectorID == "anthropic",
                 "missing slug must fall back to AnthropicConnector (= never nil)")
     }

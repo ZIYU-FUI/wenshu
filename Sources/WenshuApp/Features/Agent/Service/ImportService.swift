@@ -1809,7 +1809,7 @@ extension ImportService {
         // Retries up to 3 times with exponential backoff (1s, 2s, 4s; = transient
         // LLM errors = rate limit / network blip / load spike; = 95% of cases
         // clear within 7s per the connector team's 2026-10-09 metrics).
-        let activeProvider = WenshuAppDelegate.activeConnectorSlug()
+        let activeProvider = WenshuAppDelegateLLMHelpers.activeConnectorSlug()
         let routing: ImportRoutingResult? = await dispatchLLM(
             input: input,
             target: target,
