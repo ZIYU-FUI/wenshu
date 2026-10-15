@@ -231,7 +231,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         switch input.rewriteMode {
         case .consolidate:
             // Single-turn, no tool loop (= the
-            // pre-v2.7 behavior; = the LLM has
+            // previous behavior; = the LLM has
             // no tools so `stopReason` is
             // `endTurn` immediately).
             response = try await connector.send(
@@ -1649,7 +1649,7 @@ actor WenshuConductorImportRouter: ImportRouter {
     /// (= boss 2026-10-09 (see OOB.md #2026-10-09)
     /// (= boss 2026-10-09 (see OOB.md #2026-10-09)
     /// header). Anything that looks like the
-    /// OLD pre-v2.7 template (= 类型 / 状态 /
+    /// OLD previous template (= 类型 / 状态 /
     /// 核心信息 / 详细描述 / 反链 / 上次更新 /
     /// tags / 标签 / author / source / created /
     /// modified / ../ / [[ ]]) is dropped here.
@@ -1661,7 +1661,7 @@ actor WenshuConductorImportRouter: ImportRouter {
     /// body never has these).
     private static func isUselessMetadataLine(_ trimmed: String) -> Bool {
         let prefixes: [String] = [
-            // The old pre-v2.7 template (= 老板
+            // The old previous template (= 老板
             // 2026-10-09 round-25 "不要参考
             // MD 的格式，而是盘点文枢的功
             // 能，做出文枢的头部格式" = strip

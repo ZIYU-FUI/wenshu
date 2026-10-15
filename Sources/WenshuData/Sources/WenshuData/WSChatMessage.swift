@@ -40,7 +40,7 @@ public final class WSChatMessage {
     // but never persisted to SwiftData (= on reload from the
     // warehouse, the parts[] was empty and the thinking section
     // collapsed to zero bytes). New string column (= nullable for
-    // pre-v1.65-cleanup messages; = SwiftData auto-handles additive
+    // previous messages; = SwiftData auto-handles additive
     // schema changes for optional stored properties; = no migration
     // step required for existing user libraries). Stores the joined
     // reasoning part text (= multiple reasoning blocks joined by

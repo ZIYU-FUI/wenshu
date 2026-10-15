@@ -1,4 +1,4 @@
-// TrackModel.swift · Wenshu () · v0.28 followup TKT-028-033
+// TrackModel.swift · Wenshu () followup TKT-028-033
 //
 // Port the `track-model.ts` verbatim (= MIN_PANE_PX, COLLAPSED_ZONE_PX,
 // MINIMIZED_TRACK, PaneSizing, fixed/flex/uncapped resolution).

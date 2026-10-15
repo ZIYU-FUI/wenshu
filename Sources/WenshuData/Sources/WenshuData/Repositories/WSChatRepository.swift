@@ -25,7 +25,7 @@
 // chat-by-book row-level split ((see OOB.md #2026-09-24) OOB):
 //  All session-scoped methods now accept an Optional `bookID` filter.
 //    - bookID == nil  = "global un-attached" (= legacy behavior;
-//      = matches the pre-v1.79 default; = callers that haven't been
+//      = matches the previous default; = callers that haven't been
 //      updated still see all sessions).
 //    - bookID == Some(id) = filter to sessions belonging to that book.
 //  Callers MUST pass the current book's id (= WenshuLibrary.shared.selectedBookId)

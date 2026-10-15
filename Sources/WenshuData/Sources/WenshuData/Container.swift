@@ -42,7 +42,7 @@
 //  SQLITE_TRANSIENT helper; = see AGENTS.md §11.7d). Post-v1.55d no
 //  file in the production source tree imports SQLite3, opens a raw
 //  sqlite3 connection, or reads `.ws/*.sqlite` (= legacy files become
-//  orphaned; = chat history from the pre-v0.72 ChatSessionStore era
+//  orphaned; = chat history from the previous ChatSessionStore era
 //  is no longer imported into SwiftData; = legacy history is not
 //  restored). New chat history lives entirely in SwiftData.
 //  HermesKanbanDB + FullTextSearch were REMOVED in v1.55 sqlite3-zero.

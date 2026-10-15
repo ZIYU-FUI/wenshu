@@ -101,7 +101,7 @@ struct AgentProgressEntry: Sendable, Codable, Equatable, Identifiable {
 /// the end. The OpenBox panel (`DynamicZoneView`'s progress strip)
 /// polls `current(sessionId:)` every ~1s to render the running step.
 ///
-/// WIRE-OPENBOX-001 (v0.41 P2 #21): also exposed via `.shared` so
+/// WIRE-OPENBOX-001: also exposed via `.shared` so
 /// the OpenBox progress panel can read the latest running entry
 /// without needing a dependency-injection chain (= the panel is
 /// constructed via `DynamicZoneView()` in WorkspaceView, no args).

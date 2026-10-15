@@ -1,4 +1,4 @@
-// Bookshelf.swift · Wenshu (Wenshu) · v0.02.0 (bookshelf module)
+// Bookshelf.swift · Wenshu (Wenshu).0 (bookshelf module)
 //
 // Domain model for a single bookshelf (= a named container of books inside
 // the wenshu library). v0.02.0 ships just the bookshelf + its persistence;

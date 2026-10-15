@@ -75,7 +75,7 @@ struct DynamicZoneView: View {
                 get: { selectedTab },
                 set: { selectedTab = $0 }
             ))
-            // (v0.41 P2 #21): agent progress panel.
+            //: agent progress panel.
             // Top-of-zone strip that surfaces real-time step-by-step
             // feedback from the running ConversationLoop turn. Only
             // renders when an entry is currently running (= user just

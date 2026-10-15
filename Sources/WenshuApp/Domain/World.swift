@@ -1,4 +1,4 @@
-// World.swift · Wenshu () · v0.26 (FCP library replica — world-building entity)
+// World.swift · Wenshu () (FCP library replica — world-building entity)
 //
 // Domain model for a single world-building entry (= a fact about the
 // fictional world, geography / lore / event / object / etc.) living

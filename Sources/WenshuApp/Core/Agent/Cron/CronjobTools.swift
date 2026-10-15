@@ -6,7 +6,7 @@
 //  cronjob(action:...) tool dispatcher that the LLM uses to manage
 //  cron jobs from the chat surface).
 //
-//  DEFERRED (v0.73 spec decision):
+//  DEFERRED:
 //  This 1:1 port of hermes `tools/cronjob_tools.py` is intentionally NOT
 //  wired into ToolRegistry (= see .scratch/v0.73-hermes-agent-wiring-gap/spec.md
 //  §Acceptance row "CronjobTools"). Wenshu cron runs at OS level via LaunchAgent

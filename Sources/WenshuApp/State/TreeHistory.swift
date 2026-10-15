@@ -1,4 +1,4 @@
-// TreeHistory.swift · Wenshu () · v0.28 followup TKT-028-025
+// TreeHistory.swift · Wenshu () followup TKT-028-025
 //
 // Port the undo/redo pattern (= pure tree operations, each
 // destructive op pushes the previous tree to history) from

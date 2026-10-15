@@ -1,4 +1,4 @@
-// Book.swift · Wenshu (Wenshu) · v0.02.1 (book module) + v52 (new-book wizard)
+// Book.swift · Wenshu (Wenshu).1 (book module) + v52 (new-book wizard)
 //
 // Domain model for a single book (= a novel the user is writing).
 // ships just the book + its persistence; chapter content

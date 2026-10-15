@@ -1,4 +1,4 @@
-// ZoneEditor.swift · Wenshu () · v0.28 ticket 028-008
+// ZoneEditor.swift · Wenshu () ticket 028-008
 //
 // SwiftUI full-screen grid editor (= hermes
 // `zone-editor.tsx` port). User clicks on a column boundary to

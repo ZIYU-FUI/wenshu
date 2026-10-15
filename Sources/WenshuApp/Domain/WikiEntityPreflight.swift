@@ -1,4 +1,4 @@
-// WikiEntityPreflight.swift · Wenshu () · v0.34
+// WikiEntityPreflight.swift · Wenshu ()
 //
 // 
 // LLM Wiki entity preflight validation (= port of Card-master

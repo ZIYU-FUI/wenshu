@@ -1,4 +1,4 @@
-// LayoutEditBar.swift · Wenshu () · v0.28 ticket 028-007
+// LayoutEditBar.swift · Wenshu () ticket 028-007
 //
 // Floating TreeEditBar that appears when layout edit mode is on
 // (= hermes `edit-bar.tsx:25-108` port). Hosts the LayoutPicker

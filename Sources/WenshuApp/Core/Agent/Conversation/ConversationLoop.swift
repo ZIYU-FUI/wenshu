@@ -362,7 +362,7 @@ actor ConversationLoop {
         let resolvedTaskId = taskId ?? UUID().uuidString
         var retry = TurnRetryState(maxAttempts: maxAttempts)
 
-        // (v0.41 P2 #21): start the agent progress
+        //: start the agent progress
         // entry for this turn. The sessionId defaults to the taskId
         // (= caller may use a richer id later; the OpenBox panel
         // matches by taskId today). The OpenBox panel polls

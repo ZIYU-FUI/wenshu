@@ -484,7 +484,7 @@ enum ImportEnvelope: Codable, Sendable, Hashable {
             // (= if a pre-v2.7
             // envelope omits `rewriteMode`, default to
             // `consolidate`; = the orchestrator's
-            // pre-v2.7 behavior = no tools + original
+            // previous behavior = no tools + original
             // body verbatim).
             let rewriteMode = (try? c.decode(ImportFileInput.RewriteMode.self, forKey: .rewriteMode)) ?? .consolidate
             self = .importFile(ImportFileInput(

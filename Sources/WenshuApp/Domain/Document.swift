@@ -1,4 +1,4 @@
-// Document.swift · Wenshu (Wenshu) · v0.03.0 (document module)
+// Document.swift · Wenshu (Wenshu).0 (document module)
 //
 // Document = one MD file inside a book. The .md is the source of
 // truth for content; Document is the metadata (= title, summary,

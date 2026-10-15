@@ -34,7 +34,7 @@ struct StoredChatMessage: Equatable, Sendable {
     let tokens: Int?
     // persisted
     // reasoning content for round-trip restore. nil = no thinking
-    // (= user message, or pre-v1.65-cleanup assistant message); = non-nil
+    // (= user message, or previous assistant message); = non-nil
     // for assistant messages that streamed .reasoning parts during the
     // turn. Mirrors WSChatMessage.thinking on the SwiftData side.
     let thinking: String?

@@ -2,7 +2,7 @@
 //  Persistence/WSOutlineDocument.swift
 //
 //   : WSOutlineDocument.
-//  New SwiftData @Model class (= no pre-v0.72 sqlite source — outline
+//  New SwiftData @Model class (= no previous sqlite source — outline
 //  documents were filesystem-only before; = Domain/Document.swift was
 //  the in-memory struct; = this is the first persistence layer).
 //

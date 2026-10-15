@@ -1,5 +1,5 @@
 //
-//  ChatMessageBridge.swift · Wenshu · v0.35 ticket 003 sub-step 5 followup
+//  ChatMessageBridge.swift · Wenshu ticket 003 sub-step 5 followup
 //
 //  Single source of truth for ChatMessage ↔ LLMMessage mapping.
 //  Originally lived as internal extensions in ChatViewCompressionRow.swift;

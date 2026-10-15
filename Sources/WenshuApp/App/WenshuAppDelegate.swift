@@ -151,7 +151,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // SwiftData migration history (= per v1.55 sqlite3-zero arc):
         // WSMigrationRunner + WSMigrationPerStore were removed (= the
         // one-shot legacy sqlite3 importer). Legacy `.ws/chat.sqlite`
-        // files (= pre-v0.72 data written by the deleted
+        // files (= previous data written by the deleted
         // ChatSessionStore actor) are now treated as orphaned files
         // (= no importer reads them; = no chat history migrates from
         // raw sqlite to SwiftData). New chat history lives entirely

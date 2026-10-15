@@ -1,4 +1,4 @@
-// BookEditorSheet.swift · Wenshu (Wenshu) · v0.02.1 (book module) + v52 (wizard)
+// BookEditorSheet.swift · Wenshu (Wenshu).1 (book module) + v52 (wizard)
 //
 // The 'New Book' / 'Rename Book' modal.
 //

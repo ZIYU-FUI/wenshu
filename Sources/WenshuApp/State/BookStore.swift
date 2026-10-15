@@ -1,4 +1,4 @@
-// BookStore.swift · Wenshu () · v0.26 (FCP library replica) + B-13 scope unification
+// BookStore.swift · Wenshu () (FCP library replica) + B-13 scope unification
 //
 // Single BookStore @Observable singleton. Holds the per-book in-memory state (= the 10 standard entries per book + per-book JSON data: kanban + todo + the 8 folder indexes).
 //

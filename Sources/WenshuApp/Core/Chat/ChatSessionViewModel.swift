@@ -234,7 +234,7 @@ final class ChatViewModel {
     @MainActor private var sessionId: SessionID
 
     // Current scope bookID for all persistence calls.
-    // nil = global un-attached (= the pre-v1.79 default; = used when no
+    // nil = global un-attached (= the previous default; = used when no
     // book is selected, e.g. onboarding-before-book-selection chats).
     // The view layer is expected to call setCurrentBookID(_:) when the
     // user picks a different book so the chat panel reloads against the

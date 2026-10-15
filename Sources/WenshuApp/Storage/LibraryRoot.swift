@@ -1,4 +1,4 @@
-// LibraryRoot.swift · Wenshu (Wenshu) · v0.02.0
+// LibraryRoot.swift · Wenshu (Wenshu).0
 //
 // Where wenshu stores the user's bookshelves on disk. The location is
 // hard-coded for v0.02.0 (= the user has no Preferences panel yet) but

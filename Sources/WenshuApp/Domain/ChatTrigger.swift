@@ -1,4 +1,4 @@
-// ChatTrigger.swift · Wenshu () · v0.27 (FCP library replica)
+// ChatTrigger.swift · Wenshu () (FCP library replica)
 //
 // Detects when a chat message hints at a new entity (= a character /
 // world fact / research reference) and emits an `IngestionRequest`

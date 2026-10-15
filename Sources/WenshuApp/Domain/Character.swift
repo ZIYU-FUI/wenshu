@@ -1,4 +1,4 @@
-// Character.swift · Wenshu () · v0.26 (FCP library replica — character entity)
+// Character.swift · Wenshu () (FCP library replica — character entity)
 //
 // Domain model for a single character (= a fictional person living
 // inside a Book). Book-private (= per FCP Role pattern: a "role" is a

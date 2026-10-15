@@ -1,5 +1,5 @@
 //
-//  IconStyles.swift · Wenshu · v3.0
+//  IconStyles.swift · Wenshu
 //
 //  Central SF Symbols 6 icon factory + Apple HIG walk for wenshu icon and
 //  text sizing (= (see OOB.md #2026-10-01): merge icon + font under one file;

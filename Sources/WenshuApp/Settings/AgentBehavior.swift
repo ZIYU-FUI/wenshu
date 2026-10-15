@@ -16,7 +16,7 @@
 //
 //  Anti-pattern (= explicitly NOT done):
 //  - No SOUL.md / AGENTS.md / user-editable markdown loader.
-//    Per v2.4 2026-09-25 decision: "user cannot change agent definition, style, etc.".
+//    (see OOB.md #2026-09-25): "user cannot change agent definition, style, etc.".
 //    User-customizable soul files would let non-technical users
 //    degrade the LLM into an unusable state (= the wenshu 
 //    product prefers system-managed stable output over user

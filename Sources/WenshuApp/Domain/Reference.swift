@@ -1,4 +1,4 @@
-// Reference.swift · Wenshu () · v0.26 (FCP library replica — reference-library entity)
+// Reference.swift · Wenshu () (FCP library replica — reference-library entity)
 //
 // Domain model for a single reference (= one piece of research material
 // inside the library's ReferenceLibrary). Library-public (= shelf-shared,

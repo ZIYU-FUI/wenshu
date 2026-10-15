@@ -200,7 +200,7 @@ Each component has:
   // Hover fill on a shape
   RoundedRectangle(cornerRadius: 4).fill(.thinMaterial)
   ```
-- **Replaces**: `Sources/WenshuApp/UI/RegionHoverWash.swift` (= deleted in v0.32 commit `c52f9b190`; the previous self-written `RegionHoverWashStyle: ShapeStyle` wrapper just returned `.thinMaterial` from its `resolve()` method and added no semantic value over the bare Apple Material catalog value).
+- **Replaces**: `Sources/WenshuApp/UI/RegionHoverWash.swift` (= deleted in commit `c52f9b190`; the previous self-written `RegionHoverWashStyle: ShapeStyle` wrapper just returned `.thinMaterial` from its `resolve()` method and added no semantic value over the bare Apple Material catalog value).
 
 ### 4.3 RegionSelectionBackground
 - **Path**: `Sources/WenshuApp/UI/RegionSelectionBackground.swift`
@@ -222,7 +222,7 @@ Each component has:
 - **Path**: N/A (= SwiftUI built-in modifier).
 - **Purpose**: Apple HIG canonical tooltip (= tiny popup on hover/long-press). The OS handles the warm-window delay and the popup rendering (= no custom code).
 - **Use when**: Any view needs contextual help text. Apply `.help("Toggle sidebar (⌘B)")` to the view (= Apple canonical since macOS 11).
-- **Replaces**: `Sources/WenshuApp/UI/Components/Tip.swift` (= 221-LOC custom `TipController` + `TipModifier` with a hand-rolled 300 ms warm-window; deleted in v0.32 commit by Tier-1 rank-1 deletion per `.scratch/v0.32-apple-api-audit/audit.md` §3).
+- **Replaces**: `Sources/WenshuApp/UI/Components/Tip.swift` (= 221-LOC custom `TipController` + `TipModifier` with a hand-rolled 300 ms warm-window; deleted in commit by Tier-1 rank-1 deletion per `.scratch/v0.32-apple-api-audit/audit.md` §3).
 
 ### 5.4 DropAffordance / NativeControlsInspector
 
@@ -261,7 +261,7 @@ Window chrome = 100% Apple canonical per macOS 26 Tahoe. LibraryRootView uses Sw
 - **Path**: see `Sources/WenshuApp/App.swift:WindowGroup { ... }` around `LibraryRootView()` + `.windowToolbarStyle(.unified)`
 - **Purpose**: 1 macOS native .unified 52 PT titlebar (= traffic lights + grouped toolbar items in 1 unified capsule = the macOS 26 Tahoe canonical look)
 - **Use when**: ANY new top-level chrome (= use Apple's `.toolbar` API)
-- **Replaces**: All 4 deleted wrappers from v0.34 commit `69a43da65`
+- **Replaces**: All 4 deleted wrappers from commit `69a43da65`
 
 ### 7.2 Apple canonical status bar (= bottom of window)
 - **Path**: see `Sources/WenshuApp/App.swift:WindowGroup { ... }` around `LibraryRootView()` + `.toolbar { ToolbarItem(placement: .principal) { ... }` (= Apple macOS 26 status bar pattern)
@@ -275,17 +275,17 @@ These were removed in various phases (= v0.32 Apple-API-first sweep + v0.34 iron
 
 ### 8.1 ❌ ZoneModule
 - **Was in**: `Sources/WenshuApp/App.swift`
-- **Deleted**: Phase 4 (= v0.28 followup UX round A)
+- **Deleted**: Phase 4 (= followup UX round A)
 - **Use instead**: `ZonePerRegionChrome` (= already exists in `Sources/WenshuApp/UI/ZonePerRegionChrome.swift`)
 
 ### 8.2 ❌ ZoneBottomToolbar
 - **Was in**: `Sources/WenshuApp/App.swift`
-- **Deleted**: Phase 4 (= v0.28 followup UX round A)
+- **Deleted**: Phase 4 (= followup UX round A)
 - **Use instead**: `PaneStatusBar` (= new in Phase 5, file `Sources/WenshuApp/UI/PaneStatusBar.swift`)
 
 ### 8.3 ❌ ZoneContentTabBar / chat-zone wrapper / DynamicZoneTabBar (custom tab bodies)
 - **Was in**: `Sources/WenshuApp/Views/Dynamic/ZoneContentView.swift` + `DynamicZoneView.swift` + `Workspace/TabContentDispatcher.swift`
-- **Refactored**: Phase 2-3 + v0.34 commits `dcde7cff5` + `a6b6c75d3`
+- **Refactored**: Phase 2-3 + commits `dcde7cff5` + `a6b6c75d3`
 - **Use instead**: `PaneTabBar` + `PaneIconTab` + `PaneTrailingIconButton` (= new generic components in `Sources/WenshuApp/UI/PaneTabBar.swift`)
 - **Note**: `DynamicZoneTabBar` still survives (= enum↔string binding shim = SwiftUI Binding limitation; tracked in backlog.md entry B-02). The chat-zone wrapper (= the since-deleted wrapper that hard-coded the chat tab + archive trailing button, now inlined into `TabContentDispatcher.aiChat` as a single `PaneTabItem(id:"chat")`) was deleted in commit `a6b6c75d3`.
 
@@ -304,7 +304,7 @@ These were removed in various phases (= v0.32 Apple-API-first sweep + v0.34 iron
 
 ### 8.7 ❌ Self-written window chrome wrappers (deleted v0.34)
 - **Was in**: 4 custom SwiftUI wrappers under `Sources/WenshuApp/UI/` (= 1 fixed-top + 1 fixed-bottom + 1 polish + 1 overlay) — all deleted in v0.34
-- **Deleted**: v0.34 commit `69a43da65` ('use the most reasonable approach, should be unified into one component')
+- **Deleted**: commit `69a43da65` ('use the most reasonable approach, should be unified into one component')
 - **Use instead**: SwiftUI `.toolbar { ToolbarItemGroup }` + `.windowToolbarStyle(.unified)` (= Apple macOS 26 canonical pattern; see LEVEL 7.1)
 - **Why deleted**: All 4 wrappers duplicated Apple HIG behavior Apple provides for free via `.windowToolbarStyle(.unified)` + `.toolbar { ToolbarItem(placement: .principal) }`. The whole 4-file chrome overlay was never rendered in production.
 
@@ -345,7 +345,7 @@ Last updated: 2026-08-30 (Phase 1-5 implementation + index)
 
 ---
 
-## ✂️ LEVEL 9: Workspace editor sub-views (v0.40 apple-001 Q2 split)
+## ✂️ LEVEL 9: Workspace editor sub-views (apple-001 Q2 split)
 
 The Workspace editor surface is decomposed into 9 single-file sub-views (= extracted in commits 6df2ed769 through 485c0bf80). Each lives in its own file under `Sources/WenshuApp/Views/Workspace/`. **When extending the editor surface, find the closest match in this list first**; only create a new file if none of these match.
 

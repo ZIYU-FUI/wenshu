@@ -1,4 +1,4 @@
-// UI/EnvironmentKeys.swift · WenshuApp · v0.74
+// UI/EnvironmentKeys.swift · WenshuApp
 // Cross-view shared context keys (= the canonical way to pass state across >2 layers
 // without drilling it through every child View.init). Apple HIG macOS 14+ canonical
 // = custom EnvironmentKey + @Environment(\.key) reader.

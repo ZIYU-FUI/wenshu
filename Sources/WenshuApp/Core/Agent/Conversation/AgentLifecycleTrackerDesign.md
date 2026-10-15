@@ -1,5 +1,5 @@
 //
-//  AgentLifecycleTrackerDesign.md · Wenshu · v0.73 ticket 004
+//  AgentLifecycleTrackerDesign.md · Wenshu ticket 004
 //
 //  Design doc for wiring `AgentLifecycleTracker` (= the v0.28
 //  hermes-port in `Sources/WenshuApp/Core/Agent/Conversation/AgentLifecycleTracker.swift`)

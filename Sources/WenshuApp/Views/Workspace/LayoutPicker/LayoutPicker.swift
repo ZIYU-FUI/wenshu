@@ -1,4 +1,4 @@
-// LayoutPicker.swift · Wenshu () · v0.28 ticket 028-007
+// LayoutPicker.swift · Wenshu () ticket 028-007
 //
 // Inner picker UI (= hermes `layout-picker.tsx:111-203` port). Shows
 // the 4 builtin preset cards in a 4-column grid (= or however many

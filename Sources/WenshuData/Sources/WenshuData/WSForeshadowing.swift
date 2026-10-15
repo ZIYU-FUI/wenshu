@@ -9,7 +9,7 @@
 //
 //  Old storage: in-memory `Foreshadowing` struct (= managed by
 //  `ForeshadowingTrackerTools.swift`; = ephemeral during agent session;
-//  = NOT persisted to disk pre-v0.72 — the `ForeshadowingSidecar`
+//  = NOT persisted to disk previous — the `ForeshadowingSidecar`
 //  Codable wrapper in the same file is the data shape but no on-disk
 //  per-book JSON was ever written).
 //  New storage: SwiftData @Model (= per foreshadowing entry; = first

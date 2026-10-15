@@ -1,4 +1,4 @@
-// WenshuLibrary.swift · Wenshu (Wenshu) · v0.02.0 (bookshelf module)
+// WenshuLibrary.swift · Wenshu (Wenshu).0 (bookshelf module)
 //
 // @Observable state layer between the view (= SwiftUI BookshelfListView,
 // v40+) and the storage backend (= LibraryStoring). Owns:
@@ -229,7 +229,7 @@ final class WenshuLibrary {
     //
     // Lazy reads (= the storage layer decides how to optimize; current
     // FileSystemLibraryStore re-reads the .md each call). The view layer
-    // (v53.3 BookOutlineView) calls these on each render — for v0.03.0
+    // (BookOutlineView) calls these on each render —
     // the per-card read is fine; v0.04+ can add an in-memory cache.
 
     /// Lists the documents in a given category for the currently-
