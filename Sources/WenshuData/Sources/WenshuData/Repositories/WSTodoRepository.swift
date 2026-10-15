@@ -1,8 +1,6 @@
 //
 //  Persistence/Repositories/WSTodoRepository.swift
 //
-//  v3.1 governance A1g.2 step 3/3 (= boundary decouple, A1 probe 4/8
-//  layered on top).
 //  Apple canonical layering per Backyard Birds:
 //    - write API = raw fields in (= no app-side TodoStatus / TodoPriority
 //      / TodoItem domain type; = caller converts to raw String status
@@ -11,7 +9,6 @@
 //    - read  API = raw WSTodo out (= caller does the
 //      WSTodo -> TodoItem conversion at the boundary).
 //
-//  Public API after A1g.2:
 //    - add(title:priority:dueDate:) throws -> WSTodo        (write: raw fields in, raw @Model out)
 //    - add(id:title:priority:dueDate:) throws -> WSTodo
 //    - setStatus(id:status:) throws                       (String status in, no return)

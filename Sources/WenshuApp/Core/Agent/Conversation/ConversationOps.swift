@@ -1,7 +1,6 @@
 //
 //  ConversationOps.swift
 //
-//  v3.1 governance A1g.1 (= relocate business logic out of data layer).
 //  Apple-canonical pattern (= data layer = pure SwiftData; = business
 //  logic = app-side UseCase / Ops layer).
 //
@@ -22,7 +21,7 @@
 import Foundation
 import WenshuData
 
-/// Business-logic ops for chat (= LLM call + chat persistence = §A1g.1
+/// Business-logic ops for chat (= LLM call + chat persistence =
 /// relocated from WSChatRepository). All ops are @MainActor + async to
 /// match the WenshuVerifier chat path (= the LLM streaming pipeline
 /// already runs on @MainActor).

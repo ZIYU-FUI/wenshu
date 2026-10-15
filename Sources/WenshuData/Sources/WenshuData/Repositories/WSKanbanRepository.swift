@@ -1,8 +1,6 @@
 //
 //  Persistence/Repositories/WSKanbanRepository.swift
 //
-//  v3.1 governance A1g.2 step 2/3 (= boundary decouple, A1 probe 5/8
-//  layered on top).
 //  Apple canonical layering per Backyard Birds:
 //    - write API = raw fields in (= no app-side domain type;
 //      caller converts KanbanStatus -> String rawValue before calling;
@@ -10,7 +8,6 @@
 //    - read  API = raw WSKanbanTask out (= caller does the
 //      WSKanbanTask -> KanbanTask conversion at the boundary).
 //
-//  Public API after A1g.2:
 //    - add(...) throws -> WSKanbanTask             (write: raw @Model in/out)
 //    - transition(id:to: String) throws           (write: raw String status)
 //    - get(id:) throws -> WSKanbanTask?            (read:  raw @Model out)

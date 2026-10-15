@@ -70,7 +70,7 @@ actor BacklinkResolver {
     }
 
     /// Reverse query: given docId, return all backlinks (source link list referencing it).
-    /// A1 refactor: caller converts WSLink -> Link (= domain boundary).
+    /// caller converts WSLink -> Link (= domain boundary).
     func backlinks(forDocId docId: String) async throws -> [Link] {
         let repository = self.repository
         // 1) First reverse-search by docId (target already resolved links)
@@ -91,7 +91,7 @@ actor BacklinkResolver {
     }
 
     /// Reverse query: given display name (filename), return all backlinks.
-    /// A1 refactor: caller converts WSLink -> Link.
+    /// caller converts WSLink -> Link.
     func backlinks(forName name: String) async throws -> [Link] {
         let repository = self.repository
         return try await MainActor.run {
@@ -100,7 +100,7 @@ actor BacklinkResolver {
     }
 
     /// Forward query: given sourceDocId, return all targets it references (Outgoing links).
-    /// A1 refactor: caller converts WSLink -> Link.
+    /// caller converts WSLink -> Link.
     func forwardLinks(forDocId docId: String) async throws -> [Link] {
         let repository = self.repository
         return try await MainActor.run {

@@ -92,7 +92,7 @@ final class WSMemoryProvider: MemoryProvider, @unchecked Sendable {
 
     @MainActor
     private func refreshMirror() async {
-        // A1g.2 step 3/3: convert WSMemory -> Memory inside MainActor.
+        // convert WSMemory -> Memory inside MainActor.
         // WSMemory is non-Sendable, so we extract Sendable scalars
         // (memoryID + content) inside the @MainActor scope and
         // build the domain Memory type from those.
@@ -111,7 +111,7 @@ final class WSMemoryProvider: MemoryProvider, @unchecked Sendable {
 
     func prefetch(forUserMessage message: String) async -> String {
         // Async (= bridges to @MainActor SwiftData + updates mirror).
-        // A1g.2 step 3/3: extract Sendable scalars inside MainActor.run
+        // extract Sendable scalars inside MainActor.run
         // (WSMemory is non-Sendable, = can't cross the boundary).
         let contentLines: [String] = await MainActor.run {
             ((try? memory.search(userId: "default", query: message, limit: 5)) ?? [])
@@ -130,7 +130,7 @@ final class WSMemoryProvider: MemoryProvider, @unchecked Sendable {
 
     func sync(userMessage: String, assistantResponse: String) async {
         let content = "User: \(userMessage)\nAssistant: \(assistantResponse)"
-        // A1g.2 step 3/3: add() returns the inserted WSMemory (= non-Sendable).
+        // add() returns the inserted WSMemory (= non-Sendable).
         // The caller only needs the write to succeed; = drop the value via Void.
         await MainActor.run {
             _ = try? memory.add(userId: "default", content: content)
@@ -179,8 +179,7 @@ final class WSMemoryProvider: MemoryProvider, @unchecked Sendable {
         }
     }
 
-    /// A1 boundary bridge (Sendable-safe).
-    nonisolated private static func toDomain(_ model: WSMemory) -> Memory {
+        nonisolated private static func toDomain(_ model: WSMemory) -> Memory {
         Memory(
             userId: model.userID,
             memoryId: MemoryID(rawValue: model.memoryID),

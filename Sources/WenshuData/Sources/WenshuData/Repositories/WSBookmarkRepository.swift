@@ -1,7 +1,6 @@
 //
 //  Persistence/Repositories/WSBookmarkRepository.swift
 //
-//  v3.1 governance A1 refactor (= boundary probe continuation).
 //  Apple canonical layering per Backyard Birds:
 //    - write API = domain in (= Repository converts Bookmark -> WSBookmark @Model)
 //    - read  API = @Model out (= caller converts WSBookmark -> Bookmark)

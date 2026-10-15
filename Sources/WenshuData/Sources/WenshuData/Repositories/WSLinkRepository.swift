@@ -1,12 +1,11 @@
 //
 //  Persistence/Repositories/WSLinkRepository.swift
 //
-//  v3.1 governance A1g.2.4a (= boundary decouple WSLinkRepository).
+//  (= boundary decouple WSLinkRepository).
 //  Apple canonical layering per Backyard Birds:
 //    - write API = raw fields in (no app-side Link domain type).
 //    - read  API = @Model out (= caller converts WSLink -> Link).
 //
-//  Public API after A1g.2.4a:
 //    - add(sourceDocID:targetRef:targetDocID:line:offset:) throws
 //    - removeAll(sourceDocId:) throws
 //    - searchForward(sourceDocId:) -> [WSLink]

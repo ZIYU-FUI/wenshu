@@ -97,7 +97,7 @@ init(container: ModelContainer) {
     }
 
     func loadMessages(sessionId: SessionID, bookID: BookID?) async throws -> [ChatMessage] {
-        // A1 boundary: convert WSChatMessage -> ChatMessage INSIDE MainActor.
+        // convert WSChatMessage -> ChatMessage INSIDE MainActor.
         // PersistentModel is NOT Sendable across actor boundaries.
         let stored: [ChatMessage] = try await Self.runOnMainActor {
             try self.repository(bookID: bookID).loadMessages(sessionId: sessionId.rawValue, bookID: bookID?.rawValue).compactMap(Self.makeDomain(from:))
@@ -112,7 +112,7 @@ init(container: ModelContainer) {
         verifier: WenshuVerifier,
         bookID: BookID?
     ) async throws {
-        // A1g.1: summarizeIfNeeded relocated to ConversationOps (= LLM call
+        // summarizeIfNeeded relocated to ConversationOps (= LLM call
         // is business logic; = belongs in app-side Ops layer, not in
         // the data layer). The Live impl here is a thin forwarder so
         // the protocol's caller-side surface (= ChatSessionViewModel)

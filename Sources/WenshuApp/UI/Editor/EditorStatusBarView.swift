@@ -129,7 +129,7 @@ struct EditorStatusBarView: View {
         return "\(formatted) 字"
     }
 
-    /// Cursor location label — REMOVED 2026-10-15 (v3.1 governance).
+    /// Cursor location label.
     /// RATIONALE: the "Ln N, Col N" cursor coordinate is a Pages /
     /// Xcode developer convention; = wenshu users don't read the
     /// line / column coordinate. The chunk was removed from the

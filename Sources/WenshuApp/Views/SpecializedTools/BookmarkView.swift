@@ -169,7 +169,7 @@ struct BookmarkView: View {
         guard let bookID = activeBookId else { return }
         let trimmed = draftLabel.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }
-        // A1g.2: BookmarkOps.add now owns the SwiftData write (= the
+        // BookmarkOps.add now owns the SwiftData write (= the
         // view consumes the LoadOutcome enum directly, no second
         // `repository.add(...)` call site).
         let outcome = BookmarkOps.add(

@@ -1,8 +1,6 @@
 //
 //  Persistence/Repositories/WSMemoryRepository.swift
 //
-//  v3.1 governance A1g.2 step 3/3 (= boundary decouple, A1 probe 7/8
-//  layered on top).
 //  Apple canonical layering per Backyard Birds:
 //    - write API = raw fields in (= no app-side MemoryID / Memory
 //      domain type; = caller converts MemoryID -> String rawValue
@@ -11,7 +9,6 @@
 //    - read  API = raw WSMemory out (= caller does the
 //      WSMemory -> Memory conversion at the boundary).
 //
-//  Public API after A1g.2:
 //    - add(userId:content:memoryID:) throws -> WSMemory   (write: raw fields in, raw @Model out)
 //    - get(memoryID:) throws -> WSMemory?                  (read:  raw @Model out)
 //    - search(userId:query:limit:) throws -> [WSMemory]

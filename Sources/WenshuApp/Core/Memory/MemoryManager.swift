@@ -188,7 +188,7 @@ actor MemoryManager {
         limit: Int
     ) async -> [Memory] {
         return await MainActor.run {
-            // A1 boundary: convert WSMemory -> Memory inside MainActor
+            // convert WSMemory -> Memory inside MainActor
             // (PersistentModel is NOT Sendable across actor boundary).
             ((try? memory.search(userId: userId, query: query, limit: limit)) ?? [])
                 .map(Self.toDomain)
@@ -198,7 +198,7 @@ actor MemoryManager {
     /// addMemory: actor-isolated write.
     @discardableResult
     private func addMemory(userId: String, content: String) async -> Bool {
-        // A1g.2 step 3/3: add() returns WSMemory (non-Sendable); the
+        // add() returns WSMemory (non-Sendable); the
         // MainActor.run closure must declare its return type as Bool
         // (= the success flag) so the WSMemory return is dropped
         // before the closure ends (= before Sendable inference runs).
@@ -215,8 +215,7 @@ actor MemoryManager {
         }
     }
 
-    /// A1 boundary bridge (Sendable-safe).
-    nonisolated private static func toDomain(_ model: WSMemory) -> Memory {
+        nonisolated private static func toDomain(_ model: WSMemory) -> Memory {
         Memory(
             userId: model.userID,
             memoryId: MemoryID(rawValue: model.memoryID),

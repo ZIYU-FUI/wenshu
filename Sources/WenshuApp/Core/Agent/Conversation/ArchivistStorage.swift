@@ -72,7 +72,7 @@ final class LiveArchivistStorage: ArchivistStorage {
     func addBookmark(docID: String, label: String) async throws {
         let newID = UUID().uuidString
         _ = try bookmarkRepo.add(id: newID, title: label, docID: docID)
-        // A1g.2: Spotlight bootstrap moved to caller (= data layer no
+        // Spotlight bootstrap moved to caller (= data layer no
         // longer owns app-side infrastructure). The original logic
         // (= index after add, remove after delete) is preserved 1:1.
         Task.detached(priority: .utility) {
@@ -101,7 +101,7 @@ final class LiveArchivistStorage: ArchivistStorage {
 
     func removeBookmark(id: String) async throws {
         try bookmarkRepo.remove(id: id)
-        // A1g.2: Spotlight remove moved to caller.
+        // Spotlight remove moved to caller.
         Task.detached(priority: .utility) {
             try? await CSSearchableIndexSearch.shared.remove(docId: id)
         }

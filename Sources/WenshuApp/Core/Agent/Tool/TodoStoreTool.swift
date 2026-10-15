@@ -196,7 +196,7 @@ struct TodoStoreTool: Tool, Sendable {
     private func runList(parsed: [String: Any]) async -> String {
         let statusFilter: String? = parsed["status"] as? String
         do {
-            // A1g.2 step 3/3: todoRepository.list takes String? status.
+            // todoRepository.list takes String? status.
             // Build Sendable scalar array inside the MainActor.run so WSTodo
             // never crosses the actor isolation boundary (= PersistentModels
             // are NOT Sendable).

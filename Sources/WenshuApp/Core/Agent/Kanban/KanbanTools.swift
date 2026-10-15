@@ -193,7 +193,7 @@ actor KanbanTools {
             return KanbanToolResult(success: false, output: "task_id is required for show")
         }
         do {
-            // A1 boundary: convert WSKanbanTask -> KanbanTask INSIDE MainActor.run
+            // convert WSKanbanTask -> KanbanTask INSIDE MainActor.run
             // (PersistentModel is NOT Sendable across actor boundaries).
             let taskOpt: KanbanTask? = try await MainActor.run {
                 try store.get(id: id).map(Self.toDomain)
@@ -214,7 +214,7 @@ actor KanbanTools {
     /// List tasks with filters (= hermes _handle_list).
     private func list(params: KanbanParams) async -> KanbanToolResult {
         do {
-            // A1g.2 step 2/3: store.list now takes String? (not KanbanStatus?).
+            // store.list now takes String? (not KanbanStatus?).
             // Build a Sendable scalar array inside MainActor.run.
             let data: [(id: String, title: String, status: String)] = try await MainActor.run {
                 try store.list(status: params.status).map { model in
@@ -378,9 +378,7 @@ actor KanbanTools {
         }
     }
 
-    /// A1 boundary bridge (Sendable-safe). Static + nonisolated so the
-    /// converter can be called from inside MainActor.run closures without
-    /// capturing actor-isolated state.
+    
     nonisolated private static func toDomain(_ model: WSKanbanTask) -> KanbanTask {
         KanbanTask(
             id: model.id,

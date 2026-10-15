@@ -306,7 +306,7 @@ public final class WSChatRepository {
         return try context.fetch(descriptor)
     }
 
-    // summarizeIfNeeded relocated to ConversationOps (A1g.1). The LLM call
+    // summarizeIfNeeded relocated to ConversationOps. The LLM call
     // (= WenshuVerifier) and the post-summarize storage ops are business
     // logic; = they belong in app-side, not in the data layer.
 
@@ -360,7 +360,7 @@ public final class WSChatRepository {
     }
 
     // MARK: - SubAgentRuns
-    // loadSubAgentRuns + recordSubAgentRun relocated to ConversationOps (A1g.1).
+    // loadSubAgentRuns + recordSubAgentRun relocated to ConversationOps.
     // See Core/Agent/Conversation/ConversationOps.swift. The legacy methods
     // (= loadSubAgentRuns was dead code; = recordSubAgentRun was business
     // logic) are now implemented in app-side, not in the data layer.
@@ -373,7 +373,7 @@ public final class WSChatRepository {
     /// Insert a @Model + save (= small business-side helper for callers
     /// that already have a model constructed with raw fields). Replaces
     /// the legacy `recordSubAgentRun(_:)` business-logic method that
-    /// lived here before A1g.1 (= relocated to ConversationOps).
+    /// lived here.
     public func insertAndSave(_ model: WSSubAgentRun) throws {
         context.insert(model)
         try context.save()
