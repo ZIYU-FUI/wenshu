@@ -44,23 +44,23 @@ struct KanbanStoreTests {
     @MainActor
     func testAddGet() async throws {
         let store = try Self.makeKanbanRepository()
-                let task = try await store.add(title: "实现 MemoryStore", status: KanbanStatus.new.rawValue)
-        let got = try await store.get(id: task.id)
+                let taskId = try await store.add(title: "实现 MemoryStore", status: KanbanStatus.new.rawValue)
+        let got = try await store.get(id: taskId)
         #expect(got?.title == "实现 MemoryStore")
-        #expect(got?.status == .new)
+        #expect(got?.status == KanbanStatus.new.rawValue)
     }
 
     @Test("transition 改 status")
     @MainActor
     func testTransition() async throws {
         let store = try Self.makeKanbanRepository()
-                let task = try await store.add(title: "test", status: KanbanStatus.new.rawValue)
-        try await store.transition(id: task.id, to: .running)
-        let updated = try await store.get(id: task.id)
-        #expect(updated?.status == .running)
-        try await store.transition(id: task.id, to: .done)
-        let final = try await store.get(id: task.id)
-        #expect(final?.status == .done)
+                let taskId = try await store.add(title: "test", status: KanbanStatus.new.rawValue)
+        try await store.transition(id: taskId, to: KanbanStatus.running.rawValue)
+        let updated = try await store.get(id: taskId)
+        #expect(updated?.status == KanbanStatus.running.rawValue)
+        try await store.transition(id: taskId, to: KanbanStatus.done.rawValue)
+        let final = try await store.get(id: taskId)
+        #expect(final?.status == KanbanStatus.done.rawValue)
     }
 
     @Test("list 按 status 过滤")
@@ -80,9 +80,9 @@ struct KanbanStoreTests {
     @MainActor
     func testDelete() async throws {
         let store = try Self.makeKanbanRepository()
-                let task = try await store.add(title: "test")
-        try await store.delete(id: task.id)
-        let got = try await store.get(id: task.id)
+                let taskId = try await store.add(title: "test")
+        try await store.delete(id: taskId)
+        let got = try await store.get(id: taskId)
         #expect(got == nil)
     }
 

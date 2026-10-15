@@ -45,8 +45,17 @@ struct WSChatRepositoryNilBookIDContractTests {
         let repo = try makeRepository()
         let sessionID = "book::global-test"
 
+        let msg = makeMessage(
+            id: "m-global-1",
+            content: "global-bucket-message"
+        )
         try repo.append(
-            makeMessage(id: "m-global-1", content: "global-bucket-message"),
+            id: msg.id,
+            source: msg.source,
+            content: msg.content,
+            tokens: nil,
+            thinking: nil,
+            timestamp: msg.timestamp,
             sessionId: sessionID,
             bookID: nil
         )
@@ -67,20 +76,20 @@ struct WSChatRepositoryNilBookIDContractTests {
         let sessionA = "book:\(bookA.rawValue):default"
         let sessionB = "book:\(bookB.rawValue):default"
 
-        try repo.append(makeMessage(id: "m-A", content: "book-A-payload"),
-                        sessionId: sessionA, bookID: bookA)
-        try repo.append(makeMessage(id: "m-B", content: "book-B-payload"),
-                        sessionId: sessionB, bookID: bookB)
+        let msg = makeMessage(id: "m-A", content: "book-A-payload")
+        try repo.append(id: msg.id, source: msg.source, content: msg.content, tokens: nil, thinking: nil, timestamp: msg.timestamp, sessionId: sessionA, bookID: bookA.rawValue)
+        let msgB = makeMessage(id: "m-B", content: "book-B-payload")
+        try repo.append(id: msgB.id, source: msgB.source, content: msgB.content, tokens: nil, thinking: nil, timestamp: msgB.timestamp, sessionId: sessionB, bookID: bookB.rawValue)
 
         // Book A load only sees book-A rows.
-        let aRows = try repo.loadMessages(sessionId: sessionA, bookID: bookA)
+        let aRows = try repo.loadMessages(sessionId: sessionA, bookID: bookA.rawValue)
         #expect(aRows.count == 1)
         #expect(aRows.first?.content == "book-A-payload")
         #expect(aRows.contains(where: { $0.content == "book-B-payload" }) == false,
                 "book-A reader must not see book-B content")
 
         // Book B load only sees book-B rows.
-        let bRows = try repo.loadMessages(sessionId: sessionB, bookID: bookB)
+        let bRows = try repo.loadMessages(sessionId: sessionB, bookID: bookB.rawValue)
         #expect(bRows.count == 1)
         #expect(bRows.first?.content == "book-B-payload")
 
@@ -103,8 +112,17 @@ struct WSChatRepositoryNilBookIDContractTests {
         let repo = try makeRepository()
         let sessionID = "book::legacy-empty-bk"
 
+        let msg = makeMessage(
+            id: "m-legacy-1",
+            content: "legacy-bucket-message"
+        )
         try repo.append(
-            makeMessage(id: "m-legacy-1", content: "legacy-bucket-message"),
+            id: msg.id,
+            source: msg.source,
+            content: msg.content,
+            tokens: nil,
+            thinking: nil,
+            timestamp: msg.timestamp,
             sessionId: sessionID,
             bookID: nil
         )

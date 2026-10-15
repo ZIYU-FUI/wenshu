@@ -84,7 +84,7 @@ struct KanbanSchemaTests {
         let store = try makeStore("test")
                 let taskId = try await store.add(title: "task", status: KanbanStatus.new.rawValue)
         try await store.transition(id: taskId, to: KanbanStatus.running.rawValue)
-        let loaded = try await store.get(id: task.id)
+        let loaded = try await store.get(id: taskId)
         #expect(loaded?.startedAt != nil)
         #expect(loaded?.completedAt == nil)
     }
@@ -92,12 +92,12 @@ struct KanbanSchemaTests {
     @Test("transition to .done auto-sets completedAt")
     func testTransitionDoneAutoSetsCompleted() async throws {
         let store = try makeStore("test")
-                let task = try await store.add(title: "task", status: KanbanStatus.running.rawValue)
-        try await store.transition(id: task.id, to: .done)
-        let loaded = try await store.get(id: task.id)
+                let taskId = try await store.add(title: "task", status: KanbanStatus.running.rawValue)
+        try await store.transition(id: taskId, to: KanbanStatus.done.rawValue)
+        let loaded = try await store.get(id: taskId)
         #expect(loaded?.startedAt != nil)
         #expect(loaded?.completedAt != nil)
-        #expect(loaded?.status == .done)
+        #expect(loaded?.status == KanbanStatus.done.rawValue)
     }
 
     @Test("transition preserves startedAt (COALESCE — only set on first .running)")
@@ -105,33 +105,33 @@ struct KanbanSchemaTests {
         let store = try makeStore("test")
                 let taskId = try await store.add(title: "task", status: KanbanStatus.new.rawValue)
         try await store.transition(id: taskId, to: KanbanStatus.running.rawValue)
-        let firstStart = try await store.get(id: task.id)
+        let firstStart = try await store.get(id: taskId)
         #expect(firstStart?.startedAt != nil)
         let firstStartDate = firstStart!.startedAt!
         // Back to .blocked, then back to .running — startedAt should NOT change
-        try await store.transition(id: task.id, to: .blocked)
-        try await store.transition(id: task.id, to: .running)
-        let secondStart = try await store.get(id: task.id)
+        try await store.transition(id: taskId, to: KanbanStatus.blocked.rawValue)
+        try await store.transition(id: taskId, to: KanbanStatus.running.rawValue)
+        let secondStart = try await store.get(id: taskId)
         #expect(secondStart?.startedAt == firstStartDate)
     }
 
     @Test("transition to .failed auto-sets completedAt (v0.23 task 013.003)")
     func testTransitionFailedAutoSetsCompleted() async throws {
         let store = try makeStore("test")
-                let task = try await store.add(title: "task", status: KanbanStatus.running.rawValue)
-        try await store.transition(id: task.id, to: .failed)
-        let loaded = try await store.get(id: task.id)
+                let taskId = try await store.add(title: "task", status: KanbanStatus.running.rawValue)
+        try await store.transition(id: taskId, to: KanbanStatus.failed.rawValue)
+        let loaded = try await store.get(id: taskId)
         #expect(loaded?.completedAt != nil)
-        #expect(loaded?.status == .failed)
+        #expect(loaded?.status == KanbanStatus.failed.rawValue)
     }
 
     @Test("KanbanTask equality includes metadata fields")
     func testKanbanTaskEquality() {
         let now = Date()
-        let a = KanbanTask(id: "1", title: "t", status: KanbanStatus.new.rawValue, createdAt: now, updatedAt: now, priority: 5)
-        let b = KanbanTask(id: "1", title: "t", status: KanbanStatus.new.rawValue, createdAt: now, updatedAt: now, priority: 5)
+        let a = KanbanTask(id: "1", title: "t", status: KanbanStatus.new, createdAt: now, updatedAt: now, priority: 5)
+        let b = KanbanTask(id: "1", title: "t", status: KanbanStatus.new, createdAt: now, updatedAt: now, priority: 5)
         #expect(a == b)
-        let c = KanbanTask(id: "1", title: "t", status: KanbanStatus.new.rawValue, createdAt: now, updatedAt: now, priority: 8)
+        let c = KanbanTask(id: "1", title: "t", status: KanbanStatus.new, createdAt: now, updatedAt: now, priority: 8)
         #expect(a != c)
     }
 }

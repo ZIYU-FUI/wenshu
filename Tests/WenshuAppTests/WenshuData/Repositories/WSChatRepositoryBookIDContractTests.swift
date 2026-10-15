@@ -68,34 +68,34 @@ struct WSChatRepositoryBookIDContractTests {
 
         // Append a message to the book-A session.
         try repo.append(
-            StoredChatMessage(
-                id: "msg-A-1",
-                source: "user",
-                content: "in book A",
-                timestamp: Date()
-            ),
+            id: "msg-A-1",
+            source: "user",
+            content: "in book A",
+            tokens: nil,
+            thinking: nil,
+            timestamp: Date(),
             sessionId: "shared",
-            bookID: Self.bookA
+            bookID: Self.bookA.rawValue
         )
         // Append a message to the book-B session.
         try repo.append(
-            StoredChatMessage(
-                id: "msg-B-1",
-                source: "user",
-                content: "in book B",
-                timestamp: Date()
-            ),
+            id: "msg-B-1",
+            source: "user",
+            content: "in book B",
+            tokens: nil,
+            thinking: nil,
+            timestamp: Date(),
             sessionId: "shared",
-            bookID: Self.bookB
+            bookID: Self.bookB.rawValue
         )
 
         // Loading under book-A returns only msg-A-1.
-        let aMessages = try repo.loadMessages(sessionId: "shared", bookID: Self.bookA)
+        let aMessages = try repo.loadMessages(sessionId: "shared", bookID: Self.bookA.rawValue)
         #expect(aMessages.count == 1)
         #expect(aMessages.first?.id == "msg-A-1")
 
         // Loading under book-B returns only msg-B-1.
-        let bMessages = try repo.loadMessages(sessionId: "shared", bookID: Self.bookB)
+        let bMessages = try repo.loadMessages(sessionId: "shared", bookID: Self.bookB.rawValue)
         #expect(bMessages.count == 1)
         #expect(bMessages.first?.id == "msg-B-1")
 
@@ -116,12 +116,12 @@ struct WSChatRepositoryBookIDContractTests {
 
         // Append with no bookID (= legacy call sites + onboarding).
         try repo.append(
-            StoredChatMessage(
-                id: "msg-global",
-                source: "user",
-                content: "global message",
-                timestamp: Date()
-            ),
+            id: "msg-global",
+            source: "user",
+            content: "global message",
+            tokens: nil,
+            thinking: nil,
+            timestamp: Date(),
             sessionId: "shared",
             bookID: nil
         )
@@ -135,9 +135,9 @@ struct WSChatRepositoryBookIDContractTests {
         #expect(globalMessages.first?.id == "msg-global")
 
         // Per-book views must NOT see it.
-        let aMessages = try repo.loadMessages(sessionId: "shared", bookID: Self.bookA)
+        let aMessages = try repo.loadMessages(sessionId: "shared", bookID: Self.bookA.rawValue)
         #expect(aMessages.isEmpty)
-        let bMessages = try repo.loadMessages(sessionId: "shared", bookID: Self.bookB)
+        let bMessages = try repo.loadMessages(sessionId: "shared", bookID: Self.bookB.rawValue)
         #expect(bMessages.isEmpty)
     }
 
@@ -147,10 +147,10 @@ struct WSChatRepositoryBookIDContractTests {
         let repo = try makeRepository()
         try repo.createSession(sessionID: "shared", bookID: Self.bookA.rawValue)
 
-        let aHit = try repo.getSession(sessionID: "shared", bookID: Self.bookA)
+        let aHit = try repo.getSession(sessionID: "shared", bookID: Self.bookA.rawValue)
         #expect(aHit?.sessionID == "shared")
         // No session with sessionID=shared under bookB = lookup misses.
-        let bMiss = try repo.getSession(sessionID: "shared", bookID: Self.bookB)
+        let bMiss = try repo.getSession(sessionID: "shared", bookID: Self.bookB.rawValue)
         #expect(bMiss == nil)
     }
 }

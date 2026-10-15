@@ -58,6 +58,7 @@ import Testing
 import SwiftData
 import Foundation
 import WenshuData
+import os
 @testable import WenshuApp
 
 @Suite("E2E: one prompt → real LLM call → real memory write (LIVE)")
