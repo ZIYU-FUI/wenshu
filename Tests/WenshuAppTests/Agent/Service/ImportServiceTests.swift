@@ -415,9 +415,9 @@ final class ImportServiceTests: XCTestCase {
     // MARK: - Crypto helper
 
     func testSha256_isStableAcrossRuns() {
-        let a = ImportService.sha256("hello world")
-        let b = ImportService.sha256("hello world")
+        let a = ImportServiceHashing.sha256("hello world")
+        let b = ImportServiceHashing.sha256("hello world")
         XCTAssertEqual(a, b)
-        XCTAssertNotEqual(a, ImportService.sha256("hello world!"))
+        XCTAssertNotEqual(a, ImportServiceHashing.sha256("hello world!"))
     }
 }

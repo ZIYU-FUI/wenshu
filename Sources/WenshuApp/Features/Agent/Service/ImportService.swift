@@ -359,7 +359,7 @@ actor ImportService {
             let hash: String
             do {
                 let body = try String(contentsOfFile: tasks[i].sourcePath, encoding: .utf8)
-                hash = Self.sha256(body)
+                hash = ImportServiceHashing.sha256(body)
             } catch {
                 tasks[i].state = .failed
                 tasks[i].errorMessage = "读取文件失败: \(error.localizedDescription)"
@@ -509,7 +509,7 @@ actor ImportService {
                 fileName: (tasksBox.value[i].sourcePath as NSString).lastPathComponent,
                 siblingContext: siblingContext
             )
-            let bodyHash = Self.sha256(synthesizedBody)
+            let bodyHash = ImportServiceHashing.sha256(synthesizedBody)
             if let cached = cache[tasksBox.value[i].sourcePath],
                cached.lastTitleOnlyRetriedHash == bodyHash {
                 // Already retried with the SAME body hash = the LLM output
@@ -637,14 +637,14 @@ actor ImportService {
                 fileName: (sourcePath as NSString).lastPathComponent,
                 siblingContext: siblingContext
             )
-            let bodyHash = Self.sha256(synthesizedBody)
+            let bodyHash = ImportServiceHashing.sha256(synthesizedBody)
             if var entry = cacheBox.value[sourcePath] {
                 entry.lastTitleOnlyRetriedAt = Date()
                 entry.lastTitleOnlyRetriedHash = bodyHash
                 cacheBox.value[sourcePath] = entry
             } else {
                 cacheBox.value[sourcePath] = CacheEntry(
-                    contentHash: "orphan-" + Self.sha256(sourcePath),
+                    contentHash: "orphan-" + ImportServiceHashing.sha256(sourcePath),
                     destination: .referenceLibrary,
                     writtenAt: Date(),
                     lastTitleOnlyRetriedAt: Date(),
@@ -764,7 +764,7 @@ actor ImportService {
     ) -> Bool {
         switch cached.destination {
         case .referenceLibrary:
-            let uuid = Self.uuidFromHash(cached.contentHash)
+            let uuid = ImportServiceHashing.uuidFromHash(cached.contentHash)
             let refMdURL = target.wsRoot
                 .appendingPathComponent("reference-library")
                 .appendingPathComponent("entities")
@@ -930,7 +930,7 @@ actor ImportService {
         // LLM is instructed to always return a title; = a missing title
         // would indicate a deeper LLM misbehavior worth surfacing as a
         // generic "未命名" rather than a cryptic UUID).
-        let uuid = Self.uuidFromHash(contentHash)
+        let uuid = ImportServiceHashing.uuidFromHash(contentHash)
         // (= the boss's 2026-10-09 round-18 "强制让用户 分开导入" directive). When the user
         // pinned the reference library, this branch is unreachable (= the
         // LLM already overrode the destination to .referenceLibrary + the
@@ -1028,7 +1028,7 @@ actor ImportService {
         let refMdURL = target.wsRoot
             .appendingPathComponent("reference-library")
             .appendingPathComponent("entities")
-            .appendingPathComponent("\(Self.uuidFromHash(contentHash).uuidString).md")
+            .appendingPathComponent("\(ImportServiceHashing.uuidFromHash(contentHash).uuidString).md")
         if FileManager.default.fileExists(atPath: refMdURL.path) {
             // File already exists for this content hash (= the previous
             // import wrote it). Run Stage 2 LLM check.
@@ -1084,7 +1084,7 @@ actor ImportService {
     ) {
         let safeContentHash: String
         if contentHash.isEmpty || contentHash.count < 16 {
-            safeContentHash = "orphan-" + Self.sha256(sourcePath)
+            safeContentHash = "orphan-" + ImportServiceHashing.sha256(sourcePath)
         } else {
             safeContentHash = contentHash
         }
@@ -1177,7 +1177,7 @@ actor ImportService {
     ) async throws {
         // uuid = content-hash-prefixed (= the same body always lands at the same
         // reference-library file; = idempotent re-import dedup).
-        let uuid = Self.uuidFromHash(contentHash)
+        let uuid = ImportServiceHashing.uuidFromHash(contentHash)
         // Build a Reference struct from the routing result (= the LLM supplies the
         // metadata; = the orchestrator maps ImportRoutingResult onto the
         // existing Reference struct).
@@ -1248,67 +1248,10 @@ actor ImportService {
         }
     }
 
-    // MARK: - Crypto helpers (= Apple-native; = no third-party deps per AGENTS.md §11.1)
+    // (sha256 extracted to ImportServiceHashing.swift in A59; = see that file)
 
-    /// SHA-256 of a String (= the body dedup key; = uses Apple's CryptoKit; =
-    /// AGENTS.md §11.1 forbids third-party crypto).
-    static func sha256(_ s: String) -> String {
-        let data = Data(s.utf8)
-        let digest = CryptoKit.SHA256.hash(data: data)
-        return digest.map { String(format: "%02x", $0) }.joined()
-    }
+    // (uuidFromHash extracted to ImportServiceHashing.swift in A59; = see that file)
 
-    /// Derive a stable UUID from a SHA-256 hex string (= the on-disk filename
-    /// for a body-hash). Takes the first 16 bytes (= 32 hex chars); = sets RFC
-    /// 4122 version (= 4) and variant (= 10) bits so the UUID round-trips
-    /// through `UUID(uuidString:)`. (= boss 2026-10-10 (see OOB.md #2026-10-10)
-    /// (= `chars[i*2..<i*2+2]` index out of range at i=15; = the
-    /// `Array._checkIndex` failure captured in the wenshu.ips crash report at
-    /// 2026-10-10 10:44:08). The trigger: a stale cache entry (= the boss's
-    /// `import-cache.json` from a previous wenshu version) had a `contentHash`
-    /// shorter than 32 hex chars (= the older wenshu stored a UUID string or a
-    /// truncated hash); = the `retryFailedTasksTitleOnly` flow ran
-    /// `uuidFromHash` on that short string; = crash; = SIGTRAP → Trace/BPT trap
-    /// → `termination.indicator = "Trace/BPT trap: 5"`). Fix: validate the hex
-    /// length BEFORE indexing; = if too short, return a stable UUID derived
-    /// from a hashed-padded version of the input (= the on-disk filename won't
-    /// match the previously-imported file's path = the re-import will write a
-    /// new .md at a new UUID; = the old cache entry is effectively invalidated;
-    /// = this is the right behavior for a cache entry that was written by a
-    /// wenshu version with a different hash format).
-    static func uuidFromHash(_ hex: String) -> UUID {
-        let chars = Array(hex.prefix(32))
-        // validate the input length BEFORE indexing. If too short, re-hash the input to a
-        // 32-char hex string (= the output is a deterministic UUID that
-        // doesn't match any previously-imported file's path; = the re-import
-        // writes a new .md at this UUID; = the old cache entry is effectively
-        // orphaned).
-        let safeHex: String
-        if chars.count < 32 {
-            safeHex = Self.sha256(hex.isEmpty ? "wenshu-orphan-\(hex)" : hex)
-                .prefix(32)
-                .description
-        } else {
-            safeHex = hex
-        }
-        let safeChars = Array(safeHex.prefix(32))
-        var bytes = [UInt8](repeating: 0, count: 16)
-        for i in 0..<16 {
-            let byte = UInt8(String(safeChars[i*2..<i*2+2]), radix: 16) ?? 0
-            bytes[i] = byte
-        }
-        // RFC 4122 version 4 + variant 10 (= a random-ish UUID that survives uuidString
-        // round-tripping through Foundation).
-        bytes[6] = (bytes[6] & 0x0F) | 0x40
-        bytes[8] = (bytes[8] & 0x3F) | 0x80
-        let uuid: uuid_t = (
-            bytes[0], bytes[1], bytes[2], bytes[3],
-            bytes[4], bytes[5], bytes[6], bytes[7],
-            bytes[8], bytes[9], bytes[10], bytes[11],
-            bytes[12], bytes[13], bytes[14], bytes[15]
-        )
-        return UUID(uuid: uuid)
-    }
 }
 
 // (extracted to ImportServiceCancellation.swift in A55; = see that file)
