@@ -191,6 +191,40 @@ When a future ticket picks up A1g.4.1-A1g.4.5, the work is purely
 mechanical (= the dry-run findings above are the precise bug list;
 = no more discovery probes needed).
 
+
+
+## A1g.4.2-4.4 merge required (2026-10-15)
+
+When A1g.4.1 (= WenshuData skeleton + root .package wire-up) lands
+on main, the build still passes (= the WenshuData target has only
+a Stub.swift file; = the App target does not yet depend on
+WenshuData via .product). When A1g.4.2 attempts the file move
+alone, the build breaks (= the App target no longer has access
+to the 38 moved types; = the WS* type lookups in 65 caller
+files fail; = the @Model Container.shared access in
+WenshuAppDelegate fails; = etc).
+
+AGENTS.md §7.1 requires swift build exits 0 per commit; = A1g.4.2
+cannot land as a single broken commit. The fix is to merge
+A1g.4.2 + A1g.4.4 into one commit:
+
+  - A1g.4.2-4.4 = mv 38 Persistence files + delete Persistence/
+    + delete Stub.swift + add '.product(name: WenshuData, package:
+    WenshuData)' to WenshuApp target + add 'import WenshuData' to
+    65 WenshuApp source files = 1 commit (= AGENTS.md §1.10
+    treated as the 1 atomic ticket = "A1g.4 file move with caller
+    import wave").
+
+The .public-modifier sweep (= A1g.4.3 in the original plan) is
+still separate (= the moved files need public modifier before
+the App can see their members, but the types are now visible
+after A1g.4.2-4.4 lands; = the build can then incrementally
+report only the public-modifier errors as A1g.4.3 work).
+
+This revises the original 6-sub-ticket plan (= A1g.4.1-5) to
+a 5-sub-ticket plan (= A1g.4.1 + A1g.4.2-4.4 + A1g.4.5 + A1g.4.6
+public-modifier sweep).
+
 ## A1g.4 atomic-attempt findings (2026-10-15)
 
 Performed an atomic A1g.4 attempt on a worktree
@@ -246,7 +280,7 @@ Revised A1g.4 plan (5 sub-tickets, each = 1 atomic commit):
 |---|-------|-----|------|
 | A1g.2.4 | Boundary: WSLinkRepository + WSChatRepository decouple (= the 2 Repos A1g.2 left untouched) | ~300 | medium |
 | A1g.4.1 | Create WenshuData/ package skeleton + add to root Package.swift (no files moved yet) | ~30 | low |
-| A1g.4.2 | mv 38 Persistence files to Sources/WenshuData/ + delete empty Persistence/ (single mv) | 0 LOC | low |
+| A1g.4.2 | mv 38 Persistence files to Sources/WenshuData/ + delete empty Persistence/ + delete Stub.swift | 0 LOC | low (= BLOCKED: cannot be 1 commit per AGENTS.md §7.1; = must bundle with A1g.4.4 caller-side imports; = see A1g.4.2-4.4 merged below) |
 | A1g.4.3 | public-modifier sweep on moved files (scope-aware) | ~200 edits | medium |
 | A1g.4.4 | import WenshuData added to 65 WenshuApp source files | ~65 LOC | low |
 | A1g.4.5 | @MainActor + Sendable visibility fixes (= 5-10 sites) | ~150 LOC | medium |
