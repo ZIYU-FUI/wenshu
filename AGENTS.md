@@ -46,10 +46,34 @@ Single source of truth for every wenshu contributor and every AI agent acting on
 | 1.4 | Forbidden xianxia vocabulary (replace with 修 / 改 / fix / 替换 / 调整): 修真 / 渡劫 / 筑基 / 返虚 / 结丹 / 金丹 / 元婴 / 飞升 / 天劫 / 雷劫 / 心魔 / 魔障. | wenshu-pollution-defense. |
 | 1.5 | Comment policy: engineering intent only. Forbidden: boss directive text, ticket IDs, Q-numbers, version narratives, phase numbering, refactor history, follow-up chains, ticket lineage. | wenshu-comment-policy. |
 | 1.6 | OOB references in code: only (see OOB.md #YYYY-MM-DD). Never directive text inline. | Manual. |
-| 1.7 | First line of every doc = fact. Last line of every doc = fact. | Manual. |
+| 1.7 | Nervous file index (NFI) registration: every extracted/added file (god-class split, scope views, helper namespace) MUST be registered in this section with parent ref + LOC + content tag. Discoverability < 5s by name. | Manual. |
 | 1.8 | High information density. One line per argument. No narrative paragraphs. | wenshu-humanizer-voice. |
 | 1.9 | Auto-load wenshu-pocock-workflow on every wenshu turn (forced via .hermes.md at repo root). | Path-enforced. |
 | 1.10 | One ticket = one commit + one atomic verification + one 4-section business-language spec + one dual-axis dispatch + one P0 fix + one verify round + merge gate. | universal-pocock-workflow. |
+| 1.11 | NFI (nervous file index) = this section's table. Lists every file split from a god-class or extracted to its own file via A55+ arcs. Each row: parent file, current LOC, content tag. The next reader finds the file by concern in < 5s. | Manual. |
+
+### §1.11 Nervous file index (NFI)
+
+| Parent (god-class) | Extracted file | LOC | Content tag |
+| ------------------ | -------------- | --- | ----------- |
+| `Sources/.../ImportService.swift` (1693 LOC, 3x cap, remains 1 actor + 3 extensions) | `Sources/.../ImportServiceCancellation.swift` | 129 | `extension ImportService { cancel() rollback() resetRollbackTrail() snapshotReferenceLibraryIndex() }` = the cancel + rollback surface. |
+| `Sources/.../ImportService.swift` | `Sources/.../ImportServiceDedup.swift` | 118 | `enum ImportServiceDedup { findEntityByTitle + normalizeTitle + sanitizeFilename }` = dedup + filename helpers. |
+| `Sources/.../ImportService.swift` | `Sources/.../ImportServiceFileSystem.swift` | 74 | `enum ImportServiceFileSystem { walkSourceDir }` = file-system walker. |
+| `Sources/.../ImportService.swift` | `Sources/.../ImportServiceHashing.swift` | 89 | `enum ImportServiceHashing { sha256 + uuidFromHash }` = hash + UUID-derivation helpers. |
+| `Sources/.../WenshuAppDelegate.swift` (471 LOC, under cap) | `Sources/.../WenshuAppDelegateSwiftDataMigration.swift` | 186 | `enum WenshuAppDelegateSwiftDataMigration { attemptSwiftDataMigrationIfNeeded + runSwiftDataMigrationPipeline + writeMigrationBackup + bumpSchemaVersion }` = the SwiftData migration surface. |
+| `Sources/.../ImportDocumentTemplates.swift` (under cap) | `Sources/.../WorldSubSection.swift` | 172 | `enum WorldSubSection { 6 cases }` = the 6-case world sub-section enum. |
+| `Sources/.../ImportDocumentTemplates.swift` | `Sources/.../ImportDocumentTemplateSkeletons.swift` | ~428 | `static let` 6 per-template skeleton constants. |
+| `Sources/.../WenshuConductorImportRouter.swift` (under cap) | `Sources/.../WenshuConductorImportRouterHelpers.swift` | ~1260 | `enum WCIRHelpers { 18 static helpers }` = routing orchestrator helper namespace. |
+| `Sources/.../Library/View/SidebarService.swift` (under cap) | `Sources/.../Library/View/SidebarServiceMutation.swift` | ~577 | `enum SidebarServiceMutation { 18 static helpers }` = sidebar mutation namespace. |
+| `Sources/.../Editor/View/PreviewPane.swift` (1359 LOC, 2.3x cap, remains 1 main view) | `Sources/.../Editor/View/PreviewPaneCard.swift` | 518 | `internal struct Card: View` + `internal enum CardSource` = the card UI sub-view. |
+| `Sources/.../Editor/View/PreviewPane.swift` | `Sources/.../Editor/View/PreviewPaneModels.swift` | ~284 | 5 supporting types for the preview pane. |
+| `Sources/.../FileSystemReferenceStore.swift` (880 LOC, over cap) | `Sources/.../FileSystemReferenceStoreTypes.swift` | 144 | `ReferenceStoring` protocol + `ReferenceStoreError` enum + `ReferenceLibraryMetadata` struct = 3 supporting types. |
+| `Sources/.../Agent/View/ImportSheet.swift` (807 LOC, under cap post-A38) | `Sources/.../Agent/View/ImportSheetTaskViews.swift` | ~525 | 8 view-private structs extracted from ImportSheet. |
+| `Sources/.../Agent/View/ImportSheet.swift` | `Sources/.../Agent/View/ImportSheetHelpers.swift` | <600 | helpers for ImportSheet (= after A42 collapse). |
+| `Sources/.../Shared/UI/IconStyles.swift` (under cap) | `Sources/.../Shared/UI/IconStyles` (4 split files) | varies | 5 view variants + `WenshuTextStyle` extracted. |
+| `Sources/.../ImportService.swift` (TODO A60+) | `Sources/.../ImportServiceLLMDispatch.swift` (planned) | TBD | `dispatchLLM + markLLMFailed` (TBD, blocked on `lastDispatchError` stored-property coupling). |
+| `Sources/.../ImportService.swift` (TODO A61+) | `Sources/.../ImportServiceWriting.swift` (planned) | TBD | 6 write funcs (TBD, blocked on `CacheBox` + `TasksBox` fileprivate). |
+| `Sources/.../Editor/View/PreviewPane.swift` (TODO A62+) | `Sources/.../Editor/View/PreviewPaneBody.swift` (planned) | TBD | the `var body` (TBD, 503 LOC = blocked on PreviewPane self refs). |
 
 ## §2 Stack baseline
 
