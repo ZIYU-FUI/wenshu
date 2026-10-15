@@ -1,24 +1,27 @@
 //
 //  Persistence/Repositories/WSMemoryRepository.swift
 //
-//  Thin wrapper that exposes the same public API as the prior
-//  MemoryStore actor (= hermes mem0 port).
+//  v3.1 governance A1 refactor (= boundary probe 7/8).
+//  Apple canonical layering per Backyard Birds:
+//    - write API = domain-in/domain-out (Repository constructs
+//      WSMemory @Model internally, returns the persisted Memory).
+//    - read  API = @Model out (caller converts WSMemory -> Memory).
 //
-//  Public API (preserved 1:1):
-//    - add(userId:content:) throws -> Memory
-//    - search(userId:query:limit:) throws -> [Memory]
-//    - get(memoryId:) throws -> Memory?
-//    - update(memoryId:content:) throws
+//  Public API after A1 probe:
+//    - add(userId:content:memoryID:) throws -> Memory        (write: domain-in/domain-out)
+//    - get(memoryId:) throws -> WSMemory?                  (read:  raw @Model out)
+//    - search(userId:query:limit:) throws -> [WSMemory]
+//    - listRecent(userId:limit:) throws -> [WSMemory]
+//    - update(memoryId:content:) throws                    (MemoryID in, no return)
 //    - delete(memoryId:) throws
 //    - count(userId:) throws -> Int
-//    - listRecent(userId:limit:) throws -> [Memory]
 //    - purgeOlderThan(userId:retentionDays:) throws -> Int
 //
-//  Implementation: SwiftData @Model WSMemory → Memory struct (= the
-//  canonical Domain.Memory type, unchanged).
+//  Per AGENTS.md §11.4.
 //
-//  WSMemoryRepository is the canonical memory persistence
-//  (@MainActor SwiftData wrapper for WSMemory @Model class).
+//  Note on sendability: WSMemory (PersistentModel) is NOT Sendable.
+//  Caller must convert INSIDE the @MainActor scope (e.g. inside
+//  MainActor.run {}) or use Sendable scalar tuples across actor boundary.
 
 import Foundation
 import SwiftData
@@ -38,46 +41,24 @@ final class WSMemoryRepository {
         let model = WSMemory(memoryID: memoryIDString, userID: userId, content: content)
         context.insert(model)
         try context.save()
-        return Memory(
-            userId: userId,
-            memoryId: resolvedMemoryID,
-            content: content,
-            createdAt: model.createdAt,
-            updatedAt: model.updatedAt
-        )
+        return Self.toDomain(model, memoryID: resolvedMemoryID)
     }
 
-    func get(memoryId: MemoryID) throws -> Memory? {
+    func get(memoryId: MemoryID) throws -> WSMemory? {
         let descriptor = FetchDescriptor<WSMemory>(
             predicate: #Predicate { $0.memoryID == memoryId.rawValue }
         )
-        return try context.fetch(descriptor).first.map { model in
-            Memory(
-                userId: model.userID,
-                memoryId: MemoryID(rawValue: model.memoryID),
-                content: model.content,
-                createdAt: model.createdAt,
-                updatedAt: model.updatedAt
-            )
-        }
+        return try context.fetch(descriptor).first
     }
 
-    func search(userId: String, query: String, limit: Int = 10) throws -> [Memory] {
+    func search(userId: String, query: String, limit: Int = 10) throws -> [WSMemory] {
         let descriptor = FetchDescriptor<WSMemory>(
             predicate: #Predicate { mem in
                 mem.userID == userId && mem.content.localizedStandardContains(query)
             },
             sortBy: [SortDescriptor(\.updatedAt, order: .reverse)]
         )
-        return try context.fetch(descriptor).prefix(limit).map { model in
-            Memory(
-                userId: model.userID,
-                memoryId: MemoryID(rawValue: model.memoryID),
-                content: model.content,
-                createdAt: model.createdAt,
-                updatedAt: model.updatedAt
-            )
-        }
+        return try context.fetch(descriptor).prefix(limit).map { $0 }
     }
 
     func update(memoryId: MemoryID, content: String) throws {
@@ -108,20 +89,12 @@ final class WSMemoryRepository {
         return try context.fetchCount(descriptor)
     }
 
-    func listRecent(userId: String, limit: Int = 20) throws -> [Memory] {
+    func listRecent(userId: String, limit: Int = 20) throws -> [WSMemory] {
         let descriptor = FetchDescriptor<WSMemory>(
             predicate: #Predicate { $0.userID == userId },
             sortBy: [SortDescriptor(\.updatedAt, order: .reverse)]
         )
-        return try context.fetch(descriptor).prefix(limit).map { model in
-            Memory(
-                userId: model.userID,
-                memoryId: MemoryID(rawValue: model.memoryID),
-                content: model.content,
-                createdAt: model.createdAt,
-                updatedAt: model.updatedAt
-            )
-        }
+        return try context.fetch(descriptor).prefix(limit).map { $0 }
     }
 
     func purgeOlderThan(userId: String, retentionDays: Int) throws -> Int {
@@ -138,10 +111,23 @@ final class WSMemoryRepository {
         try context.save()
         return old.count
     }
+
+    /// A1 boundary bridge (Sendable-safe). Static + nonisolated so the
+    /// converter can be called from inside MainActor.run closures without
+    /// capturing actor-isolated state.
+    nonisolated private static func toDomain(_ model: WSMemory, memoryID: MemoryID? = nil) -> Memory {
+        Memory(
+            userId: model.userID,
+            memoryId: memoryID ?? MemoryID(rawValue: model.memoryID),
+            content: model.content,
+            createdAt: model.createdAt,
+            updatedAt: model.updatedAt
+        )
+    }
 }
 
 /// Repository-specific error (= distinct from the pre-Phase-5
-/// MemoryStore actor error; = 
+/// MemoryStore actor error; =
 /// switch will require call sites to handle this error type).
 enum WSMemoryRepositoryError: Error {
     case notFound

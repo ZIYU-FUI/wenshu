@@ -91,17 +91,10 @@ final class WSMemoryProvider: MemoryProvider, @unchecked Sendable {
 
     @MainActor
     private func refreshMirror() async {
-        let entries = (try? memory.listRecent(userId: "default", limit: 20)) ?? []
-        let mapped = entries.map { entry in
-            Memory(
-                userId: entry.userId,
-                memoryId: entry.memoryId,
-                content: entry.content,
-                createdAt: entry.createdAt,
-                updatedAt: entry.updatedAt
-            )
-        }
-        mirror.update(mapped)
+        // A1 boundary: convert WSMemory -> Memory inside MainActor.
+        let entries: [Memory] = (try? memory.listRecent(userId: "default", limit: 20))?
+            .map(Self.toDomain) ?? []
+        mirror.update(entries)
     }
 
     func getSystemPrompt() -> String {
@@ -114,8 +107,10 @@ final class WSMemoryProvider: MemoryProvider, @unchecked Sendable {
 
     func prefetch(forUserMessage message: String) async -> String {
         // Async (= bridges to @MainActor SwiftData + updates mirror).
-        let results = await MainActor.run {
-            (try? memory.search(userId: "default", query: message, limit: 5)) ?? []
+        // A1 boundary: convert WSMemory -> Memory inside MainActor.
+        let results: [Memory] = await MainActor.run {
+            ((try? memory.search(userId: "default", query: message, limit: 5)) ?? [])
+                .map(Self.toDomain)
         }
         let mapped = results.map { $0.content }.joined(separator: "\n")
         // Update prefetch cache (= sync via DispatchQueue; = safe in async).
@@ -175,5 +170,16 @@ final class WSMemoryProvider: MemoryProvider, @unchecked Sendable {
         prefetchQueue.sync {
             lastPrefetch = ""
         }
+    }
+
+    /// A1 boundary bridge (Sendable-safe).
+    nonisolated private static func toDomain(_ model: WSMemory) -> Memory {
+        Memory(
+            userId: model.userID,
+            memoryId: MemoryID(rawValue: model.memoryID),
+            content: model.content,
+            createdAt: model.createdAt,
+            updatedAt: model.updatedAt
+        )
     }
 }

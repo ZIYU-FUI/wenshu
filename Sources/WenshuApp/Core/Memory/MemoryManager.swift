@@ -187,7 +187,10 @@ actor MemoryManager {
         limit: Int
     ) async -> [Memory] {
         return await MainActor.run {
-            (try? memory.search(userId: userId, query: query, limit: limit)) ?? []
+            // A1 boundary: convert WSMemory -> Memory inside MainActor
+            // (PersistentModel is NOT Sendable across actor boundary).
+            ((try? memory.search(userId: userId, query: query, limit: limit)) ?? [])
+                .map(Self.toDomain)
         }
     }
 
@@ -204,5 +207,16 @@ actor MemoryManager {
         return await MainActor.run {
             (try? memory.count(userId: userId)) ?? 0
         }
+    }
+
+    /// A1 boundary bridge (Sendable-safe).
+    nonisolated private static func toDomain(_ model: WSMemory) -> Memory {
+        Memory(
+            userId: model.userID,
+            memoryId: MemoryID(rawValue: model.memoryID),
+            content: model.content,
+            createdAt: model.createdAt,
+            updatedAt: model.updatedAt
+        )
     }
 }

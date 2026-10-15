@@ -92,7 +92,11 @@ final class MemoryAdapter {
     }
 
     func recentEntries(limit: Int = 20) -> [MemoryEntry] {
-        let rows = (try? memory.listRecent(userId: defaultUserId, limit: limit)) ?? []
+        // A1 boundary: convert WSMemory -> Memory inside this sync caller
+        // (called on the @MainActor by the window surface, so the
+        // PersistentModel stays on the same actor as its context).
+        let rows: [Memory] = (try? memory.listRecent(userId: defaultUserId, limit: limit))?
+            .map(Self.toDomain) ?? []
         return rows.map { row in
             MemoryEntry(
                 id: row.memoryId.rawValue,
@@ -131,5 +135,16 @@ final class MemoryAdapter {
         // Persist via WSMemoryProvider (= SwiftData-backed; = same
         // userId canonicalization as the recentEntries path).
         await WSMemoryProvider.shared.sync(userMessage: snippet, assistantResponse: source)
+    }
+
+    /// A1 boundary bridge (Sendable-safe).
+    nonisolated private static func toDomain(_ model: WSMemory) -> Memory {
+        Memory(
+            userId: model.userID,
+            memoryId: MemoryID(rawValue: model.memoryID),
+            content: model.content,
+            createdAt: model.createdAt,
+            updatedAt: model.updatedAt
+        )
     }
 }
