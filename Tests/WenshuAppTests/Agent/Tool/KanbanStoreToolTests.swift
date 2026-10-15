@@ -195,10 +195,12 @@ struct KanbanStoreToolTests {
     /// the first row in the store when the envelope is missing
     /// the data field (= backwards-compatible with simpler
     /// adapter output, e.g. tests against a stripped-down tool).
+    @MainActor
     private static func taskIDFromJSONEnvelope(
         _ output: String,
         fallbackStore: WSKanbanRepository
     ) async throws -> String {
+
         if let data = output.data(using: .utf8),
            let parsed = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
            let dataDict = parsed["data"] as? [String: Any],

@@ -71,18 +71,19 @@ struct KanbanSchemaTests {
     @Test("add task with default status (.new) does NOT auto-set startedAt")
     func testAddNewStatusNoStartedAt() async throws {
         let store = try makeStore("test")
-                let task = try await store.add(title: "backlog item", status: KanbanStatus.new.rawValue)
-        #expect(task.startedAt == nil)
-        #expect(task.completedAt == nil)
-        #expect(task.assignee == nil)
-        #expect(task.modelOverride == nil)
+                let taskId = try await store.add(title: "backlog item", status: KanbanStatus.new.rawValue)
+        let task = try store.get(id: taskId)
+        #expect(task?.startedAt == nil)
+        #expect(task?.completedAt == nil)
+        #expect(task?.assignee == nil)
+        #expect(task?.modelOverride == nil)
     }
 
     @Test("transition to .running auto-sets startedAt")
     func testTransitionRunningAutoSetsStarted() async throws {
         let store = try makeStore("test")
-                let task = try await store.add(title: "task", status: KanbanStatus.new.rawValue)
-        try await store.transition(id: task.id, to: .running)
+                let taskId = try await store.add(title: "task", status: KanbanStatus.new.rawValue)
+        try await store.transition(id: taskId, to: KanbanStatus.running.rawValue)
         let loaded = try await store.get(id: task.id)
         #expect(loaded?.startedAt != nil)
         #expect(loaded?.completedAt == nil)
@@ -102,8 +103,8 @@ struct KanbanSchemaTests {
     @Test("transition preserves startedAt (COALESCE — only set on first .running)")
     func testTransitionStartedAtPreserved() async throws {
         let store = try makeStore("test")
-                let task = try await store.add(title: "task", status: KanbanStatus.new.rawValue)
-        try await store.transition(id: task.id, to: .running)
+                let taskId = try await store.add(title: "task", status: KanbanStatus.new.rawValue)
+        try await store.transition(id: taskId, to: KanbanStatus.running.rawValue)
         let firstStart = try await store.get(id: task.id)
         #expect(firstStart?.startedAt != nil)
         let firstStartDate = firstStart!.startedAt!

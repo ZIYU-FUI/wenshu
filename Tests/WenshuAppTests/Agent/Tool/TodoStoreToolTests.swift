@@ -95,7 +95,7 @@ struct TodoStoreToolTests {
         #expect(hermesItems.count == 1)
         #expect(hermesItems.first?.id == "task-1")
         #expect(hermesItems.first?.content == "Draft chapter 1")
-        #expect(hermesItems.first?.status == TodoStatus.pending.rawValue)
+        #expect(hermesItems.first?.status == HermesTodoStatus.pending)
     }
 
     // MARK: - Test 2: list returns TodoStore items
@@ -149,7 +149,7 @@ struct TodoStoreToolTests {
 
         // 4) hermes-side mirror also flipped to completed
         let hermesItems = hermesStore.read()
-        #expect(hermesItems.first?.status == TodoStatus.completed.rawValue)
+        #expect(hermesItems.first?.status == HermesTodoStatus.completed)
     }
 
     // MARK: - Test 4: remove deletes item
@@ -182,6 +182,6 @@ struct TodoStoreToolTests {
         //    hermes-python "remove" semantic).
         let hermesItems = hermesStore.read()
         #expect(hermesItems.count == 1)
-        #expect(hermesItems.first?.status == TodoStatus.cancelled.rawValue)
+        #expect(hermesItems.first?.status == HermesTodoStatus.cancelled)
     }
 }

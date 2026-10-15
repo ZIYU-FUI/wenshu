@@ -50,7 +50,7 @@ struct HermesTodoToolTests {
         let item = HermesTodoItem(
             id: "task-1",
             content: "First planning item",
-            status: TodoStatus.pending.rawValue
+            status: HermesTodoStatus.pending
         )
         let result = try hermesTodoTool(todos: [item], merge: false, store: store)
         #expect(result.todos.count == 1)
@@ -70,9 +70,9 @@ struct HermesTodoToolTests {
         let store = HermesTodoStore()
         store.write(
             todos: [
-                HermesTodoItem(id: "a", content: "alpha", status: TodoStatus.pending.rawValue),
-                HermesTodoItem(id: "b", content: "beta", status: TodoStatus.inProgress.rawValue),
-                HermesTodoItem(id: "c", content: "gamma", status: TodoStatus.completed.rawValue)
+                HermesTodoItem(id: "a", content: "alpha", status: HermesTodoStatus.pending),
+                HermesTodoItem(id: "b", content: "beta", status: HermesTodoStatus.inProgress),
+                HermesTodoItem(id: "c", content: "gamma", status: HermesTodoStatus.completed)
             ],
             merge: false
         )
@@ -105,8 +105,8 @@ struct HermesTodoToolTests {
         let store = HermesTodoStore()
         store.write(
             todos: [
-                HermesTodoItem(id: "x", content: "Original", status: TodoStatus.pending.rawValue),
-                HermesTodoItem(id: "y", content: "Untouched", status: TodoStatus.pending.rawValue)
+                HermesTodoItem(id: "x", content: "Original", status: HermesTodoStatus.pending),
+                HermesTodoItem(id: "y", content: "Untouched", status: HermesTodoStatus.pending)
             ],
             merge: false
         )
@@ -114,8 +114,8 @@ struct HermesTodoToolTests {
         // Merge in: update x's content + status; add a new item z.
         store.write(
             todos: [
-                HermesTodoItem(id: "x", content: "Renamed", status: TodoStatus.inProgress.rawValue),
-                HermesTodoItem(id: "z", content: "Brand new", status: TodoStatus.pending.rawValue)
+                HermesTodoItem(id: "x", content: "Renamed", status: HermesTodoStatus.inProgress),
+                HermesTodoItem(id: "z", content: "Brand new", status: HermesTodoStatus.pending)
             ],
             merge: true
         )
@@ -144,9 +144,9 @@ struct HermesTodoToolTests {
         let store = HermesTodoStore()
         store.write(
             todos: [
-                HermesTodoItem(id: "1", content: "keep", status: TodoStatus.pending.rawValue),
-                HermesTodoItem(id: "2", content: "drop", status: TodoStatus.pending.rawValue),
-                HermesTodoItem(id: "3", content: "keep", status: TodoStatus.pending.rawValue)
+                HermesTodoItem(id: "1", content: "keep", status: HermesTodoStatus.pending),
+                HermesTodoItem(id: "2", content: "drop", status: HermesTodoStatus.pending),
+                HermesTodoItem(id: "3", content: "keep", status: HermesTodoStatus.pending)
             ],
             merge: false
         )
@@ -155,8 +155,8 @@ struct HermesTodoToolTests {
         // Replace with the same list minus id "2".
         store.write(
             todos: [
-                HermesTodoItem(id: "1", content: "keep", status: TodoStatus.pending.rawValue),
-                HermesTodoItem(id: "3", content: "keep", status: TodoStatus.pending.rawValue)
+                HermesTodoItem(id: "1", content: "keep", status: HermesTodoStatus.pending),
+                HermesTodoItem(id: "3", content: "keep", status: HermesTodoStatus.pending)
             ],
             merge: false
         )
@@ -176,9 +176,9 @@ struct HermesTodoToolTests {
         let store = HermesTodoStore()
         store.write(
             todos: [
-                HermesTodoItem(id: "1", content: "a", status: TodoStatus.pending.rawValue),
-                HermesTodoItem(id: "2", content: "b", status: TodoStatus.completed.rawValue),
-                HermesTodoItem(id: "3", content: "c", status: TodoStatus.cancelled.rawValue)
+                HermesTodoItem(id: "1", content: "a", status: HermesTodoStatus.pending),
+                HermesTodoItem(id: "2", content: "b", status: HermesTodoStatus.completed),
+                HermesTodoItem(id: "3", content: "c", status: HermesTodoStatus.cancelled)
             ],
             merge: false
         )
@@ -207,9 +207,9 @@ struct HermesTodoToolTests {
         let original = HermesTodoStore()
         original.write(
             todos: [
-                HermesTodoItem(id: "alpha", content: "alpha content", status: TodoStatus.inProgress.rawValue),
-                HermesTodoItem(id: "beta",  content: "beta content",  status: TodoStatus.pending.rawValue),
-                HermesTodoItem(id: "gamma", content: "gamma content", status: TodoStatus.completed.rawValue)
+                HermesTodoItem(id: "alpha", content: "alpha content", status: HermesTodoStatus.inProgress),
+                HermesTodoItem(id: "beta",  content: "beta content",  status: HermesTodoStatus.pending),
+                HermesTodoItem(id: "gamma", content: "gamma content", status: HermesTodoStatus.completed)
             ],
             merge: false
         )
@@ -261,10 +261,10 @@ struct HermesTodoToolTests {
         let store = HermesTodoStore()
         store.write(
             todos: [
-                HermesTodoItem(id: "p", content: "p-item", status: TodoStatus.pending.rawValue),
-                HermesTodoItem(id: "i", content: "i-item", status: TodoStatus.inProgress.rawValue),
-                HermesTodoItem(id: "c", content: "c-item", status: TodoStatus.completed.rawValue),
-                HermesTodoItem(id: "x", content: "x-item", status: TodoStatus.cancelled.rawValue)
+                HermesTodoItem(id: "p", content: "p-item", status: HermesTodoStatus.pending),
+                HermesTodoItem(id: "i", content: "i-item", status: HermesTodoStatus.inProgress),
+                HermesTodoItem(id: "c", content: "c-item", status: HermesTodoStatus.completed),
+                HermesTodoItem(id: "x", content: "x-item", status: HermesTodoStatus.cancelled)
             ],
             merge: false
         )
@@ -293,7 +293,7 @@ struct HermesTodoToolTests {
     func testToolConformanceEmptyInput() async throws {
         let store = HermesTodoStore()
         store.write(
-            todos: [HermesTodoItem(id: "only", content: "one", status: TodoStatus.pending.rawValue)],
+            todos: [HermesTodoItem(id: "only", content: "one", status: HermesTodoStatus.pending)],
             merge: false
         )
         let tool = HermesTodoTool(store: store)

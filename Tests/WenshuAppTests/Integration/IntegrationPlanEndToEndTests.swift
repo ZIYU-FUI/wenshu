@@ -353,7 +353,7 @@ struct IntegrationPlanEndToEndTests {
         let directTodoItem = HermesTodoItem(
             id: "p5-23-task",
             content: "plan outline",
-            status: TodoStatus.pending.rawValue
+            status: HermesTodoStatus.pending
         )
         _ = hermesTodoStore.write(todos: [directTodoItem], merge: true)
         _ = try await todoStore.add(title: "plan outline", priority: TodoPriority.high.rawValue)
@@ -543,7 +543,7 @@ struct IntegrationPlanEndToEndTests {
             bookId: bookId,
             title: "The Mirror Motif",
             description: "Mirrors recur in every chapter to mark recognition.",
-            status: .seedling,
+            status: IdeaStatus.seedling,
             tags: ["mirror", "recognition"]
         )
         try await ideaLibrary.add(idea)

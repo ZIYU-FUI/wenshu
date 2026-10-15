@@ -47,7 +47,7 @@ import Testing
 // holds a hardcoded entity table + an optional body map so tests
 // can pin exact match outcomes.
 
-private struct MockReferenceStore: ReferenceStoring {
+private struct MockReferenceStore: ReferenceStoring, @unchecked Sendable {
     struct EntitySummary {
         let id: UUID
         let title: String
@@ -73,6 +73,7 @@ private struct MockReferenceStore: ReferenceStoring {
     }
     func saveReference(_ reference: Reference, bodyMarkdown: String) throws { fatalError("unused") }
     func replaceReference(_ reference: Reference, bodyMarkdown: String) throws { fatalError("unused") }
+    func replaceReferenceByID(id: UUID, bodyMarkdown: String) throws { /* unused */ }
     func upsertReference(
         title: String,
         bodyMarkdown: String,
