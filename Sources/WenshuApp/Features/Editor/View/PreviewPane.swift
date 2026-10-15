@@ -497,71 +497,7 @@ struct PreviewPane: View {
             // level animation).
             VStack(spacing: 0) {
                 Spacer(minLength: 0)
-                Group {
-                    switch scope {
-                    case .referenceScope(let category):
-                        referenceScopeView(category: category)
-                    case .tagScope(let tag):
-                        // dedicated preview scope for tag rows. The tag string flows in
-                        // via the scope (= Apple canonical =
-                        // scope = the single-source-of-truth
-                        // for the preview-pane content filter;
-                        // = PreviewPane does not need a
-                        // separate workspaceUI.activeTag for
-                        // this case (= the scope IS the tag
-                        // filter). The body composes the
-                        // existing referenceScopeView's
-                        // overviewGrid with an in-scope tag
-                        // prefilter (= applies
-                        // tags.contains(tag) before the search
-                        // + category filter; = search and
-                        // activeTag remain available for
-                        // additive narrowing).
-                        referenceScopeView(category: nil, tagOverride: tag)
-                    case .bookScope(let bookId, folderName: let folderName):
-                        bookScopeView(bookId: bookId, folderName: folderName)
-                    case .shelfScope(let shelfId):
-                        // The shelf row is a scope (= shows every .md file clicking a
-                        // shelf row should load all .md cards
-                        // from every book under that shelf,
-                        // not show an empty-state hint).
-                        // Previous behavior was empty-state
-                        // ((see OOB.md #2026-08-31) — 'shelves
-                        // are a tree level, not a document
-                        // scope'); = (see OOB.md #2026-09-22)
-                        // — reversed: shelf IS a document
-                        // scope (= the union of every book's
-                        // .md cards under the shelf). Crash-
-                        // fix rationale: Stable-id root-cause:
-                        // shelfScopeView launched a SwiftUI
-                        // constraint loop because the shelf
-                        // subtree re-ran FileManager I/O
-                        // inside its ViewBuilder body on every
-                        // parent re-render (= not on shelfId
-                        // change = = infinite I/O +
-                        // NSHostingView size invalidation
-                        // cycle = the 'more Update Constraints
-                        // in Window passes than there are
-                        // views in the window' crash). The
-                        // fix: 1. `.id(shelfId)` gives SwiftUI
-                        // a stable subtree identity (= skips
-                        // body re-evaluation when shelfId
-                        // hasn't changed). 2. `.task(id:
-                        // shelfId)` pre-loads the shelf's
-                        // books ONCE per shelfId change (=
-                        // caches into @State cachedShelfBooks
-                        // = shelfScopeView body now reads from
-                        // cache, no I/O in body = no layout
-                        // storm).
-                        shelfScopeView(shelfId: shelfId)
-                            .id(shelfId)
-                            .task(id: shelfId) {
-                                await loadShelfBooksAsync(shelfId: shelfId)
-                            }
-                    case .empty:
-                        emptyScopeView()
-                    }
-                }
+                scopeGroup
                 // Cards fade in on sidebar tap (= no-flicker-stutter): the scope Group
                 // gets a stable per-scope identity (= `.id(scope)`) so
                 // SwiftUI treats each scope switch as a full subtree
@@ -768,7 +704,36 @@ struct PreviewPane: View {
     /// Reference library scope: existing entity card flow ((see OOB.md
     /// #2026-08-30) OOB: 'card'). category nil = overview (= all entities, flat
     /// grid per (see OOB.md #2026-08-30)); non-nil = category filter.
+    /// Scope group (= the Apple HIG section-header + search-bar + body
+    /// content block; = dispatches to reference / tag / book / shelf /
+    /// empty scope based on `previewScope`). The body of the body (= ~65 LOC
+    /// of switch) is the canonical switch dispatch (= 4 cases; = each case
+    /// delegates to a dedicated private func; = same shape as the
+    /// `Apple HIG` tabbed-detail pattern).
     @ViewBuilder
+    private var scopeGroup: some View {
+        Group {
+            switch scope {
+            case .referenceScope(let category):
+                referenceScopeView(category: category)
+            case .tagScope(let tag):
+                referenceScopeView(category: nil, tagOverride: tag)
+            case .bookScope(let bookId, folderName: let folderName):
+                bookScopeView(bookId: bookId, folderName: folderName)
+            case .shelfScope(let shelfId):
+                shelfScopeView(shelfId: shelfId)
+                    .id(shelfId)
+                    .task(id: shelfId) {
+                        await loadShelfBooksAsync(shelfId: shelfId)
+                    }
+            case .empty:
+                emptyScopeView()
+            }
+        }
+    }
+
+    @ViewBuilder
+
     private func referenceScopeView(category: EntityCategory?, tagOverride: String? = nil) -> some View {
         // (see OOB.md #2026-09-07) — 'search,': apply the search filter (=
         // previewSearchQuery) on top of the category filter. Both filters
