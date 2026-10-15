@@ -1,3 +1,0 @@
-48:public struct EntityClassifier: Sendable {
-104:    public struct KeywordResult: Sendable {
-154:    public struct LLMResult: Sendable {

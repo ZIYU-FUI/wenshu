@@ -1,2 +1,0 @@
-48:struct PreflightIssue: Identifiable, Hashable, Codable, Sendable {
-60:struct WikiEntityPreflight: Sendable {

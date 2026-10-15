@@ -1,2 +1,0 @@
-25:struct LLMWikiLinter: Sendable {
-36:    struct LintFinding: Sendable {
