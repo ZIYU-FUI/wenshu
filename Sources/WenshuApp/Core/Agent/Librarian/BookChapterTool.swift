@@ -150,7 +150,7 @@ actor BookChapterActor {
         return (dir, chaptersDirectory, indexURL)
     }
 
-    // MARK: - Agent gate v2.7 round-61
+    // MARK: - Agent gate
 
     /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// directive). The

@@ -12,7 +12,7 @@
 //
 // Standards axis:
 //   S1 (Apple-API-first): pure Swift enum + actor delegation.
-//       `BackgroundReview` actor (= declared in v0.36) is the
+//       `BackgroundReview` actor is the
 //       source of truth for the pending / decided queues (= the
 //       Swift 6 strict-concurrency actor isolation pattern).
 //   S3 (single source of truth): one set of entry points serves

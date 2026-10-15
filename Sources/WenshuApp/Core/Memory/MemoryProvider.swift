@@ -72,7 +72,7 @@ enum PreCompressCheckpointAPI {
 
     // (legacyVersion removed 2026-10 in q99-spec-p0-batch2 — verify-dead.py
     //  confirmed 0 external callers; = no provider still references the
-    //  v1 checkpoint contract (= all migrated to v2 in v0.72 SwiftData
+    //  checkpoint contract (= all migrated in the SwiftData
     //  migration; = the constant was retained as a hermes-port artifact
     //  but never wired). See wenshu-pocock-workflow
     //  references/v3.0-design-system-rule.md + wenshu-dead-code-cleanup

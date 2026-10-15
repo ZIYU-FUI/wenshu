@@ -72,7 +72,7 @@ struct CreditSummary: Sendable, Equatable, Codable {
 
 /// Tracks AI agent credit consumption over time (= actor, thread-safe).
 /// Pure Swift (= no LLM calls per ADR-0011). Periodic snapshots to
-/// UserDefaults via @AppStorage (= wenshu §11 baseline, not v0.34+ sqlite).
+/// UserDefaults via @AppStorage (= the §11 baseline, not sqlite).
 actor BackgroundCreditsTracker {
 
     private var history: [CreditConsumption] = []

@@ -153,7 +153,7 @@ actor BookOutlineActor {
             throw BookOutlineError.emptyTitle
         }
 
-        // Silent dedup (= v2.2, 2026-09-25): if an outline with
+        // Silent dedup (see OOB.md #2026-09-25): if an outline with
         // the same title already exists in this book, fall back to
         // an in-place update (= preserves id / createdAt /
         // parent / order). LLM never sees an error.

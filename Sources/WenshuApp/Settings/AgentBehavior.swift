@@ -4,7 +4,7 @@
 //  Agent-behavior settings = wenshu's stable contract for the
 //  LLM's reply style, scope, and surface preferences.
 //
-//  Scope (= v2.4 2026-09-25 decision):
+//  Scope (see OOB.md #2026-09-25):
 //  - These settings are wenshu-PROVIDED PRESETS, not user-editable
 //    text. Users pick from a closed enum; = same product philosophy
 //    as wenshu's existing AppearanceMode (system / dark / light).

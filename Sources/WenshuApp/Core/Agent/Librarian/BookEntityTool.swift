@@ -410,7 +410,7 @@ actor BookEntityActor {
             )
         }
 
-        // Scope guard (= v2.1 contract): every action MUST carry a
+        // Scope guard: every action MUST carry a
         // `book_id` matching the chat session's currently-bound book.
         do {
             try BookScopeGuard.validate(
@@ -710,7 +710,7 @@ extension BookEntityTool {
                         ),
                         "name": ToolRegistrySchemaProperty(
                             type: "string",
-                            description: "Entity name. Required for create / find (= case-insensitive dedup; v2.2 contract)."
+                            description: "Entity name. Required for create / find (= case-insensitive dedup)."
                         ),
                         "aliases": ToolRegistrySchemaProperty(
                             type: "array",

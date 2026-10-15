@@ -1,7 +1,7 @@
 //
 //  ImportEnvelope.swift
 //
-//  Wire envelope types for the v2.7 markdown import feature
+//  Wire envelope types for the markdown import feature
 //  (= boss 2026-10-09 (see OOB.md #2026-10-09)
 //  entry; = the path that lets the user point wenshu at a
 //  folder of external .md files and have the agent route
@@ -24,7 +24,7 @@
 //     canonical mapping; = the source of truth for
 //     "5 standard folders" = its first 5 cases).
 //   - The destination is `bookFolder(BookFolder)`
-//     or `referenceLibrary` (= the same v2.6 split).
+//     or `referenceLibrary` (= the same split).
 //   - Every Codable + Sendable type here is the wire contract
 //     (= the conductor hands these across actor boundaries).
 //
@@ -130,7 +130,7 @@ struct ImportFileInput: Codable, Sendable, Hashable {
         case consolidate
         /// "重写同时重新搜索校对" (= Token 高消耗)
         /// = the LLM is permitted to call
-        /// `web_search` (= the v0.74 / WenshuAgent
+        /// `web_search` (= the WenshuAgent
         /// toolset) to find the canonical content
         /// for the entity (= the LLM searches the
         /// web for the entity name; = then the LLM
@@ -205,13 +205,13 @@ struct ImportRoutingResult: Codable, Sendable, Hashable {
     /// `summary` field the existing `Reference` struct
     /// already exposes).
     let summary: String
-    /// Free-form tags (= the v2.6 cross-cutting facet; =
+    /// Free-form tags (= the cross-cutting facet; =
     /// written to the on-disk `Reference.tags` field for
     /// reference-destination files; = written to the
     /// BookDoc's frontmatter for book-folder files).
     let tags: Set<String>
     /// Entity type (= character / location / event / etc.;
-    /// = ignored for book-folder destinations per the v2.6
+    /// = ignored for book-folder destinations per the spec
     /// facet model; = required for reference-destination
     /// files).
     let entityType: String
