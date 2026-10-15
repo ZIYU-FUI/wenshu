@@ -23,6 +23,7 @@ New entries = append 1 line. Outdated = delete (= per AGENTS.md §10.3).
 | v0.28 | AGENTS.md references v1→v2 break-risk + Highlighter (SPM product = `Highlighter` not `HighlighterSwift`) |
 | v0.27 | 引入三方库允许 ("不重复造轮子") |
 | (unknown) | PreviewPane/SettingsOps/SidebarService/PaneNSController/ShellMiddleColumn/InspectorCatalog/AppState/AgentLifecycleTracker: canonical-path references |
+| 2026-07-23 (v0.74 boss OOB) | chat persistence ordering fix + 双击"清明" tab open fix + 未接住错误 retriable + underlying error handling (4 inline refs in CardOpenOps / ChatSessionViewModel / LLMConnector / PreviewPane / AssetsPane) |
 | 2026-08-30 | PaneTabBar.swift: historical CJK content removed; recoverable via `git blame` |
 | 2026-09-03 | CardOpen: silent no-op (= no .alert noise) on `content.isEmpty` + duplicate-tab check |
 | 2026-09-04 | Continue work-tree first (= no premature acceptance) + WenshuI18n swift-comment placeholder |
@@ -42,6 +43,7 @@ New entries = append 1 line. Outdated = delete (= per AGENTS.md §10.3).
 | 2026-10-12 (chrome) | 4 列底栏 = `ChromeBottomFooter` + `safeAreaInset`; ICON 光学 24PT tile + 4PT inset; 仅 Settings 多色; library tree 单色 |
 | 2026-10-12 (card) | Book card ↔ Reference card 视觉 1:1; tag chip 对齐; H1 split 出去 |
 | 2026-10-12 (editor) | EditorStatusBar 用 chat footer 同 recipe (Divider + .bar + .padding 8); scroll anchor .top |
+| 2026-10-15 | agent thinking visibility (= wenshu agent reply must expose reasoning trace; = not just final output; = matches hermes dev tool step-by-step transparency) |
 
 ## When to update
 

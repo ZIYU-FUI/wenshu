@@ -951,7 +951,7 @@ final class ChatViewModel {
             // = replaces the prior ad-hoc "Error: \(localizedDescription)"
             // which showed the raw English NSError text to the user).
             //
-            // v0.74 boss OOB: "未知错误, 请稍后重试或重启应用" —
+            // v0.74 boss OOB: "未知错误, 请稍后重试或重启应用" — (see OOB.md #2026-07-23)
             // the previous `context: nil` triggered the generic
             // provider-agnostic message (= user could not tell which
             // LLM connector failed). Now we pass the active
@@ -1135,7 +1135,7 @@ final class ChatViewModel {
     func loadHistory() async {
         do {
             let loaded = try await repository.loadMessages(sessionId: sessionId, bookID: currentBookID)
-            // v0.74 boss OOB: "持久化的聊天记录, 重新渲染顺序有问题, 问答先后顺序混乱"
+            // v0.74 boss OOB: "持久化的聊天记录, 重新渲染顺序有问题, 问答先后顺序混乱" (see OOB.md #2026-07-23)
             // (= persisted messages re-render out of order;
             // = the user's chat history shows turns in the wrong
             // chronological sequence). Two root causes:

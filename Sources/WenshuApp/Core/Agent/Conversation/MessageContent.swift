@@ -13,7 +13,7 @@ import Foundation
 
 enum MessageContent {
 
-    /// 2026-10-15 v0.74 boss OOB: "agent 回复还是老样子,
+    /// empty and text is returned verbatim. (see OOB.md #2026-10-15)
     /// 和你在 hermes 里回复完全不是一种形态" (= the
     /// wenshu agent's reply has no visible thinking
     /// / verification / execution trace; = the user

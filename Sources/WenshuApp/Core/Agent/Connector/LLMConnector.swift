@@ -138,7 +138,7 @@ enum LLMConnectorError: Error, LocalizedError, Sendable {
         case .missingAPIKey(let p):
             return "Missing API key for provider '\(p)'."
         case .transport(let p, let s, let body):
-            // v0.74 boss OOB: "底层错误: unreachable" (= the
+            // “"底层错误: unreachable"” (= the (see OOB.md #2026-07-23)
             // body was being discarded by `_` in the
             // previous errorDescription; = the user saw the
             // generic "3 次重试: unreachable" message and

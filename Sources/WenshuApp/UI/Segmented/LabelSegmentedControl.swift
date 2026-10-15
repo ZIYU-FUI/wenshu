@@ -131,7 +131,6 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
     let displayStrings: [String]
     /// Per-segment symbol provider.
     let icon: ((Selection) -> NSImage?)?
-    /// 2026-10-14 v3:
     /// per-segment
     /// fixed-width
     /// override
@@ -310,7 +309,6 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         // (= `segmentDistribution = .fillEqually`; = each segment
         // takes 1/N of the column width when N pages;
         // = NSSegmentedControl auto-stretches with the column drag).
-        // 2026-10-14 v3.5:
         // back to
         // `.fillEqually`
         // (= the
@@ -324,60 +322,6 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         // visuals).
         // The
         // previous
-        // v3.4
-        // `.fit` mode
-        // (= the
-        // boss's
-        // "framework
-        // built-in
-        // don't
-        // auto-grow"
-        // path) had
-        // a
-        // secondary
-        // bug: the
-        // ScrollView
-        // wrap
-        // introduces
-        // a
-        // multi-pass
-        // layout
-        // cycle
-        // for the
-        // inner
-        // `NSViewRepresentable`
-        // `NSSegmentedControl`
-        // (= the
-        // boss 2026-10-14
-        // "tab 现在位置
-        // 很飘"
-        // symptom;
-        // = the
-        // tab
-        // strip
-        // visually
-        // jumps
-        // between
-        // renders
-        // as
-        // SwiftUI
-        // re-lays
-        // out
-        // the
-        // ScrollView
-        // viewport
-        // on
-        // every
-        // body
-        // re-evaluation;
-        // = the
-        // previous
-        // v3.1
-        // attempt
-        // (= .fillEqually
-        // +
-        // GeometryReader
-        // +
         // .frame(maxWidth: .infinity))
         // was the
         // only
@@ -389,42 +333,6 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         // off
         // on).
         // The
-        // v3.5
-        // fix:
-        // drop
-        // the
-        // ScrollView
-        // wrap
-        // (=
-        // the
-        // `EditorTabStrip`
-        // now
-        // uses
-        // the
-        // plain
-        // `LabelSegmentedControl`
-        // with
-        // no
-        // wrapping
-        // `Group`
-        // /
-        // no
-        // `ScrollView`/
-        // no
-        // `ScrollViewReader`;
-        // = the
-        // NSSegmentedControl
-        // is
-        // laid
-        // out
-        // in
-        // a
-        // single
-        // SwiftUI
-        // pass
-        // with
-        // the
-        // outer
         // `.frame(maxWidth: .infinity,
         // alignment: .leading)`
         // proposal;
@@ -441,21 +349,6 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         // off
         // on
         // the
-        // v3.1
-        // "N
-        // 多
-        // 时
-        // 拉
-        // 宽
-        // 窗
-        // 口"
-        // symptom
-        // (= the
-        // NSSegmentedControl
-        // with
-        // `.fillEqually`
-        // +
-        // parent
         // `.frame(maxWidth: .infinity)`
         // grows
         // the
@@ -475,41 +368,7 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         // trade-off
         // before;
         // = the
-        // v3.5
-        // trade-off
-        // is
-        // "stable
-        // layout
-        // but
-        // window
-        // grows
-        // with
-        // N").
-        // The
-        // `fixedSegmentWidth
-        // > 0`
-        // path
-        // is
-        // dropped
-        // (=
-        // the
-        // per-segment
-        // width
-        // override
-        // is
-        // no
-        // longer
-        // needed;
-        // = the
-        // .fillEqually
-        // distribution
-        // handles
-        // the
-        // per-segment
-        // width
-        // automatically).
         control.segmentDistribution = .fillEqually
-        // 2026-10-14 v3.5: pin
         // `controlSize = .small`
         // (= the macOS
         // 27 canonical
@@ -537,7 +396,6 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         // the per-segment
         // size is
         // smaller than
-        // the v3.1 default
         // `.large` size;
         // = the boss
         // accepts the

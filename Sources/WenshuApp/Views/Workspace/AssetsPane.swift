@@ -273,7 +273,7 @@ struct AssetsPane: View {
     /// throwaway).
     private func openCardInEditor(source: CardSource?) {
         let scope = previewScope()
-        // v0.74 boss OOB: "多次双击"清明"，没有打开" — log
+        // v0.74 boss OOB: "多次双击"清明"，没有打开" — log (see OOB.md #2026-07-23)
         // every entry (= helps grep the chain when the
         // double-click does not produce a tab).
         os_log("[wenshu.assets] v0.74 openCardInEditor entry source=%{public}@ scope=%{public}@",

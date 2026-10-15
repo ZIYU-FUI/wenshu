@@ -3022,7 +3022,7 @@ private struct Card: View {
         // needed).
         .simultaneousGesture(
             TapGesture(count: 2).onEnded { _ in
-                // v0.74 boss OOB: "多次双击"清明"，没有打开"
+                // v0.74 boss OOB: "多次双击"清明"，没有打开" (see OOB.md #2026-07-23)
                 // (= the double-click does not reach the Card;
                 // = the user can see the card highlight, the
                 // tap lands, but neither the onTap path nor the

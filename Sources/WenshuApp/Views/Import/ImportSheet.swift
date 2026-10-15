@@ -2031,9 +2031,6 @@ extension ImportSheet {
             // disk (= same
             // condition as
             // before; = the
-            // boss's "不变"
-            // answer to the
-            // Q1 clarify).
             if canRetryFailedTitleOnly {
                 // v2.7 round-50: hairline
                 // Divider above

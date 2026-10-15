@@ -109,7 +109,7 @@ enum OpenAIChunkToLLMBlockConverter {
 
         // 1. content (= standard text delta)
         if let content = delta["content"] as? String, !content.isEmpty {
-            // 2026-10-15 v0.74 boss OOB fix: parse the
+            // tag from the rendered text. (see OOB.md #2026-10-15)
             // `[[thinking: ...]]` marker tag (= see
             // MessageContent.extractThinkingTags). The
             // minmax / openai-compatible providers don't

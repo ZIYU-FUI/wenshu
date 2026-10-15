@@ -156,7 +156,7 @@ enum CardOpenOps {
                 if case .reference(let r) = source { return r }
                 return filtered.first
             }()
-            // v0.74 boss OOB: "多次双击"清明"，没有打开" — log
+            // v0.74 boss OOB: "多次双击"清明"，没有打开" — log (see OOB.md #2026-07-23)
             // the picked reference's body + summary so the boss
             // can grep whether the body came back empty (= the
             // silent no-op in openTab fires when triad.content = ""
@@ -507,7 +507,7 @@ enum CardOpenOps {
             // instead of 'preview-sample'.
             title: title.isEmpty ? nil : title
         )
-        // v0.74 boss OOB: "多次双击"清明"，没有打开" (= the
+        // v0.74 boss OOB: "多次双击"清明"，没有打开" (= the (see OOB.md #2026-07-23)
         // double-click fires onDoubleClick on the Card, but the
         // tab never appears in the strip; = either the append
         // hits an exception, or activeTabId is not set, or
