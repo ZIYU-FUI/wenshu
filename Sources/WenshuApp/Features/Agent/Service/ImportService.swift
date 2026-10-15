@@ -31,7 +31,7 @@ actor ImportService {
     /// whatever it has; = `importFiles` returns with the remaining tasks in
     /// `.pending`; = the `writtenURLs` set carries the on-disk trail for the
     /// rollback pass)).
-    private var isCancelled: Bool = false
+    var isCancelled: Bool = false
 
     /// Per-batch rollback trail (= the URLs of every .md file the orchestrator
     /// wrote this run; = a `Set<URL>` because the dedup cache can map two
@@ -40,14 +40,14 @@ actor ImportService {
     /// most-recent-import order; = the reference-library side restores the
     /// prior `entities.json` from the snapshot the orchestrator took at the
     /// start of the run).
-    private var writtenURLs: [URL] = []
+    var writtenURLs: [URL] = []
 
     /// Snapshot of the on-disk reference-library index file (= the path to the
     /// prior `entities.json` content, captured at `importFiles` start; = the
     /// cancel handler restores this file verbatim; = the "all-or-nothing"
     /// semantic the boss asked for = cancel = nothing lands on disk = the user
     /// can re-import from a clean state).
-    private var entitiesJSONSnapshot: (path: URL, content: Data)? = nil
+    var entitiesJSONSnapshot: (path: URL, content: Data)? = nil
 
     /// Per-task mutable state used by the `dispatchLLM` helper (= extensions
     /// can't hold stored properties; = this lives on the actor).
@@ -1368,83 +1368,11 @@ actor ImportService {
     }
 }
 
-extension ImportService {
-    /// Set the cancellation flag (= the sheet's cancel button + the sheet's
-    /// `.onDisappear` lifecycle hook both call this; = the orchestrator's
-    /// `importFiles` loop polls `isCancelled` between per-task transitions; =
-    /// the next dispatch step is a no-op once the flag is set; = the in-flight
-    /// TaskGroup finishes whatever it has, then `importFiles` returns with the
-    /// remaining tasks in `.pending`).
-    func cancel() {
-        isCancelled = true
-    }
-
-    /// Roll back the partial write-side effects of the current batch (= deletes
-    /// every .md file the orchestrator wrote this run; = restores the prior
-    /// `entities.json` content from the snapshot taken at `importFiles` start;
-    /// = deletes the sidecar cache file). Apple canonical pattern: the rollback
-    /// is best-effort + idempotent (= a missing file is a no-op; = a re-run of
-    /// the same rollback doesn't double-delete). Boss 2026-10-09 directive:
-    /// "取消退出时，所有 已经导入的内容回退清掉。类似 MAC OS 的系统 升级，取消等于放弃这个工作，不留痕". The "不留痕"
-    /// requirement is strict (= cancel = nothing lands on disk; = the user can
-    /// re- import from a clean state).
-    func rollback() {
-        // 1. Delete every .md file the orchestrator wrote this run (= reverse-order so
-        // the dedup cache's stable-filename mapping doesn't matter; =
-        // idempotent on missing files).
-        for url in writtenURLs.reversed() {
-            try? FileManager.default.removeItem(at: url)
-        }
-        // 2. Restore the prior `entities.json` content (= the orchestrator captured the
-        // file's content at `importFiles` start; = a fresh library has an
-        // empty snapshot = the file should not exist post-rollback; = a
-        // library with a pre-existing `entities.json` restores the file
-        // verbatim). The `try?` swallows write errors (= the file may be read-
-        // only under a non-admin user; = the rollback is best-effort; = the
-        // user can re-import later when the file is writable).
-        if let snap = entitiesJSONSnapshot {
-            if snap.content.isEmpty {
-                // The original file did not exist (= the library had no prior references;
-                // = the rollback removes the now-orphaned file that
-                // the orchestrator's writes created).
-                try? FileManager.default.removeItem(at: snap.path)
-            } else {
-                try? snap.content.write(to: snap.path, options: .atomic)
-            }
-        }
-        // 3. Delete the sidecar cache file (= the orchestrator may have written entries
-        // to the cache for the rolled-back files; = leaving stale entries
-        // means a re-import of the same source dir would skip the rolled-back
-        // files via dedup; = delete the whole cache file so the next
-        // `importFiles` starts from a clean cache). Apple canonical: the cache
-        // is a sidecar (= a derived artifact; = deleting it is safe; = the
-        // next run rebuilds it from the same source files).
-        let cacheFile = URL(fileURLWithPath: "")
-        // The cacheRoot is per-target; = the rollback can only know the cacheFile URL if
-        // the orchestrator captured it. The simpler path: delete the entire
-        // `.import-cache` directory (= the orchestrator writes only `import-
-        // cache.json` under it; = the directory delete is the same as the
-        // single-file delete in this version; = a future ticket that adds a
-        // sidecar metadata file will pick up the new file for free).
-        if let snap = entitiesJSONSnapshot {
-            // Compute the cache root from the entities path (= the entities file lives at
-            // `<wsRoot>/reference-library/entities/entities.json`; = the
-            // cache lives at `<wsRoot>/.import-cache/import-cache.json`; =
-            // a few `deletingLastPathComponent()` calls get us there).
-            let cacheRoot = snap.path
-                .deletingLastPathComponent()  // entities.json
-                .deletingLastPathComponent()  // entities
-                .deletingLastPathComponent()  // reference-library
-                .deletingLastPathComponent()  // <wsRoot>
-                .appendingPathComponent(".import-cache")
-            try? FileManager.default.removeItem(at: cacheRoot)
-        }
-        _ = cacheFile  // (= placeholder for the future
-                        // = per-target cacheRoot = cleanup; = unused in = this version; =
-                        // the = .import-cache dir = delete
-                        // above handles = the v0.74 schema).
-    }
-}
+// (extracted to ImportServiceCancellation.swift in A55; = see that file)
+// (= the cross-file `extension ImportService { ... cancel() ... rollback() ... }`
+// = 77 LOC moved out of the main file. The `private` qualifiers on
+// `isCancelled` + `writtenURLs` + `entitiesJSONSnapshot` were relaxed
+// to internal; = required for the cross-file extension access.)
 
 /// Reference-type wrapper around the dedup cache (= the per-file pipeline runs
 /// 5 tasks in parallel via TaskGroup; = each task mutates the cache via
