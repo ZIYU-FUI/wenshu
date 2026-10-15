@@ -988,216 +988,246 @@ actor ImportService {
         tasksBox: TasksBox,
         i: Int
     ) async throws {
+        // Dispatch on the LLM-decided destination. The two cases share the
+        // Stage 2 LLM content-same check (= "skip if the existing file is
+        // already correct"; = the same code shape, slightly different
+        // dedup-cache lookup).
+        let writtenURL: URL?
         switch routing.destination {
         case .bookFolder(let folder):
-            // The on-disk filename derives from the LLM-supplied title (= the boss's
-            // 2026-10-09 round-10 feedback "这个 ID 的事还没有修吗": = the
-            // sidebar's BookDoc card title came from the file's filename
-            // without extension; = the previous UUID-only filename meant
-            // the cards read "023D22E3-1F1D-4A55-83C8-F133156ECEB9"
-            // instead of the human-readable title the LLM generated; = a
-            // stable, title-based filename makes the sidebar readable on
-            // the first pass). The dedup key still lives in the cache (= a
-            // re-import of the same body finds the cache entry by source
-            // path; = the on-disk filename is a display concern, not a
-            // identity concern; = the fileURL still uses the title for the
-            // sidebar + the cache for idempotency). Sanitization (= boss
-            // 2026-10-09 (see OOB.md #2026-10-09) path is rare (= the LLM
-            // is instructed to always return a title; = a missing title
-            // would indicate a deeper LLM misbehavior worth surfacing as a
-            // generic "未命名" rather than a cryptic UUID).
-            let uuid = Self.uuidFromHash(contentHash)
-            // (= the boss's 2026-10-09 round-18 "强制让用户 分开导入" directive). When the user
-            // pinned the reference library, this branch is unreachable (=
-            // the LLM already overrode the destination to
-            // .referenceLibrary + the orchestrator took the
-            // referenceLibrary case). The `bookId!` / `shelfId!` unwraps
-            // are safe because the orchestrator's processFile passes the
-            // user's chosen target down here; = a destination = .book
-            // guarantee that both IDs are populated.
-            guard let bookId = target.bookId,
-                  let shelfId = target.shelfId else {
-                throw ImportServiceError.missingBookForBookFolderDestination
-            }
-            let folderURL = target.shelvesRoot
-                .appendingPathComponent(shelfId.uuidString)
-                .appendingPathComponent("books")
-                .appendingPathComponent(bookId.uuidString)
-                .appendingPathComponent(folder.directoryName)
-            let basename = Self.sanitizeFilename(
-                raw: routing.title,
-                fallback: String(uuid.uuidString.prefix(8))
-            )
-            // (= boss 2026-10-09 round-13 directive "再次触发 同名实体，只 edit. 不建重名文档"; = the
-            // previous per-source-path dedup let the same entity land at
-            // multiple paths when the user re-imported after clearing only
-            // one source directory; = world/ ended up with 33 duplicate
-            // titles + characters/ with 20 duplicates; = the user-visible
-            // bug was "一物多份"; = fix is to scan the existing folder for an
-            // entity with the same normalized title; = match → overwrite
-            // the existing file (= new body + new LLM metadata); = no
-            // match → write the new title-derived file). The normalization
-            // is the canonical = "trim whitespace + lowercase" = the LLM
-            // sometimes returns "  蛇 精" with double spaces; = a strict ==
-            // compare would miss the duplicate.
-            let fileURL: URL
-            let existing = Self.findEntityByTitle(
-                in: folderURL,
-                title: routing.title
-            )
-            if let existingURL = existing {
-                // (= boss 2026-10-10 "我 选故事宪 法，直接 跳到了步 骤 3，没有 重新分析 是不是内 容相同" 反馈). A same-
-                // titled .md file was found in the destination folder.
-                // Before overwriting, the orchestrator now asks the
-                // LLM (= Phase 2 of the 2-stage dedup) to compare the
-                // source body against the existing body. The LLM
-                // returns `isContentSame` + `confidence`; = if same
-                // AND confidence >= threshold = skip (= treat as a no-
-                // op = the existing file is already correct); =
-                // otherwise overwrite (= the source has new content
-                // the user wants to land). The existing per-file dedup
-                // is now LLM-driven (= the previous "filename ==
-                // sanitized title" check was too coarse = the user
-                // reported 故事宪法 as a false skip = the folder had
-                // *other* .md files but the 故事宪法 file didn't actually
-                // exist by the same name; = the old
-                // `cachedDestinationExists` check returned true for
-                // any non-empty folder; = wrong conclusion).
-                let existingBody = (try? String(
-                    contentsOf: existingURL,
-                    encoding: .utf8
-                )) ?? ""
-                let sourceBodyForCompare = try String(
-                    contentsOfFile: tasksBox.value[i].sourcePath,
-                    encoding: .utf8
-                )
-                let sameResult = try await router.isContentSame(
-                    sourceBody: sourceBodyForCompare,
-                    existingBody: existingBody,
-                    sourceTitle: routing.title
-                )
-                if WCIRHelpers.shouldSkip(result: sameResult) {
-                    // LLM says same content; = skip (= the existing file is the correct
-                    // representation; = the user sees "已跳过 - 内容相同"
-                    // in the per-row result strip).
-                    NSLog("WSImport: content-same skip title='\(routing.title)' confidence=\(sameResult.confidence) reasoning='\(sameResult.reasoning)'")
-                    // Set the .skipped state + the reason on the task; = the outer
-                    // processFile sees the .skipped state and
-                    // won't overwrite to .done. We throw
-                    // `ImportServiceError.contentSameSkipped` (= a
-                    // sentinel error type) so the outer catch
-                    // block recognises the "skip via throw"
-                    // pattern (= the outer block also catches
-                    // genuine errors = the sentinel pattern is
-                    // idiomatic for this orchestrator's existing
-                    // structure).
-                    tasksBox.value[i].state = .skipped
-                    tasksBox.value[i].errorMessage = nil
-                    tasksBox.value[i].skippedReason = "内容相同 (LLM confidence \(sameResult.confidence)): \(sameResult.reasoning)"
-                    throw ImportServiceError.contentSameSkipped
-                } else {
-                    // LLM says different content (or low confidence); = overwrite the
-                    // existing file.
-                    NSLog("WSImport: content-different overwrite title='\(routing.title)' reasoning='\(sameResult.reasoning)'")
-                }
-                // Match (= re-import of an existing entity); = overwrite the existing
-                // file at its current path; = the boss's "edit, not
-                // create" rule.
-                fileURL = existingURL
-                NSLog("WSImport: dedup hit title='\(routing.title)' → \(existingURL.lastPathComponent)")
-            } else {
-                fileURL = folderURL.appendingPathComponent("\(basename).md")
-            }
-            // Create the folder if missing (= idempotent; = the orchestrator does not
-            // depend on the book bootstrap having created the folder for
-            // this case; = the bootstrapper seeds the 5 standard folders
-            // but if a future folder is added = the orchestrator creates
-            // it on the fly).
-            try FileManager.default.createDirectory(
-                at: folderURL,
-                withIntermediateDirectories: true
-            )
-            // Write the body verbatim (= boss 2026-10-09 (see OOB.md #2026-10-09) job is
-            // to put the body at the right path).
-            try body.write(to: fileURL, atomically: true, encoding: .utf8)
-            // Record the on-disk trail for the cancel-and-rollback path (= the
-            // `ImportService` actor keeps a list of every URL it wrote
-            // this batch; = the cancel handler deletes them in reverse-
-            // order on rollback; = the dedup cache can map two source
-            // paths to the same file URL but the cancel handler is
-            // idempotent so a double-delete is a no-op).
-            writtenURLs.append(fileURL)
-        case .referenceLibrary:
-            // the reference library path now also runs the Stage 2 LLM content-same
-            // decision (= the reference library dedup was per-file
-            // correct, but the user wants the same "LLM 比对" transparency
-            // for both destinations; = the
-            // `FileSystemReferenceStore.saveReferenceToFileSystem` upserts
-            // the file (= round-42), so "skip" here just means the upsert
-            // sees a content-identical file and the idempotent write is a
-            // no-op; = "overwrite" means the content differs and the
-            // upsert overwrites with the new body).
-            let refMdURL = target.wsRoot
-                .appendingPathComponent("reference-library")
-                .appendingPathComponent("entities")
-                .appendingPathComponent("\(Self.uuidFromHash(contentHash).uuidString).md")
-            if FileManager.default.fileExists(atPath: refMdURL.path) {
-                // File already exists for this content hash (= the previous import wrote
-                // it). Run Stage 2 LLM check (= the boss's "需要 检查 对比"
-                // requirement).
-                let existingBody = (try? String(
-                    contentsOf: refMdURL,
-                    encoding: .utf8
-                )) ?? ""
-                let sameResult = try await router.isContentSame(
-                    sourceBody: body,
-                    existingBody: existingBody,
-                    sourceTitle: routing.title
-                )
-                if WCIRHelpers.shouldSkip(result: sameResult) {
-                    NSLog("WSImport: ref-library content-same skip title='\(routing.title)' confidence=\(sameResult.confidence)")
-                    // No need to write; = the file is already correct. Mark the task as
-                    // .skipped + set the reason; = throw the
-                    // sentinel so the outer processFile doesn't
-                    // overwrite to .done.
-                    tasksBox.value[i].state = .skipped
-                    tasksBox.value[i].errorMessage = nil
-                    tasksBox.value[i].skippedReason = "内容相同 (LLM confidence \(sameResult.confidence)): \(sameResult.reasoning)"
-                    throw ImportServiceError.contentSameSkipped
-                } else {
-                    NSLog("WSImport: ref-library content-different overwrite title='\(routing.title)' reasoning='\(sameResult.reasoning)'")
-                    // Fall through to the standard writeReference (= the upsert
-                    // overwrites the existing file with the new
-                    // body).
-                }
-            }
-            // Delegate to the existing reference-write path (= the e2e scaffold's 4-phase
-            // walk → reframe → classify → write; = the body lands at
-            // `<wsRoot>/reference-library/entities/<uuid>.md` and the
-            // Reference is appended to `entities/entities.json`).
-            try await writeReference(
+            writtenURL = try await writeToBookFolder(
                 body: body,
                 routing: routing,
+                contentHash: contentHash,
                 target: target,
-                contentHash: contentHash
+                sourcePath: sourcePath,
+                router: router,
+                tasksBox: tasksBox,
+                i: i,
+                folder: folder
             )
+        case .referenceLibrary:
+            // The reference library path also runs the Stage 2 LLM content-same
+            // decision (= the reference library dedup was per-file correct,
+            // but the user wants the same "LLM 比对" transparency for both
+            // destinations; = the `FileSystemReferenceStore.saveReferenceToFileSystem`
+            // upserts the file, so "skip" here just means the upsert sees
+            // a content-identical file and the idempotent write is a no-op).
+            try await writeToReferenceLibrary(
+                body: body,
+                routing: routing,
+                contentHash: contentHash,
+                target: target,
+                router: router,
+                tasksBox: tasksBox,
+                i: i
+            )
+            writtenURL = nil
         }
-        // Record the import in the sidecar cache so the next dedup pass (= a re-import of
-        // the same source directory) hits the cache instead of dispatching the
-        // LLM + re-writing the file. (= the dedup key is the absolute source
-        // path; = the cache value carries the body hash + the resolved
-        // destination = the dedup pass can short-circuit without touching the
-        // LLM). (= boss 2026-10-10 (see OOB.md #2026-10-10) 3 files; =
-        // `uuidFromHash("")` returned the SAME deterministic UUID for all 3
-        // files; = the orchestrator wrote the .md at the same path for the
-        // first file; = the second and third files crashed with "Reference ...
-        // already exists on disk"). The fix: NEVER write an empty / short
-        // contentHash to the cache; = if the input is empty (= the source
-        // file's contentHash was somehow not populated), compute a stable
-        // placeholder (= sha256 of the source path; = unique per file; = the
-        // uuid derives to a unique UUID; = the dedup still works). The
-        // previous code propagated the empty hash verbatim, which led to the
-        // "all empty hashes → same UUID" collision.
+        if let fileURL = writtenURL {
+            // Record the on-disk trail for the cancel-and-rollback path
+            // (= the actor keeps a list of every URL it wrote this batch;
+            // = the cancel handler deletes them in reverse-order on rollback;
+            // = the dedup cache can map two source paths to the same file
+            // URL but the cancel handler is idempotent so a double-delete
+            // is a no-op).
+            writtenURLs.append(fileURL)
+        }
+        // Record the import in the sidecar cache so the next dedup pass
+        // (= a re-import of the same source directory) hits the cache
+        // instead of dispatching the LLM + re-writing the file.
+        recordInCache(
+            contentHash: contentHash,
+            sourcePath: sourcePath,
+            routing: routing,
+            cache: &cache
+        )
+    }
+
+    /// Write to a book folder (= the `.bookFolder` destination case).
+    /// Returns the written URL (= nil if the LLM said "content same" and
+    /// the file was skipped; = the caller skips the rollback trail entry
+    /// for skipped writes).
+    private func writeToBookFolder(
+        body: String,
+        routing: ImportRoutingResult,
+        contentHash: String,
+        target: ImportTarget,
+        sourcePath: String,
+        router: any ImportRouter,
+        tasksBox: TasksBox,
+        i: Int,
+        folder: BookFolder
+    ) async throws -> URL? {
+        // The on-disk filename derives from the LLM-supplied title (= the boss's
+        // 2026-10-09 round-10 feedback "这个 ID 的事还没有修吗": = the
+        // sidebar's BookDoc card title came from the file's filename
+        // without extension; = the previous UUID-only filename meant
+        // the cards read "023D22E3-1F1D-4A55-83C8-F133156ECEB9"
+        // instead of the human-readable title the LLM generated; = a
+        // stable, title-based filename makes the sidebar readable on
+        // the first pass). The dedup key still lives in the cache (= a
+        // re-import of the same body finds the cache entry by source
+        // path; = the on-disk filename is a display concern, not a
+        // identity concern; = the fileURL still uses the title for the
+        // sidebar + the cache for idempotency). Sanitization is rare (= the
+        // LLM is instructed to always return a title; = a missing title
+        // would indicate a deeper LLM misbehavior worth surfacing as a
+        // generic "未命名" rather than a cryptic UUID).
+        let uuid = Self.uuidFromHash(contentHash)
+        // (= the boss's 2026-10-09 round-18 "强制让用户 分开导入" directive). When the user
+        // pinned the reference library, this branch is unreachable (= the
+        // LLM already overrode the destination to .referenceLibrary + the
+        // orchestrator took the referenceLibrary case). The `bookId!` /
+        // `shelfId!` unwraps are safe because the orchestrator's processFile
+        // passes the user's chosen target down here; = a destination = .book
+        // guarantee that both IDs are populated.
+        guard let bookId = target.bookId,
+              let shelfId = target.shelfId else {
+            throw ImportServiceError.missingBookForBookFolderDestination
+        }
+        let folderURL = target.shelvesRoot
+            .appendingPathComponent(shelfId.uuidString)
+            .appendingPathComponent("books")
+            .appendingPathComponent(bookId.uuidString)
+            .appendingPathComponent(folder.directoryName)
+        let basename = Self.sanitizeFilename(
+            raw: routing.title,
+            fallback: String(uuid.uuidString.prefix(8))
+        )
+        // (= boss 2026-10-09 round-13 directive "再次触发 同名实体，只 edit. 不建重名文档"; = the
+        // previous per-source-path dedup let the same entity land at
+        // multiple paths when the user re-imported after clearing only
+        // one source directory; = world/ ended up with 33 duplicate
+        // titles + characters/ with 20 duplicates; = the user-visible
+        // bug was "一物多份"; = fix is to scan the existing folder for an
+        // entity with the same normalized title; = match → overwrite
+        // the existing file; = no match → write the new title-derived file).
+        let fileURL: URL
+        if let existingURL = Self.findEntityByTitle(in: folderURL, title: routing.title) {
+            // A same-titled .md file was found in the destination folder.
+            // Before overwriting, run Stage 2 LLM content-same check
+            // (= the boss's "需要 检查 对比" requirement; = the LLM
+            // returns `isContentSame` + `confidence`; = if same AND
+            // confidence >= threshold = skip; = otherwise overwrite).
+            let sourceBodyForCompare = try String(
+                contentsOfFile: tasksBox.value[i].sourcePath,
+                encoding: .utf8
+            )
+            let existingBody = (try? String(
+                contentsOf: existingURL,
+                encoding: .utf8
+            )) ?? ""
+            let sameResult = try await router.isContentSame(
+                sourceBody: sourceBodyForCompare,
+                existingBody: existingBody,
+                sourceTitle: routing.title
+            )
+            if WCIRHelpers.shouldSkip(result: sameResult) {
+                // LLM says same content; = skip (= the existing file is correct).
+                NSLog("WSImport: content-same skip title='\(routing.title)' confidence=\(sameResult.confidence) reasoning='\(sameResult.reasoning)'")
+                tasksBox.value[i].state = .skipped
+                tasksBox.value[i].errorMessage = nil
+                tasksBox.value[i].skippedReason = "内容相同 (LLM confidence \(sameResult.confidence)): \(sameResult.reasoning)"
+                // Throw sentinel so the outer processFile sees the .skipped
+                // state and doesn't overwrite to .done.
+                throw ImportServiceError.contentSameSkipped
+            } else {
+                NSLog("WSImport: content-different overwrite title='\(routing.title)' reasoning='\(sameResult.reasoning)'")
+            }
+            // Match: overwrite the existing file (= the boss's "edit, not create" rule).
+            fileURL = existingURL
+            NSLog("WSImport: dedup hit title='\(routing.title)' → \(existingURL.lastPathComponent)")
+        } else {
+            fileURL = folderURL.appendingPathComponent("\(basename).md")
+        }
+        // Create the folder if missing (= idempotent; = the bootstrapper
+        // seeds the 5 standard folders but if a future folder is added
+        // the orchestrator creates it on the fly).
+        try FileManager.default.createDirectory(
+            at: folderURL,
+            withIntermediateDirectories: true
+        )
+        // Write the body verbatim (= the orchestrator's job is to put the
+        // body at the right path; = the LLM did the structural work upstream).
+        try body.write(to: fileURL, atomically: true, encoding: .utf8)
+        return fileURL
+    }
+
+    /// Write to the reference library (= the `.referenceLibrary` destination
+    /// case). The body lands at `<wsRoot>/reference-library/entities/<uuid>.md`
+    /// and the Reference is appended to `entities/entities.json`. This path
+    /// also runs the Stage 2 LLM content-same check (= same as the book
+    /// folder path; = the user wants the same "LLM 比对" transparency for
+    /// both destinations).
+    private func writeToReferenceLibrary(
+        body: String,
+        routing: ImportRoutingResult,
+        contentHash: String,
+        target: ImportTarget,
+        router: any ImportRouter,
+        tasksBox: TasksBox,
+        i: Int
+    ) async throws {
+        let refMdURL = target.wsRoot
+            .appendingPathComponent("reference-library")
+            .appendingPathComponent("entities")
+            .appendingPathComponent("\(Self.uuidFromHash(contentHash).uuidString).md")
+        if FileManager.default.fileExists(atPath: refMdURL.path) {
+            // File already exists for this content hash (= the previous
+            // import wrote it). Run Stage 2 LLM check.
+            let existingBody = (try? String(
+                contentsOf: refMdURL,
+                encoding: .utf8
+            )) ?? ""
+            let sameResult = try await router.isContentSame(
+                sourceBody: body,
+                existingBody: existingBody,
+                sourceTitle: routing.title
+            )
+            if WCIRHelpers.shouldSkip(result: sameResult) {
+                NSLog("WSImport: ref-library content-same skip title='\(routing.title)' confidence=\(sameResult.confidence)")
+                tasksBox.value[i].state = .skipped
+                tasksBox.value[i].errorMessage = nil
+                tasksBox.value[i].skippedReason = "内容相同 (LLM confidence \(sameResult.confidence)): \(sameResult.reasoning)"
+                throw ImportServiceError.contentSameSkipped
+            } else {
+                NSLog("WSImport: ref-library content-different overwrite title='\(routing.title)' reasoning='\(sameResult.reasoning)'")
+                // Fall through to the standard writeReference (= the upsert
+                // overwrites the existing file with the new body).
+            }
+        }
+        // Delegate to the existing reference-write path (= the e2e
+        // scaffold's 4-phase walk → reframe → classify → write).
+        try await writeReference(
+            body: body,
+            routing: routing,
+            target: target,
+            contentHash: contentHash
+        )
+    }
+
+    /// Record the import in the sidecar cache so the next dedup pass (= a
+    /// re-import of the same source directory) hits the cache instead of
+    /// dispatching the LLM + re-writing the file.
+    ///
+    /// (= boss 2026-10-10 (see OOB.md #2026-10-10) 3 files; = `uuidFromHash("")`
+    /// returned the SAME deterministic UUID for all 3 files; = the
+    /// orchestrator wrote the .md at the same path for the first file; = the
+    /// second and third files crashed with "Reference ... already exists on
+    /// disk"). The fix: NEVER write an empty / short contentHash to the
+    /// cache; = if the input is empty (= the source file's contentHash was
+    /// somehow not populated), compute a stable placeholder (= sha256 of
+    /// the source path; = unique per file; = the uuid derives to a unique
+    /// UUID; = the dedup still works). The previous code propagated the
+    /// empty hash verbatim, which led to the "all empty hashes → same
+    /// UUID" collision.)
+    private func recordInCache(
+        contentHash: String,
+        sourcePath: String,
+        routing: ImportRoutingResult,
+        cache: inout [String: CacheEntry]
+    ) {
         let safeContentHash: String
         if contentHash.isEmpty || contentHash.count < 16 {
             safeContentHash = "orphan-" + Self.sha256(sourcePath)
