@@ -57,7 +57,7 @@ struct BookTodoStoreScopeTests {
         ])
         let loaded = try store.load()
         #expect(loaded.first?.title == "polish chapter 3 opening")
-        #expect(loaded.first?.priority == TodoPriority.high.rawValue)
+        #expect(loaded.first?.priority == .high)
         #expect(FileManager.default.fileExists(
             atPath: chaptersDir.appendingPathComponent("todo-chapters.json").path
         ))

@@ -51,10 +51,11 @@ struct WenshuCoreIntegrationTests {
     @MainActor
     func testAllCoreIntegration() async throws {
         // 1. WSMemoryRepository (= ; = no MemoryStore actor)
-        let memResult = try await MainActor.run {
-            try WSMemoryRepository.shared.add(userId: "u1", content: "test memory")
+        let memUserID: String = try await MainActor.run {
+            let result = try WSMemoryRepository.shared.add(userId: "u1", content: "test memory")
+            return result.userID
         }
-        #expect(memResult.userID == "u1")
+        #expect(memUserID == "u1")
 
         // 2. KanbanStore (kanban_db)
         let kanban = try Self.makeKanbanRepository()

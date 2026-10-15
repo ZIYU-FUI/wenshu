@@ -150,6 +150,6 @@ struct AgentProgressTrackerTests {
         #expect(resolved.id == second.id)
         #expect(resolved.label == "Parsing response")
         #expect(resolved.stepNumber == 2)
-        #expect(resolved.status == AgentProgressEntry.Status.running.rawValue)
+        #expect(resolved.status == .running)
     }
 }

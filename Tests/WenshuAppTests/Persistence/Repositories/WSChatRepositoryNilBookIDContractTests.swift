@@ -7,7 +7,7 @@
 // never cross-book leaks.
 //
 // Pre-fix bug (§11.11 finding 2026-09-28): effectiveBookID fallback to
-// `BookID(rawValue: "")` when session.bookID was empty string caused
+// `BookID(rawValue: "").rawValue` when session.bookID was empty string caused
 // messages to round-trip under a phantom BookID, breaking the
 // nil = global invariant.
 //
@@ -62,8 +62,8 @@ struct WSChatRepositoryNilBookIDContractTests {
     @MainActor
     func bookARowsDoNotLeakIntoGlobalOrBookB() throws {
         let repo = try makeRepository()
-        let bookA = BookID(rawValue: "11111111-1111-1111-1111-111111111111")
-        let bookB = BookID(rawValue: "22222222-2222-2222-2222-222222222222")
+        let bookA = BookID(rawValue: "11111111-1111-1111-1111-111111111111").rawValue
+        let bookB = BookID(rawValue: "22222222-2222-2222-2222-222222222222").rawValue
         let sessionA = "book:\(bookA.rawValue):default"
         let sessionB = "book:\(bookB.rawValue):default"
 
@@ -97,7 +97,7 @@ struct WSChatRepositoryNilBookIDContractTests {
     @MainActor
     func emptyStringSessionIDDoesNotProducePhantomBookID() throws {
         // ROBUSTNESS-1.3 — Pre-fix the effectiveBookID fallback used
-        // `BookID(rawValue: "")` which is technically a valid BookID but
+        // `BookID(rawValue: "").rawValue` which is technically a valid BookID but
         // represents an empty-string-book, not the global bucket.
         // Post-fix: empty-string session.bookID falls through to nil.
         let repo = try makeRepository()

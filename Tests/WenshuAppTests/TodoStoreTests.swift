@@ -33,11 +33,11 @@ struct TodoStoreTests {
     @MainActor
     func testAddGet() async throws {
         let store = try Self.makeTodoRepository()
-                let todo = try await store.add(title: "implement FileTools", priority: TodoPriority.high)
+                let todo = try await store.add(title: "implement FileTools", priority: TodoPriority.high.rawValue)
         let got = try await store.get(id: todo.id)
         #expect(got?.title == "implement FileTools")
-        #expect(got?.status == TodoStatus.pending.rawValue)
-        #expect(got?.priority == TodoPriority.high.rawValue)
+        #expect(got?.status == .pending)
+        #expect(got?.priority == .high)
     }
 
     @Test("setStatus 改 status")
@@ -45,26 +45,26 @@ struct TodoStoreTests {
     func testSetStatus() async throws {
         let store = try Self.makeTodoRepository()
                 let todo = try await store.add(title: "test")
-        try await store.setStatus(id: todo.id, status: TodoStatus.inProgress)
+        try await store.setStatus(id: todo.id, status: TodoStatus.inProgress.rawValue)
         let updated = try await store.get(id: todo.id)
-        #expect(updated?.status == TodoStatus.inProgress.rawValue)
-        try await store.setStatus(id: todo.id, status: TodoStatus.completed)
+        #expect(updated?.status == .inProgress)
+        try await store.setStatus(id: todo.id, status: TodoStatus.completed.rawValue)
         let final = try await store.get(id: todo.id)
-        #expect(final?.status == TodoStatus.completed.rawValue)
+        #expect(final?.status == .completed)
     }
 
     @Test("list 按 status 过滤 + priority 排序")
     @MainActor
     func testListByStatusPriority() async throws {
         let store = try Self.makeTodoRepository()
-                _ = try await store.add(title: "low task", priority: TodoPriority.low)
-        _ = try await store.add(title: "urgent task", priority: TodoPriority.urgent)
-        _ = try await store.add(title: "medium task", priority: TodoPriority.medium)
-        let pending = try await store.list(status: TodoStatus.pending)
+                _ = try await store.add(title: "low task", priority: TodoPriority.low.rawValue)
+        _ = try await store.add(title: "urgent task", priority: TodoPriority.urgent.rawValue)
+        _ = try await store.add(title: "medium task", priority: TodoPriority.medium.rawValue)
+        let pending = try await store.list(status: TodoStatus.pending.rawValue)
         #expect(pending.count == 3)
-        #expect(pending[0].priority == TodoPriority.urgent.rawValue)
-        #expect(pending[1].priority == TodoPriority.medium.rawValue)
-        #expect(pending[2].priority == TodoPriority.low.rawValue)
+        #expect(pending[0].priority == .urgent)
+        #expect(pending[1].priority == .medium)
+        #expect(pending[2].priority == .low)
     }
 
     @Test("delete 删 1 个")
@@ -81,13 +81,13 @@ struct TodoStoreTests {
     @MainActor
     func testCount() async throws {
         let store = try Self.makeTodoRepository()
-                _ = try await store.add(title: "a", priority: TodoPriority.high)
-        _ = try await store.add(title: "b", priority: TodoPriority.medium)
-        let todo1 = try await store.add(title: "c", priority: TodoPriority.low)
-        try await store.setStatus(id: todo1.id, status: TodoStatus.completed)
-        let pending = (try? await store.count(status: TodoStatus.pending)) ?? -1
+                _ = try await store.add(title: "a", priority: TodoPriority.high.rawValue)
+        _ = try await store.add(title: "b", priority: TodoPriority.medium.rawValue)
+        let todo1 = try await store.add(title: "c", priority: TodoPriority.low.rawValue)
+        try await store.setStatus(id: todo1.id, status: TodoStatus.completed.rawValue)
+        let pending = (try? await store.count(status: TodoStatus.pending.rawValue)) ?? -1
         #expect(pending == 2)
-        let completed = (try? await store.count(status: TodoStatus.completed)) ?? -1
+        let completed = (try? await store.count(status: TodoStatus.completed.rawValue)) ?? -1
         #expect(completed == 1)
     }
 
@@ -96,7 +96,7 @@ struct TodoStoreTests {
     func testDueDate() async throws {
         let store = try Self.makeTodoRepository()
                 let due = Date(timeIntervalSince1970: 1900000000)  // 2030-03-08
-        let todo = try await store.add(title: "future task", priority: TodoPriority.urgent, dueDate: due)
+        let todo = try await store.add(title: "future task", priority: TodoPriority.urgent.rawValue, dueDate: due)
         let got = try await store.get(id: todo.id)
         #expect(got?.dueDate?.timeIntervalSince1970 == 1900000000)
     }

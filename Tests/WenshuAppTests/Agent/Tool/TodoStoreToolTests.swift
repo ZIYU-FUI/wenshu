@@ -86,8 +86,8 @@ struct TodoStoreToolTests {
         let items = try await todoStore.list()
         #expect(items.count == 1, "TodoStore must hold 1 row after create; got \(items.count)")
         #expect(items.first?.title == "Draft chapter 1")
-        #expect(items.first?.status == TodoStatus.pending.rawValue)
-        #expect(items.first?.priority == TodoPriority.high.rawValue)  // priority 2 == high
+        #expect(items.first?.status == .pending)
+        #expect(items.first?.priority == .high)  // priority 2 == high
 
         // 3) HermesTodoStore received the mirror (= merge-mode write)
         #expect(hermesStore.hasItems())
@@ -95,7 +95,7 @@ struct TodoStoreToolTests {
         #expect(hermesItems.count == 1)
         #expect(hermesItems.first?.id == "task-1")
         #expect(hermesItems.first?.content == "Draft chapter 1")
-        #expect(hermesItems.first?.status == TodoStatus.pending.rawValue)
+        #expect(hermesItems.first?.status == .pending)
     }
 
     // MARK: - Test 2: list returns TodoStore items
@@ -109,8 +109,8 @@ struct TodoStoreToolTests {
 
         // Pre-seed TodoStore with 2 items (= bypasses the adapter so
         // this test isolates the list path).
-        _ = try await todoStore.add(title: "First item", priority: TodoPriority.high)
-        _ = try await todoStore.add(title: "Second item", priority: TodoPriority.low)
+        _ = try await todoStore.add(title: "First item", priority: TodoPriority.high.rawValue)
+        _ = try await todoStore.add(title: "Second item", priority: TodoPriority.low.rawValue)
 
         let output = try await tool.execute(input: #"{"action":"list"}"#)
 
@@ -145,11 +145,11 @@ struct TodoStoreToolTests {
         // 3) TodoStore row is now status=completed
         let items = try await todoStore.list()
         #expect(items.count == 1)
-        #expect(items.first?.status == TodoStatus.completed.rawValue, "TodoStore row must be status=completed; got: \(String(describing: items.first?.status))")
+        #expect(items.first?.status == .completed, "TodoStore row must be status=completed; got: \(String(describing: items.first?.status))")
 
         // 4) hermes-side mirror also flipped to completed
         let hermesItems = hermesStore.read()
-        #expect(hermesItems.first?.status == TodoStatus.completed.rawValue)
+        #expect(hermesItems.first?.status == .completed)
     }
 
     // MARK: - Test 4: remove deletes item
@@ -182,6 +182,6 @@ struct TodoStoreToolTests {
         //    hermes-python "remove" semantic).
         let hermesItems = hermesStore.read()
         #expect(hermesItems.count == 1)
-        #expect(hermesItems.first?.status == TodoStatus.cancelled.rawValue)
+        #expect(hermesItems.first?.status == .cancelled)
     }
 }

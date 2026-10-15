@@ -125,12 +125,12 @@ struct WSChatRepositoryTests {
     @MainActor
     func sessionsIsolatedByBook() throws {
         let repo = try makeRepository()
-        _ = try repo.createSession(sessionID: "sess-book-A", bookID: BookID(rawValue: "book-A"))
-        _ = try repo.createSession(sessionID: "sess-book-B", bookID: BookID(rawValue: "book-B"))
+        _ = try repo.createSession(sessionID: "sess-book-A", bookID: BookID(rawValue: "book-A").rawValue)
+        _ = try repo.createSession(sessionID: "sess-book-B", bookID: BookID(rawValue: "book-B").rawValue)
         _ = try repo.createSession(sessionID: "sess-global")
 
-        let sessionsForA = try repo.listSessions(bookID: BookID(rawValue: "book-A"))
-        let sessionsForB = try repo.listSessions(bookID: BookID(rawValue: "book-B"))
+        let sessionsForA = try repo.listSessions(bookID: BookID(rawValue: "book-A").rawValue)
+        let sessionsForB = try repo.listSessions(bookID: BookID(rawValue: "book-B").rawValue)
         let sessionsGlobal = try repo.listSessions(bookID: nil)
 
         #expect(sessionsForA.count == 1)
@@ -149,24 +149,24 @@ struct WSChatRepositoryTests {
     @MainActor
     func messagesIsolatedByBook() throws {
         let repo = try makeRepository()
-        try repo.createSession(sessionID: "sess-A", bookID: BookID(rawValue: "book-A"))
-        try repo.createSession(sessionID: "sess-B", bookID: BookID(rawValue: "book-B"))
+        try repo.createSession(sessionID: "sess-A", bookID: BookID(rawValue: "book-A").rawValue)
+        try repo.createSession(sessionID: "sess-B", bookID: BookID(rawValue: "book-B").rawValue)
 
         // Append under book-A
         try repo.append(
             StoredChatMessage(id: "m-A1", source: "user", content: "in book A", timestamp: Date()),
             sessionId: "sess-A",
-            bookID: BookID(rawValue: "book-A")
+            bookID: BookID(rawValue: "book-A").rawValue
         )
         // Append under book-B
         try repo.append(
             StoredChatMessage(id: "m-B1", source: "user", content: "in book B", timestamp: Date()),
             sessionId: "sess-B",
-            bookID: BookID(rawValue: "book-B")
+            bookID: BookID(rawValue: "book-B").rawValue
         )
 
         // book-A scope only sees the book-A message
-        let messagesA = try repo.loadMessages(sessionId: "sess-A", bookID: BookID(rawValue: "book-A"))
+        let messagesA = try repo.loadMessages(sessionId: "sess-A", bookID: BookID(rawValue: "book-A").rawValue)
         #expect(messagesA.count == 1)
         #expect(messagesA[0].id == "m-A1")
 
@@ -179,7 +179,7 @@ struct WSChatRepositoryTests {
         try repo.append(
             StoredChatMessage(id: "m-cross", source: "user", content: "x", timestamp: Date()),
             sessionId: "sess-A",
-            bookID: BookID(rawValue: "book-B")
+            bookID: BookID(rawValue: "book-B").rawValue
         )
 
         // Global (= bookID: nil) views must respect the §11.11 row-level split
@@ -194,7 +194,7 @@ struct WSChatRepositoryTests {
         // Per-book scope returns the right message.
         let crossBookB = try repo.loadMessages(
             sessionId: "sess-A",
-            bookID: BookID(rawValue: "book-B")
+            bookID: BookID(rawValue: "book-B").rawValue
         )
         #expect(crossBookB.count == 1)
         #expect(crossBookB[0].id == "m-cross")
@@ -204,14 +204,14 @@ struct WSChatRepositoryTests {
     @MainActor
     func countAndClearScoped() throws {
         let repo = try makeRepository()
-        try repo.createSession(sessionID: "sess-A", bookID: BookID(rawValue: "book-A"))
+        try repo.createSession(sessionID: "sess-A", bookID: BookID(rawValue: "book-A").rawValue)
         try repo.append(
             StoredChatMessage(id: "m1", source: "user", content: "x", timestamp: Date()),
             sessionId: "sess-A",
-            bookID: BookID(rawValue: "book-A")
+            bookID: BookID(rawValue: "book-A").rawValue
         )
-        #expect(try repo.count(sessionId: "sess-A", bookID: BookID(rawValue: "book-A")) == 1)
-        try repo.clear(sessionId: "sess-A", bookID: BookID(rawValue: "book-A"))
-        #expect(try repo.count(sessionId: "sess-A", bookID: BookID(rawValue: "book-A")) == 0)
+        #expect(try repo.count(sessionId: "sess-A", bookID: BookID(rawValue: "book-A").rawValue) == 1)
+        try repo.clear(sessionId: "sess-A", bookID: BookID(rawValue: "book-A").rawValue)
+        #expect(try repo.count(sessionId: "sess-A", bookID: BookID(rawValue: "book-A").rawValue) == 0)
     }
 }

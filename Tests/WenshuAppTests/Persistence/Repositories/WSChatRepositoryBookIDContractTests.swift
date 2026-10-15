@@ -33,9 +33,9 @@ struct WSChatRepositoryBookIDContractTests {
         return WSChatRepository(container: container)
     }
 
-    private static let bookA = BookID(rawValue: "book-A-uuid")
-    private static let bookB = BookID(rawValue: "book-B-uuid")
-    private static let bookC = BookID(rawValue: "book-C-uuid")
+    private static let bookA = BookID(rawValue: "book-A-uuid").rawValue
+    private static let bookB = BookID(rawValue: "book-B-uuid").rawValue
+    private static let bookC = BookID(rawValue: "book-C-uuid").rawValue
 
     @Test("listSessions(bookID: A) never returns sessions owned by B/C")
     @MainActor
