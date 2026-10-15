@@ -664,13 +664,13 @@ struct IntegrationPlanEndToEndTests {
         )
         #expect(progressEntry.sessionId == "p5-23-session",
                 "P2 #21 AgentProgressTracker.start should round-trip sessionId")
-        #expect(progressEntry.status == .running,
+        #expect(progressEntry.status == AgentProgressEntry.Status.running.rawValue,
                 "P2 #21 fresh entry must start in .running status")
         await progressTracker.advance(id: progressEntry.id, label: "Smoke step 2")
         await progressTracker.complete(id: progressEntry.id)
         let listedEntries = await progressTracker.list(sessionId: "p5-23-session")
         let finalEntry = listedEntries.first(where: { $0.id == progressEntry.id })
-        #expect(finalEntry?.status == .succeeded,
+        #expect(finalEntry?.status == AgentProgressEntry.Status.succeeded.rawValue,
                 "P2 #21 AgentProgressTracker.complete should flip status to .succeeded")
 
         // ===== P2 #22: TodoStore reactivity =====

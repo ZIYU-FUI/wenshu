@@ -41,7 +41,7 @@ struct AgentProgressTrackerTests {
         #expect(entry.label == "Reading user message")
         #expect(entry.stepNumber == 1)
         #expect(entry.totalSteps == AgentProgressTracker.standardStepCount)
-        #expect(entry.status == .running)
+        #expect(entry.status == AgentProgressEntry.Status.running.rawValue)
         #expect(entry.etaSeconds == nil)
 
         // list(sessionId:) should include the new entry.
@@ -68,7 +68,7 @@ struct AgentProgressTrackerTests {
         #expect(updated.id == entry.id)
         #expect(updated.stepNumber == 2)
         #expect(updated.label == "Compressing context if needed")
-        #expect(updated.status == .running)
+        #expect(updated.status == AgentProgressEntry.Status.running.rawValue)
         // advance() clears the ETA (= caller can set a new ETA via setStep()).
         #expect(updated.etaSeconds == nil)
     }
@@ -83,12 +83,12 @@ struct AgentProgressTrackerTests {
             label: "Reading user message"
         )
 
-        await tracker.complete(id: entry.id, status: .succeeded)
+        await tracker.complete(id: entry.id, status: AgentProgressEntry.Status.succeeded)
 
         let listed = await tracker.list(sessionId: "session-A")
         #expect(listed.count == 1)
         let completed = try #require(listed.first)
-        #expect(completed.status == .succeeded)
+        #expect(completed.status == AgentProgressEntry.Status.succeeded.rawValue)
         // current() should now return nil (= entry is no longer running).
         let current = await tracker.current(sessionId: "session-A")
         #expect(current == nil)
@@ -109,7 +109,7 @@ struct AgentProgressTrackerTests {
         let listed = await tracker.list(sessionId: "session-A")
         #expect(listed.count == 1)
         let cancelled = try #require(listed.first)
-        #expect(cancelled.status == .cancelled)
+        #expect(cancelled.status == AgentProgressEntry.Status.cancelled.rawValue)
         // current() should now return nil (= cancelled entries skip the lookup).
         let current = await tracker.current(sessionId: "session-A")
         #expect(current == nil)
@@ -125,7 +125,7 @@ struct AgentProgressTrackerTests {
             sessionId: "session-A",
             label: "Reading user message"
         )
-        await tracker.complete(id: first.id, status: .succeeded)
+        await tracker.complete(id: first.id, status: AgentProgressEntry.Status.succeeded)
 
         // Entry 2: still running (= the "latest running").
         let second = await tracker.start(
@@ -139,7 +139,7 @@ struct AgentProgressTrackerTests {
             sessionId: "session-A",
             label: "Executing tools"
         )
-        await tracker.complete(id: third.id, status: .failed)
+        await tracker.complete(id: third.id, status: AgentProgressEntry.Status.failed)
 
         let current = await tracker.current(sessionId: "session-A")
         #expect(current != nil)
@@ -150,6 +150,6 @@ struct AgentProgressTrackerTests {
         #expect(resolved.id == second.id)
         #expect(resolved.label == "Parsing response")
         #expect(resolved.stepNumber == 2)
-        #expect(resolved.status == .running)
+        #expect(resolved.status == AgentProgressEntry.Status.running.rawValue)
     }
 }
