@@ -191,6 +191,75 @@ When a future ticket picks up A1g.4.1-A1g.4.5, the work is purely
 mechanical (= the dry-run findings above are the precise bug list;
 = no more discovery probes needed).
 
+## A1g.4 atomic-attempt findings (2026-10-15)
+
+Performed an atomic A1g.4 attempt on a worktree
+(`wt/a1g4-atomic-2026-10-15`). The worktree was removed after
+recording findings; main HEAD was never modified.
+
+What was tried (= one atomic commit, all-in-one):
+
+  1. mv 38 Persistence files to Sources/WenshuData/
+  2. public-modifier sweep on moved files
+  3. WenshuData Package.swift skeleton + .library product
+  4. Root Package.swift wire-up (.package + 2 .product entries)
+  5. import WenshuData added to 65 WenshuApp source files
+  6. Persistence/ removed
+  7. Additional public modifiers on Container + LibraryMigrationState
+     static funcs and @MainActor class init sites
+  8. WSLinkRepository.add() boundary refactor (raw fields)
+  9. WSChatRepository boundary refactor (BookID? -> String?,
+     append() takes raw fields instead of StoredChatMessage)
+ 10. WenshuApp caller adaptations (BacklinkResolver, LiveChatRepository)
+
+Observed file churn (= real cost of A1g.4, much larger than the
+4-5 commit estimate):
+
+| Bucket | Files modified |
+|--------|----------------|
+| WenshuData package (= moved files) | 38 |
+| Root Package.swift | 1 |
+| WenshuApp source files (import WenshuData + caller adaptations) | 65 |
+| WenshuApp source files (caller refactors for new raw-field APIs) | 3 |
+| **Total** | **107** |
+
+This 107-file churn confirms that A1g.4 is **not** a 1-commit
+ticket. Per AGENTS.md §1.10 (= 1 ticket = 1 commit), A1g.4 must
+be split into at least 4-5 sub-tickets, each of which must pass
+build independently (= the broken-state interim commits the
+atomic-attempt tried to avoid are unavoidable for AGENTS.md
+compliance).
+
+A1g.4 also surfaced 2 additional boundary refactors that A1g.2
+missed (= these were not in scope of A1g.2 step 1-3; = they
+become part of the A1g.4 prerequisite work):
+
+  - WSLinkRepository.add(_:Link) -> add(raw fields)
+  - WSChatRepository.append(StoredChatMessage, bookID: BookID?)
+    -> append(raw fields, bookID: String?)
+  - All WSChatRepository functions taking bookID: BookID?
+    (= 18+ functions) need bookID: String?
+
+Revised A1g.4 plan (5 sub-tickets, each = 1 atomic commit):
+
+| # | Scope | LOC | Risk |
+|---|-------|-----|------|
+| A1g.2.4 | Boundary: WSLinkRepository + WSChatRepository decouple (= the 2 Repos A1g.2 left untouched) | ~300 | medium |
+| A1g.4.1 | Create WenshuData/ package skeleton + add to root Package.swift (no files moved yet) | ~30 | low |
+| A1g.4.2 | mv 38 Persistence files to Sources/WenshuData/ + delete empty Persistence/ (single mv) | 0 LOC | low |
+| A1g.4.3 | public-modifier sweep on moved files (scope-aware) | ~200 edits | medium |
+| A1g.4.4 | import WenshuData added to 65 WenshuApp source files | ~65 LOC | low |
+| A1g.4.5 | @MainActor + Sendable visibility fixes (= 5-10 sites) | ~150 LOC | medium |
+
+Each sub-ticket compiles clean after the commit (= 1-ticket-1-
+commit per AGENTS.md §1.10).
+
+This refines the original A1g.4 5-commit plan (= A1g.4.1-5) to
+a 6-commit plan (= A1g.2.4 prerequisite + A1g.4.1-5) and adds
+the previously-missed WSLinkRepository + WSChatRepository
+boundary refactor (= moved from A1g.2 to A1g.2.4 to keep A1g.2
+commits focused).
+
 ## References
 
 - AGENTS.md §6.4 (Apple Backyard Birds target structure)
