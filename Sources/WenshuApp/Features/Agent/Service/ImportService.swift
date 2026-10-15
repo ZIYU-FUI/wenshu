@@ -279,33 +279,8 @@ actor ImportService {
         onProgress: (@Sendable ([ImportTask]) async -> Void)? = nil,
         extensions: Set<String> = ["md"]
     ) async -> [ImportTask] {
-        // Reset the per-batch rollback trail at the
-        // start of every `importFiles` call (= the
-        // previous batch's trail is irrelevant; = a
-        // re-run from a clean state must not see the
-        // old trail; = the same actor can be re-used
-        // across multiple sheets, e.g. the cancel +
-        // "再次导入" retry path).
-        isCancelled = false
-        writtenURLs = []
-        entitiesJSONSnapshot = nil
-        // Snapshot the reference-library index file
-        // (= the cancel handler restores this exact
-        // content on rollback; = the orchestrator
-        // captures the file before any writeFile call
-        // has a chance to append to it; = a fresh
-        // library that has no prior `entities.json`
-        // = no snapshot = the cancel handler deletes
-        // the file outright).
-        let entitiesIndex = target.wsRoot
-            .appendingPathComponent("reference-library")
-            .appendingPathComponent("entities")
-            .appendingPathComponent("entities.json")
-        if FileManager.default.fileExists(atPath: entitiesIndex.path) {
-            entitiesJSONSnapshot = (entitiesIndex, (try? Data(contentsOf: entitiesIndex)) ?? Data())
-        } else {
-            entitiesJSONSnapshot = (entitiesIndex, Data())
-        }
+        resetRollbackTrail()
+        let entitiesIndex = snapshotReferenceLibraryIndex(target: target)
         // Phase 1: walk.
         let mdFiles = walkSourceDir(sourceDir, extensions: extensions)
         var tasks = mdFiles.map { ImportTask(sourcePath: $0.path) }
@@ -664,6 +639,34 @@ actor ImportService {
         // sheet's per-file strip).
         return tasksBox.value
     }
+    /// Reset the per-batch rollback trail at the start of every
+    /// `importFiles` call (= the same actor can be re-used across
+    /// multiple sheets, e.g. the cancel + "再次导入" retry path).
+    private func resetRollbackTrail() {
+        isCancelled = false
+        writtenURLs = []
+        entitiesJSONSnapshot = nil
+    }
+
+    /// Snapshot the reference-library `entities.json` for the cancel
+    /// handler to restore on rollback (= captures the file before any
+    /// writeFile call has a chance to append to it; = a fresh library
+    /// with no prior `entities.json` stores an empty-data sentinel
+    /// = the cancel handler deletes the file outright).
+    private func snapshotReferenceLibraryIndex(target: ImportTarget) -> URL {
+        let entitiesIndex = target.wsRoot
+            .appendingPathComponent("reference-library")
+            .appendingPathComponent("entities")
+            .appendingPathComponent("entities.json")
+        if FileManager.default.fileExists(atPath: entitiesIndex.path) {
+            entitiesJSONSnapshot = (entitiesIndex, (try? Data(contentsOf: entitiesIndex)) ?? Data())
+        } else {
+            entitiesJSONSnapshot = (entitiesIndex, Data())
+        }
+        return entitiesIndex
+    }
+
+
 
     // MARK: - title-only retry
 
