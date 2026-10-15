@@ -4,7 +4,7 @@
 //  Settings pane business layer, extracted from SettingView.
 //
 // 
-//  + the v1.72 T1 KanbanOps + v1.72 T2 TodoOps precedents:
+//  + the KanbanOps + TodoOps precedents:
 //  SettingView currently owns the business logic for the 9-tab
 //  Settings pane (= 5 private methods touching ProviderKeychain +
 //  ProviderFetcher + Set<String> expansion state). This helper lifts
@@ -19,7 +19,7 @@
 //    stateless.
 //  - The View holds the @State (= per ADR-0009 = the View layer
 //    owns reactive state); the helper is pure behavior on inputs.
-//  - Same v1.70 editor-mvvm / v1.72 KanbanOps / TodoOps shape.
+//  - Same editor-mvvm / KanbanOps / TodoOps shape.
 //
 //  Why 2 seams (= ProviderKeychainStoring + ProviderFetcherSeam):
 //  - ProviderKeychainStoring (= shipped per AGENTS.md §11.1 = a
@@ -84,10 +84,10 @@
 //    View). SettingsOps.toggleExpansion only computes the new
 //    Set<String>; = the View drives the apiDraftKey reset.
 //
-//  Scope-explicit omissions (= out of v1.72 T3b; = separate tickets):
+//  Scope-explicit omissions (= out of T3b; = separate tickets):
 //    - The SettingsView's 9 tabs ARE NOT being split into separate
 //      tab views yet (= e.g. ProviderApiTabView, ModelTabView).
-//      That decomposition is a separate v1.7x ticket (= the
+//      That decomposition is a separate ticket (= the
 //      "right column MVVM split" arc per the (see OOB.md) 'MVVM UI  ').
 //    - The keychain-changed NotificationCenter post stays in the
 //      View (= the helper just reports shouldNotify; = the View
@@ -97,7 +97,7 @@ import Foundation
 
 /// Stateless business layer for the Settings pane. Lifts the
 /// ProviderKeychain + ProviderFetcher + Set<String> expansion logic
-/// out of `SettingView` per the v1.72 UI// separation audit.
+/// out of `SettingView` per the UI// separation audit.
 @MainActor
 enum SettingsOps {
 
@@ -105,7 +105,7 @@ enum SettingsOps {
 
     /// Async fetcher seam. Production: `ProviderFetcher.loadModelIds
     /// (provider:apiKey:)`. Tests pass `StubProviderFetcher`. Mirrors
-    /// the v1.70 WikiLinkNavigation + ReferenceStoring pattern (= a
+    /// the WikiLinkNavigation + ReferenceStoring pattern (= a
     /// thin protocol with one method, satisfied by an in-file struct in
     /// tests).
     ///
@@ -249,7 +249,7 @@ enum SettingsOps {
 
 /// Bridges `ProviderFetcher.loadModelIds(provider:apiKey:)` (= the
 /// production URLSession-backed static enum) into
-/// `SettingsOps.ProviderFetcherSeam`. Mirrors the v1.72 T1
+/// `SettingsOps.ProviderFetcherSeam`. Mirrors the T1
 /// BookStoreScopeDirectoryResolver pattern (= a thin concrete type
 /// that bridges a global container / static enum to the helper's
 /// protocol seam).

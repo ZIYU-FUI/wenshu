@@ -1,7 +1,7 @@
 //
 //  WenshuConductorImportRouter.swift
 //
-//  T4 of the v2.7 markdown import feature. The production
+//  T4 of the markdown import feature. The production
 //  `ImportRouter` (= the seam the orchestrator dispatches
 //  per file; = defined in `ImportService.swift`).
 //
@@ -205,7 +205,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         // `searchAndRewrite` mode is the ONLY
         // mode that passes tools (= the
         // `consolidate` mode is the LLM-no-tools
-        // path that matches the pre-v2.7
+        // path that matches the previous
         // behavior). The tool schema mirrors
         // `WebSearchTool`'s registration; =
         // canonical wenshu tools are NOT
@@ -377,7 +377,7 @@ actor WenshuConductorImportRouter: ImportRouter {
             // agent's prompt as the bookmark label).
             // The picker still doesn't surface a
             // display name through `ImportFileInput`;
-            // = v2.7 round-73 ships this as the
+            // the round-73 ships this as the
             // file's stem (= no slash collisions;
             // = the agent uses it as the SOP's
             // `{bookTitle}` substitution; = a
@@ -496,7 +496,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         }
     }
 
-    // MARK: - Tool-use loop (= v2.7 searchAndRewrite)
+    // MARK: - Tool-use loop (= searchAndRewrite)
 
     /// (= the
     /// `searchAndRewrite` rewriteMode's
@@ -659,7 +659,7 @@ actor WenshuConductorImportRouter: ImportRouter {
     /// on one line so the parser can grab it
     /// deterministically).
     static func userPrompt(filePath: String, body: String, rewriteMode: ImportFileInput.RewriteMode = .consolidate) -> String {
-        // Cap the body sent to the LLM (= the v0.74
+        // Cap the body sent to the LLM (= the fix
         // default Anthropic context window is plenty
         // for a classification + tag + title rewrite
         // task; = 12,000 chars is more than enough for
@@ -1922,7 +1922,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         // navigation facet; = having both
         // is duplicate metadata that
         // clutters the card view AND breaks
-        // the v2.6 tag-based filter (= the
+        // the tag-based filter (= the
         // user clicks the tag to find
         // everything related; = the entity
         // that has the title as a tag

@@ -25,7 +25,7 @@ import Foundation
 
 /// Document category (= what kind of MD file this is in the book).
 /// Three cases: chapter / setting / research. Three cases is the
-/// minimum; v0.04+ can add more (= outline / foreshadowing /
+/// minimum; future can add more (= outline / foreshadowing /
 /// notes / drafts) without breaking the contract (= Codable default
 /// value handles unknown strings, and the card UI iterates `allCases`
 /// so new categories appear automatically).
@@ -116,7 +116,7 @@ struct Document: Identifiable, Hashable, Codable, Sendable {
     /// a single untyped array so the view layer can render each ref
     /// category distinctly (= character chips, world chips, reference
     /// chips in the editor sidebar).
-    /// All default to empty array for back-compat with pre-v1.0
+    /// All default to empty array for back-compat with the legacy
     /// documents (= no Codable migration needed; existing .md files
     /// decode with refIds = [] because the field is missing from the
     /// file metadata; the @-parser re-extracts on next load).
@@ -228,7 +228,7 @@ enum DocumentRefKind: String, CaseIterable, Codable, Sendable {
 /// caller (= typically FileSystemLibraryStore.loadDocument) is
 /// responsible for resolving `name` -> UUID via the per-Book character/
 /// world/ indexes (= a name "zhangsan" might match a Character named
-/// "" via a slug-mapping; v0.27+ may add a proper slug resolver).
+/// "" via a slug-mapping; future may add a proper slug resolver).
 struct DocumentCrossRefParser {
     /// Parse all cross-refs from a markdown body. Returns unique
     /// `(kind, name)` pairs (= same name + kind appearing N times = 1
@@ -248,7 +248,7 @@ struct DocumentCrossRefParser {
     /// Resolve parsed `(kind, name)` pairs into UUID arrays using the
     /// lookup tables provided. Unresolved names (= no match in any
     /// index) are silently skipped (= the writer may have referenced
-    /// a name not yet created; v0.27+ may add a "create new entity
+    /// a name not yet created; future may add a "create new entity
     /// from reference" UX).
     static func resolve(
         _ refs: [(kind: DocumentRefKind, name: String)],
@@ -283,7 +283,7 @@ struct DocumentCrossRefParser {
         // Pattern: @(character|world|reference).<slug>
         // Slug = alphanumerics + underscore + Chinese characters + hyphen.
         // Matches across newlines (= mode .dotMatchesLineSeparators? No;
-        // we want single-line refs; cross-line refs are rare and v0.26
+        // we want single-line refs; cross-line refs are rare
         // doesn't need them).
         //
 // Carve-out: `Document.swift:296` keeps CJK inside the regex pattern

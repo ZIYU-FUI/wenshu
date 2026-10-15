@@ -82,7 +82,7 @@ struct EditorTabStrip: View {
     /// Last seen `tabs` array (= detects when the caller added /
     /// removed tabs externally so we can prune displayOrder).
     @State private var lastSeenTabIds: [UUID] = []
-    /// 2026-10-14 v3.3: live column
+    /// live column
     /// width (= the editor column's
     /// current width; = updated by
     /// `.onGeometryChange` on the
@@ -103,7 +103,7 @@ struct EditorTabStrip: View {
     /// the algorithm uses
     /// `displayOrder.count > 10`
     /// (= a safe default that
-    /// matches the previous v3.2
+    /// matches the previous
     /// fixed-threshold behavior).
     @State private var columnWidth: CGFloat = 0
 
@@ -382,7 +382,7 @@ struct EditorTabStrip: View {
                     guard segmentIndex >= 0 && segmentIndex < displayOrder.count else { return }
                     onClose(displayOrder[segmentIndex])
                 },
-                // 2026-10-14 v3.4:
+                // 
                 // `fixedSegmentWidth = 0`
                 // (= the
                 // NSSegmentedControl
@@ -424,7 +424,7 @@ struct EditorTabStrip: View {
             // observed) fires every
             // time a new tab is added
             // (= the count changes by 1).
-            // 2026-10-14 v3.5: drop the
+            // drop the
             //
             // wrap (= the boss
             // 2026-10-14 "tab
@@ -450,7 +450,7 @@ struct EditorTabStrip: View {
             // = no position
             // jump = no
             // "飘" symptom).
-            // The v3.5 trade-off
+            // The trade-off
             // (= the boss
             // already signed
             // off on this in
@@ -561,7 +561,7 @@ struct EditorTabStrip: View {
         // button does NOT push the active tab to the
         // right).
         .frame(maxWidth: .infinity, alignment: .leading)
-        // 2026-10-14 v3.3: capture
+        // capture
         // the live column
         // width via
         // `.onGeometryChange`

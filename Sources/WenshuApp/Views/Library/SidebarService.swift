@@ -488,7 +488,7 @@ final class SidebarService {
     /// so the persisted sidebarSelection survives reload.
     /// Distinct ID namespace from stableReferenceCategoryId
     /// (= "wenshu.sidebar.reftag." vs "wenshu.sidebar.refcat.")
-    /// so the v2.6 tag rows never collide with the legacy
+    /// so the tag rows never collide with the legacy
     /// rows in any persisted selection.
     private static func stableReferenceTagId(_ tag: String) -> UUID {
         let raw = "wenshu.sidebar.reftag.\(tag)"
@@ -511,14 +511,14 @@ final class SidebarService {
 //
 //  Create + delete + rename business layer for the sidebar.
 //  Restored from the deleted NewLibraryOutlineView.swift
-//  (2366 LOC) after v1.69e `git rm`'d it without re-wiring
+//  (2366 LOC) after `git rm`'d it without re-wiring
 //  (= per (see OOB.md #2026-09-23) OOB '，').
 //
 //  What lives here:
 //   - persistence surface (= FileManager + JSONEncoder/Decoder
 //     for shelvesRoot/, books/<bookId>/book.json, shelf.json).
 //   - reserved-name guard (= rejects "" / "Reference Library"
-//     pre-v0.26 system-shelf names; = (see OOB.md #2026-09-20) OOB).
+//     legacy system-shelf names; = (see OOB.md #2026-09-20) OOB).
 //   - default-shelf-delete guard (= shelf 00000000-... cannot be
 //     deleted; = Reference Library is immutable).
 //   - duplicate-name validation for create + rename.
@@ -528,7 +528,7 @@ final class SidebarService {
 //     SidebarContextMenu.swift + alert + sheet wiring in
 //     AppleSidebarView.swift).
 //
-//  Error type = one enum with LocalizedError (= the v1.0.0-m1
+//  Error type = one enum with LocalizedError (= the m1
 //  legacy ShelfError / ShelfDeleteError pair merged into one
 //  with all cases; = same set of reserved + duplicate +
 //  cannot-delete-default guards preserved verbatim).

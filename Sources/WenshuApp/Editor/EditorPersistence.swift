@@ -12,7 +12,7 @@
 //
 //  Public surface (= 3 methods + 1 result struct):
 //  - `save(tab:bookStore:)` writes the tab's draft to disk.
-//      Three paths (= matches v0.34 B-21 + SMC 003):
+//      Three paths (= matches the SMC ticket 003):
 //        1. tab.documentPath != nil → overwrite that path in place.
 //        2. tab.documentPath == nil + bookStore proposed path available
 //           → write to <book>/chapters/<uuid>.md + bind tab.documentPath.
@@ -30,7 +30,7 @@
 //      the user (= the helper doesn't know about `EditorTab.draft =
 //      ...` mutation in this signature; = it returns the values).
 //  - `handleDirtyTransition(_:tab:bookStore:)` owns the 3-second
-//      auto-save Task lifecycle (= matches v0.34 B-22 + the 2026-09-02
+//      auto-save Task lifecycle (= matches the
 //      spec). dirty=true starts ONE Task (= subsequent edits within
 //      the debounce window don't spawn new Tasks); dirty=false
 //      cancels the pending Task.
@@ -70,14 +70,14 @@ enum EditorPersistence {
     ///   - tab: the tab whose `draft` should be persisted. Mutated
     ///     in place when the propose-new-path branch binds
     ///     `tab.documentPath` (= subsequent saves reuse the same
-    ///     path = the auto-bind invariant from v0.34 B-21).
+    ///     path = the auto-bind invariant).
     ///   - bookStore: optional; = when tab.documentPath is nil,
     ///     the helper asks `DraftPersistence.proposedPath(...)` for
     ///     a `<book>/chapters/<uuid>.md` candidate. `nil` falls
     ///     through to the /tmp path.
     /// - Returns: the final bound path (= `tab.documentPath` after
     ///   the call). Nil when all paths failed silently (= matches
-    ///   the legacy `try?` behavior in v0.34 B-21).
+    ///   the legacy `try?` behavior).
     @discardableResult
     static func save(tab: EditorTab, bookStore: BookStore?) -> String? {
         // 2026-10-14 perf: the dirty-skip + content-
@@ -248,7 +248,7 @@ enum EditorPersistence {
     ///   back to `tab.draft` + `tab.originalBody` + `tab.externalChangeNotice`).
     /// - Returns: the new content + conflict notice (= nil on
     ///   missing file or clean tab). Caller uses the conflict
-    ///   notice to set `tab.externalChangeNotice` (= the v0.34
+    ///   notice to set `tab.externalChangeNotice` (= the
     /// user-facing alert).
     static func reloadFromDisk(tab: EditorTab) -> EditorPersistenceReloadResult? {
         guard let path = tab.documentPath else { return nil }
@@ -281,7 +281,7 @@ enum EditorPersistence {
         )
     }
 
-    /// Dirty-state machine (= v0.34 B-22 + (see OOB.md #2026-09-02)spec).
+    /// Dirty-state machine (= the spec (see OOB.md #2026-09-02)).
     ///
     /// - `dirty = true`: start ONE 3-second Task. The Task fires
     ///   `EditorPersistence.save(tab:bookStore:)` (= writes to
