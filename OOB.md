@@ -36,6 +36,9 @@ New entries = append 1 line. Outdated = delete (= per AGENTS.md §10.3).
 | 2026-10-02 | AGENTS/CLAUDE 大文件治理; color sweep 直走 HIG; skill auto-load before code; 颜色盘一次; sweep 继续推 |
 | 2026-10-06 | 中央工厂保留 + 一个区域一个定义 (SFRegions source) |
 | 2026-10-06 (library upgrade) | SwiftData library upgrade panel = macOS system-upgrade-style UX (= visible progress + auto retry up to 3 + 备份路径 + 重试/退出) |
+| 2026-09-25 | SidebarService adopted option 3 = facet (= 4 facet scopes: per-book / per-tab / per-shelf / per-mode) |
+| 2026-10-04 | "wins" rule for conflict resolution in PromptBuilder (= priority order when multiple OOBs collide) |
+| 2026-10-05 | EditChapterActor #8 FileSystem*Store split (= 8 dedicated stores per feature surface) |
 | 2026-10-07 | 多语言 zsh fallback = `Scripts/build-app.sh` 没复制 `.lproj` 到 `.app/Resources`; 资料库默认共享跨书 |
 | 2026-10-11 | LaTeX rendering enabled via SwiftMathBridge (= MarkdownEngineLatex module; = math blocks render inline) |
 | 2026-10-12 | Settings = 双栏 NavigationSplitView; Apple 系统设置 1:1; i18n 先正确再 UI; per-app Language picker; accent-color/topic size 走 Apple HIG canonical; 默认窗口 950x517; 内部 padding 调整 |
@@ -43,7 +46,11 @@ New entries = append 1 line. Outdated = delete (= per AGENTS.md §10.3).
 | 2026-10-12 (chrome) | 4 列底栏 = `ChromeBottomFooter` + `safeAreaInset`; ICON 光学 24PT tile + 4PT inset; 仅 Settings 多色; library tree 单色 |
 | 2026-10-12 (card) | Book card ↔ Reference card 视觉 1:1; tag chip 对齐; H1 split 出去 |
 | 2026-10-12 (editor) | EditorStatusBar 用 chat footer 同 recipe (Divider + .bar + .padding 8); scroll anchor .top |
-| 2026-10-15 | agent thinking visibility (= wenshu agent reply must expose reasoning trace; = not just final output; = matches hermes dev tool step-by-step transparency) |
+| 2026-10-08 | IconStyles monochrome fallback (per-library .monochrome; = not per-OS .accent) |
+| 2026-10-09 | ImportEnvelope directive "导入" / "File > 导入" menu = canonical entry point for the import flow |
+| 2026-10-10 | BookChapterTool / BookManagerTool / BookEntityTool round-NN contracts (= file round-36 + 61 + 66 + 67 + 69 + 71; = the boss 2026-10-10 batch of librarian behavior fixes) |
+| 2026-10-14 | CardOpenOps auto-open behavior (= click the card to open chapter; = no double-click required) |
+| 2026-10-15 | agent thinking visibility (= wenshu agent reply must expose reasoning trace; = matches hermes dev tool step-by-step transparency) |
 
 ## When to update
 
