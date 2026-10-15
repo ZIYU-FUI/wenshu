@@ -12,6 +12,7 @@
 // drag,dock-enforce,floating-adoption}.test.ts.
 
 import XCTest
+import Foundation
 @testable import WenshuApp
 
 final class WorkspaceStateTests: XCTestCase {

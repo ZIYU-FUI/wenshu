@@ -15,6 +15,7 @@
 //  uses in its first-party apps.
 
 import Foundation
+import SwiftUI
 import Testing
 @testable import WenshuApp
 

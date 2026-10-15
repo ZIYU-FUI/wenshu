@@ -39,6 +39,7 @@
 //      (= canonical NSSplitView animated collapse)
 
 import Foundation
+import AppKit
 import Testing
 @testable import WenshuApp
 

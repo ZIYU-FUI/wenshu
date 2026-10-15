@@ -9,7 +9,8 @@
 //
 
 import Testing
-import Foundation
+import SwiftData
+import WenshuData
 @testable import WenshuApp
 
 @Suite("ContextEngine (ticket 003 sub-step 3)")

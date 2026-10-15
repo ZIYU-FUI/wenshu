@@ -13,7 +13,7 @@
 //
 
 import Testing
-import Foundation
+import WenshuData
 @testable import WenshuApp
 
 @Suite("ContextEngine + ContextCompressor deep (= v0.35 ticket 003)")

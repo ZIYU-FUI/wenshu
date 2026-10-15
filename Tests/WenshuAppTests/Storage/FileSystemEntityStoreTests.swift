@@ -14,6 +14,7 @@
 
 import Testing
 import Foundation
+import WenshuData
 @testable import WenshuApp
 
 @Suite("FileSystemEntityStore (v2.3)")

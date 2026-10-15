@@ -48,6 +48,7 @@
 //  badges (.high / .urgent).
 
 import Testing
+import SwiftUI
 import Foundation
 @testable import WenshuApp
 

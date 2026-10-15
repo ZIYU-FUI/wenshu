@@ -12,7 +12,9 @@
 //
 
 import Foundation
+import SwiftData
 import Testing
+import WenshuData
 @testable import WenshuApp
 
 @Suite("Audit: previously untested functions (boss 8/23 双轴 code-review)")

@@ -17,6 +17,7 @@
 // POLISH-LIQUIDGLASS-005 = popovers                (= BacklinksPanel.swift)
 
 import Testing
+import SwiftUI
 import Foundation
 
 @Suite("Liquid Glass polish consistency (= macOS 27 per AGENTS.md §11)")

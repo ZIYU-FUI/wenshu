@@ -18,6 +18,7 @@
 
 import Foundation
 import Testing
+import WenshuData
 @testable import WenshuApp
 
 @Suite("WenshuConductor E2E (主 agent 派单, 全流程)")

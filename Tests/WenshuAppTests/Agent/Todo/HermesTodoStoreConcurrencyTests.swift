@@ -40,7 +40,9 @@
 //
 
 import Foundation
+import SwiftData
 import Testing
+import WenshuData
 @testable import WenshuApp
 
 // MARK: - Sendable observation collector

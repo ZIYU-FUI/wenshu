@@ -26,6 +26,7 @@
 //      selected-state underline (= canonical Apple HIG slide animation)
 
 import Foundation
+import SwiftUI
 import Testing
 @testable import WenshuApp
 

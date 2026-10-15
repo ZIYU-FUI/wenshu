@@ -58,7 +58,9 @@
 //
 
 import Foundation
+import SwiftData
 import Testing
+import WenshuData
 @testable import WenshuApp
 
 /// Sendable collector for AsyncStream todo notifications

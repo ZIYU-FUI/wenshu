@@ -4,6 +4,7 @@
 import Foundation
 import SwiftData
 import Testing
+import WenshuData
 @testable import WenshuApp
 
 @Suite("WSOutlineDocument (= per-book outline .md metadata index)")

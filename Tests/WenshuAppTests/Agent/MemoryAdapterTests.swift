@@ -7,7 +7,7 @@
 //  stub-no-op behavior is gone (= see AGENTS.md §11.14).
 
 import Testing
-import Foundation
+import WenshuData
 @testable import WenshuApp
 
 @Suite("MemoryAdapter (v2.4 rewire)")

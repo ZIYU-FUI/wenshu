@@ -22,6 +22,7 @@
 
 import Testing
 import Foundation
+import WenshuData
 @testable import WenshuApp
 
 @Suite("AttachmentsWindow (boss 2026-10-03 OOB — WSAttachment entry window)")

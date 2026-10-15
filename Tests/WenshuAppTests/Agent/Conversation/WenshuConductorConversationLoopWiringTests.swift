@@ -31,7 +31,9 @@
 //
 
 import Foundation
+import SwiftData
 import Testing
+import WenshuData
 @testable import WenshuApp
 
 @Suite("WenshuConductor → ConversationLoop wiring (P0 #1 / WIRE-AGENT-001)")

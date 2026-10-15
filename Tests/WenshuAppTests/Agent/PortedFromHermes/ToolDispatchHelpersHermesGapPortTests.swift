@@ -20,6 +20,7 @@
 //
 
 import Testing
+import WenshuData
 import Foundation
 @testable import WenshuApp
 

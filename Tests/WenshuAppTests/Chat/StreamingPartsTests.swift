@@ -32,6 +32,7 @@
 //  covered by the existing E2E suite.
 
 import Testing
+import WenshuData
 import Foundation
 @testable import WenshuApp
 

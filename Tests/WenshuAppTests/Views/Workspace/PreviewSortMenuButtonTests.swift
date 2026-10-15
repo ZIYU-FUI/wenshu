@@ -18,6 +18,7 @@
 // "use SF Symbols 6 (3rd gen)") with `Image(systemName:` check.
 
 import SwiftUI
+import Foundation
 import ViewInspector
 import Testing
 @testable import WenshuApp

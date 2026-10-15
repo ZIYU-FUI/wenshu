@@ -17,6 +17,7 @@
 import Foundation
 import SwiftData
 import Testing
+import WenshuData
 @testable import WenshuApp
 
 @Suite("WSKanbanRepository.body (kanban-markdown 2026-09-28 T3)")

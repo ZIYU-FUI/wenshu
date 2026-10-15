@@ -21,6 +21,7 @@
 import Foundation
 import SwiftData
 import Testing
+import WenshuData
 @testable import WenshuApp
 
 @Suite("WSChatRepository bookID row-level isolation (= §11.11 contract)")

@@ -2,8 +2,9 @@
 //  Persistence/Repositories/WSRepositoryContainerTests.swift · Wenshu · v0.72 SwiftData migration 
 
 import Foundation
-import SwiftData
+import Combine
 import Testing
+import WenshuData
 @testable import WenshuApp
 
 @Suite("WSRepositoryContainer (= SwiftData @Observable singleton holding all 9 repos)")

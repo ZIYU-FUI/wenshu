@@ -15,6 +15,7 @@
 
 import Testing
 import Foundation
+import WenshuData
 @testable import WenshuApp
 
 @Suite("ContextEngine e2e (ticket 003 sub-step 6)")

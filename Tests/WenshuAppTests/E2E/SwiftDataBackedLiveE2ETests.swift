@@ -58,6 +58,7 @@
 
 import Testing
 import Foundation
+import WenshuData
 @testable import WenshuApp
 
 @Suite("SwiftData-backed live E2E · v2.7d", .serialized)

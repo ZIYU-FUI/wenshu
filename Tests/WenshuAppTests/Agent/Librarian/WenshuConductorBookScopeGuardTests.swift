@@ -20,6 +20,7 @@
 
 import Testing
 import Foundation
+import WenshuData
 @testable import WenshuApp
 
 @Suite("WenshuConductor book scope guard (v2.1)")

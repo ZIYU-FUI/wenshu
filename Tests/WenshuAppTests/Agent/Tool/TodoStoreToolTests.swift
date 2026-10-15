@@ -23,7 +23,9 @@
 //
 
 import Foundation
+import SwiftData
 import Testing
+import WenshuData
 @testable import WenshuApp
 
 @Suite("TodoStoreTool adapter (P0 #4 / WIRE-AGENT-004)")

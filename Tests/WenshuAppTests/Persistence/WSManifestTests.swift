@@ -13,6 +13,7 @@
 import Foundation
 import SwiftData
 import Testing
+import WenshuData
 @testable import WenshuApp
 
 @Suite("WSManifest (= first SwiftData @Model)")

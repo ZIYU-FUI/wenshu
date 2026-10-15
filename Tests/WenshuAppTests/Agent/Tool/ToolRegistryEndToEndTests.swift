@@ -41,7 +41,9 @@
 //  VERIFY-TOOLREGISTRY-004 ticket scope.)
 
 import Foundation
+import SwiftData
 import Testing
+import WenshuData
 @testable import WenshuApp
 
 @Suite("ToolRegistry end-to-end (VERIFY-TOOLREGISTRY-004)")

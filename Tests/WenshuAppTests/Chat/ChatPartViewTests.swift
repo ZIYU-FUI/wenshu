@@ -22,6 +22,7 @@
 //  1:1 Hermes parity contract).
 
 import Testing
+import WenshuData
 import Foundation
 import SwiftUI
 @testable import WenshuApp

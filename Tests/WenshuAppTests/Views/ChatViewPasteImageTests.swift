@@ -9,6 +9,7 @@
 //
 
 import Testing
+import AppKit
 import Foundation
 @testable import WenshuApp
 

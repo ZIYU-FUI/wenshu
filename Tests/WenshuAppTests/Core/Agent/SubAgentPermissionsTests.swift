@@ -7,6 +7,7 @@
 
 import Foundation
 import Testing
+import WenshuData
 @testable import WenshuApp
 
 @Suite("SubAgentPermissions (hermes DELEGATE_BLOCKED_TOOLS parity)")

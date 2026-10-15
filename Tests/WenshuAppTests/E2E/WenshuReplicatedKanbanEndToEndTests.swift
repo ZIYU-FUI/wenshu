@@ -37,8 +37,8 @@
 //
 
 import Foundation
-import SwiftData
 import Testing
+import WenshuData
 @testable import WenshuApp
 
 @Suite("Wenshu replicated kanban end-to-end (= hermes 10-action dispatcher real path)", .serialized)

@@ -23,6 +23,7 @@
 // structural assertions per v0.82 pattern.
 
 import SwiftUI
+import Foundation
 import Testing
 @testable import WenshuApp
 

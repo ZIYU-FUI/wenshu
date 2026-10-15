@@ -5,7 +5,9 @@
 //
 
 import Testing
+import SwiftData
 import Foundation
+import WenshuData
 @testable import WenshuApp
 
 @Suite("KanbanStore (hermes replica)")

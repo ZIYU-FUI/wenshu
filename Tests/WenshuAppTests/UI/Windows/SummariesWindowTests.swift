@@ -13,6 +13,7 @@
 
 import Testing
 import Foundation
+import WenshuData
 @testable import WenshuApp
 
 @Suite("SummariesWindow (boss 2026-10-03 OOB — WSSummary entry window)")

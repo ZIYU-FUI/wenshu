@@ -22,6 +22,7 @@
 // the user-picked folder).
 
 import XCTest
+import Foundation
 @testable import WenshuApp
 
 @MainActor

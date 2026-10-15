@@ -38,6 +38,7 @@
 //  fetcher seam (= captures the (provider, apiKey) tuple).
 
 import Foundation
+import SwiftUI
 import Testing
 @testable import WenshuApp
 

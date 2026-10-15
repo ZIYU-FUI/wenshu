@@ -43,6 +43,7 @@
 
 import Testing
 import Foundation
+import WenshuData
 @testable import WenshuApp
 
 @Suite("E2E · v2.7 multi-turn agent team link", .serialized)

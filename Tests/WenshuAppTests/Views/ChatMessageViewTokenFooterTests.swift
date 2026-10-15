@@ -7,6 +7,7 @@
 //
 
 import Testing
+import SwiftUI
 import Foundation
 @testable import WenshuApp
 

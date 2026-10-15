@@ -2,8 +2,8 @@
 //  Persistence/Repositories/WSTodoRepositoryTests.swift · Wenshu · v0.72 SwiftData migration 
 
 import Foundation
-import SwiftData
 import Testing
+import WenshuData
 @testable import WenshuApp
 
 @Suite("WSTodoRepository (= SwiftData @Model TodoStore replacement)")

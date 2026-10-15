@@ -34,6 +34,8 @@
 //    (= Apple HIG has no canonical severity opacity scale)
 
 import Testing
+import SwiftUI
+import AppKit
 import Foundation
 @testable import WenshuApp
 

@@ -7,6 +7,7 @@
 // false positives.
 
 import SwiftUI
+import Foundation
 import ViewInspector
 import Testing
 @testable import WenshuApp

@@ -22,7 +22,9 @@
 //
 
 import Testing
+import SwiftData
 import Foundation
+import WenshuData
 @testable import WenshuApp
 
 @Suite("HermesTodoTool (HERMES-SUBSYSTEM-4)")

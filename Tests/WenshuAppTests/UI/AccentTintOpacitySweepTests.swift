@@ -31,6 +31,7 @@
 //  their literal at call site (= wenshu-specific visual decisions).
 
 import Testing
+import SwiftUI
 import Foundation
 @testable import WenshuApp
 

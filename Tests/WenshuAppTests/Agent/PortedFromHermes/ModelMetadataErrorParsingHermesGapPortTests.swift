@@ -27,6 +27,7 @@
 //  helpers port).
 
 import XCTest
+import Foundation
 @testable import WenshuApp
 
 final class ModelMetadataErrorParsingHermesGapPortTests: XCTestCase {

@@ -15,6 +15,7 @@
 //  MVVMSplitTests convention.
 
 import XCTest
+import Foundation
 @testable import WenshuApp
 
 final class SidebarCreateDeleteRenameTests: XCTestCase {

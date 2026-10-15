@@ -15,7 +15,8 @@
 //
 
 import Testing
-import Foundation
+import Combine
+import WenshuData
 @testable import WenshuApp
 
 @Suite("WenshuConductor path logging (T0-PATH-VISIBLE)")

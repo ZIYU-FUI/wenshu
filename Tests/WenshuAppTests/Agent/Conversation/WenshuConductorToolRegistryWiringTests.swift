@@ -18,7 +18,9 @@
 //
 
 import Foundation
+import SwiftData
 import Testing
+import WenshuData
 @testable import WenshuApp
 
 @Suite("WenshuConductor ↔ ToolRegistry wiring (WIRE-TOOLREGISTRY-003)")

@@ -17,8 +17,8 @@
 //    4. setCurrentBookID with the same value is a no-op.
 
 import Foundation
-import SwiftData
 import Testing
+import WenshuData
 @testable import WenshuApp
 
 /// Minimal ChatRepositoryProtocol fake. Records every call's bookID

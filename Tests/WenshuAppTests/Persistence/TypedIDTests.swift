@@ -21,6 +21,7 @@
 import Foundation
 import SwiftData
 import Testing
+import WenshuData
 @testable import WenshuApp
 
 @Suite("TypedID brand wrapper invariants (= P2-02 round-trip + type-safety)")

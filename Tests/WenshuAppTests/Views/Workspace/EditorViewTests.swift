@@ -20,6 +20,7 @@
 // features referenced in the comments).
 
 import SwiftUI
+import Foundation
 import Testing
 @testable import WenshuApp
 

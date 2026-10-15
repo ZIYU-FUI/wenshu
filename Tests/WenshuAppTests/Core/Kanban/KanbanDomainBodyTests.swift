@@ -10,6 +10,7 @@
 
 import Foundation
 import Testing
+import WenshuData
 @testable import WenshuApp
 
 @Suite("KanbanTask.body (kanban-markdown 2026-09-28 T2)")

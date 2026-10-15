@@ -17,6 +17,7 @@
 //
 
 import XCTest
+import Foundation
 @testable import WenshuApp
 
 final class ImportSOPLoaderTests: XCTestCase {

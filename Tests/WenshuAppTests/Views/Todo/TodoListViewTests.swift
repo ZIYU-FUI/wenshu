@@ -17,6 +17,7 @@
 // runtime in a SwiftPM testTarget; = worktree-aware per v1.33 ticket 001).
 
 import SwiftUI
+import Foundation
 import Testing
 @testable import WenshuApp
 

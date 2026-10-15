@@ -22,7 +22,7 @@
 //
 
 import Testing
-import Foundation
+import WenshuData
 @testable import WenshuApp
 
 @Suite("SubAgentIdentity.tools · v2.7d wenshu tool mapping", .serialized)

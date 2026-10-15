@@ -20,6 +20,7 @@
 //  one ticket per file = the remaining 12 hermes functions deferred).
 
 import XCTest
+import Foundation
 @testable import WenshuApp
 
 final class ShellHookChainHermesGapPortTests: XCTestCase {

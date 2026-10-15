@@ -4,8 +4,8 @@
 //  Test commit 43: WSMemoryProvider (= SwiftData-backed MemoryProvider impl).
 
 import Foundation
-import SwiftData
 import Testing
+import WenshuData
 @testable import WenshuApp
 
 @Suite("WSMemoryProvider (= SwiftData-backed MemoryProvider)")

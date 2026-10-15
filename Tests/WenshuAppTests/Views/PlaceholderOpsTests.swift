@@ -58,6 +58,7 @@
 //
 
 import Foundation
+import SwiftUI
 import Testing
 @testable import WenshuApp
 

@@ -13,8 +13,9 @@
 //
 
 import Testing
-import Foundation
 import SwiftData
+import Foundation
+import WenshuData
 @testable import WenshuApp
 
 @Suite("WSEntity (v2.3)")

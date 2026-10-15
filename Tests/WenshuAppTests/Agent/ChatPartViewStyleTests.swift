@@ -13,6 +13,7 @@
 //
 
 import Testing
+import WenshuData
 import Foundation
 import SwiftUI
 @testable import WenshuApp

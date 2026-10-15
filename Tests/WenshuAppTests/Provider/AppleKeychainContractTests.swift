@@ -18,6 +18,7 @@
 //
 // Reference: AGENTS.md §11.1 (security baseline), §11.2 (LLM connector).
 import Foundation
+import OSLog
 import Testing
 @testable import WenshuApp
 

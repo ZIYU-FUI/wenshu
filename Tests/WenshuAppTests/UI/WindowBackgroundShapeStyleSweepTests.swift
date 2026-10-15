@@ -34,6 +34,8 @@
 //   NSColor.windowBackgroundColor literal in AnyShapeStyle context)
 
 import Testing
+import SwiftUI
+import AppKit
 import Foundation
 @testable import WenshuApp
 

@@ -22,6 +22,7 @@
 // boss's manual screenshot once the app is running.
 
 import SwiftUI
+import Foundation
 import Testing
 @testable import WenshuApp
 

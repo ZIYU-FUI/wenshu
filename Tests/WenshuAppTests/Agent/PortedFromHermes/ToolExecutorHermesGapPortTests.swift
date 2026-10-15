@@ -18,6 +18,7 @@
 //  belong in a top-level pure function).
 
 import XCTest
+import Foundation
 @testable import WenshuApp
 
 final class ToolExecutorHermesGapPortTests: XCTestCase {

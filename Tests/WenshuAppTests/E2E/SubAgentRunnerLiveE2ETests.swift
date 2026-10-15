@@ -40,7 +40,8 @@
 //
 
 import Testing
-import Foundation
+import SwiftData
+import WenshuData
 @testable import WenshuApp
 
 @Suite("SubAgentRunner live E2E · v2.7d", .serialized)

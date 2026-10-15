@@ -7,6 +7,7 @@
 import Foundation
 import SwiftData
 import Testing
+import WenshuData
 @testable import WenshuApp
 
 @Suite("WSMemory (= memories @Model)")

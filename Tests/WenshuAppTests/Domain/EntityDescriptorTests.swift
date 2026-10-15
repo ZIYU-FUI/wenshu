@@ -15,6 +15,7 @@
 
 import Testing
 import Foundation
+import WenshuData
 @testable import WenshuApp
 
 // MARK: - EntityID

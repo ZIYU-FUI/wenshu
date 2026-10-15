@@ -39,6 +39,7 @@
 
 import Testing
 import Foundation
+import WenshuData
 @testable import WenshuApp
 
 @Suite("Empty @Model schema completion (v2.9d — boss 2026-09-28 OOB A3 follow-up)")

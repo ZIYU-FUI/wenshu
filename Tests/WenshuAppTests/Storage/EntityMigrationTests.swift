@@ -16,6 +16,7 @@
 
 import Testing
 import Foundation
+import WenshuData
 @testable import WenshuApp
 
 @Suite("EntityMigration (v2.3)")

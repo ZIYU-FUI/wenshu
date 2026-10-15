@@ -2,8 +2,8 @@
 //  Persistence/Repositories/WSChatRepositoryTests.swift · Wenshu · v0.72 SwiftData migration 
 
 import Foundation
-import SwiftData
 import Testing
+import WenshuData
 @testable import WenshuApp
 
 @Suite("WSChatRepository (= SwiftData @Model replacement for the deleted ChatSessionStore actor)")

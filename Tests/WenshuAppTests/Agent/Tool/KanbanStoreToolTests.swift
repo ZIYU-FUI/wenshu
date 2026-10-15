@@ -33,7 +33,9 @@
 //
 
 import Foundation
+import SwiftData
 import Testing
+import WenshuData
 @testable import WenshuApp
 
 @Suite("KanbanStoreTool adapter (P0 #5 / WIRE-AGENT-005)")

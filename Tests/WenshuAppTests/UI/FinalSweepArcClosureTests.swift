@@ -99,6 +99,7 @@
 //  - Color.X.opacity(0.X) literal (= SwiftUI idiomatic, round 12 boundary)
 
 import Testing
+import SwiftUI
 import Foundation
 @testable import WenshuApp
 

@@ -12,6 +12,7 @@
 
 import Testing
 import Foundation
+import WenshuData
 @testable import WenshuApp
 
 @Suite("ManifestWindow (boss 2026-10-03 OOB — WSManifest entry window)")

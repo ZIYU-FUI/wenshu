@@ -23,7 +23,9 @@
 //
 
 import Foundation
+import SwiftData
 import Testing
+import WenshuData
 @testable import WenshuApp
 
 @Suite("WenshuConductor → ToolExecutor wiring (P0 #2 / WIRE-AGENT-002)")

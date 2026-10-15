@@ -3,7 +3,9 @@
 //
 
 import Testing
+import SwiftData
 import Foundation
+import WenshuData
 @testable import WenshuApp
 
 @Suite("WenshuConductor (文枢调度器)")

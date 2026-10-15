@@ -37,6 +37,7 @@
 
 import Testing
 import Foundation
+import WenshuData
 @testable import WenshuApp
 
 @Suite("#warning cleanup (v2.9e — boss 2026-09-28 OOB A9)")

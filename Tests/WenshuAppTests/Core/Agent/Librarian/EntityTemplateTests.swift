@@ -21,6 +21,7 @@
 
 import Testing
 import Foundation
+import WenshuData
 @testable import WenshuApp
 
 @Suite("EntityTemplate (v2.3)")

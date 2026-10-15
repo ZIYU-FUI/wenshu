@@ -36,6 +36,7 @@
 
 import Foundation
 import Testing
+import WenshuData
 @testable import WenshuApp
 
 @Suite("SubAgentIdentity (5 sub-agents)")

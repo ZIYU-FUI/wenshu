@@ -24,6 +24,7 @@
 // WenshuMarkdownEditor, etc.).
 
 import SwiftUI
+import AppKit
 import Testing
 @testable import WenshuApp
 

@@ -27,6 +27,7 @@
 // is reserved for the heavier UI tests in 028-011 followups).
 //
 import XCTest
+import Foundation
 @testable import WenshuApp
 
 @MainActor

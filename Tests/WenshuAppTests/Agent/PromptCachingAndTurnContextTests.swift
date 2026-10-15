@@ -13,6 +13,7 @@
 //
 
 import Testing
+import Combine
 import Foundation
 @testable import WenshuApp
 

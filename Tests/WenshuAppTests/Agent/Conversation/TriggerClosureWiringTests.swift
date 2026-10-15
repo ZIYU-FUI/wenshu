@@ -17,7 +17,9 @@
 //
 
 import Foundation
+import SwiftData
 import Testing
+import WenshuData
 @testable import WenshuApp
 
 @Suite("HERMES-AGENT-SMC-READYNESS — production trigger wiring")
