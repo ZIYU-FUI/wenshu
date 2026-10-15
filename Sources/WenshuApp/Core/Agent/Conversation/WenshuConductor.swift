@@ -619,7 +619,7 @@ actor WenshuConductor {
                     completedAt: Date(),
                     resultSummary: summary
                 )
-                _ = await MainActor.run { try? self.repositories.chat.recordSubAgentRun(run, sessionId: "default") }
+                _ = await MainActor.run { try? ConversationOps.recordSubAgentRun(repository: self.repositories.chat, run: run, sessionId: "default") }
             }
             // Auditor runs if Writer or Analyst in selection.
             let needsAudit = selectedAgents.contains("writer") || selectedAgents.contains("analyst")

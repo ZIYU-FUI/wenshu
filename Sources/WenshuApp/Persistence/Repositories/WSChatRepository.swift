@@ -297,48 +297,10 @@ final class WSChatRepository {
         return try context.fetch(descriptor)
     }
 
-    /// summarizeIfNeeded(sessionId:lastN:threshold:verifier:) -> Bool
-    ///
-    /// : port of the deleted ChatSessionStore actor's
-    /// `summarizeIfNeeded` (= v0.21 ticket 05 spec). When the message
-    /// count exceeds `threshold`, build a prompt from pre-cutoff messages,
-    /// call `verifier.chat(...)`, then save the summary + delete the
-    /// pre-cutoff originals (= non-transactional because SwiftData
-    /// batches all writes in a single `save()` call).
-    @MainActor
-    func summarizeIfNeeded(
-        sessionId: String,
-        lastN: Int = 10,
-        threshold: Int = 20,
-        verifier: WenshuVerifier,
-        bookID: BookID? = nil
-    ) async throws -> Bool {
-        let currentCount = try count(sessionId: sessionId, bookID: bookID)
-        guard currentCount > threshold else { return false }
-        guard let cutoff = try summaryCutoffTimestamp(sessionId: sessionId, keepLastN: lastN, bookID: bookID) else {
-            return false
-        }
-        let oldMessages = try messagesBeforeCutoff(sessionId: sessionId, cutoff: cutoff, bookID: bookID)
-        guard !oldMessages.isEmpty else { return false }
+    // summarizeIfNeeded relocated to ConversationOps (A1g.1). The LLM call
+    // (= WenshuVerifier) and the post-summarize storage ops are business
+    // logic; = they belong in app-side, not in the data layer.
 
-        // Assemble summary prompt
-        let transcript = oldMessages.prefix(20).map { msg -> String in
-            "[\(msg.role)] \(msg.content.prefix(100))"
-        }.joined(separator: "\n")
-        let summaryPrompt = """
-        请用 200 字内总结以下聊天记录的关键信息 (人名 / 偏好 / 上下文 / 决定), 用中文:
-
-        \(transcript)
-        """
-        let response = try await verifier.chat(summaryPrompt)
-        let summary = response.content.map(\.displayText).joined()
-
-        if let firstOldId = oldMessages.first?.id {
-            try saveSummary(summary, sessionId: sessionId, lastMessageId: firstOldId, bookID: bookID)
-        }
-        try deleteOldMessages(sessionId: sessionId, beforeTimestamp: cutoff, bookID: bookID)
-        return true
-    }
 
     func count(sessionId: String, bookID: BookID? = nil) throws -> Int {
         // Same SwiftData #Predicate limitation as loadMessages (= the
@@ -389,40 +351,22 @@ final class WSChatRepository {
     }
 
     // MARK: - SubAgentRuns
-
-    func loadSubAgentRuns(sessionId: String, bookID: BookID? = nil) throws -> [SubAgentRun] {
-        let descriptor = FetchDescriptor<WSSubAgentRun>(
-            predicate: Self.subAgentRunPredicate(sessionId: sessionId, bookID: bookID),
-            sortBy: [SortDescriptor(\.startedAt)]
-        )
-        return try context.fetch(descriptor).map { model in
-            SubAgentRun(
-                id: model.id,
-                agentName: "",
-                title: model.taskDescription,
-                status: SubAgentRunStatus(rawValue: model.status) ?? .running,
-                startedAt: model.startedAt,
-                completedAt: model.completedAt,
-                resultSummary: model.outputText
-            )
-        }
-    }
-
-    func recordSubAgentRun(_ run: SubAgentRun, sessionId: String, bookID: BookID? = nil) throws {
-        let model = WSSubAgentRun(
-            id: run.id,
-            sessionID: sessionId,
-            taskDescription: run.title,
-            status: run.status.rawValue
-        )
-        model.completedAt = run.completedAt
-        model.outputText = run.resultSummary
-        context.insert(model)
-        try context.save()
-    }
+    // loadSubAgentRuns + recordSubAgentRun relocated to ConversationOps (A1g.1).
+    // See Core/Agent/Conversation/ConversationOps.swift. The legacy methods
+    // (= loadSubAgentRuns was dead code; = recordSubAgentRun was business
+    // logic) are now implemented in app-side, not in the data layer.
 
     /// Save current context (= for callers that mutate model state outside the repo).
     func saveContextTrick() throws {
+        try context.save()
+    }
+
+    /// Insert a @Model + save (= small business-side helper for callers
+    /// that already have a model constructed with raw fields). Replaces
+    /// the legacy `recordSubAgentRun(_:)` business-logic method that
+    /// lived here before A1g.1 (= relocated to ConversationOps).
+    public func insertAndSave(_ model: WSSubAgentRun) throws {
+        context.insert(model)
         try context.save()
     }
 

@@ -103,24 +103,23 @@ init(container: ModelContainer) {
         verifier: WenshuVerifier,
         bookID: BookID?
     ) async throws {
-        // WSChatRepository.summarizeIfNeeded is @MainActor + async.
-        // Calling a @MainActor-isolated async method from a
-        // nonisolated context triggers an automatic actor hop
-        // (= the await suspends, re-schedules on MainActor, runs
-        // the body, then resumes the caller). No manual wrap
-        // needed (= MainActor.run only accepts sync closures).
-        // The Bool return value (= "did we summarize?") is dropped
-        // here on purpose: the protocol caller doesn't surface it.
-        // Callers that need the flag should query the repository
-        // directly (= the minimal-seam rule: protocol stays
-        // narrow, callers needing richer behavior hit the
-        // concrete repository type).
-        _ = try await self.repository(bookID: bookID).summarizeIfNeeded(
-            sessionId: sessionId.rawValue,
-            lastN: lastN,
-            threshold: threshold,
-            verifier: verifier,
-            bookID: bookID
+        // A1g.1: summarizeIfNeeded relocated to ConversationOps (= LLM call
+        // is business logic; = belongs in app-side Ops layer, not in
+        // the data layer). The Live impl here is a thin forwarder so
+        // the protocol's caller-side surface (= ChatSessionViewModel)
+        // does not change.
+        let resolvedSessionId = sessionId.rawValue
+        let resolvedBookID = bookID
+        let resolvedThreshold = threshold
+        let resolvedLastN = lastN
+        let resolvedVerifier = verifier
+        _ = try await ConversationOps.summarizeIfNeeded(
+            repository: self.repository(bookID: bookID),
+            sessionId: resolvedSessionId,
+            lastN: resolvedLastN,
+            threshold: resolvedThreshold,
+            verifier: resolvedVerifier,
+            bookID: resolvedBookID
         )
     }
 
