@@ -519,47 +519,100 @@ actor ImportService {
         router: ImportRouter,
         onProgress: (@Sendable ([ImportTask]) async -> Void)? = nil
     ) async -> [ImportTask] {
-        // 1. Filter (= only the "读取文件失败" subset; = LLM-routing failures are excluded; =
-        // write failures are excluded; = the user clicked "重新调研" with the
-        // explicit understanding that this is the "I trust the filename + LLM
-        // search alone" path).
-        let candidateIndices = tasks.indices.filter { i in
+        // Step 1: filter (= only the "读取文件失败" subset; = LLM-routing
+        // failures and write failures are excluded; = the user clicked
+        // "重新调研" with the explicit understanding that this is the
+        // "I trust the filename + LLM search alone" path).
+        let candidateIndices = filterRetryCandidates(tasks: tasks)
+        // Step 2: compute the sibling-context list ONCE (= the user's
+        // whole source directory; = all .md files in the same folder as
+        // the failed file; = the LLM uses the list as "what other
+        // entities are nearby, what categories exist").
+        let contextByPath = Self.siblingContextMap(for: tasks)
+        // Step 3: load the sidecar cache ONCE (= we need the
+        // `lastTitleOnlyRetriedHash` to dedup repeat clicks; = the
+        // dedup logic runs in the orchestrator; = the per-sourcePath
+        // title-only body hash comparison decides whether the retry
+        // would produce a different LLM result).
+        let cacheFile = target.cacheRoot.appendingPathComponent("import-cache.json")
+        let cache = readCache(cacheFile: cacheFile)
+        // Step 4: per-file smart skip (= boss's "不要浪费" rule; = if
+        // the previous retry had the same body hash, the LLM output
+        // would be byte-identical = skip; = otherwise dispatch).
+        let tasksBox = TasksBox(value: tasks)
+        let retryIndices = selectRetryIndices(
+            tasksBox: tasksBox,
+            cache: cache,
+            contextByPath: contextByPath
+        )
+        // Step 5: re-seed the matching tasks (.failed → .routing,
+        // errorMessage = nil) + emit progress so the sheet sees the
+        // state transition (= the row flips to "分析中").
+        for i in retryIndices {
+            tasksBox.value[i].state = .routing
+            tasksBox.value[i].errorMessage = nil
+        }
+        await onProgress?(tasksBox.value)
+        // Step 6: same 5-way parallel TaskGroup as `importFiles` (= the
+        // only difference is the `ImportFileInput` carries a non-nil
+        // `body`; = `processFile` is unchanged; = `writeFile` uses
+        // the LLM's `rewrittenBody` and never touches the unreadable file).
+        let cacheBox = CacheBox(value: cache)
+        await runRetryTaskGroup(
+            tasksBox: tasksBox,
+            tasks: tasks,
+            retryIndices: retryIndices,
+            contextByPath: contextByPath,
+            target: target,
+            router: router,
+            cacheBox: cacheBox,
+            onProgress: onProgress
+        )
+        // Step 7: stamp every retried task's cache entry with
+        // `lastTitleOnlyRetriedAt = now` + the title-only body hash
+        // (= the next user click on "重新调研" will see the stamp and
+        // skip the LLM = the boss's "不要再浪费" rule).
+        stampRetriedHashes(
+            tasksBox: tasksBox,
+            retryIndices: retryIndices,
+            contextByPath: contextByPath,
+            cacheBox: cacheBox
+        )
+        writeCache(cacheFile: cacheFile, cache: cacheBox.value)
+        return tasksBox.value
+    }
+
+    /// Step 1: filter (= only the "读取文件失败" subset; = LLM-routing
+    /// failures and write failures are excluded; = the user clicked
+    /// "重新调研" with the explicit understanding that this is the
+    /// "I trust the filename + LLM search alone" path).
+    private func filterRetryCandidates(tasks: [ImportTask]) -> [Int] {
+        return tasks.indices.filter { i in
             guard tasks[i].state == .failed else { return false }
             return tasks[i].errorMessage?.hasPrefix("读取文件失败") ?? false
         }
-        // 2. Compute the sibling-context list ONCE (= the user's whole source directory;
-        // = all .md files in the same folder as the failed file; = the LLM
-        // uses the list as "what other entities are nearby, what categories
-        // exist"; = cheap; = the walk is one FileManager.enumerator call per
-        // unique source directory).
-        let contextByPath = Self.siblingContextMap(for: tasks)
-        // 3. Load the sidecar cache ONCE (= we need to read the
-        // `lastTitleOnlyRetriedHash` to dedup repeat clicks; = the dedup logic
-        // runs here in the orchestrator; = the sheet doesn't need to do any
-        // extra work; = the dedup is per-sourcePath keyed by the title-only
-        // body hash (= if the source file's body changes, the title-only body
-        // is unchanged = the retry still skips; = if the user renames the
-        // source file = the title-only body changes because the filename
-        // changed = the retry runs; = the boss's intent is "if nothing about
-        // the input changed, don't re-run the LLM").
-        let cacheFile = target.cacheRoot.appendingPathComponent("import-cache.json")
-        let cache = readCache(cacheFile: cacheFile)
-        // 3.5. the tasks box (= mutates `tasks` in place; = the dedup loop marks
-        // `.skipped`; = the retry loop later marks `.routing`).
-        let tasksBox = TasksBox(value: tasks)
-        // 4. (= boss 2026-10-10 (see OOB.md #2026-10-10) 浪费" directive). The smart skip
-        // (= per-file dedup; = the boss's accepted answer: "如果上次调研的 hash 不一样 →
-        // 重新调研, 否则 skip"). For each candidate (= a `.failed` "读取文件失 败" task),
-        // compute the title-only body (= the same synthesized body the LLM
-        // would ingest = filename + sibling context) + hash it. Compare
-        // against the cached `lastTitleOnlyRetriedHash`. Match (= retry would
-        // produce the same result as the last retry) = mark the task
-        // `.skipped` (= not `.routing`) and do NOT dispatch the LLM. Mismatch
-        // (= retry would produce a different result) = include in
-        // `retryIndices` and dispatch the LLM. No cache entry (= never
-        // retried) = dispatch (= first retry = the standard path).
+    }
+
+    /// Step 4: per-file smart skip (= boss's "不要浪费" rule; = if
+    /// the previous retry had the same body hash, the LLM output would
+    /// be byte-identical = skip (= mark the task `.skipped`, not
+    /// `.routing`); = otherwise dispatch (= the LLM would produce
+    /// a different result; = included in `retryIndices`).
+    private func selectRetryIndices(
+        tasksBox: TasksBox,
+        cache: [String: CacheEntry],
+        contextByPath: [String: String]
+    ) -> [Int] {
         var retryIndices: [Int] = []
-        for i in candidateIndices {
+        for i in tasksBox.value.indices {
+            // Skip non-candidate tasks (= the per-file dedup runs on
+            // every row to keep the loop simple; = non-candidates are
+            // neither `.failed` nor "读取文件失败" so they'll never
+            // match the cache).
+            guard tasksBox.value[i].state == .failed,
+                  tasksBox.value[i].errorMessage?.hasPrefix("读取文件失败") ?? false else {
+                continue
+            }
             let siblingContext = contextByPath[tasksBox.value[i].sourcePath] ?? ""
             let synthesizedBody = Self.titleOnlyBody(
                 fileName: (tasksBox.value[i].sourcePath as NSString).lastPathComponent,
@@ -568,48 +621,47 @@ actor ImportService {
             let bodyHash = Self.sha256(synthesizedBody)
             if let cached = cache[tasksBox.value[i].sourcePath],
                cached.lastTitleOnlyRetriedHash == bodyHash {
-                // Already retried with the SAME body hash = the LLM output would be byte-
-                // identical to the last attempt = skip (= the boss's
-                // "不要浪费" rule; = no LLM token spent; = the row flips
-                // to "已跳过" instead of "分析中" → "完成" so the user sees
-                // what happened).
+                // Already retried with the SAME body hash = the LLM output
+                // would be byte-identical to the last attempt = skip
+                // (= no LLM token spent; = the row flips to "已跳过"
+                // instead of "分析中" → "完成" so the user sees what
+                // happened).
                 tasksBox.value[i].state = .skipped
                 tasksBox.value[i].errorMessage = nil
                 continue
             }
-            // No prior retry OR a prior retry with a DIFFERENT body hash = the LLM would
-            // produce a different result = run the LLM.
+            // No prior retry OR a prior retry with a DIFFERENT body hash
+            // = the LLM would produce a different result = run the LLM.
             retryIndices.append(i)
         }
-        // 5. Re-seed the matching tasks (.failed → .routing, errorMessage = nil, body
-        // constructed from filename + sibling context).
-        for i in retryIndices {
-            tasksBox.value[i].state = .routing
-            tasksBox.value[i].errorMessage = nil
-        }
-        await onProgress?(tasksBox.value)
-        // 6. Same 5-way parallel TaskGroup as `importFiles` (= the only difference is the
-        // `ImportFileInput` carries a non-nil `body`; = `processFile` is
-        // unchanged; = the `writeFile` step uses the LLM's `rewrittenBody` and
-        // never touches the unreadable file).
-        let cacheBox = CacheBox(value: cache)
+        return retryIndices
+    }
+
+    /// Step 6: same 5-way parallel TaskGroup as `importFiles` (= the
+    /// only difference is the `ImportFileInput` carries a non-nil `body`;
+    /// = `processFile` is unchanged; = `writeFile` uses the LLM's
+    /// `rewrittenBody` and never touches the unreadable file).
+    private func runRetryTaskGroup(
+        tasksBox: TasksBox,
+        tasks: [ImportTask],
+        retryIndices: [Int],
+        contextByPath: [String: String],
+        target: ImportTarget,
+        router: ImportRouter,
+        cacheBox: CacheBox,
+        onProgress: (@Sendable ([ImportTask]) async -> Void)?
+    ) async {
         await withTaskGroup(of: Void.self) { (group: inout TaskGroup<Void>) in
             var inFlight = 0
             var nextIndex = 0
             let dispatchIndices = retryIndices
             while inFlight < target.maxParallel, nextIndex < dispatchIndices.count {
                 let i = dispatchIndices[nextIndex]
-                let siblingContext = contextByPath[tasks[i].sourcePath] ?? ""
-                let synthesizedBody = Self.titleOnlyBody(
-                    fileName: (tasks[i].sourcePath as NSString).lastPathComponent,
-                    siblingContext: siblingContext
-                )
-                let input = ImportFileInput(
-                    filePath: tasks[i].sourcePath,
-                    targetBookId: target.bookId,
-                    targetShelfId: target.shelfId,
-                    rewriteMode: .searchAndRewrite,
-                    body: synthesizedBody
+                let input = makeTitleOnlyInput(
+                    tasks: tasks,
+                    i: i,
+                    contextByPath: contextByPath,
+                    target: target
                 )
                 group.addTask { [self] in
                     await self.processFile(
@@ -629,17 +681,11 @@ actor ImportService {
                 inFlight -= 1
                 if nextIndex < dispatchIndices.count {
                     let i = dispatchIndices[nextIndex]
-                    let siblingContext = contextByPath[tasks[i].sourcePath] ?? ""
-                    let synthesizedBody = Self.titleOnlyBody(
-                        fileName: (tasks[i].sourcePath as NSString).lastPathComponent,
-                        siblingContext: siblingContext
-                    )
-                    let input = ImportFileInput(
-                        filePath: tasks[i].sourcePath,
-                        targetBookId: target.bookId,
-                        targetShelfId: target.shelfId,
-                        rewriteMode: .searchAndRewrite,
-                        body: synthesizedBody
+                    let input = makeTitleOnlyInput(
+                        tasks: tasks,
+                        i: i,
+                        contextByPath: contextByPath,
+                        target: target
                     )
                     group.addTask { [self] in
                         await self.processFile(
@@ -657,11 +703,42 @@ actor ImportService {
                 }
             }
         }
-        // 8. (= boss 2026-10-10 "如果已经 重复过了，再重新调 研一次，有些浪费" directive). After the retry
-        // batch finishes (= success or fail), stamp every retried task's cache
-        // entry with `lastTitleOnlyRetriedAt = now` + the title-only body hash
-        // (= the next user click on "重新调 研" will see the stamp + skip the LLM
-        // = the boss's "不要再浪费" rule).
+    }
+
+    /// Build the `ImportFileInput` for a title-only retry (= the
+    /// `body` field is the synthesized body the LLM will ingest; =
+    /// the source file is unreadable on disk so `processFile` reads
+    /// the body from this field rather than opening the file).
+    private func makeTitleOnlyInput(
+        tasks: [ImportTask],
+        i: Int,
+        contextByPath: [String: String],
+        target: ImportTarget
+    ) -> ImportFileInput {
+        let siblingContext = contextByPath[tasks[i].sourcePath] ?? ""
+        let synthesizedBody = Self.titleOnlyBody(
+            fileName: (tasks[i].sourcePath as NSString).lastPathComponent,
+            siblingContext: siblingContext
+        )
+        return ImportFileInput(
+            filePath: tasks[i].sourcePath,
+            targetBookId: target.bookId,
+            targetShelfId: target.shelfId,
+            rewriteMode: .searchAndRewrite,
+            body: synthesizedBody
+        )
+    }
+
+    /// Step 7: stamp every retried task's cache entry with
+    /// `lastTitleOnlyRetriedAt = now` + the title-only body hash (= the
+    /// next user click on "重新调研" will see the stamp and skip the
+    /// LLM = the boss's "不要再浪费" rule).
+    private func stampRetriedHashes(
+        tasksBox: TasksBox,
+        retryIndices: [Int],
+        contextByPath: [String: String],
+        cacheBox: CacheBox
+    ) {
         for i in retryIndices {
             let sourcePath = tasksBox.value[i].sourcePath
             let siblingContext = contextByPath[sourcePath] ?? ""
@@ -684,8 +761,6 @@ actor ImportService {
                 )
             }
         }
-        writeCache(cacheFile: cacheFile, cache: cacheBox.value)
-        return tasksBox.value
     }
 
     /// Construct a "title-only" body for the LLM
