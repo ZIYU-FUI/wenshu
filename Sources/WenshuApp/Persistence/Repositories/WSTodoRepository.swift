@@ -1,23 +1,31 @@
 //
 //  Persistence/Repositories/WSTodoRepository.swift
 //
-//  Migration commit 24 of 42: WSTodoRepository.
-//  Per AGENTS.md §11.4.
+//  v3.1 governance A1 refactor (= boundary probe 4/8).
+//  Apple canonical layering per Backyard Birds:
+//    - write API = domain in -> domain out (= Repository converts
+//      TodoItem -> WSTodo @Model internally, returns the persisted
+//      domain type)
+//    - read  API = @Model out (caller converts WSTodo -> TodoItem)
 //
-//  Thin wrapper for TodoStore actor (= v0.18 ticket 06).
-//
-//  Public API (preserved 1:1 from old TodoStore actor):
-//    - add(title:priority:dueDate:) throws -> TodoItem
+//  Public API after A1 probe:
+//    - add(title:priority:dueDate:) throws -> TodoItem        (write: domain-in/domain-out)
 //    - add(id:title:priority:dueDate:) throws -> TodoItem
-//    - setStatus(id:status:) throws
-//    - get(id:) throws -> TodoItem?
-//    - list(status:orderByPriority:) throws -> [TodoItem]
+//    - setStatus(id:status:) throws                       (TodoStatus in, no return)
+//    - get(id:) throws -> WSTodo?                         (read:  raw @Model out)
+//    - list(status:orderByPriority:) throws -> [WSTodo]
 //    - delete(id:) throws
 //    - count(status:) throws -> Int
 //
-//  Domain types (preserved): TodoItem, TodoStatus, TodoPriority
-//  Mapping: TodoStatus ↔ WSTodo.status (string "pending" / "in_progress" / "completed" / "cancelled")
-//           TodoPriority (enum) ↔ WSTodo.priority (Int 0/1/2/3)
+//  Per AGENTS.md §11.4. Mapping (via static toDomain):
+//    TodoStatus rawValue = "pending"/"in_progress"/"completed"/"cancelled"
+//    TodoPriority rawValue = Int 0..3.
+//
+//  Note on sendability: WSTodo (PersistentModel) is NOT Sendable, so
+//  read-API results must not cross actor boundaries. TodoStoreTool
+//  already runs read calls inside `MainActor.run { ... }` and only
+//  forwards Sendable scalar fields (`id`, `status`, `priority`, etc.) in
+//  its JSON response, so the boundary is kept clean.
 
 import Foundation
 import SwiftData
@@ -42,15 +50,7 @@ final class WSTodoRepository {
         model.dueDate = dueDate
         context.insert(model)
         try context.save()
-        return TodoItem(
-            id: model.id,
-            title: model.title,
-            status: TodoStatus(rawValue: model.status) ?? .pending,
-            priority: TodoPriority(rawValue: model.priority) ?? .medium,
-            dueDate: model.dueDate,
-            createdAt: model.createdAt,
-            updatedAt: model.updatedAt
-        )
+        return Self.toDomain(model)
     }
 
     func setStatus(id: String, status: TodoStatus) throws {
@@ -64,24 +64,14 @@ final class WSTodoRepository {
         try context.save()
     }
 
-    func get(id: String) throws -> TodoItem? {
+    func get(id: String) throws -> WSTodo? {
         let descriptor = FetchDescriptor<WSTodo>(
             predicate: #Predicate { $0.id == id }
         )
-        return try context.fetch(descriptor).first.map { model in
-            TodoItem(
-                id: model.id,
-                title: model.title,
-                status: TodoStatus(rawValue: model.status) ?? .pending,
-                priority: TodoPriority(rawValue: model.priority) ?? .medium,
-                dueDate: model.dueDate,
-                createdAt: model.createdAt,
-                updatedAt: model.updatedAt
-            )
-        }
+        return try context.fetch(descriptor).first
     }
 
-    func list(status: TodoStatus? = nil, orderByPriority: Bool = true) throws -> [TodoItem] {
+    func list(status: TodoStatus? = nil, orderByPriority: Bool = true) throws -> [WSTodo] {
         let descriptor: FetchDescriptor<WSTodo>
         if let status = status {
             descriptor = FetchDescriptor<WSTodo>(
@@ -97,17 +87,7 @@ final class WSTodoRepository {
                     : [SortDescriptor(\.createdAt, order: .reverse)]
             )
         }
-        return try context.fetch(descriptor).map { model in
-            TodoItem(
-                id: model.id,
-                title: model.title,
-                status: TodoStatus(rawValue: model.status) ?? .pending,
-                priority: TodoPriority(rawValue: model.priority) ?? .medium,
-                dueDate: model.dueDate,
-                createdAt: model.createdAt,
-                updatedAt: model.updatedAt
-            )
-        }
+        return try context.fetch(descriptor)
     }
 
     func delete(id: String) throws {
@@ -130,6 +110,19 @@ final class WSTodoRepository {
             descriptor = FetchDescriptor<WSTodo>()
         }
         return try context.fetchCount(descriptor)
+    }
+
+    /// A1 boundary bridge (= caller-side converter Sendable-safe).
+    nonisolated private static func toDomain(_ model: WSTodo) -> TodoItem {
+        TodoItem(
+            id: model.id,
+            title: model.title,
+            status: TodoStatus(rawValue: model.status) ?? .pending,
+            priority: TodoPriority(rawValue: model.priority) ?? .medium,
+            dueDate: model.dueDate,
+            createdAt: model.createdAt,
+            updatedAt: model.updatedAt
+        )
     }
 }
 

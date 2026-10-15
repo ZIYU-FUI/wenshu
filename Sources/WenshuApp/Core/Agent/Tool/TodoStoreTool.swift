@@ -192,16 +192,33 @@ struct TodoStoreTool: Tool, Sendable {
     private func runList(parsed: [String: Any]) async -> String {
         let statusFilter: TodoStatus? = (parsed["status"] as? String).flatMap { TodoStatus(rawValue: $0) }
         do {
-            let items = try await MainActor.run { try todoRepository.list(status: statusFilter) }
-            let data: [[String: Any]] = items.map { item in
+            // A1 boundary: caller converts WSTodo -> TodoItem (= domain boundary).
+            // Build Sendable scalar array inside the MainActor.run so WSTodo
+            // never crosses the actor isolation boundary (= PersistentModels
+            // are NOT Sendable).
+            let data: [(id: String, title: String, status: String, priority: Int)] = try await MainActor.run {
+                try todoRepository.list(status: statusFilter).map { model in
+                    let item = TodoItem(
+                        id: model.id,
+                        title: model.title,
+                        status: TodoStatus(rawValue: model.status) ?? .pending,
+                        priority: TodoPriority(rawValue: model.priority) ?? .medium,
+                        dueDate: model.dueDate,
+                        createdAt: model.createdAt,
+                        updatedAt: model.updatedAt
+                    )
+                    return (id: item.id, title: item.title, status: item.status.rawValue, priority: item.priority.rawValue)
+                }
+            }
+            let payload: [[String: Any]] = data.map { tuple in
                 [
-                    "id": item.id,
-                    "title": item.title,
-                    "status": item.status.rawValue,
-                    "priority": item.priority.rawValue
+                    "id": tuple.id,
+                    "title": tuple.title,
+                    "status": tuple.status,
+                    "priority": tuple.priority
                 ]
             }
-            return Self.jsonOk(action: "list", data: ["items": data, "count": data.count])
+            return Self.jsonOk(action: "list", data: ["items": payload, "count": payload.count])
         } catch {
             return Self.jsonError(action: "list", message: "WSTodoRepository.list failed: \(error)")
         }
