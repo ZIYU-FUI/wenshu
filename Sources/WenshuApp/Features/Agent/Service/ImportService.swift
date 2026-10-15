@@ -183,7 +183,6 @@ actor ImportService {
         extensions: Set<String> = ["md"]
     ) async -> [ImportTask] {
         resetRollbackTrail()
-        let entitiesIndex = snapshotReferenceLibraryIndex(target: target)
         // Phase 1: walk.
         let mdFiles = ImportServiceFileSystem.walkSourceDir(sourceDir, extensions: extensions)
         var tasks = mdFiles.map { ImportTask(sourcePath: $0.path) }
