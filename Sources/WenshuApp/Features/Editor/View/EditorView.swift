@@ -188,14 +188,14 @@ struct EditorView: View {
         )
     }
 
-    /// Chrome band: 1 PT hairline divider (= the .separatorColor
-    /// rectangle) + the format toolbar (= 28 PT Apple HIG document-format
-    /// toolbar with bold / italic / highlight / strikethrough / inline-code /
-    /// heading / blockquote / unordered-list / ordered-list / link /
-    /// code-block / horizontal-rule). Pinned at the editor zone's outer
-    /// VStack (= above the scrollable area; = never scrolls away with the
-    /// document; = canonical Pages / Numbers / Keynote document-toolbar
-    /// idiom). 0 PT top padding (= the user's "工具栏上边距再-2" directive).
+    /// Chrome band: 1 PT hairline divider (= the .separatorColor rectangle) +
+    /// the format toolbar (= 28 PT Apple HIG document-format toolbar with bold
+    /// / italic / highlight / strikethrough / inline-code / heading /
+    /// blockquote / unordered-list / ordered-list / link / code-block /
+    /// horizontal-rule). Pinned at the editor zone's outer VStack (= above the
+    /// scrollable area; = never scrolls away with the document; = canonical
+    /// Pages / Numbers / Keynote document-toolbar idiom). 0 PT top padding (=
+    /// the user's "工具栏上边距再-2" directive).
     private var formatToolbarSection: some View {
         Group { Rectangle()
             .fill(Color(nsColor: .separatorColor))
@@ -206,10 +206,10 @@ struct EditorView: View {
         }
     }
 
-    /// On editor zone mount: upgrade any preview-mode tabs to edit mode,
-    /// seed `EditorCounters.wordCount` from the active tab, and start the
-    /// file-system watcher (= `EditorFileWatcher.start(path:tab:onChange:)`)
-    /// so external FS events auto-reload the draft.
+    /// On editor zone mount: upgrade any preview-mode tabs to edit mode, seed
+    /// `EditorCounters.wordCount` from the active tab, and start the
+    /// file-system watcher (= `EditorFileWatcher.start(path:tab:onChange:)`) so
+    /// external FS events auto-reload the draft.
     private func onEditorAppear() {
     // (see OOB.md #2026-09-07): do NOT seed a placeholder tab when
     // openTabs is empty. Two paths from here: 1. Persisted tabs (loaded
@@ -249,10 +249,10 @@ struct EditorView: View {
 
     }
 
-    /// On editor zone unmount: stop the file-system watcher (= prevents
-    /// zombie DispatchSource holding the file descriptor). The view layer
-    /// is the canonical owner of the watcher lifecycle (= `EditorFileWatcher.start`
-    /// in `onEditorAppear`; = `.stop` here = symmetric pair).
+    /// On editor zone unmount: stop the file-system watcher (= prevents zombie
+    /// DispatchSource holding the file descriptor). The view layer is the
+    /// canonical owner of the watcher lifecycle (= `EditorFileWatcher.start` in
+    /// `onEditorAppear`; = `.stop` here = symmetric pair).
     private func onEditorDisappear() {
         if let tab = activeTab {
             EditorFileWatcher.stop(tab: tab)

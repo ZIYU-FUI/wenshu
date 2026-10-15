@@ -703,13 +703,13 @@ struct PreviewPane: View {
 
     /// Reference library scope: existing entity card flow ((see OOB.md
     /// #2026-08-30) OOB: 'card'). category nil = overview (= all entities, flat
-    /// grid per (see OOB.md #2026-08-30)); non-nil = category filter.
-    /// Scope group (= the Apple HIG section-header + search-bar + body
-    /// content block; = dispatches to reference / tag / book / shelf /
-    /// empty scope based on `previewScope`). The body of the body (= ~65 LOC
-    /// of switch) is the canonical switch dispatch (= 4 cases; = each case
-    /// delegates to a dedicated private func; = same shape as the
-    /// `Apple HIG` tabbed-detail pattern).
+    /// grid per (see OOB.md #2026-08-30)); non-nil = category filter. Scope
+    /// group (= the Apple HIG section-header + search-bar + body content block;
+    /// = dispatches to reference / tag / book / shelf / empty scope based on
+    /// `previewScope`). The body of the body (= ~65 LOC of switch) is the
+    /// canonical switch dispatch (= 4 cases; = each case delegates to a
+    /// dedicated private func; = same shape as the `Apple HIG` tabbed-detail
+    /// pattern).
     @ViewBuilder
     private var scopeGroup: some View {
         Group {
