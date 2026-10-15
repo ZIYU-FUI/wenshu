@@ -21,8 +21,8 @@ struct WSTodoRepositoryTests {
         let repo = try makeRepository()
         let item = try repo.add(title: "buy milk")
         #expect(item.title == "buy milk")
-        #expect(item.status == .pending)
-        #expect(item.priority == .medium)
+        #expect(item.status == TodoStatus.pending.rawValue)
+        #expect(item.priority == TodoPriority.medium.rawValue)
         let fetched = try repo.get(id: item.id)
         #expect(fetched?.id == item.id)
     }
@@ -34,7 +34,7 @@ struct WSTodoRepositoryTests {
         let item = try repo.add(title: "x")
         try repo.setStatus(id: item.id, status: TodoStatus.completed.rawValue)
         let fetched = try repo.get(id: item.id)
-        #expect(fetched?.status == .completed)
+        #expect(fetched?.status == TodoStatus.completed.rawValue)
     }
 
     @Test("setStatus throws notFound for missing")
@@ -59,7 +59,7 @@ struct WSTodoRepositoryTests {
         let all = try repo.list()
         #expect(all.count == 4)
         // highest priority first
-        #expect(all[0].priority == .urgent)
+        #expect(all[0].priority == TodoPriority.urgent.rawValue)
     }
 
     @Test("delete removes the row")

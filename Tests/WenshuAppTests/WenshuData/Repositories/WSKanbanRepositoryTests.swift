@@ -47,7 +47,7 @@ struct WSKanbanRepositoryTests {
     func transitionMissing() throws {
         let repo = try makeRepository()
         #expect(throws: WSKanbanRepositoryError.notFound.self) {
-            try repo.transition(id: "nope", to: .done)
+            try repo.transition(id: "nope", to: KanbanStatus.done.rawValue)
         }
     }
 
@@ -55,11 +55,11 @@ struct WSKanbanRepositoryTests {
     @MainActor
     func listFilter() throws {
         let repo = try makeRepository()
-        let a = try repo.add(title: "a")
-        let b = try repo.add(title: "b")
-        try repo.transition(id: a.id, to: .running)
-        let running = try repo.list(status: .running)
-        let new = try repo.list(status: .new)
+        let aId = try repo.add(title: "a")
+        let bId = try repo.add(title: "b")
+        try repo.transition(id: aId, to: KanbanStatus.running.rawValue)
+        let running = try repo.list(status: KanbanStatus.running.rawValue)
+        let new = try repo.list(status: KanbanStatus.new.rawValue)
         #expect(running.count == 1)
         #expect(new.count == 1)
     }
@@ -68,9 +68,9 @@ struct WSKanbanRepositoryTests {
     @MainActor
     func delete() throws {
         let repo = try makeRepository()
-        let t = try repo.add(title: "x")
-        try repo.delete(id: t.id)
-        let fetched = try repo.get(id: t.id)
+        let tId = try repo.add(title: "x")
+        try repo.delete(id: tId)
+        let fetched = try repo.get(id: tId)
         #expect(fetched == nil)
     }
 
@@ -82,7 +82,7 @@ struct WSKanbanRepositoryTests {
         _ = try repo.add(title: "b")
         _ = try repo.add(title: "c")
         #expect(try repo.count() == 3)
-        #expect(try repo.count(status: .new) == 3)
-        #expect(try repo.count(status: .done) == 0)
+        #expect(try repo.count(status: KanbanStatus.new.rawValue) == 3)
+        #expect(try repo.count(status: KanbanStatus.done.rawValue) == 0)
     }
 }

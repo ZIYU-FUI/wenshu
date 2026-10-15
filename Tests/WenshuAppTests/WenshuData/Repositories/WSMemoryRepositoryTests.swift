@@ -22,26 +22,26 @@ struct WSMemoryRepositoryTests {
     func add() throws {
         let repo = try makeRepository()
         let mem = try repo.add(userId: "user-1", content: "hello world")
-        #expect(mem.userId == "user-1")
+        #expect(mem.userID == "user-1")
         #expect(mem.content == "hello world")
-        #expect(!mem.memoryId.rawValue.isEmpty)
+        #expect(!mem.memoryID.isEmpty)
     }
 
-    @Test("get(memoryId:) round-trips the Memory")
+    @Test("get(memoryID:) round-trips the Memory")
     @MainActor
     func get() throws {
         let repo = try makeRepository()
         let added = try repo.add(userId: "u", content: "x")
-        let fetched = try repo.get(memoryId: added.memoryId)
-        #expect(fetched?.memoryId == added.memoryId)
+        let fetched = try repo.get(memoryID: added.memoryID)
+        #expect(fetched?.memoryID == added.memoryID)
         #expect(fetched?.content == "x")
     }
 
-    @Test("get(memoryId:) returns nil for missing")
+    @Test("get(memoryID:) returns nil for missing")
     @MainActor
     func getMissing() throws {
         let repo = try makeRepository()
-        let fetched = try repo.get(memoryId: MemoryID(rawValue: "nope"))
+        let fetched = try repo.get(memoryID: MemoryID(rawValue: "nope").rawValue)
         #expect(fetched == nil)
     }
 
@@ -57,14 +57,14 @@ struct WSMemoryRepositoryTests {
         #expect(results[0].content.contains("apple"))
     }
 
-    @Test("update(memoryId:content:) mutates content + bumps updatedAt")
+    @Test("update(memoryID:content:) mutates content + bumps updatedAt")
     @MainActor
     func update() throws {
         let repo = try makeRepository()
         let added = try repo.add(userId: "u", content: "old")
         try? Thread.sleep(forTimeInterval: 0.05)
-        try repo.update(memoryId: added.memoryId, content: "new")
-        let fetched = try repo.get(memoryId: added.memoryId)
+        try repo.update(memoryID: added.memoryID, content: "new")
+        let fetched = try repo.get(memoryID: added.memoryID)
         #expect(fetched?.content == "new")
         #expect(fetched!.updatedAt > added.updatedAt)
     }
@@ -74,7 +74,7 @@ struct WSMemoryRepositoryTests {
     func updateMissing() throws {
         let repo = try makeRepository()
         #expect(throws: WSMemoryRepositoryError.notFound.self) {
-            try repo.update(memoryId: MemoryID(rawValue: "nope"), content: "x")
+            try repo.update(memoryID: MemoryID(rawValue: "nope").rawValue, content: "x")
         }
     }
 
@@ -83,8 +83,8 @@ struct WSMemoryRepositoryTests {
     func delete() throws {
         let repo = try makeRepository()
         let added = try repo.add(userId: "u", content: "x")
-        try repo.delete(memoryId: added.memoryId)
-        let fetched = try repo.get(memoryId: added.memoryId)
+        try repo.delete(memoryID: added.memoryID)
+        let fetched = try repo.get(memoryID: added.memoryID)
         #expect(fetched == nil)
     }
 

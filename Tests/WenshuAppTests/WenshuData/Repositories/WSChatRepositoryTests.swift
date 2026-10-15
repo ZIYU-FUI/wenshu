@@ -82,25 +82,25 @@ struct WSChatRepositoryTests {
     }
 
 //     @Test("recordSubAgentRun + loadSubAgentRuns round-trip") (= A1g.1 moved loadSubAgentRuns to app-side ConversationOps; = removed)
-    @MainActor
-    func subAgentRuns() throws {
-        let repo = try makeRepository()
-        try repo.createSession(sessionID: "s1")
-        let run = SubAgentRun(
-            id: "r1",
-            agentName: "writer",
-            title: "draft chapter 1",
-            status: .done,
-            startedAt: Date(),
-            completedAt: Date(),
-            resultSummary: "done"
-        )
-        try repo.recordSubAgentRun(run, sessionId: "s1")
-//         let loaded = try repo.loadSubAgentRuns(sessionId: "s1") (= A1g.1 moved loadSubAgentRuns to app-side ConversationOps; = removed)
-        #expect(loaded.count == 1)
-        #expect(loaded[0].id == "r1")
-        #expect(loaded[0].title == "draft chapter 1")
-    }
+//     @MainActor
+//     func subAgentRuns() throws {
+//         let repo = try makeRepository()
+//         try repo.createSession(sessionID: "s1")
+//         let run = SubAgentRun(
+//             id: "r1",
+//             agentName: "writer",
+//             title: "draft chapter 1",
+//             status: .done,
+//             startedAt: Date(),
+//             completedAt: Date(),
+//             resultSummary: "done"
+//         )
+//         try repo.recordSubAgentRun(run, sessionId: "s1")
+// //         let loaded = try repo.loadSubAgentRuns(sessionId: "s1") (= A1g.1 moved loadSubAgentRuns to app-side ConversationOps; = removed)
+//         #expect(loaded.count == 1)
+//         #expect(loaded[0].id == "r1")
+//         #expect(loaded[0].title == "draft chapter 1")
+//     }
 
     @Test("listSessions respects archived flag")
     @MainActor

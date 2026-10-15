@@ -19,8 +19,8 @@ struct WSLinkRepositoryTests {
     @MainActor
     func searchForward() throws {
         let repo = try makeRepository()
-        try repo.add(Link(sourceDocId: "doc-1", targetRef: "OtherDoc", targetDocId: nil, line: 10, offset: 0))
-        try repo.add(Link(sourceDocId: "doc-1", targetRef: "YetAnother", targetDocId: nil, line: 20, offset: 0))
+        try repo.add(sourceDocID: "doc-1", targetRef: "OtherDoc", targetDocID: nil, line: 10, offset: 0)
+        try repo.add(sourceDocID: "doc-1", targetRef: "YetAnother", targetDocID: nil, line: 20, offset: 0)
         let links = try repo.searchForward(sourceDocId: "doc-1")
         #expect(links.count == 2)
         #expect(links[0].line == 10)
@@ -31,8 +31,8 @@ struct WSLinkRepositoryTests {
     @MainActor
     func searchBackwardByRef() throws {
         let repo = try makeRepository()
-        try repo.add(Link(sourceDocId: "src-1", targetRef: "Target", targetDocId: nil, line: 1, offset: 0))
-        try repo.add(Link(sourceDocId: "src-2", targetRef: "Target", targetDocId: nil, line: 1, offset: 0))
+        try repo.add(sourceDocID: "src-1", targetRef: "Target", targetDocID: nil, line: 1, offset: 0)
+        try repo.add(sourceDocID: "src-2", targetRef: "Target", targetDocID: nil, line: 1, offset: 0)
         let backlinks = try repo.searchBackward(targetRef: "Target")
         #expect(backlinks.count == 2)
     }
@@ -41,19 +41,19 @@ struct WSLinkRepositoryTests {
     @MainActor
     func searchBackwardByDocId() throws {
         let repo = try makeRepository()
-        try repo.add(Link(sourceDocId: "src", targetRef: "x", targetDocId: "doc-target", line: 1, offset: 0))
+        try repo.add(sourceDocID: "src", targetRef: "x", targetDocID: "doc-target", line: 1, offset: 0)
         let backlinks = try repo.searchBackward(targetDocId: "doc-target")
         #expect(backlinks.count == 1)
-        #expect(backlinks[0].sourceDocId == "src")
+        #expect(backlinks[0].sourceDocID == "src")
     }
 
     @Test("removeAll(sourceDocId:) deletes all links from that source")
     @MainActor
     func removeAll() throws {
         let repo = try makeRepository()
-        try repo.add(Link(sourceDocId: "doc-1", targetRef: "x", targetDocId: nil, line: 1, offset: 0))
-        try repo.add(Link(sourceDocId: "doc-1", targetRef: "y", targetDocId: nil, line: 2, offset: 0))
-        try repo.add(Link(sourceDocId: "doc-2", targetRef: "z", targetDocId: nil, line: 3, offset: 0))
+        try repo.add(sourceDocID: "doc-1", targetRef: "x", targetDocID: nil, line: 1, offset: 0)
+        try repo.add(sourceDocID: "doc-1", targetRef: "y", targetDocID: nil, line: 2, offset: 0)
+        try repo.add(sourceDocID: "doc-2", targetRef: "z", targetDocID: nil, line: 3, offset: 0)
         try repo.removeAll(sourceDocId: "doc-1")
         let doc1 = try repo.searchForward(sourceDocId: "doc-1")
         let doc2 = try repo.searchForward(sourceDocId: "doc-2")
@@ -65,8 +65,8 @@ struct WSLinkRepositoryTests {
     @MainActor
     func addMultipleAtSameLine() throws {
         let repo = try makeRepository()
-        try repo.add(Link(sourceDocId: "doc", targetRef: "old", targetDocId: nil, line: 5, offset: 0))
-        try repo.add(Link(sourceDocId: "doc", targetRef: "new", targetDocId: nil, line: 5, offset: 1))
+        try repo.add(sourceDocID: "doc", targetRef: "old", targetDocID: nil, line: 5, offset: 0)
+        try repo.add(sourceDocID: "doc", targetRef: "new", targetDocID: nil, line: 5, offset: 1)
         let links = try repo.searchForward(sourceDocId: "doc")
         #expect(links.count == 2)
         // Both targetRefs preserved (= composite id = "<doc>:<line>:<targetRef>").

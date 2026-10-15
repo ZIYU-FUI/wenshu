@@ -35,11 +35,11 @@ struct WSKanbanRepositoryBodyTests {
     func addPersistsBody() throws {
         let container = try makeContainer()
         let repo = WSKanbanRepository(container: container)
-        let created = try repo.add(
+        let createdId = try repo.add(
             title: "outline chapter 4",
             body: "**Goal:** write a 4-beat outline with conflict at beat 2."
         )
-        let fetched = try repo.get(id: created.id)
+        let created = try repo.get(id: createdId); let fetched = created
         #expect(fetched?.body == "**Goal:** write a 4-beat outline with conflict at beat 2.")
     }
 
@@ -48,8 +48,8 @@ struct WSKanbanRepositoryBodyTests {
     func addOmittingBodyIsNil() throws {
         let container = try makeContainer()
         let repo = WSKanbanRepository(container: container)
-        let created = try repo.add(title: "no body here")
-        let fetched = try repo.get(id: created.id)
+        let createdId = try repo.add(title: "no body here")
+        let created = try repo.get(id: createdId); let fetched = created
         #expect(fetched?.body == nil)
     }
 
