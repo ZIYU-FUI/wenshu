@@ -26,13 +26,13 @@ echo ">>> swift build -c debug (= the dev binary; = the
               is identical between debug and
               release for our code paths, but the
               log statements added in dev = e.g.
-              `os_log("[wenshu.pane.openCard] v7.2 ...")`
+              \`os_log(\"[wenshu.pane.openCard] v7.2 ...\")\`
               = are stripped in release; = the
-              `bash Scripts/build-app.sh` here
+              \`bash Scripts/build-app.sh\` here
               ALSO copies the freshly-built debug
               binary into the .app bundle to
               match the dev cycle (= the boss
-              reported "log 空" because the
+              reported \"log 空\" because the
               previous .app binary was the
               stripped release build). 2026-10-14
               hot-fix: build the debug binary too
