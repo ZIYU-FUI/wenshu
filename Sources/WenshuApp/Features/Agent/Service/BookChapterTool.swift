@@ -77,14 +77,14 @@ enum BookChapterError: Error, LocalizedError, Sendable, Equatable {
 // MARK: - Actor
 
 actor BookChapterActor {
-    /// Closure returning the book directory for the current chat
-    /// session's bound book (= nil when no chat book is bound).
-    /// Resolved on every CRUD call so the user can switch books
-    /// mid-conversation without the actor holding a stale root.
+    /// Closure returning the book directory for the current chat session's
+    /// bound book (= nil when no chat book is bound). Resolved on every CRUD
+    /// call so the user can switch books mid-conversation without the actor
+    /// holding a stale root.
     private let bookDirectoryProvider: @Sendable () -> URL?
 
-    /// Closure returning the chat session's currently-bound book.
-    /// See BookWorldActor's matching field for the contract.
+    /// Closure returning the chat session's currently-bound book. See
+    /// BookWorldActor's matching field for the contract.
     private let currentChatBookIDProvider: @Sendable () -> UUID?
 
     init(
@@ -111,12 +111,11 @@ actor BookChapterActor {
         )
     }
 
-    /// Resolve the current book directory (= raises `invalidInput`
-    /// if the chat session has no bound book, which the scope guard
-    /// should already have rejected). Then return the FileSystem
-    /// chapter paths that the static methods need (= the actor
-    /// can't instantiate the @MainActor struct, so the CRUD
-    /// methods now take the paths directly and call the static
+    /// Resolve the current book directory (= raises `invalidInput` if the chat
+    /// session has no bound book, which the scope guard should already have
+    /// rejected). Then return the FileSystem chapter paths that the static
+    /// methods need (= the actor can't instantiate the @MainActor struct, so
+    /// the CRUD methods now take the paths directly and call the static
     /// FileSystem fallback methods).
     private func resolvePaths() throws -> (
         bookDirectory: URL,
@@ -142,150 +141,35 @@ actor BookChapterActor {
 
     // MARK: - Agent gate
 
-    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
-    /// directive). The
-    /// agent gate is
-    /// implemented at
-    /// the `createChapter`
-    /// level (= the
-    /// entry point the
-    /// LLM uses to
-    /// "write a new
-    /// chapter"). Two
-    /// rules:
-    /// 1. **Agent
-    ///    chapter
-    ///    writes go to
-    ///    `drafts/`**
-    ///    (= the
-    ///    boss's "Agent
-    ///    写正文一律
-    ///    先写草稿");
-    ///    = the `create`
-    ///    action
-    ///    resolves a
-    ///    `drafts/`
-    ///    directory
-    ///    instead of
-    ///    `chapters/`.
-    ///    The dedup
-    ///    check (= same
-    ///    title already
-    ///    exists) also
-    ///    runs against
-    ///    `drafts/`
-    ///    (= a chapter
-    ///    can be re-edited
-    ///    in place in
-    ///    `drafts/` before
-    ///    promotion).
-    /// 2. **Update
-    ///    rejected
-    ///    when target
-    ///    is in
-    ///    `chapters/`**
-    ///    (= the
-    ///    boss's "Agent
-    ///    在没有用
-    ///    户允许的
-    ///    情况下
-    ///    不能编辑
-    ///    正文的文
-    ///    档内容";
-    ///    = the LLM
-    ///    gets a
-    ///    structured
-    ///    error that
-    ///    says "ask
-    ///    the user
-    ///    first"; = the
-    ///    user can
-    ///    then call
-    ///    `updateChapter`
-    ///    with the
-    ///    same id and
-    ///    the gate
-    ///    flips
-    ///    (= TODO:
-    ///    future
-    ///    commit).
-    ///
-    /// Other tools
-    /// (= `BookWorldTool`
-    /// / `BookCharacterTool`
-    /// / `BookOutlineTool`
-    /// / `BookIdeaTool` /
-    /// `ReferenceLibraryTool`)
-    /// are NOT gated (= the
-    /// boss's "其它文
-    /// 件正常修改";
-    /// = those folders
-    /// have no draft
-    /// stage; = the
-    /// LLM can write
-    /// directly to
-    /// world/ /
-    /// characters/ /
-    /// outlines/ /
-    /// ideas/ /
-    /// reference-library/
-    /// as the LLM
-    /// judges
-    /// appropriate).
-    ///
-    /// The `import`
-    /// path
-    /// (`ImportService.importFiles`)
-    /// is also NOT gated
-    /// (= the import is
-    /// user-initiated; =
-    /// the user pins the
-    /// destination; =
-    /// the user controls
-    /// the chapter write
-    /// directly).
-
-    /// the
-    /// drafts/ path
-    /// resolver (= mirrors
-    /// `resolvePaths` but
-    /// returns the `drafts/`
-    /// directory instead
-    /// of `chapters/`).
-    /// The `drafts/` folder
-    /// is the agent's
-    /// canonical staging
-    /// area for chapter
-    /// content (= the
-    /// folder matches the
-    /// `BookFolder.drafts`
-    /// case; = the
-    /// `BookFolderCatalog`
-    /// spec for `drafts`
-    /// is `directoryName
-    /// = "drafts"`; = the
-    /// folder exists
-    /// because the
-    /// `LibraryBootstrapper`
-    /// creates all 8
-    /// standard folders
-    /// at book creation).
-    /// The index file is
-    /// `drafts.json` (=
-    /// parallel to
-    /// `chapters.json`; =
-    /// keeps the drafts
-    /// chapter metadata
-    /// separate from the
-    /// confirmed-chapter
-    /// metadata; = the
-    /// user promotes a
-    /// draft by moving
-    /// the file from
-    /// `drafts/<id>.md` to
-    /// `chapters/<id>.md`
-    /// and updating
-    /// `chapters.json`).
+    /// (= boss 2026-10-10 (see OOB.md #2026-10-10) directive). The agent gate
+    /// is implemented at the `createChapter` level (= the entry point the LLM
+    /// uses to "write a new chapter"). Two rules: 1. **Agent chapter writes go
+    /// to `drafts/`** (= the boss's "Agent 写正文一律 先写草稿"); = the `create` action
+    /// resolves a `drafts/` directory instead of `chapters/`. The dedup check
+    /// (= same title already exists) also runs against `drafts/` (= a chapter
+    /// can be re-edited in place in `drafts/` before promotion). 2. **Update
+    /// rejected when target is in `chapters/`** (= the boss's "Agent 在没有用 户允许的
+    /// 情况下 不能编辑 正文的文 档内容"; = the LLM gets a structured error that says "ask the
+    /// user first"; = the user can then call `updateChapter` with the same id
+    /// and the gate flips (= TODO: future commit). Other tools (=
+    /// `BookWorldTool` / `BookCharacterTool` / `BookOutlineTool` /
+    /// `BookIdeaTool` / `ReferenceLibraryTool`) are NOT gated (= the boss's
+    /// "其它文 件正常修改"; = those folders have no draft stage; = the LLM can write
+    /// directly to world/ / characters/ / outlines/ / ideas/ /
+    /// reference-library/ as the LLM judges appropriate). The `import` path
+    /// (`ImportService.importFiles`) is also NOT gated (= the import is
+    /// user-initiated; = the user pins the destination; = the user controls the
+    /// chapter write directly). the drafts/ path resolver (= mirrors
+    /// `resolvePaths` but returns the `drafts/` directory instead of
+    /// `chapters/`). The `drafts/` folder is the agent's canonical staging area
+    /// for chapter content (= the folder matches the `BookFolder.drafts` case;
+    /// = the `BookFolderCatalog` spec for `drafts` is `directoryName =
+    /// "drafts"`; = the folder exists because the `LibraryBootstrapper` creates
+    /// all 8 standard folders at book creation). The index file is
+    /// `drafts.json` (= parallel to `chapters.json`; = keeps the drafts chapter
+    /// metadata separate from the confirmed-chapter metadata; = the user
+    /// promotes a draft by moving the file from `drafts/<id>.md` to
+    /// `chapters/<id>.md` and updating `chapters.json`).
     private func resolveDraftsPaths() throws -> (
         bookDirectory: URL,
         draftsDirectory: URL,
@@ -304,31 +188,12 @@ actor BookChapterActor {
 
     // MARK: - CRUD
 
-    /// agent
-    /// chapter writes go to
-    /// `drafts/` (= the boss's
-    /// "Agent 写正文一律
-    /// 先写草稿" rule).
-    /// The dedup check
-    /// (= same title already
-    /// exists) also runs
-    /// against `drafts/`
-    /// (= an agent that
-    /// re-writes the same
-    /// chapter title is
-    /// re-editing the
-    /// existing draft; =
-    /// the agent doesn't
-    /// accidentally create
-    /// duplicates in
-    /// `drafts/`).
-    /// Returns the new /
-    /// updated chapter
-    /// descriptor (= the
-    /// caller can read
-    /// back the file path
-    /// or update the
-    /// UI).
+    /// agent chapter writes go to `drafts/` (= the boss's "Agent 写正文一律 先写草稿"
+    /// rule). The dedup check (= same title already exists) also runs against
+    /// `drafts/` (= an agent that re-writes the same chapter title is
+    /// re-editing the existing draft; = the agent doesn't accidentally create
+    /// duplicates in `drafts/`). Returns the new / updated chapter descriptor
+    /// (= the caller can read back the file path or update the UI).
     func createChapter(
         bookId: UUID,
         title: String,
@@ -533,15 +398,8 @@ actor BookChapterActor {
         return match.map { ChapterDescriptor($0) }
     }
 
-    /// drafts/
-    /// counterpart of
-    /// `findChapter` (= looks
-    /// in `drafts/` only;
-    /// = used by
-    /// `createChapter`'s
-    /// dedup so the agent
-    /// can't create
-    /// duplicate drafts).
+    /// drafts/ counterpart of `findChapter` (= looks in `drafts/` only; = used
+    /// by `createChapter`'s dedup so the agent can't create duplicate drafts).
     private func findDraftChapter(bookId: UUID, title: String) async throws -> ChapterDescriptor? {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let (_, draftsDirectory, indexURL) = try resolveDraftsPaths()
@@ -562,19 +420,9 @@ actor BookChapterActor {
         return match.map { ChapterDescriptor($0) }
     }
 
-    /// drafts/
-    /// counterpart of
-    /// `updateChapter` (=
-    /// re-edits an existing
-    /// draft in place; =
-    /// used by
-    /// `createChapter`'s
-    /// dedup-fallback
-    /// branch; = the agent
-    /// re-writing the same
-    /// chapter title
-    /// updates the draft,
-    /// not creates a
+    /// drafts/ counterpart of `updateChapter` (= re-edits an existing draft in
+    /// place; = used by `createChapter`'s dedup-fallback branch; = the agent
+    /// re-writing the same chapter title updates the draft, not creates a
     /// duplicate).
     private func updateDraftChapter(
         id: UUID,
@@ -817,17 +665,13 @@ actor BookChapterActor {
     }
 
     /// Variant for the `update` action — enriches the envelope with a
-    /// unified-diff block so `ChatToolResultPartView` can route the
-    /// result into `ChatToolDiffPreview` (= the hermes 0.21.5
-    /// file-edit preview card surface, 1:1 mirrored here).
-    ///
-    /// Schema:
-    ///   kind    = "diff"
-    ///   diff    = { path, old_text, new_text, stats: { added_chars,
-    ///               removed_chars, added_lines, removed_lines } }
-    ///   diff_stats_canonical = same stats block at the top level for
-    ///         tooling that already routes on `kind:"diff"` (= our chat
-    ///         layer reads `diff.stats`).
+    /// unified-diff block so `ChatToolResultPartView` can route the result into
+    /// `ChatToolDiffPreview` (= the hermes 0.21.5 file-edit preview card
+    /// surface, 1:1 mirrored here). Schema: kind = "diff" diff = { path,
+    /// old_text, new_text, stats: { added_chars, removed_chars, added_lines,
+    /// removed_lines } } diff_stats_canonical = same stats block at the top
+    /// level for tooling that already routes on `kind:"diff"` (= our chat layer
+    /// reads `diff.stats`).
     private static func encodeSuccessUpdate(
         action: BookChapterAction,
         chapter: ChapterDescriptor,
@@ -863,8 +707,8 @@ actor BookChapterActor {
         return encodeJSON(payload)
     }
 
-    /// Plain unified-diff product (= text + line / char counts). Pure
-    /// function so it's reachable from unit tests without an actor.
+    /// Plain unified-diff product (= text + line / char counts). Pure function
+    /// so it's reachable from unit tests without an actor.
     struct UnifiedDiff: Equatable, Sendable {
         let text: String
         let addedLines: Int
@@ -873,15 +717,13 @@ actor BookChapterActor {
         let removedChars: Int
     }
 
-    /// Compute a minimal unified diff between two strings (= the
-    /// form hermes `tool-fallback.tsx` renders). This is NOT a full
-    /// Myers diff; = it's the `diff` algorithm's "intraline + line
-    /// block" variant (= same lines → kept, changed → +/- lines).
-    /// The body split is line-by-line, so trailing-newline-only edits
-    /// surface as expected by the user-facing metric.
-    ///
-    /// Schema (one hunk, no header noise):
-    ///   "--- old\n+++ new\n@@\n-removed line\n+added line\n context\n"
+    /// Compute a minimal unified diff between two strings (= the form hermes
+    /// `tool-fallback.tsx` renders). This is NOT a full Myers diff; = it's the
+    /// `diff` algorithm's "intraline + line block" variant (= same lines →
+    /// kept, changed → +/- lines). The body split is line-by-line, so
+    /// trailing-newline-only edits surface as expected by the user-facing
+    /// metric. Schema (one hunk, no header noise): "--- old\n+++
+    /// new\n@@\n-removed line\n+added line\n context\n"
     static func computeUnifiedDiff(old: String, new: String) -> UnifiedDiff {
         let oldLines = old.components(separatedBy: "\n")
         let newLines = new.components(separatedBy: "\n")
@@ -1008,9 +850,8 @@ actor BookChapterActor {
         return encodeJSON(payload)
     }
 
-    /// Encode a BookScopeViolation into the standard failure envelope.
-    /// See BookWorldTool.encodeFailureScopeViolation for the matching
-    /// contract.
+    /// Encode a BookScopeViolation into the standard failure envelope. See
+    /// BookWorldTool.encodeFailureScopeViolation for the matching contract.
     private static func encodeFailureScopeViolation(
         action: BookChapterAction,
         error: BookScopeViolation

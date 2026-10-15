@@ -47,60 +47,54 @@ private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "wenshucond
 actor WenshuConductor {
     private let runtime: AgentRuntime
     private let verifier: WenshuVerifier
-    /// Long-term memory persistence for agent (now SwiftData-backed via WSMemoryRepository
-    /// ([historical actor removed]; this property was previously MemoryStore? for the deprecated actor bridge, now removed.)
+    /// Long-term memory persistence for agent (now SwiftData-backed via
+    /// WSMemoryRepository ([historical actor removed]; this property was
+    /// previously MemoryStore? for the deprecated actor bridge, now removed.)
     /// All memory calls go through WSMemoryRepository.shared (= @MainActor).
-    /// h10: agent toolkit dispatch (FileTools + ProcessTools + WebTools + VisionTools).
-    /// Tools are stateless structs, no bootstrap needed.
-
-    /// The conductor reads
-    /// / writes kanban + chat persistence (= formerly via
+    /// h10: agent toolkit dispatch (FileTools + ProcessTools + WebTools +
+    /// VisionTools). Tools are stateless structs, no bootstrap needed. The
+    /// conductor reads / writes kanban + chat persistence (= formerly via
     /// `WSKanbanRepository.shared` / `WSChatRepository.shared` static
-    /// singletons). Inject the @MainActor-isolated
-    /// `WSRepositoryContainer` (= matches the  protocol
-    /// pattern that `LiveChatRepository` already implements for
-    /// chat). Falls back to `.shared` (= the global
-    /// singleton) when the caller does not pass a container; =
-    /// every existing test + ChatView call site keeps working.
+    /// singletons). Inject the @MainActor-isolated `WSRepositoryContainer` (=
+    /// matches the protocol pattern that `LiveChatRepository` already
+    /// implements for chat). Falls back to `.shared` (= the global singleton)
+    /// when the caller does not pass a container; = every existing test +
+    /// ChatView call site keeps working.
     private let repositories: WSRepositoryContainer
     /// See .scratch/2026-08-22-frontend-integration/issues/h10-tools-frontend.md.
     private let fileTools: FileTools = FileTools()
     private let webTools: WebTools = WebTools()
     private let visionTools: VisionTools = VisionTools()
     /// h14: AVMediaTools — agent toolkit dispatch + chat UI read-aloud button.
-    /// See .scratch/2026-08-22-frontend-integration/issues/h14-avmedia-tools-frontend.md.
+    /// See
+    /// .scratch/2026-08-22-frontend-integration/issues/h14-avmedia-tools-frontend.md.
     private let avMediaTools: AVMediaTools = AVMediaTools()
-    /// P0 #1 (WIRE-AGENT-001): optional active connector profile. When
-    /// non-nil, handle() routes the LLM call through the full
-    /// ConversationLoop.runTurn() orchestrator (= tool dispatch +
-    /// compression + retry + sanitization + finalization). When nil,
-    /// handle() falls back to the legacy intent+sub-agent+synthesis
-    /// pipeline. Production wiring lands in App.swift follow-up.
+    /// P0 #1 (WIRE-AGENT-001): optional active connector profile. When non-nil,
+    /// handle() routes the LLM call through the full ConversationLoop.runTurn()
+    /// orchestrator (= tool dispatch + compression + retry + sanitization +
+    /// finalization). When nil, handle() falls back to the legacy
+    /// intent+sub-agent+synthesis pipeline. Production wiring lands in
+    /// App.swift follow-up.
     private let connector: (any LLMConnector)?
     /// P0 #1 (WIRE-AGENT-001): optional RuntimeHelpers instance for the
-    /// ConversationLoop (= deterministic-test injection
-    /// 014). When nil, ConversationLoop creates a fresh actor instance.
+    /// ConversationLoop (= deterministic-test injection 014). When nil,
+    /// ConversationLoop creates a fresh actor instance.
     private let loopRuntime: RuntimeHelpers?
     /// P0 #2 (WIRE-AGENT-002): tool registry forwarded to
-    /// `ConversationLoop.runTurn(...tools:)` when the loop path runs.
-    /// Callers (= App.swift, tests) pre-register wenshu tools at
-    /// construction time (= e.g. ParagraphAITool for paragraph-level
-    /// AI editing). When the loop path is NOT active (= legacy callers
-    /// with no connector), this field is silently ignored because
-    /// `runLegacyConductorPipeline` does not consult the registry.
-    /// Default = empty (= no tools) preserves every existing test +
-    /// call site without modification.
-    /// Tool registry carried through to the conversation loop. Mutable
-    /// so the book_X scope guard can replace the four default
-    /// registrations with provider-bound instances (= see
-    /// `wireBookScopeGuard`). actor-isolated (= safe to mutate from
-    /// any conductor method).
-    ///
-    /// Marked internal (= not private) so @testable imports can
-    /// inspect the dictionary in the WenshuConductorBookScopeGuardTests
+    /// `ConversationLoop.runTurn(...tools:)` when the loop path runs. Callers
+    /// (= App.swift, tests) pre-register wenshu tools at construction time (=
+    /// e.g. ParagraphAITool for paragraph-level AI editing). When the loop path
+    /// is NOT active (= legacy callers with no connector), this field is
+    /// silently ignored because `runLegacyConductorPipeline` does not consult
+    /// the registry. Default = empty (= no tools) preserves every existing test
+    /// + call site without modification. Tool registry carried through to the
+    /// conversation loop. Mutable so the book_X scope guard can replace the
+    /// four default registrations with provider-bound instances (= see
+    /// `wireBookScopeGuard`). actor-isolated (= safe to mutate from any
+    /// conductor method). Marked internal (= not private) so @testable imports
+    /// can inspect the dictionary in the WenshuConductorBookScopeGuardTests
     /// integration suite. Production code uses only the read-only
-    /// `registeredToolNames` accessor + the `wireBookScopeGuard`
-    /// writer.
+    /// `registeredToolNames` accessor + the `wireBookScopeGuard` writer.
     var tools: [String: any Tool]
 
     init(
@@ -133,26 +127,20 @@ actor WenshuConductor {
     }
 
     /// P0 #1 (WIRE-AGENT-001): new init that wires WenshuConductor.handle()
-    /// through the full ConversationLoop.runTurn() orchestrator
-    /// (= tool dispatch + compression + retry + sanitization + finalization).
-    ///
-    /// When `connector` is supplied (= production wiring, see App.swift
-    /// ticket follow-up) `handle()` first attempts the ConversationLoop
-    /// path. If the loop throws (= transport / auth / retry-exhaustion),
-    /// handle() falls back to the legacy intent+sub-agent+synthesis path
-    /// (= the original pipeline) AND logs the error so the user
-    /// never sees a broken agent.
-    ///
-    /// When `connector` is nil (= legacy callers, all existing tests), the
-    /// new path is a no-op short-circuit and `handle()` runs the legacy
-    /// pipeline unchanged. This preserves backward compat for every
-    /// existing test + the ChatView call site (which constructs the
-    /// conductor without a connector today).
-    ///
-    /// `runtime` is optional and passed to ConversationLoop for
-    /// deterministic-test injection (= via explicit `runtime:` init arg).
-    /// When nil, `ConversationLoop` falls back to a fresh `RuntimeHelpers()`
-    /// actor.
+    /// through the full ConversationLoop.runTurn() orchestrator (= tool
+    /// dispatch + compression + retry + sanitization + finalization). When
+    /// `connector` is supplied (= production wiring, see App.swift ticket
+    /// follow-up) `handle()` first attempts the ConversationLoop path. If the
+    /// loop throws (= transport / auth / retry-exhaustion), handle() falls back
+    /// to the legacy intent+sub-agent+synthesis path (= the original pipeline)
+    /// AND logs the error so the user never sees a broken agent. When
+    /// `connector` is nil (= legacy callers, all existing tests), the new path
+    /// is a no-op short-circuit and `handle()` runs the legacy pipeline
+    /// unchanged. This preserves backward compat for every existing test + the
+    /// ChatView call site (which constructs the conductor without a connector
+    /// today). `runtime` is optional and passed to ConversationLoop for
+    /// deterministic-test injection (= via explicit `runtime:` init arg). When
+    /// nil, `ConversationLoop` falls back to a fresh `RuntimeHelpers()` actor.
     init(
         runtime: AgentRuntime,
         verifier: WenshuVerifier,
@@ -189,11 +177,10 @@ actor WenshuConductor {
 
 
     /// h10: dispatch an agent tool call. Returns "" on unknown tool / failure.
-    /// - file: input = file path → returns file content
-    /// - process: input = shell command → returns stdout
-    /// - web: input = URL → returns extracted markdown
-    /// - vision: input = image path → returns recognized text
-    /// - av: input = text → speaks aloud (fire-and-forget)
+    /// - file: input = file path → returns file content - process: input =
+    /// shell command → returns stdout - web: input = URL → returns extracted
+    /// markdown - vision: input = image path → returns recognized text - av:
+    /// input = text → speaks aloud (fire-and-forget)
     func invokeTool(name: String, input: String, caller: AgentCaller = .main) async -> String {
         // hermes DELEGATE_BLOCKED_TOOLS parity ((see OOB.md #2026-08-23)).
         // Sub-agents cannot call delegate_task / clarify / send_message / cronjob (any op).
@@ -260,33 +247,32 @@ actor WenshuConductor {
         }
     }
 
-    /// handle: receive user message, dispatch sub-agents, synthesize final reply
-    /// Truth: user does not see multi-agent dispatch traces, ChatView always sees only 1 .wenshu reply
-    /// code-review S4 graceful degradation: LLM fail does not throw, fallback synthesis still returns reply (= the user does not see Error system messages on macOS)
-    /// returns (reply, totalTokens) — totalTokens = intent + sub-agent + synthesis real LLM API usage accumulated
-    /// handle adds model parameter (= the 2026-08-23 feedback "switching AI didn't actually switch" = the original handle used verifier.init's hardcoded model)
-    /// adds thinking field (WenshuLLMBlock.thinking footnote UI, Apple HIG footnote pattern)
-    ///
-    /// P0 #1 (WIRE-AGENT-001): when the conductor was constructed with a
-    /// `connector` injection, the call is first routed through the full
-    /// `ConversationLoop.runTurn()` orchestrator (= tool dispatch +
-    /// compression + retry + sanitization + finalization). If the loop
-    /// throws (= transport / auth / retry-exhaustion / anything), handle()
-    /// falls back to the legacy intent+sub-agent+synthesis pipeline and
-    /// logs the error. The legacy path is always preserved (= never
-    /// removed) so existing public surface is 100% back-compatible.
-    /// Streaming output in the chat zone
-    /// add `streamCallback` parameter (= Hermes streaming pattern).
-    /// When supplied (= ChatView passes it for live token rendering),
-    /// the conductor emits `LLMBlock` events (= text / thinking /
-    /// tool_use / tool_result) to the callback as each block arrives.
-    /// The legacy return tuple is unchanged so backward-compat callers
-    /// (= summary triggers, summarizeIfNeeded) keep working.
-    ///
-    /// Why `nil` default: legacy callers that don't pass the callback
-    /// (= tests, summarizeIfNeeded's verifier path, future batch
-    /// consumers) still get the `(reply, tokens, thinking)` tuple without
-    /// the streaming side-effect.
+    /// handle: receive user message, dispatch sub-agents, synthesize final
+    /// reply Truth: user does not see multi-agent dispatch traces, ChatView
+    /// always sees only 1 .wenshu reply code-review S4 graceful degradation:
+    /// LLM fail does not throw, fallback synthesis still returns reply (= the
+    /// user does not see Error system messages on macOS) returns (reply,
+    /// totalTokens) — totalTokens = intent + sub-agent + synthesis real LLM API
+    /// usage accumulated handle adds model parameter (= the 2026-08-23 feedback
+    /// "switching AI didn't actually switch" = the original handle used
+    /// verifier.init's hardcoded model) adds thinking field
+    /// (WenshuLLMBlock.thinking footnote UI, Apple HIG footnote pattern) P0 #1
+    /// (WIRE-AGENT-001): when the conductor was constructed with a `connector`
+    /// injection, the call is first routed through the full
+    /// `ConversationLoop.runTurn()` orchestrator (= tool dispatch + compression
+    /// + retry + sanitization + finalization). If the loop throws (= transport
+    /// / auth / retry-exhaustion / anything), handle() falls back to the legacy
+    /// intent+sub-agent+synthesis pipeline and logs the error. The legacy path
+    /// is always preserved (= never removed) so existing public surface is 100%
+    /// back-compatible. Streaming output in the chat zone add `streamCallback`
+    /// parameter (= Hermes streaming pattern). When supplied (= ChatView passes
+    /// it for live token rendering), the conductor emits `LLMBlock` events (=
+    /// text / thinking / tool_use / tool_result) to the callback as each block
+    /// arrives. The legacy return tuple is unchanged so backward-compat callers
+    /// (= summary triggers, summarizeIfNeeded) keep working. Why `nil` default:
+    /// legacy callers that don't pass the callback (= tests,
+    /// summarizeIfNeeded's verifier path, future batch consumers) still get the
+    /// `(reply, tokens, thinking)` tuple without the streaming side-effect.
     func handle(
         userMessage: String,
         sessionId: String,
@@ -325,20 +311,17 @@ actor WenshuConductor {
     }
 
     /// P0 #1 (WIRE-AGENT-001): route the user message through the full
-    /// `ConversationLoop.runTurn()` orchestrator and reshape its result
-    /// into the canonical `(reply, totalTokens, thinking)` tuple.
-    ///
-    /// P0 #2 (WIRE-AGENT-002): forwards the conductor's `tools`
-    /// registry to `ConversationLoop.runTurn(...tools:)` so the
-    /// ToolExecutor dispatches tool_use blocks against registered
-    /// wenshu tools (= ParagraphAITool for paragraph-level AI,
-    /// future skill tools, future subagent tools). The registry is
-    /// captured at construction time (= ChatViewModel pre-registers
-    /// ParagraphAITool.shared before constructing the conductor).
-    ///
-    /// Returns `nil` when the loop throws (= caller falls back to legacy
-    /// pipeline). The loop's error is logged via NSLog so the wenshu-dev
-    /// user never sees a broken agent.
+    /// `ConversationLoop.runTurn()` orchestrator and reshape its result into
+    /// the canonical `(reply, totalTokens, thinking)` tuple. P0 #2
+    /// (WIRE-AGENT-002): forwards the conductor's `tools` registry to
+    /// `ConversationLoop.runTurn(...tools:)` so the ToolExecutor dispatches
+    /// tool_use blocks against registered wenshu tools (= ParagraphAITool for
+    /// paragraph-level AI, future skill tools, future subagent tools). The
+    /// registry is captured at construction time (= ChatViewModel pre-registers
+    /// ParagraphAITool.shared before constructing the conductor). Returns `nil`
+    /// when the loop throws (= caller falls back to legacy pipeline). The
+    /// loop's error is logged via NSLog so the wenshu-dev user never sees a
+    /// broken agent.
     private func runConversationLoopPath(
         userMessage: String,
         sessionId: String,
@@ -473,9 +456,9 @@ actor WenshuConductor {
         }
     }
 
-    /// Legacy conductor pipeline (= intent+sub-agent+synthesis).
-    /// Preserved verbatim (= unchanged) as the fallback when
-    /// ConversationLoop is not wired (= connector == nil) OR throws.
+    /// Legacy conductor pipeline (= intent+sub-agent+synthesis). Preserved
+    /// verbatim (= unchanged) as the fallback when ConversationLoop is not
+    /// wired (= connector == nil) OR throws.
     private func runLegacyConductorPipeline(
         userMessage: String,
         sessionId: String,
@@ -734,14 +717,12 @@ actor WenshuConductor {
 
     // MARK: - ToolRegistry wiring (WIRE-TOOLREGISTRY-003)
 
-    /// Default toolset populated into `WenshuConductor.tools` when the
-    /// ChatView wraps the App-supplied conductor (= the chat surface
-    /// registration site). Names match the 12 entries that each tool
-    /// file self-registers via `ToolRegistry.shared.register(...)`
-    /// at module-import time (= see MIGRATE-TOOLREGISTRY-002).
-    ///
-    /// Kept in declaration order so the test fixture and the ChatView
-    /// wiring agree on the set (= deterministic diff).
+    /// Default toolset populated into `WenshuConductor.tools` when the ChatView
+    /// wraps the App-supplied conductor (= the chat surface registration site).
+    /// Names match the 12 entries that each tool file self-registers via
+    /// `ToolRegistry.shared.register(...)` at module-import time (= see
+    /// MIGRATE-TOOLREGISTRY-002). Kept in declaration order so the test fixture
+    /// and the ChatView wiring agree on the set (= deterministic diff).
     static let defaultToolNames: [String] = [
         "ParagraphAI",      // Core/Agent/Tool/ParagraphAITool.swift
         "ReadFile",         // Core/Agent/Tool/ReadFileTool.swift
@@ -766,37 +747,30 @@ actor WenshuConductor {
         "web_search"        // Core/Agent/Tool/WebSearchTool.swift — main agent has this for synchronous lookups; = for noun research, prefer `delegate_research` (fire-and-forget)
     ]
 
-    /// Maximum time `buildToolsSync(from:)` will wait for the
-    /// detached async task (= 250 ms by default). Registrations are
-    /// fire-and-forget `Task { await registry.register(...) }`
-    /// blocks that run off the init thread (= the module-load
-    /// pattern from MIGRATE-TOOLREGISTRY-002); a brief wait covers
-    /// the scheduling jitter.
+    /// Maximum time `buildToolsSync(from:)` will wait for the detached async
+    /// task (= 250 ms by default). Registrations are fire-and-forget `Task {
+    /// await registry.register(...) }` blocks that run off the init thread (=
+    /// the module-load pattern from MIGRATE-TOOLREGISTRY-002); a brief wait
+    /// covers the scheduling jitter.
     static let toolRegistryWaitTimeoutMs: UInt64 = 250
 
-    /// Build the conductor's tool registry from `ToolRegistry.shared`
-    /// (= hermes single-source-of-truth pattern; replaces the per-
-    /// ChatView-instantiation explicit `tools:` dict).
-    ///
-    /// PURE: no conductor state is mutated. The function returns a
-    /// fresh `[String: any Tool]` dict suitable for forwarding to
-    /// `WenshuConductor.init(...tools:)`. Callers wrap the result in
-    /// their preferred peer-construction pattern.
-    ///
-    /// Mechanism (= hermes parity):
-    /// 1. Wait a brief settle window (= `toolRegistryWarmupMs`) so
-    ///    the module-load `Task { await register(...) }` blocks
-    ///    can finish scheduling. The window is short because in
-    ///    production (= tool files eagerly imported) registrations
-    ///    complete in microseconds; the window only matters for
-    ///    process-startup jitter.
-    /// 2. For each name in `defaultToolNames`, ask
-    ///    `registry.getHandler(name:)`. Unknown names (= not yet
-    ///    registered, or registered under a different identifier) are
-    ///    silently dropped; the resulting dict may be a subset of
-    ///    `defaultToolNames` (= the hermes behavior).
-    /// 3. Return the dict. Order is not significant (= dict keys
-    ///    are unordered) but the set is deterministic.
+    /// Build the conductor's tool registry from `ToolRegistry.shared` (= hermes
+    /// single-source-of-truth pattern; replaces the per- ChatView-instantiation
+    /// explicit `tools:` dict). PURE: no conductor state is mutated. The
+    /// function returns a fresh `[String: any Tool]` dict suitable for
+    /// forwarding to `WenshuConductor.init(...tools:)`. Callers wrap the result
+    /// in their preferred peer-construction pattern. Mechanism (= hermes
+    /// parity): 1. Wait a brief settle window (= `toolRegistryWarmupMs`) so the
+    /// module-load `Task { await register(...) }` blocks can finish scheduling.
+    /// The window is short because in production (= tool files eagerly
+    /// imported) registrations complete in microseconds; the window only
+    /// matters for process-startup jitter. 2. For each name in
+    /// `defaultToolNames`, ask `registry.getHandler(name:)`. Unknown names (=
+    /// not yet registered, or registered under a different identifier) are
+    /// silently dropped; the resulting dict may be a subset of
+    /// `defaultToolNames` (= the hermes behavior). 3. Return the dict. Order is
+    /// not significant (= dict keys are unordered) but the set is
+    /// deterministic.
     static func buildTools(from registry: ToolRegistry) async -> [String: any Tool] {
         // Step 1: brief warmup window. Registrations are fire-and-forget
         // `Task { await registry.register(...) }` blocks at module load (=
@@ -828,38 +802,29 @@ actor WenshuConductor {
         return tools
     }
 
-    /// Brief settle window for `buildTools(from:)` (= 50 ms).
-    /// Registrations are fire-and-forget at module-load (= see
-    /// MIGRATE-TOOLREGISTRY-002); a short sleep absorbs scheduling
-    /// jitter without waiting for a specific count (= which would
-    /// time out in tests where not all 12 tool files are linked).
+    /// Brief settle window for `buildTools(from:)` (= 50 ms). Registrations are
+    /// fire-and-forget at module-load (= see MIGRATE-TOOLREGISTRY-002); a short
+    /// sleep absorbs scheduling jitter without waiting for a specific count (=
+    /// which would time out in tests where not all 12 tool files are linked).
     static let toolRegistryWarmupMs: UInt64 = 50
 
-    /// Synchronous bridge to `buildTools(from:)` for callers that
-    /// cannot await (= SwiftUI `View.init` is sync; the ChatView
-    /// fallback-conductor construction site runs there).
-    ///
-    ///
-    /// replaces the previous `DispatchSemaphore` + `DispatchQueue.global()
-    /// .async` + `Task.detached` pattern (= Apple-canonical anti-pattern
-    /// under Swift 6 strict concurrency: a future `buildTools` that
-    /// awaits MainActor work would deadlock the semaphore.wait caller
-    /// when the caller IS the MainActor = the SwiftUI View.init case =
-    /// this exact site).
-    ///
-    /// New behavior:
-    /// 1. Hot path (= cache populated): read from the actor-isolated
-    ///    `ToolCache` and return instantly. This is the common case in
-    ///    production (= App.swift prewarms the cache at startup).
-    /// 2. Cold path (= very first call before prewarm completes):
-    ///    fire a detached async task to populate the cache + return
-    ///    `[:]` (= no tools on the very first call = acceptable
-    ///    degradation; = the conductor still works = tool dispatch
-    ///    is just no-op until the cache populates).
-    ///
-    /// Recommended production pattern: call `await
-    /// WenshuConductor.prewarmToolCache()` from `App.swift` startup
-    /// before any ChatView.init fires.
+    /// Synchronous bridge to `buildTools(from:)` for callers that cannot await
+    /// (= SwiftUI `View.init` is sync; the ChatView fallback-conductor
+    /// construction site runs there). replaces the previous `DispatchSemaphore`
+    /// + `DispatchQueue.global() .async` + `Task.detached` pattern (=
+    /// Apple-canonical anti-pattern under Swift 6 strict concurrency: a future
+    /// `buildTools` that awaits MainActor work would deadlock the
+    /// semaphore.wait caller when the caller IS the MainActor = the SwiftUI
+    /// View.init case = this exact site). New behavior: 1. Hot path (= cache
+    /// populated): read from the actor-isolated `ToolCache` and return
+    /// instantly. This is the common case in production (= App.swift prewarms
+    /// the cache at startup). 2. Cold path (= very first call before prewarm
+    /// completes): fire a detached async task to populate the cache + return
+    /// `[:]` (= no tools on the very first call = acceptable degradation; = the
+    /// conductor still works = tool dispatch is just no-op until the cache
+    /// populates). Recommended production pattern: call `await
+    /// WenshuConductor.prewarmToolCache()` from `App.swift` startup before any
+    /// ChatView.init fires.
     static func buildToolsSync(from registry: ToolRegistry) -> [String: any Tool] {
         // Hot path: cache hit (= NSLock-guarded sync read = nanoseconds).
         if let cached = Self.toolCache.cachedTools {
@@ -897,36 +862,27 @@ actor WenshuConductor {
         return [:]
     }
 
-    /// Sendable-safe result
-    /// box for the sync-over-async bridge (= `any Tool` is not
-    /// Sendable but a `@unchecked Sendable` reference holder is
-    /// allowed).
-    /// 
-    /// CRITICAL
-    /// INVARIANT = `box.value` MUST be assigned BEFORE the
-    /// `semaphore.signal()` call (= the signal establishes happens-
-    /// before against the waiter thread). If any future refactor
-    /// reorders these two operations (= e.g. signal first, then
-    /// write), the waiter may observe a stale empty dict. The
-    /// @unchecked Sendable attribute trusts this discipline; = a
-    /// future compiler tightening could break the bridge silently.
-    /// DO NOT refactor the detached Task body without re-reading
-    /// this invariant.
+    /// Sendable-safe result box for the sync-over-async bridge (= `any Tool` is
+    /// not Sendable but a `@unchecked Sendable` reference holder is allowed).
+    /// CRITICAL INVARIANT = `box.value` MUST be assigned BEFORE the
+    /// `semaphore.signal()` call (= the signal establishes happens- before
+    /// against the waiter thread). If any future refactor reorders these two
+    /// operations (= e.g. signal first, then write), the waiter may observe a
+    /// stale empty dict. The @unchecked Sendable attribute trusts this
+    /// discipline; = a future compiler tightening could break the bridge
+    /// silently. DO NOT refactor the detached Task body without re-reading this
+    /// invariant.
     private final class SyncResultBox: @unchecked Sendable {
         var value: [String: any Tool] = [:]
     }
 
-    ///
-    /// thread-safe cache for `buildToolsSync`. Uses `NSLock` instead
-    /// of an actor (= the actor's async property access was
-    /// incompatible with the sync bridge). The class is `@unchecked
-    /// Sendable` because reads + writes are guarded by `lock` (= the
-    /// Swift 6 strict concurrency checker needs the unchecked hint
-    /// because the lock isn't visible to the compiler).
-    ///
-    /// The cache lives on its own thread (= independent of the UI
-    /// thread). Reads via `cachedTools` return instantly when the
-    /// cache is hot.
+    /// thread-safe cache for `buildToolsSync`. Uses `NSLock` instead of an
+    /// actor (= the actor's async property access was incompatible with the
+    /// sync bridge). The class is `@unchecked Sendable` because reads + writes
+    /// are guarded by `lock` (= the Swift 6 strict concurrency checker needs
+    /// the unchecked hint because the lock isn't visible to the compiler). The
+    /// cache lives on its own thread (= independent of the UI thread). Reads
+    /// via `cachedTools` return instantly when the cache is hot.
     private final class ToolCache: @unchecked Sendable {
         private let lock = NSLock()
         private var _cachedTools: [String: any Tool]?
@@ -944,19 +900,17 @@ actor WenshuConductor {
         }
     }
 
-    /// Process-wide singleton cache
-    /// (= thread-safe via `NSLock`). Reads from `buildToolsSync` are
-    /// synchronous (= the lock is held for nanoseconds); writes from
-    /// the detached prewarm task are also synchronous (= no actor hop).
+    /// Process-wide singleton cache (= thread-safe via `NSLock`). Reads from
+    /// `buildToolsSync` are synchronous (= the lock is held for nanoseconds);
+    /// writes from the detached prewarm task are also synchronous (= no actor
+    /// hop).
     private static let toolCache = ToolCache()
 
-    /// Pre-warm the tool cache (= the
-    /// canonical production pattern). Call from `App.swift` startup
-    /// (= before any ChatView.init fires) so the first `buildToolsSync`
-    /// call sees a hot cache.
-    ///
-    /// Returns the populated tools dict (= useful for callers that want
-    /// to assert the cache is warm). Async + cooperative-pool-safe.
+    /// Pre-warm the tool cache (= the canonical production pattern). Call from
+    /// `App.swift` startup (= before any ChatView.init fires) so the first
+    /// `buildToolsSync` call sees a hot cache. Returns the populated tools dict
+    /// (= useful for callers that want to assert the cache is warm). Async +
+    /// cooperative-pool-safe.
     // (prewarmToolCache removed 2026-10 in q99-spec-p0-batch2 —
     //  verify-dead.py confirmed 0 external callers; = the static
     //  prewarm entry point (= hermes-port "prewarm registry at startup"
@@ -967,31 +921,28 @@ actor WenshuConductor {
 
     // MARK: - Test accessor (WIRE-TOOLREGISTRY-003)
 
-    /// Sorted list of registered tool names (= for tests asserting
-    /// the dict contents without exposing the dict itself).
-    ///
-    /// Additive: does not mutate any state. Used by
+    /// Sorted list of registered tool names (= for tests asserting the dict
+    /// contents without exposing the dict itself). Additive: does not mutate
+    /// any state. Used by
     /// `WenshuConductorToolRegistryWiringTests.testChatViewConductor
-    /// _usesToolRegistryNotExplicitDict` to verify the wiring path
-    /// (= ChatView's conductor's tools come from
-    /// `ToolRegistry.shared`, not a freshly-constructed dict).
+    /// _usesToolRegistryNotExplicitDict` to verify the wiring path (=
+    /// ChatView's conductor's tools come from `ToolRegistry.shared`, not a
+    /// freshly-constructed dict).
     internal func registeredToolNames() -> [String] {
         tools.keys.sorted()
     }
 
     // MARK: - Book scope guard wiring (see OOB.md #2026-09-25)
 
-    /// The four agent tools that are bound to a chat-session's book
-    /// (= the user picks a book in the sidebar and the chat session
-    /// becomes scoped to that book). These are replaced with
-    /// provider-bound instances by `wireBookScopeGuard`.
-    ///
-    /// In v2.3 the world + character tools collapse into a single
-    /// `book_entity` tool that handles all 5 kinds (= person /
+    /// The four agent tools that are bound to a chat-session's book (= the user
+    /// picks a book in the sidebar and the chat session becomes scoped to that
+    /// book). These are replaced with provider-bound instances by
+    /// `wireBookScopeGuard`. In v2.3 the world + character tools collapse into
+    /// a single `book_entity` tool that handles all 5 kinds (= person /
     /// location / object / ability / event). The `book_chapter` +
-    /// `book_outline` tools remain scoped to their respective
-    /// chapter + outline schemas (= not part of the entity
-    /// schema redesign; = see AGENTS.md §11.11 row 1).
+    /// `book_outline` tools remain scoped to their respective chapter + outline
+    /// schemas (= not part of the entity schema redesign; = see AGENTS.md
+    /// §11.11 row 1).
     // (bookScopeGuardedToolNames removed 2026-10 in q99-spec-p0-batch2 —
     //  verify-dead.py confirmed 0 external callers; = the
     //  private static Set<String> was retained as the "tools that
@@ -1003,18 +954,14 @@ actor WenshuConductor {
     //  See wenshu-pocock-workflow references/v3.0-design-system-rule.md
     //  + wenshu-dead-code-cleanup SKILL.md.)
 
-    /// Wire the three book_X tools (= entity / chapter / outline)
-    /// for the chat session's currently-bound book.
-    ///
-    /// Takes value snapshots (= not closures) because the three actors
-    /// are re-wired on every change of the sidebar's selected book
-    /// (= see ChatZoneView.swift `.onChange`). Capturing closures
-    /// across actor boundaries would force async hops (= incompatible
-    /// with the sync execute(input:) contract).
-    ///
-    /// `reference_library` (= library-public) is intentionally NOT
-    /// in the replaced set. `book_manager` (= meta: create / delete /
-    /// rename book) is also NOT in the set (= see spec L30).
+    /// Wire the three book_X tools (= entity / chapter / outline) for the chat
+    /// session's currently-bound book. Takes value snapshots (= not closures)
+    /// because the three actors are re-wired on every change of the sidebar's
+    /// selected book (= see ChatZoneView.swift `.onChange`). Capturing closures
+    /// across actor boundaries would force async hops (= incompatible with the
+    /// sync execute(input:) contract). `reference_library` (= library-public)
+    /// is intentionally NOT in the replaced set. `book_manager` (= meta: create
+    /// / delete / rename book) is also NOT in the set (= see spec L30).
     func wireBookScopeGuard(
         currentChatBookID: UUID?,
         bookDirectory: URL?
@@ -1050,26 +997,24 @@ actor WenshuConductor {
         )
     }
 
-    /// chapter-focus-lock 2026-09-28: wrap a Tool whose entry point
-    /// may throw `ChapterFocusLockedError` (= BookChapterTool,
-    /// EditChapterTool) in a retry wrapper that temporarily
-    /// releases the editor focus (= AppStateLocator.shared
-    /// .appState?.focusedChapterPath = nil) so the agent's second
-    /// attempt passes the gate. This is the auto-Allow MVP path:
-    /// the conductor accepts the agent's edit unconditionally when
-    /// the user is focused on the chapter (= future ticket swaps
-    /// in an Allow/Deny dialog without touching this wrapper).
+    /// chapter-focus-lock 2026-09-28: wrap a Tool whose entry point may throw
+    /// `ChapterFocusLockedError` (= BookChapterTool, EditChapterTool) in a
+    /// retry wrapper that temporarily releases the editor focus (=
+    /// AppStateLocator.shared .appState?.focusedChapterPath = nil) so the
+    /// agent's second attempt passes the gate. This is the auto-Allow MVP path:
+    /// the conductor accepts the agent's edit unconditionally when the user is
+    /// focused on the chapter (= future ticket swaps in an Allow/Deny dialog
+    /// without touching this wrapper).
     private func wrapWithChapterFocusLock(_ inner: any Tool, toolName: String) -> any Tool {
         ChapterFocusLockWrappedTool(inner: inner, toolName: toolName)
     }
 
-    /// chapter-focus-lock 2026-09-28: thin Tool wrapper that retries
-    /// once after releasing the chapter focus lock when the inner
-    /// tool throws ChapterFocusLockedError. The MVP auto-Allow
-    /// path (= the conductor treats a focused user as approval to
-    /// proceed; = see `wrapWithChapterFocusLock` for the future
-    /// Allow/Deny UI ticket). Nested inside WenshuConductor so it
-    /// has access to the locator without re-binding globals.
+    /// chapter-focus-lock 2026-09-28: thin Tool wrapper that retries once after
+    /// releasing the chapter focus lock when the inner tool throws
+    /// ChapterFocusLockedError. The MVP auto-Allow path (= the conductor treats
+    /// a focused user as approval to proceed; = see `wrapWithChapterFocusLock`
+    /// for the future Allow/Deny UI ticket). Nested inside WenshuConductor so
+    /// it has access to the locator without re-binding globals.
     actor ChapterFocusLockWrappedTool: Tool {
         let inner: any Tool
         let toolName: String
@@ -1155,10 +1100,9 @@ actor WenshuConductor {
             }
         }
 
-        /// Compact human-readable summary of the LLM's tool input.
-        /// (= e.g. "edit: replace 'foo' -> 'bar'"). Used as the
-        /// dialog's message body so the user sees what the LLM
-        /// intends before deciding.
+        /// Compact human-readable summary of the LLM's tool input. (= e.g.
+        /// "edit: replace 'foo' -> 'bar'"). Used as the dialog's message body
+        /// so the user sees what the LLM intends before deciding.
         static func summarizeInput(_ input: String) -> String {
             guard let data = input.data(using: .utf8),
                   let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
@@ -1178,12 +1122,11 @@ actor WenshuConductor {
             return input
         }
 
-        /// Bridge to the presenter (= awaiting the dialog decision
-        /// without blocking the MainActor). The presenter holds a
-        /// checked continuation that resumes when the choice is
-        /// Allow / Deny; = we await the decision by calling
-        /// `present(...)` from a MainActor-isolated task and
-        /// reading the result.
+        /// Bridge to the presenter (= awaiting the dialog decision without
+        /// blocking the MainActor). The presenter holds a checked continuation
+        /// that resumes when the choice is Allow / Deny; = we await the
+        /// decision by calling `present(...)` from a MainActor-isolated task
+        /// and reading the result.
         static func awaitPresenterDecision(
             chapterPath: String,
             toolName: String,
@@ -1202,11 +1145,10 @@ actor WenshuConductor {
         }
     }
 
-    /// Test-only: inject a tool directly into the tools dict. Used
-    /// by the WenshuConductorBookScopeGuardTests integration suite
-    /// to verify that `wireBookScopeGuard` does NOT overwrite
-    /// (= e.g.) the `reference_library` key. Production code never
-    /// calls this method.
+    /// Test-only: inject a tool directly into the tools dict. Used by the
+    /// WenshuConductorBookScopeGuardTests integration suite to verify that
+    /// `wireBookScopeGuard` does NOT overwrite (= e.g.) the `reference_library`
+    /// key. Production code never calls this method.
     func setToolForTest(_ name: String, _ tool: any Tool) {
         tools[name] = tool
     }

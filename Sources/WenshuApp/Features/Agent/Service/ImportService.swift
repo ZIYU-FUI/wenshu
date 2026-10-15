@@ -18,154 +18,86 @@ import WenshuData
 
 // MARK: - ImportService (the orchestrator)
 
-/// The orchestrator. Stateless (= all state lives in the
-/// per-task `ImportTask` actors + the sidecar cache on
-/// disk). The view holds a `[ImportTask]` and the
-/// `ImportService` mutates the array in place (= the
-/// orchestrator returns the array; = the view diffs).
+/// The orchestrator. Stateless (= all state lives in the per-task `ImportTask`
+/// actors + the sidecar cache on disk). The view holds a `[ImportTask]` and the
+/// `ImportService` mutates the array in place (= the orchestrator returns the
+/// array; = the view diffs).
 actor ImportService {
-    /// Cancellation flag (= boss's 2026-10-09
-    /// directive "取消退出时，所有已经导入的内容回退
-    /// 清掉。类似 MAC OS 的系统升级，取消等于放弃
-    /// 这个工作，不留痕"; = the sheet's cancel
-    /// button + the `.onDisappear` lifecycle hook
-    /// both set this to `true`; = the orchestrator's
-    /// `importFiles` loop polls it on every per-task
-    /// transition; = when `true`, the in-flight tasks
-    /// stop early (= the TaskGroup finishes whatever
-    /// it has; = `importFiles` returns with the
-    /// remaining tasks in `.pending`; = the
-    /// `writtenURLs` set carries the on-disk trail
-    /// for the rollback pass)).
+    /// Cancellation flag (= boss's 2026-10-09 directive "取消退出时，所有已经导入的内容回退
+    /// 清掉。类似 MAC OS 的系统升级，取消等于放弃 这个工作，不留痕"; = the sheet's cancel button + the
+    /// `.onDisappear` lifecycle hook both set this to `true`; = the
+    /// orchestrator's `importFiles` loop polls it on every per-task transition;
+    /// = when `true`, the in-flight tasks stop early (= the TaskGroup finishes
+    /// whatever it has; = `importFiles` returns with the remaining tasks in
+    /// `.pending`; = the `writtenURLs` set carries the on-disk trail for the
+    /// rollback pass)).
     private var isCancelled: Bool = false
 
-    /// Per-batch rollback trail (= the URLs of every
-    /// .md file the orchestrator wrote this run; =
-    /// a `Set<URL>` because the dedup cache can map
-    /// two source paths to the same on-disk file
-    /// when the bodies are byte-equal; = the cancel
-    /// handler iterates this set + deletes each file
-    /// in the most-recent-import order; = the
-    /// reference-library side restores the prior
-    /// `entities.json` from the snapshot the
-    /// orchestrator took at the start of the run).
+    /// Per-batch rollback trail (= the URLs of every .md file the orchestrator
+    /// wrote this run; = a `Set<URL>` because the dedup cache can map two
+    /// source paths to the same on-disk file when the bodies are byte-equal; =
+    /// the cancel handler iterates this set + deletes each file in the
+    /// most-recent-import order; = the reference-library side restores the
+    /// prior `entities.json` from the snapshot the orchestrator took at the
+    /// start of the run).
     private var writtenURLs: [URL] = []
 
-    /// Snapshot of the on-disk reference-library
-    /// index file (= the path to the prior
-    /// `entities.json` content, captured at
-    /// `importFiles` start; = the cancel handler
-    /// restores this file verbatim; = the
-    /// "all-or-nothing" semantic the boss asked
-    /// for = cancel = nothing lands on disk = the
-    /// user can re-import from a clean state).
+    /// Snapshot of the on-disk reference-library index file (= the path to the
+    /// prior `entities.json` content, captured at `importFiles` start; = the
+    /// cancel handler restores this file verbatim; = the "all-or-nothing"
+    /// semantic the boss asked for = cancel = nothing lands on disk = the user
+    /// can re-import from a clean state).
     private var entitiesJSONSnapshot: (path: URL, content: Data)? = nil
 
-    /// Per-task mutable state used by the `dispatchLLM` helper
-    /// (= extensions can't hold stored properties; = this lives on
-    /// the actor). `lastDispatchError` is the final error from the
-    /// last failed LLM attempt; = `dispatchLLM` returns nil and
-    /// sets this so the orchestrator can surface the user-readable
-    /// error via `markLLMFailed`).
+    /// Per-task mutable state used by the `dispatchLLM` helper (= extensions
+    /// can't hold stored properties; = this lives on the actor).
+    /// `lastDispatchError` is the final error from the last failed LLM attempt;
+    /// = `dispatchLLM` returns nil and sets this so the orchestrator can
+    /// surface the user-readable error via `markLLMFailed`).
     private var lastDispatchError: Error? = nil
 
-    /// 5-way parallel LLM dispatch (= the boss's
-    /// 2026-10-09 directive "你要做一个机制 5 个并发，
-    /// 一个文件一个请求。同时只能处理 5 个"; = the
-    /// orchestrator's TaskGroup seeds the first
-    /// `maxParallel` tasks and refills as each
-    /// completes; = 5 keeps the in-flight LLM
-    /// pressure below the Anthropic / MiniMax
-    /// per-second burst limit; = the LLMConnector
-    /// adapter handles its own rate limiting for
-    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
-    /// directive). The historical
-    /// default was 5; = we kept
-    /// `defaultMaxParallel = 5` as a
-    /// reference (= the docs and the
-    /// `ImportTarget` Picker UI's max
-    /// = 5) but the actual cap is
-    /// `target.maxParallel` (= the
-    /// per-import user-picked value;
-    /// = the default ImportTarget init
-    /// defaults to 3; = the Picker
-    /// exposes 1..5).
+    /// 5-way parallel LLM dispatch (= the boss's 2026-10-09 directive "你要做一个机制
+    /// 5 个并发， 一个文件一个请求。同时只能处理 5 个"; = the orchestrator's TaskGroup seeds the
+    /// first `maxParallel` tasks and refills as each completes; = 5 keeps the
+    /// in-flight LLM pressure below the Anthropic / MiniMax per-second burst
+    /// limit; = the LLMConnector adapter handles its own rate limiting for (=
+    /// boss 2026-10-10 (see OOB.md #2026-10-10) directive). The historical
+    /// default was 5; = we kept `defaultMaxParallel = 5` as a reference (= the
+    /// docs and the `ImportTarget` Picker UI's max = 5) but the actual cap is
+    /// `target.maxParallel` (= the per-import user-picked value; = the default
+    /// ImportTarget init defaults to 3; = the Picker exposes 1..5).
     static let defaultMaxParallel = 5
 
-    /// Where the sidecar cache lives (= per-library;
-    /// = `<wsRoot>/.import-cache/`; = deletable by the user
-    /// if they want a full re-import).
-
-    /// One path's hash → the destination metadata. The
-    /// orchestrator reads this at the dedup step; = writes
-    /// a fresh entry after each successful import.
+    /// Where the sidecar cache lives (= per-library; =
+    /// `<wsRoot>/.import-cache/`; = deletable by the user if they want a full
+    /// re-import). One path's hash → the destination metadata. The orchestrator
+    /// reads this at the dedup step; = writes a fresh entry after each
+    /// successful import.
     fileprivate struct CacheEntry: Codable, Sendable {
         let contentHash: String
         let destination: ImportDestination
         let writtenAt: Date
-        /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
-        /// 浪费" directive). The
-        /// timestamp of the last
-        /// title-only retry on
-        /// this file (= the user
-        /// clicked "重新调研
-        /// 所有失败" while this
-        /// entry was in `.failed`
-        /// state). The retry
-        /// method uses this to
-        /// detect "already
-        /// retried with the same
-        /// body" (= skip the LLM
-        /// dispatch; = save
-        /// token + time). The
-        /// field is OPTIONAL
-        /// (= older cache entries
-        /// from wenshu versions
-        /// before round-43
-        /// don't have it; = the
-        /// Codable decoder
-        /// tolerates the missing
-        /// key). Custom
-        /// `init(from:)` is
-        /// required (= default
-        /// memberwise init
-        /// doesn't expose a
-        /// default for the
-        /// optional field).
+        /// (= boss 2026-10-10 (see OOB.md #2026-10-10) 浪费" directive). The
+        /// timestamp of the last title-only retry on this file (= the user
+        /// clicked "重新调研 所有失败" while this entry was in `.failed` state). The
+        /// retry method uses this to detect "already retried with the same
+        /// body" (= skip the LLM dispatch; = save token + time). The field is
+        /// OPTIONAL (= older cache entries from wenshu versions before round-43
+        /// don't have it; = the Codable decoder tolerates the missing key).
+        /// Custom `init(from:)` is required (= default memberwise init doesn't
+        /// expose a default for the optional field).
         var lastTitleOnlyRetriedAt: Date?
-        /// the body
-        /// hash at the time of the
-        /// last title-only retry
-        /// (= SHA-256 of the
-        /// LLM-ingested body = the
-        /// title-only-synthesized
-        /// body constructed from
-        /// the filename + sibling
-        /// context; = NOT the
-        /// source file's body
-        /// hash because the source
-        /// file is unreadable; =
-        /// if this hash changes
-        /// between retries, the
-        /// retry result would
-        /// differ; = the retry
-        /// method compares this
-        /// against the freshly
-        /// computed hash to
-        /// decide skip-vs-run). If
-        /// the source file's body
-        /// hash changes (= the
-        /// user edited the file;
-        /// = the title-only body
-        /// stays the same; = this
-        /// hash is stable) the
-        /// retry still skips; =
-        /// the boss's intent is
-        /// "if I haven't changed
-        /// anything, don't re-run
-        /// the LLM" = the
-        /// title-only body hash
-        /// is the right signal.
+        /// the body hash at the time of the last title-only retry (= SHA-256 of
+        /// the LLM-ingested body = the title-only-synthesized body constructed
+        /// from the filename + sibling context; = NOT the source file's body
+        /// hash because the source file is unreadable; = if this hash changes
+        /// between retries, the retry result would differ; = the retry method
+        /// compares this against the freshly computed hash to decide
+        /// skip-vs-run). If the source file's body hash changes (= the user
+        /// edited the file; = the title-only body stays the same; = this hash
+        /// is stable) the retry still skips; = the boss's intent is "if I
+        /// haven't changed anything, don't re-run the LLM" = the title-only
+        /// body hash is the right signal.
         var lastTitleOnlyRetriedHash: String?
 
         init(
@@ -213,51 +145,36 @@ actor ImportService {
         }
     }
 
-    /// Apple canonical convenience: stateless (= no init
-    /// body; = the actor's empty default state is enough
-    /// because all state lives in the per-task actors + the
-    /// sidecar cache on disk).
+    /// Apple canonical convenience: stateless (= no init body; = the actor's
+    /// empty default state is enough because all state lives in the per-task
+    /// actors + the sidecar cache on disk).
     init() {}
 
     // MARK: - Public entry point
 
-    /// Run the import. Returns the per-file tasks (= the
-    /// view binds them; = the orchestrator mutates state
-    /// in place via the returned array; = the array is
-    /// the sheet's per-file progress strip).
-    ///
-    /// 4 phases (mirrors ObsidianVaultBatchImportTests):
-    ///   1. walk = recursive .md scan
-    ///   2. dedup = cache diff (= skip already-imported)
-    ///   3. route + enrich = concurrent LLM dispatch
-    ///   4. write = branch on ImportDestination
-    ///
-    /// `onProgress` (= optional) is a `@Sendable` closure that
-    /// the orchestrator invokes after each per-file state
-    /// transition (= the sheet's progress strip + ProgressView
-    /// reads from this closure; = the closure is invoked on
-    /// the orchestrator's actor = the sheet must hop to
-    /// `@MainActor` to update its `@State`).
-    ///
-    /// The closure receives the current task array (= the
-    /// same array the method returns at the end; = the sheet
-    /// can render the live progress strip directly from the
-    /// closure's payload). The closure is called at the end
-    /// of Phase 1 (walk), at the end of Phase 2 (dedup), at
-    /// the end of Phase 4 (write) per file, and once at the
-    /// end of the method.
-    /// `extensions` (= optional, default `["md"]`) is
-    /// the file-type filter the user picked in the
-    /// import sheet (= the user's 2026-10-09 ask).
-    /// The walker's `extensions` parameter accepts a
-    /// `Set<String>` of lower-cased extensions (= the
-    /// walker's source-of-truth is the
-    /// `ImportFileType.extensions` property; = the
-    /// orchestrator never hard-codes a single
-    /// extension; = the walker's match site is a
-    /// single `Set.contains(...)` call so a new file
-    /// type is a one-line change at the enum
-    /// definition).
+    /// Run the import. Returns the per-file tasks (= the view binds them; = the
+    /// orchestrator mutates state in place via the returned array; = the array
+    /// is the sheet's per-file progress strip). 4 phases (mirrors
+    /// ObsidianVaultBatchImportTests): 1. walk = recursive .md scan 2. dedup =
+    /// cache diff (= skip already-imported) 3. route + enrich = concurrent LLM
+    /// dispatch 4. write = branch on ImportDestination `onProgress` (=
+    /// optional) is a `@Sendable` closure that the orchestrator invokes after
+    /// each per-file state transition (= the sheet's progress strip +
+    /// ProgressView reads from this closure; = the closure is invoked on the
+    /// orchestrator's actor = the sheet must hop to `@MainActor` to update its
+    /// `@State`). The closure receives the current task array (= the same array
+    /// the method returns at the end; = the sheet can render the live progress
+    /// strip directly from the closure's payload). The closure is called at the
+    /// end of Phase 1 (walk), at the end of Phase 2 (dedup), at the end of
+    /// Phase 4 (write) per file, and once at the end of the method.
+    /// `extensions` (= optional, default `["md"]`) is the file-type filter the
+    /// user picked in the import sheet (= the user's 2026-10-09 ask). The
+    /// walker's `extensions` parameter accepts a `Set<String>` of lower-cased
+    /// extensions (= the walker's source-of-truth is the
+    /// `ImportFileType.extensions` property; = the orchestrator never
+    /// hard-codes a single extension; = the walker's match site is a single
+    /// `Set.contains(...)` call so a new file type is a one-line change at the
+    /// enum definition).
     func importFiles(
         in sourceDir: URL,
         into target: ImportTarget,
@@ -308,20 +225,20 @@ actor ImportService {
         // per-file strip).
         return tasksBox.value
     }
-    /// Reset the per-batch rollback trail at the start of every
-    /// `importFiles` call (= the same actor can be re-used across
-    /// multiple sheets, e.g. the cancel + "再次导入" retry path).
+    /// Reset the per-batch rollback trail at the start of every `importFiles`
+    /// call (= the same actor can be re-used across multiple sheets, e.g. the
+    /// cancel + "再次导入" retry path).
     private func resetRollbackTrail() {
         isCancelled = false
         writtenURLs = []
         entitiesJSONSnapshot = nil
     }
 
-    /// Snapshot the reference-library `entities.json` for the cancel
-    /// handler to restore on rollback (= captures the file before any
-    /// writeFile call has a chance to append to it; = a fresh library
-    /// with no prior `entities.json` stores an empty-data sentinel
-    /// = the cancel handler deletes the file outright).
+    /// Snapshot the reference-library `entities.json` for the cancel handler to
+    /// restore on rollback (= captures the file before any writeFile call has a
+    /// chance to append to it; = a fresh library with no prior `entities.json`
+    /// stores an empty-data sentinel = the cancel handler deletes the file
+    /// outright).
     private func snapshotReferenceLibraryIndex(target: ImportTarget) -> URL {
         let entitiesIndex = target.wsRoot
             .appendingPathComponent("reference-library")
@@ -336,16 +253,11 @@ actor ImportService {
     }
 
 
-    /// Phase 3+4 = unified per-file pipeline
-    /// (= the orchestrator's 5-way parallel
-    /// TaskGroup; = the actor's serialized
-    /// state mutation is safe across the
-    /// concurrent `processFile` calls; =
-    /// `CacheBox` / `TasksBox` are the
-    /// class-wrapper workaround that hold
-    /// the shared mutable state the
-    /// TaskGroup needs to mutate from
-    /// concurrent contexts).
+    /// Phase 3+4 = unified per-file pipeline (= the orchestrator's 5-way
+    /// parallel TaskGroup; = the actor's serialized state mutation is safe
+    /// across the concurrent `processFile` calls; = `CacheBox` / `TasksBox` are
+    /// the class-wrapper workaround that hold the shared mutable state the
+    /// TaskGroup needs to mutate from concurrent contexts).
     private func runConcurrentPipeline(
         dispatchIndices: [Int],
         target: ImportTarget,
@@ -399,11 +311,10 @@ actor ImportService {
         }
     }
 
-    /// Mark the task `.routing` + emit progress + enqueue the
-    /// `processFile` task on the TaskGroup. Used by both the seed
-    /// loop (= first `maxParallel` tasks) and the drain loop
-    /// (= refilling slots as tasks complete) so the per-task
-    /// dispatch is in one place.
+    /// Mark the task `.routing` + emit progress + enqueue the `processFile`
+    /// task on the TaskGroup. Used by both the seed loop (= first `maxParallel`
+    /// tasks) and the drain loop (= refilling slots as tasks complete) so the
+    /// per-task dispatch is in one place.
     private func enqueueTask(
         group: inout TaskGroup<Void>,
         tasksBox: TasksBox,
@@ -429,8 +340,8 @@ actor ImportService {
         }
     }
 
-    /// Build the `ImportFileInput` for a non-retry (= the body field
-    /// is nil; = `processFile` reads the body from disk).
+    /// Build the `ImportFileInput` for a non-retry (= the body field is nil; =
+    /// `processFile` reads the body from disk).
     private func makeProcessFileInput(
         tasksBox: TasksBox,
         i: Int,
@@ -445,17 +356,13 @@ actor ImportService {
     }
 
 
-    /// Phase 2 = read the on-disk cache once and hash
-    /// every pending task's body (= the dedup key is
-    /// the body hash, not the path hash; = renaming a
-    /// file does not bypass dedup; = the in-memory
-    /// cache is the source of truth for the import
-    /// batch; = `writeCache` at the end persists the
-    /// merged result; = the `if let cached` branch is
-    /// a no-op per the 2026-10-10 short-circuit
-    /// removal directive; = the cache is consulted
-    /// downstream by the title-only retry path via
-    /// `cache[sourcePath].lastTitleOnlyRetriedHash`).
+    /// Phase 2 = read the on-disk cache once and hash every pending task's body
+    /// (= the dedup key is the body hash, not the path hash; = renaming a file
+    /// does not bypass dedup; = the in-memory cache is the source of truth for
+    /// the import batch; = `writeCache` at the end persists the merged result;
+    /// = the `if let cached` branch is a no-op per the 2026-10-10 short-circuit
+    /// removal directive; = the cache is consulted downstream by the title-only
+    /// retry path via `cache[sourcePath].lastTitleOnlyRetriedHash`).
     private func dedupAndHash(
         tasks: inout [ImportTask],
         cacheFile: URL
@@ -480,64 +387,36 @@ actor ImportService {
 
     // MARK: - title-only retry
 
-    /// Re-run the failed "读取文件失败" tasks (= the
-    /// source `.md` file was unreadable on disk; = the
-    /// user clicked "重新调研所有失败" in the sheet's
-    /// progress panel; = the orchestrator bypasses
-    /// the disk read by constructing a minimal body
-    /// from the filename + the sibling `.md` names
-    /// in the same source directory; = the LLM
-    /// produces a `.ws`-format body via web search;
-    /// = the new body is written verbatim by the
-    /// same `writeFile` path as the normal
-    /// `importFiles` flow).
-    ///
-    /// Design (= boss round-36 "在进度面板底部
-    /// 加一个'重新调研所有失败'聚合按钮"
-    /// directive):
-    /// - Filter `tasks` for `.state == .failed` AND
-    ///   `errorMessage` starts with "读取文件失败"
-    ///   (= LLM-routing failures are NOT retried
-    ///   here; = those are bugs, not file
-    ///   failures; = the user can re-import the
-    ///   whole directory if the LLM is misconfigured).
-    /// - Re-seed the matching tasks as `.routing`
-    ///   with `errorMessage = nil` (= the row's
-    ///   "失败" pill flips back to "分析中" =
-    ///   the sheet's progress strip animates
-    ///   smoothly).
-    /// - Construct a `body` per file (= the
-    ///   filename as the title + a sibling-context
-    ///   list of the other `.md` names in the same
-    ///   source directory = LLM has enough to
-    ///   produce metadata + a clean .ws body).
-    /// - Force `rewriteMode = .searchAndRewrite`
-    ///   (= the LLM will use `web_search` to fill
-    ///   in the entity's canonical content; = the
-    ///   missing source file is the trigger for
-    ///   the search; = the user explicitly opted
-    ///   into the higher-token mode by clicking
-    ///   "重新调研").
-    /// - Reuse the `importFiles` 5-way parallel
-    ///   TaskGroup pattern (= `processFile` is the
-    ///   same function = the only difference is
-    ///   the `ImportFileInput.body` is non-nil =
-    ///   the router uses it; = the `writeFile`
-    ///   step uses the LLM's `rewrittenBody` =
-    ///   the original file is never read again).
-    /// - Returns the new `tasks` array (= the
-    ///   sheet's `onProgress` is called as tasks
-    ///   transition; = the sheet re-renders).
-    ///
-    /// Why not just re-call `importFiles`? Because
-    /// `importFiles` re-walks the source
-    /// directory and creates new `ImportTask`
-    /// rows (= the sheet would have to track
-    /// task identity across calls; = the
-    /// progress strip would jitter; = the
-    /// "重新调研" button is the "patch the
-    /// failures" seam, not the "re-run the
-    /// whole batch" seam).
+    /// Re-run the failed "读取文件失败" tasks (= the source `.md` file was unreadable
+    /// on disk; = the user clicked "重新调研所有失败" in the sheet's progress panel; =
+    /// the orchestrator bypasses the disk read by constructing a minimal body
+    /// from the filename + the sibling `.md` names in the same source
+    /// directory; = the LLM produces a `.ws`-format body via web search; = the
+    /// new body is written verbatim by the same `writeFile` path as the normal
+    /// `importFiles` flow). Design (= boss round-36 "在进度面板底部 加一个'重新调研所有失败'聚合按钮"
+    /// directive): - Filter `tasks` for `.state == .failed` AND `errorMessage`
+    /// starts with "读取文件失败" (= LLM-routing failures are NOT retried here; =
+    /// those are bugs, not file failures; = the user can re-import the whole
+    /// directory if the LLM is misconfigured). - Re-seed the matching tasks as
+    /// `.routing` with `errorMessage = nil` (= the row's "失败" pill flips back
+    /// to "分析中" = the sheet's progress strip animates smoothly). - Construct a
+    /// `body` per file (= the filename as the title + a sibling-context list of
+    /// the other `.md` names in the same source directory = LLM has enough to
+    /// produce metadata + a clean .ws body). - Force `rewriteMode =
+    /// .searchAndRewrite` (= the LLM will use `web_search` to fill in the
+    /// entity's canonical content; = the missing source file is the trigger for
+    /// the search; = the user explicitly opted into the higher-token mode by
+    /// clicking "重新调研"). - Reuse the `importFiles` 5-way parallel TaskGroup
+    /// pattern (= `processFile` is the same function = the only difference is
+    /// the `ImportFileInput.body` is non-nil = the router uses it; = the
+    /// `writeFile` step uses the LLM's `rewrittenBody` = the original file is
+    /// never read again). - Returns the new `tasks` array (= the sheet's
+    /// `onProgress` is called as tasks transition; = the sheet re-renders). Why
+    /// not just re-call `importFiles`? Because `importFiles` re-walks the
+    /// source directory and creates new `ImportTask` rows (= the sheet would
+    /// have to track task identity across calls; = the progress strip would
+    /// jitter; = the "重新调研" button is the "patch the failures" seam, not the
+    /// "re-run the whole batch" seam).
     func retryFailedTasksTitleOnly(
         tasks: [ImportTask],
         into target: ImportTarget,
@@ -607,10 +486,10 @@ actor ImportService {
         return tasksBox.value
     }
 
-    /// Step 1: filter (= only the "读取文件失败" subset; = LLM-routing
-    /// failures and write failures are excluded; = the user clicked
-    /// "重新调研" with the explicit understanding that this is the
-    /// "I trust the filename + LLM search alone" path).
+    /// Step 1: filter (= only the "读取文件失败" subset; = LLM-routing failures and
+    /// write failures are excluded; = the user clicked "重新调研" with the explicit
+    /// understanding that this is the "I trust the filename + LLM search alone"
+    /// path).
     private func filterRetryCandidates(tasks: [ImportTask]) -> [Int] {
         return tasks.indices.filter { i in
             guard tasks[i].state == .failed else { return false }
@@ -618,11 +497,11 @@ actor ImportService {
         }
     }
 
-    /// Step 4: per-file smart skip (= boss's "不要浪费" rule; = if
-    /// the previous retry had the same body hash, the LLM output would
-    /// be byte-identical = skip (= mark the task `.skipped`, not
-    /// `.routing`); = otherwise dispatch (= the LLM would produce
-    /// a different result; = included in `retryIndices`).
+    /// Step 4: per-file smart skip (= boss's "不要浪费" rule; = if the previous
+    /// retry had the same body hash, the LLM output would be byte-identical =
+    /// skip (= mark the task `.skipped`, not `.routing`); = otherwise dispatch
+    /// (= the LLM would produce a different result; = included in
+    /// `retryIndices`).
     private func selectRetryIndices(
         tasksBox: TasksBox,
         cache: [String: CacheEntry],
@@ -662,10 +541,10 @@ actor ImportService {
         return retryIndices
     }
 
-    /// Step 6: same 5-way parallel TaskGroup as `importFiles` (= the
-    /// only difference is the `ImportFileInput` carries a non-nil `body`;
-    /// = `processFile` is unchanged; = `writeFile` uses the LLM's
-    /// `rewrittenBody` and never touches the unreadable file).
+    /// Step 6: same 5-way parallel TaskGroup as `importFiles` (= the only
+    /// difference is the `ImportFileInput` carries a non-nil `body`; =
+    /// `processFile` is unchanged; = `writeFile` uses the LLM's `rewrittenBody`
+    /// and never touches the unreadable file).
     private func runRetryTaskGroup(
         tasksBox: TasksBox,
         tasks: [ImportTask],
@@ -730,10 +609,10 @@ actor ImportService {
         }
     }
 
-    /// Build the `ImportFileInput` for a title-only retry (= the
-    /// `body` field is the synthesized body the LLM will ingest; =
-    /// the source file is unreadable on disk so `processFile` reads
-    /// the body from this field rather than opening the file).
+    /// Build the `ImportFileInput` for a title-only retry (= the `body` field
+    /// is the synthesized body the LLM will ingest; = the source file is
+    /// unreadable on disk so `processFile` reads the body from this field
+    /// rather than opening the file).
     private func makeTitleOnlyInput(
         tasks: [ImportTask],
         i: Int,
@@ -755,9 +634,9 @@ actor ImportService {
     }
 
     /// Step 7: stamp every retried task's cache entry with
-    /// `lastTitleOnlyRetriedAt = now` + the title-only body hash (= the
-    /// next user click on "重新调研" will see the stamp and skip the
-    /// LLM = the boss's "不要再浪费" rule).
+    /// `lastTitleOnlyRetriedAt = now` + the title-only body hash (= the next
+    /// user click on "重新调研" will see the stamp and skip the LLM = the boss's
+    /// "不要再浪费" rule).
     private func stampRetriedHashes(
         tasksBox: TasksBox,
         retryIndices: [Int],
@@ -788,17 +667,12 @@ actor ImportService {
         }
     }
 
-    /// Construct a "title-only" body for the LLM
-    /// (= the source file is unreadable; = the
-    /// body is the minimum context the LLM
-    /// needs to produce metadata + a `.ws`-format
-    /// body). The body follows the same
-    /// structure as the `userPrompt` expects
-    /// (= the LLM's prompt is "read this body
-    /// + produce title / summary / tags +
-    /// rewrittenBody" = the title-only body
-    /// is a short synthesized markdown with
-    /// the title as the H1 + a brief context
+    /// Construct a "title-only" body for the LLM (= the source file is
+    /// unreadable; = the body is the minimum context the LLM needs to produce
+    /// metadata + a `.ws`-format body). The body follows the same structure as
+    /// the `userPrompt` expects (= the LLM's prompt is "read this body +
+    /// produce title / summary / tags + rewrittenBody" = the title-only body is
+    /// a short synthesized markdown with the title as the H1 + a brief context
     /// block).
     private static func titleOnlyBody(
         fileName: String,
@@ -823,13 +697,10 @@ actor ImportService {
         """
     }
 
-    /// Build a map from each task's source path to
-    /// a sibling-context string (= the names of
-    /// the other `.md` files in the same source
-    /// directory). One walk per unique parent
-    /// directory (= the wenshu user's import
-    /// directories typically hold hundreds of
-    /// files; = the walk is the only I/O = we
+    /// Build a map from each task's source path to a sibling-context string (=
+    /// the names of the other `.md` files in the same source directory). One
+    /// walk per unique parent directory (= the wenshu user's import directories
+    /// typically hold hundreds of files; = the walk is the only I/O = we
     /// amortize it across the failed set).
     private static func siblingContextMap(for tasks: [ImportTask]) -> [String: String] {
         let fm = FileManager.default
@@ -879,51 +750,27 @@ actor ImportService {
     }
 
     // (= boss 2026-10-10 (see OOB.md #2026-10-10) 件，自动跳过了" directive).
-    /// Verify the cache entry's destination
-    /// file still exists on disk. Returns
-    /// `true` if the previous import's
-    /// output is still there (= the cache
-    /// entry is valid; = skip is safe);
-    /// returns `false` if the destination
-    /// file is gone (= the cache is stale;
-    /// = re-import instead of skip).
-    ///
-    /// For the reference library: the
-    /// destination file is
-    /// `<wsRoot>/reference-library/entities/<uuid>.md`
-    /// where `uuid = uuidFromHash(contentHash)`
-    /// (= deterministic; = we can
-    /// reconstruct the exact path from
-    /// the cache entry's `contentHash`;
-    /// = no need for the LLM's title).
-    /// This is the boss's exact bug case
-    /// (= cleared the ref lib's .md +
-    /// entities.json but the cache
-    /// remained; = the file existence
-    /// check correctly returns false; =
-    /// re-import).
-    ///
-    /// For a book folder: the
+    /// Verify the cache entry's destination file still exists on disk. Returns
+    /// `true` if the previous import's output is still there (= the cache entry
+    /// is valid; = skip is safe); returns `false` if the destination file is
+    /// gone (= the cache is stale; = re-import instead of skip). For the
+    /// reference library: the destination file is
+    /// `<wsRoot>/reference-library/entities/<uuid>.md` where `uuid =
+    /// uuidFromHash(contentHash)` (= deterministic; = we can reconstruct the
+    /// exact path from the cache entry's `contentHash`; = no need for the LLM's
+    /// title). This is the boss's exact bug case (= cleared the ref lib's .md +
+    /// entities.json but the cache remained; = the file existence check
+    /// correctly returns false; = re-import). For a book folder: the
     /// destination file is
     /// `<shelves>/<shelfId>/books/<bookId>/<folder>/<basename>.md`
-    /// where `basename = sanitizeFilename(LLM title)`.
-    /// The cache does NOT store the LLM
-    /// title. For the book case, the
-    /// conservative check is the
-    /// directory existence + non-empty
-    /// (= at least one .md was
-    /// previously imported; = the cache
-    /// entry is likely valid; = the user
-    /// can re-import individual files
-    /// manually if they want). This is a
-    /// soft signal (= the user can
-    /// delete the cache to force a full
-    /// re-import if needed).
-    ///
-    /// For unknown destination variants
-    /// (= future enum cases): return
-    /// `false` (= conservative; = don't
-    /// skip; = re-import).
+    /// where `basename = sanitizeFilename(LLM title)`. The cache does NOT store
+    /// the LLM title. For the book case, the conservative check is the
+    /// directory existence + non-empty (= at least one .md was previously
+    /// imported; = the cache entry is likely valid; = the user can re-import
+    /// individual files manually if they want). This is a soft signal (= the
+    /// user can delete the cache to force a full re-import if needed). For
+    /// unknown destination variants (= future enum cases): return `false` (=
+    /// conservative; = don't skip; = re-import).
     private static func cachedDestinationExists(
         cached: CacheEntry,
         target: ImportTarget
@@ -962,48 +809,19 @@ actor ImportService {
 
     // MARK: - Phase 1: walk
 
-    /// Walk the source directory recursively. Returns
-    /// files whose extension is in the
-    /// `extensions` set (sorted for deterministic
-    /// order; = the sheet's per-file strip renders
-    /// in the same order every re-import). Apple
-    /// canonical pattern: the match site is a
-    /// single `Set.contains(...)` call so a new
-    /// file type is a one-line change at the
-    /// enum-definition site (= the orchestrator
-    /// never hard-codes a single extension).
-    /// (= boss
-    /// 2026-10-10 "现在
-    /// 有个问题, 我
-    /// 们只能选目
-    /// 录, 而不能
-    /// 选择单文件"
-    /// directive). The
-    /// walker now
-    /// accepts BOTH a
-    /// directory (= the
-    /// old behavior) AND
-    /// a single file (= a
-    /// file the user
-    /// picked directly
-    /// from the open
-    /// panel; = the
-    /// walker returns
-    /// just that one
-    /// file; = the
-    /// import pipeline
-    /// (= walk + dedup +
-    /// LLM + write)
-    /// is unchanged; =
-    /// the user can
-    /// pick a single
-    /// file OR a
-    /// directory; = the
-    /// orchestrator's
-    /// 5-way parallel
-    /// TaskGroup still
-    /// runs, but with
-    /// only 1 task).
+    /// Walk the source directory recursively. Returns files whose extension is
+    /// in the `extensions` set (sorted for deterministic order; = the sheet's
+    /// per-file strip renders in the same order every re-import). Apple
+    /// canonical pattern: the match site is a single `Set.contains(...)` call
+    /// so a new file type is a one-line change at the enum-definition site (=
+    /// the orchestrator never hard-codes a single extension). (= boss
+    /// 2026-10-10 "现在 有个问题, 我 们只能选目 录, 而不能 选择单文件" directive). The walker now
+    /// accepts BOTH a directory (= the old behavior) AND a single file (= a
+    /// file the user picked directly from the open panel; = the walker returns
+    /// just that one file; = the import pipeline (= walk + dedup + LLM + write)
+    /// is unchanged; = the user can pick a single file OR a directory; = the
+    /// orchestrator's 5-way parallel TaskGroup still runs, but with only 1
+    /// task).
     private func walkSourceDir(
         _ source: URL,
         extensions: Set<String>
@@ -1040,9 +858,8 @@ actor ImportService {
 
     // MARK: - Phase 2: cache
 
-    /// Read the sidecar cache (= the actor's serialized
-    /// state is the lock; = the orchestrator batches the
-    /// read once at the start of importFiles).
+    /// Read the sidecar cache (= the actor's serialized state is the lock; =
+    /// the orchestrator batches the read once at the start of importFiles).
     private func readCache(cacheFile: URL) -> [String: CacheEntry] {
         guard let data = try? Data(contentsOf: cacheFile),
               let decoded = try? JSONDecoder().decode([String: CacheEntry].self, from: data)
@@ -1050,9 +867,8 @@ actor ImportService {
         return decoded
     }
 
-    /// Persist the cache back (= the orchestrator writes
-    /// the whole map each time; = small file size; = the
-    /// map is in-memory at this point).
+    /// Persist the cache back (= the orchestrator writes the whole map each
+    /// time; = small file size; = the map is in-memory at this point).
     private func writeCache(cacheFile: URL, cache: [String: CacheEntry]) {
         // Ensure the cache root exists (= created on the first import; = no-op on
         // subsequent runs).
@@ -1066,17 +882,14 @@ actor ImportService {
 
     // MARK: - Phase 4: write
 
-    /// Write the file body to the destination dictated by
-    /// the routing result. Branches on `ImportDestination`:
-    ///   - `.bookFolder(folder)` = write to
+    /// Write the file body to the destination dictated by the routing result.
+    /// Branches on `ImportDestination`: - `.bookFolder(folder)` = write to
     ///     `<shelvesRoot>/<shelfId>/books/<bookId>/<folder.directoryName>/<uuid>.md`
-    ///     (= creates the folder if missing; = uuid is
-    ///     content-addressable so the same body always lands
-    ///     at the same path; = dedup by content).
-    ///   - `.referenceLibrary` = delegate to
+    /// (= creates the folder if missing; = uuid is content-addressable so the
+    /// same body always lands at the same path; = dedup by content). -
+    /// `.referenceLibrary` = delegate to
     ///     `ReferenceLibraryTool.execute(saveReferenceEnvelope)`
-    ///     (= the existing 4-phase path the e2e scaffold
-    ///     already exercises).
+    /// (= the existing 4-phase path the e2e scaffold already exercises).
     private func writeFile(
         body: String,
         routing: ImportRoutingResult,
@@ -1144,10 +957,10 @@ actor ImportService {
         )
     }
 
-    /// Write to a book folder (= the `.bookFolder` destination case).
-    /// Returns the written URL (= nil if the LLM said "content same" and
-    /// the file was skipped; = the caller skips the rollback trail entry
-    /// for skipped writes).
+    /// Write to a book folder (= the `.bookFolder` destination case). Returns
+    /// the written URL (= nil if the LLM said "content same" and the file was
+    /// skipped; = the caller skips the rollback trail entry for skipped
+    /// writes).
     private func writeToBookFolder(
         body: String,
         routing: ImportRoutingResult,
@@ -1257,9 +1070,9 @@ actor ImportService {
     /// Write to the reference library (= the `.referenceLibrary` destination
     /// case). The body lands at `<wsRoot>/reference-library/entities/<uuid>.md`
     /// and the Reference is appended to `entities/entities.json`. This path
-    /// also runs the Stage 2 LLM content-same check (= same as the book
-    /// folder path; = the user wants the same "LLM 比对" transparency for
-    /// both destinations).
+    /// also runs the Stage 2 LLM content-same check (= same as the book folder
+    /// path; = the user wants the same "LLM 比对" transparency for both
+    /// destinations).
     private func writeToReferenceLibrary(
         body: String,
         routing: ImportRoutingResult,
@@ -1309,19 +1122,17 @@ actor ImportService {
 
     /// Record the import in the sidecar cache so the next dedup pass (= a
     /// re-import of the same source directory) hits the cache instead of
-    /// dispatching the LLM + re-writing the file.
-    ///
-    /// (= boss 2026-10-10 (see OOB.md #2026-10-10) 3 files; = `uuidFromHash("")`
-    /// returned the SAME deterministic UUID for all 3 files; = the
-    /// orchestrator wrote the .md at the same path for the first file; = the
-    /// second and third files crashed with "Reference ... already exists on
-    /// disk"). The fix: NEVER write an empty / short contentHash to the
-    /// cache; = if the input is empty (= the source file's contentHash was
-    /// somehow not populated), compute a stable placeholder (= sha256 of
-    /// the source path; = unique per file; = the uuid derives to a unique
-    /// UUID; = the dedup still works). The previous code propagated the
-    /// empty hash verbatim, which led to the "all empty hashes → same
-    /// UUID" collision.)
+    /// dispatching the LLM + re-writing the file. (= boss 2026-10-10 (see
+    /// OOB.md #2026-10-10) 3 files; = `uuidFromHash("")` returned the SAME
+    /// deterministic UUID for all 3 files; = the orchestrator wrote the .md at
+    /// the same path for the first file; = the second and third files crashed
+    /// with "Reference ... already exists on disk"). The fix: NEVER write an
+    /// empty / short contentHash to the cache; = if the input is empty (= the
+    /// source file's contentHash was somehow not populated), compute a stable
+    /// placeholder (= sha256 of the source path; = unique per file; = the uuid
+    /// derives to a unique UUID; = the dedup still works). The previous code
+    /// propagated the empty hash verbatim, which led to the "all empty hashes →
+    /// same UUID" collision.)
     private func recordInCache(
         contentHash: String,
         sourcePath: String,
@@ -1341,33 +1152,13 @@ actor ImportService {
         )
     }
 
-    /// ticket 03 (= boss
-    /// 2026-10-10 "甚至原文
-    /// 件 A 的内容, 与我们
-    /// 的 B 模版不符合, 多了
-    /// 很我非模版的内容, 我
-    /// 希望能自动拆出一个文
-    /// 件, 放在合适的目录中
-    /// 去" feedback). Write
-    /// one LLM-suggested
-    /// split-out file (= A's
-    /// non-B content) to
-    /// disk. Resolves the
-    /// folder URL from the
-    /// `extra.folder` (= LLM
-    /// decided which
-    /// BookFolder; = the
-    /// orchestrator doesn't
-    /// override = this is
-    /// the canonical
-    /// LLM-routed path).
-    /// Dedup logic mirrors
-    /// the main file: same-
-    /// title in the target
-    /// folder = overwrite
-    /// the existing .md; =
-    /// no match = write a
-    /// new file.
+    /// ticket 03 (= boss 2026-10-10 "甚至原文 件 A 的内容, 与我们 的 B 模版不符合, 多了 很我非模版的内容,
+    /// 我 希望能自动拆出一个文 件, 放在合适的目录中 去" feedback). Write one LLM-suggested split-out
+    /// file (= A's non-B content) to disk. Resolves the folder URL from the
+    /// `extra.folder` (= LLM decided which BookFolder; = the orchestrator
+    /// doesn't override = this is the canonical LLM-routed path). Dedup logic
+    /// mirrors the main file: same- title in the target folder = overwrite the
+    /// existing .md; = no match = write a new file.
     private func writeExtraFile(
         extra: ExtraFile,
         target: ImportTarget,
@@ -1431,11 +1222,10 @@ actor ImportService {
         )
     }
 
-    /// Write the file to the reference library. Reuses
-    /// the existing `FileSystemReferenceStore.saveReferenceToFileSystem`
-    /// (= see the e2e scaffold's 4-phase pattern; = the
-    /// LLM-supplied category + tags + entityType are
-    /// encoded into the Reference envelope).
+    /// Write the file to the reference library. Reuses the existing
+    /// `FileSystemReferenceStore.saveReferenceToFileSystem` (= see the e2e
+    /// scaffold's 4-phase pattern; = the LLM-supplied category + tags +
+    /// entityType are encoded into the Reference envelope).
     private func writeReference(
         body: String,
         routing: ImportRoutingResult,
@@ -1475,10 +1265,9 @@ actor ImportService {
         writtenURLs.append(refMdURL)
     }
 
-    /// Where the reference came from (= used in the
-    /// Reference.source field; = "导入: <source dir>"
-    /// for now; = a future ticket can ask the user to
-    /// label the source).
+    /// Where the reference came from (= used in the Reference.source field; =
+    /// "导入: <source dir>" for now; = a future ticket can ask the user to label
+    /// the source).
     private func sourceStringFromPath(target: ImportTarget) -> String {
         if let bookId = target.bookId {
             return "导入: \(bookId.uuidString.prefix(8))"
@@ -1488,61 +1277,22 @@ actor ImportService {
 
     // MARK: - Errors
 
-    /// errors (= thrown
-    /// by writeFile when the orchestrator's
-    /// processFile reaches a bookFolder write but
-    /// the target's `bookId` / `shelfId` are nil; =
-    /// a defensive guard for the boss's
-    /// 2026-10-09 round-18 "强制让用户分开导入"
-    /// directive; = the user pinned a book, the
-    /// LLM overrode to .referenceLibrary in error,
-    /// and the orchestrator's processFile would
+    /// errors (= thrown by writeFile when the orchestrator's processFile
+    /// reaches a bookFolder write but the target's `bookId` / `shelfId` are
+    /// nil; = a defensive guard for the boss's 2026-10-09 round-18 "强制让用户分开导入"
+    /// directive; = the user pinned a book, the LLM overrode to
+    /// .referenceLibrary in error, and the orchestrator's processFile would
     /// otherwise crash on a force-unwrap).
     enum ImportServiceError: Error, LocalizedError {
         case missingBookForBookFolderDestination
-        /// 
-        /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
-        /// " 反馈).
-        /// Sentinel error
-        /// thrown by
-        /// `writeFile`
-        /// when the Phase
-        /// 2 LLM
-        /// content-same
-        /// decision says
-        /// "skip" (= the
-        /// existing file
-        /// already has
-        /// the same
-        /// content; = the
-        /// orchestrator
-        /// catches this
-        /// sentinel and
-        /// recognizes
-        /// "the task was
-        /// already marked
-        /// .skipped" =
-        /// no overwrite
-        /// to .done; = the
-        /// user sees
-        /// "已跳过 -
-        /// 内容相同"
-        /// in the
-        /// per-row
-        /// result
-        /// strip).
-        /// The sentinel
-        /// is NOT a real
-        /// error (= the
-        /// catch block
-        /// checks for
-        /// this specific
-        /// case and
-        /// treats it as
-        /// the
-        /// non-error
-        /// "skip"
-        /// path).
+        /// (= boss 2026-10-10 (see OOB.md #2026-10-10) " 反馈). Sentinel error
+        /// thrown by `writeFile` when the Phase 2 LLM content-same decision
+        /// says "skip" (= the existing file already has the same content; = the
+        /// orchestrator catches this sentinel and recognizes "the task was
+        /// already marked .skipped" = no overwrite to .done; = the user sees
+        /// "已跳过 - 内容相同" in the per-row result strip). The sentinel is NOT a
+        /// real error (= the catch block checks for this specific case and
+        /// treats it as the non-error "skip" path).
         case contentSameSkipped
 
         var errorDescription: String? {
@@ -1557,58 +1307,32 @@ actor ImportService {
 
     // MARK: - Crypto helpers (= Apple-native; = no third-party deps per AGENTS.md §11.1)
 
-    /// SHA-256 of a String (= the body dedup key; = uses
-    /// Apple's CryptoKit; = AGENTS.md §11.1 forbids
-    /// third-party crypto).
+    /// SHA-256 of a String (= the body dedup key; = uses Apple's CryptoKit; =
+    /// AGENTS.md §11.1 forbids third-party crypto).
     static func sha256(_ s: String) -> String {
         let data = Data(s.utf8)
         let digest = CryptoKit.SHA256.hash(data: data)
         return digest.map { String(format: "%02x", $0) }.joined()
     }
 
-    /// Derive a stable UUID from a SHA-256 hex string (= the
-    /// on-disk filename for a body-hash). Takes the first
-    /// 16 bytes (= 32 hex chars); = sets RFC 4122 version
-    /// (= 4) and variant (= 10) bits so the UUID round-trips
-    /// through `UUID(uuidString:)`.
-    ///
-    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
-    /// (= `chars[i*2..<i*2+2]` index out
-    /// of range at i=15; = the
-    /// `Array._checkIndex` failure
-    /// captured in the wenshu.ips crash
-    /// report at 2026-10-10 10:44:08).
-    /// The trigger: a stale cache
-    /// entry (= the boss's
-    /// `import-cache.json` from a
-    /// previous wenshu version) had a
-    /// `contentHash` shorter than 32
-    /// hex chars (= the older wenshu
-    /// stored a UUID string or a
-    /// truncated hash); = the
-    /// `retryFailedTasksTitleOnly`
-    /// flow ran `uuidFromHash` on that
-    /// short string; = crash; =
-    /// SIGTRAP → Trace/BPT trap →
-    /// `termination.indicator =
-    /// "Trace/BPT trap: 5"`).
-    ///
-    /// Fix: validate the hex length
-    /// BEFORE indexing; = if too
-    /// short, return a stable UUID
-    /// derived from a hashed-padded
-    /// version of the input (= the
-    /// on-disk filename won't match
-    /// the previously-imported
-    /// file's path = the
-    /// re-import will write a new
-    /// .md at a new UUID; = the old
-    /// cache entry is effectively
-    /// invalidated; = this is the
-    /// right behavior for a cache
-    /// entry that was written by a
-    /// wenshu version with a
-    /// different hash format).
+    /// Derive a stable UUID from a SHA-256 hex string (= the on-disk filename
+    /// for a body-hash). Takes the first 16 bytes (= 32 hex chars); = sets RFC
+    /// 4122 version (= 4) and variant (= 10) bits so the UUID round-trips
+    /// through `UUID(uuidString:)`. (= boss 2026-10-10 (see OOB.md #2026-10-10)
+    /// (= `chars[i*2..<i*2+2]` index out of range at i=15; = the
+    /// `Array._checkIndex` failure captured in the wenshu.ips crash report at
+    /// 2026-10-10 10:44:08). The trigger: a stale cache entry (= the boss's
+    /// `import-cache.json` from a previous wenshu version) had a `contentHash`
+    /// shorter than 32 hex chars (= the older wenshu stored a UUID string or a
+    /// truncated hash); = the `retryFailedTasksTitleOnly` flow ran
+    /// `uuidFromHash` on that short string; = crash; = SIGTRAP → Trace/BPT trap
+    /// → `termination.indicator = "Trace/BPT trap: 5"`). Fix: validate the hex
+    /// length BEFORE indexing; = if too short, return a stable UUID derived
+    /// from a hashed-padded version of the input (= the on-disk filename won't
+    /// match the previously-imported file's path = the re-import will write a
+    /// new .md at a new UUID; = the old cache entry is effectively invalidated;
+    /// = this is the right behavior for a cache entry that was written by a
+    /// wenshu version with a different hash format).
     static func uuidFromHash(_ hex: String) -> UUID {
         let chars = Array(hex.prefix(32))
         // validate the input length BEFORE indexing. If too short, re-hash the input to a
@@ -1645,37 +1369,25 @@ actor ImportService {
 }
 
 extension ImportService {
-    /// Set the cancellation flag (= the sheet's
-    /// cancel button + the sheet's `.onDisappear`
-    /// lifecycle hook both call this; = the
-    /// orchestrator's `importFiles` loop polls
-    /// `isCancelled` between per-task transitions;
-    /// = the next dispatch step is a no-op once the
-    /// flag is set; = the in-flight TaskGroup
-    /// finishes whatever it has, then `importFiles`
-    /// returns with the remaining tasks in
-    /// `.pending`).
+    /// Set the cancellation flag (= the sheet's cancel button + the sheet's
+    /// `.onDisappear` lifecycle hook both call this; = the orchestrator's
+    /// `importFiles` loop polls `isCancelled` between per-task transitions; =
+    /// the next dispatch step is a no-op once the flag is set; = the in-flight
+    /// TaskGroup finishes whatever it has, then `importFiles` returns with the
+    /// remaining tasks in `.pending`).
     func cancel() {
         isCancelled = true
     }
 
-    /// Roll back the partial write-side effects of
-    /// the current batch (= deletes every .md file
-    /// the orchestrator wrote this run; = restores
-    /// the prior `entities.json` content from the
-    /// snapshot taken at `importFiles` start; =
-    /// deletes the sidecar cache file). Apple
-    /// canonical pattern: the rollback is
-    /// best-effort + idempotent (= a missing file
-    /// is a no-op; = a re-run of the same rollback
-    /// doesn't double-delete).
-    ///
-    /// Boss 2026-10-09 directive: "取消退出时，所有
-    /// 已经导入的内容回退清掉。类似 MAC OS 的系统
-    /// 升级，取消等于放弃这个工作，不留痕". The
-    /// "不留痕" requirement is strict (= cancel =
-    /// nothing lands on disk; = the user can re-
-    /// import from a clean state).
+    /// Roll back the partial write-side effects of the current batch (= deletes
+    /// every .md file the orchestrator wrote this run; = restores the prior
+    /// `entities.json` content from the snapshot taken at `importFiles` start;
+    /// = deletes the sidecar cache file). Apple canonical pattern: the rollback
+    /// is best-effort + idempotent (= a missing file is a no-op; = a re-run of
+    /// the same rollback doesn't double-delete). Boss 2026-10-09 directive:
+    /// "取消退出时，所有 已经导入的内容回退清掉。类似 MAC OS 的系统 升级，取消等于放弃这个工作，不留痕". The "不留痕"
+    /// requirement is strict (= cancel = nothing lands on disk; = the user can
+    /// re- import from a clean state).
     func rollback() {
         // 1. Delete every .md file the orchestrator wrote this run (= reverse-order so
         // the dedup cache's stable-filename mapping doesn't matter; =
@@ -1734,21 +1446,15 @@ extension ImportService {
     }
 }
 
-/// Reference-type wrapper around the dedup cache
-/// (= the per-file pipeline runs 5 tasks in parallel
-/// via TaskGroup; = each task mutates the cache via
-/// `writeFile(... cache: inout ...)`; = Swift 6
-/// forbids capturing `inout` across a TaskGroup
-/// boundary; = the canonical fix is a class that
-/// holds a single shared dictionary the orchestrator
-/// can reach from any concurrent context). Apple
-/// canonical pattern: a class-wrapper for
-/// cross-actor mutable state (= the orchestrator's
-/// `writtenURLs` is a value-type `Array<URL>` living
-/// on the actor itself; = the `cache` is a value-type
-/// `Dictionary` that needs the same kind of
-/// "share-by-reference" treatment the test mocks
-/// get).
+/// Reference-type wrapper around the dedup cache (= the per-file pipeline runs
+/// 5 tasks in parallel via TaskGroup; = each task mutates the cache via
+/// `writeFile(... cache: inout ...)`; = Swift 6 forbids capturing `inout`
+/// across a TaskGroup boundary; = the canonical fix is a class that holds a
+/// single shared dictionary the orchestrator can reach from any concurrent
+/// context). Apple canonical pattern: a class-wrapper for cross-actor mutable
+/// state (= the orchestrator's `writtenURLs` is a value-type `Array<URL>`
+/// living on the actor itself; = the `cache` is a value-type `Dictionary` that
+/// needs the same kind of "share-by-reference" treatment the test mocks get).
 fileprivate final class CacheBox: @unchecked Sendable {
     var value: [String: ImportService.CacheEntry]
     init(value: [String: ImportService.CacheEntry]) {
@@ -1756,19 +1462,14 @@ fileprivate final class CacheBox: @unchecked Sendable {
     }
 }
 
-/// Reference-type wrapper around the per-task
-/// state array (= the per-file pipeline runs 5
-/// tasks in parallel via TaskGroup; = each task
-/// mutates `tasksBox.value[i]` (= its own slot;
-/// = the mutation is safe because each task only
-/// touches a disjoint index; = the shared `value`
-/// is read by the orchestrator's TaskGroup loop
-/// for state-transition emits). Apple canonical
-/// pattern: a class-wrapper for cross-actor
-/// mutable state (= the same trick the `CacheBox`
-/// uses; = both the dedup cache + the per-task
-/// state array need the reference-type wrapper
-/// because the per-file pipeline runs concurrently
+/// Reference-type wrapper around the per-task state array (= the per-file
+/// pipeline runs 5 tasks in parallel via TaskGroup; = each task mutates
+/// `tasksBox.value[i]` (= its own slot; = the mutation is safe because each
+/// task only touches a disjoint index; = the shared `value` is read by the
+/// orchestrator's TaskGroup loop for state-transition emits). Apple canonical
+/// pattern: a class-wrapper for cross-actor mutable state (= the same trick the
+/// `CacheBox` uses; = both the dedup cache + the per-task state array need the
+/// reference-type wrapper because the per-file pipeline runs concurrently
 /// across the 5 TaskGroup slots).
 fileprivate final class TasksBox: @unchecked Sendable {
     var value: [ImportTask]
@@ -1777,25 +1478,17 @@ fileprivate final class TasksBox: @unchecked Sendable {
     }
 }
 extension ImportService {
-    /// Run the per-file pipeline (= route → write → done)
-    /// for a single task. The Semaphore-shaped TaskGroup
-    /// in the importFiles loop calls this method.
-    ///
-    /// State transitions per file (= matches the boss's
-    /// 2026-10-09 "分析、编辑、完成、失败" spec; = the
-    /// per-file pipeline flips states back-to-back in
-    /// sequence; = the sheet sees a single file's life
-    /// cycle tick in real time):
-    /// - .pending  → .routing (= already set by the
-    ///   TaskGroup seed)
-    /// - .routing  → .writing (= LLM call returned; = the
-    ///   routing decision is the destination + tags +
-    ///   title)
-    /// - .writing  → .done (= the file lands on disk; = the
-    ///   body is byte-equal to the source body)
-    /// - any state → .failed (= the LLM call or the file
-    ///   write threw; = the row's `errorMessage` carries
-    ///   the cause)
+    /// Run the per-file pipeline (= route → write → done) for a single task.
+    /// The Semaphore-shaped TaskGroup in the importFiles loop calls this
+    /// method. State transitions per file (= matches the boss's 2026-10-09
+    /// "分析、编辑、完成、失败" spec; = the per-file pipeline flips states back-to-back in
+    /// sequence; = the sheet sees a single file's life cycle tick in real
+    /// time): - .pending → .routing (= already set by the TaskGroup seed) -
+    /// .routing → .writing (= LLM call returned; = the routing decision is the
+    /// destination + tags + title) - .writing → .done (= the file lands on
+    /// disk; = the body is byte-equal to the source body) - any state → .failed
+    /// (= the LLM call or the file write threw; = the row's `errorMessage`
+    /// carries the cause)
     fileprivate func processFile(
         taskIndex i: Int,
         input: ImportFileInput,
@@ -1972,8 +1665,8 @@ extension ImportService {
         await onProgress?(tasksBox.value)
     }
 
-    /// Phase 4: write the main file (= per the rewriteMode) + loop through
-    /// the LLM's `extraFiles` and write each one to its folder. The state
+    /// Phase 4: write the main file (= per the rewriteMode) + loop through the
+    /// LLM's `extraFiles` and write each one to its folder. The state
     /// transitions to .done on success (= or .failed on write error; = the
     /// caller catches and surfaces the error to the user).
     private func writeMainFileAndExtras(
@@ -2070,8 +1763,8 @@ extension ImportService {
     }
 
     /// Compute the body to write based on the rewriteMode (= .consolidate
-    /// always uses the original verbatim; = .reorganize produces no main
-    /// file body (= the agent's writeBookDoc tool owns the writes); =
+    /// always uses the original verbatim; = .reorganize produces no main file
+    /// body (= the agent's writeBookDoc tool owns the writes); =
     /// .searchAndRewrite prefers the LLM's `rewrittenBody` when present,
     /// falling back to the original).
     private func computeBodyToWrite(
@@ -2105,10 +1798,10 @@ extension ImportService {
         }
     }
 
-    /// Write one extra file (= a single entry from `routing.extraFiles`).
-    /// Logs the success/failure to the per-row activityLog (= the user
-    /// sees a row per extra file). Failures are non-fatal (= they don't
-    /// throw; = the row's `extraFilesDone` counter still advances).
+    /// Write one extra file (= a single entry from `routing.extraFiles`). Logs
+    /// the success/failure to the per-row activityLog (= the user sees a row
+    /// per extra file). Failures are non-fatal (= they don't throw; = the row's
+    /// `extraFilesDone` counter still advances).
     private func writeOneExtraFile(
         extra: ExtraFile,
         extraIndex: Int,
@@ -2154,24 +1847,11 @@ extension ImportService {
         tasksBox.value[i].extraFilesDone += 1
     }
 
-    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
-    /// feedback). Append a
-    /// single line to a
-    /// task's activityLog
-    /// (= the per-row
-    /// scrolling terminal-
-    /// like view in the
-    /// sheet). Capped at
-    /// 30 entries (= old
-    /// entries drop off;
-    /// = 30 is enough to
-    /// show the recent
-    /// activity without
-    /// scrolling forever).
-    /// Also triggers
-    /// onProgress so the
-    /// sheet UI updates
-    /// immediately.
+    /// (= boss 2026-10-10 (see OOB.md #2026-10-10) feedback). Append a single
+    /// line to a task's activityLog (= the per-row scrolling terminal- like
+    /// view in the sheet). Capped at 30 entries (= old entries drop off; = 30
+    /// is enough to show the recent activity without scrolling forever). Also
+    /// triggers onProgress so the sheet UI updates immediately.
     private func appendActivity(
         to tasksBox: TasksBox,
         i: Int,
@@ -2190,33 +1870,21 @@ extension ImportService {
 }
 
 extension ImportService {
-    /// lookup (= scan an existing
-    /// bookFolder for a .md whose first H1 heading
-    /// matches the LLM-supplied title; = used by the
-    /// orchestrator to decide between "create" (= no
-    /// match) and "edit" (= match found) when writing
-    /// a new .md file; = the boss's 2026-10-09
-    /// round-13 directive "再次触发同名实体，只
-    /// edit. 不建重名文档").
-    ///
-    /// Why scan the file body instead of trusting the
-    /// filename: the filename derives from the title
-    /// via `sanitizeFilename` (= path-unsafe chars
-    /// stripped; = truncated to 80 chars; = the LLM
-    /// might rephrase the title slightly between
-    /// runs); = the FIRST H1 in the body is the
-    /// canonical identity (= the LLM's most stable
-    /// output; = survives filename normalization
-    /// drift).
-    ///
-    /// Performance: O(n) over the folder's .md files;
-    /// = n is bounded by the 5-way parallel import
-    /// (= 456 files max in the boss's test corpus; =
-    /// the folder scan is ~5-50 ms on a fast SSD; =
-    /// 5-way parallel can amortize this if needed
-    /// but a sync scan is acceptable for now; = the
-    /// 5-way parallelism is in the LLM dispatch, not
-    /// the file writes).
+    /// lookup (= scan an existing bookFolder for a .md whose first H1 heading
+    /// matches the LLM-supplied title; = used by the orchestrator to decide
+    /// between "create" (= no match) and "edit" (= match found) when writing a
+    /// new .md file; = the boss's 2026-10-09 round-13 directive "再次触发同名实体，只
+    /// edit. 不建重名文档"). Why scan the file body instead of trusting the filename:
+    /// the filename derives from the title via `sanitizeFilename` (=
+    /// path-unsafe chars stripped; = truncated to 80 chars; = the LLM might
+    /// rephrase the title slightly between runs); = the FIRST H1 in the body is
+    /// the canonical identity (= the LLM's most stable output; = survives
+    /// filename normalization drift). Performance: O(n) over the folder's .md
+    /// files; = n is bounded by the 5-way parallel import (= 456 files max in
+    /// the boss's test corpus; = the folder scan is ~5-50 ms on a fast SSD; =
+    /// 5-way parallel can amortize this if needed but a sync scan is acceptable
+    /// for now; = the 5-way parallelism is in the LLM dispatch, not the file
+    /// writes).
     static func findEntityByTitle(in folderURL: URL, title: String) -> URL? {
         let normalized = Self.normalizeTitle(title)
         let fm = FileManager.default
@@ -2256,11 +1924,9 @@ extension ImportService {
         return nil
     }
 
-    /// Normalize a title for dedup comparison (= the
-    /// canonical "trim + collapse whitespace + lowercase"
-    /// transform; = matches the import's LLM output
-    /// even when the LLM varies whitespace or
-    /// capitalization across runs).
+    /// Normalize a title for dedup comparison (= the canonical "trim + collapse
+    /// whitespace + lowercase" transform; = matches the import's LLM output
+    /// even when the LLM varies whitespace or capitalization across runs).
     static func normalizeTitle(_ s: String) -> String {
         let collapsed = s.replacingOccurrences(
             of: "[\\s]+",
@@ -2271,8 +1937,8 @@ extension ImportService {
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .lowercased()
     }
-    /// filename basename (= the previous UUID-only
-    /// filename made the sidebar cards unreadable).
+    /// filename basename (= the previous UUID-only filename made the sidebar
+    /// cards unreadable).
     static func sanitizeFilename(raw: String, fallback: String) -> String {
         let unsafe = CharacterSet(charactersIn: "/\\:*?\"<>|\n\r\t")
         var stripped: String = ""

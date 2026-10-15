@@ -42,33 +42,23 @@ import Foundation
 import WenshuData
 import os.log
 
-///
-/// reference-type accumulator for the streaming LLMBlock callback.
-/// Required because the callback is `@Sendable` (= can fire from
-/// any actor; = Swift 6 forbids capturing `var` local state). Each
-/// @Sendable closure invocation is serial with respect to the
-/// owning actor (= ConversationLoop.runTurn is an actor method that
-/// calls back synchronously per block on the same actor), so the
-/// reference-type mutation is thread-safe here (= each event fires
-/// one at a time, not concurrently).
-///
-/// `@unchecked Sendable` because the class has mutable state; the
-/// caller (= ChatViewModel.send) guarantees the only mutator is the
-/// streamCallback (= called from `ConversationLoop` actor = serial
-/// per-turn).
-///
-/// `@unchecked Sendable` audit fix: added `NSLock` to enforce
-/// serial access (= the previous `final class ... @unchecked
-/// Sendable` declaration was a paper promise that nothing in the
-/// contract enforced; = a future `Task { @MainActor ... }` hop
-/// racing a synchronous read from `conductor.handle` returning
-/// could clobber the `parts[]` array because both paths target
-/// the same mutable state).
-///
-/// Reading the accumulator from MainActor is safe because all
-/// mutations happen under `lock` (= thread-safe); the snapshot
-/// (= a copy of `parts`) returned by `snapshotParts()` is safe to
-/// pass across actor boundaries.
+/// reference-type accumulator for the streaming LLMBlock callback. Required
+/// because the callback is `@Sendable` (= can fire from any actor; = Swift 6
+/// forbids capturing `var` local state). Each @Sendable closure invocation is
+/// serial with respect to the owning actor (= ConversationLoop.runTurn is an
+/// actor method that calls back synchronously per block on the same actor), so
+/// the reference-type mutation is thread-safe here (= each event fires one at a
+/// time, not concurrently). `@unchecked Sendable` because the class has mutable
+/// state; the caller (= ChatViewModel.send) guarantees the only mutator is the
+/// streamCallback (= called from `ConversationLoop` actor = serial per-turn).
+/// `@unchecked Sendable` audit fix: added `NSLock` to enforce serial access (=
+/// the previous `final class ... @unchecked Sendable` declaration was a paper
+/// promise that nothing in the contract enforced; = a future `Task { @MainActor
+/// ... }` hop racing a synchronous read from `conductor.handle` returning could
+/// clobber the `parts[]` array because both paths target the same mutable
+/// state). Reading the accumulator from MainActor is safe because all mutations
+/// happen under `lock` (= thread-safe); the snapshot (= a copy of `parts`)
+/// returned by `snapshotParts()` is safe to pass across actor boundaries.
 final class StreamingTaskBox: @unchecked Sendable {
     var tasks: [Task<Void, Never>] = []
 }
@@ -85,11 +75,10 @@ final class StreamingAccumulator: @unchecked Sendable {
         get { lock.lock(); defer { lock.unlock() }; return _thinking }
         set { lock.lock(); defer { lock.unlock() }; _thinking = newValue }
     }
-    /// Take a thread-safe snapshot of `parts` (= returns a copy
-    /// safe to pass across actor boundaries without triggering
-    /// the Swift 6 strict concurrency "non-Sendable capture"
-    /// warning). Use this when reading the final state after
-    /// `conductor.handle` returns (= replaces direct `parts`
+    /// Take a thread-safe snapshot of `parts` (= returns a copy safe to pass
+    /// across actor boundaries without triggering the Swift 6 strict
+    /// concurrency "non-Sendable capture" warning). Use this when reading the
+    /// final state after `conductor.handle` returns (= replaces direct `parts`
     /// access at the message-replacement site).
     func snapshotParts() -> [ChatMessagePart] {
         lock.lock(); defer { lock.unlock() }
@@ -126,32 +115,28 @@ final class ChatViewModel {
     // marker-parsing block below are also removed.
     // retention (= keep cancelRequested):
     var cancelRequested: Bool = false
-    /// T67-MUTE-SHORTCUT (2026-09-18): ⌘. handler (= cancel
-    /// the currently-streaming assistant reply). Sets the
-    /// cancelRequested flag (= ConversationLoop polls this
-    /// flag per-block to stop mid-stream). Silent no-op when
-    /// nothing is streaming.
+    /// T67-MUTE-SHORTCUT (2026-09-18): ⌘. handler (= cancel the
+    /// currently-streaming assistant reply). Sets the cancelRequested flag (=
+    /// ConversationLoop polls this flag per-block to stop mid-stream). Silent
+    /// no-op when nothing is streaming.
     func cancelStreaming() {
         cancelRequested = true
     }
 
-    /// CHATIMG-001 (2026-09-07): copy the picked file into the
-    /// library's `cache/chat-uploads/` dir (= canonical cache
-    /// subfolder per §11 .ws layout; this ticket adds `chat-uploads`
-    /// as the chat-attachment cache dir) and set `attachedImagePath`
-    /// to the new absolute path. Returns false (= no-op) when the
-    /// source file is missing or the library path isn't configured.
-    /// File extension whitelist = .png/.jpg/.jpeg/.gif/.heic (= common
-    /// screenshot formats). The library path is read from
-    /// `wenshu.libraryPath` UserDefaults (= canonical home for the
-    /// .ws bundle path = written by LibraryRootView at onboarding).
-    ///
-    /// C-6 (refactor chat-mvvm-3layer): filesystem IO moved into
-    /// ChatRepositoryProtocol.copyChatUpload (= data layer).
-    /// The business layer keeps the app-config lookup
-    /// (= UserDefaults.standard.string(forKey: "wenshu.libraryPath"))
-    /// because that is a config query (= not IO). The actual
-    /// directory creation + FileManager.copyItem lives in
+    /// CHATIMG-001 (2026-09-07): copy the picked file into the library's
+    /// `cache/chat-uploads/` dir (= canonical cache subfolder per §11 .ws
+    /// layout; this ticket adds `chat-uploads` as the chat-attachment cache
+    /// dir) and set `attachedImagePath` to the new absolute path. Returns false
+    /// (= no-op) when the source file is missing or the library path isn't
+    /// configured. File extension whitelist = .png/.jpg/.jpeg/.gif/.heic (=
+    /// common screenshot formats). The library path is read from
+    /// `wenshu.libraryPath` UserDefaults (= canonical home for the .ws bundle
+    /// path = written by LibraryRootView at onboarding). C-6 (refactor
+    /// chat-mvvm-3layer): filesystem IO moved into
+    /// ChatRepositoryProtocol.copyChatUpload (= data layer). The business layer
+    /// keeps the app-config lookup (= UserDefaults.standard.string(forKey:
+    /// "wenshu.libraryPath")) because that is a config query (= not IO). The
+    /// actual directory creation + FileManager.copyItem lives in
     /// LiveChatRepository.
     @discardableResult
     func attachImage(at sourceURL: URL) async -> Bool {
@@ -178,9 +163,8 @@ final class ChatViewModel {
         return true
     }
 
-    /// CHATIMG-001: clear the pending image draft (= called when
-    /// the user clicks the small ✕ on the preview chip, or after
-    /// send).
+    /// CHATIMG-001: clear the pending image draft (= called when the user
+    /// clicks the small ✕ on the preview chip, or after send).
     func clearAttachedImage() {
         attachedImagePath = nil
     }
@@ -245,10 +229,9 @@ final class ChatViewModel {
     // P2-02 audit (2026-09-24): BookID brand wrapper.
     @MainActor internal var currentBookID: BookID?
 
-    /// Update the active scope (= called by the view
-    /// layer when the user picks a different book). Refreshes the in-memory
-    /// session id (= per-book session) and reloads history. No-op if the
-    /// bookID is unchanged.
+    /// Update the active scope (= called by the view layer when the user picks
+    /// a different book). Refreshes the in-memory session id (= per-book
+    /// session) and reloads history. No-op if the bookID is unchanged.
     func setCurrentBookID(_ bookID: BookID?) {
         if currentBookID == bookID { return }
         currentBookID = bookID
@@ -301,23 +284,21 @@ final class ChatViewModel {
         self.repository = repository
     }
 
-    /// Build a per-book session id. Returns
-    /// `book:<id>:default` when scoped to a book; otherwise returns the
-    /// caller-supplied fallback (= the global session id).
-    ///
-    /// Why a synthetic id (= instead of reusing "default" for every book):
-    /// WSChatRepository.getSession looks up sessions by sessionID. Each
-    /// book needs its own session row so messages don't share the same
-    /// session (= chat history under one book must not leak into another).
-    /// The id pattern is stable (= never reused) so subsequent calls with
-    /// the same bookID always hit the same SwiftData row.
+    /// Build a per-book session id. Returns `book:<id>:default` when scoped to
+    /// a book; otherwise returns the caller-supplied fallback (= the global
+    /// session id). Why a synthetic id (= instead of reusing "default" for
+    /// every book): WSChatRepository.getSession looks up sessions by sessionID.
+    /// Each book needs its own session row so messages don't share the same
+    /// session (= chat history under one book must not leak into another). The
+    /// id pattern is stable (= never reused) so subsequent calls with the same
+    /// bookID always hit the same SwiftData row.
     static func makeSessionID(for bookID: BookID?, fallback: String = "default") -> SessionID {
         guard let bookID else { return SessionID(rawValue: fallback) }
         return SessionID(rawValue: "book:\(bookID.rawValue):\(fallback)")
     }
 
-    /// C-4: the data-layer seam. Defaults to LiveChatRepository.shared
-    /// at init (= production path); tests inject a fake.
+    /// C-4: the data-layer seam. Defaults to LiveChatRepository.shared at init
+    /// (= production path); tests inject a fake.
     private let repository: ChatRepositoryProtocol
 
     // (2026-09-04): shared AsyncDelegationRegistry used by
@@ -354,17 +335,15 @@ final class ChatViewModel {
         appState?.llmModel = id
     }
 
-    /// UI layer must not call the data layer directly (= the
-    /// canonical separation rule). Sets the canonical
-    /// `wenshu.settingsTab` to `providerApi` so the Settings
-    /// window opens on the providers pane (= the legacy 'LLM Connector
-    /// pane' label was renamed to 'providers' in commit 25133467f;
-    /// = the underlying raw value 'providerApi' is preserved by the
-    /// paneForRaw alias map at SettingView.swift so existing deep
-    /// links still resolve). The canonical pattern (= the
-    /// `@AppStorage` mirror in Settings reads from `UserDefaults`)
-    /// is unchanged; = the write moves here from `ChatZoneView`
-    /// (= UI layer) into the business layer.
+    /// UI layer must not call the data layer directly (= the canonical
+    /// separation rule). Sets the canonical `wenshu.settingsTab` to
+    /// `providerApi` so the Settings window opens on the providers pane (= the
+    /// legacy 'LLM Connector pane' label was renamed to 'providers' in commit
+    /// 25133467f; = the underlying raw value 'providerApi' is preserved by the
+    /// paneForRaw alias map at SettingView.swift so existing deep links still
+    /// resolve). The canonical pattern (= the `@AppStorage` mirror in Settings
+    /// reads from `UserDefaults`) is unchanged; = the write moves here from
+    /// `ChatZoneView` (= UI layer) into the business layer.
     func openSettingsToProviderApi() {
         UserDefaultsStore.shared.setString("providerApi", forKey: .settingsTab)
     }
@@ -408,14 +387,13 @@ final class ChatViewModel {
             .info("[wenshu.context] sum tokens after recompute: total=\(totalContext, privacy: .public) messages=\(messageCount, privacy: .public)")
     }
 
-    /// routeInput is the front-door for chat input. It dispatches
-    /// `/plan <query>` to the plan-mode engine and `@mention`
-    /// sub-agent spawns (= both higher-priority prefixes). All other
-    /// input (= bare text + slash commands like `/review chapter 1`)
-    /// falls through to `send()` so the LLM sees the user's exact
-    /// wording. Slash commands are prompt templates per ChatHubCommands
-    /// (= the LLM interprets the prefix; = no short-circuit to a stub
-    /// skill-invoke result).
+    /// routeInput is the front-door for chat input. It dispatches `/plan
+    /// <query>` to the plan-mode engine and `@mention` sub-agent spawns (= both
+    /// higher-priority prefixes). All other input (= bare text + slash commands
+    /// like `/review chapter 1`) falls through to `send()` so the LLM sees the
+    /// user's exact wording. Slash commands are prompt templates per
+    /// ChatHubCommands (= the LLM interprets the prefix; = no short-circuit to
+    /// a stub skill-invoke result).
     func routeInput() async {
         let input = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !input.isEmpty else { return }
@@ -479,22 +457,14 @@ final class ChatViewModel {
 
     // MARK: - T20c-PLAN-ROUTE (2026-09-18): /plan command surface
 
-    /// Returns the query portion of a `/plan <query>` slash
-    /// command (= everything after `/plan `, trimmed). Returns
-    /// nil when the input is not a `/plan` command (= so the
-    /// caller can fall through to the normal slash-command path).
-    /// Recognizes:
-    ///   - `/plan query here`         -> "query here"
-    ///   - `/plan` (no args)           -> nil (= empty query is
-    ///                                    not a valid plan command;
-    ///                                    = fall through to the LLM
-    ///                                    path with `/plan` as a
-    ///                                    slash prefix)
-    ///   - `/plans` (extra char)       -> nil (= exact prefix
-    ///                                    match only; = prevents
-    ///                                    accidental collision
-    ///                                    with future /plans
-    ///                                    commands)
+    /// Returns the query portion of a `/plan <query>` slash command (=
+    /// everything after `/plan `, trimmed). Returns nil when the input is not a
+    /// `/plan` command (= so the caller can fall through to the normal
+    /// slash-command path). Recognizes: - `/plan query here` -> "query here" -
+    /// `/plan` (no args) -> nil (= empty query is not a valid plan command; =
+    /// fall through to the LLM path with `/plan` as a slash prefix) - `/plans`
+    /// (extra char) -> nil (= exact prefix match only; = prevents accidental
+    /// collision with future /plans commands)
     private func stripPlanPrefix(_ input: String) -> String? {
         guard input.hasPrefix("/plan") else { return nil }
         // Exact-match on "/plan" + whitespace (= no args means
@@ -513,11 +483,10 @@ final class ChatViewModel {
         return trimmed.isEmpty ? nil : trimmed
     }
 
-    /// Run plan mode for the given query: invoke PlanModeEngine
-    /// (= wraps the current connector + model) and append a
-    /// system ChatMessage containing the plan text. Errors are
-    /// surfaced as a system message too (= so the user sees why
-    /// the plan failed).
+    /// Run plan mode for the given query: invoke PlanModeEngine (= wraps the
+    /// current connector + model) and append a system ChatMessage containing
+    /// the plan text. Errors are surfaced as a system message too (= so the
+    /// user sees why the plan failed).
     private func runPlanMode(query: String) async {
         inputText = ""
         // Resolve connector + model from the active conductor
@@ -982,20 +951,17 @@ final class ChatViewModel {
     }
 
     /// WIRE-AGENT-003 (2026-09-04): start a long-running goal via the
-    /// HermesGoals / GoalsManager Ralph loop. Reads `inputText` (= the
-    /// current chat draft) as the goal prompt, constructs a fresh
-    /// GoalsManager with the active AnthropicConnector (=
-    /// placeholder connector — the AppState.activeConnector plumbing
-    /// is a follow-up ticket; the hard-rule allowlist for this
-    /// ticket = ChatView.swift only), launches runGoal in a detached
-    /// background Task, and records the goal in the system message
-    /// stream so the user sees progress / errors.
-    ///
-    /// Acceptance (= per P0 #3 brief):
-    /// - empty input → no-op (= no GoalsManager created)
-    /// - non-empty input → spawn GoalsManager + runGoal in background
-    /// - clears the input draft on entry
-    /// - appends a system ChatMessage on start + completion / failure
+    /// HermesGoals / GoalsManager Ralph loop. Reads `inputText` (= the current
+    /// chat draft) as the goal prompt, constructs a fresh GoalsManager with the
+    /// active AnthropicConnector (= placeholder connector — the
+    /// AppState.activeConnector plumbing is a follow-up ticket; the hard-rule
+    /// allowlist for this ticket = ChatView.swift only), launches runGoal in a
+    /// detached background Task, and records the goal in the system message
+    /// stream so the user sees progress / errors. Acceptance (= per P0 #3
+    /// brief): - empty input → no-op (= no GoalsManager created) - non-empty
+    /// input → spawn GoalsManager + runGoal in background - clears the input
+    /// draft on entry - appends a system ChatMessage on start + completion /
+    /// failure
     func startLongRunningGoal() async {
         let goal = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !goal.isEmpty else { return }
@@ -1086,11 +1052,10 @@ final class ChatViewModel {
         }
     }
 
-    /// clear: clear all messages
-    /// Archive current
-    /// session + context (= reset messages + contextUsed), generate new
-    /// sessionId, persist new session for future writes. The spec: 'start a
-    /// brand new session. Reload the context'.
+    /// clear: clear all messages Archive current session + context (= reset
+    /// messages + contextUsed), generate new sessionId, persist new session for
+    /// future writes. The spec: 'start a brand new session. Reload the
+    /// context'.
     func startNewSession() {
         // 1. Clear in-memory state (= visual reset).
         messages = []
@@ -1122,16 +1087,14 @@ final class ChatViewModel {
         self.messages = newMessages
     }
 
-    /// C-5: load chat history from the data layer (= formerly lived
-    /// inline in ChatView's .task modifier; = business knowledge about
-    /// how to map persisted rows back into ChatMessage belongs here,
-    /// not in the view). Delegates to ChatRepositoryProtocol.loadMessages;
-    /// the Live impl does the StoredChatMessage ↔ ChatMessage mapping.
-    /// Errors are swallowed (= matches the prior `try?` behavior; =
-    /// chat zone still renders, just with empty history).
-    ///
-    /// Scoped by `currentBookID` (= set by
-    /// setCurrentBookID; = nil = global un-attached).
+    /// C-5: load chat history from the data layer (= formerly lived inline in
+    /// ChatView's .task modifier; = business knowledge about how to map
+    /// persisted rows back into ChatMessage belongs here, not in the view).
+    /// Delegates to ChatRepositoryProtocol.loadMessages; the Live impl does the
+    /// StoredChatMessage ↔ ChatMessage mapping. Errors are swallowed (= matches
+    /// the prior `try?` behavior; = chat zone still renders, just with empty
+    /// history). Scoped by `currentBookID` (= set by setCurrentBookID; = nil =
+    /// global un-attached).
     func loadHistory() async {
         do {
             let loaded = try await repository.loadMessages(sessionId: sessionId, bookID: currentBookID)

@@ -50,18 +50,15 @@ import os
 private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "chatview")
 
 struct ChatView: View {
-    /// true when `messageID` is the
-    /// most recent user-sourced message in the transcript. Hermes
-    /// (`user-message.tsx:30-55` `StickyHumanMessageContainer`) pins
-    /// the latest user bubble to the top of the scroll viewport via
-    /// `position: sticky; top: 0`. We do the same in SwiftUI via
-    /// `.sticky(top: 80)` on the latest user row only (= historical
-    /// user messages scroll normally; = no overlap stack at the
-    /// viewport top).
-    ///
-    /// O(n) per render (= walks the array once looking for the
-    /// last .user-sourced message); = cheap for transcript sizes
-    /// wenshu handles. Walks from the end (= the common case where
+    /// true when `messageID` is the most recent user-sourced message in the
+    /// transcript. Hermes (`user-message.tsx:30-55`
+    /// `StickyHumanMessageContainer`) pins the latest user bubble to the top of
+    /// the scroll viewport via `position: sticky; top: 0`. We do the same in
+    /// SwiftUI via `.sticky(top: 80)` on the latest user row only (= historical
+    /// user messages scroll normally; = no overlap stack at the viewport top).
+    /// O(n) per render (= walks the array once looking for the last
+    /// .user-sourced message); = cheap for transcript sizes wenshu handles.
+    /// Walks from the end (= the common case where
     @State private var vm: ChatViewModel
     // 2026-08-24 acceptance fix: focus management for input box.
     // 2026-08-24 feedback: when no provider key, chat input should be disabled
@@ -79,8 +76,8 @@ struct ChatView: View {
     // .fileImporter + .dropDestination + drop-highlight overlay all
     // live on the input row itself (= ChatInputBarView body).
     @State private var showingImageImporter: Bool = false
-    /// True while a drag is hovering the input row, so the row can show a
-    /// drop highlight. Apple's .dropDestination reports this for free.
+    /// True while a drag is hovering the input row, so the row can show a drop
+    /// highlight. Apple's .dropDestination reports this for free.
     @State private var isDropTargeted: Bool = false
     // Apple HIG canonical export/import sheets for the conversation as
     // Markdown (= T76 export / T78 open). Bound to .fileExporter /
@@ -148,37 +145,30 @@ struct ChatView: View {
         }
     }
 
-    /// P0 #2 (WIRE-AGENT-002): when ChatView builds a fallback vm,
-    /// wrap the incoming conductor so ParagraphAITool is registered.
-    /// ChatView is the registering site for the chat surface (= the
-    /// user-facing chat UI is where paragraph AI editing fires); App.swift
-    /// is out of scope for this ticket so we build a peer conductor
-    /// (= same shape via the public init) that pre-loads
-    /// ParagraphAITool. The new conductor is what ChatViewModel uses;
-    /// App's conductor reference is unaffected.
-    ///
-    /// P0 #5 (WIRE-AGENT-005): the same register site now also wires
-    /// KanbanStoreTool (= thin adapter exposing the KanbanTools
-    /// LLM-facing dispatcher through the Tool protocol). The
-    /// WSKanbanRepository that the WenshuConductor takes ownership of is
-    /// the canonical wenshu-side task store; KanbanStoreTool reads /
-    /// writes through it via KanbanTools.kanban(action:params:).
-    ///
-    /// WIRE-TOOLREGISTRY-003: the explicit `tools: [...]` dict is
-    /// gone. The 12 tools now arrive via `WenshuConductor.buildTools
-    /// (from: ToolRegistry.shared)` (= hermes single-source-of-truth
-    /// pattern = tools self-register at module-import time, the
-    /// conductor reads from the registry). The same `do/catch`
-    /// shape is preserved (= kanban bootstrap may fail in preview /
-    /// CI) but the tool dict is built once via the registry rather
-    /// than constructed per ChatView instance.
-    ///
-    /// `internal` (= default Swift access) so the wiring test
-    /// (`WenshuConductorToolRegistryWiringTests`) can call the
-    /// production code path. The method is a pure factory with no
-    /// observable side effects beyond constructing the conductor, so
-    /// widening from `private` to `internal` does not expose any new
-    /// production surface.
+    /// P0 #2 (WIRE-AGENT-002): when ChatView builds a fallback vm, wrap the
+    /// incoming conductor so ParagraphAITool is registered. ChatView is the
+    /// registering site for the chat surface (= the user-facing chat UI is
+    /// where paragraph AI editing fires); App.swift is out of scope for this
+    /// ticket so we build a peer conductor (= same shape via the public init)
+    /// that pre-loads ParagraphAITool. The new conductor is what ChatViewModel
+    /// uses; App's conductor reference is unaffected. P0 #5 (WIRE-AGENT-005):
+    /// the same register site now also wires KanbanStoreTool (= thin adapter
+    /// exposing the KanbanTools LLM-facing dispatcher through the Tool
+    /// protocol). The WSKanbanRepository that the WenshuConductor takes
+    /// ownership of is the canonical wenshu-side task store; KanbanStoreTool
+    /// reads / writes through it via KanbanTools.kanban(action:params:).
+    /// WIRE-TOOLREGISTRY-003: the explicit `tools: [...]` dict is gone. The 12
+    /// tools now arrive via `WenshuConductor.buildTools (from:
+    /// ToolRegistry.shared)` (= hermes single-source-of-truth pattern = tools
+    /// self-register at module-import time, the conductor reads from the
+    /// registry). The same `do/catch` shape is preserved (= kanban bootstrap
+    /// may fail in preview / CI) but the tool dict is built once via the
+    /// registry rather than constructed per ChatView instance. `internal` (=
+    /// default Swift access) so the wiring test
+    /// (`WenshuConductorToolRegistryWiringTests`) can call the production code
+    /// path. The method is a pure factory with no observable side effects
+    /// beyond constructing the conductor, so widening from `private` to
+    /// `internal` does not expose any new production surface.
     internal static func conductorRegisteringParagraphAI(_ conductor: WenshuConductor?) -> WenshuConductor? {
         // No conductor provided → nothing to wrap. ChatViewModel's
         // direct verifier path (= non-conductor branch in send()) does
@@ -213,13 +203,13 @@ struct ChatView: View {
     /// BookManagerTool wraps in this fallback conductor. The canonical
     /// production wiring is `appState.bookStore` (= injected via
     /// `@Environment(BookStore.self)`); this helper is the fallback /
-    /// standalone path (= ChatView constructs its own conductor
-    /// because no App-supplied conductor was provided). We build a
-    /// minimal BookStore pointing at a unique `/tmp` root (= same
-    /// forgiving pattern as the WSKanbanRepository fallback above) so the
-    /// book_manager tool is fully exercised end-to-end in preview /
-    /// tests even when no real library has been opened.
-    /// (bookStoreForChatTool removed 2026-10 in q99-spec-p0-batch2 —
+    /// standalone path (= ChatView constructs its own conductor because no
+    /// App-supplied conductor was provided). We build a minimal BookStore
+    /// pointing at a unique `/tmp` root (= same forgiving pattern as the
+    /// WSKanbanRepository fallback above) so the book_manager tool is fully
+    /// exercised end-to-end in preview / tests even when no real library has
+    /// been opened. (bookStoreForChatTool removed 2026-10 in q99-spec-p0-batch2
+    /// —
     //  verify-dead.py confirmed 0 external callers; = the static
     //  helper was retained as the "create a scratch BookStore
     //  under /tmp for chat-tool integration tests" affordance
@@ -229,15 +219,14 @@ struct ChatView: View {
     //  references/v3.0-design-system-rule.md +
     //  wenshu-dead-code-cleanup SKILL.md.)
 
-    /// Group messages into "turns" (= user message + assistant reply),
-    /// for `LazyVStack(pinnedViews: [.sectionHeaders])`
-    /// (= the macOS 27 SwiftUI equivalent of CSS `position: sticky;`
-    /// top: 0`). Each turn = (userMessage, replies[] where replies =
-    /// all subsequent assistant/placeholder messages until the next
-    /// user message). The userMessage is rendered as the Section's
-    /// header (= pinned to the scroll viewport top while its replies
-    /// scroll underneath). When the user reaches the most recent turn,
-    /// the latest user bubble pins at the top (= the 'see
+    /// Group messages into "turns" (= user message + assistant reply), for
+    /// `LazyVStack(pinnedViews: [.sectionHeaders])` (= the macOS 27 SwiftUI
+    /// equivalent of CSS `position: sticky;` top: 0`). Each turn =
+    /// (userMessage, replies[] where replies = all subsequent
+    /// assistant/placeholder messages until the next user message). The
+    /// userMessage is rendered as the Section's header (= pinned to the scroll
+    /// viewport top while its replies scroll underneath). When the user reaches
+    /// the most recent turn, the latest user bubble pins at the top (= the 'see
     /// which question AI is replying to" affordance).
     private var turns: [ChatTurn] {
         var result: [ChatTurn] = []
@@ -255,8 +244,8 @@ struct ChatView: View {
         return result
     }
 
-    /// Render the Section header (= the user bubble OR nothing if
-    /// this turn has no user message = opening greeting).
+    /// Render the Section header (= the user bubble OR nothing if this turn has
+    /// no user message = opening greeting).
     @ViewBuilder
     private func turnHeader(for turn: ChatTurn) -> some View {
         if let userMsg = turn.userMessage {
@@ -1354,11 +1343,10 @@ struct ChatView: View {
         }
     }
 
-    /// Format the current conversation as the legacy chat-Markdown
-    /// shape (= per-message '[prefix]: content' lines, double-newline
-    /// separated). Same formatter the T76 NSSavePanel block used
-    /// (= identical on-disk format; no migration needed for files
-    /// exported before this commit).
+    /// Format the current conversation as the legacy chat-Markdown shape (=
+    /// per-message '[prefix]: content' lines, double-newline separated). Same
+    /// formatter the T76 NSSavePanel block used (= identical on-disk format; no
+    /// migration needed for files exported before this commit).
     static func markdownForConversation(_ messages: [ChatMessage]) -> String {
         messages.map { msg -> String in
             let prefix: String
@@ -1371,10 +1359,9 @@ struct ChatView: View {
         }.joined(separator: "\n\n")
     }
 
-    /// Read a chat-Markdown file and replace the current
-    /// conversation with the parsed history (= the inverse of
-    /// markdownForConversation). Naive split on '\n\n'; each
-    /// non-empty block becomes a ChatMessage whose source is
+    /// Read a chat-Markdown file and replace the current conversation with the
+    /// parsed history (= the inverse of markdownForConversation). Naive split
+    /// on '\n\n'; each non-empty block becomes a ChatMessage whose source is
     /// derived from the leading '[xx]:' prefix.
     static func importMarkdown(at url: URL, into vm: ChatViewModel) {
         do {
@@ -1418,19 +1405,16 @@ struct ChatView: View {
 
 // MARK: - ChatTurn (= unit of grouping for sticky-top user bubbles)
 
-/// . Each ChatTurn groups one
-/// user message (= the Section.header that pins to the scroll viewport
-/// top via `LazyVStack(pinnedViews: [.sectionHeaders])`) with all
-/// following assistant/placeholder messages (= the Section.content
+/// . Each ChatTurn groups one user message (= the Section.header that pins to
+/// the scroll viewport top via `LazyVStack(pinnedViews: [.sectionHeaders])`)
+/// with all following assistant/placeholder messages (= the Section.content
 /// that scrolls underneath). The turn structure mirrors hermes
 /// `apps/desktop/src/components/assistant-ui/thread/user-message.tsx:46`
-/// `sticky top-0 z-40` (= continuous position:sticky; = no jarring
-/// yank when a new user message lands).
-///
-/// `userMessage == nil` covers the opening greeting case (= the first
-/// transcript entry may be a placeholder like "" with no
-/// preceding user message; = we still want it rendered in scroll order;
-/// = it just has no sticky header).
+/// `sticky top-0 z-40` (= continuous position:sticky; = no jarring yank when a
+/// new user message lands). `userMessage == nil` covers the opening greeting
+/// case (= the first transcript entry may be a placeholder like "" with no
+/// preceding user message; = we still want it rendered in scroll order; = it
+/// just has no sticky header).
 struct ChatTurn: Identifiable {
     let id = UUID()
     let userMessage: ChatMessage?
