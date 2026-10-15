@@ -34,7 +34,7 @@ enum DesignTokens {
     /// Per-pane chrome height (= 30 PT, matches Apple HIG canonical toolbar).
     /// Used by: PaneTabBar (the single canonical per-pane tab bar).
     /// The chat zone's tab bar is rendered via a direct PaneTabBar
-    /// call inside TabContentDispatcher.aiChat (= since v0.34,
+    /// call inside TabContentDispatcher.aiChat (=
     /// no separate wrapper).
     static let chromeHeight: CGFloat = 30
 
@@ -427,7 +427,7 @@ enum DesignTokens {
         return Color(nsColor: dynamic)
     }()
 
-    // MARK: - Surface metrics (Apple HIG, v0.35 +1)
+    // MARK: - Surface metrics (Apple HIG)
 
     /// Accent tint opacity at 12% (= Apple HIG Liquid Glass subtle
     /// accent overlay for inline card highlights + chart strokes).
@@ -575,7 +575,7 @@ enum DesignTokens {
     /// iMessage-style bubble internal padding measured against
     /// Messages.app in dark mode; = replaces the inline literal at
     /// ChatView.swift:1786 + 1877 = duplicated chat-bubble padding
-    /// per v1.27 component audit). Distinct from `zoneContentInset = 8`
+    /// per the component audit). Distinct from `zoneContentInset = 8`
     /// (= the zone-level grid inset); = bubble internal padding is
     /// larger because the bubble itself adds visual weight.
     /// Layout picker chrome width (= 416 PT; = 26rem
@@ -789,7 +789,7 @@ enum DesignTokens {
     // Token was: static let hotkeyComboFont: Font = .system(size: 12, design: .monospaced)
     // Replaced by: SwiftUI `.font(.caption)` (= 12 PT = Apple HIG caption;
     // = the .monospaced design was semantically inert for SF Symbol
-    // glyphs in ParagraphAIToolbarButtons; = dropped during the v3.0
+    // glyphs in ParagraphAIToolbarButtons; = dropped during the sweep
     // sweep migration).
 
     // apple-001 iron-rule-6 batch 1 site: sub-agent progress
@@ -812,7 +812,7 @@ enum DesignTokens {
     //
     // Token was: static let tabTitleFont: Font = .system(size: 12, design: .monospaced)
     // Replaced by: SwiftUI `.font(.caption.monospacedDigit().weight(.semibold))`
-    // (= 12 PT monospaced digits + per-instance weight; = the v3.0 sweep
+    // (= 12 PT monospaced digits + per-instance weight; = the sweep
     // migration in EditorView.swift).
 
     // MARK: - Frame metrics (v0.40 apple-001 iron-rule-6 batch 5)

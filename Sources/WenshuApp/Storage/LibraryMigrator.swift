@@ -1,7 +1,7 @@
 // Sources/WenshuApp/Storage/LibraryMigrator.swift
 //
 // The `co_change_scatter` repowise signal (= 25 distinct files) is
-// a historical artifact from v0.26 launch + v0.40-v0.73 era, not a
+// a historical artifact from the .ws layout era, not a
 // current shotgun-surgery pattern. Touch only if a future migration
 // step is actually needed.
 //
@@ -15,7 +15,7 @@
 // doc-comments. These must remain Chinese (= the user's onboarding
 // experience is Chinese-first per the seed-content product stance).
 //
-// One-time v0.x → v0.26 `.ws` layout migration. Detects v0.x `.ws`
+// One-time legacy `.ws` layout migration. Detects legacy `.ws`
 // (= has `books/` at `.ws` root, OR no `WSSchemaVersion` key in
 // `Info.plist`) and migrates to v0.26 layout.
 //
@@ -39,7 +39,7 @@ import WenshuData
 struct LibraryMigrator: Sendable {
     let wsRoot: URL
 
-    /// Run the v0.x → v0.26 migration. Idempotent: if WSSchemaVersion
+    /// Run the legacy migration. Idempotent: if WSSchemaVersion
     /// is already 1, this is a no-op.
     func migrateIfNeeded() throws {
         let fm = FileManager.default
@@ -56,13 +56,13 @@ struct LibraryMigrator: Sendable {
         // (= current), skip migration entirely.
         if try isAlreadyCurrentSchema() {
             // BUT we still want to run helpDocUpgrade() to
-            // backfill the 5 v0.29 .md files into the existing default
-            // book (= if user already has v0.26+v default book with
+            // backfill the 5 .md files into the existing default
+            // book (= if user already has the default book with
             // only 1 old help-doc, upgrade to 5 files).
             try? helpDocUpgrade(fm: fm)
             return
         }
-        // 2. Pre-v0.26 detection: v0.x .ws had books/ at .ws root OR
+        // 2. Pre-v0.26 detection: legacy .ws had books/ at .ws root OR
         // shelves/ at .ws root (= empty orphan). Move v0.x books/ to
         // shelves/<default-shelf>/books/<id>/. If v0.x has no books/ at
         // root (e.g. user freshly selected an empty .ws), create empty

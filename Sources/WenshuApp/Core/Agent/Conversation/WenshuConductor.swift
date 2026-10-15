@@ -28,7 +28,7 @@
 //  `ConversationLoop.runTurn(...tools:)` so the ToolExecutor dispatches
 //  tool_use blocks against registered wenshu tools (= e.g. the
 //  ParagraphAITool stub; future skill + subagent tools wire the same
-//  way). Callers that do not register tools (= the legacy v0.21 callers
+//  way). Callers that do not register tools (= the legacy callers
 //  + every existing test) keep the previous behavior unchanged because
 //  the default value is `[:]`. See wayfinder plan at
 //  `.scratch/2026-09-04-wenshu-integration-plan.md` ticket #2.
@@ -59,7 +59,7 @@ actor WenshuConductor {
     /// singletons). Inject the @MainActor-isolated
     /// `WSRepositoryContainer` (= matches the  protocol
     /// pattern that `LiveChatRepository` already implements for
-    /// chat). Falls back to `.shared` (= the v0.72 global
+    /// chat). Falls back to `.shared` (= the global
     /// singleton) when the caller does not pass a container; =
     /// every existing test + ChatView call site keeps working.
     private let repositories: WSRepositoryContainer
@@ -74,11 +74,11 @@ actor WenshuConductor {
     /// non-nil, handle() routes the LLM call through the full
     /// ConversationLoop.runTurn() orchestrator (= tool dispatch +
     /// compression + retry + sanitization + finalization). When nil,
-    /// handle() falls back to the legacy v0.21 intent+sub-agent+synthesis
+    /// handle() falls back to the legacy intent+sub-agent+synthesis
     /// pipeline. Production wiring lands in App.swift follow-up.
     private let connector: (any LLMConnector)?
     /// P0 #1 (WIRE-AGENT-001): optional RuntimeHelpers instance for the
-    /// ConversationLoop (= deterministic-test injection per v0.36 ticket
+    /// ConversationLoop (= deterministic-test injection
     /// 014). When nil, ConversationLoop creates a fresh actor instance.
     private let loopRuntime: RuntimeHelpers?
     /// P0 #2 (WIRE-AGENT-002): tool registry forwarded to
@@ -111,7 +111,7 @@ actor WenshuConductor {
     ) {
         // P0 #1 (WIRE-AGENT-001): chain to the new init with no connector
         // (= legacy callers = the loop path is a no-op short-circuit and
-        // handle() runs the v0.21 pipeline unchanged). This preserves
+        // handle() runs the legacy pipeline unchanged). This preserves
         // every existing call site + test + ChatView wiring.
         // P0 #2 (WIRE-AGENT-002): `tools` is forwarded to the new init
         // so the registry survives the chain (= legacy callers passing
@@ -140,7 +140,7 @@ actor WenshuConductor {
     /// ticket follow-up) `handle()` first attempts the ConversationLoop
     /// path. If the loop throws (= transport / auth / retry-exhaustion),
     /// handle() falls back to the legacy intent+sub-agent+synthesis path
-    /// (= the original v0.21 pipeline) AND logs the error so the user
+    /// (= the original pipeline) AND logs the error so the user
     /// never sees a broken agent.
     ///
     /// When `connector` is nil (= legacy callers, all existing tests), the
@@ -315,7 +315,7 @@ actor WenshuConductor {
             wenshuLogger.info("[wenshu.conductor] PATH=legacy REASON=no_connector (model=\(model) msg_prefix=\(String(userMessage.prefix(40))))")
         }
 
-        // Legacy path (= v0.21 pipeline, preserved as the fallback).
+        // Legacy path (= legacy pipeline, preserved as the fallback).
         return await runLegacyConductorPipeline(
             userMessage: userMessage,
             sessionId: sessionId,
@@ -473,7 +473,7 @@ actor WenshuConductor {
         }
     }
 
-    /// Legacy conductor pipeline (= v0.21 intent+sub-agent+synthesis).
+    /// Legacy conductor pipeline (= intent+sub-agent+synthesis).
     /// Preserved verbatim (= unchanged) as the fallback when
     /// ConversationLoop is not wired (= connector == nil) OR throws.
     private func runLegacyConductorPipeline(

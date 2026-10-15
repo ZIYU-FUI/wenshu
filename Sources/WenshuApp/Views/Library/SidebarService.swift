@@ -14,7 +14,7 @@
 // to LibraryStores / BookStore.init / 12 test fixtures (= the
 // a leak that the user rejected).
 //
-// b differs from the reverted v1.68a (= same idea, =
+// b differs from the previous attempt (= same idea, =
 // the user accepted the architecture but rejected the rest of the
 // a patch because it leaked changes into LibraryStores /
 // BookStore.init / 12 test fixtures — none of those are touched
@@ -38,8 +38,8 @@ final class SidebarService {
     private(set) var nodes: [SidebarNode] = []
 
     /// Last reload error (= surfaced in the sidebar's error footer
-    /// = the loadError semantics the v1.67 LazySidebarView
-    /// preserved before the v1.69 MVVM split).
+    /// = the loadError semantics the legacy LazySidebarView
+    /// preserved before the MVVM split).
     private(set) var loadError: String?
 
     /// Closure that returns all shelves from the data layer.
@@ -49,7 +49,7 @@ final class SidebarService {
     /// Closure that returns all books in the library.
     /// (= `bookStore.sidebarLoadAllBooks()` in production.) The
     /// sidebar (not the data layer) groups them by shelf via
-    /// `Book.shelfId` (= the pre-v1.69 pattern preserved through
+    /// `Book.shelfId` (= the previous pattern preserved through
     /// the MVVM split).
     /// = no per-shelf
     /// loader (= the existing flat BookStore API stays).
@@ -158,17 +158,17 @@ final class SidebarService {
             }
 
             // Reference library = one root node whose children
-            // are the v2.6 tag facet (= cross-cutting tag cloud;
+            // are the tag facet (= cross-cutting tag cloud;
             // = per boss 2026-10-08 (see OOB.md #2026-10-08)
             // 删除' directive). The tag cloud is built from the
             // union of `Reference.tags` across all references;
             // = each tag row is one SidebarNode keyed by the tag
-            // string (= SidebarItem.tag(tagString), which v2.6
+            // string (= SidebarItem.tag(tagString), which the spec
             // already wires to .referenceScope(nil) in the
             // preview pane).
             //
             // Why pure tag (and not the 22-EntityCategory
-            // hierarchy): per AGENTS.md §11.16 v2.6 facet model
+            // hierarchy): per AGENTS.md §11.16 facet model
             // (= boss 2026-09-25 (see OOB.md #2026-09-25)
             // model'), the tag is the cross-cutting facet that
             // carries the user's mental model of how to find
@@ -181,7 +181,7 @@ final class SidebarService {
             // under both '唐朝' + '边塞诗' = the tag cloud
             // collapses to one row per distinct tag).
             //
-            // Tag row shape (= matches the v0.29 reference-
+            // Tag row shape (= matches the reference-
             // category row shape so the sidebar visual rhythm
             // is preserved):
             //   - title = the tag string (= '唐朝' / '诗人' / etc.)
