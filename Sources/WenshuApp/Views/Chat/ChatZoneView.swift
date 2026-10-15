@@ -34,7 +34,7 @@ import WenshuData
 struct ChatZoneView: View {
     let conductor: WenshuConductor?
     // Chat persistence lives
-    // in WSChatRepository.shared (= v0.72 SwiftData migration; see CHANGELOG.md) (= @MainActor SwiftData wrapper).
+    // in WSChatRepository.shared (= the SwiftData migration; see CHANGELOG.md) (= @MainActor SwiftData wrapper).
 
     @Environment(AppState.self) private var envAppState
     // sidebarSelection moved from ShellState to WorkspaceUIState.
@@ -85,8 +85,8 @@ struct ChatZoneView: View {
                 // so the ChatHelpTextOverlay is dismissed and
                 // the chat zone becomes interactive.
                 // message (= the same bug was fixed once
-                // before; = the revert was due to that v1.53
-                // branch being part of the broader v1.55/v1.57
+                // before; = the revert was due to that earlier
+                // branch being part of the broader migration
                 // chat-input-row work that itself crashed =
                 // unrelated to this empty-state gate logic):
                 // the ProviderKeychain.listProvidersWithKeys() call
@@ -189,16 +189,16 @@ struct ChatZoneView: View {
         //      = single sidebar surface layer, identical to the
         //      left sidebar).
         //
-        // keeps the v1.91d frame(...) wrap (= NSViewRepresentable
+        // keeps the frame(...) wrap (= NSViewRepresentable
         // in .background() requires explicit frame; = same SwiftUI/AppKit
-        // bridging quirk documented in v1.91d).
+        // bridging quirk documented).
         // (2026-09-23): the directive '' OOB follow-up.
-// Replace the v1.93 VisualEffectBlur(.sidebar, .withinWindow) with
+// Replace the VisualEffectBlur(.sidebar, .withinWindow) with
 // the explicit `DesignTokens.sidebarBackground` Color (= the
 // .controlBackgroundColor Apple HIG sidebar tint).
 //
 // Why drop VisualEffectBlur:
-//   - v1.93 used NSVisualEffectView via NSViewRepresentable.
+//   - the previous version used NSVisualEffectView via NSViewRepresentable.
 //   - In opaque NSWindow (= wenshu's default) .withinWindow
 //     blending mode produced a sub-perceptual gradient (= ~14
 //     RGB diff between top + bottom).
@@ -228,7 +228,7 @@ struct ChatZoneView: View {
         // - `.folder(let bookID, _)` → use bookID (= folder
         //   is a sub-row of a book; = same book scope)
         // - `.shelf / .reference* / nil` → nil (= global
-        //   un-attached; = pre-v1.79 behavior when no book
+        //   un-attached; = the previous behavior when no book
         //   is selected).
         .onChange(of: workspaceUI.sidebarSelection) { _, newSelection in
             let bookID: UUID?
@@ -257,7 +257,7 @@ struct ChatZoneView: View {
     //  wenshu-pocock-workflow references/v3.0-design-system-rule.md
     //  + wenshu-dead-code-cleanup SKILL.md.)
 
-    // MARK: - Book scope guard wiring (v2.1, 2026-09-25)
+    // MARK: - Book scope guard wiring (see OOB.md #2026-09-25)
 
     /// Re-wire the four book_X tools on the conductor with
     /// value snapshots for the chat session's currently-bound book

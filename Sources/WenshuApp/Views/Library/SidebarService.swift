@@ -221,7 +221,7 @@ final class SidebarService {
                         // tag is a separate
                         // SidebarNode.Kind (= NOT a
                         // referenceCategory). This is the fix
-                        // for the v2.6+ preview-pane routing
+                        // for the preview-pane routing
                         // bug (= the old code used
                         // .referenceCategory here; =
                         // forwardSelection mis-routed the
@@ -321,7 +321,7 @@ final class SidebarService {
     /// user-facing folders:  /  /  / 
     /// / ). Matches `LazySidebarStandardFolders.all` but
     /// inlined here so SidebarService doesn't reach across the
-    /// LazySidebar* family (= that family is v1.67 cleanup
+    /// LazySidebar* family (= that family is the legacy cleanup
     /// historical; = the v1.68 family owns the sidebar tree).
     ///
     /// the
@@ -408,19 +408,19 @@ final class SidebarService {
         return String(formatted)
     }
 
-    // MARK: - v1.69 reference library auto-classification
+    // MARK: - reference library auto-classification
     // (= (see OOB.md #2026-09-22) OOB '').
     //
     // Group references into CLC top-level categories for the
     // sidebar tree (= project the 22-bucket CLC taxonomy onto
     // the reference library's display). Bucket key = the
     // EntityCategory.directoryName (= "a" / "b" / ... / ""
-    // for official categories; "" for pre-v0.29 references
+    // for official categories; "" for legacy references
     // whose category is nil).
 
-    /// Map a Reference to its sidebar-bucket key. v0.29
+    /// Map a Reference to its sidebar-bucket key.
     /// references always have a category (= assigned by
-    /// EntityClassifier on save). Pre-v0.29 imports have nil
+    /// EntityClassifier on save). Legacy imports have nil
     /// (= still seen in the wild on existing user libraries);
     /// those bucket under a synthetic '' label so they
     /// stay browsable rather than disappearing.
@@ -483,7 +483,7 @@ final class SidebarService {
         return UUID(uuidString: formatted) ?? UUID()
     }
 
-    /// Stable UUID for a sidebar tag row (v2.6 facet model).
+    /// Stable UUID for a sidebar tag row.
     /// Same tag string yields the same UUID across launches,
     /// so the persisted sidebarSelection survives reload.
     /// Distinct ID namespace from stableReferenceCategoryId

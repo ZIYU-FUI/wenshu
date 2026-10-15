@@ -1,7 +1,7 @@
 // Sources/WenshuApp/Editor/EditorActions.swift
 //
 // SMC ticket 003 -- editor action functions that close the
-// confirmed red paths from the v0.39 SMC audit. All three are
+// confirmed red paths from the SMC audit. All three are
 // pure helpers (= no SwiftUI View lifecycle dependencies) so the
 // focused test target can exercise them without spinning up the
 // engine's NSViewRepresentable stack.
@@ -15,7 +15,7 @@
 //       host opens it as a new tab) or nil (= unknown target;
 //       caller surfaces a no-op or a console warning).
 //   - DraftPersistence.persistIfNeeded(tab:bookStore:)
-//       Closes the v0.34 B-21 deferred path: when the active tab's
+//       Closes the deferred path: when the active tab's
 //       documentPath is nil but a book store is available (= a
 //       real chapter edit session on a real book), write the draft
 //       to the book's chapters/<uuid>.md via the FileSystemLibraryStore
@@ -144,7 +144,7 @@ enum WikiLinkNavigation {
         store: BookStore
     ) -> WikiLinkNavigationResult? {
         // The BookStore doesn't yet expose a chapter-document
-        // search helper (= v0.34 deferred that path; = SMC
+        // search helper (= the path was deferred; = SMC
         // ticket 003 closes the active-book navigation case via
         // the persisted-draft path; see DraftPersistence below).
         // For now return nil so the host falls through to a
@@ -158,7 +158,7 @@ enum WikiLinkNavigation {
 
 // MARK: - DraftPersistence
 //
-// SMC ticket 003 -- closes the v0.34 B-21 deferred path. The
+// SMC ticket 003 -- closes the deferred path. The
 // previous flow wrote draft bytes to `/tmp/wenshu-preview-sample.md`
 // when documentPath was nil (= placeholder mode), which dropped
 // real edits. The new flow proposes a real file path under the
@@ -194,11 +194,11 @@ enum DraftPersistence {
     ) -> URL? {
         guard let store = bookStore else { return nil }
         // BookStore exposes the active book via
-        // `bookDirectory(bookId:)` (= v0.27 ticket 027-01 plumbing).
+        // `bookDirectory(bookId:)` (= the ticket plumbing).
         // We don't yet have a direct "active book id" surface on
-        // BookStore (= v0.34 sidestepped that with a single
+        // BookStore (= that was sidestepped with a single
         // shelvesRoot reference). For this closure we use the
-        // shelves root (= the v0.34 active-book convention) as
+        // shelves root (= the active-book convention) as
         // the parent for chapters/ — this is the smallest change
         // that doesn't require adding an active-book-id surface.
         let bookRoot = store.stores.shelvesRoot

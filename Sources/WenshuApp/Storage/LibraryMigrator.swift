@@ -17,7 +17,7 @@
 //
 // One-time legacy `.ws` layout migration. Detects legacy `.ws`
 // (= has `books/` at `.ws` root, OR no `WSSchemaVersion` key in
-// `Info.plist`) and migrates to v0.26 layout.
+// `Info.plist`) and migrates to the layout.
 //
 // Per spec (= PRESERVE / DROP / CREATE rules):
 // - PRESERVE: Info.plist + chat.sqlite + Icon + assets/ + backups/ +
@@ -343,7 +343,7 @@ struct LibraryMigrator: Sendable {
         - 关系 (= 父子、师徒、敌友)
         - 时间线
 
-        提取出来的放资料库的"实体"层。v0.29 之前实体是直接列出来的, 现在按分类归档 (= 历史/科学/文学/...)。
+        提取出来的放资料库的"实体"层。之前实体是直接列出来的, 现在按分类归档 (= 历史/科学/文学/...)。
 
         ## 4. 状态追踪派 (Status)
 
@@ -499,15 +499,15 @@ struct LibraryMigrator: Sendable {
 
         这里列出文枢未来要做的功能 (= 计划但 v0.29 还没实装的)。你看到一项就知道它在排队里。
 
-        ## 正在排队 (v0.30+)
+        ## 正在排队
 
         - **伏笔自动扫描**: 主 Agent 读你正文, 自动识别"这章埋了伏笔", 在工具区"伏笔"tab 里建一条目。
         - **占位符解析**: 你的正文里写 `[占位: 某某]`, 主 Agent 看到会自动从资料库 + 世界观里找答案填空。
         - **大纲自动反向**: 主 Agent 读你写完的章节, 自动判断"这章属于第几卷第几章", 更新大纲。
-        - **画布视图 (= 原 v0.28 工具区第 1 tab)**: 大纲的可视化拖拽 = 你可以拖章节节点来重排顺序。
-        - **数据库视图 (= 原 v0.28 工具区第 2 tab)**: 角色卡 / 设定卡的列表视图 + 过滤。
+        - **画布视图 (= 原工具区第 1 tab)**: 大纲的可视化拖拽 = 你可以拖章节节点来重排顺序。
+        - **数据库视图 (= 原工具区第 2 tab)**: 角色卡 / 设定卡的列表视图 + 过滤。
 
-        ## 排队中 (v0.31+)
+        ## 排队中
 
         - **跨书人物库**: 同一个世界观的几本书共享人物 (= 主角弟弟在《前传》和《正传》里都是同一个人)。
         - **实体自动归类 (UI)**: 现在 v0.29 实体按"图书馆分类法"自动归类到文件夹 (= 历史/科学/文学/...)。v0.31+ 会加手动调整分类的 UI。
@@ -551,7 +551,7 @@ struct LibraryMigrator: Sendable {
     }
 
     /// upgrade the existing default help-doc
-    /// book (= if user already has the v0.26 default book with only
+    /// book (= if user already has the default book with only
     /// 1 old help-doc.md) by adding the 4 missing .md files
     /// (= world / characters / outlines / drafts + the existing chapters's
     /// feature module overview = new chapters/-.md = first-chapter explanation).
@@ -704,15 +704,15 @@ struct LibraryMigrator: Sendable {
 
             这里列出文枢未来要做的功能 (= 计划但 v0.29 还没实装的)。你看到一项就知道它在排队里。
 
-            ## 正在排队 (v0.30+)
+            ## 正在排队
 
             - **伏笔自动扫描**: 主 Agent 读你正文, 自动识别"这章埋了伏笔", 在工具区"伏笔"tab 里建一条目。
             - **占位符解析**: 你的正文里写 `[占位: 某某]`, 主 Agent 看到会自动从资料库 + 世界观里找答案填空。
             - **大纲自动反向**: 主 Agent 读你写完的章节, 自动判断"这章属于第几卷第几章", 更新大纲。
-            - **画布视图 (= 原 v0.28 工具区第 1 tab)**: 大纲的可视化拖拽 = 你可以拖章节节点来重排顺序。
-            - **数据库视图 (= 原 v0.28 工具区第 2 tab)**: 角色卡 / 设定卡的列表视图 + 过滤。
+            - **画布视图 (= 原工具区第 1 tab)**: 大纲的可视化拖拽 = 你可以拖章节节点来重排顺序。
+            - **数据库视图 (= 原工具区第 2 tab)**: 角色卡 / 设定卡的列表视图 + 过滤。
 
-            ## 排队中 (v0.31+)
+            ## 排队中
 
             - **跨书人物库**: 同一个世界观的几本书共享人物 (= 主角弟弟在《前传》和《正传》里都是同一个人)。
             - **实体自动归类 (UI)**: 现在 v0.29 实体按"图书馆分类法"自动归类到文件夹 (= 历史/科学/文学/...)。v0.31+ 会加手动调整分类的 UI。

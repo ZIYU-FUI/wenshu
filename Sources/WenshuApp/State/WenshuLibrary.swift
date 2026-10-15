@@ -20,7 +20,7 @@
 // Concurrency: marked `@MainActor` so SwiftUI can read every property
 // without `await`. The store calls (= async on FileManager etc.) are
 // dispatched off-main by the store itself (= Future impl wraps each call
-// in a Task). v0.02.0 keeps it MainActor-isolated for simplicity; the
+// in a Task). Kept MainActor-isolated for simplicity; the
 // protocol can grow an async overload later if a remote store needs it.
 
 import SwiftUI
@@ -41,7 +41,7 @@ final class WenshuLibrary {
     private(set) var bookCount: Int = 0
 
     /// The user's current selection (= Apple HIG document-based apps
-    /// default to a single selection; v0.02.0 is single-selection only).
+    /// default to a single selection (single-selection only).
     /// Nil means "no selection" (= fresh install, or user cleared).
     private(set) var selectedShelfId: UUID?
 
@@ -165,8 +165,8 @@ final class WenshuLibrary {
     }
 
     /// Returns the currently-selected Bookshelf, if any. Convenience for
-    /// views that bind selection to content (= v0.02.0 only shows the
-    /// name; v0.02.1+ shows the books inside).
+    /// views that bind selection to content (= the current version only shows the
+    /// name; the next version shows the books inside).
     var selectedShelf: Bookshelf? {
         guard let id = selectedShelfId else { return nil }
         return shelves.first(where: { $0.id == id })
@@ -174,13 +174,13 @@ final class WenshuLibrary {
 
     // MARK: - Book state
     //
-    // Additive only (= v0.02.0 callers and contracts untouched). The
+    // Additive only (= current callers and contracts untouched). The
     // books for each shelf are lazily fetched from the store (= we don't
     // hold a per-shelf dictionary in memory; loadBooks is the source of
     // truth). Selected book id survives a shelf switch (= the user can
     // switch shelves and come back; their selected book is still selected).
 
-    /// The user's currently-selected book (= single-select for v0.02.1).
+    /// The user's currently-selected book (= single-select).
     private(set) var selectedBookId: UUID?
 
     /// Returns the books in a given shelf, sorted by updatedAt desc
@@ -225,12 +225,12 @@ final class WenshuLibrary {
         selectedBookId = id
     }
 
-    // MARK: - Document state (v0.03.0, = document module end-to-end)
+    // MARK: - Document state (= document module end-to-end)
     //
     // Lazy reads (= the storage layer decides how to optimize; current
     // FileSystemLibraryStore re-reads the .md each call). The view layer
     // (BookOutlineView) calls these on each render —
-    // the per-card read is fine; v0.04+ can add an in-memory cache.
+    // the per-card read is fine; future can add an in-memory cache.
 
     /// Lists the documents in a given category for the currently-
     /// selected book. Empty (= no book selected, or the book has no
