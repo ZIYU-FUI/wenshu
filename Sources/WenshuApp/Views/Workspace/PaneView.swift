@@ -324,7 +324,7 @@ struct PaneView: View {
             // Route through
             // `CardOpenOps.computeCardTriad`
             // (= the shared
-            // v2.7-round-66 commit
+            //
             // H resolution; =
             // `BookDoc` → full
             // body via

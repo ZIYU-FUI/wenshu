@@ -425,7 +425,7 @@ struct EditorTabStrip: View {
             // time a new tab is added
             // (= the count changes by 1).
             // 2026-10-14 v3.5: drop the
-            // v3.4 `ScrollView`
+            //
             // wrap (= the boss
             // 2026-10-14 "tab
             // 现在位置很飘"
@@ -454,7 +454,7 @@ struct EditorTabStrip: View {
             // (= the boss
             // already signed
             // off on this in
-            // v3.1): the
+            // the
             // `NSSegmentedControl`
             // with
             // `.fillEqually`

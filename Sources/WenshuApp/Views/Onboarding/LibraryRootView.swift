@@ -365,7 +365,7 @@ struct LibraryRootView: View {
                     workspaceUI: workspaceUI
                 )
                 .navigationSplitViewColumnWidth(
-                    // v2.6+ reference preview (= the
+                    // (= the
                     // '素材栏' / 'cards' column in the
                     // standard 4-zone nomenclature; = the
                     // second column from the left; = the

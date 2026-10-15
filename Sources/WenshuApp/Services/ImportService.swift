@@ -121,7 +121,7 @@ protocol ImportRouter: Sendable {
 /// The file-type filter the user picked in the
 /// import sheet (= the user's 2026-10-09 ask: "在
 /// 目录树上一行，加一行文件类型图标，单选"; = the
-/// v2.7 orchestrator only knows how to walk + write
+/// how to walk + write
 /// Markdown; = the .epub / .pdf / .txt cases are
 /// rendered as "coming soon" in the picker UI; = a
 /// future ticket can flip `isSupported` once the
@@ -3037,7 +3037,7 @@ extension ImportService {
         }
         guard var routing = routing else {
             tasksBox.value[i].state = .failed
-            // v0.74: surface WHICH connector failed and HOW the
+            // WHICH connector failed and HOW the
             // user can fix it. The previous "3 次重试:
             // unreachable" gave the user no actionable
             // signal. The new message names the connector,

@@ -142,7 +142,7 @@ struct BookmarkView: View {
         }
     }
 
-    // v2.9d: MVVM split lifted the inline reload / addBookmark /
+    //MVVM split lifted the inline reload / addBookmark /
     // removeBookmark funcs to `BookmarkOps`. The view now renders
     // the result of a single @MainActor enum call (= the canonical
     // MVVM split template).

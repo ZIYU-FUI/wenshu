@@ -1400,7 +1400,7 @@ actor WenshuConductorImportRouter: ImportRouter {
             entityType: "other",
             category: nil,
             confidence: parsed.tags.isEmpty ? 0.3 : 0.9,
-            // v2.7: parse the optional rewritten body
+            // the optional rewritten body
             // (= the LLM's .ws-format body in
             // `searchAndRewrite` mode; = nil = the
             // orchestrator keeps the original body

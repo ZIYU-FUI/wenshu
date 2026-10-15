@@ -281,7 +281,7 @@ struct AssetsPane: View {
                String(describing: scope))
         let triad: CardOpenOps.CardTriad
         if let source {
-            // v0.74: route the source through the scope branch
+            // the source through the scope branch
             // that matches the source's actual kind (= fix the
             // where the boss's double-click on a
             // reference card was being routed through the
