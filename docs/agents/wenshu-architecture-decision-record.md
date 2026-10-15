@@ -225,6 +225,52 @@ This revises the original 6-sub-ticket plan (= A1g.4.1-5) to
 a 5-sub-ticket plan (= A1g.4.1 + A1g.4.2-4.4 + A1g.4.5 + A1g.4.6
 public-modifier sweep).
 
+
+
+## A1g.4 complete (2026-10-15)
+
+A1g.4 arc landed in 3 commits (= A1g.4.1 + A1g.4.2-4.4 + A1g.4.5
+as no-op verification). The data layer is now in a local SwiftPM
+package (= Sources/WenshuData/ = 38 files; = App target imports
+the WenshuData product).
+
+Verified state after A1g.4.5:
+
+  - swift build (debug): 2.38s pass.
+  - swift build -c release: 79.30s pass.
+  - Runtime smoke test (WENSHU_DEBUG_INMEMORY_KEYCHAIN=1):
+    APP launches, window visible, full Chinese UI, no crashes.
+  - 0 warnings (= no @MainActor / Sendable visibility errors;
+    = the original sources preserved @MainActor isolation on
+    the Repositories, = the public-sweep + boundary refactor
+    inherited that isolation).
+  - 136 files changed in the A1g.4.2-4.4 commit (= 38 WenshuData
+    + 1 Package.swift + 65 WenshuApp imports + 32 WenshuData
+    public-sweep edits).
+
+The original A1g.4 plan was 6 sub-tickets (= A1g.4.1-5 in the
+revised 5-ticket plan, with A1g.4.2 + A1g.4.4 merged). The
+actual commit count is 3 (= A1g.4.1 + A1g.4.2-4.4 + A1g.4.5
+no-op verification). This is fewer commits than the plan
+because:
+
+  - A1g.4.3 (= public-modifier sweep) was absorbed into
+    A1g.4.2-4.4 (= the mv + .product + imports needed the
+    public sweep to compile).
+  - A1g.4.5 (= @MainActor / Sendable fixes) was a no-op (= the
+    original sources were already correctly isolated; = the
+    public-sweep preserved the existing @MainActor annotations).
+
+ADR-0016 A1g.4 plan was correct (= 4-5 atomic commits), but
+the implementation merged some of them (= the real cost was
+3 commits instead of 5).
+
+The full A1g arc (= A1g.1 + A1g.2.4 + A1g.2.4a + A1g.2.4b +
+A1g.2 step 1-3 + A1g.4.1 + A1g.4.2-4.4) is now complete. The
+Apple Backyard Birds target structure is in place (= data
+layer = local SwiftPM package, = App target consumes the
+package via .product dependency).
+
 ## A1g.4 atomic-attempt findings (2026-10-15)
 
 Performed an atomic A1g.4 attempt on a worktree
@@ -283,7 +329,7 @@ Revised A1g.4 plan (5 sub-tickets, each = 1 atomic commit):
 | A1g.4.2 | mv 38 Persistence files to Sources/WenshuData/ + delete empty Persistence/ + delete Stub.swift | 0 LOC | low (= BLOCKED: cannot be 1 commit per AGENTS.md §7.1; = must bundle with A1g.4.4 caller-side imports; = see A1g.4.2-4.4 merged below) |
 | A1g.4.3 | public-modifier sweep on moved files (scope-aware) | ~200 edits | medium |
 | A1g.4.4 | import WenshuData added to 65 WenshuApp source files | ~65 LOC | low |
-| A1g.4.5 | @MainActor + Sendable visibility fixes (= 5-10 sites) | ~150 LOC | medium |
+| A1g.4.5 | @MainActor + Sendable visibility fixes (= 5-10 sites) | ~150 LOC | medium (= NO-OP 2026-10-15: scope-aware public sweep + boundary refactor + @MainActor preservation in the original sources covered all expected sites; = build is clean without further changes) |
 
 Each sub-ticket compiles clean after the commit (= 1-ticket-1-
 commit per AGENTS.md §1.10).
