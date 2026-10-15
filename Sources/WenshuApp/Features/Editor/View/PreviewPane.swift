@@ -134,18 +134,17 @@ struct PreviewPane: View {
     /// untyped; = matches the existing single-Card pattern; = the actual card
     /// data is read from the Card's own `source` field at call time, not via
     /// closure capture; = same code path handles both reference and bookDoc
-    /// sources since B-02's CardSource enum unification).
-    /// (see OOB.md #2026-09-08) — 'clicking the Dufu card opens a tab with
-    /// wrong name' (= clicking the card opens a new tab with the wrong name):
-    /// the previous `onDoubleClick: () -> Void` had NO way to identify which
-    /// card was clicked (= the closure was bound at ForEach time but didn't
-    /// capture per-card state). The caller (= WorkspaceView.openCardInEditor)
-    /// had to fall back to `filtered.first` (= always the topmost card, not the
-    /// actually-clicked one), opening the wrong .md file.
-    /// Fix: onDoubleClick now takes the clicked CardSource (= either
-    /// .reference(Reference) or .bookDoc(BookDoc)). The caller passes it to
-    /// openCardInEditor(source: CardSource?) which uses the supplied source
-    /// instead of `filtered.first`.
+    /// sources since B-02's CardSource enum unification). (see OOB.md
+    /// #2026-09-08) — 'clicking the Dufu card opens a tab with wrong name' (=
+    /// clicking the card opens a new tab with the wrong name): the previous
+    /// `onDoubleClick: () -> Void` had NO way to identify which card was
+    /// clicked (= the closure was bound at ForEach time but didn't capture
+    /// per-card state). The caller (= WorkspaceView.openCardInEditor) had to
+    /// fall back to `filtered.first` (= always the topmost card, not the
+    /// actually-clicked one), opening the wrong .md file. Fix: onDoubleClick
+    /// now takes the clicked CardSource (= either .reference(Reference) or
+    /// .bookDoc(BookDoc)). The caller passes it to openCardInEditor(source:
+    /// CardSource?) which uses the supplied source instead of `filtered.first`.
     let onDoubleClick: (CardSource) -> Void
 
     /// trailing button rendered in the pane's tab bar (= PaneTabBar trailing
@@ -168,19 +167,18 @@ struct PreviewPane: View {
     /// = show all cards; non-empty = filter by case-insensitive substring match
     /// on card display name + summary. SwiftUI @State reactivity re-evaluates
     /// `body` on every keystroke (= live refresh, no submit button, no
-    /// .onChange handler needed).
-    /// to the Apple API default style': callers can pass an OPTIONAL external
-    /// `searchQuery` Binding to use an EXTERNAL `.searchable(...)` modifier (=
-    /// the canonical macOS 13+ Apple HIG search field; = identical visual to
-    /// the sidebar `.searchable` field). When `searchQuery` is non-nil, the
-    /// internal handwritten search bar is suppressed (= one canonical Apple
-    /// search field per pane, not two competing ones). When nil, the legacy
-    /// internal `@State private previewSearchQuery` is used (= the legacy
-    /// PaneSplitHost path = backward compat).
-    /// Use `Binding<String>?` for the OPTIONAL external query (= nil means "no
-    /// external binding = render internal search bar"). When non-nil, the
-    /// Binding's wrapped value is the search query (= one source of truth, fed
-    /// from the external `.searchable` modifier).
+    /// .onChange handler needed). to the Apple API default style': callers can
+    /// pass an OPTIONAL external `searchQuery` Binding to use an EXTERNAL
+    /// `.searchable(...)` modifier (= the canonical macOS 13+ Apple HIG search
+    /// field; = identical visual to the sidebar `.searchable` field). When
+    /// `searchQuery` is non-nil, the internal handwritten search bar is
+    /// suppressed (= one canonical Apple search field per pane, not two
+    /// competing ones). When nil, the legacy internal `@State private
+    /// previewSearchQuery` is used (= the legacy PaneSplitHost path = backward
+    /// compat). Use `Binding<String>?` for the OPTIONAL external query (= nil
+    /// means "no external binding = render internal search bar"). When non-nil,
+    /// the Binding's wrapped value is the search query (= one source of truth,
+    /// fed from the external `.searchable` modifier).
     @Binding var searchQuery: String?
 
     /// SidebarItem.tag preview-pane filter: the active tag filter (= the user
@@ -198,15 +196,15 @@ struct PreviewPane: View {
     /// documented framework limitation in NavigationSplit columns; = the
     /// preference for a leading-positioned search field can't be satisfied with
     /// `.searchable`). 2. The custom search field IS leading-aligned per the
-    /// earlier preference (= "search box on the left").
-    /// Why threaded through WorkspaceView (= not inlined in the caller):
-    /// PreviewPane is a stable component (= other callers in tests / kanban
-    /// previews use it too); = keeping the search field position inside
-    /// PreviewPane (= "sticky header + search below + grid") preserves the
-    /// component contract while satisfying the placement request.
-    /// Default = nil = no custom search field rendered (= the legacy code path;
-    /// = old callers and tests still work). Pass `customLeadingSearch:
-    /// AnyView(...)` from WorkspaceView to inject the custom search field.
+    /// earlier preference (= "search box on the left"). Why threaded through
+    /// WorkspaceView (= not inlined in the caller): PreviewPane is a stable
+    /// component (= other callers in tests / kanban previews use it too); =
+    /// keeping the search field position inside PreviewPane (= "sticky header +
+    /// search below + grid") preserves the component contract while satisfying
+    /// the placement request. Default = nil = no custom search field rendered
+    /// (= the legacy code path; = old callers and tests still work). Pass
+    /// `customLeadingSearch: AnyView(...)` from WorkspaceView to inject the
+    /// custom search field.
     var customLeadingSearch: AnyView? = nil
 
     /// Legacy internal search state. Used when `searchQuery` (= the new
@@ -258,22 +256,21 @@ struct PreviewPane: View {
     }
 /// : 'cards display in multiple columns, default two columns, if the zone is dragged narrower,
     /// not enough for two columns, auto-adapt to one column, in plain words
-    /// it's card flow, width adaptive'.
-    /// Adaptive column count: - preview pane width >= twoColumnBreakpoint: 2
-    /// columns (= default) - preview pane width < twoColumnBreakpoint: 1 column
-    /// (= narrow)
-    /// Why 280 PT threshold: - Per LayoutTokens.projectPreviewRatio = 0.20 (=
-    /// preview pane gets 20% of total workspace width = 384 PT at 1920 PT
-    /// total) - Card min content + padding needs ~120-150 PT (= readable
-    /// summary + thumbnail) - 2 cards side by side = 240-300 PT + 16 PT gap =
-    /// ~256-316 PT - 280 PT threshold = preview always defaults to 2 columns at
-    /// the default 20% ratio (= the "default two columns" requirement) - If
-    /// user drags the preview divider to shrink it (< 200 PT), falls back to 1
-    /// column automatically. Threshold lowered from 280 PT to 200 PT on
-    /// 2026-09-01 to match the actual preview-pane width delivered by
-    /// NSSplitView at weights [2] in the 10/20/60/10 preset (= ~210 PT). With
-    /// the old 280 PT threshold, every launch collapsed to 1 column, defeating
-    /// the "preview pane shows 2 columns" expectation.
+    /// it's card flow, width adaptive'. Adaptive column count: - preview pane
+    /// width >= twoColumnBreakpoint: 2 columns (= default) - preview pane width
+    /// < twoColumnBreakpoint: 1 column (= narrow) Why 280 PT threshold: - Per
+    /// LayoutTokens.projectPreviewRatio = 0.20 (= preview pane gets 20% of
+    /// total workspace width = 384 PT at 1920 PT total) - Card min content +
+    /// padding needs ~120-150 PT (= readable summary + thumbnail) - 2 cards
+    /// side by side = 240-300 PT + 16 PT gap = ~256-316 PT - 280 PT threshold =
+    /// preview always defaults to 2 columns at the default 20% ratio (= the
+    /// "default two columns" requirement) - If user drags the preview divider
+    /// to shrink it (< 200 PT), falls back to 1 column automatically. Threshold
+    /// lowered from 280 PT to 200 PT on 2026-09-01 to match the actual
+    /// preview-pane width delivered by NSSplitView at weights [2] in the
+    /// 10/20/60/10 preset (= ~210 PT). With the old 280 PT threshold, every
+    /// launch collapsed to 1 column, defeating the "preview pane shows 2
+    /// columns" expectation.
     // (2026-09-08): raised from 130 to 350 (= the cards grid renders as a SINGLE column
     // when embedded inside the M2 NavigationSplitShell's sidebar column = the red-
     // line drawing shows 1 column for the cards zone. 350 (= higher than the
@@ -766,9 +763,9 @@ struct PreviewPane: View {
     /// preview-pane search bar (= 30 PT tall, = matches
     /// `LayoutTokens.toolbarHeight` = the editor's pencil/arrow toolbar inside
     /// EditorView). Pattern matches the editor: tab strip (ZoneContentView) →
-    /// search bar (this view) → body content.
-    /// Layout: - magnifying-glass icon (left, .secondary, .small) - TextField
-    /// bound to `$previewSearchQuery` (.plain style,
+    /// search bar (this view) → body content. Layout: - magnifying-glass icon
+    /// (left, .secondary, .small) - TextField bound to `$previewSearchQuery`
+    /// (.plain style,
     // MARK: - Scope subviews
 
     /// Reference library scope: existing entity card flow ((see OOB.md
@@ -842,10 +839,10 @@ struct PreviewPane: View {
         }
     }
 
-    /// Shelf scope: union of every book's docs under the shelf.
-    /// The shelf row is a scope (= shows every .md card from every book under
-    /// that shelf; = union of all `loadBookDocs(bookId:, folderName: nil)`
-    /// results filtered to books whose `shelfId == shelfId`).
+    /// Shelf scope: union of every book's docs under the shelf. The shelf row
+    /// is a scope (= shows every .md card from every book under that shelf; =
+    /// union of all `loadBookDocs(bookId:, folderName: nil)` results filtered
+    /// to books whose `shelfId == shelfId`).
     @ViewBuilder
     private func shelfScopeView(shelfId: UUID) -> some View {
         // see the comment on `bookScopeView` (= the body's `.onReceive` reads the
@@ -1275,10 +1272,10 @@ struct PreviewPane: View {
 
     /// load .md files from a book folder on the filesystem. Walks all shelves
     /// (= shelves/<shelf>/books/<book>/) to find the matching bookId, then
-    /// scans one or more of the 8 standard folders for .md files.
-    /// Errors (= missing folders, permission denied, etc.) are silently skipped
-    /// so a single bad folder doesn't break the whole view (= partial load is
-    /// more useful than nothing).
+    /// scans one or more of the 8 standard folders for .md files. Errors (=
+    /// missing folders, permission denied, etc.) are silently skipped so a
+    /// single bad folder doesn't break the whole view (= partial load is more
+    /// useful than nothing).
     private func loadBookDocs(bookId: UUID, folderName: String?) -> [BookDoc] {
         return PreviewPaneOps.loadBookDocs(bookStore: bookStore, bookId: bookId, folderName: folderName).docs
     }
