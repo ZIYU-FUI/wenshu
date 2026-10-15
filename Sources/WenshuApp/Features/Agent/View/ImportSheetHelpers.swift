@@ -30,52 +30,17 @@ import SwiftUI
 // MARK: - 4-step wizard helpers
 
 extension ImportSheet {
-    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
-    /// 步骤" directive).
-    /// The reachability
-    /// predicate for the
-    /// dot indicator. The
-    /// user can only click
-    /// a dot for a step
-    /// they have already
-    /// reached (= a fresh
-    /// sheet on ① 选目
-    /// 标 only has ①
-    /// clickable; = ②③④
-    /// are dimmed AND
-    /// disabled). The
-    /// reachability
-    /// contract:
-    /// - `.configure`
-    ///   always reachable
-    ///   (= the initial
-    ///   step).
-    /// - `.running`
-    ///   reachable when
-    ///   the user has
-    ///   pressed 开始 (=
-    ///   `hasRunOnce`).
-    /// - `.results`
-    ///   reachable when
-    ///   the import has
-    ///   finished (= the
-    ///   orchestrator's
-    ///   `isRunComplete`
-    ///   flag is true) OR
-    ///   the user has
-    ///   already
-    ///   navigated past
-    ///   it (= currentStep
-    ///   ≥ .results).
-    /// - `.done`
-    ///   reachable only
-    ///   after the user
-    ///   has tapped 完成
-    ///   on the .results
-    ///   step (= currentStep
-    ///   == .done OR
-    ///   currentStep has
-    ///   been past it).
+    /// (= boss 2026-10-10 (see OOB.md #2026-10-10) 步骤" directive). The
+    /// reachability predicate for the dot indicator. The user can only click a
+    /// dot for a step they have already reached (= a fresh sheet on ① 选目 标 only
+    /// has ① clickable; = ②③④ are dimmed AND disabled). The reachability
+    /// contract: - `.configure` always reachable (= the initial step). -
+    /// `.running` reachable when the user has pressed 开始 (= `hasRunOnce`). -
+    /// `.results` reachable when the import has finished (= the orchestrator's
+    /// `isRunComplete` flag is true) OR the user has already navigated past it
+    /// (= currentStep ≥ .results). - `.done` reachable only after the user has
+    /// tapped 完成 on the .results step (= currentStep == .done OR currentStep
+    /// has been past it).
     func canReachStep(_ step: WizardStep) -> Bool {
         switch step {
         case .configure:
@@ -89,48 +54,28 @@ extension ImportSheet {
         }
     }
 
-    /// True if the user can go back one step (= not on
-    /// the first step; = never go back from .running
-    /// because the import is mid-flight; = the boss's
-    /// "上一步" button is enabled on every step EXCEPT
-    /// the first (.configure); = on the first step
-    /// the button is HIDDEN entirely per the
-    /// boss's round-48 "第一步的页面, 不应该有
-    /// 上一步" directive).
+    /// True if the user can go back one step (= not on the first step; = never
+    /// go back from .running because the import is mid-flight; = the boss's
+    /// "上一步" button is enabled on every step EXCEPT the first (.configure); =
+    /// on the first step the button is HIDDEN entirely per the boss's round-48
+    /// "第一步的页面, 不应该有 上一步" directive).
     var canGoPrev: Bool {
         currentStep != .configure
     }
 
-    /// True if the user can advance to the next step.
-    /// The rules (= the boss's "不点 '开始导入' 不能
-    /// 进步骤 2" answer):
-    /// - .configure → .running iff `canStart` (= the
-    ///   user has filled the required fields).
-    /// - .running → .results iff `isRunComplete` (=
-    ///   the orchestrator has finished; = the user
-    ///   can review the results).
-    /// - .results → .done always (= just a "next" tap
-    ///   to dismiss the per-file list).
-    /// - .done: ALWAYS reachable (= the
-    ///   boss's round-51 "完成不用判
-    ///   断任何, 就直接能点就可以"
-    ///   directive; = even if there
-    ///   are failures (= 21 failed
-    ///   + 14 skipped = the user has
-    ///   acknowledged the failures
-    ///   and wants to close the
-    ///   sheet; = the button is a
-    ///   "dismiss" not a "validate
-    ///   success"; = gating the
-    ///   dismiss button on
-    ///   `hasFailures == false`
-    ///   forces the user to do an
-    ///   extra step to dismiss the
-    ///   sheet even though the
-    ///   import is done and the
-    ///   user has accepted the
-    ///   outcome; = the gate is
-    ///   unnecessary friction).
+    /// True if the user can advance to the next step. The rules (= the boss's
+    /// "不点 '开始导入' 不能 进步骤 2" answer): - .configure → .running iff `canStart` (=
+    /// the user has filled the required fields). - .running → .results iff
+    /// `isRunComplete` (= the orchestrator has finished; = the user can review
+    /// the results). - .results → .done always (= just a "next" tap to dismiss
+    /// the per-file list). - .done: ALWAYS reachable (= the boss's round-51
+    /// "完成不用判 断任何, 就直接能点就可以" directive; = even if there are failures (= 21
+    /// failed + 14 skipped = the user has acknowledged the failures and wants
+    /// to close the sheet; = the button is a "dismiss" not a "validate
+    /// success"; = gating the dismiss button on `hasFailures == false` forces
+    /// the user to do an extra step to dismiss the sheet even though the import
+    /// is done and the user has accepted the outcome; = the gate is unnecessary
+    /// friction).
     var canGoNext: Bool {
         switch currentStep {
         case .configure:
@@ -144,12 +89,10 @@ extension ImportSheet {
         }
     }
 
-    /// The primary action button's label (= the
-    /// right side of the nav bar). Apple HIG
-    /// canonical: a single label that reflects what
-    /// tapping it WILL do (= "开始" → start the
-    /// import; = "下一步" → advance; = "完成" →
-    /// dismiss the sheet).
+    /// The primary action button's label (= the right side of the nav bar).
+    /// Apple HIG canonical: a single label that reflects what tapping it WILL
+    /// do (= "开始" → start the import; = "下一步" → advance; = "完成" → dismiss the
+    /// sheet).
     var primaryActionLabel: String {
         switch currentStep {
         case .configure: return "开始"
@@ -159,10 +102,9 @@ extension ImportSheet {
         }
     }
 
-    /// The previous-step action (= Apple HIG
-    /// canonical: a simple "上一步" label; = the
-    /// button is disabled when `canGoPrev` is
-    /// false; = never go back from .running).
+    /// The previous-step action (= Apple HIG canonical: a simple "上一步" label; =
+    /// the button is disabled when `canGoPrev` is false; = never go back from
+    /// .running).
     func goPrev() {
         guard canGoPrev else { return }
         switch currentStep {
@@ -173,22 +115,15 @@ extension ImportSheet {
         }
     }
 
-    /// The next-step action. Apple HIG canonical:
-    /// tapping the primary action advances the
-    /// wizard. Side effects per step:
-    /// - .configure → .running: starts the import
-    ///   (= `startImport()` kicks off the
-    ///   orchestrator; = the user lands on
-    ///   .running + the progress view animates).
-    /// - .running → .results: no-op (the auto-
-    ///   advance via .onChange of isRunComplete
-    ///   already fired; = this path is the user
-    ///   manually tapping "下一步" while still
-    ///   on .running; = advancing is idempotent).
-    /// - .results → .done: no-op (the .done view
-    ///   presents a summary).
-    /// - .done: dismiss the sheet (= the boss's
-    ///   terminal state).
+    /// The next-step action. Apple HIG canonical: tapping the primary action
+    /// advances the wizard. Side effects per step: - .configure → .running:
+    /// starts the import (= `startImport()` kicks off the orchestrator; = the
+    /// user lands on .running + the progress view animates). - .running →
+    /// .results: no-op (the auto- advance via .onChange of isRunComplete
+    /// already fired; = this path is the user manually tapping "下一步" while
+    /// still on .running; = advancing is idempotent). - .results → .done: no-op
+    /// (the .done view presents a summary). - .done: dismiss the sheet (= the
+    /// boss's terminal state).
     func goNext() {
         guard canGoNext else { return }
         switch currentStep {
@@ -216,15 +151,10 @@ extension ImportSheet {
 
     // MARK: - Per-step views
 
-    /// Step 1: 选目标. The macOS 27 list
-    /// row pattern (= 32 PT row
-    /// height; = no card background
-    /// fill; = the boss's round-49
-    /// "每一行的背景矩形不需要"
-    /// directive; = the row is
-    /// just text + control; =
-    /// sections separated by a
-    /// hairline Divider).
+    /// Step 1: 选目标. The macOS 27 list row pattern (= 32 PT row height; = no
+    /// card background fill; = the boss's round-49 "每一行的背景矩形不需要" directive; =
+    /// the row is just text + control; = sections separated by a hairline
+    /// Divider).
     @ViewBuilder
     var step1ConfigureView: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -434,19 +364,11 @@ extension ImportSheet {
         }
     }
 
-    /// Step 2: 进度. The progress
-    /// bar + the per-file strip;
-    /// = the two surfaces are
-    /// separated by a hairline
-    /// Divider (= matches the
-    /// step 1 / step 3 pattern;
-    /// = the boss's round-50
-    /// "演示要每一步骤的页面
-    /// 都一样, 不只改第一步"
-    /// directive; = every step
-    /// has the same
-    /// dot-indicator / Divider /
-    /// bottom-nav-bar chrome).
+    /// Step 2: 进度. The progress bar + the per-file strip; = the two surfaces
+    /// are separated by a hairline Divider (= matches the step 1 / step 3
+    /// pattern; = the boss's round-50 "演示要每一步骤的页面 都一样, 不只改第一步" directive; =
+    /// every step has the same dot-indicator / Divider / bottom-nav-bar
+    /// chrome).
     @ViewBuilder
     var step2RunningView: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -474,49 +396,17 @@ extension ImportSheet {
         }
     }
 
-    /// Step 3: 结果. The per-file list
-    /// (= the same strip as Step 2) +
-    /// per-row "重试" buttons. No
-    /// pickers, no progress bar (= the
-    /// import already finished; = the
-    /// user is now in review/retry
-    /// mode).
-    ///
-    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
-    /// directive). The
-    /// "重新调研所有失败"
-    /// total button
-    /// moves from the
-    /// top of the view
-    /// (= the round-36
-    /// position; = the
-    /// user complained
-    /// "挨着完成放" =
-    /// the button
-    /// should be next
-    /// to the 完成
-    /// button, not at
-    /// the top of the
-    /// list) to the
-    /// BOTTOM of the
-    /// view, right-
-    /// aligned, with a
-    /// hairline Divider
-    /// above it (= the
-    /// "操作上面需要也
-    /// 加一条分割线"
-    /// requirement; =
-    /// the Divider
-    /// separates the
-    /// file list from
-    /// the action
-    /// surface; = the
-    /// action sits in
-    /// its own row,
-    /// visually
-    /// analogous to the
-    /// "完成" button in
-    /// the nav bar).
+    /// Step 3: 结果. The per-file list (= the same strip as Step 2) + per-row
+    /// "重试" buttons. No pickers, no progress bar (= the import already
+    /// finished; = the user is now in review/retry mode).
+    /// (= boss 2026-10-10 (see OOB.md #2026-10-10) directive). The "重新调研所有失败"
+    /// total button moves from the top of the view (= the round-36 position; =
+    /// the user complained "挨着完成放" = the button should be next to the 完成
+    /// button, not at the top of the list) to the BOTTOM of the view, right-
+    /// aligned, with a hairline Divider above it (= the "操作上面需要也 加一条分割线"
+    /// requirement; = the Divider separates the file list from the action
+    /// surface; = the action sits in its own row, visually analogous to the
+    /// "完成" button in the nav bar).
     @ViewBuilder
     var step3ResultsView: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -559,66 +449,20 @@ extension ImportSheet {
         }
     }
 
-    /// Step 4: 完成. The summary
-    /// (= "完成 N, 跳过 M, 失败 K")
-    /// + a "完成" button to dismiss
-    /// the sheet. No pickers, no
-    /// progress bar, no per-file
-    /// list (= the user is
-    /// already done with the
-    /// import).
-    ///
-    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
-    /// 左对齐" directive).
-    /// The previous
-    /// implementation
-    /// had
-    /// `.padding(DesignTokens
-    /// .spacingStandard)`
-    /// (= 12 PT
-    /// internal
-    /// padding) on
-    /// the VStack (= the
-    /// summary text
-    /// was inset 12 PT
-    /// from the sheet's
-    /// left edge; = the
-    /// user perceived
-    /// the text as
-    /// "floating in the
-    /// middle of the
-    /// sheet" with a
-    /// visible gap from
-    /// the sheet's left
-    /// edge). The fix:
-    /// REMOVE the
-    /// internal padding
-    /// (= the text now
-    /// starts at x = 0
-    /// inside the
-    /// VStack; = the
-    /// VStack itself
-    /// uses
-    /// `alignment:
-    /// .leading` + the
-    /// `frame(maxWidth:
-    /// .infinity,
-    /// alignment:
-    /// .leading)` to
-    /// make the text
-    /// flush with the
-    /// sheet's left
-    /// edge; = the
-    /// summary text is
-    /// now aligned with
-    /// the dot indicator
-    /// + the nav bar
-    /// buttons on the
-    /// other steps;
-    /// = the visual
-    /// alignment is
-    /// consistent across
-    /// all 4 steps).
+    /// Step 4: 完成. The summary (= "完成 N, 跳过 M, 失败 K") + a "完成" button to
+    /// dismiss the sheet. No pickers, no progress bar, no per-file list (= the
+    /// user is already done with the import).
+    /// (= boss 2026-10-10 (see OOB.md #2026-10-10) 左对齐" directive). The
+    /// previous implementation had `.padding(DesignTokens .spacingStandard)` (=
+    /// 12 PT internal padding) on the VStack (= the summary text was inset 12
+    /// PT from the sheet's left edge; = the user perceived the text as
+    /// "floating in the middle of the sheet" with a visible gap from the
+    /// sheet's left edge). The fix: REMOVE the internal padding (= the text now
+    /// starts at x = 0 inside the VStack; = the VStack itself uses `alignment:
+    /// .leading` + the `frame(maxWidth: .infinity, alignment: .leading)` to
+    /// make the text flush with the sheet's left edge; = the summary text is
+    /// now aligned with the dot indicator + the nav bar buttons on the other
+    /// steps; = the visual alignment is consistent across all 4 steps).
     @ViewBuilder
     var step4DoneView: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingStandard) {
