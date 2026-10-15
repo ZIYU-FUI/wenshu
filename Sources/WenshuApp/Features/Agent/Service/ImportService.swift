@@ -501,131 +501,16 @@ actor ImportService {
         // `inFlightCount` ticks as tasks flip from
         // .pending → .routing and back to
         // .routing → .writing on completion).
-        // Phase 3 + Phase 4 (= unified per-file
-        // pipeline; = boss's 2026-10-09 directive
-        // "分析、编辑、完成、失败 这四种状态跑吗，
-        // 每个文件每个文件的跑"; = the old
-        // all-route-then-all-write design forced the
-        // user to watch the bar stuck at "进行中
-        // 40" for the full LLM round before any row
-        // reached .done; = the per-file pipeline
-        // ticks a file through 分析 → 编辑 → 完成
-        // back-to-back in a single TaskGroup slot
-        // = the first .done row lands within
-        // seconds; = the sheet's "已完成 X" counter
-        // ticks in real time; = the user sees
-        // progress instead of a frozen bar).
-        //
-        // The pipeline runs on the orchestrator
-        // actor (= the actor's serialized state
-        // mutation is safe across 5 parallel
-        // `processFile` calls; = the TaskGroup
-        // concurrency is per-task only; = the
-        // shared `cache` dict needs a reference
-        // wrapper because the per-task calls take
-        // `cache: inout` = value-type mutation
-        // across a TaskGroup boundary is the
-        // classic Swift 6 data-race source; =
-        // `CacheBox` is the canonical class-wrapper
-        // workaround that holds a single shared
-        // dict the orchestrator can write to
-        // safely from any concurrent context).
         let cacheBox = CacheBox(value: cache)
         let tasksBox = TasksBox(value: tasks)
-        await withTaskGroup(of: Void.self) { (group: inout TaskGroup<Void>) in
-            var inFlight = 0
-            var nextIndex = 0
-            // Seed the first `maxParallel` tasks (= 5
-            // today; = the boss's explicit knob; = the
-            // TaskGroup cap is the in-flight LLM
-            // pressure knob; = the LLMConnector
-            // adapter handles its own provider-side
-            // rate limiting).
-            //
-            // CRITICAL: mutate `tasksBox.value[i].state`
-            // (NOT the local `tasks` copy) and emit
-            // `tasksBox.value` to onProgress. The
-            // previous code mutated the local
-            // `tasks` array and emitted the local
-            // `tasks` in the drain loop, which meant
-            // the sheet's snapshot went STALE on
-            // every processFile completion (= the
-            // .done / .failed mutations live in
-            // tasksBox.value; = the local `tasks` copy
-            // was never updated; = the sheet saw the
-            // completed tasks revert to .pending; =
-            // the boss's 2026-10-09 round-11
-            // feedback "还是没修好，已完成没有持久":
-            // the .done state was set in
-            // tasksBox.value but the snapshot the
-            // sheet received was the STALE local
-            // `tasks`).
-            while inFlight < target.maxParallel, nextIndex < dispatchIndices.count {
-                let i = dispatchIndices[nextIndex]
-                tasksBox.value[i].state = .routing
-                await onProgress?(tasksBox.value)
-                let input = ImportFileInput(
-                    filePath: tasksBox.value[i].sourcePath,
-                    targetBookId: target.bookId,
-                    targetShelfId: target.shelfId,
-                    rewriteMode: target.rewriteMode
-                )
-                group.addTask { [self] in
-                    await self.processFile(
-                        taskIndex: i,
-                        input: input,
-                        target: target,
-                        router: router,
-                        cacheBox: cacheBox,
-                        tasksBox: tasksBox,
-                        onProgress: onProgress
-                    )
-                }
-                inFlight += 1
-                nextIndex += 1
-            }
-            // Drain + refill (= each completed task
-            // frees a slot in the semaphore; = the
-            // next pending task is seeded; = the
-            // pipeline keeps 5 files in flight
-            // concurrently for the entire batch).
-            //
-            // CRITICAL: same fix as the seed loop
-            // (= mutate `tasksBox.value[j].state`; =
-            // emit `tasksBox.value`; = the local
-            // `tasks` array is a stale snapshot from
-            // before the TaskGroup started and is no
-            // longer the source of truth).
-            while await group.next() != nil {
-                inFlight -= 1
-                if nextIndex < dispatchIndices.count {
-                    let j = dispatchIndices[nextIndex]
-                    if tasksBox.value[j].state == .pending {
-                        tasksBox.value[j].state = .routing
-                        await onProgress?(tasksBox.value)
-                        let input = ImportFileInput(
-                            filePath: tasksBox.value[j].sourcePath,
-                            targetBookId: target.bookId,
-                            targetShelfId: target.shelfId,
-                            rewriteMode: target.rewriteMode
-                        )
-                        group.addTask { [self] in
-                            await self.processFile(
-                                taskIndex: j,
-                                input: input,
-                                target: target,
-                                router: router,
-                                cacheBox: cacheBox,
-                                tasksBox: tasksBox,
-                                onProgress: onProgress
-                            )
-                        }
-                        inFlight += 1
-                        nextIndex += 1
-                    }
-                }
-            }
-        }
+        await runConcurrentPipeline(
+            dispatchIndices: dispatchIndices,
+            target: target,
+            router: router,
+            cacheBox: cacheBox,
+            tasksBox: tasksBox,
+            onProgress: onProgress
+        )
         // Persist the updated cache (= the orchestrator
         // re-reads the cache after each successful write
         // so concurrent imports don't lose entries; = the
@@ -664,6 +549,90 @@ actor ImportService {
             entitiesJSONSnapshot = (entitiesIndex, Data())
         }
         return entitiesIndex
+    }
+
+
+    /// Phase 3+4 = unified per-file pipeline
+    /// (= the orchestrator's 5-way parallel
+    /// TaskGroup; = the actor's serialized
+    /// state mutation is safe across the
+    /// concurrent `processFile` calls; =
+    /// `CacheBox` / `TasksBox` are the
+    /// class-wrapper workaround that hold
+    /// the shared mutable state the
+    /// TaskGroup needs to mutate from
+    /// concurrent contexts).
+    private func runConcurrentPipeline(
+        dispatchIndices: [Int],
+        target: ImportTarget,
+        router: ImportRouter,
+        cacheBox: CacheBox,
+        tasksBox: TasksBox,
+        onProgress: (@Sendable ([ImportTask]) async -> Void)?
+    ) async {
+        await withTaskGroup(of: Void.self) { (group: inout TaskGroup<Void>) in
+            var inFlight = 0
+            var nextIndex = 0
+            // Seed the first `maxParallel` tasks (= 5 today; = the LLM
+            // pressure knob; = the LLMConnector adapter handles its own
+            // provider-side rate limiting).
+            while inFlight < target.maxParallel, nextIndex < dispatchIndices.count {
+                let i = dispatchIndices[nextIndex]
+                tasksBox.value[i].state = .routing
+                await onProgress?(tasksBox.value)
+                let input = ImportFileInput(
+                    filePath: tasksBox.value[i].sourcePath,
+                    targetBookId: target.bookId,
+                    targetShelfId: target.shelfId,
+                    rewriteMode: target.rewriteMode
+                )
+                group.addTask { [self] in
+                    await self.processFile(
+                        taskIndex: i,
+                        input: input,
+                        target: target,
+                        router: router,
+                        cacheBox: cacheBox,
+                        tasksBox: tasksBox,
+                        onProgress: onProgress
+                    )
+                }
+                inFlight += 1
+                nextIndex += 1
+            }
+            // Drain + refill (= each completed task frees a slot in the
+            // semaphore; = the next pending task is seeded; = the pipeline
+            // keeps 5 files in flight concurrently for the entire batch).
+            while await group.next() != nil {
+                inFlight -= 1
+                if nextIndex < dispatchIndices.count {
+                    let j = dispatchIndices[nextIndex]
+                    if tasksBox.value[j].state == .pending {
+                        tasksBox.value[j].state = .routing
+                        await onProgress?(tasksBox.value)
+                        let input = ImportFileInput(
+                            filePath: tasksBox.value[j].sourcePath,
+                            targetBookId: target.bookId,
+                            targetShelfId: target.shelfId,
+                            rewriteMode: target.rewriteMode
+                        )
+                        group.addTask { [self] in
+                            await self.processFile(
+                                taskIndex: j,
+                                input: input,
+                                target: target,
+                                router: router,
+                                cacheBox: cacheBox,
+                                tasksBox: tasksBox,
+                                onProgress: onProgress
+                            )
+                        }
+                        inFlight += 1
+                        nextIndex += 1
+                    }
+                }
+            }
+        }
     }
 
 
