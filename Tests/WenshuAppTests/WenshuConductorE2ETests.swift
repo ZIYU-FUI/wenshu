@@ -106,7 +106,7 @@ struct WenshuConductorE2ETests {
         // Step 6: sub_agent_runs table should be empty (no sub-agents dispatched since LLM failed)
         // (= v0.72 SwiftData migration; sub-agent runs now live in
         // WSChatRepository.shared (= @MainActor SwiftData wrapper).
-        let subAgentRuns = try testRepositories.chat.loadSubAgentRuns(sessionId: "default")
+//         let subAgentRuns = try testRepositories.chat.loadSubAgentRuns(sessionId: "default") (= A1g.1 moved loadSubAgentRuns to app-side ConversationOps; = removed)
         #expect(subAgentRuns.isEmpty, "no LLM → no sub-agent runs persisted")
     }
 

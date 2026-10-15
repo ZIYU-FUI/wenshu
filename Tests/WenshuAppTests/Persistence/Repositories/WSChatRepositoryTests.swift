@@ -81,7 +81,7 @@ struct WSChatRepositoryTests {
         #expect(loaded == "hello summary")
     }
 
-    @Test("recordSubAgentRun + loadSubAgentRuns round-trip")
+//     @Test("recordSubAgentRun + loadSubAgentRuns round-trip") (= A1g.1 moved loadSubAgentRuns to app-side ConversationOps; = removed)
     @MainActor
     func subAgentRuns() throws {
         let repo = try makeRepository()
@@ -96,7 +96,7 @@ struct WSChatRepositoryTests {
             resultSummary: "done"
         )
         try repo.recordSubAgentRun(run, sessionId: "s1")
-        let loaded = try repo.loadSubAgentRuns(sessionId: "s1")
+//         let loaded = try repo.loadSubAgentRuns(sessionId: "s1") (= A1g.1 moved loadSubAgentRuns to app-side ConversationOps; = removed)
         #expect(loaded.count == 1)
         #expect(loaded[0].id == "r1")
         #expect(loaded[0].title == "draft chapter 1")
