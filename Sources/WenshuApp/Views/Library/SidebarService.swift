@@ -176,7 +176,7 @@ final class SidebarService {
             // primary facet on the Reference struct (= still
             // assigned by EntityClassifier), but they no longer
             // drive the sidebar browse surface. The previous
-            // v0.29 22-category sidebar was too rigid for the
+            // -category sidebar was too rigid for the
             // wenshu use case (= users couldn't tag '唐代边塞诗'
             // under both '唐朝' + '边塞诗' = the tag cloud
             // collapses to one row per distinct tag).
@@ -218,7 +218,7 @@ final class SidebarService {
                 .map { (tag, count) -> SidebarNode in
                     SidebarNode(
                         id: Self.stableReferenceTagId(tag),
-                        // v2.6 facet model: tag is a separate
+                        // tag is a separate
                         // SidebarNode.Kind (= NOT a
                         // referenceCategory). This is the fix
                         // for the v2.6+ preview-pane routing
@@ -489,7 +489,7 @@ final class SidebarService {
     /// Distinct ID namespace from stableReferenceCategoryId
     /// (= "wenshu.sidebar.reftag." vs "wenshu.sidebar.refcat.")
     /// so the v2.6 tag rows never collide with the legacy
-    /// v0.29 category rows in any persisted selection.
+    /// rows in any persisted selection.
     private static func stableReferenceTagId(_ tag: String) -> UUID {
         let raw = "wenshu.sidebar.reftag.\(tag)"
         var hasher = Hasher()
@@ -785,7 +785,7 @@ extension SidebarService {
         throw MutationError.bookNotFound
     }
 
-    /// v2.7 round-63 (= boss
+    /// (= boss
     /// 2026-10-10 "素
     /// 材区，卡片，
     /// 右键菜单，
@@ -821,7 +821,7 @@ extension SidebarService {
         try referenceStore.deleteReference(id: id)
     }
 
-    /// v2.7 round-63: rename
+    /// rename
     /// a single reference
     /// (= change only the
     /// `title` field; = the

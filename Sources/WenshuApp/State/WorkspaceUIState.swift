@@ -163,7 +163,7 @@ final class WorkspaceUIState {
 ///
 /// Was co-located with the dead `InspectorCatalog` enum (= the
 /// 14-tool static catalog no caller referenced after the
-/// v1.71b InspectorView rewrite). `InspectorPage` is the only
+/// ). `InspectorPage` is the only
 /// survivor of that file; it lives next to its single state-field
 /// owner (`WorkspaceUIState.inspectorPage`).
 ///

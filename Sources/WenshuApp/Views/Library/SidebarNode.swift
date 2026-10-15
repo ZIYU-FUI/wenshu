@@ -95,7 +95,7 @@ struct SidebarNode: Identifiable, Hashable, Sendable {
         // = EntityCategory). Children = the references in that
         // category.
         case referenceCategory
-        // v2.6 facet model: tag row (= a v2.6 cross-cutting
+        // tag row (= a v2.6 cross-cutting
         // facet; = one SidebarNode per unique tag string; =
         // orthogonal to `referenceCategory` and entityType).
         // Children = nil (= leaf; = clicking a tag row routes

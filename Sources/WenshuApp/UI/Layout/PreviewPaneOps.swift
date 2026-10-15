@@ -291,7 +291,7 @@ enum PreviewPaneOps {
             return searchFilteredEntities(entities, query: searchQuery).count
 
         case .tagScope(let tag):
-            // v2.6 facet model: dedicated tag scope; = the
+            // dedicated tag scope; = the
             // chrome count = the same `loadAllEntities()`
             // prefilter + tag contains + search query
             // (= 1:1 with `referenceScopeView(category: nil,

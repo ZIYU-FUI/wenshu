@@ -63,7 +63,7 @@ struct ImportFileInput: Codable, Sendable, Hashable {
     /// into a long-lived Data blob; = see spec "Further Notes"
     /// on the 200+ MB source-directory memory budget).
     let filePath: String
-    /// v2.7 round-36 (= boss 2026-10-09 (see OOB.md #2026-10-09)
+    /// (= boss 2026-10-09 (see OOB.md #2026-10-09)
     /// 就是基于标题重新调研" directive).
     /// Optional body override (= the
     /// orchestrator pre-constructed a body
@@ -138,7 +138,7 @@ struct ImportFileInput: Codable, Sendable, Hashable {
         /// search results; = the new body lands on
         /// disk in place of the original).
         case searchAndRewrite
-        /// v2.7 round-67 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+        /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
         /// 符合 B" 需求). The LLM **actively
         /// reorganizes** the source A into B's
         /// template structure (= 6 H2 for world
@@ -236,7 +236,7 @@ struct ImportRoutingResult: Codable, Sendable, Hashable {
     /// `consolidate` mode (= the orchestrator
     /// keeps the original body verbatim).
     let rewrittenBody: String?
-    /// v2.7 round-67 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// 在合适的目录中去" 反馈). When the
     /// user picked the `reorganize` rewriteMode,
     /// the LLM may return additional files
@@ -257,7 +257,7 @@ struct ImportRoutingResult: Codable, Sendable, Hashable {
     let extraFiles: [ExtraFile]
 }
 
-/// v2.7 round-71 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+/// (= boss 2026-10-10 (see OOB.md #2026-10-10)
 /// (= classification +
 /// metadata + main
 /// body + 6 必填 +
@@ -307,7 +307,7 @@ struct ExtraFile: Codable, Sendable, Hashable {
     /// write time; = no frontmatter
     /// required).
     let body: String
-    /// v2.7 round-69 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// 定义名字" feedback).
     /// True = this is one of
     /// the 6 mandatory
@@ -337,7 +337,7 @@ struct ExtraFile: Codable, Sendable, Hashable {
     let required: Bool
 }
 
-/// v2.7 round-66 commit F (= boss
+/// (= boss
 /// 2026-10-10 "我选
 /// 故事宪法，直
 /// 接跳到了步
@@ -481,7 +481,7 @@ enum ImportEnvelope: Codable, Sendable, Hashable {
             let filePath = try c.decode(String.self, forKey: .filePath)
             let bookId = try c.decode(UUID.self, forKey: .targetBookId)
             let shelfId = try c.decode(UUID.self, forKey: .targetShelfId)
-            // v2.7 backwards-compat (= if a pre-v2.7
+            // (= if a pre-v2.7
             // envelope omits `rewriteMode`, default to
             // `consolidate`; = the orchestrator's
             // pre-v2.7 behavior = no tools + original

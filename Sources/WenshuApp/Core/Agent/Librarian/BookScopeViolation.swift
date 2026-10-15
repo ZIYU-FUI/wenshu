@@ -19,7 +19,7 @@ import Foundation
 enum BookScopeViolation: Error, LocalizedError, Sendable, Equatable {
     /// The chat session is not bound to any book (= the user has not
     /// picked one in the sidebar yet, or the chat predates the
-    /// v1.79 row-level split).
+    /// ).
     case noChatBookBound(providedBookID: UUID?)
 
     /// The chat session is bound to a different book than the one the

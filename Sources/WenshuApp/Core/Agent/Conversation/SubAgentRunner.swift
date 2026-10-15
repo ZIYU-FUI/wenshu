@@ -32,7 +32,7 @@
 //    `ConversationLoop` (= independent context), and marks the
 //    handle as completed when the sub-agent finishes.
 //
-// v2.7d upgrade: replaces the v2.7 stub (= canned strings per
+// replaces the v2.7 stub (= canned strings per
 // agent name) with a real LLM call. Each sub-agent runs its own
 // `ConversationLoop.runTurn` with the sub-agent's system prompt
 // + its own tool subset. The loop is multi-turn (= up to
@@ -376,7 +376,7 @@ final class SubAgentRunner {
         // 4. Run the sub-agent LLM call (= real LLM, multi-turn,
         //    with sub-agent's tool subset).
         //
-        //    v2.7d storage dispatch: Archivist + Auditor sub-agents
+        //    dispatch: Archivist + Auditor sub-agents
         //    use a domain-specific storage path (= ArchivistStorage /
         //    AuditorStorage, injected at init) instead of the LLM
         //    tool dispatch path. Researcher / Writer / Analyst fall

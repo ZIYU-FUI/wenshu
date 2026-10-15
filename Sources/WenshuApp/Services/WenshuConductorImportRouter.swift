@@ -63,7 +63,7 @@ actor WenshuConductorImportRouter: ImportRouter {
     /// identifier).
     private let modelSlug: String
 
-    /// v2.7 round-73 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// 看板任务一样, 让一个 agent 跑完"). The
     /// driver (= the wenshu 文档管理员's
     /// orchestrator) wraps the SOP lookup + the
@@ -108,7 +108,7 @@ actor WenshuConductorImportRouter: ImportRouter {
     /// asks the LLM to return a single JSON object
     /// with the structured fields the orchestrator
     /// needs).
-    /// v2.7 round-71: `progress` callback emits
+    /// `progress` callback emits
     /// human-readable Chinese activity lines (= the
     /// orchestrator wires this into the per-row
     /// `activityLog`).
@@ -116,7 +116,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         _ input: ImportFileInput,
         progress: (@Sendable (String) async -> Void)? = nil
     ) async throws -> ImportRoutingResult {
-        // v2.7 round-36 (= boss 2026-10-09 (see OOB.md #2026-10-09)
+        // (= boss 2026-10-09 (see OOB.md #2026-10-09)
         // 就是基于标题重新调研" directive).
         // Body resolution (= three sources,
         // precedence high to low):
@@ -145,7 +145,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         }
         let fallbackTitle = Self.fallbackTitle(from: input.filePath)
 
-        // v2.7 round-71 C2 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+        // C2 (= boss 2026-10-10 (see OOB.md #2026-10-10)
         // OOB). In `.reorganize` mode
         // (= the boss's new
         // default mode), the
@@ -183,7 +183,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         }
     }
 
-    /// v2.7 round-71 C2. The single-LLM-call
+    /// C2. The single-LLM-call
     /// path (= the pre-round-71 behavior; = used by
     /// `.consolidate` + `.searchAndRewrite`; = kept
     /// for backward compat).
@@ -200,7 +200,7 @@ actor WenshuConductorImportRouter: ImportRouter {
             body: body,
             rewriteMode: input.rewriteMode
         )
-        // v2.7 tool wiring (= boss 2026-10-09 (see OOB.md #2026-10-09)
+        // (= boss 2026-10-09 (see OOB.md #2026-10-09)
         // round-18 "重写同时搜索校对"). The
         // `searchAndRewrite` mode is the ONLY
         // mode that passes tools (= the
@@ -278,7 +278,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         )
     }
 
-    /// v2.7 round-71 C2. The 3-phase multi-turn
+    /// C2. The 3-phase multi-turn
     /// path (= the new default for `.reorganize`;
     /// = the fix for "⚠️ LLM 没返回
     /// extraFiles"). Each phase makes 1 LLM call
@@ -310,7 +310,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         fallbackTitle: String,
         progress: (@Sendable (String) async -> Void)?
     ) async throws -> ImportRoutingResult {
-        // v2.7 round-73 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+        // (= boss 2026-10-10 (see OOB.md #2026-10-10)
         // 能" + "入口永远只有 ImportSheet").
         // The wenshu 文档管理员 (= wenshu
         // main agent) runs the import via
@@ -340,7 +340,7 @@ actor WenshuConductorImportRouter: ImportRouter {
             fallbackTitle: fallbackTitle,
             progress: progress
         )
-        // v2.7 round-73 (boss 2026-10-10 (see OOB.md #2026-10-10)
+        // (boss 2026-10-10 (see OOB.md #2026-10-10)
         // PO 双轴 HIGH finding): the
         // agent's `writeBookDoc` tool
         // needs the active book's
@@ -406,7 +406,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         let context = ImportAgentBookContext(
             bookPath: { bookPath }
         )
-        // v2.7 round-73 (boss 2026-10-10 (see OOB.md #2026-10-10)
+        // (boss 2026-10-10 (see OOB.md #2026-10-10)
             // PO 双轴 FAIL #7/8 fix): if the
             // LLM classified the source as a
             // reference-library import (= no
@@ -498,7 +498,7 @@ actor WenshuConductorImportRouter: ImportRouter {
 
     // MARK: - Tool-use loop (= v2.7 searchAndRewrite)
 
-    /// v2.7 multi-turn tool-use loop (= the
+    /// (= the
     /// `searchAndRewrite` rewriteMode's
     /// LLM-call pattern). Drives the LLM
     /// through a series of `web_search`
@@ -669,7 +669,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         // decision; = the cap also keeps the cost
         // low for a 456-file batch).
         let trimmed = String(body.prefix(12_000))
-        // v2.7 PROMPT REWRITE (= boss 2026-10-09 (see OOB.md #2026-10-09)
+        // (= boss 2026-10-09 (see OOB.md #2026-10-09)
         // round-16 "三个问题" feedback):
         // 1) "小说草稿里的卡片还是显示 ID":
         //    = the previous prompt included the
@@ -864,7 +864,7 @@ actor WenshuConductorImportRouter: ImportRouter {
                  fallback)。
             """
         case .reorganize:
-            // v2.7 round-67 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+            // (= boss 2026-10-10 (see OOB.md #2026-10-10)
             // 格式和样式" 反馈). The LLM's job
             // is to **actively reorganize**
             // the source A into the template
@@ -1118,7 +1118,7 @@ actor WenshuConductorImportRouter: ImportRouter {
             // un-escapes after parsing.
             return "\"title\":\"<中文标题>\",\"summary\":\"<一句话中文摘要>\",\"tags\":[\"<tag1>\",\"<tag2>\",...],\"rewrittenBody\":\"<整理后的 .ws 格式正文; 用 \\\\n 表示换行, 不要在字符串值里写真实换行>\""
         case .reorganize:
-            // v2.7 round-67 + round-69 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+            // + round-69 (= boss 2026-10-10 (see OOB.md #2026-10-10)
             // 其它自定义" 需求). The
             // LLM returns BOTH
             // `rewrittenBody` (= the
@@ -1146,7 +1146,7 @@ actor WenshuConductorImportRouter: ImportRouter {
     /// safe default (bookFolder .drafts) so the
     /// orchestrator never receives an invalid
     /// destination.
-    /// v2.7 round-66 commit F (= boss
+    /// (= boss
     /// 2026-10-10 "我选
     /// 故事宪法，直
     /// 接跳到了步
@@ -1299,7 +1299,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         """
     }
 
-    /// v2.7 round-66 commit F:
+    /// 
     /// Decide whether a Phase 2
     /// `ContentSameResult` should
     /// short-circuit the import (=
@@ -1381,7 +1381,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         //    on disk is verbatim from the source).
         return ImportRoutingResult(
             destination: destination,
-            // v2.7 round-37 (= boss "不能用
+            // (= boss "不能用
             // 提示词控制" directive): the
             // title is run through
             // `acceptTitle` (= programmatic
@@ -1410,7 +1410,7 @@ actor WenshuConductorImportRouter: ImportRouter {
             // to the original (= see round-66 commit E
             // for the mode-aware body selection).
             rewrittenBody: parsed.rewrittenBody,
-            // v2.7 round-67: extraFiles parsed
+            // extraFiles parsed
             // by `parseImportDecision` (=
             // see ticket 02). Empty array
             // when LLM doesn't return any
@@ -1423,7 +1423,7 @@ actor WenshuConductorImportRouter: ImportRouter {
     /// the source-file extension; = used when
     /// the LLM returns an empty title string).
     ///
-    /// v2.7 round-31 fix (= boss 2026-10-10 (see OOB.md #2026-10-10)
+    /// fix (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// `(filePath as NSString).deletingPathExtension`
     /// which only strips the trailing
     /// extension (= `.md`); = the full
@@ -1445,7 +1445,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         return stem.isEmpty ? "未命名" : stem
     }
 
-    /// v2.7 round-37 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// directive). Programmatic title
     /// sanitization (= the LLM's title is
     /// not trusted; = any of the failure
@@ -1726,7 +1726,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         return false
     }
 
-    /// v2.7 round-37 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// directive). The LLM-supplied title
     /// is NOT trusted as-is (= the LLM
     /// can echo the file path, the
@@ -1788,7 +1788,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         /// when the LLM returned an empty
         /// string).
         var rewrittenBody: String?
-        /// v2.7 round-67 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+        /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
         /// 去" 反馈). The LLM's optional
         /// array of additional files to
         /// split out (= A's content that
@@ -1901,7 +1901,7 @@ actor WenshuConductorImportRouter: ImportRouter {
             default: return nil
             }
         }()
-        // v2.7 rewritten body (= only set in
+        // (= only set in
         // `searchAndRewrite` mode; = empty
         // string from the LLM = the user
         // didn't actually search and rewrite
@@ -1909,7 +1909,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         // falls back to the original body).
         let rawRewritten = (parsed["rewrittenBody"] as? String) ?? ""
         let rewrittenBody: String? = rawRewritten.isEmpty ? nil : Self.stripObsidianBacklinks(rawRewritten)
-        // v2.7 tag cap (= boss 2026-10-09 (see OOB.md #2026-10-09)
+        // (= boss 2026-10-09 (see OOB.md #2026-10-09)
         // (= the LLM may emit 4 or 5 if it
         // ignored the prompt; = the cap is
         // here as the canonical gate; = the
@@ -1980,7 +1980,7 @@ actor WenshuConductorImportRouter: ImportRouter {
             }
             return trimmedTag
         }
-        // v2.7 round-67 ticket 02: parse
+        // ticket 02: parse
         // `extraFiles` (= LLM's optional
         // array of split-out files).
         // Defensive: missing / malformed
@@ -2004,7 +2004,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         )
     }
 
-    /// v2.7 round-67 ticket 02: parse the
+    /// ticket 02: parse the
     /// `extraFiles` array from the LLM's
     /// JSON response. Each element must
     /// have a valid `folder` (= one of
@@ -2020,7 +2020,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         guard let rawArray = json["extraFiles"] as? [[String: Any]] else {
             return []
         }
-        // v2.7 round-69 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+        // (= boss 2026-10-10 (see OOB.md #2026-10-10)
         // 自定义 cap" chosen).
         // = 6 mandatory world
         // sub-files + 5 custom
@@ -2051,7 +2051,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         var requiredCount = 0
         var customCount = 0
         for element in rawArray {
-            // v2.7 round-69: cap = 6 必填
+            // cap = 6 必填
             // + 5 自定义 = 11
             // total. The mandatory
             // 6 always get
@@ -2091,7 +2091,7 @@ actor WenshuConductorImportRouter: ImportRouter {
                 )
                 continue
             }
-            // v2.7 round-69: the boss
+            // the boss
             // explicitly said "不要
             // 备注标题的文档"
             // (= no fixed
@@ -2138,7 +2138,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         return result
     }
 
-    /// v2.7 round-67 ticket 02: map a
+    /// ticket 02: map a
     /// string to a `BookFolder` (= the
     /// same mapping as the main
     /// destination's `folder` key; =

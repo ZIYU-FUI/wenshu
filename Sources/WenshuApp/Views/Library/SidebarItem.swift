@@ -42,7 +42,7 @@ enum SidebarItem: Hashable, Codable {
     case folder(bookId: UUID, folderName: String)
     case referenceCategory(String)  // = EntityCategory.directoryName
 
-    // v2.6 facet model: tag selection. Selecting a tag filters the
+    // tag selection. Selecting a tag filters the
     // preview pane / card grid to references carrying that tag.
     // Cross-cutting (= orthogonal to category + entityType).
     case tag(String)

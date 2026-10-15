@@ -1165,7 +1165,6 @@ final class ChatViewModel {
     }
 }
 
-
 // MARK: - Try-logging helper (= 12 standard P1-02 try?  scaffolding)
 
 // Per Apple HIG + 12 standard P1-02: business-layer `try?` calls

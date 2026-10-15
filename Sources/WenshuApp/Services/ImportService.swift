@@ -53,7 +53,7 @@ protocol ImportRouter: Sendable {
     /// Returns the ImportRoutingResult (= destination +
     /// metadata); = the orchestrator dispatches on the
     /// destination to decide the write path.
-    /// v2.7 round-71: optional `progress` callback (= the
+    /// optional `progress` callback (= the
     /// router emits human-readable Chinese activity lines;
     /// = the orchestrator's `appendActivity` appends them
     /// to the per-row `activityLog`; = the sheet shows
@@ -64,7 +64,7 @@ protocol ImportRouter: Sendable {
         _ input: ImportFileInput,
         progress: (@Sendable (String) async -> Void)?
     ) async throws -> ImportRoutingResult
-    /// v2.7 round-66 commit F (= boss
+    /// (= boss
     /// 2026-10-10 "我选
     /// 故事宪法，直
     /// 接跳到了步
@@ -170,7 +170,7 @@ enum ImportFileType: String, CaseIterable, Identifiable, Codable, Sendable, Hash
         }
     }
 
-    /// v2.7 round-56 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// (= 重新设计文案)"
     /// directive). The
     /// placeholders are
@@ -222,7 +222,7 @@ enum ImportFileType: String, CaseIterable, Identifiable, Codable, Sendable, Hash
         }
     }
 
-    /// v2.7 round-54: the file
+    /// the file
     /// extension list (= what
     /// `walkSourceDir` filters on;
     /// = the placeholder + the
@@ -274,7 +274,7 @@ enum ImportFileType: String, CaseIterable, Identifiable, Codable, Sendable, Hash
         }
     }
 
-    /// v2.7 round-57: the
+    /// the
     /// `UTType` array
     /// used by
     /// `NSOpenPanel.allowedContentTypes`
@@ -352,7 +352,7 @@ struct ImportTask: Identifiable, Sendable, Hashable {
     /// .failed`; = the sheet renders it inline next to
     /// the row).
     var errorMessage: String?
-    /// v2.7 round-66 commit F: the
+    /// the
     /// reason the task was
     /// `.skipped` (= shown
     /// inline next to the
@@ -376,7 +376,7 @@ struct ImportTask: Identifiable, Sendable, Hashable {
     /// >= .writing`; = cached for the sheet's low-confidence
     /// warning indicator).
     var routing: ImportRoutingResult?
-    /// v2.7 round-67 ticket 04 (= boss
+    /// ticket 04 (= boss
     /// 2026-10-10 "甚至原文
     /// 件 A 的内容, 与我们
     /// 的 B 模版不符合, 多
@@ -409,8 +409,8 @@ struct ImportTask: Identifiable, Sendable, Hashable {
     /// strip shows "1 主 + N
     /// 拆出").
     var extraFilesDone: Int = 0
-    /// v2.7 round-72 (= boss 2026-10-10 (see OOB.md #2026-10-10)
-        /// v2.7 round-70 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
+        /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// feedback). Real-time
     /// LLM activity log
     /// (= the orchestrator
@@ -445,7 +445,7 @@ struct ImportTask: Identifiable, Sendable, Hashable {
     /// without scrolling
     /// forever).
     var activityLog: [String] = []
-    /// v2.7 round-71 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// (= phase 1/2/3) is
     /// currently running).
     /// nil = no LLM call
@@ -529,7 +529,7 @@ actor ImportService {
     /// pressure below the Anthropic / MiniMax
     /// per-second burst limit; = the LLMConnector
     /// adapter handles its own rate limiting for
-    /// v2.7 round-42 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// directive). The historical
     /// default was 5; = we kept
     /// `defaultMaxParallel = 5` as a
@@ -554,7 +554,7 @@ actor ImportService {
         let contentHash: String
         let destination: ImportDestination
         let writtenAt: Date
-        /// v2.7 round-43 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+        /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
         /// 浪费" directive). The
         /// timestamp of the last
         /// title-only retry on
@@ -584,7 +584,7 @@ actor ImportService {
         /// default for the
         /// optional field).
         var lastTitleOnlyRetriedAt: Date?
-        /// v2.7 round-43: the body
+        /// the body
         /// hash at the time of the
         /// last title-only retry
         /// (= SHA-256 of the
@@ -638,7 +638,7 @@ actor ImportService {
             self.contentHash = try c.decode(String.self, forKey: .contentHash)
             self.destination = try c.decode(ImportDestination.self, forKey: .destination)
             self.writtenAt = try c.decode(Date.self, forKey: .writtenAt)
-            // v2.7 round-43: optional fields
+            // optional fields
             // (= absent on pre-round-43
             // cache entries; = decode
             // failures silently fall back to
@@ -785,7 +785,7 @@ actor ImportService {
                 continue
             }
             tasks[i].contentHash = hash
-            // v2.7 round-66 commit F+1 (= boss
+            // (= boss
             // 2026-10-10 "还
             // 是直接
             // 跳过了"
@@ -1519,7 +1519,7 @@ actor ImportService {
         return out
     }
 
-    // v2.7 round-38 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+    // (= boss 2026-10-10 (see OOB.md #2026-10-10)
     // 件，自动跳过了" directive).
     /// Verify the cache entry's destination
     /// file still exists on disk. Returns
@@ -1614,7 +1614,7 @@ actor ImportService {
     /// file type is a one-line change at the
     /// enum-definition site (= the orchestrator
     /// never hard-codes a single extension).
-    /// v2.7 round-57 (= boss
+    /// (= boss
     /// 2026-10-10 "现在
     /// 有个问题, 我
     /// 们只能选目
@@ -1651,7 +1651,7 @@ actor ImportService {
         extensions: Set<String>
     ) -> [(path: String, url: URL)] {
         let fm = FileManager.default
-        // v2.7 round-57: if
+        // if
         // `source` is a
         // regular file
         // (= the user
@@ -1669,7 +1669,7 @@ actor ImportService {
             guard extensions.contains(source.pathExtension.lowercased()) else { return [] }
             return [(source.path, source)]
         }
-        // v2.7 round-57: the
+        // the
         // old walk =
         // recursive
         // enumerator. The
@@ -1776,7 +1776,7 @@ actor ImportService {
             // worth surfacing as a generic "未命名"
             // rather than a cryptic UUID).
             let uuid = Self.uuidFromHash(contentHash)
-            // v2.7 user-pinned destination (= the
+            // (= the
             // boss's 2026-10-09 round-18 "强制让用户
             // 分开导入" directive). When the user
             // pinned the reference library, this
@@ -1803,7 +1803,7 @@ actor ImportService {
                 raw: routing.title,
                 fallback: String(uuid.uuidString.prefix(8))
             )
-            // v2.7 entity-level dedup (= boss
+            // (= boss
             // 2026-10-09 round-13 directive "再次触发
             // 同名实体，只 edit. 不建重名文档"; = the
             // previous per-source-path dedup let the
@@ -1830,7 +1830,7 @@ actor ImportService {
                 title: routing.title
             )
             if let existingURL = existing {
-                // v2.7 round-66 commit F (= boss
+                // (= boss
                 // 2026-10-10 "我
                 // 选故事宪
                 // 法，直接
@@ -1997,7 +1997,7 @@ actor ImportService {
             // double-delete is a no-op).
             writtenURLs.append(fileURL)
         case .referenceLibrary:
-            // v2.7 round-66 commit F+1: the
+            // the
             // reference library
             // path now also runs
             // the Stage 2 LLM
@@ -2108,7 +2108,7 @@ actor ImportService {
         // resolved destination = the dedup pass can
         // short-circuit without touching the LLM).
         //
-        // v2.7 round-40 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+        // (= boss 2026-10-10 (see OOB.md #2026-10-10)
         // 3 files; = `uuidFromHash("")`
         // returned the SAME deterministic
         // UUID for all 3 files; = the
@@ -2144,7 +2144,7 @@ actor ImportService {
         )
     }
 
-    /// v2.7 round-67 ticket 03 (= boss
+    /// ticket 03 (= boss
     /// 2026-10-10 "甚至原文
     /// 件 A 的内容, 与我们
     /// 的 B 模版不符合, 多了
@@ -2305,7 +2305,7 @@ actor ImportService {
 
     // MARK: - Errors
 
-    /// v2.7 user-pinned destination errors (= thrown
+    /// errors (= thrown
     /// by writeFile when the orchestrator's
     /// processFile reaches a bookFolder write but
     /// the target's `bookId` / `shelfId` are nil; =
@@ -2317,7 +2317,7 @@ actor ImportService {
     /// otherwise crash on a force-unwrap).
     enum ImportServiceError: Error, LocalizedError {
         case missingBookForBookFolderDestination
-        /// v2.7 round-66 commit F
+        /// 
         /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
         /// " 反馈).
         /// Sentinel error
@@ -2389,7 +2389,7 @@ actor ImportService {
     /// (= 4) and variant (= 10) bits so the UUID round-trips
     /// through `UUID(uuidString:)`.
     ///
-    /// v2.7 round-39 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// (= `chars[i*2..<i*2+2]` index out
     /// of range at i=15; = the
     /// `Array._checkIndex` failure
@@ -2428,7 +2428,7 @@ actor ImportService {
     /// different hash format).
     static func uuidFromHash(_ hex: String) -> UUID {
         let chars = Array(hex.prefix(32))
-        // v2.7 round-39: validate
+        // validate
         // the input length BEFORE
         // indexing. If too short,
         // re-hash the input to a
@@ -2499,7 +2499,7 @@ struct ImportTarget: Sendable {
     /// `destination == .referenceLibrary` (= same
     /// reason as `bookId`).
     let shelfId: UUID?
-    /// v2.7 round-66 commit C (= boss
+    /// (= boss
     /// 2026-10-10 "用
     /// 户在
     /// 导入
@@ -2574,7 +2574,7 @@ struct ImportTarget: Sendable {
     /// the `web_search` tool loop).
     let rewriteMode: ImportFileInput.RewriteMode
 
-    /// v2.7 round-42 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// directive). The user-picked
     /// parallelism for the 5-way
     /// concurrent LLM dispatch loop.
@@ -2615,7 +2615,7 @@ struct ImportTarget: Sendable {
         wsRoot.appendingPathComponent(".import-cache")
     }
 
-    /// v2.7 round-42: custom init that defaults
+    /// custom init that defaults
     /// `maxParallel` to 3 (= the boss's "默认
     /// 选3" directive). Synthesized memberwise
     /// init would require every call site to
@@ -2632,7 +2632,7 @@ struct ImportTarget: Sendable {
         referenceStore: any ReferenceStoring,
         rewriteMode: ImportFileInput.RewriteMode,
         maxParallel: Int = 3,
-        // v2.7 round-66 commit C:
+        // 
         // `bookFolder` is a new
         // optional field
         // (= the user-picked
@@ -2874,7 +2874,7 @@ extension ImportService {
         // Phase 3: route + enrich (= the LLM
         // dispatch; = this is the slow part; = the
         // pipeline's bottleneck).
-        // v2.7 round-66 commit G (= boss
+        // (= boss
         // 2026-10-10 "卡
         // LLM" 反馈):
         // the previous
@@ -2919,7 +2919,7 @@ extension ImportService {
         let maxLLMAttempts = 3
         var lastError: Error?
         var routing: ImportRoutingResult? = nil
-        // v2.7 round-72: log the LLM's
+        // log the LLM's
         // activity. v0.74: also log which provider
         // (= so the user can diagnose "which endpoint
         // is unreachable" without opening the bundle).
@@ -2931,7 +2931,7 @@ extension ImportService {
         )
         for attempt in 1...maxLLMAttempts {
             do {
-                // v2.7 round-71: pass the
+                // pass the
                 // activityLog appender
                 // as the progress
                 // callback so the
@@ -2958,7 +2958,7 @@ extension ImportService {
                 if attempt > 1 {
                     NSLog("WSImport: LLM route succeeded on attempt \(attempt) for task \(i)")
                 }
-                // v2.7 round-70:
+                // 
                 // log the LLM's
                 // response summary
                 // (= the user
@@ -3057,14 +3057,14 @@ extension ImportService {
             await onProgress?(tasksBox.value)
             return
         }
-        // v2.7 user-pinned destination override
+        // override
         // (= boss 2026-10-09 (see OOB.md #2026-10-09)
         // user-pinned).
         switch target.destination {
         case .referenceLibrary:
             routing.destination = .referenceLibrary
         case .book:
-            // v2.7 round-66 commit C (= boss
+            // (= boss
             // 2026-10-10 "用
             // 户在
             // 导入
@@ -3150,7 +3150,7 @@ extension ImportService {
         tasksBox.value[i].state = .writing
         await onProgress?(tasksBox.value)
         do {
-            // v2.7 round-66 commit E (= boss
+            // (= boss
             // 2026-10-10 "导入
             // 的文件，内容
             // 大量缺失" 反馈).
@@ -3218,7 +3218,7 @@ extension ImportService {
             // skeleton from
             // the folder's
             // `importTemplate`).
-            // v2.7 round-70: log
+            // log
             // "读取源文件" (= real-
             // time feedback per
             // boss 2026-10-10 (see OOB.md #2026-10-10)
@@ -3253,7 +3253,7 @@ extension ImportService {
                 if case .bookFolder(let f) = routing.destination { return f }
                 return .drafts
             }()
-            // v2.7 round-67 ticket 05 (= boss
+            // ticket 05 (= boss
             // 2026-10-10 "重新组织
             // 内容, 没有实现" 反馈).
             // The previous code only
@@ -3292,7 +3292,7 @@ extension ImportService {
                     folder: folder
                 )
             case .reorganize:
-                // v2.7 round-73 (= the agent owns writing;
+                // (= the agent owns writing;
                 // = ImportAgentDriver delegates to the
                 // writeBookDoc tool for every sub-file; =
                 // the agent never surfaces a `rewrittenBody`
@@ -3328,7 +3328,7 @@ extension ImportService {
                     )
                 }
             }
-            // v2.7 round-67 ticket 03 (= boss
+            // ticket 03 (= boss
             // 2026-10-10 "甚至原
             // 文件 A 的内容, 与
             // 我们的 B 模版不符
@@ -3364,7 +3364,7 @@ extension ImportService {
             let extraFilesTotal = routing.extraFiles.count
             tasksBox.value[i].extraFilesTotal = extraFilesTotal
             tasksBox.value[i].extraFilesDone = 0
-            // v2.7 round-70:
+            // 
             // "写主文件" log
             // (= the user sees
             // the main file
@@ -3391,7 +3391,7 @@ extension ImportService {
                         extraIndex: extraIndex
                     )
                     extraResult = true
-                    // v2.7 round-70:
+                    // 
                     // "✅ 写子文件" log
                     let bodyKB = Double(extra.body.utf8.count) / 1024.0
                     let marker = extra.required ? "[必填]" : "[自定义]"
@@ -3413,7 +3413,7 @@ extension ImportService {
                         extraIndex, extra.title, String(describing: error)
                     )
                     extraResult = false
-                    // v2.7 round-70:
+                    // 
                     // "❌ 写子文件
                     // 失败" log.
                     await appendActivity(
@@ -3454,7 +3454,7 @@ extension ImportService {
             // prior write via the same `cacheBox`).
         } catch let error as ImportServiceError
             where error == .contentSameSkipped {
-            // v2.7 round-66 commit F:
+            // 
             // Phase 2 LLM said
             // "skip" (= the
             // existing file is
@@ -3492,7 +3492,7 @@ extension ImportService {
         await onProgress?(tasksBox.value)
     }
 
-    /// v2.7 round-70 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// feedback). Append a
     /// single line to a
     /// task's activityLog
@@ -3533,7 +3533,7 @@ extension ImportService {
 }
 
 extension ImportService {
-    /// v2.7 entity-level dedup lookup (= scan an existing
+    /// lookup (= scan an existing
     /// bookFolder for a .md whose first H1 heading
     /// matches the LLM-supplied title; = used by the
     /// orchestrator to decide between "create" (= no

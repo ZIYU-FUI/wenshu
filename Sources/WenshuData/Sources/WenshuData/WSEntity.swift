@@ -44,7 +44,7 @@ public final class WSEntity {
     public var tagsJoined: String
     public var description_: String
     /// JSON-encoded [String: String] dictionary (= matches the
-    /// v2.0 WSCharacter.attributes shape; = nil when empty).
+    /// shape; = nil when empty).
     public var attributesJSON: String?
     /// JSON-encoded EntityKindSpecific (= see Domain/EntityKind.swift).
     /// nil when empty (= per the spec's empty default).

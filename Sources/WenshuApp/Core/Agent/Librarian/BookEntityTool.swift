@@ -117,7 +117,7 @@ actor BookEntityActor {
 
     /// Create a new entity (= falls back to update if an entity
     /// with the same name already exists in this book; = per the
-    /// v2.2 silent dedup contract).
+    /// contract).
     func createEntity(
         bookId: UUID,
         kind: String,

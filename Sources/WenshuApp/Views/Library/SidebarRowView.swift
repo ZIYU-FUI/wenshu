@@ -9,7 +9,7 @@
 // just renders the icon + title + subtitle (= the Apple HIG
 // sidebar row content).
 //
-// v2.7 round-33 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+// (= boss 2026-10-10 (see OOB.md #2026-10-10)
 // 处右键，点导入，就不能带入" directive):
 // SidebarRowView now carries a per-row
 // `.contextMenu(menuItems:)` (= the
@@ -44,7 +44,7 @@
 // single-click UX (= the canonical
 // macOS Finder behavior), list-level
 // for multi-select batch delete (= the
-// v2.6 sidebar feedback bundle).
+// feedback bundle).
 
 import SwiftUI
 
@@ -59,7 +59,7 @@ struct SidebarRowView: View {
     /// hosts the menu).
     var callbacks: SidebarRowCallbacks?
 
-    /// v2.7 round-33 = drag source context (= the
+    /// = drag source context (= the
     /// per-row `.contextMenu(menuItems:)` doesn't
     /// support drag-and-drop directly; = the canonical
     /// wenshu drag pattern uses the per-row
@@ -112,14 +112,14 @@ struct SidebarRowView: View {
             .listRowInsets(node.kind == .divider
                             ? EdgeInsets(top: DesignTokens.spacingIconic, leading: 0, bottom: DesignTokens.spacingIconic, trailing: 0)
                             : EdgeInsets())
-            // v2.7 round-31 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+            // (= boss 2026-10-10 (see OOB.md #2026-10-10)
             // 不可点中" directive): divider
             // rows are visual separators, not
             // content rows. The previous code
             // (rounded 1.68f) attached
             // `.tag(node)` to EVERY row
             // (including divider) because the
-            // v1.68 era macOS 14+ sidebar
+            // macOS 14+ sidebar
             // List selection bridge needed
             // every row to be addressable;
             // the side-effect was that the
@@ -145,7 +145,7 @@ struct SidebarRowView: View {
             // = no highlight; = the divider
             // stays inert).
             .modifier(DividerTagIfNeeded(node: node))
-            // v2.7 round-33: per-row context menu (= the
+            // per-row context menu (= the
             // right-click hit target IS the row that
             // hosts this menu; = the menu closure
             // captures the row's `node` directly; =
@@ -284,7 +284,7 @@ struct SidebarRowView: View {
                         })
                     }
                 case .reference, .referenceCategory, .divider, .tag:
-                    // v2.7 round-63:
+                    // 
                     // the `.reference`
                     // case (=
                     // a single
@@ -409,7 +409,7 @@ struct SidebarRowCallbacks {
     /// 标自动选好对应的书" directive).
     let onImportToReferenceLibrary: () -> Void
     let onImportToBook: (UUID) -> Void
-    /// v2.7 round-63 (= boss
+    /// (= boss
     /// 2026-10-10 "素
     /// 材区，卡片，
     /// 右键菜单，

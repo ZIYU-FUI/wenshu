@@ -58,7 +58,7 @@ enum DesignTokens {
     static let sidebarRowHeight: CGFloat = 22
 
     /// Apple Tahoe sidebar row icon tile size (= 24 PT). The wenshu
-    /// v3.0 design-system hard rule bans naked numeric frame widths
+    /// bans naked numeric frame widths
     /// inside the source tree; route every sidebar icon tile through
     /// this token so future tickets (= Apple re-measure of Tahoe
     /// squircle = 22 vs 24 vs 26 PT) update one value, not N sites.
@@ -585,7 +585,6 @@ enum DesignTokens {
     /// so future picker redesign is 1-stop.
     static let layoutPickerWidth: CGFloat = 416
 
-
     /// Badge surface corner radius (= 8 PT, Apple HIG capsule-style
     /// badge standard). Replaces file-scope `badgeCornerRadius: CGFloat = 8`
     /// in ConnectorProfileRow.
@@ -769,7 +768,7 @@ enum DesignTokens {
     // caption = 1 step smaller than body for status-bar meta text).
     //
     // The runtime CWD chip font was deleted in commit T18 (= the
-    // v3.0 sweep migrated the 2 callers in
+    // migrated the 2 callers in
     // RuntimeCWDDisplayChip.swift into SwiftUI's `.font(.caption2)`);
     // the inline section comment is preserved below as a historical
     // record of the migration rule.

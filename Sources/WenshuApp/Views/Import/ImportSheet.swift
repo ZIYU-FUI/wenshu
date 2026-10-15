@@ -36,7 +36,7 @@ import AppKit
 /// unified `开始导入` / `取消` button row.
 struct ImportSheet: View {
 
-    /// v2.7 round-44 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// 骤交互" directive).
     /// The 4-step wizard state (= the
     /// canonical Apple HIG macOS
@@ -93,7 +93,7 @@ struct ImportSheet: View {
     /// shortcut). The parent flips this to dismiss.
     @Binding var isPresented: Bool
 
-    /// v2.7 pre-fill parameters (= the boss's
+    /// parameters (= the boss's
     /// 2026-10-09 round-18 "右键点资料库，点
     /// 导入，进到弹窗后，目标自动选好资料库。
     /// 右键点书的时候目标自动选好对应的书"
@@ -152,7 +152,7 @@ struct ImportSheet: View {
     /// the target; = no book is involved).
     @State private var selectedBookID: UUID?
 
-    /// v2.7 round-66 commit C (= boss
+    /// (= boss
     /// 2026-10-10 "用
     /// 户在
     /// 导入
@@ -198,7 +198,7 @@ struct ImportSheet: View {
     /// directive).
     @State private var selectedBookFolder: BookFolder?
 
-    /// v2.7 user-pinned import destination (= boss
+    /// (= boss
     /// 2026-10-09 round-18 "导入目标加一个资料库，
     /// 用户指定了资料库的，就自动全进到资料库。
     /// 用户指定到书的，就自动全进入到书的五目
@@ -246,7 +246,7 @@ struct ImportSheet: View {
     /// shows one row per file).
     @State private var tasks: [ImportTask] = []
 
-    /// v2.7 round-42 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// directive). The user-picked
     /// parallelism for the 5-way
     /// concurrent LLM dispatch
@@ -355,7 +355,7 @@ struct ImportSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingModerate) {
-            // v2.7 round-46 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+            // (= boss 2026-10-10 (see OOB.md #2026-10-10)
             // directive). The
             // "导入 Markdown 文件"
             // title is REMOVED
@@ -376,7 +376,7 @@ struct ImportSheet: View {
             // more vertical
             // breathing room).
 
-            // v2.7 round-44 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+            // (= boss 2026-10-10 (see OOB.md #2026-10-10)
             // directive). The 4-step
             // dot indicator at the top of
             // the sheet (= canonical
@@ -389,7 +389,7 @@ struct ImportSheet: View {
             // back; = this replaces the
             // old single-page Form).
             //
-            // v2.7 round-47 (= boss
+            // (= boss
             // 2026-10-10 "dot 如果没
             // 有进到下一步，dot
             // 就不能跳到下一
@@ -438,7 +438,7 @@ struct ImportSheet: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
-            // v2.7 round-44: the bottom
+            // the bottom
             // nav bar (= the canonical
             // Apple HIG macOS 14+
             // wizard pattern; = "上
@@ -449,7 +449,7 @@ struct ImportSheet: View {
             // with the current step;
             // = "开始" / "下一步" /
             // "完成").
-            // v2.7 round-52 (= boss
+            // (= boss
             // 2026-10-10 "我画的
             // 红线处, 缺一条
             // 分割先. 让操作
@@ -480,7 +480,7 @@ struct ImportSheet: View {
                 onNext: goNext
             )
         }
-        // v2.7 round-44: auto-advance from
+        // auto-advance from
         // .running to .results once the
         // import finishes (= the user
         // doesn't have to tap "下一步"
@@ -509,7 +509,7 @@ struct ImportSheet: View {
         // for the cancel-and-rollback path.
         .interactiveDismissDisabled(isImporting)
         .padding(DesignTokens.spacingSection)
-        // v2.7 prefill on first appear (= the
+        // on first appear (= the
         // boss's 2026-10-09 round-18 "右键点
         // 资料库，点导入，进到弹窗后，目标
         // 自动选好资料库。右键点书的时候
@@ -686,7 +686,7 @@ struct ImportSheet: View {
         tasks.contains { $0.state == .failed }
     }
 
-    // v2.7 round-36 (= boss 2026-10-09 (see OOB.md #2026-10-09)
+    // (= boss 2026-10-09 (see OOB.md #2026-10-09)
     // 于标题重新调研" directive). The
     // "重新调研所有失败" button is only
     // visible when at least one task failed
@@ -708,7 +708,7 @@ struct ImportSheet: View {
         failedReadFileCount > 0 && !isImporting && !isRetryingFailed
             && isRunComplete
     }
-    /// v2.7 round-36 (= boss 2026-10-09 (see OOB.md #2026-10-09)
+    /// (= boss 2026-10-09 (see OOB.md #2026-10-09)
     /// 红字后面" directive). True while
     /// `retryFailedTasksTitleOnly` is
     /// mid-flight (= the button flips to
@@ -825,7 +825,7 @@ struct ImportSheet: View {
                   bookStore.books.contains(where: { $0.id == bookID }) else {
                 return false
             }
-            // v2.7 round-66 commit C (= boss
+            // (= boss
             // 2026-10-10 "用
             // 户来
             // 决定"
@@ -858,7 +858,7 @@ struct ImportSheet: View {
         }
     }
 
-    /// v2.7 round-57 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// directive). The
     /// NSOpenPanel now
     /// allows BOTH file
@@ -893,7 +893,7 @@ struct ImportSheet: View {
     /// directory).
     private func pickSourceDirectory() {
         let panel = NSOpenPanel()
-        // v2.7 round-57: both
+        // both
         // files and
         // directories
         // are selectable.
@@ -909,7 +909,7 @@ struct ImportSheet: View {
         panel.canChooseFiles = true
         panel.canChooseDirectories = true
         panel.allowsMultipleSelection = false
-        // v2.7 round-57: filter
+        // filter
         // to the selected
         // file type's
         // extension (= the
@@ -967,7 +967,7 @@ struct ImportSheet: View {
     /// without manually re-launching.
     private func startImport() {
         guard let source = sourceDirectory else { return }
-        // v2.7 user-pinned destination (= boss
+        // (= boss
         // 2026-10-09 round-18 "强制让用户分开导
         // 入" directive). The `canStart` gate
         // already validated the picker state
@@ -994,7 +994,7 @@ struct ImportSheet: View {
                   bookStore.books.contains(where: { $0.id == bookID }) else {
                 return
             }
-            // v2.7 round-66 commit C: the
+            // the
             // user-picked
             // 2nd-level
             // folder is
@@ -1090,7 +1090,7 @@ struct ImportSheet: View {
         }
     }
 
-    // v2.7 round-36 (= boss 2026-10-09 (see OOB.md #2026-10-09)
+    // (= boss 2026-10-09 (see OOB.md #2026-10-09)
     // 研" directive). The
     // "重新调研所有失败" button
     // handler. Reuses the same
@@ -1161,7 +1161,7 @@ struct ImportSheet: View {
                         default: return false
                         }
                     }.count
-                    // v2.7 round-43 (= boss
+                    // (= boss
                     // 2026-10-10 "补充，
                     // 重新调研时，进行
                     // 中，不统计"
@@ -1239,7 +1239,7 @@ struct ImportSheet: View {
 // MARK: - 4-step wizard helpers
 
 extension ImportSheet {
-    /// v2.7 round-47 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// 步骤" directive).
     /// The reachability
     /// predicate for the
@@ -1475,7 +1475,7 @@ extension ImportSheet {
                         Text(fileType.placeholderHint)
                             .foregroundStyle(.secondary)
                             .lineLimit(1)
-                            // v2.7 round-55 (= boss
+                            // (= boss
                             // 2026-10-10 "提示文
                             // 案显示不全"
                             // directive). The
@@ -1529,7 +1529,7 @@ extension ImportSheet {
                             // containing
                             // .md files").
                             .truncationMode(.middle)
-                            // v2.7 round-55:
+                            // 
                             // the Text
                             // needs to
                             // fill the
@@ -1580,7 +1580,7 @@ extension ImportSheet {
                     Button("选择…") { pickSourceDirectory() }
                         .disabled(isImporting)
                         .buttonStyle(.borderedProminent)
-                        // v2.7 round-53 (= boss
+                        // (= boss
                         // 2026-10-10 "选择按钮
                         // 的文字大小，和按
                         // 钮高度，与其它
@@ -1619,7 +1619,7 @@ extension ImportSheet {
                 }
             }
 
-            // v2.7 round-49: Divider
+            // Divider
             // between the file /
             // source section and
             // the destination
@@ -1681,7 +1681,7 @@ extension ImportSheet {
                     .labelsHidden()
                     .disabled(isImporting)
                 }
-                // v2.7 round-66 commit C (= boss
+                // (= boss
                 // 2026-10-10 "用
                 // 户在
                 // 导入
@@ -1737,7 +1737,7 @@ extension ImportSheet {
                 // shows a
                 // compact
                 // dropdown).
-                // v2.7 round-66 commit C+1 (= boss
+                // (= boss
                 // 2026-10-10 "这
                 // 个选择
                 // 目录
@@ -1823,7 +1823,7 @@ extension ImportSheet {
                 }
             }
 
-            // v2.7 round-49: Divider
+            // Divider
             // between the
             // destination
             // section and the AI
@@ -1891,7 +1891,7 @@ extension ImportSheet {
                 }
                 .progressViewStyle(.linear)
             }
-            // v2.7 round-50:
+            // 
             // Divider between
             // the progress
             // section and the
@@ -1922,7 +1922,7 @@ extension ImportSheet {
     /// user is now in review/retry
     /// mode).
     ///
-    /// v2.7 round-50 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// directive). The
     /// "重新调研所有失败"
     /// total button
@@ -1968,7 +1968,7 @@ extension ImportSheet {
             // ImportTaskRow).
             ImportProgressStrip(tasks: tasks)
                 .frame(maxHeight: DesignTokens.kanbanBoardMaxHeight)
-            // v2.7 round-50: the
+            // the
             // "重新调研所有失败"
             // button at the
             // BOTTOM of the
@@ -1996,7 +1996,7 @@ extension ImportSheet {
             // condition as
             // before; = the
             if canRetryFailedTitleOnly {
-                // v2.7 round-50: hairline
+                // hairline
                 // Divider above
                 // the action row
                 // (= the "操作
@@ -2037,7 +2037,7 @@ extension ImportSheet {
     /// already done with the
     /// import).
     ///
-    /// v2.7 round-58 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// 左对齐" directive).
     /// The previous
     /// implementation
@@ -2157,7 +2157,7 @@ private struct ImportTaskRow: View {
                 .font(.caption)
                 .foregroundStyle(.red)
         }
-        // v2.7 round-66 commit F (= boss
+        // (= boss
         // 2026-10-10 "故事宪法，没有
         // 重新分析是不是
         // 内容相同" 反馈).
@@ -2178,7 +2178,7 @@ private struct ImportTaskRow: View {
                 .foregroundStyle(.tertiary)
                 .lineLimit(2)
         }
-        // v2.7 round-67 ticket 04 (= boss
+        // ticket 04 (= boss
         // 2026-10-10 "甚至原
         // 文件 A 的内容,
         // 与我们的 B 模版
@@ -2217,7 +2217,7 @@ private struct ImportTaskRow: View {
         if task.extraFilesTotal > 0 {
             extraFilesCaption
         }
-        // v2.7 round-72 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+        // (= boss 2026-10-10 (see OOB.md #2026-10-10)
         // 做"). When the LLM could not
         // extract the 6 必填 (= phase 2
         // empty), show a small ⚠️
@@ -2228,7 +2228,7 @@ private struct ImportTaskRow: View {
         // pattern; = SF Symbol
         // exclamationmark.triangle.fill
         // + orange + caption font).
-        // v2.7 round-70 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+        // (= boss 2026-10-10 (see OOB.md #2026-10-10)
         // 馈" feedback).
         // Real-time LLM
         // activity log
@@ -2259,7 +2259,7 @@ private struct ImportTaskRow: View {
         }
     }
 
-    /// v2.7 round-70 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// 馈" feedback). Real-time
     /// LLM activity log
     /// (= a scrolling
@@ -2296,7 +2296,7 @@ private struct ImportTaskRow: View {
         .padding(.top, 2)
     }
 
-    /// v2.7 round-67 ticket 04: caption for
+    /// ticket 04: caption for
     /// the per-file extraFiles count
     /// (= the row's
     /// " + N 拆出"
@@ -2335,7 +2335,7 @@ private struct ImportTaskRow: View {
         case .pending:
             Text("待处理").font(.caption).foregroundStyle(.secondary)
         case .routing:
-            // v2.7 round-66 commit G (= boss
+            // (= boss
             // 2026-10-10 "这
             // 个分析
             // 中三
@@ -2425,7 +2425,7 @@ private struct ImportTaskRow: View {
             // 了"
             // feedback).
             HStack(spacing: DesignTokens.spacingCaption) {
-                // v2.7 round-66 commit G2 (= boss
+                // (= boss
                 // 2026-10-10 "那
                 // 个
                 // 圆
@@ -2483,7 +2483,7 @@ private struct ImportTaskRow: View {
                     .foregroundStyle(.secondary)
             }
         case .writing:
-            // v2.7 round-66 commit G:
+            // 
             // same idea as
             // `routing` —
             // show a
@@ -2545,7 +2545,7 @@ private struct StubImportRouterForSheet: ImportRouter {
             extraFiles: [],
         )
     }
-    // v2.7 round-66 commit F:
+    // 
     // the stub's
     // isContentSame
     // is a
@@ -2575,7 +2575,7 @@ private struct StubImportRouterForSheet: ImportRouter {
 
 // MARK: - Wizard chrome (= step indicator + nav bar)
 
-/// v2.7 round-44 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+/// (= boss 2026-10-10 (see OOB.md #2026-10-10)
 /// "引导式多步骤交互" directive).
 /// The 4-step dot indicator at the
 /// top of the sheet. Apple HIG
@@ -2600,7 +2600,7 @@ private struct WizardStepIndicator: View {
             ForEach(ImportSheet.WizardStep.allCases) { step in
                 let reachable = canReach(step)
                 Button {
-                    // v2.7 round-47 (= boss
+                    // (= boss
                     // 2026-10-10 "dot
                     // 如果没有进到下一
                     // 步，dot 就不能
@@ -2653,7 +2653,7 @@ private struct WizardStepIndicator: View {
     }
 
     private func dotColor(for step: ImportSheet.WizardStep, reachable: Bool) -> Color {
-        // v2.7 round-47: a step
+        // a step
         // that is NOT reachable
         // (= the user hasn't
         // reached it yet) is
@@ -2681,7 +2681,7 @@ private struct WizardStepIndicator: View {
 
 // MARK: - Pages-style picker card
 
-/// v2.7 round-49 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+/// (= boss 2026-10-10 (see OOB.md #2026-10-10)
 /// 分割" directive).
 /// The Pages macOS 27
 /// inspector row pattern
@@ -2714,16 +2714,16 @@ private struct WizardStepIndicator: View {
 ///    = a Picker /
 ///    Button / HStack).
 ///
-/// v2.7 round-48 also
+/// also
 /// removed ALL icons.
-/// v2.7 round-49 also
+/// also
 /// removed the
 /// per-card background
 /// fill (= the
 /// `RoundedRectangle`
 /// with the 12% white
 /// overlay is GONE).
-/// v2.7 round-49 also
+/// also
 /// removed the
 /// per-section labels
 /// (= "目标" / "AI 处
@@ -2759,7 +2759,7 @@ private struct PickerRow<Leading: View, Trailing: View>: View {
     }
 }
 
-/// v2.7 round-49: renamed
+/// renamed
 /// from `PickerSectionLabel`
 /// (= the boss rejected
 /// per-section labels; =
@@ -2780,7 +2780,7 @@ private struct PickerRow<Leading: View, Trailing: View>: View {
 /// leave it for the next
 /// dead-code sweep).
 
-/// v2.7 round-45: a Pages-style
+/// a Pages-style
 /// section label (= the bold
 /// text-only label that introduces
 /// a new section in the inspector;
@@ -2804,9 +2804,9 @@ private struct PickerSectionLabel: View {
     }
 }
 
-/// v2.7 round-45: the wizard chrome (= step indicator + nav bar)
+/// the wizard chrome (= step indicator + nav bar)
 ///
-/// v2.7 round-45 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+/// (= boss 2026-10-10 (see OOB.md #2026-10-10)
 /// directive). The nav bar
 /// is updated to match the
 /// Pages inspector panel
@@ -2822,7 +2822,7 @@ private struct PickerSectionLabel: View {
 /// nav bar is part of
 /// the panel, not a
 /// separate footer").
-/// v2.7 round-48 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+/// (= boss 2026-10-10 (see OOB.md #2026-10-10)
 /// directive). The "上
 /// 一步" button is
 /// HIDDEN on step 1
@@ -2850,7 +2850,7 @@ private struct WizardStepNavBar: View {
 
     var body: some View {
         HStack {
-            // v2.7 round-48: hide the
+            // hide the
             // back button on
             // step 1 entirely.
             // An `if` (not
@@ -2868,7 +2868,7 @@ private struct WizardStepNavBar: View {
             // the chrome).
             if canGoPrev {
                 Button("上一步") { onPrev() }
-                    // v2.7 round-45:
+                    // 
                     // the back
                     // button uses
                     // the
@@ -2892,7 +2892,7 @@ private struct WizardStepNavBar: View {
             Button(primaryActionLabel) { onNext() }
                 .keyboardShortcut(.defaultAction)
                 .disabled(!canGoNext)
-                // v2.7 round-45: the
+                // the
                 // primary action
                 // uses the
                 // .borderedProminent
@@ -2913,7 +2913,7 @@ private struct WizardStepNavBar: View {
     }
 }
 
-// v2.7 round-52 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+// (= boss 2026-10-10 (see OOB.md #2026-10-10)
 // directive). The hairline
 // Divider between the
 // step's per-step content

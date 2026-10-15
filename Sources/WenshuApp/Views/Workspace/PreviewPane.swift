@@ -57,7 +57,7 @@ private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "previewpan
 // PreviewPane when the user picks them via API (= no UI yet for
 // picking non-sidebar folders; deferred to v0.31).
 //
-// v2.7 round-60 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+// (= boss 2026-10-10 (see OOB.md #2026-10-10)
 // directive). The
 // `ideas` (= 构思)
 // case is added
@@ -122,7 +122,7 @@ enum BookFolder: String, CaseIterable, Codable, Sendable, Hashable {
         BookFolderCatalog.spec(for: rawValue)?.cardDisplayName ?? rawValue
     }
 
-    /// v2.7 round-59 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// directive). The
     /// import template
     /// (= markdown
@@ -139,7 +139,7 @@ enum BookFolder: String, CaseIterable, Codable, Sendable, Hashable {
     /// not in the import
     /// path yet).
     ///
-    /// v2.7 round-60
+    /// 
     /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// 构思" directive).
     /// `ideas` (= 构思)
@@ -237,11 +237,11 @@ enum EntitySortOrder: String, CaseIterable, Identifiable {
 /// truth** for the preview-pane content scope. The Apple Swift API
 /// design guideline §"Make illegal states unrepresentable" rules
 /// out combining scopes with a single optional / nil case (= the
-/// v2.6 tag-vs-category ambiguity was the only reason a nil was
+/// ambiguity was the only reason a nil was
 /// ever legal here; the v2.6 facet model resolves that by giving
 /// tag + category separate, dedicated cases below).
 ///
-/// v2.6 facet model: tag is a cross-cutting facet (= a single
+/// tag is a cross-cutting facet (= a single
 /// reference can carry 0..N tags; = browsing by tag must NOT
 /// silently fall through to a different facet's case). Hence
 /// the dedicated `tagScope(String)` case (= Apple canonical
@@ -438,7 +438,7 @@ extension PreviewPane {
 struct PreviewPane: View {
     @Environment(BookStore.self) private var bookStore
 
-    /// v2.7 round-64 (= boss
+    /// (= boss
     /// 2026-10-10 "没
     /// 有实现，
     /// 右键卡片
@@ -489,7 +489,7 @@ struct PreviewPane: View {
     /// to that view).
     @State private var cardRenaming: SidebarRenamingTarget?
     @State private var cardPendingDelete: SidebarPendingDelete?
-    /// v2.7 round-64: a
+    /// a
     /// local SidebarService
     /// (= the second
     /// column's
@@ -526,7 +526,7 @@ struct PreviewPane: View {
     /// re-render = no I/O storm = no layout cycle).
     @State private var cachedShelfBooks: [UUID: [Book]] = [:]
 
-    /// v2.7 round-66 commit I (= boss
+    /// (= boss
     /// 2026-10-10 "两
     /// 个
     /// 卡
@@ -1048,7 +1048,7 @@ struct PreviewPane: View {
                     case .referenceScope(let category):
                         referenceScopeView(category: category)
                     case .tagScope(let tag):
-                        // v2.6 facet model: dedicated preview
+                        // dedicated preview
                         // scope for tag rows. The tag string
                         // flows in via the scope (= Apple
                         // canonical = scope = the
@@ -1241,7 +1241,7 @@ struct PreviewPane: View {
             // library-day navigation feel (= the reference for
             // the entry transition).
         .animation(.smooth(duration: 0.22), value: scope)
-            // v2.7 round-64: the
+            // the
             // right-click
             // "重命名"
             // sheet (= the
@@ -1308,7 +1308,7 @@ struct PreviewPane: View {
                     onCancel: { cardRenaming = nil }
                 )
             }
-            // v2.7 round-64: the
+            // the
             // delete
             // alert (= the
             // same
@@ -1365,7 +1365,7 @@ struct PreviewPane: View {
                         }
                         cardPendingDelete = nil
                         Task { await ensureCardService().reload() }
-                        // v2.7 round-66 commit I (= boss
+                        // (= boss
                         // 2026-10-10 "两
                         // 个
                         // 卡
@@ -1500,7 +1500,7 @@ struct PreviewPane: View {
     /// just that folder.
     @ViewBuilder
     private func bookScopeView(bookId: UUID, folderName: String?) -> some View {
-        // v2.7 round-66 commit I:
+        // 
         // the `libraryChangeTick`
         // `@State` is read in
         // the body's
@@ -1556,7 +1556,7 @@ struct PreviewPane: View {
     /// to books whose `shelfId == shelfId`).
     @ViewBuilder
     private func shelfScopeView(shelfId: UUID) -> some View {
-        // v2.7 round-66 commit I:
+        // 
         // see the comment
         // on
         // `bookScopeView` (=
@@ -1778,7 +1778,7 @@ struct PreviewPane: View {
     /// argument; = forwards to PreviewPane's `onDoubleClick`,
     /// which opens THIS specific card in the editor; = the
     /// previous filtered.first bug).
-    /// v2.7 round-64: the
+    /// the
     /// single-card render
     /// helper for the
     /// per-category
@@ -1907,7 +1907,7 @@ struct PreviewPane: View {
         // inspector icon weight; = standard title /
         // body hierarchy). Same visual treatment as the 12
         // specialized tool tabs.
-        // v2.7 round-68 (= boss
+        // (= boss
         // 2026-10-10 "少了几个
         // 多语言" feedback).
         // The previous
@@ -1975,7 +1975,7 @@ struct PreviewPane: View {
         return result.entities
     }
 
-    /// v2.7 round-64: the
+    /// the
     /// 3 helpers that
     /// the right-click
     /// `Card` callbacks
@@ -2028,7 +2028,7 @@ struct PreviewPane: View {
         return service
     }
 
-    /// v2.7 round-64: begin
+    /// begin
     /// the rename flow
     /// for a single
     /// reference card (=
@@ -2049,7 +2049,7 @@ struct PreviewPane: View {
         )
     }
 
-    /// v2.7 round-65b: begin
+    /// begin
     /// the delete flow
     /// for a single
     /// reference card (=
@@ -2070,7 +2070,7 @@ struct PreviewPane: View {
         )
     }
 
-    /// v2.7 round-65b: begin
+    /// begin
     /// the rename flow
     /// for a single
     /// book doc card (=
@@ -2104,7 +2104,7 @@ struct PreviewPane: View {
         )
     }
 
-    /// v2.7 round-65b: begin
+    /// begin
     /// the delete flow
     /// for a single
     /// book doc card (=
@@ -2418,7 +2418,7 @@ internal enum CardSource {
 private struct Card: View {
     let source: CardSource
     let onDoubleClick: (CardSource) -> Void
-    /// v2.7 round-66 (= boss
+    /// (= boss
     /// 2026-10-10 "如
     /// 果有不
     /// 符合
@@ -2470,7 +2470,7 @@ private struct Card: View {
     /// commit C wires
     /// the flag in).
     var needsCompletion: Bool = false
-    /// v2.7 round-66: the
+    /// the
     /// "补齐" right-click
     /// menu callback (=
     /// only fires when
@@ -2485,7 +2485,7 @@ private struct Card: View {
     /// the chat
     /// integration.
     var onComplete: (() -> Void)? = nil
-    /// v2.7 round-64 (= boss
+    /// (= boss
     /// 2026-10-10 "没有
     /// 实现，右键卡
     /// 片没有菜单"
@@ -2583,7 +2583,7 @@ private struct Card: View {
     /// = no memory growth.
     @State private var clickCount: Int = 0
     @State private var lastClickTimestamp: TimeInterval = 0
-    /// v7.3: persistent
+    /// 
     /// click-count storage
     /// (= survives SwiftUI
     /// body re-evaluations;
@@ -2713,7 +2713,7 @@ private struct Card: View {
                 .fill(isHovered ? AnyShapeStyle(.tertiary) : AnyShapeStyle(Color.clear))
         )
         .overlay(
-            // v2.7 round-66: the
+            // the
             // border is now
             // conditional on
             // 3 states. `needsCompletion`
@@ -2770,7 +2770,7 @@ private struct Card: View {
                     lineWidth: needsCompletion ? 1.5 : 0.5
                 )
         )
-        // v2.7 round-66: the
+        // the
         // top-right corner
         // badge (= a small
         // orange triangle
@@ -3007,7 +3007,7 @@ private struct Card: View {
         // label and get its full name; = matches macOS Finder /
         // TextEdit tab bar tooltip behavior).
         .help(source.title)
-        // v2.7 round-64: the
+        // the
         // right-click context
         // menu on the card
         // (= the boss's
@@ -3049,7 +3049,7 @@ private struct Card: View {
         // cards per the
         // boss's "素材
         // 区" wording).
-        // v2.7 round-65b: the
+        // the
         // right-click
         // context menu on
         // the card. The
@@ -3161,7 +3161,7 @@ private struct Card: View {
         .contextMenu {
             switch source {
             case .reference:
-                // v2.7 round-66: the
+                // the
                 // "补齐" item
                 // shows when
                 // `needsCompletion
@@ -3198,7 +3198,7 @@ private struct Card: View {
                     onDelete()
                 }
             case .bookDoc:
-                // v2.7 round-66: same
+                // same
                 // "补齐" item
                 // for bookDoc
                 // cards (= the

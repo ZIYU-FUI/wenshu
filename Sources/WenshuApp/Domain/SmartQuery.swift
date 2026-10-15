@@ -1,7 +1,7 @@
 // Sources/WenshuApp/Domain/SmartQuery.swift
 //
 // Saved-search query (= FCP Library Smart Collection analogue).
-// v0.26 ships the static skeleton (= schema + storage); v0.27+
+// (= schema + storage); v0.27+
 // implements the search engine.
 
 import Foundation

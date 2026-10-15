@@ -176,7 +176,7 @@ struct AssetsPane: View {
         case .folder(let bookId, let folderName):
             return .bookScope(bookId: bookId, folderName: folderName)
         case .tag(let tagString):
-            // v2.6 facet model: tag is a dedicated PreviewScope
+            // tag is a dedicated PreviewScope
             // case (= NOT a nil-fallback to .referenceScope;
             // = the v2.6+ preview-pane routing fix that
             // gives the tag filter a type-safe path). The
@@ -283,7 +283,7 @@ struct AssetsPane: View {
         if let source {
             // v0.74: route the source through the scope branch
             // that matches the source's actual kind (= fix the
-            // v7.6 regression where the boss's double-click on a
+            // where the boss's double-click on a
             // reference card was being routed through the
             // .bookScope branch = .bookScope only handles
             // .bookDoc source = the .reference source fell

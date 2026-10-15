@@ -152,7 +152,7 @@ actor BookChapterActor {
 
     // MARK: - Agent gate v2.7 round-61
 
-    /// v2.7 round-61 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// directive). The
     /// agent gate is
     /// implemented at
@@ -255,7 +255,7 @@ actor BookChapterActor {
     /// the chapter write
     /// directly).
 
-    /// v2.7 round-61: the
+    /// the
     /// drafts/ path
     /// resolver (= mirrors
     /// `resolvePaths` but
@@ -314,7 +314,7 @@ actor BookChapterActor {
 
     // MARK: - CRUD
 
-    /// v2.7 round-61: agent
+    /// agent
     /// chapter writes go to
     /// `drafts/` (= the boss's
     /// "Agent 写正文一律
@@ -350,7 +350,7 @@ actor BookChapterActor {
             throw BookChapterError.emptyTitle
         }
 
-        // v2.7 round-61: the
+        // the
         // dedup check now
         // looks in `drafts/`
         // (= the agent's
@@ -429,7 +429,7 @@ actor BookChapterActor {
         guard !trimmed.isEmpty else {
             throw BookChapterError.emptyTitle
         }
-        // v2.7 round-61: the
+        // the
         // agent gate (= boss
         // 2026-10-10 "提升为
         // 正文的内容，成
@@ -610,7 +610,7 @@ actor BookChapterActor {
         return match.map { ChapterDescriptor($0) }
     }
 
-    /// v2.7 round-61: drafts/
+    /// drafts/
     /// counterpart of
     /// `findChapter` (= looks
     /// in `drafts/` only;
@@ -639,7 +639,7 @@ actor BookChapterActor {
         return match.map { ChapterDescriptor($0) }
     }
 
-    /// v2.7 round-61: drafts/
+    /// drafts/
     /// counterpart of
     /// `updateChapter` (=
     /// re-edits an existing

@@ -243,7 +243,7 @@ struct SmartQueryEngine: Sendable {
     let referenceStore: ReferenceStoring
 
     /// Build a SmartQueryIndex from the current store contents.
-    /// v2.3: world + character entries are unified into a single
+    /// world + character entries are unified into a single
     /// entity store (= kind-discriminated; = person / location /
     /// object / ability / event). The SmartQueryIndex keeps the
     /// legacy `characters` + `worldEntries` buckets as a facade so

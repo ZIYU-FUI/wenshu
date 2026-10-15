@@ -16,7 +16,6 @@ import os
 
 private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "wenshuverifier")
 
-
 /// minimax-cn ground-truth probe (Anthropic-compatible protocol)
 struct WenshuLLMMessage: Codable, Sendable {
     let role: String
@@ -221,7 +220,7 @@ actor WenshuVerifier {
         // model.providerSlug. NOTE: key name `wenshu.llm.provider`
         // matches the `@AppStorage` binding in `SettingView.swift`
         // line 45 (= `App.swift` line 221 reference is stale).
-        // v0.23 fix: was `wenshu.provider.slug` (= never matched the
+        // was `wenshu.provider.slug` (= never matched the
         // existing `@AppStorage` binding, so the override never took
         // effect).
         let userDefaultsSlug = UserDefaults.standard.string(forKey: "wenshu.llm.provider")

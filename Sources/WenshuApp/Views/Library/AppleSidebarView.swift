@@ -319,7 +319,7 @@ struct AppleSidebarView: View {
                 // (= cmd+click 2+ rows +
                 // right-click) is now
                 // unsupported. wenshu's
-                // v2.6 sidebar did support it
+                // did support it
                 // but the v2.7 import feature
                 // (= round-18) added a
                 // sidebar contextMenu on
@@ -549,7 +549,7 @@ struct AppleSidebarView: View {
             RenameItemSheet(
                 kind: target.kind,
                 originalName: target.originalName,
-                // v2.7 round-63: the
+                // the
                 // otherNames source
                 // depends on the
                 // kind. Shelf / book
@@ -573,7 +573,7 @@ struct AppleSidebarView: View {
                         case .reference:
                             try service?.renameReference(id: target.itemId, newTitle: newName)
                         case .bookDoc:
-                            // v2.7 round-65b: the
+                            // the
                             // sidebar's own
                             // rename / delete
                             // dispatch
@@ -633,7 +633,7 @@ struct AppleSidebarView: View {
                     case .book:
                         try service?.deleteBook(id: target.itemId)
                     case .reference:
-                        // v2.7 round-63:
+                        // 
                         // the
                         // reference
                         // delete
@@ -662,7 +662,7 @@ struct AppleSidebarView: View {
                         // tree.
                         try service?.deleteReference(id: target.itemId)
                     case .bookDoc:
-                        // v2.7 round-65b:
+                        // 
                         // the
                         // sidebar's
                         // own
@@ -751,7 +751,7 @@ struct AppleSidebarView: View {
         case .reference:
             return service?.otherReferenceTitles(excluding: target.itemId) ?? []
         case .bookDoc:
-            // v2.7 round-65b: the
+            // the
             // sidebar's
             // own
             // otherNames
@@ -952,7 +952,7 @@ struct AppleSidebarView: View {
             // ' complaint).
             workspaceUI.sidebarSelection = .referenceCategory(node.routingKey ?? node.title)
         case .tag:
-            // v2.6 facet model: tag row (= SidebarNode.Kind.tag,
+            // tag row (= SidebarNode.Kind.tag,
             // populated by SidebarService from the union of
             // Reference.tags across all references). Routing
             // uses the node title (= the tag string) directly;

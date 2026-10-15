@@ -471,7 +471,7 @@ struct EditorTabStrip: View {
             // horizontal
             // scroll (= the
             // previous
-            // v3.4 "加横向
+            // 
             // 滚动" feature
             // is dropped in
             // favor of
@@ -490,7 +490,7 @@ struct EditorTabStrip: View {
             // re-evaluation);
             // = dropping it
             // restores the
-            // v3.1-stable
+            // 
             // layout.
             control
             // RATIONALE: the tab strip's

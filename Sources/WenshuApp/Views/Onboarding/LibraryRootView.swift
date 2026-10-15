@@ -518,7 +518,6 @@ struct LibraryRootView: View {
 // it added a whole view layer between the root view and the
 // NavigationSplitView. All of it moved onto LibraryRootView above.
 
-
 /// NSImage load helper (for PNG not in .xcassets).
 /// Searches multiple paths in .app bundle for wenshu-original-fanbai.png.
 private func loadWenshuLogo() -> NSImage? {

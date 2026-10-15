@@ -98,7 +98,7 @@ struct BookFolderSpec: Sendable, Equatable {
     /// and the call sites have their own per-folder rendering
     /// logic).
     let icon: String?
-    /// v2.7 round-72 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// 做"). The canonical 6 必填
     /// sub-file titles for this folder
     /// (= boss's world/ 6 必填 schema).
@@ -206,7 +206,7 @@ enum BookFolderCatalog {
         isUserFacing: true,
     )
 
-    /// v2.7 round-62 (= boss
+    /// (= boss
     /// 2026-10-10 "先
     /// 不用，之后
     /// 测试. 先把

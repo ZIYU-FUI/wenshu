@@ -310,7 +310,6 @@ public final class WSChatRepository {
     // (= WenshuVerifier) and the post-summarize storage ops are business
     // logic; = they belong in app-side, not in the data layer.
 
-
     public func count(sessionId: String, bookID: String? = nil) throws -> Int {
         // Same SwiftData #Predicate limitation as loadMessages (= the
         // macro does not reliably translate Optional<String> == nil

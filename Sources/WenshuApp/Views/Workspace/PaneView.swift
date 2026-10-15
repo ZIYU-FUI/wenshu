@@ -66,7 +66,7 @@ struct PaneView: View {
             }
             return .referenceScope(nil)
         case .tag:
-            // v2.6 facet model: tag selection maps to the reference
+            // tag selection maps to the reference
             // library root with the active tag-filter applied (= the
             // preview pane reads shell.activeTagFilter to scope).
             return .referenceScope(nil)

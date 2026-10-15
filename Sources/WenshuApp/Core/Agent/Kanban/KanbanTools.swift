@@ -75,7 +75,6 @@ actor KanbanTools {
         self.store = WSKanbanRepository.shared
     }
 
-
     // MARK: - Action enum (= hermes kanban_tools.py handle_* functions)
 
     enum Action: String, Sendable, CaseIterable {

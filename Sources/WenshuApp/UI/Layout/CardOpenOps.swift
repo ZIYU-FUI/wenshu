@@ -225,7 +225,7 @@ enum CardOpenOps {
             // (see OOB.md #2026-09-08) — fix: if the caller passed a .bookDoc source,
             // use its doc (= correct book doc).
             if case .bookDoc(let doc) = source {
-                // v2.7 round-66 commit H (= boss
+                // (= boss
                 // 2026-10-10 "指
                 // 定目录
                 // 实现
@@ -340,7 +340,7 @@ enum CardOpenOps {
         case .shelfScope, .empty:
             return CardTriad(path: nil, content: "", title: "")
         case .tagScope(let tag):
-            // v2.6 facet model: .tagScope opens a reference
+            // tagScope opens a reference
             // entity (= the same triad shape as
             // .referenceScope; = the editor opens the
             // document by id; = tag is a facet of the

@@ -666,7 +666,7 @@ struct SFIcon: View {
         case .monochrome, .hierarchical, .palette, .multicolor:
             return AnyView(styledImage.symbolRenderingMode(.monochrome).foregroundStyle(color))
         case .variableColor:
-            // v2.7 round-66 commit G
+            // 
             // (= the `.variableColor`
             // symbol effect is a per-frame
             // animation, not a static

@@ -150,7 +150,6 @@ struct InspectorView: View {
         }
     }
 
-
     var body: some View {
         // The 4-page Picker (= Authoring (Fiction) / Style /
         // Characters / Project Management) lives in the NSWindow

@@ -510,7 +510,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
         // `<referenceLibraryRoot>/references/<uuid>.md`.
         // Once the migration runs on first launch (= the
         // body's content has been written to disk; = a
-        // v1.00 ticket), the SwiftData body becomes a
+        // ), the SwiftData body becomes a
         // write-through cache (= the writer still updates
         // it for in-app consumers that read SwiftData
         // directly, = e.g. the `ReferenceLibraryTool` for
@@ -699,7 +699,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
         bodyMarkdown: String,
         referenceLibraryRoot: URL
     ) throws {
-        // v2.7 round-41 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+        // (= boss 2026-10-10 (see OOB.md #2026-10-10)
         // directive). The previous
         // implementation threw
         // `referenceAlreadyExists` if
@@ -753,7 +753,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
             .appendingPathComponent(reference.layer.directoryName)
             .appendingPathComponent("\(reference.id.uuidString).md")
         if FileManager.default.fileExists(atPath: mdURL.path) {
-            // v2.7 round-41: content-diff check
+            // content-diff check
             // (= the user's "完全一至" rule).
             // If the existing .md is byte-equal
             // to the new body, the import is
@@ -795,7 +795,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
             try writeIndexToFileSystem(current, at: referenceLibraryRoot, layer: reference.layer)
             return
         }
-        // v2.7 round-41: original
+        // original
         // write path (no .md exists
         // at the destination = first
         // time this reference is

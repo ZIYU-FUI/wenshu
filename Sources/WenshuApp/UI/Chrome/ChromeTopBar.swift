@@ -34,7 +34,7 @@ import SwiftUI
 /// .background(.bar) }` (= canonical Apple HIG column-top
 /// chrome accessory surface).
 ///
-/// v3.0 design-system hard rule: any new column-top chrome
+/// any new column-top chrome
 /// row MUST go through this component. The outer shell
 /// (= VStack + content + padding + .background) is fixed
 /// here; the only per-call-site decision is the `content:`

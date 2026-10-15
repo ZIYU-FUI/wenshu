@@ -610,7 +610,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // used by the main agent's ChatView). ToolRegistry.shared is
         // safe to read here (= it's an actor; = init is synchronous).
         //
-        // v2.7d storage adapters: Archivist + Auditor sub-agents
+        // adapters: Archivist + Auditor sub-agents
         // bypass the LLM tool dispatch path (= their domains are
         // deterministic storage / memory reads). Inject
         // LiveArchivistStorage + LiveAuditorStorage at startup so
@@ -966,7 +966,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         try data.write(to: infoPlistURL)
     }
 
-    /// v2.7 round-73 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// agent needs the on-disk shelvesRoot (= to
     /// resolve a target book's directory at write
     /// time). Without an active library (= first-launch

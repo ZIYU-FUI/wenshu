@@ -131,7 +131,7 @@ struct WriteBookDocTool: Tool, Sendable {
                 )
             )
         }
-        // v2.7 round-73 (boss 2026-10-10 (see OOB.md #2026-10-10)
+        // (boss 2026-10-10 (see OOB.md #2026-10-10)
         // PO 双轴 test failure in worker):
         // create the parent directory
         // (= nested folders like

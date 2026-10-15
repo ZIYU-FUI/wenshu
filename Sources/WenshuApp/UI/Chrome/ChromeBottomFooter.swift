@@ -29,7 +29,7 @@ import SwiftUI
 /// padding (= the canonical Apple HIG sidebar-bottom-
 /// accessory height of ~38 PT).
 ///
-/// v3.0 design-system hard rule: any new column-bottom chrome
+/// any new column-bottom chrome
 /// row MUST go through this component. The outer shell
 /// (= VStack + Divider + padding + .background) is fixed
 /// here; the only per-call-site decision is the `content:`

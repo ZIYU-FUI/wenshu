@@ -119,7 +119,7 @@ struct SidebarContextMenuModifier: ViewModifier {
     let onImportToBook: (UUID) -> Void
 
     func body(content: Content) -> some View {
-        // v2.7 round-33 (= boss "如果当前选中
+        // (= boss "如果当前选中
         // 是别的，但鼠标直接在十二地仙处
         // 右键，点导入，就不能带入" directive):
         // the per-row context menu (=

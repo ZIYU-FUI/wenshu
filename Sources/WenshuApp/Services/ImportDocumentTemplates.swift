@@ -1,7 +1,7 @@
 //
 //  ImportDocumentTemplates.swift · Wenshu
 //
-//  v2.7 round-59 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+//  (= boss 2026-10-10 (see OOB.md #2026-10-10)
 //  下" directive). The 5
 //  document templates that
 //  constrain the import
@@ -129,7 +129,7 @@
 
 import Foundation
 
-/// v2.7 round-69 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+/// (= boss 2026-10-10 (see OOB.md #2026-10-10)
 /// 定不完整" feedback).
 /// The world/ folder is
 /// split into 6 separate
@@ -324,7 +324,7 @@ enum ImportDocumentTemplate: String, CaseIterable, Sendable {
         }
     }
 
-    /// v2.7 round-66 commit F (= boss
+    /// (= boss
     /// 2026-10-10 "我选
     /// 故事宪法，直
     /// 接跳到了步
@@ -569,7 +569,7 @@ enum ImportDocumentTemplate: String, CaseIterable, Sendable {
             .map { line -> String in
                 let trimmed = line.trimmingCharacters(in: .whitespaces)
                 if trimmed.isEmpty { return line } // keep blank lines as-is
-                // v2.7 round-67 boss
+                // boss
                 // 2026-10-10 "强制去
                 // 反链" feedback =
                 // code-side strip of
@@ -601,7 +601,7 @@ enum ImportDocumentTemplate: String, CaseIterable, Sendable {
                 // reorg work isn't
                 // lost).
                 let strippedLine = Self.stripBacklinksInline(in: line)
-                // v2.7 round-67 boss
+                // boss
                 // 2026-10-10 "强制去
                 // 版本记录" feedback
                 // (= wenshu's doc body
@@ -639,7 +639,7 @@ enum ImportDocumentTemplate: String, CaseIterable, Sendable {
             .joined(separator: "\n")
     }
 
-    /// v2.7 round-67 boss 2026-10-10 (see OOB.md #2026-10-10)
+    /// boss 2026-10-10 (see OOB.md #2026-10-10)
     /// (= anywhere in the line, not just
     /// whole-line matches). The pattern is
     /// `[[xxx]]` OR `![[xxx]]` (= image
@@ -686,7 +686,7 @@ enum ImportDocumentTemplate: String, CaseIterable, Sendable {
         return result
     }
 
-    /// v2.7 round-67 boss 2026-10-10 (see OOB.md #2026-10-10)
+    /// boss 2026-10-10 (see OOB.md #2026-10-10)
     /// (= the substring before the first
     /// `:`) matches one of the known version
     /// metadata prefixes (= Chinese or
@@ -781,7 +781,7 @@ enum ImportDocumentTemplate: String, CaseIterable, Sendable {
     /// worldbuilding template +
     /// adazing.com worldbuilding.
     ///
-    /// v2.7 round-69 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// feedback). The world/
     /// folder now has 6
     /// mandatory .md files
@@ -1016,7 +1016,7 @@ enum ImportDocumentTemplate: String, CaseIterable, Sendable {
     // MARK: - Drafts template
 
     /// 草稿 (drafts/) template.
-    /// v2.7 round-60 (= boss
+    /// (= boss
     /// 2026-10-10 "drafts/
     /// 草稿和正文模版
     /// 一至" + "Agent
@@ -1122,7 +1122,7 @@ enum ImportDocumentTemplate: String, CaseIterable, Sendable {
     // MARK: - Ideas template
 
     /// 构思 (ideas/) template.
-    /// v2.7 round-60 (= boss
+    /// (= boss
     /// 2026-10-10 "需
     /// 要加一个目录
     /// ，放你现在的
