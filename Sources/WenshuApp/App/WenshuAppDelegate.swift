@@ -52,21 +52,19 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         set { _openSettings = newValue }
     }
 
-    /// user-attached login keychain (= the InMemoryKeychainStore stub
-    /// prevents SecItemCopyMatching from blocking wenshu main thread
-    /// on the Keychain permission modal during dev/verify). Gated by
-    /// WENSHU_DEBUG_INMEMORY_KEYCHAIN env var (= 1 = use in-memory stub,
-    /// 0 = use real Apple keychain). Production builds never set this.
-    ///
-    /// don't require the keychain — I can't test chat remotely otherwise, I can only poke at the UI': add the same
-    /// UserDefaults override (= `wenshu.debugNoKeychain = YES`) for
-    /// off-site UI iteration. The user-set UserDefaults
-    /// flip persists across launches (= the canonical 'remote debug
-    /// mode' toggle = no keychain modal prompts = the user can iterate
-    /// on UI without touching macOS Keychain). ProviderKeychain.backend
-    /// also reads this UserDefaults (= two paths converge to the same
-    /// InMemoryKeychainStore = no race condition on first keychain
-    /// access).
+    /// user-attached login keychain (= the InMemoryKeychainStore stub prevents
+    /// SecItemCopyMatching from blocking wenshu main thread on the Keychain
+    /// permission modal during dev/verify). Gated by
+    /// WENSHU_DEBUG_INMEMORY_KEYCHAIN env var (= 1 = use in-memory stub, 0 =
+    /// use real Apple keychain). Production builds never set this.
+    /// don't require the keychain — I can't test chat remotely otherwise, I can
+    /// only poke at the UI': add the same UserDefaults override (=
+    /// `wenshu.debugNoKeychain = YES`) for off-site UI iteration. The user-set
+    /// UserDefaults flip persists across launches (= the canonical 'remote
+    /// debug mode' toggle = no keychain modal prompts = the user can iterate on
+    /// UI without touching macOS Keychain). ProviderKeychain.backend also reads
+    /// this UserDefaults (= two paths converge to the same
+    /// InMemoryKeychainStore = no race condition on first keychain access).
     static let sharedKeychainBackend: Void = {
         if ProcessInfo.processInfo.environment["WENSHU_DEBUG_INMEMORY_KEYCHAIN"] == "1" {
             ProviderKeychain.setBackendForTesting(InMemoryKeychainStore())
@@ -334,39 +332,33 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// Sub-agent runner (= the engine that drains pending
-    /// `BackgroundDelegationHandle` records and runs each sub-agent
-    /// in its own `ConversationLoop`). One per app (= process-lifetime).
-    /// Created lazily on first drain (= after `AsyncDelegationRegistry.shared`
-    /// is reachable).
+    /// `BackgroundDelegationHandle` records and runs each sub-agent in its own
+    /// `ConversationLoop`). One per app (= process-lifetime). Created lazily on
+    /// first drain (= after `AsyncDelegationRegistry.shared` is reachable).
     private nonisolated(unsafe) static var sharedSubAgentRunner: SubAgentRunner?
 
-    /// Background Task that calls `runner.drainPending()` on a loop
-    /// (= 1s sleep when no handles are pending; = no sleep when handles
-    /// are running). Cancelled in `applicationWillTerminate`.
+    /// Background Task that calls `runner.drainPending()` on a loop (= 1s sleep
+    /// when no handles are pending; = no sleep when handles are running).
+    /// Cancelled in `applicationWillTerminate`.
     private nonisolated(unsafe) static var subAgentDrainTask: Task<Void, Never>?
 
-    /// Start the sub-agent runner drain loop (= the team-link
-    /// consolidation): every 1s (= or sooner when a new handle lands),
-    /// the runner picks up pending `BackgroundDelegationHandle` records
-    /// from `AsyncDelegationRegistry.shared` (= the source-of-truth
-    /// the LLM-facing `DelegateResearchTool` writes to) and runs
-    /// each sub-agent in its own `ConversationLoop` with the
-    /// sub-agent's system prompt + tool subset.
-    ///
-    /// Threading:
-    ///   - The drain task is `Task.detached(priority: .background)`
-    ///     (= runs off MainActor; = the LLM round-trip inside the
-    ///     runner does not block UI).
-    ///   - The runner itself is `@MainActor` (= its `drainPending`
-    ///     method hops to MainActor per call).
-    ///   - Cancel via `subAgentDrainTask?.cancel()` in
-    ///     `applicationWillTerminate` (= the in-flight LLM call
-    ///     continues to completion; = future handles do not start).
-    ///
-    /// Idempotency: calling `startSubAgentDrainLoop` twice is a no-op
-    /// (= the second call returns immediately if `subAgentDrainTask`
-    /// is already non-nil). This makes the method safe to call from
-    /// any post-launch hook (= e.g. a future "reconnect" path).
+    /// Start the sub-agent runner drain loop (= the team-link consolidation):
+    /// every 1s (= or sooner when a new handle lands), the runner picks up
+    /// pending `BackgroundDelegationHandle` records from
+    /// `AsyncDelegationRegistry.shared` (= the source-of-truth the LLM-facing
+    /// `DelegateResearchTool` writes to) and runs each sub-agent in its own
+    /// `ConversationLoop` with the sub-agent's system prompt + tool subset.
+    /// Threading: - The drain task is `Task.detached(priority: .background)` (=
+    /// runs off MainActor; = the LLM round-trip inside the runner does not
+    /// block UI). - The runner itself is `@MainActor` (= its `drainPending`
+    /// method hops to MainActor per call). - Cancel via
+    /// `subAgentDrainTask?.cancel()` in `applicationWillTerminate` (= the
+    /// in-flight LLM call continues to completion; = future handles do not
+    /// start).
+    /// Idempotency: calling `startSubAgentDrainLoop` twice is a no-op (= the
+    /// second call returns immediately if `subAgentDrainTask` is already
+    /// non-nil). This makes the method safe to call from any post-launch hook
+    /// (= e.g. a future "reconnect" path).
     @MainActor
     static func startSubAgentDrainLoop() {
         // Idempotency guard (= already running).
@@ -413,10 +405,9 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         wenshuLogger.info("[wenshu.subagent] drain loop started")
     }
 
-    /// Stop the sub-agent runner drain loop (= v2.7d cancel path).
-    /// Called from `applicationWillTerminate`. The in-flight LLM
-    /// call (= if any) continues to completion; = future handles do
-    /// not start.
+    /// Stop the sub-agent runner drain loop (= v2.7d cancel path). Called from
+    /// `applicationWillTerminate`. The in-flight LLM call (= if any) continues
+    /// to completion; = future handles do not start.
     @MainActor
     static func stopSubAgentDrainLoop() {
         subAgentDrainTask?.cancel()
@@ -506,19 +497,18 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    /// AppState bridge for the migration panel. Set once by the
-    /// AppRootScene via .onAppear (= before any openWindow call).
+    /// AppState bridge for the migration panel. Set once by the AppRootScene
+    /// via .onAppear (= before any openWindow call).
     @MainActor static var sharedAppState: AppState?
 
-    /// Setter for the openWindow action (= AppRootScene's
-    /// .commands block injects it once via .onAppear). The
-    /// migration entry point reads it to open the panel window.
+    /// Setter for the openWindow action (= AppRootScene's .commands block
+    /// injects it once via .onAppear). The migration entry point reads it to
+    /// open the panel window.
     @MainActor static var openWindowAction: OpenWindowAction?
 
-    /// Run one attempt of the migration pipeline. Drives state
-    /// through preparing / executing / finalizing; = on
-    /// exception, state.fail(err) rolls progress back to 0
-    /// (see OOB.md #2026-10-06).
+    /// Run one attempt of the migration pipeline. Drives state through
+    /// preparing / executing / finalizing; = on exception, state.fail(err)
+    /// rolls progress back to 0 (see OOB.md #2026-10-06).
     @MainActor
     private static func runSwiftDataMigrationPipeline(wsRoot: URL, state: LibraryMigrationState) {
         do {
@@ -570,10 +560,9 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// Back up the user's .ws/WenshuStore.store to
-    /// .ws/migration-backups/v<old>-<ts>.store. Idempotent: if
-    /// the source store does not exist (= the .ws was just
-    /// created and SwiftData has not written the store yet), this
-    /// returns a placeholder path without copying anything
+    /// .ws/migration-backups/v<old>-<ts>.store. Idempotent: if the source store
+    /// does not exist (= the .ws was just created and SwiftData has not written
+    /// the store yet), this returns a placeholder path without copying anything
     /// (= the user has nothing to back up).
     @MainActor
     private static func writeMigrationBackup(wsRoot: URL) throws -> URL {
@@ -592,11 +581,10 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         return backupURL
     }
 
-    /// Bump the application-layer schema version stored in the
-    /// .ws Info.plist (= the WSSchemaVersion key that
-    /// LibraryInfo.needsMigration reads on every launch). The
-    /// SwiftData ModelsSchemaV2 versionIdentifier is 2.0.0; =
-    /// bumping the Info.plist to 2 keeps them in lockstep.
+    /// Bump the application-layer schema version stored in the .ws Info.plist
+    /// (= the WSSchemaVersion key that LibraryInfo.needsMigration reads on
+    /// every launch). The SwiftData ModelsSchemaV2 versionIdentifier is 2.0.0;
+    /// = bumping the Info.plist to 2 keeps them in lockstep.
     @MainActor
     private static func bumpSchemaVersion(wsRoot: URL, newVersion: Int) throws {
         let infoPlistURL = wsRoot.appendingPathComponent("Info.plist")
@@ -612,11 +600,10 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         try data.write(to: infoPlistURL)
     }
 
-    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
-    /// agent needs the on-disk shelvesRoot (= to
-    /// resolve a target book's directory at write
-    /// time). Without an active library (= first-launch
-    /// / pre-onboarding), returns nil.
+    /// (= boss 2026-10-10 (see OOB.md #2026-10-10) agent needs the on-disk
+    /// shelvesRoot (= to resolve a target book's directory at write time).
+    /// Without an active library (= first-launch / pre-onboarding), returns
+    /// nil.
     nonisolated static func activeShelvesRoot() -> URL? {
         guard let wsRoot = ActiveLibrary.path else { return nil }
         let url = URL(fileURLWithPath: wsRoot)
