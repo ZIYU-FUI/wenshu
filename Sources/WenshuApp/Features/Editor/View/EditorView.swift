@@ -188,6 +188,24 @@ struct EditorView: View {
         )
     }
 
+    /// Chrome band: 1 PT hairline divider (= the .separatorColor
+    /// rectangle) + the format toolbar (= 28 PT Apple HIG document-format
+    /// toolbar with bold / italic / highlight / strikethrough / inline-code /
+    /// heading / blockquote / unordered-list / ordered-list / link /
+    /// code-block / horizontal-rule). Pinned at the editor zone's outer
+    /// VStack (= above the scrollable area; = never scrolls away with the
+    /// document; = canonical Pages / Numbers / Keynote document-toolbar
+    /// idiom). 0 PT top padding (= the user's "工具栏上边距再-2" directive).
+    private var formatToolbarSection: some View {
+        Group { Rectangle()
+            .fill(Color(nsColor: .separatorColor))
+            .frame(height: 1)
+            .padding(.top, DesignTokens.spacingTight)
+        editorFormatToolbar
+            .padding(.top, 0)
+        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // Tab strip = Safari-style multi-tab bar (Apple HIG tabbed-document
@@ -251,42 +269,7 @@ struct EditorView: View {
                 Text(String(localized: "workspace.editor.discard_changes_confirm"))
             }
 
-            // ed-smc-defaults T-02 (= format toolbar pinned above the typing
-            // surface). 28 PT Apple HIG document-format toolbar (= bold /
-            // italic / highlight / strikethrough / inline-code / heading /
-            // blockquote / unordered-list / ordered-list / link / code- block /
-            // horizontal-rule). Pinned at the editor zone's outer VStack (=
-            // above the scrollable area; = never scrolls away with the
-            // document; = canonical Pages / Numbers / Keynote document-toolbar
-            // idiom). Why outside the engine's `header:` slot: the engine pins
-            // its `header:` to the scrolled content (= scrolls with the
-            // document). The format toolbar MUST stay visible while typing (=
-            // formatting affects the selection; = the user has to see what mode
-            // they're toggling); = a separately-pinned row in the outer VStack
-            // is the right place. The engine's `header:` slot still hosts the
-            // EditorHeaderView chrome band (= T-01; = title + dirty dot); = the
-            // 2 chrome rows stack vertically above the NSTextView (= format
-            // toolbar on top, then 28 PT chrome band, then the NSTextView).
-            // RATIONALE: a 1 PT hairline separates the segmented control (=
-            // above) from the format toolbar (= below); = the rectangle uses
-            // `Color(nsColor: .separatorColor)` (= the AppKit canonical
-            // hairline color; = the same color SwiftUI's `Divider()` uses
-            // internally; = explicit 1 PT height because `Divider()` collapses
-            // to 0 PT inside a `VStack(spacing: 0)`). 6 PT top padding
-            // separates the hairline from the segmented control above (=
-            // `spacingTight` = the wenshu canonical 6 PT tight inset; = the
-            // user sees the hairline as a distinct separator rather than as
-            // part of the segmented control's bottom border).
-            Rectangle()
-                .fill(Color(nsColor: .separatorColor))
-                .frame(height: 1)
-                .padding(.top, DesignTokens.spacingTight)
-            // RATIONALE: 0 PT top padding (= `padding(.top, 0)`; = the user's
-            // "工具栏上边距再-2" directive = 2 - 2 = 0 PT; = the format toolbar sits
-            // flush with the 1 PT separator = the segmented control and the
-            // toolbar form a single chrome band with a 1 PT internal hairline).
-            editorFormatToolbar
-                .padding(.top, 0)
+            formatToolbarSection
 
             // Body: placeholder content. swaps this for swift-markdown rendered
             // Text when mode = .preview swaps for Apple TextEditor when mode =
