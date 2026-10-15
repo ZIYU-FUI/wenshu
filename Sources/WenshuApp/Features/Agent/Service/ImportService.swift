@@ -288,202 +288,8 @@ actor ImportService {
         // updates immediately (= the user sees "找到 X 个 .md
         // 文件" the instant the orchestrator finishes Phase 1).
         await onProgress?(tasks)
-        // Phase 2: dedup. Read the cache once (= the
-        // orchestrator batches the read so the per-file
-        // lookup is O(1)). The cache is `var` because the
-        // Phase 4 write step inlines the new entries into
-        // the same in-memory map (= the in-memory map is
-        // the single source of truth for the duration of
-        // the import; = the disk-side writeCache call at
-        // the end persists the merged result).
-        let cacheFile = target.cacheRoot.appendingPathComponent("import-cache.json")
-        var cache = readCache(cacheFile: cacheFile)
-        for i in tasks.indices {
-            // Read the file body + hash it (= the
-            // dedup key is the body hash, not the path
-            // hash, so renaming a file doesn't bypass
-            // dedup).
-            let hash: String
-            do {
-                let body = try String(contentsOfFile: tasks[i].sourcePath, encoding: .utf8)
-                hash = Self.sha256(body)
-            } catch {
-                tasks[i].state = .failed
-                tasks[i].errorMessage = "读取文件失败: \(error.localizedDescription)"
-                continue
-            }
-            tasks[i].contentHash = hash
-            // (= boss
-            // 2026-10-10 "还
-            // 是直接
-            // 跳过了"
-            // 反馈;
-            // = after
-            // commit F
-            // the user
-            // still
-            // saw
-            // "已跳过"
-            // because
-            // the
-            // **Phase
-            // 1**
-            // `cachedDestinationExists`
-            // check
-            // (= folder-level
-            // non-empty
-            // for the
-            // bookFolder
-            // case)
-            // short-circuited
-            // BEFORE the
-            // Phase 2
-            // LLM
-            // content-same
-            // decision
-            // could
-            // even
-            // run; =
-            // the LLM
-            // never
-            // got a
-            // chance
-            // to
-            // compare
-            // the
-            // bodies).
-            //
-            // Boss's
-            // 2026-10-10
-            // grill
-            // response:
-            // "全
-            // 部
-            // 去
-            // short-circuit:
-            // 不管
-            // cache
-            // 跟
-            // destination,
-            // 都
-            // 进
-            // Phase
-            // 3
-            // +
-            // 4
-            // (=
-            // 老
-            // 板
-            // 原
-            // 话
-            // LLM
-            // 判
-            // 断)".
-            //
-            // The fix:
-            // REMOVE the
-            // entire
-            // `if cachedDestinationExists`
-            // short-circuit
-            // (= the cache
-            // contentHash
-            // check is
-            // still useful
-            // for the
-            // title-only
-            // retry path; =
-            // the
-            // destination
-            // existence
-            // check is
-            // too coarse
-            // for the
-            // bookFolder
-            // case; = let
-            // Phase 3
-            // routing +
-            // Phase 4
-            // write (with
-            // Stage 2 LLM
-            // content-same
-            // decision)
-            // handle the
-            // skip / overwrite
-            // decision
-            // properly
-            // (= per-file;
-            // = LLM-driven;
-            // = transparent
-            // to the user).
-            //
-            // The
-            // `cache[sourcePath].contentHash`
-            // check (= the
-            // cache hit
-            // detection
-            // from
-            // round-40/42)
-            // is kept (= a
-            // cache hit
-            // means
-            // "this exact
-            // file was
-            // imported
-            // before";
-            // = the
-            // orchestrator
-            // still
-            // benefits
-            // from the
-            // cache for
-            // purposes of
-            // the
-            // sidecar
-            // cache
-            // record; =
-            // the Stage 2
-            // LLM check
-            // is what
-            // actually
-            // decides
-            // skip vs
-            // overwrite).
-            //
-            // The `if let
-            // cached` /
-            // `cached.contentHash
-            // == hash`
-            // branch is
-            // now a
-            // no-op
-            // (= no
-            // short-circuit;
-            // = the
-            // cache is
-            // consulted
-            // by the
-            // title-only
-            // retry
-            // path
-            // via
-            // `cache[tasks[i].sourcePath].lastTitleOnlyRetriedHash`
-            // further
-            // downstream;
-            // = the
-            // here
-            // branch
-            // could
-            // be
-            // removed
-            // entirely;
-            // = keeping
-            // the
-            // `if` for
-            // future
-            // cache-driven
-            // optimizations).
-            _ = cache  // cache is consulted downstream by the title-only retry path; the here branch is intentionally a no-op per boss's 2026-10-10 directive
-        }
+                let cacheFile = target.cacheRoot.appendingPathComponent("import-cache.json")
+        let cache = dedupAndHash(tasks: &tasks, cacheFile: cacheFile)
         // Filter out completed / skipped / failed; =
         // the dispatch set is the remaining tasks.
         let dispatchIndices = tasks.indices.filter {
@@ -635,6 +441,38 @@ actor ImportService {
         }
     }
 
+
+    /// Phase 2 = read the on-disk cache once and hash
+    /// every pending task's body (= the dedup key is
+    /// the body hash, not the path hash; = renaming a
+    /// file does not bypass dedup; = the in-memory
+    /// cache is the source of truth for the import
+    /// batch; = `writeCache` at the end persists the
+    /// merged result; = the `if let cached` branch is
+    /// a no-op per the 2026-10-10 short-circuit
+    /// removal directive; = the cache is consulted
+    /// downstream by the title-only retry path via
+    /// `cache[sourcePath].lastTitleOnlyRetriedHash`).
+    private func dedupAndHash(
+        tasks: inout [ImportTask],
+        cacheFile: URL
+    ) -> [String: CacheEntry] {
+        var cache = readCache(cacheFile: cacheFile)
+        for i in tasks.indices {
+            let hash: String
+            do {
+                let body = try String(contentsOfFile: tasks[i].sourcePath, encoding: .utf8)
+                hash = Self.sha256(body)
+            } catch {
+                tasks[i].state = .failed
+                tasks[i].errorMessage = "读取文件失败: \(error.localizedDescription)"
+                continue
+            }
+            tasks[i].contentHash = hash
+            _ = cache  // consulted downstream by the title-only retry path
+        }
+        return cache
+    }
 
 
     // MARK: - title-only retry
