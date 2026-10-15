@@ -69,291 +69,153 @@ private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "previewpan
 
 
 extension PreviewPane {
-    /// Convenience: delegate to BookDocIDFactory.make.
-    /// (= keeps the call site compact and centralises the
-    /// hash algorithm choice.)
+    /// Convenience: delegate to BookDocIDFactory.make. (= keeps the call site
+    /// compact and centralises the hash algorithm choice.)
     nonisolated static func stableBookDocId(bookId: UUID, folderName: String, fileName: String) -> UUID {
         BookDocIDFactory.make(bookId: bookId, folderName: folderName, fileName: fileName)
     }
 }
 
-/// Content for the material management zone (= projectPreview).
-/// Renders cards in scope-driven modes:
-/// - .referenceScope(nil): all entities (= overview grid)
-/// - .referenceScope(.some): category-scoped entity grid
-/// - .bookScope(bookId, nil): all .md files in this book
-/// - .bookScope(bookId, folder): .md files in this folder only
-/// - .shelfScope / .empty: empty state hint
+/// Content for the material management zone (= projectPreview). Renders cards
+/// in scope-driven modes: - .referenceScope(nil): all entities (= overview
+/// grid) - .referenceScope(.some): category-scoped entity grid -
+/// .bookScope(bookId, nil): all .md files in this book - .bookScope(bookId,
+/// folder): .md files in this folder only - .shelfScope / .empty: empty state
+/// hint
 struct PreviewPane: View {
     @Environment(BookStore.self) private var bookStore
 
-    /// (= boss
-    /// 2026-10-10 "没
-    /// 有实现，
-    /// 右键卡片
-    /// 没有菜
-    /// 单" + "素
-    /// 材栏，
-    /// 不是
-    /// tree，
-    /// 是第
-    /// 二栏"
-    /// directive).
-    /// The right-click
-    /// context-menu
-    /// state (= the
-    /// rename sheet
-    /// target + the
-    /// pending-delete
-    /// alert target).
-    /// Mirrors the
-    /// `AppleSidebarView`
-    /// pattern (= the
-    /// sidebar's
-    /// `renaming` /
-    /// `pendingDelete`
-    /// state uses the
-    /// same `SidebarRenamingTarget`
-    /// / `SidebarPendingDelete`
-    /// structs; = the
-    /// PreviewPane
-    /// reuses those
-    /// types for the
-    /// second column's
-    /// reference
-    /// cards; = a
-    /// single rename
-    /// sheet / delete
-    /// alert = the
-    /// user can rename
-    /// / delete from
-    /// either surface;
-    /// = but the
-    /// PreviewPane
-    /// gets its own
-    /// local sheet
-    /// state since
-    /// `AppleSidebarView`'s
-    /// sheet is local
-    /// to that view).
+    /// (= boss 2026-10-10 "没 有实现， 右键卡片 没有菜 单" + "素 材栏， 不是 tree， 是第 二栏"
+    /// directive). The right-click context-menu state (= the rename sheet
+    /// target + the pending-delete alert target). Mirrors the
+    /// `AppleSidebarView` pattern (= the sidebar's `renaming` / `pendingDelete`
+    /// state uses the same `SidebarRenamingTarget` / `SidebarPendingDelete`
+    /// structs; = the PreviewPane reuses those types for the second column's
+    /// reference cards; = a single rename sheet / delete alert = the user can
+    /// rename / delete from either surface; = but the PreviewPane gets its own
+    /// local sheet state since `AppleSidebarView`'s sheet is local to that
+    /// view).
     @State private var cardRenaming: SidebarRenamingTarget?
     @State private var cardPendingDelete: SidebarPendingDelete?
-    /// a
-    /// local SidebarService
-    /// (= the second
-    /// column's
-    /// reference cards
-    /// need a service
-    /// to call
-    /// `renameReference`
-    /// / `deleteReference`).
-    /// The service is
-    /// @State (= the
-    /// service is an
-    /// actor-isolated
-    /// class; = @State
-    /// holds the
-    /// reference; =
-    /// the closures
-    /// capture it for
-    /// the card's
-    /// `.contextMenu`).
+    /// a local SidebarService (= the second column's reference cards need a
+    /// service to call `renameReference` / `deleteReference`). The service is
+    /// @State (= the service is an actor-isolated class; = @State holds the
+    /// reference; = the closures capture it for the card's `.contextMenu`).
     @State private var cardService: SidebarService?
 
-    /// 
-    /// cached snapshot of `(shelfId → books)` so the shelf
-    /// subtree can be cheaply skipped across body re-renders.
-    /// The shelfScopeView ran FileManager I/O (= walk
-    /// shelves tree + read every .md) on EVERY SwiftUI body
-    /// re-render of PreviewPane (= every Observation tick =
-    /// every sidebarSelection change = every AppState mutation
-    /// = the 'more Update Constraints in Window passes than
-    /// there are views in the window' SwiftUI NSHostingView
-    /// constraint loop). The fix: pre-load via `.task(id:)`
-    /// keyed on shelfId (= SwiftUI cancels and restarts the
-    /// task only when shelfId changes = not on every parent
-    /// re-render = no I/O storm = no layout cycle).
+    /// cached snapshot of `(shelfId → books)` so the shelf subtree can be
+    /// cheaply skipped across body re-renders. The shelfScopeView ran
+    /// FileManager I/O (= walk shelves tree + read every .md) on EVERY SwiftUI
+    /// body re-render of PreviewPane (= every Observation tick = every
+    /// sidebarSelection change = every AppState mutation = the 'more Update
+    /// Constraints in Window passes than there are views in the window' SwiftUI
+    /// NSHostingView constraint loop). The fix: pre-load via `.task(id:)` keyed
+    /// on shelfId (= SwiftUI cancels and restarts the task only when shelfId
+    /// changes = not on every parent re-render = no I/O storm = no layout
+    /// cycle).
     @State private var cachedShelfBooks: [UUID: [Book]] = [:]
 
-    /// (= boss
-    /// 2026-10-10 "两
-    /// 个
-    /// 卡
-    /// 片
-    /// 右
-    /// 键
-    /// 删
-    /// 除
-    /// ，
-    /// 删
-    /// 除
-    /// 成
-    /// 功
-    /// 后
-    /// ，
-    /// 目
-    /// 录
-    /// 树
-    /// 没
-    /// 有
-    /// 刷
-    /// 新
-    /// "
-    /// feedback).
-    /// A monotonically-
-    /// increasing tick
-    /// that bumps
-    /// whenever
-    /// `wenshuLibraryDidChange`
-    /// fires. The
-    /// card-grid view
-    /// depends on
-    /// this tick
-    /// (= the @State
-    /// change forces
-    /// SwiftUI to
-    /// re-evaluate
-    /// the body;
-    /// = the `loadBookDocs`
-    /// walk runs
-    /// again; = the
-    /// deleted card
-    /// disappears).
-    /// Without this
-    /// tick, the
-    /// card grid
-    /// would not
-    /// notice the FS
-    /// change (= the
-    /// `loadBookDocs`
-    /// call is inside
-    /// a ViewBuilder
-    /// body; = the
-    /// body's inputs
-    /// don't change
-    /// when the FS
-    /// changes; =
-    /// SwiftUI doesn't
-    /// re-render the
-    /// grid).
+    /// (= boss 2026-10-10 "两 个 卡 片 右 键 删 除 ， 删 除 成 功 后 ， 目 录 树 没 有 刷 新 "
+    /// feedback). A monotonically- increasing tick that bumps whenever
+    /// `wenshuLibraryDidChange` fires. The card-grid view depends on this tick
+    /// (= the @State change forces SwiftUI to re-evaluate the body; = the
+    /// `loadBookDocs` walk runs again; = the deleted card disappears). Without
+    /// this tick, the card grid would not notice the FS change (= the
+    /// `loadBookDocs` call is inside a ViewBuilder body; = the body's inputs
+    /// don't change when the FS changes; = SwiftUI doesn't re-render the grid).
     @State private var libraryChangeTick: Int = 0
 
-    /// scope of documents to display. Driven by
-    /// sidebar selection (= WorkspaceView computes from sidebarSelection).
+    /// scope of documents to display. Driven by sidebar selection (=
+    /// WorkspaceView computes from sidebarSelection).
     let scope: PreviewScope
 
-    /// card-double-click callback (= replaces the B-13
-    /// empty NSLog placeholders + BUG1 from the 2026-09-03 macOS
-    /// visual verify). Type = `() -> Void` (= untyped; = matches the existing
-    /// single-Card pattern; = the actual card data is read from
-    /// the Card's own `source` field at call time, not via closure
-    /// capture; = same code path handles both reference and bookDoc
+    /// card-double-click callback (= replaces the B-13 empty NSLog placeholders
+    /// + BUG1 from the 2026-09-03 macOS visual verify). Type = `() -> Void` (=
+    /// untyped; = matches the existing single-Card pattern; = the actual card
+    /// data is read from the Card's own `source` field at call time, not via
+    /// closure capture; = same code path handles both reference and bookDoc
     /// sources since B-02's CardSource enum unification).
-    ///
-    /// (see OOB.md #2026-09-08) — 'clicking the Dufu card opens a
-    /// tab with wrong name' (= clicking the card opens a new tab
-    /// with the wrong name):
-    /// the previous `onDoubleClick: () -> Void` had NO way to
-    /// identify which card was clicked (= the closure was bound
-    /// at ForEach time but didn't capture per-card state). The
-    /// caller (= WorkspaceView.openCardInEditor) had to fall back
-    /// to `filtered.first` (= always the topmost card, not the
+    /// (see OOB.md #2026-09-08) — 'clicking the Dufu card opens a tab with
+    /// wrong name' (= clicking the card opens a new tab with the wrong name):
+    /// the previous `onDoubleClick: () -> Void` had NO way to identify which
+    /// card was clicked (= the closure was bound at ForEach time but didn't
+    /// capture per-card state). The caller (= WorkspaceView.openCardInEditor)
+    /// had to fall back to `filtered.first` (= always the topmost card, not the
     /// actually-clicked one), opening the wrong .md file.
-    ///
-    /// Fix: onDoubleClick now takes the clicked CardSource (=
-    /// either .reference(Reference) or .bookDoc(BookDoc)). The
-    /// caller passes it to openCardInEditor(source: CardSource?)
-    /// which uses the supplied source instead of `filtered.first`.
+    /// Fix: onDoubleClick now takes the clicked CardSource (= either
+    /// .reference(Reference) or .bookDoc(BookDoc)). The caller passes it to
+    /// openCardInEditor(source: CardSource?) which uses the supplied source
+    /// instead of `filtered.first`.
     let onDoubleClick: (CardSource) -> Void
 
-    /// trailing button rendered in the pane's
-    /// tab bar (= PaneTabBar trailing slot). Used by the project
-    /// preview scope to host the sort menu (= sorts the card grid
-    /// by first letter / creation time / modification time). Default = nil = no trailing
-    /// button (= the scope just renders its tab bar + content).
+    /// trailing button rendered in the pane's tab bar (= PaneTabBar trailing
+    /// slot). Used by the project preview scope to host the sort menu (= sorts
+    /// the card grid by first letter / creation time / modification time).
+    /// Default = nil = no trailing button (= the scope just renders its tab bar
+    /// + content).
     var trailingButton: AnyView? = nil
 
-    /// : 'carddefaultyes'.
-    /// Default = .pinyinFirstLetter (= the spec). Owned by
-    /// WorkspaceView (= shared with PreviewSortMenuButton via
-    /// the @State binding) so changing the sort via the tab
-    /// bar trailing button re-renders this view's card grid.
+    /// : 'carddefaultyes'. Default = .pinyinFirstLetter (= the spec). Owned by
+    /// WorkspaceView (= shared with PreviewSortMenuButton via the @State
+    /// binding) so changing the sort via the tab bar trailing button re-renders
+    /// this view's card grid.
     @Binding var previewSortOrder: EntitySortOrder
 
-    /// 
-    /// search query for the preview pane. Owned by PreviewPane
-    /// (= previously a @Binding to WorkspaceView, = now reverted
-    /// to @State since the search bar lives inside PreviewPane
+    /// search query for the preview pane. Owned by PreviewPane (= previously a
+    /// @Binding to WorkspaceView, = now reverted to @State since the search bar
+    /// lives inside PreviewPane
     //  body; = the bind-chain is no longer needed). Empty string
-    /// = show all cards; non-empty = filter by case-insensitive
-    /// substring match on card display name + summary. SwiftUI
-    /// @State reactivity re-evaluates `body` on every keystroke
-    /// (= live refresh, no submit button, no .onChange handler
-    /// needed).
-    ///
-    /// 
+    /// = show all cards; non-empty = filter by case-insensitive substring match
+    /// on card display name + summary. SwiftUI @State reactivity re-evaluates
+    /// `body` on every keystroke (= live refresh, no submit button, no
+    /// .onChange handler needed).
     /// to the Apple API default style': callers can pass an OPTIONAL external
-    /// `searchQuery` Binding to use an EXTERNAL `.searchable(...)`
-    /// modifier (= the canonical macOS 13+ Apple HIG search field;
-    /// = identical visual to the sidebar `.searchable` field).
-    /// When `searchQuery` is non-nil, the internal handwritten
-    /// search bar is suppressed (= one canonical Apple search
-    /// field per pane, not two competing ones). When nil, the
-    /// legacy internal `@State private previewSearchQuery` is
-    /// used (= the legacy PaneSplitHost path = backward compat).
-    ///
-    /// Use `Binding<String>?` for the OPTIONAL external query
-    /// (= nil means "no external binding = render internal search
-    /// bar"). When non-nil, the Binding's wrapped value is the
-    /// search query (= one source of truth, fed from the external
-    /// `.searchable` modifier).
+    /// `searchQuery` Binding to use an EXTERNAL `.searchable(...)` modifier (=
+    /// the canonical macOS 13+ Apple HIG search field; = identical visual to
+    /// the sidebar `.searchable` field). When `searchQuery` is non-nil, the
+    /// internal handwritten search bar is suppressed (= one canonical Apple
+    /// search field per pane, not two competing ones). When nil, the legacy
+    /// internal `@State private previewSearchQuery` is used (= the legacy
+    /// PaneSplitHost path = backward compat).
+    /// Use `Binding<String>?` for the OPTIONAL external query (= nil means "no
+    /// external binding = render internal search bar"). When non-nil, the
+    /// Binding's wrapped value is the search query (= one source of truth, fed
+    /// from the external `.searchable` modifier).
     @Binding var searchQuery: String?
 
-    /// SidebarItem.tag preview-pane filter:
-    /// the
-    /// active tag filter (= the user clicked a `.tag(String)`
-    /// sidebar item; = the preview pane renders only
-    /// references whose `tags` set contains this string).
-    /// = nil means "no tag filter" (= show all references).
+    /// SidebarItem.tag preview-pane filter: the active tag filter (= the user
+    /// clicked a `.tag(String)` sidebar item; = the preview pane renders only
+    /// references whose `tags` set contains this string). = nil means "no tag
+    /// filter" (= show all references).
     @Binding var activeTag: String?
 
-    /// 'move the position: below the title
-    /// and divider, above the first card': per the user's request,
-    /// the
-    /// search field renders BELOW the 'Assets' section header + Divider
-    /// and ABOVE the first card (= the Apple HIG "sticky header +
-    /// inline search" pattern, not "search on top of header").
-    ///
-    /// Why a custom AnyView (= not Apple's `.searchable`):
-    /// 1. Apple HIG macOS 27 forces `.searchable` to render at
-    ///    the column's trailing edge (= a documented framework
-    ///    limitation in NavigationSplit columns; = the
-    ///    preference for a leading-positioned search field can't
-    ///    be satisfied with `.searchable`).
-    /// 2. The custom search field IS leading-aligned per the
-    ///    earlier preference (= "search box on the left").
-    ///
-    /// Why threaded through WorkspaceView (= not inlined in the
-    /// caller): PreviewPane is a stable component (= other callers
-    /// in tests / kanban previews use it too); = keeping the
-    /// search field position inside PreviewPane (= "sticky header
-    /// + search below + grid") preserves the component contract
-    /// while satisfying the placement request.
-    ///
-    /// Default = nil = no custom search field rendered (= the
-    /// legacy code path; = old callers and tests still work).
-    /// Pass `customLeadingSearch: AnyView(...)` from
-    /// WorkspaceView to inject the custom search field.
+    /// 'move the position: below the title and divider, above the first card':
+    /// per the user's request, the search field renders BELOW the 'Assets'
+    /// section header + Divider and ABOVE the first card (= the Apple HIG
+    /// "sticky header + inline search" pattern, not "search on top of header").
+    /// Why a custom AnyView (= not Apple's `.searchable`): 1. Apple HIG macOS
+    /// 27 forces `.searchable` to render at the column's trailing edge (= a
+    /// documented framework limitation in NavigationSplit columns; = the
+    /// preference for a leading-positioned search field can't be satisfied with
+    /// `.searchable`). 2. The custom search field IS leading-aligned per the
+    /// earlier preference (= "search box on the left").
+    /// Why threaded through WorkspaceView (= not inlined in the caller):
+    /// PreviewPane is a stable component (= other callers in tests / kanban
+    /// previews use it too); = keeping the search field position inside
+    /// PreviewPane (= "sticky header + search below + grid") preserves the
+    /// component contract while satisfying the placement request.
+    /// Default = nil = no custom search field rendered (= the legacy code path;
+    /// = old callers and tests still work). Pass `customLeadingSearch:
+    /// AnyView(...)` from WorkspaceView to inject the custom search field.
     var customLeadingSearch: AnyView? = nil
 
-    /// Legacy internal search state. Used when `searchQuery`
-    /// (= the new external Binding) is nil. Kept as `@State` so
-    /// legacy callers = no behavior change.
+    /// Legacy internal search state. Used when `searchQuery` (= the new
+    /// external Binding) is nil. Kept as `@State` so legacy callers = no
+    /// behavior change.
     @State private var previewSearchQuery: String = ""
 
-    /// Resolved search query used by `searchFilteredEntities`.
-    /// Reads from the external Binding when present, else from
-    /// the legacy internal `@State`.
+    /// Resolved search query used by `searchFilteredEntities`. Reads from the
+    /// external Binding when present, else from the legacy internal `@State`.
     private var resolvedSearchQuery: String {
         if let external = searchQuery {
             return external
@@ -361,30 +223,24 @@ struct PreviewPane: View {
         return previewSearchQuery
     }
 
-    /// Whether the pane renders its internal handwritten search
-    /// deleted `showsInternalSearchBar` (= verify-dead
-    /// reports ext=0 + int=0; = 0 callers; = the helper checked
-    /// `searchQuery == nil` (= the legacy internal-@State fallback
-    /// gate); = the binding is now always non-optional per the
-    /// this
-    /// computed var is no longer meaningful; = no behavior change;
-    /// = 4 LOC removed).
-
-    /// 'if the Apple API supports
+    /// Whether the pane renders its internal handwritten search deleted
+    /// `showsInternalSearchBar` (= verify-dead reports ext=0 + int=0; = 0
+    /// callers; = the helper checked `searchQuery == nil` (= the legacy
+    /// internal-@State fallback gate); = the binding is now always non-optional
+    /// per the this computed var is no longer meaningful; = no behavior change;
+    /// = 4 LOC removed). 'if the Apple API supports
         /// it, just use it — don't roll our own search': the previous init took
         /// `searchQuery: Binding<String?>?` (= optional; = nil meant
-    /// 'fall back to the legacy internal @State'). The optional
-    /// path was the source of the lifecycle-reset bug (= the
-    /// internal @State got reset on every PreviewPane rebuild
-    /// = the 'type x, results are unrelated to x' symptom). Now the
-    /// search field lives at the parent level (= Apple's
-    /// `.searchable` modifier on ShellMiddleColumn) and the
-    /// binding is always non-optional = the search text always
-    /// resolves to the same live parent @State across the
-    /// PreviewPane lifecycle. Kept the default value of
-    /// `.constant(nil)` (= backward-compat for callers that don't
-    /// pass searchQuery; = those callers get the legacy internal
-    /// `@State` path which still works for unit tests / previews).
+    /// 'fall back to the legacy internal @State'). The optional path was the
+    /// source of the lifecycle-reset bug (= the internal @State got reset on
+    /// every PreviewPane rebuild = the 'type x, results are unrelated to x'
+    /// symptom). Now the search field lives at the parent level (= Apple's
+    /// `.searchable` modifier on ShellMiddleColumn) and the binding is always
+    /// non-optional = the search text always resolves to the same live parent
+    /// @State across the PreviewPane lifecycle. Kept the default value of
+    /// `.constant(nil)` (= backward-compat for callers that don't pass
+    /// searchQuery; = those callers get the legacy internal `@State` path which
+    /// still works for unit tests / previews).
     init(
         scope: PreviewScope,
         onDoubleClick: @escaping (CardSource) -> Void,
@@ -401,28 +257,23 @@ struct PreviewPane: View {
         self.customLeadingSearch = customLeadingSearch
     }
 /// : 'cards display in multiple columns, default two columns, if the zone is dragged narrower,
-    /// not enough for two columns, auto-adapt to one column, in plain words it's card flow, width adaptive'.
-    ///
-    /// Adaptive column count:
-    /// - preview pane width >= twoColumnBreakpoint: 2 columns (= default)
-    /// - preview pane width <  twoColumnBreakpoint: 1 column (= narrow)
-    ///
-    /// Why 280 PT threshold:
-    /// - Per LayoutTokens.projectPreviewRatio = 0.20 (= preview
-    ///   pane gets 20% of total workspace width = 384 PT at 1920 PT total)
-    /// - Card min content + padding needs ~120-150 PT (= readable summary
-    ///   + thumbnail)
-    /// - 2 cards side by side = 240-300 PT + 16 PT gap = ~256-316 PT
-    /// - 280 PT threshold = preview always defaults to 2 columns
-    ///   at the default 20% ratio (= the "default two columns"
-    ///   requirement)
-    /// - If user drags the preview divider to shrink it (< 200 PT),
-    ///   falls back to 1 column automatically. Threshold lowered
-    ///   from 280 PT to 200 PT on 2026-09-01 to match the actual
-    ///   preview-pane width delivered by NSSplitView at weights [2] in
-    ///   the 10/20/60/10 preset (= ~210 PT). With the old 280 PT
-    ///   threshold, every launch collapsed to 1 column, defeating
-    ///   the "preview pane shows 2 columns" expectation.
+    /// not enough for two columns, auto-adapt to one column, in plain words
+    /// it's card flow, width adaptive'.
+    /// Adaptive column count: - preview pane width >= twoColumnBreakpoint: 2
+    /// columns (= default) - preview pane width < twoColumnBreakpoint: 1 column
+    /// (= narrow)
+    /// Why 280 PT threshold: - Per LayoutTokens.projectPreviewRatio = 0.20 (=
+    /// preview pane gets 20% of total workspace width = 384 PT at 1920 PT
+    /// total) - Card min content + padding needs ~120-150 PT (= readable
+    /// summary + thumbnail) - 2 cards side by side = 240-300 PT + 16 PT gap =
+    /// ~256-316 PT - 280 PT threshold = preview always defaults to 2 columns at
+    /// the default 20% ratio (= the "default two columns" requirement) - If
+    /// user drags the preview divider to shrink it (< 200 PT), falls back to 1
+    /// column automatically. Threshold lowered from 280 PT to 200 PT on
+    /// 2026-09-01 to match the actual preview-pane width delivered by
+    /// NSSplitView at weights [2] in the 10/20/60/10 preset (= ~210 PT). With
+    /// the old 280 PT threshold, every launch collapsed to 1 column, defeating
+    /// the "preview pane shows 2 columns" expectation.
     // (2026-09-08): raised from 130 to 350 (= the cards grid renders as a SINGLE column
     // when embedded inside the M2 NavigationSplitShell's sidebar column = the red-
     // line drawing shows 1 column for the cards zone. 350 (= higher than the
@@ -912,20 +763,17 @@ struct PreviewPane: View {
             }
         }
 
-    ///
     /// preview-pane search bar (= 30 PT tall, = matches
-    /// `LayoutTokens.toolbarHeight` = the editor's pencil/arrow toolbar
-    /// inside EditorView). Pattern matches the editor:
-    /// tab strip (ZoneContentView) → search bar (this view) → body content.
-    ///
-    /// Layout:
-    /// - magnifying-glass icon (left, .secondary, .small)
-    /// - TextField bound to `$previewSearchQuery` (.plain style,
+    /// `LayoutTokens.toolbarHeight` = the editor's pencil/arrow toolbar inside
+    /// EditorView). Pattern matches the editor: tab strip (ZoneContentView) →
+    /// search bar (this view) → body content.
+    /// Layout: - magnifying-glass icon (left, .secondary, .small) - TextField
+    /// bound to `$previewSearchQuery` (.plain style,
     // MARK: - Scope subviews
 
-    /// Reference library scope: existing entity card flow ((see OOB.md #2026-08-30)
-    /// OOB: 'card'). category nil = overview (= all
-    /// entities, flat grid per (see OOB.md #2026-08-30)); non-nil = category filter.
+    /// Reference library scope: existing entity card flow ((see OOB.md
+    /// #2026-08-30) OOB: 'card'). category nil = overview (= all entities, flat
+    /// grid per (see OOB.md #2026-08-30)); non-nil = category filter.
     @ViewBuilder
     private func referenceScopeView(category: EntityCategory?, tagOverride: String? = nil) -> some View {
         // (see OOB.md #2026-09-07) — 'search,': apply the search filter (=
@@ -961,8 +809,8 @@ struct PreviewPane: View {
     }
 
     /// Book scope: scan filesystem for .md files in the book folders.
-    /// folderName nil = union of all 8 standard folders; non-nil =
-    /// just that folder.
+    /// folderName nil = union of all 8 standard folders; non-nil = just that
+    /// folder.
     @ViewBuilder
     private func bookScopeView(bookId: UUID, folderName: String?) -> some View {
         // the `libraryChangeTick` `@State` is read in the body's `.onReceive` (= the
@@ -995,11 +843,9 @@ struct PreviewPane: View {
     }
 
     /// Shelf scope: union of every book's docs under the shelf.
-    /// 
-    /// The shelf row is a scope (= shows every .md
-    /// card from every book under that shelf; = union of all
-    /// `loadBookDocs(bookId:, folderName: nil)` results filtered
-    /// to books whose `shelfId == shelfId`).
+    /// The shelf row is a scope (= shows every .md card from every book under
+    /// that shelf; = union of all `loadBookDocs(bookId:, folderName: nil)`
+    /// results filtered to books whose `shelfId == shelfId`).
     @ViewBuilder
     private func shelfScopeView(shelfId: UUID) -> some View {
         // see the comment on `bookScopeView` (= the body's `.onReceive` reads the
@@ -1057,14 +903,13 @@ struct PreviewPane: View {
 
     // MARK: - 3 view modes
 
-    /// deleted `singleEntityDetail(_ entity: Reference) -> some View`
-    /// (= verify-dead reports ext=0 + int=0; = 0 callers; = the
-    /// function was a 3-mode dispatcher child for entity detail;
-    /// = the parent body in PreviewPane uses `singleEntityDetail`
-    /// is wired via Switch case in the parent body which now uses
-    /// a different rendering path — see git history for the full
-    /// deleted body; = no behavior change; = 80 LOC removed).
-    /// Mode 2: category-scoped grid (= only entities in this category).
+    /// deleted `singleEntityDetail(_ entity: Reference) -> some View` (=
+    /// verify-dead reports ext=0 + int=0; = 0 callers; = the function was a
+    /// 3-mode dispatcher child for entity detail; = the parent body in
+    /// PreviewPane uses `singleEntityDetail` is wired via Switch case in the
+    /// parent body which now uses a different rendering path — see git history
+    /// for the full deleted body; = no behavior change; = 80 LOC removed). Mode
+    /// 2: category-scoped grid (= only entities in this category).
     @ViewBuilder
     private func categoryGrid(category: EntityCategory, allEntities: [Reference]) -> some View {
         let inCategory = allEntities.filter { $0.category == category }
@@ -1097,18 +942,16 @@ struct PreviewPane: View {
         }
     }
 
-    /// Non-empty branch of categoryGrid (= the GeometryReader +
-    /// ScrollView + LazyVGrid + animations + contentInset pipeline).
-    /// Apple HIG canonical pattern: when an if/else has a heavy
-    /// non-empty branch (= 5 nested view frames here: GeometryReader
-    /// → ScrollView → LazyVGrid → ForEach → referenceCategoryCard),
-    /// extract it into a named @ViewBuilder helper (= categoryGrid
-    /// goes from 7 nested views to 4; = the function call flattens
-    /// the entire GeometryReader/ScrollView/LazyVGrid pipeline into
-    /// one frame in the parent body; = the parent categoryGrid body
-    /// becomes: VStack → if/else → emptyState/categoryGridContent
-    /// = 4 frames; = the deepest path through the file is now 5
-    /// = the per-helper's internal nesting).
+    /// Non-empty branch of categoryGrid (= the GeometryReader + ScrollView +
+    /// LazyVGrid + animations + contentInset pipeline). Apple HIG canonical
+    /// pattern: when an if/else has a heavy non-empty branch (= 5 nested view
+    /// frames here: GeometryReader → ScrollView → LazyVGrid → ForEach →
+    /// referenceCategoryCard), extract it into a named @ViewBuilder helper (=
+    /// categoryGrid goes from 7 nested views to 4; = the function call flattens
+    /// the entire GeometryReader/ScrollView/LazyVGrid pipeline into one frame
+    /// in the parent body; = the parent categoryGrid body becomes: VStack →
+    /// if/else → emptyState/categoryGridContent = 4 frames; = the deepest path
+    /// through the file is now 5 = the per-helper's internal nesting).
     @ViewBuilder
     private func categoryGridContent(inCategory: [Reference]) -> some View {
         GeometryReader { geometry in
@@ -1188,44 +1031,19 @@ struct PreviewPane: View {
         }
     }
 
-    /// Single Reference card for a category grid (= extracted
-    /// from categoryGrid's nested ForEach + Card trailing
-    /// closure). Apple HIG canonical pattern for deep view
-    /// hierarchies (= extract nested trailing closures into
-    /// named @ViewBuilder helpers; = one less view layer; =
-    /// categoryGrid goes from 8 nested views to 7). The body
-    /// contains the Card's onDoubleClick (= the Card source
-    /// argument; = forwards to PreviewPane's `onDoubleClick`,
-    /// which opens THIS specific card in the editor; = the
-    /// previous filtered.first bug).
-    /// the
-    /// single-card render
-    /// helper for the
-    /// per-category
-    /// grid (= the
-    /// per-card
-    /// `onRename` /
-    /// `onDelete`
-    /// closures are
-    /// wired here).
-    /// Extracted from
-    /// the inline
-    /// ForEach body so
-    /// the closures
-    /// can capture
-    /// `entity` (= the
-    /// right-clicked
-    /// card's
-    /// reference; = the
-    /// closures set
-    /// `cardRenaming` /
-    /// `cardPendingDelete`
-    /// to that specific
-    /// entity; = the
-    /// user sees a
-    /// rename / delete
-    /// flow for the
-    /// exact card they
+    /// Single Reference card for a category grid (= extracted from
+    /// categoryGrid's nested ForEach + Card trailing closure). Apple HIG
+    /// canonical pattern for deep view hierarchies (= extract nested trailing
+    /// closures into named @ViewBuilder helpers; = one less view layer; =
+    /// categoryGrid goes from 8 nested views to 7). The body contains the
+    /// Card's onDoubleClick (= the Card source argument; = forwards to
+    /// PreviewPane's `onDoubleClick`, which opens THIS specific card in the
+    /// editor; = the previous filtered.first bug). the single-card render
+    /// helper for the per-category grid (= the per-card `onRename` / `onDelete`
+    /// closures are wired here). Extracted from the inline ForEach body so the
+    /// closures can capture `entity` (= the right-clicked card's reference; =
+    /// the closures set `cardRenaming` / `cardPendingDelete` to that specific
+    /// entity; = the user sees a rename / delete flow for the exact card they
     /// right-clicked).
     @ViewBuilder
     private func referenceCategoryCard(_ entity: Reference) -> some View {
@@ -1299,11 +1117,10 @@ struct PreviewPane: View {
     /// Empty-state placeholder ((see OOB.md #2026-08-27) — '...no markdown body
     /// = leave a clear empty state, not a blank white pane').
     @ViewBuilder
-    /// follow-up 'editor ICON': use
-    /// the SAME icon (= book-open) as the editor empty state, so
-    /// all "no content" panels in the workspace share one visual
-    /// icon. Caller can override per-call (= rare; most callers
-    /// use the default).
+    /// follow-up 'editor ICON': use the SAME icon (= book-open) as the editor
+    /// empty state, so all "no content" panels in the workspace share one
+    /// visual icon. Caller can override per-call (= rare; most callers use the
+    /// default).
     private func emptyState(
         // Per Apple HIG / platform-default style: default icon 'book-open' is Lucide
         // kebab-case (= NOT a valid SF Symbol 6 identifier) = renders as a
@@ -1354,45 +1171,15 @@ struct PreviewPane: View {
         return result.entities
     }
 
-    /// the
-    /// 3 helpers that
-    /// the right-click
-    /// `Card` callbacks
-    /// call into. They
-    /// mirror the
-    /// `AppleSidebarView`
-    /// `renaming` /
-    /// `pendingDelete`
-    /// state pattern
-    /// (= the rename
-    /// sheet + delete
-    /// alert pick up
-    /// the local @State
-    /// and show the
-    /// corresponding
-    /// UI). The service
-    /// is built lazily
-    /// from the same
-    /// closures the
-    /// sidebar uses (=
-    /// the same source
-    /// of truth for
-    /// the business
-    /// methods
-    /// `renameReference` /
-    /// `deleteReference`).
-
-    /// Lazy service init
-    /// (= the service is
-    /// an actor; = we
-    /// build it on
-    /// first access and
-    /// cache it in
-    /// `cardService`).
-    /// Returns the
-    /// service (= creates
-    /// a new one if the
-    /// cache is empty).
+    /// the 3 helpers that the right-click `Card` callbacks call into. They
+    /// mirror the `AppleSidebarView` `renaming` / `pendingDelete` state pattern
+    /// (= the rename sheet + delete alert pick up the local @State and show the
+    /// corresponding UI). The service is built lazily from the same closures
+    /// the sidebar uses (= the same source of truth for the business methods
+    /// `renameReference` / `deleteReference`). Lazy service init (= the service
+    /// is an actor; = we build it on first access and cache it in
+    /// `cardService`). Returns the service (= creates a new one if the cache is
+    /// empty).
     private func ensureCardService() -> SidebarService {
         if let cached = cardService {
             return cached
@@ -1407,18 +1194,9 @@ struct PreviewPane: View {
         return service
     }
 
-    /// begin
-    /// the rename flow
-    /// for a single
-    /// reference card (=
-    /// set
-    /// `cardRenaming` to
-    /// a `.reference`
-    /// target). The
-    /// `originalName` is
-    /// read from the
-    /// `Reference`'s
-    /// current title.
+    /// begin the rename flow for a single reference card (= set `cardRenaming`
+    /// to a `.reference` target). The `originalName` is read from the
+    /// `Reference`'s current title.
     private func beginReferenceRename(_ entity: Reference) {
         cardRenaming = SidebarRenamingTarget(
             kind: .reference,
@@ -1428,19 +1206,9 @@ struct PreviewPane: View {
         )
     }
 
-    /// begin
-    /// the delete flow
-    /// for a single
-    /// reference card (=
-    /// set
-    /// `cardPendingDelete`
-    /// to a `.reference`
-    /// target). The
-    /// delete alert
-    /// shows the
-    /// reference's title
-    /// + a destructive
-    /// confirm button.
+    /// begin the delete flow for a single reference card (= set
+    /// `cardPendingDelete` to a `.reference` target). The delete alert shows
+    /// the reference's title + a destructive confirm button.
     private func beginReferenceDelete(_ entity: Reference) {
         cardPendingDelete = SidebarPendingDelete(
             kind: .reference,
@@ -1449,30 +1217,11 @@ struct PreviewPane: View {
         )
     }
 
-    /// begin
-    /// the rename flow
-    /// for a single
-    /// book doc card (=
-    /// set
-    /// `cardRenaming` to
-    /// a `.bookDoc`
-    /// target). Mirrors
-    /// the reference
-    /// helper (= the
-    /// rename sheet's
-    /// `.bookDoc` case
-    /// shows the file's
-    /// current title
-    /// + uses
-    /// `otherBookDocTitles`
-    /// for the duplicate
-    /// check; = the
-    /// underlying
-    /// service method
-    /// `renameBookDoc`
-    /// updates the .md
-    /// file's filename
-    /// + content
+    /// begin the rename flow for a single book doc card (= set `cardRenaming`
+    /// to a `.bookDoc` target). Mirrors the reference helper (= the rename
+    /// sheet's `.bookDoc` case shows the file's current title + uses
+    /// `otherBookDocTitles` for the duplicate check; = the underlying service
+    /// method `renameBookDoc` updates the .md file's filename + content
     /// heading).
     private func beginBookDocRename(_ doc: BookDoc) {
         cardRenaming = SidebarRenamingTarget(
@@ -1483,33 +1232,12 @@ struct PreviewPane: View {
         )
     }
 
-    /// begin
-    /// the delete flow
-    /// for a single
-    /// book doc card (=
-    /// set
-    /// `cardPendingDelete`
-    /// to a `.bookDoc`
-    /// target). The
-    /// delete alert
-    /// shows the
-    /// file's title
-    /// + a destructive
-    /// confirm button.
-    /// The underlying
-    /// `deleteBookDoc`
-    /// service method
-    /// removes the .md
-    /// file from
-    /// disk (= the
-    /// book doc is
-    /// JUST a file; =
-    /// no entities.json
-    /// index entry to
-    /// remove; = the
-    /// file deletion
-    /// IS the complete
-    /// delete).
+    /// begin the delete flow for a single book doc card (= set
+    /// `cardPendingDelete` to a `.bookDoc` target). The delete alert shows the
+    /// file's title + a destructive confirm button. The underlying
+    /// `deleteBookDoc` service method removes the .md file from disk (= the
+    /// book doc is JUST a file; = no entities.json index entry to remove; = the
+    /// file deletion IS the complete delete).
     private func beginBookDocDelete(_ doc: BookDoc) {
         cardPendingDelete = SidebarPendingDelete(
             kind: .bookDoc,
@@ -1518,28 +1246,23 @@ struct PreviewPane: View {
         )
     }
 
-    /// helper for shelfScopeView.
-    /// Returns the books that live under the given shelf (= the
-    /// books whose `.shelfId` matches). Reads from the same
-    /// BookStore.sidebarLoadAllBooks source the sidebar already
-    /// uses (= single source of truth; = no parallel book list).
-    /// Returns [] (= empty shelf = empty-state card grid) when
-    /// the lookup fails (= disk error) so the caller doesn't
-    /// have to do its own error-handling.
+    /// helper for shelfScopeView. Returns the books that live under the given
+    /// shelf (= the books whose `.shelfId` matches). Reads from the same
+    /// BookStore.sidebarLoadAllBooks source the sidebar already uses (= single
+    /// source of truth; = no parallel book list). Returns [] (= empty shelf =
+    /// empty-state card grid) when the lookup fails (= disk error) so the
+    /// caller doesn't have to do its own error-handling.
     private func loadBooksInShelf(shelfId: UUID) -> [Book] {
         return PreviewPaneOps.loadBooksInShelf(bookStore: bookStore, shelfId: shelfId).books
     }
 
-    /// 
-    /// pre-computes the shelf's books exactly once per shelfId
-    /// change (= called from `.task(id: shelfId)` at the call
-    /// site). SwiftUI cancels any in-flight task and restarts
-    /// it whenever shelfId changes, so the cache is always
-    /// fresh (= re-load on shelf switch) but never re-evaluates
-    /// on parent re-renders. The result lands in `@State
-    /// cachedShelfBooks` (= the shelf subtree reads from cache,
-    /// not from disk = no I/O storm = no SwiftUI NSHostingView
-    /// constraint cycle).
+    /// pre-computes the shelf's books exactly once per shelfId change (= called
+    /// from `.task(id: shelfId)` at the call site). SwiftUI cancels any
+    /// in-flight task and restarts it whenever shelfId changes, so the cache is
+    /// always fresh (= re-load on shelf switch) but never re-evaluates on
+    /// parent re-renders. The result lands in `@State cachedShelfBooks` (= the
+    /// shelf subtree reads from cache, not from disk = no I/O storm = no
+    /// SwiftUI NSHostingView constraint cycle).
     @MainActor
     private func loadShelfBooksAsync(shelfId: UUID) async {
         let result = await PreviewPaneOps.loadShelfBooksAsync(bookStore: bookStore, shelfId: shelfId)
@@ -1550,36 +1273,34 @@ struct PreviewPane: View {
         return PreviewPaneOps.loadBody(bookStore: bookStore, for: entity).body
     }
 
-    /// load .md files from a book folder on the
-    /// filesystem. Walks all shelves (= shelves/<shelf>/books/<book>/)
-    /// to find the matching bookId, then scans one or more of the 8
-    /// standard folders for .md files.
-    ///
-    /// Errors (= missing folders, permission denied, etc.) are
-    /// silently skipped so a single bad folder doesn't break the
-    /// whole view (= partial load is more useful than nothing).
+    /// load .md files from a book folder on the filesystem. Walks all shelves
+    /// (= shelves/<shelf>/books/<book>/) to find the matching bookId, then
+    /// scans one or more of the 8 standard folders for .md files.
+    /// Errors (= missing folders, permission denied, etc.) are silently skipped
+    /// so a single bad folder doesn't break the whole view (= partial load is
+    /// more useful than nothing).
     private func loadBookDocs(bookId: UUID, folderName: String?) -> [BookDoc] {
         return PreviewPaneOps.loadBookDocs(bookStore: bookStore, bookId: bookId, folderName: folderName).docs
     }
 
-    /// Sort book docs by the current sort order (= same menu as entity
-    /// scope, but applied to BookDoc). (see OOB.md #2026-08-31) — sort still
-    /// defaults to .pinyinFirstLetter so docs in Chinese filenames
-    /// also flow alphabetically.
+    /// Sort book docs by the current sort order (= same menu as entity scope,
+    /// but applied to BookDoc). (see OOB.md #2026-08-31) — sort still defaults
+    /// to .pinyinFirstLetter so docs in Chinese filenames also flow
+    /// alphabetically.
     private func sortBookDocs(_ docs: [BookDoc], by order: EntitySortOrder) -> [BookDoc] {
         return PreviewPaneOps.sortBookDocs(docs, by: order)
     }
 
     /// Sort entities by the selected sort order ((see OOB.md #2026-08-30)).
-    /// Returns a NEW array (doesn't mutate input). Stable sort by using
-    /// id as the tiebreaker (= prevents visual shuffle on re-render
-    /// when entities have equal sort keys).
+    /// Returns a NEW array (doesn't mutate input). Stable sort by using id as
+    /// the tiebreaker (= prevents visual shuffle on re-render when entities
+    /// have equal sort keys).
     private func sortEntities(_ entities: [Reference], by order: EntitySortOrder) -> [Reference] {
         return PreviewPaneOps.sortEntities(entities, by: order)
     }
 
-    /// Flat LazyVGrid for book docs (= same visual style as entity
-    /// card grid, but BookDocCard instead of EntityCard).
+    /// Flat LazyVGrid for book docs (= same visual style as entity card grid,
+    /// but BookDocCard instead of EntityCard).
     @ViewBuilder
     private func bookDocsGrid(docs: [BookDoc]) -> some View {
         let sorted = sortBookDocs(docs, by: previewSortOrder)
@@ -1614,10 +1335,10 @@ struct PreviewPane: View {
         }
     }
 
-    /// Convert Chinese title to its pinyin first letter (= uppercase).
-    /// Uses Apple's CFStringTransform (kCFStringTransformToLatin +
-    /// kCFStringTransformStripDiacritics). Example: "" → "L",
-    /// "" → "W", "" → "S".
+    /// Convert Chinese title to its pinyin first letter (= uppercase). Uses
+    /// Apple's CFStringTransform (kCFStringTransformToLatin +
+    /// kCFStringTransformStripDiacritics). Example: "" → "L", "" → "W", "" →
+    /// "S".
     private func pinyinFirstLetter(_ title: String) -> String {
         let mutable = NSMutableString(string: title)
         // Convert CJK characters to latinized pinyin (e.g. "" → "Lǐ Bái").
@@ -1633,43 +1354,32 @@ struct PreviewPane: View {
         return "~"
     }
 
-    /// 'search,, d, can
-    /// ': convert a CJK + ASCII title to its FULL pinyin
-    /// first-letter string (= concatenated initial of each pinyin
-    /// syllable, all uppercase, no separator). Examples:
-    /// - "" → "DF"
-    /// - "" → "LB"
-    /// - "" → "HNBDZS"
-    /// - "Hello " → "HELLO SJ"
-    /// - "AB test CD" → "AB CD"
-    ///
-    /// Implementation: CFStringTransform to convert CJK to latinized
-    /// pinyin (= "" → "Du Fu", "" → "Li Bai"), strip
-    /// diacritics, then extract the first letter of each whitespace-
-    /// separated word. Uses Apple's CoreFoundation string transform
-    /// (= no third-party pinyin lib = AGENTS.md §11.1 hard rule).
-    /// 'pinyin initials + Chinese-character search — it was
-        /// already supported before, there should be existing code for it': extract the search-match
-        /// predicate (= title / summary / pinyin first-letter
-        /// substring) into a shared helper so reference entities
+    /// 'search,, d, can ': convert a CJK + ASCII title to its FULL pinyin
+    /// first-letter string (= concatenated initial of each pinyin syllable, all
+    /// uppercase, no separator). Examples: - "" → "DF" - "" → "LB" - "" →
+    /// "HNBDZS" - "Hello " → "HELLO SJ" - "AB test CD" → "AB CD"
+    /// Implementation: CFStringTransform to convert CJK to latinized pinyin (=
+    /// "" → "Du Fu", "" → "Li Bai"), strip diacritics, then extract the first
+    /// letter of each whitespace- separated word. Uses Apple's CoreFoundation
+    /// string transform (= no third-party pinyin lib = AGENTS.md §11.1 hard
+    /// rule). 'pinyin initials + Chinese-character search — it was
+        /// already supported before, there should be existing code for it':
+        /// extract the search-match predicate (= title / summary / pinyin
+        /// first-letter substring) into a shared helper so reference entities
         /// AND book docs use the same filter ((see OOB.md — 'use one common
-        /// interface'). Moved to PreviewPaneOps (= v1.76 spec-fix
-        /// arc; = per spec §9.2 row 6 entry-point list).
-
-        /// 'search, d, can
-    /// ': filter the entity list by the current search query.
-    /// Matches against BOTH:
-    /// 1. Original title / summary substring (= case-insensitive)
-    /// 2. Pinyin first-letter substring (= e.g. "d" matches "" → DF)
-    /// Empty query = pass-through (= show all entities).
-    /// s search field doesn't actually filter the cards':
-        /// same filter shape as `searchFilteredEntities` but for book
-        /// docs (= filesystem .md files loaded by `loadBookDocs`).
-        /// Uses the shared `matchesSearch` helper (= title / summary /
-        /// pinyin first-letter substring match) = same logic as the
-        /// reference-entity filter; = the user's previous
-        /// 'the search field doesn't actually filter the cards' bug was that bookDocsGrid was called
-        /// with the unfiltered docs.
+        /// interface'). Moved to PreviewPaneOps (= v1.76 spec-fix arc; = per
+        /// spec §9.2 row 6 entry-point list). 'search, d, can
+    /// ': filter the entity list by the current search query. Matches against
+    /// BOTH: 1. Original title / summary substring (= case-insensitive) 2.
+    /// Pinyin first-letter substring (= e.g. "d" matches "" → DF) Empty query =
+    /// pass-through (= show all entities). s search field doesn't actually
+    /// filter the cards':
+        /// same filter shape as `searchFilteredEntities` but for book docs (=
+        /// filesystem .md files loaded by `loadBookDocs`). Uses the shared
+        /// `matchesSearch` helper (= title / summary / pinyin first-letter
+        /// substring match) = same logic as the reference-entity filter; = the
+        /// user's previous 'the search field doesn't actually filter the cards'
+        /// bug was that bookDocsGrid was called with the unfiltered docs.
         private func searchFilteredBookDocs(_ docs: [BookDoc]) -> [BookDoc] {
         return PreviewPaneOps.searchFilteredBookDocs(docs, query: resolvedSearchQuery)
     }
@@ -1680,10 +1390,8 @@ struct PreviewPane: View {
 
 }
 
-/// Card view for a single entity in the grid.
-/// Tap = select (= not wired yet). Double-click = open in editor
-/// (= the card-double-click hook).
-///
+/// Card view for a single entity in the grid. Tap = select (= not wired yet).
+/// Double-click = open in editor (= the card-double-click hook).
 // (per the rule): 'card, '. Thumbnail
 // (CardSource extracted to PreviewPaneCard.swift in A33; = see that file)
 
