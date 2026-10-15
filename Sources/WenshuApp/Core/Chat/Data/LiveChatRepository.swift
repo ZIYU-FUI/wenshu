@@ -88,10 +88,12 @@ init(container: ModelContainer) {
     }
 
     func loadMessages(sessionId: SessionID, bookID: BookID?) async throws -> [ChatMessage] {
-        let stored: [StoredChatMessage] = try await Self.runOnMainActor {
-            try self.repository(bookID: bookID).loadMessages(sessionId: sessionId.rawValue, bookID: bookID)
+        // A1 boundary: convert WSChatMessage -> ChatMessage INSIDE MainActor.
+        // PersistentModel is NOT Sendable across actor boundaries.
+        let stored: [ChatMessage] = try await Self.runOnMainActor {
+            try self.repository(bookID: bookID).loadMessages(sessionId: sessionId.rawValue, bookID: bookID).compactMap(Self.makeDomain(from:))
         }
-        return stored.compactMap(Self.makeDomain(from:))
+        return stored
     }
 
     func summarizeIfNeeded(
@@ -188,11 +190,11 @@ init(container: ModelContainer) {
     /// the v0.71 P1 batch 6 dual-axis audit added this explicit
     /// drop in place of the previous "silently rewrite to .wenshu"
     /// fallback).
-    static func makeDomain(from stored: StoredChatMessage) -> ChatMessage? {
+    static func makeDomain(from stored: WSChatMessage) -> ChatMessage? {
         guard let uuid = UUID(uuidString: stored.id) else { return nil }
         let resolvedRole: ChatRole
         let resolvedSource: ChatSource
-        switch stored.source {
+        switch stored.role {
         case "user":
             resolvedRole = .user
             resolvedSource = .user
@@ -210,8 +212,8 @@ init(container: ModelContainer) {
             role: resolvedRole,
             source: resolvedSource,
             content: stored.content,
-            timestamp: stored.timestamp,
-            tokens: stored.tokens,
+            timestamp: stored.createdAt,
+            tokens: stored.tokenCount >= 0 ? stored.tokenCount : nil,
             thinking: stored.thinking
         )
     }

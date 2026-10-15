@@ -83,7 +83,7 @@ final class WSChatRepository {
 
     // MARK: - Messages
 
-    func loadMessages(sessionId: String, bookID: BookID? = nil) throws -> [StoredChatMessage] {
+    func loadMessages(sessionId: String, bookID: BookID? = nil) throws -> [WSChatMessage] {
         // v0.74 boss OOB: "持久化的聊天记录, 重新渲染顺序有问题, 问答先后顺序混乱"
         // The previous sortBy: [SortDescriptor(\.position)] was the
         // buggy path. Position is a count-then-insert int (= see
@@ -105,26 +105,11 @@ final class WSChatRepository {
         // IS NULL; = we filter post-fetch). The chat message set per
         // sessionId is bounded (= O(thousands) per book); = an O(n)
         // in-memory filter is acceptable.
-        let filtered: [WSChatMessage]
         if let bookID {
             let bookIDRaw = bookID.rawValue
-            filtered = raw.filter { $0.bookID == bookIDRaw }
+            return raw.filter { $0.bookID == bookIDRaw }
         } else {
-            filtered = raw.filter { $0.bookID == nil }
-        }
-        return filtered.map { model in
-            StoredChatMessage(
-                id: model.id,
-                source: model.role,
-                content: model.content,
-                timestamp: model.createdAt,
-                tokens: model.tokenCount >= 0 ? model.tokenCount : nil,
-                // -cleanup E2 (see OOB.md #2026-09-21) OOB 'AI ':
-                // restore the persisted reasoning content from the new
-                // SwiftData column (= previously lost on reload because
-                // the streaming parts[] was never persisted to disk).
-                thinking: model.thinking
-            )
+            return raw.filter { $0.bookID == nil }
         }
     }
 
@@ -300,7 +285,7 @@ final class WSChatRepository {
     /// (= v0.72 SwiftData migration; replaces the deleted ChatSessionStore actor)
     /// helper. Returns the pre-cutoff messages (= those to be summarised)
     /// in ASC timestamp order (= matches the deleted actor's spec).
-    func messagesBeforeCutoff(sessionId: String, cutoff: Date, bookID: BookID? = nil) throws -> [StoredChatMessage] {
+    func messagesBeforeCutoff(sessionId: String, cutoff: Date, bookID: BookID? = nil) throws -> [WSChatMessage] {
         let descriptor = FetchDescriptor<WSChatMessage>(
             predicate: Self.combinedChatPredicate(
                 sessionId: sessionId,
@@ -309,18 +294,7 @@ final class WSChatRepository {
             ),
             sortBy: [SortDescriptor(\.createdAt, order: .forward)]
         )
-        let models = try context.fetch(descriptor)
-        return models.map { model in
-            StoredChatMessage(
-                id: model.id,
-                source: model.role,
-                content: model.content,
-                timestamp: model.createdAt,
-                tokens: model.tokenCount >= 0 ? model.tokenCount : nil,
-                // -cleanup E2: include thinking in summarize pipeline
-                thinking: model.thinking
-            )
-        }
+        return try context.fetch(descriptor)
     }
 
     /// summarizeIfNeeded(sessionId:lastN:threshold:verifier:) -> Bool
@@ -349,7 +323,7 @@ final class WSChatRepository {
 
         // Assemble summary prompt
         let transcript = oldMessages.prefix(20).map { msg -> String in
-            "[\(msg.source)] \(msg.content.prefix(100))"
+            "[\(msg.role)] \(msg.content.prefix(100))"
         }.joined(separator: "\n")
         let summaryPrompt = """
         请用 200 字内总结以下聊天记录的关键信息 (人名 / 偏好 / 上下文 / 决定), 用中文:
