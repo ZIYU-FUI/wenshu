@@ -233,7 +233,7 @@ struct IconStylesTests {
 
     @Test("View.wenshuFont(_:) extension applies the HIG text-style font")
     func viewWenshuFontExtension() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Shared/UI/IconStyles.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Shared/UI/WenshuTextStyle.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("func wenshuFont(_ style: WenshuTextStyle) -> some View"),
                 "View extension wenshuFont(_:) must exist (= convenience modifier for color/styling)")
