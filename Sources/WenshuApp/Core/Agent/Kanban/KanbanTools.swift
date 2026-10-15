@@ -212,13 +212,12 @@ actor KanbanTools {
 
     /// List tasks with filters (= hermes _handle_list).
     private func list(params: KanbanParams) async -> KanbanToolResult {
-        let statusFilter: KanbanStatus? = params.status.flatMap { KanbanStatus(rawValue: $0) }
         do {
-            // A1 boundary: build Sendable scalar array inside MainActor.run.
+            // A1g.2 step 2/3: store.list now takes String? (not KanbanStatus?).
+            // Build a Sendable scalar array inside MainActor.run.
             let data: [(id: String, title: String, status: String)] = try await MainActor.run {
-                try store.list(status: statusFilter).map { model in
-                    let task = Self.toDomain(model)
-                    return (id: task.id, title: task.title, status: task.status.rawValue)
+                try store.list(status: params.status).map { model in
+                    (id: model.id, title: model.title, status: model.status)
                 }
             }
             let limited = data.prefix(params.limit ?? data.count)
@@ -240,7 +239,7 @@ actor KanbanTools {
             return KanbanToolResult(success: false, output: "title is required for create")
         }
         do {
-            let task = try await store.add(
+            let taskId = try await store.add(
                 title: title,
                 priority: params.priority ?? 3,
                 assignee: params.assignee,
@@ -255,8 +254,8 @@ actor KanbanTools {
             )
             return KanbanToolResult(
                 success: true,
-                output: "Created task: \(task.id) — \(task.title)",
-                data: ["task_id": task.id]
+                output: "Created task: \(taskId) — \(title)",
+                data: ["task_id": taskId]
             )
         } catch {
             return KanbanToolResult(success: false, output: "create failed: \(error)")
@@ -269,7 +268,7 @@ actor KanbanTools {
             return KanbanToolResult(success: false, output: "task_id is required for complete")
         }
         do {
-            try await MainActor.run { try store.transition(id: id, to: .done) }
+            try await MainActor.run { try store.transition(id: id, to: "done") }
             return KanbanToolResult(
                 success: true,
                 output: "Completed task: \(id)",
@@ -286,7 +285,7 @@ actor KanbanTools {
             return KanbanToolResult(success: false, output: "task_id is required for block")
         }
         do {
-            try await MainActor.run { try store.transition(id: id, to: .blocked) }
+            try await MainActor.run { try store.transition(id: id, to: "blocked") }
             return KanbanToolResult(
                 success: true,
                 output: "Blocked task: \(id) — \(params.reason ?? "(no reason)")"
@@ -303,7 +302,7 @@ actor KanbanTools {
             return KanbanToolResult(success: false, output: "task_id is required for unblock")
         }
         do {
-            try await MainActor.run { try store.transition(id: id, to: .ready) }
+            try await MainActor.run { try store.transition(id: id, to: "ready") }
             return KanbanToolResult(
                 success: true,
                 output: "Unblocked task: \(id)"
@@ -361,8 +360,7 @@ actor KanbanTools {
         guard let id = params.taskId else {
             return KanbanToolResult(success: false, output: "task_id is required for transition")
         }
-        guard let newStatusRaw = params.newStatus,
-              let newStatus = KanbanStatus(rawValue: newStatusRaw) else {
+        guard let newStatus = params.newStatus else {
             return KanbanToolResult(
                 success: false,
                 output: "new_status must be one of: new / triage / ready / running / blocked / review / done / failed"
@@ -372,7 +370,7 @@ actor KanbanTools {
             try await MainActor.run { try store.transition(id: id, to: newStatus) }
             return KanbanToolResult(
                 success: true,
-                output: "Transitioned \(id) → \(newStatus.rawValue)"
+                output: "Transitioned \(id) → \(newStatus)"
             )
         } catch {
             return KanbanToolResult(success: false, output: "transition failed: \(error)")

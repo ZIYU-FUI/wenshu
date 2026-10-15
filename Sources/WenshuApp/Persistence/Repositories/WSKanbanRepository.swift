@@ -1,23 +1,26 @@
 //
 //  Persistence/Repositories/WSKanbanRepository.swift
 //
-//  v3.1 governance A1 refactor (= boundary probe 5/8).
+//  v3.1 governance A1g.2 step 2/3 (= boundary decouple, A1 probe 5/8
+//  layered on top).
 //  Apple canonical layering per Backyard Birds:
-//    - write API = domain-in/domain-out (Repository converts
-//      KanbanTask -> WSKanbanTask @Model internally, returns the
-//      persisted domain type for fresh inserts).
-//    - read  API = @Model out (caller converts WSKanbanTask -> KanbanTask).
+//    - write API = raw fields in (= no app-side domain type;
+//      caller converts KanbanStatus -> String rawValue before calling;
+//      caller consumes the returned WSKanbanTask inside MainActor scope).
+//    - read  API = raw WSKanbanTask out (= caller does the
+//      WSKanbanTask -> KanbanTask conversion at the boundary).
 //
-//  Public API after A1 probe:
-//    - add(...) throws -> KanbanTask                      (write: domain-in/domain-out)
-//    - transition(id:to:) throws                        (KanbanStatus in, no return)
-//    - get(id:) throws -> WSKanbanTask?                 (read:  raw @Model out)
-//    - list(status:) throws -> [WSKanbanTask]            (read:  raw @Model out)
+//  Public API after A1g.2:
+//    - add(...) throws -> WSKanbanTask             (write: raw @Model in/out)
+//    - transition(id:to: String) throws           (write: raw String status)
+//    - get(id:) throws -> WSKanbanTask?            (read:  raw @Model out)
+//    - list(status: String?) throws -> [WSKanbanTask]   (read:  raw @Model out)
 //    - delete(id:) throws
-//    - count(status:) throws -> Int
+//    - count(status: String?) throws -> Int
 //
-//  Per AGENTS.md §11.4. Mapping (via static toDomain):
-//    KanbanStatus rawValue = "new"/"triage"/"ready"/"running"/"blocked"/"review"/"done"/"failed"
+//  Per AGENTS.md §11.4. KanbanStatus rawValue values
+//  (= caller-side owns the conversion):
+//    "new" / "triage" / "ready" / "running" / "blocked" / "review" / "done" / "failed"
 //
 //  Note on sendability: WSKanbanTask (PersistentModel) is NOT Sendable.
 //  Caller must convert INSIDE the @MainActor scope (e.g. inside
@@ -37,52 +40,52 @@ final class WSKanbanRepository {
 
     func add(
         title: String,
-        status: KanbanStatus = .new,
+        status: String = "new",
         priority: Int = 5,
         assignee: String? = nil,
         modelOverride: String? = nil,
         body: String? = nil
-    ) throws -> KanbanTask {
+    ) throws -> String {
         let id = UUID().uuidString
         let now = Date()
         let model = WSKanbanTask(
             id: id,
             title: title,
-            status: status.rawValue,
+            status: status,
             priority: priority,
             assignee: assignee,
             modelOverride: modelOverride,
             body: body
         )
-        // Lifecycle hooks ( parity with legacy KanbanStore actor:
-        // startedAt auto-set when status = .running at add time, completedAt
-        // auto-set when status = .done or .failed at add time).
-        if status == .running {
+        // Lifecycle hooks (parity with legacy KanbanStore actor:
+        // startedAt auto-set when status = "running" at add time, completedAt
+        // auto-set when status = "done" or "failed" at add time).
+        if status == "running" {
             model.startedAt = now
-        } else if status == .done || status == .failed {
+        } else if status == "done" || status == "failed" {
             model.completedAt = now
         }
         context.insert(model)
         try context.save()
-        return Self.toDomain(model)
+        return id
     }
 
-    func transition(id: String, to newStatus: KanbanStatus) throws {
+    func transition(id: String, to newStatus: String) throws {
         let descriptor = FetchDescriptor<WSKanbanTask>(
             predicate: #Predicate { $0.id == id }
         )
         guard let model = try context.fetch(descriptor).first else {
             throw WSKanbanRepositoryError.notFound
         }
-        model.status = newStatus.rawValue
+        model.status = newStatus
         model.updatedAt = Date()
         // Lifecycle hooks
         switch newStatus {
-        case .running:
+        case "running":
             if model.startedAt == nil {
                 model.startedAt = Date()
             }
-        case .done, .failed:
+        case "done", "failed":
             if model.completedAt == nil {
                 model.completedAt = Date()
             }
@@ -99,11 +102,11 @@ final class WSKanbanRepository {
         return try context.fetch(descriptor).first
     }
 
-    func list(status: KanbanStatus? = nil) throws -> [WSKanbanTask] {
+    func list(status: String? = nil) throws -> [WSKanbanTask] {
         let descriptor: FetchDescriptor<WSKanbanTask>
-        if let status = status {
+        if let status {
             descriptor = FetchDescriptor<WSKanbanTask>(
-                predicate: #Predicate { $0.status == status.rawValue },
+                predicate: #Predicate { $0.status == status },
                 sortBy: [SortDescriptor(\.priority, order: .reverse), SortDescriptor(\.createdAt, order: .reverse)]
             )
         } else {
@@ -124,33 +127,16 @@ final class WSKanbanRepository {
         }
     }
 
-    func count(status: KanbanStatus? = nil) throws -> Int {
+    func count(status: String? = nil) throws -> Int {
         let descriptor: FetchDescriptor<WSKanbanTask>
-        if let status = status {
+        if let status {
             descriptor = FetchDescriptor<WSKanbanTask>(
-                predicate: #Predicate { $0.status == status.rawValue }
+                predicate: #Predicate { $0.status == status }
             )
         } else {
             descriptor = FetchDescriptor<WSKanbanTask>()
         }
         return try context.fetchCount(descriptor)
-    }
-
-    /// A1 boundary bridge (Sendable-safe; = static nonisolated).
-    nonisolated private static func toDomain(_ model: WSKanbanTask) -> KanbanTask {
-        KanbanTask(
-            id: model.id,
-            title: model.title,
-            status: KanbanStatus(rawValue: model.status) ?? .new,
-            createdAt: model.createdAt,
-            updatedAt: model.updatedAt,
-            priority: model.priority,
-            assignee: model.assignee,
-            startedAt: model.startedAt,
-            completedAt: model.completedAt,
-            modelOverride: model.modelOverride,
-            body: model.body
-        )
     }
 }
 

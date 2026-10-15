@@ -190,11 +190,11 @@ final class DelegateResearchTool: Tool, @unchecked Sendable {
             priority: Int
         ) async -> String? {
             do {
-                let task = try await WSKanbanRepository.shared.add(
+                let id = try await WSKanbanRepository.shared.add(
                     title: title,
                     priority: priority
                 )
-                return task.id
+                return id
             } catch {
                 // Best-effort (= no kanban row, but the delegation
                 // handle is still registered; = the user simply

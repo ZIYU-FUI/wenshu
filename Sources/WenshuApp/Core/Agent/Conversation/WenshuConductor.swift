@@ -353,15 +353,15 @@ actor WenshuConductor {
     ) async -> (reply: String, totalTokens: Int, thinking: String?)? {
         // Step 1: write 1 conductor parent task to WSKanbanRepository (= legacy
         // parity: same Kanban behaviour as the legacy path).
-        let added = await MainActor.run { () -> KanbanTask? in
-            try? self.repositories.kanban.add(title: "conductor: \(userMessage.prefix(50))", status: .running)
+        let added = await MainActor.run { () -> String? in
+            try? self.repositories.kanban.add(title: "conductor: \(userMessage.prefix(50))", status: "running")
         }
         if let task = added {
             // Mark done after the loop attempt (= best-effort; matches
             // the legacy code path exactly).
             Task {
                 await MainActor.run {
-                    _ = try? self.repositories.kanban.transition(id: task.id, to: .done)
+                    _ = try? self.repositories.kanban.transition(id: task, to: "done")
                 }
             }
         }
@@ -493,8 +493,8 @@ actor WenshuConductor {
         // singletons are @MainActor in v0.34; the conductor runs on its own
         // actor). MainActor.run is not throwing (= the inner try? is the
         // only error sink), so we can drop the do/catch.
-        let conductorTask: KanbanTask? = await MainActor.run {
-            try? self.repositories.kanban.add(title: "conductor: \(userMessage.prefix(50))", status: .running)
+        let conductorTask: String? = await MainActor.run {
+            try? self.repositories.kanban.add(title: "conductor: \(userMessage.prefix(50))", status: "running")
         }
 
         // accumulate all LLM API real usage (intent classify + sub-agent LLM calls + synthesis)
@@ -549,9 +549,9 @@ actor WenshuConductor {
             var tasks: [(name: String, kanbanTaskId: String?)] = []
             for agentName in selectedAgents {
                 let kTask = await MainActor.run {
-                    try? self.repositories.kanban.add(title: "\(agentName): \(userMessage.prefix(30))", status: .running)
+                    try? self.repositories.kanban.add(title: "\(agentName): \(userMessage.prefix(30))", status: "running")
                 }
-                tasks.append((name: agentName, kanbanTaskId: kTask?.id))
+                tasks.append((name: agentName, kanbanTaskId: kTask))
             }
             // Run sub-agents in parallel
             subResults = await withTaskGroup(of: (String, String).self) { group in
@@ -601,7 +601,7 @@ actor WenshuConductor {
             for (_, kanbanId) in tasks where !isCancelled {
                 if let id = kanbanId {
                     await MainActor.run {
-                        _ = try? self.repositories.kanban.transition(id: id, to: .done)
+                        _ = try? self.repositories.kanban.transition(id: id, to: "done")
                     }
                 }
             }
@@ -686,7 +686,7 @@ actor WenshuConductor {
             // Don't write kanban state if cancelled.
             if !Task.isCancelled {
                 await MainActor.run {
-                    _ = try? self.repositories.kanban.transition(id: conductorTask.id, to: .done)
+                    _ = try? self.repositories.kanban.transition(id: conductorTask, to: "done")
                 }
             }
         }
