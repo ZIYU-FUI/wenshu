@@ -2987,12 +2987,14 @@ extension ImportService {
         let maxLLMAttempts = 3
         var lastError: Error?
         var routing: ImportRoutingResult? = nil
-        // v2.7 round-70: log
-        // "调用 LLM" before
-        // the LLM dispatch.
+        // v2.7 round-72: log the LLM's
+        // activity. v0.74: also log which provider
+        // (= so the user can diagnose "which endpoint
+        // is unreachable" without opening the bundle).
+        let activeProvider = WenshuAppDelegate.activeConnectorSlug()
         await appendActivity(
             to: tasksBox, i: i,
-            message: "调用 LLM (\(target.rewriteMode.label)) 分类 + 重组 ...",
+            message: "调用 LLM (\(target.rewriteMode.label)) 分类 + 重组 (provider: \(activeProvider)) ...",
             onProgress: onProgress
         )
         for attempt in 1...maxLLMAttempts {
@@ -3103,7 +3105,23 @@ extension ImportService {
         }
         guard var routing = routing else {
             tasksBox.value[i].state = .failed
-            tasksBox.value[i].errorMessage = "LLM 路由失败 (3 次重试): \((lastError as NSError?)?.localizedDescription ?? "未知错误")"
+            // v0.74: surface WHICH connector failed and HOW the
+            // user can fix it. The previous "3 次重试:
+            // unreachable" gave the user no actionable
+            // signal. The new message names the connector,
+            // quotes the underlying error verbatim (= so the
+            // user can paste it into a bug report), and
+            // offers a one-line fix checklist (= verify
+            // network + verify the API key in Settings →
+            // Providers).
+            let nsError = lastError as NSError?
+            let underlying = nsError?.localizedDescription ?? "未知错误"
+            let errorCode = nsError.map { " (code=\($0.code))" } ?? ""
+            tasksBox.value[i].errorMessage = """
+                LLM 路由失败 (3 次重试) — provider: \(activeProvider)\(errorCode)
+                底层错误: \(underlying)
+                排查: 1) 网络可达 \(activeProvider) 的 endpoint 2) Settings → Providers 里 \(activeProvider) 的 API key 还在 3) 试重试按钮
+                """
             await onProgress?(tasksBox.value)
             return
         }

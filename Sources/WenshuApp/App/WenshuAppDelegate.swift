@@ -689,6 +689,22 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     /// (= private) is unreachable from the test target. Exposing the
     /// same logic on WenshuAppDelegate (= module-internal) keeps the
     /// test + production in lockstep without leaking the view API.
+    nonisolated static func activeConnectorSlug() -> String {
+        // v0.74: lightweight introspection used by the import flow's
+        // activity log so the user can see WHICH connector is being
+        // hit when the LLM is unreachable. Resolves the same
+        // UserDefaults + keychain signal as `activeLLMConnector`
+        // but returns the slug string (= no connector allocation).
+        if let slug = UserDefaults.standard.string(forKey: "wenshu.llm.activeConnector"),
+           Provider.by(slug: slug) != nil {
+            return slug
+        }
+        if let first = ProviderKeychain.listProvidersWithKeys().first(where: { Provider.by(slug: $0) != nil }) {
+            return first
+        }
+        return "anthropic"
+    }
+
     nonisolated static func activeLLMConnector() -> any LLMConnector {
         let slug = UserDefaults.standard.string(forKey: "wenshu.llm.activeConnector")
         // ProviderCatalog cannot resolve) must fall back to the

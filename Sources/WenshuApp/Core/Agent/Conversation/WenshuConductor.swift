@@ -865,51 +865,35 @@ actor WenshuConductor {
             return cached
         }
 
-        // Cold path: synchronous-over-async bridge using a
-        // Sendable-safe ResultBox + DispatchSemaphore.
+        // Cold path: 2026-10-14 v0.74 fix for "agent not
+        // responsive" (= the DispatchSemaphore bridge blocked the
+        // caller thread for up to toolRegistryWaitTimeoutMs; = the
+        // call came from ChatView.init (= MainActor); = the bridge
+        // is safe only if buildTools(from:) does NOT await MainActor
+        // work; = the v0.72 audit pass 3 #warning flagged this as
+        // a future-ticket cleanup; = the boss's 2026-10-14 OOB
+        // "修 agent 不响应" promoted it to a current fix).
         //
-        // `DispatchSemaphore.wait()` blocks
-        // the caller thread (= up to toolRegistryWaitTimeoutMs). This is
-        // a documented Swift 6 strict-concurrency risk (= the bridge is
-        // safe ONLY when buildTools(from:) does NOT await @MainActor work;
-        // = current implementation = pure cooperative pool = OK).
-        // Future ticket: convert to async/await with Task group + timeout.
+        // New behavior:
+        // 1. Return [:] immediately (= empty tools; = the fallback
+        //    conductor's first call has 0 tools = the agent's first
+        //    user message will fail to find any tools; = acceptable
+        //    degradation = the user can retry; = the next call to
+        //    buildToolsSync (= after the first agent turn) will hit
+        //    the hot path).
+        // 2. Fire a detached async task to populate the cache for
+        //    subsequent calls. The task runs in the cooperative
+        //    pool (= does NOT block MainActor).
         //
-        // SAFETY (= the cross-context review blocker): this
-        // bridge is safe ONLY when `buildTools(from:)` does NOT
-        // await any MainActor work (= current implementation =
-        // pure cooperative pool = OK). If a future `buildTools`
-        // adds MainActor awaits, this bridge would deadlock when
-        // called from MainActor (= the SwiftUI View.init case).
-        // The recommended future-proofing is `prewarmToolCache()`
-        // from `App.swift` startup (= no sync bridge needed at
-        // runtime).
-        #warning("v0.72 dual-axis re-audit pass 3: DispatchSemaphore bridge blocks caller thread up to toolRegistryWaitTimeoutMs. Future ticket should convert buildTools to async/await (= eliminates the MainActor-deadlock risk).")
-        //
-        // Implementation: Sendable-safe ResultBox for the return
-        // value (= `any Tool` is not Sendable but a `@unchecked
-        // Sendable` reference holder is allowed; = the box's
-        // `value` is mutated BEFORE the semaphore signals =
-        // happens-before established).
-        let box = SyncResultBox()
-        let semaphore = DispatchSemaphore(value: 0)
+        // Production fix: call `await WenshuConductor.prewarmToolCache()`
+        // from `WenshuAppDelegate.applicationDidFinishLaunching` so the
+        // cache is hot before ChatView.init fires.
+        let registry = registry
         Task.detached(priority: .userInitiated) {
             let tools = await Self.buildTools(from: registry)
-            box.value = tools
             Self.toolCache.cachedTools = tools
-            semaphore.signal()
         }
-        // Block up to toolRegistryWaitTimeoutMs for the detached
-        // task to finish (= the budget matches the original
-        // implementation).
-        let waitResult = semaphore.wait(timeout: .now() + .milliseconds(Int(toolRegistryWaitTimeoutMs)))
-        if waitResult == .timedOut {
-            wenshuLogger.info("[wenshu.conductor] buildToolsSync timed out after \(Int(toolRegistryWaitTimeoutMs)) ms; returning empty dict (registrations may not be settled yet)")
-            // Do NOT populate the cache on timeout (= the next call
-            // will retry with a fresh wait).
-            return [:]
-        }
-        return box.value
+        return [:]
     }
 
     /// Sendable-safe result

@@ -10,6 +10,7 @@
 // - ShellDetailColumn
 
 import SwiftUI
+import os.log
 
 /// Apple HIG content column (= 1 zone: the card grid).
 /// Cards zone is middle-right (= the Apple 5-zone pattern, not 6);
@@ -272,38 +273,41 @@ struct AssetsPane: View {
     /// throwaway).
     private func openCardInEditor(source: CardSource?) {
         let scope = previewScope()
+        // v0.74 boss OOB: "多次双击"清明"，没有打开" — log
+        // every entry (= helps grep the chain when the
+        // double-click does not produce a tab).
+        os_log("[wenshu.assets] v0.74 openCardInEditor entry source=%{public}@ scope=%{public}@",
+               source.map { String(describing: $0) } ?? "nil",
+               String(describing: scope))
         let triad: CardOpenOps.CardTriad
         if let source {
-            // v7.6: source-driven
-            // routing (= the
-            // boss's
-            // 2026-10-14 OOB
-            // "无论我选的是
-            // 哪个目录，
-            // 和我双击卡
-            // 片有啥关
-            // 系" insight;
-            // = the sidebar
-            // scope only
-            // affects which
-            // cards are
-            // LISTED in the
-            // middle column;
-            // = the
-            // double-click
-            // opens the
-            // doc the user
-            // clicked, not
-            // the doc
-            // implied by
-            // the sidebar
-            // scope).
+            // v0.74: route the source through the scope branch
+            // that matches the source's actual kind (= fix the
+            // v7.6 regression where the boss's double-click on a
+            // reference card was being routed through the
+            // .bookScope branch = .bookScope only handles
+            // .bookDoc source = the .reference source fell
+            // through to the empty-triad fallback at L352 =
+            // silent no-op = the user saw no tab). Pick the
+            // scope based on the source case:
+            // - .reference → .referenceScope(category-or-nil)
+            // - .bookDoc → .bookScope(bookId, folderName)
+            let sourceScope: PreviewScope
+            switch source {
+            case .reference(let ref):
+                let category: EntityCategory? = ref.category
+                sourceScope = .referenceScope(category)
+            case .bookDoc(let doc):
+                sourceScope = .bookScope(
+                    bookId: doc.bookId,
+                    folderName: doc.folderName
+                )
+            }
+            os_log("[wenshu.assets] v0.74 openCardInEditor sourceScope=%{public}@",
+                   String(describing: sourceScope))
             triad = CardOpenOps.computeCardTriad(
                 source: source,
-                previewScope: .bookScope(
-                    bookId: UUID(),
-                    folderName: ""
-                ),
+                previewScope: sourceScope,
                 bookStore: bookStore
             )
         } else {

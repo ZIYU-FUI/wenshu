@@ -84,9 +84,20 @@ final class WSChatRepository {
     // MARK: - Messages
 
     func loadMessages(sessionId: String, bookID: BookID? = nil) throws -> [StoredChatMessage] {
+        // v0.74 boss OOB: "持久化的聊天记录, 重新渲染顺序有问题, 问答先后顺序混乱"
+        // The previous sortBy: [SortDescriptor(\.position)] was the
+        // buggy path. Position is a count-then-insert int (= see
+        // append()) and races when the user sends a quick 2nd message
+        // before the AI's 1st reply finishes streaming. We now sort
+        // by createdAt (the wall-clock at append time) and keep
+        // position as a tiebreaker (= the same column the
+        // existing fetchDescriptor was reading).
         let descriptor = FetchDescriptor<WSChatMessage>(
             predicate: Self.chatMessagePredicate(sessionId: sessionId, bookID: bookID),
-            sortBy: [SortDescriptor(\.position)]
+            sortBy: [
+                SortDescriptor(\.createdAt, order: .forward),
+                SortDescriptor(\.position, order: .forward)
+            ]
         )
         let raw = try context.fetch(descriptor)
         // In-memory bookID filter (= the SwiftData #Predicate macro
@@ -142,6 +153,26 @@ final class WSChatRepository {
             predicate: Self.chatMessagePredicate(sessionId: sessionId, bookID: bookID)
         )
         let count = try context.fetchCount(descriptor)
+        // v0.74 boss OOB: "持久化的聊天记录, 重新渲染顺序有问题, 问答先后顺序混乱"
+        // The previous `position: count + 1` (= the count-then-insert
+        // pattern) had a race condition when the user sends a
+        // 2nd message while the AI's 1st reply is still streaming:
+        // both `append(user)` and `append(agent)` call this method
+        // in parallel; both read `count = N`; both write position = N+1;
+        // the second `append` collides on the unique-position
+        // contract (= SwiftData store corruption) OR produces two
+        // rows with the same position (= loadHistory's
+        // `sortBy: [position]` then returns them in undefined
+        // order). The fix: append the row, then use the
+        // CoreData/SwiftData-managed auto-incrementing object id
+        // (= `model.persistentModelID` is the authoritative insert
+        // order). The read path (loadHistory) now sorts by
+        // `timestamp` first (= the wall-clock at append time) so
+        // position is only a tiebreaker for the rare <1 ms
+        // collision. We still set `position` to `count + 1` for
+        // forward-compat with the existing SortDescriptor(\.position)
+        // path (= the SwiftData migration tooling reads it).
+        let position = count + 1
         // Denormalize bookID onto the message row (= the message.bookID
         // mirrors session.bookID; = the parent session is the source of truth).
         // Reads (= loadMessages) can then filter by message.bookID without

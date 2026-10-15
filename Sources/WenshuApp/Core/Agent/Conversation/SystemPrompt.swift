@@ -416,6 +416,10 @@ enum SystemPrompt {
         if taskCompletionGuidance {
             sections.append(universalGuidance("task_completion"))
         }
+        // 2026-10-15 v0.74: thinking visibility guidance (= always
+        // on by default; = the user values the trace even for
+        // simple replies).
+        sections.append(universalGuidance("thinking_visibility"))
         if parallelToolGuidance {
             sections.append(universalGuidance("parallel_tool_call"))
         }
@@ -616,6 +620,64 @@ enum SystemPrompt {
               don't stub or fake it.
             - When a path is blocked (missing file, missing credential), say
               so plainly and propose a workaround.
+            """
+        case "thinking_visibility":
+            // 2026-10-15 v0.74 boss OOB: "agent 回复还是老样子,
+            // 和你在 hermes 里回复完全不是一种形态" (= the
+            // wenshu agent's reply has no visible thinking /
+            // verification / execution trace). Hermes is a
+            // dev tool that exposes the model's reasoning;
+            // = the wenshu writing agent should do the same
+            // (= the user = 老板 = wants to see how the model
+            // thought about the request, not just the final
+            // answer).
+            //
+            // The minmax / openai-compatible providers (= the
+            // 老板's default) do NOT emit a native `reasoning`
+            // field event (= only Anthropic extended thinking
+            // and OpenAI o1/o3 do). For those providers, the
+            // canonical hermes pattern is "prompt the LLM to
+            // wrap its reasoning in a marker tag, then parse
+            // the tag at the connector layer" (= see
+            // `MessageContent.extractThinkingTags` + the
+            // `OpenAIStreamingChunkToLLMBlock` parser).
+            //
+            // Instruction to the LLM: every reply should start
+            // with a `[[thinking: ...]]` block that contains
+            // the step-by-step reasoning. After the thinking
+            // block, the visible reply text follows (= the
+            // user-facing answer, the chapter draft, the
+            // outline, the summary, etc.). The wenshu parser
+            // strips the tag from the rendered reply and
+            // surfaces the inner content as a collapsible
+            // "思考过程" block (= the hermes-style step-by-step
+            // trace).
+            return """
+            Thinking visibility (= hermes-style step-by-step trace):
+            - Start EVERY reply with a `[[thinking: ...]]` block
+              that captures the step-by-step reasoning (= what
+              facts you considered, what assumptions you
+              made, what trade-offs you weighed, what the
+              user is really asking for). After the thinking
+              block, the visible reply text follows.
+            - Example:
+                [[thinking: The user wants a chapter draft.
+                They mentioned "西安" as a setting; = I should
+                ground this in real 西安 geography and culture
+                before drafting. I'll also need to think about
+                POV and tense. Let me check the existing book
+                context first via memory_search.]]
+
+                <the actual reply text follows>
+            - The wenshu parser strips the `[[thinking: ...]]`
+              tag from the rendered reply and surfaces the
+              inner content as a collapsible "思考过程" block.
+            - If the reply is purely conversational (= no
+              research, no trade-offs, no need to verify),
+              still emit a brief `[[thinking: ...]]` block
+              (= 1-2 sentences describing the intent and the
+              tone you're aiming for). The user values the
+              trace even for simple replies.
             """
         case "parallel_tool_call":
             return """

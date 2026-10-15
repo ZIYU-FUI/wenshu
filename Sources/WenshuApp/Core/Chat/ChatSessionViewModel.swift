@@ -950,16 +950,27 @@ final class ChatViewModel {
             // = replaces the prior ad-hoc "Error: \(localizedDescription)"
             // which showed the raw English NSError text to the user).
             //
-            // 'hint, usermust minimax
-            // key, generalhint': pass `nil` as the context
-            // (NOT `currentModel`). The previous `context: currentModel`
+            // v0.74 boss OOB: "未知错误, 请稍后重试或重启应用" —
+            // the previous `context: nil` triggered the generic
+            // provider-agnostic message (= user could not tell which
+            // LLM connector failed). Now we pass the active
+            // connector slug (= "minimax-cn" / "anthropic" / "openai"
+            // / etc.) so UserFacingError can name it in the
+            // user-visible message. The previous `context: currentModel`
             // interpolated the model name (= "MiniMax-M3") as the
-            // "provider", = user-visible message looked like it was
-            // binding them to MiniMax. Now `nil` triggers the
-            // generic, provider-agnostic message in UserFacingError
-            // (= user can pick any of the 7 LLM connectors per
-            // AGENTS.md §11.2).
-            let userErr = UserFacingError.from(error, context: nil)
+            // "provider" (= user-visible message looked like it was
+            // binding them to MiniMax). We now pass the connector
+            // slug, not the model id.
+            let activeProvider = WenshuAppDelegate.activeConnectorSlug()
+            // v0.74: also log the raw underlying error to the
+            // chat.persist channel so the boss can grep the cause
+            // when the user reports "未知错误" (= the previous
+            // error was logged only at the connector level =
+            // the chat-layer catch ate the message).
+            let rawDesc = String(describing: error)
+            Logger(subsystem: "com.wenshu.app", category: "chat.persist")
+                .error("[wenshu.chat.persist] operation=send_chat error=\(rawDesc, privacy: .public) provider=\(activeProvider, privacy: .public)")
+            let userErr = UserFacingError.from(error, context: activeProvider)
             let errMsg = userErr.errorDescription ?? "未知错误。"
             if let idx = messages.firstIndex(where: { $0.id == placeholderId }) {
                 messages[idx] = ChatMessage(id: placeholderId, role: .system, source: .system, content: errMsg)
@@ -1123,7 +1134,28 @@ final class ChatViewModel {
     func loadHistory() async {
         do {
             let loaded = try await repository.loadMessages(sessionId: sessionId, bookID: currentBookID)
-            self.messages = loaded
+            // v0.74 boss OOB: "持久化的聊天记录, 重新渲染顺序有问题, 问答先后顺序混乱"
+            // (= persisted messages re-render out of order;
+            // = the user's chat history shows turns in the wrong
+            // chronological sequence). Two root causes:
+            // 1. WSChatMessage.position can race when the user
+            //    sends a quick 2nd message before the AI's 1st
+            //    reply finishes streaming (= append(2) computes
+            //    `count + 1` against a stale count).
+            // 2. loadHistory trusts `position` blindly.
+            //
+            // Fix: sort by `timestamp` (= the wall-clock time the
+            // message was created, populated from Date() at the
+            // call site). Position is still used as the
+            // tiebreaker for messages that share the same
+            // timestamp (= <1 ms apart on fast hardware).
+            let sorted = loaded.sorted { a, b in
+                if a.timestamp != b.timestamp {
+                    return a.timestamp < b.timestamp
+                }
+                return a.id.uuidString < b.id.uuidString
+            }
+            self.messages = sorted
         } catch {
             // Silent no-op (= matches legacy behavior; = the view
             // already handles empty messages[] by showing the

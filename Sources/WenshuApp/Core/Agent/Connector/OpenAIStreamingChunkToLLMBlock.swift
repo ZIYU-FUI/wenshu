@@ -109,7 +109,25 @@ enum OpenAIChunkToLLMBlockConverter {
 
         // 1. content (= standard text delta)
         if let content = delta["content"] as? String, !content.isEmpty {
-            blocks.append(.text(content))
+            // 2026-10-15 v0.74 boss OOB fix: parse the
+            // `[[thinking: ...]]` marker tag (= see
+            // MessageContent.extractThinkingTags). The
+            // minmax / openai-compatible providers don't
+            // emit a native `reasoning` field; the canonical
+            // hermes pattern is to prompt the LLM to wrap
+            // its thinking in a marker tag and parse the
+            // tag at the connector layer. This converts
+            // the first stream chunk that contains the
+            // tag into a `.thinking` part, and removes the
+            // tag from the rendered text.
+            let (thinking, cleanedText) = MessageContent
+                .extractThinkingTags(from: content)
+            if !thinking.isEmpty {
+                blocks.append(.thinking(text: thinking, signature: nil))
+            }
+            if !cleanedText.isEmpty {
+                blocks.append(.text(cleanedText))
+            }
         }
 
         // 2. reasoning (= OpenAI o1 / o3 / o4 style; = Anthropic thinking

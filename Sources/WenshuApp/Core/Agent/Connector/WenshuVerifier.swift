@@ -351,7 +351,7 @@ actor WenshuVerifier {
         let (data, response) = try await URLSession.shared.data(for: urlRequest)
         let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
         let bodyPreview = String(data: data.prefix(500), encoding: .utf8) ?? "<non-utf8 body>"
-        wenshuLogger.info("[wenshu.chat] response status=\(bodyPreview) body=\(statusCode)")
+        wenshuLogger.info("[wenshu.chat] response: status=\(statusCode) body=\(bodyPreview)")
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
             throw WenshuLLMError.httpError(statusCode: statusCode, body: bodyPreview)
         }

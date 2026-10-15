@@ -3022,7 +3022,25 @@ private struct Card: View {
         // needed).
         .simultaneousGesture(
             TapGesture(count: 2).onEnded { _ in
+                // v0.74 boss OOB: "多次双击"清明"，没有打开"
+                // (= the double-click does not reach the Card;
+                // = the user can see the card highlight, the
+                // tap lands, but neither the onTap path nor the
+                // onDoubleClick path fires; = the gesture is
+                // eaten somewhere upstream). Log every double
+                // tap (= even if it ends up no-op) so the
+                // boss can grep `Console.app` to see whether
+                // the tap reached the Card at all.
+                let cardID: String
+                switch source {
+                case .reference(let r): cardID = r.id.uuidString
+                case .bookDoc(let d): cardID = d.id.uuidString
+                }
+                os_log("[wenshu.preview.card] v0.74 doubleTap firing cardID=%{public}@ title=%{public}@",
+                       cardID, source.title)
                 onDoubleClick(source)
+                os_log("[wenshu.preview.card] v0.74 doubleTap fired cardID=%{public}@",
+                       cardID)
             }
         )
         // Apple HIG tooltip (= .help = NSWindow tooltip =

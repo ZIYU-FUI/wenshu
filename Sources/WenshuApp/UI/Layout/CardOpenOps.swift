@@ -69,6 +69,7 @@
 //
 
 import Foundation
+import os.log
 
 /// Stateless business layer for opening a card in the editor.
 /// Lifts the duplicated openCardInEditor (= the 3 verbatim copies
@@ -155,8 +156,22 @@ enum CardOpenOps {
                 if case .reference(let r) = source { return r }
                 return filtered.first
             }()
+            // v0.74 boss OOB: "多次双击"清明"，没有打开" — log
+            // the picked reference's body + summary so the boss
+            // can grep whether the body came back empty (= the
+            // silent no-op in openTab fires when triad.content = ""
+            // and no tab is appended).
             if let first = pickedReference {
                 let body = bookStore?.loadReferenceBody(id: first.id) ?? first.summary
+                let bodyPreview = body.isEmpty ? "EMPTY" : String(body.prefix(80))
+                let summaryPreview = first.summary.isEmpty ? "EMPTY" : String(first.summary.prefix(80))
+                os_log("[wenshu.card] v0.74 referenceScope picked id=%{public}@ title=%{public}@ bodyLen=%{public}d bodyPreview=%{public}@ summaryPreview=%{public}@ bookStoreNil=%{public}@",
+                       first.id.uuidString,
+                       first.title,
+                       body.count,
+                       bodyPreview,
+                       summaryPreview,
+                       bookStore == nil ? "true" : "false")
                 return CardTriad(
                     // 2026-10-14: assign the canonical
                     // single-file reference path instead
@@ -492,6 +507,14 @@ enum CardOpenOps {
             // instead of 'preview-sample'.
             title: title.isEmpty ? nil : title
         )
+        // v0.74 boss OOB: "多次双击"清明"，没有打开" (= the
+        // double-click fires onDoubleClick on the Card, but the
+        // tab never appears in the strip; = either the append
+        // hits an exception, or activeTabId is not set, or
+        // SwiftUI doesn't re-render the strip). Log every
+        // successful open so the boss can grep Console.app to
+        // confirm whether the tab was created at all.
+        let openTabsCountBefore = appState.openTabs.count
         // Capture the scope where this doc was opened from (= drives
         // sidebar selection + preview cards on restore). =
         // .referenceScope(cat) for library refs, = .bookScope
@@ -505,6 +528,13 @@ enum CardOpenOps {
         // the active tab; = no "second click fails" race.
         appState.openTabs.append(newTab)
         appState.activeTabId = newTab.id
+        let openTabsCountAfter = appState.openTabs.count
+        os_log("[wenshu.tab] v0.74 openTab appended title=%{public}@ tabId=%{public}@ openTabs=%{public}d→%{public}d activeTabId=%{public}@ path=%{public}@",
+               title.isEmpty ? "?" : title,
+               newTab.id.uuidString,
+               openTabsCountBefore, openTabsCountAfter,
+               appState.activeTabId.uuidString,
+               path ?? "nil")
         return OpenCardResult(openedTabId: newTab.id,
                              didSwitchExistingTab: false,
                              contentLength: content.count)

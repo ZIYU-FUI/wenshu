@@ -13,6 +13,70 @@ import Foundation
 
 enum MessageContent {
 
+    /// 2026-10-15 v0.74 boss OOB: "agent 回复还是老样子,
+    /// 和你在 hermes 里回复完全不是一种形态" (= the
+    /// wenshu agent's reply has no visible thinking
+    /// / verification / execution trace; = the user
+    /// wants the same step-by-step transparency that
+    /// hermes provides).
+    ///
+    /// The minmax / openai-compatible connectors (= the
+    /// boss's default provider) do NOT emit native
+    /// `reasoning` field events (= only Anthropic and
+    /// OpenAI o1/o3 do). For those providers, the
+    /// canonical hermes pattern is "prompt the LLM to
+    /// wrap its thinking in a marker tag, then parse the
+    /// tag at the connector layer" (= see hermes
+    /// `_extract_thinking_blocks` in `message_content.py`).
+    ///
+    /// This function implements the hermes pattern for
+    /// wenshu: given a raw text block, return
+    /// (extracted_thinking, remaining_text). The marker
+    /// tag is `[[thinking: ...]]` (= a stable, ASCII-only
+    /// delimiter that round-trips through any LLM
+    /// tokenizer). The system prompt (`SystemPrompt.swift`)
+    /// instructs the LLM to emit this tag at the start of
+    /// its reply when reasoning should be visible.
+    ///
+    /// Returns the thinking and the remaining text. When
+    /// the input has no tag (= the LLM didn't follow the
+    /// convention, or reasoning is disabled), thinking is
+    /// empty and text is returned verbatim.
+    static func extractThinkingTags(from text: String) -> (thinking: String, text: String) {
+        // Match `[[thinking: <content>]]` anywhere in the text.
+        // The content can span multiple lines (= use [\s\S]).
+        // Non-greedy so a later reply doesn't capture too much.
+        let pattern = #"\[\[thinking:\s*([\s\S]*?)\]\]"#
+        guard let regex = try? NSRegularExpression(pattern: pattern) else {
+            return ("", text)
+        }
+        let nsText = text as NSString
+        let matches = regex.matches(
+            in: text,
+            range: NSRange(location: 0, length: nsText.length)
+        )
+        guard let first = matches.first else {
+            return ("", text)
+        }
+        // First match's capture group 1 = the thinking content.
+        let thinkingRange = first.range(at: 1)
+        let thinking = nsText.substring(with: thinkingRange)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        // Remove ALL matches from the text (= the user shouldn't
+        // see the marker tags in the rendered reply).
+        var remaining = text
+        for match in matches.reversed() {
+            let nsRemaining = remaining as NSString
+            remaining = nsRemaining.replacingCharacters(
+                in: match.range,
+                with: ""
+            )
+        }
+        let cleaned = remaining
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return (thinking, cleaned)
+    }
+
     /// Canonicalize a block list: drop empty .text("") blocks,
     /// preserve all other blocks in order.
     static func canonicalize(_ blocks: [LLMBlock]) -> [LLMBlock] {

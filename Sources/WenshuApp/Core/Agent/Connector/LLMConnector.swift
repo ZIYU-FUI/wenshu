@@ -137,8 +137,33 @@ enum LLMConnectorError: Error, LocalizedError, Sendable {
         switch self {
         case .missingAPIKey(let p):
             return "Missing API key for provider '\(p)'."
-        case .transport(let p, let s, _):
-            return "Provider '\(p)' returned HTTP \(s)."
+        case .transport(let p, let s, let body):
+            // v0.74 boss OOB: "底层错误: unreachable" (= the
+            // body was being discarded by `_` in the
+            // previous errorDescription; = the user saw the
+            // generic "3 次重试: unreachable" message and
+            // could not tell whether the failure was a
+            // network blip, a 401 from a bad API key, or a
+            // 5xx server-side error). We now include the
+            // response body's first 200 characters (= the
+            // server-side error message that pinpoints
+            // the failure mode) in the user-visible
+            // description. 4xx responses get the body
+            // verbatim (= the API key failure mode
+            // includes "Please carry the API secret key"
+            // in the body = the user can read the exact
+            // reason); 5xx gets the body too (= the
+            // user-facing message stays generic = "HTTP 502
+            // <body>").
+            if body.isEmpty {
+                return "Provider '\(p)' returned HTTP \(s)."
+            }
+            // Truncate to 200 chars to keep the per-row
+            // activity log line readable.
+            let bodyBrief = body.count > 200
+                ? String(body.prefix(200)) + "..."
+                : body
+            return "Provider '\(p)' returned HTTP \(s): \(bodyBrief)"
         case .decode(let p, let u):
             return "Provider '\(p)' response decode failed: \(u)"
         case .unsupportedProvider(let s):
