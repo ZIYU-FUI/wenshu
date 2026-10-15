@@ -172,14 +172,17 @@ struct TodoStoreTool: Tool, Sendable {
         //    supplied id so subsequent complete / remove can locate
         //    the row by the same id the LLM passed in).
         do {
-            let stored = try await MainActor.run { try todoRepository.add(id: id, title: content, priority: priority) }
+            let stored: (id: String, title: String, status: String, priority: Int) = try await MainActor.run {
+                let model = try todoRepository.add(id: id, title: content, priority: priority.rawValue)
+                return (model.id, model.title, model.status, model.priority)
+            }
             return Self.jsonOk(
                 action: "create",
                 data: [
                     "id": stored.id,
                     "title": stored.title,
-                    "status": stored.status.rawValue,
-                    "priority": stored.priority.rawValue
+                    "status": stored.status,
+                    "priority": stored.priority
                 ]
             )
         } catch {
@@ -190,24 +193,15 @@ struct TodoStoreTool: Tool, Sendable {
     // MARK: - Action: list
 
     private func runList(parsed: [String: Any]) async -> String {
-        let statusFilter: TodoStatus? = (parsed["status"] as? String).flatMap { TodoStatus(rawValue: $0) }
+        let statusFilter: String? = parsed["status"] as? String
         do {
-            // A1 boundary: caller converts WSTodo -> TodoItem (= domain boundary).
+            // A1g.2 step 3/3: todoRepository.list takes String? status.
             // Build Sendable scalar array inside the MainActor.run so WSTodo
             // never crosses the actor isolation boundary (= PersistentModels
             // are NOT Sendable).
             let data: [(id: String, title: String, status: String, priority: Int)] = try await MainActor.run {
                 try todoRepository.list(status: statusFilter).map { model in
-                    let item = TodoItem(
-                        id: model.id,
-                        title: model.title,
-                        status: TodoStatus(rawValue: model.status) ?? .pending,
-                        priority: TodoPriority(rawValue: model.priority) ?? .medium,
-                        dueDate: model.dueDate,
-                        createdAt: model.createdAt,
-                        updatedAt: model.updatedAt
-                    )
-                    return (id: item.id, title: item.title, status: item.status.rawValue, priority: item.priority.rawValue)
+                    (id: model.id, title: model.title, status: model.status, priority: model.priority)
                 }
             }
             let payload: [[String: Any]] = data.map { tuple in
@@ -251,14 +245,17 @@ struct TodoStoreTool: Tool, Sendable {
         //    adapter, not a new TodoStore API.
         do {
             try await MainActor.run { try todoRepository.delete(id: id) }
-            let stored = try await MainActor.run { try todoRepository.add(id: id, title: content, priority: priority ?? .medium) }
+            let stored: (id: String, title: String, status: String, priority: Int) = try await MainActor.run {
+                let model = try todoRepository.add(id: id, title: content, priority: (priority ?? .medium).rawValue)
+                return (model.id, model.title, model.status, model.priority)
+            }
             return Self.jsonOk(
                 action: "update",
                 data: [
                     "id": stored.id,
                     "title": stored.title,
-                    "status": stored.status.rawValue,
-                    "priority": stored.priority.rawValue
+                    "status": stored.status,
+                    "priority": stored.priority
                 ]
             )
         } catch {
@@ -284,8 +281,8 @@ struct TodoStoreTool: Tool, Sendable {
 
         // 2) mirror to wenshu-side canonical TodoStore.
         do {
-            try await MainActor.run { try todoRepository.setStatus(id: id, status: .completed) }
-            return Self.jsonOk(action: "complete", data: ["id": id, "status": TodoStatus.completed.rawValue])
+            try await MainActor.run { try todoRepository.setStatus(id: id, status: "completed") }
+            return Self.jsonOk(action: "complete", data: ["id": id, "status": "completed"])
         } catch {
             return Self.jsonError(action: "complete", message: "WSTodoRepository.setStatus failed: \(error)")
         }

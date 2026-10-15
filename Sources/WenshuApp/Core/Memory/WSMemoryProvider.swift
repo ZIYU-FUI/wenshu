@@ -91,9 +91,12 @@ final class WSMemoryProvider: MemoryProvider, @unchecked Sendable {
 
     @MainActor
     private func refreshMirror() async {
-        // A1 boundary: convert WSMemory -> Memory inside MainActor.
+        // A1g.2 step 3/3: convert WSMemory -> Memory inside MainActor.
+        // WSMemory is non-Sendable, so we extract Sendable scalars
+        // (memoryID + content) inside the @MainActor scope and
+        // build the domain Memory type from those.
         let entries: [Memory] = (try? memory.listRecent(userId: "default", limit: 20))?
-            .map(Self.toDomain) ?? []
+            .map { Self.toDomain($0) } ?? []
         mirror.update(entries)
     }
 
@@ -107,12 +110,13 @@ final class WSMemoryProvider: MemoryProvider, @unchecked Sendable {
 
     func prefetch(forUserMessage message: String) async -> String {
         // Async (= bridges to @MainActor SwiftData + updates mirror).
-        // A1 boundary: convert WSMemory -> Memory inside MainActor.
-        let results: [Memory] = await MainActor.run {
+        // A1g.2 step 3/3: extract Sendable scalars inside MainActor.run
+        // (WSMemory is non-Sendable, = can't cross the boundary).
+        let contentLines: [String] = await MainActor.run {
             ((try? memory.search(userId: "default", query: message, limit: 5)) ?? [])
-                .map(Self.toDomain)
+                .map { $0.content }
         }
-        let mapped = results.map { $0.content }.joined(separator: "\n")
+        let mapped = contentLines.joined(separator: "\n")
         // Update prefetch cache (= sync via DispatchQueue; = safe in async).
         prefetchQueue.sync {
             lastPrefetch = mapped
@@ -125,8 +129,10 @@ final class WSMemoryProvider: MemoryProvider, @unchecked Sendable {
 
     func sync(userMessage: String, assistantResponse: String) async {
         let content = "User: \(userMessage)\nAssistant: \(assistantResponse)"
-        _ = await MainActor.run {
-            try? memory.add(userId: "default", content: content)
+        // A1g.2 step 3/3: add() returns the inserted WSMemory (= non-Sendable).
+        // The caller only needs the write to succeed; = drop the value via Void.
+        await MainActor.run {
+            _ = try? memory.add(userId: "default", content: content)
         }
         await refreshMirror()
     }

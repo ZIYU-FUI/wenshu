@@ -197,8 +197,13 @@ actor MemoryManager {
     /// addMemory: actor-isolated write.
     @discardableResult
     private func addMemory(userId: String, content: String) async -> Bool {
-        return await MainActor.run {
-            (try? memory.add(userId: userId, content: content)) != nil
+        // A1g.2 step 3/3: add() returns WSMemory (non-Sendable); the
+        // MainActor.run closure must declare its return type as Bool
+        // (= the success flag) so the WSMemory return is dropped
+        // before the closure ends (= before Sendable inference runs).
+        return await MainActor.run { () -> Bool in
+            let result = try? memory.add(userId: userId, content: content)
+            return result != nil
         }
     }
 

@@ -1,23 +1,29 @@
 //
 //  Persistence/Repositories/WSMemoryRepository.swift
 //
-//  v3.1 governance A1 refactor (= boundary probe 7/8).
+//  v3.1 governance A1g.2 step 3/3 (= boundary decouple, A1 probe 7/8
+//  layered on top).
 //  Apple canonical layering per Backyard Birds:
-//    - write API = domain-in/domain-out (Repository constructs
-//      WSMemory @Model internally, returns the persisted Memory).
-//    - read  API = @Model out (caller converts WSMemory -> Memory).
+//    - write API = raw fields in (= no app-side MemoryID / Memory
+//      domain type; = caller converts MemoryID -> String rawValue
+//      before calling; = caller consumes the returned WSMemory
+//      inside MainActor scope).
+//    - read  API = raw WSMemory out (= caller does the
+//      WSMemory -> Memory conversion at the boundary).
 //
-//  Public API after A1 probe:
-//    - add(userId:content:memoryID:) throws -> Memory        (write: domain-in/domain-out)
-//    - get(memoryId:) throws -> WSMemory?                  (read:  raw @Model out)
+//  Public API after A1g.2:
+//    - add(userId:content:memoryID:) throws -> WSMemory   (write: raw fields in, raw @Model out)
+//    - get(memoryID:) throws -> WSMemory?                  (read:  raw @Model out)
 //    - search(userId:query:limit:) throws -> [WSMemory]
 //    - listRecent(userId:limit:) throws -> [WSMemory]
-//    - update(memoryId:content:) throws                    (MemoryID in, no return)
-//    - delete(memoryId:) throws
+//    - update(memoryID:content:) throws
+//    - delete(memoryID:) throws
 //    - count(userId:) throws -> Int
 //    - purgeOlderThan(userId:retentionDays:) throws -> Int
 //
-//  Per AGENTS.md §11.4.
+//  Per AGENTS.md §11.4. MemoryID is the caller-side domain type;
+//  data layer treats it as a raw String. Caller converts at the
+//  boundary (= MemoryID(rawValue: model.memoryID) or .rawValue).
 //
 //  Note on sendability: WSMemory (PersistentModel) is NOT Sendable.
 //  Caller must convert INSIDE the @MainActor scope (e.g. inside
@@ -35,18 +41,17 @@ final class WSMemoryRepository {
         self.container = container
     }
 
-    func add(userId: String, content: String, memoryID: MemoryID? = nil) throws -> Memory {
-        let resolvedMemoryID = memoryID ?? MemoryID.newID()
-        let memoryIDString = resolvedMemoryID.rawValue
+    func add(userId: String, content: String, memoryID: String? = nil) throws -> WSMemory {
+        let memoryIDString = memoryID ?? UUID().uuidString
         let model = WSMemory(memoryID: memoryIDString, userID: userId, content: content)
         context.insert(model)
         try context.save()
-        return Self.toDomain(model, memoryID: resolvedMemoryID)
+        return model
     }
 
-    func get(memoryId: MemoryID) throws -> WSMemory? {
+    func get(memoryID: String) throws -> WSMemory? {
         let descriptor = FetchDescriptor<WSMemory>(
-            predicate: #Predicate { $0.memoryID == memoryId.rawValue }
+            predicate: #Predicate { $0.memoryID == memoryID }
         )
         return try context.fetch(descriptor).first
     }
@@ -61,9 +66,9 @@ final class WSMemoryRepository {
         return try context.fetch(descriptor).prefix(limit).map { $0 }
     }
 
-    func update(memoryId: MemoryID, content: String) throws {
+    func update(memoryID: String, content: String) throws {
         let descriptor = FetchDescriptor<WSMemory>(
-            predicate: #Predicate { $0.memoryID == memoryId.rawValue }
+            predicate: #Predicate { $0.memoryID == memoryID }
         )
         guard let model = try context.fetch(descriptor).first else {
             throw WSMemoryRepositoryError.notFound
@@ -72,9 +77,9 @@ final class WSMemoryRepository {
         try context.save()
     }
 
-    func delete(memoryId: MemoryID) throws {
+    func delete(memoryID: String) throws {
         let descriptor = FetchDescriptor<WSMemory>(
-            predicate: #Predicate { $0.memoryID == memoryId.rawValue }
+            predicate: #Predicate { $0.memoryID == memoryID }
         )
         if let model = try context.fetch(descriptor).first {
             context.delete(model)
@@ -110,19 +115,6 @@ final class WSMemoryRepository {
         }
         try context.save()
         return old.count
-    }
-
-    /// A1 boundary bridge (Sendable-safe). Static + nonisolated so the
-    /// converter can be called from inside MainActor.run closures without
-    /// capturing actor-isolated state.
-    nonisolated private static func toDomain(_ model: WSMemory, memoryID: MemoryID? = nil) -> Memory {
-        Memory(
-            userId: model.userID,
-            memoryId: memoryID ?? MemoryID(rawValue: model.memoryID),
-            content: model.content,
-            createdAt: model.createdAt,
-            updatedAt: model.updatedAt
-        )
     }
 }
 
