@@ -119,7 +119,7 @@ final class ChatViewModel {
     // Removed dead `activeSubAgentName` + `currentAgentTurn`
     // fields (= T4-SUBAGENT-UI + T8-CHATVIEWMODEL-WIRE) —
     // these were read by ChatSubAgentTag + ChatTurnProgress
-    // (= both files deleted in v1.83). No view in the codebase
+    // (. both files deleted). No view in the codebase
     // consumes these values anymore; = dead reactive state.
     // The corresponding `[wenshu.subagent]` + `[wenshu.agent] turn`
     // marker emission (= ConversationLoop + WenshuConductor) and
@@ -204,7 +204,7 @@ final class ChatViewModel {
     // picker shows ' instead of 'MiniMax-M3'. The substring
     // `UserDefaults.standard.string(forKey: "wenshu.llm.model") ?? ""` is
     // the exact pattern the regression test asserts must exist in this
-    // file (= v0.24 commit message claimed it was applied here but the
+    // file (. a commit message claimed it was applied here but the
     // actual git show only patched App.swift = doc drift that the test
     // now locks down).
     var currentModel: String {
@@ -239,8 +239,8 @@ final class ChatViewModel {
     // The view layer is expected to call setCurrentBookID(_:) when the
     // user picks a different book so the chat panel reloads against the
     // new scope. Until the view wires this up (= future ticket; = no UI
-    // change in v1.79), the chat panel still works (= bookID: nil = global
-    // = same behavior as before v1.79).
+    // change, the chat panel still works (= bookID: nil = global
+    // = same behavior as before the change).
     //
     // P2-02 audit (2026-09-24): BookID brand wrapper.
     @MainActor internal var currentBookID: BookID?
@@ -600,7 +600,7 @@ final class ChatViewModel {
             // conductor path remains blocking for now (= its
             // WenshuConductor.handle returns a single assembled
             // reply = the WenshuConductor owns its own multi-agent
-            // pipeline and isn't yet adapted to streaming). v0.34
+            // pipeline and isn't yet adapted to streaming).
             // ships streaming for the direct verifier path = the
             // most common user flow.
             // read the model id from the canonical owner (= same value

@@ -9,7 +9,7 @@
 // `SecItemAdd` / `SecItemCopyMatching` / `SecItemDelete` code).
 // This module extracts the shared primitives (= `save` / `load` /
 // `delete`) so `ProviderKeychain` can call into one canonical
-// implementation. `SearchAPIKeychain` was deleted in the v2.5
+// implementation. `SearchAPIKeychain` was deleted
 // keyless rewrite (= no API keys needed; = see AGENTS.md §11.15).
 //
 // Per AGENTS.md §11.1: NO third-party deps (= Foundation +

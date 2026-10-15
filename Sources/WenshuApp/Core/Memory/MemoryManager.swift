@@ -51,7 +51,7 @@ actor MemoryManager {
 
     /// prefetch: pre-turn — load relevant memories based on user message.
     /// hermes equivalent: `prefetch_all(user_message) → Dict[str, str]`.
-    /// Simple keyword-match (no embeddings yet — v0.24+).
+    /// Simple keyword-match (no embeddings yet).
     func prefetch(userMessage: String) async -> PrefetchResult {
         let memories = await searchMemory(userId: "default", query: userMessage, limit: 10)
         guard !memories.isEmpty else {
@@ -113,7 +113,7 @@ actor MemoryManager {
             let total = await countMemory(userId: "default")
             return .synced(writtenCount: 1, totalChars: total)
         case .stageForApproval:
-            // hermes: stage to pending queue. wenshu v0.23: silent stage (no GUI yet).
+            // hermes: stage to pending queue (no GUI yet).
             return .stagedForApproval
         case .block(let reason):
             return .blocked(reason: reason)

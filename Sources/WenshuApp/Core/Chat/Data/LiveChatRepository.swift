@@ -195,7 +195,7 @@ init(container: ModelContainer) {
     /// nil (= drop the record) when the stored id isn't a valid UUID
     /// (= malformed row from legacy data) or the source isn't a
     /// known ChatSource case (= silent data corruption symptom —
-    /// the v0.71 P1 batch 6 dual-axis audit added this explicit
+    /// the dual-axis audit added this explicit
     /// drop in place of the previous "silently rewrite to .wenshu"
     /// fallback).
     static func makeDomain(from stored: WSChatMessage) -> ChatMessage? {

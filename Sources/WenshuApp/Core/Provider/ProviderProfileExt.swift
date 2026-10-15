@@ -26,7 +26,7 @@
 //     covers the extension surface.
 //
 // The hermes `ProviderProfile` + `models_dev` + `model_metadata`
-// system is 5,743 LOC across 3 files. Wenshu's v0.21 `Provider`
+// system is 5,743 LOC across 3 files. Wenshu's `Provider`
 // struct already covers the bulk of the auth + endpoints surface;
 // the additions here are the OPTIONAL fields (aliases,
 // `display_name`, description, `signup_url`, `user_agent_strategy`,
@@ -37,7 +37,7 @@
 // compatible protocol); the multi-provider complexity in hermes's
 // `models_dev` catalog is OUT of scope. The `ModelMetadata` struct
 // added here covers ONLY the fields wenshu consumes (= display
-// cost, `context_window`, capabilities), so a future v1.5+
+// cost, `context_window`, capabilities), so a future
 // migration to a second provider has a clean extension point.
 
 import Foundation

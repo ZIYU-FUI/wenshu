@@ -3,7 +3,7 @@
 //
 //  Per-book entity CRUD actor + 5-kind dispatcher.
 //
-//  Replaces BookCharacterActor + BookWorldActor from v2.0/v2.2
+//  Replaces BookCharacterActor + BookWorldActor from previous versions
 //  with a single kind-discriminated actor (= all 5 kinds go
 //  through the same 6 actions: create / read / update / delete
 //  / list / find).
@@ -11,14 +11,14 @@
 //  Storage: FileSystemEntityStore (= the on-disk JSON index +
 //  per-entity .md body file).
 //
-//  Scope guard (v2.1): every action MUST carry a `book_id` that
+//  Scope guard: every action MUST carry a `book_id` that
 //  matches the chat session's currently-bound book. Same
-//  BookScopeGuard helper as v2.1.
+//  BookScopeGuard helper.
 //
-//  Silent dedup (v2.2): if an entity with the same name already
+//  Silent dedup: if an entity with the same name already
 //  exists in this book (= case-insensitive), falls back to
 //  in-place update. Same behavior as BookCharacterActor /
-//  BookWorldActor in v2.2.
+//  BookWorldActor in an earlier version.
 
 import Foundation
 import WenshuData
@@ -99,7 +99,7 @@ actor BookEntityActor {
     /// contract); = actor-based callers (= this actor + the actor-
     /// based tool wrapper) can't instantiate it. We resolve to the
     /// book directory URL and use the nonisolated static FileSystem
-    /// fallback helpers (= actor-safe; = preserves the v2.3 API
+    /// fallback helpers (= actor-safe; = preserves the API
     /// surface).
     private func resolveBookDirectory() throws -> URL {
         guard let dir = bookDirectoryProvider() else {
@@ -139,7 +139,7 @@ actor BookEntityActor {
             )
         }
 
-        // Silent dedup (= v2.2 contract): if an entity with the
+        // Silent dedup: if an entity with the
         // same name already exists in this book (= case-
         // insensitive), silently update in place. The fallback
         // update uses either the caller's bodyMarkdown OR the
@@ -664,7 +664,7 @@ actor BookEntityActor {
 
 actor BookEntityTool: Tool {
     let name = "book_entity"
-    let description = "Create / read / update / delete / list / find entities (= person / location / object / ability / event) under a book. Replaces book_world + book_character from v2.0/v2.2 (= kind field selects the schema)."
+    let description = "Create / read / update / delete / list / find entities (= person / location / object / ability / event) under a book. Replaces book_world + book_character from previous versions (= kind field selects the schema)."
 
     private let actor: BookEntityActor
 
@@ -736,7 +736,7 @@ extension BookEntityTool {
                     required: ["action"]
             ),
             handler: BookEntityTool.shared,
-            description: "Per-book entity CRUD (= 5 kinds: person / location / object / ability / event). Replaces book_world + book_character from v2.0/v2.2.",
+            description: "Per-book entity CRUD (= 5 kinds: person / location / object / ability / event). Replaces book_world + book_character from previous versions.",
             emoji: "🏷️"
         )
         }

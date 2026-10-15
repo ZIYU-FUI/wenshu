@@ -46,7 +46,7 @@ enum KeychainSelector {
     ///
     /// `Int.max` is reserved for "never select" states; other states get a
     /// large-but-finite penalty so a future round-robin / least-used strategy
-    /// (= not in v0.40; hermes has it via STRATEGY_ROUND_ROBIN) can still rank
+    /// (= hermes has it via STRATEGY_ROUND_ROBIN) can still rank
     /// between cold keys.
     static func score(_ key: AuthKey, now: Date = Date()) -> Int {
         // Permanent-out states never get picked.
