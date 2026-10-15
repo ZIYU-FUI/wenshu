@@ -7,7 +7,7 @@ struct AppleSplitViewAutomaticBoundsTests {
     @Test("NavigationSplitView retains Apple's automatic column sizing")
     func navigationColumnsUseAutomaticWidth() throws {
         let source = try Self.source(
-            "Sources/WenshuApp/Views/Onboarding/LibraryRootView.swift"
+            "Sources/WenshuApp/Shared/UI/LibraryRootView.swift"
         )
         #expect(source.components(separatedBy: ".navigationSplitViewColumnWidth(").count == 3)
         #expect(source.contains("min: 200"))

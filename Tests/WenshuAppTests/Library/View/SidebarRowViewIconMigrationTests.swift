@@ -20,7 +20,7 @@ struct SidebarRowViewIconMigrationTests {
 
     @Test("SidebarRowView source no longer uses naked Image(systemName:)")
     func sourceNoLongerUsesNakedImage() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/Library/SidebarRowView.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Library/View/SidebarRowView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         let stripped = content.components(separatedBy: "\n").filter { line in
             let trimmed = line.trimmingCharacters(in: .whitespaces)
@@ -32,7 +32,7 @@ struct SidebarRowViewIconMigrationTests {
 
     @Test("SidebarRowView row uses the central SFLabelRow factory (= Apple HIG sidebar row surface)")
     func rowUsesCentralLabelRowFactory() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/Library/SidebarRowView.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Library/View/SidebarRowView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("SFLabelRow("),
                 "SidebarRowView row must render via the central SFLabelRow factory (= Apple HIG sidebar-row surface)")

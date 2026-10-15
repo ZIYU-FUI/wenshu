@@ -39,8 +39,8 @@ struct ShadowRadiusMagicSweepTests {
     @Test("Round 12 — production code has no naked .shadow(radius: <int>) literals")
     func productionCodeHasNoMagicShadowRadius() throws {
         let sweptFiles = [
-            "Sources/WenshuApp/Views/Workspace/LayoutPicker/LayoutEditBar.swift",
-            "Sources/WenshuApp/Views/Workspace/EditorPaperCanvas.swift",
+            "Sources/WenshuApp/Workspace/LayoutPicker/LayoutEditBar.swift",
+            "Sources/WenshuApp/Workspace/EditorPaperCanvas.swift",
         ]
         for path in sweptFiles {
             let url = URL(fileURLWithPath: path)

@@ -22,7 +22,7 @@ struct ChatToolResultDiffSheetTapTests {
 
     @Test("ChatToolResultPartView hosts a .sheet(item:) on the long-diff path")
     func hostSheetOnLongDiff() throws {
-        let path = Self.repoSourcePath("Sources/WenshuApp/Views/Chat/ChatToolResultPartView.swift")
+        let path = Self.repoSourcePath("Sources/WenshuApp/Features/Chat/View/ChatToolResultPartView.swift")
         let source = try String(contentsOfFile: path, encoding: .utf8)
         // The host pattern (= same shape as KanbanView's KanbanCard sheet
         // host per the kanban-detail-sheet arc) = sheet(item: $sheetTicket).
@@ -31,7 +31,7 @@ struct ChatToolResultDiffSheetTapTests {
 
     @Test("ChatToolResultPartView wires ChatToolDiffPreviewSheet on sheet content")
     func wireChatToolDiffPreviewSheet() throws {
-        let path = Self.repoSourcePath("Sources/WenshuApp/Views/Chat/ChatToolResultPartView.swift")
+        let path = Self.repoSourcePath("Sources/WenshuApp/Features/Chat/View/ChatToolResultPartView.swift")
         let source = try String(contentsOfFile: path, encoding: .utf8)
         #expect(source.contains("ChatToolDiffPreviewSheet("),
                 "sheet content must construct ChatToolDiffPreviewSheet with the diff + filename")
@@ -39,7 +39,7 @@ struct ChatToolResultDiffSheetTapTests {
 
     @Test("ChatToolDiffPreview card body is .contentShape(Rectangle()) + .onTapGesture")
     func cardIsTappable() throws {
-        let path = Self.repoSourcePath("Sources/WenshuApp/Views/Chat/ChatToolResultPartView.swift")
+        let path = Self.repoSourcePath("Sources/WenshuApp/Features/Chat/View/ChatToolResultPartView.swift")
         let source = try String(contentsOfFile: path, encoding: .utf8)
         #expect(source.contains(".contentShape(Rectangle())"),
                 "diff card body must accept taps over its full rectangle")

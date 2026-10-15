@@ -15,7 +15,7 @@ struct ChatViewNextChatShortcutTests {
     /// T115 contract: ⌘] shortcut registered.
     @Test func cmd_right_bracket_shortcut_registered() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         #expect(src.contains(".keyboardShortcut(\"]\", modifiers: [.command])"))
@@ -24,7 +24,7 @@ struct ChatViewNextChatShortcutTests {
     /// T115 contract: Button body NSLogs next-chat.
     @Test func body_logs_next_chat() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         let btnPos = src.range(of: "Button(\"Next chat\")")!
@@ -42,7 +42,7 @@ struct ChatViewNextChatShortcutTests {
     /// T115 contract: button is visually hidden.
     @Test func next_chat_button_is_visually_hidden() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         let cmdRightIdx = src.range(of: ".keyboardShortcut(\"]\", modifiers: [.command])")!
@@ -55,7 +55,7 @@ struct ChatViewNextChatShortcutTests {
     /// T115 contract: T114 ⌘[ previous-chat shortcut preserved.
     @Test func t114_prev_chat_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         #expect(src.contains(".keyboardShortcut(\"[\", modifiers: [.command])"))
@@ -65,7 +65,7 @@ struct ChatViewNextChatShortcutTests {
     /// T115 contract: T113 ⌥= zoom-in shortcut preserved.
     @Test func t113_zoom_in_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         #expect(src.contains(".keyboardShortcut(\"=\", modifiers: [.option])"))
@@ -74,7 +74,7 @@ struct ChatViewNextChatShortcutTests {
     /// T115 contract: T82 ⌘? shortcut preserved.
     @Test func t82_cmd_question_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         #expect(src.contains(".keyboardShortcut(\"?\", modifiers: [.command])"))
@@ -83,7 +83,7 @@ struct ChatViewNextChatShortcutTests {
     /// T115 contract: prior shortcuts preserved.
     @Test func prior_shortcuts_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         #expect(src.contains(".keyboardShortcut(\"n\", modifiers: [.command])"))
@@ -104,11 +104,11 @@ struct ChatViewNextChatShortcutTests {
         // test verifies both halves exist (= .frame(minHeight: 36) is
         // only in ChatInputBarView; = Button("Next chat") is only in ChatView).
         let inputBarSrc = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatInputBarView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift",
             encoding: .utf8
         )
         let chatViewSrc = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         // The input row HStack's minimum height pin (= .frame(minHeight: 36); = boss v1.96/v1.97 spec: input height = 36PT = match button diameter)

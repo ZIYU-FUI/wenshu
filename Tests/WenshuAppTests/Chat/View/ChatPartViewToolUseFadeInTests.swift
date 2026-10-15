@@ -18,7 +18,7 @@ struct ChatPartViewToolUseFadeInTests {
     /// .transition(.wenshuThinkingAppear()).
     @Test func toolUse_case_applies_transition() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatPartView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatPartView.swift",
             encoding: .utf8
         )
         // Locate the toolUse case in ChatPartRow.body's switch.
@@ -35,7 +35,7 @@ struct ChatPartViewToolUseFadeInTests {
     /// the transition (= both halves of the tool lifecycle fade in).
     @Test func toolResult_case_applies_transition() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatPartView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatPartView.swift",
             encoding: .utf8
         )
         let toolResultIdx = src.range(of: "case .toolResult(let tr):")!
@@ -49,7 +49,7 @@ struct ChatPartViewToolUseFadeInTests {
     /// transition (= T40 not regressed).
     @Test func reasoning_case_still_applies_transition() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatPartView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatPartView.swift",
             encoding: .utf8
         )
         let reasoningIdx = src.range(of: "case .reasoning(let s):")!
@@ -64,7 +64,7 @@ struct ChatPartViewToolUseFadeInTests {
     /// + text = T49 added text).
     @Test func transition_applied_to_four_cases() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatPartView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatPartView.swift",
             encoding: .utf8
         )
         // Count occurrences INSIDE the switch in ChatPartRow.body
@@ -84,7 +84,7 @@ struct ChatPartViewToolUseFadeInTests {
     /// (= only streaming-event parts animate; = plan is static).
     @Test func plan_case_doesnt_apply_transition() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatPartView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatPartView.swift",
             encoding: .utf8
         )
         let rowBodyStart = src.range(of: "switch part.kind {")!

@@ -44,15 +44,15 @@ struct BookmarkOpsMvvmSplitTests {
 
     @Test("BookmarkOps.swift exists (= the canonical @MainActor bridge)")
     func testBookmarkOpsExists() throws {
-        let path = resolve("Sources/WenshuApp/Views/SpecializedTools/BookmarkOps.swift")
+        let path = resolve("Sources/WenshuApp/Features/Agent/View/BookmarkOps.swift")
         let exists = FileManager.default.fileExists(atPath: path)
         #expect(exists,
-                "BookmarkOps.swift must exist at Sources/WenshuApp/Views/SpecializedTools/BookmarkOps.swift (= boss A2 follow-up = 'Bookmark UI polish')")
+                "BookmarkOps.swift must exist at Sources/WenshuApp/Features/Agent/View/BookmarkOps.swift (= boss A2 follow-up = 'Bookmark UI polish')")
     }
 
     @Test("BookmarkOps has load + add + remove static entry points")
     func testBookmarkOpsHasLoadAddRemove() throws {
-        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Views/SpecializedTools/BookmarkOps.swift"), encoding: .utf8)
+        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Features/Agent/View/BookmarkOps.swift"), encoding: .utf8)
         let hasLoad = source.contains("static func load(")
         let hasAdd = source.contains("static func add(")
         let hasRemove = source.contains("static func remove(")
@@ -62,7 +62,7 @@ struct BookmarkOpsMvvmSplitTests {
 
     @Test("BookmarkView delegates reload / addBookmark / removeBookmark to BookmarkOps")
     func testBookmarkViewDelegatesToBookmarkOps() throws {
-        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Views/SpecializedTools/BookmarkView.swift"), encoding: .utf8)
+        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Features/Agent/View/BookmarkView.swift"), encoding: .utf8)
         let callsLoad = source.contains("BookmarkOps.load(")
         let callsAdd = source.contains("BookmarkOps.add(")
         let callsRemove = source.contains("BookmarkOps.remove(")

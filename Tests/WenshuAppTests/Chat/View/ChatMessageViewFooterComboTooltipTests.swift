@@ -15,7 +15,7 @@ struct ChatMessageViewFooterComboTooltipTests {
     /// T53 contract: comboFooterTooltip helper exists.
     @Test func helper_exists() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
             encoding: .utf8
         )
         #expect(src.contains("nonisolated static func comboFooterTooltip(timestamp: Date, tokens: Int?) -> String"))
@@ -24,7 +24,7 @@ struct ChatMessageViewFooterComboTooltipTests {
     /// T53 contract: source uses .help(Self.comboFooterTooltip).
     @Test func source_uses_help_tooltip() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
             encoding: .utf8
         )
         #expect(src.contains(".help(Self.comboFooterTooltip(timestamp: timestamp, tokens: tokens))"))
@@ -33,7 +33,7 @@ struct ChatMessageViewFooterComboTooltipTests {
     /// T53 contract: T50 timestamp tooltip preserved.
     @Test func t50_timestamp_tooltip_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
             encoding: .utf8
         )
         #expect(src.contains(".help(Self.fullTimestampTooltip(for: timestamp))"))
@@ -42,7 +42,7 @@ struct ChatMessageViewFooterComboTooltipTests {
     /// T53 contract: T52 token tooltip preserved.
     @Test func t52_token_tooltip_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
             encoding: .utf8
         )
         #expect(src.contains(".help(Self.fullTokenCountTooltip(for: tokens))"))

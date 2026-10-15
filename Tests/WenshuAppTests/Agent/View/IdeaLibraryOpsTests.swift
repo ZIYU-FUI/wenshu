@@ -70,7 +70,7 @@ struct IdeaLibraryOpsTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Views/SpecializedTools/IdeaLibraryOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/IdeaLibraryOps.swift")
         let exists = FileManager.default.fileExists(atPath: sourcePath.path)
         #expect(exists, "IdeaLibraryOps.swift must exist at \(sourcePath.path)")
     }

@@ -14,7 +14,7 @@ struct ChatViewClearChatShortcutTests {
 
     @Test func cmd_shift_k_shortcut_registered() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         #expect(src.contains(".keyboardShortcut(\"k\", modifiers: [.command, .shift])"))
@@ -22,7 +22,7 @@ struct ChatViewClearChatShortcutTests {
 
     @Test func body_clears_messages_and_input() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         guard let removeRange = src.range(of: "vm.messages.removeAll()") else {
@@ -42,7 +42,7 @@ struct ChatViewClearChatShortcutTests {
 
     @Test func clear_button_is_visually_hidden() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         let cmdKIdx = src.range(of: ".keyboardShortcut(\"k\", modifiers: [.command, .shift])")!
@@ -54,7 +54,7 @@ struct ChatViewClearChatShortcutTests {
 
     @Test func t37_focus_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         // T37 ⌘K focus + T79 ⌘⇧K clear (= both can coexist;
@@ -65,7 +65,7 @@ struct ChatViewClearChatShortcutTests {
 
     @Test func t48_new_chat_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         #expect(src.contains(".keyboardShortcut(\"n\", modifiers: [.command])"))
@@ -75,7 +75,7 @@ struct ChatViewClearChatShortcutTests {
 
     @Test func prior_shortcuts_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         #expect(src.contains(".keyboardShortcut(\"l\", modifiers: [.command])"))
@@ -96,11 +96,11 @@ struct ChatViewClearChatShortcutTests {
         // test verifies both halves exist (= .frame(minHeight: 36) is
         // only in ChatInputBarView; = Button("Clear chat") is only in ChatView).
         let inputBarSrc = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatInputBarView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift",
             encoding: .utf8
         )
         let chatViewSrc = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         // The input row HStack's minimum height pin (= .frame(minHeight: 36); = boss v1.96/v1.97 spec: input height = 36PT = match button diameter)

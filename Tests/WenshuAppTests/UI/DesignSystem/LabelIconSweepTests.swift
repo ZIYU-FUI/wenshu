@@ -56,19 +56,19 @@ struct LabelIconSlotSweepTests {
     // sites in LibraryRootView).
     static let sweptFiles: [(path: String, sites: Int)] = [
         ("Sources/WenshuApp/Views/Kanban/KanbanView.swift", 1),
-        ("Sources/WenshuApp/Views/SpecializedTools/BookSettingConstraintsView.swift", 2),
-        ("Sources/WenshuApp/Views/SpecializedTools/CharacterLifecycleView.swift", 1),
-        ("Sources/WenshuApp/Views/SpecializedTools/CharacterRelationshipsView.swift", 1),
-        ("Sources/WenshuApp/Views/SpecializedTools/EmotionCurveView.swift", 2),
-        ("Sources/WenshuApp/Views/SpecializedTools/GenreFitView.swift", 2),
-        ("Sources/WenshuApp/Views/SpecializedTools/IdeaLibraryView.swift", 3),
-        ("Sources/WenshuApp/Views/SpecializedTools/LongFormGuardrailsView.swift", 3),
-        ("Sources/WenshuApp/Views/SpecializedTools/PlotThreadView.swift", 1),
-        ("Sources/WenshuApp/Views/SpecializedTools/ReaderExperienceView.swift", 2),
-        ("Sources/WenshuApp/Views/SpecializedTools/TagManagerView.swift", 2),
-        ("Sources/WenshuApp/Views/Todo/TodoListView.swift", 1),
-        ("Sources/WenshuApp/Views/Tools/ForeshadowingView.swift", 1),
-        ("Sources/WenshuApp/Views/Tools/PlaceholderView.swift", 2),
+        ("Sources/WenshuApp/Features/Agent/View/BookSettingConstraintsView.swift", 2),
+        ("Sources/WenshuApp/Features/Agent/View/CharacterLifecycleView.swift", 1),
+        ("Sources/WenshuApp/Features/Agent/View/CharacterRelationshipsView.swift", 1),
+        ("Sources/WenshuApp/Features/Agent/View/EmotionCurveView.swift", 2),
+        ("Sources/WenshuApp/Features/Agent/View/GenreFitView.swift", 2),
+        ("Sources/WenshuApp/Features/Agent/View/IdeaLibraryView.swift", 3),
+        ("Sources/WenshuApp/Features/Agent/View/LongFormGuardrailsView.swift", 3),
+        ("Sources/WenshuApp/Features/Agent/View/PlotThreadView.swift", 1),
+        ("Sources/WenshuApp/Features/Agent/View/ReaderExperienceView.swift", 2),
+        ("Sources/WenshuApp/Features/Agent/View/TagManagerView.swift", 2),
+        ("Sources/WenshuApp/Features/Agent/View/TodoListView.swift", 1),
+        ("Sources/WenshuApp/Features/Agent/View/ForeshadowingView.swift", 1),
+        ("Sources/WenshuApp/Features/Agent/View/PlaceholderView.swift", 2),
     ]
 
     @Test("Label icon slot sweep — 15 view files dropped `Image(systemName: x).imageScale(.small)` in Label icon slot")

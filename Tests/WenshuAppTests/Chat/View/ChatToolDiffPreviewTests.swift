@@ -38,7 +38,7 @@ struct ChatToolDiffPreviewTests {
     @Test("ChatToolDiffPreview.swift exists with the canonical API")
     func sourceLevelAPISurface() throws {
         let path = repoRootFromTestFile()
-            .appendingPathComponent("Sources/WenshuApp/Views/Chat/ChatToolDiffPreview.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Chat/View/ChatToolDiffPreview.swift")
         let text = try String(contentsOf: path, encoding: .utf8)
         // The view must:
         //  - be a SwiftUI View (struct … : View)

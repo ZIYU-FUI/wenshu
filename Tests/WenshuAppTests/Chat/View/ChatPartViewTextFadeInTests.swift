@@ -17,7 +17,7 @@ struct ChatPartViewTextFadeInTests {
     /// T49 contract: .text case applies .transition(.wenshuThinkingAppear()).
     @Test func text_case_applies_transition() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatPartView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatPartView.swift",
             encoding: .utf8
         )
         let textCaseIdx = src.range(of: "case .text(let s):")!
@@ -30,7 +30,7 @@ struct ChatPartViewTextFadeInTests {
     /// T49 contract: T40 reasoning case still applies transition.
     @Test func reasoning_case_still_applies_transition() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatPartView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatPartView.swift",
             encoding: .utf8
         )
         let reasoningIdx = src.range(of: "case .reasoning(let s):")!
@@ -43,7 +43,7 @@ struct ChatPartViewTextFadeInTests {
     /// T49 contract: T41 tool cases still apply transitions.
     @Test func tool_cases_still_apply_transitions() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatPartView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatPartView.swift",
             encoding: .utf8
         )
         let toolUseIdx = src.range(of: "case .toolUse(let tu):")!
@@ -57,7 +57,7 @@ struct ChatPartViewTextFadeInTests {
     /// switch is now 4 (= reasoning + toolUse + toolResult + text).
     @Test func transition_applied_to_four_cases() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatPartView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatPartView.swift",
             encoding: .utf8
         )
         let rowBodyStart = src.range(of: "switch part.kind {")!
@@ -73,7 +73,7 @@ struct ChatPartViewTextFadeInTests {
         // The streaming cursor TimelineView lives in ChatTextPartView
         // (not in ChatPartView's switch case).
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatTextPartView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatTextPartView.swift",
             encoding: .utf8
         )
         #expect(src.contains("TimelineView(.periodic(from: .now, by: 0.5))"))

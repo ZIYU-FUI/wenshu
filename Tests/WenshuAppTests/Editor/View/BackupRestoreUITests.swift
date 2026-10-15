@@ -57,15 +57,15 @@ struct BackupRestoreUITests {
 
     @Test("AppBackupOps.swift exists (= the canonical @MainActor bridge)")
     func testAppBackupOpsExists() throws {
-        let path = resolve("Sources/WenshuApp/Core/Backup/AppBackupOps.swift")
+        let path = resolve("Sources/WenshuApp/Features/Shared/AppBackupOps.swift")
         let exists = FileManager.default.fileExists(atPath: path)
         #expect(exists,
-                "AppBackupOps.swift must exist at Sources/WenshuApp/Core/Backup/AppBackupOps.swift (= boss B5 follow-up = '我们有备份, 没 restore UI')")
+                "AppBackupOps.swift must exist at Sources/WenshuApp/Features/Shared/AppBackupOps.swift (= boss B5 follow-up = '我们有备份, 没 restore UI')")
     }
 
     @Test("AppBackupOps.restore delegates to BackupTools.restore")
     func testAppBackupOpsCallsBackupToolsRestore() throws {
-        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Core/Backup/AppBackupOps.swift"), encoding: .utf8)
+        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Features/Shared/AppBackupOps.swift"), encoding: .utf8)
         #expect(source.contains("BackupTools().restore"),
                 "AppBackupOps.restore must delegate to BackupTools.restore (= SSOT on BackupTools)")
     }

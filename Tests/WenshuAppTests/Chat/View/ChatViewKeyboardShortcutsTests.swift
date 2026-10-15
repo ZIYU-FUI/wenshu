@@ -17,7 +17,7 @@ struct ChatViewKeyboardShortcutsTests {
     /// (= the standard Slack / Discord focus-input shortcut).
     @Test func cmd_k_shortcut_registered() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         #expect(src.contains(".keyboardShortcut(\"k\", modifiers: [.command])"))
@@ -27,7 +27,7 @@ struct ChatViewKeyboardShortcutsTests {
     /// (= the standard ChatGPT / Claude clear-chat shortcut).
     @Test func cmd_l_shortcut_registered() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         #expect(src.contains(".keyboardShortcut(\"l\", modifiers: [.command])"))
@@ -36,7 +36,7 @@ struct ChatViewKeyboardShortcutsTests {
     /// T37 contract: ⌘K button action sets inputFocused = true.
     @Test func cmd_k_focuses_input() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         // Locate the ⌘K button body.
@@ -48,7 +48,7 @@ struct ChatViewKeyboardShortcutsTests {
     /// T37 contract: ⌘L button clears input + starts new session.
     @Test func cmd_l_clears_and_starts_new_session() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         // Locate the ⌘L button body.
@@ -64,7 +64,7 @@ struct ChatViewKeyboardShortcutsTests {
     /// don't take up chat zone space.
     @Test func buttons_are_visually_hidden() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         let cmdKRange = src.range(of: ".keyboardShortcut(\"k\", modifiers: [.command])")!
@@ -100,11 +100,11 @@ struct ChatViewKeyboardShortcutsTests {
         // position is after the input row HStack in source order,
         // which means it sits outside the input row visually).
         let inputBarSrc = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatInputBarView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift",
             encoding: .utf8
         )
         let chatViewSrc = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         // The hidden Focus input Button lives in ChatView (= the keyboard

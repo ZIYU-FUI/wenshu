@@ -17,7 +17,7 @@ struct ChapterFocusLockBadgeIconMigrationTests {
 
     @Test("ChapterFocusLockBadge source no longer uses naked Image(systemName:)")
     func sourceNoLongerUsesNakedImage() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/Workspace/ChapterFocusLockBadge.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Workspace/ChapterFocusLockBadge.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         let stripped = content.components(separatedBy: "\n").filter { line in
             let trimmed = line.trimmingCharacters(in: .whitespaces)
@@ -29,7 +29,7 @@ struct ChapterFocusLockBadgeIconMigrationTests {
 
     @Test("ChapterFocusLockBadge inline icon uses SFIcon style: .inlineSmall + .tertiary")
     func inlineIconUsesSFIcon() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/Workspace/ChapterFocusLockBadge.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Workspace/ChapterFocusLockBadge.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("SFIcon(\"pencil.and.outline\", style: .inlineSmall, color: IconColor.tertiary)"),
                 "ChapterFocusLockBadge inline icon must render via SFIcon(.inlineSmall, IconColor.tertiary)")

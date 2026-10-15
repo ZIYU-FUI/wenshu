@@ -14,20 +14,20 @@
 //  Swept sites (= 5):
 //  - Sources/WenshuApp/Views/CommandPalette/CommandPaletteView.swift
 //    L189 (.background { Color.windowBackground } → .background(.windowBackground))
-//  - Sources/WenshuApp/Views/Workspace/LayoutPicker/ZoneEditor.swift
+//  - Sources/WenshuApp/Workspace/LayoutPicker/ZoneEditor.swift
 //    L96 (.background { Color.windowBackground } → .background(.windowBackground))
-//  - Sources/WenshuApp/Views/SpecializedTools/LongFormGuardrailsView.swift
+//  - Sources/WenshuApp/Features/Agent/View/LongFormGuardrailsView.swift
 //    L371 (.background { Color.windowBackground } → .background(.windowBackground))
-//  - Sources/WenshuApp/Views/Library/BookEditorSheet.swift
+//  - Sources/WenshuApp/Features/Library/View/BookEditorSheet.swift
 //    L152 (.background { Color.windowBackground } → .background(.windowBackground))
-//  - Sources/WenshuApp/Views/Onboarding/LibraryRootView.swift
+//  - Sources/WenshuApp/Shared/UI/LibraryRootView.swift
 //    L144 (.containerBackground { Color.windowBackground }
 //       → .containerBackground(.windowBackground, for: .window))
 //
 //  Preserved sites (= 2, Apple SwiftUI limitation):
-//  - Sources/WenshuApp/Views/Chat/ChatToolUsePartView.swift
+//  - Sources/WenshuApp/Features/Chat/View/ChatToolUsePartView.swift
 //    L163 AnyShapeStyle(Color(nsColor: .windowBackgroundColor).opacity(0.12))
-//  - Sources/WenshuApp/Views/Chat/ChatToolResultPartView.swift
+//  - Sources/WenshuApp/Features/Chat/View/ChatToolResultPartView.swift
 //    L234 AnyShapeStyle(Color(nsColor: .windowBackgroundColor).opacity(0.12))
 //  (= HierarchicalShapeStyle.windowBackground.opacity(N) fails
 //   Swift type-check; = Apple SwiftUI idiom requires Color +

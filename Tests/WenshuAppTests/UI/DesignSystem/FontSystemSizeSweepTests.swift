@@ -29,7 +29,7 @@ struct FontSystemSizeSweepTests {
 
     @Test("Round 7 — ChatToolDiffPreview diff line viewer uses Apple HIG caption2 + monospaced()")
     func chatToolDiffPreviewUsesCaption2Monospaced() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/Chat/ChatToolDiffPreview.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Chat/View/ChatToolDiffPreview.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains(".font(.caption2.monospaced())"),
                 "ChatToolDiffPreview diff line viewer must use Apple HIG .caption2.monospaced() (= 11 PT monospaced)")
@@ -39,7 +39,7 @@ struct FontSystemSizeSweepTests {
 
     @Test("Round 7 — ChatToolDiffPreviewSheet diff body viewer uses Apple HIG caption + monospaced()")
     func chatToolDiffPreviewSheetUsesCaptionMonospaced() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/Chat/ChatToolDiffPreviewSheet.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Chat/View/ChatToolDiffPreviewSheet.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains(".font(.caption.monospaced())"),
                 "ChatToolDiffPreviewSheet diff body viewer must use Apple HIG .caption.monospaced() (= 12 PT monospaced)")
@@ -49,7 +49,7 @@ struct FontSystemSizeSweepTests {
 
     @Test("Round 7 — IconStyles.swift preserves the internal .font(.system(size:)) for SFIcon")
     func iconStylesInternalSystemSizePreserved() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/UI/IconStyles.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Shared/UI/IconStyles.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains(".font(.system(size: style.pointSize"),
                 "IconStyles.swift L357 SFIcon factory must keep .font(.system(size: style.pointSize)) (= IconStyle.pointSize is dynamic; = the canonical built-in is not available for dynamic sizing; = round 7 sweep exception)")

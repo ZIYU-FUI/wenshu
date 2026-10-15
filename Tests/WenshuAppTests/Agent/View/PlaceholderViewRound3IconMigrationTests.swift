@@ -20,7 +20,7 @@ struct PlaceholderViewRound3IconMigrationTests {
 
     @Test("PlaceholderView round-3 source no naked Image(systemName:) outside Label icon slots")
     func sourceNoNakedImageInStandalone() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/Tools/PlaceholderView.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Agent/View/PlaceholderView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         let stripped = content.components(separatedBy: "\n").filter { line in
             let trimmed = line.trimmingCharacters(in: .whitespaces)
@@ -34,7 +34,7 @@ struct PlaceholderViewRound3IconMigrationTests {
 
     @Test("PlaceholderView round-3 5 inline icons use SFIcon")
     func fiveInlineIconsUseSFIcon() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/Tools/PlaceholderView.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Agent/View/PlaceholderView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("SFIcon(\"checkmark\", style: .inlineSmall, color: IconColor.green)"),
                 "PlaceholderView checkmark resolved must use SFIcon")
@@ -50,7 +50,7 @@ struct PlaceholderViewRound3IconMigrationTests {
 
     @Test("PlaceholderViewState mirror exists (= business state hoisted out of @State per v1.72 MVVM split)")
     func testStateMirrorExists() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/Tools/PlaceholderView.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Agent/View/PlaceholderView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("PlaceholderViewState"),
                 "PlaceholderView must reference PlaceholderViewState mirror")

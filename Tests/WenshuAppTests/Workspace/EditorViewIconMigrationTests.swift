@@ -20,7 +20,7 @@ struct EditorViewIconMigrationTests {
 
     @Test("EditorView source no longer uses naked Image(systemName:)")
     func sourceNoLongerUsesNakedImage() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/Workspace/EditorView.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Workspace/EditorView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         let stripped = content.components(separatedBy: "\n").filter { line in
             let trimmed = line.trimmingCharacters(in: .whitespaces)

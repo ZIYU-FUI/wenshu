@@ -23,7 +23,7 @@ struct ChatToolDiffPreviewSheetTests {
         // Source-content anchor (= Q112 1 source + 1 test = the
         // sheet's surface lives in a single file). Verifies the
         // canonical API matches `KanbanTicketDetailSheet`'s shape.
-        let path = Self.repoSourcePath("Sources/WenshuApp/Views/Chat/ChatToolDiffPreviewSheet.swift")
+        let path = Self.repoSourcePath("Sources/WenshuApp/Features/Chat/View/ChatToolDiffPreviewSheet.swift")
         let source = try String(contentsOfFile: path, encoding: .utf8)
         #expect(source.contains("struct ChatToolDiffPreviewSheet"))
         #expect(source.contains("let diff:"))
@@ -38,7 +38,7 @@ struct ChatToolDiffPreviewSheetTests {
         // helpers (= countLineStats + present + color) so the
         // expanded view shows the same +N/-N char header and
         // red/green line coloring as the inline preview.
-        let path = Self.repoSourcePath("Sources/WenshuApp/Views/Chat/ChatToolDiffPreviewSheet.swift")
+        let path = Self.repoSourcePath("Sources/WenshuApp/Features/Chat/View/ChatToolDiffPreviewSheet.swift")
         let source = try String(contentsOfFile: path, encoding: .utf8)
         #expect(source.contains("ChatToolDiffPreview.countLineStats"))
         #expect(source.contains("ChatToolDiffPreview.color"))
@@ -47,7 +47,7 @@ struct ChatToolDiffPreviewSheetTests {
 
     @Test("sheet text body is textSelection(.enabled) (= her skans diff to clipboard)")
     func textBodyIsSelectable() throws {
-        let path = Self.repoSourcePath("Sources/WenshuApp/Views/Chat/ChatToolDiffPreviewSheet.swift")
+        let path = Self.repoSourcePath("Sources/WenshuApp/Features/Chat/View/ChatToolDiffPreviewSheet.swift")
         let source = try String(contentsOfFile: path, encoding: .utf8)
         #expect(source.contains(".textSelection(.enabled)"))
     }

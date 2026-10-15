@@ -39,7 +39,7 @@ struct GenreFitOpsTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Views/SpecializedTools/GenreFitOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/GenreFitOps.swift")
         let exists = FileManager.default.fileExists(atPath: sourcePath.path)
         #expect(exists, "GenreFitOps.swift must exist at \(sourcePath.path)")
     }
@@ -118,7 +118,7 @@ struct GenreFitOpsTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Views/SpecializedTools/GenreFitOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/GenreFitOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("static func ensureAnalyzer"))
         #expect(source.contains("static func runAnalyze"))
@@ -134,7 +134,7 @@ struct GenreFitOpsTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Views/SpecializedTools/GenreFitOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/GenreFitOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("@MainActor"))
         #expect(source.contains("enum GenreFitOps"))
@@ -152,7 +152,7 @@ struct GenreFitOpsTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Views/SpecializedTools/GenreFitOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/GenreFitOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("analyzer: inout GenreFitAnalyzer?"))
     }
@@ -167,7 +167,7 @@ struct GenreFitOpsTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Views/SpecializedTools/GenreFitOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/GenreFitOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("chapterText: String"))
     }
@@ -182,7 +182,7 @@ struct GenreFitOpsTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Views/SpecializedTools/GenreFitOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/GenreFitOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("genre: LiteraryGenre"))
     }

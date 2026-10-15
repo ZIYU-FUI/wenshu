@@ -39,7 +39,7 @@ struct ForeshadowingOpsTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Views/Tools/ForeshadowingOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/ForeshadowingOps.swift")
         let exists = FileManager.default.fileExists(atPath: sourcePath.path)
         #expect(exists, "ForeshadowingOps.swift must exist at \(sourcePath.path)")
     }
@@ -166,7 +166,7 @@ struct ForeshadowingOpsTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Views/Tools/ForeshadowingOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/ForeshadowingOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("static func reload"))
         #expect(source.contains("static func addForeshadowing"))
@@ -183,7 +183,7 @@ struct ForeshadowingOpsTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Views/Tools/ForeshadowingOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/ForeshadowingOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("@MainActor"))
         #expect(source.contains("enum ForeshadowingOps"))
@@ -201,7 +201,7 @@ struct ForeshadowingOpsTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Views/Tools/ForeshadowingOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/ForeshadowingOps.swift")
         #expect(sourcePath.path.contains("/Views/Tools/"))
     }
 }

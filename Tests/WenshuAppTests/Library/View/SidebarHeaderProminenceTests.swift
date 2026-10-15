@@ -16,7 +16,7 @@ import Foundation
 struct SidebarHeaderProminenceTests {
 
     private static let sidebarSourceURL = URL(
-        fileURLWithPath: "Sources/WenshuApp/Views/Library/AppleSidebarView.swift"
+        fileURLWithPath: "Sources/WenshuApp/Features/Library/View/AppleSidebarView.swift"
     )
 
     private static func loadSidebarSource() throws -> String {

@@ -56,8 +56,8 @@ struct IconFontMagicSweepSummaryTests {
         // Exception files = sweep boundary exceptions (PreviewPane hero card,
         // ContentUnavailableView, ChatToolUsePartView status pulse animation).
         let exceptionFiles = [
-            "Sources/WenshuApp/Views/Workspace/PreviewPane.swift",
-            "Sources/WenshuApp/Views/Chat/ChatToolUsePartView.swift",
+            "Sources/WenshuApp/Workspace/PreviewPane.swift",
+            "Sources/WenshuApp/Features/Chat/View/ChatToolUsePartView.swift",
         ]
         // Source tree uses SFIcon central factory (= v3.0 sweep core invariant).
         // Walk the source tree and verify at least N files reference SFIcon.
@@ -113,7 +113,7 @@ struct IconFontMagicSweepSummaryTests {
 
     @Test("Round 22 — IconStyles file defines 11-case IconStyle + 11-case IconColor")
     func iconStylesFileHasCanonicalSurface() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/UI/IconStyles.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Shared/UI/IconStyles.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("enum IconStyle"), "IconStyle enum must exist")
         #expect(content.contains("enum IconColor"), "IconColor enum must exist")
@@ -125,7 +125,7 @@ struct IconFontMagicSweepSummaryTests {
 
     @Test("Round 23 — IconStyles file declares the 6 SF region view wrappers")
     func iconStylesFileHasSFRegionWrappers() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/UI/IconStyles.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Shared/UI/IconStyles.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("struct SFIcon"), "SFIcon central wrapper must exist")
         #expect(content.contains("struct SFLabelRow"), "SFLabelRow sidebar-row wrapper must exist")

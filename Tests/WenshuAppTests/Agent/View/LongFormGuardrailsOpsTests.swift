@@ -41,7 +41,7 @@ struct LongFormGuardrailsOpsTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Views/SpecializedTools/LongFormGuardrailsOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/LongFormGuardrailsOps.swift")
         let exists = FileManager.default.fileExists(atPath: sourcePath.path)
         #expect(exists, "LongFormGuardrailsOps.swift must exist at \(sourcePath.path)")
     }
@@ -173,7 +173,7 @@ struct LongFormGuardrailsOpsTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Views/SpecializedTools/LongFormGuardrailsOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/LongFormGuardrailsOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("static func reload"))
         #expect(source.contains("static func autoDerive"))
@@ -192,7 +192,7 @@ struct LongFormGuardrailsOpsTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Views/SpecializedTools/LongFormGuardrailsOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/LongFormGuardrailsOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("@MainActor"))
         #expect(source.contains("enum LongFormGuardrailsOps"))

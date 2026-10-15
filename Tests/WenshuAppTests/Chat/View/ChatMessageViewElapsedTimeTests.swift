@@ -37,7 +37,7 @@ struct ChatMessageViewElapsedTimeTests {
 
     @Test func elapsed_text_uses_monospaced_caption2() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessagePlaceholderRow.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessagePlaceholderRow.swift",
             encoding: .utf8
         )
         let elapsedBlockStart = src.range(of: "Self.formatElapsed(elapsed)")!
@@ -49,7 +49,7 @@ struct ChatMessageViewElapsedTimeTests {
 
     @Test func formatElapsed_helper_exists() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessagePlaceholderRow.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessagePlaceholderRow.swift",
             encoding: .utf8
         )
         #expect(src.contains("nonisolated static func formatElapsed(_ seconds: TimeInterval) -> String"))
@@ -57,7 +57,7 @@ struct ChatMessageViewElapsedTimeTests {
 
     @Test func t53_combo_tooltip_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
             encoding: .utf8
         )
         #expect(src.contains(".help(Self.comboFooterTooltip(timestamp: timestamp, tokens: tokens))"))

@@ -63,7 +63,7 @@ struct SeveritySemanticOpacitySweepTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let url = root
-            .appendingPathComponent("Sources/WenshuApp/Views/Todo/TodoListView.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/TodoListView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
 
         // Verify chipStyle signature uses AnyShapeStyle for bg
@@ -90,7 +90,7 @@ struct SeveritySemanticOpacitySweepTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let url = root
-            .appendingPathComponent("Sources/WenshuApp/Views/SpecializedTools/LongFormGuardrailsView.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/LongFormGuardrailsView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
 
         // LongFormGuardrailsView is preserved (= wenshu-specific 0.18)
@@ -110,7 +110,7 @@ struct SeveritySemanticOpacitySweepTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let url = root
-            .appendingPathComponent("Sources/WenshuApp/Views/SpecializedTools/ReaderExperienceView.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/ReaderExperienceView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
 
         // ReaderExperienceView is preserved (= wenshu-specific 0.22)

@@ -20,7 +20,7 @@ struct TagManagerViewRound3IconMigrationTests {
 
     @Test("TagManagerView round-3 source no naked Image(systemName:) outside Label icon slots")
     func sourceNoNakedImageInStandalone() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/SpecializedTools/TagManagerView.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Agent/View/TagManagerView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         let stripped = content.components(separatedBy: "\n").filter { line in
             let trimmed = line.trimmingCharacters(in: .whitespaces)
@@ -34,7 +34,7 @@ struct TagManagerViewRound3IconMigrationTests {
 
     @Test("TagManagerView round-3 trash remove button uses SFIcon")
     func trashRemoveButtonUsesSFIcon() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/SpecializedTools/TagManagerView.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Agent/View/TagManagerView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("SFIcon(\"trash\", style: .inlineSmall, color: IconColor.secondary)"),
                 "TagManagerView trash remove button must render via SFIcon(.inlineSmall, IconColor.secondary)")
@@ -42,7 +42,7 @@ struct TagManagerViewRound3IconMigrationTests {
 
     @Test("TagManagerView round-3 xmark cancel button uses SFIcon")
     func xmarkCancelButtonUsesSFIcon() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/SpecializedTools/TagManagerView.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Agent/View/TagManagerView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("SFIcon(\"xmark\", style: .inlineSmall, color: IconColor.secondary)"),
                 "TagManagerView xmark cancel button must render via SFIcon(.inlineSmall, IconColor.secondary)")

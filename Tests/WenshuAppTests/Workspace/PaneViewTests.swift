@@ -5,7 +5,7 @@
 // the 6-zone layout via a switch on zoneSlot).
 //
 // 
-// to its own file (Sources/WenshuApp/Views/Workspace/PaneView.swift).
+// to its own file (Sources/WenshuApp/Workspace/PaneView.swift).
 // The test file's hardcoded path was changed from WorkspaceView.swift
 // to PaneView.swift AND rewritten to use a path derived from
 // #filePath (= the test file's own path) so the tests work

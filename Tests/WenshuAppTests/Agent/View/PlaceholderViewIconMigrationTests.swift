@@ -18,7 +18,7 @@ struct PlaceholderViewIconMigrationTests {
 
     @Test("PlaceholderView source no longer uses DesignTokens.tabIconSize")
     func placeholderViewNoLongerUsesTabIconSize() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/Tools/PlaceholderView.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Agent/View/PlaceholderView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(!content.contains("DesignTokens.tabIconSize"),
                 "PlaceholderView must drop DesignTokens.tabIconSize for inline leading icons")
@@ -26,7 +26,7 @@ struct PlaceholderViewIconMigrationTests {
 
     @Test("PlaceholderView placeholderRow uses SFIcon style: .inlineSmall")
     func placeholderViewRowUsesSFIcon() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/Tools/PlaceholderView.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Agent/View/PlaceholderView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("SFIcon(row.status.icon, style: .inlineSmall, color: IconColor.tint)"),
                 "placeholderRow must render the status icon via SFIcon(.inlineSmall)")

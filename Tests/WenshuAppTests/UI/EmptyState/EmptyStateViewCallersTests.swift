@@ -38,18 +38,18 @@ struct EmptyStateViewCallersTests {
         // The 12 specialized tool tab files (= the canonical list
         // per the boss's OOB; = the inspector's ZoneContentView tabs).
         let twelveToolFiles = [
-            "Sources/WenshuApp/Views/Tools/ForeshadowingView.swift",
-            "Sources/WenshuApp/Views/Tools/PlaceholderView.swift",
-            "Sources/WenshuApp/Views/SpecializedTools/PlotThreadView.swift",
-            "Sources/WenshuApp/Views/SpecializedTools/LongFormGuardrailsView.swift",
-            "Sources/WenshuApp/Views/SpecializedTools/ReaderExperienceView.swift",
-            "Sources/WenshuApp/Views/SpecializedTools/GenreFitView.swift",
-            "Sources/WenshuApp/Views/SpecializedTools/EmotionCurveView.swift",
-            "Sources/WenshuApp/Views/SpecializedTools/CharacterRelationshipsView.swift",
-            "Sources/WenshuApp/Views/SpecializedTools/CharacterLifecycleView.swift",
-            "Sources/WenshuApp/Views/SpecializedTools/IdeaLibraryView.swift",
-            "Sources/WenshuApp/Views/SpecializedTools/TagManagerView.swift",
-            "Sources/WenshuApp/Views/SpecializedTools/BookSettingConstraintsView.swift",
+            "Sources/WenshuApp/Features/Agent/View/ForeshadowingView.swift",
+            "Sources/WenshuApp/Features/Agent/View/PlaceholderView.swift",
+            "Sources/WenshuApp/Features/Agent/View/PlotThreadView.swift",
+            "Sources/WenshuApp/Features/Agent/View/LongFormGuardrailsView.swift",
+            "Sources/WenshuApp/Features/Agent/View/ReaderExperienceView.swift",
+            "Sources/WenshuApp/Features/Agent/View/GenreFitView.swift",
+            "Sources/WenshuApp/Features/Agent/View/EmotionCurveView.swift",
+            "Sources/WenshuApp/Features/Agent/View/CharacterRelationshipsView.swift",
+            "Sources/WenshuApp/Features/Agent/View/CharacterLifecycleView.swift",
+            "Sources/WenshuApp/Features/Agent/View/IdeaLibraryView.swift",
+            "Sources/WenshuApp/Features/Agent/View/TagManagerView.swift",
+            "Sources/WenshuApp/Features/Agent/View/BookSettingConstraintsView.swift",
         ]
         #expect(twelveToolFiles.count == 12, "Specialized tool tab list must be 12 (= boss's OOB count)")
         var missing: [String] = []
@@ -86,11 +86,11 @@ struct EmptyStateViewCallersTests {
         let mainZoneFiles = [
             // EditorView = editor zone (= v1.34 ticket 001 extracted
             // the WorkspaceView empty state into EditorView.swift)
-            "Sources/WenshuApp/Views/Workspace/EditorView.swift",
+            "Sources/WenshuApp/Workspace/EditorView.swift",
             // PreviewPane = middle-left assets column (the middle-left cards area)
-            "Sources/WenshuApp/Views/Workspace/PreviewPane.swift",
+            "Sources/WenshuApp/Workspace/PreviewPane.swift",
             // ChatHelpTextOverlay = chat empty state with inline Settings link
-            "Sources/WenshuApp/Views/Chat/ChatHelpTextOverlay.swift",
+            "Sources/WenshuApp/Features/Chat/View/ChatHelpTextOverlay.swift",
         ]
         var missing: [String] = []
         for file in mainZoneFiles {

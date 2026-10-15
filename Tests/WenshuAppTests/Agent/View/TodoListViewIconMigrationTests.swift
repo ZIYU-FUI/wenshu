@@ -22,7 +22,7 @@ struct TodoListViewIconMigrationTests {
 
     @Test("TodoListView source no naked Image(systemName:) in standalone icon sites")
     func sourceNoLongerUsesNakedImage() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/Todo/TodoListView.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Agent/View/TodoListView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         let stripped = content.components(separatedBy: "\n").filter { line in
             let trimmed = line.trimmingCharacters(in: .whitespaces)
@@ -39,7 +39,7 @@ struct TodoListViewIconMigrationTests {
 
     @Test("TodoListView 6 inline icons use SFIcon with semantic IconColor tokens")
     func inlineIconsUseSFIcon() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/Todo/TodoListView.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Agent/View/TodoListView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("SFIcon(\"ellipsis\", style: .inlineSmall, color: IconColor.secondary)"),
                 "TodoListView ellipsis menu trigger must use SFIcon")

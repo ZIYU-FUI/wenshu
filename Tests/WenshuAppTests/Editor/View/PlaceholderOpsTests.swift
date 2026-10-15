@@ -77,7 +77,7 @@ struct PlaceholderOpsTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Views/Tools/PlaceholderOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/PlaceholderOps.swift")
         let exists = FileManager.default.fileExists(atPath: sourcePath.path)
         #expect(exists, "PlaceholderOps.swift must exist at \(sourcePath.path)")
     }

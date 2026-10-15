@@ -55,7 +55,7 @@ struct CharacterLifecycleOpsTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Views/SpecializedTools/CharacterLifecycleOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/CharacterLifecycleOps.swift")
         let exists = FileManager.default.fileExists(atPath: sourcePath.path)
         #expect(exists, "CharacterLifecycleOps.swift must exist at \(sourcePath.path)")
     }
@@ -230,7 +230,7 @@ struct CharacterLifecycleOpsTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Views/SpecializedTools/CharacterLifecycleOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/CharacterLifecycleOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("static func reload"))
         #expect(source.contains("static func reloadTimeline"))

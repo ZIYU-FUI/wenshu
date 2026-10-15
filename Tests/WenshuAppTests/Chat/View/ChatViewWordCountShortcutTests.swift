@@ -17,7 +17,7 @@ struct ChatViewWordCountShortcutTests {
     /// T109 contract: ⌥W shortcut registered.
     @Test func alt_w_shortcut_registered() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         #expect(src.contains(".keyboardShortcut(\"w\", modifiers: [.option])"))
@@ -26,7 +26,7 @@ struct ChatViewWordCountShortcutTests {
     /// T109 contract: Button body NSLogs word count.
     @Test func body_logs_word_count() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         let btnPos = src.range(of: "Button(\"Show word count\")")!
@@ -46,7 +46,7 @@ struct ChatViewWordCountShortcutTests {
     /// T109 contract: button is visually hidden.
     @Test func word_count_button_is_visually_hidden() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         let altWIdx = src.range(of: ".keyboardShortcut(\"w\", modifiers: [.option])")!
@@ -59,7 +59,7 @@ struct ChatViewWordCountShortcutTests {
     /// T109 contract: T108 ⌥U unread shortcut preserved.
     @Test func t108_unread_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         #expect(src.contains(".keyboardShortcut(\"u\", modifiers: [.option])"))
@@ -69,7 +69,7 @@ struct ChatViewWordCountShortcutTests {
     /// T109 contract: T82 ⌘? shortcut preserved.
     @Test func t82_cmd_question_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         #expect(src.contains(".keyboardShortcut(\"?\", modifiers: [.command])"))
@@ -78,7 +78,7 @@ struct ChatViewWordCountShortcutTests {
     /// T109 contract: prior shortcuts preserved.
     @Test func prior_shortcuts_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         #expect(src.contains(".keyboardShortcut(\"n\", modifiers: [.command])"))
@@ -99,11 +99,11 @@ struct ChatViewWordCountShortcutTests {
         // test verifies both halves exist (= .frame(minHeight: 36) is
         // only in ChatInputBarView; = Button("Show word count") is only in ChatView).
         let inputBarSrc = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatInputBarView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift",
             encoding: .utf8
         )
         let chatViewSrc = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         // The input row HStack's minimum height pin (= .frame(minHeight: 36); = boss v1.96/v1.97 spec: input height = 36PT = match button diameter)

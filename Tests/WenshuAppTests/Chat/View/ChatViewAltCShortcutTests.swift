@@ -16,7 +16,7 @@ struct ChatViewAltCShortcutTests {
     /// T85 contract: ⌥C shortcut registered.
     @Test func alt_c_shortcut_registered() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         #expect(src.contains(".keyboardShortcut(\"c\", modifiers: [.option])"))
@@ -25,7 +25,7 @@ struct ChatViewAltCShortcutTests {
     /// T85 contract: Button body uses NSPasteboard to copy.
     @Test func body_copies_last_sealed_message() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         let btnPos = src.range(of: "Button(\"Copy last sealed message\")")!
@@ -45,7 +45,7 @@ struct ChatViewAltCShortcutTests {
     /// T85 contract: button is visually hidden.
     @Test func alt_c_button_is_visually_hidden() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         let altCIdx = src.range(of: ".keyboardShortcut(\"c\", modifiers: [.option])")!
@@ -58,7 +58,7 @@ struct ChatViewAltCShortcutTests {
     /// T85 contract: T66 ⌘⇧D shortcut preserved.
     @Test func t66_cmd_shift_d_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         #expect(src.contains(".keyboardShortcut(\"d\", modifiers: [.command, .shift])"))
@@ -69,7 +69,7 @@ struct ChatViewAltCShortcutTests {
     /// combination than ⌥C = no collision).
     @Test func t70_cmd_shift_c_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         #expect(src.contains(".keyboardShortcut(\"c\", modifiers: [.command, .shift])"))
@@ -79,7 +79,7 @@ struct ChatViewAltCShortcutTests {
     /// T85 contract: T82 ⌘? shortcut preserved.
     @Test func t82_cmd_question_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         #expect(src.contains(".keyboardShortcut(\"?\", modifiers: [.command])"))
@@ -89,7 +89,7 @@ struct ChatViewAltCShortcutTests {
     /// T85 contract: T37/T48/T59 prior shortcuts preserved.
     @Test func prior_shortcuts_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         #expect(src.contains(".keyboardShortcut(\"k\", modifiers: [.command])"))
@@ -110,11 +110,11 @@ struct ChatViewAltCShortcutTests {
         // test verifies both halves exist (= .frame(minHeight: 36) is
         // only in ChatInputBarView; = Button("Copy last sealed message") is only in ChatView).
         let inputBarSrc = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatInputBarView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift",
             encoding: .utf8
         )
         let chatViewSrc = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         // The input row HStack's minimum height pin (= .frame(minHeight: 36); = boss v1.96/v1.97 spec: input height = 36PT = match button diameter)

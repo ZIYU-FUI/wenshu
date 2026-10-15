@@ -44,7 +44,7 @@ import Testing
 struct Round6StandaloneSweepTests {
 
     static let exceptionSites: [String] = [
-        "Sources/WenshuApp/Views/Chat/ChatToolUsePartView.swift:57", // pulse animation chain
-        "Sources/WenshuApp/Views/Workspace/PreviewPane.swift:1570", // 64 PT hero card icon (= was L1566 in the pre-§11 sweep commit)
+        "Sources/WenshuApp/Features/Chat/View/ChatToolUsePartView.swift:57", // pulse animation chain
+        "Sources/WenshuApp/Workspace/PreviewPane.swift:1570", // 64 PT hero card icon (= was L1566 in the pre-§11 sweep commit)
     ]
 }

@@ -18,7 +18,7 @@ struct ForeshadowingViewIconStandardSizeMigrationTests {
 
     @Test("ForeshadowingView no longer uses DesignTokens.iconStandardSize")
     func noLongerUsesIconStandardSize() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/Tools/ForeshadowingView.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Agent/View/ForeshadowingView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(!content.contains("DesignTokens.iconStandardSize"),
                 "ForeshadowingView must drop DesignTokens.iconStandardSize")
@@ -26,7 +26,7 @@ struct ForeshadowingViewIconStandardSizeMigrationTests {
 
     @Test("ForeshadowingView staleRow uses SFIcon(.inlineSmall, .secondary)")
     func staleRowUsesSFIcon() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/Tools/ForeshadowingView.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Agent/View/ForeshadowingView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("SFIcon(row.status.icon, style: .inlineSmall, color: IconColor.secondary)"),
                 "staleRow must render the status icon via SFIcon(.inlineSmall, .secondary)")

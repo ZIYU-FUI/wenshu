@@ -51,7 +51,7 @@ struct ChatViewModelDefaultModelTests {
         // test reads the worktree-local file (= not the hardcoded main path).
         let cwd = FileManager.default.currentDirectoryPath
         let settingViewURL = URL(fileURLWithPath: cwd)
-            .appendingPathComponent("Sources/WenshuApp/Views/Settings/SettingView.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Settings/SettingView.swift")
         let settingView = try? String(contentsOf: settingViewURL, encoding: .utf8)
         #expect(settingView != nil, "SettingView.swift must be readable at \(settingViewURL.path)")
         // 
@@ -66,7 +66,7 @@ struct ChatViewModelDefaultModelTests {
         // from any worktree = not just main).
         let cwd = FileManager.default.currentDirectoryPath
         let chatZoneViewURL = URL(fileURLWithPath: cwd)
-            .appendingPathComponent("Sources/WenshuApp/Views/Chat/ChatZoneView.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Chat/View/ChatZoneView.swift")
         let chatZoneView = try? String(contentsOf: chatZoneViewURL, encoding: .utf8)
         #expect(chatZoneView != nil, "ChatZoneView.swift must be readable at \(chatZoneViewURL.path)")
         // 
@@ -147,7 +147,7 @@ struct ChatViewModelDefaultModelTests {
         // worktree-local file (= or the main file when run from main).
         let cwd = FileManager.default.currentDirectoryPath
         let keychainOpsURL = URL(fileURLWithPath: cwd)
-            .appendingPathComponent("Sources/WenshuApp/Core/Provider/KeychainOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/Service/KeychainOps.swift")
         let keychainOps = try? String(contentsOf: keychainOpsURL, encoding: .utf8)
         #expect(keychainOps != nil, "KeychainOps.swift must be readable at \(keychainOpsURL.path)")
         // Strip comments (= historical references in headers must not count).

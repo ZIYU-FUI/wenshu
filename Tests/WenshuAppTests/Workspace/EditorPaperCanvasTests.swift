@@ -52,7 +52,7 @@ struct EditorPaperCanvasTests {
     @Test("source imports SwiftUI")
     func importsSwiftUI() throws {
         // 
-        // to its own file at Sources/WenshuApp/Views/Workspace/EditorPaperCanvas.swift.
+        // to its own file at Sources/WenshuApp/Workspace/EditorPaperCanvas.swift.
         let source = try String(contentsOfFile: editorPaperCanvasPath, encoding: .utf8)
         #expect(source.contains("struct EditorPaperCanvas<Content: View>: View"),
                 "EditorPaperCanvas must be declared inside EditorPaperCanvas.swift (= v1.34 extraction)")

@@ -27,7 +27,7 @@ struct EmotionCurveViewTests {
     private var sourcePath: String {
         var url = URL(fileURLWithPath: #filePath)
         for _ in 0..<5 { url.deleteLastPathComponent() }
-        url.appendPathComponent("Sources/WenshuApp/Views/SpecializedTools/EmotionCurveView.swift")
+        url.appendPathComponent("Sources/WenshuApp/Features/Agent/View/EmotionCurveView.swift")
         return url.path
     }
 
@@ -147,7 +147,7 @@ struct EmotionCurveViewTests {
 
     @Test("EmotionCurveViewState mirror file exists (= companion file under Views/SpecializedTools/)")
     func testStateMirrorFileExists() throws {
-        let filePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/SpecializedTools/EmotionCurveViewState.swift"
+        let filePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Features/Agent/View/EmotionCurveViewState.swift"
         #expect(FileManager.default.fileExists(atPath: filePath),
                 "EmotionCurveViewState.swift must exist as a companion file")
         let source = try String(contentsOfFile: filePath, encoding: .utf8)

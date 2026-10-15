@@ -27,7 +27,7 @@ struct ForeshadowingViewTests {
     private var sourcePath: String {
         var url = URL(fileURLWithPath: #filePath)
         for _ in 0..<5 { url.deleteLastPathComponent() }
-        url.appendPathComponent("Sources/WenshuApp/Views/Tools/ForeshadowingView.swift")
+        url.appendPathComponent("Sources/WenshuApp/Features/Agent/View/ForeshadowingView.swift")
         return url.path
     }
 

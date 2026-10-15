@@ -80,7 +80,7 @@ struct TagManagerOpsTests {
             .deletingLastPathComponent()  // Tests/          -> <worktree>/
             .deletingLastPathComponent()  // <worktree>/     -> repo root
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Views/SpecializedTools/TagManagerOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/TagManagerOps.swift")
         let exists = FileManager.default.fileExists(atPath: sourcePath.path)
         #expect(exists, "TagManagerOps.swift must exist at \(sourcePath.path)")
     }

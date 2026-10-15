@@ -21,7 +21,7 @@ struct ChatToolResultPartViewIconMigrationTests {
 
     @Test("ChatToolResultPartView source no longer uses naked Image(systemName:)")
     func sourceNoLongerUsesNakedImage() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/Chat/ChatToolResultPartView.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Chat/View/ChatToolResultPartView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         let stripped = content.components(separatedBy: "\n").filter { line in
             let trimmed = line.trimmingCharacters(in: .whitespaces)
@@ -33,7 +33,7 @@ struct ChatToolResultPartViewIconMigrationTests {
 
     @Test("ChatToolResultPartView result-status icon uses SFIcon with Color escape hatch")
     func resultStatusIconUsesSFIcon() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/Chat/ChatToolResultPartView.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Chat/View/ChatToolResultPartView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("SFIcon(") && content.contains("Color.red") && content.contains("Color.green"),
                     "ChatToolResultPartView result-status icon must render via SFIcon(.inlineSmall, Color.red/Color.green)")

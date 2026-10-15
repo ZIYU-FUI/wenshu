@@ -16,7 +16,7 @@ struct ChatViewCopyLastAssistantShortcutTests {
     /// T66 contract: ⌘⇧D shortcut registered.
     @Test func cmd_shift_d_shortcut_registered() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         #expect(src.contains(".keyboardShortcut(\"d\", modifiers: [.command, .shift])"))
@@ -25,7 +25,7 @@ struct ChatViewCopyLastAssistantShortcutTests {
     /// T66 contract: button body looks up the last assistant message.
     @Test func cmd_shift_d_finds_last_assistant() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         let cmdDPos = src.range(of: "Button(\"Copy last assistant\")")!
@@ -41,7 +41,7 @@ struct ChatViewCopyLastAssistantShortcutTests {
     /// T66 contract: button body calls NSPasteboard.general + setString.
     @Test func cmd_shift_d_uses_nspasteboard() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         let cmdDPos = src.range(of: "Button(\"Copy last assistant\")")!
@@ -60,7 +60,7 @@ struct ChatViewCopyLastAssistantShortcutTests {
     /// .opacity(0) + .accessibilityHidden).
     @Test func cmd_shift_d_button_is_visually_hidden() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         let cmdDShortcutIdx = src.range(of: ".keyboardShortcut(\"d\", modifiers: [.command, .shift])")!
@@ -73,7 +73,7 @@ struct ChatViewCopyLastAssistantShortcutTests {
     /// T66 contract: T37/T48/T59 prior shortcuts preserved.
     @Test func prior_shortcuts_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         #expect(src.contains(".keyboardShortcut(\"k\", modifiers: [.command])"))
@@ -97,11 +97,11 @@ struct ChatViewCopyLastAssistantShortcutTests {
         // test verifies both halves exist (= .frame(minHeight: 36) is
         // only in ChatInputBarView; = Button("Copy last assistant") is only in ChatView).
         let inputBarSrc = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatInputBarView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift",
             encoding: .utf8
         )
         let chatViewSrc = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         // The input row HStack's minimum height pin (= .frame(minHeight: 36); = boss v1.96/v1.97 spec: input height = 36PT = match button diameter)

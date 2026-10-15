@@ -75,7 +75,7 @@ struct PlanModelTests {
     /// the connector name (gated on plan.model != nil).
     @Test func view_renders_model_id() throws {
         let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatPlanPartView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatPlanPartView.swift",
             encoding: .utf8
         )
         #expect(source.contains("if let model = plan.model"))

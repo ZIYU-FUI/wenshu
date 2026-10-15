@@ -44,9 +44,9 @@ import WenshuData
 struct WarningCleanupTests {
 
     private static let affectedSources: [String] = [
-        "Sources/WenshuApp/Core/Auth/SecretScope.swift",
-        "Sources/WenshuApp/Core/Provider/AvailableModelsDiscovery.swift",
-        "Sources/WenshuApp/Core/Provider/OAuthFlow.swift",
+        "Sources/WenshuApp/Features/Settings/SecretScope.swift",
+        "Sources/WenshuApp/Features/Agent/Service/AvailableModelsDiscovery.swift",
+        "Sources/WenshuApp/Features/Agent/Service/OAuthFlow.swift",
         "Sources/WenshuApp/Core/Agent/Runtime/RuntimeHelpers.swift",
         "Sources/WenshuApp/Core/Agent/Todo/HermesTodoTool.swift",
         "Sources/WenshuApp/Core/Agent/Connector/WenshuVerifier.swift",

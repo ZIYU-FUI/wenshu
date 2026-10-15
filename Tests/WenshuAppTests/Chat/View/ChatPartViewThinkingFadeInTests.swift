@@ -18,7 +18,7 @@ struct ChatPartViewThinkingFadeInTests {
     /// fade-in + downward-slide transition for streamed reasoning).
     @Test func source_defines_wenshuThinkingAppear() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatReasoningPartView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatReasoningPartView.swift",
             encoding: .utf8
         )
         #expect(src.contains("wenshuThinkingAppear"))
@@ -29,7 +29,7 @@ struct ChatPartViewThinkingFadeInTests {
     /// property; = satisfies Swift 6 strict concurrency).
     @Test func wenshuThinkingAppear_is_static_function() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatReasoningPartView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatReasoningPartView.swift",
             encoding: .utf8
         )
         #expect(src.contains("static func wenshuThinkingAppear() -> AnyTransition"),
@@ -40,7 +40,7 @@ struct ChatPartViewThinkingFadeInTests {
     /// = fade-in + slide, removal = opacity only).
     @Test func transition_is_asymmetric() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatReasoningPartView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatReasoningPartView.swift",
             encoding: .utf8
         )
         #expect(src.contains(".asymmetric(\n            insertion: .opacity.combined(with: .move(edge: .top)),\n            removal: .opacity"))
@@ -50,7 +50,7 @@ struct ChatPartViewThinkingFadeInTests {
     /// transition via .transition(.wenshuThinkingAppear()).
     @Test func reasoning_case_applies_transition() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatPartView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatPartView.swift",
             encoding: .utf8
         )
         #expect(src.contains(".transition(.wenshuThinkingAppear())"))
@@ -60,7 +60,7 @@ struct ChatPartViewThinkingFadeInTests {
     /// (= Sendable-safe; = matches SwiftUI's actor model).
     @Test func wenshuThinkingAppear_is_MainActor_isolated() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatReasoningPartView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatReasoningPartView.swift",
             encoding: .utf8
         )
         // The @MainActor attribute appears on the line BEFORE the

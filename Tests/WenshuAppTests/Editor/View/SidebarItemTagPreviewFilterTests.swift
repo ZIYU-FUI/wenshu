@@ -56,14 +56,14 @@ struct SidebarItemTagPreviewFilterTests {
         // Views/Workspace/ in 2026-10-03 (= commit 5723d226c). The
         // production contract = "workspaceUI.activeTag = tagString"
         // is preserved in AssetsPane.swift L185.
-        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Views/Workspace/AssetsPane.swift"), encoding: .utf8)
+        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Workspace/AssetsPane.swift"), encoding: .utf8)
         #expect(source.contains("workspaceUI.activeTag = tagString"),
                 "AssetsPane.previewScope() must set workspaceUI.activeTag on .tag(String) (= the canonical producer path)")
     }
 
     @Test("PreviewPane.referenceScopeView filters by activeTag (= only references whose tags contains the string)")
     func testPreviewPaneFiltersByActiveTag() throws {
-        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Views/Workspace/PreviewPane.swift"), encoding: .utf8)
+        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Workspace/PreviewPane.swift"), encoding: .utf8)
         let hasFilter = source.contains("entity.tags.contains(activeTag)")
         let hasBinding = source.contains("@Binding var activeTag: String?")
         #expect(hasFilter && hasBinding,

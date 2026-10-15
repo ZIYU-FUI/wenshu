@@ -27,7 +27,7 @@ struct GenreFitViewTests {
     private var sourcePath: String {
         var url = URL(fileURLWithPath: #filePath)
         for _ in 0..<5 { url.deleteLastPathComponent() }
-        url.appendPathComponent("Sources/WenshuApp/Views/SpecializedTools/GenreFitView.swift")
+        url.appendPathComponent("Sources/WenshuApp/Features/Agent/View/GenreFitView.swift")
         return url.path
     }
 
@@ -147,7 +147,7 @@ struct GenreFitViewTests {
 
     @Test("GenreFitViewState mirror file exists (= companion file under Views/SpecializedTools/)")
     func testStateMirrorFileExists() throws {
-        let filePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/SpecializedTools/GenreFitViewState.swift"
+        let filePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Features/Agent/View/GenreFitViewState.swift"
         #expect(FileManager.default.fileExists(atPath: filePath),
                 "GenreFitViewState.swift must exist as a companion file")
         let source = try String(contentsOfFile: filePath, encoding: .utf8)

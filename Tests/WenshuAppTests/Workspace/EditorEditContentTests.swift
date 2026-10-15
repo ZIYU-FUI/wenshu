@@ -33,7 +33,7 @@ struct EditorEditContentTests {
 
     @Test("source imports SwiftUI + MarkdownEngine")
     func sourceImports() throws {
-        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/EditorEditContent.swift"
+        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Workspace/EditorEditContent.swift"
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("import SwiftUI"),
                 "must import SwiftUI for View protocol")
@@ -43,7 +43,7 @@ struct EditorEditContentTests {
 
     @Test("source declares @Binding var draft (= required for live editing)")
     func declaresDraftBinding() throws {
-        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/EditorEditContent.swift"
+        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Workspace/EditorEditContent.swift"
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         // Strip line comments (= the header text mentions "@Binding"
         // as a description of what the struct has; = keep structural
@@ -71,7 +71,7 @@ struct EditorEditContentTests {
 
     @Test("body uses WenshuMarkdownEditor (= the NSViewRepresentable wrapper)")
     func bodyUsesMarkdownEditor() throws {
-        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/EditorEditContent.swift"
+        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Workspace/EditorEditContent.swift"
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("WenshuMarkdownEditor("),
                 "body must instantiate WenshuMarkdownEditor (= the engine bridge)")
@@ -79,7 +79,7 @@ struct EditorEditContentTests {
 
     @Test("body wires onChange for draft (= char count callback) + isDirty (= auto-save routing)")
     func bodyWiresOnChange() throws {
-        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/EditorEditContent.swift"
+        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Workspace/EditorEditContent.swift"
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains(".onChange(of: draft)"),
                 "body must wire onChange(of: draft) (= per-keystroke word count)")
@@ -89,7 +89,7 @@ struct EditorEditContentTests {
 
     @Test("isDirty is computed (= draft != originalBody, no stored state)")
     func isDirtyIsComputed() throws {
-        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/EditorEditContent.swift"
+        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Workspace/EditorEditContent.swift"
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         // Strip line comments to avoid false positives (= the header
         // text mentions "draft != originalBody" as description).
@@ -106,7 +106,7 @@ struct EditorEditContentTests {
 
     @Test("struct conforms to View")
     func conformsToView() throws {
-        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/EditorEditContent.swift"
+        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Workspace/EditorEditContent.swift"
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("struct EditorEditContent: View"),
                 "struct must conform to View protocol")
@@ -119,7 +119,7 @@ struct EditorEditContentTests {
         // not used (= the header text mentions "@State" as a
         // description of what is NOT in the struct; = strip comments
         // first).
-        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/EditorEditContent.swift"
+        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Workspace/EditorEditContent.swift"
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         let codeLines = source.components(separatedBy: "\n").filter {
             !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//")

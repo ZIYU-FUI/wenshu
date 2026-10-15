@@ -25,7 +25,7 @@ struct EditorExpandShrinkTrailingButtonTests {
 
     @Test("source imports SwiftUI")
     func importsSwiftUI() throws {
-        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/EditorExpandShrinkTrailingButton.swift"
+        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Workspace/EditorExpandShrinkTrailingButton.swift"
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("import SwiftUI"),
                 "must import SwiftUI for View + @SceneStorage + @AppStorage")
@@ -33,7 +33,7 @@ struct EditorExpandShrinkTrailingButtonTests {
 
     @Test("struct conforms to View")
     func conformsToView() throws {
-        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/EditorExpandShrinkTrailingButton.swift"
+        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Workspace/EditorExpandShrinkTrailingButton.swift"
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("struct EditorExpandShrinkTrailingButton: View"),
                 "struct must conform to View")
@@ -41,7 +41,7 @@ struct EditorExpandShrinkTrailingButtonTests {
 
     @Test("uses @SceneStorage for editorMaximized (= Apple HIG macOS 14+ per-window state)")
     func usesSceneStorageForEditorMaximized() throws {
-        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/EditorExpandShrinkTrailingButton.swift"
+        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Workspace/EditorExpandShrinkTrailingButton.swift"
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("@SceneStorage(\"wenshu.editorMaximized\")"),
                 "must use @SceneStorage for wenshu.editorMaximized (= per Apple HIG v0.40 migration)")
@@ -49,7 +49,7 @@ struct EditorExpandShrinkTrailingButtonTests {
 
     @Test("uses @AppStorage for editorExpandSnapshotJSON (= cross-window snapshot)")
     func usesAppStorageForSnapshot() throws {
-        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/EditorExpandShrinkTrailingButton.swift"
+        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Workspace/EditorExpandShrinkTrailingButton.swift"
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("@AppStorage(\"wenshu.editorExpand.snapshot\")"),
                 "must use @AppStorage for the cross-window snapshot JSON")
@@ -57,7 +57,7 @@ struct EditorExpandShrinkTrailingButtonTests {
 
     @Test("body uses PaneTrailingIconButton (= shared helper from v0.34 multi-layer audit)")
     func usesPaneTrailingIconButton() throws {
-        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/EditorExpandShrinkTrailingButton.swift"
+        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Workspace/EditorExpandShrinkTrailingButton.swift"
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("PaneTrailingIconButton("),
                 "body must instantiate PaneTrailingIconButton (= the shared helper from v0.34)")
@@ -65,7 +65,7 @@ struct EditorExpandShrinkTrailingButtonTests {
 
     @Test("toggle action posts .wenshuEditorMaximizedChanged notification")
     func toggleActionPostsNotification() throws {
-        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/EditorExpandShrinkTrailingButton.swift"
+        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Workspace/EditorExpandShrinkTrailingButton.swift"
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("NotificationCenter.default.post"),
                 "toggle action must post NotificationCenter notification (= Q33 fix)")
@@ -79,7 +79,7 @@ struct EditorExpandShrinkTrailingButtonTests {
         // (= "restorelayout" = "Restore Layout"; = "full screen" =
         // "Expand Fullscreen"). Replaced with String(localized:) lookups.
         // Verify no hardcoded CJK tooltip strings remain.
-        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/EditorExpandShrinkTrailingButton.swift"
+        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Workspace/EditorExpandShrinkTrailingButton.swift"
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("String(localized: \"workspace.editor.restore_layout\")"),
                 "must look up Restore Layout tooltip via String(localized:) (= I18n parity)")
@@ -89,7 +89,7 @@ struct EditorExpandShrinkTrailingButtonTests {
 
     @Test("icon toggles between two Lucide names (= the canonical icon pair)")
     func iconToggles() throws {
-        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/Workspace/EditorExpandShrinkTrailingButton.swift"
+        let sourcePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Workspace/EditorExpandShrinkTrailingButton.swift"
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("arrow.down.right.and.arrow.up.left"),
                 "shrunk-state icon must be the shrink arrow (= Lucide canonical)")

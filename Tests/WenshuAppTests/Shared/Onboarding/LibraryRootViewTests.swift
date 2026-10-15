@@ -27,7 +27,7 @@ struct LibraryRootViewTests {
     private var sourcePath: String {
         var url = URL(fileURLWithPath: #filePath)
         for _ in 0..<5 { url.deleteLastPathComponent() }
-        url.appendPathComponent("Sources/WenshuApp/Views/Onboarding/LibraryRootView.swift")
+        url.appendPathComponent("Sources/WenshuApp/Shared/UI/LibraryRootView.swift")
         return url.path
     }
 

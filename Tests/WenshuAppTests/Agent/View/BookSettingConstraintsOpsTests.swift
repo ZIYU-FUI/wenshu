@@ -45,7 +45,7 @@ struct BookSettingConstraintsOpsTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Views/SpecializedTools/BookSettingConstraintsOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/BookSettingConstraintsOps.swift")
         let exists = FileManager.default.fileExists(atPath: sourcePath.path)
         #expect(exists, "BookSettingConstraintsOps.swift must exist at \(sourcePath.path)")
     }
@@ -172,7 +172,7 @@ struct BookSettingConstraintsOpsTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Views/SpecializedTools/BookSettingConstraintsOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/BookSettingConstraintsOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("static func reload"))
         #expect(source.contains("static func addConstraint"))
@@ -190,7 +190,7 @@ struct BookSettingConstraintsOpsTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Views/SpecializedTools/BookSettingConstraintsOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/BookSettingConstraintsOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         // Per v1.72 KanbanOps template + v1.74 standing rule: enum + static funcs.
         #expect(source.contains("@MainActor"))

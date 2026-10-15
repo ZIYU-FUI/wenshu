@@ -19,7 +19,7 @@ struct ChatPlanPartElapsedTimeTests {
     /// .relative(presentation: .named) Text view.
     @Test func source_uses_relative_format() throws {
         let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatPlanPartView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatPlanPartView.swift",
             encoding: .utf8
         )
         #expect(source.contains("Text(plan.createdAt, format: .relative(presentation: .named))"))
@@ -30,7 +30,7 @@ struct ChatPlanPartElapsedTimeTests {
     /// the connector + model primary info).
     @Test func chip_uses_quaternary_foreground() throws {
         let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatPlanPartView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatPlanPartView.swift",
             encoding: .utf8
         )
         #expect(source.contains(".font(.caption2)"))
@@ -42,7 +42,7 @@ struct ChatPlanPartElapsedTimeTests {
     /// grouped as the most secondary info).
     @Test func chip_is_after_model_id() throws {
         let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatPlanPartView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatPlanPartView.swift",
             encoding: .utf8
         )
         // The relative-time Text comes after the model id block

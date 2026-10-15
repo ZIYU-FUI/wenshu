@@ -25,7 +25,7 @@ struct ChatViewPasteImageTests {
         // = user-interactive input controls). The handler reads
         // ChatInputBarView.swift.
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatInputBarView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift",
             encoding: .utf8
         )
         #expect(src.contains(".onPasteCommand(of: [.image])"))
@@ -36,7 +36,7 @@ struct ChatViewPasteImageTests {
     @Test func handler_writes_temp_png_and_calls_attachImage() throws {
         // same handler relocation (= ChatView → ChatInputBarView).
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatInputBarView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift",
             encoding: .utf8
         )
         #expect(src.contains("NSImage.self"))
@@ -59,7 +59,7 @@ struct ChatViewPasteImageTests {
     /// same input row HStack; = within 5,000 chars of source order).
     @Test func paste_handler_is_on_outer_vstack() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatInputBarView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift",
             encoding: .utf8
         )
         // Find the .fileImporter( call site (= modifier on input row).
@@ -90,7 +90,7 @@ struct ChatViewPasteImageTests {
         // moved from ChatView (= the middle layer) into ChatInputBarView
         // (= the top layer). Both now live on the input row.
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatInputBarView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift",
             encoding: .utf8
         )
         #expect(src.contains(".fileImporter("))
@@ -127,11 +127,11 @@ struct ChatViewPasteImageTests {
     ///      the top layer only.
     @Test func paste_handler_outside_hstack() throws {
         let inputBarSrc = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatInputBarView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift",
             encoding: .utf8
         )
         let chatViewSrc = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         // The paste handler lives in ChatInputBarView (= on the

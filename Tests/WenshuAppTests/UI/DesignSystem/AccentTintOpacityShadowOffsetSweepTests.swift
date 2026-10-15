@@ -7,19 +7,19 @@
 //  magic `.shadow(...y: 4)` / `.shadow(...y: 2)` offsets.
 //
 //  Swept sites (= 5):
-//  - Sources/WenshuApp/Views/Workspace/EditorView.swift
+//  - Sources/WenshuApp/Workspace/EditorView.swift
 //    L153 .accentColor.opacity(0.12) →
 //    .accentColor.opacity(DesignTokens.accentTintOpacitySubtle)
-//  - Sources/WenshuApp/Views/SpecializedTools/EmotionCurveView.swift
+//  - Sources/WenshuApp/Features/Agent/View/EmotionCurveView.swift
 //    L379 .accentColor.opacity(0.12) →
 //    .accentColor.opacity(DesignTokens.accentTintOpacitySubtle)
-//  - Sources/WenshuApp/Views/Workspace/PreviewPane.swift
+//  - Sources/WenshuApp/Workspace/PreviewPane.swift
 //    L1554 .accentColor.opacity(0.18) →
 //    .accentColor.opacity(DesignTokens.accentTintOpacityHero)
-//  - Sources/WenshuApp/Views/Workspace/LayoutPicker/LayoutEditBar.swift
+//  - Sources/WenshuApp/Workspace/LayoutPicker/LayoutEditBar.swift
 //    L76 .shadow(...y: 4) → .shadow(...y:
 //    DesignTokens.surfaceShadowOffsetWindow)
-//  - Sources/WenshuApp/Views/Workspace/EditorPaperCanvas.swift
+//  - Sources/WenshuApp/Workspace/EditorPaperCanvas.swift
 //    L80 .shadow(...y: 2) → .shadow(...y:
 //    DesignTokens.surfaceShadowOffsetButton)
 //

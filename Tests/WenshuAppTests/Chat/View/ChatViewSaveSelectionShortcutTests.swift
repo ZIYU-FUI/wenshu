@@ -16,7 +16,7 @@ struct ChatViewSaveSelectionShortcutTests {
     /// T103 contract: ⌥S shortcut registered.
     @Test func alt_s_shortcut_registered() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         #expect(src.contains(".keyboardShortcut(\"s\", modifiers: [.option])"))
@@ -25,7 +25,7 @@ struct ChatViewSaveSelectionShortcutTests {
     /// T103 contract: Button body copies to NSPasteboard.
     @Test func body_copies_to_pasteboard() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         let btnPos = src.range(of: "Button(\"Save selection\")")!
@@ -45,7 +45,7 @@ struct ChatViewSaveSelectionShortcutTests {
     /// T103 contract: button is visually hidden.
     @Test func save_sel_button_is_visually_hidden() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         let altSIdx = src.range(of: ".keyboardShortcut(\"s\", modifiers: [.option])")!
@@ -58,7 +58,7 @@ struct ChatViewSaveSelectionShortcutTests {
     /// T103 contract: T85 ⌥C shortcut preserved.
     @Test func t85_alt_c_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         #expect(src.contains(".keyboardShortcut(\"c\", modifiers: [.option])"))
@@ -68,7 +68,7 @@ struct ChatViewSaveSelectionShortcutTests {
     /// T103 contract: T74 ⌥T theme toggle shortcut preserved.
     @Test func t74_alt_t_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         #expect(src.contains(".keyboardShortcut(\"t\", modifiers: [.option])"))
@@ -77,7 +77,7 @@ struct ChatViewSaveSelectionShortcutTests {
     /// T103 contract: T102 ⌘⇧Q quote shortcut preserved.
     @Test func t102_quote_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         #expect(src.contains(".keyboardShortcut(\"q\", modifiers: [.command, .shift])"))
@@ -87,7 +87,7 @@ struct ChatViewSaveSelectionShortcutTests {
     /// T103 contract: T82 ⌘? shortcut preserved.
     @Test func t82_cmd_question_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         #expect(src.contains(".keyboardShortcut(\"?\", modifiers: [.command])"))
@@ -96,7 +96,7 @@ struct ChatViewSaveSelectionShortcutTests {
     /// T103 contract: prior shortcuts preserved.
     @Test func prior_shortcuts_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         #expect(src.contains(".keyboardShortcut(\"n\", modifiers: [.command])"))
@@ -118,11 +118,11 @@ struct ChatViewSaveSelectionShortcutTests {
         // test verifies both halves exist (= .frame(minHeight: 36) is
         // only in ChatInputBarView; = Button("Save selection") is only in ChatView).
         let inputBarSrc = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatInputBarView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift",
             encoding: .utf8
         )
         let chatViewSrc = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         // The input row HStack's minimum height pin (= .frame(minHeight: 36); = boss v1.96/v1.97 spec: input height = 36PT = match button diameter)

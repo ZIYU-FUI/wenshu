@@ -41,7 +41,7 @@ struct AppleSidebarMVVMSplitTests {
         var dir = cwd
         for _ in 0..<6 {
             let hasSources = FileManager.default.fileExists(
-                atPath: dir + "/Sources/WenshuApp/Views/Library/AppleSidebarView.swift"
+                atPath: dir + "/Sources/WenshuApp/Features/Library/View/AppleSidebarView.swift"
             )
             let hasTests = FileManager.default.fileExists(
                 atPath: dir + "/Tests/WenshuAppTests/Views/Library"
@@ -76,8 +76,8 @@ struct AppleSidebarMVVMSplitTests {
 
     @Test("legacy_NewLibraryOutlineView_is_removed")
     func legacy_NewLibraryOutlineView_is_removed() throws {
-        let oldFile = Self.repoPath("Sources/WenshuApp/Views/Library/NewLibraryOutlineView.swift")
-        let oldExt = Self.repoPath("Sources/WenshuApp/Views/Library/NewLibraryOutlineView+DisclosureState.swift")
+        let oldFile = Self.repoPath("Sources/WenshuApp/Features/Library/View/NewLibraryOutlineView.swift")
+        let oldExt = Self.repoPath("Sources/WenshuApp/Features/Library/View/NewLibraryOutlineView+DisclosureState.swift")
         #expect(!FileManager.default.fileExists(atPath: oldFile),
                 "NewLibraryOutlineView.swift MUST be removed in v1.69")
         #expect(!FileManager.default.fileExists(atPath: oldExt),
@@ -85,15 +85,15 @@ struct AppleSidebarMVVMSplitTests {
 
         // The 9 v1.68 lazy-extraction files.
         let deadLazyFiles = [
-            "Sources/WenshuApp/Views/Library/LazySidebarView.swift",
-            "Sources/WenshuApp/Views/Library/LazySidebarState.swift",
-            "Sources/WenshuApp/Views/Library/LazySidebarData.swift",
-            "Sources/WenshuApp/Views/Library/LazySidebarFileOps.swift",
-            "Sources/WenshuApp/Views/Library/LazySidebarChromeRow.swift",
-            "Sources/WenshuApp/Views/Library/LazySidebarShelfRow.swift",
-            "Sources/WenshuApp/Views/Library/LazySidebarBookRow.swift",
-            "Sources/WenshuApp/Views/Library/LazySidebarSheets.swift",
-            "Sources/WenshuApp/Views/Library/LazySidebarReferenceSection.swift",
+            "Sources/WenshuApp/Features/Library/View/LazySidebarView.swift",
+            "Sources/WenshuApp/Features/Library/View/LazySidebarState.swift",
+            "Sources/WenshuApp/Features/Library/View/LazySidebarData.swift",
+            "Sources/WenshuApp/Features/Library/View/LazySidebarFileOps.swift",
+            "Sources/WenshuApp/Features/Library/View/LazySidebarChromeRow.swift",
+            "Sources/WenshuApp/Features/Library/View/LazySidebarShelfRow.swift",
+            "Sources/WenshuApp/Features/Library/View/LazySidebarBookRow.swift",
+            "Sources/WenshuApp/Features/Library/View/LazySidebarSheets.swift",
+            "Sources/WenshuApp/Features/Library/View/LazySidebarReferenceSection.swift",
         ]
         for f in deadLazyFiles {
             #expect(!FileManager.default.fileExists(atPath: Self.repoPath(f)),
@@ -107,8 +107,8 @@ struct AppleSidebarMVVMSplitTests {
     func new_mvvm_split_sidebar_files_exist() throws {
         // Data layer
         let dataFiles = [
-            "Sources/WenshuApp/Views/Library/SidebarNode.swift",  // data: tree row
-            "Sources/WenshuApp/Views/Library/SidebarItem.swift",  // data: selection enum
+            "Sources/WenshuApp/Features/Library/View/SidebarNode.swift",  // data: tree row
+            "Sources/WenshuApp/Features/Library/View/SidebarItem.swift",  // data: selection enum
         ]
         for f in dataFiles {
             #expect(FileManager.default.fileExists(atPath: Self.repoPath(f)),
@@ -116,7 +116,7 @@ struct AppleSidebarMVVMSplitTests {
         }
         // Business layer
         let businessFiles = [
-            "Sources/WenshuApp/Views/Library/SidebarService.swift",  // business: tree loader
+            "Sources/WenshuApp/Features/Library/View/SidebarService.swift",  // business: tree loader
         ]
         for f in businessFiles {
             #expect(FileManager.default.fileExists(atPath: Self.repoPath(f)),
@@ -124,10 +124,10 @@ struct AppleSidebarMVVMSplitTests {
         }
         // UI layer
         let uiFiles = [
-            "Sources/WenshuApp/Views/Library/AppleSidebarView.swift",  // UI: main view
-            "Sources/WenshuApp/Views/Library/SidebarRowView.swift",  // UI: row content
-            "Sources/WenshuApp/Views/Library/AppleSidebarBottomNewButton.swift",  // UI: bottom '+' button
-            "Sources/WenshuApp/Views/Library/SidebarZoneHeaderButtons.swift",  // UI: zone header New/Import
+            "Sources/WenshuApp/Features/Library/View/AppleSidebarView.swift",  // UI: main view
+            "Sources/WenshuApp/Features/Library/View/SidebarRowView.swift",  // UI: row content
+            "Sources/WenshuApp/Features/Library/View/AppleSidebarBottomNewButton.swift",  // UI: bottom '+' button
+            "Sources/WenshuApp/Features/Library/View/SidebarZoneHeaderButtons.swift",  // UI: zone header New/Import
         ]
         for f in uiFiles {
             #expect(FileManager.default.fileExists(atPath: Self.repoPath(f)),
@@ -141,8 +141,8 @@ struct AppleSidebarMVVMSplitTests {
         // SwiftUI (= pure data types; = testable without the view
         // framework).
         let dataFiles = [
-            "Sources/WenshuApp/Views/Library/SidebarNode.swift",
-            "Sources/WenshuApp/Views/Library/SidebarItem.swift",
+            "Sources/WenshuApp/Features/Library/View/SidebarNode.swift",
+            "Sources/WenshuApp/Features/Library/View/SidebarItem.swift",
         ]
         for f in dataFiles {
             let src = try String(contentsOfFile: Self.repoPath(f), encoding: .utf8)
@@ -153,7 +153,7 @@ struct AppleSidebarMVVMSplitTests {
         // Business layer (= SidebarService) MUST NOT import SwiftUI
         // (= holds the tree; = loads via closures; = no view code).
         let businessSrc = try String(
-            contentsOfFile: Self.repoPath("Sources/WenshuApp/Views/Library/SidebarService.swift"),
+            contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Library/View/SidebarService.swift"),
             encoding: .utf8
         )
         #expect(!businessSrc.contains("import SwiftUI"),
@@ -163,10 +163,10 @@ struct AppleSidebarMVVMSplitTests {
         // AppleSidebarBottomNewButton, SidebarZoneHeaderButtons)
         // MUST import SwiftUI.
         let uiFiles = [
-            "Sources/WenshuApp/Views/Library/AppleSidebarView.swift",
-            "Sources/WenshuApp/Views/Library/SidebarRowView.swift",
-            "Sources/WenshuApp/Views/Library/AppleSidebarBottomNewButton.swift",
-            "Sources/WenshuApp/Views/Library/SidebarZoneHeaderButtons.swift",
+            "Sources/WenshuApp/Features/Library/View/AppleSidebarView.swift",
+            "Sources/WenshuApp/Features/Library/View/SidebarRowView.swift",
+            "Sources/WenshuApp/Features/Library/View/AppleSidebarBottomNewButton.swift",
+            "Sources/WenshuApp/Features/Library/View/SidebarZoneHeaderButtons.swift",
         ]
         for f in uiFiles {
             let src = try String(contentsOfFile: Self.repoPath(f), encoding: .utf8)
@@ -180,7 +180,7 @@ struct AppleSidebarMVVMSplitTests {
     @Test("appleSidebarView_forwards_folder_selection_to_appState")
     func appleSidebarView_forwards_folder_selection_to_appState() throws {
         let src = try String(
-            contentsOfFile: Self.repoPath("Sources/WenshuApp/Views/Library/AppleSidebarView.swift"),
+            contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Library/View/AppleSidebarView.swift"),
             encoding: .utf8
         )
         // AppleSidebarView's forwardSelection MUST write the
@@ -197,7 +197,7 @@ struct AppleSidebarMVVMSplitTests {
     @Test("sidebarItem_folder_case_is_defined")
     func sidebarItem_folder_case_is_defined() throws {
         let src = try String(
-            contentsOfFile: Self.repoPath("Sources/WenshuApp/Views/Library/SidebarItem.swift"),
+            contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Library/View/SidebarItem.swift"),
             encoding: .utf8
         )
         // SidebarItem.folder(bookId:, folderName:) is the
@@ -220,7 +220,7 @@ struct AppleSidebarMVVMSplitTests {
         )
         // SidebarService MUST expose folderChildren (= the 5 standard folders per book)
         let sidebarSvc = try String(
-            contentsOfFile: Self.repoPath("Sources/WenshuApp/Views/Library/SidebarService.swift"),
+            contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Library/View/SidebarService.swift"),
             encoding: .utf8
         )
         #expect(sidebarSvc.contains("folderChildren"),
@@ -242,7 +242,7 @@ struct AppleSidebarMVVMSplitTests {
         // subtitle (= the .md file count under that folder),
         // mirroring the reference-library category row shape.
         let src = try String(
-            contentsOfFile: Self.repoPath("Sources/WenshuApp/Views/Library/SidebarService.swift"),
+            contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Library/View/SidebarService.swift"),
             encoding: .utf8
         )
         #expect(src.contains("loadFolderDocCount"),
@@ -261,7 +261,7 @@ struct AppleSidebarMVVMSplitTests {
         // category row's children stay nil so the row carries no
         // disclosure chevron.
         let src = try String(
-            contentsOfFile: Self.repoPath("Sources/WenshuApp/Views/Library/SidebarService.swift"),
+            contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Library/View/SidebarService.swift"),
             encoding: .utf8
         )
         #expect(src.contains("referenceCategoryKey"),
@@ -282,7 +282,7 @@ struct AppleSidebarMVVMSplitTests {
         // row clicks to .referenceCategory(dirName) selection
         // (= the preview pane narrows to that category).
         let src = try String(
-            contentsOfFile: Self.repoPath("Sources/WenshuApp/Views/Library/SidebarNode.swift"),
+            contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Library/View/SidebarNode.swift"),
             encoding: .utf8
         )
         #expect(src.contains("case referenceCategory"),
@@ -302,7 +302,7 @@ struct AppleSidebarMVVMSplitTests {
         // to .referenceScope(nil) = the user saw the full overview
         // after clicking a category = the boss's bug).
         let src = try String(
-            contentsOfFile: Self.repoPath("Sources/WenshuApp/Views/Workspace/AssetsPane.swift"),
+            contentsOfFile: Self.repoPath("Sources/WenshuApp/Workspace/AssetsPane.swift"),
             encoding: .utf8
         )
         #expect(src.contains(".uppercased()"),
@@ -329,7 +329,7 @@ struct AppleSidebarMVVMSplitTests {
         //   title (user-readable); routingKey in dedicated
         //   field (forwardSelection reads it).
         let src = try String(
-            contentsOfFile: Self.repoPath("Sources/WenshuApp/Views/Library/SidebarService.swift"),
+            contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Library/View/SidebarService.swift"),
             encoding: .utf8
         )
         #expect(src.contains("title: category.displayName"),
@@ -346,7 +346,7 @@ struct AppleSidebarMVVMSplitTests {
         // category row shows Chinese label + routes by
         // EntityCategory directoryName).
         let src = try String(
-            contentsOfFile: Self.repoPath("Sources/WenshuApp/Views/Library/SidebarNode.swift"),
+            contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Library/View/SidebarNode.swift"),
             encoding: .utf8
         )
         #expect(src.contains("var routingKey: String?"),
@@ -362,7 +362,7 @@ struct AppleSidebarMVVMSplitTests {
         // union of `loadBookDocs(bookId:, folderName: nil)`
         // for books whose `shelfId` matches).
         let src = try String(
-            contentsOfFile: Self.repoPath("Sources/WenshuApp/Views/Workspace/PreviewPane.swift"),
+            contentsOfFile: Self.repoPath("Sources/WenshuApp/Workspace/PreviewPane.swift"),
             encoding: .utf8
         )
         #expect(src.contains("private func shelfScopeView(shelfId: UUID)"),
@@ -382,7 +382,7 @@ struct AppleSidebarMVVMSplitTests {
         // (= when shelves were a drill-down intermediate
         // rather than a document scope).
         let src = try String(
-            contentsOfFile: Self.repoPath("Sources/WenshuApp/Views/Workspace/PreviewPane.swift"),
+            contentsOfFile: Self.repoPath("Sources/WenshuApp/Workspace/PreviewPane.swift"),
             encoding: .utf8
         )
         #expect(src.contains("titleKey: \"preview.empty_state.shelf_empty\""),
@@ -411,7 +411,7 @@ struct AppleSidebarMVVMSplitTests {
         // seam per ADR-0009). The spec is met; the assertion target
         // moves from PreviewPane.swift to PreviewPaneOps.swift.
         let pane = try String(
-            contentsOfFile: Self.repoPath("Sources/WenshuApp/Views/Workspace/PreviewPane.swift"),
+            contentsOfFile: Self.repoPath("Sources/WenshuApp/Workspace/PreviewPane.swift"),
             encoding: .utf8
         )
         let ops = try String(

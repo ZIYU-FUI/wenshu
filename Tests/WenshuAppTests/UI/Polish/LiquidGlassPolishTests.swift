@@ -48,7 +48,7 @@ struct LiquidGlassPolishTests {
         // current architecture (= 2 surfaces, not 5).
         let polishedFiles = [
             "Sources/WenshuApp/Views/CommandPalette/CommandPaletteView.swift", // POLISH-LIQUIDGLASS-004 sheet
-            "Sources/WenshuApp/Views/Library/BookEditorSheet.swift"           // POLISH-LIQUIDGLASS-004 sheet
+            "Sources/WenshuApp/Features/Library/View/BookEditorSheet.swift"           // POLISH-LIQUIDGLASS-004 sheet
         ]
 
         for file in polishedFiles {

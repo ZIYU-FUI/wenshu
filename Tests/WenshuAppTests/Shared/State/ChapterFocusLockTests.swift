@@ -37,7 +37,7 @@ struct ChapterFocusLockTests {
         // adds a guard so when AppState.focusedChapterPath matches
         // the tab's documentPath (= the LLM holds the cursor),
         // isEditable flips to false.
-        let path = Self.repoSourcePath("Sources/WenshuApp/Views/Workspace/EditorEditContent.swift")
+        let path = Self.repoSourcePath("Sources/WenshuApp/Workspace/EditorEditContent.swift")
         let source = try String(contentsOfFile: path, encoding: .utf8)
         let hasLockedEditable = source.contains("focusedChapterPath") ||
             source.contains("isEditable") && source.contains("focusedChapterPath")

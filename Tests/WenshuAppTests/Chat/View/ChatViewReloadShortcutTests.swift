@@ -16,7 +16,7 @@ struct ChatViewReloadShortcutTests {
     /// T59 contract: ChatView source registers ⌘R shortcut.
     @Test func cmd_r_shortcut_registered() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         #expect(src.contains(".keyboardShortcut(\"r\", modifiers: [.command])"))
@@ -25,7 +25,7 @@ struct ChatViewReloadShortcutTests {
     /// T59 contract: Reload button body re-sends the last user message.
     @Test func cmd_r_resends_last_user_message() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         // Locate the Button declaration. Then the button body extends
@@ -49,7 +49,7 @@ struct ChatViewReloadShortcutTests {
     /// there is no prior user message.
     @Test func cmd_r_falls_back_to_focus_input() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         let cmdRPos = src.range(of: "Button(\"Reload chat\")")!
@@ -65,7 +65,7 @@ struct ChatViewReloadShortcutTests {
     /// T59 contract: Reload button is visually hidden.
     @Test func cmd_r_button_is_visually_hidden() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         let cmdRShortcutIdx = src.range(of: ".keyboardShortcut(\"r\", modifiers: [.command])")!
@@ -78,7 +78,7 @@ struct ChatViewReloadShortcutTests {
     /// T59 contract: T37 ⌘K + ⌘L + T48 ⌘N + T49 ⌘G preserved.
     @Test func prior_shortcuts_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         #expect(src.contains(".keyboardShortcut(\"k\", modifiers: [.command])"))
@@ -101,11 +101,11 @@ struct ChatViewReloadShortcutTests {
         // test verifies both halves exist (= .frame(minHeight: 36) is
         // only in ChatInputBarView; = Button("Reload chat") is only in ChatView).
         let inputBarSrc = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatInputBarView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift",
             encoding: .utf8
         )
         let chatViewSrc = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         // The input row HStack's minimum height pin (= .frame(minHeight: 36); = boss v1.96/v1.97 spec: input height = 36PT = match button diameter)

@@ -9,11 +9,11 @@
 //  - PaneView.previewScope() handles .tag similarly
 //
 //  Files covered:
-//  - Sources/WenshuApp/Views/Library/SidebarItem.swift (tag case added)
+//  - Sources/WenshuApp/Features/Library/View/SidebarItem.swift (tag case added)
 //  - Sources/WenshuApp/UI/Layout/ShellMiddleColumn.swift (switch case)
-//  - Sources/WenshuApp/Views/Workspace/PaneView.swift (switch case)
-//  - Sources/WenshuApp/Views/Chat/ChatZoneView.swift (non-exhaustive)
-//  - Sources/WenshuApp/Views/Library/SidebarContextMenu.swift (no-op)
+//  - Sources/WenshuApp/Workspace/PaneView.swift (switch case)
+//  - Sources/WenshuApp/Features/Chat/View/ChatZoneView.swift (non-exhaustive)
+//  - Sources/WenshuApp/Features/Library/View/SidebarContextMenu.swift (no-op)
 //
 
 import Testing

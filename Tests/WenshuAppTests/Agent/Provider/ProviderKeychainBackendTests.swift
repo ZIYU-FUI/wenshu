@@ -21,7 +21,7 @@ struct ProviderKeychainBackendTests {
 
     /// Verify the default backend (= Phase A behavior, `B10_PHASE_B_ENABLED` OFF)
     /// is `InMemoryKeychainStore`. The flag is OFF by default (= see
-    /// `Sources/WenshuApp/Core/Provider/ProviderKeychain.swift` #if block),
+    /// `Sources/WenshuApp/Features/Agent/Service/ProviderKeychain.swift` #if block),
     /// so this test passes regardless of how the test target was compiled.
     @Test("default backend = InMemoryKeychainStore (Phase A)")
     func testBackendDefault_isInMemoryStore() {

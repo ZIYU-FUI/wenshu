@@ -20,7 +20,7 @@ struct ChatMessageFooterIconMigrationTests {
 
     @Test("ChatMessageFooter source no longer uses naked Image(systemName:)")
     func sourceNoLongerUsesNakedImage() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         let stripped = content.components(separatedBy: "\n").filter { line in
             let trimmed = line.trimmingCharacters(in: .whitespaces)
@@ -32,7 +32,7 @@ struct ChatMessageFooterIconMigrationTests {
 
     @Test("ChatMessageFooter 4 metadata icons use SFIcon(.inlineSmall, IconColor.quaternary)")
     func metadataIconsUseSFIcon() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("SFIcon(\"clock\", style: .inlineSmall, color: IconColor.quaternary)"),
                 "ChatMessageFooter clock prefix must use SFIcon")

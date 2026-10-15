@@ -183,7 +183,7 @@ struct IconStylesTests {
 
     @Test("SFIcon source declares the canonical initializer (= factory view type)")
     func sfIconSourceSignature() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/UI/IconStyles.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Shared/UI/IconStyles.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("struct SFIcon: View"),
                 "SFIcon must be a View (= the factory renders the symbol)")
@@ -197,7 +197,7 @@ struct IconStylesTests {
 
     @Test("SFIcon source applies .symbolRenderingMode(.hierarchical) at the <38 PT default")
     func sfIconHierarchicalDefault() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/UI/IconStyles.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Shared/UI/IconStyles.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("symbolRenderingMode(.hierarchical)"),
                 "SFIcon must apply .hierarchical for the <38 PT zone (= boss 9/15 canonical macOS chrome default)")
@@ -205,7 +205,7 @@ struct IconStylesTests {
 
     @Test("SFIcon source applies .symbolRenderingMode(.monochrome) at the >=38 PT default")
     func sfIconMonochromeDefault() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/UI/IconStyles.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Shared/UI/IconStyles.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("symbolRenderingMode(.monochrome)"),
                 "SFIcon must apply .monochrome for the >=38 PT zone (= boss 2026-09-17 SF Symbols 6 weight split rule)")
@@ -217,7 +217,7 @@ struct IconStylesTests {
 
     @Test("IconColor.style resolves to SwiftUI semantic color (= no ad-hoc RGB)")
     func iconColorSemanticResolver() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/UI/IconStyles.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Shared/UI/IconStyles.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("var style: Color"),
                 "IconColor.style must return Color (= SwiftUI foregroundStyle accepts Color directly)")
@@ -233,7 +233,7 @@ struct IconStylesTests {
 
     @Test("View.wenshuFont(_:) extension applies the HIG text-style font")
     func viewWenshuFontExtension() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/UI/IconStyles.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Shared/UI/IconStyles.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("func wenshuFont(_ style: WenshuTextStyle) -> some View"),
                 "View extension wenshuFont(_:) must exist (= convenience modifier for color/styling)")

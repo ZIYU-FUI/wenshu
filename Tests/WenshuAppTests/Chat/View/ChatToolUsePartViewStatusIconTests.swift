@@ -41,7 +41,7 @@ struct ChatToolUsePartViewStatusIconTests {
     /// visible SF Symbol).
     @Test func source_uses_statusIconName() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatToolUsePartView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatToolUsePartView.swift",
             encoding: .utf8
         )
         #expect(src.contains("Image(systemName: Self.statusIconName(for: toolUse.status))"))
@@ -51,7 +51,7 @@ struct ChatToolUsePartViewStatusIconTests {
     /// regression of T43's tool-kind icon map).
     @Test func t43_icon_helper_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatToolUsePartView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatToolUsePartView.swift",
             encoding: .utf8
         )
         #expect(src.contains("nonisolated static func iconName(for toolName: String) -> String"))

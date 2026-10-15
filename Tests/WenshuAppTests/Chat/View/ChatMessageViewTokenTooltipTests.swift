@@ -15,7 +15,7 @@ struct ChatMessageViewTokenTooltipTests {
     /// T52 contract: fullTokenCountTooltip helper exists.
     @Test func helper_exists() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
             encoding: .utf8
         )
         #expect(src.contains("nonisolated static func fullTokenCountTooltip(for count: Int) -> String"))
@@ -24,7 +24,7 @@ struct ChatMessageViewTokenTooltipTests {
     /// T52 contract: source wires .help(Self.fullTokenCountTooltip(for:)).
     @Test func source_uses_help_tooltip() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
             encoding: .utf8
         )
         #expect(src.contains(".help(Self.fullTokenCountTooltip(for: tokens))"))
@@ -62,7 +62,7 @@ struct ChatMessageViewTokenTooltipTests {
     /// T52 contract: T50 timestamp tooltip preserved.
     @Test func t50_timestamp_tooltip_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
             encoding: .utf8
         )
         #expect(src.contains(".help(Self.fullTimestampTooltip(for: timestamp))"))
@@ -71,7 +71,7 @@ struct ChatMessageViewTokenTooltipTests {
     /// T52 contract: T25 compact formatTokenCount preserved.
     @Test func t25_compact_formatTokenCount_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
             encoding: .utf8
         )
         #expect(src.contains("nonisolated static func formatTokenCount(_ count: Int) -> String"))

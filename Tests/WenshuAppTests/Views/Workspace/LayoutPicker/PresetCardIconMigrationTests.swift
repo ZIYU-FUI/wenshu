@@ -21,7 +21,7 @@ struct PresetCardIconMigrationTests {
 
     @Test("PresetCard source no longer uses naked Image(systemName:)")
     func sourceNoLongerUsesNakedImage() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/Workspace/LayoutPicker/PresetCard.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Workspace/LayoutPicker/PresetCard.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         let stripped = content.components(separatedBy: "\n").filter { line in
             let trimmed = line.trimmingCharacters(in: .whitespaces)
@@ -33,7 +33,7 @@ struct PresetCardIconMigrationTests {
 
     @Test("PresetCard hover-delete icon uses SFIcon style: .inlineSmall + .secondary")
     func hoverDeleteIconUsesSFIcon() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/Workspace/LayoutPicker/PresetCard.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Workspace/LayoutPicker/PresetCard.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("SFIcon(\"xmark\", style: .inlineSmall, color: IconColor.secondary)"),
                 "PresetCard hover-delete icon must render via SFIcon(.inlineSmall, IconColor.secondary)")

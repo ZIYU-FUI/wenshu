@@ -27,7 +27,7 @@ struct ReaderExperienceViewTests {
     private var sourcePath: String {
         var url = URL(fileURLWithPath: #filePath)
         for _ in 0..<5 { url.deleteLastPathComponent() }
-        url.appendPathComponent("Sources/WenshuApp/Views/SpecializedTools/ReaderExperienceView.swift")
+        url.appendPathComponent("Sources/WenshuApp/Features/Agent/View/ReaderExperienceView.swift")
         return url.path
     }
 
@@ -148,11 +148,11 @@ struct ReaderExperienceViewTests {
     @Test("ReaderExperienceViewState mirror file exists (= companion file under Views/SpecializedTools/)")
     func testStateMirrorFileExists() throws {
         // Per commit 1c3a27fc8 (2026-10-03) the @Observable mirror is at
-        // Sources/WenshuApp/Views/SpecializedTools/ReaderExperienceViewState.swift
+        // Sources/WenshuApp/Features/Agent/View/ReaderExperienceViewState.swift
         // (= relative to repo root, no longer hardcoded to the .worktrees/p2-mirrors
         // path that was used during the refactor worktree).
         let repoRoot = "/Volumes/ANAN/Engineering/wenshu"
-        let filePath = repoRoot + "/Sources/WenshuApp/Views/SpecializedTools/ReaderExperienceViewState.swift"
+        let filePath = repoRoot + "/Sources/WenshuApp/Features/Agent/View/ReaderExperienceViewState.swift"
         #expect(FileManager.default.fileExists(atPath: filePath),
                 "ReaderExperienceViewState.swift must exist as a companion file")
         let source = try String(contentsOfFile: filePath, encoding: .utf8)

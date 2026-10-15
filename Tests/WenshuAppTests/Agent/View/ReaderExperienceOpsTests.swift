@@ -39,7 +39,7 @@ struct ReaderExperienceOpsTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Views/SpecializedTools/ReaderExperienceOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/ReaderExperienceOps.swift")
         let exists = FileManager.default.fileExists(atPath: sourcePath.path)
         #expect(exists, "ReaderExperienceOps.swift must exist at \(sourcePath.path)")
     }
@@ -118,7 +118,7 @@ struct ReaderExperienceOpsTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Views/SpecializedTools/ReaderExperienceOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/ReaderExperienceOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("static func ensureAnalyzer"))
         #expect(source.contains("static func runAnalyze"))
@@ -134,7 +134,7 @@ struct ReaderExperienceOpsTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Views/SpecializedTools/ReaderExperienceOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/ReaderExperienceOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("@MainActor"))
         #expect(source.contains("enum ReaderExperienceOps"))
@@ -152,7 +152,7 @@ struct ReaderExperienceOpsTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Views/SpecializedTools/ReaderExperienceOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/ReaderExperienceOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("analyzer: inout ReaderExperienceAnalyzer?"))
     }
@@ -167,7 +167,7 @@ struct ReaderExperienceOpsTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Views/SpecializedTools/ReaderExperienceOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/ReaderExperienceOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("chapterText: String"))
     }
@@ -182,7 +182,7 @@ struct ReaderExperienceOpsTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Views/SpecializedTools/ReaderExperienceOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/ReaderExperienceOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("kind: ReaderExperienceKind"))
     }

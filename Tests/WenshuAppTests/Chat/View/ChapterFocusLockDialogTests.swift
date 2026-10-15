@@ -24,7 +24,7 @@ struct ChapterFocusLockDialogTests {
 
     @Test("ChapterFocusLockDialogRequest struct exposes canonical fields")
     func requestStructHasCanonicalFields() throws {
-        let path = Self.repoSourcePath("Sources/WenshuApp/Views/Chat/ChapterFocusLockDialog.swift")
+        let path = Self.repoSourcePath("Sources/WenshuApp/Features/Chat/View/ChapterFocusLockDialog.swift")
         let source = try String(contentsOfFile: path, encoding: .utf8)
         #expect(source.contains("struct ChapterFocusLockDialogRequest"))
         #expect(source.contains("let chapterPath:"))
@@ -35,7 +35,7 @@ struct ChapterFocusLockDialogTests {
 
     @Test("ChatZoneView hosts the dialog via .alert(item:) modifier")
     func chatZoneHostsAlert() throws {
-        let path = Self.repoSourcePath("Sources/WenshuApp/Views/Chat/ChatZoneView.swift")
+        let path = Self.repoSourcePath("Sources/WenshuApp/Features/Chat/View/ChatZoneView.swift")
         let source = try String(contentsOfFile: path, encoding: .utf8)
         #expect(source.contains(".alert(") || source.contains(".alert(item:"),
                 "ChatZoneView must host the dialog via .alert modifier")
@@ -45,7 +45,7 @@ struct ChapterFocusLockDialogTests {
 
     @Test("Dialog UI mentions Allow and Deny buttons (= matching hermes boss-decision UX)")
     func dialogMentionsAllowAndDeny() throws {
-        let path = Self.repoSourcePath("Sources/WenshuApp/Views/Chat/ChapterFocusLockDialog.swift")
+        let path = Self.repoSourcePath("Sources/WenshuApp/Features/Chat/View/ChapterFocusLockDialog.swift")
         let source = try String(contentsOfFile: path, encoding: .utf8)
         let hasAllow = source.contains("String(localized: \"chatview.focus_lock.allow\")") ||
             source.contains("允许")

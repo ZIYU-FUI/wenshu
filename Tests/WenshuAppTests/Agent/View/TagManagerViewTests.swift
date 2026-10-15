@@ -27,7 +27,7 @@ struct TagManagerViewTests {
     private var sourcePath: String {
         var url = URL(fileURLWithPath: #filePath)
         for _ in 0..<5 { url.deleteLastPathComponent() }
-        url.appendPathComponent("Sources/WenshuApp/Views/SpecializedTools/TagManagerView.swift")
+        url.appendPathComponent("Sources/WenshuApp/Features/Agent/View/TagManagerView.swift")
         return url.path
     }
 

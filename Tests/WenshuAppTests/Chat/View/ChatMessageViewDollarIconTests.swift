@@ -17,7 +17,7 @@ struct ChatMessageViewDollarIconTests {
     /// T64 contract: source uses Image(systemName: "dollarsign.circle").
     @Test func source_uses_dollarsign_circle() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
             encoding: .utf8
         )
         #expect(src.contains("SFIcon(\"dollarsign.circle\""))
@@ -28,7 +28,7 @@ struct ChatMessageViewDollarIconTests {
     /// consistency).
     @Test func icon_uses_caption2_quaternary() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
             encoding: .utf8
         )
         let iconPos = src.range(of: "SFIcon(\"dollarsign.circle\"")!
@@ -52,7 +52,7 @@ struct ChatMessageViewDollarIconTests {
     /// T64 contract: icon appears BEFORE the cost text.
     @Test func icon_appears_before_cost_text() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
             encoding: .utf8
         )
         // SFIcon("dollarsign.circle") MUST appear before the cost text in the source.
@@ -66,7 +66,7 @@ struct ChatMessageViewDollarIconTests {
     /// count still has its icon).
     @Test func t63_number_icon_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
             encoding: .utf8
         )
         #expect(src.contains("SFIcon(\"number\""))
@@ -75,7 +75,7 @@ struct ChatMessageViewDollarIconTests {
     /// T64 contract: T62 formatTokenCost preserved.
     @Test func t62_token_cost_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
             encoding: .utf8
         )
         #expect(src.contains("Self.formatTokenCost(tokens)"))
@@ -84,7 +84,7 @@ struct ChatMessageViewDollarIconTests {
     /// T64 contract: T52 token tooltip preserved.
     @Test func t52_token_tooltip_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
             encoding: .utf8
         )
         #expect(src.contains(".help(Self.fullTokenCountTooltip(for: tokens))"))

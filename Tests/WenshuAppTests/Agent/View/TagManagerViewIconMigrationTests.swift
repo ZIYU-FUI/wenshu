@@ -29,7 +29,7 @@ struct TagManagerViewIconMigrationTests {
 
     @Test("TagManagerView source no longer uses DesignTokens.tabIconSize")
     func tagManagerViewNoLongerUsesTabIconSize() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/SpecializedTools/TagManagerView.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Agent/View/TagManagerView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(!content.contains("DesignTokens.tabIconSize"),
                 "TagManagerView must drop DesignTokens.tabIconSize for inline leading icons (= wenshu-ad-hoc 18 PT pin removed; = SFIcon owns the size now)")
@@ -37,7 +37,7 @@ struct TagManagerViewIconMigrationTests {
 
     @Test("TagManagerView tagRow uses SFIcon style: .inlineSmall")
     func tagManagerViewTagRowUsesSFIcon() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/SpecializedTools/TagManagerView.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Agent/View/TagManagerView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("SFIcon(tag.category.icon, style: .inlineSmall, color: IconColor.tint)"),
                 "tagRow must render the category icon via SFIcon(.inlineSmall) (= the migrated inline-leading site)")
@@ -45,7 +45,7 @@ struct TagManagerViewIconMigrationTests {
 
     @Test("TagManagerView applicationRow uses SFIcon style: .inlineSmall")
     func tagManagerViewApplicationRowUsesSFIcon() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/SpecializedTools/TagManagerView.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Agent/View/TagManagerView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("SFIcon(application.target.icon, style: .inlineSmall, color: IconColor.tint)"),
                 "applicationRow must render the target icon via SFIcon(.inlineSmall) (= the migrated inline-leading site)")
@@ -53,7 +53,7 @@ struct TagManagerViewIconMigrationTests {
 
     @Test("IconStyles.swift surface = SFIcon + .inlineSmall case present")
     func iconStylesSurfaceIsInPlace() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/UI/IconStyles.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Shared/UI/IconStyles.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("struct SFIcon: View"),
                 "SFIcon factory must be present (= the sweep target)")

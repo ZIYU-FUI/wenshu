@@ -27,7 +27,7 @@ struct CharacterRelationshipsViewTests {
     private var sourcePath: String {
         var url = URL(fileURLWithPath: #filePath)
         for _ in 0..<5 { url.deleteLastPathComponent() }
-        url.appendPathComponent("Sources/WenshuApp/Views/SpecializedTools/CharacterRelationshipsView.swift")
+        url.appendPathComponent("Sources/WenshuApp/Features/Agent/View/CharacterRelationshipsView.swift")
         return url.path
     }
 
@@ -149,7 +149,7 @@ struct CharacterRelationshipsViewTests {
 
     @Test("CharacterRelationshipsViewState mirror file exists")
     func testStateMirrorFileExists() throws {
-        let filePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Views/SpecializedTools/CharacterRelationshipsViewState.swift"
+        let filePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Features/Agent/View/CharacterRelationshipsViewState.swift"
         #expect(FileManager.default.fileExists(atPath: filePath))
         let source = try String(contentsOfFile: filePath, encoding: .utf8)
         #expect(source.contains("@Observable"))

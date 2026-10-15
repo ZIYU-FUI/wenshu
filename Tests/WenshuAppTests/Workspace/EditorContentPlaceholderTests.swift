@@ -79,7 +79,7 @@ struct EditorContentPlaceholderTests {
             .deletingLastPathComponent()  // Tests
             .deletingLastPathComponent()  // <repo>
         let path = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Views/Workspace/EditorContentPlaceholder.swift")
+            .appendingPathComponent("Sources/WenshuApp/Workspace/EditorContentPlaceholder.swift")
             .path
         return try String(contentsOfFile: path)
     }

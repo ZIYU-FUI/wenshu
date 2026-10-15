@@ -29,11 +29,11 @@ struct PreviewSortMenuButtonTests {
 
     // Compute the source path once per test (= relative to this test
     // file's location: Tests/WenshuAppTests/Views/Workspace/PreviewSortMenuButtonTests.swift
-    // → Sources/WenshuApp/Views/Workspace/PreviewSortMenuButton.swift).
+    // → Sources/WenshuApp/Workspace/PreviewSortMenuButton.swift).
     private static var sourcePath: String {
         let testFile = URL(fileURLWithPath: #filePath)
         // <repo>/Tests/WenshuAppTests/Views/Workspace/PreviewSortMenuButtonTests.swift
-        // → <repo>/Sources/WenshuApp/Views/Workspace/PreviewSortMenuButton.swift
+        // → <repo>/Sources/WenshuApp/Workspace/PreviewSortMenuButton.swift
         let repoRoot = testFile
             .deletingLastPathComponent()  // Views/Workspace
             .deletingLastPathComponent()  // Views
@@ -41,7 +41,7 @@ struct PreviewSortMenuButtonTests {
             .deletingLastPathComponent()  // Tests
             .deletingLastPathComponent()  // <repo>
         return repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Views/Workspace/PreviewSortMenuButton.swift")
+            .appendingPathComponent("Sources/WenshuApp/Workspace/PreviewSortMenuButton.swift")
             .path
     }
 

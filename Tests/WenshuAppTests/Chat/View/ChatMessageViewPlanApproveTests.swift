@@ -16,7 +16,7 @@ struct ChatMessageViewPlanApproveTests {
 
     @Test func source_contains_onApprovePlan_property() throws {
         let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift",
             encoding: .utf8
         )
         #expect(source.contains("let onApprovePlan: ((Plan) -> Void)?"))
@@ -24,7 +24,7 @@ struct ChatMessageViewPlanApproveTests {
 
     @Test func init_accepts_onApprovePlan() throws {
         let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift",
             encoding: .utf8
         )
         #expect(source.contains("onApprovePlan: ((Plan) -> Void)? = nil"))
@@ -32,7 +32,7 @@ struct ChatMessageViewPlanApproveTests {
 
     @Test func bodyview_call_forwards_onApprovePlan() throws {
         let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift",
             encoding: .utf8
         )
         #expect(source.contains("onApprovePlan: onApprovePlan"))
@@ -40,7 +40,7 @@ struct ChatMessageViewPlanApproveTests {
 
     @Test func chatview_passes_real_closure() throws {
         let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
             encoding: .utf8
         )
         #expect(source.contains("onApprovePlan: { plan in"))

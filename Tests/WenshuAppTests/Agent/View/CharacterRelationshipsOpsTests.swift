@@ -39,7 +39,7 @@ struct CharacterRelationshipsOpsTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Views/SpecializedTools/CharacterRelationshipsOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/CharacterRelationshipsOps.swift")
         let exists = FileManager.default.fileExists(atPath: sourcePath.path)
         #expect(exists, "CharacterRelationshipsOps.swift must exist at \(sourcePath.path)")
     }
@@ -188,7 +188,7 @@ struct CharacterRelationshipsOpsTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Views/SpecializedTools/CharacterRelationshipsOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/CharacterRelationshipsOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("static func reload"))
         #expect(source.contains("static func addRelationship"))
@@ -205,7 +205,7 @@ struct CharacterRelationshipsOpsTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Views/SpecializedTools/CharacterRelationshipsOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/CharacterRelationshipsOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("@MainActor"))
         #expect(source.contains("enum CharacterRelationshipsOps"))

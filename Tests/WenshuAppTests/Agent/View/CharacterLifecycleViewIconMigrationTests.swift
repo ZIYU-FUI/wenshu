@@ -15,7 +15,7 @@ struct CharacterLifecycleViewIconMigrationTests {
 
     @Test("CharacterLifecycleView source no longer uses DesignTokens.tabIconSize")
     func characterLifecycleViewNoLongerUsesTabIconSize() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/SpecializedTools/CharacterLifecycleView.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Agent/View/CharacterLifecycleView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(!content.contains("DesignTokens.tabIconSize"),
                 "CharacterLifecycleView must drop DesignTokens.tabIconSize for inline leading icons")
@@ -23,7 +23,7 @@ struct CharacterLifecycleViewIconMigrationTests {
 
     @Test("CharacterLifecycleView eventRow uses SFIcon style: .inlineSmall")
     func eventRowUsesSFIcon() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/SpecializedTools/CharacterLifecycleView.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Agent/View/CharacterLifecycleView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("SFIcon(event.stage.icon, style: .inlineSmall, color: IconColor.tint)"),
                 "eventRow must render the stage icon via SFIcon(.inlineSmall)")
@@ -31,7 +31,7 @@ struct CharacterLifecycleViewIconMigrationTests {
 
     @Test("CharacterLifecycleView contradiction row uses SFIcon with .orange color")
     func contradictionRowUsesSFIcon() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/SpecializedTools/CharacterLifecycleView.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Agent/View/CharacterLifecycleView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("SFIcon(\"exclamationmark.triangle\", style: .inlineSmall, color: IconColor.orange)"),
                 "contradiction row must render the triangle icon via SFIcon(.inlineSmall, .orange)")

@@ -53,7 +53,7 @@ struct BackgroundReviewTabTests {
     func testBackgroundReviewViewWiresListPending() throws {
         let candidates = [
             "Sources/WenshuApp/UI/SpecializedTools/BackgroundReviewView.swift",
-            "Sources/WenshuApp/Views/SpecializedTools/BackgroundReviewView.swift",
+            "Sources/WenshuApp/Features/Agent/View/BackgroundReviewView.swift",
             "Sources/WenshuApp/Views/Inspector/BackgroundReviewView.swift"
         ]
         var foundFile = false

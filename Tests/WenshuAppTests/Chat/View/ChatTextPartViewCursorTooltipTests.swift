@@ -16,7 +16,7 @@ struct ChatTextPartViewCursorTooltipTests {
     /// T61 contract: source uses .help(Self.streamingCursorTooltip).
     @Test func source_uses_help_tooltip() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatTextPartView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatTextPartView.swift",
             encoding: .utf8
         )
         #expect(src.contains(".help(Self.streamingCursorTooltip)"))
@@ -25,7 +25,7 @@ struct ChatTextPartViewCursorTooltipTests {
     /// T61 contract: streamingCursorTooltip helper exists.
     @Test func helper_exists() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatTextPartView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatTextPartView.swift",
             encoding: .utf8
         )
         #expect(src.contains("nonisolated static var streamingCursorTooltip: String {"))
@@ -34,7 +34,7 @@ struct ChatTextPartViewCursorTooltipTests {
     /// T61 contract: helper uses chatview.streaming_cursor.generating key.
     @Test func helper_uses_localized_key() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatTextPartView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatTextPartView.swift",
             encoding: .utf8
         )
         #expect(src.contains("String(localized: \"chatview.streaming_cursor.generating\")"))
@@ -51,7 +51,7 @@ struct ChatTextPartViewCursorTooltipTests {
     /// T61 contract: T42 streaming cursor preserved.
     @Test func t42_stream_cursor_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatTextPartView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatTextPartView.swift",
             encoding: .utf8
         )
         #expect(src.contains("TimelineView(.periodic(from: .now, by: 0.5))"))
@@ -63,7 +63,7 @@ struct ChatTextPartViewCursorTooltipTests {
         // The .transition(.wenshuThinkingAppear()) call for .text
         // case lives in ChatPartView (= the switch dispatch).
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatPartView.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatPartView.swift",
             encoding: .utf8
         )
         #expect(src.contains(".wenshuThinkingAppear"))

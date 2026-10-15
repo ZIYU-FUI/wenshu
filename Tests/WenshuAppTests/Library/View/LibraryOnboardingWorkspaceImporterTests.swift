@@ -19,7 +19,7 @@ struct LibraryOnboardingWorkspaceImporterTests {
     }
 
     private static let libraryRootSourcePath = Self.repositoryURL(
-        relativePath: "Sources/WenshuApp/Views/Onboarding/LibraryRootView.swift"
+        relativePath: "Sources/WenshuApp/Shared/UI/LibraryRootView.swift"
     )
 
     @Test("importer accepts the exported Wenshu workspace type")

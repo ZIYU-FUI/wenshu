@@ -39,7 +39,7 @@ struct EmotionCurveOpsTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Views/SpecializedTools/EmotionCurveOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/EmotionCurveOps.swift")
         let exists = FileManager.default.fileExists(atPath: sourcePath.path)
         #expect(exists, "EmotionCurveOps.swift must exist at \(sourcePath.path)")
     }
@@ -125,7 +125,7 @@ struct EmotionCurveOpsTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Views/SpecializedTools/EmotionCurveOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/EmotionCurveOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("static func ensureAnalyzer"))
         #expect(source.contains("static func runAnalyze"))
@@ -141,7 +141,7 @@ struct EmotionCurveOpsTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Views/SpecializedTools/EmotionCurveOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/EmotionCurveOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("@MainActor"))
         #expect(source.contains("enum EmotionCurveOps"))
@@ -159,7 +159,7 @@ struct EmotionCurveOpsTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Views/SpecializedTools/EmotionCurveOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/EmotionCurveOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("analyzer: inout EmotionCurveAnalyzer?"))
     }
@@ -174,7 +174,7 @@ struct EmotionCurveOpsTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Views/SpecializedTools/EmotionCurveOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/EmotionCurveOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("chapterText: String"))
     }
@@ -189,7 +189,7 @@ struct EmotionCurveOpsTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Views/SpecializedTools/EmotionCurveOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/EmotionCurveOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("windowCount: Int"))
     }

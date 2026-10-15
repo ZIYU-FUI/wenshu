@@ -16,7 +16,7 @@ struct ChatMessageViewTimestampTooltipTests {
     /// T50 contract: source uses .help(Self.fullTimestampTooltip(for:))
     @Test func source_uses_help_tooltip() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
             encoding: .utf8
         )
         #expect(src.contains(".help(Self.fullTimestampTooltip(for: timestamp))"))
@@ -25,7 +25,7 @@ struct ChatMessageViewTimestampTooltipTests {
     /// T50 contract: fullTimestampTooltip function exists + nonisolated.
     @Test func fullTimestampTooltip_helper_exists() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
             encoding: .utf8
         )
         #expect(src.contains("nonisolated static func fullTimestampTooltip(for date: Date) -> String"))
@@ -58,7 +58,7 @@ struct ChatMessageViewTimestampTooltipTests {
     /// T50 contract: T26 hover timestamp logic preserved.
     @Test func t26_hover_timestamp_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
             encoding: .utf8
         )
         #expect(src.contains("private var timestampDisplayFormat: Date.FormatStyle"))
@@ -70,7 +70,7 @@ struct ChatMessageViewTimestampTooltipTests {
     /// T50 contract: T25 token footer preserved.
     @Test func t25_token_footer_preserved() throws {
         let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
             encoding: .utf8
         )
         #expect(src.contains("Self.formatTokenCount(tokens)"))

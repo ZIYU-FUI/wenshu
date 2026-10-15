@@ -54,7 +54,7 @@ struct ChatMessageViewTokenFooterTests {
     /// instance body).
     @Test func source_uses_self_formatTokenCount() throws {
         let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
             encoding: .utf8
         )
         #expect(source.contains("Text(Self.formatTokenCount(tokens))"))
@@ -63,7 +63,7 @@ struct ChatMessageViewTokenFooterTests {
     /// T25 contract: footer is gated on tokens > 0 (= not nil + positive).
     @Test func footer_gated_on_positive_tokens() throws {
         let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Views/Chat/ChatMessageFooter.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
             encoding: .utf8
         )
         #expect(source.contains("if let tokens, tokens > 0"))

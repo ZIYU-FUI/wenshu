@@ -41,7 +41,7 @@ struct BackupToolsCoordinationTests {
     private var backupPath: String {
         var url = URL(fileURLWithPath: #filePath)
         for _ in 0..<5 { url.deleteLastPathComponent() }
-        url.appendPathComponent("Sources/WenshuApp/Core/Backup/Backup.swift")
+        url.appendPathComponent("Sources/WenshuApp/Features/Shared/Backup.swift")
         return url.path
     }
 

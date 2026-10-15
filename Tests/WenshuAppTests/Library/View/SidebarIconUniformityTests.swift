@@ -23,7 +23,7 @@ import Testing
 struct SidebarIconUniformityTests {
     @Test("SFLabelRow uses the central icon factory and a fixed row slot")
     func sidebarRowUsesCentralFactoryAndFixedSlot() throws {
-        let source = try Self.source("Sources/WenshuApp/UI/IconStyles.swift")
+        let source = try Self.source("Sources/WenshuApp/Shared/UI/IconStyles.swift")
         // Factory shape: SFLabelRow delegates to SFIcon(..., style: iconStyle)
         // and pins the row slot via sidebarWidth / sidebarInset.
         #expect(source.contains("SFIcon(\n                systemImage,\n                style: iconStyle"))
@@ -53,7 +53,7 @@ struct SidebarIconUniformityTests {
 
     @Test("IconStyle.sidebar is the canonical sidebar case (= 16 PT, .regular, slot properties)")
     func sidebarCaseIsCanonical() throws {
-        let source = try Self.source("Sources/WenshuApp/UI/IconStyles.swift")
+        let source = try Self.source("Sources/WenshuApp/Shared/UI/IconStyles.swift")
         // 16 PT point size matches Apple Mail / Notes / Xcode
         // sidebar row leading icon (= the wenshu default per
         // Apple's HIG sidebar anatomy).
@@ -69,7 +69,7 @@ struct SidebarIconUniformityTests {
     }
 
     private static func sourceSlice(from start: String, to end: String) throws -> String {
-        let source = try source("Sources/WenshuApp/UI/IconStyles.swift")
+        let source = try source("Sources/WenshuApp/Shared/UI/IconStyles.swift")
         guard let startRange = source.range(of: start),
               let endRange = source.range(of: end, range: startRange.upperBound..<source.endIndex) else {
             throw CocoaError(.fileReadCorruptFile)

@@ -359,7 +359,7 @@ struct WenshuMarkdownEditorAdapterTests {
     /// Numbers document-chrome-survives-WYSIWYG-toggle pattern).
     @Test("EditorEditContent forwards SMC `editorHeader:` + `editorPlaceholder:` (= T-02)")
     func editorEditContentForwardsChromeSlots() throws {
-        let editPath = resolve("Sources/WenshuApp/Views/Workspace/EditorEditContent.swift")
+        let editPath = resolve("Sources/WenshuApp/Workspace/EditorEditContent.swift")
         let edit = try String(contentsOfFile: editPath, encoding: .utf8)
         #expect(
             edit.contains("var editorHeader: AnyView? = nil"),
@@ -773,7 +773,7 @@ struct WenshuMarkdownEditorAdapterTests {
     /// bottom chrome.
     @Test("EditorView mounts EditorStatusBarView in zone outer VStack (= T-03)")
     func editorViewMountsStatusBar() throws {
-        let editorPath = resolve("Sources/WenshuApp/Views/Workspace/EditorView.swift")
+        let editorPath = resolve("Sources/WenshuApp/Workspace/EditorView.swift")
         let editor = try String(contentsOfFile: editorPath, encoding: .utf8)
         #expect(editor.contains("EditorStatusBarView("),
                 "EditorView must construct EditorStatusBarView (= the bottom chrome band mount)")

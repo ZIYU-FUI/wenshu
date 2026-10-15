@@ -17,7 +17,7 @@ struct AppleSidebarBottomNewButtonIconMigrationTests {
 
     @Test("AppleSidebarBottomNewButton source no longer uses naked Image(systemName:)")
     func sourceNoLongerUsesNakedImage() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/Library/AppleSidebarBottomNewButton.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Library/View/AppleSidebarBottomNewButton.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         let stripped = content.components(separatedBy: "\n").filter { line in
             let trimmed = line.trimmingCharacters(in: .whitespaces)
@@ -29,7 +29,7 @@ struct AppleSidebarBottomNewButtonIconMigrationTests {
 
     @Test("AppleSidebarBottomNewButton new-button icon uses SFIcon style: .inlineSmall + .secondary")
     func newButtonIconUsesSFIcon() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/Library/AppleSidebarBottomNewButton.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Library/View/AppleSidebarBottomNewButton.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("SFIcon(\"plus\", style: .inlineSmall, color: IconColor.secondary)"),
                 "AppleSidebarBottomNewButton new-button icon must render via SFIcon(.inlineSmall, IconColor.secondary)")

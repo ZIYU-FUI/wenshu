@@ -8,7 +8,7 @@
 //  - Sources/WenshuApp/Core/Agent/AgentProtocol.swift: getAgentCard
 //  - Sources/WenshuApp/Core/Agent/WenshuConductor.swift: invokeSkill,
 //    availableSkills, addMemory, searchMemory
-//  - Sources/WenshuApp/Core/Tools/FileTools.swift: pathHasBlockedSymlink
+//  - Sources/WenshuApp/Features/Agent/Service/FileTools.swift: pathHasBlockedSymlink
 //
 
 import Foundation

@@ -107,7 +107,7 @@ struct AnimationZIndexCornerRadiusSweepTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let path = root.appendingPathComponent(
-            "Sources/WenshuApp/Views/Chat/ChatMessageHoverActions.swift"
+            "Sources/WenshuApp/Features/Chat/View/ChatMessageHoverActions.swift"
         )
         let content = try String(contentsOf: path, encoding: .utf8)
 
