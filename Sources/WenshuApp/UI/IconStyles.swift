@@ -431,7 +431,7 @@ enum IconRendering: Sendable, Equatable {
 
 /// Central SF Symbols 6 icon factory. All wenshu icons go through this
 /// View (= `Image(systemName:)` directly is anti-pattern for new code;
-/// pre-v3.0 call sites migrate via per-surface sweep PRs).
+/// legacy call sites migrate via per-surface sweep PRs).
 ///
 /// Apple HIG rationale ((see OOB.md #2026-10-01)): one factory enforces one
 /// weight + one color strategy per surface; 166 call sites can't

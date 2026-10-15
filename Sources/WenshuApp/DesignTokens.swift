@@ -456,7 +456,7 @@ enum DesignTokens {
     /// default 8 PT). Canvas draggers (= ZoneEditor) need finer
     /// resolution because the dragged element is small (= 28 PT
     /// hot area) and the user is interacting within a dense grid.
-    /// Per wenshu-icon-policy v1.5 zone UX: smaller drag distance
+    /// Per wenshu-icon-policy zone UX: smaller drag distance
     /// = more responsive within the zone grid layout.
     static let dragGestureThresholdCanvas: CGFloat = 5
 
@@ -815,7 +815,7 @@ enum DesignTokens {
     // (= 12 PT monospaced digits + per-instance weight; = the sweep
     // migration in EditorView.swift).
 
-    // MARK: - Frame metrics (v0.40 apple-001 iron-rule-6 batch 5)
+    // MARK: - Frame metrics (apple-001 iron-rule-6 batch 5)
     //
     // Apple HIG canonical dimensions for one-off frame sizes found
     // during the iron-rule-6 sweep (= replaces inline `.frame(width:N)`,
@@ -836,10 +836,10 @@ enum DesignTokens {
     static let bulletSizeSmall: CGFloat = 14
 
     /// Empty-state icon→title gap (= 22 PT, Apple HIG standard
-    /// ContentUnavailableView sample measured value). v1.0.0-m1-shell
+    /// ContentUnavailableView sample measured value).
     /// EmptyStateView.swift uses this for the icon→title vertical
-    /// spacing. Single source of truth (= single owner at v0.71).
-    /// (= v3.0 spacing-HIG-rename: collapsed into spacingSection;
+    /// spacing. Single source of truth.
+    /// (= spacing-HIG-rename: collapsed into spacingSection;
     /// = old `chromePaddingEmptyStateGap` reference deleted in
     /// Phase C = the value lives only as `spacingSection` = 24 PT).
 
@@ -934,7 +934,7 @@ enum DesignTokens {
     /// Replaces `.frame(width: DesignTokens.sidebarNarrowWidth)`.
     static let sidebarNarrowWidth: CGFloat = 200
 
-    // MARK: - v0.71 P1 batch 4: full-project dual-axis audit
+    // MARK: - full-project dual-axis audit
     //
     // (= (see OOB.md #2026-09-12) OOB 'do a full-project dual-axis' = apply the dual-axis
     // chrome dimension system across the whole project; = extract every
@@ -1000,8 +1000,8 @@ enum DesignTokens {
     /// that takes up the right edge).
     ///
     /// Used by: ImportSheet step 1 wizard (= the
-    /// Pages-style picker cards replacing the v3.0
-    /// inline Form pickers; = the wenshu v3.0 design
+    /// Pages-style picker cards replacing the
+    /// inline Form pickers; = the wenshu design
     /// system is now aligned with the Pages inspector
     /// panel).
     static let pickerCardHeight: CGFloat = 32

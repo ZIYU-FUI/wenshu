@@ -491,7 +491,7 @@ actor WenshuConductor {
     ) async -> (reply: String, totalTokens: Int, thinking: String?) {
         // Step 1: write 1 conductor parent task to WSKanbanRepository (kanban progress, not shown in ChatView)
         // create the kanban entry on MainActor (= the WS* repository
-        // singletons are @MainActor in v0.34; the conductor runs on its own
+        // singletons are @MainActor; the conductor runs on its own
         // actor). MainActor.run is not throwing (= the inner try? is the
         // only error sink), so we can drop the do/catch.
         let conductorTask: String? = await MainActor.run {
@@ -747,16 +747,16 @@ actor WenshuConductor {
         "ReadFile",         // Core/Agent/Tool/ReadFileTool.swift
         "WriteFile",        // Core/Agent/Tool/WriteFileTool.swift
         "av",               // Core/Tools/AVMediaTools.swift
-        "background_review", // Core/Agent/Tool/BackgroundReviewTool.swift  (= v2.8c manual + auto BackgroundReview consolidation surface)
+        "background_review", // Core/Agent/Tool/BackgroundReviewTool.swift  (= manual + auto BackgroundReview consolidation surface)
         "book_chapter",     // Core/Agent/Librarian/BookChapterTool.swift
-        "book_edit_chapter", // Core/Agent/Librarian/EditChapterTool.swift  (= v1.85 hermes 0.21.5 edit_file 1:1)
+        "book_edit_chapter", // Core/Agent/Librarian/EditChapterTool.swift  (= hermes edit_file 1:1)
         "book_entity",      // Core/Agent/Librarian/BookEntityTool.swift  (= entity schema redesign)
         "book_manager",     // Core/Agent/Librarian/BookManagerTool.swift
         "book_outline",     // Core/Agent/Librarian/BookOutlineTool.swift
         "file",             // Core/Tools/FileTools.swift
-        "delegate_research", // Core/Agent/Tool/DelegateResearchTool.swift  (= v2.7 self-evolution: main agent delegates research to researcher sub-agent async; = main agent does NOT block on web_search)
+        "delegate_research", // Core/Agent/Tool/DelegateResearchTool.swift  (= self-evolution: main agent delegates research to researcher sub-agent async; = main agent does NOT block on web_search)
         "kanban",           // Core/Agent/Tool/KanbanStoreTool.swift
-        "llm_wiki",         // Core/Agent/Tool/LLMWikiTool.swift  (= v2.8d LLM Wiki 4-layer pipeline manual + auto surface)
+        "llm_wiki",         // Core/Agent/Tool/LLMWikiTool.swift  (= LLM Wiki 4-layer pipeline manual + auto surface)
         "process",          // Core/Tools/ProcessTools.swift
         "reference_library",// Core/Agent/Librarian/ReferenceLibraryTool.swift
         "todo",             // Core/Tool/TodoStoreTool.swift
@@ -801,7 +801,7 @@ actor WenshuConductor {
         // Step 1: brief warmup window. Registrations are fire-and-forget
         // `Task { await registry.register(...) }` blocks at module load (=
         // MIGRATE-TOOLREGISTRY-002); a short settle window absorbs
-        // scheduling jitter. v0.71 P1 batch 6 dual-axis followup (=
+        // scheduling jitter. dual-axis followup (=
         // Standards axis MED): the audit flagged `Task.sleep` for
         // "blocking the cooperative pool" but `Task.sleep` SUSPENDS the
         // actor (= releases the pool slot) rather than blocking a
@@ -866,12 +866,12 @@ actor WenshuConductor {
             return cached
         }
 
-        // Cold path: 2026-10-14 v0.74 fix for "agent not
+        // Cold path: fix for "agent not
         // responsive" (= the DispatchSemaphore bridge blocked the
         // caller thread for up to toolRegistryWaitTimeoutMs; = the
         // call came from ChatView.init (= MainActor); = the bridge
         // is safe only if buildTools(from:) does NOT await MainActor
-        // work; = the v0.72 audit pass 3 #warning flagged this as
+        // work; = the audit pass 3 #warning flagged this as
         // a future-ticket cleanup; = the boss's 2026-10-14 OOB
         // "修 agent 不响应" promoted it to a current fix).
         //
@@ -979,7 +979,7 @@ actor WenshuConductor {
         tools.keys.sorted()
     }
 
-    // MARK: - Book scope guard wiring (v2.1, 2026-09-25)
+    // MARK: - Book scope guard wiring (see OOB.md #2026-09-25)
 
     /// The four agent tools that are bound to a chat-session's book
     /// (= the user picks a book in the sidebar and the chat session

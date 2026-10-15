@@ -1188,12 +1188,12 @@ struct PreviewPane: View {
             //
             //
             // (= the user wants 10 PT inner padding on the cards
-            // column; = the v1.84b column-level padding was the
+            // column; = the column-level padding was the
             // Column-level padding (= not affected by header inset, per Apple HIG):
             // be removed = the 10 PT gutter now lives on the
             // per-element level = the cards grid re-asserts its
             // own chromePaddingContentHorizontal (= 10 PT) horizontal
-            // padding here = the same visual result as v1.84b but
+            // padding here = the same visual result but
             // without affecting the SectionHeader.
             //
             // 2026-10-12 round-16 boss directive "这个素材栏是
@@ -1569,7 +1569,7 @@ struct PreviewPane: View {
         // read needed
         // here).
         // Stable-id root-cause fix:
-        // the v1.69n original ran FileManager I/O (= walk
+        // the original ran FileManager I/O (= walk
         // shelves tree + read every .md) inside this ViewBuilder
         // body. SwiftUI re-evaluates this body on EVERY
         // Observation tick (= every AppState mutation, every
@@ -1608,7 +1608,7 @@ struct PreviewPane: View {
         } else {
             // Non-empty: reuse the canonical bookDocsGrid (= same
             // LazyVGrid + adaptiveColumns(width:) + sort + Card
-            // styling as bookScopeView). Avoids the v1.69n-draft
+            // styling as bookScopeView). Avoids the draft
             // duplicate LazyVGrid (= different .padding(24) vs
             // .padding(.vertical, DesignTokens.spacingStandard);
             // = the user's "width is wrong" complaint was the
@@ -2308,7 +2308,7 @@ struct PreviewPane: View {
 /// Tap = select (= not wired yet). Double-click = open in editor
 /// (= the card-double-click hook).
 ///
-/// (per the rule) v0.30: 'card, '. Thumbnail
+// (per the rule): 'card, '. Thumbnail
 /// strategy: since Reference entities are text-only (= .md bodies with
 /// no associated image), we use the EntityType icon as a large
 /// prominent thumbnail (= e.g. user-round for character, lightbulb
@@ -2319,7 +2319,7 @@ struct PreviewPane: View {
 ///
 /// Future: when entities get real images (= e.g. character portrait,
 /// location map), NukeUI's LazyImage will replace the type icon. The
-/// image-pipeline integration is deferred to v0.31+ (= needs image
+/// image-pipeline integration is deferred (= needs image
 /// storage infrastructure that doesn't exist yet).
 /// Single canonical card view for the material preview zone.
 /// 'style owned by parent, data composition unified too' —
@@ -2548,7 +2548,7 @@ private struct Card: View {
     /// behavior here — switching scope = "fresh start" for the
     /// double-click detector; = (see OOB.md) — 'directory,').
     ///
-    /// 2026-10-14 v7.3 fix (= the boss 2026-10-14 (see OOB.md #2026-10-14)
+    /// (= the boss 2026-10-14 (see OOB.md #2026-10-14)
     /// cause): the previous
     /// `@State` was reset on
     /// every SwiftUI body
@@ -2601,7 +2601,7 @@ private struct Card: View {
     nonisolated(unsafe) static var clickCountByID: [UUID: Int] = [:]
     nonisolated(unsafe) static var lastClickByID: [UUID: TimeInterval] = [:]
 
-    /// 2026-10-14 v7.4 debug:
+    /// debug:
     /// log every tap on the
     /// Card (= helps localize
     /// the boss 2026-10-14 (see OOB.md #2026-10-14)
