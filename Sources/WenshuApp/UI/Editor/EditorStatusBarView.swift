@@ -33,11 +33,6 @@ struct EditorStatusBarView: View {
     /// = the parent supplies this closure so the count stays in
     /// sync with whatever tab is currently open).
     let textProvider: () -> String
-    /// Current caret rect (= the engine posts this via
-    /// `onCaretRectChange`; = the parent supplies this closure so
-    /// the location stays in sync with the live NSTextView cursor).
-    /// nil = no cursor yet (= the user hasn't focused the editor).
-    let cursorRectProvider: () -> CGRect?
     /// Is the document dirty (= the persistence layer's isDirty;
     /// = /Users/anbaiqiang/.hermes/profiles/pocock/skills/wenshu-editor-zone-source-of-truth-source-of-truth-path: `EditorPersistence.swift`).
     let isDirtyProvider: () -> Bool
@@ -134,32 +129,16 @@ struct EditorStatusBarView: View {
         return "\(formatted) 字"
     }
 
-    /// Cursor location label — NOT USED 2026-10-13. RATIONALE:
-    /// the "Ln N, Col N" cursor coordinate is a Pages / Xcode
-    /// developer convention; = wenshu users don't read the line
-    /// / column coordinate; = the chunk was removed from the
-    /// status bar body (see body RATIONALE above). The
-    /// `cursorRectProvider` closure is still in the API (= a
-    /// future ticket may re-introduce the chunk in a different
-    /// form); = the closure is preserved (= removing it would
-    /// be a breaking change to the public initializer; = the
-    /// closure just isn't consumed in the current body). The
-    /// helper below is kept (= it computes the same string the
-    /// status bar used to render; = a future caller can pull it
-    /// without re-deriving the line-estimate math).
-    private var cursorLabel: String {
-        guard let rect = cursorRectProvider() else {
-            return String(
-                localized: "editor.statusBar.cursor.placeholder",
-                defaultValue: "Ln —, Col —"
-            )
-        }
-        let lineEstimate = max(1, Int(rect.origin.y / 18) + 1)
-        return String(
-            localized: "editor.statusBar.cursor.location",
-            defaultValue: "Ln \(lineEstimate), Col 1"
-        )
-    }
+    /// Cursor location label — REMOVED 2026-10-15 (v3.1 governance).
+    /// RATIONALE: the "Ln N, Col N" cursor coordinate is a Pages /
+    /// Xcode developer convention; = wenshu users don't read the
+    /// line / column coordinate. The chunk was removed from the
+    /// status bar body on 2026-10-13. The dead helper code +
+    /// the 2 unused xcstrings keys + the `cursorRectProvider`
+    /// closure parameter (= was the only consumer) are deleted
+    /// here per AGENTS.md §10.3 (= outdated = gone; = a future
+    /// ticket that wants the cursor coordinate back can re-introduce
+    /// the closure + helper + xcstrings keys in a single commit).
 
     /// Autosave icon name (= the deterministic state machine =
     /// the bar shows one of 3 SF Symbols; = the engine's standard

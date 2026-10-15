@@ -12378,40 +12378,6 @@
         }
       }
     },
-    "editor.statusBar.cursor.placeholder": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ln —, Col —"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ln —, Col —"
-          }
-        }
-      }
-    },
-    "editor.statusBar.cursor.location": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ln %lld, Col 1"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ln %lld, Col 1"
-          }
-        }
-      }
-    },
     "editor.statusBar.help": {
       "extractionState": "manual",
       "localizations": {

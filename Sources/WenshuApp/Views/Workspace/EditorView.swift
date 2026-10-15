@@ -733,7 +733,6 @@ struct EditorView: View {
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 EditorStatusBarView(
                     textProvider: { self.draft },
-                    cursorRectProvider: { self.cursorRect },
                     isDirtyProvider: { self.isDirty },
                     isAutosavingProvider: { self.isAutosaving }
                 )
