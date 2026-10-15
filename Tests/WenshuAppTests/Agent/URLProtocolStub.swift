@@ -128,12 +128,26 @@ public final class URLProtocolStub: URLProtocol, @unchecked Sendable {
         }
     }
 
-    /// Last request captured. Falls back to the class-level `capturedRequest`
-    /// (= populated by any `startLoading()` invocation in the process). This
-    /// lets the test's local stub observe the request that the live instance
-    /// saw, without requiring tests to read `URLProtocolStub.stub?.lastRequest`.
+    /// Last request captured by any `startLoading()` invocation in the
+    /// process. For isolated stubs (= returned by `makeIsolatedStub()`),
+    /// the captured request lives on THIS instance's `_isolatedCapturedRequest`
+    /// (= per-test state, no global mutation; = the v1.17 hermetic pattern).
+    /// For the legacy global pattern (= `URLProtocolStub.register(stub)`),
+    /// the captured request lives on the class-level `capturedRequest`
+    /// (= because the base class's `startLoading()` writes there).
+    ///
+    /// The getter reads `_isolatedCapturedRequest` FIRST (= the per-instance
+    /// state is the source of truth for isolated tests), then falls back
+    /// to `URLProtocolStub.capturedRequest` (= the global state for
+    /// non-isolated tests). This is the v1.17 migration completion: the
+    /// original getter only read the global, which meant isolated tests
+    /// never saw their own captured request (= it was written to the
+    /// throwaway framework instance, not the test's stub; = the test
+    /// would read the global, which often held stale state from a
+    /// previous test, causing the flakiness observed in the MCP test
+    /// suite running in parallel).
     public var lastRequest: URLRequest? {
-        get { URLProtocolStub.capturedRequest }
+        get { _isolatedCapturedRequest ?? URLProtocolStub.capturedRequest }
         set { URLProtocolStub.capturedRequest = newValue }
     }
 
@@ -339,9 +353,18 @@ public final class URLProtocolStub: URLProtocol, @unchecked Sendable {
                 captured = rebuilt
             }
         }
-        // Write to PER-INSTANCE state (= no global mutation; = safe
-        // for concurrent tests that each have their own isolated stub).
-        _isolatedCapturedRequest = captured
+        // Write to the TEST's stub instance (= the URLProtocol instance
+        // the test holds a reference to). The v1.17 isolated pattern
+        // uses runtime-generated URLProtocol subclasses (= via
+        // `objc_allocateClassPair`), and each subclass has the test's
+        // stub stored as an associated object (= the `stub` lookup
+        // above). Writing to `self` (= the framework's URLProtocolStub
+        // instance, which is a throwaway per request) would never be
+        // observable by the test (= `stub.lastRequest` reads from
+        // `self`'s `lastRequest` getter, which queries the per-instance
+        // `_isolatedCapturedRequest` first; = the test's stub is the
+        // only one that matters).
+        stub._isolatedCapturedRequest = captured
         // Mirror the stub's response fields onto `self` so the
         // URLProtocol client receives the test's canned response.
         responseData = stub.responseData
