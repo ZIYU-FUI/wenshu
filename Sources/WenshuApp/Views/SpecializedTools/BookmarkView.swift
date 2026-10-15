@@ -168,17 +168,24 @@ struct BookmarkView: View {
         guard let bookID = activeBookId else { return }
         let trimmed = draftLabel.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return }
-        let bookmark = BookmarkOps.add(
+        // A1g.2: BookmarkOps.add now owns the SwiftData write (= the
+        // view consumes the LoadOutcome enum directly, no second
+        // `repository.add(...)` call site).
+        let outcome = BookmarkOps.add(
             repository: repository,
             label: trimmed,
             activeBookId: bookID
         )
-        do {
-            try repository.add(bookmark)
+        switch outcome {
+        case .empty:
             draftLabel = ""
             await reload()
-        } catch {
-            state.errorText = String(describing: error)
+        case .loaded:
+            draftLabel = ""
+            await reload()
+        case .failed(let message):
+            state.errorText = message
+            state.status = .failed(message)
         }
     }
 

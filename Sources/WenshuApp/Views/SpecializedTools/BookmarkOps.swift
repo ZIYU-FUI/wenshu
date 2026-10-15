@@ -64,13 +64,19 @@ enum BookmarkOps {
         repository: WSBookmarkRepository,
         label: String,
         activeBookId: UUID
-    ) -> Bookmark {
+    ) -> LoadOutcome {
         let trimmed = label.trimmingCharacters(in: .whitespaces)
-        let bookmark = Bookmark(
-            docId: "book:\(activeBookId.uuidString):default",
-            label: trimmed
-        )
-        return bookmark
+        guard !trimmed.isEmpty else { return .empty }
+        do {
+            _ = try repository.add(
+                id: UUID().uuidString,
+                title: trimmed,
+                docID: "book:\(activeBookId.uuidString):default"
+            )
+            return .empty
+        } catch {
+            return .failed(String(describing: error))
+        }
     }
 
     /// Remove a bookmark by id (= the canonical delete path).

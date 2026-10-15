@@ -21,6 +21,9 @@
 //
 
 import Foundation
+import os.log
+
+private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "archiviststorage")
 
 @MainActor
 protocol ArchivistStorage: Sendable {
@@ -66,13 +69,22 @@ final class LiveArchivistStorage: ArchivistStorage {
     }
 
     func addBookmark(docID: String, label: String) async throws {
-        let bookmark = Bookmark(
-            id: UUID().uuidString,
-            docId: docID,
-            label: label,
-            createdAt: Date()
-        )
-        try bookmarkRepo.add(bookmark)
+        let newID = UUID().uuidString
+        _ = try bookmarkRepo.add(id: newID, title: label, docID: docID)
+        // A1g.2: Spotlight bootstrap moved to caller (= data layer no
+        // longer owns app-side infrastructure). The original logic
+        // (= index after add, remove after delete) is preserved 1:1.
+        Task.detached(priority: .utility) {
+            do {
+                try await CSSearchableIndexSearch.shared.index(
+                    docId: newID,
+                    title: label,
+                    body: label
+                )
+            } catch {
+                wenshuLogger.info("[wenshu.spotlight.auto] index failed after bookmark add: \(String(describing: error))")
+            }
+        }
     }
 
     func listBookmarks() async throws -> [ArchivistBookmark] {
@@ -88,6 +100,10 @@ final class LiveArchivistStorage: ArchivistStorage {
 
     func removeBookmark(id: String) async throws {
         try bookmarkRepo.remove(id: id)
+        // A1g.2: Spotlight remove moved to caller.
+        Task.detached(priority: .utility) {
+            try? await CSSearchableIndexSearch.shared.remove(docId: id)
+        }
     }
 
     func writeBackup(label: String, contents: String) async throws -> URL {

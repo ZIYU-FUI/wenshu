@@ -32,31 +32,15 @@ final class WSBookmarkRepository {
         self.container = container
     }
 
-    func add(_ bookmark: Bookmark) throws {
+    func add(id: String, title: String, docID: String? = nil) throws -> WSBookmark {
         let model = WSBookmark(
-            id: bookmark.id,
-            title: bookmark.label,
-            docID: bookmark.docId
+            id: id,
+            title: title,
+            docID: docID
         )
         context.insert(model)
         try context.save()
-
-        // v2.9a ((see OOB.md #2026-09-28) OOB A8): bootstrap the new
-        // bookmark into the Spotlight index (= Cmd-F should
-        // surface bookmarks alongside chapters + references).
-        let title = bookmark.label
-        let docID = bookmark.id
-        Task.detached(priority: .utility) {
-            do {
-                try await CSSearchableIndexSearch.shared.index(
-                    docId: docID,
-                    title: title,
-                    body: title
-                )
-            } catch {
-                wenshuLogger.info("[wenshu.spotlight.auto] index failed after bookmark add: \(String(describing: error))")
-            }
-        }
+        return model
     }
 
     func remove(id: String) throws {
@@ -66,13 +50,6 @@ final class WSBookmarkRepository {
         if let model = try context.fetch(descriptor).first {
             context.delete(model)
             try context.save()
-
-            // v2.9a ((see OOB.md #2026-09-28) OOB A8): remove the
-            // bookmark from the Spotlight index (= keeps the
-            // index clean).
-            Task.detached(priority: .utility) {
-                try? await CSSearchableIndexSearch.shared.remove(docId: id)
-            }
         }
     }
 
