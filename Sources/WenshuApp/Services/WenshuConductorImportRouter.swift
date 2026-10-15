@@ -63,7 +63,7 @@ actor WenshuConductorImportRouter: ImportRouter {
     /// identifier).
     private let modelSlug: String
 
-    /// v2.7 round-73 (= boss 2026-10-10 "走类似
+    /// v2.7 round-73 (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// 看板任务一样, 让一个 agent 跑完"). The
     /// driver (= the wenshu 文档管理员's
     /// orchestrator) wraps the SOP lookup + the
@@ -116,8 +116,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         _ input: ImportFileInput,
         progress: (@Sendable (String) async -> Void)? = nil
     ) async throws -> ImportRoutingResult {
-        // v2.7 round-36 (= boss 2026-10-09 "在
-        // 红字后面，加一个小操作文字，
+        // v2.7 round-36 (= boss 2026-10-09 (see OOB.md #2026-10-09)
         // 就是基于标题重新调研" directive).
         // Body resolution (= three sources,
         // precedence high to low):
@@ -146,9 +145,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         }
         let fallbackTitle = Self.fallbackTitle(from: input.filePath)
 
-        // v2.7 round-71 C2 (= boss 2026-10-10
-        // "B" pick for the "⚠️ LLM
-        // 没返回 extraFiles"
+        // v2.7 round-71 C2 (= boss 2026-10-10 (see OOB.md #2026-10-10)
         // OOB). In `.reorganize` mode
         // (= the boss's new
         // default mode), the
@@ -203,7 +200,7 @@ actor WenshuConductorImportRouter: ImportRouter {
             body: body,
             rewriteMode: input.rewriteMode
         )
-        // v2.7 tool wiring (= boss 2026-10-09
+        // v2.7 tool wiring (= boss 2026-10-09 (see OOB.md #2026-10-09)
         // round-18 "重写同时搜索校对"). The
         // `searchAndRewrite` mode is the ONLY
         // mode that passes tools (= the
@@ -313,9 +310,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         fallbackTitle: String,
         progress: (@Sendable (String) async -> Void)?
     ) async throws -> ImportRoutingResult {
-        // v2.7 round-73 (= boss 2026-10-10
-        // "走类似看板任务一样, 让一个
-        // agent 跑完" + "类似一个技
+        // v2.7 round-73 (= boss 2026-10-10 (see OOB.md #2026-10-10)
         // 能" + "入口永远只有 ImportSheet").
         // The wenshu 文档管理员 (= wenshu
         // main agent) runs the import via
@@ -345,7 +340,7 @@ actor WenshuConductorImportRouter: ImportRouter {
             fallbackTitle: fallbackTitle,
             progress: progress
         )
-        // v2.7 round-73 (boss 2026-10-10
+        // v2.7 round-73 (boss 2026-10-10 (see OOB.md #2026-10-10)
         // PO 双轴 HIGH finding): the
         // agent's `writeBookDoc` tool
         // needs the active book's
@@ -411,7 +406,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         let context = ImportAgentBookContext(
             bookPath: { bookPath }
         )
-        // v2.7 round-73 (boss 2026-10-10
+        // v2.7 round-73 (boss 2026-10-10 (see OOB.md #2026-10-10)
             // PO 双轴 FAIL #7/8 fix): if the
             // LLM classified the source as a
             // reference-library import (= no
@@ -674,7 +669,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         // decision; = the cap also keeps the cost
         // low for a 456-file batch).
         let trimmed = String(body.prefix(12_000))
-        // v2.7 PROMPT REWRITE (= boss 2026-10-09
+        // v2.7 PROMPT REWRITE (= boss 2026-10-09 (see OOB.md #2026-10-09)
         // round-16 "三个问题" feedback):
         // 1) "小说草稿里的卡片还是显示 ID":
         //    = the previous prompt included the
@@ -869,10 +864,7 @@ actor WenshuConductorImportRouter: ImportRouter {
                  fallback)。
             """
         case .reorganize:
-            // v2.7 round-67 (= boss 2026-10-10
-            // "LLM 偷懒了, 没有把内容重新组织,
-            // 填入到各个必填中去, 导致所有必
-            // 填都空, MD 整体还保留了原来的
+            // v2.7 round-67 (= boss 2026-10-10 (see OOB.md #2026-10-10)
             // 格式和样式" 反馈). The LLM's job
             // is to **actively reorganize**
             // the source A into the template
@@ -1119,18 +1111,14 @@ actor WenshuConductorImportRouter: ImportRouter {
             // \\\\n" which the LLM took as
             // permission to insert a real
             // newline; = the JSON parser then
-            // bailed; = the boss 2026-10-09
-            // round-23 saw "LLM 未返回可解
-            // 析的 JSON；归类为草稿" cards
-            // with the source path as the
+            // bailed; = the boss 2026-10-09 (see OOB.md #2026-10-09)
             // fallback title). Fix: tell the
             // LLM to use JSON-escaped `\n`
             // (= \\n) only; = the orchestrator
             // un-escapes after parsing.
             return "\"title\":\"<中文标题>\",\"summary\":\"<一句话中文摘要>\",\"tags\":[\"<tag1>\",\"<tag2>\",...],\"rewrittenBody\":\"<整理后的 .ws 格式正文; 用 \\\\n 表示换行, 不要在字符串值里写真实换行>\""
         case .reorganize:
-            // v2.7 round-67 + round-69 (= boss 2026-10-10
-            // "A → B 重组" + "6 份必填,
+            // v2.7 round-67 + round-69 (= boss 2026-10-10 (see OOB.md #2026-10-10)
             // 其它自定义" 需求). The
             // LLM returns BOTH
             // `rewrittenBody` (= the
@@ -1435,9 +1423,7 @@ actor WenshuConductorImportRouter: ImportRouter {
     /// the source-file extension; = used when
     /// the LLM returns an empty title string).
     ///
-    /// v2.7 round-31 fix (= boss 2026-10-10
-    /// "目录树当名字的问题回归了" =
-    /// the previous implementation used
+    /// v2.7 round-31 fix (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// `(filePath as NSString).deletingPathExtension`
     /// which only strips the trailing
     /// extension (= `.md`); = the full
@@ -1459,9 +1445,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         return stem.isEmpty ? "未命名" : stem
     }
 
-    /// v2.7 round-37 (= boss 2026-10-10 "我觉
-    /// 的那个名字的问题，不能用提示词控
-    /// 制，应该是程序化控制，不能出错"
+    /// v2.7 round-37 (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// directive). Programmatic title
     /// sanitization (= the LLM's title is
     /// not trusted; = any of the failure
@@ -1599,14 +1583,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         return trimmed
     }
 
-    /// v2.7 (= boss 2026-10-09 round-20
-    /// "反链不用保留，我们的关系链应该有
-    /// 其它的功能" directive; = Obsidian
-    /// wikilinks = `[[目标]]` 形式 + plain
-    /// relative paths = `../路径` 形式; =
-    /// after import these become dead
-    /// links in the .ws library; = the
-    /// canonical wenshu relation feature
+    /// v2.7 (= boss 2026-10-09 (see OOB.md #2026-10-09)
     /// (= the sidebar's linkgraph =
     /// "关系链") is a different surface
     /// that should be derived from
@@ -1615,7 +1592,7 @@ actor WenshuConductorImportRouter: ImportRouter {
     /// the rewritten body never carries
     /// Obsidian-era link cruft).
     ///
-    /// The boss 2026-10-09 round-23 follow-up
+    /// The boss 2026-10-09 (see OOB.md #2026-10-09)
     /// (= "而且内部反链在重写的时候
     /// 没有删"; = the previous version
     /// only stripped lines that START with
@@ -1649,12 +1626,7 @@ actor WenshuConductorImportRouter: ImportRouter {
             // Obsidian autolink form).
             if lineStr.contains("[[") { continue }
             // Drop Obsidian-era metadata markers
-            // (= boss 2026-10-09 round-24
-            // "原来的一些没有用的格式能不
-            // 留也不留"; = the .ws library
-            // already has `createdAt` /
-            // `updatedAt` / `tags` fields; =
-            // these lines are noise; = match
+            // (= boss 2026-10-09 (see OOB.md #2026-10-09)
             // by prefix on the trimmed line).
             if Self.isUselessMetadataLine(trimmed) {
                 continue
@@ -1674,12 +1646,8 @@ actor WenshuConductorImportRouter: ImportRouter {
         return stripped.joined(separator: "\n")
     }
 
-    /// v2.7 (= boss 2026-10-09 round-25) = the
-    /// .ws reference-library doc header has
-    /// exactly 3 required frontmatter lines
-    /// (= boss 2026-10-09 round-25 "盘点文枢
-    /// 的功能，做出文枢的头部格式" directive;
-    /// = the canonical wenshu reference doc
+    /// v2.7 (= boss 2026-10-09 (see OOB.md #2026-10-09)
+    /// (= boss 2026-10-09 (see OOB.md #2026-10-09)
     /// header). Anything that looks like the
     /// OLD pre-v2.7 template (= 类型 / 状态 /
     /// 核心信息 / 详细描述 / 反链 / 上次更新 /
@@ -1758,9 +1726,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         return false
     }
 
-    /// v2.7 round-37 (= boss 2026-10-10 "我觉
-    /// 的那个名字的问题，不能用提示词控
-    /// 制，应该是程序化控制，不能出错"
+    /// v2.7 round-37 (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// directive). The LLM-supplied title
     /// is NOT trusted as-is (= the LLM
     /// can echo the file path, the
@@ -1815,18 +1781,14 @@ actor WenshuConductorImportRouter: ImportRouter {
         var tags: [String]
         var destination: String
         var bookFolder: BookFolder?
-        /// v2.7 (= boss 2026-10-09 round-18
+        /// v2.7 (= boss 2026-10-09 (see OOB.md #2026-10-09)
         /// "重写同时搜索校对"). The LLM's
         /// .ws-format body in `searchAndRewrite`
         /// mode (= nil in `consolidate` mode OR
         /// when the LLM returned an empty
         /// string).
         var rewrittenBody: String?
-        /// v2.7 round-67 (= boss 2026-10-10
-        /// "甚至原文件 A 的内容, 与我们的
-        /// B 模版不符合, 多了很我非模
-        /// 板的内容, 我希望能自动拆出
-        /// 一个文件, 放在合适的目录中
+        /// v2.7 round-67 (= boss 2026-10-10 (see OOB.md #2026-10-10)
         /// 去" 反馈). The LLM's optional
         /// array of additional files to
         /// split out (= A's content that
@@ -1947,20 +1909,14 @@ actor WenshuConductorImportRouter: ImportRouter {
         // falls back to the original body).
         let rawRewritten = (parsed["rewrittenBody"] as? String) ?? ""
         let rewrittenBody: String? = rawRewritten.isEmpty ? nil : Self.stripObsidianBacklinks(rawRewritten)
-        // v2.7 tag cap (= boss 2026-10-09 round-20
-        // "限制资料库文档的标签数量，要最有
-        // 用的，只能有 3 个标签" directive; =
-        // the LLM was instructed to emit ≤ 3
-        // tags; = this is the last-mile cap
+        // v2.7 tag cap (= boss 2026-10-09 (see OOB.md #2026-10-09)
         // (= the LLM may emit 4 or 5 if it
         // ignored the prompt; = the cap is
         // here as the canonical gate; = the
         // sidebar tag facet remains
         // navigable).
         let cappedTags = Array(tags.prefix(3))
-        // v2.7 (= boss 2026-10-09 round-28
-        // "标签不可以与标题重名" directive; =
-        // a tag identical to the title is
+        // v2.7 (= boss 2026-10-09 (see OOB.md #2026-10-09)
         // redundant (= the title is the
         // canonical name; = the tag is a
         // navigation facet; = having both
@@ -1981,9 +1937,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         // might emit "活字印刷" as title and
         // " 活字印刷 " as a tag).
         let titleNorm = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        // v2.7 (= boss 2026-10-09 round-29
-        // "标签不可以带标点" directive; = the
-        // sidebar tag facet is a navigation
+        // v2.7 (= boss 2026-10-09 (see OOB.md #2026-10-09)
         // filter (= the user clicks a tag to
         // see every reference carrying that
         // tag); = punctuation in a tag breaks
@@ -2066,12 +2020,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         guard let rawArray = json["extraFiles"] as? [[String: Any]] else {
             return []
         }
-        // v2.7 round-69 (= boss 2026-10-10
-        // "6 份必填, 其它不
-        // 在 6 份里的, 可以
-        // 自定义名字, 如果
-        // 归属于世界观, 那就
-        // 放在世界观里" + "5
+        // v2.7 round-69 (= boss 2026-10-10 (see OOB.md #2026-10-10)
         // 自定义 cap" chosen).
         // = 6 mandatory world
         // sub-files + 5 custom
@@ -2208,9 +2157,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         }
     }
 
-    /// v2.7 (= boss 2026-10-09 round-29) = a
-    /// tag that contains any non-letter / non-
-    /// digit / non-CJK character is treated as
+    /// v2.7 (= boss 2026-10-09 (see OOB.md #2026-10-09)
     /// punctuation (= the LLM sometimes emits
     /// `,` to separate what should be two
     /// tags, or `()` to wrap a parenthetical

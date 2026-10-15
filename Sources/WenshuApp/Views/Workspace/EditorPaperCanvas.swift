@@ -215,8 +215,7 @@ struct EditorPaperCanvas<Content: View>: View {
         // (4) `.padding(.horizontal, 10)` so the rendered text
         //     has a 10 PT left/right breathing space (= matches
         //     the engine's textContainerInset via
-        //     WenshuEditorServicesFactory; = boss 2026-10-14
-        //     standing preference = "编辑器左右两边各留 10 PT 的
+        //     WenshuEditorServicesFactory; = boss 2026-10-14 (see OOB.md #2026-10-14)
         //     边距").
         // (5) `.scrollContentBackground(.hidden)` so the
         //     `ScrollView` does not paint its own background

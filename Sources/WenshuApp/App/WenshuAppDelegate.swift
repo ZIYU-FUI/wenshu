@@ -92,8 +92,6 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         set { _sharedConductor = newValue }
     }
 
-
-
     @MainActor @objc func resetLayout(_ sender: Any?) {
         wenshuLogger.info("[wenshu.reset] NSMenu resetLayout(_:) called, posting")
         NotificationCenter.default.post(name: .wenshuResetLayout, object: nil)
@@ -279,7 +277,6 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
             ))
         }
 
-
         NSApp.activate(ignoringOtherApps: true)
         if ProcessInfo.processInfo.environment["WS_SCREENSHOT"] == "1" {
             SelfScreenshot.run()
@@ -337,17 +334,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // visual side by side.
         //
         // 2026-10-14 v2 (=
-        // boss 2026-10-14
-        // "我们不光
-        // 用不了，
-        // 而且要
-        // 把这个
-        // 功能封
-        // 起来 /
-        // 我们不
-        // 能使用
-        // 这两个
-        // 功能"
+        // boss 2026-10-14 (see OOB.md #2026-10-14)
         // directive):
         // the Window Tabs
         // feature is
@@ -979,7 +966,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         try data.write(to: infoPlistURL)
     }
 
-    /// v2.7 round-73 (= boss 2026-10-10): the import
+    /// v2.7 round-73 (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// agent needs the on-disk shelvesRoot (= to
     /// resolve a target book's directory at write
     /// time). Without an active library (= first-launch

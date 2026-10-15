@@ -170,8 +170,7 @@ enum ImportFileType: String, CaseIterable, Identifiable, Codable, Sendable, Hash
         }
     }
 
-    /// v2.7 round-56 (= boss 2026-10-10
-    /// "让提示更短不需截断
+    /// v2.7 round-56 (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// (= 重新设计文案)"
     /// directive). The
     /// placeholders are
@@ -410,18 +409,8 @@ struct ImportTask: Identifiable, Sendable, Hashable {
     /// strip shows "1 主 + N
     /// 拆出").
     var extraFilesDone: Int = 0
-    /// v2.7 round-72 (= boss 2026-10-10
-    /// "B" pick for "让 LLM 必须拆, 但
-    /// 真的没有内容, 拆不出来就拆不出
-        /// v2.7 round-70 (= boss 2026-10-10
-    /// "能在这个导入的过
-    /// 程中, 事实显示
-    /// LLM 的工具调用
-    /// 不, 或者显示
-    /// LLM 在做什么, 读
-    /// 文件, 重写文件,
-    /// 之类的. 给用户更
-    /// 实时的反馈"
+    /// v2.7 round-72 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+        /// v2.7 round-70 (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// feedback). Real-time
     /// LLM activity log
     /// (= the orchestrator
@@ -456,15 +445,7 @@ struct ImportTask: Identifiable, Sendable, Hashable {
     /// without scrolling
     /// forever).
     var activityLog: [String] = []
-    /// v2.7 round-71 (= boss 2026-10-10
-    /// "B" pick for
-    /// LLM 偷懒 = "⚠️
-    /// LLM 没返回
-    /// extraFiles"; =
-    /// multi-turn LLM
-    /// calls; = the user
-    /// sees which of
-    /// the 3 LLM calls
+    /// v2.7 round-71 (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// (= phase 1/2/3) is
     /// currently running).
     /// nil = no LLM call
@@ -548,8 +529,7 @@ actor ImportService {
     /// pressure below the Anthropic / MiniMax
     /// per-second burst limit; = the LLMConnector
     /// adapter handles its own rate limiting for
-    /// v2.7 round-42 (= boss 2026-10-10
-    /// "多数用户的 LLM 并发不能太高"
+    /// v2.7 round-42 (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// directive). The historical
     /// default was 5; = we kept
     /// `defaultMaxParallel = 5` as a
@@ -574,9 +554,7 @@ actor ImportService {
         let contentHash: String
         let destination: ImportDestination
         let writtenAt: Date
-        /// v2.7 round-43 (= boss 2026-10-10
-        /// "如果已经重复过了，再
-        /// 重新调研一次，有些
+        /// v2.7 round-43 (= boss 2026-10-10 (see OOB.md #2026-10-10)
         /// 浪费" directive). The
         /// timestamp of the last
         /// title-only retry on
@@ -1246,9 +1224,7 @@ actor ImportService {
         // retry loop later marks
         // `.routing`).
         let tasksBox = TasksBox(value: tasks)
-        // 4. v2.7 round-43 (= boss 2026-10-10
-        // "如果已经重复过了，再
-        // 重新调研一次，有些
+        // 4. v2.7 round-43 (= boss 2026-10-10 (see OOB.md #2026-10-10)
         // 浪费" directive). The
         // smart skip (= per-file
         // dedup; = the boss's
@@ -1543,9 +1519,7 @@ actor ImportService {
         return out
     }
 
-    // v2.7 round-38 (= boss 2026-10-10
-    // "资料库已经清空了，但我
-    // 导入了上次一样的测试文
+    // v2.7 round-38 (= boss 2026-10-10 (see OOB.md #2026-10-10)
     // 件，自动跳过了" directive).
     /// Verify the cache entry's destination
     /// file still exists on disk. Returns
@@ -1795,14 +1769,7 @@ actor ImportService {
             // the title for the sidebar + the cache for
             // idempotency).
             //
-            // Sanitization (= boss 2026-10-09: "文枢内部
-            // 完整处理" = the title can contain Chinese
-            // characters + punctuation; = we strip path-
-            // unsafe characters + collapse whitespace;
-            // = the max-255-byte limit on most
-            // filesystems is honored via the 80-char
-            // truncation; = an empty / unsafe-only title
-            // falls back to the UUID; = the fallback
+            // Sanitization (= boss 2026-10-09 (see OOB.md #2026-10-09)
             // path is rare (= the LLM is instructed to
             // always return a title; = a missing title
             // would indicate a deeper LLM misbehavior
@@ -2015,9 +1982,7 @@ actor ImportService {
                 at: folderURL,
                 withIntermediateDirectories: true
             )
-            // Write the body verbatim (= boss 2026-10-09
-            // directive "原样落地"; = the LLM did NOT
-            // rewrite the body; = the orchestrator's only
+            // Write the body verbatim (= boss 2026-10-09 (see OOB.md #2026-10-09)
             // job is to put the body at the right path).
             try body.write(to: fileURL, atomically: true, encoding: .utf8)
             // Record the on-disk trail for the
@@ -2143,12 +2108,7 @@ actor ImportService {
         // resolved destination = the dedup pass can
         // short-circuit without touching the LLM).
         //
-        // v2.7 round-40 (= boss 2026-10-10
-        // "写入失败: Reference already
-        // exists on disk" directive; = the
-        // boss's `.import-cache.json` from
-        // a previous wenshu version had
-        // empty `contentHash` values for
+        // v2.7 round-40 (= boss 2026-10-10 (see OOB.md #2026-10-10)
         // 3 files; = `uuidFromHash("")`
         // returned the SAME deterministic
         // UUID for all 3 files; = the
@@ -2358,15 +2318,7 @@ actor ImportService {
     enum ImportServiceError: Error, LocalizedError {
         case missingBookForBookFolderDestination
         /// v2.7 round-66 commit F
-        /// (= boss 2026-10-10
-        /// "故事宪
-        /// 法，没
-        /// 有重
-        /// 新分
-        /// 析是
-        /// 不是
-        /// 内容
-        /// 相同
+        /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
         /// " 反馈).
         /// Sentinel error
         /// thrown by
@@ -2437,11 +2389,7 @@ actor ImportService {
     /// (= 4) and variant (= 10) bits so the UUID round-trips
     /// through `UUID(uuidString:)`.
     ///
-    /// v2.7 round-39 (= boss 2026-10-10
-    /// "点重新调研，会闪退" directive;
-    /// = the previous implementation
-    /// crashed when called with a `hex`
-    /// string shorter than 32 chars
+    /// v2.7 round-39 (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// (= `chars[i*2..<i*2+2]` index out
     /// of range at i=15; = the
     /// `Array._checkIndex` failure
@@ -2532,19 +2480,7 @@ actor ImportService {
 /// caller supplies the storage handles here).
 struct ImportTarget: Sendable {
     /// Where the orchestrator should land the imported
-    /// files (= boss 2026-10-09 round-18 directive
-    /// "导入目标加一个资料库，用户指定了资料
-    /// 库的，就自动全进到资料库。用户指定到书
-    /// 的，就自动全进入到书的五目录。这样可以
-    /// 简化一些提示词。强制让用户分开导入"; =
-    /// the previous version was always
-    /// book-folder + LLM-routed = LLM picked
-    /// between referenceLibrary and 5 book
-    /// folders; = the LLM's classification was
-    /// noisy; = the boss's preferred UX is to
-    /// ask the user ONCE at sheet open time +
-    /// force a single routing destination for
-    /// the whole batch; = the LLM is then
+    /// files (= boss 2026-10-09 (see OOB.md #2026-10-09)
     /// reduced to a metadata-only role (= title
     /// + summary + tags; = the destination
     /// itself is user-pinned)).
@@ -2629,7 +2565,7 @@ struct ImportTarget: Sendable {
     /// `LibraryStores` factory at launch).
     let referenceStore: any ReferenceStoring
 
-    /// v2.7 (= boss 2026-10-09 round-18 "AI 重写
+    /// v2.7 (= boss 2026-10-09 (see OOB.md #2026-10-09)
     /// 程度"). The user-picked rewrite mode; = the
     /// orchestrator reads this in `processFile` and
     /// forwards to the LLM router (= the LLM
@@ -2638,12 +2574,7 @@ struct ImportTarget: Sendable {
     /// the `web_search` tool loop).
     let rewriteMode: ImportFileInput.RewriteMode
 
-    /// v2.7 round-42 (= boss 2026-10-10
-    /// "多数用户的 LLM 并发不能太高，
-    /// 所以同时处理 5 个文件有可能
-    /// 会撞限流，要不慢一点就慢一点
-    /// ，加一个同时处理文件数量。1 2
-    /// 3 4 5，给五个选择。默认选3"
+    /// v2.7 round-42 (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// directive). The user-picked
     /// parallelism for the 5-way
     /// concurrent LLM dispatch loop.
@@ -3127,15 +3058,7 @@ extension ImportService {
             return
         }
         // v2.7 user-pinned destination override
-        // (= boss 2026-10-09 round-18 "导入目标
-        // 加一个资料库，强制让用户分开导入";
-        // = the LLM no longer picks the
-        // destination; = the user picked the
-        // destination ONCE in the sheet; = every
-        // file in the batch lands at that
-        // destination; = the LLM is reduced to a
-        // metadata-only role = title + summary +
-        // tags; = the destination itself is
+        // (= boss 2026-10-09 (see OOB.md #2026-10-09)
         // user-pinned).
         switch target.destination {
         case .referenceLibrary:
@@ -3298,7 +3221,7 @@ extension ImportService {
             // v2.7 round-70: log
             // "读取源文件" (= real-
             // time feedback per
-            // boss 2026-10-10 OOB).
+            // boss 2026-10-10 (see OOB.md #2026-10-10)
             let sourceFileName = (tasksBox.value[i].sourcePath as NSString).lastPathComponent
             await appendActivity(
                 to: tasksBox, i: i,
@@ -3569,15 +3492,7 @@ extension ImportService {
         await onProgress?(tasksBox.value)
     }
 
-    /// v2.7 round-70 (= boss 2026-10-10
-    /// "能在这个导入的过
-    /// 程中, 事实显示
-    /// LLM 的工具调用
-    /// 不, 或者显示
-    /// LLM 在做什么, 读
-    /// 文件, 重写文件,
-    /// 之类的. 给用户更
-    /// 实时的反馈"
+    /// v2.7 round-70 (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// feedback). Append a
     /// single line to a
     /// task's activityLog

@@ -4,7 +4,7 @@
 //  Reference-library storage layer, backed by SwiftData (= the
 //  WSReference @Model class declared in Persistence/WSReference.swift).
 //
-//  Per boss 2026-10-05 OOB ' 8' (= complete the FileSystem*Store →
+//  Per boss 2026-10-05 (see OOB.md #2026-10-05)
 //  SwiftData migration). This is commit 2 of #8.
 //
 //  Apple HIG canonical pattern: Reference's free-form body markdown
@@ -699,10 +699,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
         bodyMarkdown: String,
         referenceLibraryRoot: URL
     ) throws {
-        // v2.7 round-41 (= boss 2026-10-10
-        // "如果真的是撞重名，也要先
-        // 检查一下内容，是不是完全
-        // 一至，如果有差异可以编辑"
+        // v2.7 round-41 (= boss 2026-10-10 (see OOB.md #2026-10-10)
         // directive). The previous
         // implementation threw
         // `referenceAlreadyExists` if

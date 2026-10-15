@@ -2,7 +2,7 @@
 //  ImportEnvelope.swift
 //
 //  Wire envelope types for the v2.7 markdown import feature
-//  (= boss 2026-10-09 directive "导入" / "File > 导入" menu
+//  (= boss 2026-10-09 (see OOB.md #2026-10-09)
 //  entry; = the path that lets the user point wenshu at a
 //  folder of external .md files and have the agent route
 //  each one to either a book folder (= world / characters /
@@ -63,8 +63,7 @@ struct ImportFileInput: Codable, Sendable, Hashable {
     /// into a long-lived Data blob; = see spec "Further Notes"
     /// on the 200+ MB source-directory memory budget).
     let filePath: String
-    /// v2.7 round-36 (= boss 2026-10-09 "在红
-    /// 字后面，加一个小操作文字，
+    /// v2.7 round-36 (= boss 2026-10-09 (see OOB.md #2026-10-09)
     /// 就是基于标题重新调研" directive).
     /// Optional body override (= the
     /// orchestrator pre-constructed a body
@@ -117,13 +116,7 @@ struct ImportFileInput: Codable, Sendable, Hashable {
     /// Nil when `targetBookId` is nil (= same reason).
     let targetShelfId: UUID?
 
-    /// v2.7 (= boss 2026-10-09 round-18 "AI 重写
-    /// 程度: 基于现有内容整理 / 重写同时重新
-    /// 搜索校对"; = the user picks the LLM's
-    /// effort level ONCE at sheet open; = the
-    /// LLM respects the choice; = the orchestrator
-    /// carries it into `writeFile` to decide
-    /// whether to land the original body or the
+    /// v2.7 (= boss 2026-10-09 (see OOB.md #2026-10-09)
     /// LLM-rewritten body).
     let rewriteMode: RewriteMode
 
@@ -132,7 +125,7 @@ struct ImportFileInput: Codable, Sendable, Hashable {
         /// LLM does NOT call any tools; = the LLM
         /// produces metadata (title / summary /
         /// tags); = the body lands verbatim on
-        /// disk (= boss 2026-10-09 "原样落地"
+        /// disk (= boss 2026-10-09 (see OOB.md #2026-10-09)
         /// directive).
         case consolidate
         /// "重写同时重新搜索校对" (= Token 高消耗)
@@ -145,12 +138,7 @@ struct ImportFileInput: Codable, Sendable, Hashable {
         /// search results; = the new body lands on
         /// disk in place of the original).
         case searchAndRewrite
-        /// v2.7 round-67 (= boss 2026-10-10
-        /// "LLM 偷懒了, 没有把内容重新组织, 填入
-        /// 到各个必填中去, 导致所有必填都空, MD
-        /// 整体还保留了原来的格式和样式" 反馈; =
-        /// "我希望的是, 如果用户原文件格式是 A,
-        /// 我们的模版是 B, 导入时, 重新组织 A,
+        /// v2.7 round-67 (= boss 2026-10-10 (see OOB.md #2026-10-10)
         /// 符合 B" 需求). The LLM **actively
         /// reorganizes** the source A into B's
         /// template structure (= 6 H2 for world
@@ -236,7 +224,7 @@ struct ImportRoutingResult: Codable, Sendable, Hashable {
     /// override the routing via chat (= the `confidence`
     /// field is plumbing for that feature).
     let confidence: Double
-    /// v2.7 (= boss 2026-10-09 round-18 "重写同时
+    /// v2.7 (= boss 2026-10-09 (see OOB.md #2026-10-09)
     /// 搜索校对" mode). When the user picked the
     /// `searchAndRewrite` rewriteMode, the LLM is
     /// expected to search the web for the
@@ -248,10 +236,7 @@ struct ImportRoutingResult: Codable, Sendable, Hashable {
     /// `consolidate` mode (= the orchestrator
     /// keeps the original body verbatim).
     let rewrittenBody: String?
-    /// v2.7 round-67 (= boss 2026-10-10
-    /// "甚至原文件 A 的内容, 与我们的 B
-    /// 模版不符合, 多了很我非模版的内
-    /// 容, 我希望能自动拆出一个文件, 放
+    /// v2.7 round-67 (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// 在合适的目录中去" 反馈). When the
     /// user picked the `reorganize` rewriteMode,
     /// the LLM may return additional files
@@ -272,16 +257,7 @@ struct ImportRoutingResult: Codable, Sendable, Hashable {
     let extraFiles: [ExtraFile]
 }
 
-/// v2.7 round-71 (= boss 2026-10-10
-/// "B" pick for
-/// "⚠️ LLM 没返回
-/// extraFiles" =
-/// multi-turn LLM
-/// calls; = the
-/// previous single-LLM-
-/// call approach had
-/// the LLM doing 5
-/// things at once
+/// v2.7 round-71 (= boss 2026-10-10 (see OOB.md #2026-10-10)
 /// (= classification +
 /// metadata + main
 /// body + 6 必填 +
@@ -331,9 +307,7 @@ struct ExtraFile: Codable, Sendable, Hashable {
     /// write time; = no frontmatter
     /// required).
     let body: String
-    /// v2.7 round-69 (= boss 2026-10-10
-    /// "6 份必填, 其它不在
-    /// 6 份里的, 可以自
+    /// v2.7 round-69 (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// 定义名字" feedback).
     /// True = this is one of
     /// the 6 mandatory

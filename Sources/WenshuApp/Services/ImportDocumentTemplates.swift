@@ -1,22 +1,7 @@
 //
 //  ImportDocumentTemplates.swift · Wenshu
 //
-//  v2.7 round-59 (= boss 2026-10-10 "我
-//  刚刚用单文件导入的方式，
-//  导入了三个文件，你对比一
-//  下源文件，就会发现文件
-//  内容被删没了。没有真正
-//  的落地. 为了解决这个问题
-//  ，我觉的重写文件不能靠
-//  LLM 来约束. 而是要有一
-//  个模版，是文枢项目要求
-//  的各目录文档模版. 这个
-//  模版会约束导入的内容重
-//  写，不够的要去调研，或
-//  者用缺失占位，告诉用
-//  户当前世界观设定不足
-//  ，无法成为约束. 这个
-//  模版我需要你去调研一
+//  v2.7 round-59 (= boss 2026-10-10 (see OOB.md #2026-10-10)
 //  下" directive). The 5
 //  document templates that
 //  constrain the import
@@ -58,15 +43,7 @@
 //  outlines / chapters /
 //  drafts. The reference
 //  library has its own
-//  schema (= boss 2026-10-09
-//  round-25 "不要参考 MD 的
-//  格式，而是盘点文枢的
-//  功能，做出文枢的头
-//  部格式"; = the reference
-//  library uses the
-//  必填 3 行 + 可选 2 行
-//  header; = that's
-//  Reference's fields, not a
+//  schema (= boss 2026-10-09 (see OOB.md #2026-10-09)
 //  story-document template).
 //
 //  Each template is a
@@ -80,19 +57,7 @@
 //  take). The template
 //  design principles:
 //  1. **Format tightens** (=
-//     boss 2026-10-10 "模版可
-//     以在格式上收紧一
-//     些. 让用户能一眼看
-//     书这是文枢生成的
-//     内容"; = the format
-//     is fixed; = the
-//     headings are
-//     predetermined; = the
-//     LLM fills the
-//     content under each
-//     heading; = the user
-//     can scan the document
-//     and see the canonical
+//     boss 2026-10-10 (see OOB.md #2026-10-10)
 //     structure immediately).
 //  2. **Missing fields use
 //     placeholders** (= boss
@@ -164,12 +129,7 @@
 
 import Foundation
 
-/// v2.7 round-69 (= boss 2026-10-10
-/// "6 份, 同时标题就是这
-/// 6 份的标题, 无论用户
-/// 导入的世界观文件是什
-/// 么, 这六个文件是必须
-/// 的. 不全就是世界观设
+/// v2.7 round-69 (= boss 2026-10-10 (see OOB.md #2026-10-10)
 /// 定不完整" feedback).
 /// The world/ folder is
 /// split into 6 separate
@@ -679,9 +639,7 @@ enum ImportDocumentTemplate: String, CaseIterable, Sendable {
             .joined(separator: "\n")
     }
 
-    /// v2.7 round-67 boss 2026-10-10
-    /// "强制去反链" feedback.
-    /// Strip Obsidian backlinks **inline**
+    /// v2.7 round-67 boss 2026-10-10 (see OOB.md #2026-10-10)
     /// (= anywhere in the line, not just
     /// whole-line matches). The pattern is
     /// `[[xxx]]` OR `![[xxx]]` (= image
@@ -728,10 +686,7 @@ enum ImportDocumentTemplate: String, CaseIterable, Sendable {
         return result
     }
 
-    /// v2.7 round-67 boss 2026-10-10
-    /// "强制去版本记录, 这些东西在我们的
-    /// 项目没有意思" feedback. A line is a
-    /// "version record" if its leading label
+    /// v2.7 round-67 boss 2026-10-10 (see OOB.md #2026-10-10)
     /// (= the substring before the first
     /// `:`) matches one of the known version
     /// metadata prefixes (= Chinese or
@@ -826,13 +781,7 @@ enum ImportDocumentTemplate: String, CaseIterable, Sendable {
     /// worldbuilding template +
     /// adazing.com worldbuilding.
     ///
-    /// v2.7 round-69 (= boss 2026-10-10
-    /// "6 份, 同时标题就是
-    /// 这 6 份的标题, 无论
-    /// 用户导入的世界观文
-    /// 件是什么, 这六个文
-    /// 件是必须的. 不全就
-    /// 是世界观设定不完整"
+    /// v2.7 round-69 (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// feedback). The world/
     /// folder now has 6
     /// mandatory .md files

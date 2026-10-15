@@ -36,13 +36,7 @@ import AppKit
 /// unified `开始导入` / `取消` button row.
 struct ImportSheet: View {
 
-    /// v2.7 round-44 (= boss 2026-10-10
-    /// "我觉的这个流程需要
-    /// 重构一下 我感觉
-    /// 现在在这同一个弹窗
-    /// 里跑所有步骤，按钮
-    /// 等 判断会变复杂
-    /// 我想改成引导式多步
+    /// v2.7 round-44 (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// 骤交互" directive).
     /// The 4-step wizard state (= the
     /// canonical Apple HIG macOS
@@ -118,8 +112,7 @@ struct ImportSheet: View {
         self._isPresented = isPresented
         self.prefillDestination = prefillDestination
         self.prefillBookID = prefillBookID
-        // v2.7 boss 2026-10-09 round-22 "右键
-        // 十二地仙... 目标书籍没有自动选
+        // v2.7 boss 2026-10-09 (see OOB.md #2026-10-09)
         // 定十二地仙" (= `.onAppear` only
         // fires once per sheet instance; =
         // re-opening via contextMenu after a
@@ -239,15 +232,12 @@ struct ImportSheet: View {
     }
     @State private var importDestination: ImportDestination = .book
 
-    /// v2.7 (= boss 2026-10-09 round-18 "AI
+    /// v2.7 (= boss 2026-10-09 (see OOB.md #2026-10-09)
     /// 重写程度"). The user picks ONCE at sheet
     /// open; = the LLM's tool set + the
     /// orchestrator's write path both
     /// respect this; = default = `reorganize`
-    /// (= boss 2026-10-10 "智能重组" choice;
-    /// = LLM actively reorganizes A → B;
-    /// = can also split A's non-B content
-    /// into separate .md files via
+    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// `extraFiles`).
     @State private var rewriteMode: ImportFileInput.RewriteMode = .reorganize
 
@@ -256,14 +246,7 @@ struct ImportSheet: View {
     /// shows one row per file).
     @State private var tasks: [ImportTask] = []
 
-    /// v2.7 round-42 (= boss 2026-10-10
-    /// "多数用户的 LLM 并发不能
-    /// 太高，所以同时处理 5
-    /// 个文件有可能会撞限流
-    /// ，要不慢一点就慢一点，
-    /// 加一个同时处理文件数
-    /// 量。1 2 3 4 5，给五
-    /// 个选择。默认选3"
+    /// v2.7 round-42 (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// directive). The user-picked
     /// parallelism for the 5-way
     /// concurrent LLM dispatch
@@ -367,17 +350,12 @@ struct ImportSheet: View {
     /// sheet classifies each .md file via the project's
     /// standard 2-pass keyword + LLM classifier; = no
     /// new inference path; = "用文枢正常机制来推出" per
-    /// boss 2026-10-09 OOB).
+    /// boss 2026-10-09 (see OOB.md #2026-10-09)
     private let router: any ImportRouter = WenshuConductorImportRouter()
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingModerate) {
-            // v2.7 round-46 (= boss 2026-10-10
-            // "截图红框的大标题
-            // 不需要. 用户点
-            // 导入进来的，知道
-            // 这个弹窗就是导入
-            // ，不需要标题"
+            // v2.7 round-46 (= boss 2026-10-10 (see OOB.md #2026-10-10)
             // directive). The
             // "导入 Markdown 文件"
             // title is REMOVED
@@ -398,8 +376,7 @@ struct ImportSheet: View {
             // more vertical
             // breathing room).
 
-            // v2.7 round-44 (= boss 2026-10-10
-            // "引导式多步骤交互"
+            // v2.7 round-44 (= boss 2026-10-10 (see OOB.md #2026-10-10)
             // directive). The 4-step
             // dot indicator at the top of
             // the sheet (= canonical
@@ -709,8 +686,7 @@ struct ImportSheet: View {
         tasks.contains { $0.state == .failed }
     }
 
-    // v2.7 round-36 (= boss 2026-10-09 "在红字
-    // 后面，加一个小操作文字，就是基
+    // v2.7 round-36 (= boss 2026-10-09 (see OOB.md #2026-10-09)
     // 于标题重新调研" directive). The
     // "重新调研所有失败" button is only
     // visible when at least one task failed
@@ -732,7 +708,7 @@ struct ImportSheet: View {
         failedReadFileCount > 0 && !isImporting && !isRetryingFailed
             && isRunComplete
     }
-    /// v2.7 round-36 (= boss 2026-10-09 "在
+    /// v2.7 round-36 (= boss 2026-10-09 (see OOB.md #2026-10-09)
     /// 红字后面" directive). True while
     /// `retryFailedTasksTitleOnly` is
     /// mid-flight (= the button flips to
@@ -882,10 +858,7 @@ struct ImportSheet: View {
         }
     }
 
-    /// v2.7 round-57 (= boss 2026-10-10
-    /// "现在有个问题, 我
-    /// 们只能选目录, 而
-    /// 不能选择单文件"
+    /// v2.7 round-57 (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// directive). The
     /// NSOpenPanel now
     /// allows BOTH file
@@ -1117,9 +1090,7 @@ struct ImportSheet: View {
         }
     }
 
-    // v2.7 round-36 (= boss 2026-10-09 "在
-    // 红字后面，加一个小操作文
-    // 字，就是基于标题重新调
+    // v2.7 round-36 (= boss 2026-10-09 (see OOB.md #2026-10-09)
     // 研" directive). The
     // "重新调研所有失败" button
     // handler. Reuses the same
@@ -1268,10 +1239,7 @@ struct ImportSheet: View {
 // MARK: - 4-step wizard helpers
 
 extension ImportSheet {
-    /// v2.7 round-47 (= boss 2026-10-10
-    /// "dot 如果没有进
-    /// 到下一步，dot
-    /// 就不能跳到下一
+    /// v2.7 round-47 (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// 步骤" directive).
     /// The reachability
     /// predicate for the
@@ -1954,11 +1922,7 @@ extension ImportSheet {
     /// user is now in review/retry
     /// mode).
     ///
-    /// v2.7 round-50 (= boss 2026-10-10
-    /// "步骤二的按钮换个
-    /// 位置，挨着完成放
-    /// 然后操作上面需要
-    /// 也加一条分割线"
+    /// v2.7 round-50 (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// directive). The
     /// "重新调研所有失败"
     /// total button
@@ -2073,8 +2037,7 @@ extension ImportSheet {
     /// already done with the
     /// import).
     ///
-    /// v2.7 round-58 (= boss 2026-10-10
-    /// "这个区域的文字没有
+    /// v2.7 round-58 (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// 左对齐" directive).
     /// The previous
     /// implementation
@@ -2254,10 +2217,7 @@ private struct ImportTaskRow: View {
         if task.extraFilesTotal > 0 {
             extraFilesCaption
         }
-        // v2.7 round-72 (= boss 2026-10-10
-        // final pick: "让 LLM 必须拆,
-        // 但真的没有内容, 拆不出来就
-        // 拆不出来, 但拆的东西必须要
+        // v2.7 round-72 (= boss 2026-10-10 (see OOB.md #2026-10-10)
         // 做"). When the LLM could not
         // extract the 6 必填 (= phase 2
         // empty), show a small ⚠️
@@ -2268,18 +2228,7 @@ private struct ImportTaskRow: View {
         // pattern; = SF Symbol
         // exclamationmark.triangle.fill
         // + orange + caption font).
-        // v2.7 round-70 (= boss 2026-10-10
-        // "能在这个导入
-        // 的过程中, 事
-        // 实显示 LLM
-        // 的工具调用
-        // 不, 或者显
-        // 示 LLM 在
-        // 做什么, 读
-        // 文件, 重写
-        // 文件, 之类
-        // 的. 给用户
-        // 更实时的反
+        // v2.7 round-70 (= boss 2026-10-10 (see OOB.md #2026-10-10)
         // 馈" feedback).
         // Real-time LLM
         // activity log
@@ -2310,8 +2259,7 @@ private struct ImportTaskRow: View {
         }
     }
 
-    /// v2.7 round-70 (= boss 2026-10-10
-    /// "给用户更实时的反
+    /// v2.7 round-70 (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// 馈" feedback). Real-time
     /// LLM activity log
     /// (= a scrolling
@@ -2380,7 +2328,6 @@ private struct ImportTaskRow: View {
         .foregroundStyle(.tertiary)
         .lineLimit(1)
     }
-
 
     @ViewBuilder
     private var statePill: some View {
@@ -2628,7 +2575,7 @@ private struct StubImportRouterForSheet: ImportRouter {
 
 // MARK: - Wizard chrome (= step indicator + nav bar)
 
-/// v2.7 round-44 (= boss 2026-10-10
+/// v2.7 round-44 (= boss 2026-10-10 (see OOB.md #2026-10-10)
 /// "引导式多步骤交互" directive).
 /// The 4-step dot indicator at the
 /// top of the sheet. Apple HIG
@@ -2734,11 +2681,7 @@ private struct WizardStepIndicator: View {
 
 // MARK: - Pages-style picker card
 
-/// v2.7 round-49 (= boss 2026-10-10
-/// "每一行的背景矩形
-/// 不需要, 每一类
-/// 的小标题不需要
-/// ，用一条分割线
+/// v2.7 round-49 (= boss 2026-10-10 (see OOB.md #2026-10-10)
 /// 分割" directive).
 /// The Pages macOS 27
 /// inspector row pattern
@@ -2863,9 +2806,7 @@ private struct PickerSectionLabel: View {
 
 /// v2.7 round-45: the wizard chrome (= step indicator + nav bar)
 ///
-/// v2.7 round-45 (= boss 2026-10-10
-/// "UI 参考, pages 的
-/// mac os 27 的样式"
+/// v2.7 round-45 (= boss 2026-10-10 (see OOB.md #2026-10-10)
 /// directive). The nav bar
 /// is updated to match the
 /// Pages inspector panel
@@ -2881,9 +2822,7 @@ private struct PickerSectionLabel: View {
 /// nav bar is part of
 /// the panel, not a
 /// separate footer").
-/// v2.7 round-48 (= boss 2026-10-10
-/// "第一步的页面，
-/// 不应该有上一步"
+/// v2.7 round-48 (= boss 2026-10-10 (see OOB.md #2026-10-10)
 /// directive). The "上
 /// 一步" button is
 /// HIDDEN on step 1
@@ -2974,10 +2913,7 @@ private struct WizardStepNavBar: View {
     }
 }
 
-// v2.7 round-52 (= boss 2026-10-10
-// "我画的红线处, 缺一
-// 条分割先. 让操作区
-// 和设定区分开"
+// v2.7 round-52 (= boss 2026-10-10 (see OOB.md #2026-10-10)
 // directive). The hairline
 // Divider between the
 // step's per-step content

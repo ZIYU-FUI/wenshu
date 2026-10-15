@@ -196,7 +196,7 @@ enum CardOpenOps {
                     // user's edits back. Without
                     // the path, the user's reference
                     // edits were lost across relaunch
-                    // (= the boss 2026-10-14 "自动
+                    // (= the boss 2026-10-14 (see OOB.md #2026-10-14)
                     // 保存机制是假的" report).
                     path: bookStore.flatMap {
                         FileSystemReferenceStore
@@ -295,34 +295,7 @@ enum CardOpenOps {
                         // through to
                         // `/tmp/wenshu-preview-sample.md`
                         // (= the
-                        // boss 2026-10-14
-                        // "修改了
-                        // 不保存"
-                        // root
-                        // cause;
-                        // = the
-                        // book
-                        // edits
-                        // never
-                        // landed
-                        // on
-                        // the
-                        // canonical
-                        // shelves
-                        // file;
-                        // = the
-                        // next
-                        // launch
-                        // loaded
-                        // the
-                        // stale
-                        // shelves
-                        // file
-                        // and
-                        // the
-                        // user's
-                        // edits
-                        // were
+                        // boss 2026-10-14 (see OOB.md #2026-10-14)
                         // gone).
                         // The
                         // `loadBookDoc`
@@ -618,9 +591,7 @@ enum CardOpenOps {
     /// fallback; = the user
     /// reported the book-doc
     /// edits as "修改了不保存"
-    /// = the boss 2026-10-14
-    /// "从这里开始，里的帮助
-    /// 这本书，修改了不保存"
+    /// = the boss 2026-10-14 (see OOB.md #2026-10-14)
     /// root cause). The
     /// `bookDoc` source passed
     /// to `computeCardTriad` is

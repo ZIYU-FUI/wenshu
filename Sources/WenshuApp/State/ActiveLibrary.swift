@@ -3,7 +3,7 @@
 //
 //  Single canonical accessor for the user's active .ws library URL.
 //
-//  Per the boss 2026-10-05 OOB: 'we have no users; before release we
+//  Per the boss 2026-10-05 (see OOB.md #2026-10-05)
 //  don't need forward-compat'. One source of truth (=
 //  LibraryBookmark's security-scoped bookmark Data; see
 //  State/LibraryBookmark.swift). No legacy fallback path. The
@@ -21,7 +21,7 @@ import Foundation
 /// Single source of truth for the user's active .ws library path string.
 ///
 /// Apple HIG canonical pattern (= security-scoped bookmark).
-/// Per boss 2026-10-05 OOB: 'no users, no forward compat'; = the
+/// Per boss 2026-10-05 (see OOB.md #2026-10-05)
 /// bookmark is the SOLE persistence. Consumers call `ActiveLibrary.path`
 /// instead of `UserDefaults.standard.string(forKey: "wenshu.libraryPath")`.
 enum ActiveLibrary {

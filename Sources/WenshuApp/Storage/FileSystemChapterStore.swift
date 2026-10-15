@@ -3,7 +3,7 @@
 // Per-book chapter storage layer, backed by SwiftData (= the
 // WSChapter @Model class declared in Persistence/WSChapter.swift).
 //
-// Per boss 2026-10-05 OOB ' 8': this is the #8
+// Per boss 2026-10-05 (see OOB.md #2026-10-05)
 // FileSystem*Store → SwiftData migration commit 1.
 //
 // Apple HIG canonical pattern for SwiftData from an actor-based
@@ -16,7 +16,7 @@
 // know about SwiftData's isolation contract; = the store handles
 // the MainActor hop).
 //
-// Per boss 2026-10-05 OOB 'no users, no forward-compat': there is
+// Per boss 2026-10-05 (see OOB.md #2026-10-05)
 // no migration code from the old FileSystem JSON to SwiftData
 // (= a returning user with chapters on disk would have to import
 // them via the future Import-from-v1-JSON feature; = not in scope
@@ -36,7 +36,7 @@ private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "filesystem
 
 // MARK: - Protocol
 
-/// Per boss 2026-10-05 OOB ' 8' (= the #8 FileSystem*Store →
+/// Per boss 2026-10-05 (see OOB.md #2026-10-05)
 /// SwiftData migration): the chapter store protocol is
 /// `@MainActor`-isolated because the SwiftData path requires
 /// MainActor access (= ModelContext is MainActor-isolated; =

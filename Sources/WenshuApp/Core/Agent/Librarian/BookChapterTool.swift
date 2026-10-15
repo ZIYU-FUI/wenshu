@@ -105,7 +105,7 @@ actor BookChapterActor {
     /// Test-only body accessor.
     func readBodyForTest(id: UUID) async -> String? {
         guard let dir = bookDirectoryProvider() else { return nil }
-        // Per boss 2026-10-05 OOB ' 8' (= the #8 FileSystem*Store
+        // Per boss 2026-10-05 (see OOB.md #2026-10-05)
         // → SwiftData migration commit 1): actor-based callers
         // can't instantiate the @MainActor-isolated
         // FileSystemChapterStore struct (= SwiftData's ModelContext
@@ -152,56 +152,7 @@ actor BookChapterActor {
 
     // MARK: - Agent gate v2.7 round-61
 
-    /// v2.7 round-61 (= boss 2026-10-10
-    /// "Agent 行为 gate.
-    /// 这个行来不是全
-    /// 部这样，是我让
-    /// agent 推进小说
-    /// 写作的时候，
-    /// 才这样，我如
-    /// 果让他改世界
-    /// 观，他还是
-    /// 要能改的" +
-    /// "Agent 写正文一
-    /// 律先写草稿。
-    /// 写正文时先写
-    /// 草稿，由用户
-    /// 手动提升级正
-    /// 文. 其它文件
-    /// 正常修改.
-    /// 提升为正文的
-    /// 内容，成为
-    /// 下阶段的约束
-    /// ，Agent 在没
-    /// 有用户允许的
-    /// 情况下，不能
-    /// 编辑正文的文
-    /// 档内容" +
-    /// "这个你来决定
-    /// ，需求就是，
-    /// 写正文时先写
-    /// 草稿，由用户
-    /// 手动提升级正
-    /// 文。其它文件
-    /// 正常修改.
-    /// 提升为正文的
-    /// 内容，成为
-    /// 下阶段的约束
-    /// ，Agent 在没
-    /// 有用户允许的
-    /// 情况下，不能
-    /// 编辑正文的
-    /// 文档内容.
-    /// 这个后面要有
-    /// 限制，如果正
-    /// 文设定被改
-    /// ，有可能很多
-    /// 正文要同步改
-    /// . 这个暂存.
-    /// 本需求先把目
-    /// 录和模版搞定
-    /// . 然后把权限
-    /// 门做了"
+    /// v2.7 round-61 (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// directive). The
     /// agent gate is
     /// implemented at

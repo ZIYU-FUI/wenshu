@@ -9,8 +9,7 @@
 // just renders the icon + title + subtitle (= the Apple HIG
 // sidebar row content).
 //
-// v2.7 round-33 (= boss 2026-10-10 "如果当前
-// 选中是别的，但鼠标直接在十二地仙
+// v2.7 round-33 (= boss 2026-10-10 (see OOB.md #2026-10-10)
 // 处右键，点导入，就不能带入" directive):
 // SidebarRowView now carries a per-row
 // `.contextMenu(menuItems:)` (= the
@@ -113,8 +112,7 @@ struct SidebarRowView: View {
             .listRowInsets(node.kind == .divider
                             ? EdgeInsets(top: DesignTokens.spacingIconic, leading: 0, bottom: DesignTokens.spacingIconic, trailing: 0)
                             : EdgeInsets())
-            // v2.7 round-31 (= boss 2026-10-10
-            // "分割线也能点选了，分割线
+            // v2.7 round-31 (= boss 2026-10-10 (see OOB.md #2026-10-10)
             // 不可点中" directive): divider
             // rows are visual separators, not
             // content rows. The previous code
@@ -407,9 +405,7 @@ struct SidebarRowCallbacks {
     let onDeleteBook: (UUID, String) -> Void
     let resolveShelf: (UUID) -> (id: UUID, name: String)?
     let resolveBook: (UUID) -> (id: UUID, name: String)?
-    /// v2.7 (= boss 2026-10-09 round-18 "右键
-    /// 点资料库，点导入，进到弹窗后，目标
-    /// 自动选好资料库。右键点书的时候目
+    /// v2.7 (= boss 2026-10-09 (see OOB.md #2026-10-09)
     /// 标自动选好对应的书" directive).
     let onImportToReferenceLibrary: () -> Void
     let onImportToBook: (UUID) -> Void

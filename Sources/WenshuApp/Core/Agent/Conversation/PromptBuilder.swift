@@ -345,7 +345,6 @@ extension PromptBuilder {
     }
 }
 
-
 // MARK: - Environment hints (= hermes build_environment_hints)
 
 extension PromptBuilder {
@@ -430,7 +429,7 @@ extension PromptBuilder {
 //  confirmed 0 wenshu callers across Sources/ + Tests/; = the two
 //  functions were hermes-Python-port surfaces (agent/prompt_builder.py
 //  format_steer_marker + computer_use_guidance) kept as verbatim stubs
-//  per the prior "wins" rule; = per boss 2026-10-04 OOB
+//  per the prior "wins" rule; = per boss 2026-10-04 (see OOB.md #2026-10-04)
 //  "wenshu Agent capabilities are reimplemented (Swift clones of
 //  hermes Python), not direct hermes links", the stubs are removed; =
 //  any future wenshu reimplementation will be a regular PromptBuilder
@@ -589,7 +588,7 @@ extension PromptBuilder {
     //  grep confirmed 0 wenshu callers across Sources/ + Tests/; = the
     //  function was a hermes-Python-port surface (agent/prompt_builder.py
     //  build_nous_subscription_prompt L1686-L1754) that always returned
-    //  "" since wenshu is not a Nous user; = per boss 2026-10-04 OOB
+    //  "" since wenshu is not a Nous user; = per boss 2026-10-04 (see OOB.md #2026-10-04)
     //  "wenshu Agent capabilities are reimplemented (Swift clones of
     //  hermes Python), not direct hermes links", the stub is removed; =
     //  any future wenshu reimplementation will be a regular PromptBuilder

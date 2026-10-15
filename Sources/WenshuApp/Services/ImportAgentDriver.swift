@@ -1,7 +1,5 @@
 //
-//  ImportAgentDriver.swift · wenshu · round-73 (= boss 2026-10-10)
-//
-//  v2.7 round-73: the driver that wires the
+//  ImportAgentDriver.swift · wenshu · round-73 (= boss 2026-10-10 (see OOB.md #2026-10-10)
 //  wenshu 文档管理员 (= the wenshu main
 //  agent) into the ImportService flow.
 //
@@ -142,7 +140,7 @@ struct ImportAgentDriver: Sendable {
         // ── Step 8: return the outcome.
         await progress?("agent finished (= \(result.messages.count) messages)")
         let lastAssistant = result.messages.last
-        // v2.7 round-73 (boss 2026-10-10
+        // v2.7 round-73 (boss 2026-10-10 (see OOB.md #2026-10-10)
         // PO 双轴 MED finding): count the
         // number of assistant turns that
         // made at least one tool_use call

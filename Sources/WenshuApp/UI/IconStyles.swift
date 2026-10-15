@@ -829,7 +829,7 @@ struct SFLabelRow: View {
             //
             // No explicit .symbolRenderingMode here (= the SFIcon
             // factory owns the rendering decision via IconStyle.sidebar
-            // = .monochrome; per the boss 2026-10-08 finding,
+            // = .monochrome; per the boss 2026-10-08 (see OOB.md #2026-10-08)
             // .hierarchical + .foregroundStyle(Color.primary)
             // surfaces the icon as system tint = accent = blue;
             // only .monochrome renders Color.primary as the

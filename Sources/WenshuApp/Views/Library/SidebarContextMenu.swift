@@ -96,9 +96,7 @@ struct SidebarContextMenuModifier: ViewModifier {
     let onDeleteBook: (UUID, String) -> Void
     let resolveShelf: (UUID) -> (id: UUID, name: String)?
     let resolveBook: (UUID) -> (id: UUID, name: String)?
-    /// v2.7 (= boss 2026-10-09 round-18 "右键
-    /// 点资料库，点导入，进到弹窗后，目
-    /// 标自动选好资料库。右键点书的时
+    /// v2.7 (= boss 2026-10-09 (see OOB.md #2026-10-09)
     /// 候目标自动选好对应的书" directive).
     /// When the user right-clicks the
     /// reference library, the menu adds

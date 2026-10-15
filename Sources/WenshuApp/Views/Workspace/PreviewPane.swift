@@ -57,10 +57,7 @@ private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "previewpan
 // PreviewPane when the user picks them via API (= no UI yet for
 // picking non-sidebar folders; deferred to v0.31).
 //
-// v2.7 round-60 (= boss 2026-10-10
-// "看样需要加一个目录
-// ，放你现在的草稿
-// ，类似构思"
+// v2.7 round-60 (= boss 2026-10-10 (see OOB.md #2026-10-10)
 // directive). The
 // `ideas` (= 构思)
 // case is added
@@ -125,13 +122,7 @@ enum BookFolder: String, CaseIterable, Codable, Sendable, Hashable {
         BookFolderCatalog.spec(for: rawValue)?.cardDisplayName ?? rawValue
     }
 
-    /// v2.7 round-59 (= boss 2026-10-10
-    /// "我觉的重写文件不
-    /// 能靠 LLM 来约束
-    /// . 而是要有一个
-    /// 模版，是文枢项
-    /// 目要求的各目录
-    /// 文档模版"
+    /// v2.7 round-59 (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// directive). The
     /// import template
     /// (= markdown
@@ -149,10 +140,7 @@ enum BookFolder: String, CaseIterable, Codable, Sendable, Hashable {
     /// path yet).
     ///
     /// v2.7 round-60
-    /// (= boss 2026-10-10
-    /// "看样需要加一个
-    /// 目录，放你现在
-    /// 的草稿，类似
+    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// 构思" directive).
     /// `ideas` (= 构思)
     /// returns a light-
@@ -1560,7 +1548,6 @@ struct PreviewPane: View {
         }
     }
 
-
     /// Shelf scope: union of every book's docs under the shelf.
     /// 
     /// The shelf row is a scope (= shows every .md
@@ -1640,8 +1627,6 @@ struct PreviewPane: View {
             bodyKey: "preview.empty.scope_hint"
         )
     }
-
-
 
     // MARK: - 3 view modes
 
@@ -2393,9 +2378,7 @@ internal enum CardSource {
         }
     }
 
-    /// v2.7 boss 2026-10-09 round-26 "在素材栏卡
-    /// 片上加一行标签显示" directive; = the
-    /// card now surfaces the reference's tag
+    /// v2.7 boss 2026-10-09 (see OOB.md #2026-10-09)
     /// set (= the .ws library's cross-cutting
     /// facet; = the user previously had no
     /// way to see which 3 tags a card
@@ -2565,10 +2548,7 @@ private struct Card: View {
     /// behavior here — switching scope = "fresh start" for the
     /// double-click detector; = (see OOB.md) — 'directory,').
     ///
-    /// 2026-10-14 v7.3 fix (= the boss 2026-10-14
-    /// "双击文枢是什么, 没
-    /// 有响应" / "疯狂双
-    /// 击, 没有打开" root
+    /// 2026-10-14 v7.3 fix (= the boss 2026-10-14 (see OOB.md #2026-10-14)
     /// cause): the previous
     /// `@State` was reset on
     /// every SwiftUI body
@@ -2624,13 +2604,7 @@ private struct Card: View {
     /// 2026-10-14 v7.4 debug:
     /// log every tap on the
     /// Card (= helps localize
-    /// the boss 2026-10-14
-    /// "打不开" / "log 空"
-    /// root cause; = is the
-    /// tap reaching the Card
-    /// at all? = is the
-    /// `static clickCountByID`
-    /// the v7.3 fix is in
+    /// the boss 2026-10-14 (see OOB.md #2026-10-14)
     /// effect?).
     private func cardTapped() {
         let cardID: UUID? = {
@@ -2688,17 +2662,7 @@ private struct Card: View {
                     .font(.headline)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
-                // v2.7 boss 2026-10-09 round-26
-                // "在素材栏卡片上加一行标签
-                // 显示，在标题下面一行，在
-                // 一句话介绍上一行" directive; =
-                // the user needs to see which 3
-                // tags a reference carries without
-                // opening the .md body; = render the
-                // tag list as small chip-style
-                // pills in a single line between
-                // title and summary; = use the
-                // canonical wenshu design-token
+                // v2.7 boss 2026-10-09 (see OOB.md #2026-10-09)
                 // spacing (= 6 PT = spacingTight
                 // inside the VStack) and the
                 // secondary-tint foreground so the
@@ -2710,10 +2674,7 @@ private struct Card: View {
                             Text(tag)
                                 .font(.caption2)
                                 .foregroundStyle(.secondary)
-                                // v2.7 boss 2026-10-09 round-27
-                                // "文字在胶囊内的左右边距
-                                // 加一点" directive; = the
-                                // previous spacingCaption
+                                // v2.7 boss 2026-10-09 (see OOB.md #2026-10-09)
                                 // (= 2 PT) was too tight; =
                                 // tag text was visually flush
                                 // against the chip border;
@@ -2873,9 +2834,7 @@ private struct Card: View {
         .onHover { isHovered = $0 }
         .contentShape(Rectangle())
         // 2026-10-14 v7.5 (= the
-        // boss 2026-10-14
-        // "log 空" / "我
-        // 没那么傻"
+        // boss 2026-10-14 (see OOB.md #2026-10-14)
         // root-cause):
         // the previous
         // `.onTapGesture`

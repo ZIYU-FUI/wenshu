@@ -27,8 +27,7 @@ import WenshuData
 /// LibraryStoring impl backed by FileSystem (= with SwiftData
 /// bridging for the production path).
 ///
-/// Per boss 2026-10-05 OOB ' 8' (= complete the FileSystem*Store →
-///
+/// Per boss 2026-10-05 (see OOB.md #2026-10-05)
 /// SwiftData migration), this commit converts the FileSystemLibraryStore
 /// to a `@MainActor` struct (= matches the SwiftData ModelContext
 /// contract); = the 1 caller (= WenshuApp) is itself @MainActor, so

@@ -115,11 +115,7 @@ enum WenshuEditorServicesFactory {
         // column = 1100+ PT), = the visible text
         // has ~250 PT of left padding + ~250 PT of
         // right padding (= the user-reported "上左
-        // 右都留了内边距" symptom). The boss 2026-10-14
-        // standing preference is "上 0 / 左 10 /
-        // 右 10 / 下 0" = only 10 PT of horizontal
-        // padding, not the 250-PT centered
-        // reading-column behavior. Restore
+        // 右都留了内边距" symptom). The boss 2026-10-14 (see OOB.md #2026-10-14)
         // `readingWidth = nil` (= the engine
         // resolves `initialWidth = vpSize.width`
         // from the parent NSScrollView's
@@ -236,9 +232,7 @@ enum WenshuEditorServicesFactory {
         // `readingWidth` is `nil`). The 10 PT horizontal
         // `textInsets` now correctly acts as the visible left
         // + right padding of the rendered text (= 10 PT on
-        // each side; = the boss 2026-10-14 standing preference
-        // "上 0 / 左 10 / 右 10 / 下 0"; = the text body
-        // fills the column with only the 10 PT padding
+        // each side; = the boss 2026-10-14 (see OOB.md #2026-10-14)
         // visible on each side; = no 600-PT reading column
         // centering).
         config.textInsets = TextInsets(horizontal: 10, vertical: 0)

@@ -3,10 +3,10 @@
 // Settings scene (= Apple canonical macOS 14+ `Settings { }` Scene
 // mounted at AppRootScene.swift:399). Hosts 5 flat panes (= 外观 /
 // 编辑器 / 提供方 / 模型 / 记忆) chosen so each pane's name matches
-// the concrete action the user is doing (= boss 2026-10-12 "左栏
+// the concrete action the user is doing (= boss 2026-10-12 (see OOB.md #2026-10-12)
 // 分成 4-5 组" = no nested "大类 → 小类" hierarchy).
 //
-// Layout (= boss 2026-10-12 "macOS 默认样式" + "Apple HIG canonical"):
+// Layout (= boss 2026-10-12 (see OOB.md #2026-10-12)
 // - NavigationSplitView 2 columns (= macOS 13+ canonical).
 // - Left = `List(selection:)` with the 5 panes (= SwiftUI auto-applies
 //   macOS 27 sidebar appearance = Liquid Glass + accent tint selection).
@@ -14,7 +14,7 @@
 //   macOS preferences layout = one row per setting + a small label +
 //   a control on the right + an optional helper caption).
 // - The previous wenshu-specific DesignTokens.spacing* / corner-radius /
-//   shadow literals are GONE from this file (= boss 2026-10-12 "完全
+//   shadow literals are GONE from this file (= boss 2026-10-12 (see OOB.md #2026-10-12)
 //   按 Apple 默认样式规则"; = SwiftUI Form on macOS picks the canonical
 //   row height / spacing / corner radius automatically).
 // - SF Symbols 6 icons via the central `SFIcon(...)` factory are kept

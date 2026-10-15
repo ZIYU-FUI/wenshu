@@ -159,7 +159,7 @@ final class SidebarService {
 
             // Reference library = one root node whose children
             // are the v2.6 tag facet (= cross-cutting tag cloud;
-            // = per boss 2026-10-08 'pure tag facet, 22 category
+            // = per boss 2026-10-08 (see OOB.md #2026-10-08)
             // 删除' directive). The tag cloud is built from the
             // union of `Reference.tags` across all references;
             // = each tag row is one SidebarNode keyed by the tag
@@ -169,7 +169,7 @@ final class SidebarService {
             //
             // Why pure tag (and not the 22-EntityCategory
             // hierarchy): per AGENTS.md §11.16 v2.6 facet model
-            // (= boss 2026-09-25 OOB 'adopted option 3 = facet
+            // (= boss 2026-09-25 (see OOB.md #2026-09-25)
             // model'), the tag is the cross-cutting facet that
             // carries the user's mental model of how to find
             // material. The 22 EntityCategory cases stay as a
@@ -316,7 +316,6 @@ final class SidebarService {
     //  used; = callers all reference LibraryMigrator.swift:216 directly.
     //  See wenshu-pocock-workflow references/v3.0-design-system-rule.md
     //  + wenshu-dead-code-cleanup SKILL.md.)
-
 
     /// Folder list shown under each book in the sidebar (= 5
     /// user-facing folders:  /  /  / 

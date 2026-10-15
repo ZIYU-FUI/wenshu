@@ -203,7 +203,7 @@ struct EditorView: View {
             // bottom of the editor zone; = a manual
             // save button in the format toolbar is
             // redundant with the always-on autosave;
-            // = the boss 2026-10-14 OOB instruction
+            // = the boss 2026-10-14 (see OOB.md #2026-10-14)
             // was "因为我们有自动保存机制, 多余").
             // The `private func saveDraft()` is still
             // available (= Cmd+S menu shortcut +
@@ -1146,7 +1146,6 @@ struct EditorView: View {
         // response replaces itself).
         selectedText = ""
     }
-
 
     // MARK: - B-23 file-system watcher
     //

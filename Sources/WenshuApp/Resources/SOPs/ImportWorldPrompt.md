@@ -1,5 +1,5 @@
 <!--
-  ImportWorldPrompt.md · wenshu · round-73 (= boss 2026-10-10)
+  ImportWorldPrompt.md · wenshu · round-73 (= boss 2026-10-10 (see OOB.md #2026-10-10)
 
   v2.7 round-73: the wenshu "文档管理员" SOP for
   importing a source .md file into a book's
@@ -13,7 +13,7 @@
   AND target folder == .world (= lookup
   lives in ImportSOPLoader). Any book
   (= 十二地仙 or any other) uses this same
-  SOP — per boss 2026-10-10 "无论是哪本书,
+  SOP — per boss 2026-10-10 (see OOB.md #2026-10-10)
   只要是选择了目标为世界观, 就适合当前的
   这个 SOP".
 

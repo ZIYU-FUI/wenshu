@@ -304,13 +304,7 @@ struct PaneView: View {
         // the editor open a
         // doc that is NOT the
         // one they clicked; = the
-        // boss 2026-10-14
-        // "不好用" / "卡
-        // 片的文档目录
-        // 和文档 ID
-        // 就应该在
-        // 卡片上带
-        // 的" root
+        // boss 2026-10-14 (see OOB.md #2026-10-14)
         // cause). The
         // `CardSource`-driven
         // rewrite below makes
@@ -506,11 +500,7 @@ struct PaneView: View {
     /// writes the edit to
     /// the canonical
     /// shelves file (= the
-    /// boss 2026-10-14 "修
-    /// 改不保存" root
-    /// cause was the
-    /// `path: nil`
-    /// `CardTriad`
+    /// boss 2026-10-14 (see OOB.md #2026-10-14)
     /// returned by
     /// the previous shelf
     /// scope branch; = the

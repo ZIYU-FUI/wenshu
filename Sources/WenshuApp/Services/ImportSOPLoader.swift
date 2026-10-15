@@ -1,12 +1,6 @@
 //
-//  ImportSOPLoader.swift · wenshu · round-73 (= boss 2026-10-10)
-//
-//  v2.7 round-73 (= boss 2026-10-10 "类似
-//  一个技能, 导入文件按文枢规则拆解后
-//  重新落库" + "我建议你导入世界观就
-//  单独的一个提示词文件, 别和导入其
-//  他的通用" + "无论哪本书, 只要是
-//  选择了目标为世界观, 就适合当前的
+//  ImportSOPLoader.swift · wenshu · round-73 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+//  v2.7 round-73 (= boss 2026-10-10 (see OOB.md #2026-10-10)
 //  这个 SOP" + "用户不可见").
 //
 //  ImportSOPLoader = the lookup + loader
@@ -57,8 +51,7 @@ import Foundation
 /// is fixed (= wenshu-engineer
 /// maintained; = not user-editable).
 ///
-/// Trigger rule (= boss 2026-10-10):
-/// `folder == .world` → `ImportWorldPrompt.md`.
+/// Trigger rule (= boss 2026-10-10 (see OOB.md #2026-10-10)
 /// Other folders → no SOP yet (= future
 /// per-folder SOPs will be added the
 /// same way).
@@ -74,11 +67,7 @@ enum ImportSOPTrigger {
         switch folder {
         case .world:
             return "ImportWorldPrompt"
-        // Per boss 2026-10-10 "我建议你
-        // 导入世界观就单独的一个提示词
-        // 文件, 别和导入其他的通用,
-        // 有可能其他的有其他规则":
-        // = each folder may eventually
+        // Per boss 2026-10-10 (see OOB.md #2026-10-10)
         // get its own SOP file (= a
         // future round adds
         // ImportCharacterPrompt /

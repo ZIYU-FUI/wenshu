@@ -1,7 +1,5 @@
 //
-//  WriteBookDocTool.swift · wenshu · round-73 (= boss 2026-10-10)
-//
-//  v2.7 round-73: the wenshu 文档管理员
+//  WriteBookDocTool.swift · wenshu · round-73 (= boss 2026-10-10 (see OOB.md #2026-10-10)
 //  (= wenshu main agent)'s dedicated write
 //  tool (= "writeBookDoc"). The agent is
 //  told via `ImportWorldPrompt.md` (and
@@ -133,7 +131,7 @@ struct WriteBookDocTool: Tool, Sendable {
                 )
             )
         }
-        // v2.7 round-73 (boss 2026-10-10
+        // v2.7 round-73 (boss 2026-10-10 (see OOB.md #2026-10-10)
         // PO 双轴 test failure in worker):
         // create the parent directory
         // (= nested folders like
