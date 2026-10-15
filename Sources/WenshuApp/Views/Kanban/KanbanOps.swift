@@ -76,6 +76,7 @@
 //    text field based on `result.didSave`.
 
 import Foundation
+import WenshuData
 
 /// Stateless business layer for the per-book kanban board. Lifts
 /// the disk-IO + state-transition logic out of `KanbanView` per

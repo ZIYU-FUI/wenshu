@@ -27,6 +27,7 @@
 //
 
 import Foundation
+import WenshuData
 
 @MainActor
 protocol AuditorStorage: Sendable {

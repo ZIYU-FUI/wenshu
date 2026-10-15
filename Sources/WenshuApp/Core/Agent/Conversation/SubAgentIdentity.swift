@@ -11,6 +11,7 @@
 //
 
 import Foundation
+import WenshuData
 
 /// 5 sub-agent identities, each a domain expert dispatched by WenshuConductor.
 enum SubAgentIdentity {

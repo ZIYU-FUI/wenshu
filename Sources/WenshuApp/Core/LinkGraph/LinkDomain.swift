@@ -5,6 +5,7 @@
 // `WSLink` @Model + `WSLinkRepository`.
 
 import Foundation
+import WenshuData
 
 struct Link: Equatable, Sendable {
     let sourceDocId: String

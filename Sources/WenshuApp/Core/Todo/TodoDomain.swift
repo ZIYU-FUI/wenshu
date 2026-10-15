@@ -6,6 +6,7 @@
 // `WSTodoRepository`.
 
 import Foundation
+import WenshuData
 
 enum TodoStatus: String, Codable, Sendable, CaseIterable {
     case pending

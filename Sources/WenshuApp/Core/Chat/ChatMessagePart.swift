@@ -39,6 +39,7 @@
 //
 
 import Foundation
+import WenshuData
 
 /// A single content block within a chat message. Multiple parts per
 /// message (= e.g. reasoning + text + tool_use + text is the standard

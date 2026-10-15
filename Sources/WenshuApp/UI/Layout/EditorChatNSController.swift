@@ -58,8 +58,9 @@
 // - developer.apple.com/documentation/appkit/nssplitviewitem
 
 import AppKit
-import os
 import SwiftUI
+import WenshuData
+import os
 
 private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "editorchatnscontroller")
 

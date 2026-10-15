@@ -25,6 +25,7 @@
 //  inspector-style list view).
 
 import SwiftUI
+import WenshuData
 
 /// Independent Foreshadowing Graph window (= MVP per the
 /// 2026-09-28 OOB B9).

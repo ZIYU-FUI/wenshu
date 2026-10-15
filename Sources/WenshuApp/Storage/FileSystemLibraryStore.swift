@@ -22,6 +22,7 @@
 
 import Foundation
 import SwiftData
+import WenshuData
 
 /// LibraryStoring impl backed by FileSystem (= with SwiftData
 /// bridging for the production path).

@@ -1,0 +1,61 @@
+//
+//  Persistence/WSOutlineNode.swift
+//
+//   : WSOutlineNode.
+//  Mirrors `outline_entries` table from WenshuWorkspace.swift.
+//
+//  Hierarchical outline (= a chapter's structure; = self-referential
+//  via `parent` property; = recursive 1↔N children).
+//
+//  Old schema columns:
+//    - id: TEXT PRIMARY KEY
+//    - book_id: TEXT NOT NULL (= redundant with chapter; = derive from chapter)
+//    - level: INTEGER (= depth in tree; = derive from parent depth)
+//    - title: TEXT
+//    - line_number: INTEGER
+//    - parent_id: TEXT (= FK to outline_entries.id; = self-referential)
+//
+//  SwiftData representation:
+//    - chapter: parent chapter (inverse declared on WSChapter.outlineNodes)
+//    - parent: parent node (= plain Optional to avoid circular ref)
+//    - children: @Relationship on WSOutlineNode (= recursive; = to-many)
+//
+//  The `level` and `book_id` fields are DERIVED (= not stored) — level
+//  from parent depth, book from chapter.book.bookID.
+
+import Foundation
+import SwiftData
+
+@Model
+public final class WSOutlineNode {
+    @Attribute(.unique) public var id: String
+    /// FK to WSChapter.id (= redundant with book_id but kept for query convenience)
+    public var chapterID: String
+    public var title: String
+    /// Line number within chapter file (= anchor in source text)
+    public var lineNumber: Int?
+    /// FK to parent WSOutlineNode.id (= self-referential; = nil for root)
+    public var parentID: String?
+    public var createdAt: Date
+    public var updatedAt: Date
+
+    /// Inverse relationship target (= declared on WSChapter.outlineNodes)
+    public var chapter: WSChapter?
+
+    /// Parent node (= plain Optional to avoid SwiftData circular reference)
+    public var parent: WSOutlineNode?
+
+    /// Recursive children (= self-referential 1↔N; = inverse = parent)
+    @Relationship(deleteRule: .nullify, inverse: \WSOutlineNode.parent)
+    public var children: [WSOutlineNode] = []
+
+    public init(id: String, chapterID: String, title: String, lineNumber: Int? = nil, parentID: String? = nil) {
+        self.id = id
+        self.chapterID = chapterID
+        self.title = title
+        self.lineNumber = lineNumber
+        self.parentID = parentID
+        self.createdAt = Date()
+        self.updatedAt = Date()
+    }
+}

@@ -29,6 +29,7 @@
 //   ChatHelpTextOverlay }.
 
 import SwiftUI
+import WenshuData
 
 struct ChatZoneView: View {
     let conductor: WenshuConductor?

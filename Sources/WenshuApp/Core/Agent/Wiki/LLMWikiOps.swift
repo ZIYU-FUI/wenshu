@@ -30,6 +30,7 @@
 //   S5 (no public surface): zero new public keywords.
 
 import Foundation
+import WenshuData
 
 /// LLM Wiki pipeline unified facade (= manual + auto go through
 /// these 4 entry points per the pipeline-must-be-complete

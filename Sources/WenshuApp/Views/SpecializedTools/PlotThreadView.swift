@@ -15,6 +15,7 @@
 //
 
 import SwiftUI
+import WenshuData
 
 @MainActor
 struct PlotThreadView: View {

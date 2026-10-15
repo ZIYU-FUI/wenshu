@@ -32,6 +32,7 @@
 //        only display state.
 
 import SwiftUI
+import WenshuData
 
 /// SpecializedTools pane tab 13: Bookmark Manager (= v2.8a).
 ///

@@ -51,6 +51,7 @@
 // unit tests + callers that don't care about progress emission).
 
 import Foundation
+import WenshuData
 
 /// Result of a single ConversationLoop.runConversation call.
 ///

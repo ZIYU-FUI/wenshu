@@ -23,6 +23,7 @@
 
 import Foundation
 import SwiftData
+import WenshuData
 
 /// Repository (= thin facade over SwiftData ModelContext) for the
 /// workspace layout tree. Hides the @Model details from

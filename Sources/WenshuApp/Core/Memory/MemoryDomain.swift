@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import WenshuData
 
 struct Memory: Equatable, Sendable {
     let userId: String

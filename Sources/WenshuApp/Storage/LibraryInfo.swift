@@ -12,6 +12,7 @@
 //   will recreate it on next launch).
 
 import Foundation
+import WenshuData
 
 /// Canonical schema version (= must match the WSSchemaVersion key
 /// written by LibraryRootView when creating a new .ws). Bump on

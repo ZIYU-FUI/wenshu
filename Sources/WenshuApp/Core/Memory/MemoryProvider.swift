@@ -19,6 +19,7 @@
 // actor was the previous implementation.
 
 import Foundation
+import WenshuData
 
 // WSMemoryRepository = @MainActor SwiftData wrapper.
 // Future ticket: migrate to WSMemoryProvider via MemoryManaging protocol.

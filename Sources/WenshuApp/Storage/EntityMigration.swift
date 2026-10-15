@@ -23,6 +23,7 @@
 //  first successful migration).
 
 import Foundation
+import WenshuData
 
 enum EntityMigrationError: Error, LocalizedError {
     case bookDirectoryMissing(path: String)

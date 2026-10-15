@@ -27,6 +27,7 @@
 
 import Foundation
 import SwiftData
+import WenshuData
 
 /// SwiftData-backed ChatRepositoryProtocol implementation. Thin
 /// @unchecked Sendable: holds no mutable state. All reads of

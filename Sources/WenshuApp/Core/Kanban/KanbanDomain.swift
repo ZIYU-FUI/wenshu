@@ -6,6 +6,7 @@
 // `WSKanbanRepository`.
 
 import Foundation
+import WenshuData
 
 /// Kanban task status. Mirrors the hermes kanban state machine
 /// (= new → triage → ready → running → blocked → review → done);

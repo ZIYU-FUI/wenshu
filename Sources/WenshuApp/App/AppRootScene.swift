@@ -13,8 +13,9 @@
 //   struct itself; = `appState` / `shell` / `workspaceUI` are passed
 //   in, not constructed here.
 
-import SwiftUI
 import AppKit
+import SwiftUI
+import WenshuData
 
 /// Window IDs for the dedicated secondary scenes (= the SwiftUI
 /// macOS 14+ `WindowGroup(id:)` accepts an `id` parameter that

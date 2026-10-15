@@ -4,8 +4,9 @@
 // Layout structure (pane tree + tabs) lives in LayoutTreeState +
 // LayoutTreeStore; this file wires them into AppKit scenes only.
 
-import SwiftUI
 import AppKit
+import SwiftUI
+import WenshuData
 
 // MARK: - v0.25.1  — Apple recommended approach
 /// Per Apple SwiftUI docs (developer.apple.com/documentation/swiftui/buttonstyle

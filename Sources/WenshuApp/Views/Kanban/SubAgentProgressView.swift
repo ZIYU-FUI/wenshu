@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import WenshuData
 
 /// Sub-agent progress view: (transparent open box) showing all sub-agent tasks.
 /// Reads WSKanbanRepository (= @MainActor SwiftData wrapper for WSKanbanTask @Model) and renders task list with status, title, duration.

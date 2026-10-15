@@ -16,6 +16,7 @@
 // - Never deletes user data (= .md bodies + chat.sqlite + attachments)
 
 import Foundation
+import WenshuData
 
 struct LibraryBootstrapper: Sendable {
     let wsRoot: URL

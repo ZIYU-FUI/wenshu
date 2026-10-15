@@ -16,6 +16,7 @@
 //
 
 import Foundation
+import WenshuData
 
 // MARK: - Brand ID
 

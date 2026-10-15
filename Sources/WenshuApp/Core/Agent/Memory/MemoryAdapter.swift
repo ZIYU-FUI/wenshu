@@ -23,6 +23,7 @@
 //  init() preserved as a no-op (= backward compat for `MemoryAdapter()`).
 
 import Foundation
+import WenshuData
 
 @MainActor
 final class MemoryAdapter {

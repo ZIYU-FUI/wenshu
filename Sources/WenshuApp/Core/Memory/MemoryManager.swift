@@ -9,6 +9,7 @@
 //   post-turn: sync_all(user_msg, assistant_response) → persist
 
 import Foundation
+import WenshuData
 
 /// Result of a prefetch operation.
 enum PrefetchResult: Sendable, Equatable {

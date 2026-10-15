@@ -13,6 +13,7 @@
 //     re-throwing).
 
 import Foundation
+import WenshuData
 
 /// Canonical bookmark surface (= the `@MainActor` bridge between
 /// the SwiftUI view and the SwiftData repository).

@@ -35,6 +35,7 @@
 //
 
 import Foundation
+import WenshuData
 import os.log
 
 private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "wenshuconductor")

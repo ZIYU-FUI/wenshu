@@ -21,6 +21,7 @@
 //  BookWorldActor in v2.2.
 
 import Foundation
+import WenshuData
 
 // MARK: - Actions
 

@@ -1,6 +1,7 @@
-import SwiftUI
-import os
 import AppKit
+import SwiftUI
+import WenshuData
+import os
 
 private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "wenshuappdelegate")
 

@@ -36,6 +36,7 @@
 //
 
 import Foundation
+import WenshuData
 
 /// LLM-facing kanban management tool. Thin facade over wenshu's
 /// SwiftData-backed kanban store (= WSKanbanRepository.shared =

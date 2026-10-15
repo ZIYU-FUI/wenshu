@@ -44,6 +44,7 @@
 // manual + auto in one arc).
 
 import Foundation
+import WenshuData
 
 final class LLMWikiTool: Tool, @unchecked Sendable {
 

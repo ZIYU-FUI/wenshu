@@ -39,6 +39,7 @@
 //
 
 import Foundation
+import WenshuData
 
 /// Data-layer seam for chat persistence. Implementers handle the
 /// concrete storage (SwiftData, in-memory fake, remote backend, …).

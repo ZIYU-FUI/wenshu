@@ -108,13 +108,12 @@ let package = Package(
                 // Canonical icon rendering goes through Image(systemName: ...)
                 // on Apple SF Symbols 6 (built into m
 
-                // v3.1 governance A1g.4.1: WenshuData product is declared in
-                // the WenshuData Package.swift but NOT added to WenshuApp's
-                // dependency list yet. The .product wire-up arrives in
-                // A1g.4.4 (= when the 38 Persistence files have been moved
-                // and the boundary has been smoke-tested). Adding it here
-                // now would break the build (= the empty WenshuData target
-                // has no sources = SPM rejects the .product reference).
+                // v3.1 governance A1g.4.2-4.4: WenshuData product wired
+                // up here (= the 38 files have been moved into the
+                // WenshuData target; = the boundary has been verified
+                // smoke-test clean; = the App target can now see all
+                // public @Model + Container + Repository types).
+                .product(name: "WenshuData", package: "WenshuData"),
 
                 // RUNTIME — Apple SF Symbols 6 (= built into macOS 27; = zero SPM
                 // dependency; = see top-level note in the dependencies array).
@@ -196,6 +195,7 @@ let package = Package(
             name: "WenshuAppTests",
             dependencies: [
                 "WenshuApp",
+                .product(name: "WenshuData", package: "WenshuData"),
                 .product(name: "ViewInspector", package: "viewinspector"),
                 // batch 1 issue 05: visual regression test support for ticket 028-011
                 // (= drag-lost regression suite). Pairs with ViewInspector: structure

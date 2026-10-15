@@ -13,6 +13,7 @@
 //  Conforms to the Sendable MemoryProvider protocol (= thin facade
 //  over WSMemoryRepository; = no extra storage of its own).
 
+import WenshuData
 import os
 
 private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "wsmemoryprovider")

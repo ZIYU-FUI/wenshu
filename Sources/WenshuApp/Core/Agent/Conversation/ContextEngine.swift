@@ -30,6 +30,7 @@
 //
 
 import Foundation
+import WenshuData
 
 // Migrated to `WSMemoryRepository.shared`.
 // subsequent step (= `makeDefaultMemoryManager` returns MemoryManager() with

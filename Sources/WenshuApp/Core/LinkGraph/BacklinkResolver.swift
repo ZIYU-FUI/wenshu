@@ -9,6 +9,7 @@
 //     (Outgoing links panel)
 
 import Foundation
+import WenshuData
 
 /// DocumentIndex: map doc name (filename / display name) to doc_id (UUID)
 /// BacklinkResolver uses it to resolve `[[name]]` → target_doc_id

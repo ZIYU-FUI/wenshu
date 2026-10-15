@@ -17,8 +17,9 @@
 //        container; = no sidecar persistence).
 //
 
-import SwiftUI
 import SwiftData
+import SwiftUI
+import WenshuData
 
 /// Independent Summaries window (= MVP per (see OOB.md #2026-10-03) OOB:
 /// "，， windows ").

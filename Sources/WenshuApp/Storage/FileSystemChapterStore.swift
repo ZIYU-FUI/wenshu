@@ -28,8 +28,9 @@
 //     chapters.json                <- REMOVED (now in SwiftData WSChapter row)
 
 import Foundation
-import os
 import SwiftData
+import WenshuData
+import os
 
 private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "filesystemchapterstore")
 

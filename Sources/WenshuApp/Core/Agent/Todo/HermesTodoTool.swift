@@ -75,6 +75,7 @@
 //
 
 import Foundation
+import WenshuData
 
 // NOTE: HermesTodoTool wraps HermesTodoStore (= in-memory DispatchQueue store).
 // This is hermes-port parity code (= not a wenshu SQLite store; = not

@@ -13,6 +13,7 @@
 //
 
 import Foundation
+import WenshuData
 
 // MARK: - Top-level kind
 

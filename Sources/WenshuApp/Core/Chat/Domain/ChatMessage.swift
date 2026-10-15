@@ -22,6 +22,7 @@
 //
 
 import Foundation
+import WenshuData
 
 /// One chat turn (= user / agent / system). Mutable per turn via
 /// the streaming pipeline; immutable across turns.

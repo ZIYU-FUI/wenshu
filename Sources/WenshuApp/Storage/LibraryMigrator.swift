@@ -34,6 +34,7 @@
 // Does NOT touch user .md content under migrated books.
 
 import Foundation
+import WenshuData
 
 struct LibraryMigrator: Sendable {
     let wsRoot: URL

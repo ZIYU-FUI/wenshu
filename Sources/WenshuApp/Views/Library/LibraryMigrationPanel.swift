@@ -45,6 +45,7 @@
 //    Apple's default animation (= no custom easing).
 
 import SwiftUI
+import WenshuData
 
 @MainActor
 struct LibraryMigrationPanel: View {

@@ -42,6 +42,7 @@
 //
 
 import Foundation
+import WenshuData
 import os
 
 /// Result of `EditorPersistence.reloadFromDisk(tab:)`. The

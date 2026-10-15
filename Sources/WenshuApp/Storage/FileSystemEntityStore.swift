@@ -25,6 +25,7 @@
 
 import Foundation
 import SwiftData
+import WenshuData
 
 // MARK: - Protocol
 

@@ -20,6 +20,7 @@
 //  Per AGENTS.md §11.4 + §6.4 (Apple Backyard Birds target structure).
 
 import Foundation
+import WenshuData
 
 /// Business-logic ops for chat (= LLM call + chat persistence = §A1g.1
 /// relocated from WSChatRepository). All ops are @MainActor + async to

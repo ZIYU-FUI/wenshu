@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import WenshuData
 
 /// One bookmark row (= matches the old `bookmarks` table schema
 /// from BookmarkStore.swift before deletion).

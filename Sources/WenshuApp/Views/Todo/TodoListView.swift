@@ -48,6 +48,7 @@
 //
 
 import SwiftUI
+import WenshuData
 
 /// Per-(book × scope) todo list view. Mounted by `DynamicZoneView` in
 /// the `aiDynamic` zone (= tab "Todo"). Reads from `BookTodoStore`

@@ -13,6 +13,7 @@
 //
 
 import Foundation
+import WenshuData
 
 /// One persisted chat message (= spec equivalent of a row in the
 /// old `chat_messages` SQLite table before deletion).
