@@ -144,51 +144,26 @@ actor WenshuConductorImportRouter: ImportRouter {
         fallbackTitle: String,
         progress: (@Sendable (String) async -> Void)?
     ) async throws -> ImportRoutingResult {
-        // Build the prompt (= the librarian role's system prompt + the per-file user
-        // prompt).
         let userPrompt = WCIRHelpers.userPrompt(
             filePath: input.filePath,
             body: body,
             rewriteMode: input.rewriteMode
         )
-        // (= boss 2026-10-09 (see OOB.md #2026-10-09) round-18 "重写同时搜索校对"). The
-        // `searchAndRewrite` mode is the ONLY mode that passes tools (= the
-        // `consolidate` mode is the LLM-no-tools path that matches the
-        // previous behavior). The tool schema mirrors `WebSearchTool`'s
-        // registration; = canonical wenshu tools are NOT re-implemented here;
-        // = the LLM calls the same tool name (`web_search`) regardless of
-        // mode.
-        let tools: [ToolRegistrySchema]
-        if input.rewriteMode == .searchAndRewrite {
-            tools = WCIRHelpers.webSearchToolSchema
-        } else {
-            tools = []
-        }
-        let options = LLMCallOptions(
-            model: modelSlug,
-            maxTokens: 4096,
-            systemPrompt: SystemPrompt.librarianRole(.chinese),
-            temperature: 0.2,
-            reasoningEffort: nil,
-            tools: tools
-        )
+        let options = buildLLMCallOptions(input: input, userPrompt: userPrompt)
         // Fire the LLM call (= single turn).
         let response: LLMResponse
         switch input.rewriteMode {
         case .consolidate:
-            // Single-turn, no tool loop (= the previous behavior; = the LLM has no tools
-            // so `stopReason` is `endTurn` immediately).
+            // Single-turn, no tool loop (= the LLM has no tools so
+            // `stopReason` is `endTurn` immediately).
             response = try await connector.send(
                 messages: [.user(userPrompt)],
                 options: options
             )
         case .searchAndRewrite:
-            // Multi-turn tool-use loop (= the LLM is permitted to call `web_search`; = we
-            // route each tool_use block to the canonical
-            // `WebSearchTool.shared.execute` (= the same path the chat
-            // session uses; = no tool duplication); = the loop terminates
-            // on `stopReason = .endTurn` OR after a hard turn cap to
-            // prevent runaway token spend (= boss's "Token 高消耗" concern)).
+            // Multi-turn tool-use loop (= the LLM can call `web_search`; = the
+            // loop terminates on `stopReason = .endTurn` OR after a hard turn
+            // cap to prevent runaway token spend).
             response = try await runToolUseLoop(
                 initialUserPrompt: userPrompt,
                 options: options,
@@ -196,8 +171,8 @@ actor WenshuConductorImportRouter: ImportRouter {
                 filePath: input.filePath
             )
         case .reorganize:
-            // Unreachable (= the caller's switch dispatched .reorganize to the multi-turn
-            // path; = kept for switch exhaustiveness).
+            // Unreachable (= the caller's switch dispatched .reorganize to the
+            // multi-turn path; = kept for switch exhaustiveness).
             throw NSError(
                 domain: "WenshuConductorImportRouter",
                 code: 0,
@@ -210,6 +185,29 @@ actor WenshuConductorImportRouter: ImportRouter {
             body: body,
             fallbackTitle: fallbackTitle,
             filePath: input.filePath
+        )
+    }
+
+    /// Build the LLM call options for a route pass. The `.searchAndRewrite`
+    /// mode is the ONLY mode that exposes the `web_search` tool schema (=
+    /// `consolidate` = LLM no tools = previous behavior); the tool schema
+    /// mirrors `WebSearchTool`'s registration (= canonical wenshu tools are
+    /// NOT re-implemented here; = the LLM calls the same `web_search` name
+    /// regardless of mode).
+    private func buildLLMCallOptions(
+        input: ImportFileInput,
+        userPrompt: String
+    ) -> LLMCallOptions {
+        let tools: [ToolRegistrySchema] = (input.rewriteMode == .searchAndRewrite)
+            ? WCIRHelpers.webSearchToolSchema
+            : []
+        return LLMCallOptions(
+            model: modelSlug,
+            maxTokens: 4096,
+            systemPrompt: SystemPrompt.librarianRole(.chinese),
+            temperature: 0.2,
+            reasoningEffort: nil,
+            tools: tools
         )
     }
 
@@ -245,108 +243,33 @@ actor WenshuConductorImportRouter: ImportRouter {
         fallbackTitle: String,
         progress: (@Sendable (String) async -> Void)?
     ) async throws -> ImportRoutingResult {
-        // (= boss 2026-10-10 (see OOB.md #2026-10-10) 能" + "入口永远只有 ImportSheet"). The
-        // wenshu 文档管理员 (= wenshu main agent) runs the import via
-        // `ConversationLoop.runTurn`. The agent is told via the per-folder SOP
-        // (= `ImportWorldPrompt.md` for `world`; = future folders get their
-        // own SOP) what to write. The agent calls `writeBookDoc` (= the only
-        // tool registered with the orchestrator) to land each file on disk.
-        // This function is now a thin adapter (= delegates to
-        // `ImportAgentDriver`; = no LLM calls happen here).
+        // The wenshu 文档管理员 runs the import via `ConversationLoop.runTurn`;
+        // the agent is told via the per-folder SOP what to write; = it calls
+        // `writeBookDoc` to land each file on disk. This function is now a
+        // thin adapter (= no LLM calls happen here; = delegates to
+        // `ImportAgentDriver`).
         await progress?("  🔵 文档管理员 agent 启动 ...")
-        // Resolve the folder FIRST via a single LLM call (= the SOP lookup is keyed on
-        // the folder; = we need this before we can launch the agent).
+        // Phase 1: classify the source via a single LLM call (= the SOP
+        // lookup is keyed on the folder; = we need this before launching).
         let classification = try await routeSingleTurn(
             input: input,
             body: body,
             fallbackTitle: fallbackTitle,
             progress: progress
         )
-        // (boss 2026-10-10 (see OOB.md #2026-10-10) PO 双轴 HIGH finding): the agent's
-        // `writeBookDoc` tool needs the active book's on-disk root (= NOT the
-        // bare UUID; = the tool appends the relative path via NSString, which
-        // on a bare UUID would produce a non-existent path). Resolve
-        // `<shelvesRoot>/<shelfId>/books/<bookId>` from the canonical WS
-        // state.
-        let bookPath: String?
-        let bookTitle: String
-        if let bookId = input.targetBookId,
-           let shelfId = input.targetShelfId,
-           let shelvesRoot = WenshuAppDelegate.activeShelvesRoot() {
-            // Real book-bound import. The agent writes inside the book's directory (= the
-            // agent's `writeBookDoc` tool prepends this path; = the
-            // agent's sub-files land under the book root, not the library
-            // root).
-            let booksRoot = shelvesRoot
-                .appendingPathComponent(shelfId.uuidString, isDirectory: true)
-                .appendingPathComponent("books", isDirectory: true)
-            bookPath = booksRoot
-                .appendingPathComponent(bookId.uuidString, isDirectory: true)
-                .path
-            // The orchestrator should give us a real book title via the picker (= we do
-            // not improvise from `filePath`; = the SOP substitutes it into
-            // the agent's prompt as the bookmark label). The picker still
-            // doesn't surface a display name through `ImportFileInput`;
-            // the round-73 ships this as the file's stem (= no slash
-            // collisions; = the agent uses it as the SOP's `{bookTitle}`
-            // substitution; = a future round wires `ImportFileInput` to
-            // carry the picker-selected display title).
-            bookTitle = (input.filePath as NSString)
-                .lastPathComponent
-                .replacingOccurrences(of: ".md", with: "")
-        } else {
-            // Reference-library import (= no book is bound; = the user pinned the library
-            // root as the destination). The SOP trigger is folder-keyed (=
-            // only `world` has one today); = the reference library has no
-            // folder = we set `bookPath = nil` and the agent's
-            // `writeBookDoc` tool will reject any writes (= the user sees
-            // a clean "no SOP" failure rather than a silent zero-write
-            // outcome).
-            bookPath = nil
-            bookTitle = "参考库"
-        }
-        let context = ImportAgentBookContext(
-            bookPath: { bookPath }
+        // Phase 2: resolve the book-bound file path + title (= the agent's
+        // `writeBookDoc` tool needs the on-disk root, not a bare UUID).
+        let (bookPath, bookTitle) = resolveBookPath(input: input)
+        // Phase 3: launch the agent against the per-folder SOP (= if no
+        // folder = reference library = no SOP = clear failure).
+        try await runAgentAgainstFolder(
+            input: input,
+            body: body,
+            classification: classification,
+            bookPath: bookPath,
+            bookTitle: bookTitle,
+            progress: progress
         )
-        // (boss 2026-10-10 (see OOB.md #2026-10-10)
-            // PO 双轴 FAIL #7/8 fix): if the LLM classified the source as a reference-
-            // library import (= no folder), there is no SOP to apply; =
-            // surface this as a clear failed-task outcome rather than
-            // launching the agent against a wrong SOP. The driver will
-            // already throw `noSOPForFolder` for nil folders (= see the
-            // driver guard at TaskInput init). Re-throw with a clearer
-            // message here so the row activity log tells the user "no SOP
-            // for reference library" instead of the raw driver error.
-            guard let folder = Self.folder(
-                from: classification.destination
-            ) else {
-                await progress?(
-                    "  ⚠️ 参考库没有 SOP (= 路由到失败 task)"
-                )
-                // The reference library has no folder (= no BookFolder can map to it); =
-                // throw a generic error so the orchestrator's failed-
-                // task path picks it up cleanly. We can't construct a
-                // BookFolder for it (= no `.referenceLibrary` case in
-                // BookFolder).
-                throw NSError(
-                    domain: "wenshu.import",
-                    code: -1,
-                    userInfo: [NSLocalizedDescriptionKey:
-                        "reference library imports have no SOP (= per-folder SOPs only apply to book folders). Use a book-bound import instead."]
-                )
-            }
-            let agentInput = ImportAgentDriver.TaskInput(
-                filePath: input.filePath,
-                body: body,
-                bookPath: bookPath ?? "",
-                bookTitle: bookTitle,
-                targetFolder: folder
-            )
-            _ = try await driver.run(
-                input: agentInput,
-                bookContext: context,
-                progress: progress
-            )
         await progress?("  ✅ 文档管理员 完成")
         return ImportRoutingResult(
             destination: classification.destination,
@@ -358,6 +281,67 @@ actor WenshuConductorImportRouter: ImportRouter {
             confidence: classification.confidence,
             rewrittenBody: nil,
             extraFiles: [],
+        )
+    }
+
+    /// Resolve the book-bound file path + display title for the agent's
+    /// `writeBookDoc` tool. Returns `(nil, "参考库")` for reference-library
+    /// imports (= the agent will reject writes with a clean "no SOP" error
+    /// rather than silently writing to the wrong destination).
+    private func resolveBookPath(input: ImportFileInput) -> (String?, String) {
+        guard let bookId = input.targetBookId,
+              let shelfId = input.targetShelfId,
+              let shelvesRoot = WenshuAppDelegate.activeShelvesRoot() else {
+            return (nil, "参考库")
+        }
+        let booksRoot = shelvesRoot
+            .appendingPathComponent(shelfId.uuidString, isDirectory: true)
+            .appendingPathComponent("books", isDirectory: true)
+        let bookPath = booksRoot
+            .appendingPathComponent(bookId.uuidString, isDirectory: true)
+            .path
+        // The picker doesn't yet surface a display name through
+        // `ImportFileInput`; = use the file's stem as a stand-in (= the SOP
+        // substitutes it as the `{bookTitle}` placeholder).
+        let bookTitle = (input.filePath as NSString)
+            .lastPathComponent
+            .replacingOccurrences(of: ".md", with: "")
+        return (bookPath, bookTitle)
+    }
+
+    /// Launch the agent against the per-folder SOP. If the LLM classified
+    /// the source as reference-library (= no folder = no SOP), surface
+    /// this as a clear failed-task outcome (= the user sees "no SOP for
+    /// reference library" rather than a raw driver error).
+    private func runAgentAgainstFolder(
+        input: ImportFileInput,
+        body: String,
+        classification: ImportRoutingResult,
+        bookPath: String?,
+        bookTitle: String,
+        progress: (@Sendable (String) async -> Void)?
+    ) async throws {
+        guard let folder = Self.folder(from: classification.destination) else {
+            await progress?("  ⚠️ 参考库没有 SOP (= 路由到失败 task)")
+            throw NSError(
+                domain: "wenshu.import",
+                code: -1,
+                userInfo: [NSLocalizedDescriptionKey:
+                    "reference library imports have no SOP (= per-folder SOPs only apply to book folders). Use a book-bound import instead."]
+            )
+        }
+        let context = ImportAgentBookContext(bookPath: { bookPath })
+        let agentInput = ImportAgentDriver.TaskInput(
+            filePath: input.filePath,
+            body: body,
+            bookPath: bookPath ?? "",
+            bookTitle: bookTitle,
+            targetFolder: folder
+        )
+        _ = try await driver.run(
+            input: agentInput,
+            bookContext: context,
+            progress: progress
         )
     }
 
