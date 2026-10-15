@@ -48,188 +48,143 @@ import SwiftUI
 import AppKit
 // MARK: - IconStyle
 
-/// Apple HIG / Apple-shipped app icon-style enum. Each case carries the
-/// point size + the weight (= the .thin split for the ≥38 PT zone per
-/// (see OOB.md #2026-09-17) SF Symbols 6 weight rule).
-///
-/// The case names walk Apple HIG official terminology (= `hitArea` for
-/// macOS HIG minimum hit area; `paneTab` for NSToolbar item default;
-/// `toolbar` for `.controlSize(.small)`; etc.).
+/// Apple HIG / Apple-shipped app icon-style enum. Each case carries the point
+/// size + the weight (= the .thin split for the ≥38 PT zone per (see OOB.md
+/// #2026-09-17) SF Symbols 6 weight rule).
+/// The case names walk Apple HIG official terminology (= `hitArea` for macOS
+/// HIG minimum hit area; `paneTab` for NSToolbar item default; `toolbar` for
+/// `.controlSize(.small)`; etc.).
 enum IconStyle: Sendable, Equatable, CaseIterable {
 
-    /// List row leading inline icon (= Apple HIG recommended inline icon
-    /// size for list / table row leading affordances).
-    ///
-    /// Apple HIG source: `View > List > Standard row accessories`
-    /// (= Apple Mail / Finder sidebar leading icon).
-    ///
+    /// List row leading inline icon (= Apple HIG recommended inline icon size
+    /// for list / table row leading affordances).
+    /// Apple HIG source: `View > List > Standard row accessories` (= Apple Mail
+    /// / Finder sidebar leading icon).
     /// Used by: list row leading, sidebar leading glyphs, inline row
     /// decorations. Weight: .regular (= (see OOB.md #2026-09-15)" canonical
     /// macOS toolbar weight).
     case inlineSmall
 
-    /// List row leading icon at the 16 PT (= Apple HIG ControlSize.mini
-    /// point size) tier.
-    ///
+    /// List row leading icon at the 16 PT (= Apple HIG ControlSize.mini point
+    /// size) tier.
     /// Apple HIG source: `ControlSize.mini` / SwiftUI `.controlSize(.mini)`.
-    ///
     /// Used by: command palette leading glyphs, dense list rows.
     case small
 
-    /// NSToolbar item default icon (= the actual rendered size of an
-    /// NSToolbar item icon on macOS 14+ when paired with regular toolbar
-    /// density; = measured on Mail / Safari / Xcode).
-    ///
-    /// Apple HIG source: `NSToolbar > Toolbar item > Default icon
-    /// = 18 PT` ((see OOB.md #2026-10-01)).
-    ///
-    /// Used by: PaneTabBar (11 sites), pane close-button glyph,
-    /// font-format toolbar buttons (= FormatToolbarButtons), inline
-    /// format toolbar (= ParagraphAIToolbarButtons). Weight: .regular.
+    /// NSToolbar item default icon (= the actual rendered size of an NSToolbar
+    /// item icon on macOS 14+ when paired with regular toolbar density; =
+    /// measured on Mail / Safari / Xcode).
+    /// Apple HIG source: `NSToolbar > Toolbar item > Default icon = 18 PT`
+    /// ((see OOB.md #2026-10-01)).
+    /// Used by: PaneTabBar (11 sites), pane close-button glyph, font-format
+    /// toolbar buttons (= FormatToolbarButtons), inline format toolbar (=
+    /// ParagraphAIToolbarButtons). Weight: .regular.
     case paneTab
 
     /// macOS standard toolbar button icon (= SwiftUI `.controlSize(.small)`
     /// point size). Chat-input bar action icons live here.
-    ///
-    /// Apple HIG source: `ControlSize.small` / SwiftUI `.controlSize(.small)`
-    /// / macOS standard toolbar button icon = 18 PT.
-    /// (= Updated 2026-10-12 from the prior 22 PT; = the prior
-    /// value was the NSToolbar item macOS 14+ default but
-    /// over-shot the SwiftUI `.controlSize(.small)` toolbar
-    /// button — the brain icon
-    /// (mental-model glyph)
-    /// over-shot the
-    /// `.controlSize(.small)`
-    /// toolbar button at 22 PT;
-    /// = 18 PT is the macOS
-    /// standard toolbar item.
-    /// the visual mismatch against the sibling `Label`-form
-    /// export button = 18 PT; = 18 is the canonical macOS
+    /// Apple HIG source: `ControlSize.small` / SwiftUI `.controlSize(.small)` /
+    /// macOS standard toolbar button icon = 18 PT. (= Updated 2026-10-12 from
+    /// the prior 22 PT; = the prior value was the NSToolbar item macOS 14+
+    /// default but over-shot the SwiftUI `.controlSize(.small)` toolbar button
+    /// — the brain icon (mental-model glyph) over-shot the
+    /// `.controlSize(.small)` toolbar button at 22 PT; = 18 PT is the macOS
+    /// standard toolbar item. the visual mismatch against the sibling
+    /// `Label`-form export button = 18 PT; = 18 is the canonical macOS
     /// `.controlSize(.small)` toolbar glyph.)
-    ///
     /// Used by: chat input bar buttons (= ChatInputBarView GlassIconButton),
     /// format toolbar (kicker / superscript / etc.). Weight: .regular.
     case toolbar
 
-    /// macOS HIG navigation icon (= SwiftUI `.controlSize(.regular)`
-    /// point size).
-    ///
-    /// Apple HIG source: `ControlSize.regular` / SwiftUI `.controlSize(.regular)`
-    /// / HIG macOS navigation icon.
-    ///
-    /// Used by: sidebar primary nav, large button affordances. Weight: .regular.
+    /// macOS HIG navigation icon (= SwiftUI `.controlSize(.regular)` point
+    /// size).
+    /// Apple HIG source: `ControlSize.regular` / SwiftUI
+    /// `.controlSize(.regular)` / HIG macOS navigation icon.
+    /// Used by: sidebar primary nav, large button affordances. Weight:
+    /// .regular.
     case nav
 
     /// macOS HIG minimum hit area (= the smallest tappable zone for
     /// pointer-driven interactions).
-    ///
     /// Apple HIG source: `Layout > Tap targets > macOS = 28 PT minimum`.
-    ///
-    /// Used by: pane tab hot area (= the full tap zone of a pane tab),
-    /// trailing icon-button hot area (= PaneTrailingIconButton),
-    /// icon-only button tap targets. This is a HIT AREA, not a glyph
-    /// size: use it with `Color.clear` overlay + `.contentShape(Rectangle())`
-    /// to extend the tap target around a smaller visual icon.
-    /// Weight: .regular.
+    /// Used by: pane tab hot area (= the full tap zone of a pane tab), trailing
+    /// icon-button hot area (= PaneTrailingIconButton), icon-only button tap
+    /// targets. This is a HIT AREA, not a glyph size: use it with `Color.clear`
+    /// overlay + `.contentShape(Rectangle())` to extend the tap target around a
+    /// smaller visual icon. Weight: .regular.
     case hitArea
 
-    /// ContentUnavailableView default icon size (= the empty-state hero
-    /// zone). Thin weight per (see OOB.md #2026-09-17) SF Symbols 6 weight split
-    /// rule for the ≥38 PT zone.
-    ///
-    /// Apple HIG source: `ContentUnavailableView > Default icon zone
-    /// = 76 PT` (= Apple's documented default for the "no content here"
-    /// affordance).
-    ///
-    /// Used by: EmptyStateView (the canonical wenshu empty state
-    /// across all 12 specialized tools + editor zone + PreviewPane +
-    /// ChatView chat-zone "configure LLM" empty state).
-    /// Weight: .thin.
+    /// ContentUnavailableView default icon size (= the empty-state hero zone).
+    /// Thin weight per (see OOB.md #2026-09-17) SF Symbols 6 weight split rule
+    /// for the ≥38 PT zone.
+    /// Apple HIG source: `ContentUnavailableView > Default icon zone = 76 PT`
+    /// (= Apple's documented default for the "no content here" affordance).
+    /// Used by: EmptyStateView (the canonical wenshu empty state across all 12
+    /// specialized tools + editor zone + PreviewPane + ChatView chat-zone
+    /// "configure LLM" empty state). Weight: .thin.
     case emptyStateHero
 
-    /// List row avatar / thumbnail size (= NSTableView thumbnail row
-    /// standard). Thin weight per (see OOB.md #2026-09-17) rule.
-    ///
-    /// Apple HIG source: `NSTableView > Row thumbnail size = 64 PT`
-    /// (= Apple's default for list-row thumbnails; = Mail / Finder row
-    /// icon zone).
-    ///
-    /// Used by: book cover thumbnails in PlaceholderView, character
-    /// portrait icons, kanban card hero.
-    /// Weight: .thin.
+    /// List row avatar / thumbnail size (= NSTableView thumbnail row standard).
+    /// Thin weight per (see OOB.md #2026-09-17) rule.
+    /// Apple HIG source: `NSTableView > Row thumbnail size = 64 PT` (= Apple's
+    /// default for list-row thumbnails; = Mail / Finder row icon zone).
+    /// Used by: book cover thumbnails in PlaceholderView, character portrait
+    /// icons, kanban card hero. Weight: .thin.
     case avatar
 
     /// CoverFlow thumbnail size (= Apple-shipped Finder cover preview
     /// standard). Thin weight per (see OOB.md #2026-09-17) rule.
-    ///
     /// Apple HIG source: `Finder > CoverFlow preview = 192 PT`.
-    ///
-    /// Used by: onboarding cover preview (= LibraryRootView).
-    /// Weight: .thin.
+    /// Used by: onboarding cover preview (= LibraryRootView). Weight: .thin.
     case cover
 
     /// Toolbar button hot area (= `.controlSize(.regular)` = 32 PT).
-    ///
-    /// Apple HIG source: `ControlSize.regular` / SwiftUI `.controlSize(.regular)`
-    /// / HIG macOS toolbar button = 32 PT.
-    ///
-    /// Used by: sidebar trailing buttons (= SidebarSheets).
-    /// This is a HIT AREA, not a glyph size.
-    /// Weight: .regular.
+    /// Apple HIG source: `ControlSize.regular` / SwiftUI
+    /// `.controlSize(.regular)` / HIG macOS toolbar button = 32 PT.
+    /// Used by: sidebar trailing buttons (= SidebarSheets). This is a HIT AREA,
+    /// not a glyph size. Weight: .regular.
     case toolbarButton
 
     /// Medium card surface size (= HIG small-card standard).
-    ///
     /// Apple HIG source: `Layout > Surfaces > Medium card = 56 PT`.
-    ///
-    /// Used by: sidebar sheets medium surface (= SidebarSheets).
-    /// Weight: .regular.
+    /// Used by: sidebar sheets medium surface (= SidebarSheets). Weight:
+    /// .regular.
     case surface
 
-    /// Sidebar row leading icon (= Apple HIG sidebar list row anatomy).
-    /// One canonical slot for every row in the tree so the visual
-    /// baseline is fixed; SF Symbols render at the .small scale that
-    /// Apple Mail / Notes / Xcode / System Settings use.
-    ///
-    /// Apple HIG source: `Sidebars > List > A sidebar's row height,
-    /// text, and glyph size depend on its overall size, which can be
-    /// small, medium, or large.` (= `NSTableViewDefaultSizeMode` /
-    /// SwiftUI `\.sidebarRowSize`). The wenshu default follows Apple
-    /// Mail / Notes / Xcode at 16 PT and .regular; the
-    /// `sidebarWidth` + `sidebarInset` properties on this case hold
-    /// the optical slot so callers do not have to know the difference
+    /// Sidebar row leading icon (= Apple HIG sidebar list row anatomy). One
+    /// canonical slot for every row in the tree so the visual baseline is
+    /// fixed; SF Symbols render at the .small scale that Apple Mail / Notes /
+    /// Xcode / System Settings use.
+    /// Apple HIG source: `Sidebars > List > A sidebar's row height, text, and
+    /// glyph size depend on its overall size, which can be small, medium, or
+    /// large.` (= `NSTableViewDefaultSizeMode` / SwiftUI `\.sidebarRowSize`).
+    /// The wenshu default follows Apple Mail / Notes / Xcode at 16 PT and
+    /// .regular; the `sidebarWidth` + `sidebarInset` properties on this case
+    /// hold the optical slot so callers do not have to know the difference
     /// between the symbol's intrinsic width and the row slot.
-    ///
-    /// Used by: SFLabelRow (every sidebar row in the library tree).
-    /// Weight: .regular. Color: `.primary` (= Apple Tahoe sidebar
-    /// default = black in light mode, white in dark mode, NOT
-    /// app accent color).
+    /// Used by: SFLabelRow (every sidebar row in the library tree). Weight:
+    /// .regular. Color: `.primary` (= Apple Tahoe sidebar default = black in
+    /// light mode, white in dark mode, NOT app accent color).
     case sidebar
 
-    /// Sidebar row icon tier for the main-window library tree
-    /// (= `Sources/WenshuApp/Views/Library/SidebarRowView.swift`'s
-    /// `SFLabelRow`).  Distinct from `.sidebar` (= which is
-    /// reserved for the Settings scene's
-    /// 5-pane sidebar): the main-window
-    /// library tree's outline icon is
-    /// monochrome (= only the Settings
-    /// scene uses multicolor).
-    /// this tier renders the SF Symbol in `.monochrome` with the
-    /// system-primary color (= no multicolor, no squircle tile,
-    /// = the Apple HIG canonical "chrome" sidebar row icon) while
-    /// `.sidebar` keeps the multicolor
-    /// + dark squircle tile that the
-    /// Settings scene uses (= the Apple
-    /// System Settings 5-pane chip look).
-    ///
-    /// Apple HIG source: macOS 27 Tahoe `Sidebars > List >
-    /// Sidebar row anatomy` (the chrome side — the library tree
-    /// is chrome, not an Apple system-settings surface; =
-    /// system primary color, no multicolor, no squircle tile).
+    /// Sidebar row icon tier for the main-window library tree (=
+    /// `Sources/WenshuApp/Views/Library/SidebarRowView.swift`'s `SFLabelRow`).
+    /// Distinct from `.sidebar` (= which is reserved for the Settings scene's
+    /// 5-pane sidebar): the main-window library tree's outline icon is
+    /// monochrome (= only the Settings scene uses multicolor). this tier
+    /// renders the SF Symbol in `.monochrome` with the system-primary color (=
+    /// no multicolor, no squircle tile, = the Apple HIG canonical "chrome"
+    /// sidebar row icon) while `.sidebar` keeps the multicolor + dark squircle
+    /// tile that the Settings scene uses (= the Apple System Settings 5-pane
+    /// chip look).
+    /// Apple HIG source: macOS 27 Tahoe `Sidebars > List > Sidebar row anatomy`
+    /// (the chrome side — the library tree is chrome, not an Apple
+    /// system-settings surface; = system primary color, no multicolor, no
+    /// squircle tile).
     case sidebarTree
 
-    /// Apple HIG point size for this case. Values follow Apple-shipped
-    /// app defaults (= not wenshu-invented).
+    /// Apple HIG point size for this case. Values follow Apple-shipped app
+    /// defaults (= not wenshu-invented).
     var pointSize: CGFloat {
         switch self {
         case .inlineSmall: 14
@@ -248,10 +203,10 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
         }
     }
 
-    /// Apple HIG weight for this case. The ≥38 PT zone (= emptyStateHero
-    /// / avatar / cover) uses .thin per (see OOB.md #2026-09-17) SF Symbols 6
-    /// weight split rule. Smaller zones use .regular (= (see OOB.md #2026-09-15)"
-    /// canonical macOS toolbar weight).
+    /// Apple HIG weight for this case. The ≥38 PT zone (= emptyStateHero /
+    /// avatar / cover) uses .thin per (see OOB.md #2026-09-17) SF Symbols 6
+    /// weight split rule. Smaller zones use .regular (= (see OOB.md
+    /// #2026-09-15)" canonical macOS toolbar weight).
     var fontWeight: Font.Weight {
         switch self {
         case .emptyStateHero, .avatar, .cover: .thin
@@ -259,17 +214,16 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
         }
     }
 
-    /// Whether this case is a hit-area tier (= glyph is invisible;
-    /// caller overlays an actual icon inside the hit zone). Affects
-    /// SFIcon rendering: hit areas render with no font = icon at any
-    /// size nested inside.
+    /// Whether this case is a hit-area tier (= glyph is invisible; caller
+    /// overlays an actual icon inside the hit zone). Affects SFIcon rendering:
+    /// hit areas render with no font = icon at any size nested inside.
     var isHitArea: Bool {
         self == .hitArea || self == .toolbarButton
     }
 
-    /// AppKit counterpart used at NSImage boundaries. Apple keeps
-    /// the symbol's intrinsic optical bounds; the factory normalizes
-    /// only the shared point size, weight, and scale.
+    /// AppKit counterpart used at NSImage boundaries. Apple keeps the symbol's
+    /// intrinsic optical bounds; the factory normalizes only the shared point
+    /// size, weight, and scale.
     var symbolWeight: NSFont.Weight {
         switch self {
         case .emptyStateHero, .avatar, .cover: .thin
@@ -286,21 +240,20 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
 // baseline matches Apple Mail / Notes / Xcode / System Settings (= the wenshu-declared
 // default in the absence of a system override).
 extension IconStyle {
-    /// Sidebar row leading icon width (= the row's leading icon
-    /// frame; = the fixed visual slot the SF Symbol sits inside).
-    /// Only meaningful when `self == .sidebar`.
+    /// Sidebar row leading icon width (= the row's leading icon frame; = the
+    /// fixed visual slot the SF Symbol sits inside). Only meaningful when `self
+    /// == .sidebar`.
     var sidebarWidth: CGFloat { 16 }
-    /// Sidebar row leading icon inner horizontal padding (= the
-    /// breathing room inside the slot so the symbol's optical bounds
-    /// never touch the slot edge). Only meaningful when
-    /// `self == .sidebar`.
+    /// Sidebar row leading icon inner horizontal padding (= the breathing room
+    /// inside the slot so the symbol's optical bounds never touch the slot
+    /// edge). Only meaningful when `self == .sidebar`.
     var sidebarInset: CGFloat { 2 }
 }
 
 // MARK: - IconColor
 
-/// Apple HIG-compatible icon color enum (= SwiftUI semantic colors only;
-/// no ad-hoc `Color.red` / `Color.blue`).
+/// Apple HIG-compatible icon color enum (= SwiftUI semantic colors only; no
+/// ad-hoc `Color.red` / `Color.blue`).
 enum IconColor: Sendable, Equatable {
     case primary        // = .primary (= HIG text-primary on light mode)
     case secondary      // = .secondary (= HIG text-secondary)
@@ -311,10 +264,9 @@ enum IconColor: Sendable, Equatable {
     case red, green, orange, blue
 
     /// SwiftUI semantic color resolver (= `Color` to be passed to
-    /// `.foregroundStyle(_:)`). HIG quaternary = primary with 0.15 alpha
-    /// (= SwiftUI `.quaternary` resolves internally to `HierarchyShape`.
-    /// quaternary`; we use the explicit alpha for stability across macOS
-    /// SDKs).
+    /// `.foregroundStyle(_:)`). HIG quaternary = primary with 0.15 alpha (=
+    /// SwiftUI `.quaternary` resolves internally to `HierarchyShape`.
+    /// quaternary`; we use the explicit alpha for stability across macOS SDKs).
     var style: Color {
         switch self {
         case .primary: Color.primary
@@ -340,97 +292,59 @@ enum IconRendering: Sendable, Equatable {
     /// empty-state rendering).
     case monochrome
 
-    /// Single color with opacity-derived depth per layer (= Apple HIG
-    /// chrome default for toolbar icons at <38 PT).
+    /// Single color with opacity-derived depth per layer (= Apple HIG chrome
+    /// default for toolbar icons at <38 PT).
     case hierarchical
 
-    /// Per-layer explicit color (= 1-3 N `Color` values; = the 2026-09-15
-    /// "use SF Symbols 6 (3rd gen) with palette rendering" canonical
-    /// default for SF Symbols 6).
+    /// Per-layer explicit color (= 1-3 N `Color` values; = the 2026-09-15 "use
+    /// SF Symbols 6 (3rd gen) with palette rendering" canonical default for SF
+    /// Symbols 6).
     case palette
 
-    /// Apple's intrinsic colors (= use when the symbol has a curated
-    /// multicolor variant; = Apple wifi / calendar.badge.plus / etc.).
+    /// Apple's intrinsic colors (= use when the symbol has a curated multicolor
+    /// variant; = Apple wifi / calendar.badge.plus / etc.).
     case multicolor
 
-    /// The `.variableColor` symbol effect
-    /// (= the SF
-    /// Symbol's
-    /// colors cycle
-    /// through the
-    /// spectrum
-    /// continuously;
-    /// = the canonical
-    /// "in progress"
-    /// visual
-    /// affordance; =
-    /// e.g.
-    /// `ellipsis.circle.fill`
-    /// with this
-    /// rendering = the
-    /// three dots
-    /// cycle through
-    /// colors at ~1
-    /// Hz; = the user
-    /// sees
-    /// continuous
-    /// motion and
-    /// immediately
-    /// knows the
-    /// system is
-    /// still
-    /// working). The
-    /// `SFIcon` factory
-    /// applies the
-    /// effect via
-    /// `.symbolEffect(.variableColor.iterative)`
-    /// (= the SwiftUI
-    /// 4.0+
-    /// API; = the loop
-    /// runs forever
-    /// while the view
-    /// is mounted).
+    /// The `.variableColor` symbol effect (= the SF Symbol's colors cycle
+    /// through the spectrum continuously; = the canonical "in progress" visual
+    /// affordance; = e.g. `ellipsis.circle.fill` with this rendering = the
+    /// three dots cycle through colors at ~1 Hz; = the user sees continuous
+    /// motion and immediately knows the system is still working). The `SFIcon`
+    /// factory applies the effect via `.symbolEffect(.variableColor.iterative)`
+    /// (= the SwiftUI 4.0+ API; = the loop runs forever while the view is
+    /// mounted).
     case variableColor
 }
 
 // MARK: - SFIcon
 
-/// Central SF Symbols 6 icon factory. All wenshu icons go through this
-/// View (= `Image(systemName:)` directly is anti-pattern for new code;
-/// legacy call sites migrate via per-surface sweep PRs).
-///
+/// Central SF Symbols 6 icon factory. All wenshu icons go through this View (=
+/// `Image(systemName:)` directly is anti-pattern for new code; legacy call
+/// sites migrate via per-surface sweep PRs).
 /// Apple HIG rationale ((see OOB.md #2026-10-01)): one factory enforces one
-/// weight + one color strategy per surface; 166 call sites can't
-/// drift because the factory pins it.
-///
-/// ```swift
-/// SFIcon("magnifyingglass", style: .small)
-/// SFIcon("paperplane", style: .toolbar, color: .accent)
-/// SFIcon("text.document", style: .emptyStateHero, rendering: .monochrome)
-/// ```
+/// weight + one color strategy per surface; 166 call sites can't drift because
+/// the factory pins it.
+/// ```swift SFIcon("magnifyingglass", style: .small) SFIcon("paperplane",
+/// style: .toolbar, color: .accent) SFIcon("text.document", style:
+/// .emptyStateHero, rendering: .monochrome) ```
 struct SFIcon: View {
     let name: String
     let style: IconStyle
     let color: Color
     let rendering: IconRendering?
-    /// Optional per-call point-size override (= the wenshu 1:1
-    /// per-icon optical-size strategy from
-    /// `wenshu-apple-api-first`). RATIONALE 2026-10-13:
-    /// the format toolbar needs different visual sizes
-    /// per SF Symbol (= "bold" / "italic" are wide
-    /// glyphs; = "`</>`" is a thin glyph; = "link" is a
-    /// single thin line; = each glyph needs its own
-    /// point size to optical-match the other 11
-    /// buttons). The factory's `style.pointSize` is the
-    /// canonical Apple HIG default (= 14 PT for
-    /// `.inlineSmall`); = the override lets the
-    /// `EditorFormatToolbar` pass the per-icon measured
-    /// value (= 12 / 14 / 16 / 18 PT) without losing
-    /// the SFIcon rendering pipeline (= `.symbolRenderingMode`
-    /// + `.foregroundStyle`). nil = use `style.pointSize`.
-    /// The override is set on the `Image` (= applied
-    /// AFTER the factory's `.font(.system(size:))` =
-    /// SwiftUI modifier order = the override wins).
+    /// Optional per-call point-size override (= the wenshu 1:1 per-icon
+    /// optical-size strategy from `wenshu-apple-api-first`). RATIONALE
+    /// 2026-10-13: the format toolbar needs different visual sizes per SF
+    /// Symbol (= "bold" / "italic" are wide glyphs; = "`</>`" is a thin glyph;
+    /// = "link" is a single thin line; = each glyph needs its own point size to
+    /// optical-match the other 11 buttons). The factory's `style.pointSize` is
+    /// the canonical Apple HIG default (= 14 PT for `.inlineSmall`); = the
+    /// override lets the `EditorFormatToolbar` pass the per-icon measured value
+    /// (= 12 / 14 / 16 / 18 PT) without losing the SFIcon rendering pipeline (=
+    /// `.symbolRenderingMode` + `.foregroundStyle`). nil = use
+    /// `style.pointSize`. The override is set on the `Image` (= applied AFTER
+    /// the factory's `.font(.system(size:))` = SwiftUI modifier order = the
+    /// override wins).
     let pointSizeOverride: CGFloat?
 
     init(
@@ -448,10 +362,10 @@ struct SFIcon: View {
     }
 
     /// Convenience initializer accepting an `IconColor` semantic token (= the
-    /// canonical Apple HIG color enum; = `.primary / .secondary / .tint / .red`).
-    /// This is the form most call sites use; the underlying `Color` form
-    /// above is the escape hatch for call sites that compute the color from
-    /// a domain enum (= CommandPaletteView category colors).
+    /// canonical Apple HIG color enum; = `.primary / .secondary / .tint /
+    /// .red`). This is the form most call sites use; the underlying `Color`
+    /// form above is the escape hatch for call sites that compute the color
+    /// from a domain enum (= CommandPaletteView category colors).
     init(
         _ name: String,
         style: IconStyle,
@@ -620,38 +534,4 @@ struct SFIcon: View {
         }
     }
 }
-
-// MARK: - SFLabelRow
-
-// (SFLabelRow extracted to a new file in A27; = see IconStylesViews.swift or WenshuTextStyle.swift)
-
-
-// MARK: - SFStatusBadge
-
-// (SFStatusBadge extracted to a new file in A27; = see IconStylesViews.swift or WenshuTextStyle.swift)
-
-
-// MARK: - SFCardHero
-
-// (SFCardHero extracted to a new file in A27; = see IconStylesViews.swift or WenshuTextStyle.swift)
-
-
-// MARK: - SFToolbarButton
-
-// (SFToolbarButton extracted to a new file in A27; = see IconStylesViews.swift or WenshuTextStyle.swift)
-
-
-// MARK: - SFListRow
-
-// (SFListRow extracted to a new file in A27; = see IconStylesViews.swift or WenshuTextStyle.swift)
-
-
-// MARK: - WenshuTextStyle
-
-// (WenshuTextStyle extracted to a new file in A27; = see IconStylesViews.swift or WenshuTextStyle.swift)
-
-
-// MARK: - WenshuText (= presentational helper for SwiftUI .font(_:))
-
-// (wenshuFont extracted to a new file in A27; = see IconStylesViews.swift or WenshuTextStyle.swift)
 
