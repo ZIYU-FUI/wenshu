@@ -38,7 +38,7 @@ enum ConversationOps {
         lastN: Int = 10,
         threshold: Int = 20,
         verifier: WenshuVerifier,
-        bookID: BookID? = nil
+        bookID: String? = nil
     ) async throws -> Bool {
         let currentCount = try repository.count(sessionId: sessionId, bookID: bookID)
         guard currentCount > threshold else { return false }
@@ -86,7 +86,7 @@ enum ConversationOps {
         repository: WSChatRepository,
         run: SubAgentRun,
         sessionId: String,
-        bookID: BookID? = nil
+        bookID: String? = nil
     ) throws {
         let model = WSSubAgentRun(
             id: run.id,

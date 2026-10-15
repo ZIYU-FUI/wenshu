@@ -81,9 +81,17 @@ init(container: ModelContainer) {
     }
 
     func append(_ message: ChatMessage, sessionId: SessionID, bookID: BookID?) async throws {
-        let stored = Self.makeStored(from: message)
         try await Self.runOnMainActor {
-            try self.repository(bookID: bookID).append(stored, sessionId: sessionId.rawValue, bookID: bookID)
+            try self.repository(bookID: bookID).append(
+                id: message.id.uuidString,
+                source: message.source.rawValue,
+                content: message.content,
+                tokens: message.tokens,
+                thinking: message.thinking,
+                timestamp: message.timestamp,
+                sessionId: sessionId.rawValue,
+                bookID: bookID?.rawValue
+            )
         }
     }
 
@@ -91,7 +99,7 @@ init(container: ModelContainer) {
         // A1 boundary: convert WSChatMessage -> ChatMessage INSIDE MainActor.
         // PersistentModel is NOT Sendable across actor boundaries.
         let stored: [ChatMessage] = try await Self.runOnMainActor {
-            try self.repository(bookID: bookID).loadMessages(sessionId: sessionId.rawValue, bookID: bookID).compactMap(Self.makeDomain(from:))
+            try self.repository(bookID: bookID).loadMessages(sessionId: sessionId.rawValue, bookID: bookID?.rawValue).compactMap(Self.makeDomain(from:))
         }
         return stored
     }
@@ -109,7 +117,7 @@ init(container: ModelContainer) {
         // the protocol's caller-side surface (= ChatSessionViewModel)
         // does not change.
         let resolvedSessionId = sessionId.rawValue
-        let resolvedBookID = bookID
+        let resolvedBookID = bookID?.rawValue
         let resolvedThreshold = threshold
         let resolvedLastN = lastN
         let resolvedVerifier = verifier
