@@ -67,7 +67,7 @@ struct EditorEditContent: View {
     // The configuration owns the 4 service protocols (= wenshu implements
     // 2: WikiLinkResolver + EmbeddedImageProvider; the engine's
     // HighlighterSwiftBridge is transitive via MarkdownEngineCodeBlocks;
-    // LaTeX is rendered by SwiftMathBridge (= boss拍 2026-10-11)).
+    // LaTeX is rendered by SwiftMathBridge (see OOB.md #2026-10-11).
     let configuration: MarkdownEditorConfiguration
     // Stable per-tab id, passed to engine as `documentId`
     let draftId: String

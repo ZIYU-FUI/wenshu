@@ -58,8 +58,7 @@ enum WindowID {
     static let attachments = "wenshu-attachments"
     static let manifest = "wenshu-manifest"
     static let summaries = "wenshu-summaries"
-    // SwiftData library upgrade panel window (= boss OOB 2026-10-06
-    // FCP-style upgrade arc). Single-instance Window (= macOS
+    // SwiftData library upgrade panel window (see OOB.md #2026-10-06). Single-instance Window (= macOS
     // HIG canonical for panels; = the user can't open duplicates
     // and clicking the open trigger while the window is already
     // shown brings it to front). The window uses
@@ -603,7 +602,7 @@ struct AppRootScene: Scene {
                         // Clean termination of the upgrade flow
                         // (= the user pressed 退出; = matches the
                         // panel's "no escape except 重试 or 退出"
-                        // contract from boss OOB 2026-10-06).
+                        // contract (panel only-escapes are 重试/退出; = see OOB.md #2026-10-06).
                         NSApp.terminate(nil)
                     }
                 )

@@ -99,8 +99,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         NotificationCenter.default.post(name: .wenshuResetLayout, object: nil)
     }
 
-    // SwiftData library upgrade panel wiring (= boss OOB 2026-10-06
-    // FCP-style upgrade arc). WenshuAppDelegate owns the state and
+    // SwiftData library upgrade panel wiring (see OOB.md #2026-10-06). WenshuAppDelegate owns the state and
     // the retry closure because the Window scene body in
     // AppRootScene has no constructor arguments (= Scene content
     // closures are static). applicationDidFinishLaunching populates
@@ -230,8 +229,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
             Self.migrateLegacyChatIfNeeded(warehousePath: warehouse, chatDbPath: chatDbPath)
         }
 
-        // SwiftData library upgrade check (= boss OOB 2026-10-06
-        // FCP-style upgrade arc). When the user's .ws Info.plist
+        // SwiftData library upgrade check (see OOB.md #2026-10-06). When the user's .ws Info.plist
         // WSSchemaVersion is below ModelsSchemaV2 (= the current
         // SwiftData version), open the migration panel BEFORE the
         // main app mounts the NavigationSplitView (= the columns
@@ -782,8 +780,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         return (slug?.isEmpty == false) ? slug : nil
     }
 
-    // SwiftData library upgrade entry point (= boss OOB 2026-10-06
-    // FCP-style upgrade arc). Wired from
+    // SwiftData library upgrade entry point (see OOB.md #2026-10-06). Wired from
     // applicationDidFinishLaunching; = called once per launch with
     // the user's active .ws root. Detection: read Info.plist's
     // WSSchemaVersion (= the application-layer schema version),
@@ -887,7 +884,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     /// Run one attempt of the migration pipeline. Drives state
     /// through preparing / executing / finalizing; = on
     /// exception, state.fail(err) rolls progress back to 0
-    /// (= boss OOB 2026-10-06).
+    /// (see OOB.md #2026-10-06).
     @MainActor
     private static func runSwiftDataMigrationPipeline(wsRoot: URL, state: LibraryMigrationState) {
         do {
@@ -926,8 +923,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
             Self.sharedMigrationRetry = nil
             Self.sharedAppState?.migrationInFlight = false
         } catch {
-            // Roll back to 0 (= boss OOB 2026-10-06 'progress bar
-            // rolls back to zero on failure'). The user then sees
+            // Roll back to 0 (see OOB.md #2026-10-06). The user then sees
             // the red failure block with the error string and the
             // backup path; = they can press 重试 (= up to 3 times;
             // = the panel hides the 重试 button after 3 failures

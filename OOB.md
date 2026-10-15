@@ -34,7 +34,9 @@ New entries = append 1 line. Outdated = delete (= per AGENTS.md §10.3).
 | 2026-09-22 | DesignTokens 距底 30PT; 业务层不许摸基础设施 |
 | 2026-10-02 | AGENTS/CLAUDE 大文件治理; color sweep 直走 HIG; skill auto-load before code; 颜色盘一次; sweep 继续推 |
 | 2026-10-06 | 中央工厂保留 + 一个区域一个定义 (SFRegions source) |
+| 2026-10-06 (library upgrade) | SwiftData library upgrade panel = macOS system-upgrade-style UX (= visible progress + auto retry up to 3 + 备份路径 + 重试/退出) |
 | 2026-10-07 | 多语言 zsh fallback = `Scripts/build-app.sh` 没复制 `.lproj` 到 `.app/Resources`; 资料库默认共享跨书 |
+| 2026-10-11 | LaTeX rendering enabled via SwiftMathBridge (= MarkdownEngineLatex module; = math blocks render inline) |
 | 2026-10-12 | Settings = 双栏 NavigationSplitView; Apple 系统设置 1:1; i18n 先正确再 UI; per-app Language picker; accent-color/topic size 走 Apple HIG canonical; 默认窗口 950x517; 内部 padding 调整 |
 | 2026-10-12 (memory) | Memory = 独立 Window (not Settings 子页) + toolbar brain 入口 |
 | 2026-10-12 (chrome) | 4 列底栏 = `ChromeBottomFooter` + `safeAreaInset`; ICON 光学 24PT tile + 4PT inset; 仅 Settings 多色; library tree 单色 |
