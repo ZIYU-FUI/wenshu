@@ -75,7 +75,7 @@ struct ChatViewModelDefaultModelTests {
         //
         // Fix: verify the canonical source-of-truth (= AppState.llmModel) carries the empty-string default. We strip comments to avoid false positives (= the v0.24 comment in SettingView.swift line 57-67 mentions the literal `@AppStorage("wenshu.llm.model")` as historical reference).
         let appStateURL = URL(fileURLWithPath: cwd)
-            .appendingPathComponent("Sources/WenshuApp/State/AppState.swift")
+            .appendingPathComponent("Sources/WenshuApp/Shared/State/AppState.swift")
         let appState = try? String(contentsOf: appStateURL, encoding: .utf8)
         #expect(appState != nil, "AppState.swift must be readable at \(appStateURL.path)")
         let codeLines = appState!.components(separatedBy: "\n").filter {

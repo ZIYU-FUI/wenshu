@@ -45,18 +45,19 @@ struct LazyVStackSpacingAspectRatioSweepTests {
     @Test("Swept sites use DesignTokens for LazyVStack spacing + aspectRatio")
     func sweptSitesUseDesignTokens() throws {
         let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()  // DesignSystem/
             .deletingLastPathComponent()  // UI/
-            .deletingLastPathComponent()  // Tests/WenshuAppTests/
+            .deletingLastPathComponent()  // WenshuAppTests/
             .deletingLastPathComponent()  // Tests/
             .deletingLastPathComponent()  // repo root
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         let sweptFiles: [(String, String)] = [
-            ("Views/Tools/ForeshadowingView.swift", "DesignTokens.spacingTight"),
-            ("Views/Tools/PlaceholderView.swift", "DesignTokens.spacingTight"),
-            ("Views/Chat/ChatView.swift", "DesignTokens.spacingStandard"),
-            ("Views/Kanban/KanbanView.swift", "DesignTokens.spacingTight"),
-            ("Views/Workspace/LayoutPicker/PresetCard.swift", "DesignTokens.presetThumbnailAspectRatio"),
+            ("Features/Agent/View/ForeshadowingView.swift", "DesignTokens.spacingTight"),
+            ("Features/Agent/View/PlaceholderView.swift", "DesignTokens.spacingTight"),
+            ("Features/Chat/View/ChatView.swift", "DesignTokens.spacingStandard"),
+            ("Features/Kanban/View/KanbanView.swift", "DesignTokens.spacingTight"),
+            ("Features/Editor/View/PresetCard.swift", "DesignTokens.presetThumbnailAspectRatio"),
         ]
 
         for (relative, expectedToken) in sweptFiles {
@@ -72,10 +73,11 @@ struct LazyVStackSpacingAspectRatioSweepTests {
     @Test("DesignTokens exposes presetThumbnailAspectRatio")
     func designTokensExposesAspectRatioToken() throws {
         let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+            .deletingLastPathComponent()  // DesignSystem/
+            .deletingLastPathComponent()  // UI/
+            .deletingLastPathComponent()  // WenshuAppTests/
+            .deletingLastPathComponent()  // Tests/
+            .deletingLastPathComponent()  // repo root
         let tokensPath = root.appendingPathComponent("Sources/WenshuApp/DesignTokens.swift")
         let content = try String(contentsOf: tokensPath, encoding: .utf8)
         #expect(
@@ -87,10 +89,11 @@ struct LazyVStackSpacingAspectRatioSweepTests {
     @Test("Zero magic LazyVStack spacing (excluding canonical 0)")
     func zeroMagicLazyVStackSpacing() throws {
         let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+            .deletingLastPathComponent()  // DesignSystem/
+            .deletingLastPathComponent()  // UI/
+            .deletingLastPathComponent()  // WenshuAppTests/
+            .deletingLastPathComponent()  // Tests/
+            .deletingLastPathComponent()  // repo root
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         let enumerator = FileManager.default.enumerator(
@@ -131,10 +134,11 @@ struct LazyVStackSpacingAspectRatioSweepTests {
     @Test("Zero magic .aspectRatio(N/M) numeric ratio literal")
     func zeroMagicAspectRatioNumeric() throws {
         let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+            .deletingLastPathComponent()  // DesignSystem/
+            .deletingLastPathComponent()  // UI/
+            .deletingLastPathComponent()  // WenshuAppTests/
+            .deletingLastPathComponent()  // Tests/
+            .deletingLastPathComponent()  // repo root
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         let enumerator = FileManager.default.enumerator(
