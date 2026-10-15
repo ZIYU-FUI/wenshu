@@ -132,7 +132,7 @@ struct SwiftDataBackedLiveE2ETests {
         // container).
         let bookmarks = (try? WSBookmarkRepository.shared.list()) ?? []
         let matching = bookmarks.first { bookmark in
-            bookmark.label == label && bookmark.docId == docID
+            bookmark.label == label && bookmark.docID == docID
         }
         #expect(matching != nil, "archivist must persist a SwiftData row; current bookmark count=\(bookmarks.count)")
     }

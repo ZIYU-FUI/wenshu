@@ -19,12 +19,11 @@ struct WSBookmarkRepositoryTests {
     @MainActor
     func add() throws {
         let repo = try makeRepository()
-        let bm = Bookmark(id: "bm-1", docId: "doc-1", label: "My anchor")
-        try repo.add(bm)
+        try repo.add(id: "bm-1", title: "My anchor", docID: "doc-1")
         let list = try repo.list()
         #expect(list.count == 1)
         #expect(list[0].id == "bm-1")
-        #expect(list[0].docId == "doc-1")
+        #expect(list[0].docID == "doc-1")
         #expect(list[0].label == "My anchor")
     }
 
@@ -32,7 +31,7 @@ struct WSBookmarkRepositoryTests {
     @MainActor
     func remove() throws {
         let repo = try makeRepository()
-        try repo.add(Bookmark(id: "bm-1", docId: "doc-1", label: "x"))
+        try repo.add(id: "bm-1", title: "x", docID: "doc-1")
         try repo.remove(id: "bm-1")
         let list = try repo.list()
         #expect(list.isEmpty)

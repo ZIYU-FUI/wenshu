@@ -28,7 +28,7 @@ struct BacklinksPanelTests {
     func loadWithoutResolver() async {
         let vm = BacklinksViewModel()
         await vm.load(docId: "doc-X")
-        #expect(vm.docId == "doc-X")
+        #expect(vm.docID == "doc-X")
         #expect(vm.backlinks.isEmpty)
         #expect(vm.error == nil)
     }
