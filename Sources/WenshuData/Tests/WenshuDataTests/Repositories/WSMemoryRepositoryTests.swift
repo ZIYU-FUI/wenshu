@@ -61,11 +61,12 @@ struct WSMemoryRepositoryTests {
     func update() throws {
         let repo = try makeRepository()
         let added = try repo.add(userId: "u", content: "old")
-        try? Thread.sleep(forTimeInterval: 0.05)
+        let addedUpdatedAt = added.updatedAt  // (= capture the timestamp before update, since `added` and the fetched model are the same SwiftData @Model instance)
+        try? Thread.sleep(forTimeInterval: 0.5)
         try repo.update(memoryID: added.memoryID, content: "new")
         let fetched = try repo.get(memoryID: added.memoryID)
         #expect(fetched?.content == "new")
-        #expect(fetched!.updatedAt > added.updatedAt)
+        #expect(fetched!.updatedAt > addedUpdatedAt)  // (= new updatedAt must be later than the pre-update timestamp)
     }
 
     @Test("update throws notFound for missing")

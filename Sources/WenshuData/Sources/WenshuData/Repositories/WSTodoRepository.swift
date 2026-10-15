@@ -78,13 +78,13 @@ public final class WSTodoRepository {
             descriptor = FetchDescriptor<WSTodo>(
                 predicate: #Predicate { $0.status == status },
                 sortBy: orderByPriority
-                    ? [SortDescriptor(\.priority, order: .reverse), SortDescriptor(\.createdAt, order: .reverse)]
+                    ? [SortDescriptor(\.priority, order: .forward), SortDescriptor(\.createdAt, order: .reverse)]
                     : [SortDescriptor(\.createdAt, order: .reverse)]
             )
         } else {
             descriptor = FetchDescriptor<WSTodo>(
                 sortBy: orderByPriority
-                    ? [SortDescriptor(\.priority, order: .reverse), SortDescriptor(\.createdAt, order: .reverse)]
+                    ? [SortDescriptor(\.priority, order: .forward), SortDescriptor(\.createdAt, order: .reverse)]
                     : [SortDescriptor(\.createdAt, order: .reverse)]
             )
         }

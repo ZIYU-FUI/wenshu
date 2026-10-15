@@ -32,7 +32,7 @@ struct WSTodoTests {
         #expect(fetched[0].id == "t-001")
         #expect(fetched[0].title == "buy milk")
         #expect(fetched[0].status == "new")
-        #expect(fetched[0].priority == 5)
+        #expect(fetched[0].priority == 1)  // (= HermesTodoTool.TodoPriority.medium = 1, = WSTodo default)
         #expect(fetched[0].dueDate == nil)
     }
 

@@ -21,7 +21,7 @@ struct WSTodoRepositoryTests {
         let item = try repo.add(title: "buy milk")
         #expect(item.title == "buy milk")
         #expect(item.status == "pending")
-        #expect(item.priority == 2)
+        #expect(item.priority == 1) // (= HermesTodoTool.TodoPriority.medium = 1)
         let fetched = try repo.get(id: item.id)
         #expect(fetched?.id == item.id)
     }

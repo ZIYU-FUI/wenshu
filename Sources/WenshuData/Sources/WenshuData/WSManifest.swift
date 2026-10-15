@@ -39,7 +39,13 @@ public final class WSManifest {
         self.workspaceUUID = workspaceUUID
         self.schemaVersion = schemaVersion
         self.wenshuVersion = wenshuVersion
-        self.createdAt = Date()
-        self.updatedAt = Date()
+        // Shared `now` so createdAt and updatedAt are bit-identical
+        // on init (= Swift Testing's CI clock is coarser than Date's
+        // nanosecond precision; = the two Date() calls would
+        // otherwise produce values that differ by a few ns,
+        // failing the `createdAt == updatedAt` invariant).
+        let now = Date()
+        self.createdAt = now
+        self.updatedAt = now
     }
 }

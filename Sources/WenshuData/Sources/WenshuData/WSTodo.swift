@@ -23,13 +23,13 @@ public final class WSTodo {
     /// "done" / "cancelled"; = does NOT match hermes TodoStatus enum names
     /// which use "pending" / "completed"; = see HermesTodoTool for translation).
     public var status: String
-    /// 0 = highest priority (= matches HermesTodoTool convention; = old schema did not have a priority field; = migration adds it; = init default is 5 to match the old TodoStore behavior where most tasks are medium-priority).
+    /// 0 = highest priority (= matches HermesTodoTool convention: TodoPriority.urgent = 3, TodoPriority.medium = 1).
     public var priority: Int
     public var dueDate: Date?
     public var createdAt: Date
     public var updatedAt: Date
 
-    public init(id: String, title: String, status: String = "new", priority: Int = 5) {
+    public init(id: String, title: String, status: String = "new", priority: Int = 1) {
         self.id = id
         self.title = title
         self.status = status

@@ -68,7 +68,14 @@ struct EmptySchemaCompletionTests {
             let hasInit = source.contains("init(")
             let fieldCount = source.components(separatedBy: "\n").filter { line in
                 let trimmed = line.trimmingCharacters(in: .whitespaces)
-                return (trimmed.hasPrefix("var ") || trimmed.hasPrefix("let ") || trimmed.hasPrefix("@Attribute"))
+                return (trimmed.hasPrefix("var ") ||
+                        trimmed.hasPrefix("let ") ||
+                        trimmed.hasPrefix("@Attribute") ||
+                        trimmed.hasPrefix("public var ") ||
+                        trimmed.hasPrefix("public let ") ||
+                        trimmed.hasPrefix("public @Attribute") ||
+                        trimmed.hasPrefix("private var ") ||
+                        trimmed.hasPrefix("private let "))
             }.count
             #expect(hasModel && hasInit && fieldCount >= 3,
                     "\(entry.name) must have @Model + init + >=3 fields (= schema is complete); = got fields=\(fieldCount)")
@@ -93,7 +100,12 @@ struct EmptySchemaCompletionTests {
             let hasModelAttr = source.contains("@Model\nfinal class \(entry.name)") ||
                                source.contains("@Model\nclass \(entry.name)") ||
                                source.contains("@Model\nactor \(entry.name)") ||
-                               source.contains("@Model final class \(entry.name)")
+                               source.contains("@Model final class \(entry.name)") ||
+                               source.contains("@Model\npublic final class \(entry.name)") ||
+                               source.contains("@Model\npublic class \(entry.name)") ||
+                               source.contains("@Model\npublic actor \(entry.name)") ||
+                               source.contains("@Model public final class \(entry.name)") ||
+                               source.contains("@Model public class \(entry.name)")
             #expect(hasModelAttr,
                     "\(entry.name) must declare @Model (= the canonical SwiftData @Model attribute per AGENTS.md §11.4 phase 1)")
         }
