@@ -49,13 +49,10 @@ enum WCIRHelpers {
 
     // MARK: - Prompt + parse
 
-    /// The per-file user prompt (= asks the LLM to
-    /// produce a structured JSON object with title /
-    /// summary / tags / destination / bookFolder;
-    /// = the schema is the only thing the LLM is
-    /// allowed to talk about; = a single JSON object
-    /// on one line so the parser can grab it
-    /// deterministically).
+    /// The per-file user prompt (= asks the LLM to produce a structured JSON
+    /// object with title / summary / tags / destination / bookFolder; = the
+    /// schema is the only thing the LLM is allowed to talk about; = a single
+    /// JSON object on one line so the parser can grab it deterministically).
 
         // MARK: - userPrompt
 
@@ -132,18 +129,13 @@ enum WCIRHelpers {
         """
 }
 
-    /// The optional rewrite-mode body for the
-    /// `searchAndRewrite` mode. When the user
-    /// picked "重写同时搜索校对", the prompt
-    /// tells the LLM to: (a) call `web_search`
-    /// for the entity, (b) combine search
-    /// results with the original body, (c)
-    /// produce a clean .ws-format body (= no
-    /// "imported on YYYY-MM-DD" cruft; = same
-    /// shape the user writes by hand; = ref
-    /// library uses `类型:` / `状态:` /
-    /// `标签:` frontmatter; = bookFolder
-    /// uses free-form markdown).
+    /// The optional rewrite-mode body for the `searchAndRewrite` mode. When the
+    /// user picked "重写同时搜索校对", the prompt tells the LLM to: (a) call
+    /// `web_search` for the entity, (b) combine search results with the
+    /// original body, (c) produce a clean .ws-format body (= no "imported on
+    /// YYYY-MM-DD" cruft; = same shape the user writes by hand; = ref library
+    /// uses `类型:` / `状态:` / `标签:` frontmatter; = bookFolder uses free-form
+    /// markdown).
 
         // MARK: - rewriteModeBlock
 
@@ -471,10 +463,8 @@ enum WCIRHelpers {
     }
 }
 
-    /// The JSON shape the LLM should return
-    /// (= varies with rewriteMode; =
-    /// `searchAndRewrite` adds the
-    /// `rewrittenBody` field).
+    /// The JSON shape the LLM should return (= varies with rewriteMode; =
+    /// `searchAndRewrite` adds the `rewrittenBody` field).
 
         // MARK: - jsonShape
 
@@ -503,56 +493,18 @@ enum WCIRHelpers {
     }
 }
 
-    /// Parse the LLM's raw response and map it onto
-    /// the orchestrator's `ImportRoutingResult`
-    /// envelope. The parser is defensive: any
-    /// malformed line falls back to the keyword-style
-    /// safe default (bookFolder .drafts) so the
-    /// orchestrator never receives an invalid
-    /// destination.
-    /// (= boss
-    /// 2026-10-10 "我选
-    /// 故事宪法，直
-    /// 接跳到了步
-    /// 骤 3，没
-    /// 有重新
-    /// 分析是
-    /// 不是
-    /// 内容
-    /// 相同
-    /// " 反馈).
-    /// Phase 2 LLM
-    /// decision: are
-    /// the source body
-    /// and the existing
-    /// body "the same
-    /// content"? (= a
-    /// separate LLM
-    /// call from the
-    /// Phase 1 routing;
-    /// = the orchestrator
-    /// invokes this
-    /// ONLY when
-    /// Phase 1 found a
-    /// same-titled file
-    /// in the destination
-    /// folder; = most
-    /// imports never
-    /// reach this
-    /// path).
-    /// The LLM is
-    /// asked to return
-    /// a JSON object
-    /// with 3 fields:
-    /// `isContentSame` (=
-    /// true / false),
-    /// `confidence` (=
-    /// 0.0 - 1.0), and
-    /// `reasoning` (=
-    /// a short Chinese
-    /// explanation
-    /// shown to the
-    /// user).
+    /// Parse the LLM's raw response and map it onto the orchestrator's
+    /// `ImportRoutingResult` envelope. The parser is defensive: any malformed
+    /// line falls back to the keyword-style safe default (bookFolder .drafts)
+    /// so the orchestrator never receives an invalid destination. (= boss
+    /// 2026-10-10 "我选 故事宪法，直 接跳到了步 骤 3，没 有重新 分析是 不是 内容 相同 " 反馈). Phase 2 LLM
+    /// decision: are the source body and the existing body "the same content"?
+    /// (= a separate LLM call from the Phase 1 routing; = the orchestrator
+    /// invokes this ONLY when Phase 1 found a same-titled file in the
+    /// destination folder; = most imports never reach this path). The LLM is
+    /// asked to return a JSON object with 3 fields: `isContentSame` (= true /
+    /// false), `confidence` (= 0.0 - 1.0), and `reasoning` (= a short Chinese
+    /// explanation shown to the user).
 
         // MARK: - contentSamePrompt
 
@@ -586,14 +538,9 @@ enum WCIRHelpers {
         """
 }
 
-    /// 
-    /// Decide whether a Phase 2
-    /// `ContentSameResult` should
-    /// short-circuit the import (=
-    /// treat as a no-op skip) or
-    /// trigger an overwrite. Centralized
-    /// so the threshold is tuned in
-    /// one place (= see
+    /// Decide whether a Phase 2 `ContentSameResult` should short-circuit the
+    /// import (= treat as a no-op skip) or trigger an overwrite. Centralized so
+    /// the threshold is tuned in one place (= see
     /// `ImportDocumentTemplate.contentSameConfidenceThreshold`).
 
         // MARK: - shouldSkip
@@ -686,26 +633,16 @@ enum WCIRHelpers {
         )
 }
 
-    /// Fallback title (= the basename without
-    /// the source-file extension; = used when
-    /// the LLM returns an empty title string).
-    ///
-    /// fix (= boss 2026-10-10 (see OOB.md #2026-10-10)
-    /// `(filePath as NSString).deletingPathExtension`
-    /// which only strips the trailing
-    /// extension (= `.md`); = the full
-    /// path prefix
-    /// `/Users/anbaiqiang/Library/Mobile
-    /// Documents/iCloud~md/06-...` survived
-    /// and became the card title; = the user
-    /// saw the path as the title on every
-    /// failed-LLM card. The fix: take
-    /// `lastPathComponent` (= filename
-    /// only) FIRST, then strip the
-    /// extension. `lastPathComponent` =
-    /// "/Users/.../06-字.md" → "06-字.md"
-    /// → "06-字" (= the user's expected
-    /// title shape).
+    /// Fallback title (= the basename without the source-file extension; = used
+    /// when the LLM returns an empty title string). fix (= boss 2026-10-10 (see
+    /// OOB.md #2026-10-10) `(filePath as NSString).deletingPathExtension` which
+    /// only strips the trailing extension (= `.md`); = the full path prefix
+    /// `/Users/anbaiqiang/Library/Mobile Documents/iCloud~md/06-...` survived
+    /// and became the card title; = the user saw the path as the title on every
+    /// failed-LLM card. The fix: take `lastPathComponent` (= filename only)
+    /// FIRST, then strip the extension. `lastPathComponent` =
+    /// "/Users/.../06-字.md" → "06-字.md" → "06-字" (= the user's expected title
+    /// shape).
 
         // MARK: - fallbackTitle
 
@@ -715,70 +652,30 @@ enum WCIRHelpers {
         return stem.isEmpty ? "未命名" : stem
 }
 
-    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
-    /// directive). Programmatic title
-    /// sanitization (= the LLM's title is
-    /// not trusted; = any of the failure
-    /// modes below → the LLM's title is
-    /// discarded and `fallbackTitle` is
-    /// used; = the user sees a clean
-    /// filename-based title regardless of
-    /// what the LLM did).
-    ///
-    /// Failure modes (= each is a single
-    /// `if` so adding a new one is a
-    /// one-line change):
-    /// 1. Empty / whitespace-only title
-    ///    (= the LLM returned "" or
-    ///    just spaces; = we already
-    ///    handled this in the
-    ///    `parsed.title.isEmpty` check;
-    ///    = now we also reject
-    ///    whitespace-only).
-    /// 2. Title contains a path
-    ///    separator (`/` or `\`) (= the
-    ///    LLM copied a path; = the
-    ///    user's "目录树当名字" bug
-    ///    returns).
-    /// 3. Title ends with a file
-    ///    extension (= `.md` / `.txt`
-    ///    / ...; = the LLM copied a
-    ///    filename verbatim).
-    /// 4. Title is the same string as
-    ///    the source file's full path
-    ///    (= the LLM copied
-    ///    `input.filePath`; = the
-    ///    round-31 failure mode; = we
-    ///    now reject it explicitly).
-    /// 5. Title is the same string as
-    ///    the source file's `lastPathComponent`
-    ///    (= the LLM copied the
-    ///    filename including `.md`; =
-    ///    the round-31 failure mode
-    ///    catches the extension strip
-    ///    but not the bare
-    ///    `lastPathComponent`).
-    /// 6. Title length > 50 chars (= the
-    ///    LLM likely copied a body
-    ///    fragment; = not a real
-    ///    title).
-    /// 7. Title is mostly digits / spaces
-    ///    / punctuation (= the LLM
-    ///    returned gibberish; = not a
-    ///    real title).
-    ///
-    /// Note: the LLM can still return a
-    /// real, valid title that just
-    /// happens to share a character with
-    /// a path (= e.g. "冰箱/冷柜 史话"
-    /// with a slash; = rejected).
-    /// That's the trade-off boss accepted
-    /// in round-37 (= "不能用提示词控
-    /// 制" = programmatic guarantee
-    /// beats LLM trust; = titles that
-    /// contain a slash get the
-    /// fallback; = the user can rename
-    /// the file if the title really
+    /// (= boss 2026-10-10 (see OOB.md #2026-10-10) directive). Programmatic
+    /// title sanitization (= the LLM's title is not trusted; = any of the
+    /// failure modes below → the LLM's title is discarded and `fallbackTitle`
+    /// is used; = the user sees a clean filename-based title regardless of what
+    /// the LLM did). Failure modes (= each is a single `if` so adding a new one
+    /// is a one-line change): 1. Empty / whitespace-only title (= the LLM
+    /// returned "" or just spaces; = we already handled this in the
+    /// `parsed.title.isEmpty` check; = now we also reject whitespace-only). 2.
+    /// Title contains a path separator (`/` or `\`) (= the LLM copied a path; =
+    /// the user's "目录树当名字" bug returns). 3. Title ends with a file extension (=
+    /// `.md` / `.txt` / ...; = the LLM copied a filename verbatim). 4. Title is
+    /// the same string as the source file's full path (= the LLM copied
+    /// `input.filePath`; = the round-31 failure mode; = we now reject it
+    /// explicitly). 5. Title is the same string as the source file's
+    /// `lastPathComponent` (= the LLM copied the filename including `.md`; =
+    /// the round-31 failure mode catches the extension strip but not the bare
+    /// `lastPathComponent`). 6. Title length > 50 chars (= the LLM likely
+    /// copied a body fragment; = not a real title). 7. Title is mostly digits /
+    /// spaces / punctuation (= the LLM returned gibberish; = not a real title).
+    /// Note: the LLM can still return a real, valid title that just happens to
+    /// share a character with a path (= e.g. "冰箱/冷柜 史话" with a slash; =
+    /// rejected). That's the trade-off boss accepted in round-37 (= "不能用提示词控 制"
+    /// = programmatic guarantee beats LLM trust; = titles that contain a slash
+    /// get the fallback; = the user can rename the file if the title really
     /// needs a slash).
 
         // MARK: - sanitizeTitle
@@ -837,32 +734,17 @@ enum WCIRHelpers {
         return trimmed
 }
 
-    /// (= boss 2026-10-09 (see OOB.md #2026-10-09)
-    /// (= the sidebar's linkgraph =
-    /// "关系链") is a different surface
-    /// that should be derived from
-    /// explicit metadata, NOT Obsidian
-    /// autolinks; = strip both shapes so
-    /// the rewritten body never carries
-    /// Obsidian-era link cruft).
-    ///
-    /// The boss 2026-10-09 (see OOB.md #2026-10-09)
-    /// (= "而且内部反链在重写的时候
-    /// 没有删"; = the previous version
-    /// only stripped lines that START with
-    /// `../` or `[[`; = Obsidian reverse-
-    /// link lines look like:
-    ///   `反链:`
-    ///   `  - ../../08-3 大类实体/03-物件/物件`
-    /// = the inner `../` is NOT at line
-    /// start; = the previous matcher
-    /// missed it). Fix: use a regex-based
-    /// filter that drops any line
-    /// containing `../`, `/../`, or
-    /// `[[...]]` (= matches every Obsidian
-    /// relative-path form regardless of
-    /// where it appears in the line; = also
-    /// matches wikilink fragments inside
+    /// (= boss 2026-10-09 (see OOB.md #2026-10-09) (= the sidebar's linkgraph =
+    /// "关系链") is a different surface that should be derived from explicit
+    /// metadata, NOT Obsidian autolinks; = strip both shapes so the rewritten
+    /// body never carries Obsidian-era link cruft). The boss 2026-10-09 (see
+    /// OOB.md #2026-10-09) (= "而且内部反链在重写的时候 没有删"; = the previous version only
+    /// stripped lines that START with `../` or `[[`; = Obsidian reverse- link
+    /// lines look like: `反链:` ` - ../../08-3 大类实体/03-物件/物件` = the inner `../`
+    /// is NOT at line start; = the previous matcher missed it). Fix: use a
+    /// regex-based filter that drops any line containing `../`, `/../`, or
+    /// `[[...]]` (= matches every Obsidian relative-path form regardless of
+    /// where it appears in the line; = also matches wikilink fragments inside
     /// prose, not just at line start).
 
         // MARK: - stripObsidianBacklinks
@@ -896,19 +778,13 @@ enum WCIRHelpers {
         return stripped.joined(separator: "\n")
 }
 
-    /// (= boss 2026-10-09 (see OOB.md #2026-10-09)
-    /// (= boss 2026-10-09 (see OOB.md #2026-10-09)
-    /// header). Anything that looks like the
-    /// OLD previous template (= 类型 / 状态 /
-    /// 核心信息 / 详细描述 / 反链 / 上次更新 /
-    /// tags / 标签 / author / source / created /
-    /// modified / ../ / [[ ]]) is dropped here.
-    ///
-    /// Match by prefix on the trimmed line.
-    /// Each case is the canonical prefix a
-    /// source file might use (= Chinese +
-    /// English; = the canonical wenshu .md
-    /// body never has these).
+    /// (= boss 2026-10-09 (see OOB.md #2026-10-09) (= boss 2026-10-09 (see
+    /// OOB.md #2026-10-09) header). Anything that looks like the OLD previous
+    /// template (= 类型 / 状态 / 核心信息 / 详细描述 / 反链 / 上次更新 / tags / 标签 / author /
+    /// source / created / modified / ../ / [[ ]]) is dropped here. Match by
+    /// prefix on the trimmed line. Each case is the canonical prefix a source
+    /// file might use (= Chinese + English; = the canonical wenshu .md body
+    /// never has these).
 
         // MARK: - isUselessMetadataLine
 
@@ -988,53 +864,33 @@ enum WCIRHelpers {
         var tags: [String]
         var destination: String
         var bookFolder: BookFolder?
-        /// (= boss 2026-10-09 (see OOB.md #2026-10-09)
-        /// "重写同时搜索校对"). The LLM's
-        /// .ws-format body in `searchAndRewrite`
-        /// mode (= nil in `consolidate` mode OR
-        /// when the LLM returned an empty
-        /// string).
+        /// (= boss 2026-10-09 (see OOB.md #2026-10-09) "重写同时搜索校对"). The LLM's
+        /// .ws-format body in `searchAndRewrite` mode (= nil in `consolidate`
+        /// mode OR when the LLM returned an empty string).
         var rewrittenBody: String?
-        /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
-        /// 去" 反馈). The LLM's optional
-        /// array of additional files to
-        /// split out (= A's content that
-        /// doesn't fit B's template
-        /// structure; = each element
-        /// contains folder/title/body
-        /// keys). Empty array when A
-        /// fully maps to B (= most
-        /// common case). Capped at 5
-        /// elements (= orchestrator-level
-        /// safety cap on top of the
-        /// LLM-prompt cap).
+        /// (= boss 2026-10-10 (see OOB.md #2026-10-10) 去" 反馈). The LLM's
+        /// optional array of additional files to split out (= A's content that
+        /// doesn't fit B's template structure; = each element contains
+        /// folder/title/body keys). Empty array when A fully maps to B (= most
+        /// common case). Capped at 5 elements (= orchestrator-level safety cap
+        /// on top of the LLM-prompt cap).
         var extraFiles: [ExtraFile] = []
 }
 
-    /// Extract the first balanced `{...}` JSON object
-    /// from the LLM's response. The model sometimes
-    /// emits a thinking block before the JSON (= the
-    /// `extract` step on a hermes connector prepends a
-    /// <think>...</think> block; = Anthropic similarly
-    /// returns a `thinking` content block ahead of
-    /// `text`).
-    ///
-    /// Boss 2026-10-09 round-23 follow-up: even after
-    /// the prompt rewrite (= the LLM should now
-    /// produce a single-line JSON; = with escaped
-    /// `\n` for newlines inside string values; =
-    /// the parser should be tolerant of either form;
-    /// = the previous version bailed on the first
-    /// unescaped quote inside a string value; = the
-    /// round-23 observation was "cards showed the
-    /// source path as the title" = the parser bailed
-    /// on the LLM's response = the orchestrator
-    /// synthesized the fallback envelope). The fix
-    /// here: also accept the LLM's literal-newline
-    /// form (= replace literal newlines with `\\n`
-    /// inside what looks like a string value; = makes
-    /// the parser tolerant of either JSON-correct
-    /// or "markdown-style" JSON output).
+    /// Extract the first balanced `{...}` JSON object from the LLM's response.
+    /// The model sometimes emits a thinking block before the JSON (= the
+    /// `extract` step on a hermes connector prepends a <think>...</think>
+    /// block; = Anthropic similarly returns a `thinking` content block ahead of
+    /// `text`). Boss 2026-10-09 round-23 follow-up: even after the prompt
+    /// rewrite (= the LLM should now produce a single-line JSON; = with escaped
+    /// `\n` for newlines inside string values; = the parser should be tolerant
+    /// of either form; = the previous version bailed on the first unescaped
+    /// quote inside a string value; = the round-23 observation was "cards
+    /// showed the source path as the title" = the parser bailed on the LLM's
+    /// response = the orchestrator synthesized the fallback envelope). The fix
+    /// here: also accept the LLM's literal-newline form (= replace literal
+    /// newlines with `\\n` inside what looks like a string value; = makes the
+    /// parser tolerant of either JSON-correct or "markdown-style" JSON output).
 
         // MARK: - extractFirstJSONObject
 
@@ -1077,11 +933,9 @@ enum WCIRHelpers {
         return nil
 }
 
-    /// Parse the JSON envelope into an `ImportDecision`.
-    /// Defensive: any field that doesn't match the
-    /// expected type falls back to a safe default (= the
-    /// orchestrator never receives a half-parsed
-    /// decision).
+    /// Parse the JSON envelope into an `ImportDecision`. Defensive: any field
+    /// that doesn't match the expected type falls back to a safe default (= the
+    /// orchestrator never receives a half-parsed decision).
 
         // MARK: - parseImportDecision
 
@@ -1179,17 +1033,11 @@ enum WCIRHelpers {
 
         // MARK: - parseExtraFiles
 
-    /// ticket 02: parse the
-    /// `extraFiles` array from the LLM's
-    /// JSON response. Each element must
-    /// have a valid `folder` (= one of
-    /// the 6 BookFolder cases; = unknown
-    /// → drop the element + log warning),
-    /// a non-empty `title` (= empty
-    /// → drop), and a non-empty `body`
-    /// (= empty → drop). Capped at 5
-    /// elements. Returns an empty array
-    /// (= the safe default) when the LLM
+    /// ticket 02: parse the `extraFiles` array from the LLM's JSON response.
+    /// Each element must have a valid `folder` (= one of the 6 BookFolder
+    /// cases; = unknown → drop the element + log warning), a non-empty `title`
+    /// (= empty → drop), and a non-empty `body` (= empty → drop). Capped at 5
+    /// elements. Returns an empty array (= the safe default) when the LLM
     /// doesn't include `extraFiles` at all.
     static func parseExtraFiles(from json: [String: Any]) -> [ExtraFile] {
         guard let rawArray = json["extraFiles"] as? [[String: Any]] else {
@@ -1272,13 +1120,9 @@ enum WCIRHelpers {
         return result
 }
 
-    /// ticket 02: map a
-    /// string to a `BookFolder` (= the
-    /// same mapping as the main
-    /// destination's `folder` key; =
-    /// extracted to a helper so the
-    /// main + extraFiles parsers
-    /// share the canonical case list).
+    /// ticket 02: map a string to a `BookFolder` (= the same mapping as the
+    /// main destination's `folder` key; = extracted to a helper so the main +
+    /// extraFiles parsers share the canonical case list).
 
         // MARK: - bookFolder
 
