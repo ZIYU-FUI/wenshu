@@ -54,6 +54,21 @@ closures (PersistentModel is NOT Sendable across actor boundaries).
 | 7 | `0451c8dd6` | WSMemoryRepository | refactored |
 | 8 | `1f312c5b8` | WSChatRepository | refactored (= except 3 business-logic functions deferred to app) |
 
+## A1g arc — boundary-decouple phase (4 commits on main)
+
+After the A1 probes (= which left the Repositories writing to /
+returning app-side domain types) and the A1g.1 conversation-ops
+relocate (= which only handled WSChatRepository), the write APIs
+were still leaking app-side types in 4 of 8 Repositories. A1g.2
+fixed them one at a time:
+
+| # | Commit | Repository | Boundary fix |
+|---|--------|------------|--------------|
+| A1g.1 | `0a535be60` | WSChatRepository (3 funcs) | Relocated summarizeIfNeeded / loadSubAgentRuns / recordSubAgentRun to app-side `ConversationOps`. Data layer no longer owns LLM call or SubAgentRun construction. |
+| A1g.2 1/3 | `db836356b` | WSBookmarkRepository | `add(_:Bookmark)` -> `add(id:title:docID:)`; Spotlight bootstrap moved to caller. |
+| A1g.2 2/3 | `c52576859` | WSKanbanRepository | `add(...KanbanStatus)` -> `add(...String)`; `add()` returns String (id) instead of KanbanTask; `transition(...KanbanStatus)` -> `transition(...String)`; toDomain helper deleted. |
+| A1g.2 3/3 | `96ea6aea0` | WSMemoryRepository + WSTodoRepository | MemoryID / Memory / TodoStatus / TodoPriority / TodoItem all stripped; = raw String + Int + @Model everywhere. toDomain helpers deleted. |
+
 ## Final A1g attempt (rolled back)
 
 Tried the actual mv of all 38 files to `Sources/WenshuData/`, mark all
