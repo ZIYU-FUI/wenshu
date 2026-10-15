@@ -14,31 +14,18 @@ import SwiftUI
 import UniformTypeIdentifiers
 import AppKit
 
-/// `ImportSheet` body. Hosts the two pickers + a
-/// progress strip (= a per-file state machine; = the
-/// orchestrator's `ImportTask` is the model) + the
-/// unified `开始导入` / `取消` button row.
+/// `ImportSheet` body. Hosts the two pickers + a progress strip (= a per-file
+/// state machine; = the orchestrator's `ImportTask` is the model) + the unified
+/// `开始导入` / `取消` button row.
 struct ImportSheet: View {
 
-    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
-    /// 骤交互" directive).
-    /// The 4-step wizard state (= the
-    /// canonical Apple HIG macOS
-    /// 14+ multi-step sheet pattern;
-    /// = same as Pages / Mail
-    /// composer / Final Draft
-    /// importer; = one step at a
-    /// time; = the dot indicator at
-    /// the top + the nav bar at the
-    /// bottom are the only chrome;
-    /// = each step is a focused
-    /// Form / List with no
-    /// conditional button rows
-    /// hidden inside; = the state
-    /// machine is linear; = the
-    /// user can go back to fix a
-    /// setting, or forward when
-    /// ready).
+    /// (= boss 2026-10-10 (see OOB.md #2026-10-10) 骤交互" directive). The 4-step
+    /// wizard state (= the canonical Apple HIG macOS 14+ multi-step sheet
+    /// pattern; = same as Pages / Mail composer / Final Draft importer; = one
+    /// step at a time; = the dot indicator at the top + the nav bar at the
+    /// bottom are the only chrome; = each step is a focused Form / List with no
+    /// conditional button rows hidden inside; = the state machine is linear; =
+    /// the user can go back to fix a setting, or forward when ready).
     enum WizardStep: Int, CaseIterable, Identifiable {
         case configure = 0  // 步骤 1: 选目标 (= source dir + file type + destination + book + AI 程度 + 并发数)
         case running = 1    // 步骤 2: 进度 (= ProgressView + progressLabel + per-file strip)
@@ -54,13 +41,9 @@ struct ImportSheet: View {
             case .done:      return "完成"
             }
         }
-        /// Apple HIG canonical: a SF Symbol
-        /// per step (= the dot indicator
-        /// uses the symbol for the
-        /// completed state; = the
-        /// unfulfilled state is just a
-        /// dot; = the current step uses
-        /// the symbol + tint).
+        /// Apple HIG canonical: a SF Symbol per step (= the dot indicator uses
+        /// the symbol for the completed state; = the unfulfilled state is just
+        /// a dot; = the current step uses the symbol + tint).
         var iconName: String {
             switch self {
             case .configure: return "1.circle.fill"
@@ -72,19 +55,14 @@ struct ImportSheet: View {
     }
     @State var currentStep: WizardStep = .configure
 
-    /// Bumped when the `wenshuImportRequested`
-    /// notification fires (= the File menu's 导入…
-    /// shortcut). The parent flips this to dismiss.
+    /// Bumped when the `wenshuImportRequested` notification fires (= the File
+    /// menu's 导入… shortcut). The parent flips this to dismiss.
     @Binding var isPresented: Bool
 
-    /// parameters (= the boss's
-    /// 2026-10-09 round-18 "右键点资料库，点
-    /// 导入，进到弹窗后，目标自动选好资料库。
-    /// 右键点书的时候目标自动选好对应的书"
-    /// directive). Both are nil when the sheet
-    /// is opened via the File menu (= no
-    /// pre-selection; = the user picks the
-    /// destination themselves).
+    /// parameters (= the boss's 2026-10-09 round-18 "右键点资料库，点
+    /// 导入，进到弹窗后，目标自动选好资料库。 右键点书的时候目标自动选好对应的书" directive). Both are nil when the
+    /// sheet is opened via the File menu (= no pre-selection; = the user picks
+    /// the destination themselves).
     var prefillDestination: ImportDestination?
     var prefillBookID: UUID?
 
@@ -115,86 +93,38 @@ struct ImportSheet: View {
 
     @Environment(BookStore.self) var bookStore
 
-    /// Picked source directory on disk (= the user's
-    /// existing markdown library; = the orchestrator
-    /// walks this directory recursively for .md files).
+    /// Picked source directory on disk (= the user's existing markdown library;
+    /// = the orchestrator walks this directory recursively for .md files).
     @State var sourceDirectory: URL?
 
-    /// Selected target book id (= the user picks
-    /// which book the .md files should land in). Nil
-    /// when `importDestination == .referenceLibrary`
-    /// (= the user pinned the reference library as
-    /// the target; = no book is involved).
+    /// Selected target book id (= the user picks which book the .md files
+    /// should land in). Nil when `importDestination == .referenceLibrary` (=
+    /// the user pinned the reference library as the target; = no book is
+    /// involved).
     @State var selectedBookID: UUID?
 
-    /// (= boss
-    /// 2026-10-10 "用
-    /// 户在
-    /// 导入
-    /// 书的
-    /// 时候，
-    /// 要选
-    /// 择二
-    /// 级目
-    /// 录"
-    /// 反馈).
-    /// The user-picked
-    /// 2nd-level folder
-    /// for the book
-    /// destination (= the
-    /// 6 import folders
-    /// = world /
-    /// characters /
-    /// outlines /
-    /// chapters / drafts
-    /// / ideas). Nil
-    /// when
-    /// `importDestination
-    /// == .referenceLibrary`
-    /// (= the reference
-    /// library has no
-    /// folder hierarchy;
-    /// = this state is
-    /// ignored). When
-    /// the user picks
-    /// a book, the
-    /// `canStart` gate
-    /// requires a
-    /// non-nil value
-    /// (= no default
-    /// = the user
-    /// must explicitly
-    /// decide which
-    /// folder the
-    /// batch lands in;
-    /// = the boss's
-    /// "让用户
-    /// 决定"
-    /// directive).
+    /// (= boss 2026-10-10 "用 户在 导入 书的 时候， 要选 择二 级目 录" 反馈). The user-picked
+    /// 2nd-level folder for the book destination (= the 6 import folders =
+    /// world / characters / outlines / chapters / drafts / ideas). Nil when
+    /// `importDestination == .referenceLibrary` (= the reference library has no
+    /// folder hierarchy; = this state is ignored). When the user picks a book,
+    /// the `canStart` gate requires a non-nil value (= no default = the user
+    /// must explicitly decide which folder the batch lands in; = the boss's
+    /// "让用户 决定" directive).
     @State var selectedBookFolder: BookFolder?
 
-    /// (= boss
-    /// 2026-10-09 round-18 "导入目标加一个资料库，
-    /// 用户指定了资料库的，就自动全进到资料库。
-    /// 用户指定到书的，就自动全进入到书的五目
-    /// 录。这样可以简化一些提示词。强制让用户分
-    /// 开导入"; = the user picks ONCE at sheet open
-    /// time; = the LLM no longer picks the
-    /// destination; = the LLM is reduced to a
-    /// metadata-only role = title + summary + tags).
+    /// (= boss 2026-10-09 round-18 "导入目标加一个资料库， 用户指定了资料库的，就自动全进到资料库。
+    /// 用户指定到书的，就自动全进入到书的五目 录。这样可以简化一些提示词。强制让用户分 开导入"; = the user picks ONCE at
+    /// sheet open time; = the LLM no longer picks the destination; = the LLM is
+    /// reduced to a metadata-only role = title + summary + tags).
     enum ImportDestination: String, CaseIterable, Identifiable, Sendable {
-        /// Every file in the batch lands in the
-        /// reference library (= the user is
-        /// importing research / 调研 / 民俗
-        /// 文献 / 古籍原文; = no LLM
-        /// destination classification; = the LLM
-        /// just produces title / summary / tags).
+        /// Every file in the batch lands in the reference library (= the user
+        /// is importing research / 调研 / 民俗 文献 / 古籍原文; = no LLM destination
+        /// classification; = the LLM just produces title / summary / tags).
         case referenceLibrary
-        /// Every file in the batch lands in the
-        /// selected book's 5 folders (= the user
-        /// is importing book-specific setting; =
-        /// the LLM picks world/characters/outline
-        /// s/chapters/drafts).
+        /// Every file in the batch lands in the selected book's 5 folders (=
+        /// the user is importing book-specific setting; = the LLM picks
+        /// world/characters/outline s/chapters/drafts).
         case book
 
         var id: String { rawValue }
@@ -207,125 +137,83 @@ struct ImportSheet: View {
     }
     @State var importDestination: ImportDestination = .book
 
-    /// (= boss 2026-10-09 (see OOB.md #2026-10-09)
-    /// 重写程度"). The user picks ONCE at sheet
-    /// open; = the LLM's tool set + the
-    /// orchestrator's write path both
-    /// respect this; = default = `reorganize`
-    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
-    /// `extraFiles`).
+    /// (= boss 2026-10-09 (see OOB.md #2026-10-09) 重写程度"). The user picks ONCE
+    /// at sheet open; = the LLM's tool set + the orchestrator's write path both
+    /// respect this; = default = `reorganize` (= boss 2026-10-10 (see OOB.md
+    /// #2026-10-10) `extraFiles`).
     @State var rewriteMode: ImportFileInput.RewriteMode = .reorganize
 
-    /// Per-file task state (= the orchestrator's
-    /// `ImportTask` model; = the progress strip
-    /// shows one row per file).
+    /// Per-file task state (= the orchestrator's `ImportTask` model; = the
+    /// progress strip shows one row per file).
     @State var tasks: [ImportTask] = []
 
-    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
-    /// directive). The user-picked
-    /// parallelism for the 5-way
-    /// concurrent LLM dispatch
-    /// loop. Range: 1..5 (= the
-    /// boss's five options). Default
-    /// 3 (= the middle option; = a
-    /// safe rate for most LLM
-    /// providers; = the tradeoff
-    /// between throughput and
-    /// rate-limit risk; = the
-    /// user can adjust to 1 if
-    /// they hit 429 from their
-    /// provider; = adjust to 5
-    /// for fast quota). The
-    /// Picker below exposes
-    /// 1..5 (= the user's UI
-    /// surface); = the
-    /// `ImportTarget` init clamps
-    /// to 1..5 defensively.
+    /// (= boss 2026-10-10 (see OOB.md #2026-10-10) directive). The user-picked
+    /// parallelism for the 5-way concurrent LLM dispatch loop. Range: 1..5 (=
+    /// the boss's five options). Default 3 (= the middle option; = a safe rate
+    /// for most LLM providers; = the tradeoff between throughput and rate-limit
+    /// risk; = the user can adjust to 1 if they hit 429 from their provider; =
+    /// adjust to 5 for fast quota). The Picker below exposes 1..5 (= the user's
+    /// UI surface); = the `ImportTarget` init clamps to 1..5 defensively.
     @State var maxParallel: Int = 3
 
-    /// Flipped while a batch is importing. Disables
-    /// the pickers + the action button.
+    /// Flipped while a batch is importing. Disables the pickers + the action
+    /// button.
     @State var isImporting: Bool = false
 
-    /// The file-type filter the user wants to import
-    /// (= the user's 2026-10-09 ask: "加一个导入文件类
-    /// 型选择，其它的可以慢慢做，现在默认 MD 可导
-    /// 入，以后要加电子书格式什么的"; = today only
-    /// Markdown is wired; = the enum is open to .epub /
-    /// .pdf / .txt / etc. as future tickets ship; = the
-    /// `ImportService.walkSourceDir(_:_:)` accepts the
-    /// filter via the `extensions` parameter so the
-    /// orchestrator only walks files whose extension
-    /// matches the user's pick). Apple canonical pattern:
-    /// closed enum (= "make illegal states unrepresentable";
-    /// = a new file type forces a decision at the
-    /// walker's match site).
+    /// The file-type filter the user wants to import (= the user's 2026-10-09
+    /// ask: "加一个导入文件类 型选择，其它的可以慢慢做，现在默认 MD 可导 入，以后要加电子书格式什么的"; = today only
+    /// Markdown is wired; = the enum is open to .epub / .pdf / .txt / etc. as
+    /// future tickets ship; = the `ImportService.walkSourceDir(_:_:)` accepts
+    /// the filter via the `extensions` parameter so the orchestrator only walks
+    /// files whose extension matches the user's pick). Apple canonical pattern:
+    /// closed enum (= "make illegal states unrepresentable"; = a new file type
+    /// forces a decision at the walker's match site).
     @State var fileType: ImportFileType = .markdown
 
-    /// Counters surfaced to the sheet's ProgressView
-    /// (= the orchestrator emits per-file state
-    /// transitions through `onProgress`; = the
-    /// sheet's view derives a single `progress`
-    /// fraction from the completed-state count).
+    /// Counters surfaced to the sheet's ProgressView (= the orchestrator emits
+    /// per-file state transitions through `onProgress`; = the sheet's view
+    /// derives a single `progress` fraction from the completed-state count).
     @State var completedCount: Int = 0
     @State var totalCount: Int = 0
 
-    /// Counter of files currently in `routing` or
-    /// `writing` (= the LLM is mid-flight or the
-    /// file is mid-write). Drives the "进行中"
-    /// label next to "完成 / 跳过 / 失败" so the
-    /// user sees live activity (= the user's
-    /// 2026-10-09 feedback: "进度条还是不会跟着
-    /// 走，还在憋大招，最后给一个 100%"; = the
-    /// 4-way parallel LLM dispatch means at most
-    /// 4 files are in flight at any time, but the
-    /// per-second "in flight" count combined with
-    /// the moving `done` count is what makes the
-    /// bar feel alive).
+    /// Counter of files currently in `routing` or `writing` (= the LLM is
+    /// mid-flight or the file is mid-write). Drives the "进行中" label next to "完成
+    /// / 跳过 / 失败" so the user sees live activity (= the user's 2026-10-09
+    /// feedback: "进度条还是不会跟着 走，还在憋大招，最后给一个 100%"; = the 4-way parallel LLM
+    /// dispatch means at most 4 files are in flight at any time, but the
+    /// per-second "in flight" count combined with the moving `done` count is
+    /// what makes the bar feel alive).
     @State var inFlightCount: Int = 0
 
-    /// True after the orchestrator finishes at least
-    /// one batch (= the action button changes from
-    /// "开始导入" to "重试" / "再次导入" so the user
-    /// can re-run on the same directory; = the user
-    /// explicitly picked this UX in the 2026-10-09
-    /// round of feedback where they said "部分导入
-    /// 成功后，按钮还是开始导入，不是重试").
+    /// True after the orchestrator finishes at least one batch (= the action
+    /// button changes from "开始导入" to "重试" / "再次导入" so the user can re-run on
+    /// the same directory; = the user explicitly picked this UX in the
+    /// 2026-10-09 round of feedback where they said "部分导入 成功后，按钮还是开始导入，不是重试").
     @State var hasRunOnce: Bool = false
 
-    /// Flag for the cancel-confirmation dialog (= the
-    /// boss's 2026-10-09 follow-up "那你要在取消的
-    /// 时候弹一个拦截弹窗，用户确认才取消，不然 ESC
-    /// 容易误触"). The `取消` button + every dismiss
-    /// path (= ESC / Cmd+W / toolbar X / clicking
-    /// outside) flips this to `true`; = the
-    /// `confirmationDialog` modifier presents
-    /// immediately (= the user can't dismiss the
-    /// sheet without picking "确认取消" or
-    /// "返回"; = the `interactiveDismissDisabled`
-    /// modifier on the sheet body holds the dismiss
-    /// hostage while the import is mid-flight).
+    /// Flag for the cancel-confirmation dialog (= the boss's 2026-10-09
+    /// follow-up "那你要在取消的 时候弹一个拦截弹窗，用户确认才取消，不然 ESC 容易误触"). The `取消` button +
+    /// every dismiss path (= ESC / Cmd+W / toolbar X / clicking outside) flips
+    /// this to `true`; = the `confirmationDialog` modifier presents immediately
+    /// (= the user can't dismiss the sheet without picking "确认取消" or "返回"; =
+    /// the `interactiveDismissDisabled` modifier on the sheet body holds the
+    /// dismiss hostage while the import is mid-flight).
     @State var confirmCancelPresented: Bool = false
 
-    /// Last-used source directory (= Apple HIG
-    /// canonical "remember the last folder"; =
-    /// the system open panel starts here).
+    /// Last-used source directory (= Apple HIG canonical "remember the last
+    /// folder"; = the system open panel starts here).
     @AppStorage("wenshu.import.source.lastURL") var lastSourceURLString: String = ""
 
-    /// The orchestrator. Created once per sheet
-    /// presentation (= the actor is stateless; = the
-    /// T4 production router lives in
-    /// `WenshuConductor`; = the sheet uses the
-    /// production binding once T4 lands).
+    /// The orchestrator. Created once per sheet presentation (= the actor is
+    /// stateless; = the T4 production router lives in `WenshuConductor`; = the
+    /// sheet uses the production binding once T4 lands).
     let importService = ImportService()
 
     /// The production router. T4 wires the LLM-backed
-    /// `WenshuConductorImportRouter` (= the same
-    /// EntityClassifier the rest of wenshu uses; = the
-    /// sheet classifies each .md file via the project's
-    /// standard 2-pass keyword + LLM classifier; = no
-    /// new inference path; = "用文枢正常机制来推出" per
-    /// boss 2026-10-09 (see OOB.md #2026-10-09)
+    /// `WenshuConductorImportRouter` (= the same EntityClassifier the rest of
+    /// wenshu uses; = the sheet classifies each .md file via the project's
+    /// standard 2-pass keyword + LLM classifier; = no new inference path; =
+    /// "用文枢正常机制来推出" per boss 2026-10-09 (see OOB.md #2026-10-09)
     let router: any ImportRouter = WenshuConductorImportRouter()
 
     var body: some View {
@@ -487,18 +375,14 @@ struct ImportSheet: View {
         }
     }
 
-    /// The action button's label varies with the sheet's
-    /// state machine (= the user's 2026-10-09 round of
-    /// feedback: "失败的时候，再次导入改叫重试"). Apple HIG
-    /// canonical sheet button convention = the label
-    /// reflects what tapping it WILL do; = the
-    /// running-state disables the button; = a
-    /// done-state with at least one failure shows
-    /// "重试" (= taps re-run the import; = the user
-    /// reads this as "再试一次" = fix + retry); = a
-    /// done-state with zero failures shows "再次导入"
-    /// (= taps re-run the import on a clean state; =
-    /// idiomatic for "import again").
+    /// The action button's label varies with the sheet's state machine (= the
+    /// user's 2026-10-09 round of feedback: "失败的时候，再次导入改叫重试"). Apple HIG
+    /// canonical sheet button convention = the label reflects what tapping it
+    /// WILL do; = the running-state disables the button; = a done-state with at
+    /// least one failure shows "重试" (= taps re-run the import; = the user reads
+    /// this as "再试一次" = fix + retry); = a done-state with zero failures shows
+    /// "再次导入" (= taps re-run the import on a clean state; = idiomatic for
+    /// "import again").
     var actionButtonLabel: String {
         if isImporting { return "导入中…" }
         if isRunComplete && hasFailures { return "重试" }
@@ -506,33 +390,25 @@ struct ImportSheet: View {
         return "开始导入"
     }
 
-    /// The cancel button's label varies with the sheet's
-    /// state machine too (= the user's 2026-10-09
-    /// feedback: "取消改叫跳过失败" + the 2026-10-09
-    /// follow-up "跳过失败按钮，不是遇到失败就亮起，
-    /// 而是在进度跑到 100% 后亮起" = the button is
-    /// "跳过失败" only AFTER the batch has run to
-    /// completion; = mid-flight, the button is still
-    /// "取消" because the user is mid-import and the
-    /// label is "cancel the running batch"; = a
-    /// done-state with zero failures stays "取消" (= the
-    /// user can dismiss the sheet as normal; = the
-    /// "跳过失败" label is meaningless when there were
-    /// no failures to skip).
+    /// The cancel button's label varies with the sheet's state machine too (=
+    /// the user's 2026-10-09 feedback: "取消改叫跳过失败" + the 2026-10-09 follow-up
+    /// "跳过失败按钮，不是遇到失败就亮起， 而是在进度跑到 100% 后亮起" = the button is "跳过失败" only AFTER
+    /// the batch has run to completion; = mid-flight, the button is still "取消"
+    /// because the user is mid-import and the label is "cancel the running
+    /// batch"; = a done-state with zero failures stays "取消" (= the user can
+    /// dismiss the sheet as normal; = the "跳过失败" label is meaningless when
+    /// there were no failures to skip).
     var cancelButtonLabel: String {
         if isRunComplete && hasFailures { return "跳过失败" }
         return "取消"
     }
 
-    /// True when the import batch has run to completion
-    /// (= no tasks are in `.pending` or `.routing` or
-    /// `.writing` state; = every task reached a terminal
-    /// state). Apple canonical pattern: a derived
-    /// state-machine flag (= composed from `tasks` and
-    /// `isImporting`; = avoids storing a separate
-    /// boolean that could desync from the source of
-    /// truth). Drives the "跳过失败" / "重试" /
-    /// "再次导入" label switch.
+    /// True when the import batch has run to completion (= no tasks are in
+    /// `.pending` or `.routing` or `.writing` state; = every task reached a
+    /// terminal state). Apple canonical pattern: a derived state-machine flag
+    /// (= composed from `tasks` and `isImporting`; = avoids storing a separate
+    /// boolean that could desync from the source of truth). Drives the "跳过失败" /
+    /// "重试" / "再次导入" label switch.
     var isRunComplete: Bool {
         guard !isImporting else { return false }
         guard !tasks.isEmpty else { return false }
@@ -544,11 +420,10 @@ struct ImportSheet: View {
         }
     }
 
-    /// True when at least one task ended in `.failed` (= the
-    /// sheet's per-file state machine). Drives the
-    /// "重试" / "跳过失败" button-label switch (in
-    /// combination with `isRunComplete`; = mid-flight
-    /// failures are not surfaced as "重试" yet).
+    /// True when at least one task ended in `.failed` (= the sheet's per-file
+    /// state machine). Drives the "重试" / "跳过失败" button-label switch (in
+    /// combination with `isRunComplete`; = mid-flight failures are not surfaced
+    /// as "重试" yet).
     var hasFailures: Bool {
         tasks.contains { $0.state == .failed }
     }
@@ -569,33 +444,22 @@ struct ImportSheet: View {
         failedReadFileCount > 0 && !isImporting && !isRetryingFailed
             && isRunComplete
     }
-    /// (= boss 2026-10-09 (see OOB.md #2026-10-09)
-    /// 红字后面" directive). True while
-    /// `retryFailedTasksTitleOnly` is
-    /// mid-flight (= the button flips to
-    /// "重新调研中…" and disables the
-    /// progress strip's bottom buttons).
+    /// (= boss 2026-10-09 (see OOB.md #2026-10-09) 红字后面" directive). True while
+    /// `retryFailedTasksTitleOnly` is mid-flight (= the button flips to
+    /// "重新调研中…" and disables the progress strip's bottom buttons).
     @State var isRetryingFailed: Bool = false
 
-    /// The cancel-button action (= Apple HIG canonical:
-    /// closing the sheet means the user is done with the
-    /// UI surface; = the per-file state machine goes
-    /// with the sheet; = boss's 2026-10-09 directive
-    /// "取消退出时，所有已经导入的内容回退清掉" =
-    /// if a batch is mid-flight when the user clicks
-    /// The cancel button's action (= the boss's
-    /// 2026-10-09 follow-up "那你要在取消的时候弹一个
-    /// 拦截弹窗，用户确认才取消，不然 ESC 容易误触";
-    /// = the cancel button (= and ESC / Cmd+W / toolbar
-    /// X / click-outside) all flip
-    /// `confirmCancelPresented`; = the
-    /// `confirmationDialog` modifier presents the
-    /// 拦截弹窗 immediately; = the user picks
-    /// "确认取消" (= the rollback runs) or "返回" (=
-    /// the sheet stays open + the import keeps
-    /// running). The "确认取消" branch in the
-    /// `confirmationDialog` body is the single source
-    /// of truth for the cancel-and-rollback path.
+    /// The cancel-button action (= Apple HIG canonical: closing the sheet means
+    /// the user is done with the UI surface; = the per-file state machine goes
+    /// with the sheet; = boss's 2026-10-09 directive "取消退出时，所有已经导入的内容回退清掉" = if
+    /// a batch is mid-flight when the user clicks The cancel button's action (=
+    /// the boss's 2026-10-09 follow-up "那你要在取消的时候弹一个 拦截弹窗，用户确认才取消，不然 ESC 容易误触";
+    /// = the cancel button (= and ESC / Cmd+W / toolbar X / click-outside) all
+    /// flip `confirmCancelPresented`; = the `confirmationDialog` modifier
+    /// presents the 拦截弹窗 immediately; = the user picks "确认取消" (= the rollback
+    /// runs) or "返回" (= the sheet stays open + the import keeps running). The
+    /// "确认取消" branch in the `confirmationDialog` body is the single source of
+    /// truth for the cancel-and-rollback path.
     func showCancelConfirmation() {
         // The cancel-confirmation dialog is only meaningful while an import is mid-flight
         // (= the boss's 2026-10-09 follow-up "那你要 在取消的时候弹一个拦截弹窗"; = an empty
@@ -618,29 +482,19 @@ struct ImportSheet: View {
         }
     }
 
-    /// The ProgressView's caption row (= derived from
-    /// the live per-task state counts; = updates
-    /// automatically as `tasks` mutates). Shows the
-    /// in-flight count (= the boss's 2026-10-09
-    /// "进度条还是不会跟着走" feedback; = the
-    /// `inFlightCount` ("进行中 N") is what makes
-    /// the row feel alive while the 5-way parallel
-    /// LLM dispatch is mid-flight).
-    ///
-    /// The "跳过 N" segment is CONDITIONAL (= the
-    /// boss's 2026-10-09 round-15 feedback "跳过是
-    /// 最后一个动作，这个过程中永远都会显示零，
-    /// 没有意义"; = `skipped` is the terminal
-    /// state for a cache-hit dedup (= the file was
-    /// already imported in a previous batch); = the
-    /// skip only happens in Phase 2 dedup; = the
-    /// 5-way parallel Phase 3 dispatch never
-    /// produces skips; = the running caption row
-    /// always shows "跳过 0" which is noise; = the
-    /// segment only renders when at least one skip
-    /// has happened; = the row stays 3-segment
-    /// during the import run + 4-segment on a
-    /// re-import).
+    /// The ProgressView's caption row (= derived from the live per-task state
+    /// counts; = updates automatically as `tasks` mutates). Shows the in-flight
+    /// count (= the boss's 2026-10-09 "进度条还是不会跟着走" feedback; = the
+    /// `inFlightCount` ("进行中 N") is what makes the row feel alive while the
+    /// 5-way parallel LLM dispatch is mid-flight).
+    /// The "跳过 N" segment is CONDITIONAL (= the boss's 2026-10-09 round-15
+    /// feedback "跳过是 最后一个动作，这个过程中永远都会显示零， 没有意义"; = `skipped` is the terminal
+    /// state for a cache-hit dedup (= the file was already imported in a
+    /// previous batch); = the skip only happens in Phase 2 dedup; = the 5-way
+    /// parallel Phase 3 dispatch never produces skips; = the running caption
+    /// row always shows "跳过 0" which is noise; = the segment only renders when
+    /// at least one skip has happened; = the row stays 3-segment during the
+    /// import run + 4-segment on a re-import).
     var progressLabel: String {
         guard totalCount > 0 else { return "" }
         let done = tasks.filter { $0.state == .done }.count
@@ -683,39 +537,14 @@ struct ImportSheet: View {
         }
     }
 
-    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
-    /// directive). The
-    /// NSOpenPanel now
-    /// allows BOTH file
-    /// and directory
-    /// selection (= the
-    /// user can pick a
-    /// single .md file
-    /// OR a directory
-    /// of .md files;
-    /// = `canChooseFiles
-    /// = true` +
-    /// `canChooseDirectories
-    /// = true`); the
-    /// open panel's UI
-    /// shows a toggle
-    /// between "files"
-    /// and "folders"
-    /// (= the standard
-    /// macOS file
-    /// picker; = the
-    /// user picks
-    /// whichever the
-    /// workflow
-    /// requires).
-    /// The `allowsMultiple
-    /// Selection` flag
-    /// stays false (= a
-    /// single pick; = if
-    /// the user wants
-    /// multiple files,
-    /// they pick a
-    /// directory).
+    /// (= boss 2026-10-10 (see OOB.md #2026-10-10) directive). The NSOpenPanel
+    /// now allows BOTH file and directory selection (= the user can pick a
+    /// single .md file OR a directory of .md files; = `canChooseFiles = true` +
+    /// `canChooseDirectories = true`); the open panel's UI shows a toggle
+    /// between "files" and "folders" (= the standard macOS file picker; = the
+    /// user picks whichever the workflow requires). The `allowsMultiple
+    /// Selection` flag stays false (= a single pick; = if the user wants
+    /// multiple files, they pick a directory).
     func pickSourceDirectory() {
         let panel = NSOpenPanel()
         // both files and directories are selectable. `canChooseFiles` +
@@ -741,23 +570,16 @@ struct ImportSheet: View {
         }
     }
 
-    /// Kick off the import. Builds the ImportTarget
-    /// from the picked source + book, then asks the
-    /// orchestrator to walk + dedup + route + write.
-    ///
-    /// Progress: the orchestrator's `onProgress`
-    /// callback hops to `@MainActor` and updates the
-    /// sheet's `tasks` + `completedCount` + `totalCount`
-    /// (= the ProgressView re-renders on each tick;
-    /// = the per-file state strip re-renders on
-    /// each tick).
-    ///
-    /// On completion (= success or partial failure):
-    /// the sheet posts `.wenshuLibraryDidChange` so
-    /// `AppleSidebarView` (= the canonical sidebar
-    /// host) calls `SidebarService.reload()` and
-    /// the user sees the new files in the tree
-    /// without manually re-launching.
+    /// Kick off the import. Builds the ImportTarget from the picked source +
+    /// book, then asks the orchestrator to walk + dedup + route + write.
+    /// Progress: the orchestrator's `onProgress` callback hops to `@MainActor`
+    /// and updates the sheet's `tasks` + `completedCount` + `totalCount` (= the
+    /// ProgressView re-renders on each tick; = the per-file state strip
+    /// re-renders on each tick).
+    /// On completion (= success or partial failure): the sheet posts
+    /// `.wenshuLibraryDidChange` so `AppleSidebarView` (= the canonical sidebar
+    /// host) calls `SidebarService.reload()` and the user sees the new files in
+    /// the tree without manually re-launching.
     func startImport() {
         guard let source = sourceDirectory else { return }
         // (= boss 2026-10-09 round-18 "强制让用户分开导 入" directive). The `canStart` gate
@@ -954,9 +776,8 @@ struct ImportSheet: View {
         return URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
     }
 
-    /// Walk the shelves to find the shelf that owns
-    /// this book (= the orchestrator's ImportTarget
-    /// carries both shelfId and bookId).
+    /// Walk the shelves to find the shelf that owns this book (= the
+    /// orchestrator's ImportTarget carries both shelfId and bookId).
     func shelfIdForBook(_ bookID: UUID) -> UUID {
         let shelvesURL = libraryRoot().appendingPathComponent("shelves", isDirectory: true)
         let fm = FileManager.default
