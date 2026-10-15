@@ -58,13 +58,11 @@ actor BacklinkResolver {
             let targetDocId = await documentIndex.docId(forName: link.target)
             try await MainActor.run {
                 try repository.add(
-                    Link(
-                        sourceDocId: sourceDocId,
-                        targetRef: link.target,
-                        targetDocId: targetDocId,
-                        line: link.line,
-                        offset: link.offset
-                    )
+                    sourceDocID: sourceDocId,
+                    targetRef: link.target,
+                    targetDocID: targetDocId,
+                    line: link.line,
+                    offset: link.offset
                 )
             }
         }
