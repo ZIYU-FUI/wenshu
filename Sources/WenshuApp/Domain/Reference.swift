@@ -19,7 +19,7 @@
 import Foundation
 
 /// LLM Wiki layer (= where in the 4-layer ReferenceLibrary hierarchy this
-/// reference lives). v0.26 supports raw + entities; abstracts + indexes
+/// reference lives). Supports raw + entities; abstracts + indexes
 /// are LLM-derived.
 enum ReferenceLayer: String, CaseIterable, Codable, Sendable {
     case layerRaw
@@ -115,14 +115,14 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
     /// by `EntityClassifier.classify()`. Optional for backward
     /// compatibility (= legacy raw materials may not have a category).
     ///
-    /// In the v2.6 facet model: `category` is ONE facet among several
+    /// In the facet model: `category` is ONE facet among several
     /// (= `tags` + `entityType` are cross-cutting facets). A document
     /// can be browsed by category, by entity type, OR by tag filter;
     /// = the physical file is metadata-flat (= entities/<uuid>.md).
     /// See AGENTS.md §11.16 for the full design rationale.
     var category: EntityCategory?
 
-    /// Free-form tags (= the cross-cutting facet in the v2.6 facet
+    /// Free-form tags (= the cross-cutting facet in the facet
     /// model). A document may carry any number of tags (= multi-tag),
     /// enabling queries like "all references tagged <dynasty>" or
     /// "all references tagged <genre> AND <dynasty>". Tags are
@@ -169,7 +169,7 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = try c.decode(UUID.self, forKey: .id)
         title = try c.decode(String.self, forKey: .title)
-        // displayTitle is new in v2.6 (= the front-end-only show
+        // displayTitle is the front-end-only show
         // label). Legacy entities.json files (= written before this
         // commit) lack the field; = default to nil. Computed
         // `effectiveDisplayTitle` falls back to `title` when nil.
@@ -178,7 +178,7 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
         url = try c.decodeIfPresent(String.self, forKey: .url)
         layer = try c.decode(ReferenceLayer.self, forKey: .layer)
         category = try c.decodeIfPresent(EntityCategory.self, forKey: .category)
-        // tags is new in v2.6 facet model. Legacy entities.json files
+        // tags is part of the facet model. Legacy entities.json files
         // (= written before this commit) lack the field; = default to
         // empty set. Forward-compatible: future saves will round-trip.
         tags = try c.decodeIfPresent(Set<String>.self, forKey: .tags) ?? []
@@ -280,7 +280,7 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
         "\(id.uuidString).md"
     }
 
-    /// Full on-disk path. v2.6 facet model: file path is metadata-flat
+    /// Full on-disk path. The facet model: file path is metadata-flat
     /// (= `entities/<uuid>.md`). The `category` field is preserved as
     /// metadata in entities.json (= sidebar browsing uses the index, not
     /// the directory tree). Multi-tag references live in 1 folder; =
@@ -288,7 +288,7 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
     /// file location.
     ///
     /// Older reference libraries may still have files at
-    /// `entities/<category>/<uuid>.md` (= pre-v2.6 layout); =
+    /// `entities/<category>/<uuid>.md` (= previous layout); =
     /// `FileSystemReferenceStore.loadReferences` performs a one-shot
     /// migration to the flat path on first load (= see issue 002).
     func onDiskPath(under referenceLibraryRoot: URL) -> URL {

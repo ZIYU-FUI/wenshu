@@ -10,7 +10,7 @@
 //  turn as a Section where the user bubble is the pinned header. When
 //  user scrolls down through history, the most recent user bubble
 //  pins at top (= the 'see which question AI is replying to'
-//  affordance). Replaces v1.65-cleanup E3's `.safeAreaInset(edge:
+//  affordance). Replaces the E3 `.safeAreaInset(edge:
 //  .top)` sticky overlay attempt (= that was a discrete scrollTo(.top)
 //  on new user message; = jarring; = reverted by (see OOB.md #2026-09-21)
 //  '').
@@ -107,7 +107,7 @@ struct ChatView: View {
         // through AppState.llmModel = the SELECTED model id) and
         // treated an empty model string as 'no key configured'.
         // Same root cause as the ChatZoneView empty-state bug
-        // (= v1.53): a user who saved a key in Settings but had
+        // (= earlier): a user who saved a key in Settings but had
         // not yet picked a specific model (the common onboarding
         // path) would see the chat input TextField permanently
         // `.disabled` even though the LLM was fully reachable.
@@ -371,7 +371,7 @@ struct ChatView: View {
                     // composer doesn't touch the pane edges).
                     // = the chat content column has NO cap.
                     //
-                    // Earlier v1.65 MC3 used `.frame(maxWidth: 720,
+                    // Earlier version used `.frame(maxWidth: 720,
                     // alignment: .center)` (= wrong; = I inferred
                     // 720 PT from a screenshot guess). The hermes
                     //  is "fill the chat pane width, with 32 PT
@@ -565,7 +565,7 @@ struct ChatView: View {
                 }
             }
             // chat input bar (= the top layer of the
-            // 3-layer UI split per the v1.81 spec) floats over this
+            // 3-layer UI split per the spec) floats over this
             // ScrollView via .safeAreaInset(edge: .bottom); = Apple HIG
             // Messages / Slack chat input pattern.
                 .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -594,7 +594,7 @@ struct ChatView: View {
             // token-usage chrome inside the chat column).
 
             // chat input bar (= the top layer of the
-            // 3-layer UI split per the v1.81 spec) floats over this
+            // 3-layer UI split per the spec) floats over this
             // ScrollView via .safeAreaInset(edge: .bottom); = Apple HIG
             // Messages / Slack chat input pattern.
             // T37-KEYBOARD-SHORTCUTS (2026-09-18): two hidden Buttons that
@@ -1416,7 +1416,7 @@ struct ChatView: View {
 }
 
 
-// MARK: - v1.92 ChatTurn (= unit of grouping for sticky-top user bubbles)
+// MARK: - ChatTurn (= unit of grouping for sticky-top user bubbles)
 
 /// . Each ChatTurn groups one
 /// user message (= the Section.header that pins to the scroll viewport

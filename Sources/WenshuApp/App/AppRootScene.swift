@@ -158,7 +158,7 @@ struct AppRootScene: Scene {
         // the initial size to use the idealWidth column widths =
         // 280 + 320 + 600 + 280 = ~1480 PT).
         //
-        // Switch back to `.contentSize` (= the previous v0.91
+        // Switch back to `.contentSize` (= the previous
         // setting): the window is sized by its intrinsic content
         // (= NavigationSplitView's 4 columns at their ideal
         // widths; = ~1480 PT = exactly the defaultSize 1480 PT).
@@ -205,7 +205,7 @@ struct AppRootScene: Scene {
         // : the
         // defaultSize-only configuration leaves the window's
         // initial position to system-determined behavior (= the
-        // previous v1.67 launch had the window anchored to the
+        // previous launch had the window anchored to the
         // top-left corner of the screen, NOT centered; = the
         // screenshot showed x≈0, y≈0). Per Apple HIG
         // developer.apple.com/documentation/swiftui/view/
@@ -227,7 +227,7 @@ struct AppRootScene: Scene {
         // saved frame) + `.defaultPosition(.center)` (= applies only
         // on first launch too) = first launch = 1400x980 centered;
         // subsequent launches = the user's last frame (size + position).
-        // Replaces `.restorationBehavior(.disabled)` (= the v0.91
+        // Replaces `.restorationBehavior(.disabled)` (= the
         // setting which forced `.defaultSize` on every launch and
         // therefore never remembered the user's window preferences).
         // Note: wenshu is single-window per the §11 baseline; = the
@@ -246,7 +246,7 @@ struct AppRootScene: Scene {
         // system-level zoom gesture (= double-click on title bar /
         // click green traffic-light button / choose Window > Zoom)
         // can fill the window to the display's visibleRect). Note
-        // this combination accepts the v0.97 trade-off: drag past
+        // this combination accepts the trade-off: drag past
         // ~2200 PT may still trigger the
         // `_postWindowNeedsUpdateConstraints` BPT crash on macOS
         // 27 (= the original 6-round-history bug); the user has
@@ -285,7 +285,7 @@ struct AppRootScene: Scene {
             // The Settings scene below provides the actual content
             // (= SettingView, the 6-tab segmented settings panel).
             //
-            // The previous custom Button was a v0.24 workaround
+            // The previous custom Button was a workaround
             // (= "Settings... menu item is required for SwiftUI
             // Settings scene to be accessible"). That workaround is
             // no longer needed (= the Settings scene at L206 is the
@@ -293,7 +293,7 @@ struct AppRootScene: Scene {
             // automatically when the App has a Settings scene (= no
             // custom CommandGroup required).
             //
-            // was a hermes parity carryover from v0.40. Restore the
+            // was a hermes parity carryover. Restore the
             // macOS-default File > New behavior (= ⌘N for new
             // document) by removing the .newItem replacement.
             //
@@ -306,7 +306,7 @@ struct AppRootScene: Scene {
                 // the standing rule 'a new feature should appear
                 // everywhere = synced', this Menu mirrors the toolbar '+'
                 // Menu (= /). Both sub-items post a
-                // NotificationCenter event that the post-v1.69
+                // NotificationCenter event that the post-migration
                 // sidebar observes (= AppleSidebarView flips the
                 // matching AppState request counter → .sheet(item:)
                 // presents the matching sheet from SidebarSheets.swift).
@@ -350,7 +350,7 @@ struct AppRootScene: Scene {
                 // human-interface-guidelines/app-architecture/importing-
                 // and-exporting-data). Functionality deferred (= '
                 // '); placeholder posts a
-                // NotificationCenter event so v0.27 followups can
+                // NotificationCenter event so followups can
                 // listen + implement.
                 Button(String(localized: "menu.file.import")) {
                     NotificationCenter.default.post(name: .wenshuImportRequested, object: nil)
@@ -435,7 +435,7 @@ struct AppRootScene: Scene {
         // panes with a 5-pane sidebar). `.defaultSize` is the canonical
         // SwiftUI scene modifier (= Apple HIG `Window Sizes for Modal
         // Dialogs` recommendation; = no `.frame(maxWidth: N)` literal
-        // involved, so the v3.0 rule #7 size-limit ban does not apply).
+        // involved, so the size-limit rule does not apply).
         // The user can still drag the window smaller (= the floor is
         // set by `windowResizability(.contentMinSize)` + the
         // NavigationSplitView's `.navigationSplitViewColumnWidth(min: 200)`
@@ -632,7 +632,7 @@ struct AppRootScene: Scene {
         // `openWindow(id: WindowID.memoryHistory)`. The
         // `SummariesWindow` / `AttachmentsWindow` neighbors use the
         // same `.windowResizability(.contentSize)` + `.unified`
-        // toolbar style shape (= per the v2.9b independent-window
+        // toolbar style shape (= per the independent-window
         // pattern), so this window matches them visually.
         Window(String(localized: "window.memoryHistory.title"), id: WindowID.memoryHistory) {
             MemoryHistoryView()

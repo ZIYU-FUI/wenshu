@@ -5,7 +5,7 @@
 // the wenshu NavigationSplitView shell.
 //
 // arc (= 27 commits per AGENTS.md):
-//   - v1.68b: initial Apple HIG rewrite replacing the v1.64-v1.67
+//   - v1.68b: initial Apple HIG rewrite replacing the legacy
 //     hand-rolled LazySidebarView (= SwiftUI List(.sidebar)).
 //   - v1.69a-e: MVVM cleanup (= extract SidebarItem, BottomNewButton,
 //     ZoneHeaderButtons to focused files; = drop 9 LazySidebar*
@@ -49,7 +49,7 @@
 //     a Divider when node.kind == .divider).
 //
 // This file is the canonical SwiftUI sidebar surface post-MVVM
-// (= the same architecture that v1.68b established, with the
+// (= the same architecture that the v1.68b established, with the
 // 4 sheets + context-menu + business methods restored in v1.69y).
 
 import SwiftUI
@@ -76,7 +76,7 @@ struct AppleSidebarView: View {
 
     // y (see OOB.md #2026-09-23) OOB ', ':
     // the create/rename/delete sheets that live in
-    // SidebarSheets.swift (recovered from the deleted v1.69e
+    // SidebarSheets.swift (recovered from the deleted
     // NewLibraryOutlineView). Each sheet's `isPresented`
     // boolean is local @State on this sidebar body (= flips
     // via .onChange(of: appState.{choice,newShelf,newBook}

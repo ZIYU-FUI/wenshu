@@ -2,25 +2,25 @@
 //
 // Domain model for a single book (= a novel the user is writing).
 // ships just the book + its persistence; chapter content
-// (= .md files inside the book's directory) lands in v0.03.0 alongside
+// (= .md files inside the book's directory) lands in alongside
 // the EDITOR module.
 //
 // v52: adds `length` (BookLength enum) + `idea` (optional String) for
 // the New Book Creation Wizard. Both fields have defaults + Codable
-// back-compat (= v0.02.x book.json files without these keys still
+// back-compat (= book.json files without these keys still
 // decode).
 //
 // Adding any required field forces the architectural decision to
 // surface (= not just an incidental change in some file).
 //
 // Storage layout (= Apple HIG document-based app convention, building
-// on the v0.02.0 shelf layout):
+// on the shelf layout):
 //   ~/Documents/wenshu/<shelf-id-uuid>/
 //     shelf.json
 //     books/<book-id-uuid>/
 // book.json             ← encoded Book (this file; includes length +
 //                       idea since v52)
-//       chapters/<chapter-id-uuid>.md  (v0.03.0)
+//       chapters/<chapter-id-uuid>.md  (current)
 //
 // id == directory name (= UUID string) so renames don't break the
 // filesystem identity (= Apple HIG: URL = identity, name = label).
@@ -28,7 +28,7 @@
 import Foundation
 
 /// Book length = the scope the user commits to when creating a new
-/// book. Drives later chapter management (= v0.03.0 chapter list
+/// book. Drives later chapter management (= chapter list
 /// reads the length to suggest word-count targets + chapter split
 /// heuristics). Three cases, allCases-ordered (= Picker in the wizard
 /// renders in this order: short / medium / long).
@@ -67,7 +67,7 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
     let shelfId: UUID
     /// v52: declared length at creation. Defaults to `.medium` (= the
     /// most common case; the wizard always sets a value, but defaults
-    /// exist for Codable back-compat with v0.02.x book.json files).
+    /// exist for Codable back-compat with book.json files).
     var length: BookLength
     /// v52: the user's one-line story idea. Optional (= the wizard
     /// presents it as ' / optional). nil = not provided.
@@ -129,7 +129,7 @@ struct Book: Identifiable, Hashable, Codable, Sendable {
     // x book.json files don't have 'length' or 'idea' (= fields
     // added in v52). Synthesized Codable would fail to decode them
     // (= keysNotFound). Override init(from:) to provide defaults for
-    // missing keys. New fields added in v0.04+ (= synopsis, character
+    // missing keys. New fields added in (= synopsis, character
     // list, etc.) should follow the same pattern.
 
     private enum CodingKeys: String, CodingKey {
