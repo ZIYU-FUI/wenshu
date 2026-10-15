@@ -5,6 +5,8 @@ Single-shot narrative (commit message length, fix attempts, retro) lives at
 `.archive/.oob-v3.1-archive/OOB.md.original` (= full pre-v3.1 history).
 New entries = append 1 line. Outdated = delete (= per AGENTS.md §10.3).
 
+
+> Quick use: any (see OOB.md #YYYY-MM-DD) reference = look up by date below; entry must exist (= add 1 line when introducing a new date key).
 ## Format
 
 - Each entry = `YYYY-MM-DD | <1-line summary>`.
