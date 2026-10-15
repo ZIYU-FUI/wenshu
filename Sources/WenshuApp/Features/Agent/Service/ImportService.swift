@@ -61,6 +61,14 @@ actor ImportService {
     /// user can re-import from a clean state).
     private var entitiesJSONSnapshot: (path: URL, content: Data)? = nil
 
+    /// Per-task mutable state used by the `dispatchLLM` helper
+    /// (= extensions can't hold stored properties; = this lives on
+    /// the actor). `lastDispatchError` is the final error from the
+    /// last failed LLM attempt; = `dispatchLLM` returns nil and
+    /// sets this so the orchestrator can surface the user-readable
+    /// error via `markLLMFailed`).
+    private var lastDispatchError: Error? = nil
+
     /// 5-way parallel LLM dispatch (= the boss's
     /// 2026-10-09 directive "你要做一个机制 5 个并发，
     /// 一个文件一个请求。同时只能处理 5 个"; = the
@@ -1667,23 +1675,91 @@ extension ImportService {
         tasksBox: TasksBox,
         onProgress: (@Sendable ([ImportTask]) async -> Void)?
     ) async {
-        // Phase 3: route + enrich (= the LLM dispatch; = this is the slow part; = the
-        // pipeline's bottleneck). (= boss 2026-10-10 "卡 LLM" 反馈): the previous
-        // implementation gave up on the first LLM failure (= a single timeout
-        // = .failed; = the user had to hit "重试" to re-run the file after the
-        // LLM recovered). The new path retries up to 3 times with exponential
-        // backoff (= 1s, 2s, 4s; = the LLM provider's transient errors = rate
-        // limit / network blip / load spike = clear within 7s in 95% of cases
-        // per the connector team's 2026-10-09 metrics). After 3 failures, the
-        // task is marked .failed with the LAST error message (= the user can
-        // still hit the sheet's "重试" button to re-run).
-        let maxLLMAttempts = 3
-        var lastError: Error?
-        var routing: ImportRoutingResult? = nil
-        // log the LLM's activity. v0.74: also log which provider (= so the user can
-        // diagnose "which endpoint is unreachable" without opening the
-        // bundle).
+        // Phase 3: route + enrich (= the LLM dispatch; = the slow part).
+        // Retries up to 3 times with exponential backoff (1s, 2s, 4s; = transient
+        // LLM errors = rate limit / network blip / load spike; = 95% of cases
+        // clear within 7s per the connector team's 2026-10-09 metrics).
         let activeProvider = WenshuAppDelegate.activeConnectorSlug()
+        let routing: ImportRoutingResult? = await dispatchLLM(
+            input: input,
+            target: target,
+            router: router,
+            tasksBox: tasksBox,
+            i: i,
+            activeProvider: activeProvider,
+            onProgress: onProgress
+        )
+        guard var routing = routing else {
+            await markLLMFailed(
+                tasksBox: tasksBox,
+                i: i,
+                activeProvider: activeProvider,
+                lastError: lastDispatchError,
+                onProgress: onProgress
+            )
+            return
+        }
+        // Apply the user's pinned destination (= boss's "用户在 导入 书的 时候 ， 要选 择二 级目 录" feedback).
+        switch target.destination {
+        case .referenceLibrary:
+            routing.destination = .referenceLibrary
+        case .book:
+            if let folder = target.bookFolder {
+                routing.destination = .bookFolder(folder)
+            } else if case .referenceLibrary = routing.destination {
+                // Fallback: the LLM routed to .referenceLibrary but the user picked a
+                // book (= no 2nd-level folder picked; = .drafts is the safe default).
+                routing.destination = .bookFolder(.drafts)
+            }
+        }
+        tasksBox.value[i].routing = routing
+        // Phase 4: write the main file + loop through extraFiles.
+        // State flips .routing → .writing → .done inside this single function call.
+        tasksBox.value[i].state = .writing
+        await onProgress?(tasksBox.value)
+        do {
+            try await writeMainFileAndExtras(
+                routing: routing,
+                target: target,
+                router: router,
+                cacheBox: cacheBox,
+                tasksBox: tasksBox,
+                i: i,
+                onProgress: onProgress
+            )
+        } catch let error as ImportServiceError
+        where error == .contentSameSkipped {
+            // Phase 2 LLM said "skip" (= the existing file is already correct);
+            // = the inner writeFile already set state = .skipped + skippedReason
+            // before throwing the sentinel; = we just break out.
+            await onProgress?(tasksBox.value)
+            return
+        } catch {
+            tasksBox.value[i].state = .failed
+            tasksBox.value[i].errorMessage = "写入失败: \(error.localizedDescription)"
+        }
+        // Emit after the terminal state transition (= .done or .failed).
+        await onProgress?(tasksBox.value)
+    }
+
+    // lastDispatchError is now stored on the actor (= extensions can't
+    // hold stored properties; = it lives next to isCancelled / writtenURLs
+    // / entitiesJSONSnapshot at the top of the actor).
+
+    /// Phase 3: dispatch the LLM with retry. Returns the routing result on
+    /// success; sets `lastDispatchError` and returns nil on failure (= the
+    /// caller then calls `markLLMFailed` to surface a user-readable error).
+    private func dispatchLLM(
+        input: ImportFileInput,
+        target: ImportTarget,
+        router: ImportRouter,
+        tasksBox: TasksBox,
+        i: Int,
+        activeProvider: String,
+        onProgress: (@Sendable ([ImportTask]) async -> Void)?
+    ) async -> ImportRoutingResult? {
+        let maxLLMAttempts = 3
+        lastDispatchError = nil
         await appendActivity(
             to: tasksBox, i: i,
             message: "调用 LLM (\(target.rewriteMode.label)) 分类 + 重组 (provider: \(activeProvider)) ...",
@@ -1691,11 +1767,8 @@ extension ImportService {
         )
         for attempt in 1...maxLLMAttempts {
             do {
-                // pass the activityLog appender as the progress callback so the router's
-                // per-phase log lines land in the per-row activityLog.
-                // (= NSLog debug from round-71 NSLog was removed after
-                // the callback path was verified working in commit
-                // b34d3edfa).
+                // Pass the activityLog appender as the progress callback so the
+                // router's per-phase log lines land in the per-row activityLog.
                 let result = try await router.route(input) { message in
                     await self.appendActivity(
                         to: tasksBox, i: i,
@@ -1703,19 +1776,14 @@ extension ImportService {
                         onProgress: onProgress
                     )
                 }
-                routing = result
                 tasksBox.value[i].routing = result
-                lastError = nil
                 if attempt > 1 {
                     NSLog("WSImport: LLM route succeeded on attempt \(attempt) for task \(i)")
                 }
-                // log the LLM's response summary (= the user gets to SEE what the LLM
-                // returned: title, tags, # of extraFiles, etc.; = the
-                // boss's "导入后文 件没有重 新组织" OOB will become visible — if
-                // the LLM returns 0 extraFiles (= the LLM ignored the
-                // prompt), the user sees that immediately).
+                // Log the LLM's response summary (= the user gets to SEE what the
+                // LLM returned: title, tags, # of extraFiles, etc.).
                 let routingSummary = """
-                LLM 返回: title="\(result.title)", tags=\(result.tags.sorted().joined(separator: ",")), extraFiles=\(result.extraFiles.count) 个
+                LLM 返回: title="\(result.title)", tags=\(result.tags.sorted().joined(separator: ", ")), extraFiles=\(result.extraFiles.count) 个
                 """
                 await appendActivity(
                     to: tasksBox, i: i,
@@ -1737,278 +1805,223 @@ extension ImportService {
                         onProgress: onProgress
                     )
                 }
-                break
+                return result
             } catch {
-                lastError = error
+                lastDispatchError = error
                 NSLog("WSImport: LLM route attempt \(attempt)/\(maxLLMAttempts) failed: \(error.localizedDescription)")
                 if attempt < maxLLMAttempts {
-                    // Exponential backoff: 1s, 2s, 4s. (= 7s total before the final
-                    // failure; = enough for the LLM to recover
-                    // from most transient errors).
+                    // Exponential backoff: 1s, 2s, 4s. (= 7s total before final failure).
                     let delaySeconds = pow(2.0, Double(attempt - 1))
                     try? await Task.sleep(nanoseconds: UInt64(delaySeconds * 1_000_000_000))
                 }
             }
         }
-        guard var routing = routing else {
-            tasksBox.value[i].state = .failed
-            // WHICH connector failed and HOW the user can fix it. The previous "3 次重试:
-            // unreachable" gave the user no actionable signal. The new
-            // message names the connector, quotes the underlying error
-            // verbatim (= so the user can paste it into a bug report), and
-            // offers a one-line fix checklist (= verify network + verify
-            // the API key in Settings → Providers).
-            let nsError = lastError as NSError?
-            let underlying = nsError?.localizedDescription ?? "未知错误"
-            let errorCode = nsError.map { " (code=\($0.code))" } ?? ""
-            tasksBox.value[i].errorMessage = """
-                LLM 路由失败 (3 次重试) — provider: \(activeProvider)\(errorCode)
-                底层错误: \(underlying)
-                排查: 1) 网络可达 \(activeProvider) 的 endpoint 2) Settings → Providers 里 \(activeProvider) 的 API key 还在 3) 试重试按钮
-                """
-            await onProgress?(tasksBox.value)
-            return
-        }
-        // override (= boss 2026-10-09 (see OOB.md #2026-10-09) user-pinned).
-        switch target.destination {
-        case .referenceLibrary:
-            routing.destination = .referenceLibrary
-        case .book:
-            // (= boss 2026-10-10 "用 户在 导入 书的 时候 ， 要选 择二 级目 录" 反馈): when the user pinned a
-            // 2nd-level folder (= the "目标目录" picker in the sheet; = the
-            // boss's 6-folder classification = world / characters /
-            // outlines / chapters / drafts / ideas), the orchestrator
-            // forces the destination to that folder (= the LLM's
-            // classification is overridden = the user is the source of
-            // truth; = "我 要把这些 全部 当成 角色" = every file in the batch lands
-            // in characters/; = the LLM is reduced to title + summary +
-            // tags extraction only).
-            if let folder = target.bookFolder {
-                routing.destination = .bookFolder(folder)
-            } else if case .referenceLibrary = routing.destination {
-                // Fallback: the LLM routed to .referenceLibrary but the user picked a
-                // book (= no 2nd-level folder picked; = the old
-                // behavior; = .drafts is the safe default).
-                routing.destination = .bookFolder(.drafts)
-            }
-        }
-        tasksBox.value[i].routing = routing
-        // Phase 4: write (= the destination was decided by the LLM; = the write step is a
-        // pure function of the routing result + the orchestrator's on-disk
-        // targets). The state flips .routing → .writing → .done inside this
-        // single function call (= the sheet sees the .writing pill for a brief
-        // moment before .done takes over).
-        tasksBox.value[i].state = .writing
+        return nil
+    }
+
+    /// Phase 3 failure handler (= the LLM dispatch failed after all retries).
+    /// Surfaces a user-readable error that names the connector + quotes the
+    /// underlying error + offers a one-line fix checklist (= verify network +
+    /// verify API key in Settings → Providers).
+    private func markLLMFailed(
+        tasksBox: TasksBox,
+        i: Int,
+        activeProvider: String,
+        lastError: Error?,
+        onProgress: (@Sendable ([ImportTask]) async -> Void)?
+    ) async {
+        tasksBox.value[i].state = .failed
+        let nsError = lastError as NSError?
+        let underlying = nsError?.localizedDescription ?? "未知错误"
+        let errorCode = nsError.map { " (code=\($0.code))" } ?? ""
+        tasksBox.value[i].errorMessage = """
+            LLM 路由失败 (3 次重试) — provider: \(activeProvider)\(errorCode)
+            底层错误: \(underlying)
+            排查: 1) 网络可达 \(activeProvider) 的 endpoint 2) Settings → Providers 里 \(activeProvider) 的 API key 还在 3) 试重试按钮
+            """
         await onProgress?(tasksBox.value)
-        do {
-            // (= boss 2026-10-10 "导入 的文件，内容 大量缺失" 反馈). Body selection is now mode-aware:
-            // - `.consolidate` (= the "基于 现有内容整理" picker option): ALWAYS
-            // use the original source body verbatim (= read from disk);
-            // ignore the LLM's `rewrittenBody` entirely. The LLM was
-            // compressing the content (= the prompt's "整理 .ws 格式" was
-            // interpreted as "summarize and rewrite"); = the format work
-            // (strip + H2 append) is now done in code by
-            // `ImportDocumentTemplates.prepareBodyForWrite`. -
-            // `.searchAndRewrite` (= the "重写同时搜索 校对" option): use the
-            // LLM's `rewrittenBody` when present (= the LLM called
-            // `web_search` and synthesized a new body); = otherwise fall
-            // back to the original (= the user picked rewrite but the LLM
-            // decided not to search; = we still respect their pick = the
-            // original body goes through prepareBodyForWrite). After mode-
-            // aware selection, the body is run through
-            // `ImportDocumentTemplates.prepareBodyForWrite` (= strip
-            // Obsidian backlinks + useless metadata + append missing H2
-            // skeleton from the folder's `importTemplate`). log "读取源文件" (=
-            // real- time feedback per boss 2026-10-10 (see OOB.md
-            // #2026-10-10)
-            let sourceFileName = (tasksBox.value[i].sourcePath as NSString).lastPathComponent
-            await appendActivity(
-                to: tasksBox, i: i,
-                message: "读取源文件 \(sourceFileName)",
+    }
+
+    /// Phase 4: write the main file (= per the rewriteMode) + loop through
+    /// the LLM's `extraFiles` and write each one to its folder. The state
+    /// transitions to .done on success (= or .failed on write error; = the
+    /// caller catches and surfaces the error to the user).
+    private func writeMainFileAndExtras(
+        routing: ImportRoutingResult,
+        target: ImportTarget,
+        router: ImportRouter,
+        cacheBox: CacheBox,
+        tasksBox: TasksBox,
+        i: Int,
+        onProgress: (@Sendable ([ImportTask]) async -> Void)?
+    ) async throws {
+        let sourceFileName = (tasksBox.value[i].sourcePath as NSString).lastPathComponent
+        await appendActivity(
+            to: tasksBox, i: i,
+            message: "读取源文件 \(sourceFileName)",
+            onProgress: onProgress
+        )
+        let originalBody = try String(
+            contentsOfFile: tasksBox.value[i].sourcePath,
+            encoding: .utf8
+        )
+        let bodySizeKB = Double(originalBody.utf8.count) / 1024.0
+        await appendActivity(
+            to: tasksBox, i: i,
+            message: String(format: "源文件 = %.1f KB, %d 行", bodySizeKB, originalBody.components(separatedBy: "\n").count),
+            onProgress: onProgress
+        )
+        // The folder is sourced from the routing result; for the
+        // reference-library destination, the LLM picks a "concept" folder
+        // (= world/characters/...) for the `category` but the file lands in
+        // the flat reference library; = .drafts is the safe default.
+        let folder: BookFolder = {
+            if case .bookFolder(let f) = routing.destination { return f }
+            return .drafts
+        }()
+        let bodyToWrite = computeBodyToWrite(
+            originalBody: originalBody,
+            rewrittenBody: routing.rewrittenBody,
+            folder: folder,
+            rewriteMode: target.rewriteMode
+        )
+        let extraFilesTotal = routing.extraFiles.count
+        tasksBox.value[i].extraFilesTotal = extraFilesTotal
+        tasksBox.value[i].extraFilesDone = 0
+        // Log the main folder + write it.
+        let mainFolderName: String
+        switch routing.destination {
+        case .referenceLibrary: mainFolderName = "资料库"
+        case .bookFolder(let f): mainFolderName = f.directoryName
+        }
+        await appendActivity(
+            to: tasksBox, i: i,
+            message: "写主文件 (\(mainFolderName)/...)",
+            onProgress: onProgress
+        )
+        // Write each extra file (= LLM's split-out content). Extra file
+        // write failures are non-fatal: main file stays .done; = the failed
+        // extra file is recorded separately in tasksBox.
+        for (extraIndex, extra) in routing.extraFiles.enumerated() {
+            try await writeOneExtraFile(
+                extra: extra,
+                extraIndex: extraIndex,
+                extraFilesTotal: extraFilesTotal,
+                target: target,
+                tasksBox: tasksBox,
+                i: i,
                 onProgress: onProgress
             )
-            let originalBody = try String(
-                contentsOfFile: tasksBox.value[i].sourcePath,
-                encoding: .utf8
+        }
+        // Write the main file (if there's a body).
+        if !bodyToWrite.isEmpty {
+            try await writeFile(
+                body: bodyToWrite,
+                routing: routing,
+                contentHash: tasksBox.value[i].contentHash,
+                target: target,
+                sourcePath: tasksBox.value[i].sourcePath,
+                cache: &cacheBox.value,
+                router: router,
+                tasksBox: tasksBox,
+                i: i
             )
-            let bodySizeKB = Double(originalBody.utf8.count) / 1024.0
+            let bodyKB = Double(bodyToWrite.utf8.count) / 1024.0
             await appendActivity(
                 to: tasksBox, i: i,
-                message: String(format: "源文件 = %.1f KB, %d 行", bodySizeKB, originalBody.components(separatedBy: "\n").count),
+                message: String(format: "✅ 主文件写入成功 (%.1f KB)", bodyKB),
                 onProgress: onProgress
             )
-            // The folder is sourced from the routing result (= populated when `state >=
-            // .writing`; = the LLM's pick for the book folder). For the
-            // reference-library destination, the LLM picks a "concept"
-            // folder (= world/characters/...) for the `category` but the
-            // file lands in the flat reference library; = we use `.drafts`
-            // as a safe default skeleton (= the prepareBodyForWrite helper
-            // handles the default by skipping the H2 append when no
-            // skeleton exists).
-            let folder: BookFolder = {
-                if case .bookFolder(let f) = routing.destination { return f }
-                return .drafts
-            }()
-            // ticket 05 (= boss 2026-10-10 "重新组织 内容, 没有实现" 反馈). The previous code only
-            // handled .consolidate and .searchAndRewrite; = .reorganize
-            // fell into the catch-all `else` (= original +
-            // prepareBodyForWrite); = the LLM's `rewrittenBody` was
-            // ignored; = the file got the verbatim source + appended
-            // [TODO: 需调研补齐] placeholders; = the boss saw 6 empty H2s. Fix:
-            // handle .reorganize explicitly (= the LLM already produced a
-            // complete B-template body in `rewrittenBody`; = use it
-            // directly, skipping prepareBodyForWrite because that would
-            // append MORE H2 placeholders on top of the LLM's complete
-            // body).
-            let bodyToWrite: String
-            switch target.rewriteMode {
-            case .consolidate:
-                // Consolidate: always original verbatim + prepareBodyForWrite.
-                bodyToWrite = ImportDocumentTemplate.prepareBodyForWrite(
-                    rawBody: originalBody,
+        }
+        tasksBox.value[i].state = .done
+        tasksBox.value[i].destination = routing.destination
+        // The writeFile appended the new entry to its inout cache; = the
+        // shared `cacheBox.value` is now the canonical source of truth.
+    }
+
+    /// Compute the body to write based on the rewriteMode (= .consolidate
+    /// always uses the original verbatim; = .reorganize produces no main
+    /// file body (= the agent's writeBookDoc tool owns the writes); =
+    /// .searchAndRewrite prefers the LLM's `rewrittenBody` when present,
+    /// falling back to the original).
+    private func computeBodyToWrite(
+        originalBody: String,
+        rewrittenBody: String?,
+        folder: BookFolder,
+        rewriteMode: ImportFileInput.RewriteMode
+    ) -> String {
+        switch rewriteMode {
+        case .consolidate:
+            return ImportDocumentTemplate.prepareBodyForWrite(
+                rawBody: originalBody,
+                folder: folder
+            )
+        case .reorganize:
+            // The agent owns writing in .reorganize mode; = the orchestrator
+            // has nothing to write for the main file (= rewrittenBody is always
+            // nil per routeReorganizeMultiTurn's signature).
+            return ""
+        case .searchAndRewrite:
+            if let rewritten = rewrittenBody, !rewritten.isEmpty {
+                return ImportDocumentTemplate.prepareBodyForWrite(
+                    rawBody: rewritten,
                     folder: folder
                 )
-            case .reorganize:
-                // (= the agent owns writing; = ImportAgentDriver delegates to the
-                // writeBookDoc tool for every sub-file; = the agent
-                // never surfaces a `rewrittenBody` through this path;
-                // = the main INDEX file body is written via the
-                // agent's writeBookDoc call for `world/<title>.md`).
-                // `rewrittenBody` here is always nil per
-                // routeReorganizeMultiTurn's round-73 signature (= we
-                // set `rewrittenBody: nil` explicitly); = the
-                // orchestrator has nothing to write for the main file
-                // in .reorganize mode. Set `bodyToWrite = ""` (= the
-                // agent's writeBookDoc tool calls are the only
-                // authoritative writes; = see routeReorganizeMultiTurn
-                // in WenshuConductorImportRouter).
-                bodyToWrite = ""
-            case .searchAndRewrite:
-                if let rewritten = routing.rewrittenBody, !rewritten.isEmpty {
-                    // SearchAndRewrite with LLM-supplied body: still run through
-                    // prepareBodyForWrite (= strip noise + append
-                    // missing H2; = the LLM may have skipped some
-                    // required H2s; = the user gets the canonical
-                    // skeleton).
-                    bodyToWrite = ImportDocumentTemplate.prepareBodyForWrite(
-                        rawBody: rewritten,
-                        folder: folder
-                    )
-                } else {
-                    // SearchAndRewrite without LLM-supplied body: original + prepareBodyForWrite.
-                    bodyToWrite = ImportDocumentTemplate.prepareBodyForWrite(
-                        rawBody: originalBody,
-                        folder: folder
-                    )
-                }
             }
-            // ticket 03 (= boss 2026-10-10 "甚至原 文件 A 的内容, 与 我们的 B 模版不符 合, 多了很我非模版 的内容,
-            // 我希望能自 动拆出一个文件, 放 在合适的目录中去" feedback). After the main file is
-            // written, loop through `routing.extraFiles` (= the LLM's
-            // optional split-out files) and write each one to its folder.
-            // Each extra file uses the SAME book + shelf (= same UUIDs)
-            // but a DIFFERENT folder (= the LLM's `element.folder`; = the
-            // orchestrator resolves the folder URL). Extra file write
-            // failures are non-fatal: main file stays .done; = the failed
-            // extra file is recorded separately in tasksBox.
-            let extraFilesTotal = routing.extraFiles.count
-            tasksBox.value[i].extraFilesTotal = extraFilesTotal
-            tasksBox.value[i].extraFilesDone = 0
-            // "写主文件" log (= the user sees the main file about to be written).
-            let mainFolderName: String
-            switch routing.destination {
-            case .referenceLibrary: mainFolderName = "资料库"
-            case .bookFolder(let f): mainFolderName = f.directoryName
-            }
+            return ImportDocumentTemplate.prepareBodyForWrite(
+                rawBody: originalBody,
+                folder: folder
+            )
+        }
+    }
+
+    /// Write one extra file (= a single entry from `routing.extraFiles`).
+    /// Logs the success/failure to the per-row activityLog (= the user
+    /// sees a row per extra file). Failures are non-fatal (= they don't
+    /// throw; = the row's `extraFilesDone` counter still advances).
+    private func writeOneExtraFile(
+        extra: ExtraFile,
+        extraIndex: Int,
+        extraFilesTotal: Int,
+        target: ImportTarget,
+        tasksBox: TasksBox,
+        i: Int,
+        onProgress: (@Sendable ([ImportTask]) async -> Void)?
+    ) async throws {
+        do {
+            try await writeExtraFile(
+                extra: extra,
+                target: target,
+                tasksBox: tasksBox,
+                i: i,
+                extraIndex: extraIndex
+            )
+            let bodyKB = Double(extra.body.utf8.count) / 1024.0
+            let marker = extra.required ? "[必填]" : "[自定义]"
             await appendActivity(
                 to: tasksBox, i: i,
-                message: "写主文件 (\(mainFolderName)/...)",
+                message: String(
+                    format: "  ✅ 子文件 %d/%d %@ %@/%@.md (%.1f KB)",
+                    extraIndex + 1, extraFilesTotal,
+                    marker,
+                    extra.folder.directoryName,
+                    extra.title,
+                    bodyKB
+                ),
                 onProgress: onProgress
             )
-            for (extraIndex, extra) in routing.extraFiles.enumerated() {
-                let extraResult: Bool
-                do {
-                    try await writeExtraFile(
-                        extra: extra,
-                        target: target,
-                        tasksBox: tasksBox,
-                        i: i,
-                        extraIndex: extraIndex
-                    )
-                    extraResult = true
-                    // "✅ 写子文件" log
-                    let bodyKB = Double(extra.body.utf8.count) / 1024.0
-                    let marker = extra.required ? "[必填]" : "[自定义]"
-                    await appendActivity(
-                        to: tasksBox, i: i,
-                        message: String(
-                            format: "  ✅ 子文件 %d/%d %@ %@/%@.md (%.1f KB)",
-                            extraIndex + 1, extraFilesTotal,
-                            marker,
-                            extra.folder.directoryName,
-                            extra.title,
-                            bodyKB
-                        ),
-                        onProgress: onProgress
-                    )
-                } catch {
-                    NSLog(
-                        "[wenshu.import] extraFile %d (%@) failed: %@",
-                        extraIndex, extra.title, String(describing: error)
-                    )
-                    extraResult = false
-                    // "❌ 写子文件 失败" log.
-                    await appendActivity(
-                        to: tasksBox, i: i,
-                        message: "  ❌ 子文件 \(extraIndex + 1)/\(extraFilesTotal) \(extra.title).md 写失败: \(String(describing: error))",
-                        onProgress: onProgress
-                    )
-                }
-                tasksBox.value[i].extraFilesDone += 1
-                _ = extraResult
-            }
-            if !bodyToWrite.isEmpty {
-                try await writeFile(
-                    body: bodyToWrite,
-                    routing: routing,
-                    contentHash: tasksBox.value[i].contentHash,
-                    target: target,
-                    sourcePath: tasksBox.value[i].sourcePath,
-                    cache: &cacheBox.value,
-                    router: router,
-                    tasksBox: tasksBox,
-                    i: i
-                )
-                let bodyKB = Double(bodyToWrite.utf8.count) / 1024.0
-                await appendActivity(
-                    to: tasksBox, i: i,
-                    message: String(format: "✅ 主文件写入成功 (%.1f KB)", bodyKB),
-                    onProgress: onProgress
-                )
-            }
-            tasksBox.value[i].state = .done
-            tasksBox.value[i].destination = routing.destination
-            // The writeFile appended the new entry to its inout cache; = the shared
-            // `cacheBox.value` is now the canonical source of truth for
-            // the in-memory cache (= the next dedup pass sees the prior
-            // write via the same `cacheBox`).
-        } catch let error as ImportServiceError
-            where error == .contentSameSkipped {
-            // Phase 2 LLM said "skip" (= the existing file is already correct); = the
-            // inner writeFile already set state = .skipped + skippedReason
-            // before throwing the sentinel; = we just break out (= the
-            // .done assignment is skipped; = the onProgress emit below
-            // still fires so the sheet sees the .skipped state). Emit
-            // progress so the sheet sees the .skipped state for this row.
-            await onProgress?(tasksBox.value)
-            return
         } catch {
-            tasksBox.value[i].state = .failed
-            tasksBox.value[i].errorMessage = "写入失败: \(error.localizedDescription)"
+            NSLog(
+                "[wenshu.import] extraFile %d (%@) failed: %@",
+                extraIndex, extra.title, String(describing: error)
+            )
+            await appendActivity(
+                to: tasksBox, i: i,
+                message: "  ❌ 子文件 \(extraIndex + 1)/\(extraFilesTotal) \(extra.title).md 写失败: \(String(describing: error))",
+                onProgress: onProgress
+            )
         }
-        // Emit after the terminal state transition (= .done or .failed) so the sheet's
-        // ProgressView sees the final state for this row.
-        await onProgress?(tasksBox.value)
+        tasksBox.value[i].extraFilesDone += 1
     }
 
     /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
