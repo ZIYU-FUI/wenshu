@@ -206,6 +206,59 @@ struct EditorView: View {
         }
     }
 
+    /// On editor zone mount: upgrade any preview-mode tabs to edit mode,
+    /// seed `EditorCounters.wordCount` from the active tab, and start the
+    /// file-system watcher (= `EditorFileWatcher.start(path:tab:onChange:)`)
+    /// so external FS events auto-reload the draft.
+    private func onEditorAppear() {
+    // (see OOB.md #2026-09-07): do NOT seed a placeholder tab when
+    // openTabs is empty. Two paths from here: 1. Persisted tabs (loaded
+    // by AppState.init from UserDefaults) → use those directly. 2. No
+    // persisted tabs → editor zone shows the empty-state hint (=
+    // "libraryin progressdouble-clickcardopen") via EditorView's
+    // nil-activeTab branch. The .edit-mode upgrade from .preview still
+    // runs for any tabs that survived (= the canonical pre- extended
+    // surface).
+    for idx in appState.openTabs.indices {
+        if appState.openTabs[idx].mode == .preview {
+            appState.openTabs[idx].mode = .edit
+        }
+    }
+    // Initialize word count from active tab (= 0 when no tab).
+    if let tab = activeTab {
+        editorCounters.wordCount = WordCounter.count(tab.originalBody).charactersNoSpaces
+    } else {
+        editorCounters.wordCount = 0
+    }
+    // start the file-system watcher for the current documentPath (nil =
+    // placeholder mode; = no-op). The watcher auto-reloads draft when
+    // the file changes externally (= agent write, git pull, terminal
+    // `echo > file.md`, etc.). editor-mvvm T2b:
+    // `EditorPersistence.reloadFromDisk` returns the new content +
+    // conflict notice (= the helper is pure; = it doesn't mutate tab
+    // fields). The view writes the results back to the active tab +
+    // updates the word-count badge. This keeps the disk-IO +
+    // state-write paths in lockstep at the call site (= easy to audit).
+    if let tab = activeTab {
+        EditorFileWatcher.start(
+            path: tab.documentPath,
+            tab: tab,
+            onChange: { [self] in reloadFromDiskAndApply() }
+        )
+    }
+
+    }
+
+    /// On editor zone unmount: stop the file-system watcher (= prevents
+    /// zombie DispatchSource holding the file descriptor). The view layer
+    /// is the canonical owner of the watcher lifecycle (= `EditorFileWatcher.start`
+    /// in `onEditorAppear`; = `.stop` here = symmetric pair).
+    private func onEditorDisappear() {
+        if let tab = activeTab {
+            EditorFileWatcher.stop(tab: tab)
+        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // Tab strip = Safari-style multi-tab bar (Apple HIG tabbed-document
@@ -620,43 +673,7 @@ struct EditorView: View {
         // draft) inside EditorEditContent covers the edit- mode keystroke
         // stream; = this .onAppear covers the initial state (= Apple HIG = seed
         // reactive state at view mount).
-        .onAppear {
-            // (see OOB.md #2026-09-07): do NOT seed a placeholder tab when
-            // openTabs is empty. Two paths from here: 1. Persisted tabs (loaded
-            // by AppState.init from UserDefaults) → use those directly. 2. No
-            // persisted tabs → editor zone shows the empty-state hint (=
-            // "libraryin progressdouble-clickcardopen") via EditorView's
-            // nil-activeTab branch. The .edit-mode upgrade from .preview still
-            // runs for any tabs that survived (= the canonical pre- extended
-            // surface).
-            for idx in appState.openTabs.indices {
-                if appState.openTabs[idx].mode == .preview {
-                    appState.openTabs[idx].mode = .edit
-                }
-            }
-            // Initialize word count from active tab (= 0 when no tab).
-            if let tab = activeTab {
-                editorCounters.wordCount = WordCounter.count(tab.originalBody).charactersNoSpaces
-            } else {
-                editorCounters.wordCount = 0
-            }
-            // start the file-system watcher for the current documentPath (nil =
-            // placeholder mode; = no-op). The watcher auto-reloads draft when
-            // the file changes externally (= agent write, git pull, terminal
-            // `echo > file.md`, etc.). editor-mvvm T2b:
-            // `EditorPersistence.reloadFromDisk` returns the new content +
-            // conflict notice (= the helper is pure; = it doesn't mutate tab
-            // fields). The view writes the results back to the active tab +
-            // updates the word-count badge. This keeps the disk-IO +
-            // state-write paths in lockstep at the call site (= easy to audit).
-            if let tab = activeTab {
-                EditorFileWatcher.start(
-                    path: tab.documentPath,
-                    tab: tab,
-                    onChange: { [self] in reloadFromDiskAndApply() }
-                )
-            }
-        }
+        .onAppear { onEditorAppear() }
         // 'chattop bar 3 tab, editortop bar ': REVERTED (= (see OOB.md
         // #2026-09-08) follow-up 'yes, don't , info, default editorshould MD
         // tab'). The welcome tab was visually present but the preview body was
@@ -668,11 +685,7 @@ struct EditorView: View {
         // DispatchSource holding the file descriptor). editor-mvvm T1b:
         // delegate to EditorFileWatcher (= the extracted helper owns the fd +
         // cancel lifecycle).
-        .onDisappear {
-            if let tab = activeTab {
-                EditorFileWatcher.stop(tab: tab)
-            }
-        }
+        .onDisappear { onEditorDisappear() }
     }
 
     // edit-mode state owner. Both fields initialise from the sample preview
