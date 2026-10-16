@@ -13,8 +13,19 @@
 // Note: DeepSeek + Ollama are already covered by
 // `OpenAICompatibleConnector` (= they use the OpenAI chat completions
 // protocol). This file adds only the Google-specific wire format.
+//
+// AUDIT.md §2.6 partial (2026-10-16): WALogger.model logs the
+// connector-level lifecycle for Gemini (closes the loop on
+// the AUDIT §2.6 partial; = the only remaining
+// non-deprecated connector without a logger entry after
+// this commit).
 
 import Foundation
+import os.log
+
+private let connectorLogger = Logger(
+    subsystem: "com.wenshu.agent", category: "model"
+)
 
 actor GeminiNativeConnector: LLMConnector {
     nonisolated let connectorID = "gemini"
@@ -23,12 +34,15 @@ actor GeminiNativeConnector: LLMConnector {
 
     init(session: URLSession = .shared) {
         self.session = session
+        connectorLogger.info("GeminiNativeConnector init")
     }
 
     func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
         let credentials = ConnectorCredentials.resolve(for: .gemini)
+        connectorLogger.debug("send start model=\(options.model, privacy: .public) messages=\(messages.count)")
 
         guard !credentials.apiKey.isEmpty else {
+            connectorLogger.error("send missing API key")
             throw LLMConnectorError.missingAPIKey(provider: connectorID)
         }
 
@@ -56,15 +70,18 @@ actor GeminiNativeConnector: LLMConnector {
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
             let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
             let bodyPreview = String(data: data.prefix(500), encoding: .utf8) ?? ""
+            connectorLogger.error("send HTTP \(statusCode) body=\(bodyPreview, privacy: .private)")
             throw LLMConnectorError.transport(provider: connectorID, statusCode: statusCode, body: bodyPreview)
         }
 
         // Decode via shared helper (= TICKET-HERMES-GAP-002).
-        return try RequestHelpers.decodeGeminiResponse(
+        let decoded = try RequestHelpers.decodeGeminiResponse(
             data: data,
             model: options.model,
             providerID: connectorID
         )
+        connectorLogger.debug("send finish HTTP \(http.statusCode) tokens=in:\(decoded.usage.inputTokens)/out:\(decoded.usage.outputTokens)")
+        return decoded
     }
 
     /// T15-GEMINI-STREAM (2026-09-18): override the default `stream()`
