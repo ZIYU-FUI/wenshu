@@ -929,77 +929,8 @@ actor ImportService {
         )
     }
     // (recordInCache extracted to ImportServiceDispatchHelpers.swift in A63; = see that file)
+    // (writeExtraFile extracted to ImportServiceExtraFileWriter.swift in A66; = see that file)
 
-
-    /// ticket 03 (= boss 2026-10-10 "甚至原文 件 A 的内容, 与我们 的 B 模版不符合, 多了 很我非模版的内容,
-    /// 我 希望能自动拆出一个文 件, 放在合适的目录中 去" feedback). Write one LLM-suggested split-out
-    /// file (= A's non-B content) to disk. Resolves the folder URL from the
-    /// `extra.folder` (= LLM decided which BookFolder; = the orchestrator
-    /// doesn't override = this is the canonical LLM-routed path). Dedup logic
-    /// mirrors the main file: same- title in the target folder = overwrite the
-    /// existing .md; = no match = write a new file.
-    private func writeExtraFile(
-        extra: ExtraFile,
-        target: ImportTarget,
-        tasksBox: TasksBox,
-        i: Int,
-        extraIndex: Int
-    ) async throws {
-        guard let bookId = target.bookId,
-              let shelfId = target.shelfId else {
-            throw ImportServiceError.missingBookForBookFolderDestination
-        }
-        let folderURL = target.shelvesRoot
-            .appendingPathComponent(shelfId.uuidString)
-            .appendingPathComponent("books")
-            .appendingPathComponent(bookId.uuidString)
-            .appendingPathComponent(extra.folder.directoryName)
-        // Sanitize title (= same canonical path as the main file; = path-unsafe chars
-        // stripped; = empty / unsafe-only title falls back to a UUID prefix; =
-        // the LLM is trusted zero).
-        let basename = ImportServiceDedup.sanitizeFilename(
-            raw: extra.title,
-            fallback: "extra-\(UUID().uuidString.prefix(8))"
-        )
-        // Dedup against the target folder's existing .md files. Match by normalized title
-        // stem (= the .md filename without the .md extension); = the canonical
-        // "same content" path. If a match exists, overwrite (= the LLM may
-        // have refined the body in a re-import).
-        let fm = FileManager.default
-        var bodyForFile = extra.body
-        if fm.fileExists(atPath: folderURL.appendingPathComponent(basename + ".md").path) {
-            NSLog(
-                "[wenshu.import] extraFile %d (%@) overwriting existing file in %@",
-                extraIndex, basename, extra.folder.directoryName
-            )
-        } else if fm.fileExists(atPath: folderURL.path) {
-            // folder exists; = check for any .md with matching basename stem (= dedup
-            // scan across the existing .md files in the folder).
-            let existing = (try? fm.contentsOfDirectory(atPath: folderURL.path)) ?? []
-            for entry in existing where entry.hasSuffix(".md") {
-                let stem = (entry as NSString).deletingPathExtension
-                if stem == basename {
-                    NSLog(
-                        "[wenshu.import] extraFile %d (%@) overwriting existing file in %@",
-                        extraIndex, basename, extra.folder.directoryName
-                    )
-                    break
-                }
-            }
-        }
-        // Make sure the folder exists (= create intermediate directories; = safe across
-        // multi-level).
-        try fm.createDirectory(at: folderURL, withIntermediateDirectories: true)
-        // Write the body (= the LLM-supplied content; = no prepareBodyForWrite = the LLM
-        // already produced a complete, focused body for this single-file
-        // split-out).
-        let fileURL = folderURL.appendingPathComponent(basename + ".md")
-        try bodyForFile.write(to: fileURL, atomically: true, encoding: .utf8)
-        NSLog(
-            "[wenshu.import] extraFile %d wrote %@ -> %@",
-            extraIndex, basename, extra.folder.directoryName
-        )
-    }
 
     /// Write the file to the reference library. Reuses the existing
     /// `FileSystemReferenceStore.saveReferenceToFileSystem` (= see the e2e
@@ -1113,7 +1044,7 @@ fileprivate final class CacheBox: @unchecked Sendable {
 /// `CacheBox` uses; = both the dedup cache + the per-task state array need the
 /// reference-type wrapper because the per-file pipeline runs concurrently
 /// across the 5 TaskGroup slots).
-fileprivate final class TasksBox: @unchecked Sendable {
+final class TasksBox: @unchecked Sendable {
     var value: [ImportTask]
     init(value: [ImportTask]) {
         self.value = value
