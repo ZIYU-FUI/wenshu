@@ -120,7 +120,26 @@ enum UserFacingError: Error, LocalizedError {
             }
             return String.localizedStringWithFormat(NSLocalizedString("error.timeout.generic", comment: ""), operation)
 
-        case .unknown:
+        case .unknown(let underlying):
+            // Per boss 2026-10-16 OOB "聊天一直未知错误": the
+            // previous behavior hid the underlying error
+            // (= e.g. "Error Domain=SSEClient Code=400 HTTP 400"),
+            // leaving the user no way to tell whether the
+            // failure was a bad key, a provider 4xx/5xx, or
+            // a network blip. Surface the underlying
+            // description inline so the user can read the
+            // real reason (= "minimax-cn 不可达", "HTTP 400",
+            // "HTTP 500", "decoding error", etc.). The
+            // base "未知错误" prefix is kept (= the user
+            // might still need to retry / restart), and
+            // the underlying is appended as a colon-
+            // delimited hint (= Apple HIG "main message
+            // + failure reason" pattern; = the same
+            // pattern `NSError.localizedDescription` uses
+            // for `NSLocalizedFailureReasonErrorKey`).
+            if let underlying, !underlying.isEmpty {
+                return "未知错误：\(underlying)。请稍后重试或重启应用。"
+            }
             return String(localized: "error.unknown")
         }
     }
@@ -136,6 +155,10 @@ enum UserFacingError: Error, LocalizedError {
     /// - `WenshuLLMError.httpError(408|504, _)` -> `.timeout`
     /// - `WenshuLLMError.httpError(413|400, _)` -> `.contextTooLong`
     /// - `WenshuLLMError.httpError(5xx, _)` -> `.networkFailure`
+    /// - `SSEClient` (`domain == "SSEClient"`, code = HTTP status) -> per-status
+    ///   mapping (= mirrors the WenshuLLMError branches; = catches the
+    ///   streaming path which throws raw `NSError` from
+    ///   `Sources/WenshuApp/Features/Agent/Service/SSEClient.swift:75`).
     /// - any other `Error` -> `.unknown(underlying: String(describing:))`
     ///
     /// Caller-side (= e.g. `ChatView`) consumes via:
@@ -162,6 +185,39 @@ enum UserFacingError: Error, LocalizedError {
                 default:
                     return .unknown(underlying: "HTTP \(status)")
                 }
+            }
+        }
+        // SSEClient raw NSError (= the streaming transport
+        // throws NSError directly, = not wrapped in
+        // WenshuLLMError). Per boss 2026-10-16 OOB "聊天一
+        // 直未知错误": recognize this domain and map to
+        // the same per-status cases so the user sees a
+        // specific message (= "对话上下文超过模型限制"
+        // for 400/413, = "网络异常" for 5xx, = "rate limit"
+        // for 429, = "key 失效" for 401/403, etc.).
+        let nsError = raw as NSError
+        if nsError.domain == "SSEClient" {
+            let status = nsError.code
+            let underlying = "HTTP \(status)"
+            switch status {
+            case 401, 403:
+                return .apiKeyInvalid(provider: provider ?? "当前 Provider")
+            case 408, 504:
+                return .timeout(operation: "LLM 流式调用", seconds: nil)
+            case 413, 400:
+                // 400 is also returned by providers for malformed
+                // requests (not just context length). = the
+                // contextTooLong message hints the user at the
+                // most common 400 case (= long history); =
+                // an actual malformed request is rare in wenshu
+                // (= the prompt builder is deterministic).
+                return .contextTooLong()
+            case 429:
+                return .rateLimited(provider: provider ?? "当前 Provider")
+            case 500..<600:
+                return .networkFailure(underlying: underlying)
+            default:
+                return .unknown(underlying: underlying)
             }
         }
         if let urlErr = raw as? URLError {
