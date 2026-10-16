@@ -16,8 +16,22 @@
 // wrapper over the shared helpers. Connector-specific concerns
 // remaining here: credential resolution, URL building, auth headers,
 // transport send, and HTTP-status error path.
+//
+// AUDIT.md §2.6 partial (2026-10-16 boss 2026-10-16 OOB
+// "包要有 LOG 能力" arc): WALogger.network logs the
+// connector-level lifecycle for Anthropic (peer of the
+// MinimaxConnector audit-trail added in the same commit).
+// = every chat turn shows up in Console.app as
+// `WALogger.model debug "send start model=..."` then
+// `WALogger.network info "SSE attempt=..."` (= byte-level
+// events from the shared SSEClient).
 
 import Foundation
+import os.log
+
+private let connectorLogger = Logger(
+    subsystem: "com.wenshu.agent", category: "model"
+)
 
 actor AnthropicConnector: LLMConnector {
     nonisolated let connectorID = "anthropic"
@@ -28,16 +42,20 @@ actor AnthropicConnector: LLMConnector {
     init(session: URLSession = .shared, useCacheControl: Bool = true) {
         self.session = session
         self.useCacheControl = useCacheControl
+        connectorLogger.info("AnthropicConnector init useCacheControl=\(useCacheControl, privacy: .public)")
     }
 
     func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
         let credentials = ConnectorCredentials.resolve(for: .anthropic)
+        connectorLogger.debug("send start model=\(options.model, privacy: .public) messages=\(messages.count)")
 
         guard !credentials.apiKey.isEmpty else {
+            connectorLogger.error("send missing API key")
             throw LLMConnectorError.missingAPIKey(provider: connectorID)
         }
 
         guard let url = URL(string: "\(credentials.baseURL)/v1/messages") else {
+            connectorLogger.error("send invalid baseURL=\(credentials.baseURL, privacy: .public)")
             throw LLMConnectorError.unsupportedProvider(slug: connectorID)
         }
 
@@ -74,19 +92,23 @@ actor AnthropicConnector: LLMConnector {
         // Send
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else {
+            connectorLogger.error("send no HTTPURLResponse")
             throw LLMConnectorError.transport(provider: connectorID, statusCode: 0, body: "")
         }
         guard (200..<300).contains(http.statusCode) else {
             let bodyPreview = String(data: data.prefix(500), encoding: .utf8) ?? ""
+            connectorLogger.error("send HTTP \(http.statusCode) body=\(bodyPreview, privacy: .private)")
             throw LLMConnectorError.transport(provider: connectorID, statusCode: http.statusCode, body: bodyPreview)
         }
 
         // Decode via shared helper.
-        return try RequestHelpers.decodeAnthropicResponse(
+        let decoded = try RequestHelpers.decodeAnthropicResponse(
             data: data,
             model: options.model,
             providerID: connectorID
         )
+        connectorLogger.debug("send finish HTTP \(http.statusCode) tokens=in:\(decoded.usage.inputTokens)/out:\(decoded.usage.outputTokens)")
+        return decoded
     }
 
     /// T9-ANTHROPIC-STREAMING-WIRE (2026-09-18): override the default
@@ -118,6 +140,7 @@ actor AnthropicConnector: LLMConnector {
         options: LLMCallOptions
     ) -> AsyncStream<LLMBlock> {
         let credentials = ConnectorCredentials.resolve(for: .anthropic)
+        connectorLogger.debug("stream start model=\(options.model, privacy: .public) messages=\(messages.count)")
 
         // Empty key -> emit synthetic error block (= no silent stream end).
         if credentials.apiKey.isEmpty {
