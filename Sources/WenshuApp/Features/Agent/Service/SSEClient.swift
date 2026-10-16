@@ -126,6 +126,7 @@ actor SSEClient {
                     var pendingData: [String] = []
                     var rawLineCount = 0
                     var firstRawLines = ""
+                    var yieldCount = 0
                     for try await line in bytes.lines {
                         if Task.isCancelled { break }
                         rawLineCount += 1
@@ -137,6 +138,7 @@ actor SSEClient {
                                     event: pendingEvent,
                                     data: pendingData.joined(separator: "\n")
                                 ))
+                                yieldCount += 1
                                 pendingEvent = ""
                                 pendingData = []
                             }
@@ -156,7 +158,7 @@ actor SSEClient {
                             continue
                         }
                     }
-                    try? "rawLineCount=\(rawLineCount) firstLines=\(firstRawLines)\n---\n".write(toFile: "/tmp/wsstream-lines-\(getpid()).log", atomically: true, encoding: .utf8)
+                    try? "rawLineCount=\(rawLineCount) yieldCount=\(yieldCount) firstLines=\(firstRawLines)\n---\n".write(toFile: "/tmp/wsstream-lines-\(getpid()).log", atomically: true, encoding: .utf8)
                     continuation.finish()
                 } catch is CancellationError {
                     continuation.finish()
