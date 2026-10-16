@@ -18,8 +18,13 @@
 //   - `x-api-key` + `anthropic-version` headers
 //   - text-only request/response (= no tool_use yet; that lands
 //     when AnthropicConnector's tool_use surface is reused)
-//   - streaming not yet wired (= the SSE path lives in
-//     `AnthropicStreaming.swift`)
+//   - streaming wired (= native SSE via the shared
+//     `AnthropicStreamingWireup`; = the Minimax endpoint accepts
+//     `stream: true` and emits Anthropic-shaped events; = the
+//     wire format is byte-compatible; = before this commit
+//     chat on Minimax-cn used the default `LLMConnector.stream()`
+//     "fake streaming" path (= whole reply yielded at once;
+//     = the user saw a 5-10s blank bubble then the full reply).
 //
 // Pre-tool guardrail: reuses `ConnectorCredentials` (= AGENTS.md
 // §11.3 wenshu-side wins: thin wrapper over existing
@@ -102,6 +107,74 @@ actor MinimaxConnector: LLMConnector {
             data: data,
             model: options.model,
             providerID: connectorID
+        )
+    }
+
+    // MARK: - Native streaming (P0-AGENT-STREAMING, boss 2026-10-16)
+    //
+    // The default `LLMConnector.stream()` extension (= the "fake
+    // streaming" path; = calls send() then yields blocks) was the
+    // user-visible reason Minimax-cn chat showed a 5-10 second
+    // blank bubble followed by the full reply. = the user thought
+    // the model was broken.
+    //
+    // Minimax-cn accepts `stream: true` on its Anthropic-compatible
+    // `/v1/messages` endpoint and emits byte-compatible Anthropic
+    // SSE events; = we can reuse the same
+    // `AnthropicStreamingWireupFactory.streamingStream(...)` +
+    // `AnthropicChunkToLLMBlockConverter.convert(...)` pair that
+    // `AnthropicConnector` uses. The only difference vs the
+    // Anthropic path is the credentials resolution (= .minimaxCn
+    // vs .anthropic).
+    //
+    // `nonisolated` (T9 protocol conformance): `useCacheControl` is
+    // a `let` (= Sendable + immutable = safe to read from any actor
+    // context = matches the AnthropicConnector pattern).
+    nonisolated func stream(
+        messages: [LLMMessage],
+        options: LLMCallOptions
+    ) -> AsyncStream<LLMBlock> {
+        let credentials = ConnectorCredentials.resolve(for: .minimaxCn)
+
+        // Empty key -> emit synthetic error block (= no silent
+        // stream end; = matches AnthropicConnector behavior).
+        if credentials.apiKey.isEmpty {
+            return AnthropicChunkToLLMBlockConverter.errorStream(
+                "[stream error] missing API key for minimax-cn"
+            )
+        }
+
+        // Apply prompt caching (same path as send(); = per-message
+        // cache_control marker on the last 3 non-system messages;
+        // = Minimax does not honor structured `system` blocks, so
+        // we skip the system-side cache marker that
+        // AnthropicConnector uses).
+        let cachedMessages = useCacheControl
+            ? PromptCaching.applyCacheControl(
+                messages: messages,
+                systemPrompt: options.systemPrompt ?? "",
+                ttl: "5m"
+            )
+            : messages
+
+        let chunkStream = AnthropicStreamingWireupFactory.streamingStream(
+            credentials: credentials,
+            model: options.model,
+            maxTokens: options.maxTokens,
+            systemPrompt: options.systemPrompt,
+            messages: cachedMessages,
+            tools: options.tools
+        )
+        // T11b-WIRE-ANTHROPIC-STATEFUL (parity with AnthropicConnector):
+        // use the stateful converter variant (= accumulates
+        // tool_use blocks across 3 SSE event types into a single
+        // .toolUse LLMBlock at block close). = the agent's ReAct
+        // loop sees a coherent .toolUse block (= no half-built
+        // tool calls in the chat).
+        let accumulator = AnthropicChunkToLLMBlockConverter.ToolUseAccumulator()
+        return AnthropicChunkToLLMBlockConverter.convert(
+            stream: chunkStream,
+            accumulator: accumulator
         )
     }
 }
