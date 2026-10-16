@@ -411,6 +411,7 @@ final class ChatViewModel {
             var replyThinking: String?    // WenshuLLMBlock.thinking footnote UI
             var replyTokens: Int?
             if let conductor = conductor {
+                try? "entered conductor path\n---\n".write(toFile: "/tmp/wschat-conductor-\(getpid()).log", atomically: true, encoding: .utf8)
                 // 
                 // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
                 // class reference IS thread-safe here).
@@ -497,6 +498,10 @@ final class ChatViewModel {
                 reply = result.reply
                 replyThinking = result.thinking ?? accumulator.thinking
                 replyTokens = result.totalTokens
+                // Diagnostic: log what the conductor actually returned
+                // (= if this is empty, the chat bubble is empty no
+                // matter what the verifier stream shows).
+                try? "reply=\(reply.prefix(200)) partsCount=\(accumulator.parts.count) tokens=\(replyTokens ?? -1)\n---\n".write(toFile: "/tmp/wschat-conductor-\(getpid()).log", atomically: true, encoding: .utf8)
                 // Mark the conductor's bubble as
                 // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
                 // final message.
