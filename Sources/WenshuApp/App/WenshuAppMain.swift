@@ -16,7 +16,7 @@ import WenshuData
 /// `IconButtonStyle` REMOVED in the Apple-API-first pass.
 /// Was a pass-through `makeBody { configuration.label }` (= no-op);
 /// the previous call site + outer Button style (formerly App.swift
-/// L1820 + L1839 before the Q2 split moved those features out
+/// L1820 + L1839 before the legacy code split moved those features out
 /// of App.swift) is now superseded by the canonical Apple
 /// `.buttonStyle(.plain)` + `Color.clear.frame(28,28).contentShape(...)`
 /// pattern (= Apple HIG hot-area convention).
@@ -223,7 +223,7 @@ struct WenshuApp: App {
     @State private var repositories = WSRepositoryContainer()
 
     var body: some Scene {
-        // apple-001 phase 1 Q1 slice 2: Scene composition (= WindowGroup +
+        // apple canonical scene composition: Scene composition (= WindowGroup +
         // .commands + Settings) is now in AppRootScene. WenshuApp stays as the
         // composition root that owns the state (`library` / `appearanceMode`
         // / `appState`) and forwards it into AppRootScene as constructor

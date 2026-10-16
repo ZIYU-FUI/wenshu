@@ -360,7 +360,7 @@ extension SidebarService {
         return all.filter { $0.id != id }.map { $0.title }
     }
 
-    // MARK: v2.7 round-65b: bookDoc (= one .md file in a
+    // MARK: v2.7: bookDoc (= one .md file in a
     // book folder) rename / delete / duplicate-name helpers. The right-click context menu
     // on the workspace card grid now also fires for `.bookDoc` cards (= the boss
     // 2026-10-10 "你把书的加上就行了" directive). The methods mirror the reference shape (=

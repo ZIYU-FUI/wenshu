@@ -113,7 +113,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // retired when the active library became a security-scoped bookmark
         // via LibraryBookmark; see State/ActiveLibrary.swift). The previous
         // bind wrote the .ws bundle path to UserDefaults.standard on every
-        // launch (= via LibraryRootView's @AppStorage binding), so any pre-Q2
+        // launch (= via LibraryRootView.s @AppStorage binding)
         // user still has the legacy string in UserDefaults. After this commit,
         // no production code reads 'wenshu.libraryPath' (= all reads go
         // through ActiveLibrary.path), so the legacy string is dead weight (=

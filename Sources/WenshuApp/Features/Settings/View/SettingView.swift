@@ -245,7 +245,7 @@ struct SettingView: View {
                     set: { newValue in
                         appLanguage = newValue
                         applyAppLanguage(newValue)
-                        // P1-1 fix (= Q99 Spec audit, commit to be authored): the
+                        // P1-1 fix (audit pending): the
                         // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
                         // AppleLanguages change to confirm).
                         if newValue != "system" {
