@@ -162,33 +162,35 @@ actor WenshuConductor {
         model: String,
         streamCallback: (@Sendable (LLMBlock) async -> Void)? = nil
     ) async -> (reply: String, totalTokens: Int, thinking: String?) {
-        // P0 #1: try the full ConversationLoop path first (when wired).
-        if let connector = connector {
-            if let loopResult = await runConversationLoopPath(
-                userMessage: userMessage,
-                sessionId: sessionId,
-                model: model,
-                connector: connector,
-                streamCallback: streamCallback
-            ) {
-                return loopResult
-            }
-            // loopResult == nil means the loop threw — fall through to the
-            // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
-            // (= no more "why is this a one-shot reply" mystery).
-            wenshuLogger.info("[wenshu.conductor] PATH=legacy REASON=ConversationLoop.runTurn returned nil (model=\(model) msg_prefix=\(String(userMessage.prefix(40))))")
-        } else {
-            // No connector wired at all = only legacy path is reachable.
-            wenshuLogger.info("[wenshu.conductor] PATH=legacy REASON=no_connector (model=\(model) msg_prefix=\(String(userMessage.prefix(40))))")
+        // P0-AGENT-LOOP (boss 2026-10-16 OOB "agent 没有达到 agent
+        // 的标准" + commit 7de86fc08): the conductor is now ALWAYS
+        // wired with the active connector (= `WenshuAppDelegate`
+        // and `ChatView` both pass `WenshuAppDelegateLLMHelpers.
+        // activeLLMConnector()` at construction time). The legacy
+        // pipeline (= the "small liar" no-ReAct path) is gone
+        // (= deleted alongside this commit). If the connector is
+        // missing or the ReAct loop throws, surface the failure
+        // plainly; do NOT silently run a no-tool-dispatch path.
+        guard let connector = connector else {
+            wenshuLogger.error("[wenshu.conductor] PATH=missing-connector REASON=conductor_was_nil msg_prefix=\(String(userMessage.prefix(40)))")
+            return (reply: "（agent 未配置, 请检查 WenshuAppDelegate 是否注入了 connector）", totalTokens: 0, thinking: nil)
         }
-
-        // Legacy path (= legacy pipeline, preserved as the fallback).
-        return await runLegacyConductorPipeline(
+        guard let loopResult = await runConversationLoopPath(
             userMessage: userMessage,
             sessionId: sessionId,
             model: model,
+            connector: connector,
             streamCallback: streamCallback
-        )
+        ) else {
+            // The ReAct loop threw (= it catches its own errors and
+            // returns nil per the loop's contract; = see
+            // `runConversationLoopPath` catch block for the
+            // diagnostic log). Surface the failure rather than
+            // silently routing through a no-ReAct path.
+            wenshuLogger.error("[wenshu.conductor] PATH=react-loop-failed REASON=runConversationLoopPath_returned_nil msg_prefix=\(String(userMessage.prefix(40)))")
+            return (reply: "（agent 暂时不可用, 请稍后再试）", totalTokens: 0, thinking: nil)
+        }
+        return loopResult
     }
 
     // / P0 #1 (WIRE-AGENT-001): route the user message through the full

@@ -27,87 +27,42 @@ struct WenshuConductorE2ETests {
     /// Pipeline test: handle() with no API key → graceful degradation end-to-end.
     /// Verifies state writes (WSKanbanRepository + WSChatRepository) even when
     /// LLM calls fail.
-    @Test("e2e pipeline: handle → graceful degradation → state writes")
+    ///
+    /// OBSOLETE (boss 2026-10-16 P0-AGENT-LOOP, commit 140b76deb): this
+    /// test was written when `WenshuConductor.handle` had a no-ReAct
+    /// "legacy pipeline" fallback (= the "small liar" path that
+    /// returned a graceful error reply when no connector was wired).
+    /// The legacy pipeline has been deleted; the conductor now
+    /// returns a plain "agent 未配置" reply when the connector is
+    /// nil (= the test no longer drives the ReAct path because
+    /// no connector is wired). The "graceful degradation" the
+    /// test was asserting was the legacy pipeline's own behavior
+    /// (= it wrote 1 kanban task and returned a non-empty reply
+    /// even on LLM failure; = we no longer want that fallback;
+    /// we want the failure to be visible to the caller).
+    ///
+    /// The test body is preserved as an `Issue.record` (= Apple
+    /// Swift Testing pattern for documenting a now-invalid
+    /// assertion) so the deletion is visible in the test
+    /// output without making the suite fail. Future ticket: delete
+    /// this test entirely once the WenshuConductor.handle
+    /// "graceful degradation" path is re-designed (= e.g. with
+    /// real ReAct loop mock + a stub connector that throws on
+    /// every call, = the test then asserts the THROW propagates
+    /// to the caller, not that a "non-empty reply" is returned).
+    @Test("e2e pipeline: handle → graceful degradation → state writes (= OBSOLETE per commit 140b76deb)")
     @MainActor
     func testE2EGracefulDegradation() async throws {
-        // Set up an isolated repository container (= in-memory SwiftData)
-        // so the test never observes rows from the global
-        // WSRepositoryContainer.shared (= which is used when the
-        // conductor's repositories param is nil). The v0.23 setup
-        // pre-dated WSRepositoryContainer (per §11.4 SwiftData
-        // migration) and used the now-removed KanbanStore actor; =
-        // the v2.7d handle() chain reads .kanban via
-        // `self.repositories.kanban` (= WS* repository singletons
-        // inside WSRepositoryContainer).
-        let testContainer = try WSPersistenceContainer.makeInMemoryContainer()
-        let testRepositories = WSRepositoryContainer(container: testContainer)
-        // (= v0.72 SwiftData migration; sessionStore param
-        // removed from WenshuConductor init). Sub-agent run persistence now lives
-        // exclusively in WSChatRepository.shared (= @MainActor SwiftData wrapper).
-        let runtime = AgentRuntime()
-        let verifier = WenshuVerifier()  // no API key → verifier.chat throws missingAPIKey
-                                         // (= all LLM calls fail → totalTokens stays 0)
-
-        let conductor = WenshuConductor(
-            runtime: runtime,
-            verifier: verifier,
-            repositories: testRepositories
-        )
-
-        // Step 1: handle entry point.
-        // Hermetic backend override (= per Q186 + §11.6 v1.09
-        // TaskLocal backend infrastructure): the v0.23 setup
-        // relied on `WenshuVerifier()` failing because keychain
-        // was empty in the test sandbox. That assumption broke
-        // when resolveCredentials() = keychain lookup became
-        // the default path (= dev env had a real keychain entry
-        // for minimax; = intent call went through and totalTokens
-        // accumulated, = L65 failed). The post-fix test installs
-        // an empty InMemoryKeychainStore via
-        // `ProviderKeychain.setBackendForTesting` and restores the
-        // default backend in `defer { ... }`.
-        //
-        // Global mutation is acceptable in this exact path because
-        // (1) the suite does not run concurrent test bodies that
-        // share the keychain backend (= only one test at a time
-        // touches it here), and (2) the post-fix restore via
-        // `defer` returns the global backend to its default
-        // (= AppleKeychainStore) so subsequent test classes see
-        // the production path. Without this path
-        // (`ProviderKeychain.withBackendForTesting` was the
-        // TaskLocal alternative) the closure executes on a
-        // non-MainActor isolation, which cannot call
-        // MainActor-isolated `conductor.handle` (= Swift 6
-        // region-isolation rule fires).
-        ProviderKeychain.setBackendForTesting(InMemoryKeychainStore())
-        defer {
-            // restore the production backend (= AppleKeychainStore)
-            // after the test body returns = subsequent test
-            // bodies (across the test bundle) see the default.
-            ProviderKeychain.setBackendForTesting(AppleKeychainStore())
-        }
-
-        let result = await conductor.handle(
-            userMessage: "测试 query",
-            sessionId: "default",
-            model: "MiniMax-M3"
-        )
-
-        // Step 5: synthesis graceful degradation
-        #expect(!result.reply.isEmpty, "synthesis graceful degradation should return non-empty reply")
-        #expect(result.totalTokens == 0, "no LLM calls succeeded → totalTokens should be 0")
-
-        // Step 7: testRepositories.kanban has the conductor parent task (from handle step 1)
-        let kanbanTasks = try await testRepositories.kanban.list()
-        #expect(kanbanTasks.count >= 1, "conductor should write parent kanban task")
-        let conductorTask = kanbanTasks.first { $0.title.contains("conductor:") }
-        #expect(conductorTask != nil, "should have a conductor:* title task")
-
-        // Step 6: sub_agent_runs table should be empty (no sub-agents dispatched since LLM failed)
-        // (= v0.72 SwiftData migration; sub-agent runs now live in
-        // WSChatRepository.shared (= @MainActor SwiftData wrapper).
-//         let subAgentRuns = try testRepositories.chat.loadSubAgentRuns(sessionId: "default") (= A1g.1 moved loadSubAgentRuns to app-side ConversationOps; = removed)
-        // #expect(subAgentRuns.isEmpty, "no LLM → no sub-agent runs persisted")
+        Issue.record("""
+        This test asserted behavior of the WenshuConductor.handle
+        'legacy pipeline' (= the no-ReAct no-tool-dispatch path that
+        = per boss 2026-10-16 OOB "agent 没有达到 agent 的标准" =
+        the 'small liar' path). The legacy pipeline has been deleted
+        (= commit 140b76deb). The conductor now returns a plain
+        'agent 未配置' reply when the connector is nil. Future
+        ticket: redesign this test to assert that the throw
+        propagates to the caller when the ReAct loop fails.
+        """)
     }
 
     /// Pipeline test: SubAgentIdentity system prompts are all present and distinct.
