@@ -753,7 +753,7 @@ actor ImportService {
 /// state (= the orchestrator's `writtenURLs` is a value-type `Array<URL>`
 /// living on the actor itself; = the `cache` is a value-type `Dictionary` that
 /// needs the same kind of "share-by-reference" treatment the test mocks get).
-fileprivate final class CacheBox: @unchecked Sendable {
+final class CacheBox: @unchecked Sendable {
     var value: [String: ImportService.CacheEntry]
     init(value: [String: ImportService.CacheEntry]) {
         self.value = value
@@ -869,155 +869,11 @@ extension ImportService {
     // (dispatchLLM extracted to ImportServiceLLMDispatch.swift in A69; = see that file)
 
     // (markLLMFailed extracted to ImportServiceLLMDispatch.swift in A69; = see that file)
+    // (writeMainFileAndExtras extracted to ImportServiceMainFileWriter.swift in A70; = see that file)
 
-
-    /// Phase 4: write the main file (= per the rewriteMode) + loop through the
-    /// LLM's `extraFiles` and write each one to its folder. The state
-    /// transitions to .done on success (= or .failed on write error; = the
-    /// caller catches and surfaces the error to the user).
-    private func writeMainFileAndExtras(
-        routing: ImportRoutingResult,
-        target: ImportTarget,
-        router: ImportRouter,
-        cacheBox: CacheBox,
-        tasksBox: TasksBox,
-        i: Int,
-        onProgress: (@Sendable ([ImportTask]) async -> Void)?
-    ) async throws {
-        let sourceFileName = (tasksBox.value[i].sourcePath as NSString).lastPathComponent
-        await appendActivity(
-            to: tasksBox, i: i,
-            message: "读取源文件 \(sourceFileName)",
-            onProgress: onProgress
-        )
-        let originalBody = try String(
-            contentsOfFile: tasksBox.value[i].sourcePath,
-            encoding: .utf8
-        )
-        let bodySizeKB = Double(originalBody.utf8.count) / 1024.0
-        await appendActivity(
-            to: tasksBox, i: i,
-            message: String(format: "源文件 = %.1f KB, %d 行", bodySizeKB, originalBody.components(separatedBy: "\n").count),
-            onProgress: onProgress
-        )
-        // The folder is sourced from the routing result; for the
-        // reference-library destination, the LLM picks a "concept" folder
-        // (= world/characters/...) for the `category` but the file lands in
-        // the flat reference library; = .drafts is the safe default.
-        let folder: BookFolder = {
-            if case .bookFolder(let f) = routing.destination { return f }
-            return .drafts
-        }()
-        let bodyToWrite = ImportServiceBodyWriter.computeBodyToWrite(
-            originalBody: originalBody,
-            rewrittenBody: routing.rewrittenBody,
-            folder: folder,
-            rewriteMode: target.rewriteMode
-        )
-        let extraFilesTotal = routing.extraFiles.count
-        tasksBox.value[i].extraFilesTotal = extraFilesTotal
-        tasksBox.value[i].extraFilesDone = 0
-        // Log the main folder + write it.
-        let mainFolderName: String
-        switch routing.destination {
-        case .referenceLibrary: mainFolderName = "资料库"
-        case .bookFolder(let f): mainFolderName = f.directoryName
-        }
-        await appendActivity(
-            to: tasksBox, i: i,
-            message: "写主文件 (\(mainFolderName)/...)",
-            onProgress: onProgress
-        )
-        // Write each extra file (= LLM's split-out content). Extra file
-        // write failures are non-fatal: main file stays .done; = the failed
-        // extra file is recorded separately in tasksBox.
-        for (extraIndex, extra) in routing.extraFiles.enumerated() {
-            try await writeOneExtraFile(
-                extra: extra,
-                extraIndex: extraIndex,
-                extraFilesTotal: extraFilesTotal,
-                target: target,
-                tasksBox: tasksBox,
-                i: i,
-                onProgress: onProgress
-            )
-        }
-        // Write the main file (if there's a body).
-        if !bodyToWrite.isEmpty {
-            try await writeFile(
-                body: bodyToWrite,
-                routing: routing,
-                contentHash: tasksBox.value[i].contentHash,
-                target: target,
-                sourcePath: tasksBox.value[i].sourcePath,
-                cache: &cacheBox.value,
-                router: router,
-                tasksBox: tasksBox,
-                i: i
-            )
-            let bodyKB = Double(bodyToWrite.utf8.count) / 1024.0
-            await appendActivity(
-                to: tasksBox, i: i,
-                message: String(format: "✅ 主文件写入成功 (%.1f KB)", bodyKB),
-                onProgress: onProgress
-            )
-        }
-        tasksBox.value[i].state = .done
-        tasksBox.value[i].destination = routing.destination
-        // The writeFile appended the new entry to its inout cache; = the
-        // shared `cacheBox.value` is now the canonical source of truth.
-    }
     // (computeBodyToWrite extracted to ImportServiceBodyWriter.swift in A65; = see that file)
+    // (writeOneExtraFile extracted to ImportServiceMainFileWriter.swift in A70; = see that file)
 
-
-    /// Write one extra file (= a single entry from `routing.extraFiles`). Logs
-    /// the success/failure to the per-row activityLog (= the user sees a row
-    /// per extra file). Failures are non-fatal (= they don't throw; = the row's
-    /// `extraFilesDone` counter still advances).
-    private func writeOneExtraFile(
-        extra: ExtraFile,
-        extraIndex: Int,
-        extraFilesTotal: Int,
-        target: ImportTarget,
-        tasksBox: TasksBox,
-        i: Int,
-        onProgress: (@Sendable ([ImportTask]) async -> Void)?
-    ) async throws {
-        do {
-            try await writeExtraFile(
-                extra: extra,
-                target: target,
-                tasksBox: tasksBox,
-                i: i,
-                extraIndex: extraIndex
-            )
-            let bodyKB = Double(extra.body.utf8.count) / 1024.0
-            let marker = extra.required ? "[必填]" : "[自定义]"
-            await appendActivity(
-                to: tasksBox, i: i,
-                message: String(
-                    format: "  ✅ 子文件 %d/%d %@ %@/%@.md (%.1f KB)",
-                    extraIndex + 1, extraFilesTotal,
-                    marker,
-                    extra.folder.directoryName,
-                    extra.title,
-                    bodyKB
-                ),
-                onProgress: onProgress
-            )
-        } catch {
-            NSLog(
-                "[wenshu.import] extraFile %d (%@) failed: %@",
-                extraIndex, extra.title, String(describing: error)
-            )
-            await appendActivity(
-                to: tasksBox, i: i,
-                message: "  ❌ 子文件 \(extraIndex + 1)/\(extraFilesTotal) \(extra.title).md 写失败: \(String(describing: error))",
-                onProgress: onProgress
-            )
-        }
-        tasksBox.value[i].extraFilesDone += 1
-    }
 
     /// (= boss 2026-10-10 (see OOB.md #2026-10-10) feedback). Append a single
     /// line to a task's activityLog (= the per-row scrolling terminal- like
