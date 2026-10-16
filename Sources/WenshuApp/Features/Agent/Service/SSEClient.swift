@@ -127,10 +127,11 @@ actor SSEClient {
                     var rawLineCount = 0
                     var firstRawLines = ""
                     var yieldCount = 0
+                    var rawBoundaryCount = 0
                     for try await line in bytes.lines {
                         if Task.isCancelled { break }
                         rawLineCount += 1
-                        if rawLineCount <= 3 { firstRawLines += "[\(rawLineCount)]'\(line)' " }
+                        if rawLineCount <= 5 { firstRawLines += "[\(rawLineCount)]len=\(line.count)'\(line.prefix(40))' " }
                         // Per boss 2026-10-16 OOB "又发了一次,
                         // 还是没出现文字": minimax returns
                         // SSE lines with a trailing CR
@@ -157,6 +158,7 @@ actor SSEClient {
                         let trimmedLine = line.hasSuffix("\r") ? String(line.dropLast()) : line
                         if trimmedLine.isEmpty {
                             // Event boundary: emit.
+                            rawBoundaryCount += 1
                             if !pendingEvent.isEmpty || !pendingData.isEmpty {
                                 continuation.yield(SSEEvent(
                                     event: pendingEvent,
@@ -182,7 +184,7 @@ actor SSEClient {
                             continue
                         }
                     }
-                    try? "rawLineCount=\(rawLineCount) yieldCount=\(yieldCount) firstLines=\(firstRawLines)\n---\n".write(toFile: "/tmp/wsstream-lines-\(getpid()).log", atomically: true, encoding: .utf8)
+                    try? "rawLineCount=\(rawLineCount) yieldCount=\(yieldCount) rawBoundaryCount=\(rawBoundaryCount) firstLines=\(firstRawLines)\n---\n".write(toFile: "/tmp/wsstream-lines-\(getpid()).log", atomically: true, encoding: .utf8)
                     continuation.finish()
                 } catch is CancellationError {
                     continuation.finish()
