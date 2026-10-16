@@ -138,10 +138,10 @@ Single source of truth for every wenshu contributor and every AI agent acting on
 | #   | Fact | Reference |
 | --- | ---- | --------- |
 | 6.1 | Target tree (after A arc migration): App/ (entry) + Features/<Name>/ (per feature) + Shared/<Name>/ (cross-feature) + Persistence/ (data). | Apple Backyard Birds / Food Truck. |
-| 6.2 | Per-feature folder has 5 slots: Views/ / ViewModels/ / UseCases/ / Repositories/ / Models/. Empty allowed; missing required slot = violation. | pocock-engineering-design-check §1 SSOT. |
+| 6.2 | Per-feature folder has 4 slots (Views/ / Model/ / Service/ / Store/) (= the project's actual Model+View+ViewModel+Service split = Apple Backyard Birds' shape adapted to wenshu). Empty slot allowed; = leaf features with <=3 files skip the Store/ slot. | pocock-engineering-design-check §1 SSOT. |
 | 6.3 | A migration arc (>=5 tickets) renames top-level dirs feature-by-feature. Each ticket = exactly 1 feature migrated + 1 commit. | universal-pocock-workflow. |
 | 6.4 | Shared code in Shared/<Name>/ as local SwiftPM package (Apple Backyard Birds pattern). | Shared/<Name>/Package.swift. |
-| 6.5 | File naming: <Xxx>View.swift / <Xxx>ViewModel.swift / <Xxx>UseCase.swift / <Xxx>Repository.swift / <Xxx>Service.swift. Suffixes non-negotiable. | wenshu-swift-standards.md §1.2. |
+| 6.5 | File naming: <Xxx>View.swift / <Xxx>Ops.swift / <Xxx>Service.swift / <Xxx>State.swift (= the project's actual suffixes). Suffixes non-negotiable. | wenshu-swift-standards.md §1.2. |
 | 6.6 | File size cap: 600 LOC per .swift file. Exceed = god-class-field-drain-recipe or split. | wenshu-humanizer-voice. |
 | 6.7 | One import block per file. Alphabetical. No unused imports. | wenshu-swift-standards.md §1.1. |
 
