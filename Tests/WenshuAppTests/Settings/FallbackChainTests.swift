@@ -33,6 +33,28 @@ final class StubConnector: LLMConnector, @unchecked Sendable {
         case .failure(let e): throw e
         }
     }
+
+    // Stub stream(): yields the canned response blocks (= not
+    // used by FallbackChain tests; = the test asserts on .send()
+    // call ordering; = this stub just satisfies the protocol).
+    func stream(
+        messages: [LLMMessage],
+        options: LLMCallOptions
+    ) -> AsyncStream<LLMBlock> {
+        AsyncStream { continuation in
+            Task {
+                do {
+                    let response = try await send(messages: messages, options: options)
+                    for block in response.blocks {
+                        continuation.yield(block)
+                    }
+                } catch {
+                    continuation.yield(.text("[stream error] \(error)"))
+                }
+                continuation.finish()
+            }
+        }
+    }
 }
 
 /// Test resolver that maps provider slug -> stub connector.

@@ -26,6 +26,21 @@ struct LLMConnectorStreamTests {
                 usage: LLMUsage(inputTokens: 5, outputTokens: 5)
             )
         }
+        func stream(
+            messages: [LLMMessage],
+            options: LLMCallOptions
+        ) -> AsyncStream<LLMBlock> {
+            AsyncStream { continuation in
+                for block in [
+                    LLMBlock.text("Hello "),
+                    LLMBlock.text("world."),
+                    LLMBlock.thinking(text: "internal reasoning", signature: nil),
+                ] {
+                    continuation.yield(block)
+                }
+                continuation.finish()
+            }
+        }
     }
 
     @Test func default_stream_yields_all_response_blocks() async {
@@ -54,29 +69,24 @@ struct LLMConnectorStreamTests {
         }
     }
 
+    /// OBSOLETE (P0-STREAM-NATIVE, commit 791acb497): the default
+    /// `LLMConnector.stream()` extension was deleted (= every
+    /// connector must now implement its own native stream). This
+    /// test asserted the default extension's "swallow send errors
+    /// as a synthetic `[stream error]` text block" behavior; =
+    /// that path no longer exists. Future ticket: redesign this
+    /// test to assert that a connector's `stream()` implementation
+    /// (= the per-connector override) propagates send errors
+    /// instead of swallowing them (= the hermes-style "let the
+    /// caller decide" pattern).
     @Test func default_stream_emits_error_on_send_failure() async {
-        struct FailingConnector: LLMConnector {
-            let connectorID = "mock-fail"
-            func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
-                throw LLMConnectorError.transport(
-                    provider: "mock-fail", statusCode: 500, body: "boom"
-                )
-            }
-        }
-        let stream = FailingConnector().stream(
-            messages: [],
-            options: LLMCallOptions(model: "x")
-        )
-        var collected: [LLMBlock] = []
-        for await block in stream {
-            collected.append(block)
-        }
-        #expect(collected.count == 1, "expected exactly 1 error block, got \(collected.count)")
-        if case .text(let s) = collected[0] {
-            #expect(s.contains("[stream error]"))
-            #expect(s.contains("boom"))
-        } else {
-            Issue.record("expected .text error block, got \(collected[0])")
-        }
+        Issue.record("""
+        This test asserted behavior of the deleted default
+        LLMConnector.stream() extension (= the "fake streaming"
+        path that called send() and emitted a synthetic error
+        block). The default was deleted in commit 791acb497;
+        = every connector must now implement its own stream.
+        Future ticket: redesign to assert per-connector behavior.
+        """)
     }
 }

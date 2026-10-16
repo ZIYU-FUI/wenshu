@@ -139,8 +139,25 @@ private final class WorldFolderStubConnector: LLMConnector, @unchecked Sendable 
             usage: LLMUsage(inputTokens: 0, outputTokens: 0)
         )
     }
-    // `stream(...)` uses the default
-    // implementation in the LLMConnector
-    // extension (= it calls `send(...)`
-    // and yields each block).
+    // `stream(...)` delegates to `send(...)` (= the stub
+    // is a non-streaming test fixture; = yielding the
+    // canned response is the canonical mock behavior).
+    func stream(
+        messages: [LLMMessage],
+        options: LLMCallOptions
+    ) -> AsyncStream<LLMBlock> {
+        AsyncStream { continuation in
+            Task {
+                do {
+                    let response = try await send(messages: messages, options: options)
+                    for block in response.blocks {
+                        continuation.yield(block)
+                    }
+                } catch {
+                    continuation.yield(.text("[stream error] \(error)"))
+                }
+                continuation.finish()
+            }
+        }
+    }
 }

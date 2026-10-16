@@ -75,6 +75,48 @@ actor OpenAIConnector: LLMConnector {
             providerID: connectorID
         )
     }
+
+    // MARK: - Native streaming (P0-AGENT-STREAMING, boss 2026-10-16)
+    //
+    // OpenAI native (= the openai-codex provider; = api.openai.com
+    // = chat completions). Reuses the OpenAIStreamingWireupFactory
+    // = the same wireup DeepSeek / OpenRouter / Ollama use.
+    //
+    // `nonisolated` (matches the protocol requirement; = SSE
+    // setup is a pure function of the inputs).
+    nonisolated func stream(
+        messages: [LLMMessage],
+        options: LLMCallOptions
+    ) -> AsyncStream<LLMBlock> {
+        let credentials = ConnectorCredentials.resolve(for: .openaiCodex)
+
+        // Empty key -> emit synthetic error block.
+        if credentials.apiKey.isEmpty {
+            return OpenAIChunkToLLMBlockConverter.errorStream(
+                "[stream error] missing API key for openai-codex",
+                provider: connectorID
+            )
+        }
+
+        let bearer: String? = credentials.apiKey.isEmpty ? nil : credentials.apiKey
+
+        let rawStream = OpenAIStreamingWireupFactory.streamingStream(
+            credentials: credentials,
+            model: options.model,
+            maxTokens: options.maxTokens,
+            systemPrompt: options.systemPrompt,
+            messages: messages,
+            bearerToken: bearer,
+            tools: options.tools
+        )
+        // T12b: stateful converter (= aggregates tool_calls
+        // across chunks).
+        let accumulator = OpenAIChunkToLLMBlockConverter.ToolUseAccumulator()
+        return OpenAIChunkToLLMBlockConverter.convert(
+            stream: rawStream,
+            accumulator: accumulator
+        )
+    }
 }
 
 // MARK: - OpenAI-compatible (minimax cn / DeepSeek / Ollama / OpenRouter)

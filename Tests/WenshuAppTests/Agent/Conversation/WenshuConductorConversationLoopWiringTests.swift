@@ -279,6 +279,16 @@ private actor ThrowingMockConnector: LLMConnector {
             body: "simulated failure for WIRE-AGENT-001 fallback test"
         )
     }
+
+    public nonisolated func stream(
+        messages: [LLMMessage],
+        options: LLMCallOptions
+    ) -> AsyncStream<LLMBlock> {
+        AsyncStream { continuation in
+            continuation.yield(.text("[stream error] throwing-mock test failure"))
+            continuation.finish()
+        }
+    }
 }
 
 /// ConversationCompression is a concrete actor (= Swift forbids

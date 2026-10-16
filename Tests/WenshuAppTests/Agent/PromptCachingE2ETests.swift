@@ -165,6 +165,25 @@ private actor StubMinimaxConnector: LLMConnector {
         )
     }
 
+    nonisolated func stream(
+        messages: [LLMMessage],
+        options: LLMCallOptions
+    ) -> AsyncStream<LLMBlock> {
+        AsyncStream { continuation in
+            Task {
+                do {
+                    let response = try await send(messages: messages, options: options)
+                    for block in response.blocks {
+                        continuation.yield(block)
+                    }
+                } catch {
+                    continuation.yield(.text("[stream error] \(error)"))
+                }
+                continuation.finish()
+            }
+        }
+    }
+
     /// Snapshot helper for tests (= returns captured state via async call).
     /// Returns only Sendable types (= message count, not the [[String: Any]]
     /// payload which is non-Sendable and cannot cross actor boundary).

@@ -42,6 +42,15 @@ struct ConversationLoopMultiTurnTests {
                     usage: LLMUsage(inputTokens: 5, outputTokens: 5)
                 )
             }
+            func stream(
+                messages: [LLMMessage],
+                options: LLMCallOptions
+            ) -> AsyncStream<LLMBlock> {
+                AsyncStream { continuation in
+                    continuation.yield(.text("Direct answer."))
+                    continuation.finish()
+                }
+            }
         }
         let connector = PlainTextConnector()
         let sink = Sink()
@@ -106,6 +115,15 @@ struct ConversationLoopMultiTurnTests {
                         stopReason: .endTurn,
                         usage: LLMUsage(inputTokens: 5, outputTokens: 5)
                     )
+                }
+            }
+            func stream(
+                messages: [LLMMessage],
+                options: LLMCallOptions
+            ) -> AsyncStream<LLMBlock> {
+                AsyncStream { continuation in
+                    continuation.yield(.text("Final answer."))
+                    continuation.finish()
                 }
             }
         }

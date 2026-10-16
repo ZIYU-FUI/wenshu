@@ -360,6 +360,25 @@ actor RecordingMockConnector: LLMConnector {
         )
     }
 
+    public nonisolated func stream(
+        messages: [LLMMessage],
+        options: LLMCallOptions
+    ) -> AsyncStream<LLMBlock> {
+        AsyncStream { continuation in
+            Task {
+                do {
+                    let response = try await send(messages: messages, options: options)
+                    for block in response.blocks {
+                        continuation.yield(block)
+                    }
+                } catch {
+                    continuation.yield(.text("[stream error] \(error)"))
+                }
+                continuation.finish()
+            }
+        }
+    }
+
     /// Whether the second .send() call (= re-invocation after tool
     /// dispatch) saw a `.toolResult` block in its message list.
     public func secondCallHadToolResult() -> Bool {

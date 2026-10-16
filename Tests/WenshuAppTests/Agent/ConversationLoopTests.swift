@@ -179,6 +179,16 @@ private actor FailingMockConnector: LLMConnector {
     func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
         throw LLMConnectorError.transport(provider: "failing-mock", statusCode: 500, body: "test failure")
     }
+
+    nonisolated func stream(
+        messages: [LLMMessage],
+        options: LLMCallOptions
+    ) -> AsyncStream<LLMBlock> {
+        AsyncStream { continuation in
+            continuation.yield(.text("[stream error] failing-mock test failure"))
+            continuation.finish()
+        }
+    }
 }
 
 // Note: MockLLMConnector (= defined in LLMConnectorTests.swift) is reused

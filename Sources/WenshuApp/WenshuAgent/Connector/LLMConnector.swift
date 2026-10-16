@@ -56,38 +56,17 @@ protocol LLMConnector: Sendable {
     /// send(...) and yields each block in the response as a single
     /// chunk (= the "fake streaming" path). Connectors with native
     /// SSE support can override this to yield per-token chunks.
-    func stream(
+    ///
+    /// P0-STREAM-NATIVE (2026-10-16): the default implementation was
+    /// deleted (= commit 791acb497 + later); every connector is
+    /// now required to implement its own native stream. Marked
+    /// `nonisolated` so that actor conformers can implement it
+    /// without `await`ing their own state (= SSE setup is a pure
+    /// function of the inputs + the credentials resolver).
+    nonisolated func stream(
         messages: [LLMMessage],
         options: LLMCallOptions
     ) -> AsyncStream<LLMBlock>
-}
-
-extension LLMConnector {
-    /// Default stream implementation: calls send(...), then yields
-    /// each block from the response. Connectors with native streaming
-    /// override this.
-    func stream(
-        messages: [LLMMessage],
-        options: LLMCallOptions
-    ) -> AsyncStream<LLMBlock> {
-        AsyncStream { continuation in
-            Task {
-                do {
-                    let response = try await self.send(
-                        messages: messages,
-                        options: options
-                    )
-                    for block in response.blocks {
-                        continuation.yield(block)
-                    }
-                } catch {
-                    // Emit a synthetic error block so ChatView shows it.
-                    continuation.yield(.text("[stream error] \(error)"))
-                }
-                continuation.finish()
-            }
-        }
-    }
 }
 
 /// Per-call options for `LLMConnector.send`.
