@@ -131,7 +131,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         fallbackTitle: String,
         progress: (@Sendable (String) async -> Void)?
     ) async throws -> ImportRoutingResult {
-        let userPrompt = WCIRHelpers.userPrompt(
+        let userPrompt = WCIRPromptHelpers.userPrompt(
             filePath: input.filePath,
             body: body,
             rewriteMode: input.rewriteMode
@@ -433,7 +433,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         existingBody: String,
         sourceTitle: String
     ) async throws -> ContentSameResult {
-        let userPrompt = WCIRHelpers.contentSamePrompt(
+        let userPrompt = WCIRPromptHelpers.contentSamePrompt(
             sourceBody: sourceBody,
             existingBody: existingBody,
             sourceTitle: sourceTitle
