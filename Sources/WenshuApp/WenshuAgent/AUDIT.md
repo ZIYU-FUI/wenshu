@@ -365,7 +365,7 @@ Sources/WenshuApp/WenshuAgent/
 | 2.6 | 8 个 connector 全部没 WALogger | `8abe87eca` + `c2288a45d` + `69bf7926b` (= all 5 connector classes now log init + send start + send finish + error) | **✓ done** |
 | 2.7 | SSEClient 没有 streaming diagnostic | `45bebf3cc``WAStreamDiag` + WALogger.network) | ✓ done |
 | 2.8 | 没有 no-progress watchdog | `317f1de32`wired 30s timeout) | ✓ done |
-| 2.9 | 没有 stream single-writer fence | `45bebf3cc``WAStreamWriterFence`; = not yet wired into any stream path; = future ticket) | partial |
+| 2.9 | 没有 stream single-writer fence | (this commit) wired `WAStreamWriterFence` into WenshuConductor.handle (= every handle call claims a fence token; = the stream callback is wrapped in `makeFencedCallback` which checks `fence.isCurrent` per block; = the multi-stream race is now closed) | **✓ done** |
 | 2.10 | hermes-style plugin hooks 缺失未来 MCP 接入) | not started (deferred) | future |
 
 ## E. 老板原话 4 个 OOB directives 完成状态

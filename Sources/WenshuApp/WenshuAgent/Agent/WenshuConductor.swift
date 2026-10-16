@@ -37,6 +37,13 @@ actor WenshuConductor {
     // … (= 13 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / `registeredToolNames` accessor + the `wireBookScopeGuard` writer.
     var tools: [String: any Tool]
+    // AUDIT.md §2.9 partial (2026-10-16): the stream single-
+    // writer fence (= hermes `stream_single_writer.py` port).
+    // One per conductor instance (= the conductor is the
+    // single chat surface; = different chat sessions get
+    // different conductor instances via
+    // `WenshuAppDelegate.sharedConductor` per session).
+    private let streamWriterFence = WAStreamWriterFence()
 
     init(
         runtime: AgentRuntime,
@@ -162,6 +169,19 @@ actor WenshuConductor {
         model: String,
         streamCallback: (@Sendable (LLMBlock) async -> Void)? = nil
     ) async -> (reply: String, totalTokens: Int, thinking: String?) {
+        // AUDIT.md §2.9 partial (2026-10-16 boss "中途别停" arc):
+        // WAStreamWriterFence prevents the multi-stream race
+        // (= two streaming responses trying to write to the
+        // same `messages[idx]` slot). Every new `handle` call
+        // claims a fresh fence token (= monotonic counter; =
+        // 1 user message = 1 token); the wrapped stream
+        // callback below checks `fence.isCurrent(token)`
+        // before forwarding each block. If a newer stream
+        // has claimed, the older one bails out (= hermes
+        // `stream_single_writer.py` port; = 38 LOC source
+        // translated to Swift).
+        let fenceToken = streamWriterFence.claim()
+
         // P0-AGENT-LOOP (boss 2026-10-16 OOB "agent 没有达到 agent
         // 的标准" + commit 7de86fc08): the conductor is now ALWAYS
         // wired with the active connector (= `WenshuAppDelegate`
@@ -175,12 +195,21 @@ actor WenshuConductor {
             wenshuLogger.error("[wenshu.conductor] PATH=missing-connector REASON=conductor_was_nil msg_prefix=\(String(userMessage.prefix(40)))")
             return (reply: "（agent 未配置, 请检查 WenshuAppDelegate 是否注入了 connector）", totalTokens: 0, thinking: nil)
         }
+        // Wrap the caller's streamCallback in a fence-guarded
+        // adapter. Each block passes through the fence check
+        // before reaching the caller's callback (= the
+        // multi-stream race the fence exists to prevent).
+        let fencedCallback = Self.makeFencedCallback(
+            userCallback: streamCallback,
+            fence: streamWriterFence,
+            token: fenceToken
+        )
         guard let loopResult = await runConversationLoopPath(
             userMessage: userMessage,
             sessionId: sessionId,
             model: model,
             connector: connector,
-            streamCallback: streamCallback
+            streamCallback: fencedCallback
         ) else {
             // The ReAct loop threw (= it catches its own errors and
             // returns nil per the loop's contract; = see
@@ -402,4 +431,31 @@ actor WenshuConductor {
     // / Synchronous bridge to `buildTools(from:)` for callers that cannot await
     // … (= 15 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / ChatView.init fires.
+
+    // AUDIT.md §2.9 (2026-10-16): wrap a user-supplied
+    // streamCallback in a fence-guarded adapter. The adapter
+    // checks `fence.isCurrent(token)` before forwarding each
+    // block; older streams bail out when a newer one has
+    // claimed. Extracted as a `static` (= isolated from
+    // actor-isolated state) to keep the closure body small
+    // (= the Swift type-checker chokes on long multi-closure
+    // expressions in actor methods; = per the previous
+    // compile-time diagnostic).
+    static func makeFencedCallback(
+        userCallback: (@Sendable (LLMBlock) async -> Void)?,
+        fence: WAStreamWriterFence,
+        token: Int
+    ) -> (@Sendable (LLMBlock) async -> Void)? {
+        guard let userCallback = userCallback else { return nil }
+        return { block in
+            guard fence.isCurrent(token) else {
+                // Older stream superseded by a newer one;
+                // silently drop the block (= the user sees
+                // only the new stream's text; = matches
+                // hermes `stream_single_writer.py` bail-out).
+                return
+            }
+            await userCallback(block)
+        }
+    }
 }
