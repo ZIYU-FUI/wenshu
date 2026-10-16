@@ -22,52 +22,43 @@
 import SwiftUI
 import os
 
-/// strategy: since Reference entities are text-only (= .md bodies with
-/// no associated image), we use the EntityType icon as a large
-/// prominent thumbnail (= e.g. user-round for character, lightbulb
-/// for concept). The icon is rendered at 64 PT with a tinted gradient
-/// background (= the type's distinguishing color). This gives each
-/// card a strong visual identity at a glance (= matches Wubi-ji / Notion
-/// "card cover" pattern).
-///
-/// Future: when entities get real images (= e.g. character portrait,
-/// location map), NukeUI's LazyImage will replace the type icon. The
-/// image-pipeline integration is deferred (= needs image
-/// storage infrastructure that doesn't exist yet).
-/// Single canonical card view for the material preview zone.
-/// 'style owned by parent, data composition unified too' —
+/// strategy: since Reference entities are text-only (= .md bodies with no
+/// associated image), we use the EntityType icon as a large prominent thumbnail
+/// (= e.g. user-round for character, lightbulb for concept). The icon is
+/// rendered at 64 PT with a tinted gradient background (= the type's
+/// distinguishing color). This gives each card a strong visual identity at a
+/// glance (= matches Wubi-ji / Notion "card cover" pattern).
+/// Future: when entities get real images (= e.g. character portrait, location
+/// map), NukeUI's LazyImage will replace the type icon. The image-pipeline
+/// integration is deferred (= needs image storage infrastructure that doesn't
+/// exist yet). Single canonical card view for the material preview zone. 'style
+/// owned by parent, data composition unified too' —
     /// one component for both Reference (reference library) and BookDoc (bookshelf).
 /// Data extraction lives INSIDE the view; no per-source adapter structs.
-///
-/// CardSource = the only "data shape" the card knows. Adding a new
-/// source type = one new case + one computed-property branch.
-/// (see OOB.md #2026-09-08) — 'clicking the Dufu card opens a tab with wrong name' (= clicking
-/// the card opened a new tab named 'preview-sample'):
-/// the source value is now passed from PreviewPane.Card's
-/// onDoubleClick closure to WorkspaceView's openCardInEditor
-/// so the EXACT clicked card's .md opens (= not the topmost
+/// CardSource = the only "data shape" the card knows. Adding a new source type
+/// = one new case + one computed-property branch. (see OOB.md #2026-09-08) —
+/// 'clicking the Dufu card opens a tab with wrong name' (= clicking the card
+/// opened a new tab named 'preview-sample'): the source value is now passed
+/// from PreviewPane.Card's onDoubleClick closure to WorkspaceView's
+/// openCardInEditor so the EXACT clicked card's .md opens (= not the topmost
 /// card = the previous `filtered.first` bug).
-///
 /// internal (= module-scoped access for WorkspaceView to use in
-/// openCardInEditor(source:)). Was `private` (= the Swift
-/// compiler error 'property must be declared fileprivate
-/// because its type uses a private type' = since PreviewPane
-/// exposes this type in its internal `onDoubleClick` signature,
-/// it must be at least as accessible as the type).
-///
-/// Note: PreviewPane itself is `internal` (default for Swift
-/// struct), so `onDoubleClick` is `internal` (= no explicit
-/// access modifier), and CardSource must be `internal` (= same
-/// level of access). fileprivate would also work if PreviewPane
-/// itself were fileprivate, but PreviewPane is referenced by
-/// WorkspaceView (= module-internal access required).
+/// openCardInEditor(source:)). Was `private` (= the Swift compiler error
+/// 'property must be declared fileprivate because its type uses a private type'
+/// = since PreviewPane exposes this type in its internal `onDoubleClick`
+/// signature, it must be at least as accessible as the type).
+/// Note: PreviewPane itself is `internal` (default for Swift struct), so
+/// `onDoubleClick` is `internal` (= no explicit access modifier), and
+/// CardSource must be `internal` (= same level of access). fileprivate would
+/// also work if PreviewPane itself were fileprivate, but PreviewPane is
+/// referenced by WorkspaceView (= module-internal access required).
 internal enum CardSource {
     case reference(Reference)
     case bookDoc(BookDoc)
 
-    /// SF Symbols 6 icon name (= the only visual differentiator
-    /// between sources; everything else is uniform). Replaces
-    /// the SF Symbols names (no LUCide-era names remain).
+    /// SF Symbols 6 icon name (= the only visual differentiator between
+    /// sources; everything else is uniform). Replaces the SF Symbols names (no
+    /// LUCide-era names remain).
     var iconName: String {
         switch self {
         case .reference(let r): return r.entityType.icon
@@ -91,22 +82,14 @@ internal enum CardSource {
         }
     }
 
-    /// boss 2026-10-09 (see OOB.md #2026-10-09)
-    /// set (= the .ws library's cross-cutting
-    /// facet; = the user previously had no
-    /// way to see which 3 tags a card
-    /// carries without opening the .md body);
-    /// = reference cards show
-    /// `Reference.tags` (= ≤ 3 entries
-    /// after the round-20 cap); = bookDoc
-    /// cards show `BookDoc.tags` (= the
-    /// 2026-10-12 follow-up = parse the
-    /// file's first H1 markdown heading and
-    /// surface it as the book's single tag,
-    /// = the book card now visually matches
-    /// the reference card = no more literal
-    /// `# xxx` grey subtitle, = chip pill
-    /// style, = same row).
+    /// boss 2026-10-09 (see OOB.md #2026-10-09) set (= the .ws library's
+    /// cross-cutting facet; = the user previously had no way to see which 3
+    /// tags a card carries without opening the .md body); = reference cards
+    /// show `Reference.tags` (= ≤ 3 entries after the round-20 cap); = bookDoc
+    /// cards show `BookDoc.tags` (= the 2026-10-12 follow-up = parse the file's
+    /// first H1 markdown heading and surface it as the book's single tag, = the
+    /// book card now visually matches the reference card = no more literal `#
+    /// xxx` grey subtitle, = chip pill style, = same row).
     var tags: [String] {
         switch self {
         case .reference(let r):
@@ -126,103 +109,25 @@ internal enum CardSource {
 struct Card: View {
     let source: CardSource
     let onDoubleClick: (CardSource) -> Void
-    /// (= boss
-    /// 2026-10-10 "如
-    /// 果有不
-    /// 符合
-    /// 模版
-    /// 的内
-    /// 容，
-    /// 导入
-    /// 后，
-    /// 卡
-    /// 片
-    /// 加
-    /// 橙
-    /// 色
-    /// 提
-    /// 示
-    /// 角
-    /// 标"
-    /// directive).
-    /// When `true`, the
-    /// card shows an
-    /// orange border
-    /// (= overriding
-    /// the hover tint)
-    /// + a top-right
-    /// triangle
-    /// badge (= Apple
-    /// HIG
-    /// needs-attention
-    /// pattern; = the
-    /// user immediately
-    /// sees which cards
-    /// need补齐).
-    /// The parent
-    /// PreviewPane
-    /// computes this
-    /// flag from the
-    /// reference's
-    /// completion
-    /// status (= see
-    /// commit B for the
-    /// checker; = the
-    /// default value
-    /// `false` keeps
-    /// the Card
-    /// backwards-
-    /// compatible with
-    /// the existing
-    /// call sites until
-    /// commit C wires
-    /// the flag in).
+    /// (= boss 2026-10-10 "如 果有不 符合 模版 的内 容， 导入 后， 卡 片 加 橙 色 提 示 角 标"
+    /// directive). When `true`, the card shows an orange border (= overriding
+    /// the hover tint) + a top-right triangle badge (= Apple HIG
+    /// needs-attention pattern; = the user immediately sees which cards
+    /// need补齐). The parent PreviewPane computes this flag from the reference's
+    /// completion status (= see commit B for the checker; = the default value
+    /// `false` keeps the Card backwards- compatible with the existing call
+    /// sites until commit C wires the flag in).
     var needsCompletion: Bool = false
-    /// the
-    /// "补齐" right-click
-    /// menu callback (=
-    /// only fires when
-    /// `needsCompletion`
-    /// is true; = see
-    /// commit D for the
-    /// full chat flow).
-    /// Defaults to nil
-    /// (= no menu item)
-    /// for call sites
-    /// that don't wire
-    /// the chat
-    /// integration.
+    /// the "补齐" right-click menu callback (= only fires when `needsCompletion`
+    /// is true; = see commit D for the full chat flow). Defaults to nil (= no
+    /// menu item) for call sites that don't wire the chat integration.
     var onComplete: (() -> Void)? = nil
-    /// (= boss
-    /// 2026-10-10 "没有
-    /// 实现，右键卡
-    /// 片没有菜单"
-    /// + "素材栏，不是
-    /// tree，是第二
-    /// 栏，也就是
-    /// 我们常说的中
-    /// 左栏. 里面全
-    /// 是 MD 卡片"
-    /// directive). The
-    /// right-click menu
-    /// callbacks. The
-    /// `Card` view
-    /// doesn't have
-    /// access to the
-    /// `SidebarService`
-    /// (= the sidebar-
-    /// owned delete /
-    /// rename flow); =
-    /// the `PreviewPane`
-    /// parent owns the
-    /// `SidebarService`
-    /// reference (= via
-    /// `@Environment(BookStore.self)`);
-    /// = the parent
-    /// passes the
-    /// callbacks down
-    /// (= same shape as
-    /// the sidebar's
+    /// (= boss 2026-10-10 "没有 实现，右键卡 片没有菜单" + "素材栏，不是 tree，是第二 栏，也就是 我们常说的中 左栏.
+    /// 里面全 是 MD 卡片" directive). The right-click menu callbacks. The `Card` view
+    /// doesn't have access to the `SidebarService` (= the sidebar- owned delete
+    /// / rename flow); = the `PreviewPane` parent owns the `SidebarService`
+    /// reference (= via `@Environment(BookStore.self)`); = the parent passes
+    /// the callbacks down (= same shape as the sidebar's
     /// `SidebarRowCallbacks`).
     let onRename: () -> Void
     let onDelete: () -> Void
@@ -230,90 +135,45 @@ struct Card: View {
     @State private var isHovered: Bool = false
 
     /// (see OOB.md #2026-09-03) — 'directory double-click': Apple's
-    /// `.onTapGesture(count: 2)` was eaten by LazyVGrid's ScrollView
-    /// gesture recognizer. The previous attempt (= a timestamp
-    /// latch within 300 ms) was too tight (= macOS default
-    /// NSDoubleClickInterval is 500 ms, not 300) and lost subsequent
-    /// double-clicks after the first one (= the Card view was
-    /// re-evaluated by SwiftUI when openCardInEditor mutated
-    /// appState.openTabs; = the @State held across re-evaluations,
-    /// = the *next* single tap was treated as "first of a new pair"
-    /// but the user's actual second tap landed more than 300 ms
-    /// after the first (= because macOS users tap at ~500 ms
-    /// intervals; = the latch was too tight and dropped the
-    /// second click)).
-    ///
-    /// Switched to a click-count latch (= more robust to user
-    /// timing variance). Pair a single tap → count=1. The next tap
-    /// within `NSDoubleClickInterval` (= 500 ms via NSApp) → count=2
-    /// → fire onDoubleClick. Reset to 0 on the *third* tap (= a
-    /// triple-click is not a double-click). This matches macOS
+    /// `.onTapGesture(count: 2)` was eaten by LazyVGrid's ScrollView gesture
+    /// recognizer. The previous attempt (= a timestamp latch within 300 ms) was
+    /// too tight (= macOS default NSDoubleClickInterval is 500 ms, not 300) and
+    /// lost subsequent double-clicks after the first one (= the Card view was
+    /// re-evaluated by SwiftUI when openCardInEditor mutated appState.openTabs;
+    /// = the @State held across re-evaluations, = the *next* single tap was
+    /// treated as "first of a new pair" but the user's actual second tap landed
+    /// more than 300 ms after the first (= because macOS users tap at ~500 ms
+    /// intervals; = the latch was too tight and dropped the second click)).
+    /// Switched to a click-count latch (= more robust to user timing variance).
+    /// Pair a single tap → count=1. The next tap within `NSDoubleClickInterval`
+    /// (= 500 ms via NSApp) → count=2 → fire onDoubleClick. Reset to 0 on the
+    /// *third* tap (= a triple-click is not a double-click). This matches macOS
     /// Finder / TextEdit behavior.
-    ///
-    /// NOTE: SwiftUI's `@State` is reset when the view identity
-    /// changes (= the ForEach rebuilds the Card when the user
-    /// switches sidebar scope; = that is actually the desired
-    /// behavior here — switching scope = "fresh start" for the
-    /// double-click detector; = (see OOB.md) — 'directory,').
-    ///
-    /// (= the boss 2026-10-14 (see OOB.md #2026-10-14)
-    /// cause): the previous
-    /// `@State` was reset on
-    /// every SwiftUI body
-    /// re-evaluation (= the
-    /// `ForEach` rebuilt
-    /// the `Card` when
-    /// `BookDoc.id` changed
-    /// or the `LazyVGrid`
-    /// re-laid out; = the
-    /// `@State` storage
-    /// disappeared with
-    /// the old view identity;
-    /// = the next single
-    /// tap was always
-    /// treated as "first
-    /// of a new pair";
-    /// = `clickCount` never
-    /// reached 2; = the
-    /// double-click never
-    /// fired). Fix: store
-    /// the click-count state
-    /// in a `static` keyed
-    /// by `BookDoc.id` (= the
-    /// state survives view
-    /// re-evaluation because
-    /// it's at type scope,
-    /// not at view-instance
-    /// scope). The dictionary
-    /// is bounded by N (= the
-    /// number of cards
-    /// currently visible);
-    /// = no memory growth.
+    /// NOTE: SwiftUI's `@State` is reset when the view identity changes (= the
+    /// ForEach rebuilds the Card when the user switches sidebar scope; = that
+    /// is actually the desired behavior here — switching scope = "fresh start"
+    /// for the double-click detector; = (see OOB.md) — 'directory,').
+    /// (= the boss 2026-10-14 (see OOB.md #2026-10-14) cause): the previous
+    /// `@State` was reset on every SwiftUI body re-evaluation (= the `ForEach`
+    /// rebuilt the `Card` when `BookDoc.id` changed or the `LazyVGrid` re-laid
+    /// out; = the `@State` storage disappeared with the old view identity; =
+    /// the next single tap was always treated as "first of a new pair"; =
+    /// `clickCount` never reached 2; = the double-click never fired). Fix:
+    /// store the click-count state in a `static` keyed by `BookDoc.id` (= the
+    /// state survives view re-evaluation because it's at type scope, not at
+    /// view-instance scope). The dictionary is bounded by N (= the number of
+    /// cards currently visible); = no memory growth.
     @State private var clickCount: Int = 0
     @State private var lastClickTimestamp: TimeInterval = 0
-    /// 
-    /// click-count storage
-    /// (= survives SwiftUI
-    /// body re-evaluations;
-    /// = keyed by
-    /// `BookDoc.id` so
-    /// different cards
-    /// track independently).
-    /// The previous
-    /// `@State` was reset
-    /// on every body
-    /// re-evaluation, which
-    /// broke the
-    /// double-click
-    /// detection.
+    /// click-count storage (= survives SwiftUI body re-evaluations; = keyed by
+    /// `BookDoc.id` so different cards track independently). The previous
+    /// `@State` was reset on every body re-evaluation, which broke the
+    /// double-click detection.
     nonisolated(unsafe) static var clickCountByID: [UUID: Int] = [:]
     nonisolated(unsafe) static var lastClickByID: [UUID: TimeInterval] = [:]
 
-    /// debug:
-    /// log every tap on the
-    /// Card (= helps localize
-    /// the boss 2026-10-14 (see OOB.md #2026-10-14)
-    /// effect?).
+    /// debug: log every tap on the Card (= helps localize the boss 2026-10-14
+    /// (see OOB.md #2026-10-14) effect?).
     private func cardTapped() {
         let cardID: UUID? = {
             switch source {
