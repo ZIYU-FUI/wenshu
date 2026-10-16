@@ -738,7 +738,7 @@ struct PreviewPane: View {
         // (see OOB.md #2026-09-07) — 'search,': apply the search filter (=
         // previewSearchQuery) on top of the category filter. Both filters
         // compose (= all entities → search filter → category filter).
-        let searched = searchFilteredEntities(loadAllEntities())
+        let searched = PreviewPaneOps.searchFilteredEntities(loadAllEntities(), query: resolvedSearchQuery)
         // SidebarItem.tag preview-pane filter: apply the tag filter (= self.activeTag OR
         // tagOverride from PreviewScope.tagScope) on top of the search +
         // category filter. tag nil = show all (= the user picked the reference
@@ -777,7 +777,7 @@ struct PreviewPane: View {
         // instantiated as part of the body re-render; = the `loadBookDocs`
         // call below re-walks the FS; = the deleted card disappears). No
         // explicit read needed here (= the body's re-evaluation is enough).
-        let allDocs = loadBookDocs(bookId: bookId, folderName: folderName)
+        let allDocs = PreviewPaneOps.loadBookDocs(bookStore: bookStore, bookId: bookId, folderName: folderName).docs
         // Search-field padding rationale: actually filter the cards' (= typing in the
         // search field did not filter cards in the book scope). The previous
         // code passed the unfiltered `docs` to `bookDocsGrid(docs:)`; = the
@@ -785,7 +785,7 @@ struct PreviewPane: View {
         // `referenceScopeView`), but book .md cards bypassed the filter
         // entirely. Apply the same shape as `searchFilteredEntities` (= title
         // / summary / pinyin first-letter substring) to book docs.
-        let docs = searchFilteredBookDocs(allDocs)
+        let docs = PreviewPaneOps.searchFilteredBookDocs(allDocs, query: resolvedSearchQuery)
         VStack(spacing: 0) {
             if docs.isEmpty {
                 emptyState(
@@ -825,8 +825,8 @@ struct PreviewPane: View {
         // entirely when the shelfId is unchanged = the cached state survives
         // every observation tick).
         let books = cachedShelfBooks[shelfId] ?? []
-        let allDocs = books.flatMap { loadBookDocs(bookId: $0.id, folderName: nil) }
-        let filteredDocs = searchFilteredBookDocs(allDocs)
+        let allDocs = books.flatMap { PreviewPaneOps.loadBookDocs(bookStore: bookStore, bookId: $0.id, folderName: nil).docs }
+        let filteredDocs = PreviewPaneOps.searchFilteredBookDocs(allDocs, query: resolvedSearchQuery)
         if filteredDocs.isEmpty {
             // Empty shelf branch (= no books under the shelf, or every book has no .md
             // cards, or the search filter excluded everything). Reuse the
@@ -1036,7 +1036,7 @@ struct PreviewPane: View {
             // OOB.md #2026-08-30) — default pinyin first letter; user can
             // pick creation time or modification time via top-right sort
             // menu icon).
-            let sorted = sortEntities(allEntities, by: previewSortOrder)
+            let sorted = PreviewPaneOps.sortEntities(allEntities, by: previewSortOrder)
             GeometryReader { geometry in
                 ScrollView {
                     LazyVGrid(columns: adaptiveColumns(width: geometry.size.width), spacing: 16) {
@@ -1238,31 +1238,19 @@ struct PreviewPane: View {
     /// missing folders, permission denied, etc.) are silently skipped so a
     /// single bad folder doesn't break the whole view (= partial load is more
     /// useful than nothing).
-    private func loadBookDocs(bookId: UUID, folderName: String?) -> [BookDoc] {
-        return PreviewPaneOps.loadBookDocs(bookStore: bookStore, bookId: bookId, folderName: folderName).docs
-    }
-
     /// Sort book docs by the current sort order (= same menu as entity scope,
     /// but applied to BookDoc). (see OOB.md #2026-08-31) — sort still defaults
     /// to .pinyinFirstLetter so docs in Chinese filenames also flow
     /// alphabetically.
-    private func sortBookDocs(_ docs: [BookDoc], by order: EntitySortOrder) -> [BookDoc] {
-        return PreviewPaneOps.sortBookDocs(docs, by: order)
-    }
-
     /// Sort entities by the selected sort order ((see OOB.md #2026-08-30)).
     /// Returns a NEW array (doesn't mutate input). Stable sort by using id as
     /// the tiebreaker (= prevents visual shuffle on re-render when entities
     /// have equal sort keys).
-    private func sortEntities(_ entities: [Reference], by order: EntitySortOrder) -> [Reference] {
-        return PreviewPaneOps.sortEntities(entities, by: order)
-    }
-
     /// Flat LazyVGrid for book docs (= same visual style as entity card grid,
     /// but BookDocCard instead of EntityCard).
     @ViewBuilder
     private func bookDocsGrid(docs: [BookDoc]) -> some View {
-        let sorted = sortBookDocs(docs, by: previewSortOrder)
+        let sorted = PreviewPaneOps.sortBookDocs(docs, by: previewSortOrder)
         GeometryReader { geometry in
             ScrollView {
                 LazyVGrid(
@@ -1312,41 +1300,6 @@ struct PreviewPane: View {
         }
         return "~"
     }
-
-    /// 'search,, d, can ': convert a CJK + ASCII title to its FULL pinyin
-    /// first-letter string (= concatenated initial of each pinyin syllable, all
-    /// uppercase, no separator). Examples: - "" → "DF" - "" → "LB" - "" →
-    /// "HNBDZS" - "Hello " → "HELLO SJ" - "AB test CD" → "AB CD"
-    /// Implementation: CFStringTransform to convert CJK to latinized pinyin (=
-    /// "" → "Du Fu", "" → "Li Bai"), strip diacritics, then extract the first
-    /// letter of each whitespace- separated word. Uses Apple's CoreFoundation
-    /// string transform (= no third-party pinyin lib = AGENTS.md §11.1 hard
-    /// rule). 'pinyin initials + Chinese-character search — it was
-        /// already supported before, there should be existing code for it':
-        /// extract the search-match predicate (= title / summary / pinyin
-        /// first-letter substring) into a shared helper so reference entities
-        /// AND book docs use the same filter ((see OOB.md — 'use one common
-        /// interface'). Moved to PreviewPaneOps (= v1.76 spec-fix arc; = per
-        /// spec §9.2 row 6 entry-point list). 'search, d, can
-    /// ': filter the entity list by the current search query. Matches against
-    /// BOTH: 1. Original title / summary substring (= case-insensitive) 2.
-    /// Pinyin first-letter substring (= e.g. "d" matches "" → DF) Empty query =
-    /// pass-through (= show all entities). s search field doesn't actually
-    /// filter the cards':
-        /// same filter shape as `searchFilteredEntities` but for book docs (=
-        /// filesystem .md files loaded by `loadBookDocs`). Uses the shared
-        /// `matchesSearch` helper (= title / summary / pinyin first-letter
-        /// substring match) = same logic as the reference-entity filter; = the
-        /// user's previous 'the search field doesn't actually filter the cards'
-        /// bug was that bookDocsGrid was called with the unfiltered docs.
-        private func searchFilteredBookDocs(_ docs: [BookDoc]) -> [BookDoc] {
-        return PreviewPaneOps.searchFilteredBookDocs(docs, query: resolvedSearchQuery)
-    }
-
-    private func searchFilteredEntities(_ entities: [Reference]) -> [Reference] {
-        return PreviewPaneOps.searchFilteredEntities(entities, query: resolvedSearchQuery)
-    }
-
 }
 
 /// Card view for a single entity in the grid. Tap = select (= not wired yet).
