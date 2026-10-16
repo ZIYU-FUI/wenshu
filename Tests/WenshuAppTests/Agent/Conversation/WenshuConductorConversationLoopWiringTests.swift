@@ -68,10 +68,8 @@ struct WenshuConductorConversationLoopWiringTests {
         ]
         let connector = MockLLMConnector(scriptedResponses: scripts)
         let kanban = try Self.makeKanbanRepository()
-                let verifier = WenshuVerifier()
-        let conductor = WenshuConductor(
+                let conductor = WenshuConductor(
             runtime: AgentRuntime(),
-            verifier: verifier,
                         connector: connector
         )
 
@@ -128,7 +126,6 @@ struct WenshuConductorConversationLoopWiringTests {
         let kanban = try Self.makeKanbanRepository()
                 let conductor = WenshuConductor(
             runtime: AgentRuntime(),
-            verifier: WenshuVerifier(),
                         connector: connector
         )
 
@@ -207,7 +204,6 @@ struct WenshuConductorConversationLoopWiringTests {
         let kanban = try Self.makeKanbanRepository()
                 let conductor = WenshuConductor(
             runtime: AgentRuntime(),
-            verifier: WenshuVerifier(),
                         connector: connector
         )
         let conductorResult = await conductor.handle(
@@ -227,7 +223,6 @@ struct WenshuConductorConversationLoopWiringTests {
         let kanban = try Self.makeKanbanRepository()
                 let conductor = WenshuConductor(
             runtime: AgentRuntime(),
-            verifier: WenshuVerifier(),
                         connector: connector
         )
 

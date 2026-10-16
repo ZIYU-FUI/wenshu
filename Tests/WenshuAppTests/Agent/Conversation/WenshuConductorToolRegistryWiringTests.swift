@@ -280,8 +280,7 @@ struct WenshuConductorToolRegistryWiringTests {
     private func makeMinimalConductor() async throws -> WenshuConductor {
         let kanban = try Self.makeKanbanRepository()
                 return WenshuConductor(
-            runtime: AgentRuntime(),
-            verifier: WenshuVerifier()
+            runtime: AgentRuntime()
         )
     }
 }

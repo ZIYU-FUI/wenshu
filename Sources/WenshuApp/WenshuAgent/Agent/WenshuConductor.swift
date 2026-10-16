@@ -12,7 +12,11 @@ private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "wenshucond
 // / Wenshu orchestrator (actor thread-safe, consistent with AgentRuntime / WSKanbanRepository / WSMemoryRepository).
 actor WenshuConductor {
     private let runtime: AgentRuntime
-    let verifier: WenshuVerifier
+    // AUDIT.md §2.2 partial (2026-10-16 boss "把切换包的事
+    // 清干净" arc): the `verifier: WenshuVerifier` field was
+    // deleted; = the conductor routes every LLM call through
+    // WenshuAgent.shared.chat() (= the public facade; = the
+    // verifier bridge to WenshuAgent.shared is now indirect).
     // / Long-term memory persistence for agent (now SwiftData-backed via
     // … (= 11 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / ChatView call site keeps working.
@@ -47,16 +51,19 @@ actor WenshuConductor {
 
     init(
         runtime: AgentRuntime,
-        verifier: WenshuVerifier,
         tools: [String: any Tool] = [:],
         repositories: WSRepositoryContainer? = nil
     ) {
-        // P0 #1 (WIRE-AGENT-001): chain to the new init with no connector
-        // … (= 11 rationale lines collapsed; = A112 docblock collapse per §1.8)
-        // = .shared fallback when nil).
+        // AUDIT.md §2.2 partial (2026-10-16 boss "把切换包的事
+        // 清干净" arc): the `verifier` parameter was deleted;
+        // = the conductor no longer holds a `WenshuVerifier`
+        // instance (= the verifier actor is now a thin bridge
+        // to WenshuAgent.shared; = the conductor routes
+        // every LLM call through the WenshuAgent.shared.chat()
+        // entry point; = the verifier field is no longer
+        // needed for any call site).
         self.init(
             runtime: runtime,
-            verifier: verifier,
                 connector: nil,
             loopRuntime: nil,
             tools: tools,
@@ -69,14 +76,12 @@ actor WenshuConductor {
     // / nil, `ConversationLoop` falls back to a fresh `RuntimeHelpers()` actor.
     init(
         runtime: AgentRuntime,
-        verifier: WenshuVerifier,
         connector: (any LLMConnector)? = nil,
         loopRuntime: RuntimeHelpers? = nil,
         tools: [String: any Tool] = [:],
         repositories: WSRepositoryContainer? = nil
     ) {
         self.runtime = runtime
-        self.verifier = verifier
         self.connector = connector
         self.loopRuntime = loopRuntime
         // P0 #2 (WIRE-AGENT-002): store the tool registry so the loop

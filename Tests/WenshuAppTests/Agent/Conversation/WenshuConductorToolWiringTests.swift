@@ -290,7 +290,6 @@ struct WenshuConductorToolWiringTests {
 
                 return WenshuConductor(
             runtime: AgentRuntime(),
-            verifier: WenshuVerifier(),
                         connector: connector,
             tools: tools
         )

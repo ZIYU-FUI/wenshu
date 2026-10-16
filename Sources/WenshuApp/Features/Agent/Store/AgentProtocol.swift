@@ -155,11 +155,19 @@ actor AgentProtocol {
     private var tasks: [UUID: AgentTask] = [:]
     private var tasksByAgent: [String: [UUID]] = [:]
     private let agentCard: AgentCard
-    private let verifier: WenshuVerifier?
+    // AUDIT.md §2.2 partial (2026-10-16 boss "把切换包的事
+    // 清干净" arc): the `verifier: WenshuVerifier?` field was
+    // deleted; = the A2A protocol handler now uses the
+    // canonical WenshuConductor (= fetched from the public
+    // facade) as its LLM call entry point. The bridge
+    // through WenshuVerifier's chat() (= which itself
+    // delegates to WenshuAgent.shared.chat()) is removed; =
+    // the conductor is the single canonical path.
+    private let conductor: WenshuConductor?
 
-    init(agentCard: AgentCard, verifier: WenshuVerifier? = nil) {
+    init(agentCard: AgentCard, conductor: WenshuConductor? = nil) {
         self.agentCard = agentCard
-        self.verifier = verifier
+        self.conductor = conductor
     }
 
     func getAgentCard() -> AgentCard {
@@ -186,20 +194,28 @@ actor AgentProtocol {
         task.status = .running
         task.messages.append(message)
         task.updatedAt = Date()
-        //  WenshuVerifier agent (= the canonical verifier surface)
-        // verifier → throw (= no verifier configured).
-        guard let verifier = verifier else {
+        //  WenshuConductor agent (= the canonical LLM call
+        // entry point; = the A2A protocol handler routes
+        // through the public facade).
+        // conductor → nil (= no conductor installed).
+        guard let conductor = conductor else {
             task.status = .failed
             task.updatedAt = Date()
             tasks[taskId] = task  // + S3: task save
             tasksByAgent[agentCard.name, default: []].append(taskId)
-            return A2AResponse(id: request.id, error: A2AError(code: -32603, message: "verifier not configured"))
+            return A2AResponse(id: request.id, error: A2AError(code: -32603, message: "conductor not configured (= install via WenshuAgent.shared.installConductor)"))
         }
         do {
-            let response = try await verifier.chat(message.content)
-            // union decode (text / thinking / tool_use) — concat all text blocks
-            let reply = response.content.map(\.displayText).joined()
-            let visibleReply = reply.isEmpty ? "(empty reply)" : reply
+            // AUDIT.md §2.2 partial (2026-10-16 boss "把切换包的事
+            // 清干净" arc): the conductor with the active
+            // connector routes the user message through the
+            // ReAct loop; = the verifier bridge is gone.
+            let (reply, _, _) = await conductor.handle(
+                userMessage: message.content,
+                sessionId: taskId.uuidString,
+                model: ""  // (= the conductor resolves the active model)
+            )
+            let visibleReply = reply ?? "(empty reply)"
             let agentMsg = AgentMessage(role: .agent, content: visibleReply)
             task.messages.append(agentMsg)
             task.status = .completed

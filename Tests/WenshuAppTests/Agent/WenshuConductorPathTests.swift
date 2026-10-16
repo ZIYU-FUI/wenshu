@@ -37,8 +37,7 @@ struct WenshuConductorPathTests {
     func no_connector_path_returns_legacy_tuple() async throws {
         _ = try Self.makeKanbanRepository()
         let runtime = AgentRuntime()
-        let verifier = WenshuVerifier()
-        let conductor = WenshuConductor(runtime: runtime, verifier: verifier)
+        let conductor = WenshuConductor(runtime: runtime)
         let result = await conductor.handle(
             userMessage: "hello",
             sessionId: "test-session",
@@ -57,8 +56,7 @@ struct WenshuConductorPathTests {
     func handle_never_throws() async throws {
         _ = try Self.makeKanbanRepository()
         let runtime = AgentRuntime()
-        let verifier = WenshuVerifier()
-        let conductor = WenshuConductor(runtime: runtime, verifier: verifier)
+        let conductor = WenshuConductor(runtime: runtime)
         // The contract is "never throws". Just verify the await
         // completes (= no hang, no propagation).
         let result = await conductor.handle(

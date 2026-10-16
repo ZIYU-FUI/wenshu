@@ -28,7 +28,7 @@ struct WenshuConductorTests {
         let kanban = try Self.makeKanbanRepository()
                 let runtime = AgentRuntime()
         let verifier = WenshuVerifier()  // key, LLM, verify graceful degradation (S4)
-        let conductor = WenshuConductor(runtime: runtime, verifier: verifier)
+        let conductor = WenshuConductor(runtime: runtime)
 
         // S4 graceful degradation: handle (LLM fail), fallback reply (yes throw)
         // 

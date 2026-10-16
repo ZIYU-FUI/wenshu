@@ -95,8 +95,12 @@ struct ChatView: View {
         // : peer conductor no longer instantiates a
         // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // coverage; = production behavior unchanged).
+        // AUDIT.md §2.2 partial (2026-10-16 boss "把切换包的事
+        // 清干净" arc): the `let verifier = WenshuVerifier()`
+        // was deleted; = the conductor no longer takes a
+        // verifier argument; = WenshuAgent.shared is the
+        // canonical LLM call entry point.
         let runtime = AgentRuntime()
-        let verifier = WenshuVerifier()
         let tools = WenshuConductor.buildToolsSync(from: ToolRegistry.shared)
         // the conductor's injected `WSRepositoryContainer` (= falls back
         // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
@@ -110,8 +114,7 @@ struct ChatView: View {
         // WenshuAppDelegate).
         return WenshuConductor(
             runtime: runtime,
-            verifier: verifier,
-            connector: WenshuAppDelegateLLMHelpers.activeLLMConnector(),
+            connector: WenshuAgent.shared.activeLLMConnector(),
             tools: tools
         )
     }

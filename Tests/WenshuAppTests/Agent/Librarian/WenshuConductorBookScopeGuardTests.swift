@@ -38,10 +38,8 @@ struct WenshuConductorBookScopeGuardTests {
     @MainActor
     private static func makeConductor() -> WenshuConductor {
         let runtime = AgentRuntime()
-        let verifier = WenshuVerifier()
         return WenshuConductor(
             runtime: runtime,
-            verifier: verifier,
             tools: [:]
         )
     }

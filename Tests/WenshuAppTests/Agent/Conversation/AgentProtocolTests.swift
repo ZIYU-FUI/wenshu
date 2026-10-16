@@ -23,7 +23,7 @@ struct AgentProtocolTests {
             description: "测试 agent",
             skills: ["search", "memory"],
             endpoint: "in-process://test-agent"
-        ), verifier: WenshuVerifier())
+        ))
     }
 
     /// Set up the test with an empty InMemoryKeychain backend so that

@@ -75,7 +75,7 @@ struct WenshuCoreIntegrationTests {
             skills: ["memory", "kanban"],
             endpoint: "in-process://integration"
         )
-        let agent = AgentProtocol(agentCard: card, verifier: WenshuVerifier())
+        let agent = AgentProtocol(agentCard: card, conductor: WenshuAgent.shared.currentConductorSync())
         let runtime = AgentRuntime()
         await runtime.register(AgentRegistration(name: "integration-agent", card: card, process: agent))
         // Live integration: either throws (network / LLM error) or

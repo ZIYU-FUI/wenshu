@@ -76,7 +76,11 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     }()
 
     static let sharedRuntime = AgentRuntime()
-    static let sharedVerifier = WenshuVerifier()
+    // AUDIT.md §2.2 partial (2026-10-16 boss "把切换包的事清干净"
+    // arc): the `sharedVerifier` static was deleted; = the
+    // verifier actor is now a thin bridge to WenshuAgent.shared
+    // (= the canonical LLM call entry point; = no static
+    // verifier instance is needed at the AppDelegate level).
     // Chat history now lives in WSChatRepository.shared (= @MainActor SwiftData wrapper).
     // No per-actor sqlite3 bootstrap needed. Swift 6 strict concurrency fix: was
     // `nonisolated(unsafe) static var` (= race-prone). Replaced with @MainActor
@@ -97,23 +101,6 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     // `var` to read at init time).
     @MainActor static var sharedConductor: WenshuConductor? {
         WenshuAgent.shared.currentConductorSync()
-    }
-
-    /// Internal setter (= called once at app launch from
-    /// `applicationDidFinishLaunching`; = publishes the
-    /// conductor instance to the public facade's
-    /// nonisolated snapshot so SwiftUI `var` callers
-    /// can read it without `await`).
-    @MainActor static func _setSharedConductor(_ conductor: WenshuConductor?) {
-        if let conductor = conductor {
-            // Fire-and-forget: the actor install is async;
-            // = the snapshot will catch up by the time
-            // the main-actor context returns to the run
-            // loop (= before any SwiftUI body re-evaluation).
-            Task { await WenshuAgent.shared.installConductor(conductor) }
-        } else {
-            Task { await WenshuAgent.shared.uninstallConductor() }
-        }
     }
 
     @MainActor @objc func resetLayout(_ sender: Any?) {
@@ -268,7 +255,6 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // the canonical reference).
         let conductorInstance = WenshuConductor(
             runtime: Self.sharedRuntime,
-            verifier: Self.sharedVerifier,
             // P0-AGENT-LOOP (2026-10-16 boss OOB "agent 没有达到 agent 的标准"):
             // the conductor used to be constructed without a connector,
             // which forced every call through `runLegacyConductorPipeline`
@@ -280,21 +266,31 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
             // `maxAgentTurns = 10`).
             connector: WenshuAppDelegateLLMHelpers.activeLLMConnector()
         )
-        // Bridge the AppDelegate static (= still consumed by
-        // the remaining 4 init-param callers in ChatZoneView,
-        // ChatView, ChatSessionViewModel, EditorChatNSController)
-        // to the public facade. The setter is kept for
-        // backward compatibility; = it now publishes the
-        // instance into the public facade instead of
-        // holding it locally.
-        Self._setSharedConductor(conductorInstance)
+        // AUDIT.md §2.2 partial (2026-10-16 boss "把切换包的事
+        // 清干净" arc): the bridge setter is deleted; = the
+        // install goes directly through the public facade.
+        // The `WenshuAppDelegate.sharedConductor` getter (= the
+        // deprecation bridge for SwiftUI `var` callers like
+        // ChatZoneView, ChatView, ChatSessionViewModel,
+        // EditorChatNSController) still reads from the
+        // facade's nonisolated snapshot.
+        Task { await WenshuAgent.shared.installConductor(conductorInstance) }
         let card = AgentCard(
             name: "wenshu",
             description: "wenshu 本地主 agent, 接 MiniMax key, 支持 chat UI",
             skills: ["chat", "memory", "kanban"],
             endpoint: "in-process://wenshu"
         )
-        let protocol_ = AgentProtocol(agentCard: card, verifier: Self.sharedVerifier)
+        // AUDIT.md §2.2 partial (2026-10-16 boss "把切换包的事
+        // 清干净" arc): AgentProtocol no longer takes a
+        // WenshuVerifier (= the verifier is a thin bridge to
+        // WenshuAgent.shared). The A2A protocol handler now uses
+        // the canonical conductor (= fetched from the public
+        // facade) as its LLM call entry point. (= the
+        // applicationDidFinishLaunching function is sync; = the
+        // facade's currentConductorSync() is the nonisolated
+        // snapshot accessor; = no `await` needed here.)
+        let protocol_ = AgentProtocol(agentCard: card, conductor: WenshuAgent.shared.currentConductorSync())
         Task { @MainActor in
             await Self.sharedRuntime.register(AgentRegistration(
                 name: "wenshu", card: card, process: protocol_
