@@ -56,7 +56,11 @@ extension ImportService {
         // Try the active provider first (= the one the user pinned
         // in Settings → Providers). On network-class failure, walk
         // the configured-provider list until one succeeds.
-        let providerQueue = buildProviderQueue(
+        // AUDIT.md §2.2 (2026-10-16): buildProviderQueue is
+        // now async (it awaits WenshuAgent.shared); = the
+        // caller is already inside an async function so the
+        // `await` composes without ceremony.
+        let providerQueue = await buildProviderQueue(
             activeProvider: activeProvider
         )
         for (providerIndex, provider) in providerQueue.enumerated() {
@@ -180,8 +184,13 @@ extension ImportService {
     /// valid `Provider` mapping, deduplicated, in the order the user
     /// added them). Returns at most one entry (= no fallback
     /// candidates) when the user has only the active provider configured.
-    private func buildProviderQueue(activeProvider: String) -> [String] {
-        let configured = ProviderKeychain.listProvidersWithKeys()
+    /// AUDIT.md §2.2 partial (2026-10-16): routes through
+    /// WenshuAgent.shared (= the public facade). `buildProviderQueue`
+    /// is `async` so the `await providersWithKeys()` call
+    /// composes cleanly (= no Task.detached / completion
+    /// handler boilerplate).
+    private func buildProviderQueue(activeProvider: String) async -> [String] {
+        let configured = await WenshuAgent.shared.providersWithKeys()
         var queue: [String] = [activeProvider]
         for slug in configured where slug != activeProvider {
             queue.append(slug)

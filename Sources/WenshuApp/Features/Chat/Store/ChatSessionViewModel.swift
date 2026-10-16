@@ -653,7 +653,13 @@ final class ChatViewModel {
         // / surfaced behind the empty-state overlay. This is the
         // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // / ephemeral when the provider is not configured.
-        if ProviderKeychain.listProvidersWithKeys().isEmpty {
+        // AUDIT.md §2.2 partial (2026-10-16): route through
+        // WenshuAgent.shared (= the public facade; =
+        // the 14 callers migration enabler; = commit
+        // `a0b371b45` added `providersWithKeys()`; =
+        // commit `fd5baaee6` added the conductor
+        // lifecycle).
+        if await WenshuAgent.shared.providersWithKeys().isEmpty {
             self.messages = []
             return
         }
