@@ -71,28 +71,20 @@ struct ChatMessageBodyView: View {
     }
 
     var body: some View {
-        // Hermes truth source for user/assistant text colors:
-        //   user       = text-foreground/95 (= 95% opacity)
-        //   assistant  = text-foreground (= 100% opacity)
-        // The 5% delta is intentional and visible against a neutral
-        // transcript.
-        //
-        // SwiftUI closest 1:1 (= Apple semantic ShapeStyle):
-        //   user       = .primary + .opacity(0.92) on the tint
-        //                container (= the 95% saturation approximation
-        //                hermes sets on the user bubble text)
-        //   assistant  = .secondary (= one tint step quieter than
-        //                .primary; = the macOS 27 default tertiary
-        //                foreground that matches hermes text-foreground
-        //                for the assistant rows)
-        //
-        // The tint is applied as an outer container so per-part
-        // `.foregroundStyle(.secondary)` etc. (= already in the file)
-        // still wins for their local chrome (= status text / icons
-        // inside reasoning + tool rows).
-        let roleForeground: HierarchicalShapeStyle = isOutgoing
-            ? .primary
-            : .secondary
+        // Apple HIG: writing body text uses `.primary` foreground,
+        // uniformly (= Pages / Notes / Mail body). User-vs-assistant
+        // distinction comes from alignment (= iMessage right vs left)
+        // + bubble background, NOT from text color dimming. Both
+        // chat (this body) and editor (= NSTextView labelColor = .label
+        // = .primary) read the same SwiftUI semantic foreground, so
+        // the two zones feel like one app's two text surfaces.
+        // RATIONALE: wenshu writing-tool requirement per boss 2026-10-16
+        // "editor + chat body text share Apple text style" — body text
+        // = always `.primary`; no `opacity()` mutators on the tint
+        // (Apple HIG forbids `.primary.opacity(0.X)`; the four-tier
+        // `.primary / .secondary / .tertiary / .quaternary` semantic
+        // ladder covers all muted cases without opacity tweaks).
+        let roleForeground: HierarchicalShapeStyle = .primary
         return Group {
             if message.parts.isEmpty {
                 // Back-compat path: no parts (= a v0.34 message). Render

@@ -114,6 +114,29 @@ enum DesignTokens {
     static let dividerHeight: CGFloat = 1
 
     // MARK: - Status bar text
+    // / Apple HIG foreground four-tier ladder mapped to writing surfaces.
+    // The body text across the editor (NativeTextViewWrapper / NSTextView
+    // labelColor = .label) AND the chat (SwiftUI Text.font(.body))
+    // reads `.primary` = the same SwiftUI semantic token. Apple HIG
+    // forbids `.primary.opacity(0.X)` for dimming: dimming is the
+    // job of the four-tier semantic ladder, not opacity tweaks.
+    //   .primary   = writing body (= Pages / Notes body).
+    //   .secondary = bubble chrome (= timestamps, captions, footers).
+    //   .tertiary  = tertiary metadata (= IDs, hashes, badges).
+    //   .quaternary = disabled / placeholder text.
+    // Body (writing) text never uses .secondary / .tertiary /
+    // .quaternary — those tiers are reserved for chrome around the
+    // body, not for the body itself.
+    static let textBody: HierarchicalShapeStyle = .primary
+    static let textChrome: HierarchicalShapeStyle = .secondary
+    static let textMetadata: HierarchicalShapeStyle = .tertiary
+    static let textPlaceholder: HierarchicalShapeStyle = .quaternary
+    // / Apple HIG text-style scale (macOS 27). Pinning editor +
+    // / chrome around body to the same Apple scale stops the
+    // / chat zone from drifting to ad-hoc `Font.system(size:)` calls.
+    static let bodyFontSize: CGFloat = NSFont.preferredFont(forTextStyle: .body).pointSize
+    static let captionFontSize: CGFloat = NSFont.preferredFont(forTextStyle: .caption1).pointSize
+    static let caption2FontSize: CGFloat = NSFont.preferredFont(forTextStyle: .caption2).pointSize
     // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / Replaces `.foregroundStyle(.tertiary)` in 16 files.
     static let statusForeground: HierarchicalShapeStyle = .tertiary

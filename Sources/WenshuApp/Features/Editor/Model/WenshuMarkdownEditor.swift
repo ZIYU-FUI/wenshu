@@ -100,16 +100,13 @@ struct WenshuMarkdownEditor: View {
     }
 
     /// Engine base font = `body` (= 13 PT on macOS 27 = the
-    /// Apple HIG canonical editor body size). Passed to
-    /// `NativeTextViewWrapper(fontSize:)` below (= the
-    /// engine default is 16 PT which broke the multiplier
-    /// math). The previous `caption1BaseFontSize` (= 10 PT)
-    /// was 3 PT too small for editor body text (= the
-    /// caption1 size is for non-essential metadata, = a
-    /// marginal label or a tertiary annotation; = it is not
-    /// the size for the main editor body of a writing tool).
+    /// Apple HIG canonical editor body size). Sourced from
+    /// `DesignTokens.bodyFontSize` (= single Apple HIG
+    /// reference for body-text point size; = the chat zone's
+    /// SwiftUI `.font(.body)` resolves to the same number, so
+    /// the two zones render body text at byte-identical metrics).
     private var bodyBaseFontSize: CGFloat {
-        NSFont.preferredFont(forTextStyle: .body).pointSize
+        DesignTokens.bodyFontSize
     }
 
     var body: some View {
