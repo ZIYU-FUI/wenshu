@@ -30,10 +30,24 @@ import SwiftUI
 struct SectionHeader: View {
     let title: String
     let showsDivider: Bool
+    /// Whether to render the 10 PT bottom Color.clear inset below the
+    /// divider (= the prior default; = balances the 10 PT top inset for
+    /// symmetric chrome padding). Some callers (= `PreviewPane`'s assets
+    /// column) render an `EditorHeaderView` chrome band immediately below
+    /// the divider; that chrome band already carries its own
+    /// row-height / horizontal padding, so the trailing 10 PT inset
+    /// would create a redundant gap (= boss 2026-10-16 OOB "我不想要那个
+    /// 间距"). Those callers pass `trailingInset: false`.
+    let trailingInset: Bool
 
-    init(title: String, showsDivider: Bool = true) {
+    init(
+        title: String,
+        showsDivider: Bool = true,
+        trailingInset: Bool = true
+    ) {
         self.title = title
         self.showsDivider = showsDivider
+        self.trailingInset = trailingInset
     }
 
     var body: some View {
@@ -55,12 +69,13 @@ struct SectionHeader: View {
             if showsDivider {
                 Divider()
             }
-
             // 10 PT bottom inset (= balances the top inset; = gives
             // the hairline a settled 'pad' before the content
             // starts; = matches the previous PreviewPane .padding
             // (.bottom, 4) + sidebar (no inset) net visual weight).
-            Color.clear.frame(height: DesignTokens.spacingModerate)
+            if trailingInset {
+                Color.clear.frame(height: DesignTokens.spacingModerate)
+            }
         }
     }
 }

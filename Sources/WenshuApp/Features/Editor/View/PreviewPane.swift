@@ -115,7 +115,22 @@ struct PreviewPane: View {
             // Per Apple HIG / platform-default style: the section-header block (=
             // … (= 44 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // PreviewPane no longer hardcodes the geometry here).
-            SectionHeader(title: String(localized: "preview.column.title"))
+            SectionHeader(
+                title: String(localized: "preview.column.title"),
+                // Per boss 2026-10-16 OOB "我不想要那个间距": the assets
+                // column renders `EditorHeaderView` (= the chrome band
+                // wrapping the search field) directly below the title's
+                // divider. The chrome band already carries its own 28 PT
+                // row height + 8 PT horizontal padding; the section
+                // header's trailing 10 PT inset would create a redundant
+                // vertical gap between the divider and the search chrome
+                // (= the gap the user described as "搜索框和标题的分割线
+                // 之间有间距"). Suppress the trailing inset here; the
+                // default `true` still applies to sidebar + inspector,
+                // which render a list with internal padding right below
+                // the section header.
+                trailingInset: false
+            )
             // Per Apple HIG / platform-default style: remove the custom top inset (=
             // … (= 24 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // legacy callers / tests still work).
