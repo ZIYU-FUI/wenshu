@@ -96,16 +96,6 @@ actor MinimaxConnector: LLMConnector {
             throw LLMConnectorError.transport(provider: connectorID, statusCode: http.statusCode, body: bodyPreview)
         }
 
-        // Per boss 2026-10-16 OOB "还是没有内容":
-        // diagnostic print of the raw minimax response body
-        // (= macOS 27 sandboxed NSLog doesn't reach `log show`;
-        // = write to /tmp so we can `cat /tmp/wsminimax-*`).
-        let rawBody = String(data: data, encoding: .utf8) ?? "<not utf8>"
-        let diagPath = "/tmp/wsminimax-response-\(getpid()).log"
-        let diagContent = "bodyLen=\(data.count)\npreview=\(String(rawBody.prefix(2000)))\n---\n"
-        try? diagContent.write(toFile: diagPath, atomically: true, encoding: .utf8)
-
-
         // Decode Anthropic-style response (= text only for sub-step 7).
         // Shared with AnthropicConnector via `decodeAnthropicResponse`.
         return try RequestHelpers.decodeAnthropicResponse(

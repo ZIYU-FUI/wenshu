@@ -506,8 +506,6 @@ actor WenshuVerifier {
                             : WenshuVerifier.systemPromptEnglishOnly + "\n\n---\n\n" + system
                     ]
                     let body = try JSONSerialization.data(withJSONObject: bodyDict)
-                    let bodyStr = String(data: body, encoding: .utf8) ?? "<not utf8>"
-                    try? "POST model=\(effectiveModel) systemLen=\((system).count) textLen=\(text.count)\nbody=\(bodyStr)\n---\n".write(toFile: "/tmp/wsverifier-req-\(getpid()).log", atomically: true, encoding: .utf8)
                     let sse = SSEClient(url: url, headers: [
                         "x-api-key": creds.apiKey,
                         "anthropic-version": "2023-06-01",
@@ -523,13 +521,8 @@ actor WenshuVerifier {
                     ])
                     let stream = await sse.stream(body: body)
                     var textBuffer = ""
-                    var eventCount = 0
-                    var textDeltaCount = 0
-                    var firstEventType = ""
                     for try await event in stream {
                         if Task.isCancelled { break }
-                        eventCount += 1
-                        if firstEventType.isEmpty { firstEventType = event.event }
                         // Anthropic SSE payload is JSON in `event.data`.
                         guard let data = event.data.data(using: .utf8) else { continue }
                         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { continue }
@@ -540,7 +533,6 @@ actor WenshuVerifier {
                                let dType = delta["type"] as? String,
                                dType == "text_delta",
                                let text = delta["text"] as? String {
-                                textDeltaCount += 1
                                 textBuffer += text
                                 continuation.yield(.text(text))
                             }
@@ -559,11 +551,9 @@ actor WenshuVerifier {
                             }
                         }
                     }
-                    try? "done events=\(eventCount) textDeltas=\(textDeltaCount) firstEvent=\(firstEventType) bufferLen=\(textBuffer.count)\n---\n".write(toFile: "/tmp/wsverifier-done-\(getpid()).log", atomically: true, encoding: .utf8)
                     wenshuLogger.info("[wenshu.stream] complete, textBuffer length=\(textBuffer.count)")
                     continuation.finish()
                 } catch {
-                    try? "catch error=\(String(describing: error))\n---\n".write(toFile: "/tmp/wsverifier-error-\(getpid()).log", atomically: true, encoding: .utf8)
                     wenshuLogger.info("[wenshu.stream] error: \(String(describing: error))")
                     continuation.finish(throwing: error)
                 }

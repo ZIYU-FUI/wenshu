@@ -77,19 +77,10 @@ actor SSEClient {
                     if let body {
                         request.httpBody = body
                     }
-                    NSLog("WSStream: POST %@ bodyBytes=%d", url.absoluteString, body?.count ?? 0)
                     let (bytes, response) = try await session.bytes(for: request)
                     guard let http = response as? HTTPURLResponse else {
                         throw URLError(.badServerResponse)
                     }
-                    // Diagnostic: log status + content-type + first 200 chars
-                    // of any readable body bytes (the body might be
-                    // streamable but URLSession may not have read the
-                    // first chunk by the time the diagnostic runs).
-                    let ct = (http.value(forHTTPHeaderField: "content-type") ?? "nil") as String
-                    let cl = (http.value(forHTTPHeaderField: "content-length") ?? "nil") as String
-                    let ce = (http.value(forHTTPHeaderField: "content-encoding") ?? "nil") as String
-                    try? "status=\(http.statusCode) ct=\(ct) cl=\(cl) ce=\(ce)\n---\n".write(toFile: "/tmp/wsstream-status-\(getpid()).log", atomically: true, encoding: .utf8)
                     guard (200..<300).contains(http.statusCode) else {
                         // Capture the body bytes so the caller can
                         // see the real reason (= minimax returns
@@ -126,44 +117,29 @@ actor SSEClient {
                     // `line.isEmpty` boundary check).
                     var pendingEvent = ""
                     var pendingData: [String] = []
-                    var rawLineCount = 0
-                    var firstRawLines = ""
-                    var yieldCount = 0
-                    var rawBoundaryCount = 0
-                    // Build the current line as a byte array (= the
-                    // String+Character approach was getting a
-                    // type-inference error from the compiler on
+                    // Build the current line as a byte array
+                    // (= the String+Character approach was getting
+                    // a type-inference error from the compiler on
                     // UnicodeScalar; = bytes-as-Data is the
                     // simpler path; = we convert to String at
                     // the \n boundary).
                     var currentLineBytes: [UInt8] = []
-                    var byteCount = 0
                     for try await byte in bytes {
                         if Task.isCancelled { break }
-                        byteCount += 1
                         if byte == 0x0A { // \n
                             // End of line: strip trailing CR
                             // (= handle \r\n).
                             if currentLineBytes.last == 0x0D {
                                 currentLineBytes.removeLast()
                             }
-                            // Convert the byte buffer to String for
-                            // the SSE parser (= ASCII + UTF-8
-                            // events; = never lossy here).
                             let lineOut = String(decoding: currentLineBytes, as: UTF8.self)
-                            rawLineCount += 1
-                            if rawLineCount <= 5 {
-                                firstRawLines += "[\(rawLineCount)]len=\(lineOut.count)'\(lineOut.prefix(40))' "
-                            }
                             if lineOut.isEmpty {
                                 // Event boundary: emit.
-                                rawBoundaryCount += 1
                                 if !pendingEvent.isEmpty || !pendingData.isEmpty {
                                     continuation.yield(SSEEvent(
                                         event: pendingEvent,
                                         data: pendingData.joined(separator: "\n")
                                     ))
-                                    yieldCount += 1
                                     pendingEvent = ""
                                     pendingData = []
                                 }
@@ -192,9 +168,16 @@ actor SSEClient {
                             currentLineBytes.removeLast()
                         }
                         let lineOut = String(decoding: currentLineBytes, as: UTF8.self)
-                        rawLineCount += 1
                         if lineOut.isEmpty {
-                            rawBoundaryCount += 1
+                            // Trailing empty line: emit any pending event.
+                            if !pendingEvent.isEmpty || !pendingData.isEmpty {
+                                continuation.yield(SSEEvent(
+                                    event: pendingEvent,
+                                    data: pendingData.joined(separator: "\n")
+                                ))
+                                pendingEvent = ""
+                                pendingData = []
+                            }
                         } else if lineOut.hasPrefix("event:") {
                             pendingEvent = String(lineOut.dropFirst("event:".count))
                                 .trimmingCharacters(in: .whitespaces)
@@ -203,15 +186,19 @@ actor SSEClient {
                             if v.hasPrefix(" ") { v.removeFirst() }
                             pendingData.append(v)
                         }
+                        // Emit any pending event (= the stream
+                        // ended with data but no trailing blank
+                        // line; = some Anthropic-compatible
+                        // endpoints do this on the last event).
                         if !pendingEvent.isEmpty || !pendingData.isEmpty {
                             continuation.yield(SSEEvent(
                                 event: pendingEvent,
                                 data: pendingData.joined(separator: "\n")
                             ))
-                            yieldCount += 1
+                            pendingEvent = ""
+                            pendingData = []
                         }
                     }
-                    try? "rawLineCount=\(rawLineCount) yieldCount=\(yieldCount) rawBoundaryCount=\(rawBoundaryCount) byteCount=\(byteCount) firstLines=\(firstRawLines)\n---\n".write(toFile: "/tmp/wsstream-lines-\(getpid()).log", atomically: true, encoding: .utf8)
                     continuation.finish()
                 } catch is CancellationError {
                     continuation.finish()
