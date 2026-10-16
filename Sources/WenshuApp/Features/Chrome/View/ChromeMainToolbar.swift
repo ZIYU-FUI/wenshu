@@ -70,12 +70,14 @@ extension ChromeMainToolbar: ToolbarContent {
             HStack(spacing: DesignTokens.spacingTight) {
                 // 1. Memory history (= the only previously-wired
                 // button). Active.
-                Button {
-                    openWindow(id: WindowID.memoryHistory)
-                } label: {
-                    SFIcon("brain", style: .small, color: .accent)
-                }
-                .help(String(localized: "window.memoryHistory.title"))
+                WindowOpenButton(
+                    id: WindowID.memoryHistory,
+                    icon: "brain",
+                    title: String(localized: "window.memoryHistory.title"),
+                    style: .small,
+                    openWindow: openWindow,
+                    isEnabled: true
+                )
 
                 // 2-11. The 10 other independent-window buttons
                 // (= boss 2026-10-16 OOB '大部分现在没有开发完').
@@ -84,14 +86,19 @@ extension ChromeMainToolbar: ToolbarContent {
                 // The placeholders establish the toolbar layout
                 // (= 11 buttons at .primaryAction placement) so
                 // the user sees the full feature surface.
+                // All 11 (= 1 + 10) buttons share the WindowOpenButton
+                // format (= the same SFIcon + label + .help + openWindow
+                // shape; = 1 source of truth for the toolbar button
+                // format per boss OOB).
                 ForEach(WindowID.placeholderButtons, id: \.id) { button in
-                    Button {
-                        openWindow(id: button.id)
-                    } label: {
-                        SFIcon(button.icon, style: .small)
-                    }
-                    .help(button.title)
-                    .disabled(!button.isEnabled)
+                    WindowOpenButton(
+                        id: button.id,
+                        icon: button.icon,
+                        title: String(localized: String.LocalizationValue(button.title)),
+                        style: .small,
+                        openWindow: openWindow,
+                        isEnabled: button.isEnabled
+                    )
                 }
             }
         }
