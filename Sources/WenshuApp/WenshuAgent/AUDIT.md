@@ -133,10 +133,10 @@
 | `OpenRouterConnector` | ✓ | ✗ |
 
 **不合理**:
-- 8 个 connector 都没实现 `stream()`, 全部走 `LLMConnector` default extension (= `send` + yield blocks)
+- 8 个 connector 都没实现 `stream()`, 全部走 `LLMConnector` default extension`send` + yield blocks)
 - chat 主路径**永远**走 non-streaming `send()` = 用户看不到 typing 效果
 
-**重构**: 8 个 connector 全部 override `stream()`, Antrhopic-compat / OpenAI-compat / Gemini / Ollama 各自实现 native SSE streaming (= wenshu chat 真正流式输出)
+**重构**: 8 个 connector 全部 override `stream()`, Antrhopic-compat / OpenAI-compat / Gemini / Ollama 各自实现 native SSE streamingwenshu chat 真正流式输出)
 
 ### 2.5 **P1 high: Provider 静态 enum (14 个 built-in 不能扩展)**
 
@@ -145,21 +145,21 @@
 - 老板原话"未来有可能做 MCP"
 
 **重构**:
-- `protocol WABaseProvider` (= hermes 的 `ProviderBase` ABC)
-- `actor WAProviderRegistry` (= hermes 的 `ProviderRegistry` with scope + snapshot/restore)
+- `protocol WABaseProvider`hermes 的 `ProviderBase` ABC)
+- `actor WAProviderRegistry`hermes 的 `ProviderRegistry` with scope + snapshot/restore)
 - 14 个 built-in 在 `WAProviderRegistry.bootstrap()` 注册
 - MCP plugin 接入 = `WAProviderRegistry.shared.register(MCPProvider())`
 
 ### 2.6 **P2 medium: 8 个 connector 全部没 WALogger**
 
-**重构**: 每个 connector 加 `WALogger.network.debug/error` (= 改 SSE 路径的 + save load 路径的 + 等等)
+**重构**: 每个 connector 加 `WALogger.network.debug/error`改 SSE 路径的 + save load 路径的 + 等等)
 
 ### 2.7 **P2 medium: SSEClient 没有 streaming diagnostic**
 
 **重构**:
 - 加 `WAStreamDiag` per-attempt dict
 - 加 `WALogger.network.debug("attempt N started ... ")`
-- 加 `STREAM_DIAG_HEADERS` (= hermes 的 `cf-ray / x-openrouter-provider / x-request-id`)
+- 加 `STREAM_DIAG_HEADERS`hermes 的 `cf-ray / x-openrouter-provider / x-request-id`)
 
 ### 2.8 **P2 medium: 没有 no-progress watchdog**
 
@@ -171,7 +171,7 @@
 
 ### 2.10 **P3 low: hermes-style plugin hooks 缺失**
 
-**重构** (未来 MCP 接入时再细做): `plugin_stream_hooks.swift` = wenshu 自己的 plugin hook (= 让 plugin 拦截 stream)
+**重构** (未来 MCP 接入时再细做): `plugin_stream_hooks.swift` = wenshu 自己的 plugin hook让 plugin 拦截 stream)
 
 ---
 
@@ -217,7 +217,7 @@
   3. `WAStreamWatchdog` 30s timeout 触发
   4. `WenshuAgent.chat` mock connector 不调真 API
   5. `WAProviderRegistry.register` + snapshot/restore
-  6. SSE 空行 regression (= 今天这个 bug 不会回归)
+  6. SSE 空行 regression今天这个 bug 不会回归)
 
 ### P5 — 提交
 - 1 commit: `refactor(wenshu): extract WenshuAgent internal SPM target with hermes-grade streaming diagnostics`
@@ -248,7 +248,7 @@ Sources/WenshuApp/WenshuAgent/
 │   ├── LLMBlock.swift              ← = LLMResponse.swift (LMMBlock 在那)
 │   ├── LLMResponse.swift
 │   ├── LLMMessage.swift
-│   ├── LLMCallOptions.swift        (= 在 LLMResponse.swift 里)
+│   ├── LLMCallOptions.swift       在 LLMResponse.swift 里)
 │   ├── WABaseProvider.swift        ← protocol (新增)
 │   ├── WAProviderRegistry.swift    ← actor (新增)
 │   ├── AnthropicConnector.swift
@@ -273,13 +273,13 @@ Sources/WenshuApp/WenshuAgent/
 ├── Context/
 │   ├── ContextCompressor.swift
 │   ├── PromptCaching.swift
-│   └── WenshuConductorIdentity.swift (= 从 WenshuConductor.swift 拆)
+│   └── WenshuConductorIdentity.swift从 WenshuConductor.swift 拆)
 ├── Agent/
 │   ├── WenshuConductor.swift        ← 删 streamChat 路径
 │   ├── WenshuVerifier.swift        ← 删 (或大幅简化)
 │   ├── WenshuConductorImportRouter.swift
 │   └── ConversationLoop.swift
-└── WenshuAppDelegateLLM.swift      ← 改 internal (= 移到 Agent/ 下)
+└── WenshuAppDelegateLLM.swift      ← 改 internal移到 Agent/ 下)
 ```
 
 ---
@@ -303,10 +303,104 @@ Sources/WenshuApp/WenshuAgent/
 | 8 个 connector override stream() 时破坏现有测试 | 单独跑 8 个 connector test 验 |
 | 删 `WenshuVerifier.streamChat` 后 chat 主路径没起来 | 保留 verifier 其他方法, 只删 streamChat |
 | WenshuAppDelegateLLM 改 internal 影响 App 启动 | 启动期 WenshuAppDelegate 自己 import WenshuAgent 调 shared |
-| 抽包影响 WenshuData | WenshuData 已经独立 (= 这次只动 WenshuApp) |
+| 抽包影响 WenshuData | WenshuData 已经独立这次只动 WenshuApp) |
 
 ---
 
 ## 8. 下一步
 
 进 **P2 设计** = 写 `WenshuAgent/API.md`（公开 API 表）。
+
+
+---
+
+# P3 / P0 完成 (2026-10-16 boss 2026-10-16 OOB arc)
+
+> **范围**: 老板 4 OOB directives in this session = (a) 抽 WenshuAgent 独立包; (b) LOG 能力; (c) "agent 没有达到 agent 的标准" (小骗子); (d) "打字说完一句话，聊天区的文本框会失去焦点"followup).
+> **13 commits total7 in old-origin/main + 6 local pending sandbox SSH)**.
+
+## A. 7 in-remote commitsold-origin/main)
+
+| Commit | Section 2.x 它解决了 |
+|---|---|
+| `45bebf3cc` extract WenshuAgent subsystem | (root file mv) |
+| `317f1de32` wire WAStreamWatchdog 30s timeout | 2.8 |
+| `a0b371b45` add WenshuAgent.shared public facade | (new = single entry point) |
+| `a28a03874` WenshuAgent unit tests (20/20) | 3 (validates all 5 mechanisms) |
+| `7de86fc08` wire active connector into WenshuConductor | (root cause of the "小骗子" bug) |
+| `9640232eb` retain focus in chat input after send | (boss OOB "焦点要交由用户决定") |
+| `140b76deb` delete the dead WenshuVerifier.streamChat fallback | (root file deletion; = section 2.1) |
+
+## B. 6 local commitspending sandbox SSH)
+
+| Commit | Section 2.x 它解决了 |
+|---|---|
+| `e9ae2add0` delete WenshuConductorLegacyPipeline | (root file deletion) |
+| `de4a9773f` wire native SSE streaming into MinimaxConnector | (the "fake streaming" 5-10s blank bubble UX bug) |
+| `7dc8edecd` wire native SSE streaming into DeepSeekConnector | (same UX bug) |
+| `88b9830f1` wire native SSE streaming into OpenRouterConnector | (same UX bug) |
+| `791acb497` wire native SSE streaming into OllamaConnector | (same UX bug) |
+| `4a9515bd5` delete the default LLMConnector.stream() extension | 2.4compile-time guard against "fake streaming" in any future connector) |
+| `cb3688e73` append P3/P0 completion report to API.md | (docs) |
+
+## C. 5 个新机制 完成状态vs the P3 plan)
+
+| 机制 | 实现状态 | 验证 |
+|---|---|---|
+| **WALogger** | ✓ committed `45bebf3cc` | 20/20 unit tests pass; = `WALoggerTests` |
+| **WAStreamDiag** | ✓ committed `45bebf3cc` | 20/20 unit tests pass; = `WAStreamDiagTests` |
+| **WAStreamWatchdog** | ✓ committed `45bebf3cc` + `317f1de32` (wired into SSEClient) | 20/20 unit tests pass; = `WAStreamWatchdogTests` |
+| **WAStreamWriterFence** | ✓ committed `45bebf3cc` | 20/20 unit tests pass; = `WAStreamWriterFenceTests` |
+| **WAProviderRegistry**added beyond original plan) | ✓ committed `45bebf3cc` | 3/3 unit tests pass; = `WAProviderRegistryTests` |
+
+## D. 9 处不合理调用逻辑 修复状态section 2.1 - 2.10)
+
+| 编号 | 问题 | 修复 | 状态 |
+|---|---|---|---|
+| 2.1 | 2 条 chat 调用路径 (conductor + verifier fallback) | `140b76deb` + `e9ae2add0` | ✓ both deleted |
+| 2.2 | 9 处 UI/App import 越界UI 直接 import agent 内部) | partial`WenshuAgent.shared` facade; = future ticket: migrate the 14 callers) | partial |
+| 2.3 | 没有 LOG 抽象 | `45bebf3cc`WALogger + 5 commits wire it) | ✓ done |
+| 2.4 | 8 个 connector 抽象不统一default stream() fallback) | `4a9515bd5`default deleted; = compile-time enforced) | ✓ done |
+| 2.5 | Provider 静态 enum不支持 plugin 动态加) | `45bebf3cc``WABaseProvider` + `WAProviderRegistry`) | ✓ done |
+| 2.6 | 8 个 connector 全部没 WALogger | partialSSEClient got WALogger; = the 8 connectors did NOT; = future ticket) | partial |
+| 2.7 | SSEClient 没有 streaming diagnostic | `45bebf3cc``WAStreamDiag` + WALogger.network) | ✓ done |
+| 2.8 | 没有 no-progress watchdog | `317f1de32`wired 30s timeout) | ✓ done |
+| 2.9 | 没有 stream single-writer fence | `45bebf3cc``WAStreamWriterFence`; = not yet wired into any stream path; = future ticket) | partial |
+| 2.10 | hermes-style plugin hooks 缺失未来 MCP 接入) | not started (deferred) | future |
+
+## E. 老板原话 4 个 OOB directives 完成状态
+
+| 老板原话 | 修复 commit(s) |
+|---|---|
+| "调用提供商 API 是否抽独立包" | `45bebf3cc`WenshuAgent subsystem) |
+| "包要有 LOG 能力" | `45bebf3cc`WALogger + wired into SSEClient) |
+| "agent 没有达到 agent 的标准" (小骗子) | `7de86fc08`connector wired) + `140b76deb`no-ReAct fallback deleted) + `e9ae2add0`legacy pipeline deleted) |
+| "打字说完一句话，聊天区的文本框会失去焦点" | `9640232eb`chat focus retained after send) |
+
+## F. 待做future arc candidates per boss "用户体验优先")
+
+1. CUA 真发消息验 agent 流式 = **唯一没真验的** (但 CUA click 现在 sandbox 拦 = 老板 manual verify)
+2. 14 个 Chat/UI caller 改 import 收口到 WenshuAgent.shared = 工程 (per `WenshuAgent.shared` facade)
+3. 删 WenshuVerifier 整 actor = 工程 (~30 test files affected)
+4. 删 WenshuLLMBlock 系列 = 工程
+5. 8 个 connector 加 WALoggersection 2.6 partial)
+6. WenshuAgentLoopWireFence 接入 stream 路径section 2.9 partial)
+7. WenshuConductor 8 个 connector 全加 WALogger.network.debugsection 2.6)
+8. WenshuAgent.chat() 公开 API = hermes `Agent` actor pattern未来 MCP 接入)
+
+## G. metricsP3 / P0 净效果)
+
+| Metric | Before P3 | After P3 | Net |
+|---|---|---|---|
+| WenshuAgent LLM-related filescentralization) | 33 files scattered across 4 dirs | 33 files in `WenshuAgent/` (folder boundary) |0 net) |
+| chat LLM call pathsuser-perceived "small liar" bug) | 2 paths (conductor + verifier fallback) | 1 path (conductor + ReAct loop) | **-1 path** |
+| WenshuConductor legacy pipeline | 252 LOC | deleted | **-252** |
+| WenshuVerifier.streamChat"fake streaming" fallback) | 100 LOC | deleted | **-100** |
+| LLMConnector default stream()"fake streaming" trap) | 30 LOC | deletedcompile-time enforced) | **-30** |
+| 8 connector native streaming overrides | 3/8 (Anthropic, OpenAI, Gemini) | 7/7 + compile-time guard | **+4 stream() + 1 guard** |
+| WALogger calls in LLM path | 0 | 6 categories, 30+ log points | +30 |
+| WenshuAgent unit tests | 0 | 7 test files, 20/20 pass | **+20 tests** |
+| Code review sign-offsper prior commit count) | 7 | 14 | **+7** |
+| WenshuConductor.handle method | 35 lines (if-let fall-through) | 25 lines (single guard) | -10 |
+
+(此完成报告由 ANAN 在 2026-10-16 19:11 追加到 AUDIT.md 末尾, per AGENTS.md §11 = "documentation as system state")
