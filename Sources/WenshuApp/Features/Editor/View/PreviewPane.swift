@@ -738,7 +738,7 @@ struct PreviewPane: View {
         // (see OOB.md #2026-09-07) — 'search,': apply the search filter (=
         // previewSearchQuery) on top of the category filter. Both filters
         // compose (= all entities → search filter → category filter).
-        let searched = PreviewPaneOps.searchFilteredEntities(loadAllEntities(), query: resolvedSearchQuery)
+        let searched = PreviewPaneOps.searchFilteredEntities(PreviewPaneOps.loadAllEntities(bookStore: bookStore).entities, query: resolvedSearchQuery)
         // SidebarItem.tag preview-pane filter: apply the tag filter (= self.activeTag OR
         // tagOverride from PreviewScope.tagScope) on top of the search +
         // category filter. tag nil = show all (= the user picked the reference
@@ -1118,16 +1118,6 @@ struct PreviewPane: View {
             title: NSLocalizedString(titleKey, comment: ""),
             body: NSLocalizedString(bodyKey, comment: "")
         )
-    }
-
-    // MARK: - Data loading
-
-    private func loadAllEntities() -> [Reference] {
-        let result = PreviewPaneOps.loadAllEntities(bookStore: bookStore)
-        if let err = result.error {
-            wenshuLogger.info("[wenshu.preview] loadAllEntities failed: \(err)")
-        }
-        return result.entities
     }
 
     /// the 3 helpers that the right-click `Card` callbacks call into. They
