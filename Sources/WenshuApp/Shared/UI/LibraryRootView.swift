@@ -224,17 +224,12 @@ struct LibraryRootView: View {
             // native `Label` form). The brain icon now sits in the
             // same optical slot as the export / share / activity
             // buttons in every Apple first-party toolbar.
+            // Main toolbar (= the 11 independent-window button row). Extracted to
+            // Features/Chrome/View/ChromeMainToolbar.swift in A92. Discoverability:
+            // 'where is the title bar / toolbar?' = open ChromeMainToolbar.swift.
             .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button {
-                        openWindow(id: WindowID.memoryHistory)
-                    } label: {
-                        SFIcon("brain", style: .small, color: .accent)
-                    }
-                    .help(String(localized: "window.memoryHistory.title"))
-                }
-            }
-            .task(id: activeLibraryPath) { await runLaunch() }
+                ChromeMainToolbar(openWindow: openWindow, sheetRequests: sheetRequests)
+            }            .task(id: activeLibraryPath) { await runLaunch() }
             .sheet(isPresented: $commandPaletteVisible) {
                 CommandPaletteView(model: commandPaletteModel)
                     .navigationTitle(String(localized: "command_palette.title"))
