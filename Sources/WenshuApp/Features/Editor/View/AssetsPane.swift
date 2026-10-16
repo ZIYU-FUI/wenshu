@@ -144,48 +144,47 @@ struct AssetsPane: View {
                     set: { newValue in envAppState.searchText = newValue ?? "" }
                 ),
                 customLeadingSearch: AnyView(
-                    HStack(spacing: DesignTokens.spacingIconic) {
-                        SFIcon("magnifyingglass", style: .inlineSmall, color: IconColor.secondary)
-                        TextField(
-                            String(localized: "preview.search.placeholder"),
-                            text: Binding(
-                                get: { envAppState.searchText },
-                                set: { newValue in envAppState.searchText = newValue }
+                    // Column-top chrome band wrapping the search field
+                    // (= same shape as the editor zone's top bar; = 28 PT
+                    // height + Divider + 8 PT horizontal padding; = the
+                    // single source of truth for "column-top chrome row in
+                    // wenshu" lives in EditorHeaderView; = no duplicate
+                    // chrome geometry per the 41-rule audit + AGENTS §6.2).
+                    // RATIONALE: boss 2026-10-16 OOB "给素材区顶部的搜索框, 套上
+                    // 一个和编辑器区一样的顶栏" — editor's chrome band is
+                    // already the canonical column-top shape; the search
+                    // field is the only thing living above the cards grid
+                    // (= the assets zone's analog to the editor's title bar
+                    // above the NSTextView).
+                    EditorHeaderView {
+                        // Search field body lives INSIDE the chrome band's
+                        // leading slot (= title cluster replaced). Per
+                        // Apple HIG macOS toolbar pattern, the icons sit
+                        // inline with the input; = no inner-padded
+                        // TextField wrapper (= the 28 PT chrome band itself
+                        // provides the row height). The two prior
+                        // RoundedRectangle(.clear) backgrounds were no-ops
+                        // (= previous round dropped the inner pill
+                        // background; the chrome band is the surface now).
+                        HStack(spacing: DesignTokens.spacingIconic) {
+                            SFIcon(
+                                "magnifyingglass",
+                                style: .inlineSmall,
+                                color: IconColor.secondary
                             )
-                        )
-                        // Apply `.controlSize(.regular)` (= the canonical
-                        // … (= 12 rationale lines collapsed; = A112 docblock collapse per §1.8)
-                        // NavigationSplitView).
-                        .controlSize(.regular)
-                        .textFieldStyle(.plain)
+                            TextField(
+                                String(localized: "preview.search.placeholder"),
+                                text: Binding(
+                                    get: { envAppState.searchText },
+                                    set: { newValue in
+                                        envAppState.searchText = newValue
+                                    }
+                                )
+                            )
+                            .controlSize(.regular)
+                            .textFieldStyle(.plain)
+                        }
                     }
-                    // Total height = 22 PT
-                    // … (= 34 rationale lines collapsed; = A112 docblock collapse per §1.8)
-                    // gutter).
-                    .padding(.horizontal, DesignTokens.spacingModerate)
-                    .padding(.vertical, DesignTokens.spacingStandard)
-                    .frame(maxWidth: .infinity)
-                    // 2026-10-12 boss directive "素材栏里写的搜索
-                    // … (= 18 rationale lines collapsed; = A112 docblock collapse per §1.8)
-                    // unchanged but the surface is transparent).
-                    .background(
-                        RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusProgressCard, style: .continuous)
-                            .fill(Color.clear)
-                    )
-                    // The search field,
-                    // … (= 34 rationale lines collapsed; = A112 docblock collapse per §1.8)
-                    // left; = no visual change inside the field).
-                    .frame(maxWidth: .infinity)
-                    // 2026-10-12 boss directive round 2 "还在, 黑
-                    // … (= 23 rationale lines collapsed; = A112 docblock collapse per §1.8)
-                    // invisible until the user types.
-                    .background(
-                        RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusProgressCard, style: .continuous)
-                            .fill(Color.clear)
-                    )
-                    // Search field
-                    // … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
-                    // '' aesthetic per the search-field rhythm.
                 )
             )
             // 2026-10-12 boss directive "在素材栏也加一个底栏,

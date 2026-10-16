@@ -35,25 +35,69 @@ struct EditorHeaderView: View {
     /// entirely (= just the title remains). Default = empty.
     let chrome: [EditorHeaderChrome]
 
+    /// Custom leading slot. When non-nil, REPLACES the
+    /// `title + dirtyState` cluster (= same leading position;
+    /// same 28 PT row height; same Divider). Caller controls
+    /// whatever belongs in the leading zone — editor uses
+    /// `title + dirtyState`; assets bar uses a search field.
+    /// Single source of truth for the column-top chrome shape
+    /// (= 41-rule audit + §6.2 = no duplicate chrome geometries).
+    let customLeading: AnyView?
+
+    init(
+        title: String,
+        dirtyState: EditorHeaderDirtyState? = nil,
+        chrome: [EditorHeaderChrome] = [],
+        customLeading: AnyView? = nil
+    ) {
+        self.title = title
+        self.dirtyState = dirtyState
+        self.chrome = chrome
+        self.customLeading = customLeading
+    }
+
+    /// Convenience init that hosts a SwiftUI View via `@ViewBuilder`
+    /// (= the caller doesn't pass `AnyView` directly; = matches the
+    /// `EditorHeaderChrome.init` shape).
+    init<V: View>(
+        title: String = "",
+        dirtyState: EditorHeaderDirtyState? = nil,
+        chrome: [EditorHeaderChrome] = [],
+        @ViewBuilder customLeading: () -> V
+    ) {
+        self.title = title
+        self.dirtyState = dirtyState
+        self.chrome = chrome
+        self.customLeading = AnyView(customLeading())
+    }
+
     var body: some View {
         HStack(spacing: DesignTokens.spacingStandard) {
-            // Title cluster (left)
-            HStack(spacing: DesignTokens.spacingIconic) {
-                if let dirtyState {
-                    Circle()
-                        .fill(dirtyState.color)
-                        .frame(
-                            width: DesignTokens.tabCloseFrameSize,
-                            height: DesignTokens.tabCloseFrameSize
-                        )
-                        .help(dirtyState.tooltip)
-                        .accessibilityLabel(dirtyState.accessibilityLabel)
+            if let customLeading {
+                // Custom leading slot wins (= canonical Apple toolbar
+                // pattern: leading zone is either title text OR a custom
+                // widget; = the title text is suppressed when customLeading
+                // is non-nil; = no double-leading-row visual).
+                customLeading
+            } else {
+                // Title cluster (left)
+                HStack(spacing: DesignTokens.spacingIconic) {
+                    if let dirtyState {
+                        Circle()
+                            .fill(dirtyState.color)
+                            .frame(
+                                width: DesignTokens.tabCloseFrameSize,
+                                height: DesignTokens.tabCloseFrameSize
+                            )
+                            .help(dirtyState.tooltip)
+                            .accessibilityLabel(dirtyState.accessibilityLabel)
+                    }
+                    Text(title)
+                        .font(.body)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
                 }
-                Text(title)
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
             }
 
             Spacer(minLength: DesignTokens.spacingStandard)
