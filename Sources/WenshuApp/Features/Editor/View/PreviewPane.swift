@@ -1228,10 +1228,6 @@ struct PreviewPane: View {
         cachedShelfBooks[shelfId] = result.books
     }
 
-    private func loadBody(for entity: Reference) -> String? {
-        return PreviewPaneOps.loadBody(bookStore: bookStore, for: entity).body
-    }
-
     /// load .md files from a book folder on the filesystem. Walks all shelves
     /// (= shelves/<shelf>/books/<book>/) to find the matching bookId, then
     /// scans one or more of the 8 standard folders for .md files. Errors (=
