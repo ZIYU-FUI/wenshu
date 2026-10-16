@@ -66,9 +66,73 @@ actor WenshuAgent {
     /// (= wenshu-internal flag; = no plaintext secrets leave this layer).
     /// Delegates to `ProviderKeychain.listProvidersWithKeys()`.
     func providersWithKeys() async -> [String] {
-        await Task.detached {
+        let result = await Task.detached {
             ProviderKeychain.listProvidersWithKeys()
         }.value
+        // Cache the result for sync read by SwiftUI view bodies
+        // (= AUDIT.md §2.2 partial: ChatView.hasUsableKey +
+        // ChatZoneView body are `var` (= non-async) and
+        // cannot `await providersWithKeys()`).
+        cachedProvidersWithKeys = result
+        _publishCachedSnapshot()
+        return result
+    }
+
+    /// Cached value of the last `providersWithKeys()` call.
+    /// Initialized to `[]` (= "no provider configured yet" =
+    /// the same value ChatView / ChatZoneView would see on
+    /// first launch before the cache is warmed up). The
+    /// cache is updated each time `providersWithKeys()` is
+    /// awaited (= which happens at app launch + on every
+    /// keychain change notification per the WenshuAgent /
+    /// ProviderKeychain wiring in WenshuAppDelegate).
+    private var cachedProvidersWithKeys: [String] = []
+
+    /// Sync read of the cached provider-with-keys list.
+    /// For SwiftUI view bodies (= `var hasUsableKey: Bool`
+    /// is non-async). The cache is updated whenever
+    /// `providersWithKeys()` runs (= 1x at app launch;
+    /// = 1x per keychain change notification).
+    /// Returns `false` if the cache is empty (= "no
+    /// provider configured yet" = the conservative
+    /// default).
+    nonisolated func hasProvidersWithKeysCached() -> Bool {
+        // Note: this is `nonisolated` to allow SwiftUI
+        // view bodies (= main actor) to read without an
+        // async hop. The cache is only ever written from
+        // the `providersWithKeys()` method (= same actor),
+        // so the read is naturally consistent.
+        // (= the Swift 6 strict-concurrency warning about
+        // "non-Sendable" private state is suppressed via
+        // the explicit @unchecked Sendable below; = the
+        // underlying type is a String array which IS
+        // Sendable; = safe to read across actors.)
+        WenshuAgent.cachedSnapshot.withLock { $0.isEmpty == false }
+    }
+
+    /// Cached snapshot for `nonisolated` sync reads.
+    /// Updated from `providersWithKeys()` (= the actor-
+    /// isolated write). Read from SwiftUI view bodies
+    /// (= the non-async read path).
+    private static let cachedSnapshot = CachedProviderList()
+
+    /// Tiny lock-protected holder (= replaces the
+    /// actor-isolated `cachedProvidersWithKeys` for the
+    /// `nonisolated` read path).
+    private final class CachedProviderList: @unchecked Sendable {
+        private var value: [String] = []
+        private let lock = NSLock()
+        func withLock<R>(_ body: (inout [String]) -> R) -> R {
+            lock.lock()
+            defer { lock.unlock() }
+            return body(&value)
+        }
+    }
+
+    /// Internal hook: update the snapshot when the
+    /// actor-isolated `cachedProvidersWithKeys` changes.
+    fileprivate func _publishCachedSnapshot() {
+        WenshuAgent.cachedSnapshot.withLock { $0 = cachedProvidersWithKeys }
     }
 
     // MARK: - Available models

@@ -51,7 +51,15 @@ struct ChatView: View {
         // chat-input-disabled-key-check: gate on the
         // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // race-fire a second send; = Apple Messages behavior).
-        return !ProviderKeychain.listProvidersWithKeys().isEmpty && !vm.isSending
+        // AUDIT.md §2.2 partial (2026-10-16): `var hasUsableKey`
+        // (= a non-async SwiftUI view body computed property)
+        // cannot `await providersWithKeys()`; = use the
+        // sync-cached variant on the public facade. The
+        // cache is warmed at app launch + refreshed on every
+        // keychain change notification (= 1-line change vs
+        // the direct `ProviderKeychain.listProvidersWithKeys()`
+        // call that the AUDIT §2.2 partial flagged).
+        return WenshuAgent.shared.hasProvidersWithKeysCached() && !vm.isSending
     }
 
     init(conductor: WenshuConductor? = nil, sessionId: SessionID = SessionID(rawValue: "default"), vm: ChatViewModel? = nil) {
@@ -244,7 +252,11 @@ struct ChatView: View {
                 // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
                 // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
                 // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-                if ProviderKeychain.listProvidersWithKeys().isEmpty {
+                // AUDIT.md §2.2 partial (2026-10-16): use the
+                // sync-cached variant (= the Task is async but
+                // the value is also available via the cache; =
+                // no need to await + recompute).
+                if !WenshuAgent.shared.hasProvidersWithKeysCached() {
                     return
                 }
                 Task { await vm.loadHistory() }

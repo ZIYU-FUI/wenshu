@@ -125,7 +125,15 @@ struct ChatZoneView: View {
                 // negligible. Source of truth stays in one place
                 // (SettingView + ChatZoneView + ChatView.hasUsableKey
                 // = all three call ProviderKeychain.listProvidersWithKeys()).
-                if !ProviderKeychain.listProvidersWithKeys().isEmpty {
+                // / AUDIT.md §2.2 partial (2026-10-16): the
+                // `listProvidersWithKeys().isEmpty` check now
+                // goes through WenshuAgent.shared (= the public
+                // facade; = sync `hasProvidersWithKeysCached()`
+                // = no main-actor await; = the cache is warmed
+                // by `ChatSessionViewModel.swift:656` at app
+                // launch + refreshed on every keychain change
+                // notification via `_publishCachedSnapshot`).
+                if WenshuAgent.shared.hasProvidersWithKeysCached() {
                     EmptyView()
                 } else {
                     ChatHelpTextOverlay {
@@ -190,6 +198,17 @@ struct ChatZoneView: View {
             for: .wenshuProviderKeychainChanged
         )) { _ in
             keychainRevision &+= 1
+            // AUDIT.md §2.2 partial (2026-10-16): refresh the
+            // WenshuAgent.shared cache (= the sync-cached
+            // variant that ChatZoneView + ChatView.hasUsableKey
+            // read from). Without this refresh, the cache
+            // would only update when `providersWithKeys()`
+            // is explicitly awaited (= the chat-session
+            // viewmodel path). The keychain change is
+            // the canonical trigger for "the user just
+            // configured a key" = refresh on every
+            // notification.
+            Task { await WenshuAgent.shared.providersWithKeys() }
         }
         // 2026-09-23: ' UI ，windows ，
         // NVS，，， NVS ，
