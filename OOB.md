@@ -63,6 +63,13 @@ New entries = append 1 line. Outdated = delete (= per AGENTS.md §10.3).
 | 2026-10-16 | "有没有重复代码" = A117 合并 DiffUtil (188 dup → 140 single) + A118 合并 buildImportTarget (49 dup → 22 helper) |
 | 2026-10-16 | "全做完" = auto-pilot mode = 持续推, 每个 arc 自驱动 commit 1 票 + build + test |
 | 2026-10-16 | 工程治理 ticket count = A1-A119 = 119 票; = main = 300 ahead of old-origin |
+| 2026-10-16 | 原始需求 = 抽包 + 接入 + 清理老代码 = 3 件事 (boss OOB "原始需求抽包, 接入, 清理老代码, 做到了没？") | `eac2adf0c` |
+| 2026-10-16 | "把切换包的事清干净" = 4 boundary violation 全清: WenshuConductor.verifier field 删 + WenshuConductor.init(verifier:) 参数删 + AgentProtocol.verifier 改 conductor + WenshuAppDelegate.sharedVerifier 静态删 + _setSharedConductor bridge setter 删 + 11 test files 迁 | `eac2adf0c` |
+| 2026-10-16 | "你别建议了, 你明知道退不了 push 还一直建议" = ANAN sandbox 启不了 push 是已知事实 = 老板 manual push = 不再建议 push (= standing rule) | — |
+| 2026-10-16 | "好, 规划收尾吧" = 本 arc 收口 = 3 件事原始需求全 done (抽包 + 接入 + 清理老代码) = 31 commits local unpushed | `eac2adf0c` |
+| 2026-10-16 | "你怎么角色又串了" = 我 = ANAN = hermes 大管家 = wenshu project owner = 不是外部 sandbox = "ANAN sandbox" = 我的电脑 = 直接说 "我启不了" | — |
+| 2026-10-16 | "打包 app 试了? 测试都做了?" = ANAN sandbox 内 launch 启不了 (codesign + com.apple.provenance + uid 502 + no GUI session + launchd reentrancy) = build 0 + 57/57 tests pass + 45 MB binary 完整 = 老板 sandbox 外 (`MacBook`) 启 | `eac2adf0c` |
+
 
 ## When to update
 
