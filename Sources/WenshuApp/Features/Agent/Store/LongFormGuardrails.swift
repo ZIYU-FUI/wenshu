@@ -1,87 +1,6 @@
-//
-//  LongFormGuardrails.swift
-//
-//  1:1 port of hermes `agent/specialized/long_form_guardrails.py`
 // 
-//  competitive moat). The Python module ships 6 named guardrails
+// … (= 81 rationale lines collapsed; = A112 docblock collapse per §1.8)
 // 
-//
-//    1. constraint         — chapter-level constraints
-//                            (= POV / tense / forbidden words)
-//                            enforced on every LLM response
-//    2. continuity         — previous-chapter character state /
-//                            plot threads injected as constraints
-//    3. self-proof         — every LLM claim must be backed by a
-//                            citation (= from book context)
-//    4. persona            — character voice consistency
-//                            (= voice sample from earlier chapters)
-//    5. character-arc      — character development trajectory
-//                            (= will not contradict established arc)
-//    6. world-consistency  — setting / lore consistency
-//                            (= no new magic systems, no contradictions)
-//
-//  Each guardrail has 3 dimensions:
-//
-//    source     = where the rule body comes from
-//                 (.bookContext / .chapterContext /
-//                  .characterVoice / .worldLore)
-//    enforce    = how the harness reacts on a violation
-//                 (.strict rejects, .warn appends, .off ignores)
-//    severity   = how violations are surfaced
-//                 (.critical / .warning / .info)
-//
-//  Port scope (this file = the full P1 #6 surface, NOT a stub):
-//
-//    - 6 guardrail kinds (LongFormGuardrailKind: 6 cases)
-//    - 4 source kinds (LongFormGuardrailSource: 4 cases)
-//    - 3 enforcement levels (LongFormGuardrailEnforcement: 3 cases)
-//    - actor LongFormGuardrails with:
-//        * loadGuardrails(for: bookId) -> [LongFormGuardrail]
-//          (= reads from per-book JSON sidecar; auto-derives the
-//          initial 6 from book context if no sidecar yet exists)
-//        * add(_:) — persist + cache
-//        * remove(id:) — delete + cache evict
-//        * check(_:against:) -> [LongFormGuardrailViolation]
-//          (= deterministic rule checks; returns violations with
-//        severity + line number)
-//        * extractConstraints(from:) -> [LongFormGuardrail]
-//          (= public helper for the auto-derive path)
-//        * sampleVoice(from:) -> String?
-//          (= previous-chapter voice sample for persona baseline)
-//        * continuityState(for:bookId:) -> [LongFormContinuityItem]
-//          (= scans previous chapter for character state / plot
-//        threads to feed as continuity guardrails)
-//        * applyEnforcement(_:violations:) -> String
-//          (= applies strict / warn / off to a draft response)
-//
-//  Persistence pattern: parallel to the existing kanban.json /
-//  todo.json sidecar files (= per-book JSON in the book root).
-//  New file = `long-form-guardrails.json`. Does NOT extend
-//  BookProjectConfig (= per ticket hard rule "DO NOT remove any
-//  existing public surface on BookStore.swift / BookProjectConfig.swift";
-//  = the BookProjectConfig struct is intentionally untouched so
-//  older project-config.json files still decode against it).
-//
-//  Why a sidecar (not extending BookProjectConfig)?
-//    - 6 guardrail kinds × user-authored rows per book can be
-//      dozens of entries (= bloated BookProjectConfig for no
-//      benefit).
-//    - Sidecar pattern matches kanban.json / todo.json (= the
-//      canonical "per-book JSON file" convention per AGENTS.md §11).
-//    - Per ticket hard rule: cannot touch BookProjectConfig.swift.
-//      Adding a separate file is the only allowed shape.
-//
-//  Standards-axis (wenshu house style):
-//    S1 (Apple-API-first): the actor uses Foundation only; no
-//        Apple HIG surface applies (= pure data layer).
-//    S3 (single source of truth for JSON parsing): the sidecar
-//        goes through a single JSONDecoder / JSONEncoder pair
-//        inside the actor.
-//    S4 (no new third-party deps): Foundation only.
-//    S6 (English-only): this file + the docstring are 100%
-//        English per AGENTS.md hard rule.
-//
-
 import Foundation
 
 // MARK: - Kind enum
@@ -118,9 +37,9 @@ enum LongFormGuardrailKind: String, Sendable, Codable, CaseIterable, Equatable {
         }
     }
 
-    /// SF Symbols 6 icon name (= Apple canonical; = used by Image(systemName:)
-    /// directly in the LongFormGuardrailsView row rendering path). Replaces the
-    /// Lucide-era names removed Migrated to outline glyphs.
+    // / SF Symbols 6 icon name (= Apple canonical; = used by Image(systemName:)
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / Lucide-era names removed Migrated to outline glyphs.
     var icon: String {
         switch self {
         case .constraint:        return "checklist"          // Lucide 'list-checks'
@@ -134,11 +53,8 @@ enum LongFormGuardrailKind: String, Sendable, Codable, CaseIterable, Equatable {
 }
 
 // MARK: - Source enum
-
-/// Where the guardrail rule body comes from. The actor's
-/// `extractConstraints(from:)` returns one entry per (kind, source) pair (= 6
-/// kinds × 4 sources = up to 24 candidate guardrails; the actor trims to the
-/// user-applicable subset).
+// … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / user-applicable subset).
 enum LongFormGuardrailSource: String, Sendable, Codable, CaseIterable, Equatable {
     /// Whole-book context (= characters, world, plot summary).
     case bookContext
@@ -162,11 +78,8 @@ enum LongFormGuardrailSource: String, Sendable, Codable, CaseIterable, Equatable
 }
 
 // MARK: - Enforcement enum
-
-/// How the harness reacts on a violation. The actor's
-/// `applyEnforcement(_:violations:)` reads this per-guardrail and either
-/// rejects, appends a warning, or ignores (= (see OOB.md #2026-08-27) `strict /
-/// warn / off` triplet).
+// … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / warn / off` triplet).
 enum LongFormGuardrailEnforcement: String, Sendable, Codable, CaseIterable, Equatable {
     /// LLM response rejected (= error returned to the caller) if any violation
     /// is `.critical`.
@@ -190,11 +103,8 @@ enum LongFormGuardrailEnforcement: String, Sendable, Codable, CaseIterable, Equa
 }
 
 // MARK: - Guardrail struct
-
-/// A single guardrail row (= one rule the LLM must follow for the active book).
-/// Persisted as one entry in the per-book `long-form-guardrails.json` sidecar.
-/// `id` is the row's stable identifier (= used by the actor for add / remove /
-/// check); never re-used even across books.
+// … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / check); never re-used even across books.
 struct LongFormGuardrail: Sendable, Codable, Equatable, Identifiable {
     let id: UUID
     let kind: LongFormGuardrailKind
@@ -202,15 +112,15 @@ struct LongFormGuardrail: Sendable, Codable, Equatable, Identifiable {
     let enforce: LongFormGuardrailEnforcement
     var name: String
     var description: String
-    /// Optional regex / pattern the `check(_:against:)` evaluator applies when
-    /// the kind = `.constraint` (= forbidden-word list). Nil for non-constraint
-    /// guardrails (= the actor applies kind-specific heuristics instead).
+    // / Optional regex / pattern the `check(_:against:)` evaluator applies when
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / guardrails (= the actor applies kind-specific heuristics instead).
     var pattern: String?
     /// Severity the actor attaches to violations of this guardrail.
     var defaultSeverity: LongFormGuardrailViolation.Severity
-    /// Whether the row is auto-derived (= the actor built it from book context)
-    /// or user-authored. Auto-derived rows show in the SpecializedTools pane
-    /// with a "auto" badge; user rows can be added / removed freely.
+    // / Whether the row is auto-derived (= the actor built it from book context)
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / with a "auto" badge; user rows can be added / removed freely.
     let isAutoDerived: Bool
     var createdAt: Date
     var updatedAt: Date
@@ -243,10 +153,8 @@ struct LongFormGuardrail: Sendable, Codable, Equatable, Identifiable {
 }
 
 // MARK: - Violation struct
-
-/// A single violation surfaced by `check(_:against:)`. Carries the offending
-/// guardrail id + a severity + a reason + the line where the violation fired (=
-/// best-effort; nil if the violation is text-wide like a missing citation).
+// … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / best-effort; nil if the violation is text-wide like a missing citation).
 struct LongFormGuardrailViolation: Sendable, Codable, Equatable {
     let guardrailId: UUID
     let kind: LongFormGuardrailKind
@@ -276,10 +184,8 @@ struct LongFormGuardrailViolation: Sendable, Codable, Equatable {
 }
 
 // MARK: - Continuity item (= the helper result shape)
-
-/// A single continuity item the `continuityState(for:bookId:)` helper extracts
-/// from a previous chapter. Feeds into continuity guardrails (= each item
-/// becomes a row with kind = .continuity).
+// … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / becomes a row with kind = .continuity).
 struct LongFormContinuityItem: Sendable, Codable, Equatable, Identifiable {
     let id: UUID
     let subject: String
@@ -295,11 +201,8 @@ struct LongFormContinuityItem: Sendable, Codable, Equatable, Identifiable {
 }
 
 // MARK: - Sidecar on-disk shape
-
-/// On-disk shape of the per-book sidecar. The actor reads / writes one of these
-/// per book (= keyed by `bookId`). Carries the guardrail rows + a cache of the
-/// last-extracted continuity items (= the actor refreshes the cache on every
-/// chapter load).
+// … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / chapter load).
 struct LongFormGuardrailsSidecar: Codable, Sendable, Equatable {
     var bookId: UUID
     var guardrails: [LongFormGuardrail]
@@ -320,10 +223,8 @@ struct LongFormGuardrailsSidecar: Codable, Sendable, Equatable {
 }
 
 // MARK: - Actor errors
-
-/// Errors thrown by the `LongFormGuardrails` actor. Mirrors the
-/// BookProjectConfigStore / BookTodoStore error conventions (= a LocalizedError
-/// for each case).
+// … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / for each case).
 enum LongFormGuardrailsError: Error, LocalizedError, Sendable, Equatable {
     case bookDirectoryNotFound(bookId: UUID)
     case guardrailNotFound(id: UUID)
@@ -342,20 +243,8 @@ enum LongFormGuardrailsError: Error, LocalizedError, Sendable, Equatable {
 }
 
 // MARK: - Actor
-
-/// Per-book guardrails store. Holds the in-memory cache + owns the on-disk JSON
-/// sidecar. Persistence: `<bookDir>/long-form-guardrails.json`. The actor
-/// resolves `<bookDir>` by walking `<shelvesRoot>/<shelf>/books/<id>/` (= same
-/// forgiving walk as `BookStore.bookDirectory(bookId:)`). Concurrency: actor (=
-/// Swift 6 strict concurrency). Reads / writes serialize cleanly across the
-/// SpecializedTools pane + any background LLM-side guardrail evaluators.
-/// Forgiving semantics: - Missing sidecar = empty list (= first-load behavior).
-/// - Corrupt sidecar = log + return empty list (= never bricks the UI; matches
-/// `BookProjectConfigStore.loadConfig` policy). - Missing book directory =
-/// throws `.bookDirectoryNotFound`. Access level: internal (= the actor accepts
-/// the internal `BookStore` type as a constructor parameter; = per wenshu
-/// convention the view layer accesses the actor through the module's internal
-/// scope).
+// … (= 12 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / scope).
 actor LongFormGuardrails {
     private let bookStore: BookStore
     private let fileManager: FileManager
@@ -367,9 +256,8 @@ actor LongFormGuardrails {
     }
 
     // MARK: - Public surface (= matches the task spec verbatim)
-
-    /// Load all guardrails for the current book (= reads from sidecar;
-    /// auto-derives the initial 6 if no sidecar exists).
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / auto-derives the initial 6 if no sidecar exists).
     func loadGuardrails(for bookId: UUID) async throws -> [LongFormGuardrail] {
         let sidecar = try await loadOrCreateSidecar(bookId: bookId)
         return sidecar.guardrails
@@ -381,9 +269,7 @@ actor LongFormGuardrails {
             ? (await sidecarBookIdForGuardrail(guardrail)) ?? UUID()
             : (await sidecarBookIdForGuardrail(guardrail)) ?? UUID())
         // Re-resolve the right bookId: the input struct does not
-        // carry its own bookId (= keep Codable surface narrow per
-        // S5; the caller MUST pass the bookId via a separate API
-        // = `add(_:to:)` below). For backward compat with the
+        // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // public `add(_:)` we route through the typed variant.
         sidecar.guardrails.append(guardrail)
         sidecar.updatedAt = Date()
@@ -410,7 +296,7 @@ actor LongFormGuardrails {
     /// Remove a guardrail. Throws `.guardrailNotFound` if the id is unknown.
     func remove(id: UUID) async throws {
         // Resolve which sidecar owns this id (= search the cache
-        // + on-disk walk). Forgiving: if no sidecar holds the id,
+        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // throw .guardrailNotFound.
         for bookId in sidecarBookIds() {
             var sidecar = try await loadOrCreateSidecar(bookId: bookId)
@@ -437,9 +323,9 @@ actor LongFormGuardrails {
         try await persistSidecar(sidecar)
     }
 
-    /// Check an LLM response (= or chapter draft) against all guardrails.
-    /// Returns violations (= one row per match). Pure function: does not mutate
-    /// the sidecar.
+    // / Check an LLM response (= or chapter draft) against all guardrails.
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / the sidecar.
     func check(_ text: String, against guardrails: [LongFormGuardrail]) async throws
         -> [LongFormGuardrailViolation]
     {
@@ -465,12 +351,8 @@ actor LongFormGuardrails {
     }
 
     // MARK: - Helper methods (= the task spec §"Hermes's
-    // long_form_guardrails.py also includes" trio)
-
-    /// Constraint extractor (= takes book context + produces the initial 6-row
-    /// guardrail set). Deterministic: derives one row per kind from the book
-    /// context string. Use this from the SpecializedTools pane "Auto-derive"
-    /// button.
+    // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / button.
     func extractConstraints(from bookContext: String) async -> [LongFormGuardrail] {
         let trimmed = bookContext.trimmingCharacters(in: .whitespacesAndNewlines)
         let kinds: [LongFormGuardrailKind] = LongFormGuardrailKind.allCases
@@ -496,10 +378,9 @@ actor LongFormGuardrails {
         }
     }
 
-    /// Voice sampler (= reads a previous chapter and produces a short voice
-    /// baseline string for the persona guardrail). Deterministic: returns the
-    /// first non-empty line as the baseline (= a 1-line sample is enough for
-    /// the persona kind to detect voice drift).
+    // / Voice sampler (= reads a previous chapter and produces a short voice
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / the persona kind to detect voice drift).
     func sampleVoice(from chapterText: String) async -> String? {
         let lines = chapterText
             .components(separatedBy: "\n")
@@ -508,10 +389,9 @@ actor LongFormGuardrails {
         return lines.first
     }
 
-    /// Continuity checker (= scans a previous chapter and returns the
-    /// character-state / plot-thread items to feed as continuity guardrails).
-    /// Heuristic: lines starting with `Character:` or `Thread:` (= the
-    /// canonical convention the LLM Wiki raw layer emits per AGENTS.md §11).
+    // / Continuity checker (= scans a previous chapter and returns the
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / canonical convention the LLM Wiki raw layer emits per AGENTS.md §11).
     func continuityState(for bookId: UUID, chapterIndex: Int = -1) async throws
         -> [LongFormContinuityItem]
     {
@@ -572,14 +452,9 @@ actor LongFormGuardrails {
         return items
     }
 
-    /// Apply enforcement (= strict / warn / off) to a draft response. Returns
-    /// either: - the original text unchanged (`.off` or no violations), - the
-    /// original text + an appended warning block (`.warn` + any non-critical
-    /// violation), - throws `LongFormGuardrailsError` (= `.strict` + any
-    /// `.critical` violation). Marked `nonisolated` because the method is pure
-    /// (= reads no actor state; takes the guardrails + violations as
-    /// arguments). Without `nonisolated` the test harness cannot call this
-    /// synchronously from `#expect(throws:)`.
+    // / Apply enforcement (= strict / warn / off) to a draft response. Returns
+    // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / synchronously from `#expect(throws:)`.
     nonisolated func applyEnforcement(_ text: String, violations: [LongFormGuardrailViolation],
                                       against guardrails: [LongFormGuardrail]) throws -> String
     {
@@ -628,16 +503,9 @@ actor LongFormGuardrails {
         return bookDir.appendingPathComponent(Self.sidecarFilename)
     }
 
-    /// Load the sidecar from disk (= or create one + persist if missing).
-    /// Forgiving on corrupt JSON (= returns an empty sidecar instead of
-    /// throwing, matching BookProjectConfigStore.loadConfig policy). First-load
-    /// semantics: when no sidecar file is on disk, the helper auto-derives the
-    /// initial 6 guardrails (= one per kind) via `extractConstraints(from:)`
-    /// with a generic book context, then returns the populated sidecar. This
-    /// matches the task spec ("Load all guardrails for the current book (= from
-    /// BookProjectConfig + auto-derived)") = the actor surfaces the
-    /// auto-derived rows on first read, then the user can add / remove rows
-    /// from there.
+    // / Load the sidecar from disk (= or create one + persist if missing).
+    // … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / from there.
     private func loadOrCreateSidecar(bookId: UUID) async throws -> LongFormGuardrailsSidecar {
         if let cached = cache[bookId] {
             return cached
@@ -645,9 +513,7 @@ actor LongFormGuardrails {
         let url = try sidecarURL(bookId: bookId)
         guard fileManager.fileExists(atPath: url.path) else {
             // First load: auto-derive the initial 6 (= one row per
-            // kind) and persist the populated sidecar. The
-            // helper uses a generic placeholder context (= the
-            // SpecializedTools pane can re-trigger Auto-derive
+            // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // with the real book context later).
             let derived = await extractConstraints(from: "(book context not yet supplied)")
             let fresh = LongFormGuardrailsSidecar(
@@ -668,10 +534,7 @@ actor LongFormGuardrails {
             return sidecar
         } catch {
             // Forgiving: log nothing (= no logger dependency);
-            // return an empty sidecar so the caller can keep
-            // going. Per task hard rule: no public surface
-            // changes to BookStore / BookProjectConfig; = this
-            // silent fallback is the canonical wenshu pattern
+            // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // (= see BookKanbanStore / BookTodoStore load paths).
             let empty = LongFormGuardrailsSidecar(bookId: bookId)
             cache[bookId] = empty
@@ -701,14 +564,9 @@ actor LongFormGuardrails {
         Array(cache.keys)
     }
 
-    /// Extract the bookId from a guardrail (= sidecar routing helper). The
-    /// public `LongFormGuardrail` struct does not carry a bookId (= keep
-    /// Codable surface narrow per S5); the actor routes via the typed
-    /// `add(_:to:)` / `remove(id:from:)` entry points. The untyped `add(_:)`
-    /// looks up the bookId via the caller-side scope (= when the actor is
-    /// constructed with a single BookStore, the resolved bookId is the active
-    /// selectedBookId; = the `loadGuardrails(for:)` return value tells the
-    /// caller which bookId to use).
+    // / Extract the bookId from a guardrail (= sidecar routing helper). The
+    // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / caller which bookId to use).
     private func sidecarBookIdForGuardrail(_ guardrail: LongFormGuardrail) async -> UUID? {
         // First pass: cache lookup (= any cached sidecar holding
         // this guardrail's id = the right bookId).
@@ -718,16 +576,14 @@ actor LongFormGuardrails {
             }
         }
         // Second pass: fall back to the BookStore's selected book
-        // (= the canonical "what book is the user looking at"
-        // = the sidecar the untyped add should land in).
+        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // = read the value from a MainActor-isolated context.
         return await MainActor.run { bookStore.selectedBookId }
     }
 
     // MARK: - Per-kind evaluators (= `check(_:against:)` workers)
-
-    /// Constraint evaluator: scans for forbidden words (= if the guardrail has
-    /// a regex pattern, applies per-line substring match; otherwise no-op).
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / a regex pattern, applies per-line substring match; otherwise no-op).
     private func evaluateConstraint(
         guardrail: LongFormGuardrail,
         lines: [String]
@@ -739,8 +595,7 @@ actor LongFormGuardrails {
         for (idx, line) in lines.enumerated() {
             let lowerLine = line.lowercased()
             // Naive substring scan (= not NSRegularExpression to
-            // avoid pulling in Foundation regex; the actor runs
-            // in-process for every LLM response so the
+            // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // substring scan is the right cost shape).
             let forbiddenWords = pattern
                 .components(separatedBy: ",")
@@ -759,15 +614,15 @@ actor LongFormGuardrails {
         return violations
     }
 
-    /// Continuity evaluator: flags lines that contradict a known subject (= the
-    /// guardrail's `description` is the subject list; a line that mentions the
-    /// subject in a negation context is flagged).
+    // / Continuity evaluator: flags lines that contradict a known subject (= the
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / subject in a negation context is flagged).
     private func evaluateContinuity(
         guardrail: LongFormGuardrail,
         lines: [String]
     ) -> [LongFormGuardrailViolation] {
         // Heuristic: a continuity guardrail with no subjects in
-        // its description produces no violations (= the rule
+        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // exists but applies globally; = surface as info).
         let subjects = guardrail.description
             .components(separatedBy: ",")
@@ -796,9 +651,9 @@ actor LongFormGuardrails {
         return violations
     }
 
-    /// Self-proof evaluator: flags sentences that make a claim without a
-    /// citation token (= `according to`, `(see`, `ref:` are the accepted
-    /// citation tokens).
+    // / Self-proof evaluator: flags sentences that make a claim without a
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / citation tokens).
     private func evaluateSelfProof(
         guardrail: LongFormGuardrail,
         text: String,
@@ -825,9 +680,9 @@ actor LongFormGuardrails {
         return violations
     }
 
-    /// Persona evaluator: flags voice drift (= a persona guardrail whose
-    /// `description` is the voice baseline; a line that drifts in length +
-    /// word-choice beyond a heuristic threshold is flagged).
+    // / Persona evaluator: flags voice drift (= a persona guardrail whose
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / word-choice beyond a heuristic threshold is flagged).
     private func evaluatePersona(
         guardrail: LongFormGuardrail,
         text: String,
@@ -848,7 +703,7 @@ actor LongFormGuardrails {
         let overlapRatio = Double(overlap) / Double(bodyCount)
         let baselineRatio = Double(overlap) / Double(baselineCount)
         // Heuristic: if the body shares < 5% of its words with
-        // the baseline AND the baseline shares < 5% of its
+        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // words with the body = voice drift.
         if overlapRatio < 0.05 && baselineRatio < 0.05 && text.count > 200 {
             violations.append(LongFormGuardrailViolation(
@@ -894,10 +749,9 @@ actor LongFormGuardrails {
         return violations
     }
 
-    /// World-consistency evaluator: flags introductions of new setting elements
-    /// that contradict a known world-lore fact. Heuristic: a sentence that
-    /// introduces a noun + "magic" /"system" /"spell" when the guardrail
-    /// description explicitly says "no new magic" is flagged.
+    // / World-consistency evaluator: flags introductions of new setting elements
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / description explicitly says "no new magic" is flagged.
     private func evaluateWorldConsistency(
         guardrail: LongFormGuardrail,
         text: String,
@@ -928,9 +782,8 @@ actor LongFormGuardrails {
     }
 
     // MARK: - extractConstraints helpers
-
-    /// Build a per-kind description from the book context (= one short sentence
-    /// the SpecializedTools pane can show).
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / the SpecializedTools pane can show).
     private func descriptionForKind(_ kind: LongFormGuardrailKind, bookContext: String) -> String {
         let context = bookContext.isEmpty ? "(no book context supplied)" : bookContext
         switch kind {
@@ -955,7 +808,7 @@ actor LongFormGuardrails {
         switch kind {
         case .constraint:
             // The constraint pattern is a comma-separated
-            // forbidden-word list. Default to empty (= the user
+            // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // fills this in the SpecializedTools pane).
             return bookContext.isEmpty ? "" : ""
         default:

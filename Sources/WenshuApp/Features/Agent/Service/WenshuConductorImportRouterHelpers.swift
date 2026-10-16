@@ -1,77 +1,13 @@
-//
-//  WenshuConductorImportRouterHelpers.swift
-//
-//  Pure-function helpers extracted from WenshuConductorImportRouter (= §6.6
-//  god-class split: 1260 LOC of static helpers moved out of the actor into
-//  this namespace, leaving the actor with just the route orchestration +
-//  LLM dispatch). The helpers are stateless (= no instance state, no actor
-//  isolation coupling; = safe to call as `WCIRHelpers.xxx()` from any
-//  context).
-//
-
+// 
+// … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// 
 import Foundation
 
 enum WCIRHelpers {
 
         // (webSearchToolSchema extracted to WCIRToolSchema.swift in A89; = see that file)
-    // MARK: - Prompt + parse
-
-    /// The per-file user prompt (= asks the LLM to produce a structured JSON
-    /// object with title / summary / tags / destination / bookFolder; = the
-    /// schema is the only thing the LLM is allowed to talk about; = a single
-    /// JSON object on one line so the parser can grab it deterministically).
-
-        // MARK: - userPrompt
-
-    // (userPrompt extracted to WCIRPromptHelpers.swift in A88; = see that file)
-
-
-    /// The optional rewrite-mode body for the `searchAndRewrite` mode. When the
-    /// user picked "重写同时搜索校对", the prompt tells the LLM to: (a) call
-    /// `web_search` for the entity, (b) combine search results with the
-    /// original body, (c) produce a clean .ws-format body (= no "imported on
-    /// YYYY-MM-DD" cruft; = same shape the user writes by hand; = ref library
-    /// uses `类型:` / `状态:` / `标签:` frontmatter; = bookFolder uses free-form
-    /// markdown).
-
-        // MARK: - rewriteModeBlock
-
-    // (rewriteModeBlock extracted to WCIRPromptHelpers.swift in A88; = see that file)
-
-
-    /// The JSON shape the LLM should return (= varies with rewriteMode; =
-    /// `searchAndRewrite` adds the `rewrittenBody` field).
-
-        // MARK: - jsonShape
-
-    // (jsonShape extracted to WCIRPromptHelpers.swift in A88; = see that file)
-
-
-    /// Parse the LLM's raw response and map it onto the orchestrator's
-    /// `ImportRoutingResult` envelope. The parser is defensive: any malformed
-    /// line falls back to the keyword-style safe default (bookFolder .drafts)
-    /// so the orchestrator never receives an invalid destination. (= boss
-    /// 2026-10-10 "我选 故事宪法，直 接跳到了步 骤 3，没 有重新 分析是 不是 内容 相同 " 反馈). Phase 2 LLM
-    /// decision: are the source body and the existing body "the same content"?
-    /// (= a separate LLM call from the Phase 1 routing; = the orchestrator
-    /// invokes this ONLY when Phase 1 found a same-titled file in the
-    /// destination folder; = most imports never reach this path). The LLM is
-    /// asked to return a JSON object with 3 fields: `isContentSame` (= true /
-    /// false), `confidence` (= 0.0 - 1.0), and `reasoning` (= a short Chinese
-    /// explanation shown to the user).
-
-        // MARK: - contentSamePrompt
-
-    // (contentSamePrompt extracted to WCIRPromptHelpers.swift in A88; = see that file)
-
-
-    /// Decide whether a Phase 2 `ContentSameResult` should short-circuit the
-    /// import (= treat as a no-op skip) or trigger an overwrite. Centralized so
-    /// the threshold is tuned in one place (= see
-    /// `ImportDocumentTemplate.contentSameConfidenceThreshold`).
-
+        // … (= 38 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // MARK: - shouldSkip
-
     static func shouldSkip(
         result: ContentSameResult
     ) -> Bool {
@@ -89,14 +25,11 @@ enum WCIRHelpers {
         filePath: String
     ) -> ImportRoutingResult {
         // 1. Extract the JSON object. The LLM is instructed to reply with one line of
-        // JSON; = grab the first {...} span in the response (= tolerant of
-        // leading / trailing whitespace / reasoning blocks the model might
+        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // emit before the JSON).
         guard let json = extractFirstJSONObject(raw) else {
             // LLM returned no parseable JSON. Fall back to a safe default (= drafts is
-            // the least-surprising place for an unparseable file; = the
-            // user sees the file with a "失败" status if the parser threw
-            // upstream; = here we synthesize a valid envelope so the
+            // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // orchestrator's downstream consumers don't crash).
             return ImportRoutingResult(
                 destination: .bookFolder(.drafts),
@@ -113,8 +46,7 @@ enum WCIRHelpers {
         // 2. Parse the JSON.
         let parsed = parseImportDecision(json)
         // 3. Map the destination. The orchestrator accepts a closed enum; = we coerce the
-        // LLM's free-text destination into the canonical `BookFolder` value (=
-        // the Apple canonical pattern is "make illegal states unrepresentable"
+        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // so we never write a string into the destination field).
         let destination: ImportDestination
         switch parsed.destination {
@@ -124,22 +56,17 @@ enum WCIRHelpers {
             destination = .bookFolder(parsed.bookFolder ?? .drafts)
         default:
             // Unknown destination string from the LLM (= the model invented a value not
-            // in our schema). Fall back to drafts (= the conservative
-            // landing site; = the user can re-route via the sheet's "重试" +
+            // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // chat override).
             destination = .bookFolder(.drafts)
     }
         // 4. Final envelope. The LLM-supplied title is the canonical title (= the
-        // orchestrator's writeFile does NOT rewrite the body; = the LLM's
-        // title lives in the metadata; = the body file on disk is verbatim
+        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // from the source).
         return ImportRoutingResult(
             destination: destination,
             // (= boss "不能用 提示词控制" directive): the title is run through `acceptTitle` (=
-            // programmatic sanitization + fallback; = the user never sees
-            // a path / a filename-with-extension / a body-fragment /
-            // gibberish as a title; = the LLM's trust is zero; = the
-            // contract is "title is either the LLM's clean answer or the
+            // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // filename-stem fallback").
             title: Self.acceptTitle(parsed: parsed, filePath: filePath),
             summary: parsed.summary,
@@ -148,10 +75,7 @@ enum WCIRHelpers {
             category: nil,
             confidence: parsed.tags.isEmpty ? 0.3 : 0.9,
             // the optional rewritten body (= the LLM's .ws-format body in
-            // `searchAndRewrite` mode; = nil = the orchestrator keeps the
-            // original body verbatim). The caller (= ImportService) checks
-            // `rewriteMode` and decides whether to use the rewritten body
-            // or fall back to the original (= see round-66 commit E for
+            // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // the mode-aware body selection).
             rewrittenBody: parsed.rewrittenBody,
             // extraFiles parsed by `parseImportDecision` (= see ticket 02). Empty array
@@ -160,53 +84,18 @@ enum WCIRHelpers {
         )
 }
 
-    /// Fallback title (= the basename without the source-file extension; = used
-    /// when the LLM returns an empty title string). fix (= boss 2026-10-10 (see
-    /// OOB.md #2026-10-10) `(filePath as NSString).deletingPathExtension` which
-    /// only strips the trailing extension (= `.md`); = the full path prefix
-    /// `/Users/anbaiqiang/Library/Mobile Documents/iCloud~md/06-...` survived
-    /// and became the card title; = the user saw the path as the title on every
-    /// failed-LLM card. The fix: take `lastPathComponent` (= filename only)
-    /// FIRST, then strip the extension. `lastPathComponent` =
-    /// "/Users/.../06-字.md" → "06-字.md" → "06-字" (= the user's expected title
-    /// shape).
-
-        // MARK: - fallbackTitle
-
+    // / Fallback title (= the basename without the source-file extension; = used
+    // … (= 9 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // MARK: - fallbackTitle
     static func fallbackTitle(from filePath: String) -> String {
         let fileName = (filePath as NSString).lastPathComponent
         let stem = (fileName as NSString).deletingPathExtension
         return stem.isEmpty ? "未命名" : stem
 }
 
-    /// (= boss 2026-10-10 (see OOB.md #2026-10-10) directive). Programmatic
-    /// title sanitization (= the LLM's title is not trusted; = any of the
-    /// failure modes below → the LLM's title is discarded and `fallbackTitle`
-    /// is used; = the user sees a clean filename-based title regardless of what
-    /// the LLM did). Failure modes (= each is a single `if` so adding a new one
-    /// is a one-line change): 1. Empty / whitespace-only title (= the LLM
-    /// returned "" or just spaces; = we already handled this in the
-    /// `parsed.title.isEmpty` check; = now we also reject whitespace-only). 2.
-    /// Title contains a path separator (`/` or `\`) (= the LLM copied a path; =
-    /// the user's "目录树当名字" bug returns). 3. Title ends with a file extension (=
-    /// `.md` / `.txt` / ...; = the LLM copied a filename verbatim). 4. Title is
-    /// the same string as the source file's full path (= the LLM copied
-    /// `input.filePath`; = the round-31 failure mode; = we now reject it
-    /// explicitly). 5. Title is the same string as the source file's
-    /// `lastPathComponent` (= the LLM copied the filename including `.md`; =
-    /// the round-31 failure mode catches the extension strip but not the bare
-    /// `lastPathComponent`). 6. Title length > 50 chars (= the LLM likely
-    /// copied a body fragment; = not a real title). 7. Title is mostly digits /
-    /// spaces / punctuation (= the LLM returned gibberish; = not a real title).
-    /// Note: the LLM can still return a real, valid title that just happens to
-    /// share a character with a path (= e.g. "冰箱/冷柜 史话" with a slash; =
-    /// rejected). That's the trade-off boss accepted in round-37 (= "不能用提示词控 制"
-    /// = programmatic guarantee beats LLM trust; = titles that contain a slash
-    /// get the fallback; = the user can rename the file if the title really
-    /// needs a slash).
-
-        // MARK: - sanitizeTitle
-
+    // / (= boss 2026-10-10 (see OOB.md #2026-10-10) directive). Programmatic
+    // … (= 24 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // MARK: - sanitizeTitle
     static func sanitizeTitle(
         _ candidate: String,
         from filePath: String
@@ -219,7 +108,7 @@ enum WCIRHelpers {
             return nil
     }
         // 3. File extension at the end (= .md / .txt / .markdown / .docx ...). The LLM
-        // should strip the extension itself (= the title is the human name of
+        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // the entity, not the filename).
         let knownExtensions: Set<String> = [
             "md", "markdown", "txt", "text",
@@ -235,7 +124,7 @@ enum WCIRHelpers {
         // 4. Title equals the full source path (= LLM copied `input.filePath`).
         if candidate == filePath { return nil }
         // 5. Title equals the source file's lastPathComponent (= the LLM copied the
-        // filename including its extension; = the user wants the extension-
+        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // stripped form).
         let fileName = (filePath as NSString).lastPathComponent
         if candidate == fileName { return nil }
@@ -249,8 +138,7 @@ enum WCIRHelpers {
             return nil
     }
         // 8. Path-prefix match (= the title starts with the user's home directory path or
-        // any system-known long directory; = the LLM copied a partial path; =
-        // catch the case where the LLM truncated the path but still left
+        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // enough characters to be a giveaway).
         let homeDir = NSHomeDirectory()
         if !homeDir.isEmpty, candidate.hasPrefix(homeDir) {
@@ -261,28 +149,16 @@ enum WCIRHelpers {
         return trimmed
 }
 
-    /// (= boss 2026-10-09 (see OOB.md #2026-10-09) (= the sidebar's linkgraph =
-    /// "关系链") is a different surface that should be derived from explicit
-    /// metadata, NOT Obsidian autolinks; = strip both shapes so the rewritten
-    /// body never carries Obsidian-era link cruft). The boss 2026-10-09 (see
-    /// OOB.md #2026-10-09) (= "而且内部反链在重写的时候 没有删"; = the previous version only
-    /// stripped lines that START with `../` or `[[`; = Obsidian reverse- link
-    /// lines look like: `反链:` ` - ../../08-3 大类实体/03-物件/物件` = the inner `../`
-    /// is NOT at line start; = the previous matcher missed it). Fix: use a
-    /// regex-based filter that drops any line containing `../`, `/../`, or
-    /// `[[...]]` (= matches every Obsidian relative-path form regardless of
-    /// where it appears in the line; = also matches wikilink fragments inside
-    /// prose, not just at line start).
-
-        // MARK: - stripObsidianBacklinks
-
+    // / (= boss 2026-10-09 (see OOB.md #2026-10-09) (= the sidebar's linkgraph =
+    // … (= 11 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // MARK: - stripObsidianBacklinks
     static func stripObsidianBacklinks(_ body: String) -> String {
         var stripped: [String] = []
         for line in body.split(separator: "\n", omittingEmptySubsequences: false) {
             let lineStr = String(line)
             let trimmed = lineStr.trimmingCharacters(in: .whitespaces)
             // Drop any line containing a relative upward path (= "../" or "/../"; =
-            // catches "- ../../x" / "  ../x" / "[text](../../x)" etc.; =
+            // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // the Obsidian relative-link family).
             if lineStr.contains("../") { continue }
             // Drop any line containing a wikilink fragment (= "[[...]]"; = the Obsidian
@@ -294,8 +170,7 @@ enum WCIRHelpers {
                 continue
         }
             // Drop the "反链:" / "反链 :" header line too (= once we've stripped all the
-            // links underneath, the header becomes a dangling marker; =
-            // the canonical wenshu "关系链" feature will own this concept; =
+            // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // this line is the Obsidian-era marker).
             if trimmed == "反链" || trimmed == "反链:" || trimmed == "反链 :" {
                 continue
@@ -305,20 +180,13 @@ enum WCIRHelpers {
         return stripped.joined(separator: "\n")
 }
 
-    /// (= boss 2026-10-09 (see OOB.md #2026-10-09) (= boss 2026-10-09 (see
-    /// OOB.md #2026-10-09) header). Anything that looks like the OLD previous
-    /// template (= 类型 / 状态 / 核心信息 / 详细描述 / 反链 / 上次更新 / tags / 标签 / author /
-    /// source / created / modified / ../ / [[ ]]) is dropped here. Match by
-    /// prefix on the trimmed line. Each case is the canonical prefix a source
-    /// file might use (= Chinese + English; = the canonical wenshu .md body
-    /// never has these).
-
-        // MARK: - isUselessMetadataLine
-
+    // / (= boss 2026-10-09 (see OOB.md #2026-10-09) (= boss 2026-10-09 (see
+    // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // MARK: - isUselessMetadataLine
     static func isUselessMetadataLine(_ trimmed: String) -> Bool {
         let prefixes: [String] = [
             // The old previous template (= 老板 2026-10-09 round-25 "不要参考 MD 的格式，而是盘点文枢的功
-            // 能，做出文枢的头部格式" = strip the old template; = the new template
+            // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // uses 实体类型/标签/摘 要 only).
             "类型:",
             "类型 :",
@@ -391,36 +259,19 @@ enum WCIRHelpers {
         var tags: [String]
         var destination: String
         var bookFolder: BookFolder?
-        /// (= boss 2026-10-09 (see OOB.md #2026-10-09) "重写同时搜索校对"). The LLM's
-        /// .ws-format body in `searchAndRewrite` mode (= nil in `consolidate`
-        /// mode OR when the LLM returned an empty string).
+        // / (= boss 2026-10-09 (see OOB.md #2026-10-09) "重写同时搜索校对"). The LLM's
+        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // / mode OR when the LLM returned an empty string).
         var rewrittenBody: String?
-        /// (= boss 2026-10-10 (see OOB.md #2026-10-10) 去" 反馈). The LLM's
-        /// optional array of additional files to split out (= A's content that
-        /// doesn't fit B's template structure; = each element contains
-        /// folder/title/body keys). Empty array when A fully maps to B (= most
-        /// common case). Capped at 5 elements (= orchestrator-level safety cap
-        /// on top of the LLM-prompt cap).
+        // / (= boss 2026-10-10 (see OOB.md #2026-10-10) 去" 反馈). The LLM's
+        // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // / on top of the LLM-prompt cap).
         var extraFiles: [ExtraFile] = []
 }
 
-    /// Extract the first balanced `{...}` JSON object from the LLM's response.
-    /// The model sometimes emits a thinking block before the JSON (= the
-    /// `extract` step on a hermes connector prepends a <think>...</think>
-    /// block; = Anthropic similarly returns a `thinking` content block ahead of
-    /// `text`). Boss 2026-10-09 round-23 follow-up: even after the prompt
-    /// rewrite (= the LLM should now produce a single-line JSON; = with escaped
-    /// `\n` for newlines inside string values; = the parser should be tolerant
-    /// of either form; = the previous version bailed on the first unescaped
-    /// quote inside a string value; = the round-23 observation was "cards
-    /// showed the source path as the title" = the parser bailed on the LLM's
-    /// response = the orchestrator synthesized the fallback envelope). The fix
-    /// here: also accept the LLM's literal-newline form (= replace literal
-    /// newlines with `\\n` inside what looks like a string value; = makes the
-    /// parser tolerant of either JSON-correct or "markdown-style" JSON output).
-
-        // MARK: - extractFirstJSONObject
-
+    // / Extract the first balanced `{...}` JSON object from the LLM's response.
+    // … (= 13 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // MARK: - extractFirstJSONObject
     static func extractFirstJSONObject(_ raw: String) -> String? {
         guard let firstBrace = raw.firstIndex(of: "{") else { return nil }
         var depth = 0
@@ -434,9 +285,7 @@ enum WCIRHelpers {
             if c == "\"" { inString.toggle(); sanitized.append(c); continue }
             if inString {
                 // The LLM may have inserted literal newlines inside a string value (= the
-                // prompt now forbids this; = older runs or misbehaving
-                // models may still produce this form). Convert any
-                // literal newline inside a string value to the JSON-
+                // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
                 // escaped `\n` so the rest of the parse can succeed.
                 if c == "\n" {
                     sanitized.append("\\n")
@@ -460,12 +309,9 @@ enum WCIRHelpers {
         return nil
 }
 
-    /// Parse the JSON envelope into an `ImportDecision`. Defensive: any field
-    /// that doesn't match the expected type falls back to a safe default (= the
-    /// orchestrator never receives a half-parsed decision).
-
-        // MARK: - parseImportDecision
-
+    // / Parse the JSON envelope into an `ImportDecision`. Defensive: any field
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // MARK: - parseImportDecision
     static func parseImportDecision(_ json: String) -> ImportDecision {
         guard let data = json.data(using: .utf8),
               let parsed = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
@@ -492,36 +338,20 @@ enum WCIRHelpers {
         }
         }()
         // (= only set in `searchAndRewrite` mode; = empty string from the LLM = the user
-        // didn't actually search and rewrite = treat as nil so the
+        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // orchestrator falls back to the original body).
         let rawRewritten = (parsed["rewrittenBody"] as? String) ?? ""
         let rewrittenBody: String? = rawRewritten.isEmpty ? nil : Self.stripObsidianBacklinks(rawRewritten)
         // (= boss 2026-10-09 (see OOB.md #2026-10-09) (= the LLM may emit 4 or 5 if it
-        // ignored the prompt; = the cap is here as the canonical gate; = the
+        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // sidebar tag facet remains navigable).
         let cappedTags = Array(tags.prefix(3))
         // (= boss 2026-10-09 (see OOB.md #2026-10-09) redundant (= the title is the
-        // canonical name; = the tag is a navigation facet; = having both is
-        // duplicate metadata that clutters the card view AND breaks the tag-
-        // based filter (= the user clicks the tag to find everything related;
-        // = the entity that has the title as a tag always shows up for that
-        // tag; = the redundancy is the same as no tag at all)). The LLM was
-        // instructed to avoid title-as-tag; this is the last-mile filter that
-        // drops it if the LLM still emitted it. Comparison is case- and
-        // whitespace-insensitive (= the LLM might emit "活字印刷" as title and "
+        // … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // 活字印刷 " as a tag).
         let titleNorm = title.trimmingCharacters(in: .whitespacesAndNewlines)
         // (= boss 2026-10-09 (see OOB.md #2026-10-09) filter (= the user clicks a tag to
-        // see every reference carrying that tag); = punctuation in a tag
-        // breaks the facet UX (= "民俗神-A民俗神" parses as one opaque tag; = "民俗 神"
-        // parses as the same tag with a leading space; = the LLM is sometimes
-        // emitting tags like "民俗神-A喜丧" (= entityType codes) or "考古报告, 民俗" (=
-        // the comma is meant to be a tag separator that the LLM put inside one
-        // tag); = these don't match the user's mental model of "tag = a short,
-        // single-token Chinese word"). Drop any tag containing punctuation (=
-        // ASCII punctuation + common CJK punctuation; = the remaining tag is
-        // letters and digits only; = the LLM was instructed to emit single-
-        // word tags without punctuation; = the last-mile filter matches the
+        // … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // user expectation).
         let dedupedTags = cappedTags.compactMap { tag -> String? in
             let trimmedTag = tag.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -530,9 +360,7 @@ enum WCIRHelpers {
             // Drop title-match (= round-28).
             if trimmedTag == titleNorm { return nil }
             // Drop any tag containing punctuation (= the canonical wenshu tag is a short
-            // single-token word like "民 俗神" / "唐朝" / "阎罗" / "印 度"; =
-            // punctuation in a tag is always an LLM error; = drop it
-            // silently; = the user gets fewer tags but every tag is
+            // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // meaningful).
             if Self.tagContainsPunctuation(trimmedTag) {
                 return nil
@@ -540,10 +368,7 @@ enum WCIRHelpers {
             return trimmedTag
     }
         // ticket 02: parse `extraFiles` (= LLM's optional array of split-out files).
-        // Defensive: missing / malformed elements are dropped (= the
-        // orchestrator never sees a half-parsed element). Capped at 5 (=
-        // safety cap on top of the LLM-prompt cap; = prevents an LLM that
-        // ignored the prompt from producing hundreds of extra files in one
+        // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // import).
         let extraFiles = Self.parseExtraFiles(from: parsed)
         return ImportDecision(
@@ -559,32 +384,21 @@ enum WCIRHelpers {
 
 
         // MARK: - parseExtraFiles
-
-    /// ticket 02: parse the `extraFiles` array from the LLM's JSON response.
-    /// Each element must have a valid `folder` (= one of the 6 BookFolder
-    /// cases; = unknown → drop the element + log warning), a non-empty `title`
-    /// (= empty → drop), and a non-empty `body` (= empty → drop). Capped at 5
-    /// elements. Returns an empty array (= the safe default) when the LLM
-    /// doesn't include `extraFiles` at all.
+        // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // / doesn't include `extraFiles` at all.
     static func parseExtraFiles(from json: [String: Any]) -> [ExtraFile] {
         guard let rawArray = json["extraFiles"] as? [[String: Any]] else {
             return []
     }
         // (= boss 2026-10-10 (see OOB.md #2026-10-10) 自定义 cap" chosen). = 6 mandatory
-        // world sub-files + 5 custom world files (= total 11) for the world/
-        // folder. The 6 mandatory ones (= 核心设定 / 地理 或位置 / 体系或规则 / 历史脉络 / 与其他
-        // 元素的关系 / 关键场 面种子) carry `required = true` in the LLM JSON; = the 5
-        // custom ones carry `required = false` (= the LLM populates title +
-        // body for the custom content like 十二生肖原型 or 元炁体系 etc). The
-        // orchestrator dedup is per-folder (= same title in the same folder =
+        // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // overwrite).
         var result: [ExtraFile] = []
         var requiredCount = 0
         var customCount = 0
         for element in rawArray {
             // cap = 6 必填 + 5 自定义 = 11 total. The mandatory 6 always get priority; = the
-            // custom 5 only if the mandatory 6 are all present. (= if the
-            // LLM returns 11+ elements, we keep the first 6 required + up
+            // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // to 5 custom.)
             let isRequired = (element["required"] as? Bool) ?? false
             if isRequired {
@@ -613,7 +427,7 @@ enum WCIRHelpers {
                 continue
         }
             // the boss explicitly said "不要 备注标题的文档" (= no fixed "备注.md" file). If the LLM
-            // returns a 备注 element (= the old wenshu 7th H2), drop it (=
+            // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // the user's wishes).
             if title == "备注" {
                 NSLog(
@@ -632,7 +446,7 @@ enum WCIRHelpers {
                 continue
         }
             // Un-escape JSON `\\n` to real newlines (= the LLM-prompt told it to use \n
-            // escape; = the orchestrator un-escapes here; = same pattern
+            // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // as rewrittenBody above).
             let unescapedBody = body
                 .replacingOccurrences(of: "\\n", with: "\n")
@@ -647,12 +461,9 @@ enum WCIRHelpers {
         return result
 }
 
-    /// ticket 02: map a string to a `BookFolder` (= the same mapping as the
-    /// main destination's `folder` key; = extracted to a helper so the main +
-    /// extraFiles parsers share the canonical case list).
-
-        // MARK: - bookFolder
-
+    // / ticket 02: map a string to a `BookFolder` (= the same mapping as the
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // MARK: - bookFolder
     static func bookFolder(from string: String) -> BookFolder? {
         switch string {
         case "world": return .world
@@ -673,7 +484,7 @@ enum WCIRHelpers {
         let underscore: Unicode.Scalar = "_"
         for scalar in tag.unicodeScalars {
             // ASCII letters / digits: keep (= use the scalar's `properties` set; =
-            // `Unicode.Scalar` has no `.isLetter` / `.isNumber` member
+            // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // directly; = those members live on `Character`).
             if scalar.isASCII {
                 let p = scalar.properties

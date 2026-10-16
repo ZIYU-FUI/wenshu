@@ -1,97 +1,39 @@
-//
-//  EmotionCurveTools.swift
-//
-//  1:1 Swift port of hermes `agent/specialized/emotion_curve.py`.
-//
-//  The Python module analyzes a chapter draft for emotional
-//  valence over time. The Swift port preserves the contract:
-//
-//    - Split the chapter into N windows (= default 10).
-//    - For each window, score emotional valence (= positive vs
-//      negative) via a small built-in lexicon.
-//    - Compute the rolling average curve over the windows.
-//    - Detect flat spots (= too uniform = boring).
-//    - Detect volatility spikes (= extreme swings between
-//      adjacent windows).
-//    - Suggest "pacing improvement" hints (= at which window
-//      indices the curve should lift).
-//
-//  All analysis is deterministic (= pure function over the
-//  chapter text). No LLM calls, no network. Same philosophy as
-//  long_form_guardrails / reader_experience / plot_thread /
-//  genre_fit / editor_tools: fully reproducible + offline-capable.
-//
-//  Public surface (= the task spec verbatim):
-//
-//    - struct EmotionWindow : Sendable + Codable + Equatable +
-//                              Identifiable
-//    - struct EmotionCurveReport : Sendable + Codable
-//    - actor EmotionCurveAnalyzer : init() + analyze(...)
-//
-//  Concurrency: actor (= Swift 6 strict concurrency). Reads /
-//  writes serialize cleanly across the SpecializedTools pane +
-//  any background LLM-side call sites.
-//
-//  Sidecar persistence: NONE on purpose. The analyzer is
-//  stateless (= input = chapter text; output is a fresh report).
-//  The actor's role is concurrency safety + lexicon caching, not
-//  persistence.
-//
-//  Standards-axis (wenshu house style):
-//    S1 (Apple-API-first): Foundation only. NSRegularExpression
-//        + String APIs; no third-party text-analysis deps.
-//    S3 (single source of truth for JSON parsing): the actor
-//        ships no JSON I/O (= stateless; no sidecar).
-//    S4 (no new third-party deps): zero added.
-//    S5 (no private types the rest of the app needs): all types
-//        public (= matches the ticket spec).
-//
-
+// 
+// … (= 46 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// 
 import Foundation
 
 // MARK: - Public surface
-
-/// One window's worth of sentiment data. The `text` field is the
-/// raw window slice (= useful for evidence rendering in the
-/// SwiftUI pane). The `score` field is the lexicon-derived
-/// valence: -1.0 (fully negative) .. +1.0 (fully positive). A
-/// zero score means the window had no positive or negative
-/// lexicon hits at all (= neutral).
+// … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / lexicon hits at all (= neutral).
 struct EmotionWindow: Sendable, Codable, Equatable, Identifiable {
 
-    /// Stable identifier. Each window owns a UUID so SwiftUI's
-    /// `ForEach` can iterate over `[EmotionWindow]` directly
-    /// without needing a separate `id` key path.
+    // / Stable identifier. Each window owns a UUID so SwiftUI's
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / without needing a separate `id` key path.
     let id: UUID
 
     /// Zero-based window index (= 0..N-1 for the chapter).
     let index: Int
 
-    /// The window's text slice. The slice is taken verbatim from
-    /// the chapter (= no transformation; = preserves markdown /
-    /// smart quotes / em-dashes if present).
+    // / The window's text slice. The slice is taken verbatim from
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / smart quotes / em-dashes if present).
     let text: String
 
-    /// Lexicon-derived emotional valence: -1.0 .. +1.0.
-    ///
-    /// Formula:
-    ///   hits = (# positive matches) - (# negative matches)
-    ///   score = hits / max(1, total lexicon matches)
-    ///
-    /// A score of 0.0 means the window had no lexicon hits at
-    /// all (= either no positive + no negative, or perfectly
-    /// balanced positive and negative). The score is rounded to
-    /// 4 decimal places for stable display.
+    // / Lexicon-derived emotional valence: -1.0 .. +1.0.
+    // … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / 4 decimal places for stable display.
     let score: Double
 
-    /// Character offset in the chapter where the window starts.
-    /// Equals `index * windowSize` (= the simple equal-window
-    /// strategy); `startOffset == 0` for window 0.
+    // / Character offset in the chapter where the window starts.
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / strategy); `startOffset == 0` for window 0.
     let startOffset: Int
 
-    /// Character offset in the chapter where the window ends
-    /// (= exclusive). For the final window this clamps to the
-    /// chapter's total length.
+    // / Character offset in the chapter where the window ends
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / chapter's total length.
     let endOffset: Int
 
     init(
@@ -119,27 +61,24 @@ struct EmotionCurveReport: Sendable, Codable, Equatable {
     /// `windows[i].score` is the valence for window i).
     let windows: [EmotionWindow]
 
-    /// Mean of `windows[*].score`. Negative = overall sad /
-    /// dark; positive = overall uplifting / hopeful; near zero
-    /// = neutral.
+    // / Mean of `windows[*].score`. Negative = overall sad /
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / = neutral.
     let overallScore: Double
 
-    /// Standard deviation of `windows[*].score`. A high
-    /// volatility value means the chapter has extreme swings
-    /// between windows (= e.g. a sad opening that pivots to a
-    /// happy climax). Low volatility = consistent tone.
+    // / Standard deviation of `windows[*].score`. A high
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / happy climax). Low volatility = consistent tone.
     let volatility: Double
 
-    /// Indices of windows that the analyzer classified as "flat
-    /// spots" (= the window has a near-zero score AND its
-    /// neighbor scores are also near zero; = the chapter goes
-    /// uniformly neutral at this point, which usually signals a
-    /// boring stretch).
+    // / Indices of windows that the analyzer classified as "flat
+    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / boring stretch).
     let flatSpots: [Int]
 
-    /// Indices of windows where the curve should "lift" (= the
-    /// analyzer recommends injecting a sentiment change to
-    /// break the flat spot OR to amplify an arc).
+    // / Indices of windows where the curve should "lift" (= the
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / break the flat spot OR to amplify an arc).
     let suggestedLifts: [Int]
 
     /// One-sentence overall pacing feedback. Generated from the
@@ -163,10 +102,8 @@ struct EmotionCurveReport: Sendable, Codable, Equatable {
     }
 
     // MARK: - Equatable
-
-    /// Equatable conformance that ignores per-window `UUID`s
-    /// (= two windows with the same content should compare equal
-    /// for testing purposes).
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / for testing purposes).
     static func == (lhs: EmotionCurveReport, rhs: EmotionCurveReport) -> Bool {
         let lhsWindows = lhs.windows.map { WindowForEquality(index: $0.index, text: $0.text, score: $0.score, startOffset: $0.startOffset, endOffset: $0.endOffset) }
         let rhsWindows = rhs.windows.map { WindowForEquality(index: $0.index, text: $0.text, score: $0.score, startOffset: $0.startOffset, endOffset: $0.endOffset) }
@@ -188,10 +125,8 @@ struct EmotionCurveReport: Sendable, Codable, Equatable {
 }
 
 // MARK: - Errors
-
-/// Errors thrown by `EmotionCurveAnalyzer`. The two cases mirror
-/// the reader_experience / plot_thread / genre_fit convention
-/// (= a LocalizedError for each case; = no `fatalError` paths).
+// … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / (= a LocalizedError for each case; = no `fatalError` paths).
 enum EmotionCurveAnalyzerError: Error, LocalizedError, Sendable, Equatable {
     case emptyChapter
     case invalidWindowCount(Int)
@@ -207,38 +142,22 @@ enum EmotionCurveAnalyzerError: Error, LocalizedError, Sendable, Equatable {
 }
 
 // MARK: - Actor
-
-/// Emotion-curve analyzer. Splits a chapter into N windows,
-/// scores each window via a small built-in sentiment lexicon,
-/// and returns a curve report with overall score / volatility /
-/// flat-spot / lift suggestions.
-///
-/// Stateless (= the input is always the chapter text + the
-/// window count; the output is a fresh `EmotionCurveReport`).
-/// The actor caches the lexicon at init time (= lookup is O(1)
-/// per analyze call).
-///
-/// Concurrency: actor. This matches the long_form_guardrails +
-/// reader_experience + plot_thread + genre_fit + editor_tools
-/// pattern (= Swift 6 strict concurrency; no shared mutable
-/// state across the SpecializedTools pane + chat loop callers).
+// … (= 13 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / state across the SpecializedTools pane + chat loop callers).
 actor EmotionCurveAnalyzer {
 
     /// Default window count (= mirrors the hermes Python
     /// default of 10 windows per chapter).
     static let defaultWindowCount = 10
 
-    /// Lower bound on a "flat" score. Windows whose absolute
-    /// score is below this threshold AND whose neighbors are
-    /// also flat are flagged as a flat spot. (= 0.05 = a window
-    /// must deviate by at least 0.05 in either direction to
-    /// count as non-flat.)
+    // / Lower bound on a "flat" score. Windows whose absolute
+    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / count as non-flat.)
     static let flatScoreEpsilon: Double = 0.05
 
-    /// Lower bound on a "spike" delta between adjacent window
-    /// scores. Used by the volatility calculation (= stddev is
-    /// computed against all windows; = same threshold as
-    /// reader_experience uses for "spike" detection).
+    // / Lower bound on a "spike" delta between adjacent window
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / reader_experience uses for "spike" detection).
     static let spikeDelta: Double = 0.4
 
     /// Positive sentiment lexicon (= ~50 common positive
@@ -278,30 +197,17 @@ actor EmotionCurveAnalyzer {
     private let positive: Set<String>
     private let negative: Set<String>
 
-    /// Public initializer. No BookStore dependency (= the
-    /// analyzer is fully deterministic and offline-capable; =
-    /// mirrors ReaderExperienceAnalyzer / PlotThreadAnalyzer /
-    /// GenreFitAnalyzer).
+    // / Public initializer. No BookStore dependency (= the
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / GenreFitAnalyzer).
     init() {
         self.positive = EmotionCurveAnalyzer.positiveLexicon
         self.negative = EmotionCurveAnalyzer.negativeLexicon
     }
 
     // MARK: - Public API
-
-    /// Analyze a chapter draft for emotional valence.
-    ///
-    /// - Parameters:
-    ///   - chapterText: the chapter body (= UTF-8; may contain
-    ///     markdown / smart quotes / em-dashes).
-    ///   - windowCount: how many windows to split the chapter
-    ///     into. Defaults to `EmotionCurveAnalyzer.defaultWindowCount`
-    ///     (= 10).
-    /// - Returns: an `EmotionCurveReport` with per-window scores
-    ///   + overall score + volatility + flat-spot indices +
-    ///   suggested-lift indices + 1-sentence pacing hint.
-    /// - Throws: `.emptyChapter` if the input is blank;
-    ///   `.invalidWindowCount` if `windowCount < 1`.
+    // … (= 12 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // /   `.invalidWindowCount` if `windowCount < 1`.
     func analyze(
         chapterText: String,
         windowCount: Int = EmotionCurveAnalyzer.defaultWindowCount
@@ -315,7 +221,7 @@ actor EmotionCurveAnalyzer {
         }
 
         // 1) Build windows via the equal-character-width
-        // strategy. The final window absorbs any remainder so
+        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // the union covers the entire chapter.
         let windows = Self.splitIntoWindows(text: chapterText, windowCount: windowCount)
 
@@ -343,9 +249,7 @@ actor EmotionCurveAnalyzer {
         let vol = Self.standardDeviation(scoredWindows.map { $0.score })
 
         // 5) Flat spots + suggested lifts. A window is flat when
-        // |score| < epsilon AND at least one neighbor is also
-        // flat. We only emit a flat spot starting at the second
-        // window of a flat run (= avoids double-reporting a
+        // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // stretch).
         let flatSpots = Self.detectFlatSpots(in: scoredWindows)
         let suggestedLifts = Self.detectSuggestedLifts(
@@ -371,10 +275,8 @@ actor EmotionCurveAnalyzer {
     }
 
     // MARK: - Window splitting
-
-    /// Split the chapter into `windowCount` equal-character-width
-    /// windows. The final window absorbs any remainder so the
-    /// union covers the entire chapter.
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / union covers the entire chapter.
     static func splitIntoWindows(
         text: String,
         windowCount: Int
@@ -415,13 +317,8 @@ actor EmotionCurveAnalyzer {
     }
 
     // MARK: - Sentiment scoring
-
-    /// Score a single window's text. Returns the lexicon-derived
-    /// valence in -1.0 .. +1.0.
-    ///
-    /// Matching is whole-word (= a token separated by whitespace
-    /// or basic punctuation). Case is folded to lowercase before
-    /// lookup.
+    // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / lookup.
     static func score(
         windowText: String,
         positive: Set<String>,
@@ -470,12 +367,8 @@ actor EmotionCurveAnalyzer {
     }
 
     // MARK: - Flat-spot + lift detection
-
-    /// Detect flat-spot indices. A window is flat when
-    /// `|score| < epsilon`. We emit the indices in order; a flat
-    /// run contributes one entry per window (= the caller can
-    /// render them all; = the suggested-lift logic consumes
-    /// only the first window of each run).
+    // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / only the first window of each run).
     static func detectFlatSpots(in windows: [EmotionWindow]) -> [Int] {
         guard !windows.isEmpty else { return [] }
         var flat: [Int] = []
@@ -487,14 +380,9 @@ actor EmotionCurveAnalyzer {
         return flat
     }
 
-    /// Suggest lift indices. Strategy:
-    ///
-    /// 1. For each contiguous flat run, suggest lifting the
-    ///    window immediately AFTER the run (= break the flat).
-    /// 2. For each non-final window where the score swings by
-    ///    more than `spikeDelta` between consecutive windows,
-    ///    suggest lifting the window BEFORE the spike (= smooth
-    ///    the transition).
+    // / Suggest lift indices. Strategy:
+    // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // /    the transition).
     static func detectSuggestedLifts(
         windows: [EmotionWindow],
         flatSpots: [Int]
@@ -504,7 +392,7 @@ actor EmotionCurveAnalyzer {
         let flatSet = Set(flatSpots)
 
         // 1) Lift the window after each flat run. Walk the flat
-        // indices and emit a lift at the index of the first
+        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // non-flat window after a contiguous flat run.
         var i = 0
         let flatSorted = flatSpots.sorted()
@@ -516,7 +404,7 @@ actor EmotionCurveAnalyzer {
             }
             let runEnd = flatSorted[j]
             // The lift candidate = runEnd + 1 (the first
-            // non-flat window after the run), clamped to the
+            // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // last window index.
             let candidate = min(runEnd + 1, windows.count - 1)
             if !flatSet.contains(candidate) && !lifts.contains(candidate) {
@@ -526,9 +414,7 @@ actor EmotionCurveAnalyzer {
         }
 
         // 2) Lift the window before a spike. A spike = the
-        // absolute difference between adjacent scores exceeds
-        // `spikeDelta`. The lift candidate = the window
-        // immediately BEFORE the spike (= smooth the
+        // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // transition).
         for k in 1..<windows.count {
             let delta = abs(windows[k].score - windows[k - 1].score)
@@ -544,9 +430,8 @@ actor EmotionCurveAnalyzer {
     }
 
     // MARK: - Pacing hint
-
-    /// Generate a one-sentence pacing hint from the overall
-    /// score + volatility + flat-spot count.
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / score + volatility + flat-spot count.
     static func makePacingHint(
         overall: Double,
         volatility: Double,

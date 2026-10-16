@@ -1,26 +1,6 @@
 // ModelMetadata.swift
-//
-// Per-provider model catalog. Port of hermes `model_metadata.py`
-// (= 2,434 LOC; contains per-provider model lists, capabilities,
-// context window, pricing awareness).
-//
-// In wenshu-side wins mode (= AGENTS.md §11.3): the `Provider` enum
-// already has `defaultModels` arrays per profile. This file is a
-// thin aggregator that surfaces the catalog in a UI-friendly shape.
-//
-// Extends the v0.35 surface with three capabilities:
-//   - Pricing per model (= hermes `_extract_pricing`: input /
-//     cached-input / output $/MTok rates, populated from the
-//     OpenRouter catalog or the wenshu-side hardcoded table when
-//     the catalog is unavailable).
-//   - Context-window per model (= hermes `_resolve_endpoint_context_length`
-//     + `_get_model_context_length`: per-model token counts that
-//     override the per-provider defaults).
-//   - Feature matrix (= hermes `_is_claude_model` +
-//     `supports_reasoning_effort` + `_forbids_sampling_params`: a
-//     per-model feature table for vision, tools, streaming,
-//     reasoning effort, adaptive thinking).
-
+// … (= 20 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// reasoning effort, adaptive thinking).
 import Foundation
 
 struct WenshuModelCatalog: Sendable, Equatable {
@@ -169,9 +149,9 @@ struct WenshuModelCatalog: Sendable, Equatable {
         }
     }
 
-    /// Hardcoded pricing table (= hermes _extract_pricing fallback when
-    /// the OpenRouter catalog is unavailable). Values match current
-    /// public list prices for the major models (third quarter of 2026).
+    // / Hardcoded pricing table (= hermes _extract_pricing fallback when
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / public list prices for the major models (third quarter of 2026).
     private static func defaultPricing(for provider: Provider, model: String) -> Pricing? {
         switch provider.slug {
         case "anthropic":
@@ -235,10 +215,8 @@ struct WenshuModelCatalog: Sendable, Equatable {
     }
 
     // MARK: - Helpers (= hermes _is_claude_model + _supports_reasoning_effort + _get_model_context_length)
-
-    /// Per-model context-window lookup (= hermes get_model_context_length L1886-2296).
-    /// Returns the token count for a specific model id (= overrides the
-    /// per-provider default).
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / per-provider default).
     static func contextWindow(for modelId: String) -> Int {
         let m = modelId.lowercased()
         if m.contains("opus-4") { return 200_000 }
@@ -329,43 +307,8 @@ struct WenshuModelCatalog: Sendable, Equatable {
     }
 
     // MARK: - H7 Hermes-Python gap port (= 1:1 port of hermes
-    //         `agent/chat_completion_helpers.py` `estimate_request_context_tokens`).
-    //
-    // Wenshu-side wins (= per AGENTS.md §11.3):
-    //
-    // Direct port of hermes `agent/chat_completion_helpers.py` per
-    // spec §3.1 #26 (= TICKET-HERMES-GAP-001 follow-up). The target
-    // file already had the basic `estimateTokensRough` + `estimateMessagesTokensRough`
-    // (= ⚠️ partial per gap audit 2026-09-04 = wenshu-side wins =
-    // the per-text + per-message-list estimators). This H7 ticket
-    // adds `estimateRequestContextTokens(_:)` (= 53 LOC hermes at
-    // L66-L117) which handles the request-payload-level estimate
-    // (= Chat Completions + Responses API + bare list + dict
-    // fallback).
-    //
-    // The remaining 14 hermes functions in chat_completion_helpers.py
-    // (= interruptible_api_call / build_api_kwargs /
-    // build_assistant_message / try_activate_fallback /
-    // handle_max_iterations / cleanup_task_resources /
-    // interruptible_streaming_api_call / etc.) are intentionally
-    // NOT ported in this ticket — they fall into separate wenshu-side
-    // wins patterns (= ConversationLoop owns the request-building
-    // + interruptible-call concerns; = each ticket is one file).
-    //
-    // Hermes Python line range cited in doc-comment below (= for
-    // traceability back to `/Volumes/ANAN/.hermes/agent/
-    // chat_completion_helpers.py`).
-
-    /// Pure-function: estimate context/load tokens from an API
-    /// payload (= dict or messages list) (= hermes
-    /// `estimate_request_context_tokens` at
-    /// `agent/chat_completion_helpers.py` L66-L117).
-    ///
-    /// Handles 4 shapes:
-    ///   1. bare list -> treat as Chat Completions ``messages``
-    ///   2. dict with ``messages`` -> Chat Completions (+ ``tools`` if present)
-    ///   3. dict with ``input`` -> Responses API (+ ``instructions``/``tools``)
-    ///   4. any other dict -> fall back to summing string values
+    // … (= 35 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // /   4. any other dict -> fall back to summing string values
     static func estimateRequestContextTokens(_ apiPayload: Any) -> Int {
         func chars(_ value: Any) -> Int {
             if value is NSNull { return 0 }
@@ -415,75 +358,13 @@ struct WenshuModelCatalog: Sendable, Equatable {
 }
 
 // MARK: - P7 Hermes-Python gap port (= 1:1 port of hermes
-//         `agent/model_metadata.py` context-length-from-error
-//         parsing helpers).
-//
-// Wenshu-side wins (= per AGENTS.md §11.3):
-//
-// Direct port of hermes `agent/model_metadata.py` per spec
-// §3.1 #26 follow-up. The target file already had
-// `contextWindow(for:)` (= hermes `get_model_context_length`)
-// + `pricing(for:)` (= hermes `_extract_pricing`) at 419 LOC.
-// This P7 ticket adds the 3 hermes error-message parsing
-// helpers that close the audit-described gap
-// (= parsing context-limit + output-cap info from
-// provider error messages; = essential for context-
-// overflow recovery + output-cap retry):
-//
-//   1. parseContextLimitFromError(_:) (= hermes L1068-L1096)
-//   2. getContextLengthFromProviderError(...) (= hermes
-//      L1098-L1116)
-//   3. parseAvailableOutputTokensFromError(_:)
-//      (= hermes L1118-L1140)
-//
-// Hermes Python line ranges cited in doc-comments below
-// (= for traceability back to `/Volumes/ANAN/.hermes/agent/
-// model_metadata.py`).
-//
-// Per AGENTS.md §11.3 wenshu-side wins:
-//   - Pre-existing `WenshuModelCatalog` + `ModelInfo` + `Pricing`
-//     + `Features` preserved (= the no-regressions invariant).
-//   - The 7 regex patterns from hermes L1076-L1084 preserved
-//     1:1 (= vLLM `max_model_len` + Anthropic `max context length`
-//     + OpenAI `context_length_exceeded` etc.).
-//   - The sanity check `1024 <= limit <= 10_000_000`
-//     preserved (= hermes explicit sanity range).
-//   - The "lower than current" filter (= hermes
-//     `get_context_length_from_provider_error`) preserved.
-//   - The output-cap-error parsing (= hermes
-//     `parse_available_output_tokens_from_error`)
-//     preserved 1:1.
-//
-// The remaining 50+ hermes functions in model_metadata.py
-// (= local endpoint detection / Codex OAuth / Nous portal /
-// Anthropic direct / Gemini / etc.) are intentionally NOT
-// ported in this ticket — they fall into separate wenshu-
-// side wins patterns (= LLMConnector layer owns the
-// provider-specific URL detection + auth flows; = per
-// = one ticket per file).
-//
-// Per AGENTS.md §11 hard rule: Apple Foundation only. No
+// … (= 48 rationale lines collapsed; = A112 docblock collapse per §1.8)
 // third-party imports.
-
 extension WenshuModelCatalog {
 
     // MARK: -- P7.1 parse context limit from error (= hermes L1068-L1096)
-
-    /// Try to extract the actual context limit from an API
-    /// error message (= hermes `parse_context_limit_from_error`
-    /// at `agent/model_metadata.py` L1068-L1096).
-    ///
-    /// Many providers include the limit in their error text
-    /// (= e.g. "maximum context length is 32768 tokens",
-    /// "context_length_exceeded: 131072", "Maximum context
-    /// size 32768 exceeded", "model's max context length
-    /// is 65536").
-    ///
-    /// - Parameters:
-    ///   - errorMessage: The error message to parse.
-    /// - Returns: The parsed context limit, or nil if no
-    ///   reasonable value was found (= outside the
-    ///   `1024 <= limit <= 10_000_000` sanity range).
+    // … (= 14 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // /   `1024 <= limit <= 10_000_000` sanity range).
     static func parseContextLimitFromError(_ errorMessage: String) -> Int? {
         let errorLower = errorMessage.lowercased()
 
@@ -504,8 +385,7 @@ extension WenshuModelCatalog {
             // "(\d{4,})\s*(?:max(?:imum)?)\b"
             #"(\d{4,})\s*(?:max(?:imum)?)\b"#,
             // OpenAI: "context_length_exceeded: 131072" (= colons after
-            // the error name). Match colons OR spaces between the
-            // error-name + the number (= covers OpenAI / Anthropic /
+            // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // Google error formats).
             #"context_length(?:_exceeded)?\s*[:=]?\s*(\d{4,})"#,
         ]
@@ -532,27 +412,8 @@ extension WenshuModelCatalog {
     }
 
     // MARK: -- P7.2 get context length from provider error (= hermes L1098-L1116)
-
-    /// Return a provider-reported lower context limit, if
-    /// one is present (= hermes
-    /// `get_context_length_from_provider_error` at
-    /// `agent/model_metadata.py` L1098-L1116).
-    ///
-    /// Context-overflow recovery must not invent a new
-    /// model window size. Some providers only say that the
-    /// input exceeds the context window without reporting
-    /// the actual maximum. In that case callers should
-    /// keep the configured context length and try
-    /// compression only, rather than stepping down through
-    /// guessed probe tiers.
-    ///
-    /// - Parameters:
-    ///   - errorMessage: The error message to parse.
-    ///   - currentContextLength: The current configured
-    ///     context length (= used to filter out values
-    ///     that are not actually lower than current).
-    /// - Returns: The lower limit (= parsed_limit if
-    ///   `< currentContextLength`), or nil otherwise.
+    // … (= 19 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // /   `< currentContextLength`), or nil otherwise.
     static func getContextLengthFromProviderError(
         errorMessage: String,
         currentContextLength: Int
@@ -567,19 +428,8 @@ extension WenshuModelCatalog {
     }
 
     // MARK: -- P7.3 parse available output tokens (= hermes L1118-L1140)
-
-    /// Detect an "output cap too large" error and return
-    /// how many output tokens are available (= hermes
-    /// `parse_available_output_tokens_from_error` at
-    /// `agent/model_metadata.py` L1118-L1140).
-    ///
-    /// Patterns: "max_tokens ... must be <= 8192",
-    /// "max_output_tokens 4096", etc.
-    ///
-    /// - Parameters:
-    ///   - errorMessage: The error message to parse.
-    /// - Returns: The parsed output cap, or nil if no
-    ///   reasonable value was found.
+    // … (= 11 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // /   reasonable value was found.
     static func parseAvailableOutputTokensFromError(
         _ errorMessage: String
     ) -> Int? {

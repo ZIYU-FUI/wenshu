@@ -1,92 +1,11 @@
-//
-//  ReaderExperienceTools.swift
-//
-//  1:1 Swift port of hermes `agent/specialized/reader_experience.py`.
-//
-//  The Python module ships 5 reader-experience analyzers that fire
-//  on a finished chapter (= the second specialized_tools surface
 // 
-//  = P1 #6):
-//
-//    1. tension          — measures the emotional intensity curve
-//                          across the chapter (= how steeply the
-//                          stakes escalate; score = normalized
-//                          slope of the per-paragraph stress
-//                          curve).
-//    2. pacing           — measures scene density. Dialogue-heavy
-//                          chapters return a "fast" pacing label;
-//                          prose-heavy chapters return "slow". The
-//                          numeric score = dialogue fraction
-//                          weighted against description fraction.
-//    3. foreshadowing    — counts setup-style sentences (= declarative
-//                          statements that plant future payoff)
-//                          vs. resolution-style sentences; returns
-//                          the density per 1000 words + the list of
-//                          matched setup spans.
-//    4. cliffhanger      — detects a chapter-ending question or
-//                          unresolved pronoun (= ends with a `?` or
-//                          ends with a short sentence whose subject
-//                          is a pronoun with no antecedent in the
-//                          last 50 words).
-//    5. payoffDetector   — detects a chapter that resolves an earlier
-//                          setup (= the chapter contains a verb in
-//                          the resolution set AND references an
-//                          earlier-mentioned proper noun OR the
-//                          chapter opens with a callback phrase
-//                          like "as expected" / "the plan worked").
-//
-//  Each analyzer returns a `ReaderExperienceReport` (= score 0..1,
-//  highlights = the evidence spans, suggestions = actionable hints
-//  for the writer).
-//
-//  All 5 analyzers are deterministic (= pure functions over the
-//  chapter text + the active book's foreshadowing catalog when
-//  relevant). No LLM calls, no network. This matches the long_form
-//  guardrails philosophy (= fully reproducible + offline-capable).
-//
-//  Public surface (= the task spec verbatim):
-//
-//    - enum ReaderExperienceKind        : 5 cases
-//    - struct ReaderExperienceHighlight  : position + text + label
-//    - struct ReaderExperienceSuggestion : score context + advice
-//    - struct ReaderExperienceReport     : kind + score + highlights + suggestions
-//    - actor ReaderExperienceAnalyzer    : init(bookStore:)
-//                                          analyze(chapterText:kind:) async
-//
-//  Concurrency: actor (= Swift 6 strict concurrency). Reads / writes
-//  serialize cleanly across the SpecializedTools pane + any
-//  background LLM-side call sites (= the chat loop may want to
-//  attach the tension score to a generated chapter as a quality
-//  signal).
-//
-//  Sidecar persistence: NONE on purpose. The reader-experience
-//  analyzers are stateless (= the input = chapter text + an
-//  optional foreshadowing catalog passed by the caller; the
-//  output is a report). The actor's role is concurrency safety,
-//  not persistence (= contrast with `LongFormGuardrails` which
-//  owns a sidecar). Per the ticket hard rule ("DO NOT touch
-//  BookStore.swift") we do not extend the BookStore either; the
-//  bookStore parameter is reserved (= future feature work where
-//  payoffDetector reads the per-book foreshadowing catalog from
-//  disk without the caller having to wire it).
-//
-//  Standards-axis (wenshu house style):
-//    S1 (Apple-API-first): Foundation only. NSRegularExpression
-//        where needed; no third-party text-analysis deps.
-//    S3 (single source of truth for JSON parsing): the actor
-//        ships no JSON I/O (= stateless).
-//    S4 (no new third-party deps): zero added.
-//    S5 (no private types the rest of the app needs): all types
-//        public (= matches the ticket spec).
-//
-
+// … (= 79 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// 
 import Foundation
 
 // MARK: - Public surface
-
-/// The 5 reader-experience analyzers (= matches the task spec verbatim). Each
-/// case maps 1:1 to a Python tool in hermes's
-/// `agent/specialized/reader_experience.py`.
+// … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / `agent/specialized/reader_experience.py`.
 enum ReaderExperienceKind: String, Sendable, Codable, CaseIterable, Identifiable {
     /// Emotional intensity curve across the chapter.
     case tension
@@ -129,9 +48,9 @@ enum ReaderExperienceKind: String, Sendable, Codable, CaseIterable, Identifiable
         }
     }
 
-    /// SF Symbols 6 icon name (= Apple canonical; = used by Image(systemName:)
-    /// directly in the ReaderExperienceView row rendering path). Replaces the
-    /// Lucide-era names removed Migrated to outline glyphs.
+    // / SF Symbols 6 icon name (= Apple canonical; = used by Image(systemName:)
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / Lucide-era names removed Migrated to outline glyphs.
     var icon: String {
         switch self {
         case .tension:               return "waveform.path.ecg"           // Lucide 'activity'
@@ -146,9 +65,9 @@ enum ReaderExperienceKind: String, Sendable, Codable, CaseIterable, Identifiable
 /// A single evidence span inside the chapter text. The view layer renders
 /// highlights inline (= matched text + the offset range).
 struct ReaderExperienceHighlight: Sendable, Codable, Equatable, Hashable {
-    /// Character offset into the chapter (= 0-based; Swift String uses
-    /// CharacterView distances; we persist the UTF-8 offset so callers can
-    /// re-locate the span regardless of grapheme breaks).
+    // / Character offset into the chapter (= 0-based; Swift String uses
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / re-locate the span regardless of grapheme breaks).
     let utf8Offset: Int
 
     /// Length of the matched span in UTF-8 bytes.
@@ -169,9 +88,9 @@ struct ReaderExperienceHighlight: Sendable, Codable, Equatable, Hashable {
     }
 }
 
-/// One actionable hint for the writer (= "add more dialogue here", "raise
-/// stakes in paragraph 3", etc.). The score on the parent report supplies the
-/// context.
+// / One actionable hint for the writer (= "add more dialogue here", "raise
+// … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / context.
 struct ReaderExperienceSuggestion: Sendable, Codable, Equatable, Hashable {
     let text: String
 
@@ -183,10 +102,9 @@ struct ReaderExperienceSuggestion: Sendable, Codable, Equatable, Hashable {
 /// The analyzer output (= matches the task spec verbatim).
 struct ReaderExperienceReport: Sendable, Codable, Equatable {
     let kind: ReaderExperienceKind
-    /// Normalized score in 0..1. The semantics differ per kind (= see
-    /// ReaderExperienceKind.hint for the human-readable meaning). For
-    /// cliffhanger + payoffDetector the score is effectively binary (= 0 = not
-    /// detected, 1 = detected); we still expose it as 0..1 for UI uniformity.
+    // / Normalized score in 0..1. The semantics differ per kind (= see
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / detected, 1 = detected); we still expose it as 0..1 for UI uniformity.
     let score: Double
     /// Evidence spans (= the strings the analyzer matched).
     let highlights: [ReaderExperienceHighlight]
@@ -212,10 +130,8 @@ struct ReaderExperienceReport: Sendable, Codable, Equatable {
 }
 
 // MARK: - Errors
-
-/// Errors thrown by `ReaderExperienceAnalyzer`. The 2 cases mirror the
-/// long_form_guardrails convention (= a LocalizedError for each case; = no
-/// `fatalError` paths).
+// … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / `fatalError` paths).
 enum ReaderExperienceAnalyzerError: Error, LocalizedError, Sendable, Equatable {
     case emptyChapter
     case unsupportedKind(String)
@@ -231,18 +147,8 @@ enum ReaderExperienceAnalyzerError: Error, LocalizedError, Sendable, Equatable {
 }
 
 // MARK: - Actor
-
-/// Per-book reader-experience analyzer. Stateless (= the input is always the
-/// chapter text passed in by the caller; the output is a fresh
-/// `ReaderExperienceReport`). Concurrency: actor. This matches the
-/// long_form_guardrails pattern (= Swift 6 strict concurrency; no shared
-/// mutable state across the SpecializedTools pane + chat loop callers).
-/// Stateless design rationale: the 5 analyzers are pure functions over chapter
-/// text. The bookStore parameter is currently reserved (= future feature work
-/// where payoffDetector reads the per-book foreshadowing catalog from disk
-/// without the caller having to wire it explicitly). For now the parameter is
-/// accepted but not read (= so the init signature matches the task spec
-/// verbatim; the actor remains trivially testable).
+// … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / verbatim; the actor remains trivially testable).
 actor ReaderExperienceAnalyzer {
     /// Reserved for future payoffDetector integration (= reading the per-book
     /// foreshadowing catalog from disk).
@@ -252,24 +158,17 @@ actor ReaderExperienceAnalyzer {
     /// .default). Reserved for the same payoffDetector future feature work.
     private let fileManager: FileManager
 
-    /// Internal init (= matches the `LongFormGuardrails` access-level
-    /// convention: the actor accepts the internal `BookStore` type, so the init
-    /// cannot be `public`). The actor remains trivially callable from the rest
-    /// of the wenshu app (= all callers live inside the same module).
+    // / Internal init (= matches the `LongFormGuardrails` access-level
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / of the wenshu app (= all callers live inside the same module).
     init(bookStore: BookStore? = nil, fileManager: FileManager = .default) {
         self.bookStore = bookStore
         self.fileManager = fileManager
     }
 
     // MARK: - Public API
-
-    /// Run the requested analyzer against the chapter text. - Parameters: -
-    /// chapterText: the finished chapter body (= UTF-8; may contain markdown /
-    /// smart quotes / em-dashes). - kind: which of the 5 analyzers to run. -
-    /// Returns: a `ReaderExperienceReport` (= score 0..1, highlights,
-    /// suggestions, summary). - Throws: `.emptyChapter` if the input is blank;
-    /// `.unsupportedKind` if the raw value is not one of the 5 known kinds (=
-    /// defensive — should never fire in practice since the enum is exhaustive).
+    // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / defensive — should never fire in practice since the enum is exhaustive).
     func analyze(
         chapterText: String,
         kind: ReaderExperienceKind
@@ -294,15 +193,8 @@ actor ReaderExperienceAnalyzer {
     }
 
     // MARK: - 1. Tension analyzer
-
-    /// Stress curve = per-paragraph score (= 0..1) where each paragraph's
-    /// stress is the count of "high-stakes" tokens divided by the paragraph's
-    /// word count, normalized by a fixed budget (= the analyzer uses the union
-    /// of a stress vocabulary + an exclamation-count + a question-count
-    /// heuristic). Final score = the slope of the linear regression through the
-    /// per-paragraph stress points (= higher = steeper escalation across the
-    /// chapter). A flat chapter returns ~0; a chapter that ends with a stress
-    /// peak (= cliff-hanger style) returns close to 1.
+    // … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / peak (= cliff-hanger style) returns close to 1.
     private func tensionReport(chapterText: String) -> ReaderExperienceReport {
         let paragraphs = Self.splitIntoParagraphs(chapterText)
         guard !paragraphs.isEmpty else {
@@ -366,10 +258,9 @@ actor ReaderExperienceAnalyzer {
         )
     }
 
-    /// Per-paragraph stress score. Computed as: stressTokens / max(1,
-    /// wordCount) * weight where stressTokens = count of high-stakes vocabulary
-    /// hits (= a curated small set) + exclamationCount + questionCount. Result
-    /// is clamped to 0..1.
+    // / Per-paragraph stress score. Computed as: stressTokens / max(1,
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / is clamped to 0..1.
     private func stressScore(for paragraph: String) -> Double {
         let lower = paragraph.lowercased()
         let words = Self.wordCount(of: paragraph)
@@ -389,9 +280,9 @@ actor ReaderExperienceAnalyzer {
         return max(0.0, min(1.0, raw / 8.0))
     }
 
-    /// The curated stress vocabulary (= small enough to keep the analyzer
-    /// deterministic and explainable; = the Python module uses a similar
-    /// closed-set).
+    // / The curated stress vocabulary (= small enough to keep the analyzer
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / closed-set).
     private static let stressVocabulary: [String] = [
         "danger", "dangerous",
         "death", "dead", "die", "dying",
@@ -413,11 +304,8 @@ actor ReaderExperienceAnalyzer {
     ]
 
     // MARK: - 2. Pacing analyzer
-
-    /// Pacing = dialogue fraction vs. description fraction. A chapter is "fast"
-    /// when dialogue dominates; "slow" when description / introspection
-    /// dominates. The numeric score is the dialogue fraction clipped to 0..1 (=
-    /// 1 = pure dialogue; 0 = pure description).
+    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / 1 = pure dialogue; 0 = pure description).
     private func pacingReport(chapterText: String) -> ReaderExperienceReport {
         let lines = chapterText.split(whereSeparator: { $0.isNewline }).map(String.init)
         let dialogueLines = lines.filter { Self.isDialogueLine($0) }.count
@@ -471,10 +359,9 @@ actor ReaderExperienceAnalyzer {
         )
     }
 
-    /// A "dialogue line" = a line that starts with a quote mark (= either
-    /// straight " or curly “/”/" or full-width “/”). We deliberately avoid a
-    /// state machine (= multi-line dialogue blocks are treated line-by-line;
-    /// close enough for the pacing signal).
+    // / A "dialogue line" = a line that starts with a quote mark (= either
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / close enough for the pacing signal).
     private static func isDialogueLine(_ line: String) -> Bool {
         let trimmed = line.trimmingCharacters(in: .whitespaces)
         guard let first = trimmed.first else { return false }
@@ -486,12 +373,8 @@ actor ReaderExperienceAnalyzer {
     }
 
     // MARK: - 3. Foreshadowing density
-
-    /// Foreshadowing density = number of "setup" sentences per 1000 words. A
-    /// setup sentence is one whose verb is in the setup-verb set OR whose first
-    /// 3 words match a known setup opener (= "little did", "if only", "what
-    /// if", etc.). Returns: - score = density / 5.0 (= clamped 0..1; 5 setups /
-    /// 1000 words = full score). - highlights = the matched setup sentences.
+    // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / 1000 words = full score). - highlights = the matched setup sentences.
     private func foreshadowingDensityReport(chapterText: String) -> ReaderExperienceReport {
         let words = Self.wordCount(of: chapterText)
         guard words > 0 else {
@@ -615,13 +498,8 @@ actor ReaderExperienceAnalyzer {
     }
 
     // MARK: - 4. Cliffhanger analyzer
-
-    /// Detects a chapter-ending hook. A cliffhanger is detected when ANY of the
-    /// following holds for the LAST sentence: (a) it ends with `?` (= a direct
-    /// question). (b) it ends with `…` or `...` (= trailing ellipsis). (c) it
-    /// is short (< 12 words) AND its last word is a pronoun (= he / she / it /
-    /// they / him / her / them / his / hers / its / their / ours / mine) —
-    /// suggesting an unresolved subject.
+    // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / suggesting an unresolved subject.
     private func cliffhangerReport(chapterText: String) -> ReaderExperienceReport {
         let sentences = Self.splitIntoSentences(chapterText)
         guard let lastSentence = sentences.last else {
@@ -707,14 +585,8 @@ actor ReaderExperienceAnalyzer {
     ]
 
     // MARK: - 5. Payoff detector
-
-    /// A payoff is detected when the chapter contains BOTH: (a) a
-    /// resolution-verb sentence (= "won", "defeated", "discovered", "found",
-    /// "killed", "escaped", etc.) AND (b) a callback phrase (= "as expected",
-    /// "as planned", "the plan worked", "just as", "at last", "finally", "as
-    /// predicted"). Returns score = 1.0 if both conditions hold; 0.0 otherwise.
-    /// The detection is a single-shot binary (= per the Python source; = later
-    /// feature work can split it into multiple payoff flavors).
+    // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / feature work can split it into multiple payoff flavors).
     private func payoffDetectorReport(chapterText: String) -> ReaderExperienceReport {
         let lower = chapterText.lowercased()
         let hasResolution = Self.resolutionVerbs.contains { verb in
@@ -818,10 +690,8 @@ actor ReaderExperienceAnalyzer {
     ]
 
     // MARK: - Shared text utilities
-
-    /// Split chapter into paragraphs (= double newline OR a single newline for
-    /// short lines; = forgiving on markdown formatting). Empty paragraphs are
-    /// dropped.
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / dropped.
     static func splitIntoParagraphs(_ text: String) -> [String] {
         let normalized = text.replacingOccurrences(of: "\r\n", with: "\n")
         let blocks = normalized.components(separatedBy: "\n\n")
@@ -834,7 +704,7 @@ actor ReaderExperienceAnalyzer {
         }
         if paragraphs.isEmpty {
             // Fall back to single-newline split if the chapter
-            // has no blank lines (= the writer used single
+            // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // newlines throughout).
             for line in normalized.components(separatedBy: "\n") {
                 let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -846,9 +716,9 @@ actor ReaderExperienceAnalyzer {
         return paragraphs
     }
 
-    /// Split chapter into sentences (= naive period / question / exclamation
-    /// split; = preserves trailing punctuation). Abbreviations (= "Mr." /
-    /// "Dr.") are tolerated because the analyzer only needs a coarse signal.
+    // / Split chapter into sentences (= naive period / question / exclamation
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / "Dr.") are tolerated because the analyzer only needs a coarse signal.
     static func splitIntoSentences(_ text: String) -> [String] {
         var sentences: [String] = []
         var current = ""
@@ -889,9 +759,9 @@ actor ReaderExperienceAnalyzer {
         return count
     }
 
-    /// Word-boundary check (= returns true if `needle` appears as a complete
-    /// token in `haystack`). Used by the payoff detector to avoid false
-    /// positives like "wins" matching "windows".
+    // / Word-boundary check (= returns true if `needle` appears as a complete
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / positives like "wins" matching "windows".
     static func containsWord(_ needle: String, in haystack: String) -> Bool {
         guard !needle.isEmpty else { return false }
         var searchRange = haystack.startIndex..<haystack.endIndex
@@ -959,8 +829,7 @@ actor ReaderExperienceAnalyzer {
         guard den > 0 else { return 0 }
         let slope = num / den
         // Slope is in score-units per paragraph-index. Map to
-        // -1..1 by dividing by a fixed reference slope (= 0.1 =
-        // gentle ramp; anything steeper reads as "strong
+        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // escalation").
         let referenceSlope = 0.1
         let normalized = slope / referenceSlope

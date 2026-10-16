@@ -1,13 +1,6 @@
 // BookEntityTool.swift Per-book entity CRUD actor + 5-kind dispatcher. Replaces
-// BookCharacterActor + BookWorldActor from previous versions with a single kind-
-// discriminated actor (= all 5 kinds go through the same 6 actions: create / read /
-// update / delete / list / find). Storage: FileSystemEntityStore (= the on-disk JSON
-// index + per-entity .md body file). Scope guard: every action MUST carry a `book_id`
-// that matches the chat session's currently-bound book. Same BookScopeGuard helper.
-// Silent dedup: if an entity with the same name already exists in this book (= case-
-// insensitive), falls back to in-place update. Same behavior as BookCharacterActor /
+// … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
 // BookWorldActor in an earlier version.
-
 import Foundation
 import WenshuData
 
@@ -47,10 +40,9 @@ enum BookEntityError: Error, LocalizedError {
 // MARK: - Actor
 
 actor BookEntityActor {
-    /// Closure returning the book directory for the current chat
-    /// session's bound book (= nil when no chat book is bound).
-    /// Resolved on every CRUD call so the user can switch books
-    /// mid-conversation without the actor holding a stale root.
+    // / Closure returning the book directory for the current chat
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / mid-conversation without the actor holding a stale root.
     let bookDirectoryProvider: @Sendable () -> URL?
 
     /// Closure returning the chat session's currently-bound book
@@ -69,7 +61,7 @@ actor BookEntityActor {
     func readBodyForTest(id: EntityID) async -> String? {
         guard let dir = bookDirectoryProvider() else { return nil }
         // Per boss 2026-10-05 (see OOB.md #2026-10-05) @MainActor-isolated (= SwiftData
-        // ModelContext contract); = the actor can't instantiate it. Use the
+        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // nonisolated static FileSystem fallback helpers (= actor-safe).
         return FileSystemEntityStore.loadEntityBodyFromFileSystem(
             id: id,
@@ -77,17 +69,9 @@ actor BookEntityActor {
         )
     }
 
-    /// Resolve the current book directory. Throws if the chat
-    /// session has no bound book (= the scope guard should have
-    /// already caught this).
-    ///
-    /// Per boss 2026-10-05 (see OOB.md #2026-10-05)
-    /// struct is @MainActor-isolated (= SwiftData ModelContext
-    /// contract); = actor-based callers (= this actor + the actor-
-    /// based tool wrapper) can't instantiate it. We resolve to the
-    /// book directory URL and use the nonisolated static FileSystem
-    /// fallback helpers (= actor-safe; = preserves the API
-    /// surface).
+    // / Resolve the current book directory. Throws if the chat
+    // … (= 9 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / surface).
     private func resolveBookDirectory() throws -> URL {
         guard let dir = bookDirectoryProvider() else {
             throw BookEntityError.invalidInput(
@@ -101,10 +85,8 @@ actor BookEntityActor {
     }
 
     // MARK: - CRUD
-
-    /// Create a new entity (= falls back to update if an entity
-    /// with the same name already exists in this book; = per the
-    /// contract).
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / contract).
     func createEntity(
         bookId: UUID,
         kind: String,
@@ -127,9 +109,7 @@ actor BookEntityActor {
         }
 
         // Silent dedup: if an entity with the same name already exists in this book (=
-        // case- insensitive), silently update in place. The fallback update
-        // uses either the caller's bodyMarkdown OR the rendered template (=
-        // same default as the fresh-create path; = ensures the body on disk is
+        // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // rewritten even when the caller doesn't pass a fresh bodyMarkdown).
         if let existing = try await findEntity(
             bookId: bookId, kind: parsedKind, name: trimmed
@@ -211,9 +191,9 @@ actor BookEntityActor {
         return descriptor
     }
 
-    /// Read an entity by id. Returns the descriptor + the raw
-    /// body markdown (= the LLM-facing tool return value pairs
-    /// these as a tuple).
+    // / Read an entity by id. Returns the descriptor + the raw
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / these as a tuple).
     func readEntity(id: EntityID) async throws -> (EntityDescriptor, String?) {
         do {
             let dir = try resolveBookDirectory()
@@ -318,9 +298,9 @@ actor BookEntityActor {
         }
     }
 
-    /// List all entities in a book (= optionally filtered by kind).
-    /// Sorted by updatedAt descending (= most-recently-edited
-    /// first).
+    // / List all entities in a book (= optionally filtered by kind).
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / first).
     func listEntities(bookId: UUID, kind: EntityKind? = nil) async throws -> [EntityDescriptor] {
         let dir = try resolveBookDirectory()
         let entities: [EntityDescriptor]
@@ -359,11 +339,8 @@ actor BookEntityActor {
     }
 
     // MARK: - Tool-protocol entry-point (LLM-facing dispatcher)
-
-    /// LLM-facing entry-point: parse JSON envelope + dispatch to
-    /// the corresponding CRUD action. Mirrors the BookCharacterActor
-    /// / BookWorldActor pattern (= thin JSON dispatcher; = same
-    /// scope-guard contract).
+    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / scope-guard contract).
     func execute(input: String) async throws -> String {
         let envelope: [String: Any]
         do {

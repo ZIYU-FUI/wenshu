@@ -1,22 +1,6 @@
 // Sources/WenshuApp/State/LayoutTreeState.swift
-//
-// Bumped from v1 (= flat array of panes) to v2 (= recursive split tree).
-// 1:1 port of /Volumes/ANAN/.hermes/hermes-agent/apps/desktop/src/
-// components/pane-shell/tree/model.ts (650 LOC TypeScript).
-//
-// Two node kinds:
-// - SplitNode: children laid out along an orientation with fractional weights.
-// - GroupNode: a stack of panes (tabs) with one active; may be minimized to
-//   its header strip; carries a standing choice for tab-strip mode.
-//
-// All operations are pure and return new trees; normalize() keeps the
-// structure canonical (no empty groups, no single-child or same-
-// orientation nested splits).
-//
-// Atomic-coupling with LayoutTreeStore.swift (= the schema and its
-// migration logic are inseparable — see ticket spec for the
+// … (= 16 rationale lines collapsed; = A112 docblock collapse per §1.8)
 // justification; = shipped together per the standing rule).
-
 import Foundation
 import CoreGraphics
 
@@ -61,21 +45,14 @@ enum TabKind: String, Codable {
     case aiDynamic
 }
 
-/// PaneNode — a single pane (= holds 0 or more tabs).
-///
-/// Carried over from v1 unchanged: a pane owns
-/// its sizing (frame) and the ordered list of tab IDs it renders.
-/// The tree in v2 (= `LayoutNode`) does NOT carry this metadata
-/// directly; instead, the tree references panes via `PaneID`, and
-/// the per-pane metadata lives in `LayoutTreeState.panes` (keyed by
-/// PaneID). This separation keeps the tree lightweight (= only ids
-/// + structure; no per-node frame data) and lets the renderer look
-/// up frame + tab info per-pane.
+// / PaneNode — a single pane (= holds 0 or more tabs).
+// … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / up frame + tab info per-pane.
 struct PaneNode: Codable, Equatable, Identifiable {
     var id: PaneID
-    /// Orientation of the split (= which axis the pane's flex
-    /// applies along). For a root pane, split is irrelevant (= the
-    /// root pane owns its parent's split direction).
+    // / Orientation of the split (= which axis the pane's flex
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / root pane owns its parent's split direction).
     var split: SplitDirection
     var frame: PaneFrame
     /// Ordered list of tabs in this pane (= first is the selected
@@ -100,14 +77,8 @@ struct TabSpec: Codable, Equatable, Identifiable {
 }
 
 // MARK: - Tree node kinds (= hermes model.ts lines 16-56)
-
-/// TabStripMode — a zone's STANDING CHOICE about its tab strip.
-/// Absent is the third value and the default: AUTO, where the strip's
-/// presence is a pure function of what the zone currently holds.
-///
-/// Replaces the flat-pane `tabIDs` array; this is the user's
-/// deliberate choice (= absent = auto; only the user writes
-/// `tabStrip`; everything else asks AUTO).
+// … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / `tabStrip`; everything else asks AUTO).
 enum TabStripMode: String, Codable {
     case always
     case never
@@ -131,12 +102,9 @@ enum DropPosition: String, Codable {
     case bottom
 }
 
-/// LayoutNode — recursive tree node. Sum type: SplitNode | GroupNode.
-///
-/// Codable conformance: encoded as a JSON object with a `type`
-/// discriminator (= "split" | "group") so the on-disk format is
-/// self-describing and forward-compatible. Decoding picks the right
-/// branch by the `type` field.
+// / LayoutNode — recursive tree node. Sum type: SplitNode | GroupNode.
+// … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / branch by the `type` field.
 indirect enum LayoutNode: Codable, Equatable {
     case split(SplitNode)
     case group(GroupNode)
@@ -203,23 +171,15 @@ struct GroupNode: Codable, Equatable, Identifiable {
     var active: PaneID
     /// Collapsed to header strip (= chevron restores).
     var minimized: Bool?
-    /// The user's standing choice for this zone's strip; absent = auto.
-    /// Written only by the zone menu and the toggle command. Minimize
-    /// ignores it — a minimized group IS its strip.
+    // / The user's standing choice for this zone's strip; absent = auto.
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / ignores it — a minimized group IS its strip.
     var tabStrip: TabStripMode?
 }
 
 // MARK: - Tree node constructors (= hermes model.ts lines 63-86)
-
-/// Monotonic sequence used to mint unique node ids within a session.
-/// Persistent IDs come from the persisted JSON tree (= re-imported on
-/// load); this sequence is only for new in-session allocations.
-///
-/// Uses a class-level lock-free atomic counter to satisfy Swift 6
-/// concurrency checking. Since `nodeID` is only ever called from the
-/// MainActor (= via LayoutTreeStore mutations + the SwiftUI render
-/// path) the counter is never actually raced, but Swift 6 still
-/// requires the annotation.
+// … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / requires the annotation.
 private final class NodeIDSequence: @unchecked Sendable {
     static let shared = NodeIDSequence()
     private var value: UInt64 = 0
@@ -313,13 +273,8 @@ func findParentSplit(_ node: LayoutNode, childId: String) -> SplitNode? {
 }
 
 // MARK: - normalize (= hermes model.ts lines 153-217)
-
-/// Canonical form: unwrap single-child splits, flatten same-orientation
-/// nesting (weights scaled into the parent's slot), and PRUNE EMPTY
-/// GROUPS (= dragging the last pane out of a zone closes the zone and
-/// its siblings absorb the space; VS Code semantics).
-///
-/// Returns nil when the tree is fully empty.
+// … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / Returns nil when the tree is fully empty.
 func normalize(_ node: LayoutNode) -> LayoutNode? {
     if case .group(let g) = node {
         if g.panes.isEmpty {
@@ -368,10 +323,8 @@ func normalize(_ node: LayoutNode) -> LayoutNode? {
 }
 
 // MARK: - removePane (= hermes model.ts lines 219-241)
-
-/// Remove a pane wherever it lives. Closing the ACTIVE tab leaves
-/// selection on the neighbor that fills its slot (right; left when it
-/// was last) — same rule as terminals and the preview rail.
+// … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / was last) — same rule as terminals and the preview rail.
 func removePane(_ node: LayoutNode, paneId: PaneID) -> LayoutNode? {
     func walk(_ n: LayoutNode) -> LayoutNode {
         if case .group(let g) = n {
@@ -396,15 +349,8 @@ func removePane(_ node: LayoutNode, paneId: PaneID) -> LayoutNode? {
 }
 
 // MARK: - insertAtGroup (= hermes model.ts lines 243-301)
-
-/// Insert `paneId` at `target` group: `center` joins the stack (as a
-/// tab); an edge splits the group in that direction. If the
-/// neighboring split already runs in that orientation the new group
-/// is spliced in beside the target instead of nesting (= normalize
-/// would flatten it anyway).
-///
-/// Returns nil when the target group does not exist or the tree
-/// becomes empty.
+// … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / becomes empty.
 func insertAtGroup(
     _ node: LayoutNode,
     targetGroupId: String,
@@ -451,11 +397,8 @@ func insertAtGroup(
 }
 
 // MARK: - movePane + movePanes (= hermes model.ts lines 303-416)
-
-/// The tree's VISIBLE shape: pane stacks + split orientations, with
-/// empty groups skipped and single-child runs unwrapped. Two trees
-/// with equal signatures are indistinguishable on screen regardless
-/// of node ids.
+// … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / of node ids.
 private func shapeSignature(_ node: LayoutNode) -> String {
     if case .group(let g) = node {
         return g.panes.isEmpty ? "" : "[" + g.panes.map { $0.raw.uuidString }.joined(separator: ",") + "]"
@@ -470,12 +413,9 @@ private func shapeSignature(_ node: LayoutNode) -> String {
     return ""
 }
 
-/// Move = remove + insert. If the target group vanished during
-/// removal (the pane was its only occupant), the move is a no-op. A
-/// move whose result LOOKS identical to the current layout is also
-/// a no-op — e.g. a "split bottom" drop onto the zone the pane
-/// already sits alone below would only rebuild the same arrangement
-/// under a fresh zone id.
+// / Move = remove + insert. If the target group vanished during
+// … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / under a fresh zone id.
 func movePane(
     _ root: LayoutNode,
     paneId: PaneID,
@@ -492,12 +432,9 @@ func movePane(
     return shapeSignature(next) == shapeSignature(root) ? root : next
 }
 
-/// Move a SELECTION of panes together (multi-tab drag), preserving
-/// their strip order. The lead pane lands exactly like a single
-/// `movePane` (= center joins at `before`, an edge opens the split);
-/// the rest stack in behind it. `activeID` (= the pressed tab) fronts
-/// in the landing group. Same no-op guard as `movePane`: a drop that
-/// rebuilds the visible arrangement returns `root`.
+// / Move a SELECTION of panes together (multi-tab drag), preserving
+// … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / rebuilds the visible arrangement returns `root`.
 func movePanes(
     _ root: LayoutNode,
     paneIds ids: [PaneID],
@@ -510,10 +447,7 @@ func movePanes(
     }
     let lead = ids[0]
     // Replaced the previous `working!` (= force-unwrap inside a loop
-    // that may exit early on removePane failure) with explicit
-    // `guard let pending` (= the loop-local name is `pending` to
-    // avoid shadowing the outer `current` var; = pending is the
-    // in-loop current value before removePane, then re-assigned to
+    // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // the outer current).
     var current: LayoutNode? = root
     for id in ids {
@@ -567,14 +501,8 @@ private func findCover(_ node: LayoutNode, _ set: Set<String>) -> LayoutNode? {
 }
 
 // MARK: - mergeZonesWithPane (= hermes model.ts lines 447-505)
-
-/// FancyZones span: merge the highlighted zones into ONE group
-/// holding the dragged pane block (one pane, or a multi-tab selection
-/// in strip order), absorbing any panes that lived in those zones as
-/// tabs. Only works when the highlighted set forms a rectangular
-/// subtree (it always does for a combined zone range on a guillotine
-/// tree); returns nil otherwise so the caller can fall back to a
-/// single-zone drop.
+// … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / single-zone drop.
 func mergeZonesWithPane(
     _ root: LayoutNode,
     groupIds: [String],
@@ -636,10 +564,9 @@ func setActivePane(_ root: LayoutNode, groupId: String, paneId: PaneID) -> Layou
     }
 }
 
-/// Reorder a block of panes within a group as one unit (browser-tab
-/// drag semantics; a single-tab drag is a one-id block): the block
-/// lands at `toIndex` among the remaining tabs, keeping its own
-/// order.
+// / Reorder a block of panes within a group as one unit (browser-tab
+// … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / order.
 func reorderPanesInGroup(
     _ root: LayoutNode,
     groupId: String,
@@ -679,9 +606,9 @@ func setGroupTabStrip(_ root: LayoutNode, groupId: String, tabStrip: TabStripMod
     }
 }
 
-/// Mirror the layout HORIZONTALLY (the titlebar flip toggle / ⌘\):
-/// reverse every ROW split's child order at EVERY depth, so left↔right
-/// flips everywhere. Its own involution: flipping twice is the identity.
+// / Mirror the layout HORIZONTALLY (the titlebar flip toggle / ⌘\):
+// … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / flips everywhere. Its own involution: flipping twice is the identity.
 func mirrorTreeHorizontal(_ root: LayoutNode) -> LayoutNode {
     if case .group = root { return root }
     if case .split(let s) = root {
@@ -720,12 +647,8 @@ func setSplitWeights(_ root: LayoutNode, splitId: String, weights: [Double]) -> 
 }
 
 // MARK: - Validation + persisted-tree migration (= hermes model.ts lines 589-650)
-
-/// Bring a persisted tree onto the current attribute schema. For v2
-/// (= initial public release), this is currently a no-op pass-through
-/// (the schema already matches the runtime shape). Future schema
-/// bumps should retire legacy attributes here (= analogous to the
-/// hermes `headerHidden` → `tabStrip` retirement).
+// … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / hermes `headerHidden` → `tabStrip` retirement).
 func migratePersistedTree(_ node: LayoutNode) -> LayoutNode {
     switch node {
     case .group(let g):
@@ -741,14 +664,9 @@ func migratePersistedTree(_ node: LayoutNode) -> LayoutNode {
     }
 }
 
-/// Cheap structural validator for an unknown value (= used to gate
-/// UserDefaults loads).
-///
-/// Validates only the top-level shape (= `type` discriminator +
-/// presence of the structural keys). Deeper type validation lives in
-/// the JSONDecoder call (= full type-safe decoding), so this gate
-/// just rejects outright-corrupt blobs without paying the decode
-/// cost. Returns true for both legal split and legal group shapes.
+// / Cheap structural validator for an unknown value (= used to gate
+// … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / cost. Returns true for both legal split and legal group shapes.
 func isLayoutNode(_ value: Any) -> Bool {
     guard let n = value as? [String: Any], let type = n["type"] as? String else {
         return false
@@ -770,18 +688,8 @@ func isLayoutNode(_ value: Any) -> Bool {
 }
 
 // MARK: - LayoutTreeState v2 (= hermes-tree-backed)
-
-/// LayoutTreeState — the user's current pane tree + tabs.
-///
-/// Persisted to UserDefaults under `wenshu.workspace.json`. Version
-/// field allows schema migrations (= on breaking schema changes,
-/// bump version and migrate in LayoutTreeStore.load).
-///
-/// (`root`) per the hermes `LayoutNode` model. Pane metadata (frame,
-/// minWidth, idealWidth, flex) lives in `panes` (= keyed by PaneID),
-/// and tabs (= which view a pane renders) live in `tabs` (= keyed by
-/// TabID). The tree references both via ids; pure functions mutate
-/// the tree and return a new state.
+// … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / the tree and return a new state.
 struct LayoutTreeState: Codable, Equatable {
     /// The tree root. Persisted as nested JSON (= split/group
     /// discriminated by `type` field).
@@ -796,26 +704,8 @@ struct LayoutTreeState: Codable, Equatable {
     var version: Int
 
     // MARK: - 3-column NavigationSplitView migration (= M1 shell)
-    /// opt-in to the Apple-native
-    /// NavigationSplitView path (= the macOS 27 recommended 3-column
-    /// layout per developer.apple.com/documentation/swiftui/navigationsplitview).
-    ///
-    /// Default `false` = existing users see ZERO behavior change on app
-    /// upgrade (= PaneSplitHost path unchanged). Set via:
-    ///   defaults write com.wenshu.app wenshu.useThreeColumnSplit -bool true
-    /// Reset via:
-    ///   defaults delete com.wenshu.app wenshu.useThreeColumnSplit
-    ///
-    /// 2026-09-08: 'Apple framework default: yes 2-3; yes,
-    /// yesyes Apple yes' = the current 4-column upper
-    /// band is NOT Apple first-class (= `NSSplitView` nested = workaround);
-    /// = migrate to two nested `NavigationSplitView` (each 3-column =
-    /// Apple canonical). M1 = build the shell skeleton (= new
-    /// `NavigationSplitShell.swift` = outer VSplitView + two
-    /// NavigationSplitView); M2-M5 = migrate zone content (= subsequent
-    /// work items).
-    ///
-    /// Marked `Optional` (= Codable back-compat for old persisted JSON).
+    // … (= 19 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / Marked `Optional` (= Codable back-compat for old persisted JSON).
     var useThreeColumnSplit: Bool? = nil
 
     /// Lookup helper for a tab by ID (= O(n) over tabs; n is small).
@@ -837,17 +727,17 @@ struct LayoutTreeState: Codable, Equatable {
         return nil
     }
 
-    /// All PaneIDs in tree order (= wrapper over the file-scope
-    /// `allPaneIDs(_:)` helper; renamed locally to avoid clash with
-    /// the helper's name).
+    // / All PaneIDs in tree order (= wrapper over the file-scope
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / the helper's name).
     var allPaneIDsInTree: [PaneID] {
         allPaneIDs(root)
     }
 }
 
-/// Private helper: walks the tree breadth-first and yields each
-/// node in encounter order. Used by `activePaneID` to find the
-/// front-most (= depth-first, first encountered) group.
+// / Private helper: walks the tree breadth-first and yields each
+// … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / front-most (= depth-first, first encountered) group.
 private func walkRoot(_ node: LayoutNode) -> [LayoutNode] {
     var result: [LayoutNode] = []
     func walk(_ n: LayoutNode) {
@@ -860,25 +750,18 @@ private func walkRoot(_ node: LayoutNode) -> [LayoutNode] {
     return result
 }
 
-/// LayoutPreset — a named saved layout (= user can have several).
-///
-/// Persisted to UserDefaults under `wenshu.workspace.presets`. The
-/// `Default` preset (= isBuiltIn = true) is the FCP Browser 3-pane
-/// layout. It is recreated on demand; user cannot delete it.
+// / LayoutPreset — a named saved layout (= user can have several).
+// … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / layout. It is recreated on demand; user cannot delete it.
 struct LayoutPreset: Codable, Equatable, Identifiable {
     var id: UUID
     var name: String
     var workspace: LayoutTreeState
     var isBuiltIn: Bool
 
-    /// Stable UUIDs for the 4 builtin presets. Generated once here
-    /// and reused forever; this keeps UserDefaults round-trips
-    /// stable across launches.
-    /// Replaced the previous `UUID(uuidString: "...")!` (= compile-
-    /// time-literal force-unwraps that read as crash vectors) with
-    /// the `UUID.literal("...")` helper (= a preconditionFailure
-    /// pattern; = the literal UUID strings are guaranteed-valid at
-    /// compile time so the failure path is unreachable).
+    // / Stable UUIDs for the 4 builtin presets. Generated once here
+    // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / compile time so the failure path is unreachable).
     static let builtinDefaultID = UUID.literal("00000000-0000-0000-0000-000000000001")
     static let builtinFocusID = UUID.literal("00000000-0000-0000-0000-000000000002")
     static let builtinTerminalDeckID = UUID.literal("00000000-0000-0000-0000-000000000003")
@@ -886,7 +769,7 @@ struct LayoutPreset: Codable, Equatable, Identifiable {
 
     static func builtinDefault(_ workspace: LayoutTreeState) -> LayoutPreset {
         // Translated the legacy localized string "Default" → "Default"
-        // (= the builtin preset name is in English; the localized
+        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // version comes from the i18n layer when shown to the user).
         LayoutPreset(id: builtinDefaultID, name: "Default", workspace: workspace, isBuiltIn: true)
     }

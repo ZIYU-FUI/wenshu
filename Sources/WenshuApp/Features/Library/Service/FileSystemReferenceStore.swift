@@ -1,56 +1,21 @@
 // FileSystemReferenceStore.swift Reference-library storage layer, backed by SwiftData (=
-// the WSReference @Model class declared in Persistence/WSReference.swift). Per boss
-// 2026-10-05 (see OOB.md #2026-10-05) SwiftData migration). This is commit 2 of #8.
-// Apple HIG canonical pattern: Reference's free-form body markdown lives inline in the
-// WSReference.body field (= replaces the per- layer .md file on disk); the metadata
-// fields (= title, source, url, layer, category, tags, entityType) live as typed
-// SwiftData columns. SwiftData stores the entire reference in a single row. Apple HIG
-// dual-write pattern: when no ModelContainer is wired (= legacy dev-tool path; =
-// actor-based callers that can't reach MainActor), fall back to the legacy FileSystem
-// path (= library.json metadata + per-layer .md body + per-layer JSON index file). The
-// protocol methods route to SwiftData when a container is available; otherwise they
-// route to the FileSystem fallback (= preserved for backward compat with the existing
-// test suite + actor callers). Storage path (= unchanged at the public API level):
-// <.ws>/reference-library/library.json <.ws>/reference-library/<layer>/<uuid>.md
+// … (= 13 rationale lines collapsed; = A112 docblock collapse per §1.8)
 // <.ws>/reference-library/<layer>/<layer>.json
-
 import Foundation
 import SwiftData
 import WenshuData
 import os
 
 // (protocol extracted to FileSystemReferenceStoreTypes.swift in A28; = see that file)
-
-
-// (error extracted to FileSystemReferenceStoreTypes.swift in A28; = see that file)
-
-
-// (metadata extracted to FileSystemReferenceStoreTypes.swift in A28; = see that file)
-
-
-// MARK: - SwiftData implementation
-// NOTE on isolation: SwiftData's ModelContext is MainActor-isolated (= Apple HIG requires
-// the context to be touched from the main thread). The store struct is therefore
-// marked `@MainActor`; = the 5 actor-based callers (ReferenceLibraryTool, LLMWikiTool,
-// LLMWikiOps, BookManagerTool, LibraryLifecycleHook) cannot instantiate it directly.
-// They use the nonisolated static FileSystem fallback helpers (=
-// loadMetadataFromFileSystem, etc.) which match the legacy FileSystem path exactly.
-// The protocol surface that ReferenceLibraryTool uses (`any ReferenceStoring`) remains
-// satisfied because the struct's static methods produce the same observable behavior
-// as the legacy FileSystem path. When the production app wires a ModelContainer (=
-// commit 3 of #8, the @MainActor container is held by AppState), the store's instance
-// methods route to the SwiftData path. Until then, the FileSystem fallback is the
+// … (= 14 rationale lines collapsed; = A112 docblock collapse per §1.8)
 // canonical implementation.
-
 @MainActor
 struct FileSystemReferenceStore: ReferenceStoring {
     let referenceLibraryRoot: URL
 
-    /// SwiftData ModelContainer (= Sendable; = passed to the store
-    /// by the caller, who owns the singleton). When nil (= legacy
-    /// dev-tool path), the store refuses to read or write via the
-    /// SwiftData path; = the actor-based callers use the static
-    /// FileSystem fallback helpers directly.
+    // / SwiftData ModelContainer (= Sendable; = passed to the store
+    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / FileSystem fallback helpers directly.
     let modelContainer: ModelContainer?
 
     /// Layer-specific subdirectory under reference-library/.
@@ -175,13 +140,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
         context.insert(row)
         try context.save()
         // 2026-10-14: also write the body to its single-file truth location. See the
-        // matching note in `replaceReference` above. The first-save of a new
-        // reference writes the file at the canonical path (= the
-        // `references/<uuid>.md` location produced by `referenceFileURL`); =
-        // subsequent `replaceReference` calls overwrite the same file. A pre-
-        // doc-truth-git reference that already has SwiftData body content (=
-        // no corresponding file) will have its file written on the first edit
-        // (= the `replaceReference` call updates the file alongside the
+        // … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // SwiftData row).
         try? Self.writeReferenceFileToFileSystem(
             id: id,
@@ -225,15 +184,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
         existing.updatedAt = Date()
         try context.save()
         // 2026-10-14: also write the body to its single-file truth location. The doc-
-        // truth-git ticket (= .scratch/2026-10-14-doc-truth-git/ ticket.md)
-        // makes the file the single source of truth; = the SwiftData `body`
-        // column becomes a write-through cache (= an in-app consumer like the
-        // LLM agent's `find` tool can still read the body from SwiftData
-        // without touching the filesystem; = the editor reads from the file
-        // via `loadReferenceBody` file-first). The write here is atomic (=
-        // `atomicFileSystemWrite` = temp + rename + fsync) and silently
-        // creates the parent `references/` directory. A subsequent v1.10
-        // ticket will wrap this in a `git add` + `git commit` so the user's
+        // … (= 9 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // edits become a versioned commit.
         try? Self.writeReferenceFileToFileSystem(
             id: id,
@@ -353,22 +304,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
 
     func loadReferenceBody(id: UUID) -> String? {
         // 2026-10-14: read the file-truth version first when present. The doc-truth-git
-        // ticket (= .scratch/2026-10-14-doc-truth-git/ticket.md) migrates the
-        // reference body from the SwiftData `WSReference.body` column to a
-        // per-document file at `<referenceLibraryRoot>/references/<uuid>.md`.
-        // Once the migration runs on first launch (= the body's content has
-        // been written to disk; = a ), the SwiftData body becomes a write-
-        // through cache (= the writer still updates it for in-app consumers
-        // that read SwiftData directly, = e.g. the `ReferenceLibraryTool` for
-        // the LLM agent's `find` tool returns metadata + body from SwiftData
-        // without touching the filesystem), and the file is the single source
-        // of truth for the editor + version control. The file is checked first
-        // so a fresh git checkout (= the user clones the .ws library onto a
-        // new machine, = there is no SwiftData store yet) can still open the
-        // document and see the file content. Falls back to SwiftData when the
-        // file does not exist (= the migration has not run for this reference
-        // yet, = the user is on a pre-doc-truth-git build of wenshu and just
-        // opened a reference tab; = the SwiftData body column is still the
+        // … (= 16 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // canonical source until first save writes the file).
         let fileURL = Self.referenceFileURL(
             id: id, referenceLibraryRoot: referenceLibraryRoot
@@ -383,8 +319,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
         if let fileBody { return fileBody }
         guard let context = modelContext else {
             // FileSystem path: search all layer directories for the .md file. Without
-            // layer info (= only the id) we walk all 4 layers; = the
-            // actor-based callers should pass the layer via the FileSystem
+            // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // fallback helpers.
             for layer in ReferenceLayer.allCases {
                 let layerDir = layerDirectory(layer)
@@ -541,21 +476,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
         referenceLibraryRoot: URL
     ) throws {
         // (= boss 2026-10-10 (see OOB.md #2026-10-10) directive). The previous
-        // implementation threw `referenceAlreadyExists` if the .md file at the
-        // destination path already existed. This was too strict: the
-        // reference-library `id` is `uuidFromHash(contentHash)` (= derived
-        // from the source body hash); = if two distinct import flows produced
-        // the same content hash (= the boss's orphan / re-import flow that
-        // round-40 just hardened; = or the LLM produces the same title for two
-        // semantically identical files), the second write would crash. The
-        // fix: 1. If the .md file doesn't exist → write it (= the original
-        // path). 2. If the .md file exists AND its content is byte-equal to
-        // the new bodyMarkdown → no-op (= idempotent re-import; = the import
-        // is successful; = we silently skip the duplicate to match the user's
-        // "禁止重名" rule without crashing). 3. If the .md file exists AND its
-        // content differs → edit (= overwrite the .md and update the
-        // entities.json index to point at the new content; = the user's "如果有差
-        // 异可以编辑" rule; = idempotent in the "the latest LLM result wins"
+        // … (= 15 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // sense).
         try ensureReferenceLibraryRootExists(at: referenceLibraryRoot)
         try ensureReferenceLayerDirectoryExists(
@@ -567,19 +488,17 @@ struct FileSystemReferenceStore: ReferenceStoring {
             .appendingPathComponent("\(reference.id.uuidString).md")
         if FileManager.default.fileExists(atPath: mdURL.path) {
             // content-diff check (= the user's "完全一至" rule). If the existing .md is byte-
-            // equal to the new body, the import is idempotent (= silent
-            // no-op; = no error, no warning; = the "禁止重名" rule is honored
+            // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // without crashing).
             let existingBody = (try? String(contentsOf: mdURL, encoding: .utf8)) ?? ""
             if existingBody == bodyMarkdown {
                 // Content unchanged; = this is a re-import of the same source body; = the
-                // entities index already has this entry from a
+                // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
                 // previous import; = do nothing (= silent success).
                 return
             }
             // Content differs; = the user explicitly authorized "edit" in the round-41
-            // directive. The edit = overwrite the .md AND update the
-            // entities.json index entry (= the
+            // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // `replaceReferenceToFileSystem` path).
             try atomicFileSystemWrite(
                 bodyMarkdown.data(using: .utf8) ?? Data(),
@@ -635,19 +554,8 @@ struct FileSystemReferenceStore: ReferenceStoring {
     }
 
     // MARK: - Single-file reference body (= doc-truth-git ticket)
-
-    /// 2026-10-14: the doc-truth-git ticket migrates
-    /// the reference body to a per-document file at
-    /// `<referenceLibraryRoot>/../references/<uuid>.md`
-    /// (= sibling of `shelves/` and `reference-library/`
-    /// in the .ws library root). This helper reads that
-    /// file (= returns nil if the file does not exist or
-    /// cannot be read). The editor's `restoreOpenTabs`
-    /// (= when a reference tab is restored) and the
-    /// `loadReferenceBody` SwiftData path now check this
-    /// file first, falling back to the SwiftData `body`
-    /// column when the file is missing. See
-    /// .scratch/2026-10-14-doc-truth-git/ticket.md.
+    // … (= 11 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / .scratch/2026-10-14-doc-truth-git/ticket.md.
     nonisolated static func readReferenceFileFromFileSystem(
         id: UUID,
         referenceLibraryRoot: URL
@@ -656,15 +564,9 @@ struct FileSystemReferenceStore: ReferenceStoring {
         return try? String(contentsOf: url, encoding: .utf8)
     }
 
-    /// Atomic write of the reference body to its
-    /// single-file truth location. Creates the parent
-    /// `references/` directory if missing (= the
-    /// migration's first write also creates the
-    /// directory). Returns silently when the write
-    /// succeeds (= the editor's autosave path is
-    /// fire-and-forget for the file write; = the calling
-    /// layer is responsible for git committing the
-    /// change in a future v1.10 ticket).
+    // / Atomic write of the reference body to its
+    // … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / change in a future v1.10 ticket).
     nonisolated static func writeReferenceFileToFileSystem(
         id: UUID,
         bodyMarkdown: String,
@@ -681,14 +583,9 @@ struct FileSystemReferenceStore: ReferenceStoring {
         )
     }
 
-    /// Resolve the canonical single-file path for a
-    /// reference body. Lives next to the library's
-    /// `shelves/` and `reference-library/` directories
-    /// (= a flat single-layer directory; = unlike the
-    /// legacy `reference-library/<layer>/<uuid>.md`
-    /// layout). The `..` step out of
-    /// `reference-library/` produces
-    /// `<.ws>/references/<uuid>.md`.
+    // / Resolve the canonical single-file path for a
+    // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / `<.ws>/references/<uuid>.md`.
     nonisolated static func referenceFileURL(
         id: UUID,
         referenceLibraryRoot: URL
@@ -701,23 +598,9 @@ struct FileSystemReferenceStore: ReferenceStoring {
         )
     }
 
-    /// 2026-10-14: write-through helper used by the
-    /// editor's auto-save path. Looks up the
-    /// `WSReference` by id, updates the `body` field
-    /// (= so the LLM agent's `ReferenceLibraryTool`
-    /// continues to see the latest content), and
-    /// re-saves. The single-file truth on disk has
-    /// already been written by the caller (= the
-    /// editor's `EditorPersistence.save` writes the
-    /// file first, = then calls this helper to keep
-    /// the SwiftData cache consistent). The
-    /// `loadAllReferences` fetch is fast
-    /// (= SwiftData's in-memory cache + the
-    /// `FetchDescriptor` predicate runs on a single
-    /// indexed column); = the LLM agent's first
-    /// `find` call after the user closes the editor
-    /// (= 3-second autosave debounce) sees the
-    /// updated body.
+    // / 2026-10-14: write-through helper used by the
+    // … (= 15 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / updated body.
     func replaceReferenceByID(id: UUID, bodyMarkdown: String) throws {
         guard let context = modelContext else { return }
         let idString = id.uuidString
@@ -726,10 +609,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
         )
         guard let existing = try? context.fetch(descriptor).first else {
             // Row missing in SwiftData. The file write already happened (= the editor's
-            // `EditorPersistence.save` wrote the file before calling us);
-            // = the in-memory SwiftData row can be lazily reconstructed on
-            // the next read (= the `loadReferenceBody` file-first read +
-            // the `loadAllReferences` fallback for metadata); = we
+            // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // silently skip the write here.
             return
         }
@@ -835,17 +715,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         // Match the decoder's `.iso8601` strategy (= see `loadReferencesFromFileSystem`
-        // below). The decoder was switched to ISO 8601 in commit 3e899d35c so
-        // the legacy on-disk files (= written by the earlier Wenshu version
-        // that always wrote ISO 8601 strings) could decode. Without matching
-        // the encoder, every `saveReference` would write a Double for
-        // `createdAt` (= JSONEncoder's default `.deferredToDate` strategy),
-        // and the next `loadReferencesFromFileSystem` would fall into the
-        // `catch` arm (= `return []`) — silently truncating the on-disk index
-        // to a single entry (= the entry being saved). The v2.7 markdown
-        // import feature surfaced this in production (= importing 367 files
-        // into a clean library left the entities.json with exactly one entry;
-        // the .md files all landed, but the index was collapsed on every
+        // … (= 11 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // save). The fix: keep encoder and decoder on the same strategy.
         encoder.dateEncodingStrategy = .iso8601
         let data = try encoder.encode(references)

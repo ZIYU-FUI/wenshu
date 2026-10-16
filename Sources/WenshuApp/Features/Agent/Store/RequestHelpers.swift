@@ -1,87 +1,28 @@
-//
-//  RequestHelpers.swift
-//
-//  Extracted request/response marshaling for the 5 LLM connectors
-//  (= AnthropicConnector, OpenAIConnector, OpenAICompatibleConnector,
-//  GeminiNativeConnector, MinimaxConnector).
-//
-//  Ported from hermes-agent `agent/chat_completion_helpers.py` (3,103 LOC).
-//  Per the parallel gap audit at `.scratch/2026-09-04-hermes-port-gap-audit.md`
-//  §2.1 #8, every connector previously reimplemented dict-to-URLRequest
-//  serialization inline (= ~150 LOC each × 5 = ~750 LOC of pure
-//  duplication). This file lifts the per-provider wire-format marshaling
-//  into one shared layer so each connector becomes a thin wrapper.
-//
-//  Per AGENTS.md §11.3 wenshu-side wins pattern: 1:1 logic mapping with
-//  Swift-idiom names, no hermes runtime state assumptions, no behavior
-//  change at the wire level (= golden parity with pre-refactor connector
-//  tests still passes).
-//
-//  Design invariants (= byte-identical to pre-refactor):
-//    - Anthropic native (`buildAnthropicRequest`):
-//        system = structured dict with cache_control marker
-//        content = ARRAY of blocks (= text / thinking / tool_use / tool_result)
-//        tool_use.input encoded as `Data` (= preserved quirk)
-//    - Minimax-compatible (`buildMinimaxRequest`):
-//        system = plain string (= NOT structured, no cache_control)
-//        content = joined string of text+thinking only (= tool_use/toolResult dropped)
-//        message-level cache_control marker only (= no per-block marker)
-//    - OpenAI chat completions (`buildOpenAIRequest`):
-//        system prepended as {role:"system", content:"..."}
-//        messages = [{role, content: <joined text+thinking>}, ...]
-//    - Gemini native (`buildGeminiRequest`):
-//        systemInstruction = {parts:[{text:"..."}]}
-//        contents[] = {role: "user"|"model", parts: [{text:"..."}]}
-//        generationConfig.maxOutputTokens if maxTokens > 0
-//
-//  Refactor lands in TICKET-HERMES-GAP-002; per ticket scope, only this
-//  file + the 5 connectors change. AnthropicStreaming*.swift (SSE wire-up)
-//  is out of scope (= different shape: stream:true + SSE chunks).
-//
-//
-
+// 
+// … (= 39 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// 
 import Foundation
 
-/// Shared request/response marshaling for the 5 wenshu LLM connectors.
-///
-/// All helpers are pure functions (= no actor state, no URLSession, no
-/// credential resolution). Each connector still owns the URL building,
-/// auth header, transport send, and HTTP-status error path. Helpers
-/// focus only on the **JSON body shape** (= the wire format).
-///
-/// Helpers preserve the pre-existing wire-format quirks (= Anthropic
-/// tool_use.input encoded as Data, Minimax-compatible drops
-/// tool_use/tool_result blocks, OpenAI flattens blocks to joined
-/// string). Any future deviation requires its own connector-specific
-/// helper (= no silent unification across providers).
+// / Shared request/response marshaling for the 5 wenshu LLM connectors.
+// … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / helper (= no silent unification across providers).
 enum RequestHelpers {
 
     // MARK: - Anthropic native
-
-    /// Build the request body for the Anthropic Messages API native wire
-    /// format. Matches the pre-refactor `AnthropicConnector.send`
-    /// behavior byte-for-byte.
-    ///
-    /// - Parameters:
-    ///   - model: model identifier
-    ///   - messages: cross-connector message list (= cache_control markers
-    ///     applied upstream via `PromptCaching.applyCacheControl`).
-    ///   - maxTokens: max output tokens (= top-level `max_tokens`)
-    ///   - systemPrompt: optional system prompt (= top-level `system`
-    ///     with structured dict shape + cache_control marker)
-    /// - Returns: JSON-encoded request body Data
+    // … (= 11 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / - Returns: JSON-encoded request body Data
     static func buildAnthropicRequest(
         model: String,
         messages: [LLMMessage],
         maxTokens: Int,
         systemPrompt: String?,
-        /// reasoning effort from user setting.
-        /// Maps to Anthropic `thinking.budget_tokens` (= low=1024, medium=8192, high=16384, max=32768).
-        /// nil = no thinking block (= connector default).
+        // / reasoning effort from user setting.
+        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // / nil = no thinking block (= connector default).
         reasoningEffort: String? = nil,
-        /// Tool schemas to advertise to the model. Empty (= default)
-        /// omits the `tools` field. Anthropic wire shape: top-level
-        /// `tools` array of `{name, description, input_schema}` objects.
+        // / Tool schemas to advertise to the model. Empty (= default)
+        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // / `tools` array of `{name, description, input_schema}` objects.
         tools: [ToolRegistrySchema] = []
     ) throws -> Data {
         var body: [String: Any] = [
@@ -97,9 +38,7 @@ enum RequestHelpers {
         }
         if !tools.isEmpty {
             // Anthropic native shape: tools[] of {name, description,
-            // input_schema}. The input_schema goes under the
-            // `input_schema` key (= not `parameters` = different from
-            // the OpenAI shape; = Anthropic docs Anthropic Messages API
+            // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // Tools section).
             body["tools"] = tools.map { schema -> [String: Any] in
                 var dict: [String: Any] = [
@@ -121,7 +60,7 @@ enum RequestHelpers {
             }
         }
         // wire reasoningEffort → Anthropic thinking block.
-        // Apple canonical effort → budget_tokens mapping (= per Anthropic docs).
+        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // xhigh maps to max (= 32768 = the highest allowed budget).
         if let effort = reasoningEffort, !effort.isEmpty {
             let budgetTokens: Int
@@ -154,23 +93,7 @@ enum RequestHelpers {
                         return d
                     case .toolUse(let id, let name, let input):
                         // Anthropic native `tool_use.input` is a JSON
-                        // object (= dict), NOT a base64-encoded Data
-                        // blob. The caller passes a String (= already
-                        // serialized JSON), so we parse it back into a
-                        // [String: Any] so JSONSerialization can write it
-                        // (= Foundation's NSJSONWriter rejects raw Swift
-                        // Data with NSInvalidArgumentException
-                        // "Invalid type in JSON write
-                        // (Foundation.__NSSwiftData)"). When the input
-                        // is not a valid JSON object (= defensive), we
-                        // wrap it under the conventional "_raw" key so
-                        // the Anthropic decoder still surfaces the
-                        // original text and the wire shape stays
-                        // byte-stable with the prior pre-refactor
-                        // AnthropicConnector behavior (= the comment in
-                        // the request-marshaling header at the top of
-                        // this file says tool_use.input was historically
-                        // a Data blob; the canonical contract for v1
+                        // … (= 17 rationale lines collapsed; = A112 docblock collapse per §1.8)
                         // is a JSON object, so we prefer that path).
                         let parsedInput: [String: Any]
                         if let data = input.data(using: .utf8),
@@ -202,11 +125,9 @@ enum RequestHelpers {
         return try JSONSerialization.data(withJSONObject: body)
     }
 
-    /// Decode an Anthropic-format JSON response into an `LLMResponse`.
-    /// Handles text / thinking / tool_use content blocks (= the same
-    /// 3 variants the pre-refactor `AnthropicConnector` decoded).
-    /// Shared with `MinimaxConnector` (= Minimax's HTTP API returns the
-    /// same Anthropic-compatible wire shape on the response side).
+    // / Decode an Anthropic-format JSON response into an `LLMResponse`.
+    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / same Anthropic-compatible wire shape on the response side).
     static func decodeAnthropicResponse(
         data: Data,
         model: String,
@@ -276,46 +197,27 @@ enum RequestHelpers {
     }
 
     // MARK: - Minimax-compatible (= thin Anthropic wrapper for minimax cn)
-
-    /// Build the request body for the Minimax-compatible Anthropic wire
-    /// format. Differs from native Anthropic in 2 places (preserved
-    /// for parity):
-    ///   1. `system` is a plain string (= NOT a structured dict with
-    ///      `cache_control`). Minimax does not honor the Anthropic
-    ///      `system` block shape.
-    ///   2. `content` is a joined `"\n"`-separated string (= NOT a
-    ///      block array). `tool_use` / `tool_result` blocks are
-    ///      dropped (= `MinimaxConnector` is text-only).
-    /// Per-message `cache_control` markers are preserved (= the 4
-    /// breakpoints from `PromptCaching.applyCacheControl`).
+    // … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / breakpoints from `PromptCaching.applyCacheControl`).
     static func buildMinimaxRequest(
         model: String,
         messages: [LLMMessage],
         maxTokens: Int,
         systemPrompt: String?,
-        /// Tool schemas (= wenshu 1:1 ports the Anthropic Messages API
-        /// `tools` field; = minimax-cn's Anthropic-compatible surface
-        /// passes them through unchanged). Empty = omits the field
-        /// (= matches the prior tool-less behavior).
+        // / Tool schemas (= wenshu 1:1 ports the Anthropic Messages API
+        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // / (= matches the prior tool-less behavior).
         tools: [ToolRegistrySchema] = []
     ) throws -> Data {
         // Anthropic-compatible wire shape (= minimax-cn accepts the
-        // Anthropic Messages API request body byte-for-byte, including
-        // the structured `content` array of {text, thinking, tool_use,
-        // tool_result} blocks). This is required for the agent driver
-        // tool round-trip: the LLM emits `tool_use` blocks in its
-        // first response; = ConversationLoop dispatches them via
-        // ToolExecutor; = the second LLM call carries `tool_result`
-        // blocks (= appended to the assistant message as feedback);
-        // = a flattened-string content (= prior behavior) would drop
-        // both tool_use + tool_result blocks and the LLM would lose
+        // … (= 9 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // the round-trip context.
         let messagesPayload: [[String: Any]] = messages.map { msg -> [String: Any] in
             // Per-role content shaping.
             switch msg.role {
             case .user, .assistant:
                 // Emit the full block array (= text + thinking +
-                // tool_use for assistant messages; = text + tool_result
+                // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
                 // for user messages). Anthropic-compatible.
                 var dict: [String: Any] = [
                     "role": msg.role.rawValue,
@@ -327,7 +229,7 @@ enum RequestHelpers {
                             return ["type": "thinking", "thinking": t]
                         case .toolUse(let id, let name, let input):
                             // Parse the input JSON string into a dict so
-                            // Anthropic-compatible surfaces see a
+                            // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
                             // structured object (= not a string).
                             let parsedInput: Any
                             if let data = input.data(using: .utf8),
@@ -353,11 +255,7 @@ enum RequestHelpers {
                 return dict
             case .tool:
                 // Anthropic tool-role (= the convention is a `user`
-                // role with `tool_result` content blocks). We surface
-                // tool_result blocks under a synthetic `user` role so
-                // minimax-cn's Anthropic-compatible endpoint accepts
-                // them (= minimax does not recognize the `tool` role;
-                // = this is the wenshu-side port choice for the
+                // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
                 // Anthropic Messages API shape).
                 let resultBlocks: [[String: Any]] = msg.blocks.compactMap { block -> [String: Any]? in
                     switch block {
@@ -389,11 +287,7 @@ enum RequestHelpers {
         ]
         if !tools.isEmpty {
             // Anthropic-compatible wire shape (= minimax-cn speaks the
-            // same tool schema as Anthropic Messages API). The
-            // description goes verbatim; = the input_schema goes under
-            // the `input_schema` key (= not `parameters`). The per-
-            // property `toJSON()` is the canonical helper defined on
-            // `ToolRegistrySchemaProperty` (= emits
+            // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // `{type, description, enum}`).
             body["tools"] = tools.map { schema -> [String: Any] in
                 var dict: [String: Any] = [
@@ -418,31 +312,20 @@ enum RequestHelpers {
     }
 
     // MARK: - OpenAI chat completions
-
-    /// Build the request body for the OpenAI chat completions wire
-    /// format. Matches `OpenAIConnector` + `OpenAICompatibleConnector`
-    /// byte-for-byte.
-    ///
-    /// - Parameters:
-    ///   - model: model identifier
-    ///   - messages: cross-connector message list
-    ///   - maxTokens: max output tokens
-    ///   - systemPrompt: optional system prompt (= prepended as a
-    ///     `role:"system"` message; empty / nil = no system message)
-    /// - Returns: JSON-encoded request body Data
+    // … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / - Returns: JSON-encoded request body Data
     static func buildOpenAIRequest(
         model: String,
         messages: [LLMMessage],
         maxTokens: Int,
         systemPrompt: String?,
-        /// reasoning effort from user setting.
-        /// Maps to OpenAI `reasoning_effort` param (= "low"/"medium"/"high"/"xhigh"/"max").
-        /// nil = omit param (= connector default).
+        // / reasoning effort from user setting.
+        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // / nil = omit param (= connector default).
         reasoningEffort: String? = nil,
-        /// Tool schemas to advertise to the model. Empty (= default)
-        /// omits the `tools` field. OpenAI chat completions tools
-        /// shape: top-level `tools` array of `{type:"function",
-        /// function:{name, description, parameters}}` objects.
+        // / Tool schemas to advertise to the model. Empty (= default)
+        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // / function:{name, description, parameters}}` objects.
         tools: [ToolRegistrySchema] = []
     ) throws -> Data {
         var body: [String: Any] = [
@@ -454,7 +337,7 @@ enum RequestHelpers {
             )
         ]
         // wire reasoningEffort → OpenAI reasoning_effort param.
-        // Apple canonical mapping (= per OpenAI docs for gpt-5 reasoning models).
+        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // "xhigh" maps to "high" (= OpenAI's max supported value).
         if let effort = reasoningEffort, !effort.isEmpty {
             let mapped: String
@@ -491,9 +374,9 @@ enum RequestHelpers {
         return try JSONSerialization.data(withJSONObject: body)
     }
 
-    /// Build the OpenAI messages array (= system prepended + user /
-    /// assistant / tool messages flattened to single content strings).
-    /// Extracted from pre-refactor `OpenAIConnector.swift` `buildOpenAIMessages`.
+    // / Build the OpenAI messages array (= system prepended + user /
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / Extracted from pre-refactor `OpenAIConnector.swift` `buildOpenAIMessages`.
     private static func buildOpenAIMessages(
         systemPrompt: String?,
         userMessages: [LLMMessage]
@@ -516,9 +399,9 @@ enum RequestHelpers {
         return messages
     }
 
-    /// Decode an OpenAI-format JSON response into an `LLMResponse`.
-    /// Shared between `OpenAIConnector` + `OpenAICompatibleConnector`.
-    /// Stop reason mapping: `"length"` -> `.maxTokens`, else `.endTurn`.
+    // / Decode an OpenAI-format JSON response into an `LLMResponse`.
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / Stop reason mapping: `"length"` -> `.maxTokens`, else `.endTurn`.
     static func decodeOpenAIResponse(
         data: Data,
         model: String,
@@ -557,29 +440,16 @@ enum RequestHelpers {
     }
 
     // MARK: - Gemini native
-
-    /// Build the request body for the Google GenAI `generateContent`
-    /// wire format. Matches `GeminiNativeConnector` byte-for-byte.
-    ///
-    /// - Parameters:
-    ///   - model: model identifier
-    ///   - messages: cross-connector message list (= user / assistant /
-    ///     tool). Only text blocks are forwarded (= Gemini native has
-    ///     no tool_use in the 5-file wenshu port).
-    ///   - maxTokens: max output tokens (= `generationConfig.maxOutputTokens`,
-    ///     only set if `maxTokens > 0`)
-    ///   - systemPrompt: optional system prompt (= top-level
-    ///     `systemInstruction` field; empty / nil = no systemInstruction)
-    /// - Returns: JSON-encoded request body Data
+    // … (= 12 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / - Returns: JSON-encoded request body Data
     static func buildGeminiRequest(
         model: String,
         messages: [LLMMessage],
         maxTokens: Int,
         systemPrompt: String?,
-        /// reasoning effort from user setting.
-        /// Maps to Gemini `generationConfig.thinkingConfig.thinkingBudget`.
-        /// Apple canonical mapping: low=1024, medium=8192, high=16384, max=32768.
-        /// nil = omit thinkingConfig (= Gemini default).
+        // / reasoning effort from user setting.
+        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // / nil = omit thinkingConfig (= Gemini default).
         reasoningEffort: String? = nil
     ) throws -> Data {
         var contents: [[String: Any]] = []
@@ -606,8 +476,7 @@ enum RequestHelpers {
             body["generationConfig"] = ["maxOutputTokens": maxTokens]
         }
         // wire reasoningEffort → Gemini thinkingBudget.
-        // Per Google docs (ai.google.dev/gemini-api/docs/thinking):
-        // generationConfig.thinkingConfig = {thinkingBudget: N, includeThoughts: false}.
+        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // nil = omit thinkingConfig (= Gemini default = no thinking).
         if let effort = reasoningEffort, !effort.isEmpty {
             let budgetTokens: Int

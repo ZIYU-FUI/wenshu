@@ -1,70 +1,11 @@
-//
-//  IdeaLibraryView.swift
-//
-//  SpecializedTools pane tab 11: Idea Library.
-//
-//  PlaceholderView + LongFormGuardrailsView + ReaderExperienceView +
-//  PlotThreadView + GenreFitView + EmotionCurveView +
-//  CharacterRelationshipsView + CharacterLifecycleView +
-//  TagManagerView = 10 tabs in the specializedTools pane), this
-//  view is the REAL implementation for the Idea Library tab (=
-//  the 11th tab). Renders:
-//
-//    - Top header (= icon + tab title + book + idea count +
-//      link count).
-//    - "Add idea" row (= title TextField + description TextEditor
-//      + status picker + tag TextField + add button).
-//    - Ideas list (= one row per idea; shows status badge +
-//      title + description preview + tag chips + link count +
-//      remove button).
-//    - Search bar (= text field; live-filters the list below).
-//    - Status / tag filter pickers (= combine with search).
-//    - Link section (= idea picker + target picker + entity-uuid
-//      TextField + context TextField + link / unlink buttons +
-//      links list for the selected idea).
-//    - Suggest section (= context TextField + suggest button +
-//      state.suggestions list).
-//
-//  State source: `IdeaLibrary` actor (= owned per-book, persisted
-//  via per-book JSON sidecar at `books/<bookId>/state.ideas.json`).
-//
-//  Entity picker source: a free-form UUID TextField for the
-//  target id (= consistent with how CharacterLifecycleView treats
-//  `chapterId`, CharacterRelationshipsView treats
-//  `establishedInChapterId`, and TagManagerView treats
-//  `targetId`; wenshu does not yet have first-class `Chapter` /
-//  `Character` / `PlotThread` domain types with id pickers, so a
-//  free-form UUID is the least-surprising input).
-//
-//  Standards-axis:
-//    S1 (Apple-API-first): pure SwiftUI primitives + SF Symbols 6 icon
-//        helper (= already wired into wenshu). No custom hover /
-//        click handlers; Apple `.buttonStyle` .borderless +
-//        .borderedProminent per the macOS 27 Liquid Glass
-//        defaults.
-//    S3 (single source of truth for JSON parsing): the actor
-//        owns the JSONDecoder / JSONEncoder pair; the view
-//        reads / mutates the actor and never touches the file
-//        system.
-//    S5 (no private types the rest of the app needs): all types
-//        live in IdeaLibraryTools.swift (= public).
-//
-//  Visual-gate ((see OOB.md #2026-09-03) auto-pilot rule): this commit
-//  ADDS an 11th tab to the specializedTools pane. The
-//  acceptance required: open SpecializedTools pane, click the
-//  new Idea-Library tab, add an idea, change its status, see it
-//  in the list, link it to a chapter, search for it by title /
-//  description, run the suggest-by-context filter.
-//
-
+// 
+// … (= 56 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// 
 import SwiftUI
 
-/// SpecializedTools pane tab 11: Idea Library.
-///
-/// Reads the active bookId from `BookStore.selectedBookId`. If
-/// no book is selected, renders the empty-state (= "no book
-/// selected" hint, matching the ForeshadowingView no-content
-/// pattern).
+// / SpecializedTools pane tab 11: Idea Library.
+// … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / pattern).
 @MainActor
 struct IdeaLibraryView: View {
 
@@ -120,11 +61,7 @@ struct IdeaLibraryView: View {
 
     private var emptyState: some View {
         // -m1-shell (see OOB.md #2026-09-12) OOB 'the current empty state isn't
-        // a single component — can you abstract a UI component? While you're at it, on the
-        // empty-state icon: double the size and use the thinnest strokes. The goal is to unify all
-        // empty-state styles. The right column has 12 tabs and many are missing an empty state': use
-        // the unified EmptyStateView component (= 76 PT SF Symbols 6 icon + .regular weight = the canonical macOS 27 inspector icon weight; = standard
-        // title/body hierarchy). Same visual treatment as every
+        // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // other empty state in the workspace.
         EmptyStateView(
             icon: "lightbulb",
@@ -223,7 +160,7 @@ struct IdeaLibraryView: View {
                     get: { draftFilterStatus ?? IdeaStatus.allCases.first ?? .seedling },
                     set: { newValue in
                         // Map "all" sentinel back to nil (= the
-                        // actor's `list` filter takes nil for
+                        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
                         // "no filter").
                         if newValue == IdeaStatus.allCases.first {
                             draftFilterStatus = nil
@@ -536,10 +473,8 @@ struct IdeaLibraryView: View {
     }
 
     // MARK: - Helpers (= view-only glue: calls IdeaLibraryOps, assigns @State)
-
-    /// Lazily construct (= or fetch) the `IdeaLibrary` actor for
-    /// the active book (= held in @State so SwiftUI keeps the
-    /// identity across re-renders).
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / identity across re-renders).
     private func ensureLibrary() -> IdeaLibrary {
         if let library { return library }
         let new = IdeaLibrary(bookStore: bookStore)
@@ -560,7 +495,7 @@ struct IdeaLibraryView: View {
         )
         if result.didSave {
             // SwiftUI-side reset (= inline-create form fields clear
-            // on successful save; = binding resets, NOT business
+            // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // rules, = stays in the view per ADR-0009).
             draftTitle = ""
             draftDescription = ""

@@ -1,63 +1,11 @@
-//
-//  TagManagerTools.swift
-//
-//  1:1 Swift port of hermes `agent/specialized/tag_manager.py`
-//  (= design contract only per hermes-port-manifest; the Python
-//  source was not present in the local hermes clone, so the port
-//  follows the existing CharacterLifecycleTools /
-//  CharacterRelationshipTools actor + sidecar convention).
-//
-//  The Python module manages tags across the book (= tags applied
-//  to chapters / characters / scenes / plot-threads). It exposes
-//  five category buckets (= theme / motif / trope / symbol /
-//  pacing-marker) and four target kinds (= chapter / character /
-//  scene / plot-thread).
-//
-//  The Swift port exposes:
-//    - Tag CRUD (= add / list filtered by category / remove).
-//    - Apply / unapply a tag to an entity (= chapter / character /
-//      scene / plot-thread).
-//    - List applications (= filterable by target / tag).
-//    - Build a tag cloud (= one entry per tag with its
-//      occurrence count across the book).
-//    - Filter books by tag + target (= returns the matching
-//      entity ids).
-//
-//  Persistence: per-book JSON sidecar at
-//    `books/<bookId>/tags.json`
-//  Mirrors the `kanban.json` / `todo.json` /
-//  `character-lifecycle.json` / `character-relationships.json`
-//  pattern (= canonical wenshu per-book JSON convention per
-//  AGENTS.md §11).
-//
-//  Concurrency: actor (= Swift 6 strict concurrency). Reads /
-//  writes serialize cleanly across the SpecializedTools pane +
-//  any background LLM-side call sites.
-//
-//  Standards-axis (wenshu house style):
-//    S1 (Apple-API-first): Foundation + SwiftUI only; no third-
-//        party text-analysis deps.
-//    S3 (single source of truth for JSON parsing): the actor
-//        owns the JSONDecoder / JSONEncoder pair; the view never
-//        touches the file system.
-//    S4 (no new third-party deps): zero added.
-//    S5 (no private types the rest of the app needs): all types
-//        public (= matches the ticket spec).
-//    S6 (English-only): this file + the docstrings are 100%
-//        English per AGENTS.md hard rule.
-//
-
+// 
+// … (= 46 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// 
 import Foundation
 
 // MARK: - TagCategory enum
-
-/// The 5 tag categories the manager knows how to model. Each case
-/// maps 1:1 to a value in hermes's
-/// `agent/specialized/tag_manager.py::CATEGORY_TABLE`.
-///
-/// Categories are intentionally orthogonal (= the same label can
-/// be reused across categories only by an explicit user choice;
-/// the actor does not auto-dedupe across categories).
+// … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / the actor does not auto-dedupe across categories).
 enum TagCategory: String, Sendable, Codable, CaseIterable, Identifiable, Equatable {
     /// A thematic label (= e.g. "redemption", "coming-of-age").
     case theme
@@ -85,10 +33,9 @@ enum TagCategory: String, Sendable, Codable, CaseIterable, Identifiable, Equatab
         }
     }
 
-    /// SF Symbols 6 icon name (= Apple canonical; = used by
-    /// Image(systemName:) directly in the TagManagerView
-    /// row rendering path). Replaces the Lucide-era names removed
-    /// Migrated to outline glyphs.
+    // / SF Symbols 6 icon name (= Apple canonical; = used by
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / Migrated to outline glyphs.
     var icon: String {
         switch self {
         case .theme:         return "bookmark"          // Lucide 'bookmark'
@@ -101,15 +48,8 @@ enum TagCategory: String, Sendable, Codable, CaseIterable, Identifiable, Equatab
 }
 
 // MARK: - TagTarget enum
-
-/// The 4 target kinds the manager can attach a tag to. Each
-/// case maps 1:1 to a value in hermes's
-/// `agent/specialized/tag_manager.py::TARGET_TABLE`.
-///
-/// Targets mirror the four entity kinds the prior specialized
-/// tickets already model (= chapter / character / scene /
-/// plot-thread). The actor never dereferences the target id to
-/// its underlying entity (= view-layer responsibility).
+// … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / its underlying entity (= view-layer responsibility).
 enum TagTarget: String, Sendable, Codable, CaseIterable, Identifiable, Equatable {
     case chapter
     case character
@@ -128,10 +68,9 @@ enum TagTarget: String, Sendable, Codable, CaseIterable, Identifiable, Equatable
         }
     }
 
-    /// SF Symbols 6 icon name (= Apple canonical; = used by
-    /// Image(systemName:) directly in the TagManagerView
-    /// row rendering path). Replaces the Lucide-era names removed
-    /// Migrated to outline glyphs.
+    // / SF Symbols 6 icon name (= Apple canonical; = used by
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / Migrated to outline glyphs.
     var icon: String {
         switch self {
         case .chapter:     return "book.pages"                  // Lucide 'book-open'
@@ -143,10 +82,8 @@ enum TagTarget: String, Sendable, Codable, CaseIterable, Identifiable, Equatable
 }
 
 // MARK: - Tag struct
-
-/// A single tag definition (= a label + category + book
-/// ownership). Persisted as one entry in the per-book `tags.json`
-/// sidecar.
+// … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / sidecar.
 struct Tag: Sendable, Codable, Equatable, Identifiable {
 
     /// Stable identifier (= used by the actor for add / remove /
@@ -157,9 +94,9 @@ struct Tag: Sendable, Codable, Equatable, Identifiable {
     /// through this id).
     let bookId: UUID
 
-    /// Short, human-readable label (= e.g. "redemption",
-    /// "the withered oak"). Whitespace-trimmed at construction
-    /// time so empty / whitespace-only labels are rejected.
+    // / Short, human-readable label (= e.g. "redemption",
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / time so empty / whitespace-only labels are rejected.
     let label: String
 
     /// Category bucket (= theme / motif / trope / symbol /
@@ -191,10 +128,8 @@ struct Tag: Sendable, Codable, Equatable, Identifiable {
 }
 
 // MARK: - TagApplication struct
-
-/// A single tag application (= a tag attached to an entity of a
-/// specific target kind). Persisted as one entry in the per-book
-/// `tags.json` sidecar.
+// … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / `tags.json` sidecar.
 struct TagApplication: Sendable, Codable, Equatable, Identifiable {
 
     /// Stable identifier (= used by the actor for unapply +
@@ -213,9 +148,9 @@ struct TagApplication: Sendable, Codable, Equatable, Identifiable {
     /// character / scene / plot-thread).
     let target: TagTarget
 
-    /// The entity id the tag is attached to. Interpretation
-    /// depends on `target` (= chapterId / characterId / sceneId /
-    /// plotThreadId).
+    // / The entity id the tag is attached to. Interpretation
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / plotThreadId).
     let targetId: UUID
 
     /// When the tag was applied (= `Date.now` at apply time).
@@ -239,9 +174,8 @@ struct TagApplication: Sendable, Codable, Equatable, Identifiable {
 }
 
 // MARK: - TagCloudEntry struct
-
-/// One entry in a tag cloud: the tag itself + the number of
-/// distinct applications across the book.
+// … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / distinct applications across the book.
 struct TagCloudEntry: Sendable, Codable, Equatable, Identifiable {
 
     /// Tag (= re-exported for the cloud row).
@@ -261,14 +195,8 @@ struct TagCloudEntry: Sendable, Codable, Equatable, Identifiable {
 }
 
 // MARK: - Sidecar on-disk shape
-
-/// On-disk shape of the per-book sidecar. The actor reads /
-/// writes one of these per book (= keyed by `bookId`).
-///
-/// The sidecar holds two parallel arrays (= tags and
-/// applications) so the actor can answer cloud + filter queries
-/// in a single disk read (= matches the lifecycle / relationships
-/// sidecar shape).
+// … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / sidecar shape).
 struct TagManagerSidecar: Codable, Sendable, Equatable {
     var bookId: UUID
     var tags: [Tag]
@@ -289,11 +217,8 @@ struct TagManagerSidecar: Codable, Sendable, Equatable {
 }
 
 // MARK: - Actor errors
-
-/// Errors thrown by `TagManager`. Mirrors the
-/// BookProjectConfigStore / BookTodoStore /
-/// CharacterLifecycleTracker / CharacterRelationshipTracker
-/// error conventions (= a LocalizedError per case).
+// … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / error conventions (= a LocalizedError per case).
 enum TagManagerError: Error, LocalizedError, Sendable, Equatable {
     case bookDirectoryNotFound(bookId: UUID)
     case tagNotFound(id: UUID)
@@ -312,36 +237,13 @@ enum TagManagerError: Error, LocalizedError, Sendable, Equatable {
 }
 
 // MARK: - Actor
-
-/// Per-book tag manager. Holds the in-memory cache + owns the
-/// on-disk JSON sidecar.
-///
-/// Persistence: `<bookDir>/tags.json`. The actor resolves
-/// `<bookDir>` via `BookStore.bookDirectory(bookId:)` (= the
-/// canonical forgiving walk that searches every shelf's
-/// `books/<id>/` subfolder).
-///
-/// Concurrency: actor (= Swift 6 strict concurrency). Reads /
-/// writes serialize cleanly across the SpecializedTools pane +
-/// any background LLM-side call sites.
-///
-/// Forgiving semantics (= matches the existing kanban / todo /
-/// lifecycle / relationships sidecar convention):
-///   - Missing sidecar = empty lists (= first-load behavior).
-///   - Corrupt sidecar = empty lists (= never bricks the UI).
-///   - Missing book directory = throws
-///     `.bookDirectoryNotFound`.
-///
-/// Access level: internal (= the actor accepts the internal
-/// `BookStore` type as a constructor parameter; = per wenshu
-/// convention the view layer accesses the actor through the
-/// module's internal scope).
+// … (= 22 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / module's internal scope).
 actor TagManager {
 
-    /// Sidecar on-disk filename (= parallel to
-    /// `kanban.json` / `todo.json` /
-    /// `character-lifecycle.json` /
-    /// `character-relationships.json`).
+    // / Sidecar on-disk filename (= parallel to
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / `character-relationships.json`).
     private static let sidecarFilename = "tags.json"
 
     private let bookStore: BookStore
@@ -354,18 +256,8 @@ actor TagManager {
     }
 
     // MARK: - Public surface (= matches the task spec verbatim)
-
-    /// Add a tag. Persists + caches.
-    ///
-    /// Behaviour:
-    ///   - Idempotent on `id`: re-adding with the same id replaces
-    ///     the existing row (= matches `BookKanbanStore` upsert
-    ///     policy).
-    ///   - Empty / whitespace-only labels are rejected silently
-    ///     (= no row is persisted; matches the lifecycle tracker
-    ///     "excerpt may be empty but the rest of the row is
-    ///     mandatory" policy but stricter — empty labels cannot
-    ///     render usefully in the UI).
+    // … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // /     render usefully in the UI).
     func addTag(_ tag: Tag) async throws {
         guard !tag.label.isEmpty else { return }
         var sidecar = try await loadOrCreateSidecar(bookId: tag.bookId)
@@ -400,12 +292,9 @@ actor TagManager {
         }
     }
 
-    /// Remove a tag by id. Throws `.tagNotFound` when the id is
-    /// unknown for any cached book.
-    ///
-    /// Side effect: any applications referencing the removed tag
-    /// are ALSO removed (= cascade delete, matches hermes's
-    /// Python implementation per the design contract).
+    // / Remove a tag by id. Throws `.tagNotFound` when the id is
+    // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / Python implementation per the design contract).
     func removeTag(id: UUID) async throws {
         var owningBookId: UUID?
         for (bookId, sidecar) in cache where sidecar.tags.contains(where: { $0.id == id }) {
@@ -421,7 +310,7 @@ actor TagManager {
         }
         sidecar.tags.remove(at: idx)
         // Cascade: drop applications that referenced the
-        // removed tag (= so the tag cloud + filter queries stay
+        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // consistent).
         sidecar.applications.removeAll { $0.tagId == id }
         sidecar.updatedAt = Date()
@@ -429,16 +318,9 @@ actor TagManager {
         try await persistSidecar(sidecar)
     }
 
-    /// Apply a tag to an entity (= record a `TagApplication`).
-    /// Persists + caches.
-    ///
-    /// Behaviour:
-    ///   - Idempotent on `id`: re-applying with the same
-    ///     application id replaces the existing row.
-    ///   - The tag referenced by `application.tagId` must already
-    ///     exist for the owning book (= otherwise throws
-    ///     `.tagNotFound` so the UI never gets an orphan
-    ///     application row).
+    // / Apply a tag to an entity (= record a `TagApplication`).
+    // … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // /     application row).
     func apply(_ application: TagApplication) async throws {
         var sidecar = try await loadOrCreateSidecar(bookId: application.bookId)
         guard sidecar.tags.contains(where: { $0.id == application.tagId }) else {
@@ -495,15 +377,9 @@ actor TagManager {
         }
     }
 
-    /// Build the tag cloud for a book: one row per tag, with
-    /// the count of distinct applications across the book (= one
-    /// entry per (tag, target, targetId) triple; multiple
-    /// applications to the same triple still count as 1 for the
-    /// cloud's headline number — see `tagCloud(bookId:distinct:)`
-    /// for the alternate count).
-    ///
-    /// Returns zero rows when the book has no tags OR no
-    /// applications.
+    // / Build the tag cloud for a book: one row per tag, with
+    // … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / applications.
     func tagCloud(bookId: UUID) async throws -> [TagCloudEntry] {
         let sidecar = try await loadOrCreateSidecar(bookId: bookId)
         // Group applications by tagId, then count distinct
@@ -524,14 +400,9 @@ actor TagManager {
         }
     }
 
-    /// Filter books by tag + target: returns the set of entity
-    /// ids (matching `target`) that have a tag with id `tagId`
-    /// applied to them. Duplicates are de-duplicated (= one id
-    /// per entity; matches the typical "find all chapters tagged
-    /// X" UX expectation).
-    ///
-    /// Returns an empty array when no matches exist or when the
-    /// tag has zero applications.
+    // / Filter books by tag + target: returns the set of entity
+    // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / tag has zero applications.
     func filterByTag(
         bookId: UUID,
         tagId: UUID,
@@ -553,10 +424,8 @@ actor TagManager {
     }
 
     // MARK: - Internals
-
-    /// Resolve the sidecar on disk for the given book. Walks the
-    /// shelves tree (= same forgiving walk as
-    /// `BookStore.bookDirectory(bookId:)`).
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / `BookStore.bookDirectory(bookId:)`).
     private func sidecarURL(bookId: UUID) throws -> URL {
         guard let bookDir = bookStore.bookDirectory(bookId: bookId) else {
             throw TagManagerError.bookDirectoryNotFound(bookId: bookId)
@@ -564,10 +433,9 @@ actor TagManager {
         return bookDir.appendingPathComponent(Self.sidecarFilename)
     }
 
-    /// Load the sidecar from disk (= or create an empty one if
-    /// missing). Forgiving on corrupt JSON (= returns an empty
-    /// sidecar instead of throwing, matching the kanban / todo /
-    /// lifecycle / relationships convention).
+    // / Load the sidecar from disk (= or create an empty one if
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / lifecycle / relationships convention).
     private func loadOrCreateSidecar(bookId: UUID) async throws -> TagManagerSidecar {
         if let cached = cache[bookId] { return cached }
         let url = try sidecarURL(bookId: bookId)
@@ -575,8 +443,7 @@ actor TagManager {
             let fresh = TagManagerSidecar(bookId: bookId)
             cache[bookId] = fresh
             // Do NOT persist a brand-new empty sidecar (= match
-            // the CharacterLifecycleTracker first-load
-            // behaviour: only write to disk once the user
+            // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // actually adds a tag).
             return fresh
         }
@@ -589,8 +456,7 @@ actor TagManager {
             return sidecar
         } catch {
             // Forgiving: log nothing (= no logger dependency);
-            // return an empty sidecar so the caller can keep
-            // going. Matches `BookKanbanStore` /
+            // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // `BookTodoStore` load paths.
             let empty = TagManagerSidecar(bookId: bookId)
             cache[bookId] = empty

@@ -1,101 +1,21 @@
-//
-//  HermesTodoTool.swift · Wenshu
-//
-//  Full 1:1 port of /Volumes/ANAN/.hermes/tools/
-//  todo_tool.py. This is the LLM internal planning list (= the
-//  agent's scratchpad that lives on AIAgent and is re-injected after
-//  context compression). NOT the wenshu-side user-facing persisted
-//  todo (= TodoStore.swift / BookTodoStore.swift), which is kept intact
-//  per the wenshu-side-wins pattern.
-//
-//  ------------------------------------------------------------------------
-//  Divergence vs. earlier ticket draft (= §4.1 hermes inventory says
-//  "5 status + 4 priority"):
-//
-//    Hermes Python todo_tool.py has FOUR statuses (pending,
-//    in_progress, completed, cancelled) and NO priority field. The
-//    "5 status + 4 priority" surface described in some internal
-//    sketches came from a draft that conflated wenshu's local
-//    TodoStatus / TodoPriority with the hermes source. We port the
-//    actual hermes source (= 1:1 = real source wins over notes):
-//
-//      - statuses: pending | in_progress | completed | cancelled
-//      - NO priority, NO dueDate, NO tags (= hermes is flat: id +
-//        content + status)
-//
-//    Wenshu's TodoStore / BookTodoStore (= the user-facing tracker)
-//    keep their richer surface untouched (per wenshu-side
-//    wins pattern, see TodoStore.swift header).
-//
-//  ------------------------------------------------------------------------
-//  API surface (= mirrors Python todo_tool.py, line-for-line):
-//
-//    TodoStore
-//      init()
-//      write(todos: merge: false) -> [Item]   (replace or update-by-id)
-//      read() -> [Item]
-//      hasItems() -> Bool
-//      formatForInjection() -> String?        (post-compression re-inject)
-//      validate(_:)                          (static)
-//      capContent(_:)                        (static)
-//      dedupeByID(_:)                        (static)
-//
-//    todoTool(todos: merge: store:) -> String
-//      (= single entry point, JSON-encoded result; python todo_tool)
-//
-//    TODO_SCHEMA  (= Swift mirror of OpenAI function-calling schema)
-//
-//  ------------------------------------------------------------------------
-//  Bounds (= mirrors Python module-level constants):
-//
-//    maxTodoContentChars = 4_000
-//    maxTodoItems        = 256
-//    maxTodoResultChars  = 512_000
-//    truncationMarker    = "… [truncated]"
-//
-//  ------------------------------------------------------------------------
-//  Context-injection persistence (= wenshu-side):
-//
-//    Hermes Python keeps the todo on the AIAgent instance in memory
-//    only. Wenshu has no AIAgent runtime (= the agent loop lives in
-//    subagent shells); we persist to a lightweight per-session JSON
-//    blob (`hermes-todo.json` under Application Support / wenshu /
-//    sessions / <sessionId> /). This is the same model Hermes uses
-//    when re-injecting after context compression: the JSON is
-//    decoded back into a TodoStore on session resume. See
-//    `HermesTodoSessionStore.load / save`.
-//
-//  ------------------------------------------------------------------------
-//  Standards-axis S3 (= single source of truth for tool input JSON):
-//  tool input parsing goes through ToolInputParser (same as
-//  ReadFileTool / WriteFileTool).
-//
-//  Standards-axis S4 (= no new third-party deps): pure Foundation + the
-//  existing WenshuApp module surface. No SQLite, no external libs.
-//
-
+// 
+// … (= 73 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// 
 import Foundation
 import WenshuData
 
 // NOTE: HermesTodoTool wraps HermesTodoStore (= in-memory DispatchQueue store).
-// This is hermes-port parity code (= not a wenshu SQLite store; = not
-// covered by AGENTS.md §11.4 SwiftData migration). The store lives in
-// hermes-side scratchpad (= re-injected after context compression; =
-// lives on AIAgent). Kept as-is.
-
-// MARK: - Module-level bounds (= mirrors todo_tool.py module header)
-
-/// Valid status values for todo items (= mirrors Python `VALID_STATUSES`).
+// … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / Valid status values for todo items (= mirrors Python `VALID_STATUSES`).
 enum HermesTodoStatus: String, Codable, Sendable, CaseIterable {
     case pending
     case inProgress = "in_progress"
     case completed
     case cancelled
 
-    /// Whether this status is "active" for the post-compression
-    /// re-injection block. Completed / cancelled items are skipped
-    /// (= otherwise the model re-does finished work after compression,
-    /// see Python `format_for_injection`).
+    // / Whether this status is "active" for the post-compression
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / see Python `format_for_injection`).
     var isActive: Bool {
         switch self {
         case .pending, .inProgress: return true
@@ -114,21 +34,19 @@ enum HermesTodoStatus: String, Codable, Sendable, CaseIterable {
     }
 }
 
-/// Upper bound on a single todo item's content (= mirrors
-/// `MAX_TODO_CONTENT_CHARS`). A single huge item would otherwise
-/// inflate the post-compression re-injection block without bound.
+// / Upper bound on a single todo item's content (= mirrors
+// … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / inflate the post-compression re-injection block without bound.
 let maxTodoContentChars = 4_000
 
-/// Upper bound on the total todo list size (= mirrors
-/// `MAX_TODO_ITEMS`). List order is priority, so truncation keeps the
-/// head (= highest-priority items).
+// / Upper bound on the total todo list size (= mirrors
+// … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / head (= highest-priority items).
 let maxTodoItems = 256
 
-/// Upper bound on a single todo tool-result payload accepted during
-/// history hydration (= mirrors `MAX_TODO_RESULT_CHARS`). The
-/// gateway/API server replays caller-supplied conversation history to
-/// rebuild the store, so an oversized forged result is dropped before
-/// it is parsed and re-injected (see Python comment).
+// / Upper bound on a single todo tool-result payload accepted during
+// … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / it is parsed and re-injected (see Python comment).
 let maxTodoResultChars = 512_000
 
 /// Marker appended to truncated todo content (= mirrors Python
@@ -136,12 +54,8 @@ let maxTodoResultChars = 512_000
 let truncationMarker = "… [truncated]"
 
 // MARK: - HermesTodoItem (= mirrors Python {_id, _content, _status} dict)
-
-/// A single todo entry in the LLM internal planning list.
-///
-/// Mirrors the python dict (`{id, content, status}`). Pure value type
-/// for `Sendable` / `Codable` round-trips; the owning actor /
-/// `HermesTodoSessionStore` is responsible for mutation.
+// … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / `HermesTodoSessionStore` is responsible for mutation.
 struct HermesTodoItem: Codable, Sendable, Equatable, Hashable {
     var id: String
     var content: String
@@ -185,29 +99,12 @@ struct HermesTodoItem: Codable, Sendable, Equatable, Hashable {
 }
 
 // MARK: - HermesTodoStore (= mirrors Python TodoStore class)
-
-/// In-memory todo list. One instance per session (= the python
-/// AIAgent-equivalent on wenshu is the per-session JSON store, see
-/// `HermesTodoSessionStore`).
-///
-/// Items are ordered -- list position is priority. Each item has:
-///   - id: unique string identifier (agent-chosen)
-///   - content: task description
-///   - status: pending | in_progress | completed | cancelled
+// … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// /   - status: pending | in_progress | completed | cancelled
 final class HermesTodoStore: @unchecked Sendable {
-    /// Serial queue protecting `items`. We use a serial queue (not a
-    /// concurrent barrier queue) because the public surface mixes
-    /// read + write on the same `items` storage from multiple call
-    /// sites (= `read` is called from inside `write`'s tail, and
-    /// `formatForInjection` snapshots then filters off-queue). A
-    /// serial queue's `.sync` is re-entrant from the same thread when
-    /// NOT nested through another `.sync` -- but to avoid the
-    /// lock-recursion deadlock the previous NSLock implementation
-    /// exhibited (NSLock is non-recursive in Swift; `write` returned
-    /// `read()` while still holding the lock), we extract the
-    /// post-mutation snapshot inside the lock-protected block and
-    /// return it directly. The queue is never re-entered from inside
-    /// a synchronized block, so there is no recursion risk.
+    // / Serial queue protecting `items`. We use a serial queue (not a
+    // … (= 11 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / a synchronized block, so there is no recursion risk.
     private let queue = DispatchQueue(label: "com.wenshu.HermesTodoStore")
     private var items: [HermesTodoItem]
 
@@ -216,11 +113,8 @@ final class HermesTodoStore: @unchecked Sendable {
     }
 
     // MARK: - write (= mirrors Python `TodoStore.write`)
-
-    /// Write todos. Returns the full current list after writing.
-    ///
-    /// - `merge=false` (default): replace the entire list.
-    /// - `merge=true`: update existing items by id and append new ones.
+    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / - `merge=true`: update existing items by id and append new ones.
     @discardableResult
     func write(todos: [HermesTodoItem], merge: Bool = false) -> [HermesTodoItem] {
         return queue.sync {
@@ -241,8 +135,7 @@ final class HermesTodoStore: @unchecked Sendable {
 
                     if var existingItem = existing[itemId] {
                         // Update only the fields the LLM actually provided.
-                        // (`HermesTodoItem` is fully formed, but we honour
-                        // `merge` semantics: don't replace with empty
+                        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
                         // content or unknown status.)
                         if !raw.content.isEmpty {
                             existingItem.content = HermesTodoStore.capContent(raw.content.trimmingCharacters(in: .whitespacesAndNewlines))
@@ -274,13 +167,13 @@ final class HermesTodoStore: @unchecked Sendable {
             }
 
             // Bound total item count so a replayed/oversized list can't
-            // grow the re-injection block without limit. Keep the
+            // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // highest-priority head (list order is priority).
             if items.count > maxTodoItems {
                 items = Array(items.prefix(maxTodoItems))
             }
             // Return the post-mutation snapshot directly (no nested
-            // `read()` call -- avoids the NSLock recursion deadlock
+            // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // that bit the previous implementation).
             return items
         }
@@ -299,13 +192,8 @@ final class HermesTodoStore: @unchecked Sendable {
     }
 
     // MARK: - formatForInjection (= mirrors Python)
-
-    /// Render the todo list for post-compression injection.
-    ///
-    /// Returns a human-readable string to append to the compressed
-    /// message history, or nil if the list has no active items
-    /// (= completed / cancelled items are skipped, otherwise the
-    /// model re-does finished work after compression).
+    // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / model re-does finished work after compression).
     func formatForInjection() -> String? {
         let snapshot = queue.sync { items }
         let activeItems = snapshot.filter { $0.status.isActive }
@@ -320,9 +208,8 @@ final class HermesTodoStore: @unchecked Sendable {
     }
 
     // MARK: - validate / capContent / dedupeByID (= mirrors Python @staticmethod helpers)
-
-    /// Validate and normalize a todo item. Returns a clean item with
-    /// sane defaults (= mirrors Python `_validate`).
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / sane defaults (= mirrors Python `_validate`).
     static func validate(_ raw: HermesTodoItem) -> HermesTodoItem {
         var id = raw.id.trimmingCharacters(in: .whitespacesAndNewlines)
         if id.isEmpty { id = "?" }
@@ -370,9 +257,8 @@ final class HermesTodoStore: @unchecked Sendable {
 }
 
 // MARK: - todoTool entry point (= mirrors Python `todo_tool`)
-
-/// Result payload returned by `todoTool` -- mirrors the python
-/// `json.dumps({...})` output.
+// … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / `json.dumps({...})` output.
 struct HermesTodoToolResult: Codable, Sendable, Equatable {
     var todos: [HermesTodoItem]
     var summary: HermesTodoSummary
@@ -399,13 +285,9 @@ struct HermesTodoSummary: Codable, Sendable, Equatable {
     }
 }
 
-/// Single entry point for the todo tool (= mirrors Python `todo_tool`).
-///
-/// - `todos`: if provided, write these items. If nil, read the current list.
-/// - `merge`: if true, update by id. If false (default), replace the entire list.
-/// - `store`: the `HermesTodoStore` instance from the session.
-///
-/// Returns a JSON-encoded `HermesTodoToolResult`.
+// / Single entry point for the todo tool (= mirrors Python `todo_tool`).
+// … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / Returns a JSON-encoded `HermesTodoToolResult`.
 func hermesTodoTool(
     todos: [HermesTodoItem]? = nil,
     merge: Bool = false,
@@ -444,34 +326,11 @@ func hermesTodoToolJSONString(
 }
 
 // MARK: - HermesTodoTool (= Tool conformance for wenshu's ToolExecutor)
-
-/// `Tool` conformance wrapping `hermesTodoTool` (= so the wenshu
-/// `ToolExecutor` can dispatch it identically to ReadFileTool /
-/// WriteFileTool / etc.). The LLM hands a JSON tool_use block to
-/// `ToolExecutor`, which routes to `execute(input:)`.
-///
-/// Input shape (= mirrors Python `TODO_SCHEMA.parameters`):
-///   {
-///     "todos": [{id, content, status}, ...]? ,
-///     "merge": Bool (default false)
-///   }
-///
-/// Output: JSON-encoded `HermesTodoToolResult`.
+// … (= 11 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / Output: JSON-encoded `HermesTodoToolResult`.
 struct HermesTodoTool: Tool, Sendable {
-    /// Shared singleton for ToolRegistry bootstrap (= lazy in-memory
-    /// HermesTodoStore; no filesystem side effect at module load).
-    /// Used by the MIGRATE-TOOLREGISTRY-002 module-load registration
-    /// (= `HermesTodoTool._registryBootstrap`); production wiring
-    /// still constructs dedicated instances via the existing
-    /// `init(store:)` initializer (= e.g. ChatView pre-populates
-    /// the conductor with a per-session instance).
-    // `nonisolated(unsafe)` escape hatch required because
-    // HermesTodoStore is `@unchecked Sendable` (= DispatchQueue-protected).
-    // This is INTENTIONAL: HermesTodoStore is the hermes-port scratchpad
-    // (= mirrors the Python `TodoStore` class for the hermes-python tool
-    // surface) and lives outside the wenshu user-facing data model
-    // (= WSTodo / WSTodoRepository is the canonical wenshu persistence).
-    // = no plan to migrate HermesTodoStore to SwiftData per
+    // / Shared singleton for ToolRegistry bootstrap (= lazy in-memory
+    // … (= 13 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // HermesTodoTool.swift L87 #warning.
     nonisolated static let shared: HermesTodoTool = HermesTodoTool(store: HermesTodoStore())
 
@@ -525,14 +384,9 @@ struct HermesTodoTool: Tool, Sendable {
 // MARK: - ToolRegistry bootstrap (MIGRATE-TOOLREGISTRY-002)
 
 extension HermesTodoTool {
-    /// Module-load registration with `ToolRegistry.shared` (= hermes
-    /// `tools/registry.py` `register()` 1:1). Fires once at first
-    /// type access; the underlying `Task` schedules the async
-    /// `register(...)` call off the init thread.
-    ///
-    /// HermesTodoTool is the hermes-side state machine (= LLM scratchpad).
-    /// The `todo_hermes` registration name keeps it distinct from the
-    /// wenshu-side TodoStoreTool `todo` (= same domain, different layer).
+    // / Module-load registration with `ToolRegistry.shared` (= hermes
+    // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / wenshu-side TodoStoreTool `todo` (= same domain, different layer).
     static let _registryBootstrap: Void = {
         Task {
             await ToolRegistry.shared.registerTool(
@@ -562,19 +416,8 @@ extension HermesTodoTool {
 }
 
 // NOTE: Swift 6 forbids top-level expressions, so the static let
-// `_registryBootstrap` initializer runs lazily on first type access
-// (= Swift equivalent of Python module-load statement = hermes
-// `registry.register(...)` at import time). Production code paths
-// that touch this type (= e.g. ChatView constructing
-// `ParagraphAITool.shared`, WenshuConductor constructing `ReadFileTool()`)
-// automatically trigger the bootstrap.
-
-// MARK: - TODO_SCHEMA (= mirrors Python TODO_SCHEMA)
-
-/// OpenAI function-calling schema for the `todo` tool (= mirrors
-/// Python `TODO_SCHEMA`). Behavioral guidance is baked into the
-/// description so it's part of the static tool schema (cached, never
-/// changes mid-conversation).
+// … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / changes mid-conversation).
 enum HermesTodoSchema {
     static let name = "todo"
 
@@ -598,8 +441,7 @@ enum HermesTodoSchema {
     """
 
     // `nonisolated(unsafe)` because the value is a static, immutable
-    // schema dictionary (= never mutated after init); Swift 6's strict
-    // concurrency checker still flags `[String: Any]` as non-Sendable
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // even on a static let.
     nonisolated(unsafe) static let parametersSchema: [String: Any] = [
         "type": "object",
@@ -641,13 +483,8 @@ enum HermesTodoSchema {
 }
 
 // MARK: - HermesTodoSessionStore (= wenshu-side persistence)
-
-/// Per-session JSON persistence for `HermesTodoStore` (= wenshu has
-/// no AIAgent runtime, so we persist the LLM scratchpad to disk and
-/// reload on session resume; this is the same model Hermes uses when
-/// re-injecting after context compression).
-///
-/// File: `<session-dir>/hermes-todo.json`
+// … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / File: `<session-dir>/hermes-todo.json`
 struct HermesTodoSessionStore: Sendable {
     let sessionDirectory: URL
 

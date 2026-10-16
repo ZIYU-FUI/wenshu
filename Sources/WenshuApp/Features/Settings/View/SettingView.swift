@@ -1,52 +1,6 @@
 // SettingView.swift · WenshuApp Settings scene (= Apple canonical macOS 14+ `Settings {
-// }` Scene mounted at AppRootScene.swift:399). Hosts 5 flat panes (= 外观 / 编辑器 / 提供方 /
-// 模型 / 记忆) chosen so each pane's name matches the concrete action the user is doing (=
-// boss 2026-10-12 (see OOB.md #2026-10-12) 分成 4-5 组" = no nested "大类 → 小类" hierarchy).
-// Layout (= boss 2026-10-12 (see OOB.md #2026-10-12) - NavigationSplitView 2 columns
-// (= macOS 13+ canonical). - Left = `List(selection:)` with the 5 panes (= SwiftUI
-// auto-applies macOS 27 sidebar appearance = Liquid Glass + accent tint selection). -
-// Right = `Form { Section { ... } }` per pane (= Apple HIG canonical macOS preferences
-// layout = one row per setting + a small label + a control on the right + an optional
-// helper caption). - The previous wenshu-specific DesignTokens.spacing* / corner-
-// radius / shadow literals are GONE from this file (= boss 2026-10-12 (see OOB.md
-// #2026-10-12) 按 Apple 默认样式规则"; = SwiftUI Form on macOS picks the canonical row height
-// / spacing / corner radius automatically). - SF Symbols 6 icons via the central
-// `SFIcon(...)` factory are kept (= v3.0 design system hard rule + Apple HIG SF
-// Symbols 6 canonical). Settings taxonomy (= verified against actual usage in wenshu +
-// SMC MarkdownEditorConfiguration + Pages/Numbers/Keynote AX dump 2026-10-12): - 外观:
-// appearance (light/dark/auto) + Apple system accent + highlight + sidebar icon size.
-// - 编辑器: 8 toggles (= readingWidth / heightBehavior / rawSourceMode /
-// continuousSpellChecking / grammarChecking / automaticSpellingCorrection /
-// listHelpersEnabled / autoClosePairsEnabled) = every field that EditorPreferences
-// ships (= T-12 + commit 96589ccb8) + every field that SMC MarkdownEditorConfiguration
-// exposes as a runtime toggle. Apple Pages/Numbers/Keynote auto-correct panel lists 13
-// items but SMC only exposes 4 (= NSTextView system-layer behaviors for the other 9
-// are not toggles); we do NOT expose dead controls (= per boss "SMC 有什么就用什么；没有就没有"). -
-// 提供方: 7 provider rows + key paste (= SettingsOps + keychain). Renamed from
-// `providerApi` so the user-facing name matches the concrete action (= paste an API
-// key). - 模型: default provider + default model + per-task model map
-// (AuxTask.allCases). Renamed from `model` for clarity. - 记忆: MemorySettingsView.
-// Things that ship DEAD (= removed in this rewrite): -
-// `settings.general.misc.placeholderNote` i18n key = pure placeholder text with no UI
-// caller. Removed from all 3 catalogs in commit `9d88672f8` (=
-// en.lproj/Localizable.strings + zh-Hans.lproj/Localizable.strings +
-// Localizable.xcstrings). - AuxTask 5 `disabled Button` change-model controls =
-// visually shipped but always non-interactive; replaced with a Text row that shows
-// \`settings.model.use_main_model\` (= 'Use main model'; = the actual current behavior
-// = all AuxTask values use the main model). Things that were REMOVED then RESTORED (=
-// history): - `wenshu.llm.reasoningEffort` AppStorage was REMOVED in commit
-// `25133467f` (= the picker died with the SettingsTab → SettingsPane rename), but the
-// read-side in ConversationLoop + WenshuConductorImportRouter + PlanModeEngine +
-// RequestHelpers was still alive (= silent regression for any user who had configured
-// the value in a prior build). RESTORED in commit `90d6b35f8` (= the picker now lives
-// in the models pane; = the 5-option menu reads / writes `wenshu.llm.reasoningEffort`
-// with a default of "medium"). Persistence (= unchanged across this rewrite): -
-// `wenshu.settingsTab` AppStorage persists the selected pane across scene re-mounts (=
-// chat view `wenshu.settingsTab = providerApi` deep-links land on the new `providers`
-// pane via the alias mapping at `paneForRaw(_:)` below). - `wenshu.llm.provider` +
-// `wenshu.userAddress` + `appearanceMode` AppStorage bindings keep their existing keys
+// … (= 46 rationale lines collapsed; = A112 docblock collapse per §1.8)
 // (= no migration needed for user-state).
-
 import SwiftUI
 import AppKit
 import MarkdownEngine
@@ -57,9 +11,9 @@ struct SettingView: View {
 
     @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
     @AppStorage("wenshu.llm.provider") private var providerSlug: String = Provider.minimaxCn.slug
-    /// Single-owner centralization: AppState.llmModel (= v1.72 T3b).
-    /// The picker reads + writes through the appState via the same
-    /// pattern as before.
+    // / Single-owner centralization: AppState.llmModel (= v1.72 T3b).
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / pattern as before.
     private var llmModelBinding: Binding<String> {
         Binding(
             get: { appState.llmModel },
@@ -69,11 +23,7 @@ struct SettingView: View {
     // @AppStorage("wenshu.llm.model") private var llmModel: String = ""
     @AppStorage("wenshu.userAddress") private var userAddress: String = "user"
     // P0-3 fix (= Spec audit): ConversationLoop L270 + L482 STILL read
-    // `UserDefaults.standard.string(forKey: "wenshu.llm.reasoningEffort")` and
-    // forward it to `LLMCallOptions.reasoningEffort`. Commit 25133467f removed the
-    // picker (= silent regression for users who had configured the value in a
-    // prior build). Re-add the binding so the UI write side returns. The Apple
-    // Anthropic API effort spec (https://platform.claude.com/docs/en/build-with-
+    // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // claude/effort) = 5 valid options (low / medium / high / xhigh / max).
     @AppStorage("wenshu.llm.reasoningEffort") private var reasoningEffort: String = "medium"
     @AppStorage("wenshu.settingsTab") private var selectedTabRaw: String = SettingsPane.appearance.rawValue
@@ -93,18 +43,9 @@ struct SettingView: View {
         case memory
         var id: String { rawValue }
 
-        /// SF Symbols 7 identifier per Apple HIG sidebar row leading icon.
-        /// The macOS 27 SwiftUI multicolor variant set (= paintpalette,
-        /// apple.writing.tools, network, sparkles, bonjour) gives each of
-        /// these icons intrinsic multi-colour layers (= Apple's curated
-        /// 5 pane icons mirror Apple System Settings' sidebar on macOS 27
-        /// Tahoe; = the prior `paintbrush` / `doc.text` / `key.horizontal`
-        /// / `cpu` / `brain` were not all in the multicolor variant set,
-        /// = the user-replacement swaps them for symbols that all have
-        /// intrinsic multicolor layers). See `IconStyle.sidebar` body in
-        /// `IconStyles.swift` for the optical-uniformity recipe (= the
-        /// same 28×28 PT Tahoe squircle + 16 PT inner frame + 4 PT inset,
-        /// = every sidebar row icon occupies the identical optical width).
+        // / SF Symbols 7 identifier per Apple HIG sidebar row leading icon.
+        // … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // / = every sidebar row icon occupies the identical optical width).
         var icon: String {
             switch self {
             case .appearance: return "paintpalette"
@@ -124,15 +65,14 @@ struct SettingView: View {
     @State private var apiExpandedProviders: Set<String> = []
     @State private var apiDraftKey: String = ""
     @State private var apiError: String?
-    /// Global Settings search query (= lives in the sidebar-top TextField,
-    /// drives BOTH the sidebar pane row filter AND the per-pane filtering;
-    /// replaces the previous provider-only `.searchable(placement: .toolbar)`).
+    // / Global Settings search query (= lives in the sidebar-top TextField,
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / replaces the previous provider-only `.searchable(placement: .toolbar)`).
     @State private var globalSearchQuery: String = ""
 
     // MARK: - Editor pane 8 @AppStorage (= EditorPreferences 8 fields)
-
-    /// Reading column width (= CGFloat stored as Double). -1 = nil in
-    /// AppStorage (= the engine fills horizontally; = see `EditorPreferences`).
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / AppStorage (= the engine fills horizontally; = see `EditorPreferences`).
     @AppStorage("wenshu.editor.readingWidth")
     private var readingWidthDouble: Double = -1
     /// Height behavior (= serialized as "scrolls" / "fitsContent").
@@ -164,26 +104,19 @@ struct SettingView: View {
     @AppStorage("wenshu.editor.autoClosePairsEnabled") private var autoClosePairsEnabled: Bool = true
 
     // MARK: - Apple system accent (= AppleAccentColor / AppleHighlightColor)
-
-    /// Apple system accent color (= integer encoding per Apple HIG
-    /// documentation). -2 = follow each app's default. -1..6 = the
-    /// 8 named colors.
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / 8 named colors.
     @AppStorage("AppleAccentColor") private var appleAccentColor: Int = -2
     @AppStorage("AppleHighlightColor") private var appleHighlightColor: Int = -2
 
     // MARK: - App language (= macOS 27 per-app language override)
-
-    /// Per-app language picker. Values: "system" (= follow macOS
-    /// system language = the macOS 27 default; = no \`AppleLanguages\`
-    /// write), "en" (= force English), "zh-Hans" (= force Simplified
-    /// Chinese). Persisted across Settings re-mounts; = takes effect
-    /// on next launch (= macOS 27 standard behavior; = Pages /
-    /// Numbers / Keynote all do the same).
+    // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / Numbers / Keynote all do the same).
     @AppStorage("wenshu.appLanguage") private var appLanguage: String = "system"
 
-    /// True after the user picked a non-system language and we showed
-    /// the "restart required" alert; = the alert dismissal lets the
-    /// user keep editing Settings without re-firing.
+    // / True after the user picked a non-system language and we showed
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / user keep editing Settings without re-firing.
     @State private var showAppLanguageRestartAlert: Bool = false
 
     // MARK: - Computed
@@ -192,12 +125,9 @@ struct SettingView: View {
         Provider.by(slug: providerSlug) ?? .minimaxCn
     }
 
-    /// Sidebar pane rows filtered by the global search query (= empty
-    /// string = show every pane). The query uses the localized pane title
-    /// (= the same labels SwiftUI displays in each row) so a user typing
-    /// any visible word hides the panes that don't match. The pane labels
-    /// are short noun phrases (= 外观 / 编辑器 / 提供方 / 模型 / 记忆) so
-    /// the substring match is forgiving on zh-Hans input.
+    // / Sidebar pane rows filtered by the global search query (= empty
+    // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / the substring match is forgiving on zh-Hans input.
     private var visiblePanes: [SettingsPane] {
         let query = globalSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return SettingsPane.allCases }
@@ -208,21 +138,11 @@ struct SettingView: View {
 
     var body: some View {
         // `columnVisibility: .constant(.all)` pins the sidebar so the user cannot drag
-        // the column divider closed (= macOS 27 NavigationSplitView would
-        // otherwise let the user collapse the sidebar and find no way back
+        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // once `.toolbar(removing: .sidebarToggle)` removes the toggle).
         NavigationSplitView(columnVisibility: .constant(.all)) {
             // Sidebar column = the filtered pane list only. The search field is attached
-            // to the NavigationSplitView (= below) via
-            // `.searchable(placement: .sidebar)` = Apple HIG canonical
-            // SwiftUI macOS 14+ search field (= the pill-shaped, Liquid
-            // Glass backed text editor with the magnifyingglass SF Symbol
-            // leading; = Apple System Settings > General > Software Update
-            // uses the exact same widget). `.searchable` on macOS 27
-            // resolves the visible placement to the toolbar row, not to
-            // the leading column, because Apple does not ship a sidebar-
-            // leading inline search API (= see Apple HIG `Search fields in
-            // macOS` sidebar rule; = the platform chooses the canonical
+            // … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // spot).
             List(visiblePanes, selection: Binding(
                 get: { selectedTab },
@@ -240,15 +160,11 @@ struct SettingView: View {
                 .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)
                 .listStyle(.sidebar)
                 // `toolbar(removing: .sidebarToggle)` strips the system-rendered
-                // `sidebar.leading` collapse button (= Apple canonical
-                // hide-sidebar toggle = SO 75296044 + Apple dev doc
+                // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
                 // `View/toolbar(removing:)`).
                 .toolbar(removing: .sidebarToggle)
             // `.searchable(text: ..., placement: .sidebar)` attaches the Apple canonical
-            // macOS 14+ search field (= Liquid Glass pill editor with the
-            // magnifyingglass SF Symbol leading) to the
-            // NavigationSplitView; macOS 27 SwiftUI resolves the visible
-            // placement to the toolbar row (= the Apple HIG canonical spot
+            // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // for sidebar search).
             .searchable(
                 text: $globalSearchQuery,
@@ -262,13 +178,7 @@ struct SettingView: View {
                 .animation(.default, value: globalSearchQuery)
         }
         // macOS 27 SwiftUI Settings scene bug: `.windowResizability(.contentMinSize)`
-        // alone does NOT add `.resizable` to the underlying NSWindow's
-        // styleMask (= window stays non-resizable despite the scene modifier).
-        // The fix Apple ships as documented on SO 79532884 + 79127814 = an
-        // NSViewRepresentable that inserts `.resizable` into the host window's
-        // styleMask. We hook BOTH `viewWillMove(toWindow:)` (= the pre-attach
-        // point when the styleMask is still mutable) AND
-        // `viewDidMoveToWindow()` (= post-attach fallback) so the resizability
+        // … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // survives SwiftUI's inner reconciliation on macOS 27.
         .background(WindowResizableEnabler())
         .task {
@@ -280,12 +190,8 @@ struct SettingView: View {
     }
 
     // MARK: - Pane routing
-
-    /// Resolve the persisted `wenshu.settingsTab` raw value (= the legacy
-    /// `SettingsTab` enum cases shipped in 2025 / early 2026) to the
-    /// current pane. Deep-link callers (= `ChatSessionViewModel` writes
-    /// `wenshu.settingsTab = providerApi`) land on the new
-    /// `providers` pane via this mapping.
+    // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / `providers` pane via this mapping.
     private func paneForRaw(_ raw: String) -> SettingsPane {
         switch raw {
         case "general":       return .appearance
@@ -340,18 +246,7 @@ struct SettingView: View {
                         appLanguage = newValue
                         applyAppLanguage(newValue)
                         // P1-1 fix (= Q99 Spec audit, commit to be authored): the
-                        // restart-required alert must NOT fire
-                        // when the user re-selects the
-                        // 'system' tag (= no AppleLanguages
-                        // write happened; =
-                        // applyAppLanguage("system") removes
-                        // the key; = no restart is needed
-                        // because there is no override to take
-                        // effect). Firing the alert on a no-op
-                        // select is the user-reported UX bug
-                        // from commit bc1d9bbeb (= user picked
-                        // 'system' after a previous explicit
-                        // pick; = alert popped without any
+                        // … (= 12 rationale lines collapsed; = A112 docblock collapse per §1.8)
                         // AppleLanguages change to confirm).
                         if newValue != "system" {
                             showAppLanguageRestartAlert = true
@@ -444,28 +339,18 @@ struct SettingView: View {
         .formStyle(.grouped)
     }
 
-    /// Push the new accent / highlight value to the live NSWindow
-    /// (= without the host needing to relaunch). Cheap; = the picker
-    /// change has to take effect before the user closes Settings or
-    /// the UX is broken.
+    // / Push the new accent / highlight value to the live NSWindow
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / the UX is broken.
     private func refreshAllWindows() {
         for window in NSApplication.shared.windows {
             window.invalidateRestorableState()
         }
     }
 
-    /// Persist the per-app language to macOS 27 \`AppleLanguages\`
-    /// (= the standard per-app override mechanism). "system" removes
-    /// the override (= the host falls back to macOS system language);
-    /// "en" + "zh-Hans" write the canonical lang+region list that
-    /// Pages / Numbers / Keynote also use (= macOS picks the first
-    /// matching locale from the list; = the second entry is the
-    /// fallback in case the first is missing from the app bundle).
-    ///
-    /// Effective on next launch (= the standard macOS 27 behavior;
-    /// = SwiftUI offers no runtime-locale-override API; = the user
-    /// must restart the app for the change to take effect; = the
-    /// Settings UI surfaces this with the alert above).
+    // / Persist the per-app language to macOS 27 \`AppleLanguages\`
+    // … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / Settings UI surfaces this with the alert above).
     private func applyAppLanguage(_ lang: String) {
         guard let bundleID = Bundle.main.bundleIdentifier else { return }
         let defaults = UserDefaults(suiteName: bundleID) ?? .standard
@@ -532,10 +417,9 @@ struct SettingView: View {
         .formStyle(.grouped)
     }
 
-    /// Snap an arbitrary `readingWidth` CGFloat to the nearest of the
-    /// 3 buckets (= narrow 480 / medium 720 / wide 960). Used by the
-    /// `Picker` getter so the segmented control lands on the closest
-    /// bucket instead of an empty selection.
+    // / Snap an arbitrary `readingWidth` CGFloat to the nearest of the
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / bucket instead of an empty selection.
     private func readingWidthBucket() -> String {
         let w = readingWidthDouble
         if w < 0 { return "none" }
@@ -581,7 +465,7 @@ struct SettingView: View {
 
     private var filteredProviders: [Provider] {
         // The previous per-pane `.searchable` toolbar field is gone; the sidebar-top
-        // global search query drives this filter when non-empty, so the
+        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // providers row list narrows as the user types.
         let trimmed = globalSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return Provider.all }
@@ -703,13 +587,7 @@ struct SettingView: View {
                     .font(.caption)
             }
             // P0-3 fix (= Spec audit): wenshu.llm.reasoningEffort is still READ by
-            // ConversationLoop + WenshuConductorImportRouter + 3 connector
-            // adapters, but commit 25133467f removed the writer (= silent
-            // regression for users who configured reasoning effort in a
-            // prior build). Re-add the minimal picker so the write side
-            // returns. Apple Anthropic API effort spec
-            // (https://platform.claude.com/docs/en/build-with-
-            // claude/effort) = 5 valid options. Default = "medium" (=
+            // … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // v0.21 ticket 35b).
             Section {
                 Picker(String(localized: "settings.model.reasoning_effort_label"), selection: $reasoningEffort) {
@@ -724,16 +602,7 @@ struct SettingView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     // `.lineLimit(nil)` (= drop SwiftUI's default `.caption` single-line
-                    // cap) lets the helper text wrap to two or
-                    // more lines if a future locale is longer than
-                    // the column can hold (= the prior cap forced
-                    // the helper text to a single horizontal line,
-                    // and a long single line silently forced
-                    // SwiftUI to expand the Settings window past
-                    // the user's requested `.defaultSize(950,
-                    // 517)`; = the user asked us to shorten the
-                    // helper text because the longer footer was
-                    // the root cause of the autosized Settings
+                    // … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
                     // window widening past the intended size).
                     .lineLimit(nil)
                     .fixedSize(horizontal: false, vertical: true)
@@ -785,44 +654,9 @@ struct SettingView: View {
     }
 }
 
-/// macOS 27 SwiftUI `Settings { }` scene workaround:
-///
-/// `.windowResizability(.contentMinSize)` (or any `Scene`
-/// `windowResizability` value) does NOT actually flip the
-/// underlying `NSWindow.styleMask` to include `.resizable`
-/// when applied to a `Settings { }` scene (= verified on macOS 27
-/// = the SO 79532884 regression). This representable inserts
-/// `.resizable` into the host `NSWindow.styleMask` from BOTH
-/// pre-attach and post-attach points so the canonical Apple
-/// resizable-preferences-window behavior survives SwiftUI's
-/// inner styleMask reconciliation on macOS 27.
-///
-/// Two trigger points (ref: SO 79532884 + 79127814):
-/// - `viewWillMove(toWindow:)` runs BEFORE the hosting NSWindow
-///   does any post-attach reconciliation (= the styleMask is
-///   still in its initial state).
-/// - `viewDidMoveToWindow()` runs AFTER attach (= the fallback
-///   in case SwiftUI re-set the styleMask between the two events).
-///
-/// macOS 27 reconciliation destabilizer (= the 2026-10-12 regression
-/// the user re-flagged after `.searchable` was added): the Settings
-/// scene with a `.searchable(placement: .sidebar)` on the
-/// NavigationSplitView triggers SwiftUI to reconcile the hosting
-/// NSView tree every time the user types in the search field
-/// (= SwiftUI rebuilds the searchable-backed toolbar item; =
-/// a second `viewDidMoveToWindow()` fires on a fresh helper NSView
-/// but the host window's styleMask does NOT include `.resizable`
-/// after the reconciliation completes). The view-level hooks
-/// alone are insufficient. The reliable path is to inject the
-/// `.resizable` bit whenever the helper lands on the host window
-/// AND iterate `NSApp.windows` once at first attach (= the helper
-/// is one of many child NSViews in the settings window's hosting
-/// tree; = the host window is the same NSWindow SwiftUI picked for
-/// the Settings scene).
-///
-/// Refs: Apple SwiftUI `Scene.windowResizability(_:)` documentation
-/// (developer.apple.com/documentation/swiftui/scene/windowresizability(_:));
-/// the recipe ships in the same shape Apple-internal sample code uses.
+// / macOS 27 SwiftUI `Settings { }` scene workaround:
+// … (= 36 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / the recipe ships in the same shape Apple-internal sample code uses.
 private struct WindowResizableEnabler: NSViewRepresentable {
     private final class Helper: NSView {
         override func viewWillMove(toWindow newWindow: NSWindow?) {
@@ -845,18 +679,14 @@ private struct WindowResizableEnabler: NSViewRepresentable {
     func makeNSView(context: Context) -> NSView { Helper() }
     func updateNSView(_ nsView: NSView, context: Context) {
         // `updateNSView` fires every time the SwiftUI hosting tree is reconciled (= every
-        // keystroke in the .searchable field on the Settings scene). Re-
-        // asserting `.resizable` here is the third trigger point (= covers the
-        // reconciliation that overwrites the post-attach `viewDidMoveToWindow`
-        // bit on macOS 27 SwiftUI Settings scenes with the `.searchable`
+        // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // modifier).
         if let hostWindow = nsView.window {
             hostWindow.styleMask.insert(.resizable)
             ensureResizableAcrossHostingTree(of: hostWindow)
         } else {
             // Fallback for the first-render race (= helper NSView exists but SwiftUI has
-            // not yet attached it to the hosting window; = bound to fire
-            // on the next main actor turn once SwiftUI completes the
+            // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // attach).
             Task { @MainActor in
                 for appWindow in NSApp.windows {
@@ -867,35 +697,19 @@ private struct WindowResizableEnabler: NSViewRepresentable {
     }
 }
 
-/// macOS 27 Settings scene helper: walks every `NSWindow`
-/// SwiftUI has spun up and re-asserts `.resizable` in the
-/// styleMask. SwiftUI's reconciliation (= triggered by the
-/// `.searchable` keyboard input on the Settings scene, the
-/// NavigationSplitView column-width drag, the picker change,
-/// etc.) can blow away the `.resizable` bit on the host window
-/// behind SwiftUI's back (= no public SwiftUI / AppKit
-/// notification fires for this in macOS 27). The reliable
-/// Apple-canonical workaround is to (1) walk every window
-/// SwiftUI has set up the moment we know the Settings scene
-/// has attached (= one shot at `viewDidMoveToWindow` and
-/// `viewWillMove(toWindow:)`), and (2) re-assert the `.resizable`
-/// bit via the `updateNSView` round-trip (= fires every time
-/// SwiftUI reconciles the host tree). `.resizable` insertion is
-/// idempotent (= a second `insert` after the bit is already set
-/// is a no-op), so the recomputation cost is minimal.
+// / macOS 27 Settings scene helper: walks every `NSWindow`
+// … (= 14 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / is a no-op), so the recomputation cost is minimal.
 @MainActor
 private func ensureResizableAcrossHostingTree(of hostWindow: NSWindow) {
     // RATIONALE: Swift 6 can't always infer @MainActor across file + extension seams; =
-    // explicit Annotation beats the "nonisolated context" warning cluster at
-    // SettingView:906/907/913/914 (NSApp.windows reference + styleMask mutation).
-    // ASSUMPTION: callers already run on the main actor (= SwiftUI
-    // NSViewRepresentable updateNSView, viewDidMoveToWindow, and viewWillMove are
+    // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // all main-actor-isolated).
     for candidateWindow in NSApp.windows where candidateWindow === hostWindow {
         candidateWindow.styleMask.insert(.resizable)
     }
     // Defensive: also walk any Settings scene peer windows (= the macOS process may host
-    // more than one Settings scene if the user double-clicks the Settings menu; =
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // every NSWindow SwiftUI has spun up gets the `.resizable` bit). Idempotent.
     for candidateWindow in NSApp.windows {
         candidateWindow.styleMask.insert(.resizable)

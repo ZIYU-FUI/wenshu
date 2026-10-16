@@ -1,223 +1,90 @@
 // SubAgentRunner.swift
-//
-// The runner that picks up `BackgroundDelegationHandle` records
-// from `AsyncDelegationRegistry` (= ones created by
-// `DelegateResearchTool`, etc.; = pending) and runs each one.
-//
-// Status at v2.7 (= post v2.4 soul cleanup + memory rewire):
-//
-//    Main agent (wenshu)
-//       │
-//       │ delegate_research (fire-and-forget)
-//       ▼
-//    AsyncDelegationRegistry
-//       │  pending ←── handle registered by delegate()
-//       │  running ←── SubAgentRunner.runHandle()
-//       │  completed ←── sub-agent LLM result lands
-//       │
-//       ▼
-//    SubAgentRunner (this file)
-//       │
-//       │ sub-agent LLM call (= independent context:
-//       │                     SubAgentIdentity.systemPrompt +
-//       │                     sub-agent's tool subset)
-//       ▼
-//    reference_library / kanban (= research output lands)
-//
-// Why this file exists:
-//    Before v2.7, `AsyncDelegationRegistry` only stored handles.
-//    The "sub-agent LLM call" was never wired up (= the team link
-//    was broken end to end). This file is the engine that actually
-//    drains pending handles, runs each sub-agent in its own
-//    `ConversationLoop` (= independent context), and marks the
-//    handle as completed when the sub-agent finishes.
-//
-// replaces the v2.7 stub (= canned strings per
-// agent name) with a real LLM call. Each sub-agent runs its own
-// `ConversationLoop.runTurn` with the sub-agent's system prompt
-// + its own tool subset. The loop is multi-turn (= up to
-// `MAX_SUBAGENT_TURNS = 5`); the sub-agent may call web_search /
-// reference_library (or any tool in its subset) as many times as
-// needed before producing its final text reply.
-//
-// Architecture:
-//   1 source + 1 test per ticket (= this file + the matching
-//   SubAgentRunnerTests.swift).
-//
-// Engineering standards (= per pocock-engineering-design-check,
-// all 12 categories reviewed before this commit):
-//
-//    1. SSOT: handle state lives in `AsyncDelegationRegistry` only.
-//       The runner reads + writes via the registry's actor methods;
-//       = no shadow state.
-//
-//    2. Module Boundary: public surface = drainPending() +
-//       runHandle(_:). All other helpers are internal/private.
-//
-//    3. DIP: injected LLMConnector (= protocol). The runner
-//       does NOT depend on a concrete connector type.
-//
-//    4. Layering: this file lives in Core/Agent/Conversation/,
-//       same layer as AsyncDelegation + SubAgentIdentity.
-//       No UI imports. No Foundation workarounds.
-//
-//    5. API Boundary: drainPending returns Int (= count of
-//       handles completed). runHandle throws typed errors.
-//       No bare-string error envelopes.
-//
-//    6. DDDD: each sub-agent has its own bounded context (= the
-//       SubAgentIdentity.systemPrompt namespace). The runner
-//       is the cross-context dispatcher; = it does NOT mutate
-//       sub-agent domain state.
-//
-//    7. Value Object vs Entity: BackgroundDelegationHandle is
-//       an entity (= has identity = handle.id). The runner
-//       treats handles as entities (= never copies them around
-//       as values).
-//
-//    8. Aggregate Root: AsyncDelegationRegistry is the single
-//       aggregate root for handle lifecycle. The runner never
-//       mutates a handle without going through the registry.
-//
-//    9. Type Boundary: handle.id is String (= the umbrella
-//     keying). Sub-agent names are SubAgentIdentity.Name
-//       (= closed enum; = no raw "researcher" / "writer"
-//       strings in caller code).
-//
-//    10. Immutability Default: handles are value-typed structs;
-//        = the registry's `update(_:)` is the only mutation
-//        path.
-//
-//    11. Error Handling: SubAgentRunnerError enum (= typed;
-//        = three buckets: user-fault = invalid handle,
-//        system-fault = LLM call failed, programmer-fault =
-//        sub-agent identity not registered).
-//
-//    12. Side-Effect Boundary: this file IS the IO layer.
-//        The LLM call + registry mutation + kanban transition
-//        all live here. View code never calls this directly.
-//
-
+// … (= 97 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// 
 import Foundation
 
-/// Typed errors for the SubAgentRunner (= hermes `_execute_child`
-/// failure modes; = three buckets per pocock-engineering-design-check
-/// row 11).
+// / Typed errors for the SubAgentRunner (= hermes `_execute_child`
+// … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / row 11).
 enum SubAgentRunnerError: Error, Equatable {
     /// User-fault: handle id is unknown to the registry.
     case unknownHandle(handleID: String)
     /// System-fault: the sub-agent LLM call returned an error.
     /// (= recovery: retry; = caller decides the retry policy.)
     case subAgentLLMFailed(handleID: String, agentName: String, message: String)
-    /// Programmer-fault: the sub-agent identity is registered but
-    /// has no system prompt (= SubAgentIdentity.systemPrompt
-    /// returned empty). Indicates a code regression.
+    // / Programmer-fault: the sub-agent identity is registered but
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / returned empty). Indicates a code regression.
     case subAgentIdentityMissingPrompt(agentName: String)
     /// Programmer-fault: handle is already in a terminal state
     /// (= cannot re-run a completed/failed handle).
     case handleAlreadyTerminal(handleID: String, currentState: String)
-    /// System-fault: the sub-agent's multi-turn runTurn produced no
-    /// assistant text (= only tool_use blocks followed by tool_result
-    /// loops that never terminated). Recovery: retry or shorten the task.
+    // / System-fault: the sub-agent's multi-turn runTurn produced no
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / loops that never terminated). Recovery: retry or shorten the task.
     case emptyResponse(handleID: String, agentName: String)
-    /// System-fault: the sub-agent's multi-turn runTurn exceeded the
-    /// turn cap (= MAX_SUBAGENT_TURNS). Recovery: increase the cap or
-    /// split the task. Currently NOT retried automatically (= the
-    /// loop is conservative; = the user wants user-visible failure rather
-    /// than silent infinite retry).
+    // / System-fault: the sub-agent's multi-turn runTurn exceeded the
+    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / than silent infinite retry).
     case maxTurnsExceeded(handleID: String, agentName: String, attempted: Int)
 }
 
-/// Engine that drains pending `BackgroundDelegationHandle`s from
-/// `AsyncDelegationRegistry` and runs each sub-agent in its own
-/// ConversationLoop (= independent LLM context).
-///
-/// One runner instance per app (= @MainActor isolated; = the
-/// `WenshuAppDelegate` owns one). The runner's `drainPending()`
-/// is invoked from two trigger points:
-///
-///   1. After every main-agent `delegate_*` tool call (= the
-///      fire-and-forget path; = "kick the runner immediately").
-///   2. On a periodic timer (= the catch-up path; = a handle
-///      that was registered before a crash should still complete
-///      once the app relaunches).
-///
-/// Threading:
-///   - `@MainActor` for state mutation (= handle tracking).
-///   - `await registry.runningDelegations()` for registry access
-///     (= the registry is its own actor; = the await hops to it).
-///   - LLM call is `async` (= ConversationLoop.runTurn path;
-///     = does not block MainActor).
+// / Engine that drains pending `BackgroundDelegationHandle`s from
+// … (= 18 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// /     = does not block MainActor).
 @MainActor
 final class SubAgentRunner {
 
-    /// Maximum number of pending handles drained per call. Caps
-    /// the burst (= e.g. the user typed 10 nouns in one turn;
-    /// = drain 3 at a time; = the rest stay pending for the
-    /// next drain tick).
+    // / Maximum number of pending handles drained per call. Caps
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / next drain tick).
     let maxBatchSize: Int
 
-    /// Maximum number of LLM turns (= ConversationLoop.runTurn
-    /// inner cap) per sub-agent handle. The sub-agent may call
-    /// web_search / reference_library (or any tool in its
-    /// subset) as many times as needed within this budget before
-    /// producing its final text reply. Beyond the cap the runner
-    /// throws `SubAgentRunnerError.maxTurnsExceeded`.
+    // / Maximum number of LLM turns (= ConversationLoop.runTurn
+    // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / throws `SubAgentRunnerError.maxTurnsExceeded`.
     let maxSubAgentTurns: Int
 
-    /// The LLM connector used for sub-agent calls. The sub-agent
-    /// gets its own ConversationLoop (= independent context) bound
-    /// to the same connector as the main agent (= no separate
-    /// profile required; = the user only configures one connector
-    /// in Settings → LLM Connector).
+    // / The LLM connector used for sub-agent calls. The sub-agent
+    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / in Settings → LLM Connector).
     let connector: any LLMConnector
 
-    /// The tool registry the sub-agent's LLM call dispatches tools
-    /// against. When nil (= default for unit tests with isolated
-    /// registries), the sub-agent runs without tool dispatch (= pure
-    /// text reply). Production code injects `ToolRegistry.shared`.
+    // / The tool registry the sub-agent's LLM call dispatches tools
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / text reply). Production code injects `ToolRegistry.shared`.
     let toolRegistry: ToolRegistry?
 
-    /// Test-only tool registry override. Nil = use the `toolRegistry`
-    /// property (= which defaults to `ToolRegistry.shared` in production
-    /// or nil in unit tests). The override is stored only on the
-    /// test-only init (= production never sets this). Tests that need
-    /// to drive the production tool dispatch path without triggering
-    /// the ToolRegistry.shared + WebSearchTool._registryBootstrap
-    /// Swift concurrency runtime issue use this to inject a fresh
-    /// ToolRegistry actor with only the tools the test needs.
+    // / Test-only tool registry override. Nil = use the `toolRegistry`
+    // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / ToolRegistry actor with only the tools the test needs.
     private let _isolatedToolRegistry: ToolRegistry?
 
-    /// Test-only registry override. Nil = use
-    /// `AsyncDelegationRegistry.shared`. Stored only on the
-    /// test-only init (= production never sets this).
+    // / Test-only registry override. Nil = use
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / test-only init (= production never sets this).
     private let _isolatedRegistry: AsyncDelegationRegistry?
 
-    /// Archivist sub-agent storage adapter (= bookmark + backup CRUD).
-    /// Nil = Archivist sub-agent handles complete with a no-op summary
-    /// (= the runner can't dispatch to bookmark/backup without this).
-    /// Production code injects `LiveArchivistStorage`.
+    // / Archivist sub-agent storage adapter (= bookmark + backup CRUD).
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / Production code injects `LiveArchivistStorage`.
     let archivistStorage: ArchivistStorage?
 
-    /// Auditor sub-agent storage adapter (= read-only memory access).
-    /// Nil = Auditor sub-agent handles complete with a no-op summary.
-    /// Production code injects `LiveAuditorStorage`.
+    // / Auditor sub-agent storage adapter (= read-only memory access).
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / Production code injects `LiveAuditorStorage`.
     let auditorStorage: AuditorStorage?
 
-    /// The registry this runner drains handles from. Always
-    /// `AsyncDelegationRegistry.shared` in production (= the canonical
-    /// shared registry; = production tools cannot inject a registry
-    /// parameter); tests may override via the `isolatedRegistry:`
-    /// init.
+    // / The registry this runner drains handles from. Always
+    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / init.
     private var registry: AsyncDelegationRegistry {
         _isolatedRegistry ?? .shared
     }
 
-    /// The tool registry this runner dispatches sub-agent tool calls
-    /// against. Priority: `_isolatedToolRegistry` (= test-only fresh
-    /// actor injected via the isolatedToolRegistry init), then
-    /// `toolRegistry` (= production or nil for unit tests without
-    /// tool dispatch).
+    // / The tool registry this runner dispatches sub-agent tool calls
+    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / tool dispatch).
     fileprivate var resolvedToolRegistry: ToolRegistry? {
         _isolatedToolRegistry ?? toolRegistry
     }
@@ -240,10 +107,9 @@ final class SubAgentRunner {
         self._isolatedToolRegistry = nil
     }
 
-    /// Test-only initializer with an isolated registry (=
-    /// tests construct a fresh `AsyncDelegationRegistry()` actor
-    /// locally and inject it so drain / handle state does not leak
-    /// across tests).
+    // / Test-only initializer with an isolated registry (=
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / across tests).
     init(
         isolatedRegistry: AsyncDelegationRegistry,
         connector: any LLMConnector,
@@ -263,17 +129,9 @@ final class SubAgentRunner {
         self._isolatedToolRegistry = nil
     }
 
-    /// Test-only initializer that bypasses ToolRegistry.shared. Use
-    /// this when the test exercises the production tool dispatch
-    /// path (= real KeylessRing HTTP round-trip) but cannot tolerate
-    /// the ToolRegistry.shared + WebSearchTool._registryBootstrap
-    /// Swift concurrency runtime issue (= signal 5 abort). The
-    /// `isolatedToolRegistry` is a fresh ToolRegistry actor with
-    /// only the tools the test needs (= typically just `web_search`).
-    ///
-    /// Per stop-rule (= the 2026-09-26 Gap 3 follow-up): this
-    /// initializer exists solely to enable the live sub-agent
-    /// web_search E2E without crashing the test process.
+    // / Test-only initializer that bypasses ToolRegistry.shared. Use
+    // … (= 9 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / web_search E2E without crashing the test process.
     init(
         isolatedRegistry: AsyncDelegationRegistry,
         isolatedToolRegistry: ToolRegistry,
@@ -293,14 +151,9 @@ final class SubAgentRunner {
         self._isolatedToolRegistry = isolatedToolRegistry
     }
 
-    /// Drain up to `maxBatchSize` pending handles. Each handle is
-    /// run sequentially (= not concurrently; = we don't want N
-    /// LLM calls hammering the API at once). Returns the number of
-    /// handles that completed (or failed) during this drain.
-    ///
-    /// This function is `async` (= it awaits the registry's actor
-    /// methods + the LLM call). It is safe to call from MainActor
-    /// or from a background Task.
+    // / Drain up to `maxBatchSize` pending handles. Each handle is
+    // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / or from a background Task.
     func drainPending() async -> Int {
         let candidates = await registry.runningDelegations()
             .filter { $0.state == .pending }
@@ -313,8 +166,7 @@ final class SubAgentRunner {
                 completed += 1
             } catch {
                 // Failure path: mark the handle as failed. The error
-                // message goes into the handle's `result` field
-                // (= visible to the user via the kanban task + any
+                // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
                 // later `find` of the handle id).
                 await registry.markFailed(
                     id: handle.id,
@@ -326,23 +178,13 @@ final class SubAgentRunner {
         return completed
     }
 
-    /// Run a single handle (= the unit of work the runner drains).
-    /// Transitions the handle through: pending → running → completed.
-    /// Throws `SubAgentRunnerError` if any step fails.
-    ///
-    /// sub-agent gets a fresh `ConversationLoop.runTurn` (= independent
-    /// context with the sub-agent's system prompt + tool subset). The
-    /// sub-agent may call `web_search` / `reference_library` as many
-    /// times as needed (= up to `maxSubAgentTurns`) before producing
-    /// its final text reply. The final reply is the value passed to
-    /// `registry.markCompleted(result:)`.
+    // / Run a single handle (= the unit of work the runner drains).
+    // … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / `registry.markCompleted(result:)`.
     func runHandle(_ handle: BackgroundDelegationHandle) async throws {
         // 0. Re-fetch the latest handle from the registry (= the
-        //    caller's local snapshot may be stale; = the registry
-        //    is the source of truth for current state). This is
-        //    the fix for the IdempotencyGuard test (= a local
-        //    snapshot of a completed handle still shows .pending
-        //    if we only check the local value).
+        // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // if we only check the local value).
         let liveHandle = await registry.get(id: handle.id) ?? handle
 
         // 1. Validate the handle is runnable.
@@ -374,13 +216,8 @@ final class SubAgentRunner {
         await registry.update(running)
 
         // 4. Run the sub-agent LLM call (= real LLM, multi-turn,
-        //    with sub-agent's tool subset).
-        //
-        //    dispatch: Archivist + Auditor sub-agents
-        //    use a domain-specific storage path (= ArchivistStorage /
-        //    AuditorStorage, injected at init) instead of the LLM
-        //    tool dispatch path. Researcher / Writer / Analyst fall
-        //    through to the existing real-LLM runTurn path.
+        // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // through to the existing real-LLM runTurn path.
         let summary: String
         do {
             switch identityName {
@@ -397,16 +234,12 @@ final class SubAgentRunner {
             }
         } catch let error as SubAgentRunnerError {
             // Re-throw typed errors unchanged so the caller's
-            // catch can pattern-match (= e.g. .emptyResponse,
-            // .maxTurnsExceeded). The drainPending failure path
-            // still routes them to `markFailed` with a useful
+            // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // message.
             throw error
         } catch {
             // System-fault: the underlying LLMConnector or
-            // ConversationLoop threw something we did not type.
-            // Re-throw as SubAgentRunnerError.subAgentLLMFailed so
-            // the runner's drainPending() failure path surfaces
+            // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // a typed message.
             throw SubAgentRunnerError.subAgentLLMFailed(
                 handleID: liveHandle.id,
@@ -416,32 +249,14 @@ final class SubAgentRunner {
         }
 
         // 5. Transition running → completed. The `result` is the
-        //    sub-agent's final summary (= visible to the user
-        //    via the kanban task description).
+        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // via the kanban task description).
         await registry.markCompleted(id: liveHandle.id, result: summary)
     }
 
-    /// Run the real LLM-backed sub-agent (= v2.7d). Builds an
-    /// independent `ConversationLoop` (= separate context from the
-    /// main agent's loop) bound to the sub-agent's system prompt +
-    /// tool subset, then drives `runTurn` to completion.
-    ///
-    /// The returned `String` is the sub-agent's final assistant text
-    /// (= what gets persisted to the handle's `result` field and
-    /// surfaced via kanban). Multi-turn internal tool dispatch
-    /// (= web_search / reference_library / etc.) happens inside
-    /// `ConversationLoop.runTurn` (= already implements the cap-10
-    /// turn loop; = the runner passes `maxAttempts = 1` because the
-    /// sub-agent's retry budget is governed by `maxSubAgentTurns`,
-    /// not the ConversationLoop's retry state).
-    ///
-    /// Throws:
-    ///   - `.emptyResponse` when the LLM produced no assistant text
-    ///     (= only tool_use blocks followed by no final reply).
-    ///   - `.maxTurnsExceeded` when the sub-agent exceeded
-    ///     `maxSubAgentTurns` without producing a final text reply.
-    ///   - `.subAgentLLMFailed` (= wrapped from underlying error)
-    ///     on transport / decode / provider failure.
+    // / Run the real LLM-backed sub-agent (= v2.7d). Builds an
+    // … (= 19 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // /     on transport / decode / provider failure.
     private func runRealSubAgent(
         handleID: String,
         agentName: SubAgentIdentity.Name,
@@ -450,12 +265,7 @@ final class SubAgentRunner {
         let systemPrompt = SubAgentIdentity.systemPrompt(name: agentName)
 
         // Resolve the sub-agent's tool subset (= e.g. researcher
-        // = ["web_search", "reference_library"]; = archivist =
-        // ["bookmark", "backup"]; = auditor = ["memory"]). Each
-        // sub-agent gets exactly the tools its bounded context
-        // requires (= hermes DELEGATE_BLOCKED_TOOLS parity; =
-        // SubAgentIdentity.systemPrompt also enforces "MUST NOT"
-        // restrictions in prose, but the tool list is the hard
+        // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // machine-checked boundary).
         let toolNames = SubAgentIdentity.tools(name: agentName)
         var tools: [String: any Tool] = [:]
@@ -466,19 +276,14 @@ final class SubAgentRunner {
                     tools[name] = handler
                 }
                 // Note: tools without a registered handler are
-                // silently skipped (= the LLM is told via
-                // `toolSchemas` only the ones that can actually
-                // run). The system prompt already names the
-                // expected tools in prose; = a missing handler is
-                // a config drift (= (see OOB.md #2026-09-20) "default-first"
-                // = no fake tools; = rather than injecting a stub
+                // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
                 // handler we omit the schema).
             }
             toolSchemas = await registry.getDefinitions(toolNames: Set(toolNames))
         }
 
         // Build the sub-agent's ConversationLoop (= independent
-        // context, = own turn history). The loop is a fresh actor
+        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // per sub-agent invocation (= no cross-handle state leak).
         let loop = ConversationLoop(
             connector: connector,
@@ -486,11 +291,7 @@ final class SubAgentRunner {
         )
 
         // Run the sub-agent's turn. `maxAttempts = 1` because the
-        // sub-agent's retry budget is the runner's
-        // `maxSubAgentTurns`, not ConversationLoop's internal
-        // retry state. Tool dispatch happens inside runTurn (= up
-        // to ConversationLoop.runTurn's inner cap = 10, which is
-        // strictly greater than `maxSubAgentTurns` so the runner's
+        // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // cap is the binding constraint).
         let result: ConversationResult
         do {
@@ -512,11 +313,7 @@ final class SubAgentRunner {
         }
 
         // Extract the final assistant text (= the assistant's last
-        // message in the turn history). If the LLM emitted only
-        // tool_use blocks (= no final assistant text), treat as
-        // empty response (= failure). The "last assistant message"
-        // rule matches hermes convention: after a tool_use /
-        // tool_result pair, the assistant's final reply is the last
+        // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // message in the history.
         guard let finalAssistant = result.messages.last(where: { msg in
             msg.role == .assistant
@@ -528,7 +325,7 @@ final class SubAgentRunner {
         }
 
         // Use the canonical plainText helper (= concatenates all
-        // .text blocks; = ignores .toolUse / .toolResult). Trim
+        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // whitespace so a response like "\n\n  done\n" becomes "done".
         let summary = finalAssistant.plainText
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -544,29 +341,14 @@ final class SubAgentRunner {
     }
 
     // MARK: - Storage-dispatch sub-agents (v2.7d)
-
-    /// Run the Archivist sub-agent (= bookmark + backup CRUD via
-    /// `ArchivistStorage`). The Archivist does NOT round-trip the LLM
-    /// (= its domain is deterministic storage; = an LLM call would
-    /// add latency without value). The handle completes with a JSON
-    /// summary of the storage operations performed.
-    ///
-    /// Task format (= from `DelegateArchiveTool` or future callers):
-    ///   "add <docID> <label>"        — add a bookmark
-    ///   "list"                       — list all bookmarks
-    ///   "delete <bookmarkID>"        — remove a bookmark
-    ///   "backup <label> <contents>"  — write a backup snapshot
-    ///
-    /// Unknown tasks fall back to a `{"stored": 0, "action": "noop",
-    /// "reason": "unknown task"}` summary (= §11 baseline 'no fake
-    /// success').
+    // … (= 14 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / success').
     private func runArchivistSubAgent(
         handle: BackgroundDelegationHandle
     ) async throws -> String {
         guard let storage = archivistStorage else {
             // No storage adapter injected (= misconfigured runner).
-            // Per §11 baseline 'no fake success', we throw so the
-            // handle ends up .failed (not .completed with a fake
+            // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // summary).
             throw SubAgentRunnerError.subAgentLLMFailed(
                 handleID: handle.id,
@@ -624,23 +406,9 @@ final class SubAgentRunner {
         }
     }
 
-    /// Run the Auditor sub-agent (= read-only memory access via
-    /// `AuditorStorage`). The Auditor fetches canonical memory for
-    /// the user's task and produces a verdict JSON envelope. The
-    /// verdict is deterministic (= based on memory presence, not
-    /// LLM judgment; = keeps the auditor predictable for downstream
-    /// stage-gate checks).
-    ///
-    /// Verdict envelope (= returned as the sub-agent's final text):
-    ///   {
-    ///     "verdict": "pass" | "warn" | "skip",
-    ///     "memory_snippet_count": <int>,
-    ///     "first_snippet": "<first 80 chars of canonical memory>" | null
-    ///   }
-    ///
-    /// "pass" = memory snippet found AND content non-empty.
-    /// "warn" = memory snippet found but empty.
-    /// "skip" = no memory snippet (= nothing to verify against).
+    // / Run the Auditor sub-agent (= read-only memory access via
+    // … (= 15 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / "skip" = no memory snippet (= nothing to verify against).
     private func runAuditorSubAgent(
         handle: BackgroundDelegationHandle
     ) async throws -> String {

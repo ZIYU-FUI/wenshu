@@ -1,39 +1,6 @@
 // WenshuConductor.swift
-//
-// Wenshu main agent orchestrator (= single-display surface; multi-
-// agent hidden):
-//   1. Receives the user message.
-//   2. Calls the LLM intent classifier to pick the 0-N sub-agents
-//      (= Writer / Analyst / Researcher / Auditor / Memory).
-//   3. Dispatches the selected sub-agents in parallel (= via
-//      `TaskGroup`).
-//   4. Waits for all results.
-//   5. Calls the LLM to synthesize the final reply.
-//
-// Dispatch progress goes through `WSKanbanRepository` (= the user
-// checks the Kanban board to see sub-agent progress; the chat
-// surface itself hides sub-agent activity).
-//
-// Reuses the 12-module backend (= LinkGraph / Search / Template /
-// Composer / Graph / Canvas / Bases / QuickSwitcher / WordCount /
-// Outline / Bookmarks / Verifier; = `WenshuVerifier` lives at
-// `Core/Agent/Connector/WenshuVerifier.swift`, not under a
-// separate `Core/Verifier/` path; = modules are organized by
-// feature, not in a flat `Core/` namespace). The pattern matches
-// `AgentRuntime` (= the in-process actor source of truth).
-//
-//  P0 #2 (WIRE-AGENT-002): the conductor now accepts a `tools: [String:
-//  any Tool]` registry at construction time. When the loop path runs
-//  (= connector wired), the registry is passed through to
-//  `ConversationLoop.runTurn(...tools:)` so the ToolExecutor dispatches
-//  tool_use blocks against registered wenshu tools (= e.g. the
-//  ParagraphAITool stub; future skill + subagent tools wire the same
-//  way). Callers that do not register tools (= the legacy callers
-//  + every existing test) keep the previous behavior unchanged because
-//  the default value is `[:]`. See wayfinder plan at
-//  `.scratch/2026-09-04-wenshu-integration-plan.md` ticket #2.
-//
-
+// … (= 33 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// 
 import Foundation
 import WenshuData
 import os.log
@@ -41,60 +8,34 @@ import os.log
 private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "wenshuconductor")
 
 // See commit 49 (= ContextEngine deferred) for the full rationale.
-// Future ticket: migrate to WSMemoryProvider via MemoryManaging protocol.
-
-/// Wenshu orchestrator (actor thread-safe, consistent with AgentRuntime / WSKanbanRepository / WSMemoryRepository).
+// … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / Wenshu orchestrator (actor thread-safe, consistent with AgentRuntime / WSKanbanRepository / WSMemoryRepository).
 actor WenshuConductor {
     private let runtime: AgentRuntime
     let verifier: WenshuVerifier
-    /// Long-term memory persistence for agent (now SwiftData-backed via
-    /// WSMemoryRepository ([historical actor removed]; this property was
-    /// previously MemoryStore? for the deprecated actor bridge, now removed.)
-    /// All memory calls go through WSMemoryRepository.shared (= @MainActor).
-    /// h10: agent toolkit dispatch (FileTools + ProcessTools + WebTools +
-    /// VisionTools). Tools are stateless structs, no bootstrap needed. The
-    /// conductor reads / writes kanban + chat persistence (= formerly via
-    /// `WSKanbanRepository.shared` / `WSChatRepository.shared` static
-    /// singletons). Inject the @MainActor-isolated `WSRepositoryContainer` (=
-    /// matches the protocol pattern that `LiveChatRepository` already
-    /// implements for chat). Falls back to `.shared` (= the global singleton)
-    /// when the caller does not pass a container; = every existing test +
-    /// ChatView call site keeps working.
+    // / Long-term memory persistence for agent (now SwiftData-backed via
+    // … (= 11 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / ChatView call site keeps working.
     let repositories: WSRepositoryContainer
     /// See .scratch/2026-08-22-frontend-integration/issues/h10-tools-frontend.md.
     private let fileTools: FileTools = FileTools()
     private let webTools: WebTools = WebTools()
     private let visionTools: VisionTools = VisionTools()
-    /// h14: AVMediaTools — agent toolkit dispatch + chat UI read-aloud button.
-    /// See
-    /// .scratch/2026-08-22-frontend-integration/issues/h14-avmedia-tools-frontend.md.
+    // / h14: AVMediaTools — agent toolkit dispatch + chat UI read-aloud button.
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / .scratch/2026-08-22-frontend-integration/issues/h14-avmedia-tools-frontend.md.
     private let avMediaTools: AVMediaTools = AVMediaTools()
-    /// P0 #1 (WIRE-AGENT-001): optional active connector profile. When non-nil,
-    /// handle() routes the LLM call through the full ConversationLoop.runTurn()
-    /// orchestrator (= tool dispatch + compression + retry + sanitization +
-    /// finalization). When nil, handle() falls back to the legacy
-    /// intent+sub-agent+synthesis pipeline. Production wiring lands in
-    /// App.swift follow-up.
+    // / P0 #1 (WIRE-AGENT-001): optional active connector profile. When non-nil,
+    // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / App.swift follow-up.
     private let connector: (any LLMConnector)?
-    /// P0 #1 (WIRE-AGENT-001): optional RuntimeHelpers instance for the
-    /// ConversationLoop (= deterministic-test injection 014). When nil,
-    /// ConversationLoop creates a fresh actor instance.
+    // / P0 #1 (WIRE-AGENT-001): optional RuntimeHelpers instance for the
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / ConversationLoop creates a fresh actor instance.
     private let loopRuntime: RuntimeHelpers?
-    /// P0 #2 (WIRE-AGENT-002): tool registry forwarded to
-    /// `ConversationLoop.runTurn(...tools:)` when the loop path runs. Callers
-    /// (= App.swift, tests) pre-register wenshu tools at construction time (=
-    /// e.g. ParagraphAITool for paragraph-level AI editing). When the loop path
-    /// is NOT active (= legacy callers with no connector), this field is
-    /// silently ignored because `runLegacyConductorPipeline` does not consult
-    /// the registry. Default = empty (= no tools) preserves every existing test
-    /// + call site without modification. Tool registry carried through to the
-    /// conversation loop. Mutable so the book_X scope guard can replace the
-    /// four default registrations with provider-bound instances (= see
-    /// `wireBookScopeGuard`). actor-isolated (= safe to mutate from any
-    /// conductor method). Marked internal (= not private) so @testable imports
-    /// can inspect the dictionary in the WenshuConductorBookScopeGuardTests
-    /// integration suite. Production code uses only the read-only
-    /// `registeredToolNames` accessor + the `wireBookScopeGuard` writer.
+    // / P0 #2 (WIRE-AGENT-002): tool registry forwarded to
+    // … (= 13 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / `registeredToolNames` accessor + the `wireBookScopeGuard` writer.
     var tools: [String: any Tool]
 
     init(
@@ -104,17 +45,7 @@ actor WenshuConductor {
         repositories: WSRepositoryContainer? = nil
     ) {
         // P0 #1 (WIRE-AGENT-001): chain to the new init with no connector
-        // (= legacy callers = the loop path is a no-op short-circuit and
-        // handle() runs the legacy pipeline unchanged). This preserves
-        // every existing call site + test + ChatView wiring.
-        // P0 #2 (WIRE-AGENT-002): `tools` is forwarded to the new init
-        // so the registry survives the chain (= legacy callers passing
-        // a registry but no connector still keep their tools in case
-        // the loop path is enabled later in the same lifetime).
-        // subsequent migration step: kanbanStore param was removed entirely from
-        // both init signatures (= the kanbanStore param was removed).
-        // KanbanStore persistence is now exclusively via `repositories.kanban`
-        // (= @MainActor SwiftData wrapper via WSRepositoryContainer;
+        // … (= 11 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // = .shared fallback when nil).
         self.init(
             runtime: runtime,
@@ -126,21 +57,9 @@ actor WenshuConductor {
         )
     }
 
-    /// P0 #1 (WIRE-AGENT-001): new init that wires WenshuConductor.handle()
-    /// through the full ConversationLoop.runTurn() orchestrator (= tool
-    /// dispatch + compression + retry + sanitization + finalization). When
-    /// `connector` is supplied (= production wiring, see App.swift ticket
-    /// follow-up) `handle()` first attempts the ConversationLoop path. If the
-    /// loop throws (= transport / auth / retry-exhaustion), handle() falls back
-    /// to the legacy intent+sub-agent+synthesis path (= the original pipeline)
-    /// AND logs the error so the user never sees a broken agent. When
-    /// `connector` is nil (= legacy callers, all existing tests), the new path
-    /// is a no-op short-circuit and `handle()` runs the legacy pipeline
-    /// unchanged. This preserves backward compat for every existing test + the
-    /// ChatView call site (which constructs the conductor without a connector
-    /// today). `runtime` is optional and passed to ConversationLoop for
-    /// deterministic-test injection (= via explicit `runtime:` init arg). When
-    /// nil, `ConversationLoop` falls back to a fresh `RuntimeHelpers()` actor.
+    // / P0 #1 (WIRE-AGENT-001): new init that wires WenshuConductor.handle()
+    // … (= 13 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / nil, `ConversationLoop` falls back to a fresh `RuntimeHelpers()` actor.
     init(
         runtime: AgentRuntime,
         verifier: WenshuVerifier,
@@ -154,18 +73,11 @@ actor WenshuConductor {
         self.connector = connector
         self.loopRuntime = loopRuntime
         // P0 #2 (WIRE-AGENT-002): store the tool registry so the loop
-        // path (= runConversationLoopPath) can pass it through to
-        // ConversationLoop.runTurn(...tools:). Default = empty so
+        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // every existing call site compiles unchanged.
         self.tools = tools
         // P1-01 fix: prefer the injected WSRepositoryContainer; fall
-        // back to a deferred-resolved `.shared` singleton (= preserves
-        // every existing call site that does not pass a container yet).
-        // The fallback is wrapped in `MainActor.assumeIsolated` because
-        // `WSRepositoryContainer.shared` is @MainActor-isolated (= Swift
-        // 6 strict-concurrency requirement). Every production caller
-        // already constructs the conductor from the @MainActor context
-        // (= ChatView + App.swift), so this never crosses actor
+        // … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // boundaries at runtime.
         if let repositories {
             self.repositories = repositories
@@ -176,14 +88,12 @@ actor WenshuConductor {
     }
 
 
-    /// h10: dispatch an agent tool call. Returns "" on unknown tool / failure.
-    /// - file: input = file path → returns file content - process: input =
-    /// shell command → returns stdout - web: input = URL → returns extracted
-    /// markdown - vision: input = image path → returns recognized text - av:
-    /// input = text → speaks aloud (fire-and-forget)
+    // / h10: dispatch an agent tool call. Returns "" on unknown tool / failure.
+    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / input = text → speaks aloud (fire-and-forget)
     func invokeTool(name: String, input: String, caller: AgentCaller = .main) async -> String {
         // hermes DELEGATE_BLOCKED_TOOLS parity ((see OOB.md #2026-08-23)).
-        // Sub-agents cannot call delegate_task / clarify / send_message / cronjob (any op).
+        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // Sub-agents can call memory but only for read ops (no add/delete).
         if caller.isSubAgent {
             let parts = input.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
@@ -193,7 +103,7 @@ actor WenshuConductor {
             }
         }
         // .003: tool-level allowlist ((see OOB.md #2026-08-23) — user cannot change system via chat).
-        // input format: "op:arg" (e.g. "read:./file.txt", "write:./Sources/foo.swift")
+        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // Unknown op = blocked (per-tool allowlist below).
         let parts = input.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
         let op = parts.first.map(String.init) ?? ""
@@ -216,11 +126,7 @@ actor WenshuConductor {
             return "(tool blocked: process is deny-all — (see OOB.md #2026-08-23): user cannot change system via chat. Use wenshu-devtool CLI.)"
         case "web":
             // Per 12 standard P1-02 try?  (= wenshu tries to surface
-            // every persistent failure in unified logging). The
-            // previous `try? await webTools.extract(url: input) ?? ""`
-            // swallowed both URL-validation failures AND web-tool
-            // runtime failures (= users got blank pages with no
-            // diagnostic). The Logger.error gives developers the
+            // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // failure via Console.app.
             do {
                 return try await webTools.extract(url: input)
@@ -247,32 +153,9 @@ actor WenshuConductor {
         }
     }
 
-    /// handle: receive user message, dispatch sub-agents, synthesize final
-    /// reply Truth: user does not see multi-agent dispatch traces, ChatView
-    /// always sees only 1 .wenshu reply code-review S4 graceful degradation:
-    /// LLM fail does not throw, fallback synthesis still returns reply (= the
-    /// user does not see Error system messages on macOS) returns (reply,
-    /// totalTokens) — totalTokens = intent + sub-agent + synthesis real LLM API
-    /// usage accumulated handle adds model parameter (= the 2026-08-23 feedback
-    /// "switching AI didn't actually switch" = the original handle used
-    /// verifier.init's hardcoded model) adds thinking field
-    /// (WenshuLLMBlock.thinking footnote UI, Apple HIG footnote pattern) P0 #1
-    /// (WIRE-AGENT-001): when the conductor was constructed with a `connector`
-    /// injection, the call is first routed through the full
-    /// `ConversationLoop.runTurn()` orchestrator (= tool dispatch + compression
-    /// + retry + sanitization + finalization). If the loop throws (= transport
-    /// / auth / retry-exhaustion / anything), handle() falls back to the legacy
-    /// intent+sub-agent+synthesis pipeline and logs the error. The legacy path
-    /// is always preserved (= never removed) so existing public surface is 100%
-    /// back-compatible. Streaming output in the chat zone add `streamCallback`
-    /// parameter (= Hermes streaming pattern). When supplied (= ChatView passes
-    /// it for live token rendering), the conductor emits `LLMBlock` events (=
-    /// text / thinking / tool_use / tool_result) to the callback as each block
-    /// arrives. The legacy return tuple is unchanged so backward-compat callers
-    /// (= summary triggers, summarizeIfNeeded) keep working. Why `nil` default:
-    /// legacy callers that don't pass the callback (= tests,
-    /// summarizeIfNeeded's verifier path, future batch consumers) still get the
-    /// `(reply, tokens, thinking)` tuple without the streaming side-effect.
+    // / handle: receive user message, dispatch sub-agents, synthesize final
+    // … (= 24 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / `(reply, tokens, thinking)` tuple without the streaming side-effect.
     func handle(
         userMessage: String,
         sessionId: String,
@@ -291,9 +174,7 @@ actor WenshuConductor {
                 return loopResult
             }
             // loopResult == nil means the loop threw — fall through to the
-            // legacy pipeline (which itself has S4 graceful degradation).
-            // T0-PATH-VISIBLE (2026-09-18): explicit fallback log so the
-            // dev / wenshu-pocock can see which path actually fired
+            // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // (= no more "why is this a one-shot reply" mystery).
             wenshuLogger.info("[wenshu.conductor] PATH=legacy REASON=ConversationLoop.runTurn returned nil (model=\(model) msg_prefix=\(String(userMessage.prefix(40))))")
         } else {
@@ -310,28 +191,16 @@ actor WenshuConductor {
         )
     }
 
-    /// P0 #1 (WIRE-AGENT-001): route the user message through the full
-    /// `ConversationLoop.runTurn()` orchestrator and reshape its result into
-    /// the canonical `(reply, totalTokens, thinking)` tuple. P0 #2
-    /// (WIRE-AGENT-002): forwards the conductor's `tools` registry to
-    /// `ConversationLoop.runTurn(...tools:)` so the ToolExecutor dispatches
-    /// tool_use blocks against registered wenshu tools (= ParagraphAITool for
-    /// paragraph-level AI, future skill tools, future subagent tools). The
-    /// registry is captured at construction time (= ChatViewModel pre-registers
-    /// ParagraphAITool.shared before constructing the conductor). Returns `nil`
-    /// when the loop throws (= caller falls back to legacy pipeline). The
-    /// loop's error is logged via NSLog so the wenshu-dev user never sees a
-    /// broken agent.
+    // / P0 #1 (WIRE-AGENT-001): route the user message through the full
+    // … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / broken agent.
     private func runConversationLoopPath(
         userMessage: String,
         sessionId: String,
         model: String,
         connector: any LLMConnector,
         // Forward streamCallback to ConversationLoop
-        // (= Hermes streaming pattern). When non-nil, every LLMBlock
-        // (= text / thinking / tool_use / tool_result) is delivered
-        // to the callback as it arrives (= ChatView renders the
-        // token-by-token). When nil (= legacy tests / summary
+        // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // triggers), no callback fires.
         streamCallback: (@Sendable (LLMBlock) async -> Void)?
     ) async -> (reply: String, totalTokens: Int, thinking: String?)? {
@@ -358,21 +227,7 @@ actor WenshuConductor {
         )
 
         // Step 3: invoke the full turn orchestrator. On any throw, log
-        // and return nil (= caller falls back to legacy pipeline).
-        //
-        // Agent driver (2026-09-25): wenshu-side forces the
-        // LLM to call `web_search` whenever the user prompt names
-        // a concrete proper noun. We don't maintain a hand-rolled
-        // noun dictionary (= that would drift over time as new
-        // professions / places / events emerge); = we trust the
-        // LLM's own noun detection (= the LLM's training data
-        // covers every Chinese profession / city / dynasty / event
-        // we could ever want to verify). The rule fires via the
-        // stable tier's universalGuidance('agent_driver') block,
-        // which is appended LAST (= closest to the user message =
-        // strongest late-stage attention bias). The reminder text
-        // here is intentionally short (= a numbered nudge, not a
-        // full noun enumeration); = the LLM extracts the nouns
+        // … (= 15 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // itself from the user prompt.
         let agentDriverReminder = """
         [WENSHU AGENT DRIVER] This user prompt contains concrete
@@ -391,28 +246,20 @@ actor WenshuConductor {
             let result = try await loop.runTurn(
                 userMessage: userMessage,
                 // Pass the agent-driver reminder as the systemMessage
-                // override (= it rides in the LAST slot of the
-                // composed system prompt, where the LLM pays the
+                // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
                 // most attention to imperative instructions).
                 systemMessage: agentDriverReminder,
                 conversationHistory: [],
                 // P0 #2 (WIRE-AGENT-002): forward the conductor's
-                // tool registry so ToolExecutor dispatches against
+                // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
                 // registered wenshu tools.
                 tools: tools,
                 // Forward streamCallback (= Hermes
-                // streaming pattern). ConversationLoop.runTurn emits
-                // LLMBlock events (= text / thinking / tool_use) to
-                // this closure as each block arrives from the LLM
-                // connector's SSE stream (= ChatView renders the
+                // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
                 // token-by-token). Legacy callers (= tests) pass nil.
                 streamCallback: streamCallback,
                 // P5-AGENT-STREAMING-VISIBILITY (2026-09-25): forward
-                // tool schemas so the LLM is told what tools it can
-                // call (= ChatView then sees .toolUse blocks land and
-                // renders the corresponding tool card live). Schemas
-                // come from the canonical registry (= ToolRegistry.shared)
-                // via getDefinitions; = drops schemas whose handlers
+                // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
                 // did not register (= hermes get_definitions parity).
                 toolSchemas: await ToolRegistry.shared.getDefinitions(
                     toolNames: Set(tools.keys)
@@ -441,27 +288,22 @@ actor WenshuConductor {
             // its model from the connector's default-model resolution.
             _ = model
             // T0-PATH-VISIBLE (2026-09-18): explicit success log
-            // (= mirror of the fallback log in handle(); lets the
-            // dev confirm the new ConversationLoop path actually
+            // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // executed end-to-end, not just the fallback).
             wenshuLogger.info("[wenshu.conductor] PATH=new_agent REASON=ConversationLoop.runTurn succeeded (model=\(model) tokens=\(totalTokens))")
             return (reply.isEmpty ? "(文枢暂时无法回复, 请稍后再试)" : reply, totalTokens, thinking)
         } catch {
             // S4 graceful degradation: never throw out of handle(). Log
-            // so the wenshu-dev user sees the underlying error.
-            // T0-PATH-VISIBLE (2026-09-18): tag with PATH=legacy for
+            // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // grep parity with the success path.
             wenshuLogger.info("[wenshu.conductor] PATH=legacy REASON=ConversationLoop.runTurn threw (model=\(model) err=\(String(describing: error)))")
             return nil
         }
     }
 
-    /// Legacy conductor pipeline (= intent+sub-agent+synthesis). Preserved
-    /// verbatim (= unchanged) as the fallback when ConversationLoop is not
-    /// wired (= connector == nil) OR throws.
-
-
-    /// parseAgentList: parse the JSON array output by LLM (fault-tolerant: truth may return ["search"] or [search, outline] or ['search'])
+    // / Legacy conductor pipeline (= intent+sub-agent+synthesis). Preserved
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / parseAgentList: parse the JSON array output by LLM (fault-tolerant: truth may return ["search"] or [search, outline] or ['search'])
     func parseAgentList(_ raw: String) -> [String] {
         // Simple regex: capture [...] contents
         guard let start = raw.firstIndex(of: "["),
@@ -499,13 +341,8 @@ actor WenshuConductor {
     }
 
     // MARK: - ToolRegistry wiring (WIRE-TOOLREGISTRY-003)
-
-    /// Default toolset populated into `WenshuConductor.tools` when the ChatView
-    /// wraps the App-supplied conductor (= the chat surface registration site).
-    /// Names match the 12 entries that each tool file self-registers via
-    /// `ToolRegistry.shared.register(...)` at module-import time (= see
-    /// MIGRATE-TOOLREGISTRY-002). Kept in declaration order so the test fixture
-    /// and the ChatView wiring agree on the set (= deterministic diff).
+    // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / and the ChatView wiring agree on the set (= deterministic diff).
     static let defaultToolNames: [String] = [
         "ParagraphAI",      // Core/Agent/Tool/ParagraphAITool.swift
         "ReadFile",         // Core/Agent/Tool/ReadFileTool.swift
@@ -530,47 +367,17 @@ actor WenshuConductor {
         "web_search"        // Core/Agent/Tool/WebSearchTool.swift — main agent has this for synchronous lookups; = for noun research, prefer `delegate_research` (fire-and-forget)
     ]
 
-    /// Maximum time `buildToolsSync(from:)` will wait for the detached async
-    /// task (= 250 ms by default). Registrations are fire-and-forget `Task {
-    /// await registry.register(...) }` blocks that run off the init thread (=
-    /// the module-load pattern from MIGRATE-TOOLREGISTRY-002); a brief wait
-    /// covers the scheduling jitter.
+    // / Maximum time `buildToolsSync(from:)` will wait for the detached async
+    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / covers the scheduling jitter.
     static let toolRegistryWaitTimeoutMs: UInt64 = 250
 
-    /// Build the conductor's tool registry from `ToolRegistry.shared` (= hermes
-    /// single-source-of-truth pattern; replaces the per- ChatView-instantiation
-    /// explicit `tools:` dict). PURE: no conductor state is mutated. The
-    /// function returns a fresh `[String: any Tool]` dict suitable for
-    /// forwarding to `WenshuConductor.init(...tools:)`. Callers wrap the result
-    /// in their preferred peer-construction pattern. Mechanism (= hermes
-    /// parity): 1. Wait a brief settle window (= `toolRegistryWarmupMs`) so the
-    /// module-load `Task { await register(...) }` blocks can finish scheduling.
-    /// The window is short because in production (= tool files eagerly
-    /// imported) registrations complete in microseconds; the window only
-    /// matters for process-startup jitter. 2. For each name in
-    /// `defaultToolNames`, ask `registry.getHandler(name:)`. Unknown names (=
-    /// not yet registered, or registered under a different identifier) are
-    /// silently dropped; the resulting dict may be a subset of
-    /// `defaultToolNames` (= the hermes behavior). 3. Return the dict. Order is
-    /// not significant (= dict keys are unordered) but the set is
-    /// deterministic.
+    // / Build the conductor's tool registry from `ToolRegistry.shared` (= hermes
+    // … (= 15 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / deterministic.
     static func buildTools(from registry: ToolRegistry) async -> [String: any Tool] {
         // Step 1: brief warmup window. Registrations are fire-and-forget
-        // `Task { await registry.register(...) }` blocks at module load (=
-        // MIGRATE-TOOLREGISTRY-002); a short settle window absorbs
-        // scheduling jitter. dual-axis followup (=
-        // Standards axis MED): the audit flagged `Task.sleep` for
-        // "blocking the cooperative pool" but `Task.sleep` SUSPENDS the
-        // actor (= releases the pool slot) rather than blocking a
-        // thread (= the same suspension mechanism that every `await`
-        // call uses). The real concern was duration = 50 ms may be too
-        // long for a hot path. Kept at 50 ms (= `toolRegistryWarmupMs`)
-        // per the empirical-sweet-spot comment; = future cleanup:
-        // reduce to 5 ms once registration tests prove stability.
-        // We do NOT wait for the full expected count (= 12): in
-        // production, tool files are imported eagerly so registrations
-        // complete in microseconds; in tests, some tool files may not
-        // be linked into the test binary, so polling for 12 would
+        // … (= 15 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // always time out and waste 250 ms.
         try? await Task.sleep(nanoseconds: toolRegistryWarmupMs * 1_000_000)
 
@@ -585,29 +392,14 @@ actor WenshuConductor {
         return tools
     }
 
-    /// Brief settle window for `buildTools(from:)` (= 50 ms). Registrations are
-    /// fire-and-forget at module-load (= see MIGRATE-TOOLREGISTRY-002); a short
-    /// sleep absorbs scheduling jitter without waiting for a specific count (=
-    /// which would time out in tests where not all 12 tool files are linked).
+    // / Brief settle window for `buildTools(from:)` (= 50 ms). Registrations are
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / which would time out in tests where not all 12 tool files are linked).
     static let toolRegistryWarmupMs: UInt64 = 50
 
-    /// Synchronous bridge to `buildTools(from:)` for callers that cannot await
-    /// (= SwiftUI `View.init` is sync; the ChatView fallback-conductor
-    /// construction site runs there). replaces the previous `DispatchSemaphore`
-    /// + `DispatchQueue.global() .async` + `Task.detached` pattern (=
-    /// Apple-canonical anti-pattern under Swift 6 strict concurrency: a future
-    /// `buildTools` that awaits MainActor work would deadlock the
-    /// semaphore.wait caller when the caller IS the MainActor = the SwiftUI
-    /// View.init case = this exact site). New behavior: 1. Hot path (= cache
-    /// populated): read from the actor-isolated `ToolCache` and return
-    /// instantly. This is the common case in production (= App.swift prewarms
-    /// the cache at startup). 2. Cold path (= very first call before prewarm
-    /// completes): fire a detached async task to populate the cache + return
-    /// `[:]` (= no tools on the very first call = acceptable degradation; = the
-    /// conductor still works = tool dispatch is just no-op until the cache
-    /// populates). Recommended production pattern: call `await
-    /// WenshuConductor.prewarmToolCache()` from `App.swift` startup before any
-    /// ChatView.init fires.
+    // / Synchronous bridge to `buildTools(from:)` for callers that cannot await
+    // … (= 15 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / ChatView.init fires.
     static func buildToolsSync(from registry: ToolRegistry) -> [String: any Tool] {
         // Hot path: cache hit (= NSLock-guarded sync read = nanoseconds).
         if let cached = Self.toolCache.cachedTools {
@@ -615,27 +407,7 @@ actor WenshuConductor {
         }
 
         // Cold path: fix for "agent not
-        // responsive" (= the DispatchSemaphore bridge blocked the
-        // caller thread for up to toolRegistryWaitTimeoutMs; = the
-        // call came from ChatView.init (= MainActor); = the bridge
-        // is safe only if buildTools(from:) does NOT await MainActor
-        // work; = the audit pass 3 #warning flagged this as
-        // a future-ticket cleanup; = the boss's 2026-10-14 OOB
-        // "修 agent 不响应" promoted it to a current fix).
-        //
-        // New behavior:
-        // 1. Return [:] immediately (= empty tools; = the fallback
-        //    conductor's first call has 0 tools = the agent's first
-        //    user message will fail to find any tools; = acceptable
-        //    degradation = the user can retry; = the next call to
-        //    buildToolsSync (= after the first agent turn) will hit
-        //    the hot path).
-        // 2. Fire a detached async task to populate the cache for
-        //    subsequent calls. The task runs in the cooperative
-        //    pool (= does NOT block MainActor).
-        //
-        // Production fix: call `await WenshuConductor.prewarmToolCache()`
-        // from `WenshuAppDelegate.applicationDidFinishLaunching` so the
+        // … (= 21 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // cache is hot before ChatView.init fires.
         let registry = registry
         Task.detached(priority: .userInitiated) {
@@ -645,27 +417,16 @@ actor WenshuConductor {
         return [:]
     }
 
-    /// Sendable-safe result box for the sync-over-async bridge (= `any Tool` is
-    /// not Sendable but a `@unchecked Sendable` reference holder is allowed).
-    /// CRITICAL INVARIANT = `box.value` MUST be assigned BEFORE the
-    /// `semaphore.signal()` call (= the signal establishes happens- before
-    /// against the waiter thread). If any future refactor reorders these two
-    /// operations (= e.g. signal first, then write), the waiter may observe a
-    /// stale empty dict. The @unchecked Sendable attribute trusts this
-    /// discipline; = a future compiler tightening could break the bridge
-    /// silently. DO NOT refactor the detached Task body without re-reading this
-    /// invariant.
+    // / Sendable-safe result box for the sync-over-async bridge (= `any Tool` is
+    // … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / invariant.
     private final class SyncResultBox: @unchecked Sendable {
         var value: [String: any Tool] = [:]
     }
 
-    /// thread-safe cache for `buildToolsSync`. Uses `NSLock` instead of an
-    /// actor (= the actor's async property access was incompatible with the
-    /// sync bridge). The class is `@unchecked Sendable` because reads + writes
-    /// are guarded by `lock` (= the Swift 6 strict concurrency checker needs
-    /// the unchecked hint because the lock isn't visible to the compiler). The
-    /// cache lives on its own thread (= independent of the UI thread). Reads
-    /// via `cachedTools` return instantly when the cache is hot.
+    // / thread-safe cache for `buildToolsSync`. Uses `NSLock` instead of an
+    // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / via `cachedTools` return instantly when the cache is hot.
     private final class ToolCache: @unchecked Sendable {
         private let lock = NSLock()
         private var _cachedTools: [String: any Tool]?
@@ -683,68 +444,21 @@ actor WenshuConductor {
         }
     }
 
-    /// Process-wide singleton cache (= thread-safe via `NSLock`). Reads from
-    /// `buildToolsSync` are synchronous (= the lock is held for nanoseconds);
-    /// writes from the detached prewarm task are also synchronous (= no actor
-    /// hop).
+    // / Process-wide singleton cache (= thread-safe via `NSLock`). Reads from
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / hop).
     private static let toolCache = ToolCache()
 
-    /// Pre-warm the tool cache (= the canonical production pattern). Call from
-    /// `App.swift` startup (= before any ChatView.init fires) so the first
-    /// `buildToolsSync` call sees a hot cache. Returns the populated tools dict
-    /// (= useful for callers that want to assert the cache is warm). Async +
-    /// cooperative-pool-safe.
-    // (prewarmToolCache removed 2026-10 in q99-spec-p0-batch2 —
-    //  verify-dead.py confirmed 0 external callers; = the static
-    //  prewarm entry point (= hermes-port "prewarm registry at startup"
-    //  pattern) was declared but never invoked; = the buildToolsSync
-    //  semaphore bridge (above) handles the cold-start path inline.
-    //  See wenshu-pocock-workflow references/v3.0-design-system-rule.md
-    //  + wenshu-dead-code-cleanup SKILL.md.)
-
-    // MARK: - Test accessor (WIRE-TOOLREGISTRY-003)
-
-    /// Sorted list of registered tool names (= for tests asserting the dict
-    /// contents without exposing the dict itself). Additive: does not mutate
-    /// any state. Used by
-    /// `WenshuConductorToolRegistryWiringTests.testChatViewConductor
-    /// _usesToolRegistryNotExplicitDict` to verify the wiring path (=
-    /// ChatView's conductor's tools come from `ToolRegistry.shared`, not a
-    /// freshly-constructed dict).
+    // / Pre-warm the tool cache (= the canonical production pattern). Call from
+    // … (= 18 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / freshly-constructed dict).
     internal func registeredToolNames() -> [String] {
         tools.keys.sorted()
     }
 
     // MARK: - Book scope guard wiring (see OOB.md #2026-09-25)
-
-    /// The four agent tools that are bound to a chat-session's book (= the user
-    /// picks a book in the sidebar and the chat session becomes scoped to that
-    /// book). These are replaced with provider-bound instances by
-    /// `wireBookScopeGuard`. In v2.3 the world + character tools collapse into
-    /// a single `book_entity` tool that handles all 5 kinds (= person /
-    /// location / object / ability / event). The `book_chapter` +
-    /// `book_outline` tools remain scoped to their respective chapter + outline
-    /// schemas (= not part of the entity schema redesign; = see AGENTS.md
-    /// §11.11 row 1).
-    // (bookScopeGuardedToolNames removed 2026-10 in q99-spec-p0-batch2 —
-    //  verify-dead.py confirmed 0 external callers; = the
-    //  private static Set<String> was retained as the "tools that
-    //  require chat session to be book-bound before invocation"
-    //  registry (= per AGENTS.md §11.11 row 1 chat-by-book row-level
-    //  split) but the actual guard logic in WenshuConductor wires
-    //  per-tool closures via wireBookScopeGuard(); = the static set
-    //  was declared but never read by the conductor's dispatch loop.
-    //  See wenshu-pocock-workflow references/v3.0-design-system-rule.md
-    //  + wenshu-dead-code-cleanup SKILL.md.)
-
-    /// Wire the three book_X tools (= entity / chapter / outline) for the chat
-    /// session's currently-bound book. Takes value snapshots (= not closures)
-    /// because the three actors are re-wired on every change of the sidebar's
-    /// selected book (= see ChatZoneView.swift `.onChange`). Capturing closures
-    /// across actor boundaries would force async hops (= incompatible with the
-    /// sync execute(input:) contract). `reference_library` (= library-public)
-    /// is intentionally NOT in the replaced set. `book_manager` (= meta: create
-    /// / delete / rename book) is also NOT in the set (= see spec L30).
+    // … (= 26 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / / delete / rename book) is also NOT in the set (= see spec L30).
     func wireBookScopeGuard(
         currentChatBookID: UUID?,
         bookDirectory: URL?
@@ -769,8 +483,7 @@ actor WenshuConductor {
         )
         tools["book_outline"] = BookOutlineTool(actor: outlineActor)
         // edit-chapter-tool 2026-09-28: hermes edit_file 1:1.
-        // Patch-style chapter edit (= substring replace) returns
-        // the same kind:"diff" envelope as BookChapterTool.update,
+        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // so ChatToolDiffPreview's input is stable across both.
         tools["book_edit_chapter"] = wrapWithChapterFocusLock(
             EditChapterTool(
@@ -780,24 +493,16 @@ actor WenshuConductor {
         )
     }
 
-    /// chapter-focus-lock 2026-09-28: wrap a Tool whose entry point may throw
-    /// `ChapterFocusLockedError` (= BookChapterTool, EditChapterTool) in a
-    /// retry wrapper that temporarily releases the editor focus (=
-    /// AppStateLocator.shared .appState?.focusedChapterPath = nil) so the
-    /// agent's second attempt passes the gate. This is the auto-Allow MVP path:
-    /// the conductor accepts the agent's edit unconditionally when the user is
-    /// focused on the chapter (= future ticket swaps in an Allow/Deny dialog
-    /// without touching this wrapper).
+    // / chapter-focus-lock 2026-09-28: wrap a Tool whose entry point may throw
+    // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / without touching this wrapper).
     private func wrapWithChapterFocusLock(_ inner: any Tool, toolName: String) -> any Tool {
         ChapterFocusLockWrappedTool(inner: inner, toolName: toolName)
     }
 
-    /// chapter-focus-lock 2026-09-28: thin Tool wrapper that retries once after
-    /// releasing the chapter focus lock when the inner tool throws
-    /// ChapterFocusLockedError. The MVP auto-Allow path (= the conductor treats
-    /// a focused user as approval to proceed; = see `wrapWithChapterFocusLock`
-    /// for the future Allow/Deny UI ticket). Nested inside WenshuConductor so
-    /// it has access to the locator without re-binding globals.
+    // / chapter-focus-lock 2026-09-28: thin Tool wrapper that retries once after
+    // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / it has access to the locator without re-binding globals.
     actor ChapterFocusLockWrappedTool: Tool {
         let inner: any Tool
         let toolName: String
@@ -809,28 +514,17 @@ actor WenshuConductor {
 
         func execute(input: String) async throws -> String {
             // Snapshot the current focus state (= before
-            // any mutation) so we can restore on Deny or after the
-            // Allow path completes. Without this, the MVP's
-            // fire-and-forget focus clear would lose the tab
-            // focus (= the editor would jump to the placeholder
-            // preview). Snapshot path = the chapter that was locked
-            // (= the inner tool's ChapterFocusLockedError carries
+            // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // the chapter path; = we use it as the restore key).
             do {
                 return try await inner.execute(input: input)
             } catch let lockError as ChapterFocusLockedError {
                 // chapter-dialog 2026-09-28 T2: replace the MVP
-                // auto-Allow path with a dialog-presented Allow/Deny
-                // decision. The wrapper calls into the
-                // ChapterFocusLockDialogPresenter (= @MainActor
-                // singleton) and awaits the choice via the
+                // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
                 // continuation bridge.
                 let allow: Bool = await MainActor.run {
                     // present(...) is the dialog's blocking await;
-                    // = it suspends until the choice is Allow/Deny.
-                    // We can't call a non-async MainActor function
-                    // here without blocking, so we use the
-                    // Task.detached pattern below to wrap the
+                    // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
                     // presenter's continuation.
                     Task { @MainActor in
                         _ = await ChapterFocusLockDialogPresenter.shared.present(
@@ -842,7 +536,7 @@ actor WenshuConductor {
                     return true
                 }
                 // Bridge the MainActor.run-presented dialog back to
-                // our actor's async context (= we need the actual
+                // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
                 // decision, not a placeholder).
                 let decision: Bool = await Self.awaitPresenterDecision(
                     chapterPath: lockError.chapterPath ?? "",
@@ -852,14 +546,12 @@ actor WenshuConductor {
                 _ = allow
                 if !decision {
                     // Deny path: restore the focus state (= no-op
-                    // here because the snapshot was the
-                    // pre-trigger state, = no mutation happened yet)
+                    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
                     // and throw so the LLM receives the error.
                     throw DatasetLockDeniedByBoss(chapterPath: lockError.chapterPath)
                 }
                 // Allow path: clear the focus lock, run the inner
-                // tool, then restore the snapshot (= the dialog
-                // UI saw the prior focus, but the editor
+                // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
                 // goes read-only while the LLM writes).
                 let snapshot: String? = await MainActor.run {
                     AppStateLocator.shared.appState?.focusedChapterPath
@@ -883,9 +575,9 @@ actor WenshuConductor {
             }
         }
 
-        /// Compact human-readable summary of the LLM's tool input. (= e.g.
-        /// "edit: replace 'foo' -> 'bar'"). Used as the dialog's message body
-        /// so the user sees what the LLM intends before deciding.
+        // / Compact human-readable summary of the LLM's tool input. (= e.g.
+        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // / so the user sees what the LLM intends before deciding.
         static func summarizeInput(_ input: String) -> String {
             guard let data = input.data(using: .utf8),
                   let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
@@ -905,11 +597,9 @@ actor WenshuConductor {
             return input
         }
 
-        /// Bridge to the presenter (= awaiting the dialog decision without
-        /// blocking the MainActor). The presenter holds a checked continuation
-        /// that resumes when the choice is Allow / Deny; = we await the
-        /// decision by calling `present(...)` from a MainActor-isolated task
-        /// and reading the result.
+        // / Bridge to the presenter (= awaiting the dialog decision without
+        // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // / and reading the result.
         static func awaitPresenterDecision(
             chapterPath: String,
             toolName: String,
@@ -928,10 +618,9 @@ actor WenshuConductor {
         }
     }
 
-    /// Test-only: inject a tool directly into the tools dict. Used by the
-    /// WenshuConductorBookScopeGuardTests integration suite to verify that
-    /// `wireBookScopeGuard` does NOT overwrite (= e.g.) the `reference_library`
-    /// key. Production code never calls this method.
+    // / Test-only: inject a tool directly into the tools dict. Used by the
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / key. Production code never calls this method.
     func setToolForTest(_ name: String, _ tool: any Tool) {
         tools[name] = tool
     }
@@ -939,11 +628,7 @@ actor WenshuConductor {
 
 
 // MARK: - Tool-pipeline logger (= 12 standard P1-02 try? )
-
-// Per Apple HIG + 12 standard P1-02: the LLM-facing tool pipeline
-// MUST surface persistent failures via unified logging (= the
-// `try? await verifier.chat` and `try? await webTools.extract`
-// sites inside `runTool` / `runInternalAgent` use this logger for
+// … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
 // their error path).
 extension WenshuConductor {
     static let toolLogger = Logger(subsystem: "com.wenshu.app", category: "agent.conductor.tool")

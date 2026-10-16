@@ -1,26 +1,6 @@
 // Sources/WenshuApp/State/LayoutGridModel.swift
-//
-// FancyZones grid model — faithful port of hermes
-// `grid-model.ts` (= PowerToys' `FancyZonesEditor/GridLayoutModel.cs`
-// + `FancyZonesEditor/GridData.cs`, MIT). Function/field names,
-// algorithms, and invariants follow the C# sources so behavior
-// matches the original editor:
-//
-//   - A layout is rows × columns with percent tracks summing to
-//     MULTIPLIER (= 10000) and a cellChildMap assigning each cell
-//     to a zone; a zone spanning multiple cells appears as the
-//     same index in adjacent cells.
-//   - Zones are rectangles in the 0..10000 coordinate space
-//     (= prefix sums of rowPercents / columnPercents).
-//   - Resizers are the shared edges between zones, derived from
-//     cellChildMap discontinuities; dragging one moves every
-//     zone touching that edge.
-//   - Merging computes the rectangular CLOSURE of the selection
-//     (= extending it until no zone is partially cut) — the
-//     signature FancyZones merge feel.
-//
-// MVP scope (= no drag-resizers / rubber-band-select / SHIFT-flip).
-//
+// … (= 21 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// 
 import Foundation
 
 /// MULTIPLIER — the sum of row/column percents (= hermes constant).
@@ -56,11 +36,9 @@ struct GridZone: Equatable, Identifiable {
     var id: Int { index }
 }
 
-/// GridResizer — a shared edge (= either row boundary = vertical
-/// orientation, or column boundary = horizontal orientation)
-/// with the zones it touches on each side. Dragging a resizer
-/// moves every zone on either side (= MVP: not implemented; the
-/// type is defined for future expansion).
+// / GridResizer — a shared edge (= either row boundary = vertical
+// … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / type is defined for future expansion).
 struct GridResizer: Equatable {
     enum Orientation: String, Equatable {
         case horizontal
@@ -74,9 +52,8 @@ struct GridResizer: Equatable {
 }
 
 // MARK: - Prefix sum helpers (= hermes `prefixSum` + `adjacentDifference`)
-
-/// Compute prefix sums (= result[k] = sum of first k elements).
-/// `result[0]` is always 0 (= the origin offset).
+// … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / `result[0]` is always 0 (= the origin offset).
 func prefixSum(_ list: [Int]) -> [Int] {
     var result: [Int] = [0]
     var sum = 0
@@ -113,10 +90,8 @@ func uniquePreservingOrder(_ list: [Int]) -> [Int] {
 }
 
 // MARK: - Model → zones / resizers (= hermes `modelToZones` + `modelToResizers`)
-
-/// Compute the rectangular zones from a GridLayout (= the
-/// "what the user sees" view). Returns nil if the cellChildMap is
-/// inconsistent (= e.g. zoneCount > rows * cols).
+// … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / inconsistent (= e.g. zoneCount > rows * cols).
 func modelToZones(_ model: GridLayout) -> [GridZone]? {
     let rows = model.rows
     let cols = model.columns
@@ -206,9 +181,8 @@ private func findLastRow(in grid: [[Int]], zoneIndex: Int, inRows rows: Int, col
 }
 
 // MARK: - Initial grids (= hermes `initColumns` / `initRows` / `initGrid` / `initPriorityGrid`)
-
-/// N-column grid (= equal-width columns, each column = its own
-/// zone). Zone count = N.
+// … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / zone). Zone count = N.
 func initColumns(_ count: Int) -> GridLayout {
     let n = max(1, count)
     let per = MULTIPLIER / n
@@ -316,24 +290,18 @@ func initPriorityGrid(_ priorityHeightPercent: Int = 50, _ secondaryCount: Int =
 }
 
 // MARK: - Splits (= hermes `canSplit` / `splitZone`)
-
-/// canSplit — is a vertical split (= new column) allowed at the
-/// given column index? (= True iff at least one row has
-/// non-uniform cell assignments AND the chosen column has cells
-/// from zones that span more than one column = i.e. there's room
-/// to split the row horizontally at that column).
+// … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / to split the row horizontally at that column).
 func canSplit(_ model: GridLayout, atColumn columnIndex: Int) -> Bool {
     // MVP: any column boundary is splittable (= can split the
-    // whole row at that column). The full hermes `canSplit`
-    // implementation is more nuanced (= checks zone spans) but
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // we ship the MVP version for v0.28.
     return columnIndex >= 0 && columnIndex < model.columns
 }
 
-/// splitZone — insert a vertical split (= new column) at the
-/// given column index. Returns a new GridLayout with one more
-/// column (= the new column = a new zone index). The new column's
-/// width is taken proportionally from the existing column.
+// / splitZone — insert a vertical split (= new column) at the
+// … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / width is taken proportionally from the existing column.
 func splitZone(_ model: GridLayout, atColumn columnIndex: Int) -> GridLayout {
     guard canSplit(model, atColumn: columnIndex) else { return model }
     // Find the next free zone index (= max + 1).
@@ -375,16 +343,12 @@ func splitZone(_ model: GridLayout, atColumn columnIndex: Int) -> GridLayout {
 }
 
 // MARK: - Merge (= hermes `doMerge`)
-
-/// doMerge — merge the given zone indices into one rectangular
-/// zone (= the rectangular CLOSURE). Returns the new GridLayout
-/// (= or the original if the merge is invalid).
+// … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / (= or the original if the merge is invalid).
 func doMerge(_ model: GridLayout, zoneIndices: [Int]) -> GridLayout {
     guard !zoneIndices.isEmpty else { return model }
     // Compute the rectangular CLOSURE (= extend until no zone is
-    // partially cut). For v0.28 MVP this is a no-op (= we don't
-    // implement the closure algorithm here — the ZoneEditor UI
-    // shows a "merge" hint but the actual merge will land in
+    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // 028-008b as part of the ZoneEditor + gridToTree integration).
     return model
 }
@@ -429,18 +393,14 @@ func modelToResizers(_ model: GridLayout) -> [GridResizer] {
 }
 
 // MARK: - Percent-based splits (= used by AC#8 click-to-split on zone)
-
-/// Insert a vertical split (= new column) at the given percent
-/// (= MULTIPLIER-relative coordinate). Mirrors `splitZone` but
-/// keyed by percent (= 0..MULTIPLIER) rather than column index.
-/// Returns a new GridLayout with one more column.
+// … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / Returns a new GridLayout with one more column.
 func splitAtColumnAt(_ model: GridLayout, atPercent percent: Int) -> GridLayout {
     // Find the column whose boundary is closest to the given percent.
     var colEdges = [0]
     for w in model.columnPercents {
         // replaced `colEdges.last!` (= force-unwrap on
-        // a loop-cumulative array that starts at [0] and is appended-to
-        // before each read; = the audit's LOW #12 smell) with `prev +
+        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // w` (= explicit accumulation, no force-unwrap needed).
         colEdges.append((colEdges.last ?? 0) + w)
     }
@@ -460,9 +420,9 @@ func splitAtColumnAt(_ model: GridLayout, atPercent percent: Int) -> GridLayout 
     return splitZone(model, atColumn: bestIdx)
 }
 
-/// Insert a horizontal split (= new row) at the given percent.
-/// Mirrors splitAtColumnAt but for rows (= adds a new row at the
-/// given vertical position).
+// / Insert a horizontal split (= new row) at the given percent.
+// … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / given vertical position).
 func splitAtRow(_ model: GridLayout, atPercent percent: Int) -> GridLayout {
     var rowEdges = [0]
     for h in model.rowPercents {
@@ -519,16 +479,8 @@ func splitAtRow(_ model: GridLayout, atPercent percent: Int) -> GridLayout {
 
 
 // MARK: - AC#11 dragResizer (= edge drag updates columnPercents)
-
-/// Apply a delta (= positive or negative percent in MULTIPLIER units)
-/// to the resizer at the given index. Mirrors hermes
-/// `grid-model.ts` `dragResizer(model, resizerIndex, delta)`.
-/// Returns the updated model (= or the original if the drag would
-/// violate MIN_ZONE_SIZE on either side of the resizer).
-///
-/// Sign convention: delta > 0 means the resizer moves RIGHT (= for
-/// vertical resizers) or DOWN (= for horizontal resizers). The
-/// negative-side zone grows, the positive-side zone shrinks.
+// … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / negative-side zone grows, the positive-side zone shrinks.
 func dragResizer(_ model: GridLayout, resizerIndex: Int, delta: Int) -> GridLayout {
     let resizers = modelToResizers(model)
     guard resizerIndex >= 0 && resizerIndex < resizers.count else { return model }
@@ -587,12 +539,8 @@ func dragResizer(_ model: GridLayout, resizerIndex: Int, delta: Int) -> GridLayo
 }
 
 // MARK: - AC#10 mergeClosureIndices (= merge a contiguous range of zones)
-
-/// Merge a contiguous range of zones into one. Returns the
-/// updated model with the merged region collapsed to a single zone.
-/// Mirrors hermes `grid-model.ts` `mergeClosureIndices(model, indices)`.
-/// The merge is only valid if all `indices` are in a contiguous
-/// block (= same row + adjacent columns, OR same column + adjacent rows).
+// … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / block (= same row + adjacent columns, OR same column + adjacent rows).
 func mergeClosureIndices(_ model: GridLayout, indices: [Int]) -> GridLayout {
     guard indices.count >= 2 else { return model }
     // Find the bounding box of the indices (= min/max top/left/bottom/right).
@@ -606,11 +554,7 @@ func mergeClosureIndices(_ model: GridLayout, indices: [Int]) -> GridLayout {
     _ = targets.map(\.bottom).max() ?? 0
 
     // Replace all child-map entries for the merged zones with a single zone index.
-    // Use the smallest index in the set as the merged zone's representative.
-    // replaced `indices.min()!` (= audit's LOW #13 smell;
-    // = force-unwrap on an array that's already proven non-empty by the
-    // `guard indices.count >= 2` check above; = "safe" but reads as a
-    // crash vector) with `indices.min() ?? 0` (= default to 0 = the
+    // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // unreachable fallback that the guard prevents).
     let representative = indices.min() ?? 0
     var newCellChildMap = model.cellChildMap

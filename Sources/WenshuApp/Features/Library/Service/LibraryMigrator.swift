@@ -1,38 +1,6 @@
 // Sources/WenshuApp/Storage/LibraryMigrator.swift
-//
-// The `co_change_scatter` repowise signal (= 25 distinct files) is
-// a historical artifact from the .ws layout era, not a
-// current shotgun-surgery pattern. Touch only if a future migration
-// step is actually needed.
-//
-// CARVE-OUT (= documented for this file): the CJK blocks inside the
-// `"""..."""` string literals (= e.g. `worldBody`, `kanbanOutline`,
-// `featureBody`, `roadmapBody`, `agentBody`) are seed text written
-// verbatim into the user's `.md` files at first launch. They are
-// FUNCTIONAL DATA (= seed content for the user's onboarding), NOT
-// code comments. The scanner flags them as `cat10-cjk-in-comment`
-// because it cannot distinguish triple-quoted string literals from
-// doc-comments. These must remain Chinese (= the user's onboarding
-// experience is Chinese-first per the seed-content product stance).
-//
-// One-time legacy `.ws` layout migration. Detects legacy `.ws`
-// (= has `books/` at `.ws` root, OR no `WSSchemaVersion` key in
-// `Info.plist`) and migrates to the layout.
-//
-// Per spec (= PRESERVE / DROP / CREATE rules):
-// - PRESERVE: Info.plist + chat.sqlite + Icon + assets/ + backups/ +
-//   books/ (the v0.x books/ at root is moved into a default shelf)
-// - DROP only-if-empty: chapters/ at .ws root, books/ at .ws root
-//   (after moving its content), shelves/ at .ws root
-// - CREATE: reference-library/{raw,entities,abstracts,indexes}/, cache/
-// - WRITE: WSSchemaVersion = 1 to existing Info.plist
-// - For each migrated book: create the 8 standard folders + 2 JSON
-//   data files IF they do not exist
-//
-// CRITICAL: does NOT touch chat.sqlite (active chat history). Does NOT
-// touch Info.plist if WSSchemaVersion key already exists (= idempotent).
+// … (= 32 rationale lines collapsed; = A112 docblock collapse per §1.8)
 // Does NOT touch user .md content under migrated books.
-
 import Foundation
 import WenshuData
 
@@ -44,28 +12,20 @@ struct LibraryMigrator: Sendable {
     func migrateIfNeeded() throws {
         let fm = FileManager.default
         // 0. ALWAYS-RUN housekeeping (= runs on every launch, even when
-        // schema is already current): rename default shelf + seed
-        // default help-doc anchor ((see OOB.md #2026-08-27) — 'rename
-        // and the default book + default doc seed'). These are pure
-        // idempotent upgrades that need to converge to the latest naming
-        // convention regardless of schema version (= so existing .ws
-        // with the legacy 'default' name picks up the rename even
+        // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // though no schema change happened).
         try alwaysRunOnLaunch(fm: fm)
         // 1. Idempotency check: read Info.plist; if WSSchemaVersion = 1
         // (= current), skip migration entirely.
         if try isAlreadyCurrentSchema() {
             // BUT we still want to run helpDocUpgrade() to
-            // backfill the 5 .md files into the existing default
-            // book (= if user already has the default book with
+            // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // only 1 old help-doc, upgrade to 5 files).
             try? helpDocUpgrade(fm: fm)
             return
         }
         // 2. Pre-v0.26 detection: legacy .ws had books/ at .ws root OR
-        // shelves/ at .ws root (= empty orphan). Move v0.x books/ to
-        // shelves/<default-shelf>/books/<id>/. If v0.x has no books/ at
-        // root (e.g. user freshly selected an empty .ws), create empty
+        // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // shelves/ anyway so the canonical layout is established.
         let booksAtRoot = wsRoot.appendingPathComponent("books", isDirectory: true)
         if fm.fileExists(atPath: booksAtRoot.path) {
@@ -115,9 +75,7 @@ struct LibraryMigrator: Sendable {
             try fm.createDirectory(at: shelvesRoot, withIntermediateDirectories: true)
         }
         // 2. Create the default shelf (= id = '00000000-0000-0000-0000-000000000000',
-        // name = ' per (see OOB.md #2026-08-27) (= used as the help-doc
-        // anchor shelf; the user can delete it once they have their own
-        // shelves; until deleted it holds the default book + default
+        // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // doc).
         let defaultShelfId = UUID(uuidString: "00000000-0000-0000-0000-000000000000") ?? UUID()
         let defaultShelfDir = shelvesRoot.appendingPathComponent(defaultShelfId.uuidString, isDirectory: true)
@@ -150,13 +108,9 @@ struct LibraryMigrator: Sendable {
         }
     }
 
-    /// Always-run-on-launch housekeeping ((see OOB.md #2026-08-27)
-    /// — rename + help-doc seed). Runs BEFORE the schema-version
-    /// idempotency check (= so existing .ws with the legacy 'default'
-    /// name picks
-    /// up the rename to ' even when no schema change is
-    /// needed). All operations are idempotent (= safe to run on
-    /// every launch).
+    // / Always-run-on-launch housekeeping ((see OOB.md #2026-08-27)
+    // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / every launch).
     private func alwaysRunOnLaunch(fm: FileManager) throws {
         // 1. Compute the default shelf dir (= all-zeros UUID).
         let shelvesRoot = wsRoot.appendingPathComponent("shelves", isDirectory: true)
@@ -175,11 +129,7 @@ struct LibraryMigrator: Sendable {
             try updated.write(to: shelfJSONURL)
         }
         // 2b. Rename the existing default book title ' → '
-        // (= disambiguates from the parent shelf name; applies to
-        // existing `.ws` installations so old libraries upgrade).
-        // Both possible book IDs are checked (= the current
-        // '00000000-0000-0000-0000-000000000001' canonical id and
-        // the legacy '11111111-1111-1111-1111-111111111111' id
+        // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // that was actually written by earlier wenshu versions).
         let defaultBooksDir = defaultShelfDir.appendingPathComponent("books", isDirectory: true)
         let legacyBookIds = [
@@ -206,21 +156,9 @@ struct LibraryMigrator: Sendable {
         try seedDefaultHelpDoc(in: defaultShelfDir, fm: fm)
     }
 
-    /// Seed the default help-doc book + doc under ' shelf.
-    ///
-    /// shelf, the default book, and the default doc'. Idempotent: only seeds if the default book id
-    /// (= '11111111-...-111111111111') is absent (= preserved even if
-    /// the user has created other books in the same shelf; preserves
-    /// user-created content).
-    ///
-    /// 
-    /// test files too': expanded the seed from 1 help-doc (= in
-    /// chapters/) to 5 .md files across 5 user-facing folders:
-    /// - world/: Wenshu introduction + user guide
-    /// - characters/: 6 Agent positioning
-    /// - outlines/: empty (= the user did not request content)
-    /// - chapters/: feature module overview
-    /// - drafts/: planned-but-not-yet-shipped features
+    // / Seed the default help-doc book + doc under ' shelf.
+    // … (= 13 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / - drafts/: planned-but-not-yet-shipped features
     private func seedDefaultHelpDoc(in shelfDir: URL, fm: FileManager = .default) throws {
         let booksDir = shelfDir.appendingPathComponent("books", isDirectory: true)
         // Skip if the default help-doc book id (= '11111111-...-111111111111')
@@ -229,8 +167,7 @@ struct LibraryMigrator: Sendable {
         let bookDir = booksDir.appendingPathComponent(defaultBookId.uuidString, isDirectory: true)
         if fm.fileExists(atPath: bookDir.path) { return }
         // Per-book standard folders + 2 JSON data files (= inline;
-        // not using LibraryBootstrapper because that iterates ALL
-        // books in all shelves; this is a focused setup for just this
+        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // one book).
         let standardFolders = [
             "world", "characters", "outlines", "chapters",
@@ -253,10 +190,7 @@ struct LibraryMigrator: Sendable {
         let defaultBook = Book(
             id: defaultBookId,
             // (see OOB.md #2026-08-31) (sidebar feedback bundle #1):
-            // renamed default book title from ' to '
-            // (= to disambiguate from the parent shelf, which has the
-            // same ' name; the default book contains the
-            // official help-doc + test content, so ' is more
+            // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // descriptive).
             title: String(localized: "library.default.book_title"),
             author: "wenshu",
@@ -265,11 +199,7 @@ struct LibraryMigrator: Sendable {
         let bookData = try JSONEncoder().encode(defaultBook)
         try bookData.write(to: bookDir.appendingPathComponent("book.json"))
         // =================================================================
-        // These are the official help-doc + test-content for the app.
-        // Style: plain language (= "") like a SpaceX user manual.
-        // Each .md uses a stable filename so re-seeding doesn't
-        // duplicate (= idempotent by filename).
-        // =================================================================
+        // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // 1. worldview/world.md — What is Wenshu + user guide
         let worldBody = """
         # 文枢是什么
@@ -380,10 +310,7 @@ struct LibraryMigrator: Sendable {
         )
 
         // 3. outlines/outlines.md — empty (= the user did not
-        // request content) ((see OOB.md #2026-08-30) — 'outline
-        // empty'). We create the .md file with a minimal
-        // anchor (= "use the outline to manage your chapter structure")
-        // so the folder isn't
+        // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // completely empty in the editor preview.
         let outlinesBody = """
         # 大纲
@@ -533,11 +460,7 @@ struct LibraryMigrator: Sendable {
         )
 
         // =================================================================
-        // Preserve original chapters.json (= AppleSidebarView surfaces
-        // book folders including chapters/ in the sidebar tree via
-        // SidebarService's 5-folder standard set). Default
-        // chapter = feature module overview (= was Start Here). Updated to point to
-        // the new help-doc.
+        // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // =================================================================
         let chapter = Document(
             id: defaultBookId,            // (= use same UUID for simplicity)
@@ -550,21 +473,9 @@ struct LibraryMigrator: Sendable {
         try chapterData.write(to: bookDir.appendingPathComponent("chapters.json"))
     }
 
-    /// upgrade the existing default help-doc
-    /// book (= if user already has the default book with only
-    /// 1 old help-doc.md) by adding the 4 missing .md files
-    /// (= world / characters / outlines / drafts + the existing chapters's
-    /// feature module overview = new chapters/-.md = first-chapter explanation).
-    ///
-    /// Idempotent: only adds files that are missing (= preserves
-    /// user-edited content of existing .md files).
-    /// Replaces old chapters/{uuid}.md with the new 5-file layout
-    /// (= we always overwrite the old single-doc body to reflect the
-    /// new structure).
-    ///
-    /// Called from `migrateIfNeeded()` (= runs on every launch when
-    /// schema is already current) so existing .ws libraries get the
-    /// new help-doc content without needing a schema migration.
+    // / upgrade the existing default help-doc
+    // … (= 13 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / new help-doc content without needing a schema migration.
     private func helpDocUpgrade(fm: FileManager = .default) throws {
         // 1. Find the default shelf (= shelfId 00000000-0000-0000-0000-000000000000)
         let defaultShelfId = UUID(uuidString: "00000000-0000-0000-0000-000000000000") ?? UUID()
@@ -581,7 +492,7 @@ struct LibraryMigrator: Sendable {
         guard fm.fileExists(atPath: bookDir.path) else { return }
 
         // 3. Delete the old single help-doc (= chapters/{uuid}.md)
-        // = replaced by chapters/feature-module-overview.md (= cleaner filename
+        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // = no UUIDs in the editor list).
         let oldHelpDoc = bookDir.appendingPathComponent("chapters")
             .appendingPathComponent("\(defaultBookId.uuidString).md")
@@ -590,9 +501,7 @@ struct LibraryMigrator: Sendable {
         }
 
         // 4. Write 5 new .md files (= 1 per visible folder).
-        // Idempotent per file: skip if file already exists (= preserves
-        // any user edits to the help-doc).
-
+        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // 4.1 worldview/world.md
         let worldFile = bookDir.appendingPathComponent("world")
             .appendingPathComponent("文枢是什么.md")
@@ -638,12 +547,7 @@ struct LibraryMigrator: Sendable {
         }
 
         // 4.2 characters/characters.md
-        // going forward'. The single Agent.md (the 6-Agent.md file) is replaced by
-        // 6 per-agent files (= one per agent). If user already has
-        // the split files (= from running Scripts/split-help-docs.py
-        // or from a future seed), we skip. If only the merged file
-        // exists, we delete it (= the split script should be re-run
-        // once to migrate content; we don't auto-split here because
+        // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // the body content lives in a separate script).
         let charactersFile = bookDir.appendingPathComponent("characters")
             .appendingPathComponent("六个Agent.md")
@@ -685,9 +589,7 @@ struct LibraryMigrator: Sendable {
         }
 
         // 4.4 chapters/chapters/feature-module-overview.md
-        // The single feature-module-overview.md is replaced by 9 per-module
-        // files (= 01--Sidebar.md (sidebar) through 09--KeyboardShortcuts.md (keyboard shortcuts)).
-        // Same approach as 4.2: delete the merged file if it exists
+        // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // (= the split script should be run to migrate content).
         let chapterFile = bookDir.appendingPathComponent("chapters")
             .appendingPathComponent("功能模块说明.md")
@@ -736,16 +638,7 @@ struct LibraryMigrator: Sendable {
         }
 
         // 5. Update chapters.json (= add new chapters to the index if missing).
-        // The seed function's chapter entry (= "") is the only
-        // entry in chapters.json. We don't add new entries for the
-        // .md files in worldview/characters/outline/drafts (= those folders are
-        // sidebar-tree-level, not chapters per BookCategory enum).
-        // (= so chapters.json stays simple = 1 entry pointing to
-        // "feature module overview" = the new 5th file under chapters/.)
-        //
-        // NOTE: We don't modify the existing chapter title here (= it
-        // was already set to "" by the original seed). The
-        // actual .md content is now ".md" but the chapter
+        // … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // title stays as the user's anchor (= the user's anchor naming).
     }
 

@@ -1,60 +1,11 @@
-//
-//  PlaceholderScannerTools.swift
-//
-//  1:1 Swift port of hermes `agent/specialized/placeholder_scanner.py`.
-//
-//  The Python module scans chapter text for inline authoring
-//  placeholders (= TODO / FIXME / XXX / INSERT / TBD / HERE /
-//  custom mustache) and lets the writer add / list / remove /
-//  resolve / abandon rows in a per-book tracker. The Swift port
-//  exposes the same surface:
-//    - Placeholder CRUD (= add / list filtered by status + / or
-//      chapter / update / remove).
-//    - Status transitions (= any-state-to-any-state, no enforced
-//      linear order; matches the loose Python policy).
-//    - Built-in pattern table (= 7 default regex patterns, fully
-//      overridable at `scan(...)` time).
-//    - Chapter scan (= runs the pattern set against a chapter
-//      body and returns every match as a `Placeholder` row).
-//    - Resolve / abandon helpers (= thin status-setters that
-//      delegate to `update` for caller convenience).
-//
-//  Persistence: per-book JSON sidecar at
-//    `books/<bookId>/placeholders.json`
-//  Mirrors the `kanban.json` / `todo.json` / `tags.json` /
-//  `ideas.json` / `foreshadowings.json` / `setting-constraints.json`
-//  pattern (= canonical wenshu per-book JSON convention per
-//  AGENTS.md §11).
-//
-//  Concurrency: actor (= Swift 6 strict concurrency). Reads /
-//  writes serialize cleanly across the SpecializedTools pane +
-//  any background LLM-side call sites.
-//
-//  Standards-axis (wenshu house style):
-//    S1 (Apple-API-first): Foundation only; no third-party
-//        text-analysis deps (= built-in `NSRegularExpression`).
-//    S3 (single source of truth for JSON parsing): the actor
-//        owns the JSONDecoder / JSONEncoder pair; the view
-//        never touches the file system.
-//    S4 (no new third-party deps): zero added.
-//    S5 (no private types the rest of the app needs): all
-//        types public (= matches the ticket spec).
-//    S6 (English-only): this file + the docstrings are 100%
-//        English per AGENTS.md hard rule.
-//
-
+// 
+// … (= 42 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// 
 import Foundation
 
 // MARK: - PlaceholderStatus enum
-
-/// The 3 statuses a placeholder can carry in its lifecycle.
-/// Each case maps 1:1 to a value in hermes's
-/// `agent/specialized/placeholder_scanner.py::STATUS_TABLE`.
-///
-/// Status flow is intentionally loose (= users can move a
-/// placeholder between any two states directly without an
-/// enforced linear order; = matches the Python implementation's
-/// "free-form transitions" behavior).
+// … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / "free-form transitions" behavior).
 enum PlaceholderStatus: String, Sendable, Codable, CaseIterable, Identifiable, Equatable {
     /// The placeholder has not yet been addressed.
     case open
@@ -76,10 +27,9 @@ enum PlaceholderStatus: String, Sendable, Codable, CaseIterable, Identifiable, E
         }
     }
 
-    /// SF Symbols 6 icon name (= Apple canonical; = used by
-    /// Image(systemName:) directly in the PlaceholderView
-    /// row rendering path). Replaces the Lucide-era names removed
-    /// Migrated to outline glyphs.
+    // / SF Symbols 6 icon name (= Apple canonical; = used by
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / Migrated to outline glyphs.
     var icon: String {
         switch self {
         case .open:      return "circle"                // Lucide 'circle'
@@ -99,24 +49,8 @@ enum PlaceholderStatus: String, Sendable, Codable, CaseIterable, Identifiable, E
 }
 
 // MARK: - Placeholder struct
-
-/// A single placeholder row in the per-book tracker.
-/// Persisted as one entry in the per-book `placeholders.json`
-/// sidecar.
-///
-/// A placeholder carries:
-///   - The owning book id (= the actor resolves the on-disk
-///     sidecar through this id).
-///   - The chapter id where the placeholder was found (= source
-///     chapter for a scan, otherwise the chapter the user tags).
-///   - A 1-indexed line number within the chapter where the
-///     placeholder was found (= matches the Python module's
-///     `line_number` field).
-///   - A short surrounding text excerpt (= `context`).
-///   - The matched pattern string (= the literal text that
-///     triggered the match; matches the Python module's
-///     `pattern` field).
-///   - A lifecycle status (= see PlaceholderStatus).
+// … (= 16 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// /   - A lifecycle status (= see PlaceholderStatus).
 struct Placeholder: Sendable, Codable, Equatable, Identifiable {
 
     /// Stable identifier (= used by the actor for add / update /
@@ -169,14 +103,8 @@ struct Placeholder: Sendable, Codable, Equatable, Identifiable {
 }
 
 // MARK: - Sidecar on-disk shape
-
-/// On-disk shape of the per-book sidecar. The actor reads /
-/// writes one of these per book (= keyed by `bookId`).
-///
-/// The sidecar holds a single array of placeholders; each row
-/// is self-contained (= matches the hermes Python design where
-/// `Placeholder` is a flat row, not a relational join with
-/// `Chapter`).
+// … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / `Chapter`).
 struct PlaceholderSidecar: Codable, Sendable, Equatable {
     var bookId: UUID
     var placeholders: [Placeholder]
@@ -194,10 +122,8 @@ struct PlaceholderSidecar: Codable, Sendable, Equatable {
 }
 
 // MARK: - Actor errors
-
-/// Errors thrown by `PlaceholderScanner`. Mirrors the
-/// ForeshadowingTracker / TagManager / CharacterLifecycleTracker
-/// / IdeaLibrary error conventions (= a LocalizedError per case).
+// … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / / IdeaLibrary error conventions (= a LocalizedError per case).
 enum PlaceholderScannerError: Error, LocalizedError, Sendable, Equatable {
     case bookDirectoryNotFound(bookId: UUID)
     case placeholderNotFound(id: UUID)
@@ -216,53 +142,18 @@ enum PlaceholderScannerError: Error, LocalizedError, Sendable, Equatable {
 }
 
 // MARK: - Actor
-
-/// Per-book placeholder scanner. Holds the in-memory cache +
-/// owns the on-disk JSON sidecar + runs the regex scanner
-/// against chapter text.
-///
-/// Persistence: `<bookDir>/placeholders.json`. The actor
-/// resolves `<bookDir>` via `BookStore.bookDirectory(bookId:)`
-/// (= the canonical forgiving walk that searches every shelf's
-/// `books/<id>/` subfolder).
-///
-/// Concurrency: actor (= Swift 6 strict concurrency). Reads /
-/// writes serialize cleanly across the SpecializedTools pane +
-/// any background LLM-side call sites.
-///
-/// Forgiving semantics (= matches the existing kanban / todo /
-/// tags / lifecycle / relationships / ideas / constraints /
-/// foreshadowings sidecar convention):
-///   - Missing sidecar = empty list (= first-load behavior).
-///   - Corrupt sidecar = empty list (= never bricks the UI).
-///   - Missing book directory = throws
-///     `.bookDirectoryNotFound`.
-///   - Empty / whitespace-only patterns are rejected silently
-///     on `add` (= no row is persisted).
+// … (= 21 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// /     on `add` (= no row is persisted).
 actor PlaceholderScanner {
 
-    /// Sidecar on-disk filename (= parallel to
-    /// `kanban.json` / `todo.json` / `tags.json` / `ideas.json`
-    /// / `foreshadowings.json` /
-    /// `setting-constraints.json`).
+    // / Sidecar on-disk filename (= parallel to
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / `setting-constraints.json`).
     private static let sidecarFilename = "placeholders.json"
 
-    /// Built-in default pattern set. Matches the Python
-    /// `DEFAULT_PATTERNS` table (= 7 regex patterns covering
-    /// the common authoring-placeholder families + the
-    /// mustache / handlebars double-brace family for the
-    /// custom-template case).
-    ///
-    /// Each entry is an `NSRegularExpression`-compatible
-    /// pattern string. The 7 patterns are:
-    ///
-    ///  1. `[TODO ...]`        (TODO with optional body)
-    ///  2. `[FIXME ...]`       (FIXME with optional body)
-    ///  3. `[XXX ...]`         (XXX with optional body)
-    ///  4. `[INSERT ...]`      (INSERT with optional body)
-    ///  5. `[TBD ...]`         (TBD with optional body)
-    ///  6. `<HERE>`            (literal HERE marker)
-    ///  7. `{{...}}`           (mustache / handlebars template)
+    // / Built-in default pattern set. Matches the Python
+    // … (= 14 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // /  7. `{{...}}`           (mustache / handlebars template)
     static let defaultPatterns: [String] = [
         #"\[TODO[^\]]*\]"#,
         #"\[FIXME[^\]]*\]"#,
@@ -277,27 +168,17 @@ actor PlaceholderScanner {
     private let fileManager: FileManager
     private var cache: [UUID: PlaceholderSidecar] = [:]
 
-    /// Internal init (= matches `ForeshadowingTracker.init` /
-    /// `IdeaLibrary.init` / `BookSettingConstraints.init` /
-    /// `CharacterLifecycleTracker.init` house style: the
-    /// `BookStore` type itself is internal so the init cannot
-    /// be public).
+    // / Internal init (= matches `ForeshadowingTracker.init` /
+    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / be public).
     init(bookStore: BookStore, fileManager: FileManager = .default) {
         self.bookStore = bookStore
         self.fileManager = fileManager
     }
 
     // MARK: - CRUD
-
-    /// Add a new placeholder. Persists + caches.
-    ///
-    /// Behaviour:
-    ///   - Idempotent on `id`: re-adding with the same id replaces
-    ///     the existing row (= matches `IdeaLibrary.add` upsert
-    ///     policy).
-    ///   - Empty / whitespace-only patterns are rejected silently
-    ///     (= no row is persisted; matches the tag manager's
-    ///     strict policy on empty labels).
+    // … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // /     strict policy on empty labels).
     func add(_ placeholder: Placeholder) async throws {
         guard !placeholder.pattern.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         var sidecar = try await loadOrCreateSidecar(bookId: placeholder.bookId)
@@ -311,15 +192,9 @@ actor PlaceholderScanner {
         try await persistSidecar(sidecar)
     }
 
-    /// Update an existing placeholder (= by id). Persists +
-    /// caches.
-    ///
-    /// Behaviour:
-    ///   - Matches the row by `placeholder.id`.
-    ///   - Throws `.placeholderNotFound` if no row with the same
-    ///     id exists for any cached book.
-    ///   - Empty / whitespace-only patterns are rejected silently
-    ///     (= no row is persisted).
+    // / Update an existing placeholder (= by id). Persists +
+    // … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // /     (= no row is persisted).
     func update(_ placeholder: Placeholder) async throws {
         guard !placeholder.pattern.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         // Load the sidecar (= warms the cache for the owning
@@ -352,9 +227,8 @@ actor PlaceholderScanner {
     }
 
     // MARK: - Queries
-
-    /// All placeholders in a book, filterable by status and / or
-    /// chapter. When both filters are nil, returns every row.
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / chapter. When both filters are nil, returns every row.
     func list(
         bookId: UUID,
         status: PlaceholderStatus? = nil,
@@ -367,9 +241,7 @@ actor PlaceholderScanner {
             return statusOK && chapterOK
         }
         // Stable display order: open first, then resolved, then
-        // abandoned (= in-flight first, then terminal); line
-        // number ascending as the primary tiebreaker (= matches
-        // the "earliest in the chapter first" UX), then by
+        // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // creation date.
         return filtered.sorted { lhs, rhs in
             let lhsPriority = PlaceholderScanner.statusDisplayPriority(lhs.status)
@@ -381,9 +253,9 @@ actor PlaceholderScanner {
         }
     }
 
-    /// Single-placeholder lookup by id. Returns `nil` (= NOT
-    /// throws) when the id is unknown for any cached book (=
-    /// matches the view layer's "optional row" idiom).
+    // / Single-placeholder lookup by id. Returns `nil` (= NOT
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / matches the view layer's "optional row" idiom).
     func get(id: UUID) async throws -> Placeholder? {
         guard let bookId = try await getBookId(for: id) else { return nil }
         let sidecar = try await loadOrCreateSidecar(bookId: bookId)
@@ -391,9 +263,8 @@ actor PlaceholderScanner {
     }
 
     // MARK: - Status helpers
-
-    /// Mark a placeholder as resolved (= convenience wrapper
-    /// over `update`).
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / over `update`).
     func resolve(id: UUID) async throws {
         try await setStatus(id: id, to: .resolved)
     }
@@ -404,10 +275,9 @@ actor PlaceholderScanner {
         try await setStatus(id: id, to: .abandoned)
     }
 
-    /// Mark a placeholder as open (= convenience wrapper over
-    /// `update`; useful for re-opening a previously-resolved
-    /// placeholder when the writer discovers the original was
-    /// not actually addressed).
+    // / Mark a placeholder as open (= convenience wrapper over
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / not actually addressed).
     func reopen(id: UUID) async throws {
         try await setStatus(id: id, to: .open)
     }
@@ -430,30 +300,8 @@ actor PlaceholderScanner {
     }
 
     // MARK: - Scan
-
-    /// Scan chapter text for inline authoring placeholders.
-    /// Returns one `Placeholder` per match (= same `bookId` +
-    /// `chapterId` for every row; `lineNumber` is 1-indexed
-    /// within the supplied text).
-    ///
-    /// - Parameters:
-    ///   - chapterText: the chapter body to scan.
-    ///   - bookId: the owning book (= written onto every
-    ///     returned row).
-    ///   - chapterId: the source chapter (= written onto every
-    ///     returned row).
-    ///   - patterns: optional override pattern table. Defaults
-    ///     to `PlaceholderScanner.defaultPatterns` (= the 7
-    ///     built-in regex patterns).
-    /// - Returns: an array of `Placeholder` (= one per match;
-    ///     in `.open` status with a fresh id + `createdAt =
-    ///     .now`).
-    ///
-    /// The returned rows are NOT persisted to the sidecar
-    /// (= the caller decides whether to insert them via
-    /// `add(...)`; this matches the Python module's `scan`
-    /// behavior which returns a list and lets the caller
-    /// choose what to persist).
+    // … (= 22 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / choose what to persist).
     func scan(
         chapterText: String,
         bookId: UUID,
@@ -500,9 +348,9 @@ actor PlaceholderScanner {
         return results
     }
 
-    /// Convenience: scan + persist every match (= callers who
-    /// want a one-shot "scan and add all" flow use this).
-    /// Returns the rows that were persisted.
+    // / Convenience: scan + persist every match (= callers who
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / Returns the rows that were persisted.
     @discardableResult
     func scanAndAdd(
         chapterText: String,
@@ -523,11 +371,8 @@ actor PlaceholderScanner {
     }
 
     // MARK: - Status display priority
-
-    /// Display priority for the `list` sort order: open (= 0)
-    /// first, then resolved (= 1), then abandoned (= 2).
-    /// Matches the Python module's "show me what still needs
-    /// work first" policy.
+    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / work first" policy.
     private static func statusDisplayPriority(_ status: PlaceholderStatus) -> Int {
         switch status {
         case .open:      return 0
@@ -537,16 +382,8 @@ actor PlaceholderScanner {
     }
 
     // MARK: - Internals
-
-    /// Resolve which book a placeholder id belongs to. Walks the
-    /// in-memory cache first; on miss, scans every book
-    /// directory under `shelvesRoot` until one returns a hit.
-    /// Returns `nil` when the id is unknown across the entire
-    /// library.
-    ///
-    /// Performance: cold lookups touch at most N sidecar files
-    /// (= one per book in the library). Warm lookups are
-    /// O(N_cached_books).
+    // … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / O(N_cached_books).
     private func getBookId(for placeholderId: UUID) async throws -> UUID? {
         // Warm path: scan the in-memory cache.
         for (bookId, sidecar) in cache where sidecar.placeholders.contains(where: { $0.id == placeholderId }) {
@@ -581,9 +418,9 @@ actor PlaceholderScanner {
         return nil
     }
 
-    /// Resolve the sidecar on disk for the given book. Walks
-    /// the shelves tree (= same forgiving walk as
-    /// `BookStore.bookDirectory(bookId:)`).
+    // / Resolve the sidecar on disk for the given book. Walks
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / `BookStore.bookDirectory(bookId:)`).
     private func sidecarURL(bookId: UUID) throws -> URL {
         guard let bookDir = bookStore.bookDirectory(bookId: bookId) else {
             throw PlaceholderScannerError.bookDirectoryNotFound(bookId: bookId)
@@ -591,11 +428,9 @@ actor PlaceholderScanner {
         return bookDir.appendingPathComponent(Self.sidecarFilename)
     }
 
-    /// Load the sidecar from disk (= or create an empty one if
-    /// missing). Forgiving on corrupt JSON (= returns an empty
-    /// sidecar instead of throwing, matching the kanban / todo /
-    /// tags / lifecycle / relationships / ideas / constraints /
-    /// foreshadowings convention).
+    // / Load the sidecar from disk (= or create an empty one if
+    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / foreshadowings convention).
     private func loadOrCreateSidecar(bookId: UUID) async throws -> PlaceholderSidecar {
         if let cached = cache[bookId] { return cached }
         let url = try sidecarURL(bookId: bookId)
@@ -603,8 +438,7 @@ actor PlaceholderScanner {
             let fresh = PlaceholderSidecar(bookId: bookId)
             cache[bookId] = fresh
             // Do NOT persist a brand-new empty sidecar (= match
-            // the IdeaLibrary / ForeshadowingTracker first-load
-            // behavior: only write to disk once the user
+            // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // actually adds a placeholder).
             return fresh
         }
@@ -624,9 +458,9 @@ actor PlaceholderScanner {
         }
     }
 
-    /// Persist the sidecar to disk (= atomic write via tmp +
-    /// rename; mirrors `ForeshadowingTracker.persistSidecar` +
-    /// `BookProjectConfigStore.atomicWrite`).
+    // / Persist the sidecar to disk (= atomic write via tmp +
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / `BookProjectConfigStore.atomicWrite`).
     private func persistSidecar(_ sidecar: PlaceholderSidecar) async throws {
         let url = try sidecarURL(bookId: sidecar.bookId)
         let encoder = JSONEncoder()
@@ -641,10 +475,9 @@ actor PlaceholderScanner {
         try fileManager.moveItem(at: tmpURL, to: url)
     }
 
-    /// Compile the supplied pattern table into
-    /// `NSRegularExpression` instances. Invalid patterns are
-    /// skipped silently (= matches the forgiving Python
-    /// behavior; a single bad regex never blocks the scan).
+    // / Compile the supplied pattern table into
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / behavior; a single bad regex never blocks the scan).
     private func compilePatterns(_ patterns: [String]) -> [NSRegularExpression] {
         var compiled: [NSRegularExpression] = []
         for pattern in patterns {
@@ -653,7 +486,7 @@ actor PlaceholderScanner {
                 compiled.append(regex)
             } catch {
                 // Skip silently (= invalid patterns are not
-                // fatal; matches the Python module's
+                // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
                 // `re.compile` fallback behavior).
                 continue
             }
@@ -661,10 +494,9 @@ actor PlaceholderScanner {
         return compiled
     }
 
-    /// Build the context window around a match. Returns the
-    /// entire line (= matches the Python module's "context
-    /// = full line containing the match" behavior; no slicing
-    /// because chapter lines are usually short).
+    // / Build the context window around a match. Returns the
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / because chapter lines are usually short).
     private static func contextWindow(
         for line: String,
         matchRange: NSRange,
@@ -672,8 +504,7 @@ actor PlaceholderScanner {
         in nsLine: NSString
     ) -> String {
         // The line itself is the context window. If the
-        // match-range is invalid (= off the end of the
-        // string for any reason), fall back to the whole
+        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // line.
         guard matchRange.location != NSNotFound,
               matchRange.location + matchRange.length <= fullLineRange.length else {

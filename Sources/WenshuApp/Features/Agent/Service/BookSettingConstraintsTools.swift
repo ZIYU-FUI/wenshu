@@ -1,69 +1,11 @@
-//
-//  BookSettingConstraintsTools.swift
-//  FINAL P1 specialized-ticket.
-//
-//  1:1 Swift port of hermes `agent/specialized/book_setting_constraints.py`.
-//
-//  The Python module manages the book's hard worldbuilding rules:
-//  each constraint is an inviolable rule (= magic system laws,
-//  physical laws, character abilities, style preferences) that the
-//  writer commits to honoring across every chapter. The tracker
-//  exposes CRUD on constraints (= add / update / remove / list)
-//  + a chapter-text check that flags any forbidden pattern in
-//  the supplied text.
-//
-//  The Swift port exposes:
-//    - ConstraintSeverity: hard / soft / preference (= 3 levels).
-//    - ConstraintScope: world / character / plot / style (= 4
-//      scopes; = each constraint scopes to the surface it
-//      applies to).
-//    - BookSettingConstraint: id + bookId + title + description
-//      + severity + scope + appliesToId + forbiddenPatterns +
-//      createdAt.
-//    - ConstraintViolation: constraintId + title + severity +
-//      matchedText + lineNumber + suggestion (= emitted per
-//      forbidden-pattern hit in the chapter text).
-//    - BookSettingConstraints actor: add / update / remove /
-//      list (= filterable by severity / scope) + check(= scans
-//      chapter text against every active constraint's
-//      forbiddenPatterns).
-//
-//  Persistence: per-book JSON sidecar at
-//    `books/<bookId>/setting-constraints.json`
-//  Mirrors the `kanban.json` / `todo.json` /
-//  `long-form-guardrails.json` / `character-relationships.json`
-//  / `character-lifecycle.json` / `ideas.json` / `tag-manager.json`
-//  pattern (= canonical wenshu per-book JSON convention per
-//  AGENTS.md §11).
-//
-//  Concurrency: actor (= Swift 6 strict concurrency). Reads /
-//  writes serialize cleanly across the SpecializedTools pane +
-//  any background LLM-side call sites.
-//
-//  Standards-axis (wenshu house style):
-//    S1 (Apple-API-first): Foundation only; no third-party
-//        text-analysis deps.
-//    S3 (single source of truth for JSON parsing): the actor
-//        owns the JSONDecoder / JSONEncoder pair; the view never
-//        touches the file system.
-//    S4 (no new third-party deps): zero added.
-//    S5 (no private types the rest of the app needs): all types
-//        public (= matches the ticket spec).
-//    S6 (English-only): this file + the docstrings are 100%
-//        English per AGENTS.md hard rule.
-//
-
+// 
+// … (= 52 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// 
 import Foundation
 
 // MARK: - ConstraintSeverity enum
-
-/// The 3 severity levels the tracker knows how to model.
-/// Each case maps 1:1 to a value in hermes's
-/// `agent/specialized/book_setting_constraints.py::SEVERITY_TABLE`.
-///
-/// Severities are intentionally ordered so the picker renders
-/// from strictest (= `.hard`) to most lenient (= `.preference`)
-/// without having to re-read the source module.
+// … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / without having to re-read the source module.
 enum ConstraintSeverity: String, Sendable, Codable, CaseIterable, Identifiable, Equatable {
     /// Absolutely cannot be violated (= magic system laws,
     /// physical laws, hard continuity rules).
@@ -85,10 +27,9 @@ enum ConstraintSeverity: String, Sendable, Codable, CaseIterable, Identifiable, 
         }
     }
 
-    /// SF Symbols 6 icon name (= Apple canonical; = used by
-    /// Image(systemName:) directly in the SpecializedToolsView
-    /// row rendering path). Replaces the Lucide-era names removed
-    /// Migrated to outline glyphs.
+    // / SF Symbols 6 icon name (= Apple canonical; = used by
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / Migrated to outline glyphs.
     var icon: String {
         switch self {
         case .hard:        return "exclamationmark.shield"  // Lucide 'shield-alert'
@@ -99,10 +40,8 @@ enum ConstraintSeverity: String, Sendable, Codable, CaseIterable, Identifiable, 
 }
 
 // MARK: - ConstraintScope enum
-
-/// The 4 scopes a constraint can apply to. Each case maps 1:1
-/// to a value in hermes's
-/// `agent/specialized/book_setting_constraints.py::SCOPE_TABLE`.
+// … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / `agent/specialized/book_setting_constraints.py::SCOPE_TABLE`.
 enum ConstraintScope: String, Sendable, Codable, CaseIterable, Identifiable, Equatable {
     /// Applies to entire world (= physics, magic system).
     case world
@@ -125,10 +64,9 @@ enum ConstraintScope: String, Sendable, Codable, CaseIterable, Identifiable, Equ
         }
     }
 
-    /// SF Symbols 6 icon name (= Apple canonical; = used by
-    /// Image(systemName:) directly in the SpecializedToolsView
-    /// row rendering path). Replaces the Lucide-era names removed
-    /// Migrated to outline glyphs.
+    // / SF Symbols 6 icon name (= Apple canonical; = used by
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / Migrated to outline glyphs.
     var icon: String {
         switch self {
         case .world:       return "globe"                       // Lucide 'globe'
@@ -138,9 +76,9 @@ enum ConstraintScope: String, Sendable, Codable, CaseIterable, Identifiable, Equ
         }
     }
 
-    /// Whether this scope supports a non-nil `appliesToId` (= a
-    /// specific character or plot). World + style do NOT require
-    /// an appliesToId.
+    // / Whether this scope supports a non-nil `appliesToId` (= a
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / an appliesToId.
     var supportsAppliesTo: Bool {
         switch self {
         case .character, .plot: return true
@@ -150,10 +88,8 @@ enum ConstraintScope: String, Sendable, Codable, CaseIterable, Identifiable, Equ
 }
 
 // MARK: - BookSettingConstraint struct
-
-/// A single worldbuilding constraint for one book. Persisted
-/// as one entry in the per-book `setting-constraints.json`
-/// sidecar.
+// … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / sidecar.
 struct BookSettingConstraint: Sendable, Codable, Equatable, Identifiable {
 
     /// Stable identifier (= used by the actor for add / update /
@@ -177,14 +113,14 @@ struct BookSettingConstraint: Sendable, Codable, Equatable, Identifiable {
     /// What surface the rule applies to (= see ConstraintScope).
     let scope: ConstraintScope
 
-    /// Optional target id (= the character or plot the constraint
-    /// applies to). Nil for world + style scopes (= they apply
-    /// universally).
+    // / Optional target id (= the character or plot the constraint
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / universally).
     let appliesToId: UUID?
 
-    /// Regex or literal phrases that violate this constraint.
-    /// Empty = no forbidden patterns (= description-level rule
-    /// only; = still useful for soft / preference severities).
+    // / Regex or literal phrases that violate this constraint.
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / only; = still useful for soft / preference severities).
     let forbiddenPatterns: [String]
 
     /// Creation timestamp (= `Date.now` at add time).
@@ -214,18 +150,13 @@ struct BookSettingConstraint: Sendable, Codable, Equatable, Identifiable {
 }
 
 // MARK: - ConstraintViolation struct
-
-/// A single chapter-text violation: a constraint whose
-/// `forbiddenPatterns` matched somewhere in the supplied text.
-///
-/// The actor emits one row per forbidden-pattern hit (= the
-/// caller can render them inline with the matched snippet for
-/// the writer to fix).
+// … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / the writer to fix).
 struct ConstraintViolation: Sendable, Codable, Equatable, Identifiable {
 
-    /// Synthetic identifier (= constraintId + line number +
-    /// matchedText hash) so SwiftUI lists can iterate without
-    /// duplicate-key collisions on repeated matches.
+    // / Synthetic identifier (= constraintId + line number +
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / duplicate-key collisions on repeated matches.
     let id: UUID
 
     /// Constraint id (= the rule that triggered this violation).
@@ -241,14 +172,14 @@ struct ConstraintViolation: Sendable, Codable, Equatable, Identifiable {
     /// Scope of the rule (= world / character / plot / style).
     let scope: ConstraintScope
 
-    /// The actual text that triggered the violation (= first
-    /// 80 chars of the matched region, suffixed with "…" when
-    /// truncated).
+    // / The actual text that triggered the violation (= first
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / truncated).
     let matchedText: String
 
-    /// 1-indexed line number where the match was found (= nil
-    /// when the text does not contain any newlines or the match
-    /// was on the first logical line).
+    // / 1-indexed line number where the match was found (= nil
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / was on the first logical line).
     let lineNumber: Int?
 
     /// Suggested fix (= e.g. "Rewrite to maintain eye contact").
@@ -276,9 +207,8 @@ struct ConstraintViolation: Sendable, Codable, Equatable, Identifiable {
 }
 
 // MARK: - Sidecar on-disk shape
-
-/// On-disk shape of the per-book sidecar. The actor reads /
-/// writes one of these per book (= keyed by `bookId`).
+// … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / writes one of these per book (= keyed by `bookId`).
 struct BookSettingConstraintsSidecar: Codable, Sendable, Equatable {
     var bookId: UUID
     var constraints: [BookSettingConstraint]
@@ -296,11 +226,8 @@ struct BookSettingConstraintsSidecar: Codable, Sendable, Equatable {
 }
 
 // MARK: - Actor errors
-
-/// Errors thrown by `BookSettingConstraints`. Mirrors the
-/// BookProjectConfigStore / BookTodoStore / LongFormGuardrails /
-/// CharacterRelationshipTracker / CharacterLifecycleTracker error
-/// conventions (= a LocalizedError per case).
+// … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / conventions (= a LocalizedError per case).
 enum BookSettingConstraintsError: Error, LocalizedError, Sendable, Equatable {
     case bookDirectoryNotFound(bookId: UUID)
     case constraintNotFound(id: UUID)
@@ -316,35 +243,13 @@ enum BookSettingConstraintsError: Error, LocalizedError, Sendable, Equatable {
 }
 
 // MARK: - Actor
-
-/// Per-book setting-constraints tracker. Holds the in-memory
-/// cache + owns the on-disk JSON sidecar.
-///
-/// Persistence: `<bookDir>/setting-constraints.json`. The
-/// actor resolves `<bookDir>` via `BookStore.bookDirectory(bookId:)`
-/// (= the canonical forgiving walk that searches every shelf's
-/// `books/<id>/` subfolder).
-///
-/// Concurrency: actor (= Swift 6 strict concurrency). Reads /
-/// writes serialize cleanly across the SpecializedTools pane +
-/// any background LLM-side call sites.
-///
-/// Forgiving semantics (= matches the existing kanban / todo /
-/// long-form-guardrails / character-relationships /
-/// character-lifecycle / ideas / tag-manager sidecar
-/// convention):
-///   - Missing sidecar = empty list (= first-load behavior).
-///   - Corrupt sidecar = empty list (= never bricks the UI).
-///   - Missing book directory = throws
-///     `.bookDirectoryNotFound`.
+// … (= 19 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// /     `.bookDirectoryNotFound`.
 actor BookSettingConstraints {
 
-    /// Sidecar on-disk filename (= parallel to
-    /// `kanban.json` / `todo.json` /
-    /// `long-form-guardrails.json` /
-    /// `character-relationships.json` /
-    /// `character-lifecycle.json` / `ideas.json` /
-    /// `tag-manager.json`).
+    // / Sidecar on-disk filename (= parallel to
+    // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / `tag-manager.json`).
     private static let sidecarFilename = "setting-constraints.json"
 
     private let bookStore: BookStore
@@ -357,13 +262,8 @@ actor BookSettingConstraints {
     }
 
     // MARK: - Public surface (= matches the task spec verbatim)
-
-    /// Add a constraint. Persists + caches.
-    ///
-    /// Behaviour:
-    ///   - Idempotent on `id`: re-adding with the same id replaces
-    ///     the existing row (= matches `BookKanbanStore` upsert
-    ///     policy + the CharacterRelationshipTracker add path).
+    // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // /     policy + the CharacterRelationshipTracker add path).
     func add(_ constraint: BookSettingConstraint) async throws {
         var sidecar = try await loadOrCreateSidecar(bookId: constraint.bookId)
         // Replace if a row with the same id already exists.
@@ -377,9 +277,9 @@ actor BookSettingConstraints {
         try await persistSidecar(sidecar)
     }
 
-    /// Update an existing constraint (= matches by id). Throws
-    /// `.constraintNotFound` when the id is unknown for the
-    /// supplied book.
+    // / Update an existing constraint (= matches by id). Throws
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / supplied book.
     func update(_ constraint: BookSettingConstraint) async throws {
         var sidecar = try await loadOrCreateSidecar(bookId: constraint.bookId)
         guard let idx = sidecar.constraints.firstIndex(where: { $0.id == constraint.id }) else {
@@ -391,10 +291,9 @@ actor BookSettingConstraints {
         try await persistSidecar(sidecar)
     }
 
-    /// Remove a constraint by id. Walks the cache to find the
-    /// owning book (= the caller does not always supply a
-    /// bookId; we look it up from the cached sidecars first,
-    /// then fall back to scanning shelvesRoot).
+    // / Remove a constraint by id. Walks the cache to find the
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / then fall back to scanning shelvesRoot).
     func remove(id: UUID) async throws {
         // Cache hit (= the view loaded constraints first via
         // `list(...)`, then calls `remove(id:)`).
@@ -407,7 +306,7 @@ actor BookSettingConstraints {
             return
         }
         // Fallback: scan every shelf for a book that owns this
-        // constraint. Same forgiving walk BookStore uses to
+        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // resolve bookDirectory(=).
         if let found = try await findConstraintAcrossBooks(id: id) {
             var updated = try await loadOrCreateSidecar(bookId: found.bookId)
@@ -449,26 +348,9 @@ actor BookSettingConstraints {
         }
     }
 
-    /// Check the supplied chapter text against every active
-    /// constraint's `forbiddenPatterns`. Empty chapter text =
-    /// empty violations (= forgiving). Empty constraint set =
-    /// empty violations.
-    ///
-    /// The match strategy:
-    ///   - Literal substring match (= case-insensitive) first;
-    ///     if found, emit a violation with the surrounding
-    ///     text snippet (= up to 80 chars).
-    ///   - Regex match (= compile with `.caseInsensitive` +
-    ///     `.dotMatchesLineSeparators`) as a fallback for
-    ///     patterns that contain regex metacharacters (= ^,
-    ///     $, ., *, +, ?, [, ], (, ), {, }, |, \\). Compile
-    ///     failures are ignored (= forgiving; the pattern is
-    ///     treated as a literal that did not match).
-    ///   - Line number = 1-indexed within the supplied text.
-    ///
-    /// Returns zero or more `ConstraintViolation` rows; = empty
-    /// when no forbidden pattern matches (= common for early
-    /// drafts).
+    // / Check the supplied chapter text against every active
+    // … (= 18 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / drafts).
     func check(
         chapterText: String,
         bookId: UUID
@@ -476,7 +358,7 @@ actor BookSettingConstraints {
         let constraints = try await list(bookId: bookId)
         guard !constraints.isEmpty, !chapterText.isEmpty else { return [] }
         // Pre-compute the line offsets (= byte ranges per
-        // 1-indexed line number) so we can report a lineNumber
+        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // for each match.
         let lines = chapterText.components(separatedBy: "\n")
         var lineOffsets: [Int] = []
@@ -511,13 +393,13 @@ actor BookSettingConstraints {
                         suggestion: suggestion
                     ))
                     // Advance the search range past this match
-                    // so we don't infinite-loop on overlapping
+                    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
                     // patterns (= e.g. "the the").
                     searchRange = range.upperBound..<chapterText.endIndex
                     if searchRange.isEmpty { break }
                 }
                 // 2. Regex fallback (= try compile; on failure
-                // skip silently). Use NSRegularExpression for
+                // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
                 // portability with Swift 6 strict concurrency.
                 if let regex = try? NSRegularExpression(
                     pattern: trimmed,
@@ -557,9 +439,7 @@ actor BookSettingConstraints {
             return lhs.title < rhs.title
         }
         // Dedupe: literal and regex matchers may both fire on
-        // the same forbidden phrase (= a literal string is also
-        // a valid regex). Collapse duplicates with the same
-        // (constraintId, matchedText, lineNumber) tuple so the
+        // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // writer sees one row per actual violation.
         var seen: Set<String> = []
         var deduped: [ConstraintViolation] = []
@@ -573,11 +453,8 @@ actor BookSettingConstraints {
     }
 
     // MARK: - Internals
-
-    /// Map a severity to a stable rank for sort order:
-    /// hard (= 0) < soft (= 1) < preference (= 2). Hard rules
-    /// surface first so the writer sees the most blocking
-    /// violations at the top of the list.
+    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / violations at the top of the list.
     private func severityRank(_ severity: ConstraintSeverity) -> Int {
         switch severity {
         case .hard:        return 0
@@ -586,11 +463,9 @@ actor BookSettingConstraints {
         }
     }
 
-    /// Compute a 1-indexed line number for a character offset
-    /// (= the lower bound of a match range) using the precomputed
-    /// line offsets. Returns nil when the offset is past the
-    /// computed offsets (= safety net; should not happen in
-    /// practice).
+    // / Compute a 1-indexed line number for a character offset
+    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / practice).
     private func computeLineNumber(for index: String.Index, in text: String, lineOffsets: [Int]) -> Int? {
         let offset = index.utf16Offset(in: text)
         // Binary-search the offset list for the largest line
@@ -610,10 +485,9 @@ actor BookSettingConstraints {
         return candidate >= 0 ? candidate + 1 : nil
     }
 
-    /// Render the supplied text window around the match range
-    /// (= truncated to 80 chars max with a leading / trailing
-    /// ellipsis as needed) so the writer can confirm the hit
-    /// without re-reading the entire chapter.
+    // / Render the supplied text window around the match range
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / without re-reading the entire chapter.
     private func makeSnippet(around range: Range<String.Index>, in text: String) -> String {
         let prefix = 30
         let suffix = 30
@@ -636,9 +510,9 @@ actor BookSettingConstraints {
         return snippet
     }
 
-    /// Scan every shelf for a book that owns the supplied
-    /// constraint id (= used by `remove(id:)` when the caller
-    /// has not loaded the constraint into cache yet).
+    // / Scan every shelf for a book that owns the supplied
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / has not loaded the constraint into cache yet).
     private func findConstraintAcrossBooks(id: UUID) async throws -> BookSettingConstraint? {
         let shelvesRoot = bookStore.stores.shelvesRoot
         guard fileManager.fileExists(atPath: shelvesRoot.path) else { return nil }
@@ -670,9 +544,9 @@ actor BookSettingConstraints {
         return nil
     }
 
-    /// Resolve the sidecar on disk for the given book. Walks the
-    /// shelves tree (= same forgiving walk as
-    /// `BookStore.bookDirectory(bookId:)`).
+    // / Resolve the sidecar on disk for the given book. Walks the
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / `BookStore.bookDirectory(bookId:)`).
     private func sidecarURL(bookId: UUID) throws -> URL {
         guard let bookDir = bookStore.bookDirectory(bookId: bookId) else {
             throw BookSettingConstraintsError.bookDirectoryNotFound(bookId: bookId)
@@ -680,12 +554,9 @@ actor BookSettingConstraints {
         return bookDir.appendingPathComponent(Self.sidecarFilename)
     }
 
-    /// Load the sidecar from disk (= or create an empty one +
-    /// persist if missing). Forgiving on corrupt JSON (= returns
-    /// an empty sidecar instead of throwing, matching the
-    /// kanban / todo / long-form-guardrails /
-    /// character-relationships / character-lifecycle /
-    /// ideas / tag-manager convention).
+    // / Load the sidecar from disk (= or create an empty one +
+    // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / ideas / tag-manager convention).
     private func loadOrCreateSidecar(bookId: UUID) async throws -> BookSettingConstraintsSidecar {
         if let cached = cache[bookId] { return cached }
         let url = try sidecarURL(bookId: bookId)
@@ -693,9 +564,7 @@ actor BookSettingConstraints {
             let fresh = BookSettingConstraintsSidecar(bookId: bookId)
             cache[bookId] = fresh
             // Do NOT persist a brand-new empty sidecar (= match
-            // the LongFormGuardrails / CharacterRelationshipTracker
-            // / CharacterLifecycleTracker first-load behaviour:
-            // only write to disk once the user actually adds a
+            // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // constraint).
             return fresh
         }
@@ -708,8 +577,7 @@ actor BookSettingConstraints {
             return sidecar
         } catch {
             // Forgiving: log nothing (= no logger dependency);
-            // return an empty sidecar so the caller can keep
-            // going. Matches `BookKanbanStore` /
+            // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // `BookTodoStore` load paths.
             let empty = BookSettingConstraintsSidecar(bookId: bookId)
             cache[bookId] = empty

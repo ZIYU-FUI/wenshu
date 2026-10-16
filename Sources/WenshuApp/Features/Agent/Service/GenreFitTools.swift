@@ -1,93 +1,11 @@
-//
-//  GenreFitTools.swift
-//
-//  1:1 Swift port of hermes `agent/specialized/genre_fit.py`.
-//
-//  The Python module evaluates how well a finished chapter fits a
-//  declared literary genre. Each genre ships a fixed convention
-//  preset (= required beats + expected vocabulary + forbidden
-//  patterns). The analyzer scores a chapter draft against a chosen
-//  preset and returns:
-//
-//    - score (0..100)         — higher = more conventions met,
-//                                fewer forbidden patterns.
-//    - matchedBeats           — required beats that the chapter
-//                                exhibits (best-effort keyword
-//                                / phrase matching).
-//    - missingBeats           — required beats that the chapter
-//                                omits (= writer-facing gap list).
-//    - forbiddenHits          — forbidden patterns that appear in
-//                                the chapter (= anti-conventions;
-//                                the writer should rewrite).
-//    - expectedVocabUsed      — expected vocabulary tokens that
-//                                were detected (= credit row).
-//    - expectedVocabMissing   — expected vocabulary tokens that
-//                                were NOT detected (= gap row).
-//
-//  The actor exposes 10 literary genres as a closed enum:
-//  literary / mystery / romance / sciFi / fantasy / thriller /
-//  horror / historical / youngAdult / literaryFiction. Each
-//  preset is built once at init time (= no external data file;
-//  = deterministic; = mirrors the Python module's `GENRE_PRESETS`
-//  dictionary).
-//
-//  All analysis is deterministic (= pure function over the
-//  chapter text + the active preset). No LLM calls, no network.
-//  Same philosophy as long_form_guardrails + reader_experience:
-//  fully reproducible + offline-capable.
-//
-//  Public surface (= the task spec verbatim):
-//
-//    - enum LiteraryGenre               : 10 cases
-//    - struct GenreConvention           : genre + requiredBeats +
-//                                          expectedVocab +
-//                                          forbiddenPatterns
-//    - struct GenreFitReport            : score + matchedBeats +
-//                                          missingBeats +
-//                                          forbiddenHits +
-//                                          expectedVocabUsed +
-//                                          expectedVocabMissing
-//    - struct GenreSummary              : genre + displayName +
-//                                          requiredBeatCount
-//    - actor GenreFitAnalyzer           : init()
-//                                          conventions(for:)
-//                                          analyze(chapterText:genre:)
-//                                          availableGenres()
-//
-//  Concurrency: actor (= Swift 6 strict concurrency). Reads /
-//  writes serialize cleanly across the SpecializedTools pane +
-//  any background LLM-side call sites (= the chat loop may want
-//  to attach a genre-fit score to a generated chapter as a
-//  quality signal).
-//
-//  Sidecar persistence: NONE on purpose. The genre-fit analyzer
-//  is stateless (= the input = chapter text; the output is a
-//  fresh report). The actor's role is concurrency safety + preset
-//  caching, not persistence (= contrast with `LongFormGuardrails`
-//  which owns a sidecar).
-//
-//  Standards-axis (wenshu house style):
-//    S1 (Apple-API-first): Foundation only. NSRegularExpression
-//        + String APIs; no third-party text-analysis deps.
-//    S3 (single source of truth for JSON parsing): the actor
-//        ships no JSON I/O (= stateless; no sidecar).
-//    S4 (no new third-party deps): zero added.
-//    S5 (no private types the rest of the app needs): all types
-//        public (= matches the ticket spec).
-//
-
+// 
+// … (= 75 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// 
 import Foundation
 
 // MARK: - Public surface
-
-/// The 10 literary genres the analyzer knows how to score. Each
-/// case maps 1:1 to a preset entry in hermes's
-/// `agent/specialized/genre_fit.py::GENRE_PRESETS`.
-///
-/// The raw values use camelCase to match Swift convention. The
-/// original Python uses snake_case; the Swift names follow the
-/// wenshu style guide (= enum cases in lowerCamelCase, matching
-/// `ReaderExperienceKind`, `LongFormGuardrailKind`).
+// … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / `ReaderExperienceKind`, `LongFormGuardrailKind`).
 enum LiteraryGenre: String, Sendable, Codable, CaseIterable, Identifiable {
     /// Literary fiction (= general literary prose).
     case literary
@@ -155,10 +73,9 @@ enum LiteraryGenre: String, Sendable, Codable, CaseIterable, Identifiable {
         }
     }
 
-    /// SF Symbols 6 icon name (= Apple canonical; = used by
-    /// Image(systemName:) directly in the GenreFitView
-    /// row rendering path). Replaces the Lucide-era names removed
-    /// Migrated to outline glyphs.
+    // / SF Symbols 6 icon name (= Apple canonical; = used by
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / Migrated to outline glyphs.
     var icon: String {
         switch self {
         case .literary:         return "book.pages"                  // Lucide 'book-open'
@@ -175,30 +92,26 @@ enum LiteraryGenre: String, Sendable, Codable, CaseIterable, Identifiable {
     }
 }
 
-/// A single genre's convention preset. Each genre owns exactly
-/// one `GenreConvention`. The fields are deliberately
-/// `let`-immutable so the actor can share them safely across
-/// concurrent callers.
+// / A single genre's convention preset. Each genre owns exactly
+// … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / concurrent callers.
 struct GenreConvention: Sendable, Codable, Equatable {
     /// The genre this preset belongs to.
     let genre: LiteraryGenre
 
-    /// Required structural beats (= e.g. mystery: "crime
-    /// introduction", "red herring", "revelation"). The analyzer
-    /// marks a beat as matched when any of its hint phrases
-    /// appears in the chapter text.
+    // / Required structural beats (= e.g. mystery: "crime
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / appears in the chapter text.
     let requiredBeats: [String]
 
-    /// Expected vocabulary tokens (= e.g. mystery: "alibi",
-    /// "suspect", "clue"). The analyzer counts each token's
-    /// presence in the chapter (= not just whether it appears
-    /// once, but how many distinct expected-vocab tokens were
-    /// found at least once).
+    // / Expected vocabulary tokens (= e.g. mystery: "alibi",
+    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / found at least once).
     let expectedVocab: [String]
 
-    /// Forbidden patterns (= e.g. romance: "deus ex machina",
-    /// "sudden love"). The analyzer flags each occurrence as a
-    /// `forbiddenHit`.
+    // / Forbidden patterns (= e.g. romance: "deus ex machina",
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / `forbiddenHit`.
     let forbiddenPatterns: [String]
 
     init(
@@ -218,9 +131,9 @@ struct GenreConvention: Sendable, Codable, Equatable {
 struct GenreFitReport: Sendable, Codable, Equatable {
     let genre: LiteraryGenre
 
-    /// Normalized score in 0..100. Higher = more conventions met
-    /// and fewer forbidden patterns. The exact formula lives in
-    /// `GenreFitAnalyzer.score(...)`.
+    // / Normalized score in 0..100. Higher = more conventions met
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / `GenreFitAnalyzer.score(...)`.
     let score: Double
 
     /// Required beats that the chapter exhibits (= matched at
@@ -231,9 +144,9 @@ struct GenreFitReport: Sendable, Codable, Equatable {
     /// detected).
     let missingBeats: [String]
 
-    /// Forbidden patterns that appeared in the chapter (= each
-    /// entry is the literal pattern that triggered the hit; the
-    /// caller can render an evidence list).
+    // / Forbidden patterns that appeared in the chapter (= each
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / caller can render an evidence list).
     let forbiddenHits: [String]
 
     /// Expected vocabulary tokens that WERE found in the
@@ -280,10 +193,8 @@ struct GenreSummary: Sendable, Codable, Equatable, Identifiable {
 }
 
 // MARK: - Errors
-
-/// Errors thrown by `GenreFitAnalyzer`. The 2 cases mirror the
-/// reader_experience convention (= a LocalizedError for each
-/// case; = no `fatalError` paths).
+// … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / case; = no `fatalError` paths).
 enum GenreFitAnalyzerError: Error, LocalizedError, Sendable, Equatable {
     case emptyChapter
     case unknownGenre(String)
@@ -299,26 +210,18 @@ enum GenreFitAnalyzerError: Error, LocalizedError, Sendable, Equatable {
 }
 
 // MARK: - Actor
-
-/// Genre-convention analyzer. Stateless (= the input is always
-/// the chapter text + the chosen genre; the output is a fresh
-/// `GenreFitReport`). The actor caches the convention presets at
-/// init time (= lookup is O(1) per analyze call).
-///
-/// Concurrency: actor. This matches the long_form_guardrails +
-/// reader_experience + plot_thread pattern (= Swift 6 strict
-/// concurrency; no shared mutable state across the
-/// SpecializedTools pane + chat loop callers).
+// … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / SpecializedTools pane + chat loop callers).
 actor GenreFitAnalyzer {
 
-    /// Cached convention presets (= keyed by LiteraryGenre raw
-    /// value). Built once at init so per-call lookups are O(1)
-    /// dictionary reads.
+    // / Cached convention presets (= keyed by LiteraryGenre raw
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / dictionary reads.
     private let presets: [String: GenreConvention]
 
-    /// Public initializer. No BookStore dependency (= the
-    /// analyzer is fully deterministic and offline-capable; =
-    /// mirrors ReaderExperienceAnalyzer).
+    // / Public initializer. No BookStore dependency (= the
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / mirrors ReaderExperienceAnalyzer).
     init() {
         var built: [String: GenreConvention] = [:]
         for genre in LiteraryGenre.allCases {
@@ -328,14 +231,8 @@ actor GenreFitAnalyzer {
     }
 
     // MARK: - Public API
-
-    /// Built-in convention preset for a given genre.
-    ///
-    /// - Parameter genre: the literary genre.
-    /// - Returns: the matching `GenreConvention`.
-    /// - Throws: `.unknownGenre` only if the enum is extended
-    ///   without updating `preset(for:)` (= defensive — should
-    ///   never fire in practice).
+    // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // /   never fire in practice).
     func conventions(for genre: LiteraryGenre) throws -> GenreConvention {
         guard let preset = presets[genre.rawValue] else {
             throw GenreFitAnalyzerError.unknownGenre(genre.rawValue)
@@ -343,18 +240,9 @@ actor GenreFitAnalyzer {
         return preset
     }
 
-    /// Score a chapter draft against a genre's conventions.
-    ///
-    /// - Parameters:
-    ///   - chapterText: the finished chapter body (= UTF-8; may
-    ///     contain markdown / smart quotes / em-dashes).
-    ///   - genre: the literary genre to score against.
-    /// - Returns: a `GenreFitReport` with score 0..100 + matched
-    ///   / missing beats + forbidden hits + vocab breakdown.
-    /// - Throws: `.emptyChapter` if the input is blank;
-    ///   `.unknownGenre` if the raw value is not one of the 10
-    ///   known genres (= defensive — should never fire in
-    ///   practice since the enum is exhaustive).
+    // / Score a chapter draft against a genre's conventions.
+    // … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // /   practice since the enum is exhaustive).
     func analyze(
         chapterText: String,
         genre: LiteraryGenre
@@ -368,7 +256,7 @@ actor GenreFitAnalyzer {
         let lower = trimmed.lowercased()
 
         // 1) Required beats: a beat is matched when ANY of its
-        // hint phrases (= lowercase substring) appears in the
+        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // chapter.
         var matchedBeats: [String] = []
         var missingBeats: [String] = []
@@ -383,7 +271,7 @@ actor GenreFitAnalyzer {
         }
 
         // 2) Expected vocab: each token is a single word
-        // (lowercased). Match = the token appears as a whole
+        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // word (= whitespace / punctuation boundary).
         var expectedVocabUsed: [String] = []
         var expectedVocabMissing: [String] = []
@@ -396,7 +284,7 @@ actor GenreFitAnalyzer {
         }
 
         // 3) Forbidden patterns: count each distinct forbidden
-        // pattern that appears (= substring match, lowercased;
+        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // multi-word patterns work as-is).
         var forbiddenHits: [String] = []
         for forbidden in preset.forbiddenPatterns {
@@ -425,9 +313,9 @@ actor GenreFitAnalyzer {
         )
     }
 
-    /// List all available genres with their convention
-    /// summaries. The view layer uses this to populate the
-    /// picker without having to introspect each preset.
+    // / List all available genres with their convention
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / picker without having to introspect each preset.
     func availableGenres() async -> [GenreSummary] {
         LiteraryGenre.allCases.map { genre in
             let preset = presets[genre.rawValue]
@@ -440,25 +328,8 @@ actor GenreFitAnalyzer {
     }
 
     // MARK: - Scoring formula
-
-    /// Compute the 0..100 genre-fit score.
-    ///
-    /// Formula (= balanced weighted average):
-    ///
-    ///   baseScore     = 60 * beatMatchFraction
-    ///                 + 30 * vocabMatchFraction
-    ///   forbiddenCost = 12 * forbiddenHitsCount
-    ///                 (clamped so forbidden hits can knock off
-    ///                 up to ~60 points but never go negative)
-    ///   score         = clamp(baseScore - forbiddenCost, 0, 100)
-    ///
-    /// The 60/30 weighting reflects that REQUIRED BEATS are the
-    /// primary genre signal (= structural), VOCAB is the
-    /// secondary signal (= tonal), and FORBIDDEN PATTERNS are
-    /// the penalty (= each forbidden hit is a -12 deduction; up
-    /// to 5 forbidden hits can erase the whole score, which is
-    /// intentional — a chapter that violates 5 genre conventions
-    /// does not fit the genre).
+    // … (= 17 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / does not fit the genre).
     static func computeScore(
         beatTotal: Int,
         matchedBeats: Int,
@@ -478,13 +349,8 @@ actor GenreFitAnalyzer {
     }
 
     // MARK: - Beat → hint phrases
-
-    /// For each required beat (= human-readable label like
-    /// "red herring"), return the lowercase hint phrases that
-    /// count as a match. Multiple phrases per beat let the
-    /// analyzer accommodate synonymous ways an author might
-    /// stage the beat (= e.g. mystery: "red herring" matches
-    /// "red herring", "false lead", "decoy").
+    // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / "red herring", "false lead", "decoy").
     static func hintPhrases(for beat: String) -> [String] {
         let key = beat.lowercased()
         switch key {
@@ -627,20 +493,15 @@ actor GenreFitAnalyzer {
 
         default:
             // Fallback: treat the beat label itself as the
-            // hint (= so the analyzer still emits a hit if the
-            // author literally writes the beat phrase). This
+            // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // keeps new beats workable without an enum update.
             return [key]
         }
     }
 
     // MARK: - Word matcher
-
-    /// True when `word` appears in `haystack` with a
-    /// non-letter / non-digit boundary on both sides (= "clue"
-    /// matches "the clue" but NOT "clueless"). Lowercase
-    /// comparison. Works for multi-word phrases ("warp drive"
-    /// matches "the warp drive was" but NOT "the warp-driver").
+    // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / matches "the warp drive was" but NOT "the warp-driver").
     static func containsWord(_ word: String, in haystack: String) -> Bool {
         guard !word.isEmpty else { return false }
         var searchRange = haystack.startIndex..<haystack.endIndex
@@ -668,9 +529,8 @@ actor GenreFitAnalyzer {
     }
 
     // MARK: - Presets
-
-    /// Build the convention preset for a given genre.
-    /// (= 1:1 port of the Python module's GENRE_PRESETS dict.)
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / (= 1:1 port of the Python module's GENRE_PRESETS dict.)
     private static func preset(for genre: LiteraryGenre) -> GenreConvention {
         switch genre {
         case .literary:

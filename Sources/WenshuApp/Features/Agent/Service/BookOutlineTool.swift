@@ -1,8 +1,6 @@
 // BookOutlineTool.swift Per-book outline CRUD tool (= wraps FileSystemOutlineStore).
-// Mirrors BookWorldTool / BookCharacterTool / BookChapterTool patterns. LLM-friendly
-// verbs: create / read / update / delete / list / find. Optional `parent` (= UUID
+// … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
 // string) for hierarchy; `order` for sort.
-
 import Foundation
 
 // MARK: - OutlineEntryDescriptor
@@ -85,10 +83,9 @@ enum BookOutlineError: Error, LocalizedError, Sendable, Equatable {
 // MARK: - Actor
 
 actor BookOutlineActor {
-    /// Closure returning the book directory for the current chat
-    /// session's bound book (= nil when no chat book is bound).
-    /// Resolved on every CRUD call so the user can switch books
-    /// mid-conversation without the actor holding a stale root.
+    // / Closure returning the book directory for the current chat
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / mid-conversation without the actor holding a stale root.
     private let bookDirectoryProvider: @Sendable () -> URL?
 
     /// Closure returning the chat session's currently-bound book.
@@ -111,15 +108,9 @@ actor BookOutlineActor {
         )
     }
 
-    /// Resolve the current book directory (= raises `invalidInput`
-    /// if the chat session has no bound book, which the scope guard
-    /// should already have rejected).
-    ///
-    /// Per boss 2026-10-05 (see OOB.md #2026-10-05)
-    /// @MainActor-isolated (= SwiftData ModelContext contract); =
-    /// the actor (= this) can't instantiate it. We resolve to the
-    /// book directory URL and use the nonisolated static FileSystem
-    /// fallback helpers (= actor-safe).
+    // / Resolve the current book directory (= raises `invalidInput`
+    // … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / fallback helpers (= actor-safe).
     private func resolveBookDirectory() throws -> URL {
         guard let dir = bookDirectoryProvider() else {
             throw BookOutlineError.invalidInput(
@@ -148,7 +139,7 @@ actor BookOutlineActor {
         }
 
         // Silent dedup (see OOB.md #2026-09-25): if an outline with the same title
-        // already exists in this book, fall back to an in-place update (=
+        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // preserves id / createdAt / parent / order). LLM never sees an error.
         if let existing = try await findOutline(bookId: bookId, title: trimmed) {
             return try await updateOutline(
@@ -440,9 +431,9 @@ actor BookOutlineActor {
         return nil
     }
 
-    /// parseOptionalUUID: returns nil when the value is missing OR
-    /// is the literal string "null" (= sentinels from the LLM). Use
-    /// this for fields where nil means "no change".
+    // / parseOptionalUUID: returns nil when the value is missing OR
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / this for fields where nil means "no change".
     private static func parseOptionalUUID(_ any: Any?) -> UUID? {
         if any == nil { return nil }
         if let s = any as? String {
@@ -515,9 +506,9 @@ actor BookOutlineActor {
         return encodeJSON(payload)
     }
 
-    /// Encode a BookScopeViolation into the standard failure envelope.
-    /// See BookWorldTool.encodeFailureScopeViolation for the matching
-    /// contract.
+    // / Encode a BookScopeViolation into the standard failure envelope.
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / contract.
     private static func encodeFailureScopeViolation(
         action: BookOutlineAction,
         error: BookScopeViolation

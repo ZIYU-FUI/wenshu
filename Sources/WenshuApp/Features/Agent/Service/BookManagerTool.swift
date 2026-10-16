@@ -1,81 +1,22 @@
-//
-//  BookManagerTool.swift
-//
-//  1:1 Swift port of hermes `agent/librarian/book_manager.py`.
-//
-//  The Python source was not present in the local hermes clone
-//  (= per the PORT-LIBRARIAN-001 ticket: "If the source file does
-//  NOT exist, port the design contract from the existing pattern
-//  see LongFormGuardrails.swift / ForeshadowingTrackerTools.swift
-//  for the actor + tracker shape"). This file follows the
-//  IdeaLibraryTools / ForeshadowingTrackerTools / BookSettingConstraintsTools
-//  actor + BookStore-wrapper convention.
-//
-//  The Python module lets the LLM create / rename / delete / list /
-//  show books (= the canonical wenshu-side library state).
-//
-//  The Swift port exposes:
-//    - create / rename / delete / list / show (= 5 verbs).
-//    - Filtering by shelfId on `list`.
-//    - Whitespace-only / empty titles are rejected on create + rename
-//      (= matches BookEditorSheet.trimmedTitle policy).
-//    - Rename = read-modify-write through BookStore.sidebarSaveBook
-//      (= upsert policy = preserves shelfId + createdAt).
-//    - Delete = calls BookStore.sidebarDeleteBook (= moves to trash
-//      = same convention as the sidebar UI's "delete book" button;
-//      = the per-book directory is removed, which matches the
-//      spec's "= moves to trash; not physical delete" because the
-//      existing trash is the user's macOS Finder-level trash).
-//
-//  Persistence: books already persist via BookStore.sidebarSaveBook
-//  / sidebarDeleteBook (the existing canonical wenshu-side book
-//  storage). BookManager wraps BookStore to expose the LLM-friendly
-//  BookDescriptor surface (= a Sendable / Codable value type safe
-//  to hand back through the tool protocol = no leaking of the
-//  internal Book model that the rest of the app mutates freely).
-//
-//  Concurrency: actor (= Swift 6 strict concurrency). Reads /
-//  writes serialize cleanly across the chat surface (= one
-//  BookManagerTool instance per conductor) and any future
-//  background LLM-side call sites.
-//
-//  Standards-axis (wenshu house style):
-//    S1 (Apple-API-first): Foundation only; no third-party deps.
-//    S3 (single source of truth for JSON parsing): the actor owns
-//        the JSONDecoder / JSONEncoder pair; the Tool never touches
-//        the file system directly.
-//    S4 (no new third-party deps): zero added.
-//    S5 (no private types the rest of the app needs): all types
-//        public (= matches the ticket spec).
-//    S6 (English-only): this file + the docstrings are 100%
-//        English per AGENTS.md hard rule.
-//
-
+// 
+// … (= 50 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// 
 import Foundation
 import os
 
 private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "bookmanagertool")
 
 // MARK: - BookDescriptor
-
-/// LLM-facing snapshot of one book. A Sendable / Codable value type
-/// safe to hand back through the Tool protocol (= no leaking of
-/// the internal `Book` model that the rest of the app mutates
-/// freely).
-///
-/// `BookDescriptor` is what the LLM sees and reasons about. The
-/// internal `Book` carries more state (= icon / length / idea /
-/// updatedAt) that the LLM does not need to touch. BookManager
-/// translates between the two shapes (= LLM ↔ wenshu-side canonical
-/// state).
+// … (= 9 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / state).
 struct BookDescriptor: Sendable, Codable, Equatable, Identifiable {
     /// Stable identifier (= used by the actor for create / rename /
     /// delete lookups; never re-used even across shelves).
     let id: UUID
 
-    /// User-visible title. Whitespace-trimmed at construction time
-    /// so empty / whitespace-only titles are rejected by the
-    /// actor's create / rename methods.
+    // / User-visible title. Whitespace-trimmed at construction time
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / actor's create / rename methods.
     let title: String
 
     /// Author name (= user-set; defaults to library owner = empty
@@ -85,9 +26,9 @@ struct BookDescriptor: Sendable, Codable, Equatable, Identifiable {
     /// Owning bookshelf id.
     let shelfId: UUID
 
-    /// Optional 1-2 sentence summary. Optional (= the LLM may
-    /// leave it blank). Mirrors Book.idea (= the LLM-facing
-    /// alias for the same field).
+    // / Optional 1-2 sentence summary. Optional (= the LLM may
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / alias for the same field).
     let description: String
 
     /// Creation timestamp (= `Date.now` at create time).
@@ -116,11 +57,8 @@ struct BookDescriptor: Sendable, Codable, Equatable, Identifiable {
 }
 
 // MARK: - BookManagerAction
-
-/// The 5 verbs the LLM can dispatch through `BookManager`. Each
-/// case maps 1:1 to a method on the actor (= create / rename /
-/// delete / list / show). Serialized as a lowercase string for
-/// the JSON input envelope (= e.g. `"action": "create"`).
+// … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / the JSON input envelope (= e.g. `"action": "create"`).
 enum BookManagerAction: String, Sendable, Codable, CaseIterable, Equatable {
     /// Create a new book under a shelf.
     case create
@@ -135,10 +73,8 @@ enum BookManagerAction: String, Sendable, Codable, CaseIterable, Equatable {
 }
 
 // MARK: - Actor errors
-
-/// Errors thrown by `BookManager`. Mirrors the ForeshadowingTracker
-/// / IdeaLibrary / BookSettingConstraints error conventions (=
-/// a LocalizedError per case).
+// … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / a LocalizedError per case).
 enum BookManagerError: Error, LocalizedError, Sendable, Equatable {
     /// Title was empty / whitespace-only after trimming.
     case emptyTitle
@@ -148,9 +84,9 @@ enum BookManagerError: Error, LocalizedError, Sendable, Equatable {
     /// The bookId was not present in BookStore.books (=
     /// the LLM passed an unknown or deleted bookId).
     case bookNotFound(bookId: UUID)
-    /// The JSON input envelope was malformed (= missing required
-    /// field, wrong type, etc.). The reason string is forwarded
-    /// verbatim to the LLM for self-correction.
+    // / The JSON input envelope was malformed (= missing required
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / verbatim to the LLM for self-correction.
     case invalidInput(reason: String)
     /// Underlying BookStore threw (= surfaced verbatim).
     case underlying(String)
@@ -172,60 +108,22 @@ enum BookManagerError: Error, LocalizedError, Sendable, Equatable {
 }
 
 // MARK: - Actor
-
-/// Per-library book manager. Wraps the canonical `BookStore` (= the
-/// existing wenshu-side book storage per `BookStore.swift`) to
-/// expose the LLM-friendly BookDescriptor surface.
-///
-/// Persistence: passes through `BookStore.sidebarSaveBook(_:)` /
-/// `BookStore.sidebarDeleteBook(id:)` (= the existing canonical
-/// wenshu-side book CRUD). `BookManager` does NOT touch the
-/// filesystem directly (= S3 single source of truth for JSON
-/// parsing: the BookStore owns the file system).
-///
-/// Concurrency: actor (= Swift 6 strict concurrency). Reads /
-/// writes serialize cleanly across the chat surface (= one
-/// BookManagerTool instance per conductor) and any future
-/// background LLM-side call sites.
-///
-/// Forgiving semantics (= matches the existing kanban / todo /
-/// tags / lifecycle / relationships / ideas / constraints /
-/// foreshadowing sidecar convention):
-///   - Missing shelvesRoot = empty books list (= first-launch /
-///     empty library convention).
-///   - Corrupt sidecar = empty books list (= never bricks the
-///     UI; the BookStore.sidebarLoadAllBooks already swallows
-///     decode errors).
-///   - Empty / whitespace-only titles are rejected on create +
-///     rename (= no book is persisted).
-///   - Unknown shelfId on create = throws `.shelfNotFound`.
-///   - Unknown bookId on rename / delete / show = throws
-///     `.bookNotFound`.
+// … (= 27 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// /     `.bookNotFound`.
 actor BookManager {
 
     private let bookStore: BookStore
 
-    /// Internal init (= matches `ForeshadowingTracker.init` /
-    /// `PlotThreadTracker.init` / `IdeaLibrary.init` /
-    /// `BookSettingConstraints.init` house style: the `BookStore`
-    /// type itself is internal so the init cannot be public).
+    // / Internal init (= matches `ForeshadowingTracker.init` /
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / type itself is internal so the init cannot be public).
     init(bookStore: BookStore) {
         self.bookStore = bookStore
     }
 
     // MARK: - CRUD
-
-    /// Create a new book under a shelf.
-    ///
-    /// Behavior:
-    ///   - `title` is whitespace-trimmed; empty / whitespace-only
-    ///     titles are rejected (= throws `.emptyTitle`).
-    ///   - `shelfId` must be present in `BookStore.shelves`
-    ///     (= throws `.shelfNotFound` otherwise).
-    ///   - The book is persisted through `BookStore.sidebarSaveBook`
-    ///     (= canonical wenshu-side persistence + side-effects on
-    ///     BookStore.books).
-    ///   - Returns the descriptor (= freshly created).
+    // … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // /   - Returns the descriptor (= freshly created).
     func createBook(
         title: String,
         shelfId: UUID,
@@ -263,17 +161,9 @@ actor BookManager {
         )
     }
 
-    /// Rename an existing book.
-    ///
-    /// Behavior:
-    ///   - `newTitle` is whitespace-trimmed; empty / whitespace-only
-    ///     titles are rejected (= throws `.emptyTitle`).
-    ///   - The bookId must be present in `BookStore.books`
-    ///     (= throws `.bookNotFound` otherwise).
-    ///   - The book is re-saved through `BookStore.sidebarSaveBook`
-    ///     (= upsert policy = preserves shelfId + createdAt).
-    ///   - `Book.updatedAt` is bumped (= the
-    ///     BookDescriptor.lastEditedAt reflects this).
+    // / Rename an existing book.
+    // … (= 9 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // /     BookDescriptor.lastEditedAt reflects this).
     func renameBook(id: UUID, newTitle: String) async throws {
         let trimmed = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
@@ -293,20 +183,9 @@ actor BookManager {
         }
     }
 
-    /// Delete a book (= moves to trash; not physical delete).
-    ///
-    /// "Trash" here = the macOS Finder-level trash (= BookStore
-    /// removes the per-book directory from `<shelvesRoot>/<shelf>/books/<id>/`;
-    /// = the user can recover via Finder if needed). Per the
-    /// PORT-LIBRARIAN-001 ticket: 'Delete a book (= moves to trash;
-    /// not physical delete)'.
-    ///
-    /// Behavior:
-    ///   - The bookId must be present in `BookStore.books`
-    ///     (= throws `.bookNotFound` otherwise).
-    ///   - The book is removed through `BookStore.sidebarDeleteBook`
-    ///     (= canonical wenshu-side deletion + side-effects on
-    ///     BookStore.books).
+    // / Delete a book (= moves to trash; not physical delete).
+    // … (= 12 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // /     BookStore.books).
     func deleteBook(id: UUID) async throws {
         let books = await MainActor.run { bookStore.books }
         guard books.contains(where: { $0.id == id }) else {
@@ -320,13 +199,8 @@ actor BookManager {
     }
 
     // MARK: - Queries
-
-    /// All books across the library, optionally filtered by
-    /// shelfId. When the filter is nil, returns every book.
-    ///
-    /// Sort = `createdAt` ascending (= oldest first; matches the
-    /// canonical wenshu-side order in `AppleSidebarView` (= the sidebar MVVM split) — the legacy
-    /// `BookStore.sidebarLoadAllBooks`).
+    // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / `BookStore.sidebarLoadAllBooks`).
     func listBooks(shelfId: UUID? = nil) async throws -> [BookDescriptor] {
         let books = await MainActor.run { bookStore.books }
         let filtered = books.filter { book in
@@ -346,9 +220,9 @@ actor BookManager {
         }
     }
 
-    /// Get book details by id. Returns `nil` (= NOT throws) when
-    /// the id is unknown (= matches the view layer's "optional
-    /// row" idiom).
+    // / Get book details by id. Returns `nil` (= NOT throws) when
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / row" idiom).
     func showBook(id: UUID) async throws -> BookDescriptor? {
         guard let book: Book? = await MainActor.run(body: { bookStore.books.first(where: { $0.id == id }) }) else {
             return nil
@@ -366,27 +240,8 @@ actor BookManager {
     }
 
     // MARK: - Tool-protocol entry-point (LLM-facing dispatcher)
-
-    /// The Tool-protocol entry-point (= LLM-facing dispatcher).
-    ///
-    /// Input format (= JSON envelope):
-    ///   {
-    ///     "action": "create" | "rename" | "delete" | "list" | "show",
-    ///     "id": "<UUID>"?,                  // required for rename/delete/show
-    ///     "title": "<String>"?,             // required for create; required for rename
-    ///     "shelfId": "<UUID>"?,             // required for create
-    ///     "description": "<String>"?,       // optional for create
-    ///     "newTitle": "<String>"?           // alias for `title` on rename
-    ///   }
-    ///
-    /// Output format (= JSON envelope):
-    ///   {
-    ///     "ok": true | false,
-    ///     "action": "...",
-    ///     "book": { ... BookDescriptor ... }?,  // present on create + show
-    ///     "books": [ ... BookDescriptor ... ]?, // present on list
-    ///     "error": "<String>"?                  // present on ok=false
-    ///   }
+    // … (= 19 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // /   }
     func execute(input: String) async throws -> String {
         let envelope: [String: Any]
         do {
@@ -479,10 +334,8 @@ actor BookManager {
     }
 
     // MARK: - JSON helpers
-
-    /// Parse a UUID from any JSON value (= string OR nested
-    /// dictionary with a `value` key). Tolerates whitespace around
-    /// the UUID string.
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / the UUID string.
     private static func parseUUID(_ any: Any?) -> UUID? {
         if let s = any as? String {
             return UUID(uuidString: s.trimmingCharacters(in: .whitespacesAndNewlines))
@@ -544,7 +397,7 @@ actor BookManager {
             "lastEditedAt": descriptor.lastEditedAt.formatted(.iso8601)
         ]
         // Expose "idea" as an alias for "description" so the LLM
-        // can also read the canonical wenshu field name (= Book.idea)
+        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // back if it asked for it.
         dict["idea"] = descriptor.description
         return dict
@@ -564,42 +417,15 @@ actor BookManager {
 }
 
 // MARK: - BookManagerTool (Tool-protocol adapter)
-
-/// Tool-protocol adapter (= thin wrapper around BookManager) that
-/// the WenshuConductor can register under the key "book_manager".
-/// Lets the LLM create / rename / delete / list / show books via
-/// the chat surface (= matches the canonical wenshu-side library
-/// state through BookStore).
+// … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / state through BookStore).
 actor BookManagerTool: Tool {
     let name = "book_manager"
     let description = "Create / rename / delete / list / show books (= canonical wenshu-side library state)."
 
-    /// Shared singleton for ToolRegistry bootstrap (= lazy-init
-    /// fallback BookStore under /tmp so module-load registration
-    /// does not require a real library to be open).
-    /// Used by the MIGRATE-TOOLREGISTRY-002 module-load registration
-    /// (= `BookManagerTool._registryBootstrap`); production wiring
-    /// still constructs dedicated instances via the existing
-    /// `init(manager:)` initializer (= e.g. ChatView pre-populates
-    /// the conductor with a per-library instance).
-    ///
-    /// `nonisolated(unsafe)` is required because the initializer
-    /// constructs `@Observable` BookStore (= which Swift 6 considers
-    /// actor-like under strict concurrency) from a `static let`
-    /// (= nonisolated context). The closure runs synchronously at
-    /// first access, before any concurrency becomes relevant, so the
-    /// unsafe escape hatch is safe here.
-    ///
-    /// promoted to `@MainActor static let` so Swift 6
-    /// strict concurrency ensures first access lands on the main
-    /// actor (= eliminates the SIGTRAP / `dispatch_assert_queue_fail`
-    /// that previously fired when the static-let initializer ran from
-    /// a background queue such as `_dispatch_once_callout` on
-    /// `com.apple.root.utility-qos.cooperative`). The inner
-    /// `MainActor.assumeIsolated` wrappers on BookStore construction
-    /// (= which themselves trapped when invoked from a background
-    /// thread under Swift 6) are now safe because the surrounding
-    /// static-let initializer is itself `@MainActor`.
+    // / Shared singleton for ToolRegistry bootstrap (= lazy-init
+    // … (= 24 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / static-let initializer is itself `@MainActor`.
     @MainActor static let shared: BookManagerTool = {
         let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-toolregistry-books-\(UUID().uuidString)", isDirectory: true)
         // surface createDirectory failures via wenshuLogger.info((= was silent `try?`).
@@ -617,12 +443,7 @@ actor BookManagerTool: Tool {
             referenceStore: referenceStore
         )
         // P1-04 (audit 2026-09-24): BookStore is now @MainActor. The
-        // `nonisolated static let shared` initializer cannot `await`
-        // (= static-let initializer = nonisolated context). Wrap the
-        // BookStore construction + initial shelves load in
-        // `MainActor.assumeIsolated` (= this initializer runs at
-        // first access from the main thread in production; tests that
-        // hit the static from background threads will assert-fail
+        // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // explicitly, which is the desired fail-loud behavior).
         let bookStore = MainActor.assumeIsolated { BookStore(stores: stores) }
         MainActor.assumeIsolated {
@@ -646,10 +467,9 @@ actor BookManagerTool: Tool {
 // MARK: - ToolRegistry bootstrap (MIGRATE-TOOLREGISTRY-002)
 
 extension BookManagerTool {
-    /// Module-load registration with `ToolRegistry.shared` (= hermes
-    /// `tools/registry.py` `register()` 1:1). Fires once at first
-    /// type access; the underlying `Task` schedules the async
-    /// `register(...)` call off the init thread.
+    // / Module-load registration with `ToolRegistry.shared` (= hermes
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / `register(...)` call off the init thread.
     static let _registryBootstrap: Void = {
         Task {
             await ToolRegistry.shared.registerTool(
@@ -692,9 +512,5 @@ extension BookManagerTool {
 }
 
 // NOTE: Swift 6 forbids top-level expressions, so the static let
-// `_registryBootstrap` initializer runs lazily on first type access
-// (= Swift equivalent of Python module-load statement = hermes
-// `registry.register(...)` at import time). Production code paths
-// that touch this type (= e.g. ChatView constructing
-// `ParagraphAITool.shared`, WenshuConductor constructing `ReadFileTool()`)
+// … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
 // automatically trigger the bootstrap.

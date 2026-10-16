@@ -1,56 +1,11 @@
-//
-//  CharacterRelationshipTools.swift
-//
-//  1:1 Swift port of hermes `agent/specialized/character_relationships.py`.
-//
-//  The Python module models relationships between characters in a
-//  book. Each relationship is a typed edge (= ally / rival /
-//  mentor / family / romantic / enemy / neutral / acquaintance)
-//  between two character IDs, optionally anchored to a chapter.
-//
-//  The Swift port exposes:
-//    - Add / update / remove a relationship.
-//    - List relationships for a book (= filterable by kind +
-//      character).
-//    - Build a relationship graph (= nodes = characters that
-//      participate in at least one edge, edges = typed + weighted
-//      rows).
-//    - Detect relationship inconsistencies (= the same pair
-//      declared with conflicting kinds).
-//    - Suggest relationship arcs (= for chapter pairs declared
-//      on the edge, the actor flags pairs that never evolve
-//      across the chapter timeline).
-//
-//  Persistence: per-book JSON sidecar at
-//    `books/<bookId>/character-relationships.json`
-//  Mirrors the `kanban.json` / `todo.json` /
-//  `long-form-guardrails.json` pattern (= canonical wenshu
-//  per-book JSON convention per AGENTS.md §11).
-//
-//  Concurrency: actor (= Swift 6 strict concurrency). Reads /
-//  writes serialize cleanly across the SpecializedTools pane +
-//  any background LLM-side call sites.
-//
-//  Standards-axis (wenshu house style):
-//    S1 (Apple-API-first): Foundation + SwiftUI only; no third-
-//        party text-analysis deps.
-//    S3 (single source of truth for JSON parsing): the actor
-//        owns the JSONDecoder / JSONEncoder pair; the view never
-//        touches the file system.
-//    S4 (no new third-party deps): zero added.
-//    S5 (no private types the rest of the app needs): all types
-//        public (= matches the ticket spec).
-//    S6 (English-only): this file + the docstrings are 100%
-//        English per AGENTS.md hard rule.
-//
-
+// 
+// … (= 43 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// 
 import Foundation
 
 // MARK: - Kind enum
-
-/// The 8 relationship kinds the tracker knows how to model.
-/// Each case maps 1:1 to a value in hermes's
-/// `agent/specialized/character_relationships.py::KIND_TABLE`.
+// … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / `agent/specialized/character_relationships.py::KIND_TABLE`.
 enum RelationshipKind: String, Sendable, Codable, CaseIterable, Identifiable, Equatable {
     /// Allied / on the same side.
     case ally
@@ -85,10 +40,9 @@ enum RelationshipKind: String, Sendable, Codable, CaseIterable, Identifiable, Eq
         }
     }
 
-    /// SF Symbols 6 icon name (= Apple canonical; = used by
-    /// Image(systemName:) directly in the CharacterRelationshipsView
-    /// row rendering path). Replaces the Lucide-era names removed
-    /// Migrated to outline glyphs.
+    // / SF Symbols 6 icon name (= Apple canonical; = used by
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / Migrated to outline glyphs.
     var icon: String {
         switch self {
         case .ally:          return "hand.raised"              // Lucide 'handshake'
@@ -104,15 +58,13 @@ enum RelationshipKind: String, Sendable, Codable, CaseIterable, Identifiable, Eq
 }
 
 // MARK: - Relationship struct
-
-/// A single typed relationship between two characters in a book.
-/// Persisted as one entry in the per-book
-/// `character-relationships.json` sidecar.
+// … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / `character-relationships.json` sidecar.
 struct CharacterRelationship: Sendable, Codable, Equatable, Identifiable {
 
-    /// Stable identifier (= used by the actor for add / remove /
-    /// graph + inconsistency lookups; never re-used even across
-    /// books).
+    // / Stable identifier (= used by the actor for add / remove /
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / books).
     let id: UUID
 
     /// Owning book (= the actor resolves the on-disk sidecar
@@ -128,20 +80,18 @@ struct CharacterRelationship: Sendable, Codable, Equatable, Identifiable {
     /// Edge kind.
     var kind: RelationshipKind
 
-    /// Chapter where this relationship was first established
-    /// (= optional; nil = declared outside of any specific
-    /// chapter, = used by the arc-suggester as a "neutral"
-    /// baseline).
+    // / Chapter where this relationship was first established
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / baseline).
     var establishedInChapterId: UUID?
 
     /// One-sentence context describing the relationship
     /// (= surfaced in the SwiftUI list row).
     var description: String
 
-    /// = true when both directions of the pair exist (= A→B and
-    /// B→A). The actor flips this flag on every add / update to
-    /// keep the value consistent without forcing the user to
-    /// author two rows.
+    // / = true when both directions of the pair exist (= A→B and
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / author two rows.
     var isMutual: Bool
 
     /// Creation timestamp (= `Date.now` at add time).
@@ -177,23 +127,20 @@ struct CharacterRelationship: Sendable, Codable, Equatable, Identifiable {
 }
 
 // MARK: - Inconsistency struct
-
-/// A detected inconsistency: the same character pair carries two
-/// conflicting kinds (= e.g. A is both `ally` AND `enemy` of B).
-/// The actor emits one row per conflicting pair (= the
-/// `conflictingKinds` array lists the kind set).
+// … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / `conflictingKinds` array lists the kind set).
 struct RelationshipInconsistency: Sendable, Codable, Equatable {
-    /// Source character id (= canonical ordering: smaller UUID
-    /// sorts first; the actor normalizes both sides so the
-    /// output is symmetric).
+    // / Source character id (= canonical ordering: smaller UUID
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / output is symmetric).
     let fromCharacterId: UUID
 
     /// Target character id.
     let toCharacterId: UUID
 
-    /// The set of kinds the actor detected for this pair
-    /// (= always >= 2 entries; = 1 entry means the pair is
-    /// consistent and the row would not be emitted).
+    // / The set of kinds the actor detected for this pair
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / consistent and the row would not be emitted).
     let conflictingKinds: [RelationshipKind]
 
     /// Human-readable one-line description (= e.g. "A is both
@@ -215,22 +162,17 @@ struct RelationshipInconsistency: Sendable, Codable, Equatable {
 }
 
 // MARK: - Graph structs
-
-/// A relationship graph (= the actor's `graph(bookId:)` output).
-///
-/// `characterIds` is the set of characters that participate in at
-/// least one relationship (= nodes). `edges` is the directed edge
-/// list (= one row per `CharacterRelationship`).
+// … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / list (= one row per `CharacterRelationship`).
 struct RelationshipGraph: Sendable, Codable, Equatable {
 
     /// Graph nodes (= the character ids that appear in at least
     /// one edge; = sorted for stable display + tests).
     let characterIds: [UUID]
 
-    /// Graph edges (= typed + weighted rows). Weight is the
-    /// edge's "strength" in 0.0 .. 1.0 (= derived from
-    /// `RelationshipKind`; = the view can render thicker lines
-    /// for stronger kinds).
+    // / Graph edges (= typed + weighted rows). Weight is the
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / for stronger kinds).
     let edges: [RelationshipEdge]
 
     struct RelationshipEdge: Sendable, Codable, Equatable {
@@ -244,9 +186,9 @@ struct RelationshipGraph: Sendable, Codable, Equatable {
         /// Edge kind.
         let kind: RelationshipKind
 
-        /// Edge weight in 0.0 .. 1.0. The actor computes it from
-        /// `RelationshipKind` via `weight(for:)`; = a fixed
-        /// per-kind scalar so the graph is deterministic.
+        // / Edge weight in 0.0 .. 1.0. The actor computes it from
+        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // / per-kind scalar so the graph is deterministic.
         let weight: Double
 
         init(
@@ -269,10 +211,8 @@ struct RelationshipGraph: Sendable, Codable, Equatable {
 }
 
 // MARK: - Arc suggestion
-
-/// A relationship-arc suggestion (= emitted by `suggestArcs(...)`
-/// when two characters are declared in chapter 1 as one kind but
-/// never evolve across the timeline).
+// … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / never evolve across the timeline).
 struct RelationshipArcSuggestion: Sendable, Codable, Equatable, Identifiable {
     let id: UUID
     let fromCharacterId: UUID
@@ -299,9 +239,8 @@ struct RelationshipArcSuggestion: Sendable, Codable, Equatable, Identifiable {
 }
 
 // MARK: - Sidecar on-disk shape
-
-/// On-disk shape of the per-book sidecar. The actor reads /
-/// writes one of these per book (= keyed by `bookId`).
+// … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / writes one of these per book (= keyed by `bookId`).
 struct CharacterRelationshipSidecar: Codable, Sendable, Equatable {
     var bookId: UUID
     var relationships: [CharacterRelationship]
@@ -319,10 +258,8 @@ struct CharacterRelationshipSidecar: Codable, Sendable, Equatable {
 }
 
 // MARK: - Actor errors
-
-/// Errors thrown by `CharacterRelationshipTracker`. Mirrors the
-/// BookProjectConfigStore / BookTodoStore / LongFormGuardrails
-/// error conventions (= a LocalizedError per case).
+// … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / error conventions (= a LocalizedError per case).
 enum CharacterRelationshipTrackerError: Error, LocalizedError, Sendable, Equatable {
     case bookDirectoryNotFound(bookId: UUID)
     case relationshipNotFound(id: UUID)
@@ -341,35 +278,13 @@ enum CharacterRelationshipTrackerError: Error, LocalizedError, Sendable, Equatab
 }
 
 // MARK: - Actor
-
-/// Per-book character-relationship tracker. Holds the in-memory
-/// cache + owns the on-disk JSON sidecar.
-///
-/// Persistence: `<bookDir>/character-relationships.json`. The
-/// actor resolves `<bookDir>` via `BookStore.bookDirectory(bookId:)`
-/// (= the canonical forgiving walk that searches every shelf's
-/// `books/<id>/` subfolder).
-///
-/// Concurrency: actor (= Swift 6 strict concurrency). Reads /
-/// writes serialize cleanly across the SpecializedTools pane +
-/// any background LLM-side call sites.
-///
-/// Forgiving semantics (= matches the existing kanban / todo /
-/// long-form-guardrails sidecar convention):
-///   - Missing sidecar = empty list (= first-load behavior).
-///   - Corrupt sidecar = empty list (= never bricks the UI).
-///   - Missing book directory = throws
-///     `.bookDirectoryNotFound`.
-///
-/// Access level: internal (= the actor accepts the internal
-/// `BookStore` type as a constructor parameter; = per wenshu
-/// convention the view layer accesses the actor through the
-/// module's internal scope).
+// … (= 22 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// / module's internal scope).
 actor CharacterRelationshipTracker {
 
-    /// Sidecar on-disk filename (= parallel to
-    /// `kanban.json` / `todo.json` /
-    /// `long-form-guardrails.json`).
+    // / Sidecar on-disk filename (= parallel to
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / `long-form-guardrails.json`).
     private static let sidecarFilename = "character-relationships.json"
 
     private let bookStore: BookStore
@@ -382,17 +297,8 @@ actor CharacterRelationshipTracker {
     }
 
     // MARK: - Public surface (= matches the task spec verbatim)
-
-    /// Add a relationship. Persists + caches.
-    ///
-    /// Behaviour:
-    ///   - Refuses self-targeting edges (`from == to`) by throwing
-    ///     `.selfRelationship`.
-    ///   - Updates `isMutual` automatically (= true when the
-    ///     inverse direction already exists for the same pair).
-    ///   - Idempotent on `id`: re-adding with the same id replaces
-    ///     the existing row (= matches `BookKanbanStore` upsert
-    ///     policy).
+    // … (= 9 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // /     policy).
     func add(_ relationship: CharacterRelationship) async throws {
         guard relationship.fromCharacterId != relationship.toCharacterId else {
             throw CharacterRelationshipTrackerError.selfRelationship(id: relationship.id)
@@ -400,8 +306,7 @@ actor CharacterRelationshipTracker {
         var sidecar = try await loadOrCreateSidecar(bookId: relationship.bookId)
 
         // Auto-flip `isMutual` if the inverse direction already
-        // exists for the same pair. We look across all existing
-        // rows; if any row has from = B and to = A, the new row
+        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // is mutual AND we back-fill the inverse row too.
         let inverseExists = sidecar.relationships.contains { row in
             row.fromCharacterId == relationship.toCharacterId
@@ -419,8 +324,7 @@ actor CharacterRelationshipTracker {
         }
 
         // Back-fill the inverse row when we just declared this
-        // edge as mutual AND the inverse did not previously
-        // carry the mutual flag. The back-fill mirrors the
+        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // from/to kind so the graph stays consistent.
         if stamped.isMutual {
             for idx in sidecar.relationships.indices
@@ -439,11 +343,9 @@ actor CharacterRelationshipTracker {
         try await persistSidecar(sidecar)
     }
 
-    /// Update an existing relationship (= by id). Throws
-    /// `.relationshipNotFound` if the id is unknown.
-    ///
-    /// Re-runs the `isMutual` auto-flip after the update so the
-    /// flag stays consistent.
+    // / Update an existing relationship (= by id). Throws
+    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / flag stays consistent.
     func update(_ relationship: CharacterRelationship) async throws {
         guard relationship.fromCharacterId != relationship.toCharacterId else {
             throw CharacterRelationshipTrackerError.selfRelationship(id: relationship.id)
@@ -515,9 +417,9 @@ actor CharacterRelationshipTracker {
         try await persistSidecar(sidecar)
     }
 
-    /// All relationships in a book (= filterable by kind +
-    /// character). When both filters are nil, returns every row.
-    /// The character filter matches either side of the edge.
+    // / All relationships in a book (= filterable by kind +
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / The character filter matches either side of the edge.
     func list(
         bookId: UUID,
         kind: RelationshipKind? = nil,
@@ -562,11 +464,9 @@ actor CharacterRelationshipTracker {
         )
     }
 
-    /// Detect inconsistencies: any character pair declared with
-    /// >= 2 conflicting kinds (= e.g. A→B is both `ally` AND
-    /// `enemy`). Returns one `RelationshipInconsistency` per
-    /// conflicting pair; = the caller can render the list in
-    /// the SpecializedTools pane.
+    // / Detect inconsistencies: any character pair declared with
+    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / the SpecializedTools pane.
     func inconsistencies(bookId: UUID) async throws -> [RelationshipInconsistency] {
         let sidecar = try await loadOrCreateSidecar(bookId: bookId)
         // Group rows by canonical (= from < to) pair id.
@@ -601,20 +501,9 @@ actor CharacterRelationshipTracker {
         }
     }
 
-    /// Suggest relationship arcs.
-    ///
-    /// Strategy (= mirrors the hermes Python module's
-    /// `suggest_arcs` heuristic):
-    ///
-    ///   - For each canonical pair, collect the timeline of
-    ///     chapter ids across all rows (= the union of
-    ///     `establishedInChapterId`).
-    ///   - When the pair is declared with exactly ONE kind
-    ///     across >= `stagnantChapterThreshold` chapters, emit
-    ///     an arc suggestion (= "this pair has not evolved").
-    ///
-    /// Returns zero or more suggestions; = empty when no pair
-    /// meets the threshold (= common for early-draft books).
+    // / Suggest relationship arcs.
+    // … (= 12 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / meets the threshold (= common for early-draft books).
     func suggestArcs(
         bookId: UUID,
         stagnantChapterThreshold: Int = 3
@@ -651,9 +540,8 @@ actor CharacterRelationshipTracker {
     }
 
     // MARK: - Internals
-
-    /// Canonical pair key: smaller UUID sorts first; the result
-    /// is symmetric for `(A, B)` and `(B, A)`.
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / is symmetric for `(A, B)` and `(B, A)`.
     struct PairKey: Hashable, Equatable {
         let a: UUID
         let b: UUID
@@ -664,9 +552,9 @@ actor CharacterRelationshipTracker {
         return PairKey(a: b, b: a)
     }
 
-    /// Resolve the sidecar on disk for the given book. Walks the
-    /// shelves tree (= same forgiving walk as
-    /// `BookStore.bookDirectory(bookId:)`).
+    // / Resolve the sidecar on disk for the given book. Walks the
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / `BookStore.bookDirectory(bookId:)`).
     private func sidecarURL(bookId: UUID) throws -> URL {
         guard let bookDir = bookStore.bookDirectory(bookId: bookId) else {
             throw CharacterRelationshipTrackerError.bookDirectoryNotFound(bookId: bookId)
@@ -674,10 +562,9 @@ actor CharacterRelationshipTracker {
         return bookDir.appendingPathComponent(Self.sidecarFilename)
     }
 
-    /// Load the sidecar from disk (= or create an empty one +
-    /// persist if missing). Forgiving on corrupt JSON (= returns
-    /// an empty sidecar instead of throwing, matching the
-    /// kanban / todo / long-form-guardrails convention).
+    // / Load the sidecar from disk (= or create an empty one +
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / kanban / todo / long-form-guardrails convention).
     private func loadOrCreateSidecar(bookId: UUID) async throws -> CharacterRelationshipSidecar {
         if let cached = cache[bookId] { return cached }
         let url = try sidecarURL(bookId: bookId)
@@ -685,7 +572,7 @@ actor CharacterRelationshipTracker {
             let fresh = CharacterRelationshipSidecar(bookId: bookId)
             cache[bookId] = fresh
             // Do NOT persist a brand-new empty sidecar (= match
-            // the LongFormGuardrails first-load behaviour: only
+            // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // write to disk once the user actually adds a row).
             return fresh
         }
@@ -698,8 +585,7 @@ actor CharacterRelationshipTracker {
             return sidecar
         } catch {
             // Forgiving: log nothing (= no logger dependency);
-            // return an empty sidecar so the caller can keep
-            // going. Matches `BookKanbanStore` /
+            // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // `BookTodoStore` load paths.
             let empty = CharacterRelationshipSidecar(bookId: bookId)
             cache[bookId] = empty
@@ -723,11 +609,9 @@ actor CharacterRelationshipTracker {
         try fileManager.moveItem(at: tmpURL, to: url)
     }
 
-    /// Weight table (= per-kind scalar in 0.0 .. 1.0). The
-    /// values are deterministic + monotonically increasing with
-    /// emotional intensity (= the view can render thicker lines
-    /// for stronger kinds). Centralized here so tests can
-    /// reference the canonical values.
+    // / Weight table (= per-kind scalar in 0.0 .. 1.0). The
+    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / reference the canonical values.
     static func weight(for kind: RelationshipKind) -> Double {
         switch kind {
         case .acquaintance: return 0.1

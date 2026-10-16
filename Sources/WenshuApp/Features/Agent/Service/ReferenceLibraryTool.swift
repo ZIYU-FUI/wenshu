@@ -1,29 +1,6 @@
-//
-//  ReferenceLibraryTool.swift
-//
-//  Per-library reference CRUD tool (= wraps FileSystemReferenceStore).
-//
-//  Mirrors BookWorldTool / BookCharacterTool / BookChapterTool /
-//  BookOutlineTool patterns. The library-public scope differs from
-//  the per-book scope (= references are library-wide, not per-book;
-//  = every reference is reusable across all books in the library).
-//
-//  LLM-friendly verbs: create / read / update / delete / list / find /
-//  upsert (= upsert is the primary "research recurring" verb: same
-//  title = same document, edited in place; (see OOB.md #2026-09-25) directive).
-//
-//  Layer model:
-//    - .layerRaw       = the original source the user imports
-//    - .layerEntities  = user-facing entity layer (= character /
-//                        location / concept / artifact / etc.)
-//    - .layerAbstracts = LLM-derived (= NOT exposed to LLM via tool)
-//    - .layerIndexes   = LLM-derived (= NOT exposed to LLM via tool)
-//
-//  The Tool accepts `layer: "raw" | "entities"` (= only the user-
-//  facing layers; LLM-derived layers stay hidden per the spec v5
-//  ReferenceLayer.isUserFacing convention).
-//
-
+// 
+// … (= 23 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// 
 import Foundation
 
 // MARK: - ReferenceDescriptor
@@ -75,13 +52,12 @@ struct ReferenceDescriptor: Sendable, Codable, Equatable, Identifiable {
         self.title = reference.title
         self.displayTitle = reference.displayTitle
         // Map ReferenceLayer.wire_internal raw values (= "layerRaw" /
-        // "layerEntities") to the LLM-friendly wire names (= "raw" /
-        // "entities"). The internal case names are verbose because
+        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // the domain enum predates the agent tool surface.
         self.layer = Self.wireLayer(reference.layer)
         self.category = reference.category?.rawValue
         // Tags are emitted sorted for stable on-the-wire output (= the
-        // LLM emits them in any order; = the agent UI / tests can
+        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // depend on sorted form).
         self.tags = reference.tags.sorted()
         self.entityType = reference.entityType.rawValue
@@ -114,14 +90,9 @@ enum ReferenceLibraryAction: String, Sendable, Codable, CaseIterable, Equatable 
     case list
     case find
     case upsert
-    /// Append a new section to an existing reference's body (= the
-    /// self-evolution mechanism). When the user prompt adds more context to a
-    /// noun (= e.g. 'protagonist born in Xi'an' → 'protagonist lives in the
-    /// Ming dynasty' → 'protagonist ate a bowl of Yangrou Paomo in Xi'an'), the
-    /// agent extends the existing reference with new sections rather than
-    /// rewriting the body from scratch. Sections whose `section_title` already
-    /// exists are merged (= later occurrences update the older section instead
-    /// of creating duplicates).
+    // / Append a new section to an existing reference's body (= the
+    // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / of creating duplicates).
     case extend
 }
 
@@ -265,24 +236,9 @@ final class ReferenceLibraryActor {
         }
     }
 
-    /// Append a new section to an existing reference's body (= the
-    /// self-evolution mechanism). When the user prompt adds more context to a
-    /// noun (= e.g. 'protagonist born in Xi'an' → 'protagonist lives in the
-    /// Ming dynasty' → 'protagonist ate a bowl of Yangrou Paomo in Xi'an'), the
-    /// agent extends the existing reference with new sections rather than
-    /// rewriting the body from scratch. Sections whose `section_title` already
-    /// exists are merged (= later occurrences update the older section content
-    /// instead of creating duplicates). Wire-format: - id (UUID, required): the
-    /// reference to extend (= the agent should `find` the existing reference by
-    /// title first, then call extend with that id). - section_title (string,
-    /// required): the section heading to add or merge. Prepended with `## ` (=
-    /// h2) in the body. - section_body (string, required): the new content for
-    /// the section. Markdown is preserved. - tags (array of strings, optional):
-    /// tags to add (= unioned with existing tags; = never replaces). - summary
-    /// (string, optional): if non-empty, replaces the existing summary (the
-    /// latest high-level blurb wins). - source / url (strings, optional): if
-    /// non-empty, replaces existing source / url. Returns the updated
-    /// `ReferenceDescriptor`. Throws `entryNotFound` if the id doesn't exist.
+    // / Append a new section to an existing reference's body (= the
+    // … (= 16 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / `ReferenceDescriptor`. Throws `entryNotFound` if the id doesn't exist.
     func extendReference(
         id: UUID,
         sectionTitle: String,
@@ -313,9 +269,7 @@ final class ReferenceLibraryActor {
         // Tag merge: union (= never replace).
         let mergedTags = existing.tags.union(tags)
         // Field updates: only overwrite summary / source / url when
-        // the caller explicitly provides non-empty values. Optional
-        // nil keeps the existing value (= (see OOB.md #2026-09-25) directive:
-        // the latest high-level blurb wins; = don't drop a known-good
+        // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // summary just because the extend call didn't pass one).
         do {
             let updated = try referenceStore.upsertReference(
@@ -335,14 +289,9 @@ final class ReferenceLibraryActor {
         }
     }
 
-    /// Merge `## <sectionTitle>` into `existingBody`. If a section with that
-    /// title already exists, its content is replaced with the new body (= the
-    /// most recent research wins; = no duplicate sections). If no section with
-    /// that title exists, the section is appended at the end of the body.
-    /// Markdown section parser: splits on lines that start with exactly `## `
-    /// (= h2 sections; = we don't merge into h1 titles or h3+ subsections
-    /// because the reference body's top-level structure is h2 per the writer
-    /// convention).
+    // / Merge `## <sectionTitle>` into `existingBody`. If a section with that
+    // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / convention).
     static func mergeSection(
         into existingBody: String,
         sectionTitle: String,
@@ -351,7 +300,7 @@ final class ReferenceLibraryActor {
         let heading = "## \(sectionTitle)"
         let newSection = "\(heading)\n\n\(sectionBody.trimmingCharacters(in: .whitespacesAndNewlines))\n"
         // Look for an existing `## <sectionTitle>` heading line.
-        // We match the heading line prefix only (= the section ends
+        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // at the next `## ` heading or at end-of-body).
         var lines = existingBody.components(separatedBy: "\n")
         var headingLineIndex: Int?
@@ -378,7 +327,7 @@ final class ReferenceLibraryActor {
             lines.replaceSubrange(start..<endIndex, with: replacementLines)
         } else {
             // No existing section — append. Insert a blank-line
-            // separator if the body is non-empty and doesn't end
+            // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // with one.
             if !existingBody.isEmpty,
                !existingBody.hasSuffix("\n\n") {
@@ -399,7 +348,7 @@ final class ReferenceLibraryActor {
         let filtered: [Reference]
         if let layer {
             // Explicit layer requested. Reject LLM-derived layers
-            // (= .layerAbstracts / .layerIndexes) by returning empty
+            // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // rather than silently falling back to user-managed.
             guard let parsedLayer = parseLayerIfUserFacing(layer) else {
                 return []
@@ -407,7 +356,7 @@ final class ReferenceLibraryActor {
             filtered = all.filter { $0.layer == parsedLayer }
         } else {
             // Default: user-managed layers (= raw + entities; =
-            // excludes the LLM-derived .layerAbstracts / .layerIndexes
+            // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // which stay hidden per the spec v5 convention).
             filtered = all.filter { $0.layer == .layerRaw || $0.layer == .layerEntities }
         }
@@ -436,12 +385,9 @@ final class ReferenceLibraryActor {
         return match.map { ReferenceDescriptor($0) }
     }
 
-    /// Upsert by title within a layer (= the recurring-research path). If an
-    /// entry with the same case-insensitive trimmed title already exists in the
-    /// layer, its body + summary + source + url + tags + updatedAt are
-    /// refreshed in place (= tags from the new payload are merged with existing
-    /// tags, not replaced, so the cross-cutting facet is monotonically
-    /// growing); otherwise a new reference is created with a fresh UUID.
+    // / Upsert by title within a layer (= the recurring-research path). If an
+    // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / growing); otherwise a new reference is created with a fresh UUID.
     func upsertReference(
         title: String,
         bodyMarkdown: String,
@@ -462,8 +408,7 @@ final class ReferenceLibraryActor {
         let parsedType = EntityType(rawValue: entityType) ?? .other
         do {
             // Tag merge strategy: for an existing entry, the new tags
-            // are unioned with the existing tags (= the user/LLM can
-            // add tags over time without losing previously-classified
+            // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // ones). For a fresh entry, the tags land as-is.
             let existingRefs = (try? referenceStore.loadReferences(layer: parsedLayer)) ?? []
             let normalizedTitle = trimmed.lowercased()
@@ -494,10 +439,8 @@ final class ReferenceLibraryActor {
     }
 
     // MARK: - Layer parsing
-
-    /// Map LLM-facing string to ReferenceLayer. Defaults to .layerRaw (= the
-    /// most common research target). LLM-derived layers (.layerAbstracts /
-    /// .layerIndexes) are explicitly rejected.
+    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / .layerIndexes) are explicitly rejected.
     private func parseLayer(_ raw: String) -> ReferenceLayer {
         switch raw.lowercased() {
         case "raw", "sourcematerial":
@@ -506,7 +449,7 @@ final class ReferenceLibraryActor {
             return .layerEntities
         case "abstracts":
             // LLM-derived: silently fall back to raw (= the LLM should
-            // not be writing abstracts; = the tool rejects gracefully
+            // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // by routing to .layerRaw and the user can re-classify).
             return .layerRaw
         case "indexes":
@@ -516,9 +459,9 @@ final class ReferenceLibraryActor {
         }
     }
 
-    /// Same as parseLayer, but used by list / find (= returns nil if the LLM
-    /// asked for an LLM-derived layer = the operation silently returns no
-    /// results rather than crashing).
+    // / Same as parseLayer, but used by list / find (= returns nil if the LLM
+    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / results rather than crashing).
     private func parseLayerIfUserFacing(_ raw: String) -> ReferenceLayer? {
         switch raw.lowercased() {
         case "raw", "sourcematerial":
@@ -570,7 +513,7 @@ final class ReferenceLibraryActor {
                 let layer = envelope["layer"] as? String ?? "raw"
                 let category = envelope["category"] as? String
                 // Tags is an optional [String] in the envelope. Accept
-                // both `["a","b"]` (= canonical) and `nil` (= LLM didn't
+                // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
                 // provide any tags).
                 let tagsArray = envelope["tags"] as? [String] ?? []
                 let tags = Set(tagsArray)
@@ -663,16 +606,14 @@ final class ReferenceLibraryActor {
                     summary: summary
                 )
                 // The "created" flag in the JSON envelope tells the
-                // LLM whether this upsert hit the create branch or
+                // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
                 // the update branch.
                 let wasCreated = Date().timeIntervalSince(reference.createdAt) < 1.0
                 return Self.encodeSuccess(action: action, reference: reference, created: wasCreated)
 
             case .extend:
                 // Self-evolution mechanism. The agent finds an
-                // existing reference via `find` first, then calls
-                // extend with the id + a `section_title` + the new
-                // section body. We append (= or merge if the section
+                // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
                 // already exists) rather than rewriting the body.
                 let id = envelope["id"] as? String
                     ?? (envelope["id"] as? [String: Any])?["value"] as? String
@@ -822,8 +763,7 @@ final class ReferenceLibraryActor {
         if let source = d.source { dict["source"] = source }
         if let url = d.url { dict["url"] = url }
         // Tags are emitted sorted (= the LLM / agent UI sees a
-        // deterministic ordering regardless of insertion order). Even
-        // when the set is empty, the key is present (= forward-compat
+        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // — consumers don't need to handle missing-key vs nil).
         dict["tags"] = d.tags
         return dict

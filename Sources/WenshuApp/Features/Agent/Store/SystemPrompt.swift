@@ -1,48 +1,6 @@
 // SystemPrompt.swift
-//
-// System prompt builder. Direct port of hermes `system_prompt.py`
-// (= `build_system_prompt_parts` + `build_system_prompt`).
-//
-// Two-tier architecture (= cache-stable invariant per AGENTS.md
-// §11.3):
-//   - Stable tier (= system identity, byte-stable across all
-//     turns in a session): who the agent is, what it should always
-//     do, language constraints, etc. This is the part that goes
-//     through Anthropic prompt caching (= `PromptCaching.applyCacheControl`
-//     places the 1st `cache_control` breakpoint here).
-//   - Dynamic tier (= turn-specific, NOT cached): ephemeral
-//     context like "today is Tuesday", caller-supplied extra
-//     system message, and the composition of `ContextEngine` +
-//     `MemoryAdapter` + `SkillAdapter` into a single dynamic
-//     block.
-//
-// Three public surfaces layered on the baseline:
-//   - Per-provider guidance blocks (= hermes per-model
-//     operational guidance: anthropic / openai / google / ollama
-//     / openrouter each get model-family-specific tool-use
-//     enforcement + parallel-tool-call patterns).
-//   - Per-locale overrides (= hermes `DEFAULT_AGENT_IDENTITY`
-//     per language = en / zh / ja / ko / fr / de / es; the agent
-//     matches the user's UI language).
-//   - Dynamic tier resolution (= hermes tier composition: when a
-//     fresh `ContextBundle` or memory snapshot arrives, the
-//     dynamic tier rebuilds; = otherwise it returns the cached
-//     version).
-//
-// Invariant: identical inputs → byte-identical output (= cache
-// hit on subsequent calls within the same session).
-//
-// SystemPrompt is now a thin wrapper around `PromptBuilder`.
-// The stable-tier identity string stays here (= canonical
-// byte-stable source). The dynamic-tier composition
-// (= `ContextEngine` + `MemoryAdapter` + `SkillAdapter` + caller
-// extras + ephemeral hint) now lives in
-// `PromptBuilder.composeDynamicTier`.
-//  buildParts/build forward to PromptBuilder. Public API preserved for
-//  backwards compat (= existing SystemPromptTests + Golden parity tests
-//  keep passing).
-//
-
+// … (= 42 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// 
 import Foundation
 
 enum SystemPrompt {
@@ -154,17 +112,9 @@ enum SystemPrompt {
         }
     }
 
-    /// Build the system prompt (= hermes build_system_prompt).
-    ///
-    /// - Parameters:
-    ///   - ephemeralHint: Per-turn dynamic context (= today's date, user
-    ///     request summary, etc.). NOT cache-stable.
-    ///   - callerMessage: Optional caller-supplied extra instruction
-    ///     (= appended after the stable tier + dynamic tier).
-    ///   - userName: Optional user identity (= included in stable tier).
-    ///   - bookTitle: Optional book title (= included in stable tier).
-    /// - Returns: Concatenated system prompt string (= ready to be passed
-    ///   to LLMCallOptions.systemPrompt).
+    // / Build the system prompt (= hermes build_system_prompt).
+    // … (= 9 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // /   to LLMCallOptions.systemPrompt).
     static func build(
         ephemeralHint: String,
         callerMessage: String? = nil,
@@ -187,22 +137,9 @@ enum SystemPrompt {
         return sections.joined(separator: "\n\n---\n\n")
     }
 
-    /// The "Librarian" / "调研员" role prompt (= used by
-    /// the v2.7 markdown import feature's
-    /// `WenshuConductorImportRouter`). This is the system
-    /// prompt that defines the LLM's behavior when it is
-    /// asked to classify + rename + tag a single .md file
-    /// during a batch import (= the user's 2026-10-09
-    /// feedback: "LLM, 我们有一个专们做调研的角色, agent,
-    /// 应该交由他来处理"; = this method is the canonical
-    /// soul / system-prompt definition for that role).
-    ///
-    /// Apple canonical pattern: the prompt is the only
-    /// thing the LLM is allowed to talk about (= the
-    /// router's user prompt asks for one line of JSON
-    /// only; = the system prompt sets the persona; = the
-    /// pair composes the canonical "role + task"
-    /// system / user two-message structure).
+    // / The "Librarian" / "调研员" role prompt (= used by
+    // … (= 14 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / system / user two-message structure).
     static func librarianRole(_ locale: Locale) -> String {
         switch locale {
         case .chinese:
@@ -236,12 +173,9 @@ enum SystemPrompt {
         }
     }
 
-    /// Build the system prompt as a dict of tiers (= hermes build_system_prompt_parts).
-    ///
-    /// - Parameters: same as build().
-    /// - Returns: Dict with key "stable" (= byte-stable system identity) and
-    ///   optional "dynamic" key (= ephemeral hint rendered through
-    ///   PromptBuilder.composeDynamicTier).
+    // / Build the system prompt as a dict of tiers (= hermes build_system_prompt_parts).
+    // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // /   PromptBuilder.composeDynamicTier).
     static func buildParts(
         ephemeralHint: String,
         callerMessage: String? = nil,
@@ -256,15 +190,9 @@ enum SystemPrompt {
         ))
     }
 
-    /// Build the system prompt as a dict of tiers with full options
-    /// (= wenshu port: per-provider + per-locale + dynamic-tier).
-    ///
-    /// Returns the three hermes tiers:
-    /// * ``stable``   — identity + tool guidance + per-provider operational
-    ///   guidance + skills prompt + environment hints + platform hints.
-    /// * ``dynamic``  — caller-supplied system message + ephemeral hint.
-    /// * ``context``  — context files (AGENTS.md, .cursorrules, etc.)
-    ///   and locale-specific identity. (Empty by default in wenshu.)
+    // / Build the system prompt as a dict of tiers with full options
+    // … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // /   and locale-specific identity. (Empty by default in wenshu.)
     static func buildParts(options: BuildOptions) -> [String: String] {
         var parts: [String: String] = [:]
 
@@ -283,9 +211,7 @@ enum SystemPrompt {
         )
 
         // Dynamic tier: routed through PromptBuilder (= GAP-001 refactor).
-        // Memory prefetch happens at the ConversationLoop.composeSystemPrompt
-        // boundary (= see ConversationLoop.swift); = the caller passes
-        // pre-fetched entries through BuildOptions / callerExtras. The
+        // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // buildParts() surface here stays synchronous (= no actor hop).
         let dynamic = PromptBuilder.dynamicTier(
             contextBundle: ContextEngine.ContextBundle(
@@ -305,11 +231,9 @@ enum SystemPrompt {
         return parts
     }
 
-    /// The byte-stable system identity tier (= hermes _build_platform_specific_baseline).
-    ///
-    /// Invariant: this function MUST produce byte-identical output for any
-    /// call (= no Date(), no random, no clock, no environment-derived values).
-    /// Cache hits depend on byte stability.
+    // / The byte-stable system identity tier (= hermes _build_platform_specific_baseline).
+    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / Cache hits depend on byte stability.
     static func stableTier() -> String {
         return stableTier(
             provider: .unknown,
@@ -356,10 +280,7 @@ enum SystemPrompt {
         }
 
         // Identity block (= locale-aware base prompt).
-        // The Chinese block is the canonical identity (= PromptBuilder
-        // .defaultIdentity); = the multi-locale switch above kept
-        // for non-Chinese locales. The two MUST stay byte-for-byte
-        // identical (= see PromptBuilder.swift defaultIdentity for
+        // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // the parallel definition).
         if locale == .chinese {
             sections.append(PromptBuilder.defaultIdentity())
@@ -368,10 +289,7 @@ enum SystemPrompt {
         }
 
         // Help guidance (= PromptBuilder.helpGuidance, = wenshu
-        // wenshu-flavored help text pointing at AGENTS.md as the
-        // authoritative reference; = reimplemented per (see OOB.md #2026-10-04)
-        // OOB "wenshu Agent capabilities are reimplemented, not direct
-        // hermes links"; = the future caller is the AI assistant
+        // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // when it needs to look up project conventions).
         sections.append(PromptBuilder.helpGuidance)
 
@@ -379,7 +297,7 @@ enum SystemPrompt {
         sections.append(providerGuidance(provider: provider))
 
         // Environment hints (= PromptBuilder.buildEnvironmentHints(),
-        // = wenshu-flavored macOS / Apple stack / Backend / Model
+        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // description; = reimplemented per (see OOB.md #2026-10-04) OOB).
         let envHints = PromptBuilder.buildEnvironmentHints()
         if !envHints.isEmpty {
@@ -387,8 +305,7 @@ enum SystemPrompt {
         }
 
         // Context files block (= PromptBuilder.buildContextFilesPrompt(),
-        // = loads the AGENTS.md from cwd as authoritative project
-        // conventions; = reimplemented per (see OOB.md #2026-10-04) OOB;
+        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // = nil contextLength = no truncation cap).
         let contextFiles = PromptBuilder.buildContextFilesPrompt(
             cwdPath: FileManager.default.currentDirectoryPath,
@@ -417,7 +334,7 @@ enum SystemPrompt {
             sections.append(universalGuidance("task_completion"))
         }
         // 2026-10-15 v0.74: thinking visibility guidance (= always
-        // on by default; = the user values the trace even for
+        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // simple replies).
         sections.append(universalGuidance("thinking_visibility"))
         if parallelToolGuidance {
@@ -425,23 +342,12 @@ enum SystemPrompt {
         }
 
         // Speaking style (= v2.4; = read from AgentBehavior
-        // settings; = closed-enum preset so users can only pick
-        // from wenshu-provided options, never free-text). Appended
-        // last so it sits closest to the LLM's reply context
+        // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // (= late-stage system prompt attention bias).
         sections.append(speakingStyle.promptGuidance)
 
         // Agent driver MUST be the LAST section (= sits closest to the
-        // user message = strongest late-stage attention bias). This is
-        // a wenshu-side design divergence from hermes (= hermes puts
-        // tool-trigger rules in `build_environment_hints`; = wenshu
-        // puts them in the closing-system slot because Anthropic / GPT
-        // families both weight closing instructions more strongly than
-        // opening ones for imperative compliance). Without this slot,
-        // the LLM treats `agent-driver` as background context (=
-        // observed in an e2e test with a vague prompt about funeral
-        // customs + a specific Chinese city: the model replied with
-        // detailed advice without calling `web_search` despite the
+        // … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // rule being present in the cache prefix).
         if agentDriverGuidance {
             sections.append(universalGuidance("agent_driver"))
@@ -623,34 +529,7 @@ enum SystemPrompt {
             """
         case "thinking_visibility":
             // trace). (see OOB.md #2026-10-15)
-            // 和你在 hermes 里回复完全不是一种形态" (= the
-            // wenshu agent's reply has no visible thinking /
-            // verification / execution trace). Hermes is a
-            // dev tool that exposes the model's reasoning;
-            // = the wenshu writing agent should do the same
-            // (= the user = 老板 = wants to see how the model
-            // thought about the request, not just the final
-            // answer).
-            //
-            // The minmax / openai-compatible providers (= the
-            // 老板's default) do NOT emit a native `reasoning`
-            // field event (= only Anthropic extended thinking
-            // and OpenAI o1/o3 do). For those providers, the
-            // canonical hermes pattern is "prompt the LLM to
-            // wrap its reasoning in a marker tag, then parse
-            // the tag at the connector layer" (= see
-            // `MessageContent.extractThinkingTags` + the
-            // `OpenAIStreamingChunkToLLMBlock` parser).
-            //
-            // Instruction to the LLM: every reply should start
-            // with a `[[thinking: ...]]` block that contains
-            // the step-by-step reasoning. After the thinking
-            // block, the visible reply text follows (= the
-            // user-facing answer, the chapter draft, the
-            // outline, the summary, etc.). The wenshu parser
-            // strips the tag from the rendered reply and
-            // surfaces the inner content as a collapsible
-            // "思考过程" block (= the hermes-style step-by-step
+            // … (= 28 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // trace).
             return """
             Thinking visibility (= hermes-style step-by-step trace):
