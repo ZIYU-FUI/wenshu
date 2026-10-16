@@ -178,10 +178,17 @@ struct ChatView: View {
             // async load history via .task modifier (non-blocking)
             .task {
                 await vm.loadAvailableModels()
-                // C-5: chat history loads via ChatSessionViewModel.loadHistory()
+                // / Per boss 2026-10-16 OOB "如果没配 key, 就只显示
                 // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-                // to ChatMessage lives in LiveChatRepository).
-                await vm.loadHistory()
+                // / the persisted history to surface on the first
+                // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+                // / the moment the user configures a key (= the
+                // / "showing the OLD conversations behind the empty
+                // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+                // / ephemeral when the provider is not configured.
+                if hasUsableKey {
+                    await vm.loadHistory()
+                }
             }
 
             // 2026-09-23: the compression pill dropped entirely

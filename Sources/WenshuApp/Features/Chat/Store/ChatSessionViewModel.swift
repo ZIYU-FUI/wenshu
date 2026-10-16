@@ -696,6 +696,18 @@ final class ChatViewModel {
     // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / global un-attached).
     func loadHistory() async {
+        // / Per boss 2026-10-16 OOB "如果没配 key, 就只显示空态,
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+        // / chat history (= call sites in `ChatView.task` also
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+        // / when no key is configured = the persisted rows are not
+        // / surfaced behind the empty-state overlay. This is the
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+        // / ephemeral when the provider is not configured.
+        if ProviderKeychain.listProvidersWithKeys().isEmpty {
+            self.messages = []
+            return
+        }
         do {
             let loaded = try await repository.loadMessages(sessionId: sessionId, bookID: currentBookID)
             // "持久化的聊天记录, 重新渲染顺序有问题, 问答先后顺序混乱" (see OOB.md #2026-07-23)
