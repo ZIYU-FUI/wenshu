@@ -520,113 +520,25 @@ final class ChatViewModel {
                     )
                 }
             } else {
-                // Render each text chunk as
-                // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-                // 5-10s wait for the full reply).
-                let verifier = WenshuVerifier()
-                let stream = verifier.streamChat(
-                    text,
-                    system: WenshuConductorIdentity.systemPrompt,
-                    model: currentModel
-                )
-                var buffer = ""
-                // 
-                // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-                // open .text part" strategy in `use-message-stream`).
-                var streamingParts: [ChatMessagePart] = []
-                var streamingThinking: String = ""
-                for try await block in stream {
-                    switch block {
-                    case .text(let chunk):
-                        buffer += chunk
-                        // Append into the trailing .text
-                        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-                        // Hermes `appendAssistantTextPart`.
-                        if case .text(let last) = streamingParts.last?.kind {
-                            streamingParts[streamingParts.count - 1] = .text(last + chunk)
-                        } else {
-                            streamingParts.append(.text(chunk))
-                        }
-                        // Render the accumulated buffer into the
-                        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-                        // streaming UI in ChatMessageView).
-                        if let idx = messages.firstIndex(where: { $0.id == placeholderId }) {
-                            messages[idx] = ChatMessage(
-                                id: placeholderId,
-                                role: .agent,
-                                source: .wenshu,
-                                content: buffer,
-                                tokens: nil,
-                                parts: streamingParts,
-                                streamState: .streaming
-                            )
-                        }
-                    case .thinking(let text, _):
-                        streamingThinking += text
-                        replyThinking = streamingThinking
-                        // Append into the trailing .reasoning
-                        // part (= Hermes `appendReasoningPart`).
-                        if case .reasoning(let last) = streamingParts.last?.kind {
-                            streamingParts[streamingParts.count - 1] = .reasoning(last + text)
-                        } else {
-                            streamingParts.append(.reasoning(text))
-                        }
-                        if let idx = messages.firstIndex(where: { $0.id == placeholderId }) {
-                            messages[idx] = ChatMessage(
-                                id: placeholderId,
-                                role: .agent,
-                                source: .wenshu,
-                                content: buffer,
-                                tokens: nil,
-                                thinking: streamingThinking,
-                                parts: streamingParts,
-                                streamState: .streaming
-                            )
-                        }
-                    case .toolUse(let id, let name, let input):
-                        // `tool_use` events now
-                        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-                        // legacy `content` until P7 lands.
-                        streamingParts.append(.toolUse(
-                            id: ToolCallID(rawValue: id), name: name, args: input
-                        ))
-                        if let idx = messages.firstIndex(where: { $0.id == placeholderId }) {
-                            messages[idx] = ChatMessage(
-                                id: placeholderId,
-                                role: .agent,
-                                source: .wenshu,
-                                content: buffer,
-                                tokens: nil,
-                                parts: streamingParts,
-                                streamState: .streaming
-                            )
-                        }
-                    case .unknown:
-                        // `WenshuVerifier.streamChat`
-                        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-                        // conductor path above).
-                        break
-                        }
-                }
-                // Mark the message as sealed (= the
-                // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-                // shimmer / hide the activity timer.
-                if let idx = messages.firstIndex(where: { $0.id == placeholderId }) {
-                    messages[idx] = ChatMessage(
-                        id: placeholderId,
-                        role: .agent,
-                        source: .wenshu,
-                        content: buffer,
-                        tokens: nil,
-                        thinking: streamingThinking,
-                        parts: streamingParts,
-                        streamState: .sealed
-                    )
-                }
-                reply = buffer
-                if reply.isEmpty {
-                    reply = "(no reply)"
-                }
+                // AGENT-LOOP (boss 2026-10-16 OOB "agent 没有达到 agent
+                // 的标准"): the conductor is now ALWAYS wired with the
+                // active connector (= commit 7de86fc08 = WenshuAppDelegate
+                // + ChatView both pass `WenshuAppDelegateLLMHelpers.
+                // activeLLMConnector()` at construction time). The
+                // old `WenshuVerifier.streamChat` fallback (= the
+                // "small liar" path that returned a single LLM reply
+                // with no tool dispatch) is unreachable in production.
+                // If we ever land here (= conductor is nil), the
+                // agent is not configured at all. Surface the failure
+                // plainly instead of silently running the no-ReAct
+                // fallback. (= the WenshuLLMBlock / WenshuLLMError
+                // types remain on disk for the legacy pipeline in
+                // WenshuConductorLegacyPipeline; the streaming method
+                // is gone.)
+                reply = "（agent 未配置, 请检查 WenshuAppDelegate 是否注入了 connector）"
+                let msgPrefixForLog = String(text.prefix(40))
+                Logger(subsystem: "com.wenshu.app", category: "chat.conductor")
+                    .error("[wenshu.conductor] PATH=missing-conductor REASON=conductor_was_nil msg_prefix=\(msgPrefixForLog, privacy: .public)")
             }
             // If the placeholder wasn't updated by streaming (= the
             // blocking path), set it now (= single-replacement).
