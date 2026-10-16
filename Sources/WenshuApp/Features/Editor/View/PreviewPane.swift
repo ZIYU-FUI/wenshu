@@ -69,6 +69,17 @@ struct PreviewPane: View {
     // / custom search field.
     var customLeadingSearch: AnyView? = nil
 
+    /// Whether the pane renders its own internal column-top header
+    /// (= `SectionHeader(title)` + search chrome + cards). The
+    /// standalone preview-tab call site (= `PaneView.swift`) keeps
+    /// the default `true` so the tab's own window still shows the
+    /// column title. The column-embedded call site (= `AssetsPane`)
+    /// passes `false` and instead renders the column title in its
+    /// OWN `EditorHeaderView` chrome band, so its top edge lines up
+    /// with the editor's format toolbar (= same 28 PT height + same
+    /// bottom Divider Y-coordinate).
+    var renderSectionHeader: Bool = true
+
     // / Legacy internal search state. Used when `searchQuery` (= the new
     // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / behavior change.
@@ -92,7 +103,8 @@ struct PreviewPane: View {
         previewSortOrder: Binding<EntitySortOrder>,
         searchQuery: Binding<String?> = .constant(nil),
         customLeadingSearch: AnyView? = nil,
-        activeTag: Binding<String?> = .constant(nil)
+        activeTag: Binding<String?> = .constant(nil),
+        renderSectionHeader: Bool = true
     ) {
         self.scope = scope
         self.onDoubleClick = onDoubleClick
@@ -100,6 +112,7 @@ struct PreviewPane: View {
         self._searchQuery = searchQuery
         self._activeTag = activeTag
         self.customLeadingSearch = customLeadingSearch
+        self.renderSectionHeader = renderSectionHeader
     }
 // / : 'cards display in multiple columns, default two columns, if the zone is dragged narrower,
 // … (= 24 rationale lines collapsed; = A112 docblock collapse per §1.8)
@@ -115,22 +128,32 @@ struct PreviewPane: View {
             // Per Apple HIG / platform-default style: the section-header block (=
             // … (= 44 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // PreviewPane no longer hardcodes the geometry here).
-            SectionHeader(
-                title: String(localized: "preview.column.title"),
-                // Per boss 2026-10-16 OOB "我不想要那个间距": the assets
-                // column renders `EditorHeaderView` (= the chrome band
-                // wrapping the search field) directly below the title's
-                // divider. The chrome band already carries its own 28 PT
-                // row height + 8 PT horizontal padding; the section
-                // header's trailing 10 PT inset would create a redundant
-                // vertical gap between the divider and the search chrome
-                // (= the gap the user described as "搜索框和标题的分割线
-                // 之间有间距"). Suppress the trailing inset here; the
-                // default `true` still applies to sidebar + inspector,
-                // which render a list with internal padding right below
-                // the section header.
-                trailingInset: false
-            )
+            //
+            // Rendered only when `renderSectionHeader == true` (= the
+            // default). Column-embedded call sites (= `AssetsPane`) pass
+            // `renderSectionHeader: false` and render the column title in
+            // their OWN `EditorHeaderView` chrome band, so both zones share
+            // the same two-stacked-28-PT-chrome-rows layout and the dividers
+            // line up across columns. Standalone preview tabs (= `PaneView`)
+            // keep the default and continue to show the centered title text.
+            if renderSectionHeader {
+                SectionHeader(
+                    title: String(localized: "preview.column.title"),
+                    // Per boss 2026-10-16 OOB "我不想要那个间距": the assets
+                    // column renders `EditorHeaderView` (= the chrome band
+                    // wrapping the search field) directly below the title's
+                    // divider. The chrome band already carries its own 28 PT
+                    // row height + 8 PT horizontal padding; the section
+                    // header's trailing 10 PT inset would create a redundant
+                    // vertical gap between the divider and the search chrome
+                    // (= the gap the user described as "搜索框和标题的分割线
+                    // 之间有间距"). Suppress the trailing inset here; the
+                    // default `true` still applies to sidebar + inspector,
+                    // which render a list with internal padding right below
+                    // the section header.
+                    trailingInset: false
+                )
+            }
             // Per Apple HIG / platform-default style: remove the custom top inset (=
             // … (= 24 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // legacy callers / tests still work).

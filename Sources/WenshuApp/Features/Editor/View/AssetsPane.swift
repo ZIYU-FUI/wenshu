@@ -127,9 +127,57 @@ struct AssetsPane: View {
         // … (= 60 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // correctly; = survives PreviewPane re-instantiation).
         VStack(spacing: 0) {
-            // 2026-10-12 [archived-round] boss directive "你看其它三
-            // … (= 98 rationale lines collapsed; = A112 docblock collapse per §1.8)
-            // updates the other live (= the same envAppState.searchText).
+            // Per boss 2026-10-16 OOB "搜索框与右边编辑器区的工具栏
+            // 的下分割线, 不在一条线上": the assets column now uses
+            // the same two-stacked-28-PT-chrome-row shape as the
+            // editor column (= format toolbar + title bar below it),
+            // so both columns' bottom dividers land at the same
+            // Y-coordinate.
+            //   - chrome row 1: EditorHeaderView (title text) — aligns
+            //     with the editor's format toolbar bottom divider.
+            //   - chrome row 2: EditorHeaderView (search field) — aligns
+            //     with the editor's title bar bottom divider.
+            // `PreviewPane` itself gets `renderSectionHeader: false`
+            // and `customLeadingSearch: nil` (= the title + search chrome
+            // here in AssetsPane replaces the column-top surfaces that
+            // PreviewPane would otherwise render internally). The
+            // standalone preview-tab call site (= `PaneView`) keeps the
+            // default surface and continues to show the centered title.
+            VStack(spacing: 0) {
+                // chrome row 1 — column title.
+                EditorHeaderView(
+                    title: String(localized: "preview.column.title"),
+                    dirtyState: nil
+                )
+                // chrome row 2 — search field (same chrome geometry as
+                // the editor's title bar; = the single source of truth
+                // for the column-top chrome row in wenshu is
+                // EditorHeaderView).
+                EditorHeaderView {
+                    // RATIONALE: boss 2026-10-16 OOB "给素材区顶部的搜索框, 套上
+                    // 一个和编辑器区一样的顶栏" — editor's chrome band is
+                    // already the canonical column-top shape; the search
+                    // field is the only thing living above the cards grid.
+                    HStack(spacing: DesignTokens.spacingIconic) {
+                        SFIcon(
+                            "magnifyingglass",
+                            style: .inlineSmall,
+                            color: IconColor.secondary
+                        )
+                        TextField(
+                            String(localized: "preview.search.placeholder"),
+                            text: Binding(
+                                get: { envAppState.searchText },
+                                set: { newValue in
+                                    envAppState.searchText = newValue
+                                }
+                            )
+                        )
+                        .controlSize(.regular)
+                        .textFieldStyle(.plain)
+                    }
+                }
+            }
             PreviewPane(
                 scope: previewScope(),
                 // Card double-click opens the document in the editor pane
@@ -143,49 +191,15 @@ struct AssetsPane: View {
                     get: { envAppState.searchText },
                     set: { newValue in envAppState.searchText = newValue ?? "" }
                 ),
-                customLeadingSearch: AnyView(
-                    // Column-top chrome band wrapping the search field
-                    // (= same shape as the editor zone's top bar; = 28 PT
-                    // height + Divider + 8 PT horizontal padding; = the
-                    // single source of truth for "column-top chrome row in
-                    // wenshu" lives in EditorHeaderView; = no duplicate
-                    // chrome geometry per the 41-rule audit + AGENTS §6.2).
-                    // RATIONALE: boss 2026-10-16 OOB "给素材区顶部的搜索框, 套上
-                    // 一个和编辑器区一样的顶栏" — editor's chrome band is
-                    // already the canonical column-top shape; the search
-                    // field is the only thing living above the cards grid
-                    // (= the assets zone's analog to the editor's title bar
-                    // above the NSTextView).
-                    EditorHeaderView {
-                        // Search field body lives INSIDE the chrome band's
-                        // leading slot (= title cluster replaced). Per
-                        // Apple HIG macOS toolbar pattern, the icons sit
-                        // inline with the input; = no inner-padded
-                        // TextField wrapper (= the 28 PT chrome band itself
-                        // provides the row height). The two prior
-                        // RoundedRectangle(.clear) backgrounds were no-ops
-                        // (= previous round dropped the inner pill
-                        // background; the chrome band is the surface now).
-                        HStack(spacing: DesignTokens.spacingIconic) {
-                            SFIcon(
-                                "magnifyingglass",
-                                style: .inlineSmall,
-                                color: IconColor.secondary
-                            )
-                            TextField(
-                                String(localized: "preview.search.placeholder"),
-                                text: Binding(
-                                    get: { envAppState.searchText },
-                                    set: { newValue in
-                                        envAppState.searchText = newValue
-                                    }
-                                )
-                            )
-                            .controlSize(.regular)
-                            .textFieldStyle(.plain)
-                        }
-                    }
-                )
+                // Column-embedded call site: the column title + search
+                // chrome are rendered above (= the two-stacked
+                // EditorHeaderView chrome rows). PreviewPane is invoked
+                // with `renderSectionHeader: false` and no
+                // `customLeadingSearch` (= the centered title text and
+                // the search field are owned by AssetsPane, not
+                // PreviewPane).
+                customLeadingSearch: nil,
+                renderSectionHeader: false
             )
             // 2026-10-12 boss directive "在素材栏也加一个底栏,
             // … (= 45 rationale lines collapsed; = A112 docblock collapse per §1.8)
