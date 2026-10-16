@@ -14,7 +14,17 @@
 import Foundation
 import os
 
-private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "wenshuverifier")
+// AUDIT.md §2.6 partial (2026-10-16 boss 2026-10-16 OOB
+// "包要有 LOG 能力" arc): WenshuVerifier used to log to
+// `com.wenshu/wenshuverifier` (= the legacy WenshuApp
+// subsystem). The boss's "包要有 LOG 能力" directive
+// means all agent / LLM-related logs should land in
+// `com.wenshu.agent/...` (= the canonical WALogger
+// subsystem; = matches hermes `agent.Agent` log
+// shape; = the boss can filter Console.app by
+// subsystem:com.wenshu.agent and see the full LLM
+// trace).
+private let wenshuLogger = Logger(subsystem: "com.wenshu.agent", category: "agent")
 
 /// minimax-cn ground-truth probe (Anthropic-compatible protocol)
 struct WenshuLLMMessage: Codable, Sendable {
@@ -346,11 +356,11 @@ actor WenshuVerifier {
             body["stop_sequences"] = WenshuVerifier.shortOutputStopSequences
         }
         urlRequest.httpBody = try JSONSerialization.data(withJSONObject: body)
-        wenshuLogger.info("[wenshu.chat] request: model=\(request.model) max_tokens=\(request.max_tokens) messages=\(request.messages.count)")
+        wenshuLogger.info("verifier request model=\(request.model) max_tokens=\(request.max_tokens) messages=\(request.messages.count)")
         let (data, response) = try await URLSession.shared.data(for: urlRequest)
         let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
         let bodyPreview = String(data: data.prefix(500), encoding: .utf8) ?? "<non-utf8 body>"
-        wenshuLogger.info("[wenshu.chat] response: status=\(statusCode) body=\(bodyPreview)")
+        wenshuLogger.info("verifier response status=\(statusCode) body=\(bodyPreview, privacy: .private)")
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
             throw WenshuLLMError.httpError(statusCode: statusCode, body: bodyPreview)
         }
@@ -358,7 +368,7 @@ actor WenshuVerifier {
         do {
             return try decoder.decode(WenshuLLMResponse.self, from: data)
         } catch {
-            wenshuLogger.info("[wenshu.chat] decoder error: \(String(describing: error))")
+            wenshuLogger.info("verifier decoder error: \(String(describing: error), privacy: .private)")
             throw error
         }
     }

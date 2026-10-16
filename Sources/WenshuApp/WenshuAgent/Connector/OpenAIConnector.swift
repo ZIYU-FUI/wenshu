@@ -107,6 +107,7 @@ actor OpenAIConnector: LLMConnector {
         options: LLMCallOptions
     ) -> AsyncStream<LLMBlock> {
         let credentials = ConnectorCredentials.resolve(for: .openaiCodex)
+        connectorLogger.debug("stream start model=\(options.model, privacy: .public) messages=\(messages.count)")
 
         // Empty key -> emit synthetic error block.
         if credentials.apiKey.isEmpty {
@@ -230,6 +231,7 @@ actor OpenAICompatibleConnector: LLMConnector {
         options: LLMCallOptions
     ) -> AsyncStream<LLMBlock> {
         let credentials = ConnectorCredentials.resolve(for: provider)
+        connectorLogger.debug("stream start provider=\(self.connectorID, privacy: .public) model=\(options.model, privacy: .public) messages=\(messages.count)")
 
         // For non-Ollama OpenAI-compatible providers, empty API key
         // = can't authenticate = synthetic error stream.

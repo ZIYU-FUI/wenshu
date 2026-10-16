@@ -111,6 +111,7 @@ actor GeminiNativeConnector: LLMConnector {
         options: LLMCallOptions
     ) -> AsyncStream<LLMBlock> {
         let credentials = ConnectorCredentials.resolve(for: .gemini)
+        connectorLogger.debug("stream start model=\(options.model, privacy: .public) messages=\(messages.count)")
         if credentials.apiKey.isEmpty {
             return OpenAIChunkToLLMBlockConverter.errorStream(
                 "missing API key for gemini",
