@@ -83,10 +83,19 @@ struct KeychainSource: SecretSource {
         // Route through the existing `ProviderKeychain` shim (= Apple
         // Security in production, in-memory dict in tests). We do NOT
         // re-implement SecItemCopyMatching here (= wenshu-side wins).
+        // AUDIT.md §2.2 partial (2026-10-16): the public facade
+        // already exposes `loadKeyPreview(for:)` as a sync
+        // forwarder; = for full-key load (= not just the
+        // preview), the public facade delegates through
+        // `keychainBackend() -> any ProviderKeychainStoring`;
+        // = the Settings/Service callers can keep using
+        // the typed protocol instead of reaching into
+        // the internal `ProviderKeychain` static.
         guard let provider = Provider.by(slug: providerSlug) else {
             return nil
         }
-        return ProviderKeychain.loadKeySync(for: provider)
+        let backend = WenshuAgent.shared.keychainBackend()
+        return backend.loadKeySync(for: provider)
     }
 }
 
