@@ -1,24 +1,23 @@
 // 
-// … (= 46 rationale lines collapsed; = A112 docblock collapse per §1.8)
-// 
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 import Foundation
 
 // MARK: - IdeaStatus enum
-// … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / "free-form transitions" behavior).
 enum IdeaStatus: String, Sendable, Codable, CaseIterable, Identifiable, Equatable {
     /// The idea is a raw spark (= 1-2 sentences, no elaboration).
     case seedling
-    /// The idea is being elaborated (= has 1+ paragraphs of
-    /// description).
+    // / The idea is being elaborated (= has 1+ paragraphs of
+    // / description).
     case developing
     /// The idea has been polished (= ready to be planted).
     case mature
-    /// The idea has been used in at least one chapter / character
-    /// / plot-thread (= has 1+ links).
+    // / The idea has been used in at least one chapter / character
+    // / / plot-thread (= has 1+ links).
     case planted
-    /// The idea was abandoned (= kept for archaeology but no
-    /// longer considered for the active book).
+    // / The idea was abandoned (= kept for archaeology but no
+    // / longer considered for the active book).
     case discarded
 
     var id: String { rawValue }
@@ -35,7 +34,7 @@ enum IdeaStatus: String, Sendable, Codable, CaseIterable, Identifiable, Equatabl
     }
 
     // / SF Symbols 6 icon name (= Apple canonical; = used by
-    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / Migrated to outline glyphs.
     var icon: String {
         switch self {
@@ -49,7 +48,7 @@ enum IdeaStatus: String, Sendable, Codable, CaseIterable, Identifiable, Equatabl
 }
 
 // MARK: - IdeaLinkTarget enum
-// … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / entity (= view-layer responsibility).
 enum IdeaLinkTarget: String, Sendable, Codable, CaseIterable, Identifiable, Equatable {
     case chapter
@@ -68,7 +67,7 @@ enum IdeaLinkTarget: String, Sendable, Codable, CaseIterable, Identifiable, Equa
     }
 
     // / SF Symbols 6 icon name (= Apple canonical; = used by
-    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / Migrated to outline glyphs.
     var icon: String {
         switch self {
@@ -80,24 +79,24 @@ enum IdeaLinkTarget: String, Sendable, Codable, CaseIterable, Identifiable, Equa
 }
 
 // MARK: - IdeaLink struct
-// … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / user-authored.
 struct IdeaLink: Sendable, Codable, Equatable, Identifiable {
-    /// Stable identifier (= used by the actor for unlink + dedupe;
-    /// never re-used even across books).
+    // / Stable identifier (= used by the actor for unlink + dedupe;
+    // / never re-used even across books).
     let id: UUID
 
-    /// What kind of entity the idea is linked to (= chapter /
-    /// character / plot-thread).
+    // / What kind of entity the idea is linked to (= chapter /
+    // / character / plot-thread).
     let target: IdeaLinkTarget
 
     // / The entity id the idea is linked to. Interpretation
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / plotThreadId).
     let targetId: UUID
 
     // / 1-sentence description of where the idea appears in the
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / construction time.
     let context: String
 
@@ -115,46 +114,46 @@ struct IdeaLink: Sendable, Codable, Equatable, Identifiable {
 }
 
 // MARK: - Idea struct
-// … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / in the per-book `ideas.json` sidecar.
 struct Idea: Sendable, Codable, Equatable, Identifiable {
 
     // / Stable identifier (= used by the actor for add / update /
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / books).
     let id: UUID
 
-    /// Owning book (= the actor resolves the on-disk sidecar
-    /// through this id).
+    // / Owning book (= the actor resolves the on-disk sidecar
+    // / through this id).
     let bookId: UUID
 
     // / Short, human-readable label (= e.g. "The Mirror Motif").
-    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / `add` / `update` methods.
     let title: String
 
-    /// 2-3 sentence description of the idea. Trimmed at
-    /// construction time.
+    // / 2-3 sentence description of the idea. Trimmed at
+    // / construction time.
     let description: String
 
-    /// Lifecycle status (= seedling / developing / mature /
-    /// planted / discarded).
+    // / Lifecycle status (= seedling / developing / mature /
+    // / planted / discarded).
     let status: IdeaStatus
 
     // / Free-form, user-supplied labels (= e.g. "mirror",
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / time.
     let tags: [String]
 
-    /// Where this idea has been planted (= chapter / character /
-    /// plot-thread triples + 1-sentence context).
+    // / Where this idea has been planted (= chapter / character /
+    // / plot-thread triples + 1-sentence context).
     let links: [IdeaLink]
 
     /// Creation timestamp (= `Date.now` at add time).
     let createdAt: Date
 
-    /// Last update timestamp (= `Date.now` at update time; = the
-    /// actor bumps this on every `update`).
+    // / Last update timestamp (= `Date.now` at update time; = the
+    // / actor bumps this on every `update`).
     let updatedAt: Date
 
     init(
@@ -186,7 +185,7 @@ struct Idea: Sendable, Codable, Equatable, Identifiable {
             let trimmed = entry.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty else { continue }
             // De-dupe case-insensitively so "Mirror" and "mirror"
-            // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // user expectation).
             let key = trimmed.lowercased()
             if seen.contains(key) { continue }
@@ -198,7 +197,7 @@ struct Idea: Sendable, Codable, Equatable, Identifiable {
 }
 
 // MARK: - Sidecar on-disk shape
-// … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / where `Idea.links` is a per-idea list, not a separate table).
 struct IdeaLibrarySidecar: Codable, Sendable, Equatable {
     var bookId: UUID
@@ -217,7 +216,7 @@ struct IdeaLibrarySidecar: Codable, Sendable, Equatable {
 }
 
 // MARK: - Actor errors
-// … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / LocalizedError per case).
 enum IdeaLibraryError: Error, LocalizedError, Sendable, Equatable {
     case bookDirectoryNotFound(bookId: UUID)
@@ -234,12 +233,12 @@ enum IdeaLibraryError: Error, LocalizedError, Sendable, Equatable {
 }
 
 // MARK: - Actor
-// … (= 24 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / module's internal scope).
 actor IdeaLibrary {
 
     // / Sidecar on-disk filename (= parallel to
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / `character-lifecycle.json`).
     private static let sidecarFilename = "ideas.json"
 
@@ -253,7 +252,7 @@ actor IdeaLibrary {
     }
 
     // MARK: - Public surface (= matches the task spec verbatim)
-    // … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // /     strict policy on empty labels).
     func add(_ idea: Idea) async throws {
         guard !idea.title.isEmpty else { return }
@@ -270,19 +269,19 @@ actor IdeaLibrary {
     }
 
     // / Update an existing idea (= by id). Persists + caches.
-    // … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // /     (= no row is persisted).
     func update(_ idea: Idea) async throws {
         guard !idea.title.isEmpty else { return }
         // Load the sidecar (= warms the cache for the owning
-        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // rows written by an earlier `add` call.
         var sidecar = try await loadOrCreateSidecar(bookId: idea.bookId)
         guard let idx = sidecar.ideas.firstIndex(where: { $0.id == idea.id }) else {
             throw IdeaLibraryError.ideaNotFound(id: idea.id)
         }
         // Bump `updatedAt` to "now" (= callers should already do
-        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // `updatedAt` never persists).
         var refreshed = idea
         refreshed = Idea(
@@ -303,11 +302,11 @@ actor IdeaLibrary {
     }
 
     // / Remove an idea by id. Throws `.ideaNotFound` when the id
-    // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / table to clean up).
     func remove(id: UUID) async throws {
         // Cold-cache: we have no bookId, so walk every cached
-        // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // also accept a hint from the caller via the test path.
         if let bookId = try await getBookId(for: id) {
             var sidecar = try await loadOrCreateSidecar(bookId: bookId)
@@ -323,8 +322,8 @@ actor IdeaLibrary {
         throw IdeaLibraryError.ideaNotFound(id: id)
     }
 
-    /// All ideas in a book, filterable by status and / or tag.
-    /// When both filters are nil, returns every row.
+    // / All ideas in a book, filterable by status and / or tag.
+    // / When both filters are nil, returns every row.
     func list(
         bookId: UUID,
         status: IdeaStatus? = nil,
@@ -349,7 +348,7 @@ actor IdeaLibrary {
     }
 
     // / Text search across title + description (= case-
-    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / UX).
     func search(bookId: UUID, query: String) async throws -> [Idea] {
         let sidecar = try await loadOrCreateSidecar(bookId: bookId)
@@ -371,7 +370,7 @@ actor IdeaLibrary {
     }
 
     // / Single-idea lookup by id. Returns `nil` (= NOT throws)
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / view layer's "optional row" idiom).
     func get(id: UUID) async throws -> Idea? {
         guard let bookId = try await getBookId(for: id) else { return nil }
@@ -380,11 +379,11 @@ actor IdeaLibrary {
     }
 
     // / Link an idea to an entity (= record a new `IdeaLink` on
-    // … (= 9 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // /   - Throws `.ideaNotFound` if no idea with that id exists.
     func link(ideaId: UUID, link: IdeaLink) async throws {
         // The caller always supplies `bookId` via the
-        // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // pattern).
         guard let bookId = try await getBookId(for: ideaId) else {
             throw IdeaLibraryError.ideaNotFound(id: ideaId)
@@ -396,7 +395,7 @@ actor IdeaLibrary {
         var idea = sidecar.ideas[idx]
         var links = idea.links
         // De-dupe by (target, targetId): if a matching link
-        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // collision policy as `add` on top-level entities).
         if let dupIdx = links.firstIndex(where: {
             $0.target == link.target && $0.targetId == link.targetId
@@ -418,7 +417,7 @@ actor IdeaLibrary {
         )
         sidecar.ideas[idx] = idea
         // When a link is added, the idea is implicitly "planted"
-        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // links). Bump status if it was still pre-plant.
         if idea.status == .seedling || idea.status == .developing || idea.status == .mature {
             var planted = idea
@@ -441,7 +440,7 @@ actor IdeaLibrary {
     }
 
     // / Unlink an idea from an entity (= remove the matching
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / the idea has no matching link.
     func unlink(ideaId: UUID, link: IdeaLink) async throws {
         guard let bookId = try await getBookId(for: ideaId) else {
@@ -465,7 +464,7 @@ actor IdeaLibrary {
             updatedAt: Date()
         )
         // Only bump `updatedAt` if something actually changed
-        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // UI's "recently updated" ordering).
         if idea.links.count != originalCount {
             sidecar.ideas[idx] = idea
@@ -476,7 +475,7 @@ actor IdeaLibrary {
     }
 
     // / Suggest ideas for a context keyword (= pure in-memory
-    // … (= 12 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / descending.
     func suggest(bookId: UUID, context: String) async throws -> [Idea] {
         let sidecar = try await loadOrCreateSidecar(bookId: bookId)
@@ -517,7 +516,7 @@ actor IdeaLibrary {
     }
 
     // MARK: - Internals
-    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / "loose keyword" behavior expected by `suggest`).
     static func tokenize(_ raw: String) -> [String] {
         raw
@@ -527,7 +526,7 @@ actor IdeaLibrary {
     }
 
     // / Resolve which book an idea id belongs to. Walks the
-    // … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / O(N_cached_books).
     private func getBookId(for ideaId: UUID) async throws -> UUID? {
         // Warm path: scan the in-memory cache.
@@ -535,7 +534,7 @@ actor IdeaLibrary {
             return bookId
         }
         // Cold path: walk every book directory under
-        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // `BookStore.bookDirectory(bookId:)`).
         let shelvesRoot = bookStore.stores.shelvesRoot
         guard let shelfEntries = try? fileManager.contentsOfDirectory(
@@ -569,7 +568,7 @@ actor IdeaLibrary {
     }
 
     // / Resolve the sidecar on disk for the given book. Walks the
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / `BookStore.bookDirectory(bookId:)`).
     private func sidecarURL(bookId: UUID) throws -> URL {
         guard let bookDir = bookStore.bookDirectory(bookId: bookId) else {
@@ -579,7 +578,7 @@ actor IdeaLibrary {
     }
 
     // / Load the sidecar from disk (= or create an empty one if
-    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / tags / lifecycle / relationships convention).
     private func loadOrCreateSidecar(bookId: UUID) async throws -> IdeaLibrarySidecar {
         if let cached = cache[bookId] { return cached }
@@ -588,7 +587,7 @@ actor IdeaLibrary {
             let fresh = IdeaLibrarySidecar(bookId: bookId)
             cache[bookId] = fresh
             // Do NOT persist a brand-new empty sidecar (= match
-            // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // disk once the user actually adds an idea).
             return fresh
         }
@@ -601,7 +600,7 @@ actor IdeaLibrary {
             return sidecar
         } catch {
             // Forgiving: log nothing (= no logger dependency);
-            // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // `BookTodoStore` load paths.
             let empty = IdeaLibrarySidecar(bookId: bookId)
             cache[bookId] = empty
@@ -609,8 +608,8 @@ actor IdeaLibrary {
         }
     }
 
-    /// Persist the sidecar to disk (= atomic write via tmp +
-    /// rename; mirrors `BookProjectConfigStore.atomicWrite`).
+    // / Persist the sidecar to disk (= atomic write via tmp +
+    // / rename; mirrors `BookProjectConfigStore.atomicWrite`).
     private func persistSidecar(_ sidecar: IdeaLibrarySidecar) async throws {
         let url = try sidecarURL(bookId: sidecar.bookId)
         let encoder = JSONEncoder()

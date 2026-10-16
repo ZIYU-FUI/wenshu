@@ -1,12 +1,11 @@
 // 
-// … (= 37 rationale lines collapsed; = A112 docblock collapse per §1.8)
-// 
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 import Foundation
 import WenshuData
 import os.log
 
 // / reference-type accumulator for the streaming LLMBlock callback. Required
-// … (= 15 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / returned by `snapshotParts()` is safe to pass across actor boundaries.
 final class StreamingTaskBox: @unchecked Sendable {
     var tasks: [Task<Void, Never>] = []
@@ -25,7 +24,7 @@ final class StreamingAccumulator: @unchecked Sendable {
         set { lock.lock(); defer { lock.unlock() }; _thinking = newValue }
     }
     // / Take a thread-safe snapshot of `parts` (= returns a copy safe to pass
-    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / access at the message-replacement site).
     func snapshotParts() -> [ChatMessagePart] {
         lock.lock(); defer { lock.unlock() }
@@ -44,29 +43,29 @@ final class ChatViewModel {
     var messages: [ChatMessage] = []
     var inputText: String = ""
     // CHATIMG-001 (2026-09-07): absolute path of an image the user
-    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // and the draft is cleared. nil = no pending image.
     var attachedImagePath: String?
     var isSending: Bool = false
     var lastError: String?
     // 'check split, check dead code'.
-    // … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // retention (= keep cancelRequested):
     var cancelRequested: Bool = false
     // / T67-MUTE-SHORTCUT (2026-09-18): ⌘. handler (= cancel the
-    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / no-op when nothing is streaming.
     func cancelStreaming() {
         cancelRequested = true
     }
 
     // / CHATIMG-001 (2026-09-07): copy the picked file into the library's
-    // … (= 13 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / LiveChatRepository.
     @discardableResult
     func attachImage(at sourceURL: URL) async -> Bool {
         // Config lookup (= business layer reads app config from
-        // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // lives in LiveChatRepository.
         guard let libraryPath = ActiveLibrary.path, !libraryPath.isEmpty else { return false }
         // Delegate the actual copy to the data layer.
@@ -85,17 +84,17 @@ final class ChatViewModel {
         return true
     }
 
-    /// CHATIMG-001: clear the pending image draft (= called when the user
-    /// clicks the small ✕ on the preview chip, or after send).
+    // / CHATIMG-001: clear the pending image draft (= called when the user
+    // / clicks the small ✕ on the preview chip, or after send).
     func clearAttachedImage() {
         attachedImagePath = nil
     }
     // wenshu.llm.model centralization. The model id was
-    // … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // when this is empty.
     private let appState: AppState?
     // Follow-up (= `ChatViewModelDefaultModelTests`):
-    // … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // now locks down).
     var currentModel: String {
         if let appState { return appState.llmModel }
@@ -104,29 +103,29 @@ final class ChatViewModel {
     var availableModels: [String] = []
     var contextUsed: Int = 0
         // 'minimax m3 is not 1MB context window?
-        // … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // to query per the 2026-08-25 'no API to fetch from, right?' = the user confirmed no API).
     var contextMax: Int = 1_000_000
 
     private let conductor: WenshuConductor?
     // Chat persistence lives in `WSChatRepository.shared` (= a
-    // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // Mutable so the archive flow can replace the session id.
     @MainActor private var sessionId: SessionID
 
     // Current scope bookID for all persistence calls.
-    // … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // P2-02 audit (2026-09-24): BookID brand wrapper.
     @MainActor internal var currentBookID: BookID?
 
     // / Update the active scope (= called by the view layer when the user picks
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / session) and reloads history. No-op if the bookID is unchanged.
     func setCurrentBookID(_ bookID: BookID?) {
         if currentBookID == bookID { return }
         currentBookID = bookID
         // Per-book session id: same key prefix + bookID suffix so the
-        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // is what scopes reads, not the session id).
         sessionId = Self.makeSessionID(for: bookID)
         // Fire-and-forget reload against the new scope.
@@ -134,7 +133,7 @@ final class ChatViewModel {
     }
 
     // build fix: demote from `public init` to internal `init`.
-    // … (= 12 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // this parameter to avoid touching SwiftData stack.
     init(
         conductor: WenshuConductor? = nil,
@@ -146,47 +145,47 @@ final class ChatViewModel {
     ) {
         self.conductor = conductor
         // Per-book session id when bookID is set
-        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // per-book session id keeps chat rows cleanly partitioned).
         self.sessionId = Self.makeSessionID(for: bookID, fallback: sessionId.rawValue)
         self.currentBookID = bookID
         self.messages = initialMessages
         // hold a strong reference to the AppState instance so
-        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // lifetime as the WindowGroup that owns it).
         self.appState = appState
         // C-4: data-layer seam. The protocol handles StoredChatMessage
-        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // ChatMessage only).
         self.repository = repository
     }
 
     // / Build a per-book session id. Returns `book:<id>:default` when scoped to
-    // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / bookID always hit the same SwiftData row.
     static func makeSessionID(for bookID: BookID?, fallback: String = "default") -> SessionID {
         guard let bookID else { return SessionID(rawValue: fallback) }
         return SessionID(rawValue: "book:\(bookID.rawValue):\(fallback)")
     }
 
-    /// C-4: the data-layer seam. Defaults to LiveChatRepository.shared at init
-    /// (= production path); tests inject a fake.
+    // / C-4: the data-layer seam. Defaults to LiveChatRepository.shared at init
+    // / (= production path); tests inject a fake.
     private let repository: ChatRepositoryProtocol
 
     // (2026-09-04): shared AsyncDelegationRegistry used by
-    // … (= 23 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // methods require `await`.
     nonisolated static let delegationRegistry: AsyncDelegationRegistry = AsyncDelegationRegistry()
 
     func switchModel(_ id: String) {
         // write to the canonical owner (= AppState.llmModel),
-        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // UserDefaults call here (= single owner maintained).
         appState?.llmModel = id
     }
 
     // / UI layer must not call the data layer directly (= the canonical
-    // … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / `ChatZoneView` (= UI layer) into the business layer.
     func openSettingsToProviderApi() {
         UserDefaultsStore.shared.setString("providerApi", forKey: .settingsTab)
@@ -194,7 +193,7 @@ final class ChatViewModel {
 
     func loadAvailableModels() async {
         // Use multi-provider discovery (= query all configured
-        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // `WenshuLLMModel.allCases` = 3 MiniMax-only cases).
         let configured = AvailableModelsDiscovery.loadFromKeychain()
         var modelIds: [String] = []
@@ -220,7 +219,7 @@ final class ChatViewModel {
     func recomputeContextUsed() {
         contextUsed = messages.compactMap { $0.tokens }.reduce(0, +)
         // trace: ChatViewModel.contextUsed accumulation
-        // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // counts as a closure).
         let totalContext = contextUsed
         let messageCount = messages.count
@@ -229,14 +228,14 @@ final class ChatViewModel {
     }
 
     // / routeInput is the front-door for chat input. It dispatches `/plan
-    // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / a stub skill-invoke result).
     func routeInput() async {
         let input = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !input.isEmpty else { return }
 
         // T20c-PLAN-ROUTE (2026-09-18): intercept `/plan <query>` BEFORE
-        // … (= 9 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // type change required for T20c).
         if let planQuery = stripPlanPrefix(input) {
             await runPlanMode(query: planQuery)
@@ -244,7 +243,7 @@ final class ChatViewModel {
         }
 
         // (2026-09-04): try @-mention subagent trigger
-        // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // preserved in the chat log).
         let mentions = SubAgentMentionParser.parseAll(input)
         if !mentions.isEmpty {
@@ -275,18 +274,18 @@ final class ChatViewModel {
         }
 
         // No slash match → existing LLM send path. The slash prefix
-        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // interprets it as a prompt template per ChatHubCommands.
         await send()
     }
 
     // MARK: - T20c-PLAN-ROUTE (2026-09-18): /plan command surface
-    // … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / collision with future /plans commands)
     private func stripPlanPrefix(_ input: String) -> String? {
         guard input.hasPrefix("/plan") else { return nil }
         // Exact-match on "/plan" + whitespace (= no args means
-        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // the LLM verbatim as a slash command per ChatHubCommands).
         let afterPrefix = input.dropFirst("/plan".count)
         // Either whitespace (= normal command) or end-of-string
@@ -302,12 +301,12 @@ final class ChatViewModel {
     }
 
     // / Run plan mode for the given query: invoke PlanModeEngine (= wraps the
-    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / user sees why the plan failed).
     private func runPlanMode(query: String) async {
         inputText = ""
         // Resolve connector + model from the active conductor
-        // … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // for T20c.
         let model = self.currentModel
         let connector: any LLMConnector = AnthropicConnector()
@@ -315,7 +314,7 @@ final class ChatViewModel {
         do {
             let plan = try await engine.run(query: query)
             // T22-PLAN-PART (2026-09-18): surface the plan as a
-            // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // future ticket = T22b).
             messages.append(ChatMessage(
                 role: .system,
@@ -344,7 +343,7 @@ final class ChatViewModel {
     func send() async {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         // CHATIMG-001 (2026-09-07): allow image-only sends (= an
-        // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // the image atomically.
         let imagePath = attachedImagePath
         attachedImagePath = nil
@@ -360,7 +359,7 @@ final class ChatViewModel {
         messages.append(placeholder)
 
         // C-4: route through ChatRepositoryProtocol (= the data-layer
-        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // business layer speaks ChatMessage only.
         do {
             try await repository.append(userMsg, sessionId: sessionId, bookID: currentBookID)
@@ -370,11 +369,11 @@ final class ChatViewModel {
 
         do {
             // streaming path = render each text chunk as it
-            // … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // owner maintained).
             let currentModel: String = self.currentModel
             // Per Apple HIG + 12 standard + Swift 6 strict-concurrency:
-            // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // Logger interpolation (= Swift 6 closure-capture rule).
             let modelForLog = currentModel
             Logger(subsystem: "com.wenshu.app", category: "chat.model")
@@ -384,11 +383,11 @@ final class ChatViewModel {
             var replyTokens: Int?
             if let conductor = conductor {
                 // 
-                // … (= 19 rationale lines collapsed; = A112 docblock collapse per §1.8)
+                // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
                 // class reference IS thread-safe here).
                 let accumulator = StreamingAccumulator()
                 // 
-                // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+                // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
                 // message with an in-flight snapshot).
                 let streamingTaskBox = StreamingTaskBox()
                 let result = await conductor.handle(
@@ -397,7 +396,7 @@ final class ChatViewModel {
                     model: currentModel,
                     streamCallback: { [weak self] block in
                         // T1-THINKING-VISIBLE (2026-09-18): log each
-                        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+                        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
                         // PATH=... so it grep-parity with T0 logs.
                         let kindTag: String = {
                             switch block {
@@ -408,18 +407,18 @@ final class ChatViewModel {
                             }
                         }()
                         // Per Apple HIG + 12 standard + Swift 6 strict-concurrency:
-                        // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+                        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
                         // accesses).
                         let kindTagForLog = kindTag
                         let modelForLog = currentModel
                         Logger(subsystem: "com.wenshu.app", category: "chat.conductor")
                             .info("[wenshu.conductor] PATH=stream BLOCK=\(kindTagForLog, privacy: .public) (model=\(modelForLog, privacy: .public)")
                         // dead marker-parsing block
-                        // … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
+                        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
                         // we can pass it across the actor boundary.
                         let blockCopy = block
                         // First, accumulate parts in the
-                        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+                        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
                         // isolation needed for the mutation).
                         switch blockCopy {
                         case .text(let chunk):
@@ -443,7 +442,7 @@ final class ChatViewModel {
                             ))
                         }
                         // Then dispatch the messages mutation to
-                        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+                        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
                         // @MainActor-isolated).
                         streamingTaskBox.tasks.append(Task { @MainActor [weak self] in
                             guard let self else { return }
@@ -463,18 +462,18 @@ final class ChatViewModel {
                     }
                 )
                 // Wait for all in-flight streaming-update Tasks to complete
-                // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+                // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
                 // the final sealed mutation below).
                 for task in streamingTaskBox.tasks { await task.value }
                 reply = result.reply
                 replyThinking = result.thinking ?? accumulator.thinking
                 replyTokens = result.totalTokens
                 // Mark the conductor's bubble as
-                // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+                // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
                 // final message.
                 if let idx = messages.firstIndex(where: { $0.id == placeholderId }) {
                     // Per Apple HIG + 12 standard + Swift 6 strict-concurrency:
-                    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+                    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
                     // unavailable). Local captures avoid closure-capture complaint.
                     let placeholderIDString = placeholderId.uuidString
                     let messageCount = messages.count
@@ -493,7 +492,7 @@ final class ChatViewModel {
                 }
             } else {
                 // Render each text chunk as
-                // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+                // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
                 // 5-10s wait for the full reply).
                 let verifier = WenshuVerifier()
                 let stream = verifier.streamChat(
@@ -503,7 +502,7 @@ final class ChatViewModel {
                 )
                 var buffer = ""
                 // 
-                // … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
+                // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
                 // open .text part" strategy in `use-message-stream`).
                 var streamingParts: [ChatMessagePart] = []
                 var streamingThinking: String = ""
@@ -512,7 +511,7 @@ final class ChatViewModel {
                     case .text(let chunk):
                         buffer += chunk
                         // Append into the trailing .text
-                        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+                        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
                         // Hermes `appendAssistantTextPart`.
                         if case .text(let last) = streamingParts.last?.kind {
                             streamingParts[streamingParts.count - 1] = .text(last + chunk)
@@ -520,7 +519,7 @@ final class ChatViewModel {
                             streamingParts.append(.text(chunk))
                         }
                         // Render the accumulated buffer into the
-                        // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+                        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
                         // streaming UI in ChatMessageView).
                         if let idx = messages.firstIndex(where: { $0.id == placeholderId }) {
                             messages[idx] = ChatMessage(
@@ -557,7 +556,7 @@ final class ChatViewModel {
                         }
                     case .toolUse(let id, let name, let input):
                         // `tool_use` events now
-                        // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
+                        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
                         // legacy `content` until P7 lands.
                         streamingParts.append(.toolUse(
                             id: ToolCallID(rawValue: id), name: name, args: input
@@ -575,13 +574,13 @@ final class ChatViewModel {
                         }
                     case .unknown:
                         // `WenshuVerifier.streamChat`
-                        // … (= 18 rationale lines collapsed; = A112 docblock collapse per §1.8)
+                        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
                         // conductor path above).
                         break
                         }
                 }
                 // Mark the message as sealed (= the
-                // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+                // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
                 // shimmer / hide the activity timer.
                 if let idx = messages.firstIndex(where: { $0.id == placeholderId }) {
                     messages[idx] = ChatMessage(
@@ -606,7 +605,7 @@ final class ChatViewModel {
                 messages.append(ChatMessage(id: placeholderId, role: .agent, source: .wenshu, content: reply))
             }
             // C-4: route the agent message through ChatRepositoryProtocol
-            // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // empty-thinking-nil-collapse logic).
             let agentMsg = ChatMessage(
                 id: placeholderId,
@@ -625,7 +624,7 @@ final class ChatViewModel {
             recomputeContextUsed()
 
             // trigger summary generation (LLM + saveSummary + deleteOldMessages order)
-            // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // pattern that lost errors silently).
             let verifier = WenshuVerifier()
             do {
@@ -641,11 +640,11 @@ final class ChatViewModel {
             }
         } catch {
             // route through UserFacingError.from (= single
-            // … (= 14 rationale lines collapsed; = A112 docblock collapse per §1.8)
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // slug, not the model id.
             let activeProvider = WenshuAppDelegateLLMHelpers.activeConnectorSlug()
             // also log the raw underlying error to the
-            // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // the chat-layer catch ate the message).
             let rawDesc = String(describing: error)
             Logger(subsystem: "com.wenshu.app", category: "chat.persist")
@@ -661,7 +660,7 @@ final class ChatViewModel {
     }
 
     // / WIRE-AGENT-003 (2026-09-04): start a long-running goal via the
-    // … (= 14 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / context'.
     func startNewSession() {
         // 1. Clear in-memory state (= visual reset).
@@ -671,7 +670,7 @@ final class ChatViewModel {
         let newId = SessionID(rawValue: "s_" + UUID().uuidString.prefix(12).lowercased())
         sessionId = newId
         // 3. NSLog audit trail (= verify in Console.app).
-        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // = use Logger instead per Apple's modern logging guidance).
         let logger = Logger(subsystem: "com.wenshu.app", category: "chat")
         let sessionIdRaw = sessionId.rawValue
@@ -694,13 +693,13 @@ final class ChatViewModel {
     }
 
     // / C-5: load chat history from the data layer (= formerly lived inline in
-    // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / global un-attached).
     func loadHistory() async {
         do {
             let loaded = try await repository.loadMessages(sessionId: sessionId, bookID: currentBookID)
             // "持久化的聊天记录, 重新渲染顺序有问题, 问答先后顺序混乱" (see OOB.md #2026-07-23)
-            // … (= 13 rationale lines collapsed; = A112 docblock collapse per §1.8)
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // timestamp (= <1 ms apart on fast hardware).
             let sorted = loaded.sorted { a, b in
                 if a.timestamp != b.timestamp {
@@ -711,14 +710,14 @@ final class ChatViewModel {
             self.messages = sorted
         } catch {
             // Silent no-op (= matches legacy behavior; = the view
-            // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // empty-state placeholder).
         }
     }
 }
 
 // MARK: - Try-logging helper (= 12 standard P1-02 try?  scaffolding)
-// … (= 9 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // across Core/Agent and Core/Tools.
 extension ChatViewModel {
     fileprivate static let persistLogger = Logger(subsystem: "com.wenshu.app", category: "chat.persist")

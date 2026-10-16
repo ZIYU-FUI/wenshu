@@ -1,5 +1,5 @@
 // SettingView.swift · WenshuApp Settings scene (= Apple canonical macOS 14+ `Settings {
-// … (= 46 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // (= no migration needed for user-state).
 import SwiftUI
 import AppKit
@@ -12,7 +12,7 @@ struct SettingView: View {
     @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
     @AppStorage("wenshu.llm.provider") private var providerSlug: String = Provider.minimaxCn.slug
     // / Single-owner centralization: AppState.llmModel (= v1.72 T3b).
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / pattern as before.
     private var llmModelBinding: Binding<String> {
         Binding(
@@ -23,7 +23,7 @@ struct SettingView: View {
     // @AppStorage("wenshu.llm.model") private var llmModel: String = ""
     @AppStorage("wenshu.userAddress") private var userAddress: String = "user"
     // P0-3 fix (= Spec audit): ConversationLoop L270 + L482 STILL read
-    // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // claude/effort) = 5 valid options (low / medium / high / xhigh / max).
     @AppStorage("wenshu.llm.reasoningEffort") private var reasoningEffort: String = "medium"
     @AppStorage("wenshu.settingsTab") private var selectedTabRaw: String = SettingsPane.appearance.rawValue
@@ -44,7 +44,7 @@ struct SettingView: View {
         var id: String { rawValue }
 
         // / SF Symbols 7 identifier per Apple HIG sidebar row leading icon.
-        // … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // / = every sidebar row icon occupies the identical optical width).
         var icon: String {
             switch self {
@@ -66,12 +66,12 @@ struct SettingView: View {
     @State private var apiDraftKey: String = ""
     @State private var apiError: String?
     // / Global Settings search query (= lives in the sidebar-top TextField,
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / replaces the previous provider-only `.searchable(placement: .toolbar)`).
     @State private var globalSearchQuery: String = ""
 
     // MARK: - Editor pane 8 @AppStorage (= EditorPreferences 8 fields)
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / AppStorage (= the engine fills horizontally; = see `EditorPreferences`).
     @AppStorage("wenshu.editor.readingWidth")
     private var readingWidthDouble: Double = -1
@@ -104,18 +104,18 @@ struct SettingView: View {
     @AppStorage("wenshu.editor.autoClosePairsEnabled") private var autoClosePairsEnabled: Bool = true
 
     // MARK: - Apple system accent (= AppleAccentColor / AppleHighlightColor)
-    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / 8 named colors.
     @AppStorage("AppleAccentColor") private var appleAccentColor: Int = -2
     @AppStorage("AppleHighlightColor") private var appleHighlightColor: Int = -2
 
     // MARK: - App language (= macOS 27 per-app language override)
-    // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / Numbers / Keynote all do the same).
     @AppStorage("wenshu.appLanguage") private var appLanguage: String = "system"
 
     // / True after the user picked a non-system language and we showed
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / user keep editing Settings without re-firing.
     @State private var showAppLanguageRestartAlert: Bool = false
 
@@ -126,7 +126,7 @@ struct SettingView: View {
     }
 
     // / Sidebar pane rows filtered by the global search query (= empty
-    // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / the substring match is forgiving on zh-Hans input.
     private var visiblePanes: [SettingsPane] {
         let query = globalSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -138,11 +138,11 @@ struct SettingView: View {
 
     var body: some View {
         // `columnVisibility: .constant(.all)` pins the sidebar so the user cannot drag
-        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // once `.toolbar(removing: .sidebarToggle)` removes the toggle).
         NavigationSplitView(columnVisibility: .constant(.all)) {
             // Sidebar column = the filtered pane list only. The search field is attached
-            // … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // spot).
             List(visiblePanes, selection: Binding(
                 get: { selectedTab },
@@ -160,11 +160,11 @@ struct SettingView: View {
                 .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)
                 .listStyle(.sidebar)
                 // `toolbar(removing: .sidebarToggle)` strips the system-rendered
-                // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+                // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
                 // `View/toolbar(removing:)`).
                 .toolbar(removing: .sidebarToggle)
             // `.searchable(text: ..., placement: .sidebar)` attaches the Apple canonical
-            // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // for sidebar search).
             .searchable(
                 text: $globalSearchQuery,
@@ -178,7 +178,7 @@ struct SettingView: View {
                 .animation(.default, value: globalSearchQuery)
         }
         // macOS 27 SwiftUI Settings scene bug: `.windowResizability(.contentMinSize)`
-        // … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // survives SwiftUI's inner reconciliation on macOS 27.
         .background(WindowResizableEnabler())
         .task {
@@ -190,7 +190,7 @@ struct SettingView: View {
     }
 
     // MARK: - Pane routing
-    // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / `providers` pane via this mapping.
     private func paneForRaw(_ raw: String) -> SettingsPane {
         switch raw {
@@ -215,8 +215,8 @@ struct SettingView: View {
         }
     }
 
-    /// Localized pane title (= sidebar row label). Falls back to the
-    /// raw value if a key is missing (= never blank).
+    // / Localized pane title (= sidebar row label). Falls back to the
+    // / raw value if a key is missing (= never blank).
     private func localizedPaneTitle(_ pane: SettingsPane) -> String {
         switch pane {
         case .appearance: return String(localized: "settings.pane.appearance")
@@ -246,7 +246,7 @@ struct SettingView: View {
                         appLanguage = newValue
                         applyAppLanguage(newValue)
                         // P1-1 fix (= Q99 Spec audit, commit to be authored): the
-                        // … (= 12 rationale lines collapsed; = A112 docblock collapse per §1.8)
+                        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
                         // AppleLanguages change to confirm).
                         if newValue != "system" {
                             showAppLanguageRestartAlert = true
@@ -340,7 +340,7 @@ struct SettingView: View {
     }
 
     // / Push the new accent / highlight value to the live NSWindow
-    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / the UX is broken.
     private func refreshAllWindows() {
         for window in NSApplication.shared.windows {
@@ -349,7 +349,7 @@ struct SettingView: View {
     }
 
     // / Persist the per-app language to macOS 27 \`AppleLanguages\`
-    // … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / Settings UI surfaces this with the alert above).
     private func applyAppLanguage(_ lang: String) {
         guard let bundleID = Bundle.main.bundleIdentifier else { return }
@@ -418,7 +418,7 @@ struct SettingView: View {
     }
 
     // / Snap an arbitrary `readingWidth` CGFloat to the nearest of the
-    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / bucket instead of an empty selection.
     private func readingWidthBucket() -> String {
         let w = readingWidthDouble
@@ -465,7 +465,7 @@ struct SettingView: View {
 
     private var filteredProviders: [Provider] {
         // The previous per-pane `.searchable` toolbar field is gone; the sidebar-top
-        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // providers row list narrows as the user types.
         let trimmed = globalSearchQuery.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return Provider.all }
@@ -587,7 +587,7 @@ struct SettingView: View {
                     .font(.caption)
             }
             // P0-3 fix (= Spec audit): wenshu.llm.reasoningEffort is still READ by
-            // … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // v0.21 ticket 35b).
             Section {
                 Picker(String(localized: "settings.model.reasoning_effort_label"), selection: $reasoningEffort) {
@@ -602,7 +602,7 @@ struct SettingView: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     // `.lineLimit(nil)` (= drop SwiftUI's default `.caption` single-line
-                    // … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
+                    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
                     // window widening past the intended size).
                     .lineLimit(nil)
                     .fixedSize(horizontal: false, vertical: true)
@@ -655,7 +655,7 @@ struct SettingView: View {
 }
 
 // / macOS 27 SwiftUI `Settings { }` scene workaround:
-// … (= 36 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / the recipe ships in the same shape Apple-internal sample code uses.
 private struct WindowResizableEnabler: NSViewRepresentable {
     private final class Helper: NSView {
@@ -679,14 +679,14 @@ private struct WindowResizableEnabler: NSViewRepresentable {
     func makeNSView(context: Context) -> NSView { Helper() }
     func updateNSView(_ nsView: NSView, context: Context) {
         // `updateNSView` fires every time the SwiftUI hosting tree is reconciled (= every
-        // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // modifier).
         if let hostWindow = nsView.window {
             hostWindow.styleMask.insert(.resizable)
             ensureResizableAcrossHostingTree(of: hostWindow)
         } else {
             // Fallback for the first-render race (= helper NSView exists but SwiftUI has
-            // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // attach).
             Task { @MainActor in
                 for appWindow in NSApp.windows {
@@ -698,18 +698,18 @@ private struct WindowResizableEnabler: NSViewRepresentable {
 }
 
 // / macOS 27 Settings scene helper: walks every `NSWindow`
-// … (= 14 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / is a no-op), so the recomputation cost is minimal.
 @MainActor
 private func ensureResizableAcrossHostingTree(of hostWindow: NSWindow) {
     // RATIONALE: Swift 6 can't always infer @MainActor across file + extension seams; =
-    // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // all main-actor-isolated).
     for candidateWindow in NSApp.windows where candidateWindow === hostWindow {
         candidateWindow.styleMask.insert(.resizable)
     }
     // Defensive: also walk any Settings scene peer windows (= the macOS process may host
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // every NSWindow SwiftUI has spun up gets the `.resizable` bit). Idempotent.
     for candidateWindow in NSApp.windows {
         candidateWindow.styleMask.insert(.resizable)

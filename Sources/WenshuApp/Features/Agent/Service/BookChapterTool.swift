@@ -1,5 +1,5 @@
 // BookChapterTool.swift Per-book chapter CRUD tool (= wraps FileSystemChapterStore).
-// … (= 2 rationale lines collapsed; = A114 docblock collapse round 2)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // Document struct with category=.chapter (= the canonical wenshu-side metadata shape).
 import Foundation
 
@@ -76,12 +76,12 @@ enum BookChapterError: Error, LocalizedError, Sendable, Equatable {
 
 actor BookChapterActor {
     // / Closure returning the book directory for the current chat session's
-    // … (= 2 rationale lines collapsed; = A114 docblock collapse round 2)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / holding a stale root.
     private let bookDirectoryProvider: @Sendable () -> URL?
 
-    /// Closure returning the chat session's currently-bound book. See
-    /// BookWorldActor's matching field for the contract.
+    // / Closure returning the chat session's currently-bound book. See
+    // / BookWorldActor's matching field for the contract.
     private let currentChatBookIDProvider: @Sendable () -> UUID?
 
     init(
@@ -96,7 +96,7 @@ actor BookChapterActor {
     func readBodyForTest(id: UUID) async -> String? {
         guard let dir = bookDirectoryProvider() else { return nil }
         // Per boss 2026-10-05 (see OOB.md #2026-10-05) → SwiftData migration commit 1):
-        // … (= 5 rationale lines collapsed; = A114 docblock collapse round 2)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // layer migrates to a Sendable protocol.
         return FileSystemChapterStore.loadChapterBodyFromFileSystem(
             id: id,
@@ -105,7 +105,7 @@ actor BookChapterActor {
     }
 
     // / Resolve the current book directory (= raises `invalidInput` if the chat
-    // … (= 4 rationale lines collapsed; = A114 docblock collapse round 2)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / FileSystem fallback methods).
     private func resolvePaths() throws -> (
         bookDirectory: URL,
@@ -118,7 +118,7 @@ actor BookChapterActor {
             )
         }
         // wt/path-guard-v2-2026-09-25: PathGuard.assertInsideLibrary is the second line
-        // … (= 4 rationale lines collapsed; = A114 docblock collapse round 2)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // body still refuses to write.
         try PathGuard.assertInsideLibrary(path: LibraryPath(rawValue: dir.path))
         let chaptersDirectory = dir.appendingPathComponent("chapters", isDirectory: true)
@@ -127,7 +127,7 @@ actor BookChapterActor {
     }
 
     // MARK: - Agent gate
-    // … (= 28 rationale lines collapsed; = A114 docblock collapse round 2)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / `chapters/<id>.md` and updating `chapters.json`).
     private func resolveDraftsPaths() throws -> (
         bookDirectory: URL,
@@ -146,7 +146,7 @@ actor BookChapterActor {
     }
 
     // MARK: - CRUD
-    // … (= 5 rationale lines collapsed; = A114 docblock collapse round 2)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / (= the caller can read back the file path or update the UI).
     func createChapter(
         bookId: UUID,
@@ -160,7 +160,7 @@ actor BookChapterActor {
         }
 
         // the dedup check now looks in `drafts/` (= the agent's canonical staging area).
-        // The `findChapter` helper below was updated to consult both folders
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // but prefer drafts/ for agent writes.
         if let existing = try await findDraftChapter(bookId: bookId, title: trimmed) {
             return try await updateDraftChapter(
@@ -229,7 +229,7 @@ actor BookChapterActor {
             throw BookChapterError.emptyTitle
         }
         // the agent gate (= boss 2026-10-10 "提升为 正文的内容，成 为下阶段的约 束，Agent 在 没有用户允许 的情况下，不
-        // … (= 8 rationale lines collapsed; = A114 docblock collapse round 2)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // disk; if its parent directory ends in 'chapters', reject".
         let (bookDirectory, draftsDirectory, _) = try resolveDraftsPaths()
         let fileOnDisk = bookDirectory
@@ -241,7 +241,7 @@ actor BookChapterActor {
             )
         }
         // Otherwise the file is in `drafts/` (or doesn't exist = a new draft; = we
-        // … (= 7 rationale lines collapsed; = A114 docblock collapse round 2)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // chapter's editor tab focused.
         let chapterPath = ChapterFocusLockGuard.resolveChapterPath(
             chapterId: id,
@@ -339,8 +339,8 @@ actor BookChapterActor {
         return match.map { ChapterDescriptor($0) }
     }
 
-    /// drafts/ counterpart of `findChapter` (= looks in `drafts/` only; = used
-    /// by `createChapter`'s dedup so the agent can't create duplicate drafts).
+    // / drafts/ counterpart of `findChapter` (= looks in `drafts/` only; = used
+    // / by `createChapter`'s dedup so the agent can't create duplicate drafts).
     private func findDraftChapter(bookId: UUID, title: String) async throws -> ChapterDescriptor? {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let (_, draftsDirectory, indexURL) = try resolveDraftsPaths()
@@ -362,7 +362,7 @@ actor BookChapterActor {
     }
 
     // / drafts/ counterpart of `updateChapter` (= re-edits an existing draft in
-    // … (= 2 rationale lines collapsed; = A114 docblock collapse round 2)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / duplicate).
     private func updateDraftChapter(
         id: UUID,
@@ -372,7 +372,7 @@ actor BookChapterActor {
     ) async throws -> ChapterDescriptor {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         // Mirror `updateChapter`'s scope guard (= the chapter focus lock = the user is
-        // … (= 2 rationale lines collapsed; = A114 docblock collapse round 2)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // reviewing a draft).
         let chapterPath = ChapterFocusLockGuard.resolveChapterPath(
             chapterId: id,
@@ -500,7 +500,7 @@ actor BookChapterActor {
                 let summary = envelope["summary"] as? String
                 let body = Self.extractMarkdown(envelope)
                 // Read the existing body before the update so the success envelope can
-                // … (= 4 rationale lines collapsed; = A114 docblock collapse round 2)
+                // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
                 // `new_text` for the in-chat preview card.
                 let oldBody: String
                 do {
@@ -508,7 +508,7 @@ actor BookChapterActor {
                     oldBody = existing ?? ""
                 } catch {
                     // If the chapter didn't exist (= treat as create-flavored update), we
-                    // still want to surface the diff; = empty old
+                    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
                     // body means the entire new body is "+" lines.
                     oldBody = ""
                 }
@@ -601,7 +601,7 @@ actor BookChapterActor {
     }
 
     // / Variant for the `update` action — enriches the envelope with a
-    // … (= 6 rationale lines collapsed; = A114 docblock collapse round 2)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / reads `diff.stats`).
     private static func encodeSuccessUpdate(
         action: BookChapterAction,
@@ -638,8 +638,8 @@ actor BookChapterActor {
         return encodeJSON(payload)
     }
 
-    /// Plain unified-diff product (= text + line / char counts). Pure function
-    /// so it's reachable from unit tests without an actor.
+    // / Plain unified-diff product (= text + line / char counts). Pure function
+    // / so it's reachable from unit tests without an actor.
     struct UnifiedDiff: Equatable, Sendable {
         let text: String
         let addedLines: Int
@@ -649,7 +649,7 @@ actor BookChapterActor {
     }
 
     // / Compute a minimal unified diff between two strings (= the form hermes
-    // … (= 5 rationale lines collapsed; = A114 docblock collapse round 2)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / new\n@@\n-removed line\n+added line\n context\n"
     static func computeUnifiedDiff(old: String, new: String) -> UnifiedDiff {
         let oldLines = old.components(separatedBy: "\n")
@@ -777,8 +777,8 @@ actor BookChapterActor {
         return encodeJSON(payload)
     }
 
-    /// Encode a BookScopeViolation into the standard failure envelope. See
-    /// BookWorldTool.encodeFailureScopeViolation for the matching contract.
+    // / Encode a BookScopeViolation into the standard failure envelope. See
+    // / BookWorldTool.encodeFailureScopeViolation for the matching contract.
     private static func encodeFailureScopeViolation(
         action: BookChapterAction,
         error: BookScopeViolation
@@ -816,7 +816,7 @@ actor BookChapterActor {
 }
 
 // MARK: - BookChapterActor static FileSystem helpers
-// … (= 3 rationale lines collapsed; = A114 docblock collapse round 2)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // MARK: - Tool-protocol adapter
 actor BookChapterTool: Tool {
     let name = "book_chapter"

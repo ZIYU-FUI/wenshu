@@ -1,17 +1,16 @@
 // 
-// … (= 52 rationale lines collapsed; = A112 docblock collapse per §1.8)
-// 
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 import Foundation
 
 // MARK: - ConstraintSeverity enum
-// … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / without having to re-read the source module.
 enum ConstraintSeverity: String, Sendable, Codable, CaseIterable, Identifiable, Equatable {
-    /// Absolutely cannot be violated (= magic system laws,
-    /// physical laws, hard continuity rules).
+    // / Absolutely cannot be violated (= magic system laws,
+    // / physical laws, hard continuity rules).
     case hard
-    /// Strongly preferred but can be broken for narrative
-    /// reasons (= soften the rule with a beatable excuse).
+    // / Strongly preferred but can be broken for narrative
+    // / reasons (= soften the rule with a beatable excuse).
     case soft
     /// Nice-to-have style preference (= tone / voice target).
     case preference
@@ -28,7 +27,7 @@ enum ConstraintSeverity: String, Sendable, Codable, CaseIterable, Identifiable, 
     }
 
     // / SF Symbols 6 icon name (= Apple canonical; = used by
-    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / Migrated to outline glyphs.
     var icon: String {
         switch self {
@@ -40,7 +39,7 @@ enum ConstraintSeverity: String, Sendable, Codable, CaseIterable, Identifiable, 
 }
 
 // MARK: - ConstraintScope enum
-// … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / `agent/specialized/book_setting_constraints.py::SCOPE_TABLE`.
 enum ConstraintScope: String, Sendable, Codable, CaseIterable, Identifiable, Equatable {
     /// Applies to entire world (= physics, magic system).
@@ -65,7 +64,7 @@ enum ConstraintScope: String, Sendable, Codable, CaseIterable, Identifiable, Equ
     }
 
     // / SF Symbols 6 icon name (= Apple canonical; = used by
-    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / Migrated to outline glyphs.
     var icon: String {
         switch self {
@@ -77,7 +76,7 @@ enum ConstraintScope: String, Sendable, Codable, CaseIterable, Identifiable, Equ
     }
 
     // / Whether this scope supports a non-nil `appliesToId` (= a
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / an appliesToId.
     var supportsAppliesTo: Bool {
         switch self {
@@ -88,23 +87,23 @@ enum ConstraintScope: String, Sendable, Codable, CaseIterable, Identifiable, Equ
 }
 
 // MARK: - BookSettingConstraint struct
-// … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / sidecar.
 struct BookSettingConstraint: Sendable, Codable, Equatable, Identifiable {
 
-    /// Stable identifier (= used by the actor for add / update /
-    /// remove / check lookups; never re-used even across books).
+    // / Stable identifier (= used by the actor for add / update /
+    // / remove / check lookups; never re-used even across books).
     let id: UUID
 
-    /// Owning book (= the actor resolves the on-disk sidecar
-    /// through this id).
+    // / Owning book (= the actor resolves the on-disk sidecar
+    // / through this id).
     let bookId: UUID
 
     /// Short title (= e.g. "Magic requires eye contact").
     let title: String
 
-    /// 2-3 sentences explaining the rule (= surfaced in the
-    /// violations list and the picker tooltip).
+    // / 2-3 sentences explaining the rule (= surfaced in the
+    // / violations list and the picker tooltip).
     let description: String
 
     /// How strictly this rule is held (= see ConstraintSeverity).
@@ -114,12 +113,12 @@ struct BookSettingConstraint: Sendable, Codable, Equatable, Identifiable {
     let scope: ConstraintScope
 
     // / Optional target id (= the character or plot the constraint
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / universally).
     let appliesToId: UUID?
 
     // / Regex or literal phrases that violate this constraint.
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / only; = still useful for soft / preference severities).
     let forbiddenPatterns: [String]
 
@@ -150,20 +149,20 @@ struct BookSettingConstraint: Sendable, Codable, Equatable, Identifiable {
 }
 
 // MARK: - ConstraintViolation struct
-// … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / the writer to fix).
 struct ConstraintViolation: Sendable, Codable, Equatable, Identifiable {
 
     // / Synthetic identifier (= constraintId + line number +
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / duplicate-key collisions on repeated matches.
     let id: UUID
 
     /// Constraint id (= the rule that triggered this violation).
     let constraintId: UUID
 
-    /// Constraint title (= copied at violation time so the UI
-    /// can render it without dereferencing the constraint).
+    // / Constraint title (= copied at violation time so the UI
+    // / can render it without dereferencing the constraint).
     let title: String
 
     /// Severity of the rule (= hard / soft / preference).
@@ -173,12 +172,12 @@ struct ConstraintViolation: Sendable, Codable, Equatable, Identifiable {
     let scope: ConstraintScope
 
     // / The actual text that triggered the violation (= first
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / truncated).
     let matchedText: String
 
     // / 1-indexed line number where the match was found (= nil
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / was on the first logical line).
     let lineNumber: Int?
 
@@ -207,7 +206,7 @@ struct ConstraintViolation: Sendable, Codable, Equatable, Identifiable {
 }
 
 // MARK: - Sidecar on-disk shape
-// … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / writes one of these per book (= keyed by `bookId`).
 struct BookSettingConstraintsSidecar: Codable, Sendable, Equatable {
     var bookId: UUID
@@ -226,7 +225,7 @@ struct BookSettingConstraintsSidecar: Codable, Sendable, Equatable {
 }
 
 // MARK: - Actor errors
-// … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / conventions (= a LocalizedError per case).
 enum BookSettingConstraintsError: Error, LocalizedError, Sendable, Equatable {
     case bookDirectoryNotFound(bookId: UUID)
@@ -243,12 +242,12 @@ enum BookSettingConstraintsError: Error, LocalizedError, Sendable, Equatable {
 }
 
 // MARK: - Actor
-// … (= 19 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // /     `.bookDirectoryNotFound`.
 actor BookSettingConstraints {
 
     // / Sidecar on-disk filename (= parallel to
-    // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / `tag-manager.json`).
     private static let sidecarFilename = "setting-constraints.json"
 
@@ -262,7 +261,7 @@ actor BookSettingConstraints {
     }
 
     // MARK: - Public surface (= matches the task spec verbatim)
-    // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // /     policy + the CharacterRelationshipTracker add path).
     func add(_ constraint: BookSettingConstraint) async throws {
         var sidecar = try await loadOrCreateSidecar(bookId: constraint.bookId)
@@ -278,7 +277,7 @@ actor BookSettingConstraints {
     }
 
     // / Update an existing constraint (= matches by id). Throws
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / supplied book.
     func update(_ constraint: BookSettingConstraint) async throws {
         var sidecar = try await loadOrCreateSidecar(bookId: constraint.bookId)
@@ -292,7 +291,7 @@ actor BookSettingConstraints {
     }
 
     // / Remove a constraint by id. Walks the cache to find the
-    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / then fall back to scanning shelvesRoot).
     func remove(id: UUID) async throws {
         // Cache hit (= the view loaded constraints first via
@@ -306,7 +305,7 @@ actor BookSettingConstraints {
             return
         }
         // Fallback: scan every shelf for a book that owns this
-        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // resolve bookDirectory(=).
         if let found = try await findConstraintAcrossBooks(id: id) {
             var updated = try await loadOrCreateSidecar(bookId: found.bookId)
@@ -319,8 +318,8 @@ actor BookSettingConstraints {
         throw BookSettingConstraintsError.constraintNotFound(id: id)
     }
 
-    /// All constraints in a book (= filterable by severity /
-    /// scope). When all filters are nil, returns every row.
+    // / All constraints in a book (= filterable by severity /
+    // / scope). When all filters are nil, returns every row.
     func list(
         bookId: UUID,
         severity: ConstraintSeverity? = nil,
@@ -349,7 +348,7 @@ actor BookSettingConstraints {
     }
 
     // / Check the supplied chapter text against every active
-    // … (= 18 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / drafts).
     func check(
         chapterText: String,
@@ -358,7 +357,7 @@ actor BookSettingConstraints {
         let constraints = try await list(bookId: bookId)
         guard !constraints.isEmpty, !chapterText.isEmpty else { return [] }
         // Pre-compute the line offsets (= byte ranges per
-        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // for each match.
         let lines = chapterText.components(separatedBy: "\n")
         var lineOffsets: [Int] = []
@@ -393,13 +392,13 @@ actor BookSettingConstraints {
                         suggestion: suggestion
                     ))
                     // Advance the search range past this match
-                    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+                    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
                     // patterns (= e.g. "the the").
                     searchRange = range.upperBound..<chapterText.endIndex
                     if searchRange.isEmpty { break }
                 }
                 // 2. Regex fallback (= try compile; on failure
-                // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+                // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
                 // portability with Swift 6 strict concurrency.
                 if let regex = try? NSRegularExpression(
                     pattern: trimmed,
@@ -439,7 +438,7 @@ actor BookSettingConstraints {
             return lhs.title < rhs.title
         }
         // Dedupe: literal and regex matchers may both fire on
-        // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // writer sees one row per actual violation.
         var seen: Set<String> = []
         var deduped: [ConstraintViolation] = []
@@ -453,7 +452,7 @@ actor BookSettingConstraints {
     }
 
     // MARK: - Internals
-    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / violations at the top of the list.
     private func severityRank(_ severity: ConstraintSeverity) -> Int {
         switch severity {
@@ -464,7 +463,7 @@ actor BookSettingConstraints {
     }
 
     // / Compute a 1-indexed line number for a character offset
-    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / practice).
     private func computeLineNumber(for index: String.Index, in text: String, lineOffsets: [Int]) -> Int? {
         let offset = index.utf16Offset(in: text)
@@ -486,7 +485,7 @@ actor BookSettingConstraints {
     }
 
     // / Render the supplied text window around the match range
-    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / without re-reading the entire chapter.
     private func makeSnippet(around range: Range<String.Index>, in text: String) -> String {
         let prefix = 30
@@ -511,7 +510,7 @@ actor BookSettingConstraints {
     }
 
     // / Scan every shelf for a book that owns the supplied
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / has not loaded the constraint into cache yet).
     private func findConstraintAcrossBooks(id: UUID) async throws -> BookSettingConstraint? {
         let shelvesRoot = bookStore.stores.shelvesRoot
@@ -545,7 +544,7 @@ actor BookSettingConstraints {
     }
 
     // / Resolve the sidecar on disk for the given book. Walks the
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / `BookStore.bookDirectory(bookId:)`).
     private func sidecarURL(bookId: UUID) throws -> URL {
         guard let bookDir = bookStore.bookDirectory(bookId: bookId) else {
@@ -555,7 +554,7 @@ actor BookSettingConstraints {
     }
 
     // / Load the sidecar from disk (= or create an empty one +
-    // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / ideas / tag-manager convention).
     private func loadOrCreateSidecar(bookId: UUID) async throws -> BookSettingConstraintsSidecar {
         if let cached = cache[bookId] { return cached }
@@ -564,7 +563,7 @@ actor BookSettingConstraints {
             let fresh = BookSettingConstraintsSidecar(bookId: bookId)
             cache[bookId] = fresh
             // Do NOT persist a brand-new empty sidecar (= match
-            // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // constraint).
             return fresh
         }
@@ -577,7 +576,7 @@ actor BookSettingConstraints {
             return sidecar
         } catch {
             // Forgiving: log nothing (= no logger dependency);
-            // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // `BookTodoStore` load paths.
             let empty = BookSettingConstraintsSidecar(bookId: bookId)
             cache[bookId] = empty
@@ -585,8 +584,8 @@ actor BookSettingConstraints {
         }
     }
 
-    /// Persist the sidecar to disk (= atomic write via tmp +
-    /// rename; mirrors `BookProjectConfigStore.atomicWrite`).
+    // / Persist the sidecar to disk (= atomic write via tmp +
+    // / rename; mirrors `BookProjectConfigStore.atomicWrite`).
     private func persistSidecar(_ sidecar: BookSettingConstraintsSidecar) async throws {
         let url = try sidecarURL(bookId: sidecar.bookId)
         let encoder = JSONEncoder()

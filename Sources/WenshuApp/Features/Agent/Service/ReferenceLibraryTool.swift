@@ -1,6 +1,5 @@
 // 
-// … (= 23 rationale lines collapsed; = A112 docblock collapse per §1.8)
-// 
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 import Foundation
 
 // MARK: - ReferenceDescriptor
@@ -52,12 +51,12 @@ struct ReferenceDescriptor: Sendable, Codable, Equatable, Identifiable {
         self.title = reference.title
         self.displayTitle = reference.displayTitle
         // Map ReferenceLayer.wire_internal raw values (= "layerRaw" /
-        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // the domain enum predates the agent tool surface.
         self.layer = Self.wireLayer(reference.layer)
         self.category = reference.category?.rawValue
         // Tags are emitted sorted for stable on-the-wire output (= the
-        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // depend on sorted form).
         self.tags = reference.tags.sorted()
         self.entityType = reference.entityType.rawValue
@@ -68,8 +67,8 @@ struct ReferenceDescriptor: Sendable, Codable, Equatable, Identifiable {
         self.updatedAt = reference.updatedAt
     }
 
-    /// ReferenceLayer.wireRawValue: maps the internal layer enum to the
-    /// LLM-friendly wire string used in tool input / output.
+    // / ReferenceLayer.wireRawValue: maps the internal layer enum to the
+    // / LLM-friendly wire string used in tool input / output.
     static func wireLayer(_ layer: ReferenceLayer) -> String {
         switch layer {
         case .layerRaw:       return "raw"
@@ -91,7 +90,7 @@ enum ReferenceLibraryAction: String, Sendable, Codable, CaseIterable, Equatable 
     case find
     case upsert
     // / Append a new section to an existing reference's body (= the
-    // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / of creating duplicates).
     case extend
 }
@@ -237,7 +236,7 @@ final class ReferenceLibraryActor {
     }
 
     // / Append a new section to an existing reference's body (= the
-    // … (= 16 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / `ReferenceDescriptor`. Throws `entryNotFound` if the id doesn't exist.
     func extendReference(
         id: UUID,
@@ -269,7 +268,7 @@ final class ReferenceLibraryActor {
         // Tag merge: union (= never replace).
         let mergedTags = existing.tags.union(tags)
         // Field updates: only overwrite summary / source / url when
-        // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // summary just because the extend call didn't pass one).
         do {
             let updated = try referenceStore.upsertReference(
@@ -290,7 +289,7 @@ final class ReferenceLibraryActor {
     }
 
     // / Merge `## <sectionTitle>` into `existingBody`. If a section with that
-    // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / convention).
     static func mergeSection(
         into existingBody: String,
@@ -300,7 +299,7 @@ final class ReferenceLibraryActor {
         let heading = "## \(sectionTitle)"
         let newSection = "\(heading)\n\n\(sectionBody.trimmingCharacters(in: .whitespacesAndNewlines))\n"
         // Look for an existing `## <sectionTitle>` heading line.
-        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // at the next `## ` heading or at end-of-body).
         var lines = existingBody.components(separatedBy: "\n")
         var headingLineIndex: Int?
@@ -327,7 +326,7 @@ final class ReferenceLibraryActor {
             lines.replaceSubrange(start..<endIndex, with: replacementLines)
         } else {
             // No existing section — append. Insert a blank-line
-            // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // with one.
             if !existingBody.isEmpty,
                !existingBody.hasSuffix("\n\n") {
@@ -348,7 +347,7 @@ final class ReferenceLibraryActor {
         let filtered: [Reference]
         if let layer {
             // Explicit layer requested. Reject LLM-derived layers
-            // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // rather than silently falling back to user-managed.
             guard let parsedLayer = parseLayerIfUserFacing(layer) else {
                 return []
@@ -356,7 +355,7 @@ final class ReferenceLibraryActor {
             filtered = all.filter { $0.layer == parsedLayer }
         } else {
             // Default: user-managed layers (= raw + entities; =
-            // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // which stay hidden per the spec v5 convention).
             filtered = all.filter { $0.layer == .layerRaw || $0.layer == .layerEntities }
         }
@@ -386,7 +385,7 @@ final class ReferenceLibraryActor {
     }
 
     // / Upsert by title within a layer (= the recurring-research path). If an
-    // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / growing); otherwise a new reference is created with a fresh UUID.
     func upsertReference(
         title: String,
@@ -408,7 +407,7 @@ final class ReferenceLibraryActor {
         let parsedType = EntityType(rawValue: entityType) ?? .other
         do {
             // Tag merge strategy: for an existing entry, the new tags
-            // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // ones). For a fresh entry, the tags land as-is.
             let existingRefs = (try? referenceStore.loadReferences(layer: parsedLayer)) ?? []
             let normalizedTitle = trimmed.lowercased()
@@ -439,7 +438,7 @@ final class ReferenceLibraryActor {
     }
 
     // MARK: - Layer parsing
-    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / .layerIndexes) are explicitly rejected.
     private func parseLayer(_ raw: String) -> ReferenceLayer {
         switch raw.lowercased() {
@@ -449,7 +448,7 @@ final class ReferenceLibraryActor {
             return .layerEntities
         case "abstracts":
             // LLM-derived: silently fall back to raw (= the LLM should
-            // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // by routing to .layerRaw and the user can re-classify).
             return .layerRaw
         case "indexes":
@@ -460,7 +459,7 @@ final class ReferenceLibraryActor {
     }
 
     // / Same as parseLayer, but used by list / find (= returns nil if the LLM
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / results rather than crashing).
     private func parseLayerIfUserFacing(_ raw: String) -> ReferenceLayer? {
         switch raw.lowercased() {
@@ -513,7 +512,7 @@ final class ReferenceLibraryActor {
                 let layer = envelope["layer"] as? String ?? "raw"
                 let category = envelope["category"] as? String
                 // Tags is an optional [String] in the envelope. Accept
-                // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+                // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
                 // provide any tags).
                 let tagsArray = envelope["tags"] as? [String] ?? []
                 let tags = Set(tagsArray)
@@ -606,14 +605,14 @@ final class ReferenceLibraryActor {
                     summary: summary
                 )
                 // The "created" flag in the JSON envelope tells the
-                // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+                // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
                 // the update branch.
                 let wasCreated = Date().timeIntervalSince(reference.createdAt) < 1.0
                 return Self.encodeSuccess(action: action, reference: reference, created: wasCreated)
 
             case .extend:
                 // Self-evolution mechanism. The agent finds an
-                // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+                // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
                 // already exists) rather than rewriting the body.
                 let id = envelope["id"] as? String
                     ?? (envelope["id"] as? [String: Any])?["value"] as? String
@@ -763,7 +762,7 @@ final class ReferenceLibraryActor {
         if let source = d.source { dict["source"] = source }
         if let url = d.url { dict["url"] = url }
         // Tags are emitted sorted (= the LLM / agent UI sees a
-        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // — consumers don't need to handle missing-key vs nil).
         dict["tags"] = d.tags
         return dict

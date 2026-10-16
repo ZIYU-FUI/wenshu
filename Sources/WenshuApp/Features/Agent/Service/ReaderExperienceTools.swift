@@ -1,18 +1,17 @@
 // 
-// … (= 79 rationale lines collapsed; = A112 docblock collapse per §1.8)
-// 
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 import Foundation
 
 // MARK: - Public surface
-// … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / `agent/specialized/reader_experience.py`.
 enum ReaderExperienceKind: String, Sendable, Codable, CaseIterable, Identifiable {
     /// Emotional intensity curve across the chapter.
     case tension
     /// Scene density (= dialogue vs. prose ratio).
     case pacing
-    /// Setup-sentence density per 1000 words (= how many foreshadowing beats
-    /// the chapter plants).
+    // / Setup-sentence density per 1000 words (= how many foreshadowing beats
+    // / the chapter plants).
     case foreshadowingDensity
     /// Chapter-ending unresolved hook.
     case cliffhanger
@@ -49,7 +48,7 @@ enum ReaderExperienceKind: String, Sendable, Codable, CaseIterable, Identifiable
     }
 
     // / SF Symbols 6 icon name (= Apple canonical; = used by Image(systemName:)
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / Lucide-era names removed Migrated to outline glyphs.
     var icon: String {
         switch self {
@@ -62,11 +61,11 @@ enum ReaderExperienceKind: String, Sendable, Codable, CaseIterable, Identifiable
     }
 }
 
-/// A single evidence span inside the chapter text. The view layer renders
-/// highlights inline (= matched text + the offset range).
+// / A single evidence span inside the chapter text. The view layer renders
+// / highlights inline (= matched text + the offset range).
 struct ReaderExperienceHighlight: Sendable, Codable, Equatable, Hashable {
     // / Character offset into the chapter (= 0-based; Swift String uses
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / re-locate the span regardless of grapheme breaks).
     let utf8Offset: Int
 
@@ -76,8 +75,8 @@ struct ReaderExperienceHighlight: Sendable, Codable, Equatable, Hashable {
     /// The matched substring (= the chapter slice this highlight refers to).
     let text: String
 
-    /// Short label (= e.g. "setup", "callback", "question", "dialogue line",
-    /// "stress peak"). The view uses this as the badge text.
+    // / Short label (= e.g. "setup", "callback", "question", "dialogue line",
+    // / "stress peak"). The view uses this as the badge text.
     let label: String
 
     init(utf8Offset: Int, utf8Length: Int, text: String, label: String) {
@@ -89,7 +88,7 @@ struct ReaderExperienceHighlight: Sendable, Codable, Equatable, Hashable {
 }
 
 // / One actionable hint for the writer (= "add more dialogue here", "raise
-// … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / context.
 struct ReaderExperienceSuggestion: Sendable, Codable, Equatable, Hashable {
     let text: String
@@ -103,15 +102,15 @@ struct ReaderExperienceSuggestion: Sendable, Codable, Equatable, Hashable {
 struct ReaderExperienceReport: Sendable, Codable, Equatable {
     let kind: ReaderExperienceKind
     // / Normalized score in 0..1. The semantics differ per kind (= see
-    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / detected, 1 = detected); we still expose it as 0..1 for UI uniformity.
     let score: Double
     /// Evidence spans (= the strings the analyzer matched).
     let highlights: [ReaderExperienceHighlight]
     /// Writer-facing suggestions.
     let suggestions: [ReaderExperienceSuggestion]
-    /// Human-readable summary (= a one-paragraph description of what the
-    /// analyzer found). The view renders this above the highlights list.
+    // / Human-readable summary (= a one-paragraph description of what the
+    // / analyzer found). The view renders this above the highlights list.
     let summary: String
 
     init(
@@ -130,7 +129,7 @@ struct ReaderExperienceReport: Sendable, Codable, Equatable {
 }
 
 // MARK: - Errors
-// … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / `fatalError` paths).
 enum ReaderExperienceAnalyzerError: Error, LocalizedError, Sendable, Equatable {
     case emptyChapter
@@ -147,19 +146,19 @@ enum ReaderExperienceAnalyzerError: Error, LocalizedError, Sendable, Equatable {
 }
 
 // MARK: - Actor
-// … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / verbatim; the actor remains trivially testable).
 actor ReaderExperienceAnalyzer {
-    /// Reserved for future payoffDetector integration (= reading the per-book
-    /// foreshadowing catalog from disk).
+    // / Reserved for future payoffDetector integration (= reading the per-book
+    // / foreshadowing catalog from disk).
     private let bookStore: BookStore?
 
-    /// FileManager override (= tests inject .default; production uses
-    /// .default). Reserved for the same payoffDetector future feature work.
+    // / FileManager override (= tests inject .default; production uses
+    // / .default). Reserved for the same payoffDetector future feature work.
     private let fileManager: FileManager
 
     // / Internal init (= matches the `LongFormGuardrails` access-level
-    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / of the wenshu app (= all callers live inside the same module).
     init(bookStore: BookStore? = nil, fileManager: FileManager = .default) {
         self.bookStore = bookStore
@@ -167,7 +166,7 @@ actor ReaderExperienceAnalyzer {
     }
 
     // MARK: - Public API
-    // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / defensive — should never fire in practice since the enum is exhaustive).
     func analyze(
         chapterText: String,
@@ -193,7 +192,7 @@ actor ReaderExperienceAnalyzer {
     }
 
     // MARK: - 1. Tension analyzer
-    // … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / peak (= cliff-hanger style) returns close to 1.
     private func tensionReport(chapterText: String) -> ReaderExperienceReport {
         let paragraphs = Self.splitIntoParagraphs(chapterText)
@@ -259,7 +258,7 @@ actor ReaderExperienceAnalyzer {
     }
 
     // / Per-paragraph stress score. Computed as: stressTokens / max(1,
-    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / is clamped to 0..1.
     private func stressScore(for paragraph: String) -> Double {
         let lower = paragraph.lowercased()
@@ -281,7 +280,7 @@ actor ReaderExperienceAnalyzer {
     }
 
     // / The curated stress vocabulary (= small enough to keep the analyzer
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / closed-set).
     private static let stressVocabulary: [String] = [
         "danger", "dangerous",
@@ -304,7 +303,7 @@ actor ReaderExperienceAnalyzer {
     ]
 
     // MARK: - 2. Pacing analyzer
-    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / 1 = pure dialogue; 0 = pure description).
     private func pacingReport(chapterText: String) -> ReaderExperienceReport {
         let lines = chapterText.split(whereSeparator: { $0.isNewline }).map(String.init)
@@ -360,7 +359,7 @@ actor ReaderExperienceAnalyzer {
     }
 
     // / A "dialogue line" = a line that starts with a quote mark (= either
-    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / close enough for the pacing signal).
     private static func isDialogueLine(_ line: String) -> Bool {
         let trimmed = line.trimmingCharacters(in: .whitespaces)
@@ -373,7 +372,7 @@ actor ReaderExperienceAnalyzer {
     }
 
     // MARK: - 3. Foreshadowing density
-    // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / 1000 words = full score). - highlights = the matched setup sentences.
     private func foreshadowingDensityReport(chapterText: String) -> ReaderExperienceReport {
         let words = Self.wordCount(of: chapterText)
@@ -434,8 +433,8 @@ actor ReaderExperienceAnalyzer {
         )
     }
 
-    /// Setup-verb vocabulary (= small closed set; = the Python module keeps
-    /// this set short to avoid false positives).
+    // / Setup-verb vocabulary (= small closed set; = the Python module keeps
+    // / this set short to avoid false positives).
     private static let setupVerbs: [String] = [
         "promised", "promise", "promises",
         "warned", "warn", "warns", "warning",
@@ -498,7 +497,7 @@ actor ReaderExperienceAnalyzer {
     }
 
     // MARK: - 4. Cliffhanger analyzer
-    // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / suggesting an unresolved subject.
     private func cliffhangerReport(chapterText: String) -> ReaderExperienceReport {
         let sentences = Self.splitIntoSentences(chapterText)
@@ -585,7 +584,7 @@ actor ReaderExperienceAnalyzer {
     ]
 
     // MARK: - 5. Payoff detector
-    // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / feature work can split it into multiple payoff flavors).
     private func payoffDetectorReport(chapterText: String) -> ReaderExperienceReport {
         let lower = chapterText.lowercased()
@@ -690,7 +689,7 @@ actor ReaderExperienceAnalyzer {
     ]
 
     // MARK: - Shared text utilities
-    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / dropped.
     static func splitIntoParagraphs(_ text: String) -> [String] {
         let normalized = text.replacingOccurrences(of: "\r\n", with: "\n")
@@ -704,7 +703,7 @@ actor ReaderExperienceAnalyzer {
         }
         if paragraphs.isEmpty {
             // Fall back to single-newline split if the chapter
-            // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // newlines throughout).
             for line in normalized.components(separatedBy: "\n") {
                 let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -717,7 +716,7 @@ actor ReaderExperienceAnalyzer {
     }
 
     // / Split chapter into sentences (= naive period / question / exclamation
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / "Dr.") are tolerated because the analyzer only needs a coarse signal.
     static func splitIntoSentences(_ text: String) -> [String] {
         var sentences: [String] = []
@@ -740,8 +739,8 @@ actor ReaderExperienceAnalyzer {
         return sentences
     }
 
-    /// Word count (= whitespace-delimited tokens; = drops punctuation from the
-    /// count via the split semantics).
+    // / Word count (= whitespace-delimited tokens; = drops punctuation from the
+    // / count via the split semantics).
     static func wordCount(of text: String) -> Int {
         let tokens = text.split(whereSeparator: { $0.isWhitespace })
         return tokens.filter { !$0.isEmpty }.count
@@ -760,7 +759,7 @@ actor ReaderExperienceAnalyzer {
     }
 
     // / Word-boundary check (= returns true if `needle` appears as a complete
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / positives like "wins" matching "windows".
     static func containsWord(_ needle: String, in haystack: String) -> Bool {
         guard !needle.isEmpty else { return false }
@@ -800,8 +799,8 @@ actor ReaderExperienceAnalyzer {
         return false
     }
 
-    /// Locate the UTF-8 offset of the first occurrence of `needle` in
-    /// `haystack`. Returns nil when not found.
+    // / Locate the UTF-8 offset of the first occurrence of `needle` in
+    // / `haystack`. Returns nil when not found.
     static func utf8Offset(of needle: String, in haystack: String) -> Int? {
         guard let range = haystack.range(of: needle) else { return nil }
         let utf8Start = haystack.utf8.distance(
@@ -811,8 +810,8 @@ actor ReaderExperienceAnalyzer {
         return utf8Start
     }
 
-    /// Compute the normalized slope (= 0..1) of a sequence of points via simple
-    /// linear regression. Returns 0 for empty or single-element inputs.
+    // / Compute the normalized slope (= 0..1) of a sequence of points via simple
+    // / linear regression. Returns 0 for empty or single-element inputs.
     static func normalizedSlope(of values: [Double]) -> Double {
         guard values.count >= 2 else { return 0 }
         let n = Double(values.count)
@@ -829,7 +828,7 @@ actor ReaderExperienceAnalyzer {
         guard den > 0 else { return 0 }
         let slope = num / den
         // Slope is in score-units per paragraph-index. Map to
-        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // escalation").
         let referenceSlope = 0.1
         let normalized = slope / referenceSlope

@@ -1,12 +1,11 @@
 // Sources/WenshuApp/State/LayoutTreeState.swift
-// … (= 16 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // justification; = shipped together per the standing rule).
 import Foundation
 import CoreGraphics
 
 // MARK: - Tab + Pane primitives (unchanged from v1)
-
-/// PaneID — type-safe identifier for a workspace pane (= same as v1).
+// / PaneID — type-safe identifier for a workspace pane (= same as v1).
 struct PaneID: Codable, Equatable, Hashable {
     var raw: UUID
     init(_ raw: UUID = UUID()) { self.raw = raw }
@@ -46,17 +45,17 @@ enum TabKind: String, Codable {
 }
 
 // / PaneNode — a single pane (= holds 0 or more tabs).
-// … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / up frame + tab info per-pane.
 struct PaneNode: Codable, Equatable, Identifiable {
     var id: PaneID
     // / Orientation of the split (= which axis the pane's flex
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / root pane owns its parent's split direction).
     var split: SplitDirection
     var frame: PaneFrame
-    /// Ordered list of tabs in this pane (= first is the selected
-    /// tab when the pane becomes active).
+    // / Ordered list of tabs in this pane (= first is the selected
+    // / tab when the pane becomes active).
     var tabIDs: [TabID]
 
     static func make(split: SplitDirection = .horizontal, frame: PaneFrame = .defaultFrame, tabs: [TabID] = []) -> PaneNode {
@@ -77,7 +76,7 @@ struct TabSpec: Codable, Equatable, Identifiable {
 }
 
 // MARK: - Tree node kinds (= hermes model.ts lines 16-56)
-// … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / `tabStrip`; everything else asks AUTO).
 enum TabStripMode: String, Codable {
     case always
@@ -103,7 +102,7 @@ enum DropPosition: String, Codable {
 }
 
 // / LayoutNode — recursive tree node. Sum type: SplitNode | GroupNode.
-// … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / branch by the `type` field.
 indirect enum LayoutNode: Codable, Equatable {
     case split(SplitNode)
@@ -172,13 +171,13 @@ struct GroupNode: Codable, Equatable, Identifiable {
     /// Collapsed to header strip (= chevron restores).
     var minimized: Bool?
     // / The user's standing choice for this zone's strip; absent = auto.
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / ignores it — a minimized group IS its strip.
     var tabStrip: TabStripMode?
 }
 
 // MARK: - Tree node constructors (= hermes model.ts lines 63-86)
-// … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / requires the annotation.
 private final class NodeIDSequence: @unchecked Sendable {
     static let shared = NodeIDSequence()
@@ -218,8 +217,7 @@ func makeSplit(orientation: Orientation, children: [LayoutNode], weights: [Doubl
 }
 
 // MARK: - Queries (= hermes model.ts lines 89-147)
-
-/// Recursive lookup: returns the group with `groupId`, or nil.
+// / Recursive lookup: returns the group with `groupId`, or nil.
 func findGroup(_ node: LayoutNode, groupId: String) -> GroupNode? {
     if case .group(let g) = node {
         return g.id == groupId ? g : nil
@@ -273,7 +271,7 @@ func findParentSplit(_ node: LayoutNode, childId: String) -> SplitNode? {
 }
 
 // MARK: - normalize (= hermes model.ts lines 153-217)
-// … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / Returns nil when the tree is fully empty.
 func normalize(_ node: LayoutNode) -> LayoutNode? {
     if case .group(let g) = node {
@@ -323,7 +321,7 @@ func normalize(_ node: LayoutNode) -> LayoutNode? {
 }
 
 // MARK: - removePane (= hermes model.ts lines 219-241)
-// … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / was last) — same rule as terminals and the preview rail.
 func removePane(_ node: LayoutNode, paneId: PaneID) -> LayoutNode? {
     func walk(_ n: LayoutNode) -> LayoutNode {
@@ -349,7 +347,7 @@ func removePane(_ node: LayoutNode, paneId: PaneID) -> LayoutNode? {
 }
 
 // MARK: - insertAtGroup (= hermes model.ts lines 243-301)
-// … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / becomes empty.
 func insertAtGroup(
     _ node: LayoutNode,
@@ -397,7 +395,7 @@ func insertAtGroup(
 }
 
 // MARK: - movePane + movePanes (= hermes model.ts lines 303-416)
-// … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / of node ids.
 private func shapeSignature(_ node: LayoutNode) -> String {
     if case .group(let g) = node {
@@ -414,7 +412,7 @@ private func shapeSignature(_ node: LayoutNode) -> String {
 }
 
 // / Move = remove + insert. If the target group vanished during
-// … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / under a fresh zone id.
 func movePane(
     _ root: LayoutNode,
@@ -433,7 +431,7 @@ func movePane(
 }
 
 // / Move a SELECTION of panes together (multi-tab drag), preserving
-// … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / rebuilds the visible arrangement returns `root`.
 func movePanes(
     _ root: LayoutNode,
@@ -447,7 +445,7 @@ func movePanes(
     }
     let lead = ids[0]
     // Replaced the previous `working!` (= force-unwrap inside a loop
-    // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // the outer current).
     var current: LayoutNode? = root
     for id in ids {
@@ -476,8 +474,7 @@ func movePanes(
 }
 
 // MARK: - groupLeafIds + findCover (= hermes model.ts lines 418-445)
-
-/// Group ids of every leaf under a node, in tree order.
+// / Group ids of every leaf under a node, in tree order.
 func groupLeafIDs(_ node: LayoutNode) -> [String] {
     if case .group(let g) = node { return [g.id] }
     if case .split(let s) = node { return s.children.flatMap { groupLeafIDs($0) } }
@@ -488,8 +485,8 @@ private func sameSet(_ ids: [String], _ set: Set<String>) -> Bool {
     return ids.count == set.count && ids.allSatisfy { set.contains($0) }
 }
 
-/// The node whose complete leaf set equals `set` (= a rectangular
-/// region in a guillotine tree is always exactly one subtree), or nil.
+// / The node whose complete leaf set equals `set` (= a rectangular
+// / region in a guillotine tree is always exactly one subtree), or nil.
 private func findCover(_ node: LayoutNode, _ set: Set<String>) -> LayoutNode? {
     if sameSet(groupLeafIDs(node), set) { return node }
     if case .split(let s) = node {
@@ -501,7 +498,7 @@ private func findCover(_ node: LayoutNode, _ set: Set<String>) -> LayoutNode? {
 }
 
 // MARK: - mergeZonesWithPane (= hermes model.ts lines 447-505)
-// … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / single-zone drop.
 func mergeZonesWithPane(
     _ root: LayoutNode,
@@ -565,7 +562,7 @@ func setActivePane(_ root: LayoutNode, groupId: String, paneId: PaneID) -> Layou
 }
 
 // / Reorder a block of panes within a group as one unit (browser-tab
-// … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / order.
 func reorderPanesInGroup(
     _ root: LayoutNode,
@@ -585,8 +582,8 @@ func reorderPanesInGroup(
     }
 }
 
-/// Toggle a group's minimized state (= chevron expands / collapses
-/// the group to a header strip).
+// / Toggle a group's minimized state (= chevron expands / collapses
+// / the group to a header strip).
 func setGroupMinimized(_ root: LayoutNode, groupId: String, minimized: Bool) -> LayoutNode {
     return mapGroups(root) { g in
         (g.id == groupId) ? GroupNode(
@@ -607,7 +604,7 @@ func setGroupTabStrip(_ root: LayoutNode, groupId: String, tabStrip: TabStripMod
 }
 
 // / Mirror the layout HORIZONTALLY (the titlebar flip toggle / ⌘\):
-// … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / flips everywhere. Its own involution: flipping twice is the identity.
 func mirrorTreeHorizontal(_ root: LayoutNode) -> LayoutNode {
     if case .group = root { return root }
@@ -647,7 +644,7 @@ func setSplitWeights(_ root: LayoutNode, splitId: String, weights: [Double]) -> 
 }
 
 // MARK: - Validation + persisted-tree migration (= hermes model.ts lines 589-650)
-// … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / hermes `headerHidden` → `tabStrip` retirement).
 func migratePersistedTree(_ node: LayoutNode) -> LayoutNode {
     switch node {
@@ -665,7 +662,7 @@ func migratePersistedTree(_ node: LayoutNode) -> LayoutNode {
 }
 
 // / Cheap structural validator for an unknown value (= used to gate
-// … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / cost. Returns true for both legal split and legal group shapes.
 func isLayoutNode(_ value: Any) -> Bool {
     guard let n = value as? [String: Any], let type = n["type"] as? String else {
@@ -688,23 +685,23 @@ func isLayoutNode(_ value: Any) -> Bool {
 }
 
 // MARK: - LayoutTreeState v2 (= hermes-tree-backed)
-// … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / the tree and return a new state.
 struct LayoutTreeState: Codable, Equatable {
-    /// The tree root. Persisted as nested JSON (= split/group
-    /// discriminated by `type` field).
+    // / The tree root. Persisted as nested JSON (= split/group
+    // / discriminated by `type` field).
     var root: LayoutNode
-    /// Pane metadata (= keyed by PaneID). The tree references these
-    /// via `GroupNode.panes`.
+    // / Pane metadata (= keyed by PaneID). The tree references these
+    // / via `GroupNode.panes`.
     var panes: [PaneNode]
-    /// All tabs (= keyed by TabID). Each `PaneNode.tabIDs` references
-    /// entries here.
+    // / All tabs (= keyed by TabID). Each `PaneNode.tabIDs` references
+    // / entries here.
     var tabs: [TabSpec]
     /// Schema version (= current = 2).
     var version: Int
 
     // MARK: - 3-column NavigationSplitView migration (= M1 shell)
-    // … (= 19 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / Marked `Optional` (= Codable back-compat for old persisted JSON).
     var useThreeColumnSplit: Bool? = nil
 
@@ -718,8 +715,8 @@ struct LayoutTreeState: Codable, Equatable {
         panes.first(where: { $0.id == id })
     }
 
-    /// Lookup helper for the currently active pane (= the front-most
-    /// pane in the tree).
+    // / Lookup helper for the currently active pane (= the front-most
+    // / pane in the tree).
     var activePaneID: PaneID? {
         for case .group(let g) in walkRoot(root) {
             return g.active
@@ -728,7 +725,7 @@ struct LayoutTreeState: Codable, Equatable {
     }
 
     // / All PaneIDs in tree order (= wrapper over the file-scope
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / the helper's name).
     var allPaneIDsInTree: [PaneID] {
         allPaneIDs(root)
@@ -736,7 +733,7 @@ struct LayoutTreeState: Codable, Equatable {
 }
 
 // / Private helper: walks the tree breadth-first and yields each
-// … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / front-most (= depth-first, first encountered) group.
 private func walkRoot(_ node: LayoutNode) -> [LayoutNode] {
     var result: [LayoutNode] = []
@@ -751,7 +748,7 @@ private func walkRoot(_ node: LayoutNode) -> [LayoutNode] {
 }
 
 // / LayoutPreset — a named saved layout (= user can have several).
-// … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / layout. It is recreated on demand; user cannot delete it.
 struct LayoutPreset: Codable, Equatable, Identifiable {
     var id: UUID
@@ -760,7 +757,7 @@ struct LayoutPreset: Codable, Equatable, Identifiable {
     var isBuiltIn: Bool
 
     // / Stable UUIDs for the 4 builtin presets. Generated once here
-    // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / compile time so the failure path is unreachable).
     static let builtinDefaultID = UUID.literal("00000000-0000-0000-0000-000000000001")
     static let builtinFocusID = UUID.literal("00000000-0000-0000-0000-000000000002")
@@ -769,7 +766,7 @@ struct LayoutPreset: Codable, Equatable, Identifiable {
 
     static func builtinDefault(_ workspace: LayoutTreeState) -> LayoutPreset {
         // Translated the legacy localized string "Default" → "Default"
-        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // version comes from the i18n layer when shown to the user).
         LayoutPreset(id: builtinDefaultID, name: "Default", workspace: workspace, isBuiltIn: true)
     }

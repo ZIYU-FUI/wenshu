@@ -1,5 +1,5 @@
 // Sources/WenshuApp/Storage/LibraryMigrator.swift
-// … (= 32 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // Does NOT touch user .md content under migrated books.
 import Foundation
 import WenshuData
@@ -7,25 +7,25 @@ import WenshuData
 struct LibraryMigrator: Sendable {
     let wsRoot: URL
 
-    /// Run the legacy migration. Idempotent: if WSSchemaVersion
-    /// is already 1, this is a no-op.
+    // / Run the legacy migration. Idempotent: if WSSchemaVersion
+    // / is already 1, this is a no-op.
     func migrateIfNeeded() throws {
         let fm = FileManager.default
         // 0. ALWAYS-RUN housekeeping (= runs on every launch, even when
-        // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // though no schema change happened).
         try alwaysRunOnLaunch(fm: fm)
         // 1. Idempotency check: read Info.plist; if WSSchemaVersion = 1
         // (= current), skip migration entirely.
         if try isAlreadyCurrentSchema() {
             // BUT we still want to run helpDocUpgrade() to
-            // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // only 1 old help-doc, upgrade to 5 files).
             try? helpDocUpgrade(fm: fm)
             return
         }
         // 2. Pre-v0.26 detection: legacy .ws had books/ at .ws root OR
-        // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // shelves/ anyway so the canonical layout is established.
         let booksAtRoot = wsRoot.appendingPathComponent("books", isDirectory: true)
         if fm.fileExists(atPath: booksAtRoot.path) {
@@ -75,7 +75,7 @@ struct LibraryMigrator: Sendable {
             try fm.createDirectory(at: shelvesRoot, withIntermediateDirectories: true)
         }
         // 2. Create the default shelf (= id = '00000000-0000-0000-0000-000000000000',
-        // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // doc).
         let defaultShelfId = UUID(uuidString: "00000000-0000-0000-0000-000000000000") ?? UUID()
         let defaultShelfDir = shelvesRoot.appendingPathComponent(defaultShelfId.uuidString, isDirectory: true)
@@ -109,7 +109,7 @@ struct LibraryMigrator: Sendable {
     }
 
     // / Always-run-on-launch housekeeping ((see OOB.md #2026-08-27)
-    // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / every launch).
     private func alwaysRunOnLaunch(fm: FileManager) throws {
         // 1. Compute the default shelf dir (= all-zeros UUID).
@@ -129,7 +129,7 @@ struct LibraryMigrator: Sendable {
             try updated.write(to: shelfJSONURL)
         }
         // 2b. Rename the existing default book title ' → '
-        // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // that was actually written by earlier wenshu versions).
         let defaultBooksDir = defaultShelfDir.appendingPathComponent("books", isDirectory: true)
         let legacyBookIds = [
@@ -157,7 +157,7 @@ struct LibraryMigrator: Sendable {
     }
 
     // / Seed the default help-doc book + doc under ' shelf.
-    // … (= 13 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / - drafts/: planned-but-not-yet-shipped features
     private func seedDefaultHelpDoc(in shelfDir: URL, fm: FileManager = .default) throws {
         let booksDir = shelfDir.appendingPathComponent("books", isDirectory: true)
@@ -167,7 +167,7 @@ struct LibraryMigrator: Sendable {
         let bookDir = booksDir.appendingPathComponent(defaultBookId.uuidString, isDirectory: true)
         if fm.fileExists(atPath: bookDir.path) { return }
         // Per-book standard folders + 2 JSON data files (= inline;
-        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // one book).
         let standardFolders = [
             "world", "characters", "outlines", "chapters",
@@ -190,7 +190,7 @@ struct LibraryMigrator: Sendable {
         let defaultBook = Book(
             id: defaultBookId,
             // (see OOB.md #2026-08-31) (sidebar feedback bundle #1):
-            // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // descriptive).
             title: String(localized: "library.default.book_title"),
             author: "wenshu",
@@ -199,7 +199,7 @@ struct LibraryMigrator: Sendable {
         let bookData = try JSONEncoder().encode(defaultBook)
         try bookData.write(to: bookDir.appendingPathComponent("book.json"))
         // =================================================================
-        // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // 1. worldview/world.md — What is Wenshu + user guide
         let worldBody = """
         # 文枢是什么
@@ -310,7 +310,7 @@ struct LibraryMigrator: Sendable {
         )
 
         // 3. outlines/outlines.md — empty (= the user did not
-        // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // completely empty in the editor preview.
         let outlinesBody = """
         # 大纲
@@ -460,8 +460,7 @@ struct LibraryMigrator: Sendable {
         )
 
         // =================================================================
-        // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
-        // =================================================================
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         let chapter = Document(
             id: defaultBookId,            // (= use same UUID for simplicity)
             bookId: defaultBookId,
@@ -474,7 +473,7 @@ struct LibraryMigrator: Sendable {
     }
 
     // / upgrade the existing default help-doc
-    // … (= 13 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / new help-doc content without needing a schema migration.
     private func helpDocUpgrade(fm: FileManager = .default) throws {
         // 1. Find the default shelf (= shelfId 00000000-0000-0000-0000-000000000000)
@@ -492,7 +491,7 @@ struct LibraryMigrator: Sendable {
         guard fm.fileExists(atPath: bookDir.path) else { return }
 
         // 3. Delete the old single help-doc (= chapters/{uuid}.md)
-        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // = no UUIDs in the editor list).
         let oldHelpDoc = bookDir.appendingPathComponent("chapters")
             .appendingPathComponent("\(defaultBookId.uuidString).md")
@@ -501,7 +500,7 @@ struct LibraryMigrator: Sendable {
         }
 
         // 4. Write 5 new .md files (= 1 per visible folder).
-        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // 4.1 worldview/world.md
         let worldFile = bookDir.appendingPathComponent("world")
             .appendingPathComponent("文枢是什么.md")
@@ -547,7 +546,7 @@ struct LibraryMigrator: Sendable {
         }
 
         // 4.2 characters/characters.md
-        // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // the body content lives in a separate script).
         let charactersFile = bookDir.appendingPathComponent("characters")
             .appendingPathComponent("六个Agent.md")
@@ -589,7 +588,7 @@ struct LibraryMigrator: Sendable {
         }
 
         // 4.4 chapters/chapters/feature-module-overview.md
-        // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // (= the split script should be run to migrate content).
         let chapterFile = bookDir.appendingPathComponent("chapters")
             .appendingPathComponent("功能模块说明.md")
@@ -638,7 +637,7 @@ struct LibraryMigrator: Sendable {
         }
 
         // 5. Update chapters.json (= add new chapters to the index if missing).
-        // … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // title stays as the user's anchor (= the user's anchor naming).
     }
 

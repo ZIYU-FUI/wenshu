@@ -1,5 +1,5 @@
 // FileSystemReferenceStore.swift Reference-library storage layer, backed by SwiftData (=
-// … (= 13 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // <.ws>/reference-library/<layer>/<layer>.json
 import Foundation
 import SwiftData
@@ -7,14 +7,14 @@ import WenshuData
 import os
 
 // (protocol extracted to FileSystemReferenceStoreTypes.swift in A28; = see that file)
-// … (= 14 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // canonical implementation.
 @MainActor
 struct FileSystemReferenceStore: ReferenceStoring {
     let referenceLibraryRoot: URL
 
     // / SwiftData ModelContainer (= Sendable; = passed to the store
-    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / FileSystem fallback helpers directly.
     let modelContainer: ModelContainer?
 
@@ -31,8 +31,8 @@ struct FileSystemReferenceStore: ReferenceStoring {
         self.modelContainer = modelContainer
     }
 
-    /// Resolve the ModelContext (= SwiftData's @MainActor contract).
-    /// Returns nil when the store has no ModelContainer wired.
+    // / Resolve the ModelContext (= SwiftData's @MainActor contract).
+    // / Returns nil when the store has no ModelContainer wired.
     private var modelContext: ModelContext? {
         modelContainer?.mainContext
     }
@@ -140,7 +140,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
         context.insert(row)
         try context.save()
         // 2026-10-14: also write the body to its single-file truth location. See the
-        // … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // SwiftData row).
         try? Self.writeReferenceFileToFileSystem(
             id: id,
@@ -184,7 +184,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
         existing.updatedAt = Date()
         try context.save()
         // 2026-10-14: also write the body to its single-file truth location. The doc-
-        // … (= 9 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // edits become a versioned commit.
         try? Self.writeReferenceFileToFileSystem(
             id: id,
@@ -304,7 +304,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
 
     func loadReferenceBody(id: UUID) -> String? {
         // 2026-10-14: read the file-truth version first when present. The doc-truth-git
-        // … (= 16 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // canonical source until first save writes the file).
         let fileURL = Self.referenceFileURL(
             id: id, referenceLibraryRoot: referenceLibraryRoot
@@ -319,7 +319,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
         if let fileBody { return fileBody }
         guard let context = modelContext else {
             // FileSystem path: search all layer directories for the .md file. Without
-            // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // fallback helpers.
             for layer in ReferenceLayer.allCases {
                 let layerDir = layerDirectory(layer)
@@ -476,7 +476,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
         referenceLibraryRoot: URL
     ) throws {
         // (= boss 2026-10-10 (see OOB.md #2026-10-10) directive). The previous
-        // … (= 15 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // sense).
         try ensureReferenceLibraryRootExists(at: referenceLibraryRoot)
         try ensureReferenceLayerDirectoryExists(
@@ -488,17 +488,17 @@ struct FileSystemReferenceStore: ReferenceStoring {
             .appendingPathComponent("\(reference.id.uuidString).md")
         if FileManager.default.fileExists(atPath: mdURL.path) {
             // content-diff check (= the user's "完全一至" rule). If the existing .md is byte-
-            // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // without crashing).
             let existingBody = (try? String(contentsOf: mdURL, encoding: .utf8)) ?? ""
             if existingBody == bodyMarkdown {
                 // Content unchanged; = this is a re-import of the same source body; = the
-                // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+                // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
                 // previous import; = do nothing (= silent success).
                 return
             }
             // Content differs; = the user explicitly authorized "edit" in the round-41
-            // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // `replaceReferenceToFileSystem` path).
             try atomicFileSystemWrite(
                 bodyMarkdown.data(using: .utf8) ?? Data(),
@@ -554,7 +554,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
     }
 
     // MARK: - Single-file reference body (= doc-truth-git ticket)
-    // … (= 11 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / .scratch/2026-10-14-doc-truth-git/ticket.md.
     nonisolated static func readReferenceFileFromFileSystem(
         id: UUID,
@@ -565,7 +565,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
     }
 
     // / Atomic write of the reference body to its
-    // … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / change in a future v1.10 ticket).
     nonisolated static func writeReferenceFileToFileSystem(
         id: UUID,
@@ -584,7 +584,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
     }
 
     // / Resolve the canonical single-file path for a
-    // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / `<.ws>/references/<uuid>.md`.
     nonisolated static func referenceFileURL(
         id: UUID,
@@ -599,7 +599,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
     }
 
     // / 2026-10-14: write-through helper used by the
-    // … (= 15 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / updated body.
     func replaceReferenceByID(id: UUID, bodyMarkdown: String) throws {
         guard let context = modelContext else { return }
@@ -609,7 +609,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
         )
         guard let existing = try? context.fetch(descriptor).first else {
             // Row missing in SwiftData. The file write already happened (= the editor's
-            // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // silently skip the write here.
             return
         }
@@ -715,7 +715,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         // Match the decoder's `.iso8601` strategy (= see `loadReferencesFromFileSystem`
-        // … (= 11 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // save). The fix: keep encoder and decoder on the same strategy.
         encoder.dateEncodingStrategy = .iso8601
         let data = try encoder.encode(references)

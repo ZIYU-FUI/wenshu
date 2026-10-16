@@ -1,5 +1,5 @@
 // SystemPrompt.swift
-// … (= 42 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // 
 import Foundation
 
@@ -113,7 +113,7 @@ enum SystemPrompt {
     }
 
     // / Build the system prompt (= hermes build_system_prompt).
-    // … (= 9 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // /   to LLMCallOptions.systemPrompt).
     static func build(
         ephemeralHint: String,
@@ -138,7 +138,7 @@ enum SystemPrompt {
     }
 
     // / The "Librarian" / "调研员" role prompt (= used by
-    // … (= 14 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / system / user two-message structure).
     static func librarianRole(_ locale: Locale) -> String {
         switch locale {
@@ -174,7 +174,7 @@ enum SystemPrompt {
     }
 
     // / Build the system prompt as a dict of tiers (= hermes build_system_prompt_parts).
-    // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // /   PromptBuilder.composeDynamicTier).
     static func buildParts(
         ephemeralHint: String,
@@ -191,7 +191,7 @@ enum SystemPrompt {
     }
 
     // / Build the system prompt as a dict of tiers with full options
-    // … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // /   and locale-specific identity. (Empty by default in wenshu.)
     static func buildParts(options: BuildOptions) -> [String: String] {
         var parts: [String: String] = [:]
@@ -211,7 +211,7 @@ enum SystemPrompt {
         )
 
         // Dynamic tier: routed through PromptBuilder (= GAP-001 refactor).
-        // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // buildParts() surface here stays synchronous (= no actor hop).
         let dynamic = PromptBuilder.dynamicTier(
             contextBundle: ContextEngine.ContextBundle(
@@ -232,7 +232,7 @@ enum SystemPrompt {
     }
 
     // / The byte-stable system identity tier (= hermes _build_platform_specific_baseline).
-    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / Cache hits depend on byte stability.
     static func stableTier() -> String {
         return stableTier(
@@ -280,7 +280,7 @@ enum SystemPrompt {
         }
 
         // Identity block (= locale-aware base prompt).
-        // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // the parallel definition).
         if locale == .chinese {
             sections.append(PromptBuilder.defaultIdentity())
@@ -289,7 +289,7 @@ enum SystemPrompt {
         }
 
         // Help guidance (= PromptBuilder.helpGuidance, = wenshu
-        // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // when it needs to look up project conventions).
         sections.append(PromptBuilder.helpGuidance)
 
@@ -297,7 +297,7 @@ enum SystemPrompt {
         sections.append(providerGuidance(provider: provider))
 
         // Environment hints (= PromptBuilder.buildEnvironmentHints(),
-        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // description; = reimplemented per (see OOB.md #2026-10-04) OOB).
         let envHints = PromptBuilder.buildEnvironmentHints()
         if !envHints.isEmpty {
@@ -305,7 +305,7 @@ enum SystemPrompt {
         }
 
         // Context files block (= PromptBuilder.buildContextFilesPrompt(),
-        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // = nil contextLength = no truncation cap).
         let contextFiles = PromptBuilder.buildContextFilesPrompt(
             cwdPath: FileManager.default.currentDirectoryPath,
@@ -334,7 +334,7 @@ enum SystemPrompt {
             sections.append(universalGuidance("task_completion"))
         }
         // 2026-10-15 v0.74: thinking visibility guidance (= always
-        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // simple replies).
         sections.append(universalGuidance("thinking_visibility"))
         if parallelToolGuidance {
@@ -342,12 +342,12 @@ enum SystemPrompt {
         }
 
         // Speaking style (= v2.4; = read from AgentBehavior
-        // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // (= late-stage system prompt attention bias).
         sections.append(speakingStyle.promptGuidance)
 
         // Agent driver MUST be the LAST section (= sits closest to the
-        // … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // rule being present in the cache prefix).
         if agentDriverGuidance {
             sections.append(universalGuidance("agent_driver"))
@@ -484,8 +484,8 @@ enum SystemPrompt {
         }
     }
 
-    /// Universal guidance block (= hermes TASK_COMPLETION_GUIDANCE +
-    /// PARALLEL_TOOL_CALL_GUIDANCE + the per-tool guidance blocks).
+    // / Universal guidance block (= hermes TASK_COMPLETION_GUIDANCE +
+    // / PARALLEL_TOOL_CALL_GUIDANCE + the per-tool guidance blocks).
     private static func toolGuidance(_ name: String) -> String {
         switch name {
         case "memory":
@@ -529,7 +529,7 @@ enum SystemPrompt {
             """
         case "thinking_visibility":
             // trace). (see OOB.md #2026-10-15)
-            // … (= 28 rationale lines collapsed; = A112 docblock collapse per §1.8)
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // trace).
             return """
             Thinking visibility (= hermes-style step-by-step trace):

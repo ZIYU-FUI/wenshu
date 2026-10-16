@@ -1,10 +1,9 @@
 // 
-// … (= 75 rationale lines collapsed; = A112 docblock collapse per §1.8)
-// 
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 import Foundation
 
 // MARK: - Public surface
-// … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / `ReaderExperienceKind`, `LongFormGuardrailKind`).
 enum LiteraryGenre: String, Sendable, Codable, CaseIterable, Identifiable {
     /// Literary fiction (= general literary prose).
@@ -25,8 +24,8 @@ enum LiteraryGenre: String, Sendable, Codable, CaseIterable, Identifiable {
     case historical
     /// Young-adult fiction.
     case youngAdult
-    /// Literary-fiction (a narrower literary subset; = separated
-    /// from `.literary` to allow distinct preset).
+    // / Literary-fiction (a narrower literary subset; = separated
+    // / from `.literary` to allow distinct preset).
     case literaryFiction
 
     var id: String { rawValue }
@@ -74,7 +73,7 @@ enum LiteraryGenre: String, Sendable, Codable, CaseIterable, Identifiable {
     }
 
     // / SF Symbols 6 icon name (= Apple canonical; = used by
-    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / Migrated to outline glyphs.
     var icon: String {
         switch self {
@@ -93,24 +92,24 @@ enum LiteraryGenre: String, Sendable, Codable, CaseIterable, Identifiable {
 }
 
 // / A single genre's convention preset. Each genre owns exactly
-// … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / concurrent callers.
 struct GenreConvention: Sendable, Codable, Equatable {
     /// The genre this preset belongs to.
     let genre: LiteraryGenre
 
     // / Required structural beats (= e.g. mystery: "crime
-    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / appears in the chapter text.
     let requiredBeats: [String]
 
     // / Expected vocabulary tokens (= e.g. mystery: "alibi",
-    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / found at least once).
     let expectedVocab: [String]
 
     // / Forbidden patterns (= e.g. romance: "deus ex machina",
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / `forbiddenHit`.
     let forbiddenPatterns: [String]
 
@@ -132,29 +131,29 @@ struct GenreFitReport: Sendable, Codable, Equatable {
     let genre: LiteraryGenre
 
     // / Normalized score in 0..100. Higher = more conventions met
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / `GenreFitAnalyzer.score(...)`.
     let score: Double
 
-    /// Required beats that the chapter exhibits (= matched at
-    /// least one hint phrase).
+    // / Required beats that the chapter exhibits (= matched at
+    // / least one hint phrase).
     let matchedBeats: [String]
 
-    /// Required beats that the chapter omits (= no hint phrase
-    /// detected).
+    // / Required beats that the chapter omits (= no hint phrase
+    // / detected).
     let missingBeats: [String]
 
     // / Forbidden patterns that appeared in the chapter (= each
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / caller can render an evidence list).
     let forbiddenHits: [String]
 
-    /// Expected vocabulary tokens that WERE found in the
-    /// chapter (= at least one occurrence).
+    // / Expected vocabulary tokens that WERE found in the
+    // / chapter (= at least one occurrence).
     let expectedVocabUsed: [String]
 
-    /// Expected vocabulary tokens that were NOT found in the
-    /// chapter (= zero occurrences).
+    // / Expected vocabulary tokens that were NOT found in the
+    // / chapter (= zero occurrences).
     let expectedVocabMissing: [String]
 
     init(
@@ -176,8 +175,8 @@ struct GenreFitReport: Sendable, Codable, Equatable {
     }
 }
 
-/// Lightweight summary of a single genre for the picker. The
-/// view layer renders one row per `GenreSummary`.
+// / Lightweight summary of a single genre for the picker. The
+// / view layer renders one row per `GenreSummary`.
 struct GenreSummary: Sendable, Codable, Equatable, Identifiable {
     let genre: LiteraryGenre
     let displayName: String
@@ -193,7 +192,7 @@ struct GenreSummary: Sendable, Codable, Equatable, Identifiable {
 }
 
 // MARK: - Errors
-// … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / case; = no `fatalError` paths).
 enum GenreFitAnalyzerError: Error, LocalizedError, Sendable, Equatable {
     case emptyChapter
@@ -210,17 +209,17 @@ enum GenreFitAnalyzerError: Error, LocalizedError, Sendable, Equatable {
 }
 
 // MARK: - Actor
-// … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8)
+// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / SpecializedTools pane + chat loop callers).
 actor GenreFitAnalyzer {
 
     // / Cached convention presets (= keyed by LiteraryGenre raw
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / dictionary reads.
     private let presets: [String: GenreConvention]
 
     // / Public initializer. No BookStore dependency (= the
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / mirrors ReaderExperienceAnalyzer).
     init() {
         var built: [String: GenreConvention] = [:]
@@ -231,7 +230,7 @@ actor GenreFitAnalyzer {
     }
 
     // MARK: - Public API
-    // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // /   never fire in practice).
     func conventions(for genre: LiteraryGenre) throws -> GenreConvention {
         guard let preset = presets[genre.rawValue] else {
@@ -241,7 +240,7 @@ actor GenreFitAnalyzer {
     }
 
     // / Score a chapter draft against a genre's conventions.
-    // … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // /   practice since the enum is exhaustive).
     func analyze(
         chapterText: String,
@@ -256,7 +255,7 @@ actor GenreFitAnalyzer {
         let lower = trimmed.lowercased()
 
         // 1) Required beats: a beat is matched when ANY of its
-        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // chapter.
         var matchedBeats: [String] = []
         var missingBeats: [String] = []
@@ -271,7 +270,7 @@ actor GenreFitAnalyzer {
         }
 
         // 2) Expected vocab: each token is a single word
-        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // word (= whitespace / punctuation boundary).
         var expectedVocabUsed: [String] = []
         var expectedVocabMissing: [String] = []
@@ -284,7 +283,7 @@ actor GenreFitAnalyzer {
         }
 
         // 3) Forbidden patterns: count each distinct forbidden
-        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // multi-word patterns work as-is).
         var forbiddenHits: [String] = []
         for forbidden in preset.forbiddenPatterns {
@@ -314,7 +313,7 @@ actor GenreFitAnalyzer {
     }
 
     // / List all available genres with their convention
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / picker without having to introspect each preset.
     func availableGenres() async -> [GenreSummary] {
         LiteraryGenre.allCases.map { genre in
@@ -328,7 +327,7 @@ actor GenreFitAnalyzer {
     }
 
     // MARK: - Scoring formula
-    // … (= 17 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / does not fit the genre).
     static func computeScore(
         beatTotal: Int,
@@ -349,7 +348,7 @@ actor GenreFitAnalyzer {
     }
 
     // MARK: - Beat → hint phrases
-    // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / "red herring", "false lead", "decoy").
     static func hintPhrases(for beat: String) -> [String] {
         let key = beat.lowercased()
@@ -493,14 +492,14 @@ actor GenreFitAnalyzer {
 
         default:
             // Fallback: treat the beat label itself as the
-            // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // keeps new beats workable without an enum update.
             return [key]
         }
     }
 
     // MARK: - Word matcher
-    // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / matches "the warp drive was" but NOT "the warp-driver").
     static func containsWord(_ word: String, in haystack: String) -> Bool {
         guard !word.isEmpty else { return false }
@@ -529,7 +528,7 @@ actor GenreFitAnalyzer {
     }
 
     // MARK: - Presets
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / (= 1:1 port of the Python module's GENRE_PRESETS dict.)
     private static func preset(for genre: LiteraryGenre) -> GenreConvention {
         switch genre {
