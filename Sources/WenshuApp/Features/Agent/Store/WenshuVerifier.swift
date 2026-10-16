@@ -511,7 +511,15 @@ actor WenshuVerifier {
                     let sse = SSEClient(url: url, headers: [
                         "x-api-key": creds.apiKey,
                         "anthropic-version": "2023-06-01",
-                        "content-type": "application/json"
+                        "content-type": "application/json",
+                        // Per boss 2026-10-16 OOB "还是没有内容":
+                        // add `Accept: text/event-stream` so URLSession
+                        // knows to expect a streaming body (= without
+                        // this header, URLSession may treat the
+                        // response as buffered and EOF the bytes
+                        // stream immediately, giving SSEClient.stream
+                        // a 0-event window).
+                        "accept": "text/event-stream"
                     ])
                     let stream = await sse.stream(body: body)
                     var textBuffer = ""
