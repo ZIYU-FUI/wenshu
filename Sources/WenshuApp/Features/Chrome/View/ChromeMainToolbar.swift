@@ -75,7 +75,6 @@ extension ChromeMainToolbar: ToolbarContent {
                     id: WindowID.memoryHistory,
                     icon: "brain",
                     title: String(localized: "window.memoryHistory.title"),
-                    style: .small,
                     openWindow: openWindow,
                     isEnabled: true
                 )
@@ -90,7 +89,6 @@ extension ChromeMainToolbar: ToolbarContent {
                         id: button.id,
                         icon: button.icon,
                         title: String(localized: String.LocalizationValue(button.title)),
-                        style: .small,
                         openWindow: openWindow
                     )
                 }
