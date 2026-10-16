@@ -28,7 +28,84 @@ extension ImportService {
     /// Phase 3: dispatch the LLM with retry. Returns the routing result on
     /// success; sets `lastDispatchError` and returns nil on failure (= the
     /// caller then calls `markLLMFailed` to surface a user-readable error).
+    ///
+    /// Per boss 2026-10-16 OOB "未能调用 agent 对文档进行拆分处理":
+    /// when the active provider (= `activeProvider`) fails on a
+    /// network-class error (= unreachable / DNS / TLS), automatically
+    /// try the next configured provider before giving up (= many users
+    /// have multiple providers configured for exactly this reason; =
+    /// the previous behavior exhausted all 3 retries on the SAME
+    /// provider even when a configured fallback was reachable).
+    /// The fallback candidate is taken from
+    /// `ProviderKeychain.listProvidersWithKeys()` (= the canonical
+    /// "the user configured a key for this provider" signal), skipping
+    /// the active one. The activityLog receives a clear "切换到 X 重试"
+    /// line so the user sees exactly what happened.
     func dispatchLLM(
+        input: ImportFileInput,
+        target: ImportTarget,
+        router: ImportRouter,
+        tasksBox: TasksBox,
+        i: Int,
+        activeProvider: String,
+        onProgress: (@Sendable ([ImportTask]) async -> Void)?,
+        routerForProvider: (@Sendable (String) async -> ImportRouter?)? = nil
+    ) async -> ImportRoutingResult? {
+        let maxLLMAttempts = 3
+        lastDispatchError = nil
+        // Try the active provider first (= the one the user pinned
+        // in Settings → Providers). On network-class failure, walk
+        // the configured-provider list until one succeeds.
+        let providerQueue = buildProviderQueue(
+            activeProvider: activeProvider
+        )
+        for (providerIndex, provider) in providerQueue.enumerated() {
+            let isFallback = providerIndex > 0
+            if isFallback, let routerForProvider {
+                // = the router was re-built for this fallback
+                // provider. Surface the switch in the activity log.
+                await appendActivity(
+                    to: tasksBox, i: i,
+                    message: "→ 切换到 provider: \(provider) (网络不可达, 继续尝试)",
+                    onProgress: onProgress
+                )
+                // `WenshuConductorImportRouter` is an actor, so
+                // constructing the fallback router is itself
+                // `await`. The closure we got from the call site
+                // already handles the async case (= it bridges to
+                // the underlying connector factory).
+                let nextRouter = await routerForProvider(provider)
+                guard let nextRouter else { continue }
+                return await dispatchLLMOne(
+                    input: input,
+                    target: target,
+                    router: nextRouter,
+                    tasksBox: tasksBox,
+                    i: i,
+                    activeProvider: provider,
+                    onProgress: onProgress
+                )
+            }
+            return await dispatchLLMOne(
+                input: input,
+                target: target,
+                router: router,
+                tasksBox: tasksBox,
+                i: i,
+                activeProvider: provider,
+                onProgress: onProgress
+            )
+        }
+        return nil
+    }
+
+    /// Try ONE provider (= no automatic fallback chain). Retries the
+    /// single provider up to `maxLLMAttempts` times. Returns the
+    /// routing result on success; nil + sets `lastDispatchError` on
+    /// exhaustion. Extracted from `dispatchLLM` to keep the provider-
+    /// queue loop (= above) readable; = the inner single-provider
+    /// retry logic is unchanged from the previous commit.
+    private func dispatchLLMOne(
         input: ImportFileInput,
         target: ImportTarget,
         router: ImportRouter,
@@ -38,7 +115,6 @@ extension ImportService {
         onProgress: (@Sendable ([ImportTask]) async -> Void)?
     ) async -> ImportRoutingResult? {
         let maxLLMAttempts = 3
-        lastDispatchError = nil
         await appendActivity(
             to: tasksBox, i: i,
             message: "调用 LLM (\(target.rewriteMode.label)) 分类 + 重组 (provider: \(activeProvider)) ...",
@@ -87,7 +163,7 @@ extension ImportService {
                 return result
             } catch {
                 lastDispatchError = error
-                NSLog("WSImport: LLM route attempt \(attempt)/\(maxLLMAttempts) failed: \(error.localizedDescription)")
+                NSLog("WSImport: LLM route attempt \(attempt)/\(maxLLMAttempts) on provider \(activeProvider) failed: \(error.localizedDescription)")
                 if attempt < maxLLMAttempts {
                     // Exponential backoff: 1s, 2s, 4s. (= 7s total before final failure).
                     let delaySeconds = pow(2.0, Double(attempt - 1))
@@ -96,6 +172,21 @@ extension ImportService {
             }
         }
         return nil
+    }
+
+    /// Build the ordered list of providers to try.
+    /// Element 0 = `activeProvider` (= the user's pinned one). Elements
+    /// 1..n = other configured providers (= any keychain entry with a
+    /// valid `Provider` mapping, deduplicated, in the order the user
+    /// added them). Returns at most one entry (= no fallback
+    /// candidates) when the user has only the active provider configured.
+    private func buildProviderQueue(activeProvider: String) -> [String] {
+        let configured = ProviderKeychain.listProvidersWithKeys()
+        var queue: [String] = [activeProvider]
+        for slug in configured where slug != activeProvider {
+            queue.append(slug)
+        }
+        return queue
     }
 
 

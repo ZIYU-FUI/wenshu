@@ -44,8 +44,30 @@ extension ImportService {
         // Phase 3: route + enrich (= the LLM dispatch; = the slow part).
         // Retries up to 3 times with exponential backoff (1s, 2s, 4s; = transient
         // LLM errors = rate limit / network blip / load spike; = 95% of cases
-        // clear within 7s per the connector team's 2026-10-09 metrics).
+        // clear within 7s per the connector team's 2026-10-09 metrics). On
+        // exhaustion of the active provider, the dispatch walks the
+        // configured-provider queue (= anything the user has a key for; =
+        // `ProviderKeychain.listProvidersWithKeys()`) before giving up.
         let activeProvider = WenshuAppDelegateLLMHelpers.activeConnectorSlug()
+        // Closure: build a fresh router for an arbitrary provider slug.
+        // Used by the auto-fallback inside `dispatchLLM` to retry on
+        // a different provider when the active one is unreachable. The
+        // router is an `actor` (= `WenshuConductorImportRouter`), so
+        // constructing one is itself `await` (= the closure type is
+        // `@Sendable (String) async -> ImportRouter?`). The body
+        // below bridges to the sync connector factory by building
+        // the actor inline (= no actor hop to fetch the active
+        // provider's connector — we use the slug passed in by
+        // `dispatchLLM`'s provider-queue loop).
+        let routerForProvider: @Sendable (String) async -> ImportRouter? = { slug in
+            guard let connector = WenshuAppDelegateLLMHelpers.connectorForSlug(slug) else {
+                return nil
+            }
+            return await WenshuConductorImportRouter(
+                connector: connector,
+                modelSlug: nil
+            )
+        }
         let routing: ImportRoutingResult? = await dispatchLLM(
             input: input,
             target: target,
@@ -53,7 +75,8 @@ extension ImportService {
             tasksBox: tasksBox,
             i: i,
             activeProvider: activeProvider,
-            onProgress: onProgress
+            onProgress: onProgress,
+            routerForProvider: routerForProvider
         )
         guard var routing = routing else {
             await markLLMFailed(

@@ -102,6 +102,29 @@ enum WenshuAppDelegateLLMHelpers {
         }
     }
 
+    /// Build the LLM connector for an ARBITRARY provider slug (=
+    /// not just the active one). Used by the import flow's auto-
+    /// fallback path (= when the active provider is unreachable,
+    /// the import dispatch asks this helper to build a connector
+    /// for the next configured provider and re-routes). Returns
+    /// `nil` when the slug doesn't resolve to a known Provider or
+    /// the Provider's apiMode is unsupported (= = the dispatch
+    /// skips that candidate and tries the next one).
+    nonisolated static func connectorForSlug(_ slug: String) -> (any LLMConnector)? {
+        guard let provider = Provider.by(slug: slug) else { return nil }
+        switch provider.apiMode {
+        case "anthropic_messages":
+            if provider.slug == "anthropic" {
+                return AnthropicConnector()
+            }
+            return MinimaxConnector()
+        case "openai_chat":
+            return OpenAICompatibleConnector(provider: provider)
+        default:
+            return nil
+        }
+    }
+
     /// The user-picked model slug for the active
     /// connector (= the `wenshu.llm.model`
     /// UserDefaults entry; = same source
