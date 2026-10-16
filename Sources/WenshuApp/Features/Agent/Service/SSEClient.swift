@@ -131,7 +131,31 @@ actor SSEClient {
                         if Task.isCancelled { break }
                         rawLineCount += 1
                         if rawLineCount <= 3 { firstRawLines += "[\(rawLineCount)]'\(line)' " }
-                        if line.isEmpty {
+                        // Per boss 2026-10-16 OOB "又发了一次,
+                        // 还是没出现文字": minimax returns
+                        // SSE lines with a trailing CR
+                        // (= the raw wire shape is
+                        // "event: message_start\r\n", not
+                        // "event: message_start\n"). The
+                        // empty-line boundary check
+                        // `line.isEmpty` was false for
+                        // "event: message_start\r" (=
+                        // not empty) so the boundary
+                        // handler never fired and the
+                        // `pendingEvent` / `pendingData`
+                        // got stuck in the first event
+                        // (no yields ever). The fix:
+                        // strip trailing CR / whitespace
+                        // before the isEmpty check. The
+                        // line content (= "event: ..." or
+                        // "data: ...") is also affected;
+                        // the `dropFirst("event:".count)`
+                        // / `dropFirst("data:".count)`
+                        // sites don't need the CR trim
+                        // because the prefix matches
+                        // before the CR.
+                        let trimmedLine = line.hasSuffix("\r") ? String(line.dropLast()) : line
+                        if trimmedLine.isEmpty {
                             // Event boundary: emit.
                             if !pendingEvent.isEmpty || !pendingData.isEmpty {
                                 continuation.yield(SSEEvent(
@@ -144,15 +168,15 @@ actor SSEClient {
                             }
                             continue
                         }
-                        if line.hasPrefix("event:") {
-                            pendingEvent = String(line.dropFirst("event:".count))
+                        if trimmedLine.hasPrefix("event:") {
+                            pendingEvent = String(trimmedLine.dropFirst("event:".count))
                                 .trimmingCharacters(in: .whitespaces)
-                        } else if line.hasPrefix("data:") {
-                            var v = String(line.dropFirst("data:".count))
+                        } else if trimmedLine.hasPrefix("data:") {
+                            var v = String(trimmedLine.dropFirst("data:".count))
                             // Strip leading single space (SSE convention).
                             if v.hasPrefix(" ") { v.removeFirst() }
                             pendingData.append(v)
-                        } else if line.hasPrefix("id:") || line.hasPrefix(":") {
+                        } else if trimmedLine.hasPrefix("id:") || trimmedLine.hasPrefix(":") {
                             // id + comment lines: ignored (= comments
                             // are heartbeat lines).
                             continue
