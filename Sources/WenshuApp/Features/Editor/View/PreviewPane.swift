@@ -112,13 +112,17 @@ struct PreviewPane: View {
         // … (= 15 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // and toolbar).
         VStack(spacing: 0) {
-            // Per Apple HIG / platform-default style: the section-header block (=
-            // … (= 44 rationale lines collapsed; = A112 docblock collapse per §1.8)
-            // PreviewPane no longer hardcodes the geometry here).
-            SectionHeader(title: String(localized: "preview.column.title"))
-            // Per Apple HIG / platform-default style: remove the custom top inset (=
-            // … (= 24 rationale lines collapsed; = A112 docblock collapse per §1.8)
-            // legacy callers / tests still work).
+            // Per boss 2026-10-16 OOB "把搜索框的顶部间距都删掉": the
+            // prior `SectionHeader` (= 10 PT top inset + centered
+            // title + 10 PT bottom inset + Divider = ~52 PT of
+            // chrome ABOVE the search field) was deleted. The
+            // `EditorHeaderView` (= the 28 PT chrome band wrapping
+            // the search field; = the same shape as the editor's
+            // top bar) now sits flush at the column top (= no
+            // chrome above it; = no leading paragraph gap). This
+            // mirrors the editor zone's behavior (= editor's
+            // chrome band is the topmost surface; = no leading
+            // chrome row above it).
             if let customSearch = customLeadingSearch {
                 // Per Apple HIG / platform-default style: render the search field at the
                 // … (= 16 rationale lines collapsed; = A112 docblock collapse per §1.8)
