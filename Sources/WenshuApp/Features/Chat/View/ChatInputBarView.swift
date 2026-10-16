@@ -69,6 +69,23 @@ struct ChatInputBarView: View {
     var hasUsableKey: Bool
     @Binding var showingImageImporter: Bool
     @Binding var isDropTargeted: Bool
+    // FOCUS-RETENTION (boss 2026-10-16 OOB "现在打字说完一句话，聊天区
+    // 的文本框会失去焦点"; = Apple HIG canonical Messages / Slack
+    // pattern: focus stays in the input after a send). The TextField's
+    // `.onSubmit` + the send button's `keyboardShortcut(.return)` both
+    // drop focus when the send completes. We surface an `onSent` callback
+    // (= a thin wrapper around `inputFocused = true`) so ChatView can
+    // re-assert focus after each send path. The user explicitly chose
+    // = "焦点要交由用户决定, 换到别的地方, 需要用户主动点击"; = the
+    // chat input bar is the only surface that auto-claims focus back.
+    var onSent: (() -> Void)? = nil
+
+    /// Internal helper: re-assert focus via the `onSent` callback if
+    /// the caller provided one. Used by the TextField `.onSubmit` and
+    /// the send button action.
+    private func reassertFocus() {
+        onSent?()
+    }
 
     var body: some View {
         // 2026-09-23: restored the token-usage bottom bar
@@ -306,7 +323,14 @@ struct ChatInputBarView: View {
 
     private var sendButton: some View {
         GlassIconButton(systemName: "paperplane", help: "发送 (⌘↩)") {
-            Task { await vm.routeInput() }
+            Task {
+                await vm.routeInput()
+                // FOCUS-RETENTION: re-assert focus after the send
+                // button is pressed (= the click moves keyboard focus
+                // to the button; = the user expects the input to
+                // reclaim focus so they can type the next message).
+                reassertFocus()
+            }
         }
         .keyboardShortcut(.return, modifiers: [.command])
     }
@@ -336,7 +360,17 @@ struct ChatInputBarView: View {
         .frame(maxWidth: .infinity)
         .disabled(!hasUsableKey)
         .focused(inputFocused)
-        .onSubmit { Task { await vm.routeInput() } }
+        .onSubmit {
+            Task {
+                await vm.routeInput()
+                // FOCUS-RETENTION: re-assert focus after pressing
+                // Enter inside the TextField. Without this, the
+                // SwiftUI `onSubmit` semantics drop focus once the
+                // submit handler runs (= the user has to click the
+                // input again before they can type the next message).
+                reassertFocus()
+            }
+        }
         .help(String(localized: "chat.input.help"))
         .glassEffect(.regular.interactive(), in: Capsule())
         .modifier(SlashCommandAutocompleteModifier(inputText: $vm.inputText))

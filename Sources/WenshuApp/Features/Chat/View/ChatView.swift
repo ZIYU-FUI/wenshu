@@ -193,7 +193,15 @@ struct ChatView: View {
                         inputFocused: $inputFocused,
                         hasUsableKey: hasUsableKey,
                         showingImageImporter: $showingImageImporter,
-                        isDropTargeted: $isDropTargeted
+                        isDropTargeted: $isDropTargeted,
+                        // FOCUS-RETENTION (boss 2026-10-16 OOB "现在打
+                        // 字说完一句话，聊天区的文本框会失去焦点"):
+                        // re-assert focus on the chat input after a
+                        // send (= the TextField's `.onSubmit` and the
+                        // send button's click both drop focus; = the
+                        // user wants focus to stay in the input until
+                        // they explicitly click somewhere else).
+                        onSent: { inputFocused = true }
                     )
                 }
             // async load history via .task modifier (non-blocking)
