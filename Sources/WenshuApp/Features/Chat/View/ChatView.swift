@@ -1347,22 +1347,3 @@ struct ChatView: View {
     // (importMarkdown extracted to ChatViewMarkdownIO.swift in A87; = see that file)
 
 }
-
-
-// MARK: - ChatTurn (= unit of grouping for sticky-top user bubbles)
-
-/// . Each ChatTurn groups one user message (= the Section.header that pins to
-/// the scroll viewport top via `LazyVStack(pinnedViews: [.sectionHeaders])`)
-/// with all following assistant/placeholder messages (= the Section.content
-/// that scrolls underneath). The turn structure mirrors hermes
-/// `apps/desktop/src/components/assistant-ui/thread/user-message.tsx:46`
-/// `sticky top-0 z-40` (= continuous position:sticky; = no jarring yank when a
-/// new user message lands). `userMessage == nil` covers the opening greeting
-/// case (= the first transcript entry may be a placeholder like "" with no
-/// preceding user message; = we still want it rendered in scroll order; = it
-/// just has no sticky header).
-struct ChatTurn: Identifiable {
-    let id = UUID()
-    let userMessage: ChatMessage?
-    var replies: [ChatMessage]
-}
