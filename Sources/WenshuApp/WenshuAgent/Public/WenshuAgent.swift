@@ -231,6 +231,25 @@ actor WenshuAgent {
 
     // MARK: - Chat (= the single LLM call entry point)
 
+    /// Returns the active LLM connector (= the connector profile
+    /// the user picked in LLMConnectorSettingsView; = falls back
+    /// to `AnthropicConnector` for missing / unknown slugs).
+    /// `nonisolated` (= the active connector is a static
+    /// resolution; = no actor state; = safe to call from any
+    /// context including the SwiftUI main-actor).
+    ///
+    /// AUDIT.md §2.2 partial (2026-10-16 boss "只做把之前的
+    /// 调用方式改成调用包" arc): this facade forwards to
+    /// `WenshuAppDelegateLLMHelpers.activeLLMConnector()`;
+    /// = Features/ files that previously constructed
+    /// `AnthropicConnector()` directly (= the 3 send/stream
+    /// direct callers: ChatViewModelLongRunningGoal, PlanMode
+    /// Engine, FormatToolbarButtons) now resolve through
+    /// the public facade.
+    nonisolated func activeLLMConnector() -> any LLMConnector {
+        WenshuAppDelegateLLMHelpers.activeLLMConnector()
+    }
+
     /// Sends a user message through the agent's full ReAct loop
     /// (= the path the boss 2026-10-16 OOB "agent 没有达到 agent 的
     /// 标准" requested; = the conductor with the active connector

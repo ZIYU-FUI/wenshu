@@ -38,7 +38,12 @@ extension ChatViewModel {
         // key is configured; the user sees the failure in the system
         // message). The AppState.activeConnector wiring is a separate
         // ticket — out of allowlist for this one.
-        let mainConnector: any LLMConnector = AnthropicConnector()
+        // AUDIT.md §2.2 partial (2026-10-16 boss "只做把之前的
+        // 调用方式改成调用包" arc): resolve the active
+        // connector through the public facade (= the
+        // canonical source of truth; = no direct
+        // `AnthropicConnector()` construction here).
+        let mainConnector: any LLMConnector = WenshuAgent.shared.activeLLMConnector()
         let auxiliaryConnector: any LLMConnector = mainConnector
 
         // Runtime with default sinks + no mock-time (= test seam left

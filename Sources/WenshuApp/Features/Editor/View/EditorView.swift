@@ -544,7 +544,12 @@ struct EditorView: View {
             model: appState.llmModel.isEmpty ? providerDefaultModel : appState.llmModel,
             maxTokens: 2048
         )
-        let connector = WenshuAppDelegateLLMHelpers.activeLLMConnector()
+        // AUDIT.md §2.2 partial (2026-10-16 boss "只做把之前的
+        // 调用方式改成调用包" arc): route through the
+        // public facade (= the canonical source of truth;
+        // = the WenshuAppDelegateLLMHelpers helper is now
+        // a 1-line forwarder in the facade).
+        let connector = WenshuAgent.shared.activeLLMConnector()
 
         do {
             let rewritten = try await EditorParagraphAI.apply(

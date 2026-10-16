@@ -345,7 +345,10 @@ final class ChatViewModel {
         // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // for T20c.
         let model = self.currentModel
-        let connector: any LLMConnector = AnthropicConnector()
+        // AUDIT.md §2.2 partial (2026-10-16 boss "只做把之前的
+        // 调用方式改成调用包" arc): resolve the active
+        // connector through the public facade.
+        let connector: any LLMConnector = WenshuAgent.shared.activeLLMConnector()
         let engine = PlanModeEngine(connector: connector, model: model)
         do {
             let plan = try await engine.run(query: query)
