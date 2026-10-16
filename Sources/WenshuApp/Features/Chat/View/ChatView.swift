@@ -86,9 +86,17 @@ struct ChatView: View {
         // the conductor's injected `WSRepositoryContainer` (= falls back
         // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // path and explicitly passes `repositories`).
+        // P0-AGENT-LOOP (2026-10-16 boss OOB "agent 没有达到 agent 的标准"):
+        // The ChatView's WenshuConductor used to be constructed without
+        // a connector, so it fell through to the legacy pipeline. = the
+        // user saw a single LLM reply with no tool use (= the "small
+        // liar" bug). The fix is to pass the active connector so the
+        // conductor routes through the ReAct loop (= same fix as
+        // WenshuAppDelegate).
         return WenshuConductor(
             runtime: runtime,
             verifier: verifier,
+            connector: WenshuAppDelegateLLMHelpers.activeLLMConnector(),
             tools: tools
         )
     }

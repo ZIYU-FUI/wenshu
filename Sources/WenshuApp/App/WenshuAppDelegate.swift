@@ -234,7 +234,17 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // store bootstrap needed.
         Self.sharedConductor = WenshuConductor(
             runtime: Self.sharedRuntime,
-            verifier: Self.sharedVerifier
+            verifier: Self.sharedVerifier,
+            // P0-AGENT-LOOP (2026-10-16 boss OOB "agent 没有达到 agent 的标准"):
+            // the conductor used to be constructed without a connector,
+            // which forced every call through `runLegacyConductorPipeline`
+            // (= 1 LLM call + 1 reply, = no tool dispatch loop). = the
+            // user saw the model say "let me check that for you" with no
+            // follow-up (= the "small liar" bug). The fix is to give the
+            // conductor the active connector so it routes through
+            // `runConversationLoopPath` (= the ReAct loop with
+            // `maxAgentTurns = 10`).
+            connector: WenshuAppDelegateLLMHelpers.activeLLMConnector()
         )
         let card = AgentCard(
             name: "wenshu",
