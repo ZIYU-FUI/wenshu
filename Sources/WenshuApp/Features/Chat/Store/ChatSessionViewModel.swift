@@ -204,7 +204,16 @@ final class ChatViewModel {
         // Use multi-provider discovery (= query all configured
         // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // `WenshuLLMModel.allCases` = 3 MiniMax-only cases).
-        let configured = AvailableModelsDiscovery.loadFromKeychain()
+        //
+        // Per boss 2026-10-16 OOB "配好 KEY 后, 模型设置
+        // 中的可选模型, 也应该通过 API 查询. 同样不
+        // 能写死": use the live `loadLive()` (= calls
+        // `LLMModelDiscovery.discover` for each
+        // configured provider, which hits the
+        // provider's `/models` endpoint and falls
+        // back to `Provider.defaultModels` when the
+        // endpoint is unreachable).
+        let configured = await AvailableModelsDiscovery.loadLive()
         var modelIds: [String] = []
         for section in configured {
             for modelId in section.models {
