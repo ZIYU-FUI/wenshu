@@ -423,33 +423,4 @@ struct InspectorView: View {
         // 3-column boundary.
         .environment(appState)
     }
-
-    /// follow-up): restore from the
-    /// latest available backup (= the user-facing restore
-    /// surface per AGENTS.md §11 baseline).
-    ///
-    /// Pattern: pull the active library path from the canonical
-    /// `ActiveLibrary` (= the security-scoped bookmark; = single
-    /// source of truth for the .ws bundle URL), list backups via
-    /// `AppBackupOps.list()`, restore the newest (= alphabetical
-    /// sort on the timestamped backup name is the canonical
-    /// ordering used by `BackupTools.list`).
-    private func restoreLatestBackup() async {
-        guard let sourceDir = ActiveLibrary.path,
-              FileManager.default.fileExists(atPath: sourceDir) else {
-            wenshuLogger.info("[wenshu.backup.operator] no active library bound (= ActiveLibrary.path nil or .ws absent)")
-            return
-        }
-        do {
-            let backups = try AppBackupOps.list()
-            guard let latest = backups.last else {
-                wenshuLogger.info("[wenshu.backup.operator] no backups available in default backup dir")
-                return
-            }
-            try AppBackupOps.restore(backupName: latest.id, to: sourceDir)
-            wenshuLogger.info("[wenshu.backup.operator] restored backup \(latest.id) to \(sourceDir)")
-        } catch {
-            wenshuLogger.info("[wenshu.backup.operator] failed: \(String(describing: error))")
-        }
-    }
 }
