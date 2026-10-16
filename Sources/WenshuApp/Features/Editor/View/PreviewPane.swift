@@ -1004,17 +1004,8 @@ struct PreviewPane: View {
     /// the closures set `cardRenaming` / `cardPendingDelete` to that specific
     /// entity; = the user sees a rename / delete flow for the exact card they
     /// right-clicked).
-    @ViewBuilder
-    private func referenceCategoryCard(_ entity: Reference) -> some View {
-        Card(
-            source: .reference(entity),
-            onDoubleClick: { source in
-                onDoubleClick(source)
-            },
-            onRename: { beginReferenceRename(entity) },
-            onDelete: { beginReferenceDelete(entity) }
-        )
-    }
+    // (referenceCategoryCard extracted to PreviewPaneGrids.swift in A79; = see that file)
+
 
     /// Mode 3: all-entities overview grid (= group by category inline).
     @ViewBuilder
@@ -1076,49 +1067,8 @@ struct PreviewPane: View {
     /// Empty-state placeholder ((see OOB.md #2026-08-27) — '...no markdown body
     /// = leave a clear empty state, not a blank white pane').
     @ViewBuilder
-    /// follow-up 'editor ICON': use the SAME icon (= book-open) as the editor
-    /// empty state, so all "no content" panels in the workspace share one
-    /// visual icon. Caller can override per-call (= rare; most callers use the
-    /// default).
-    private func emptyState(
-        // Per Apple HIG / platform-default style: default icon 'book-open' is Lucide
-        // kebab-case (= NOT a valid SF Symbol 6 identifier) = renders as a
-        // blank rectangle in PreviewPane's empty states. Migrated to the
-        // dot.case SF Symbols 6 form ('book.pages'). Per /Applications/SF
-        // Symbols Beta.app/Contents/Executables/ sfsymbols search 2026-09-16.
-        icon: String = "book.pages",
-        titleKey: String,
-        bodyKey: String
-    ) -> some View {
-        // Empty-state shape rationale: a single component — can you abstract a UI
-        // component? While you're at it, on the empty-state icon: double the
-        // size and use the thinnest strokes. The goal is to unify all empty-
-        // state styles. The right column has 12 tabs and many are missing an
-        // empty state': migrate to the unified EmptyStateView (= 76 PT SF
-        // Symbols 6 icon + .regular weight = the canonical macOS 27 inspector
-        // icon weight; = standard title / body hierarchy). Same visual
-        // treatment as the 12 specialized tool tabs. (= boss 2026-10-10 "少了几个
-        // 多语言" feedback). The previous implementation used `String(localized:
-        // LocalizationValue(stringLiteral:))` which on macOS 14+ / Xcode 15+
-        // reads from `Localizable.xcstrings` (= the String Catalog). = the SPM
-        // .process("Resources") pattern did NOT ship the .xcstrings into the
-        // runtime bundle (= it stays in the build cache; = the copy loop in
-        // Scripts/build-app.sh promotes only the compiled .lproj/
-        // Localizable.strings files; = the runtime never sees .xcstrings; =
-        // the 10 preview.empty* keys existed in the binary .strings but not in
-        // .xcstrings; = the runtime showed raw dotted keys). Fix: use
-        // `NSLocalizedString` (= reads from the binary .strings files which DO
-        // have the keys; = the canonical path for runtime lookup; = the
-        // `Localizable.xcstrings` becomes the source for humans + LLMs only; =
-        // the binary .strings files are the runtime truth). The .xcstrings is
-        // also updated (= 638 keys vs 627; = source of truth for future Xcode
-        // String Catalog editing).
-        EmptyStateView(
-            icon: icon,
-            title: NSLocalizedString(titleKey, comment: ""),
-            body: NSLocalizedString(bodyKey, comment: "")
-        )
-    }
+    // (emptyState extracted to PreviewPaneGrids.swift in A79; = see that file)
+
 
     /// the 3 helpers that the right-click `Card` callbacks call into. They
     /// mirror the `AppleSidebarView` `renaming` / `pendingDelete` state pattern
@@ -1146,7 +1096,7 @@ struct PreviewPane: View {
     /// begin the rename flow for a single reference card (= set `cardRenaming`
     /// to a `.reference` target). The `originalName` is read from the
     /// `Reference`'s current title.
-    private func beginReferenceRename(_ entity: Reference) {
+    func beginReferenceRename(_ entity: Reference) {
         cardRenaming = SidebarRenamingTarget(
             kind: .reference,
             itemId: entity.id,
@@ -1158,7 +1108,7 @@ struct PreviewPane: View {
     /// begin the delete flow for a single reference card (= set
     /// `cardPendingDelete` to a `.reference` target). The delete alert shows
     /// the reference's title + a destructive confirm button.
-    private func beginReferenceDelete(_ entity: Reference) {
+    func beginReferenceDelete(_ entity: Reference) {
         cardPendingDelete = SidebarPendingDelete(
             kind: .reference,
             itemId: entity.id,
@@ -1172,7 +1122,7 @@ struct PreviewPane: View {
     /// `otherBookDocTitles` for the duplicate check; = the underlying service
     /// method `renameBookDoc` updates the .md file's filename + content
     /// heading).
-    private func beginBookDocRename(_ doc: BookDoc) {
+    func beginBookDocRename(_ doc: BookDoc) {
         cardRenaming = SidebarRenamingTarget(
             kind: .bookDoc,
             itemId: doc.id,
@@ -1187,7 +1137,7 @@ struct PreviewPane: View {
     /// `deleteBookDoc` service method removes the .md file from disk (= the
     /// book doc is JUST a file; = no entities.json index entry to remove; = the
     /// file deletion IS the complete delete).
-    private func beginBookDocDelete(_ doc: BookDoc) {
+    func beginBookDocDelete(_ doc: BookDoc) {
         cardPendingDelete = SidebarPendingDelete(
             kind: .bookDoc,
             itemId: doc.id,
