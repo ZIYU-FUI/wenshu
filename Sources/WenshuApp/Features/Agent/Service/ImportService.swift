@@ -73,7 +73,7 @@ actor ImportService {
     /// re-import). One path's hash → the destination metadata. The orchestrator
     /// reads this at the dedup step; = writes a fresh entry after each
     /// successful import.
-    fileprivate struct CacheEntry: Codable, Sendable {
+    struct CacheEntry: Codable, Sendable {
         let contentHash: String
         let destination: ImportDestination
         let writtenAt: Date
@@ -191,7 +191,7 @@ actor ImportService {
         // Phase 1).
         await onProgress?(tasks)
                 let cacheFile = target.cacheRoot.appendingPathComponent("import-cache.json")
-        let cache = dedupAndHash(tasks: &tasks, cacheFile: cacheFile)
+        let cache = ImportServiceCache.dedupAndHash(tasks: &tasks, cacheFile: cacheFile)
         // Filter out completed / skipped / failed; = the dispatch set is the remaining
         // tasks.
         let dispatchIndices = tasks.indices.filter {
@@ -217,7 +217,7 @@ actor ImportService {
         // Persist the updated cache (= the orchestrator re-reads the cache after each
         // successful write so concurrent imports don't lose entries; = the
         // actor's serialized state is the lock).
-        writeCache(cacheFile: cacheFile, cache: cacheBox.value)
+        ImportServiceCache.writeCache(cacheFile: cacheFile, cache: cacheBox.value)
         // Copy the per-task state back out of the shared box (= the TaskGroup's per-file
         // pipeline mutated `tasksBox.value` directly; = the orchestrator's
         // return value carries the canonical final-state view for the sheet's
@@ -340,35 +340,8 @@ actor ImportService {
             rewriteMode: target.rewriteMode
         )
     }
+    // (dedupAndHash extracted to ImportServiceCache.swift in A62; = see that file)
 
-
-    /// Phase 2 = read the on-disk cache once and hash every pending task's body
-    /// (= the dedup key is the body hash, not the path hash; = renaming a file
-    /// does not bypass dedup; = the in-memory cache is the source of truth for
-    /// the import batch; = `writeCache` at the end persists the merged result;
-    /// = the `if let cached` branch is a no-op per the 2026-10-10 short-circuit
-    /// removal directive; = the cache is consulted downstream by the title-only
-    /// retry path via `cache[sourcePath].lastTitleOnlyRetriedHash`).
-    private func dedupAndHash(
-        tasks: inout [ImportTask],
-        cacheFile: URL
-    ) -> [String: CacheEntry] {
-        var cache = readCache(cacheFile: cacheFile)
-        for i in tasks.indices {
-            let hash: String
-            do {
-                let body = try String(contentsOfFile: tasks[i].sourcePath, encoding: .utf8)
-                hash = ImportServiceHashing.sha256(body)
-            } catch {
-                tasks[i].state = .failed
-                tasks[i].errorMessage = "读取文件失败: \(error.localizedDescription)"
-                continue
-            }
-            tasks[i].contentHash = hash
-            _ = cache  // consulted downstream by the title-only retry path
-        }
-        return cache
-    }
 
 
     // MARK: - title-only retry
@@ -425,7 +398,7 @@ actor ImportService {
         // title-only body hash comparison decides whether the retry
         // would produce a different LLM result).
         let cacheFile = target.cacheRoot.appendingPathComponent("import-cache.json")
-        let cache = readCache(cacheFile: cacheFile)
+        let cache = ImportServiceCache.readCache(cacheFile: cacheFile)
         // Step 4: per-file smart skip (= boss's "不要浪费" rule; = if
         // the previous retry had the same body hash, the LLM output
         // would be byte-identical = skip; = otherwise dispatch).
@@ -468,7 +441,7 @@ actor ImportService {
             contextByPath: contextByPath,
             cacheBox: cacheBox
         )
-        writeCache(cacheFile: cacheFile, cache: cacheBox.value)
+        ImportServiceCache.writeCache(cacheFile: cacheFile, cache: cacheBox.value)
         return tasksBox.value
     }
 
@@ -798,29 +771,10 @@ actor ImportService {
 // extension. The `private` qualifier was relaxed to internal; = required for
 // the cross-file extension access.)
 
-    // MARK: - Phase 2: cache
+    // (readCache extracted to ImportServiceCache.swift in A62; = see that file)
 
-    /// Read the sidecar cache (= the actor's serialized state is the lock; =
-    /// the orchestrator batches the read once at the start of importFiles).
-    private func readCache(cacheFile: URL) -> [String: CacheEntry] {
-        guard let data = try? Data(contentsOf: cacheFile),
-              let decoded = try? JSONDecoder().decode([String: CacheEntry].self, from: data)
-        else { return [:] }
-        return decoded
-    }
+    // (writeCache extracted to ImportServiceCache.swift in A62; = see that file)
 
-    /// Persist the cache back (= the orchestrator writes the whole map each
-    /// time; = small file size; = the map is in-memory at this point).
-    private func writeCache(cacheFile: URL, cache: [String: CacheEntry]) {
-        // Ensure the cache root exists (= created on the first import; = no-op on
-        // subsequent runs).
-        try? FileManager.default.createDirectory(
-            at: cacheFile.deletingLastPathComponent(),
-            withIntermediateDirectories: true
-        )
-        guard let data = try? JSONEncoder().encode(cache) else { return }
-        try? data.write(to: cacheFile, options: [.atomic])
-    }
 
     // MARK: - Phase 4: write
 
