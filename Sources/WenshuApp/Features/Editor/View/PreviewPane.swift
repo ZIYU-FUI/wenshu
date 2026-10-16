@@ -1276,26 +1276,6 @@ struct PreviewPane: View {
                 .contentMargins(.bottom, 33, for: .scrollContent)
             }
         }
-    }
-
-    /// Convert Chinese title to its pinyin first letter (= uppercase). Uses
-    /// Apple's CFStringTransform (kCFStringTransformToLatin +
-    /// kCFStringTransformStripDiacritics). Example: "" → "L", "" → "W", "" →
-    /// "S".
-    private func pinyinFirstLetter(_ title: String) -> String {
-        let mutable = NSMutableString(string: title)
-        // Convert CJK characters to latinized pinyin (e.g. "" → "Lǐ Bái").
-        CFStringTransform(mutable, nil, kCFStringTransformToLatin, false)
-        // Strip diacritics (e.g. "Lǐ Bái" → "Li Bai").
-        CFStringTransform(mutable, nil, kCFStringTransformStripDiacritics, false)
-        let latinized = (mutable as String).trimmingCharacters(in: .whitespaces)
-        // First non-whitespace character, uppercased. Empty titles bucket to "~" (= sorts
-        // last).
-        if let first = latinized.first {
-            return String(first).uppercased()
-        }
-        return "~"
-    }
 }
 
 /// Card view for a single entity in the grid. Tap = select (= not wired yet).
@@ -1306,3 +1286,4 @@ struct PreviewPane: View {
 
 // (Card extracted to PreviewPaneCard.swift in A33; = see that file)
 
+}
