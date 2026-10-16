@@ -54,7 +54,7 @@ actor ImportService {
     /// `lastDispatchError` is the final error from the last failed LLM attempt;
     /// = `dispatchLLM` returns nil and sets this so the orchestrator can
     /// surface the user-readable error via `markLLMFailed`).
-    private var lastDispatchError: Error? = nil
+    var lastDispatchError: Error? = nil
 
     /// 5-way parallel LLM dispatch (= the boss's 2026-10-09 directive "你要做一个机制
     /// 5 个并发， 一个文件一个请求。同时只能处理 5 个"; = the orchestrator's TaskGroup seeds the
@@ -866,102 +866,10 @@ extension ImportService {
     // lastDispatchError is now stored on the actor (= extensions can't
     // hold stored properties; = it lives next to isCancelled / writtenURLs
     // / entitiesJSONSnapshot at the top of the actor).
+    // (dispatchLLM extracted to ImportServiceLLMDispatch.swift in A69; = see that file)
 
-    /// Phase 3: dispatch the LLM with retry. Returns the routing result on
-    /// success; sets `lastDispatchError` and returns nil on failure (= the
-    /// caller then calls `markLLMFailed` to surface a user-readable error).
-    private func dispatchLLM(
-        input: ImportFileInput,
-        target: ImportTarget,
-        router: ImportRouter,
-        tasksBox: TasksBox,
-        i: Int,
-        activeProvider: String,
-        onProgress: (@Sendable ([ImportTask]) async -> Void)?
-    ) async -> ImportRoutingResult? {
-        let maxLLMAttempts = 3
-        lastDispatchError = nil
-        await appendActivity(
-            to: tasksBox, i: i,
-            message: "调用 LLM (\(target.rewriteMode.label)) 分类 + 重组 (provider: \(activeProvider)) ...",
-            onProgress: onProgress
-        )
-        for attempt in 1...maxLLMAttempts {
-            do {
-                // Pass the activityLog appender as the progress callback so the
-                // router's per-phase log lines land in the per-row activityLog.
-                let result = try await router.route(input) { message in
-                    await self.appendActivity(
-                        to: tasksBox, i: i,
-                        message: message,
-                        onProgress: onProgress
-                    )
-                }
-                tasksBox.value[i].routing = result
-                if attempt > 1 {
-                    NSLog("WSImport: LLM route succeeded on attempt \(attempt) for task \(i)")
-                }
-                // Log the LLM's response summary (= the user gets to SEE what the
-                // LLM returned: title, tags, # of extraFiles, etc.).
-                let routingSummary = """
-                LLM 返回: title="\(result.title)", tags=\(result.tags.sorted().joined(separator: ", ")), extraFiles=\(result.extraFiles.count) 个
-                """
-                await appendActivity(
-                    to: tasksBox, i: i,
-                    message: routingSummary,
-                    onProgress: onProgress
-                )
-                for (i2, ef) in result.extraFiles.enumerated() {
-                    let marker = ef.required ? "[必填]" : "[自定义]"
-                    await appendActivity(
-                        to: tasksBox, i: i,
-                        message: "  子文件 \(i2 + 1)/\(result.extraFiles.count) \(marker) \(ef.folder.directoryName)/\(ef.title).md",
-                        onProgress: onProgress
-                    )
-                }
-                if result.extraFiles.isEmpty {
-                    await appendActivity(
-                        to: tasksBox, i: i,
-                        message: "⚠️ LLM 没返回 extraFiles — 6 必填+N 自定义 没拆",
-                        onProgress: onProgress
-                    )
-                }
-                return result
-            } catch {
-                lastDispatchError = error
-                NSLog("WSImport: LLM route attempt \(attempt)/\(maxLLMAttempts) failed: \(error.localizedDescription)")
-                if attempt < maxLLMAttempts {
-                    // Exponential backoff: 1s, 2s, 4s. (= 7s total before final failure).
-                    let delaySeconds = pow(2.0, Double(attempt - 1))
-                    try? await Task.sleep(nanoseconds: UInt64(delaySeconds * 1_000_000_000))
-                }
-            }
-        }
-        return nil
-    }
+    // (markLLMFailed extracted to ImportServiceLLMDispatch.swift in A69; = see that file)
 
-    /// Phase 3 failure handler (= the LLM dispatch failed after all retries).
-    /// Surfaces a user-readable error that names the connector + quotes the
-    /// underlying error + offers a one-line fix checklist (= verify network +
-    /// verify API key in Settings → Providers).
-    private func markLLMFailed(
-        tasksBox: TasksBox,
-        i: Int,
-        activeProvider: String,
-        lastError: Error?,
-        onProgress: (@Sendable ([ImportTask]) async -> Void)?
-    ) async {
-        tasksBox.value[i].state = .failed
-        let nsError = lastError as NSError?
-        let underlying = nsError?.localizedDescription ?? "未知错误"
-        let errorCode = nsError.map { " (code=\($0.code))" } ?? ""
-        tasksBox.value[i].errorMessage = """
-            LLM 路由失败 (3 次重试) — provider: \(activeProvider)\(errorCode)
-            底层错误: \(underlying)
-            排查: 1) 网络可达 \(activeProvider) 的 endpoint 2) Settings → Providers 里 \(activeProvider) 的 API key 还在 3) 试重试按钮
-            """
-        await onProgress?(tasksBox.value)
-    }
 
     /// Phase 4: write the main file (= per the rewriteMode) + loop through the
     /// LLM's `extraFiles` and write each one to its folder. The state
@@ -1116,7 +1024,7 @@ extension ImportService {
     /// view in the sheet). Capped at 30 entries (= old entries drop off; = 30
     /// is enough to show the recent activity without scrolling forever). Also
     /// triggers onProgress so the sheet UI updates immediately.
-    private func appendActivity(
+    func appendActivity(
         to tasksBox: TasksBox,
         i: Int,
         message: String,
