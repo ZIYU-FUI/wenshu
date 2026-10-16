@@ -105,7 +105,7 @@ actor EditChapterActor {
 
         // 3. Compute the unified-diff stats (= same algorithm as
         // BookChapterTool.computeUnifiedDiff; = LCS-based).
-        let diff = Self.computeUnifiedDiff(old: oldBody, new: newBody)
+        let diff = computeUnifiedDiff(old: oldBody, new: newBody)
 
         // 4. Persist the patched body. NOTE: writeFileSystemChapter is the legacy .md
         // writer (= actor can write to the file system directly; = the
@@ -307,100 +307,12 @@ actor EditChapterActor {
 
     // MARK: - Diff (= shared algorithm with BookChapterTool)
 
-    struct UnifiedDiff: Equatable, Sendable {
-        let text: String
-        let addedLines: Int
-        let removedLines: Int
-        let addedChars: Int
-        let removedChars: Int
-    }
 
     /// LCS-based unified diff (= mirrors hermes tool-fallback.tsx).
     /// Plain function so it's reachable from unit tests.
-    static func computeUnifiedDiff(old: String, new: String) -> UnifiedDiff {
-        let oldLines = old.components(separatedBy: "\n")
-        let newLines = new.components(separatedBy: "\n")
-        var oldSplit = oldLines
-        var newSplit = newLines
-        if old.hasSuffix("\n") && oldSplit.last == "" { oldSplit.removeLast() }
-        if new.hasSuffix("\n") && newSplit.last == "" { newSplit.removeLast() }
-        let lcs = lcsTable(oldSplit, newSplit)
-        let lines = backtrackDiff(old: oldSplit, new: newSplit, lcs: lcs)
-        var addedLines = 0
-        var removedLines = 0
-        var addedChars = 0
-        var removedChars = 0
-        for entry in lines {
-            switch entry {
-            case .added(let body):
-                addedLines += 1
-                addedChars += body.count
-            case .removed(let body):
-                removedLines += 1
-                removedChars += body.count
-            case .context: continue
-            }
-        }
-        var text = "--- old\n+++ new\n@@\n"
-        for entry in lines {
-            switch entry {
-            case .added(let body): text += "+\(body)\n"
-            case .removed(let body): text += "-\(body)\n"
-            case .context(let body): text += " \(body)\n"
-            }
-        }
-        return UnifiedDiff(
-            text: text,
-            addedLines: addedLines,
-            removedLines: removedLines,
-            addedChars: addedChars,
-            removedChars: removedChars
-        )
-    }
 
-    private enum DiffEntry: Equatable, Sendable {
-        case added(String)
-        case removed(String)
-        case context(String)
-    }
 
-    private static func lcsTable(_ a: [String], _ b: [String]) -> [[Int]] {
-        var table = Array(repeating: Array(repeating: 0, count: b.count + 1), count: a.count + 1)
-        for i in 1...a.count {
-            for j in 1...b.count {
-                if a[i - 1] == b[j - 1] {
-                    table[i][j] = table[i - 1][j - 1] + 1
-                } else {
-                    table[i][j] = max(table[i - 1][j], table[i][j - 1])
-                }
-            }
-        }
-        return table
-    }
 
-    private static func backtrackDiff(
-        old: [String],
-        new: [String],
-        lcs: [[Int]]
-    ) -> [DiffEntry] {
-        var entries: [DiffEntry] = []
-        var i = old.count
-        var j = new.count
-        while i > 0 || j > 0 {
-            if i > 0 && j > 0 && old[i - 1] == new[j - 1] {
-                entries.append(.context(old[i - 1]))
-                i -= 1
-                j -= 1
-            } else if j > 0 && (i == 0 || lcs[i][j - 1] >= lcs[i - 1][j]) {
-                entries.append(.added(new[j - 1]))
-                j -= 1
-            } else if i > 0 {
-                entries.append(.removed(old[i - 1]))
-                i -= 1
-            }
-        }
-        return entries.reversed()
-    }
 }
 
 // MARK: - Diff envelope (= chat-diff-preview wire shape)
