@@ -200,4 +200,48 @@ final class MirroredKeychainStore: ProviderKeychainStoring, @unchecked Sendable 
         set.formUnion(secondary.listProvidersWithKeys())
         return Array(set).sorted()
     }
+
+    // MARK: - Toggle-time migration
+
+    /// One-shot migration helper called when the user flips the
+    /// `wenshu.useKeychainForProviderKeys` toggle. Reads every
+    /// key from the side the user is moving AWAY from (= the
+    /// current secondary) and writes it to the side the user
+    /// is moving TOWARD (= the current primary), so the next
+    /// read consults the new primary directly and finds the
+    /// key without needing the self-heal path.
+    ///
+    /// Per boss 2026-10-16 OOB "如果用户在配好 key 后关闭钥
+    /// 匙串功能, 应该立刻把 key 放在不走钥匙串的路径中".
+    /// The `2f9b1e5ca` self-heal already covers this case
+    /// (= the next `loadKeySync` falls back to the
+    /// secondary AND re-writes to the primary), but the
+    /// user wanted the migration to be visible at the
+    /// moment the toggle flips (= the chat empty-state
+    /// should not flash). Calling `migrateToCurrentPrimary`
+    /// from the toggle's onChange handler pre-populates the
+    /// new primary so the empty-state flash goes away.
+    ///
+    /// Errors are swallowed (= per-store errors are
+    /// logged via `NSLog`; = the migration is best-effort;
+    /// = the user's `saveKeySync` path stays the contract
+    /// for the "key was just configured" case).
+    func migrateToCurrentPrimary() {
+        let secondarySlugs = secondary.listProvidersWithKeys()
+        for slug in secondarySlugs {
+            guard let provider = Provider.by(slug: slug) else { continue }
+            guard let key = secondary.loadKeySync(for: provider) else { continue }
+            // Write to primary; = use the same try? pattern
+            // (= the self-heal path uses `try?` for the
+            // same reason: the user already has a working
+            // read via the secondary, so a primary write
+            // failure is not fatal; = the next read
+            // self-heals).
+            do {
+                try primary.saveKeySync(key, for: provider)
+            } catch {
+                NSLog("WSKeychain: migrateToCurrentPrimary failed to write \(slug) to primary: \(error.localizedDescription)")
+            }
+        }
+    }
 }

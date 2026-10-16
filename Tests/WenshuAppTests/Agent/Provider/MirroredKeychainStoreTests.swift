@@ -144,4 +144,49 @@ struct MirroredKeychainStoreTests {
         _ = store.keychainStore
         _ = store.fileStore
     }
+
+    /// `migrateToCurrentPrimary` copies every key from the
+    /// side the user is moving AWAY from (= current
+    /// secondary) to the side the user is moving TOWARD
+    /// (= current primary). After the migration, both
+    /// sides hold the key (= the chat empty-state
+    /// does not flash because the next read finds the
+    /// value in the new primary).
+    @Test("migrateToCurrentPrimary copies secondary keys to primary")
+    func testMigrateToCurrentPrimary() throws {
+        // Build a mirror with keychainPrimary = true; =
+        // primary is keychain, secondary is file.
+        let (mirror, keychainSide, fileSide) = makeMirror(keychainPrimary: true)
+        let provider = Provider.minimaxCn
+        let key = "sk-cp-test-migrate"
+
+        // Simulate the old behavior: only the file side
+        // has the key (= the user configured the key
+        // with toggle OFF at some point in the past).
+        // We delete from the keychain side to match
+        // that pre-`2f9b1e5ca` state.
+        try keychainSide.deleteKeySync(for: provider)
+        try fileSide.saveKeySync(key, for: provider)
+
+        // Sanity: keychain has nothing, file has the key.
+        #expect(keychainSide.loadKeySync(for: provider) == nil)
+        #expect(fileSide.loadKeySync(for: provider) == key)
+
+        // User flips the toggle (= in this test we
+        // simulate by re-creating the mirror with
+        // keychainPrimary = true AND calling
+        // migrateToCurrentPrimary; = the actual
+        // SettingView code does the same thing via
+        // the onChange handler).
+        let freshMirror = MirroredKeychainStore(
+            keychainStore: keychainSide,
+            fileStore: fileSide,
+            keychainPrimary: true
+        )
+        freshMirror.migrateToCurrentPrimary()
+
+        // After migration, the keychain (= new primary)
+        // also has the key.
+        #expect(keychainSide.loadKeySync(for: provider) == key, "migrateToCurrentPrimary must copy secondary keys to the new primary")
+    }
 }

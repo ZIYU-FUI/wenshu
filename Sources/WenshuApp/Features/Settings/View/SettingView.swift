@@ -438,13 +438,35 @@ struct SettingView: View {
                     Text("使用系统钥匙串保存 key")
                 }
                 .onChange(of: useKeychainForProviderKeys) { _, newValue in
-                    // Re-resolve the backend so the next saveKeySync / loadKeySync
-                    // hits the right primary. The new `MirroredKeychainStore`
-                    // (= `d09c5d11` commit) always writes BOTH stores
-                    // (= Apple Keychain + file), so toggling the switch no
-                    // longer causes "key 没配" (= the previous bug the user
-                    // reported); the toggle only swaps the read primary.
+                    // Per boss 2026-10-16 OOB "如果用户在配好
+                    // key 后关闭钥匙串功能, 应该立刻把 key
+                    // 放在不走钥匙串的路径中": re-resolve
+                    // the backend (= swap the read primary)
+                    // AND actively migrate any keys that
+                    // currently live only in the OTHER
+                    // store (= the previous primary). The
+                    // self-heal path on `loadKeySync`
+                    // already covers this lazily, but the
+                    // boss wants the migration to be
+                    // visible at the moment the toggle
+                    // flips (= the chat empty-state should
+                    // not flash).
+                    let previousBackend = ProviderKeychain.backend
                     ProviderKeychain.backend = ProviderKeychain.resolveBackend()
+                    if let mirrored = ProviderKeychain.backend as? MirroredKeychainStore {
+                        mirrored.migrateToCurrentPrimary()
+                    } else if let mirrored = previousBackend as? MirroredKeychainStore {
+                        // = the new backend is something
+                        // other than MirroredKeychainStore
+                        // (= e.g., a test override) but the
+                        // old backend was Mirrored; = the
+                        // keys are still in the old
+                        // MirroredKeychainStore's inner
+                        // stores, so run the migration on
+                        // the old mirror to copy them to
+                        // whatever the new primary is.
+                        mirrored.migrateToCurrentPrimary()
+                    }
                     NotificationCenter.default.post(
                         name: .wenshuProviderKeychainChanged,
                         object: nil
