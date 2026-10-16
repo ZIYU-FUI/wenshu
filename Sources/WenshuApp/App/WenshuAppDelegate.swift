@@ -258,6 +258,14 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
                 name: "wenshu", card: card, process: protocol_
             ))
         }
+        // P3 / P0 agent arc 2026-10-16: route the conductor through
+        // WenshuAgent.shared (= the public facade; = the 14 caller
+        // migration enabler). `WenshuConductor()` already has the
+        // active connector wired (per the P0-AGENT-LOOP rationale
+        // above), so installing it on the facade propagates that
+        // fix to every future caller that uses WenshuAgent.shared
+        // .chat() / .currentConductor().
+        Task { await WenshuAgent.shared.installConductor(Self.sharedConductor!) }
 
         NSApp.activate(ignoringOtherApps: true)
         if ProcessInfo.processInfo.environment["WS_SCREENSHOT"] == "1" {
