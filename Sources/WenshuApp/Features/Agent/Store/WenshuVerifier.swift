@@ -506,6 +506,10 @@ actor WenshuVerifier {
                             : WenshuVerifier.systemPromptEnglishOnly + "\n\n---\n\n" + system
                     ]
                     let body = try JSONSerialization.data(withJSONObject: bodyDict)
+                    NSLog("WSVerifier: streamChat POST model=%@ systemLen=%d textLen=%d",
+                          effectiveModel,
+                          (system).count,
+                          text.count)
                     let sse = SSEClient(url: url, headers: [
                         "x-api-key": creds.apiKey,
                         "anthropic-version": "2023-06-01",
@@ -513,8 +517,13 @@ actor WenshuVerifier {
                     ])
                     let stream = await sse.stream(body: body)
                     var textBuffer = ""
+                    var eventCount = 0
+                    var textDeltaCount = 0
+                    var firstEventType = ""
                     for try await event in stream {
                         if Task.isCancelled { break }
+                        eventCount += 1
+                        if firstEventType.isEmpty { firstEventType = event.event }
                         // Anthropic SSE payload is JSON in `event.data`.
                         guard let data = event.data.data(using: .utf8) else { continue }
                         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { continue }
@@ -525,6 +534,7 @@ actor WenshuVerifier {
                                let dType = delta["type"] as? String,
                                dType == "text_delta",
                                let text = delta["text"] as? String {
+                                textDeltaCount += 1
                                 textBuffer += text
                                 continuation.yield(.text(text))
                             }
@@ -543,6 +553,8 @@ actor WenshuVerifier {
                             }
                         }
                     }
+                    NSLog("WSVerifier: streamChat done events=%d textDeltas=%d firstEvent=%@ bufferLen=%d",
+                          eventCount, textDeltaCount, firstEventType, textBuffer.count)
                     wenshuLogger.info("[wenshu.stream] complete, textBuffer length=\(textBuffer.count)")
                     continuation.finish()
                 } catch {
