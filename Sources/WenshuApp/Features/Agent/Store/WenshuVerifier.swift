@@ -506,10 +506,7 @@ actor WenshuVerifier {
                             : WenshuVerifier.systemPromptEnglishOnly + "\n\n---\n\n" + system
                     ]
                     let body = try JSONSerialization.data(withJSONObject: bodyDict)
-                    NSLog("WSVerifier: streamChat POST model=%@ systemLen=%d textLen=%d",
-                          effectiveModel,
-                          (system).count,
-                          text.count)
+                    try? "POST model=\(effectiveModel) systemLen=\((system).count) textLen=\(text.count)\n---\n".write(toFile: "/tmp/wsverifier-req-\(getpid()).log", atomically: true, encoding: .utf8)
                     let sse = SSEClient(url: url, headers: [
                         "x-api-key": creds.apiKey,
                         "anthropic-version": "2023-06-01",
@@ -553,8 +550,7 @@ actor WenshuVerifier {
                             }
                         }
                     }
-                    NSLog("WSVerifier: streamChat done events=%d textDeltas=%d firstEvent=%@ bufferLen=%d",
-                          eventCount, textDeltaCount, firstEventType, textBuffer.count)
+                    try? "done events=\(eventCount) textDeltas=\(textDeltaCount) firstEvent=\(firstEventType) bufferLen=\(textBuffer.count)\n---\n".write(toFile: "/tmp/wsverifier-done-\(getpid()).log", atomically: true, encoding: .utf8)
                     wenshuLogger.info("[wenshu.stream] complete, textBuffer length=\(textBuffer.count)")
                     continuation.finish()
                 } catch {
