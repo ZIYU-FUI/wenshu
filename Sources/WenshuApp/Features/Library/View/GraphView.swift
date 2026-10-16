@@ -11,7 +11,7 @@ import SwiftUI
 /// GraphView: SwiftUI View, show placeholder
 /// AppRootScene, standalone wait macOS
 struct GraphView: View {
-    @State private var error: String? = nil
+    @State private var errorMessage: String? = nil
 
     init() {}
 
@@ -21,7 +21,7 @@ struct GraphView: View {
                 .font(.headline)
             Text(String(localized: "graphview.nodes_count"))
             Text(String(localized: "graphview.edges_count"))
-            if let _ = error {
+            if let _ = errorMessage {
                 Text(String(localized: "auto.graphview.l51.h33390865"))
                     .foregroundStyle(.red)
             }
