@@ -39,7 +39,7 @@ actor WenshuConductorImportRouter: ImportRouter {
 
     /// (= boss 2026-10-10 (see OOB.md #2026-10-10) 看板任务一样, 让一个 agent 跑完"). The
     /// driver (= the wenshu 文档管理员's orchestrator) wraps the SOP lookup + the
-    /// agent conversation loop (= replaces the previous round-71/72 multi-turn
+    /// agent conversation loop (= replaces the previous [archived-round]/72 multi-turn
     /// LLM pipeline).
     private lazy var driver: ImportAgentDriver = {
         ImportAgentDriver(
@@ -100,7 +100,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         // the boss's new default mode), the pipeline now makes 3 sequential
         // LLM calls instead of 1 (= each call does 1 thing; = the LLM can't
         // silently drop the extraFiles array; = the user sees each call in
-        // real time via the round-70 `activityLog`). Other modes (=
+        // real time via the [archived-round] `activityLog`). Other modes (=
         // .consolidate / .searchAndRewrite) still use 1 LLM call (= backward
         // compat).
         switch input.rewriteMode {
@@ -113,7 +113,7 @@ actor WenshuConductorImportRouter: ImportRouter {
             )
         case .consolidate, .searchAndRewrite:
             // .consolidate + .searchAndRewrite unchanged (= 1 LLM call; = the pre-
-            // round-71 path).
+            // [archived-round] path).
             return try await routeSingleTurn(
                 input: input,
                 body: body,
@@ -123,7 +123,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         }
     }
 
-    /// C2. The single-LLM-call path (= the pre-round-71 behavior; = used by
+    /// C2. The single-LLM-call path (= the pre-[archived-round] behavior; = used by
     /// `.consolidate` + `.searchAndRewrite`; = kept for backward compat).
     private func routeSingleTurn(
         input: ImportFileInput,
@@ -505,7 +505,7 @@ actor WenshuConductorImportRouter: ImportRouter {
     /// `fallbackTitle` instead; = the user sees a clean filename-based title
     /// regardless of what the LLM did; = programmatic guarantee beats LLM
     /// trust).
-    /// The flow (= boss round-37 spec): 1. `parsed.title` (= the LLM's answer).
+    /// The flow (= boss [archived-round] spec): 1. `parsed.title` (= the LLM's answer).
     /// 2. \`WCIRHelpers.sanitizeTitle(parsed.title, from: filePath)\` returns
     /// `String?` (= nil = any of the 8 failure modes hit; = use
     /// `fallbackTitle`). 3. The accepted title is trimmed (= sanitizeTitle

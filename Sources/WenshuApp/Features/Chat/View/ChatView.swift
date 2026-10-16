@@ -755,7 +755,7 @@ struct ChatView: View {
                         // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
                         // peeks behind the input bar).
                         .contentMargins(.bottom, DesignTokens.chatInputBarHeight, for: .scrollContent)
-                        // 2026-10-12 round-19 — add 10 PT top
+                        // 2026-10-12 [archived-round] — add 10 PT top
                         // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
                         // spec.
                         .padding(.top, 10)

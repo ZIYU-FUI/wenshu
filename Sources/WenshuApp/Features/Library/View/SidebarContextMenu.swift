@@ -78,7 +78,7 @@ struct SidebarContextMenuModifier: ViewModifier {
     /// an "导入" row that opens the sheet
     /// with `prefillDestination = .book` +
     /// `prefillBookID = book.id`. Boss
-    /// 2026-10-09 round-21 "改成导入，不
+    /// 2026-10-09 [archived-round] "改成导入，不
     /// 要导入 MD" (= "导入" is the
     /// format-agnostic label; = the
     /// sheet's file-type picker is the

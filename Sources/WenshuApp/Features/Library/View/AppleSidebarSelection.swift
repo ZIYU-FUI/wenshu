@@ -45,7 +45,7 @@ extension AppleSidebarView {
 
     /// Resolve the `otherNames` list for the rename sheet based on the target's
     /// `Kind` (= shelf / book / reference). The reference case uses
-    /// `SidebarService. otherReferenceTitles` (= the v2.7 round-63 addition).
+    /// `SidebarService. otherReferenceTitles` (= the v2.7 [archived-round] addition).
     func otherNamesForRename(target: SidebarRenamingTarget) -> [String] {
     switch target.kind {
     case .shelf:

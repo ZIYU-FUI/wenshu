@@ -49,7 +49,7 @@ import Foundation
     /// written via the
     /// `extraFiles` pipeline
     /// (= same path as
-    /// round-67's "split out
+    /// [archived-round]'s "split out
     /// non-B content" feature;
     /// = the LLM populates
     /// each sub-section
@@ -69,7 +69,7 @@ enum ImportDocumentTemplateSkeletons {
 
     ## 6 份必填子文档
 
-    (= round-69 拆分后, 世界观 = 1 主索引 + 6 份独立 .md
+    (= [archived-round] 拆分后, 世界观 = 1 主索引 + 6 份独立 .md
     在 world/ 同目录下):
 
     - [`核心设定.md`](核心设定.md) — 这个元素"是什么"和"为什么重要"

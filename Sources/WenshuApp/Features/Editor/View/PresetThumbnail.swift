@@ -1,4 +1,4 @@
-// PresetThumbnail.swift · Wenshu () ticket 028-007
+// PresetThumbnail.swift · Wenshu () [archived]
 //
 // SwiftUI port of `TreeThumbnail` (= hermes `layout-picker.tsx:26-51`).
 // Recursively renders a LayoutTreeState as gray rectangles
@@ -6,7 +6,7 @@
 // pane layout at thumbnail scale. Leaf groups render as filled
 // rectangles; splits render as nested containers.
 //
-// Per ticket 028-007 §"Acceptance criteria" #1: this is the
+// Per [archived] §"Acceptance criteria" #1: this is the
 // `PresetThumbnail.swift` file referenced in the spec.
 //
 import SwiftUI

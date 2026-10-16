@@ -1,4 +1,4 @@
-// ZoneEditor.swift · Wenshu () ticket 028-008
+// ZoneEditor.swift · Wenshu () [archived]
 //
 // SwiftUI full-screen grid editor (= hermes
 // `zone-editor.tsx` port). User clicks on a column boundary to
@@ -8,7 +8,7 @@
 // Save converts the grid to a guillotine tree and registers it
 // as a user preset via LayoutTreeStore.saveAsPreset(name:).
 //
-// Per ticket 028-008 §"Acceptance criteria" #3: this is the
+// Per [archived] §"Acceptance criteria" #3: this is the
 // `ZoneEditor.swift` file referenced in the spec. MVP scope
 // (= 4 templates + zone-count stepper + click-to-split + Save
 // button with gridIsTreeExpressible gating + Cancel/Escape).

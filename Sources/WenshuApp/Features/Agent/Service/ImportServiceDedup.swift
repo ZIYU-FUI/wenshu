@@ -26,7 +26,7 @@ enum ImportServiceDedup {
     /// lookup (= scan an existing bookFolder for a .md whose first H1 heading
     /// matches the LLM-supplied title; = used by the orchestrator to decide
     /// between "create" (= no match) and "edit" (= match found) when writing a
-    /// new .md file; = the boss's 2026-10-09 round-13 directive "再次触发同名实体，只
+    /// new .md file; = the boss's 2026-10-09 [archived-round] directive "再次触发同名实体，只
     /// edit. 不建重名文档"). Why scan the file body instead of trusting the filename:
     /// the filename derives from the title via `sanitizeFilename` (=
     /// path-unsafe chars stripped; = truncated to 80 chars; = the LLM might
@@ -62,7 +62,7 @@ enum ImportServiceDedup {
                 }
             }
             // 2) Filename heuristic fallback (= the boss sometimes hand-edits a file to
-            // remove the H1 (= the boss's 2026-10-09 round-14 "还有 3 个重名"
+            // remove the H1 (= the boss's 2026-10-09 [archived-round] "还有 3 个重名"
             // feedback); = the file has no H1; = the dedup lookup would
             // return nil; = a re-import of the same entity would create a
             // duplicate file. The fallback strips the .md extension and

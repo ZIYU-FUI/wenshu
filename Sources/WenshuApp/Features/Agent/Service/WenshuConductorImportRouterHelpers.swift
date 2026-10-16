@@ -185,7 +185,7 @@ enum WCIRHelpers {
     // MARK: - isUselessMetadataLine
     static func isUselessMetadataLine(_ trimmed: String) -> Bool {
         let prefixes: [String] = [
-            // The old previous template (= 老板 2026-10-09 round-25 "不要参考 MD 的格式，而是盘点文枢的功
+            // The old previous template (= 老板 2026-10-09 [archived-round] "不要参考 MD 的格式，而是盘点文枢的功
             // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // uses 实体类型/标签/摘 要 only).
             "类型:",
@@ -357,7 +357,7 @@ enum WCIRHelpers {
             let trimmedTag = tag.trimmingCharacters(in: .whitespacesAndNewlines)
             // Drop empties.
             if trimmedTag.isEmpty { return nil }
-            // Drop title-match (= round-28).
+            // Drop title-match (= [archived-round]).
             if trimmedTag == titleNorm { return nil }
             // Drop any tag containing punctuation (= the canonical wenshu tag is a short
             // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)

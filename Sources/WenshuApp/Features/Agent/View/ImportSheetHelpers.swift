@@ -57,7 +57,7 @@ extension ImportSheet {
     /// True if the user can go back one step (= not on the first step; = never
     /// go back from .running because the import is mid-flight; = the boss's
     /// "上一步" button is enabled on every step EXCEPT the first (.configure); =
-    /// on the first step the button is HIDDEN entirely per the boss's round-48
+    /// on the first step the button is HIDDEN entirely per the boss's [archived-round]
     /// "第一步的页面, 不应该有 上一步" directive).
     var canGoPrev: Bool {
         currentStep != .configure
@@ -68,7 +68,7 @@ extension ImportSheet {
     /// the user has filled the required fields). - .running → .results iff
     /// `isRunComplete` (= the orchestrator has finished; = the user can review
     /// the results). - .results → .done always (= just a "next" tap to dismiss
-    /// the per-file list). - .done: ALWAYS reachable (= the boss's round-51
+    /// the per-file list). - .done: ALWAYS reachable (= the boss's [archived-round]
     /// "完成不用判 断任何, 就直接能点就可以" directive; = even if there are failures (= 21
     /// failed + 14 skipped = the user has acknowledged the failures and wants
     /// to close the sheet; = the button is a "dismiss" not a "validate
@@ -152,7 +152,7 @@ extension ImportSheet {
     // MARK: - Per-step views
 
     /// Step 1: 选目标. The macOS 27 list row pattern (= 32 PT row height; = no
-    /// card background fill; = the boss's round-49 "每一行的背景矩形不需要" directive; =
+    /// card background fill; = the boss's [archived-round] "每一行的背景矩形不需要" directive; =
     /// the row is just text + control; = sections separated by a hairline
     /// Divider).
     @ViewBuilder
@@ -366,7 +366,7 @@ extension ImportSheet {
 
     /// Step 2: 进度. The progress bar + the per-file strip; = the two surfaces
     /// are separated by a hairline Divider (= matches the step 1 / step 3
-    /// pattern; = the boss's round-50 "演示要每一步骤的页面 都一样, 不只改第一步" directive; =
+    /// pattern; = the boss's [archived-round] "演示要每一步骤的页面 都一样, 不只改第一步" directive; =
     /// every step has the same dot-indicator / Divider / bottom-nav-bar
     /// chrome).
     @ViewBuilder
@@ -400,7 +400,7 @@ extension ImportSheet {
     /// "重试" buttons. No pickers, no progress bar (= the import already
     /// finished; = the user is now in review/retry mode).
     /// (= boss 2026-10-10 (see OOB.md #2026-10-10) directive). The "重新调研所有失败"
-    /// total button moves from the top of the view (= the round-36 position; =
+    /// total button moves from the top of the view (= the [archived-round] position; =
     /// the user complained "挨着完成放" = the button should be next to the 完成
     /// button, not at the top of the list) to the BOTTOM of the view, right-
     /// aligned, with a hairline Divider above it (= the "操作上面需要也 加一条分割线"

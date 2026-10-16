@@ -85,7 +85,7 @@ internal enum CardSource {
     /// boss 2026-10-09 (see OOB.md #2026-10-09) set (= the .ws library's
     /// cross-cutting facet; = the user previously had no way to see which 3
     /// tags a card carries without opening the .md body); = reference cards
-    /// show `Reference.tags` (= ≤ 3 entries after the round-20 cap); = bookDoc
+    /// show `Reference.tags` (= ≤ 3 entries after the [archived-round] cap); = bookDoc
     /// cards show `BookDoc.tags` (= the 2026-10-12 follow-up = parse the file's
     /// first H1 markdown heading and surface it as the book's single tag, = the
     /// book card now visually matches the reference card = no more literal `#
@@ -380,12 +380,12 @@ struct Card: View {
         // row; = the menu fires on first right-click reliably). Only
         // `.reference` cards get the delete / rename menu (= the `.bookDoc`
         // cards are managed by the chapter flow = a separate ticket; = for now
-        // we add the menu only to the reference case = the round-63 / 64
+        // we add the menu only to the reference case = the [archived-round] / 64
         // focused on reference-library cards per the boss's "素材 区" wording).
         // the right-click context menu on the card. The menu shows for BOTH
         // `.reference` AND `.bookDoc` sources (= the boss 2026-10-10 "资料 库 的 卡
         // 片 已 经 实 现 了 右 键 菜 单 ， 但 十 二 地 仙 书 的 卡 片 没 有 生 效 ， 应 该 不 是 同 一 个 卡 片
-        // 控 件 ， 你 把 书 的 加 上 就 行 了 " directive; = the round-64 conditional was
+        // 控 件 ， 你 把 书 的 加 上 就 行 了 " directive; = the [archived-round] conditional was
         // `if case .reference = source` which made the contextMenu empty for
         // bookDoc cards (= the macOS 14+ List first- click bug doesn't apply
         // because the Card is in a LazyVGrid, NOT a List row; = the menu just

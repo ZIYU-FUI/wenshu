@@ -189,8 +189,8 @@ enum BookFolderCatalog {
     /// building fragments
     /// + future-story
     /// ideas; = the
-    /// round-60 addition;
-    /// = round-61 added
+    /// [archived-round] addition;
+    /// = [archived-round] added
     /// it to the `BookFolder`
     /// enum but the
     /// `BookFolderCatalog`

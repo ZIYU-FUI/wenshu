@@ -1,5 +1,5 @@
-// ImportSOPLoader.swift · wenshu · round-73 (= boss 2026-10-10 (see OOB.md #2026-10-10)
-// v2.7 round-73 (= boss 2026-10-10 (see OOB.md #2026-10-10) 这个 SOP" + "用户不可见").
+// ImportSOPLoader.swift · wenshu · [archived-round] (= boss 2026-10-10 (see OOB.md #2026-10-10)
+// v2.7 [archived-round] (= boss 2026-10-10 (see OOB.md #2026-10-10) 这个 SOP" + "用户不可见").
 // ImportSOPLoader = the lookup + loader for the SOP prompt files. Lives in Services (=
 // data-layer concern) so ImportService (= caller) does the lookup, not
 // ImportAgentDriver (= agent- side concern). Two responsibilities: 1. `sopName(for

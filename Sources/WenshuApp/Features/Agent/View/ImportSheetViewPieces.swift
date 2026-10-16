@@ -281,7 +281,7 @@ struct WizardStepIndicator: View {
                     // 跳到完成去" directive). Only jump if the step is
                     // reachable (= the button is also .disabled
                     // below; = the guard is a defense-in-depth
-                    // check). The round-44 "可以跳到任意 步骤" behavior is
+                    // check). The [archived-round] "可以跳到任意 步骤" behavior is
                     // the bug this commit fixes.
                     guard reachable else { return }
                     currentStep = step
@@ -343,7 +343,7 @@ struct WizardStepIndicator: View {
 /// the row is just text
 /// on the panel surface;
 /// = the previous
-/// round-45 "filled
+/// [archived-round] "filled
 /// card with 12% white
 /// overlay" was wrong
 /// for a wizard step

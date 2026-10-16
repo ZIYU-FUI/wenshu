@@ -19,11 +19,11 @@
 // surface (= 2 entry points): - computeCardTriad(source:previewScope:bookStore:) ->
 // CardTriad - openTab(triad:previewScope:appState:) -> OpenCardResult Why 2 entry
 // points (not 1): - WorkspaceView's openCardInEditor handles only the reference- scope
-// + bookScope-deferred paths (= ticket 027-35 will lift the BookDocLoader into a
+// + bookScope-deferred paths (= [archived] will lift the BookDocLoader into a
 // shared service). - PaneView's openCardInEditor adds a filesystem scan in the
 // bookScope case (= walk shelves/<shelf-uuid>/books/ <book-uuid>/<folder>/*.md and
 // pick the first .md). That scan stays in the View (= too PaneView-specific to lift; =
-// ticket 027-35 will replace it). - The shared part = the dedup check + EditorTab
+// [archived] will replace it). - The shared part = the dedup check + EditorTab
 // construction + appState.openTabs.append + activeTabId mutation. That's what
 // `openTab` does (= the body that all 3 views duplicated verbatim after the scope
 // switch). - `computeCardTriad` wraps the reference-scope filter + body load (= the
@@ -178,7 +178,7 @@ enum CardOpenOps {
                 title: category?.displayName ?? String(localized: "tab.title.reference_library")
             )
         case .bookScope:
-            // Deferred to ticket 027-35: PreviewPane's private loadBookDocs helper is the
+            // Deferred to [archived]: PreviewPane's private loadBookDocs helper is the
             // source of truth for bookDoc discovery; = WorkspaceView
             // doesn't share it. fallback = silent no-op (= no .alert, no
             // popup = user feedback comes from PreviewPane being empty).
@@ -400,7 +400,7 @@ enum CardOpenOps {
     /// Boss 2026-10-10 feedback: "指定目录实现
     /// 了，但导入的内容少了好我"; = the
     /// 故事宪法 was imported correctly (= 534
-    /// lines on disk; = see round-66 commit E's
+    /// lines on disk; = see [archived-round] commit E's
     /// `prepareBodyForWrite`), but the editor
     /// only showed the 200-char `doc.summary`.
     /// Root cause: the previous

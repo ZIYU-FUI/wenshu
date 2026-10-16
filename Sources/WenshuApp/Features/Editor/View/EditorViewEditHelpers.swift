@@ -22,7 +22,7 @@ import Foundation
 
 extension EditorView {
     // save action writes draft back over originalBody (= dirty detection
-    // clears). When documentPath is non-nil (= the ticket 027-35 wires real
+    // clears). When documentPath is non-nil (= the [archived] wires real
     // document load), also write to disk (= atomic UTF-8 = Apple HIG file write
     // pattern). Cmd+S hotkey (canonical surface) and Save toolbar button both
     // call this directly. editor- mvvm T2b: disk IO + dirty state machine

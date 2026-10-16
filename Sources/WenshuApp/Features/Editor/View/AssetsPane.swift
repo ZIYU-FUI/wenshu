@@ -127,7 +127,7 @@ struct AssetsPane: View {
         // … (= 60 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // correctly; = survives PreviewPane re-instantiation).
         VStack(spacing: 0) {
-            // 2026-10-12 round-17 boss directive "你看其它三
+            // 2026-10-12 [archived-round] boss directive "你看其它三
             // … (= 98 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // updates the other live (= the same envAppState.searchText).
             PreviewPane(
@@ -195,7 +195,7 @@ struct AssetsPane: View {
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 ChromeBottomFooter {
                     HStack(spacing: DesignTokens.spacingTight) {
-                        // 2026-10-12 round-15 boss directive "先这
+                        // 2026-10-12 [archived-round] boss directive "先这
                         // … (= 22 rationale lines collapsed; = A112 docblock collapse per §1.8)
                         // share the same icon cap height).
                         SFIcon("tray.full", style: .inlineSmall, color: IconColor.secondary)

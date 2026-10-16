@@ -95,7 +95,7 @@ struct SidebarRowView: View {
             // this menu; = the menu closure captures the row's `node`
             // directly; = the right-click target is always the row the
             // user clicked, regardless of the List's current
-            // `selectedNode` value; = boss round-33 "如果当前选中是别
+            // `selectedNode` value; = boss [archived-round] "如果当前选中是别
             // 的，但鼠标直接在十二地仙处右 键，点导入，就不能带入" directive). The per-row menu
             // overrides the list-level `forSelectionType:` for single-
             // click right-click; = the list- level forSelectionType still
@@ -108,7 +108,7 @@ struct SidebarRowView: View {
     }
 
     /// Applies `.tag(node)` to non-divider rows only
-    /// (= the v2.7 round-31 fix for "divider can be
+    /// (= the v2.7 [archived-round] fix for "divider can be
     /// selected" bug). Divider rows are visual
     /// separators (= the gray line between "长篇网
     /// 文" and "资料库" sections); the canonical
@@ -129,7 +129,7 @@ struct SidebarRowView: View {
         }
     }
 
-    /// Per-row context menu (= the v2.7 round-33
+    /// Per-row context menu (= the v2.7 [archived-round]
     /// fix for "right-click another row while
     /// another is selected routes the menu to the
     /// SELECTED row"). The closure body captures
@@ -151,14 +151,14 @@ struct SidebarRowView: View {
             // directly (= the wenshu canonical sidebar menu has at most 3
             // rows per right-click target; = the menu shape is small
             // enough that inlining is simpler than a builder helper).
-            // macOS 14+ SwiftUI known limitation (= round-35 diagnostic
+            // macOS 14+ SwiftUI known limitation (= [archived-round] diagnostic
             // confirmed): \`List(_:children:selection:)\` (= OutlineGroup-
             // backed) does NOT mount the per-row
             // \`.contextMenu(menuItems:)\` until the user has right-
             // clicked ANOTHER row first (= the first right-click on a
             // fresh List's row is silently ignored; = Apple Stack Overflow
             // "macOS List per-row contextMenu first-click ignored"). The
-            // boss round-35 accepted this limitation ("那就先放弃，commit
+            // boss [archived-round] accepted this limitation ("那就先放弃，commit
             // 现有能力"); the per-row menu IS the canonical path for the
             // second-and-later right-click (= the v2.6 sidebar feedback
             // bundle canonical = the per-row single-click menu is the

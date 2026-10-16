@@ -119,7 +119,7 @@ extension ImportService {
         folder: BookFolder
     ) async throws -> URL? {
         // The on-disk filename derives from the LLM-supplied title (= the boss's
-        // 2026-10-09 round-10 feedback "这个 ID 的事还没有修吗": = the
+        // 2026-10-09 [archived-round] feedback "这个 ID 的事还没有修吗": = the
         // sidebar's BookDoc card title came from the file's filename
         // without extension; = the previous UUID-only filename meant
         // the cards read "023D22E3-1F1D-4A55-83C8-F133156ECEB9"
@@ -134,7 +134,7 @@ extension ImportService {
         // would indicate a deeper LLM misbehavior worth surfacing as a
         // generic "未命名" rather than a cryptic UUID).
         let uuid = ImportServiceHashing.uuidFromHash(contentHash)
-        // (= the boss's 2026-10-09 round-18 "强制让用户 分开导入" directive). When the user
+        // (= the boss's 2026-10-09 [archived-round] "强制让用户 分开导入" directive). When the user
         // pinned the reference library, this branch is unreachable (= the
         // LLM already overrode the destination to .referenceLibrary + the
         // orchestrator took the referenceLibrary case). The `bookId!` /
@@ -154,7 +154,7 @@ extension ImportService {
             raw: routing.title,
             fallback: String(uuid.uuidString.prefix(8))
         )
-        // (= boss 2026-10-09 round-13 directive "再次触发 同名实体，只 edit. 不建重名文档"; = the
+        // (= boss 2026-10-09 [archived-round] directive "再次触发 同名实体，只 edit. 不建重名文档"; = the
         // previous per-source-path dedup let the same entity land at
         // multiple paths when the user re-imported after clearing only
         // one source directory; = world/ ended up with 33 duplicate

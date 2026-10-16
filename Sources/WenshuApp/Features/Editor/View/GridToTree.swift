@@ -1,4 +1,4 @@
-// GridToTree.swift · Wenshu () ticket 028-008
+// GridToTree.swift · Wenshu () [archived]
 //
 // Grid → tree bridge. A FancyZones grid whose zones can be
 // produced by recursive guillotine cuts (= every FancyZones
@@ -8,7 +8,7 @@
 // arrangements (= interlocking pinwheels) return nil and the
 // editor disables Save with an explanation.
 //
-// Per ticket 028-008 §"Acceptance criteria" #2: this is the
+// Per [archived] §"Acceptance criteria" #2: this is the
 // `GridToTree.swift` file referenced in the spec (= 1:1 port of
 // hermes `grid-to-tree.ts`).
 //

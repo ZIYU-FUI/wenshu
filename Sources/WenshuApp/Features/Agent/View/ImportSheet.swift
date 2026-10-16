@@ -46,7 +46,7 @@ struct ImportSheet: View {
     /// menu's 导入… shortcut). The parent flips this to dismiss.
     @Binding var isPresented: Bool
 
-    // / parameters (= the boss's 2026-10-09 round-18 "右键点资料库，点
+    // / parameters (= the boss's 2026-10-09 [archived-round] "右键点资料库，点
     // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / the destination themselves).
     var prefillDestination: ImportDestination?
@@ -87,7 +87,7 @@ struct ImportSheet: View {
     // / "让用户 决定" directive).
     @State var selectedBookFolder: BookFolder?
 
-    // / (= boss 2026-10-09 round-18 "导入目标加一个资料库， 用户指定了资料库的，就自动全进到资料库。
+    // / (= boss 2026-10-09 [archived-round] "导入目标加一个资料库， 用户指定了资料库的，就自动全进到资料库。
     // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / reduced to a metadata-only role = title + summary + tags).
     enum ImportDestination: String, CaseIterable, Identifiable, Sendable {
@@ -198,7 +198,7 @@ struct ImportSheet: View {
 
             // the bottom nav bar (= the canonical Apple HIG macOS 14+ wizard pattern; =
             // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
-            // from round-50).
+            // from [archived-round]).
             WizardActionDivider()
             WizardStepNavBar(
                 currentStep: $currentStep,
@@ -220,7 +220,7 @@ struct ImportSheet: View {
         // for the cancel-and-rollback path.
         .interactiveDismissDisabled(isImporting)
         .padding(DesignTokens.spacingSection)
-        // on first appear (= the boss's 2026-10-09 round-18 "右键点 资料库，点导入，进到弹窗后，目标
+        // on first appear (= the boss's 2026-10-09 [archived-round] "右键点 资料库，点导入，进到弹窗后，目标
         // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // book.id`).
         .onAppear {
@@ -455,7 +455,7 @@ struct ImportSheet: View {
 
     func startImport() {
         guard let source = sourceDirectory else { return }
-        // (= boss 2026-10-09 round-18 "强制让用户分开导 入" directive). The `canStart` gate
+        // (= boss 2026-10-09 [archived-round] "强制让用户分开导 入" directive). The `canStart` gate
         // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // .referenceLibrary).
         guard let target = buildImportTarget() else { return }

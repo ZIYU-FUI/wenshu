@@ -31,7 +31,7 @@ extension ImportService {
     /// from the filename + the sibling `.md` names in the same source
     /// directory; = the LLM produces a `.ws`-format body via web search; = the
     /// new body is written verbatim by the same `writeFile` path as the normal
-    /// `importFiles` flow). Design (= boss round-36 "在进度面板底部 加一个'重新调研所有失败'聚合按钮"
+    /// `importFiles` flow). Design (= boss [archived-round] "在进度面板底部 加一个'重新调研所有失败'聚合按钮"
     /// directive): - Filter `tasks` for `.state == .failed` AND `errorMessage`
     /// starts with "读取文件失败" (= LLM-routing failures are NOT retried here; =
     /// those are bugs, not file failures; = the user can re-import the whole

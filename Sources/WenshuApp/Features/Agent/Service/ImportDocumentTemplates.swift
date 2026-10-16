@@ -161,7 +161,7 @@ enum ImportDocumentTemplate: String, CaseIterable, Sendable {
     /// 1. **strip** the body (= remove
     ///    Obsidian backlinks, useless
     ///    metadata lines, plugin
-    ///    comments; = the round-25
+    ///    comments; = the [archived-round]
     ///    canonical strip).
     /// 2. **append missing H2
     ///    skeleton** (= for each H2
@@ -195,7 +195,7 @@ enum ImportDocumentTemplate: String, CaseIterable, Sendable {
         rawBody: String,
         folder: BookFolder
     ) -> String {
-        // 1. strip noise (= the round-25 canonical `stripObsidianBacklinks` helper on the
+        // 1. strip noise (= the [archived-round] canonical `stripObsidianBacklinks` helper on the
         // WenshuConductorImportRouter also covers the `isUselessMetadataLine`
         // filter; = we re-implement the same strip in-place here because the
         // orchestrator already calls the router helper above and we want this
@@ -237,7 +237,7 @@ enum ImportDocumentTemplate: String, CaseIterable, Sendable {
         }
     }
 
-    /// Strip useless metadata lines (= round-25
+    /// Strip useless metadata lines (= [archived-round]
     /// canonical; = inlined here for
     /// self-contained testing). Each line in
     /// `rawBody` is checked against the
@@ -374,7 +374,7 @@ enum ImportDocumentTemplate: String, CaseIterable, Sendable {
     }
 
     /// The canonical "useless metadata line" detector
-    /// (= round-25). Matches the old wenshu template's
+    /// (= [archived-round]). Matches the old wenshu template's
     /// noise lines (= e.g. "类型: 民俗神-A节气",
     /// "状态: 草稿") that the user never asked to
     /// preserve. The pattern is a Chinese-label line

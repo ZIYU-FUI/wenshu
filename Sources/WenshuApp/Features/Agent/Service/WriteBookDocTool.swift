@@ -1,4 +1,4 @@
-// WriteBookDocTool.swift · wenshu · round-73 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+// WriteBookDocTool.swift · wenshu · [archived-round] (= boss 2026-10-10 (see OOB.md #2026-10-10)
 // (= wenshu main agent)'s dedicated write tool (= "writeBookDoc"). The agent is told
 // via `ImportWorldPrompt.md` (and future per-folder SOPs) to call this tool once per
 // sub-file (= 1 主索引 + 6 必填 + 0-5 自定义 sub-files for the world folder). Why a NEW tool
@@ -11,7 +11,7 @@
 // unambiguous success/fail signals. - The agent runs inside `ConversationLoop.runTurn`
 // (= the multi-turn agent main loop; = tool use is dispatched by ToolExecutor, which
 // calls back into ImportService to actually persist the file). Why NOT a tool (=
-// alternative design): - Earlier round-71/72/73 designs used the orchestrator to drive
+// alternative design): - Earlier [archived-round]/72/73 designs used the orchestrator to drive
 // the LLM (= orchestrator called the LLM 1-3 times, parsed JSON, wrote files). That
 // was "the orchestrator IS the agent". The boss's 2026-10-10 OOB "走类似看板任务一样, 让一 个
 // agent 跑完" + "LLM 是一次 调用一次回复模式" means the LLM cannot drive multi-step work without

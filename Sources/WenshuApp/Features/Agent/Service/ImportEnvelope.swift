@@ -62,13 +62,13 @@ struct ImportFileInput: Codable, Sendable, Hashable {
     /// synthesizes a body from the filename
     /// and passes it here so the LLM has
     /// something to work with).
-    /// `nil` (= the pre-round-36 default; = the
+    /// `nil` (= the pre-[archived-round] default; = the
     /// orchestrator's normal `importFiles`
     /// path) = the router reads the body from
     /// `filePath`.
     let body: String?
     /// Default-value init (= the
-    /// pre-round-36 call sites don't supply
+    /// pre-[archived-round] call sites don't supply
     /// `body`; = the existing tests and the
     /// orchestrator's `importFiles` path
     /// compile unchanged).
@@ -90,7 +90,7 @@ struct ImportFileInput: Codable, Sendable, Hashable {
     /// Required when the user pinned a book as the
     /// destination; = nil when the user pinned the
     /// reference library as the destination (= the boss's
-    /// 2026-10-09 round-18 "强制让用户分开导入"
+    /// 2026-10-09 [archived-round] "强制让用户分开导入"
     /// directive; = the LLM gets a nil targetBookId +
     /// the prompt steers it away from book-folder
     /// routing).
@@ -175,7 +175,7 @@ struct ImportRoutingResult: Codable, Sendable, Hashable {
     /// decision; = the orchestrator's
     /// `processFile` may OVERRIDE this when the
     /// user pinned a destination in the sheet
-    /// (= the boss's 2026-10-09 round-18
+    /// (= the boss's 2026-10-09 [archived-round]
     /// "强制让用户分开导入" directive); = the
     /// `var` is necessary so the orchestrator
     /// can replace the LLM's classification
@@ -266,7 +266,7 @@ struct ImportRoutingResult: Codable, Sendable, Hashable {
 /// part; = the user
 /// sees each call in
 /// real time via the
-/// round-70
+/// [archived-round]
 /// `activityLog`).
 
 struct ExtraFile: Codable, Sendable, Hashable {

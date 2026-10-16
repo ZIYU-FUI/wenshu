@@ -193,9 +193,9 @@ extension PreviewPane {
                 // NSTextView internal), which doesn't apply to
                 // LazyVGrid (= the grid's rows are not text).
                 .contentInsetStyle(.none, edges: .vertical)
-                // 2026-10-12 round-18 boss directive "还是有 一点间距" — the prior
+                // 2026-10-12 [archived-round] boss directive "还是有 一点间距" — the prior
                 // `.frame(maxHeight: .infinity) + .safeAreaInset(edge:
-                // .bottom, spacing: 0)` (= round-17 fix) anchored the
+                // .bottom, spacing: 0)` (= [archived-round] fix) anchored the
                 // chrome footer at the column's bottom BUT the safe
                 // area inset did NOT extend down to the bottom of the
                 // inner ScrollView's content (= SwiftUI's
@@ -283,7 +283,7 @@ extension PreviewPane {
                     .animation(.smooth(duration: 0.18), value: sorted.map(\.id))
                 }
                 .padding(.vertical, DesignTokens.spacingStandard)
-                // 2026-10-12 round-18 — see the `categoryGridContent` LazyVGrid for the
+                // 2026-10-12 [archived-round] — see the `categoryGridContent` LazyVGrid for the
                 // doc on the `.contentMargins(.bottom, 33, for:
                 // .scrollContent)` chrome-footer gap-absorber (= 33 PT
                 // = the chrome footer's total height; = the last card
@@ -340,7 +340,7 @@ extension PreviewPane {
                 // bookDocsGrid).
                 .animation(.smooth(duration: 0.18), value: sorted.map(\.id))
                 .padding(.vertical, DesignTokens.spacingStandard)
-                // 2026-10-12 round-18 — see the `categoryGridContent` LazyVGrid for the
+                // 2026-10-12 [archived-round] — see the `categoryGridContent` LazyVGrid for the
                 // doc on the `.contentMargins(.bottom, 33, for:
                 // .scrollContent)` chrome-footer gap-absorber.
                 .contentMargins(.bottom, 33, for: .scrollContent)

@@ -497,7 +497,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
                 // previous import; = do nothing (= silent success).
                 return
             }
-            // Content differs; = the user explicitly authorized "edit" in the round-41
+            // Content differs; = the user explicitly authorized "edit" in the [archived-round]
             // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // `replaceReferenceToFileSystem` path).
             try atomicFileSystemWrite(

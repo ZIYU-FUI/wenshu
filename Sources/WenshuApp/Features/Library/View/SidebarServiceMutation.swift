@@ -350,7 +350,7 @@ extension SidebarService {
     }
 
     /// list of all reference titles (= for the duplicate check in
-    /// `renameReference`; = = the v2.7 round-63 addition; = the rename sheet
+    /// `renameReference`; = = the v2.7 [archived-round] addition; = the rename sheet
     /// reads this and shows the duplicate error).
     func otherReferenceTitles(excluding id: UUID) -> [String] {
         guard let referenceStore = bookStore?.stores.referenceStore else {

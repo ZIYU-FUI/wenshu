@@ -82,7 +82,7 @@ actor ImportService {
         /// clicked "重新调研 所有失败" while this entry was in `.failed` state). The
         /// retry method uses this to detect "already retried with the same
         /// body" (= skip the LLM dispatch; = save token + time). The field is
-        /// OPTIONAL (= older cache entries from wenshu versions before round-43
+        /// OPTIONAL (= older cache entries from wenshu versions before [archived-round]
         /// don't have it; = the Codable decoder tolerates the missing key).
         /// Custom `init(from:)` is required (= default memberwise init doesn't
         /// expose a default for the optional field).
@@ -119,7 +119,7 @@ actor ImportService {
             self.contentHash = try c.decode(String.self, forKey: .contentHash)
             self.destination = try c.decode(ImportDestination.self, forKey: .destination)
             self.writtenAt = try c.decode(Date.self, forKey: .writtenAt)
-            // optional fields (= absent on pre-round-43 cache entries; = decode failures
+            // optional fields (= absent on pre-[archived-round] cache entries; = decode failures
             // silently fall back to nil = the dedup then sees nil = treats
             // it as "never retried" = a fresh retry will run; = no
             // migration step needed).
@@ -347,7 +347,7 @@ actor ImportService {
 
     /// errors (= thrown by writeFile when the orchestrator's processFile
     /// reaches a bookFolder write but the target's `bookId` / `shelfId` are
-    /// nil; = a defensive guard for the boss's 2026-10-09 round-18 "强制让用户分开导入"
+    /// nil; = a defensive guard for the boss's 2026-10-09 [archived-round] "强制让用户分开导入"
     /// directive; = the user pinned a book, the LLM overrode to
     /// .referenceLibrary in error, and the orchestrator's processFile would
     /// otherwise crash on a force-unwrap).

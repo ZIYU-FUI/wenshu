@@ -1,4 +1,4 @@
-// LayoutPicker.swift · Wenshu () ticket 028-007
+// LayoutPicker.swift · Wenshu () [archived]
 //
 // Inner picker UI (= hermes `layout-picker.tsx:111-203` port). Shows
 // the 4 builtin preset cards in a 4-column grid (= or however many
@@ -15,7 +15,7 @@ import SwiftUI
 /// inside LayoutEditBar). Displays the 4 builtin presets + any
 /// user-saved presets as thumbnail cards in a grid.
 ///
-/// Per ticket 028-007 §"Acceptance criteria" #1: lives in
+/// Per [archived] §"Acceptance criteria" #1: lives in
 /// `Sources/WenshuApp/Views/Workspace/LayoutPicker/` alongside
 /// `LayoutEditBar`, `PresetCard`, `PresetThumbnail`, and
 /// `SaveCurrentLayoutButton`.
@@ -30,7 +30,7 @@ struct LayoutPicker: View {
     var onSelectPreset: (LayoutPreset) -> Void
 
     /// Local state for the "+ gridlayout" button (= the future
-    /// ticket 028-008 will wire this into the ZoneEditor).
+    /// [archived] will wire this into the ZoneEditor).
     @State private var showingNewGridHint: Bool = false
 
     /// Local state for opening the ZoneEditor sheet (= v0.28
@@ -38,7 +38,7 @@ struct LayoutPicker: View {
     @State private var showingZoneEditor: Bool = false
 
     /// Local state for the pending delete confirmation (= v0.28
-    /// ticket 028-009: deleting a user-saved preset requires a
+    /// [archived]: deleting a user-saved preset requires a
     /// .confirmationDialog before the destructive action).
     @State private var pendingDeletePreset: LayoutPreset? = nil
 
@@ -154,7 +154,7 @@ struct LayoutPicker: View {
             }
         }
         .frame(width: DesignTokens.layoutPickerWidth)
-        // ticket 028-009: confirmation dialog for deleting
+        // [archived]: confirmation dialog for deleting
         // a user-saved preset (= .confirmationDialog with
         // presenting: the preset; macOS-standard destructive /
         // cancel role buttons). Lives at the body level so it's

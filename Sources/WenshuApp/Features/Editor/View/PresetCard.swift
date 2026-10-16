@@ -1,4 +1,4 @@
-// PresetCard.swift · Wenshu () ticket 028-007
+// PresetCard.swift · Wenshu () [archived]
 //
 // Single preset thumbnail card (= hermes `layout-picker.tsx:62-109`
 // port). Shows a 4:3 mini-render of the split tree (= via

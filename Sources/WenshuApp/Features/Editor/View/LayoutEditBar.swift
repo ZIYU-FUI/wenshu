@@ -1,4 +1,4 @@
-// LayoutEditBar.swift · Wenshu () ticket 028-007
+// LayoutEditBar.swift · Wenshu () [archived]
 //
 // Floating TreeEditBar that appears when layout edit mode is on
 // (= hermes `edit-bar.tsx:25-108` port). Hosts the LayoutPicker
@@ -9,7 +9,7 @@
 // The bar is overlaid on the WorkspaceView (via `.overlay`) and
 // shows only when `LayoutEditMode.isEnabled == true`.
 //
-// Per ticket 028-007 §"Out of scope": the ZoneEditor full-screen
+// Per [archived] §"Out of scope": the ZoneEditor full-screen
 // grid (= 028-008) and animated transitions between presets are
 // future work. This ticket ships the palette UI + preset selection
 // + save-current-as-preset.
@@ -20,7 +20,7 @@ import SwiftUI
 /// LayoutPicker inside (= 4 builtin preset cards + a "+ gridlayout"
 /// dashed button + a save-current-as-preset button at the bottom).
 ///
-/// Per ticket 028-007 §"Acceptance criteria": the bar is 26rem wide,
+/// Per [archived] §"Acceptance criteria": the bar is 26rem wide,
 /// centered, has a draggable header, and shows the "reset" (ghost)
 /// + "complete" (outline) buttons in the header.
 ///

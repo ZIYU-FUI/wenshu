@@ -1,4 +1,4 @@
-// ImportAgentDriver.swift · wenshu · round-73 (= boss 2026-10-10 (see OOB.md #2026-10-10)
+// ImportAgentDriver.swift · wenshu · [archived-round] (= boss 2026-10-10 (see OOB.md #2026-10-10)
 // wenshu 文档管理员 (= the wenshu main agent) into the ImportService flow. Flow (= what
 // this file implements): 1. Resolve the SOP file (= ImportSOPTrigger looks up by
 // target folder; = `world` → `ImportWorldPrompt`). 2. Load the SOP .md from the bundle

@@ -100,7 +100,7 @@ enum EditorPersistence {
         // path is well under 200 μs (= the user
         // does not perceive any UI hitch on a
         // 3-second debounce tick). The previous
-        // round-2 commit's "Apple HIG 1:1 0-PT
+        // [archived-round] commit's "Apple HIG 1:1 0-PT
         // padding + 13 PT body" work was the real
         // user-perceived perf win (= the editor
         // body now scrolls smoothly; = see

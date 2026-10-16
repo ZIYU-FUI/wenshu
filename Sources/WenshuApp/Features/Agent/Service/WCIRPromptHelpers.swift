@@ -34,7 +34,7 @@ enum WCIRPromptHelpers {
         // make a routing decision; = the cap also keeps the cost low for a
         // 456-file batch).
         let trimmed = String(body.prefix(12_000))
-        // (= boss 2026-10-09 (see OOB.md #2026-10-09) round-16 "三个问题" feedback): 1)
+        // (= boss 2026-10-09 (see OOB.md #2026-10-09) [archived-round] "三个问题" feedback): 1)
         // "小说草稿里的卡片还是显示 ID": = the previous prompt included the `filePath`
         // line (= the source path); = the LLM sometimes echoed the path as the
         // title (= a long string with `/` stripped →
@@ -73,7 +73,7 @@ enum WCIRPromptHelpers {
              - "主角职业入殓师" → "入殓师"
         2) 写一句话的中文摘要
         3) 提取**最多 3 个**真实内容的标签（= 老板
-           2026-10-09 round-20 "限制资料库文档的
+           2026-10-09 [archived-round] "限制资料库文档的
            标签数量，要最有用的，只能有 3 个标
            签" 反馈; = **不要 5-8 个, 只能 1-3
            个**; = 仅从正文内容本身提取: 人物 /
@@ -86,7 +86,7 @@ enum WCIRPromptHelpers {
            = 资料库 sidebar 的 tag facet 用
            户筛选用, 太多 tag = 难以导航)
         4) **destination 已经被用户选好**（= 老板
-           2026-10-09 round-18 "强制让用户分开导
+           2026-10-09 [archived-round] "强制让用户分开导
            入"指令）。你**不需要**判 断 destination
            — 用户在 sheet 里已经选了"导入到资料
            库"或"导入到书"；= 你**只负责**生成
@@ -105,7 +105,7 @@ enum WCIRPromptHelpers {
             return """
             5) **整理正文** (= consolidate 模式也要
                标准化 .ws 格式; = 老板 2026-10-09
-               round-20 "重写后格式不统一" 反馈;
+               [archived-round] "重写后格式不统一" 反馈;
                = 现在的 consolidate 模式只是
                "原样落地" 没有整理, 老板要统一
                格式, 不只是 searchAndRewrite 整
@@ -129,7 +129,7 @@ enum WCIRPromptHelpers {
                  容; = 搜索只是补全原文里不完整的部
                  分; = 整理 = 标准化 .ws 格式).
                - .ws 资料库正文格式 (= 老板 2026-10-09
-                 round-25 "不要参考 MD 的格式，而
+                 [archived-round] "不要参考 MD 的格式，而
                  是盘点文枢的功能，做出文枢
                  的头部格式" directive; = 抛弃
                  老板旧 MD 的 `类型/状态/核心
@@ -148,7 +148,7 @@ enum WCIRPromptHelpers {
                   要 frontmatter 之外的字段名>
                  ```
                  - 头信息**必须**包含 3 行 (= 老板
-                   2026-10-09 round-25 "头部信息
+                   2026-10-09 [archived-round] "头部信息
                    必须包含哪些"):
                    1. `实体类型: <值>` (= 必填; =
                       .ws `Reference.entityType`;
@@ -207,7 +207,7 @@ enum WCIRPromptHelpers {
             5) **重组正文 (A → B)**:
                - 输出**主索引文件**到
                  `rewrittenBody` 字段
-                 (= round-69: world/
+                 (= [archived-round]: world/
                  模板 = 1 主索引 +
                  6 必填子文件 + N 自
                  定义子文件; = 主索引
@@ -266,7 +266,7 @@ enum WCIRPromptHelpers {
                - 输出**6 必填 + N 自
                  定义子文件**到
                  `extraFiles` 数组
-                 (= round-69 老板
+                 (= [archived-round] 老板
                  原话 "6 份必填,
                  其它不在 6 份
                  里的, 可以自
@@ -438,9 +438,9 @@ enum WCIRPromptHelpers {
             // (= \\n) only; = the orchestrator un-escapes after parsing.
             return "\"title\":\"<中文标题>\",\"summary\":\"<一句话中文摘要>\",\"tags\":[\"<tag1>\",\"<tag2>\",...],\"rewrittenBody\":\"<整理后的 .ws 格式正文; 用 \\\\n 表示换行, 不要在字符串值里写真实换行>\""
         case .reorganize:
-            // + round-69 (= boss 2026-10-10 (see OOB.md #2026-10-10) 其它自定义" 需求). The LLM
+            // + [archived-round] (= boss 2026-10-10 (see OOB.md #2026-10-10) 其它自定义" 需求). The LLM
             // returns BOTH `rewrittenBody` (= the main index file body; =
-            // round-69 = metadata + 6-必填子文件路径 引用) AND `extraFiles` (= 6 必填
+            // [archived-round] = metadata + 6-必填子文件路径 引用) AND `extraFiles` (= 6 必填
             // + N 自定义 子文件). The `required` field tells the orchestrator
             // which are the 6 mandatory (= filename = H2 title, verbatim)
             // vs the N custom ones (= LLM-chosen title).
