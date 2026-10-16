@@ -82,78 +82,28 @@ struct ChatInputBarView: View {
         //
         // Structure (top to bottom):
         //   1. attachmentPreviewChip (= conditional; = nothing when no image)
-        //   2. errorBanner           (= conditional; = shown only when
-        //                              `vm.lastError != nil` after a
-        //                              failed send; = per boss
-        //                              2026-10-16 OOB "开可以查看
-        //                              详细的 LOG, 错在哪")
-        //   3. inputRow              (= single horizontal HStack with
+        //   2. inputRow              (= single horizontal HStack with
         //                              paperclip + sparkles +  +
         //                              ⌃ + 🎯 + ✈️)
-        //   4. Divider               (= sidebar-bottom-accessory separator;
+        //   3. Divider               (= sidebar-bottom-accessory separator;
         //                              = matches NewLibraryOutlineView L1776)
-        //   5. tokenCountFooter      (= "0 tokens used" / "N tokens used" /
+        //   4. tokenCountFooter      (= "0 tokens used" / "N tokens used" /
         //                              orange warning when over threshold;
         //                              = visual only; = no action button)
+        //
+        // Per boss 2026-10-16 OOB "只接提示, 模型配置
+        // 有误就行了": the previous errorBanner (= the
+        // "查看详细 LOG" affordance from `0f48a3b6a`)
+        // was removed (= the user can't act on it; = the
+        // user just wants the friendly toast). Failed
+        // sends still show the "模型配置有误" toast
+        // (= via `vm.lastError` consumed by the chat
+        // transcript), but the inline error banner is
+        // gone (= no chrome that the user can't act on).
         VStack(alignment: .leading, spacing: 4) {
             attachmentPreviewChip
-            errorBanner
             inputRow
             tokenCountFooter
-        }
-    }
-
-    // MARK: - Error banner (= 查看详细 LOG affordance)
-
-    /// Per boss 2026-10-16 OOB "开可以查看详细的 LOG, 错
-    /// 在哪": when the last send failed (= `vm.lastError` set),
-    /// show a small banner above the input row with a
-    /// "查看详细 LOG" button. The banner reads the
-    /// `vm.lastRawErrorDescription` (= the technical detail
-    /// like "Error Domain=SSEClient Code=400 HTTP 400") into
-    /// a sheet where the user can copy the text to the
-    /// clipboard (= for bug reports / provider escalation)
-    /// OR open Console.app pre-filtered to the wenshu
-    /// subsystem (= the dev surface for the same error).
-    ///
-    /// Only renders when `vm.lastError != nil` (= no
-    /// visual cost in the success path). The banner
-    /// dismisses itself when the user starts a new send
-    /// (= `vm.clear()` resets both `lastError` and
-    /// `lastRawErrorDescription`; = the new send's
-    /// placeholder replaces the banner).
-    @State private var showingLogSheet = false
-    private var errorBanner: some View {
-        Group {
-            if let errMsg = vm.lastError {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(errMsg)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                    Spacer(minLength: 4)
-                    Button {
-                        showingLogSheet = true
-                    } label: {
-                        Label("查看详细 LOG", systemImage: "doc.text.magnifyingglass")
-                            .font(.caption)
-                    }
-                    .buttonStyle(.link)
-                    .help("查看真实技术错误 (= 开发者日志)，可复制或打开 Console.app")
-                }
-                .padding(.horizontal, DesignTokens.spacingModerate)
-                .padding(.vertical, 6)
-                .background(
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .fill(Color.red.opacity(0.10))
-                )
-                .sheet(isPresented: $showingLogSheet) {
-                    LogDetailSheet(
-                        userMessage: errMsg,
-                        rawErrorDescription: vm.lastRawErrorDescription
-                    )
-                }
-            }
         }
     }
 

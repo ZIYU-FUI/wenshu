@@ -48,15 +48,6 @@ final class ChatViewModel {
     var attachedImagePath: String?
     var isSending: Bool = false
     var lastError: String?
-    // Per boss 2026-10-16 OOB "开可以查看详细的 LOG, 错
-    // 在哪": store the raw underlying error (= e.g.
-    // "Error Domain=SSEClient Code=400 HTTP 400") alongside
-    // the user-facing translation (= the chat row shows
-    // the friendly message; = the "查看详细 LOG" affordance
-    // reads this to surface the technical detail for bug
-    // reports / provider escalation). Set together with
-    // `lastError` (= cleared together on `clearLastError`).
-    var lastRawErrorDescription: String?
     // 'check split, check dead code'.
     // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // retention (= keep cancelRequested):
@@ -657,32 +648,26 @@ final class ChatViewModel {
                 Self.logSwallowedPersistenceFailure(operation: "summarizeIfNeeded", error: error)
             }
         } catch {
-            // route through UserFacingError.from (= single
-            // source of truth for the user-facing error
-            // translation; = passes the active provider
-            // slug, not the model id).
+            // route through the chat-layer single-message
+            // collapse (= per boss 2026-10-16 OOB "只接
+            // 提示, 模型配置有误就行了"): the user
+            // sees the same friendly message
+            // regardless of whether the cause was
+            // 4xx / 5xx / network / key / malformed.
+            // The granular `UserFacingError.from` mapping
+            // (= network, key, rate-limit, etc.) is still
+            // available for non-chat callers (= Settings;
+            // = import flow) but the chat layer collapses
+            // to one message (= `modelConfigInvalid`).
             let activeProvider = WenshuAppDelegateLLMHelpers.activeConnectorSlug()
-            // also log the raw underlying error to the
-            // unified os_log so dev can grep for it
-            // (= the chat-layer catch ate the message).
+            // The raw underlying description is preserved
+            // for the unified os_log (= dev surface;
+            // = the cause is NOT rendered to the user).
             let rawDesc = String(describing: error)
             Logger(subsystem: "com.wenshu.app", category: "chat.persist")
                 .error("[wenshu.chat.persist] operation=send_chat error=\(rawDesc, privacy: .public) provider=\(activeProvider, privacy: .public)")
-            let userErr = UserFacingError.from(error, context: activeProvider)
-            let errMsg = userErr.errorDescription ?? "未知错误。"
-            // Per boss 2026-10-16 OOB "开可以查看详细
-            // 的 LOG, 错在哪": stash the raw error on
-            // the view model (= the user-facing chat
-            // row shows the translated message; = the
-            // "查看详细 LOG" affordance reads
-            // `lastRawErrorDescription` to surface the
-            // technical detail (= e.g. "Error Domain=
-            // SSEClient Code=400 HTTP 400") to the user
-            // who needs it for bug reports / provider
-            // escalation). The translation is kept
-            // separate from the raw so the user can
-            // tell the two apart.
-            lastRawErrorDescription = rawDesc
+            let userErr = UserFacingError.modelConfigInvalid(cause: rawDesc)
+            let errMsg = userErr.errorDescription ?? "模型配置有误"
             lastError = errMsg
             if let idx = messages.firstIndex(where: { $0.id == placeholderId }) {
                 messages[idx] = ChatMessage(id: placeholderId, role: .system, source: .system, content: errMsg)
@@ -714,7 +699,6 @@ final class ChatViewModel {
     func clear() {
         messages.removeAll()
         lastError = nil
-        lastRawErrorDescription = nil
     }
 
     /// valueForSessionId: used by ChatView .task to load history.

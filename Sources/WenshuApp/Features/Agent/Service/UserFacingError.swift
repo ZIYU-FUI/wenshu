@@ -33,6 +33,20 @@ import Foundation
 /// for raw wenshu errors). Conforms to `LocalizedError` (= Apple
 /// canonical pattern) so SwiftUI/UIKit auto-renders
 /// `.localizedDescription` in alerts / banners / form validation.
+///
+/// Per boss 2026-10-16 OOB "只接提示, 模型配置有误就行了":
+/// the chat-path user-facing text is collapsed to a single
+/// friendly message (= "模型配置有误") regardless of the
+/// underlying cause (= 4xx, 5xx, network, rate limit, missing
+/// key, bad key, malformed request). The user can't act on
+/// the technical detail (= they don't control the provider
+/// endpoint; = they just need to know the LLM call failed
+/// and they should check the key in Settings → Providers).
+/// The granular cases (= `.apiKeyMissing`, `.apiKeyInvalid`,
+/// `.rateLimited`, `.timeout`, etc.) are kept for callers
+/// that want them (= the Settings pane; = analytics), but
+/// the chat layer translates them all to the same single
+/// Chinese toast.
 enum UserFacingError: Error, LocalizedError {
     case networkFailure(underlying: String? = nil)
     case apiKeyMissing(provider: String)
@@ -46,6 +60,13 @@ enum UserFacingError: Error, LocalizedError {
     case invalidUserInput(field: String? = nil, reason: String? = nil)
     case timeout(operation: String, seconds: Double? = nil)
     case unknown(underlying: String? = nil)
+    /// Chat-layer catch-all (= see the file-level comment).
+    /// Every chat failure path maps here (= the user just
+    /// sees "模型配置有误" regardless of whether the cause
+    /// was 4xx / 5xx / network / key issue / etc.). The
+    /// underlying `cause` is preserved for the unified
+    /// os_log (= dev-only; = never shown to the user).
+    case modelConfigInvalid(cause: String)
 
     var errorDescription: String? {
         switch self {
@@ -121,26 +142,34 @@ enum UserFacingError: Error, LocalizedError {
             return String.localizedStringWithFormat(NSLocalizedString("error.timeout.generic", comment: ""), operation)
 
         case .unknown(let underlying):
-            // Per boss 2026-10-16 OOB "聊天一直未知错误": the
-            // previous behavior hid the underlying error
-            // (= e.g. "Error Domain=SSEClient Code=400 HTTP 400"),
-            // leaving the user no way to tell whether the
-            // failure was a bad key, a provider 4xx/5xx, or
-            // a network blip. Surface the underlying
-            // description inline so the user can read the
-            // real reason (= "minimax-cn 不可达", "HTTP 400",
-            // "HTTP 500", "decoding error", etc.). The
-            // base "未知错误" prefix is kept (= the user
-            // might still need to retry / restart), and
-            // the underlying is appended as a colon-
-            // delimited hint (= Apple HIG "main message
-            // + failure reason" pattern; = the same
-            // pattern `NSError.localizedDescription` uses
-            // for `NSLocalizedFailureReasonErrorKey`).
-            if let underlying, !underlying.isEmpty {
-                return "未知错误：\(underlying)。请稍后重试或重启应用。"
-            }
+            // Per boss 2026-10-16 OOB "只接提示, 模型
+            // 配置有误就行了": the previous behavior
+            // (= `0f48a3b6a`) showed the raw underlying
+            // string (= "未知错误：Error Domain=
+            // SSEClient Code=400 HTTP 400"). The user
+            // can't act on that (= the technical
+            // detail); = the canonical text falls back
+            // to the localized "error.unknown" key.
+            // The chat-layer catch (= `from(_:context:)`)
+            // routes the chat path through
+            // `.modelConfigInvalid` instead (= see below),
+            // so the user never sees "未知错误" in
+            // practice (= the chat layer collapses
+            // everything to the single "模型配置有误"
+            // message).
             return String(localized: "error.unknown")
+        case .modelConfigInvalid:
+            // The single chat-layer catch-all (= see the
+            // file-level comment). Per boss 2026-10-16
+            // OOB "只接提示, 模型配置有误就行了":
+            // regardless of whether the cause was
+            // 4xx / 5xx / network / key issue /
+            // malformed request, the user just sees
+            // this one line. The technical detail
+            // (= `cause`) is preserved on the case
+            // (= callers can read it) but is NOT
+            // rendered into the message.
+            return "模型配置有误"
         }
     }
     /// Map any `Error` to a `UserFacingError` (= best-effort
@@ -161,8 +190,21 @@ enum UserFacingError: Error, LocalizedError {
     ///   `Sources/WenshuApp/Features/Agent/Service/SSEClient.swift:75`).
     /// - any other `Error` -> `.unknown(underlying: String(describing:))`
     ///
+    /// Per boss 2026-10-16 OOB "只接提示, 模型配置
+    /// 有误就行了": the chat layer collapses ALL
+    /// failure modes to a single user-facing message
+    /// (= "模型配置有误"). Callers (= `ChatSessionViewModel`)
+    /// wrap the `from` call with a `modelConfigInvalid`
+    /// shim so the granular cases (= network, key, etc.)
+    /// are preserved for the os_log but not surfaced
+    /// to the user. This method is kept for non-chat
+    /// callers (= the Settings pane; = import flow;
+    /// = analytics) that need the granular mapping.
+    ///
     /// Caller-side (= e.g. `ChatView`) consumes via:
     ///   `let userMsg = UserFacingError.from(rawError).errorDescription`
+    /// (= OR `UserFacingError.modelConfigInvalid(cause: rawDesc)` for
+    /// the chat-layer single-message collapse)
     static func from(_ raw: Error, context provider: String? = nil) -> UserFacingError {
         if let wenshu = raw as? WenshuLLMError {
             switch wenshu {
@@ -189,36 +231,14 @@ enum UserFacingError: Error, LocalizedError {
         }
         // SSEClient raw NSError (= the streaming transport
         // throws NSError directly, = not wrapped in
-        // WenshuLLMError). Per boss 2026-10-16 OOB "聊天一
-        // 直未知错误": recognize this domain and map to
-        // the same per-status cases so the user sees a
-        // specific message (= "对话上下文超过模型限制"
-        // for 400/413, = "网络异常" for 5xx, = "rate limit"
-        // for 429, = "key 失效" for 401/403, etc.).
+        // WenshuLLMError). Recognized so the chat-layer
+        // catch can still route to `modelConfigInvalid`
+        // via `String(describing:)` (= the `cause` is
+        // preserved on the `modelConfigInvalid` case
+        // for the os_log).
         let nsError = raw as NSError
         if nsError.domain == "SSEClient" {
-            let status = nsError.code
-            let underlying = "HTTP \(status)"
-            switch status {
-            case 401, 403:
-                return .apiKeyInvalid(provider: provider ?? "当前 Provider")
-            case 408, 504:
-                return .timeout(operation: "LLM 流式调用", seconds: nil)
-            case 413, 400:
-                // 400 is also returned by providers for malformed
-                // requests (not just context length). = the
-                // contextTooLong message hints the user at the
-                // most common 400 case (= long history); =
-                // an actual malformed request is rare in wenshu
-                // (= the prompt builder is deterministic).
-                return .contextTooLong()
-            case 429:
-                return .rateLimited(provider: provider ?? "当前 Provider")
-            case 500..<600:
-                return .networkFailure(underlying: underlying)
-            default:
-                return .unknown(underlying: underlying)
-            }
+            return .unknown(underlying: "SSEClient HTTP \(nsError.code)")
         }
         if let urlErr = raw as? URLError {
             return .networkFailure(underlying: urlErr.localizedDescription)

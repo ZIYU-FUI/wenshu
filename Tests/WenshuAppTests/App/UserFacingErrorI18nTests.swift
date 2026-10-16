@@ -150,6 +150,7 @@ struct UserFacingErrorI18nTests {
             .timeout(operation: "search", seconds: 5.0),
             .timeout(operation: "search", seconds: nil),
             .unknown(underlying: nil),
+            .modelConfigInvalid(cause: "SSEClient HTTP 400"),
         ]
         for c in cases {
             let desc = c.errorDescription

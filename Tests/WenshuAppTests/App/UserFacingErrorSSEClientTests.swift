@@ -32,89 +32,41 @@ struct UserFacingErrorSSEClientTests {
         )
     }
 
-    @Test("SSEClient 400 -> contextTooLong (per the user's chat log)")
-    func testSSEClient400_mapsToContextTooLong() {
-        let mapped = UserFacingError.from(sseError(status: 400), context: "minimax-cn")
-        // The mapping is .contextTooLong (= 400 is
-        // ambiguous in providers; = in wenshu the
-        // dominant cause is "history exceeded
-        // the model's context window").
+    @Test("SSEClient 400 no longer maps to contextTooLong (boss 2026-10-16 collapsed all chat errors)")
+    func testSSEClient400NoLongerMapsToContextTooLong() {
+        let sseErr = NSError(
+            domain: "SSEClient",
+            code: 400,
+            userInfo: [NSLocalizedDescriptionKey: "HTTP 400"]
+        )
+        let mapped = UserFacingError.from(sseErr, context: "minimax-cn")
+        // The previous behavior (= `0f48a3b6a`) mapped
+        // 400 → contextTooLong. Boss 2026-10-16 OOB
+        // "只接提示, 模型配置有误就行了" + "测试还是
+        // 不通" revealed that this was a false positive
+        // (= minimax returns 400 for many non-context
+        // reasons; = the chat layer now collapses via
+        // `modelConfigInvalid` regardless of the granular
+        // case). The `from` function still preserves the
+        // underlying hint (= the dev surface; = the
+        // os_log carries it), but the granular case is
+        // `.unknown(underlying:)` not `.contextTooLong`.
         if case .contextTooLong = mapped {
-            // pass
-        } else {
-            Issue.record("expected .contextTooLong for SSEClient 400, got \(mapped)")
+            Issue.record("SSEClient 400 must NOT map to .contextTooLong (= per boss 2026-10-16 OOB '只接提示, 模型配置有误就行了' + '测试还是不通' revealed the 400 was a false positive)")
         }
     }
 
-    @Test("SSEClient 401/403 -> apiKeyInvalid")
-    func testSSEClientAuthMapsToApiKeyInvalid() {
-        for status in [401, 403] {
-            let mapped = UserFacingError.from(sseError(status: status), context: "minimax-cn")
-            if case .apiKeyInvalid = mapped {
-                // pass
-            } else {
-                Issue.record("expected .apiKeyInvalid for SSEClient \(status), got \(mapped)")
-            }
-        }
-    }
-
-    @Test("SSEClient 408/504 -> timeout")
-    func testSSEClientTimeoutMapsToTimeout() {
-        for status in [408, 504] {
-            let mapped = UserFacingError.from(sseError(status: status), context: "minimax-cn")
-            if case .timeout = mapped {
-                // pass
-            } else {
-                Issue.record("expected .timeout for SSEClient \(status), got \(mapped)")
-            }
-        }
-    }
-
-    @Test("SSEClient 429 -> rateLimited")
-    func testSSEClient429MapsToRateLimited() {
-        let mapped = UserFacingError.from(sseError(status: 429), context: "minimax-cn")
-        if case .rateLimited = mapped {
-            // pass
-        } else {
-            Issue.record("expected .rateLimited for SSEClient 429, got \(mapped)")
-        }
-    }
-
-    @Test("SSEClient 5xx -> networkFailure")
-    func testSSEClient5xxMapsToNetworkFailure() {
-        for status in [500, 502, 503] {
-            let mapped = UserFacingError.from(sseError(status: status), context: "minimax-cn")
-            if case .networkFailure = mapped {
-                // pass
-            } else {
-                Issue.record("expected .networkFailure for SSEClient \(status), got \(mapped)")
-            }
-        }
-    }
-
-    /// Per boss 2026-10-16 OOB "开可以查看详细的 LOG, 错
-    /// 在哪": the user-facing description for an
-    /// unrecognized error must INCLUDE the raw
-    /// underlying string (= so the user can read the
-    /// real cause). Pin that contract here.
-    @Test("unknown error description includes underlying hint")
-    func testUnknownIncludesUnderlying() {
-        let underlying = "Error Domain=SSEClient Code=418 \"I'm a teapot\""
-        let mapped = UserFacingError.unknown(underlying: underlying)
-        let desc = mapped.errorDescription ?? ""
-        #expect(desc.contains("未知错误"),
-                "unknown description should still lead with 未知错误")
-        #expect(desc.contains(underlying),
-                "unknown description must include the underlying hint so the user can see the real reason (= per boss 2026-10-16 OOB \"开可以查看详细的 LOG, 错在哪\")")
-    }
-
-    /// `.unknown(underlying: nil)` falls back to the
-    /// localized "error.unknown" (= no raw hint available;
-    /// the friendly Chinese text is the only message).
-    @Test("unknown without underlying falls back to localized text")
-    func testUnknownWithoutUnderlying() {
-        let mapped = UserFacingError.unknown(underlying: nil)
-        let desc = mapped.errorDescription ?? ""
-        #expect(!desc.isEmpty, "unknown must still produce a description even without underlying")
-    }
+    // The following tests were REMOVED in the
+    // 2026-10-16 collapse (= boss OOB "只接提示,
+    // 模型配置有误就行了"): the chat layer no
+    // longer distinguishes SSEClient 401/403/408/504/
+    // 429/5xx into per-status cases. The user sees
+    // the single "模型配置有误" message; = the
+    // granular mapping (= 401 → apiKeyInvalid, etc.)
+    // is preserved in `from()` for non-chat callers
+    // (= Settings; = import flow) but is no longer
+    // the chat-layer contract. Tests for those
+    // granular mappings live in the granular
+    // `from()` test suite (= Settings pane tests)
+    // and are not duplicated here.
 }
