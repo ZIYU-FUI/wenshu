@@ -532,8 +532,20 @@ struct SettingView: View {
     private func currentDraftPreview(for provider: Provider) -> String {
         let hasKey = providersWithKeys.contains(provider.slug)
         guard hasKey else { return "" }
-        guard let key = ProviderKeychain.loadKeySync(for: provider), !key.isEmpty else { return "" }
-        let prefix = String(key.prefix(8))
+        // AUDIT.md §2.2 partial (2026-10-16): route through
+        // WenshuAgent.shared (= the public facade; =
+        // `loadKeyPreview(for:)` is the sync forwarder to
+        // `ProviderKeychain.loadKeySync(for:)`; = the call
+        // site is `var` (= non-async) and cannot `await`).
+        // The same `var` cannot `await providersWithKeys()`;
+        // = the `providersWithKeys` set above (= the
+        // view's @State) is the local cache that the
+        // WenshuAgent.shared hasProvidersWithKeysCached
+        // // path also serves (= 2 caches, both refreshed
+        // // on keychain change notification).
+        let preview = WenshuAgent.shared.loadKeyPreview(for: provider)
+        guard !preview.isEmpty else { return "" }
+        let prefix = String(preview.prefix(8))
         return prefix + "********"
     }
 
@@ -578,14 +590,14 @@ struct SettingView: View {
     }
 
     private func keyPrefix12(for provider: Provider) -> String {
-        SettingsOps.keyPrefix12(provider: provider, keychain: ProviderKeychain.backend)
+        SettingsOps.keyPrefix12(provider: provider, keychain: WenshuAgent.shared.keychainBackend())
     }
 
     private func saveApiKey(for provider: Provider) {
         let result = SettingsOps.saveApiKey(
             provider: provider,
             draft: apiDraftKey,
-            keychain: ProviderKeychain.backend
+            keychain: WenshuAgent.shared.keychainBackend()
         )
         if result.shouldClearDraft { apiDraftKey = "" }
         if result.shouldCollapse { apiExpandedProviders.remove(provider.slug) }
@@ -684,7 +696,7 @@ struct SettingView: View {
     // MARK: - SettingsOps plumbing (= unchanged)
 
     private func refreshProviderStatus() {
-        providersWithKeys = SettingsOps.refreshProviderStatus(keychain: ProviderKeychain.backend)
+        providersWithKeys = SettingsOps.refreshProviderStatus(keychain: WenshuAgent.shared.keychainBackend())
     }
 
     private func reloadModels() async {
@@ -693,7 +705,7 @@ struct SettingView: View {
         defer { isLoadingModels = false }
         liveModelIds = await SettingsOps.reloadModels(
             provider: currentProvider,
-            keychain: ProviderKeychain.backend,
+            keychain: WenshuAgent.shared.keychainBackend(),
             fetcher: ProviderFetcherAdapter()
         )
     }

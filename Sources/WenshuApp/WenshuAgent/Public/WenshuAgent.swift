@@ -135,6 +135,41 @@ actor WenshuAgent {
         WenshuAgent.cachedSnapshot.withLock { $0 = cachedProvidersWithKeys }
     }
 
+    // MARK: - Sync facade (= the SettingView boundary)
+
+    /// Sync read of the active keychain backend (=
+    /// `MirroredKeychainStore` in production; = an
+    /// `InMemoryKeychainStore` in tests). The SettingView
+    /// uses this to drive its `keychainRevision` UI
+    /// indicator and to format key previews; = the call
+    /// is `var` (= non-async) so it cannot `await` the
+    /// async version (= the actor's `nonisolated`
+    /// `backend` property on `ProviderKeychain` is the
+    /// canonical sync accessor; = this facade is a
+    /// 1-line forwarder). Returns the typed protocol
+    /// so SettingView can pass it to
+    /// `SettingsOps.refreshProviderStatus(keychain:)`.
+    nonisolated func keychainBackend() -> any ProviderKeychainStoring {
+        ProviderKeychain.backend
+    }
+
+    /// Sync read of the formatted key preview (=
+    /// the first 8 chars + ellipsis) for a provider.
+    /// Used by the Settings → Providers UI to show
+    /// the user a non-secret preview of their key.
+    /// = `loadKeySync` is the canonical sync accessor
+    /// on `ProviderKeychain`; = this facade is a
+    /// 1-line forwarder (= AUDIT §2.2 partial to
+    /// fully done; = the SettingView caller
+    /// migrates in the same commit).
+    nonisolated func loadKeyPreview(for provider: Provider) -> String {
+        guard let key = ProviderKeychain.loadKeySync(for: provider), !key.isEmpty else {
+            return ""
+        }
+        let prefix = String(key.prefix(8))
+        return "\(prefix)…"
+    }
+
     // MARK: - Available models
 
     /// Returns the available model slugs for the given provider.
