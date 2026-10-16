@@ -33,4 +33,56 @@ actor OpenRouterConnector: LLMConnector {
     func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
         try await delegate.send(messages: messages, options: options)
     }
+
+    // MARK: - Native streaming (P0-AGENT-STREAMING, boss 2026-10-16)
+    //
+    // OpenRouter is an OpenAI-compat multi-provider router. The wire
+    // format is byte-compatible with the OpenAI chat-completions
+    // protocol (= `Authorization: Bearer <key>` + the same SSE
+    // chunk shape). The native streaming SSE path lives in
+    // `OpenAIStreamingWireupFactory.streamingStream` (= reused
+    // wholesale; = the upstream emits OpenAI-shaped chunk events
+    // that `OpenAIChunkToLLMBlockConverter` maps to LLMBlock).
+    //
+    // `nonisolated` (T9 protocol conformance): the underlying
+    // `OpenAIStreamingWireupFactory.streamingStream` is `static`
+    // and accepts the credentials by value (= Sendable + immutable
+    // across actor contexts).
+    nonisolated func stream(
+        messages: [LLMMessage],
+        options: LLMCallOptions
+    ) -> AsyncStream<LLMBlock> {
+        let credentials = ConnectorCredentials.resolve(for: .openrouter)
+
+        // Empty key -> emit synthetic error block (= no silent
+        // stream end; = matches OpenAIConnector + DeepSeek pattern).
+        if credentials.apiKey.isEmpty {
+            return OpenAIChunkToLLMBlockConverter.errorStream(
+                "[stream error] missing API key for openrouter",
+                provider: connectorID
+            )
+        }
+
+        // OpenRouter accepts `Authorization: Bearer <key>` (= the
+        // OpenAI convention).
+        let bearer = credentials.apiKey
+
+        let rawStream = OpenAIStreamingWireupFactory.streamingStream(
+            credentials: credentials,
+            model: options.model,
+            maxTokens: options.maxTokens,
+            systemPrompt: options.systemPrompt,
+            messages: messages,
+            bearerToken: bearer,
+            tools: options.tools
+        )
+        // T12b: stateful converter (= aggregates tool_calls across
+        // chunks). = the agent's ReAct loop sees coherent .toolUse
+        // blocks.
+        let accumulator = OpenAIChunkToLLMBlockConverter.ToolUseAccumulator()
+        return OpenAIChunkToLLMBlockConverter.convert(
+            stream: rawStream,
+            accumulator: accumulator
+        )
+    }
 }
