@@ -358,7 +358,7 @@ Sources/WenshuApp/WenshuAgent/
 | 编号 | 问题 | 修复 | 状态 |
 |---|---|---|---|
 | 2.1 | 2 条 chat 调用路径 (conductor + verifier fallback) | `140b76deb` + `e9ae2add0` | ✓ both deleted |
-| 2.2 | 9 处 UI/App import 越界UI 直接 import agent 内部) | partial`WenshuAgent.shared` facade; = future ticket: migrate the 14 callers) | partial |
+| 2.2 | 9 处 UI/App import 越界UI 直接 import agent 内部) | `515422dc6` + `fd5baaee6`WenshuAgent.shared facade; = 2 of 14 callers migrated: `ChatSessionViewModel.providersWithKeys` + `ImportServiceLLMDispatch.buildProviderQueue`; = remaining 12 callers need structural changes (init params, sync accessors) = follow-up tickets) | partial |
 | 2.3 | 没有 LOG 抽象 | `45bebf3cc`WALogger + 5 commits wire it) | ✓ done |
 | 2.4 | 8 个 connector 抽象不统一default stream() fallback) | `4a9515bd5`default deleted; = compile-time enforced) | ✓ done |
 | 2.5 | Provider 静态 enum不支持 plugin 动态加) | `45bebf3cc``WABaseProvider` + `WAProviderRegistry`) | ✓ done |
