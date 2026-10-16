@@ -414,15 +414,15 @@ struct ImportSheet: View {
     // / Kick off the import. Builds the ImportTarget from the picked source +
     // … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / the tree without manually re-launching.
-    func startImport() {
-        guard let source = sourceDirectory else { return }
-        // (= boss 2026-10-09 round-18 "强制让用户分开导 入" directive). The `canStart` gate
-        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
-        // .referenceLibrary).
-        let target: ImportTarget
+    /// Build the `ImportTarget` for the current import destination (= the
+    /// target the orchestrator uses to wire up file routing). Centralized
+    /// helper (= extracted in A118 from the 2 inline duplicates in
+    /// startImport + retryFailedTitleOnly) so the routing config stays
+    /// in 1 place.
+    func buildImportTarget() -> ImportTarget? {
         switch importDestination {
         case .referenceLibrary:
-            target = ImportTarget(
+            return ImportTarget(
                 destination: .referenceLibrary,
                 wsRoot: libraryRoot(),
                 bookId: nil,
@@ -431,18 +431,14 @@ struct ImportSheet: View {
                     referenceLibraryRoot: libraryRoot().appendingPathComponent("reference-library")
                 ),
                 rewriteMode: rewriteMode,
-            maxParallel: maxParallel
-
+                maxParallel: maxParallel
             )
         case .book:
             guard let bookID = selectedBookID,
                   bookStore.books.contains(where: { $0.id == bookID }) else {
-                return
+                return nil
             }
-            // the user-picked 2nd-level folder is passed through to `ImportTarget`; = the
-            // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
-            // (overriding the LLM's pick).
-            target = ImportTarget(
+            return ImportTarget(
                 destination: .book,
                 wsRoot: libraryRoot(),
                 bookId: bookID,
@@ -451,10 +447,18 @@ struct ImportSheet: View {
                     referenceLibraryRoot: libraryRoot().appendingPathComponent("reference-library")
                 ),
                 rewriteMode: rewriteMode,
-            maxParallel: maxParallel,
-            bookFolder: selectedBookFolder
+                maxParallel: maxParallel,
+                bookFolder: selectedBookFolder
             )
         }
+    }
+
+    func startImport() {
+        guard let source = sourceDirectory else { return }
+        // (= boss 2026-10-09 round-18 "强制让用户分开导 入" directive). The `canStart` gate
+        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+        // .referenceLibrary).
+        guard let target = buildImportTarget() else { return }
         isImporting = true
         completedCount = 0
         Task {
@@ -512,39 +516,7 @@ struct ImportSheet: View {
         // The retry path doesn't need the source directory URL (= each task already
         // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // the user pinned destination in the sheet is the same for retry).
-        let target: ImportTarget
-        switch importDestination {
-        case .referenceLibrary:
-            target = ImportTarget(
-                destination: .referenceLibrary,
-                wsRoot: libraryRoot(),
-                bookId: nil,
-                shelfId: nil,
-                referenceStore: FileSystemReferenceStore(
-                    referenceLibraryRoot: libraryRoot().appendingPathComponent("reference-library")
-                ),
-                rewriteMode: rewriteMode,
-            maxParallel: maxParallel
-
-            )
-        case .book:
-            guard let bookID = selectedBookID,
-                  bookStore.books.contains(where: { $0.id == bookID }) else {
-                return
-            }
-            target = ImportTarget(
-                destination: .book,
-                wsRoot: libraryRoot(),
-                bookId: bookID,
-                shelfId: shelfIdForBook(bookID),
-                referenceStore: FileSystemReferenceStore(
-                    referenceLibraryRoot: libraryRoot().appendingPathComponent("reference-library")
-                ),
-                rewriteMode: rewriteMode,
-            maxParallel: maxParallel,
-            bookFolder: selectedBookFolder
-            )
-            }
+        guard let target = buildImportTarget() else { return }
             isRetryingFailed = true
             Task {
             let onProgress: @Sendable ([ImportTask]) async -> Void = { snapshot in
