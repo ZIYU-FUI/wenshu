@@ -24,7 +24,7 @@ struct AppTests {
     private var sourcePath: String {
         var url = URL(fileURLWithPath: #filePath)
         for _ in 0..<3 { url.deleteLastPathComponent() }
-        url.appendPathComponent("Sources/WenshuApp/App.swift")
+        url.appendPathComponent("Sources/WenshuApp/App/WenshuAppMain.swift")
         return url.path
     }
 
@@ -32,7 +32,7 @@ struct AppTests {
     func testExists() throws {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("App"),
-                "App must be declared in App.swift")
+                "App must be declared in WenshuAppMain.swift")
     }
 
     @Test("App conforms to expected protocol (= source-level)")
@@ -70,7 +70,7 @@ struct AppTests {
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         let lineCount = source.components(separatedBy: "\n").count
         #expect(lineCount > 100,
-                "App.swift should be > 100 NLOC; found \(lineCount)")
+                "WenshuAppMain.swift should be > 100 NLOC; found \(lineCount)")
     }
 
     @Test("App no Lucide references in code")

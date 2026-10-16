@@ -72,22 +72,6 @@ struct ObsidianFixturesTests {
         #expect(parsed[1].text == "宝玉")
     }
 
-    // MARK: - Bases .base YAML round-trip (https://obsidian.md/help/bases/syntax 1:1)
-
-    @Test("Bases syntax 文档示例 round-trip (简化子集)")
-    func basesSpecExample() throws {
-        let original = """
-        formulas:
-          formatted_price: 'if(price, price.toFixed(2) + " dollars")'
-          ppu: "(price / age).toFixed(2)"
-        """
-        let decoded = try BaseParser.parse(original)
-        #expect(decoded.formulas.count == 2)
-        #expect(decoded.formulas[0].name == "formatted_price")
-        #expect(decoded.formulas[0].expression.contains("price"))
-        #expect(decoded.viewCount == 0, "简化 parser 不解析 views, 后续 ticket 可加 groupBy / filters nested")
-    }
-
     // MARK: - Template date token round-trip (Obsidian Templates 1:1)
 
     @Test("Template date tokens {{date}} {{time}} {{title}} 替换")

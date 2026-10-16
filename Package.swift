@@ -142,7 +142,7 @@ let package = Package(
                 // + ComponentIndex.md) consumed by humans + LLMs, not by
                 // the Swift compiler. Excluded from the resource bundle
                 // (= no #fileLiteral resource access at runtime).
-                "Core/Agent/Conversation/AgentLifecycleTrackerDesign.md",
+                "Features/Agent/Store/AgentLifecycleTrackerDesign.md",
                 "UI/ComponentIndex.md",
                 // Per-region view wrapper design docs (= humans + LLMs,
                 // not Swift compiler; = no runtime Bundle access).
