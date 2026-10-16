@@ -35,7 +35,6 @@ struct ChatTextPartView: View {
     let text: String
     let isOutgoing: Bool
     let isStreaming: Bool
-    @State private var isCursorOn: Bool = true
 
     init(text: String, isOutgoing: Bool, isStreaming: Bool = false) {
         self.text = text

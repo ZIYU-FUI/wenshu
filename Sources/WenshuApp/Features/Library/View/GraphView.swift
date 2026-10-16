@@ -11,7 +11,6 @@ import SwiftUI
 /// GraphView: SwiftUI View, show placeholder
 /// AppRootScene, standalone wait macOS
 struct GraphView: View {
-    @State private var isLoading: Bool = false
     @State private var error: String? = nil
 
     init() {}
