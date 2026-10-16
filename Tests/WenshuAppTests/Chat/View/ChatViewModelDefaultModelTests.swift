@@ -88,38 +88,6 @@ struct ChatViewModelDefaultModelTests {
 
         
 
-    // MARK: - WenshuLLMError LocalizedError (boss commit aa7caca7f)
-
-    @Test("WenshuLLMError conforms to LocalizedError (boss v0.24 fix)")
-    func testWenshuLLMErrorLocalizedError() {
-        // Boss fix: WenshuLLMError needs LocalizedError conformance so error
-        // description shows in ChatView UI (not generic Swift error message).
-        let e = WenshuLLMError.missingAPIKey
-        #expect(e is LocalizedError, "WenshuLLMError must conform to LocalizedError")
-        let desc = e.errorDescription
-        #expect(desc != nil, "errorDescription must be non-nil for missingAPIKey")
-        #expect(desc!.contains("API key") || desc!.contains("key") || desc!.contains("Settings") || desc!.contains("Provider"),
-               "missingAPIKey description should mention key/Settings/Provider, got: \(desc ?? "nil")")
-    }
-
-    @Test("WenshuLLMError.invalidBaseURL has human description")
-    func testWenshuLLMErrorInvalidBaseURL() {
-        let e = WenshuLLMError.invalidBaseURL(url: "https://example.com")
-        let desc = e.errorDescription
-        #expect(desc != nil, "errorDescription must be non-nil")
-        #expect(desc!.contains("https://example.com") || desc!.contains("base URL") || desc!.contains("Provider"),
-               "invalidBaseURL description should mention URL or Provider, got: \(desc ?? "nil")")
-    }
-
-    @Test("WenshuLLMError.httpError includes status code")
-    func testWenshuLLMErrorHTTP() {
-        let e = WenshuLLMError.httpError(statusCode: 401, body: "Unauthorized")
-        let desc = e.errorDescription
-        #expect(desc != nil)
-        #expect(desc!.contains("401") || desc!.contains("HTTP"),
-               "httpError description should mention status code 401, got: \(desc ?? "nil")")
-    }
-
     // MARK: - Keychain -34018 (boss commit 4f4a22f17)
 
     @Test("Keychain -34018 handling: graceful error (not generic Swift error)")

@@ -247,7 +247,7 @@ actor WenshuVerifier {
         }
         // 2. Look up provider.
         guard let provider = Provider.by(slug: effectiveSlug) else {
-            throw WenshuLLMError.invalidBaseURL(url: "unknown provider slug: \(effectiveSlug)")
+            throw LLMConnectorError.unsupportedProvider(slug: effectiveSlug)
         }
         // 3. Load key from Keychain for that provider.
         // use the shared ProviderKeychain backend (= respects
@@ -255,7 +255,7 @@ actor WenshuVerifier {
         // a fresh AppleKeychainStore (which would always hit the real
         // keychain regardless of the debug override).
         guard let key = ProviderKeychain.loadKeySync(for: provider), !key.isEmpty else {
-            throw WenshuLLMError.missingAPIKey  // existing error type
+            throw LLMConnectorError.missingAPIKey(provider: effectiveSlug)
         }
         return ResolvedCredentials(
             apiKey: key,
@@ -324,10 +324,10 @@ actor WenshuVerifier {
         // take effect immediately on the next LLM call.
         let creds = try resolveCredentials()
         guard !creds.apiKey.isEmpty else {
-            throw WenshuLLMError.missingAPIKey
+            throw LLMConnectorError.missingAPIKey(provider: creds.providerSlug)
         }
         guard let url = URL(string: "\(creds.baseURL)/v1/messages") else {
-            throw WenshuLLMError.invalidBaseURL(url: creds.baseURL)
+            throw LLMConnectorError.unsupportedProvider(slug: creds.baseURL)
         }
         var urlRequest = URLRequest(url: url)
         urlRequest.httpMethod = "POST"
@@ -362,7 +362,7 @@ actor WenshuVerifier {
         let bodyPreview = String(data: data.prefix(500), encoding: .utf8) ?? "<non-utf8 body>"
         wenshuLogger.info("verifier response status=\(statusCode) body=\(bodyPreview, privacy: .private)")
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
-            throw WenshuLLMError.httpError(statusCode: statusCode, body: bodyPreview)
+            throw LLMConnectorError.transport(provider: creds.providerSlug, statusCode: statusCode, body: bodyPreview)
         }
         let decoder = JSONDecoder()
         do {
@@ -444,22 +444,4 @@ actor WenshuVerifier {
         )
     }
 
-}
-enum WenshuLLMError: Error, LocalizedError {
-    case missingAPIKey
-    case invalidBaseURL(url: String)
-    case httpError(statusCode: Int, body: String)
-
-    var errorDescription: String? {
-        switch self {
-        case .missingAPIKey:
-            return "API key 未配置. 请在 Settings → Provider 配置 API key."
-        case .invalidBaseURL(let url):
-            return "Provider base URL 无效: \(url). 请在 Settings 检查 provider 选择."
-        case .httpError(let statusCode, let body):
-            // Show status code + brief body (truncated for UI).
-            let brief = body.prefix(120)
-            return "LLM HTTP \(statusCode): \(brief)"
-        }
-    }
 }

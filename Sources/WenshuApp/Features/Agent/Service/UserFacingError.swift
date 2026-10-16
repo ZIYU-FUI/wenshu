@@ -177,15 +177,15 @@ enum UserFacingError: Error, LocalizedError {
     ///
     /// Recognized input types (= each maps to the most-specific case):
     /// - `URLError` / `NWError` -> `.networkFailure`
-    /// - `WenshuLLMError.missingAPIKey` -> `.apiKeyMissing`
-    /// - `WenshuLLMError.invalidBaseURL` -> `.apiKeyInvalid`
-    /// - `WenshuLLMError.httpError(429, _)` -> `.rateLimited`
-    /// - `WenshuLLMError.httpError(401|403, _)` -> `.apiKeyInvalid`
-    /// - `WenshuLLMError.httpError(408|504, _)` -> `.timeout`
-    /// - `WenshuLLMError.httpError(413|400, _)` -> `.contextTooLong`
-    /// - `WenshuLLMError.httpError(5xx, _)` -> `.networkFailure`
+    /// - `LLMConnectorError.missingAPIKey` -> `.apiKeyMissing`
+    /// - `LLMConnectorError.transport(401|403, _)` -> `.apiKeyInvalid`
+    /// - `LLMConnectorError.transport(429, _)` -> `.rateLimited`
+    /// - `LLMConnectorError.transport(408|504, _)` -> `.timeout`
+    /// - `LLMConnectorError.transport(413|400, _)` -> `.contextTooLong`
+    /// - `LLMConnectorError.transport(5xx, _)` -> `.networkFailure`
+    /// - `LLMConnectorError.decode` / `.streamingFailed` / `.unsupportedProvider` -> `.modelConfigInvalid`
     /// - `SSEClient` (`domain == "SSEClient"`, code = HTTP status) -> per-status
-    ///   mapping (= mirrors the WenshuLLMError branches; = catches the
+    ///   mapping (= mirrors the LLMConnectorError branches; = catches the
     ///   streaming path which throws raw `NSError` from
     ///   `Sources/WenshuApp/Features/Agent/Service/SSEClient.swift:75`).
     /// - any other `Error` -> `.unknown(underlying: String(describing:))`
@@ -206,13 +206,11 @@ enum UserFacingError: Error, LocalizedError {
     /// (= OR `UserFacingError.modelConfigInvalid(cause: rawDesc)` for
     /// the chat-layer single-message collapse)
     static func from(_ raw: Error, context provider: String? = nil) -> UserFacingError {
-        if let wenshu = raw as? WenshuLLMError {
+        if let wenshu = raw as? LLMConnectorError {
             switch wenshu {
-            case .missingAPIKey:
-                return .apiKeyMissing(provider: provider ?? "当前 Provider")
-            case .invalidBaseURL:
-                return .apiKeyInvalid(provider: provider ?? "当前 Provider")
-            case .httpError(let status, _):
+            case .missingAPIKey(let providerArg):
+                return .apiKeyMissing(provider: providerArg.isEmpty ? (provider ?? "当前 Provider") : providerArg)
+            case .transport(_, let status, _):
                 switch status {
                 case 401, 403:
                     return .apiKeyInvalid(provider: provider ?? "当前 Provider")
@@ -227,6 +225,8 @@ enum UserFacingError: Error, LocalizedError {
                 default:
                     return .unknown(underlying: "HTTP \(status)")
                 }
+            case .unsupportedProvider, .decode, .streamingFailed:
+                return .modelConfigInvalid(cause: String(describing: wenshu))
             }
         }
         // SSEClient raw NSError (= the streaming transport

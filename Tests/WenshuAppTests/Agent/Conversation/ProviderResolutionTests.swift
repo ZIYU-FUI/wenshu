@@ -46,7 +46,7 @@ struct ProviderResolutionTests {
             // If we got here, sandbox had a real key (e.g. dev env with MINIMAX_CN_API_KEY env).
             #expect(creds.providerSlug == "minimax-cn")
             #expect(!creds.baseURL.isEmpty)
-        } catch let WenshuLLMError.missingAPIKey {
+        } catch LLMConnectorError.missingAPIKey {
             // Expected in sandbox — no Keychain key.
         } catch {
             Issue.record("unexpected error: \(error)")
@@ -61,7 +61,7 @@ struct ProviderResolutionTests {
         do {
             let creds = try await verifier.resolveCredentials()
             #expect(creds.providerSlug == "minimax-cn")
-        } catch let WenshuLLMError.missingAPIKey {
+        } catch LLMConnectorError.missingAPIKey {
             // Expected in sandbox.
         } catch {
             Issue.record("unexpected error: \(error)")
@@ -96,7 +96,7 @@ struct ProviderResolutionTests {
             // Sandbox has no Keychain key → should throw missingAPIKey from resolveCredentials.
             _ = try await verifier.send(request: request)
             Issue.record("expected throw")
-        } catch let WenshuLLMError.missingAPIKey {
+        } catch LLMConnectorError.missingAPIKey {
             // Expected — resolveCredentials() returned empty key.
         } catch {
             // Other errors (e.g. URLSession) are also acceptable for this test
