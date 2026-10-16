@@ -56,24 +56,36 @@ Single source of truth for every wenshu contributor and every AI agent acting on
 
 | Parent (god-class) | Extracted file | LOC | Content tag |
 | ------------------ | -------------- | --- | ----------- |
-| `Sources/.../ImportService.swift` (1693 LOC, 3x cap, remains 1 actor + 3 extensions) | `Sources/.../ImportServiceCancellation.swift` | 129 | `extension ImportService { cancel() rollback() resetRollbackTrail() snapshotReferenceLibraryIndex() }` = the cancel + rollback surface. |
+| `Sources/.../ImportService.swift` (now 444 LOC, under cap) | `Sources/.../ImportServiceCancellation.swift` | 129 | `extension ImportService { cancel() rollback() resetRollbackTrail() snapshotReferenceLibraryIndex() }` = the cancel + rollback surface. |
 | `Sources/.../ImportService.swift` | `Sources/.../ImportServiceDedup.swift` | 118 | `enum ImportServiceDedup { findEntityByTitle + normalizeTitle + sanitizeFilename }` = dedup + filename helpers. |
 | `Sources/.../ImportService.swift` | `Sources/.../ImportServiceFileSystem.swift` | 74 | `enum ImportServiceFileSystem { walkSourceDir }` = file-system walker. |
 | `Sources/.../ImportService.swift` | `Sources/.../ImportServiceHashing.swift` | 89 | `enum ImportServiceHashing { sha256 + uuidFromHash }` = hash + UUID-derivation helpers. |
+| `Sources/.../ImportService.swift` | `Sources/.../ImportServiceCache.swift` | 83 | `enum ImportServiceCache { dedupAndHash + readCache + writeCache }` = dedup + cache IO helpers. |
+| `Sources/.../ImportService.swift` | `Sources/.../ImportServiceDispatchHelpers.swift` | 85 | `enum ImportServiceDispatchHelpers { filterRetryCandidates + selectRetryIndices }` = dispatch retry selection. |
+| `Sources/.../ImportService.swift` | `Sources/.../ImportServiceTitleOnlyHelpers.swift` | 110 | `enum ImportServiceTitleOnlyHelpers { runRetryTaskGroup + 5 retry helpers }` = title-only retry pipeline. |
+| `Sources/.../ImportService.swift` | `Sources/.../ImportServiceBodyWriter.swift` | 63 | `extension ImportService { writeMainFileAndExtras }` = main body writer (split into sub-helpers). |
+| `Sources/.../ImportService.swift` | `Sources/.../ImportServiceExtraFileWriter.swift` | 97 | `extension ImportService { writeExtraFile }` = extra file writer. |
+| `Sources/.../ImportService.swift` | `Sources/.../ImportServiceReferenceWriter.swift` | 70 | `extension ImportService { writeReference }` = reference file writer. |
+| `Sources/.../ImportService.swift` | `Sources/.../ImportServiceWriters.swift` | 271 | `extension ImportService { writeFile + writeToBookFolder + writeToReferenceLibrary }` = 3 file-write helpers. |
 | `Sources/.../WenshuAppDelegate.swift` (471 LOC, under cap) | `Sources/.../WenshuAppDelegateSwiftDataMigration.swift` | 186 | `enum WenshuAppDelegateSwiftDataMigration { attemptSwiftDataMigrationIfNeeded + runSwiftDataMigrationPipeline + writeMigrationBackup + bumpSchemaVersion }` = the SwiftData migration surface. |
 | `Sources/.../ImportDocumentTemplates.swift` (under cap) | `Sources/.../WorldSubSection.swift` | 172 | `enum WorldSubSection { 6 cases }` = the 6-case world sub-section enum. |
 | `Sources/.../ImportDocumentTemplates.swift` | `Sources/.../ImportDocumentTemplateSkeletons.swift` | ~428 | `static let` 6 per-template skeleton constants. |
-| `Sources/.../WenshuConductorImportRouter.swift` (under cap) | `Sources/.../WenshuConductorImportRouterHelpers.swift` | ~1260 | `enum WCIRHelpers { 18 static helpers }` = routing orchestrator helper namespace. |
-| `Sources/.../Library/View/SidebarService.swift` (under cap) | `Sources/.../Library/View/SidebarServiceMutation.swift` | ~577 | `enum SidebarServiceMutation { 18 static helpers }` = sidebar mutation namespace. |
-| `Sources/.../Editor/View/PreviewPane.swift` (1359 LOC, 2.3x cap, remains 1 main view) | `Sources/.../Editor/View/PreviewPaneCard.swift` | 518 | `internal struct Card: View` + `internal enum CardSource` = the card UI sub-view. |
+| `Sources/.../WenshuConductorImportRouter.swift` (under cap) | `Sources/.../WenshuConductorImportRouterHelpers.swift` | ~709 | `enum WCIRHelpers { 18 static helpers }` = routing orchestrator helper namespace. |
+| `Sources/.../Library/Service/SidebarService.swift` (under cap) | `Sources/.../Library/View/SidebarServiceMutation.swift` | ~577 | `enum SidebarServiceMutation { 18 static helpers }` = sidebar mutation namespace. |
+| `Sources/.../Editor/View/PreviewPane.swift` (now 768 LOC, 1.28x cap, remains 1 main view) | `Sources/.../Editor/View/PreviewPaneCard.swift` | 443 | `internal struct Card: View` + `internal enum CardSource` = the card UI sub-view. |
 | `Sources/.../Editor/View/PreviewPane.swift` | `Sources/.../Editor/View/PreviewPaneModels.swift` | ~284 | 5 supporting types for the preview pane. |
-| `Sources/.../FileSystemReferenceStore.swift` (880 LOC, over cap) | `Sources/.../FileSystemReferenceStoreTypes.swift` | 144 | `ReferenceStoring` protocol + `ReferenceStoreError` enum + `ReferenceLibraryMetadata` struct = 3 supporting types. |
-| `Sources/.../Agent/View/ImportSheet.swift` (807 LOC, under cap post-A38) | `Sources/.../Agent/View/ImportSheetTaskViews.swift` | ~525 | 8 view-private structs extracted from ImportSheet. |
-| `Sources/.../Agent/View/ImportSheet.swift` | `Sources/.../Agent/View/ImportSheetHelpers.swift` | <600 | helpers for ImportSheet (= after A42 collapse). |
-| `Sources/.../Shared/UI/IconStyles.swift` (under cap) | `Sources/.../Shared/UI/IconStyles` (4 split files) | varies | 5 view variants + `WenshuTextStyle` extracted. |
-| `Sources/.../ImportService.swift` (TODO A60+) | `Sources/.../ImportServiceLLMDispatch.swift` (planned) | TBD | `dispatchLLM + markLLMFailed` (TBD, blocked on `lastDispatchError` stored-property coupling). |
-| `Sources/.../ImportService.swift` (TODO A61+) | `Sources/.../ImportServiceWriting.swift` (planned) | TBD | 6 write funcs (TBD, blocked on `CacheBox` + `TasksBox` fileprivate). |
-| `Sources/.../Editor/View/PreviewPane.swift` (TODO A62+) | `Sources/.../Editor/View/PreviewPaneBody.swift` (planned) | TBD | the `var body` (TBD, 503 LOC = blocked on PreviewPane self refs). |
+| `Sources/.../Editor/View/PreviewPane.swift` | `Sources/.../Editor/View/PreviewPaneScopeViews.swift` | 149 | `extension PreviewPane { referenceScopeView + bookScopeView + shelfScopeView + emptyScopeView }` = 4 scope views. |
+| `Sources/.../Editor/View/PreviewPane.swift` | `Sources/.../Editor/View/PreviewPaneDataAccess.swift` | 76 | `extension PreviewPane { ensureCardService + loadBooksInShelf + loadShelfBooksAsync }` = data accessors. |
+| `Sources/.../Editor/View/PreviewPane.swift` | `Sources/.../Editor/View/PreviewPaneGrids.swift` | 351 | `extension PreviewPane { 6 grid view helpers }` = referenceCategoryCard + emptyState + emptyScopeView + categoryGrid + categoryGridContent + overviewGrid + bookDocsGrid. |
+| `Sources/.../Chat/View/ChatView.swift` (now 1360 LOC, 2.27x cap, remains 1 main view) | `Sources/.../Chat/View/ChatViewMarkdownIO.swift` | 91 | `enum ChatViewMarkdownIO { markdownForConversation + importMarkdown }` = chat markdown IO namespace. |
+| `Sources/.../Chat/View/ChatView.swift` | `Sources/.../Chat/View/ChatTurn.swift` | 40 | `struct ChatTurn: Identifiable` = the transcript grouping type. |
+| `Sources/.../Agent/Service/BookChapterTool.swift` (now 1045 LOC, 1.74x cap) | `Sources/.../Agent/Service/BookChapterFileSystem.swift` | 150 | `extension BookChapterActor { saveFileSystemChapter + writeFileSystemChapter + deleteFileSystemChapter + ensureChaptersDirectoryExists + atomicWrite }` = 5 file-system static helpers. |
+| `Sources/.../App/WenshuAppMain.swift` (= the @main App struct, formerly `App.swift` at root) | `Sources/.../App/AppNotifications.swift` | 171 | `enum AppCommands + enum AppStateEvents + enum LayoutEvents` = 3 cross-cutting NotificationCenter naming enums. |
+| `Sources/.../Features/Shared/Backup.swift` (formerly at `Features/Shared/`) | `Sources/.../Features/Backup/Service/Backup.swift` | 219 | `struct BackupMetadata + struct BackupTools + enum BackupError` = 3 backup types (= 5 callers in LibraryMigrator + SubAgentRunner + CuratorBackup + ArchivistStorage + WenshuAppDelegateSwiftDataMigration). |
+| `Sources/.../Features/Shared/AppBackupOps.swift` (formerly at `Features/Shared/`) | `Sources/.../Features/Backup/Service/AppBackupOps.swift` | 95 | `enum AppBackupOps` = @MainActor App-side wrapper for BackupTools. |
+| `Sources/.../App/WenshuAppMain.swift` (the @main App shell) | `Sources/.../Features/Chrome/View/ChromeMainToolbar.swift` | 148 | `struct ChromeMainToolbar: ToolbarContent` = the 11 independent-window button row (= 1 source of truth for the title bar). |
+| `Sources/.../Features/Chrome/View/ChromeMainToolbar.swift` | `Sources/.../Features/Chrome/View/WindowOpenButton.swift` | 98 | `struct WindowOpenButton: View` = reusable button format (= Image(systemName:) + .help + openWindow). |
+| `Sources/.../LibraryRootView.swift` (804 LOC, 1.34x cap, the 4 sibling dirs are at the 4 features) | `Sources/.../Library/View/AppleSidebarView.swift` | 993 | god-class TODO (split candidate for A150+). |
 
 ## §2 Stack baseline
 
@@ -144,6 +156,9 @@ Single source of truth for every wenshu contributor and every AI agent acting on
 | 6.5 | File naming: <Xxx>View.swift / <Xxx>Ops.swift / <Xxx>Service.swift / <Xxx>State.swift (= the project's actual suffixes). Suffixes non-negotiable. | wenshu-swift-standards.md §1.2. |
 | 6.6 | File size cap: 600 LOC per .swift file. Exceed = god-class-field-drain-recipe or split. | wenshu-humanizer-voice. |
 | 6.7 | One import block per file. Alphabetical. No unused imports. | wenshu-swift-standards.md §1.1. |
+| 6.8 | Root-level tree: 8 visible dirs + dot-dirs + top-level files = canonical. Sources/ + Tests/ + Scripts/ + Tools/ + build/ + docs/ + research/ + pocock/. Each has ONE purpose. Hidden dirs (.git / .git-hooks / .github / .hermes / .archive / .build / .claude / .hilo / .repowise / .scratch / .swiftpm / .test-backup-x-N/) either git-tracked (rule-defined) or .gitignore'd (no manual drift). | boss OOB 2026-10-16. |
+| 6.9 | Single-purpose rule. Any dir containing exactly 1 file with 0 dependents = deletion candidate (= per-ticket spec lives in .scratch/; = research lives in research/<topic>/ per .scratch/ rule; = ticket-era docs go in Scripts/ + docs/adr/ + docs/agents/). No single-file dirs at root level. | boss OOB 2026-10-16. |
+| 6.10 | Top-level purpose map. Sources/ = Swift app (canonical). Tests/ = Swift test target (= SwiftPM mirror of Sources/). Scripts/ = shell + python helpers + screenshot scripts (§7.7 visual proof gate). Tools/ = devtool + double-axis sweep (= §7.4). build/ = swift build output (.gitignored). docs/ = SSOT docs (= adr/ = decisions; = agents/ = per-role). research/ = per-topic Apple API investigations (= same shape as .scratch/; = one doc per .scratch/<date>-<topic>/ arc). All persistence/DX helpers in Scripts/. | boss OOB 2026-10-16. |
 
 ## §7 Verification & quality gates
 
