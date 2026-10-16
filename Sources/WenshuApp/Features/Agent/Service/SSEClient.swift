@@ -77,6 +77,18 @@ actor SSEClient {
                     if let body {
                         request.httpBody = body
                     }
+                    // Per boss 2026-10-16 OOB "响应了, 但
+                    // 没有输入任务内容": diagnostic print
+                    // (= the user observed tokens increment
+                    // in the chrome footer but the chat bubble
+                    // stayed empty; = the streaming delta
+                    // events were being parsed but the
+                    // accumulator wasn't getting updated OR
+                    // the @MainActor dispatch wasn't firing).
+                    // The print below is the next debugging
+                    // step; = remove once the issue is
+                    // resolved.
+                    NSLog("WSStream: POST %@ bodyBytes=%d", url.absoluteString, body?.count ?? 0)
                     let (bytes, response) = try await session.bytes(for: request)
                     guard let http = response as? HTTPURLResponse else {
                         throw URLError(.badServerResponse)
