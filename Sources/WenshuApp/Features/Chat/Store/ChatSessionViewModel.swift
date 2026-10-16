@@ -163,7 +163,14 @@ final class ChatViewModel {
         repository: ChatRepositoryProtocol = LiveChatRepository.shared,
         bookID: BookID? = nil
     ) {
-        self.conductor = conductor
+        // AUDIT.md §2.2 partial (2026-10-16): the public
+        // facade is the canonical source of truth for
+        // the conductor; = if no conductor is injected,
+        // resolve it from the facade (= same value as
+        // `WenshuAppDelegate.sharedConductor` since the
+        // static is now a 1-line forwarder to the
+        // facade).
+        self.conductor = conductor ?? WenshuAgent.shared.currentConductorSync()
         // Per-book session id when bookID is set
         // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // per-book session id keeps chat rows cleanly partitioned).

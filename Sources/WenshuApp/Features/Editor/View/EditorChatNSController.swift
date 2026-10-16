@@ -125,12 +125,21 @@ final class EditorChatNSController: NSSplitViewController {
     private let library: WenshuLibrary?
 
     init(
-        conductor: WenshuConductor?,
+        conductor: WenshuConductor? = nil,
         appState: AppState? = nil,
         bookStore: BookStore? = nil,
         library: WenshuLibrary? = nil
     ) {
-        self.conductor = conductor
+        // AUDIT.md §2.2 partial (2026-10-16): the public
+        // facade is the canonical source of truth for
+        // the conductor; = if no conductor is injected,
+        // resolve it from the facade. The init signature
+        // is widened to `= nil` (= the conductor is
+        // optional) to support the deprecation bridge
+        // (= callers that still pass
+        // `WenshuAppDelegate.sharedConductor` continue
+        // to work unchanged).
+        self.conductor = conductor ?? WenshuAgent.shared.currentConductorSync()
         self.appState = appState
         self.bookStore = bookStore
         self.library = library

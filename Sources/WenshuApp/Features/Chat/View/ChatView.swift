@@ -72,7 +72,14 @@ struct ChatView: View {
             // initialMessages via .task async load (avoids init race)
             // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // scope for this ticket.
-            let wiredConductor = ChatView.conductorRegisteringParagraphAI(conductor)
+            // AUDIT.md §2.2 partial (2026-10-16): resolve the
+            // conductor from the public facade if no
+            // explicit instance is passed; = the ChatView
+            // init signature stays unchanged for callers
+            // that pass `WenshuAppDelegate.sharedConductor`
+            // (= deprecation bridge).
+            let resolved = conductor ?? WenshuAgent.shared.currentConductorSync()
+            let wiredConductor = ChatView.conductorRegisteringParagraphAI(resolved)
             _vm = State(initialValue: ChatViewModel(conductor: wiredConductor, sessionId: sessionId, initialMessages: []))
         }
     }

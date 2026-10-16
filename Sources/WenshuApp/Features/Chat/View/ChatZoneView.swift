@@ -67,9 +67,18 @@ struct ChatZoneView: View {
     // / manually forced a body invalidation.
     @State private var keychainRevision: Int = 0
 
-    init(conductor: WenshuConductor?) {
-        self.conductor = conductor
-        _vm = State(initialValue: ChatViewModel(conductor: conductor, appState: nil))
+    init(conductor: WenshuConductor? = nil) {
+        // AUDIT.md §2.2 partial (2026-10-16): the public
+        // facade is the canonical source of truth for the
+        // conductor; = if no conductor is injected, resolve
+        // it from the facade. Callers that still pass
+        // `WenshuAppDelegate.sharedConductor` (= the
+        // deprecation bridge = the same value, since the
+        // static is now a 1-line forwarder to the facade)
+        // continue to work unchanged.
+        let resolved = conductor ?? WenshuAgent.shared.currentConductorSync()
+        self.conductor = resolved
+        _vm = State(initialValue: ChatViewModel(conductor: resolved, appState: nil))
     }
 
     var body: some View {
