@@ -34,4 +34,56 @@ actor DeepSeekConnector: LLMConnector {
     func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
         try await delegate.send(messages: messages, options: options)
     }
+
+    // MARK: - Native streaming (P0-AGENT-STREAMING, boss 2026-10-16)
+    //
+    // DeepSeek uses the OpenAI chat-completions protocol (= the same
+    // wire format as `OpenAIConnector`). The native streaming SSE
+    // path lives in `OpenAIStreamingWireupFactory.streamingStream`
+    // (= reused wholesale; = DeepSeek has a documented `stream:
+    // true` flag; = the upstream emits OpenAI-shaped chunk events
+    // that `OpenAIChunkToLLMBlockConverter` maps to LLMBlock).
+    //
+    // `nonisolated` (T9 protocol conformance): the underlying
+    // `OpenAIStreamingWireupFactory.streamingStream` is `static`
+    // and accepts the credentials by value (= Sendable + immutable
+    // across actor contexts).
+    nonisolated func stream(
+        messages: [LLMMessage],
+        options: LLMCallOptions
+    ) -> AsyncStream<LLMBlock> {
+        let credentials = ConnectorCredentials.resolve(for: .deepseek)
+
+        // Empty key -> emit synthetic error block (= no silent
+        // stream end; = matches OpenAIConnector + AnthropicConnector
+        // pattern).
+        if credentials.apiKey.isEmpty {
+            return OpenAIChunkToLLMBlockConverter.errorStream(
+                "[stream error] missing API key for deepseek",
+                provider: connectorID
+            )
+        }
+
+        // DeepSeek accepts `Authorization: Bearer <key>` (= the OpenAI
+        // convention; = not `x-api-key` like Anthropic / Minimax).
+        let bearer = credentials.apiKey
+
+        let rawStream = OpenAIStreamingWireupFactory.streamingStream(
+            credentials: credentials,
+            model: options.model,
+            maxTokens: options.maxTokens,
+            systemPrompt: options.systemPrompt,
+            messages: messages,
+            bearerToken: bearer,
+            tools: options.tools
+        )
+        // T12b: stateful converter (= aggregates tool_calls across
+        // chunks). = the agent's ReAct loop sees coherent .toolUse
+        // blocks (= no half-built tool calls in the chat).
+        let accumulator = OpenAIChunkToLLMBlockConverter.ToolUseAccumulator()
+        return OpenAIChunkToLLMBlockConverter.convert(
+            stream: rawStream,
+            accumulator: accumulator
+        )
+    }
 }
