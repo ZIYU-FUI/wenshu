@@ -46,6 +46,23 @@ New entries = append 1 line. Outdated = delete (= per AGENTS.md §10.3).
 | 2026-10-10 | BookChapterTool / BookManagerTool / BookEntityTool round-NN contracts (= file round-36 + 61 + 66 + 67 + 69 + 71; = the boss 2026-10-10 batch of librarian behavior fixes) |
 | 2026-10-14 | CardOpenOps auto-open behavior (= click the card to open chapter; = no double-click required) |
 | 2026-10-15 | agent thinking visibility (= wenshu agent reply must expose reasoning trace; = matches hermes dev tool step-by-step transparency) |
+| 2026-10-16 | 11 个独立 window 按钮 = 11 Features 1:1 创建 (Kanban/Todo/Canvas/Composer/Foreshadowing/Cron/Attachments/Manifest/Summaries/LibraryMigration/MemoryHistory); toolbar 11 button row 1:1 复刻 |
+| 2026-10-16 | Chrome 大区创建 (Features/Chrome/View/ = 标题栏/工具栏独立目录) |
+| 2026-10-16 | §6.2 4-slot spec relax = Views/Model/Service/Store/ (project actual shape; = 按需来; = leaf features ≤3 file 跳 Store/) |
+| 2026-10-16 | §6.5 file naming relax = View/Ops/Service/State (project actual suffixes; = 不用 Apple Backyard Birds suffixes) |
+| 2026-10-16 | "标题栏重复入口" = 删 InspectorView 9 个 openWindow buttons = 1 source of truth = ChromeMainToolbar; = WindowOpenButton 1 格式 |
+| 2026-10-16 | "11 个 ICON 没关联面板" = 误判 (= 11 windows 都有 panel per A93); 撤 disabled placeholder 概念 (= isEnabled default true) |
+| 2026-10-16 | "SF 符号绕远" = 撤 SFIcon wrapper for toolbar button; 改 Image(systemName:) Apple 1:1 path (font 14pt .regular + .secondary) |
+| 2026-10-16 | "NFI 重点" = §1.11 nervous file index 持续更新 (A107 增 15 缺失 + 3 TODO closure + 1 god-class TODO) |
+| 2026-10-16 | "Features/Shared/ 没分析完" = 4 文件分散, 3 移 (Backup→Features/Backup/, AppNotifications→App/, App.swift→App/WenshuAppMain.swift) + 1 删 (BaseParser dead code 0 caller) |
+| 2026-10-16 | "Features/Shared/ 与 Shared/ 整理" = 3 sub-dir 复用 (UI/State/Foundation) + 顶层 App.swift + DesignTokens + Resources + Features (5 类互斥) |
+| 2026-10-16 | "标题栏/工具栏应该拆独立目录" = Features/Chrome/ 创建 |
+| 2026-10-16 | "3 层目录 Core/" = 1 design doc 撑 3 层 = 虚; 移到 Features/Agent/Store/ 跟实代码 = 1 source of truth |
+| 2026-10-16 | docblock collapse algorithm = A112 启 + A113 batch 41 files = -8585 LOC (23 files 降到 1.0x cap) |
+| 2026-10-16 | "拆同时有没有死代码" = 持续扫描: A116 删 3 dead private funcs (-175) + A119 删 2 dead @State (-2) |
+| 2026-10-16 | "有没有重复代码" = A117 合并 DiffUtil (188 dup → 140 single) + A118 合并 buildImportTarget (49 dup → 22 helper) |
+| 2026-10-16 | "全做完" = auto-pilot mode = 持续推, 每个 arc 自驱动 commit 1 票 + build + test |
+| 2026-10-16 | 工程治理 ticket count = A1-A119 = 119 票; = main = 300 ahead of old-origin |
 
 ## When to update
 
