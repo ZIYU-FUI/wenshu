@@ -75,3 +75,5 @@ New entries = append 1 line. Outdated = delete (= per AGENTS.md §10.3).
 
 > First line fact: OOB.md is the SSOT index for boss OOB directives, 1 line per entry.
 > Last line fact: Single-shot narrative lives at `.archive/.oob-v3.1-archive/OOB.md.original`.
+| 2026-10-16 | 钥匙串开关 (Settings → Providers 顶部): ON = Apple Keychain (canonical); OFF = `~/Library/Application Support/com.wenshu.app/provider-keys.json` 0600 (非 .ws 内, AI agent `libraryRoot` 沙箱外) | `2a132f25c` |
+| 2026-10-16 | "重起后上次配的 key 没了" = Apple Keychain 路径下 key 也不持久 (= 推测 `AppleKeychainStore` 在 wenshu 重装/迁移后丢 key; 实际触发条件待复现) = **延后**待老板下一步 |
