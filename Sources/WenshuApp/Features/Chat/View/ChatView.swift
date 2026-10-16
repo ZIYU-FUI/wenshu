@@ -737,7 +737,7 @@ struct ChatView: View {
             // once SwiftUI has finished committing it.
             // Hidden Button pattern.
             Button("Export as Markdown") {
-                exportMarkdownBody = Self.markdownForConversation(vm.messages)
+                exportMarkdownBody = ChatViewMarkdownIO.markdownForConversation(vm.messages)
                 isExportingMarkdown = true
             }
             .keyboardShortcut("s", modifiers: [.command, .shift])
@@ -1336,70 +1336,16 @@ struct ChatView: View {
         ) { result in
             switch result {
             case .success(let url):
-                Self.importMarkdown(at: url, into: vm)
+                ChatViewMarkdownIO.importMarkdown(at: url, into: vm)
             case .failure(let error):
                 wenshuLogger.info("[wenshu.import] failed: \(String(describing: error))")
             }
         }
     }
+    // (markdownForConversation extracted to ChatViewMarkdownIO.swift in A87; = see that file)
 
-    /// Format the current conversation as the legacy chat-Markdown shape (=
-    /// per-message '[prefix]: content' lines, double-newline separated). Same
-    /// formatter the T76 NSSavePanel block used (= identical on-disk format; no
-    /// migration needed for files exported before this commit).
-    static func markdownForConversation(_ messages: [ChatMessage]) -> String {
-        messages.map { msg -> String in
-            let prefix: String
-            switch msg.source {
-            case .user: prefix = "你"
-            case .wenshu: prefix = "文枢"
-            case .system: prefix = "系统"
-            }
-            return "[\(prefix)]: \(msg.content)"
-        }.joined(separator: "\n\n")
-    }
+    // (importMarkdown extracted to ChatViewMarkdownIO.swift in A87; = see that file)
 
-    /// Read a chat-Markdown file and replace the current conversation with the
-    /// parsed history (= the inverse of markdownForConversation). Naive split
-    /// on '\n\n'; each non-empty block becomes a ChatMessage whose source is
-    /// derived from the leading '[xx]:' prefix.
-    static func importMarkdown(at url: URL, into vm: ChatViewModel) {
-        do {
-            let raw = try String(contentsOf: url, encoding: .utf8)
-            let blocks = raw.components(separatedBy: "\n\n")
-            var loaded: [ChatMessage] = []
-            for block in blocks {
-                let trimmed = block.trimmingCharacters(in: .whitespacesAndNewlines)
-                if trimmed.isEmpty { continue }
-                let source: ChatSource
-                let content: String
-                if trimmed.hasPrefix("[你]: ") {
-                    source = .user
-                    content = String(trimmed.dropFirst("[你]: ".count))
-                } else if trimmed.hasPrefix("[文枢]: ") {
-                    source = .wenshu
-                    content = String(trimmed.dropFirst("[文枢]: ".count))
-                } else if trimmed.hasPrefix("[系统]: ") {
-                    source = .system
-                    content = String(trimmed.dropFirst("[系统]: ".count))
-                } else {
-                    source = .user
-                    content = trimmed
-                }
-                loaded.append(ChatMessage(
-                    id: UUID(),
-                    role: source == .wenshu ? .agent : .user,
-                    source: source,
-                    content: content,
-                    timestamp: Date()
-                ))
-            }
-            // Replace the conversation with the loaded history.
-            vm.messages = loaded
-        } catch {
-            wenshuLogger.info("[wenshu.import] failed to read markdown: \(error.localizedDescription)")
-        }
-    }
 }
 
 
