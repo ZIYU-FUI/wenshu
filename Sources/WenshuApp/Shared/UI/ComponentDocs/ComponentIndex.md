@@ -478,3 +478,66 @@ The Workspace editor surface is decomposed into 9 single-file sub-views (= extra
 - **Iron-rule 1**: no hardcoded colors (= `.foregroundStyle(.secondary)` instead of `Color(red: 0.5, green: 0.5, blue: 0.5)` = doesn't auto-adapt to dark mode).
 - **Iron-rule 2**: 11 Apple text styles only (= no `.system(size: 17)` magic numbers).
 - **2026-09-07 'separate UI from function'**: zone's source file = business logic only (= which tabs render, which buttons open which sheet); visual styling = in the 4 STYLES files. Change a chrome height in ChromeStyles.swift = all 6 zones update = no per-zone audit needed.
+
+---
+
+## 🪟 LEVEL 9: Chrome + independent windows (= 老板 2026-10-16 OOB)
+
+### 9.1 ChromeMainToolbar
+- **Path**: `Sources/WenshuApp/Features/Chrome/View/ChromeMainToolbar.swift` (A92, 146 LOC)
+- **Purpose**: The 11 independent-window button row in the unified macOS toolbar (= 1 source of truth for the title bar)
+- **Use when**: The main window's `.toolbar { ChromeMainToolbar(...) }` modifier (= the 11 windows: kanban + todo + canvas + composer + foreshadowingGraph + cron + attachments + manifest + summaries + libraryMigration + memoryHistory).
+- **Don't use when**: Inside the inspector (= the inspector is inspector-specific, not window-list); = use `InspectorView`'s own buttons there.
+- **API**:
+  ```swift
+  .toolbar {
+      ChromeMainToolbar(openWindow: openWindow, sheetRequests: sheetRequests)
+  }
+  ```
+- **Replaces**: The 2 inline `.toolbar {}` blocks previously in `LibraryRootView.body` (= the original 11 + 9 duplicate in `InspectorView` were both 1 source of truth; = A95 deleted the 9 from InspectorView).
+
+### 9.2 WindowOpenButton
+- **Path**: `Sources/WenshuApp/Features/Chrome/View/WindowOpenButton.swift` (A94, 98 LOC)
+- **Purpose**: Reusable button format for opening an independent macOS window (= 1 source of truth for the toolbar button shape; = uses `Image(systemName:)` directly per Apple HIG; = A97 dropped the SFIcon wrapper for toolbar since the toolbar's NSToolbar defaults pin the icon style)
+- **Use when**: Anywhere a SwiftUI surface needs to open an independent window (= toolbar + sidebar + inspector).
+- **Don't use when**: Inside the `Window` body itself (= the window already has a body; = don't recursively open a window from inside).
+- **API**:
+  ```swift
+  WindowOpenButton(
+      id: WindowID.memoryHistory,
+      icon: "brain",
+      title: String(localized: "window.memoryHistory.title"),
+      openWindow: openWindow
+  )
+  ```
+- **Replaces**: The 3 duplicate `SFIcon + Button { openWindow } + .help(...)` blocks that were inline in `ChromeMainToolbar` + `InspectorView` + `WenshuAppDelegateSwiftDataMigration`.
+
+### 9.3 The 11 dedicated Feature directories (= 1 per window)
+
+Per boss 2026-10-16 OOB "用不用每一个都像截图一样拆出来" (= each window like the screenshot), the 11 toolbar window buttons each have their own Feature directory (= 1 source of truth for the feature = the future feature code goes here).
+
+| WindowID | Feature dir | Window file |
+| --- | --- | --- |
+| `kanban` | `Features/Kanban/` (pre-existing) | `View/KanbanWindow.swift` |
+| `todo` | `Features/Todo/` (NEW A93) | `View/TodoWindow.swift` |
+| `canvas` | `Features/Canvas/` (NEW A93) | `View/CanvasWindow.swift` |
+| `composer` | `Features/Composer/` (NEW A93) | `View/ComposerWindow.swift` |
+| `foreshadowingGraph` | `Features/Foreshadowing/` (NEW A93) | `View/ForeshadowingGraphWindow.swift` |
+| `cron` | `Features/Cron/` (NEW A93) | `View/CronWindow.swift` |
+| `attachments` | `Features/Attachments/` (NEW A93) | `View/AttachmentsWindow.swift` |
+| `manifest` | `Features/Manifest/` (NEW A93) | `View/ManifestWindow.swift` |
+| `summaries` | `Features/Summaries/` (NEW A93) | `View/SummariesWindow.swift` |
+| `libraryMigration` | `Features/LibraryMigration/` (NEW A93) | `View/LibraryMigrationPanel.swift` |
+| `memoryHistory` | `Features/MemoryHistory/` (NEW A93) | `View/MemoryHistoryView.swift` |
+
+When the underlying feature code lands (= the canvas / composer / cron / etc. content), more files will fill in the per-feature Model/Service/Store slots per the §6.2 4-slot spec.
+
+### 9.4 §6.2/§6.5 spec relax (= 4-slot by-need)
+
+Per boss 2026-10-16 OOB "§6.2 选项 1, 按需来" (= use only what each feature actually needs): the previous §6.2 5-slot Apple Backyard Birds shape (`Views/ / ViewModels/ / UseCases/ / Repositories/ / Models/`) is relaxed to the project's actual 4-slot shape (= `Views/ / Model/ / Service/ / Store/`). Empty slots are allowed; = leaf features with ≤3 files skip `Store/`.
+
+§6.5 file naming also relaxed from the Apple suffixes (`View/ / ViewModel/ / UseCase/ / Repository/ / Service`) to the project's actual suffixes (`View/ / Ops/ / Service/ / State`).
+
+### 9.5 §1.7 NFI (§1.11 nervous file index)
+
+The §1.11 NFI table is the single source of truth for "which file split from which god-class". A107 added 12 new rows documenting the chrome toolbar / window / shared / core extractions; = 16+ extracted files now have discoverable 1-step paths from the parent god-class.
