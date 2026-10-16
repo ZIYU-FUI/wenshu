@@ -1344,7 +1344,7 @@ extension ImportService {
             if case .bookFolder(let f) = routing.destination { return f }
             return .drafts
         }()
-        let bodyToWrite = computeBodyToWrite(
+        let bodyToWrite = ImportServiceBodyWriter.computeBodyToWrite(
             originalBody: originalBody,
             rewrittenBody: routing.rewrittenBody,
             folder: folder,
@@ -1403,42 +1403,8 @@ extension ImportService {
         // The writeFile appended the new entry to its inout cache; = the
         // shared `cacheBox.value` is now the canonical source of truth.
     }
+    // (computeBodyToWrite extracted to ImportServiceBodyWriter.swift in A65; = see that file)
 
-    /// Compute the body to write based on the rewriteMode (= .consolidate
-    /// always uses the original verbatim; = .reorganize produces no main file
-    /// body (= the agent's writeBookDoc tool owns the writes); =
-    /// .searchAndRewrite prefers the LLM's `rewrittenBody` when present,
-    /// falling back to the original).
-    private func computeBodyToWrite(
-        originalBody: String,
-        rewrittenBody: String?,
-        folder: BookFolder,
-        rewriteMode: ImportFileInput.RewriteMode
-    ) -> String {
-        switch rewriteMode {
-        case .consolidate:
-            return ImportDocumentTemplate.prepareBodyForWrite(
-                rawBody: originalBody,
-                folder: folder
-            )
-        case .reorganize:
-            // The agent owns writing in .reorganize mode; = the orchestrator
-            // has nothing to write for the main file (= rewrittenBody is always
-            // nil per routeReorganizeMultiTurn's signature).
-            return ""
-        case .searchAndRewrite:
-            if let rewritten = rewrittenBody, !rewritten.isEmpty {
-                return ImportDocumentTemplate.prepareBodyForWrite(
-                    rawBody: rewritten,
-                    folder: folder
-                )
-            }
-            return ImportDocumentTemplate.prepareBodyForWrite(
-                rawBody: originalBody,
-                folder: folder
-            )
-        }
-    }
 
     /// Write one extra file (= a single entry from `routing.extraFiles`). Logs
     /// the success/failure to the per-row activityLog (= the user sees a row
