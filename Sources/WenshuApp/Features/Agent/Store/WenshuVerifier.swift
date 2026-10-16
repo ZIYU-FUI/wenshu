@@ -506,7 +506,8 @@ actor WenshuVerifier {
                             : WenshuVerifier.systemPromptEnglishOnly + "\n\n---\n\n" + system
                     ]
                     let body = try JSONSerialization.data(withJSONObject: bodyDict)
-                    try? "POST model=\(effectiveModel) systemLen=\((system).count) textLen=\(text.count)\n---\n".write(toFile: "/tmp/wsverifier-req-\(getpid()).log", atomically: true, encoding: .utf8)
+                    let bodyStr = String(data: body, encoding: .utf8) ?? "<not utf8>"
+                    try? "POST model=\(effectiveModel) systemLen=\((system).count) textLen=\(text.count)\nbody=\(bodyStr)\n---\n".write(toFile: "/tmp/wsverifier-req-\(getpid()).log", atomically: true, encoding: .utf8)
                     let sse = SSEClient(url: url, headers: [
                         "x-api-key": creds.apiKey,
                         "anthropic-version": "2023-06-01",
@@ -554,6 +555,7 @@ actor WenshuVerifier {
                     wenshuLogger.info("[wenshu.stream] complete, textBuffer length=\(textBuffer.count)")
                     continuation.finish()
                 } catch {
+                    try? "catch error=\(String(describing: error))\n---\n".write(toFile: "/tmp/wsverifier-error-\(getpid()).log", atomically: true, encoding: .utf8)
                     wenshuLogger.info("[wenshu.stream] error: \(String(describing: error))")
                     continuation.finish(throwing: error)
                 }

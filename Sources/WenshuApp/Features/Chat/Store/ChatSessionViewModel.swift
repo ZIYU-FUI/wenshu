@@ -97,8 +97,28 @@ final class ChatViewModel {
     // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // now locks down).
     var currentModel: String {
-        if let appState { return appState.llmModel }
-        return UserDefaults.standard.string(forKey: "wenshu.llm.model") ?? ""
+        let raw = appState?.llmModel
+            ?? UserDefaults.standard.string(forKey: "wenshu.llm.model")
+            ?? ""
+        // Per boss 2026-10-16 OOB "还是没有内容":
+        // if the model selection is empty (= first
+        // launch with no UserDefaults entry AND no
+        // appState wiring; = the chat sends a POST
+        // with `model: ""` to minimax, which
+        // minimax rejects with HTTP 400 = the
+        // verifier SSE stream emits 0 events =
+        // the chat bubble stays empty), fall
+        // back to the active provider's first
+        // default model (= "MiniMax-M3" for
+        // minimax-cn = the canonical "this is
+        // the model the user configured" pick).
+        if !raw.isEmpty { return raw }
+        let activeSlug = WenshuAppDelegateLLMHelpers.activeConnectorSlug()
+        let provider = Provider.by(slug: activeSlug)
+        if let firstDefault = provider?.defaultModels.first, !firstDefault.isEmpty {
+            return firstDefault
+        }
+        return "MiniMax-M3"
     }
     var availableModels: [String] = []
     var contextUsed: Int = 0
