@@ -143,10 +143,10 @@ let package = Package(
                 // the Swift compiler. Excluded from the resource bundle
                 // (= no #fileLiteral resource access at runtime).
                 "Features/Agent/Store/AgentLifecycleTrackerDesign.md",
-                "UI/ComponentIndex.md",
+                "Shared/UI/ComponentDocs/ComponentIndex.md",
                 // Per-region view wrapper design docs (= humans + LLMs,
                 // not Swift compiler; = no runtime Bundle access).
-                "UI/SFRegions.md",
+                "Shared/UI/ComponentDocs/SFRegions.md",
                 // Localizable.strings inside each .lproj/. The single
                 // source of truth is Localizable.xcstrings; SPM 6.4
                 // compiles it into per-locale Localizable.strings
