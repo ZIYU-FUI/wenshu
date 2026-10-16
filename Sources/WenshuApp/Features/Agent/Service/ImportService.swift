@@ -386,7 +386,7 @@ actor ImportService {
         // failures and write failures are excluded; = the user clicked
         // "重新调研" with the explicit understanding that this is the
         // "I trust the filename + LLM search alone" path).
-        let candidateIndices = filterRetryCandidates(tasks: tasks)
+        let candidateIndices = ImportServiceDispatchHelpers.filterRetryCandidates(tasks: tasks)
         // Step 2: compute the sibling-context list ONCE (= the user's
         // whole source directory; = all .md files in the same folder as
         // the failed file; = the LLM uses the list as "what other
@@ -444,17 +444,8 @@ actor ImportService {
         ImportServiceCache.writeCache(cacheFile: cacheFile, cache: cacheBox.value)
         return tasksBox.value
     }
+    // (filterRetryCandidates extracted to ImportServiceDispatchHelpers.swift in A63; = see that file)
 
-    /// Step 1: filter (= only the "读取文件失败" subset; = LLM-routing failures and
-    /// write failures are excluded; = the user clicked "重新调研" with the explicit
-    /// understanding that this is the "I trust the filename + LLM search alone"
-    /// path).
-    private func filterRetryCandidates(tasks: [ImportTask]) -> [Int] {
-        return tasks.indices.filter { i in
-            guard tasks[i].state == .failed else { return false }
-            return tasks[i].errorMessage?.hasPrefix("读取文件失败") ?? false
-        }
-    }
 
     /// Step 4: per-file smart skip (= boss's "不要浪费" rule; = if the previous
     /// retry had the same body hash, the LLM output would be byte-identical =
@@ -845,7 +836,7 @@ actor ImportService {
         // Record the import in the sidecar cache so the next dedup pass
         // (= a re-import of the same source directory) hits the cache
         // instead of dispatching the LLM + re-writing the file.
-        recordInCache(
+        ImportServiceDispatchHelpers.recordInCache(
             contentHash: contentHash,
             sourcePath: sourcePath,
             routing: routing,
@@ -1015,38 +1006,8 @@ actor ImportService {
             contentHash: contentHash
         )
     }
+    // (recordInCache extracted to ImportServiceDispatchHelpers.swift in A63; = see that file)
 
-    /// Record the import in the sidecar cache so the next dedup pass (= a
-    /// re-import of the same source directory) hits the cache instead of
-    /// dispatching the LLM + re-writing the file. (= boss 2026-10-10 (see
-    /// OOB.md #2026-10-10) 3 files; = `uuidFromHash("")` returned the SAME
-    /// deterministic UUID for all 3 files; = the orchestrator wrote the .md at
-    /// the same path for the first file; = the second and third files crashed
-    /// with "Reference ... already exists on disk"). The fix: NEVER write an
-    /// empty / short contentHash to the cache; = if the input is empty (= the
-    /// source file's contentHash was somehow not populated), compute a stable
-    /// placeholder (= sha256 of the source path; = unique per file; = the uuid
-    /// derives to a unique UUID; = the dedup still works). The previous code
-    /// propagated the empty hash verbatim, which led to the "all empty hashes →
-    /// same UUID" collision.)
-    private func recordInCache(
-        contentHash: String,
-        sourcePath: String,
-        routing: ImportRoutingResult,
-        cache: inout [String: CacheEntry]
-    ) {
-        let safeContentHash: String
-        if contentHash.isEmpty || contentHash.count < 16 {
-            safeContentHash = "orphan-" + ImportServiceHashing.sha256(sourcePath)
-        } else {
-            safeContentHash = contentHash
-        }
-        cache[sourcePath] = CacheEntry(
-            contentHash: safeContentHash,
-            destination: routing.destination,
-            writtenAt: Date()
-        )
-    }
 
     /// ticket 03 (= boss 2026-10-10 "甚至原文 件 A 的内容, 与我们 的 B 模版不符合, 多了 很我非模版的内容,
     /// 我 希望能自动拆出一个文 件, 放在合适的目录中 去" feedback). Write one LLM-suggested split-out
@@ -1137,7 +1098,7 @@ actor ImportService {
         let reference = Reference(
             id: uuid,
             title: routing.title,
-            source: sourceStringFromPath(target: target),
+            source: ImportServiceDispatchHelpers.sourceStringFromPath(target: target),
             layer: .layerEntities,
             category: routing.category.flatMap { EntityCategory(rawValue: $0) },
             tags: routing.tags,
@@ -1160,16 +1121,8 @@ actor ImportService {
             .appendingPathComponent("\(uuid.uuidString).md")
         writtenURLs.append(refMdURL)
     }
+    // (sourceStringFromPath extracted to ImportServiceDispatchHelpers.swift in A63; = see that file)
 
-    /// Where the reference came from (= used in the Reference.source field; =
-    /// "导入: <source dir>" for now; = a future ticket can ask the user to label
-    /// the source).
-    private func sourceStringFromPath(target: ImportTarget) -> String {
-        if let bookId = target.bookId {
-            return "导入: \(bookId.uuidString.prefix(8))"
-        }
-        return "导入: 资料库"
-    }
 
     // MARK: - Errors
 
