@@ -261,4 +261,75 @@ actor SSEClient {
     func cancel() {
         task?.cancel()
     }
+
+    /// Public byte-level SSE parser (= extracted from the runStream
+    /// byte loop). Exposed so unit tests can verify the parser
+    /// independently of the URLSession transport (= the original
+    /// "URLSession.bytes.lines skips empty lines" bug was a parser
+    /// regression, not a transport one; = hermes `stream_diag.py`
+    /// style = separate the parser from the transport).
+    ///
+    /// Canonical W3C SSE wire format:
+    ///   event: <name>\n
+    ///   data: <data>\n
+    ///   \n                  <- empty line = event boundary
+    static func parseSSEBytes(_ bytes: [UInt8]) -> [SSEEvent] {
+        var events: [SSEEvent] = []
+        var currentLineBytes: [UInt8] = []
+        var pendingEvent = ""
+        var pendingData: [String] = []
+
+        func emitPendingIfAny() {
+            if !pendingEvent.isEmpty || !pendingData.isEmpty {
+                events.append(SSEEvent(
+                    event: pendingEvent,
+                    data: pendingData.joined(separator: "\n")
+                ))
+                pendingEvent = ""
+                pendingData = []
+            }
+        }
+
+        for byte in bytes {
+            if byte == 0x0A { // \n
+                if currentLineBytes.last == 0x0D {
+                    currentLineBytes.removeLast()
+                }
+                let lineOut = String(decoding: currentLineBytes, as: UTF8.self)
+                if lineOut.isEmpty {
+                    emitPendingIfAny()
+                } else if lineOut.hasPrefix("event:") {
+                    pendingEvent = String(lineOut.dropFirst("event:".count))
+                        .trimmingCharacters(in: .whitespaces)
+                } else if lineOut.hasPrefix("data:") {
+                    var v = String(lineOut.dropFirst("data:".count))
+                    if v.hasPrefix(" ") { v.removeFirst() }
+                    pendingData.append(v)
+                }
+                // id: and :comment lines: ignored
+                currentLineBytes.removeAll(keepingCapacity: true)
+            } else {
+                currentLineBytes.append(byte)
+            }
+        }
+        // Trailing line without \n
+        if !currentLineBytes.isEmpty {
+            if currentLineBytes.last == 0x0D {
+                currentLineBytes.removeLast()
+            }
+            let lineOut = String(decoding: currentLineBytes, as: UTF8.self)
+            if !lineOut.isEmpty {
+                if lineOut.hasPrefix("event:") {
+                    pendingEvent = String(lineOut.dropFirst("event:".count))
+                        .trimmingCharacters(in: .whitespaces)
+                } else if lineOut.hasPrefix("data:") {
+                    var v = String(lineOut.dropFirst("data:".count))
+                    if v.hasPrefix(" ") { v.removeFirst() }
+                    pendingData.append(v)
+                }
+            }
+        }
+        emitPendingIfAny()
+        return events
+    }
 }
