@@ -51,6 +51,16 @@ actor WenshuAgent {
     /// the conductor wraps).
     func installConductor(_ conductor: WenshuConductor) {
         self.conductor = conductor
+        WenshuAgent.conductorSnapshot.withLock { $0 = conductor }
+    }
+
+    /// Removes the conductor instance (= cleanup on app
+    /// termination; = symmetry with install). Most callers
+    /// do not need to call this (= the singleton lives for
+    /// the lifetime of the app process).
+    func uninstallConductor() {
+        self.conductor = nil
+        WenshuAgent.conductorSnapshot.withLock { $0 = nil }
     }
 
     /// Returns the active conductor (= nil if not yet installed).
@@ -58,6 +68,40 @@ actor WenshuAgent {
     /// call this; = they do not construct `WenshuConductor`.
     func currentConductor() -> WenshuConductor? {
         conductor
+    }
+
+    /// Sync nonisolated accessor for the active conductor.
+    /// WenshuAppDelegate.sharedConductor is a `var` (non-async
+    /// static property) consumed from the SwiftUI main-actor
+    /// context; = the existing async `currentConductor()`
+    /// cannot be called there. The snapshot below (= a
+    /// `nonisolated` `static let`) is updated whenever
+    /// `installConductor` runs (= the WenshuAppDelegate path)
+    /// or `uninstallConductor` runs (= cleanup).
+    ///
+    /// AUDIT.md §2.2 partial (2026-10-16): the public facade
+    /// becomes the single source of truth for the conductor
+    /// instance; = `WenshuAppDelegate.sharedConductor` reads
+    /// from this snapshot (= the AppDelegate static is now
+    /// a one-line forwarder; = the AppDelegate no longer
+    /// holds the canonical instance).
+    nonisolated func currentConductorSync() -> WenshuConductor? {
+        WenshuAgent.conductorSnapshot.withLock { $0 }
+    }
+
+    /// Install + uninstall also update the nonisolated snapshot
+    /// (= so the sync accessor stays in sync with the actor-
+    /// isolated source of truth).
+    fileprivate static let conductorSnapshot = ConductorSnapshot()
+
+    fileprivate final class ConductorSnapshot: @unchecked Sendable {
+        private var value: WenshuConductor?
+        private let lock = NSLock()
+        func withLock<R>(_ body: (inout WenshuConductor?) -> R) -> R {
+            lock.lock()
+            defer { lock.unlock() }
+            return body(&value)
+        }
     }
 
     // MARK: - Providers with keys

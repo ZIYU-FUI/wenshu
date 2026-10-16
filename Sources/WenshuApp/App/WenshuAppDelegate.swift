@@ -81,10 +81,39 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     // No per-actor sqlite3 bootstrap needed. Swift 6 strict concurrency fix: was
     // `nonisolated(unsafe) static var` (= race-prone). Replaced with @MainActor
     // accessor (= safe; = SwiftUI-compliant).
-    @MainActor private static var _sharedConductor: WenshuConductor?
+    // AUDIT.md §2.2 partial (2026-10-16): `WenshuAppDelegate
+    // .sharedConductor` was the static source of truth for
+    // the conductor instance. After the WenshuAgent.shared
+    // facade landed, the public facade is the canonical
+    // owner (= the WenshuAppDelegate installs the conductor
+    // once at app launch via `WenshuAgent.shared.install
+    // Conductor(_:)`; = the public facade also publishes
+    // to a nonisolated snapshot via the new
+    // `currentConductorSync()` method). This static now
+    // reads from the facade snapshot; = future callers
+    // should call `WenshuAgent.shared.currentConductorSync()`
+    // directly (= this static is the deprecation bridge
+    // for the remaining 4 init-param callers that need a
+    // `var` to read at init time).
     @MainActor static var sharedConductor: WenshuConductor? {
-        get { _sharedConductor }
-        set { _sharedConductor = newValue }
+        WenshuAgent.shared.currentConductorSync()
+    }
+
+    /// Internal setter (= called once at app launch from
+    /// `applicationDidFinishLaunching`; = publishes the
+    /// conductor instance to the public facade's
+    /// nonisolated snapshot so SwiftUI `var` callers
+    /// can read it without `await`).
+    @MainActor static func _setSharedConductor(_ conductor: WenshuConductor?) {
+        if let conductor = conductor {
+            // Fire-and-forget: the actor install is async;
+            // = the snapshot will catch up by the time
+            // the main-actor context returns to the run
+            // loop (= before any SwiftUI body re-evaluation).
+            Task { await WenshuAgent.shared.installConductor(conductor) }
+        } else {
+            Task { await WenshuAgent.shared.uninstallConductor() }
+        }
     }
 
     @MainActor @objc func resetLayout(_ sender: Any?) {
@@ -232,7 +261,12 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // lives in WSChatRepository.shared (= @MainActor SwiftData wrapper; =
         // warehouse container activated above). No per-actor sqlite3 chat
         // store bootstrap needed.
-        Self.sharedConductor = WenshuConductor(
+        // AUDIT.md §2.2 partial (2026-10-16): the conductor
+        // instance is now built first, then installed into
+        // the public facade (= WenshuAgent.shared is the
+        // canonical owner; = the AppDelegate no longer holds
+        // the canonical reference).
+        let conductorInstance = WenshuConductor(
             runtime: Self.sharedRuntime,
             verifier: Self.sharedVerifier,
             // P0-AGENT-LOOP (2026-10-16 boss OOB "agent 没有达到 agent 的标准"):
@@ -246,6 +280,14 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
             // `maxAgentTurns = 10`).
             connector: WenshuAppDelegateLLMHelpers.activeLLMConnector()
         )
+        // Bridge the AppDelegate static (= still consumed by
+        // the remaining 4 init-param callers in ChatZoneView,
+        // ChatView, ChatSessionViewModel, EditorChatNSController)
+        // to the public facade. The setter is kept for
+        // backward compatibility; = it now publishes the
+        // instance into the public facade instead of
+        // holding it locally.
+        Self._setSharedConductor(conductorInstance)
         let card = AgentCard(
             name: "wenshu",
             description: "wenshu 本地主 agent, 接 MiniMax key, 支持 chat UI",
@@ -265,7 +307,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // above), so installing it on the facade propagates that
         // fix to every future caller that uses WenshuAgent.shared
         // .chat() / .currentConductor().
-        Task { await WenshuAgent.shared.installConductor(Self.sharedConductor!) }
+        Task { await WenshuAgent.shared.installConductor(conductorInstance) }
 
         NSApp.activate(ignoringOtherApps: true)
         if ProcessInfo.processInfo.environment["WS_SCREENSHOT"] == "1" {
