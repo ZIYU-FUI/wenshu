@@ -77,17 +77,6 @@ actor SSEClient {
                     if let body {
                         request.httpBody = body
                     }
-                    // Per boss 2026-10-16 OOB "响应了, 但
-                    // 没有输入任务内容": diagnostic print
-                    // (= the user observed tokens increment
-                    // in the chrome footer but the chat bubble
-                    // stayed empty; = the streaming delta
-                    // events were being parsed but the
-                    // accumulator wasn't getting updated OR
-                    // the @MainActor dispatch wasn't firing).
-                    // The print below is the next debugging
-                    // step; = remove once the issue is
-                    // resolved.
                     NSLog("WSStream: POST %@ bodyBytes=%d", url.absoluteString, body?.count ?? 0)
                     let (bytes, response) = try await session.bytes(for: request)
                     guard let http = response as? HTTPURLResponse else {
@@ -120,71 +109,109 @@ actor SSEClient {
                             ]
                         )
                     }
-                    // Parse SSE: read line by line, accumulate
-                    // event: + data: until blank line.
+                    // Parse SSE: read byte-by-byte and split on
+                    // \n (or \r\n), preserving empty lines (= the
+                    // event boundary). The previous design used
+                    // `for try await line in bytes.lines`, but
+                    // URLSession.bytes.lines SKIPS empty lines
+                    // (= the for-await never sees the boundary
+                    // = pendingEvent + pendingData stuck on the
+                    // first event = no yields ever).
+                    //
+                    // The replacement iterates the AsyncBytes
+                    // byte-by-byte, accumulates into a
+                    // currentLine, and yields on each \n (= with
+                    // a trailing CR stripped). Empty lines are
+                    // passed through (= this is what fires the
+                    // `line.isEmpty` boundary check).
                     var pendingEvent = ""
                     var pendingData: [String] = []
                     var rawLineCount = 0
                     var firstRawLines = ""
                     var yieldCount = 0
                     var rawBoundaryCount = 0
-                    for try await line in bytes.lines {
+                    // Build the current line as a byte array (= the
+                    // String+Character approach was getting a
+                    // type-inference error from the compiler on
+                    // UnicodeScalar; = bytes-as-Data is the
+                    // simpler path; = we convert to String at
+                    // the \n boundary).
+                    var currentLineBytes: [UInt8] = []
+                    var byteCount = 0
+                    for try await byte in bytes {
                         if Task.isCancelled { break }
-                        rawLineCount += 1
-                        if rawLineCount <= 5 { firstRawLines += "[\(rawLineCount)]len=\(line.count)'\(line.prefix(40))' " }
-                        // Per boss 2026-10-16 OOB "又发了一次,
-                        // 还是没出现文字": minimax returns
-                        // SSE lines with a trailing CR
-                        // (= the raw wire shape is
-                        // "event: message_start\r\n", not
-                        // "event: message_start\n"). The
-                        // empty-line boundary check
-                        // `line.isEmpty` was false for
-                        // "event: message_start\r" (=
-                        // not empty) so the boundary
-                        // handler never fired and the
-                        // `pendingEvent` / `pendingData`
-                        // got stuck in the first event
-                        // (no yields ever). The fix:
-                        // strip trailing CR / whitespace
-                        // before the isEmpty check. The
-                        // line content (= "event: ..." or
-                        // "data: ...") is also affected;
-                        // the `dropFirst("event:".count)`
-                        // / `dropFirst("data:".count)`
-                        // sites don't need the CR trim
-                        // because the prefix matches
-                        // before the CR.
-                        let trimmedLine = line.hasSuffix("\r") ? String(line.dropLast()) : line
-                        if trimmedLine.isEmpty {
-                            // Event boundary: emit.
-                            rawBoundaryCount += 1
-                            if !pendingEvent.isEmpty || !pendingData.isEmpty {
-                                continuation.yield(SSEEvent(
-                                    event: pendingEvent,
-                                    data: pendingData.joined(separator: "\n")
-                                ))
-                                yieldCount += 1
-                                pendingEvent = ""
-                                pendingData = []
+                        byteCount += 1
+                        if byte == 0x0A { // \n
+                            // End of line: strip trailing CR
+                            // (= handle \r\n).
+                            if currentLineBytes.last == 0x0D {
+                                currentLineBytes.removeLast()
                             }
-                            continue
-                        }
-                        if trimmedLine.hasPrefix("event:") {
-                            pendingEvent = String(trimmedLine.dropFirst("event:".count))
-                                .trimmingCharacters(in: .whitespaces)
-                        } else if trimmedLine.hasPrefix("data:") {
-                            var v = String(trimmedLine.dropFirst("data:".count))
-                            // Strip leading single space (SSE convention).
-                            if v.hasPrefix(" ") { v.removeFirst() }
-                            pendingData.append(v)
-                        } else if trimmedLine.hasPrefix("id:") || trimmedLine.hasPrefix(":") {
-                            // id + comment lines: ignored (= comments
-                            // are heartbeat lines).
-                            continue
+                            // Convert the byte buffer to String for
+                            // the SSE parser (= ASCII + UTF-8
+                            // events; = never lossy here).
+                            let lineOut = String(decoding: currentLineBytes, as: UTF8.self)
+                            rawLineCount += 1
+                            if rawLineCount <= 5 {
+                                firstRawLines += "[\(rawLineCount)]len=\(lineOut.count)'\(lineOut.prefix(40))' "
+                            }
+                            if lineOut.isEmpty {
+                                // Event boundary: emit.
+                                rawBoundaryCount += 1
+                                if !pendingEvent.isEmpty || !pendingData.isEmpty {
+                                    continuation.yield(SSEEvent(
+                                        event: pendingEvent,
+                                        data: pendingData.joined(separator: "\n")
+                                    ))
+                                    yieldCount += 1
+                                    pendingEvent = ""
+                                    pendingData = []
+                                }
+                            } else if lineOut.hasPrefix("event:") {
+                                pendingEvent = String(lineOut.dropFirst("event:".count))
+                                    .trimmingCharacters(in: .whitespaces)
+                            } else if lineOut.hasPrefix("data:") {
+                                var v = String(lineOut.dropFirst("data:".count))
+                                // Strip leading single space (SSE convention).
+                                if v.hasPrefix(" ") { v.removeFirst() }
+                                pendingData.append(v)
+                            } else if lineOut.hasPrefix("id:") || lineOut.hasPrefix(":") {
+                                // id + comment lines: ignored
+                                // (= comments are heartbeat lines).
+                            }
+                            currentLineBytes.removeAll(keepingCapacity: true)
+                        } else {
+                            currentLineBytes.append(byte)
                         }
                     }
-                    try? "rawLineCount=\(rawLineCount) yieldCount=\(yieldCount) rawBoundaryCount=\(rawBoundaryCount) firstLines=\(firstRawLines)\n---\n".write(toFile: "/tmp/wsstream-lines-\(getpid()).log", atomically: true, encoding: .utf8)
+                    // Handle the final line if the stream ended
+                    // without a trailing \n (= edge case for
+                    // the last event in a non-SSE response).
+                    if !currentLineBytes.isEmpty {
+                        if currentLineBytes.last == 0x0D {
+                            currentLineBytes.removeLast()
+                        }
+                        let lineOut = String(decoding: currentLineBytes, as: UTF8.self)
+                        rawLineCount += 1
+                        if lineOut.isEmpty {
+                            rawBoundaryCount += 1
+                        } else if lineOut.hasPrefix("event:") {
+                            pendingEvent = String(lineOut.dropFirst("event:".count))
+                                .trimmingCharacters(in: .whitespaces)
+                        } else if lineOut.hasPrefix("data:") {
+                            var v = String(lineOut.dropFirst("data:".count))
+                            if v.hasPrefix(" ") { v.removeFirst() }
+                            pendingData.append(v)
+                        }
+                        if !pendingEvent.isEmpty || !pendingData.isEmpty {
+                            continuation.yield(SSEEvent(
+                                event: pendingEvent,
+                                data: pendingData.joined(separator: "\n")
+                            ))
+                            yieldCount += 1
+                        }
+                    }
+                    try? "rawLineCount=\(rawLineCount) yieldCount=\(yieldCount) rawBoundaryCount=\(rawBoundaryCount) byteCount=\(byteCount) firstLines=\(firstRawLines)\n---\n".write(toFile: "/tmp/wsstream-lines-\(getpid()).log", atomically: true, encoding: .utf8)
                     continuation.finish()
                 } catch is CancellationError {
                     continuation.finish()
