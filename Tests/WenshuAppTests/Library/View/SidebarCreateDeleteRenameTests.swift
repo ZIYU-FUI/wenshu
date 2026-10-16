@@ -20,6 +20,39 @@ import Foundation
 
 final class SidebarCreateDeleteRenameTests: XCTestCase {
 
+    /// Concatenated source of all `SidebarService*.swift` files in
+    /// `Features/Library/View/`. The business methods were split from
+    /// `SidebarService.swift` to `SidebarServiceMutation.swift` in A31
+    /// (= §6.6 god-class split; = the public surface survives; = the
+    /// helpers live in a sibling file). Tests use this helper to verify
+    /// the business surface across the split.
+    private func loadSidebarServiceBody() throws -> String {
+        let dir = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Features/Library/View/"
+        let files = try FileManager.default.contentsOfDirectory(atPath: dir)
+            .filter { $0.hasPrefix("SidebarService") && $0.hasSuffix(".swift") }
+            .sorted()
+        return try files.map { try String(contentsOfFile: dir + $0, encoding: .utf8) }
+            .joined(separator: "\n")
+    }
+
+    /// Concatenated source of `AppleSidebar*.swift` + `SidebarContextMenu*.swift`
+    /// + `SidebarSheets*.swift` in `Features/Library/View/`. The AppleSidebarView
+    /// was split by A31 / A95 / A108 (= the god-class arc). Tests use this
+    /// helper to verify the wiring (= showNew*Sheet state, SidebarContextMenu
+    /// Modifier, .sheet(item:) for rename, .alert for delete) survives the split.
+    private func loadAppleSidebarWiringBody() throws -> String {
+        let dir = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Features/Library/View/"
+        let files = try FileManager.default.contentsOfDirectory(atPath: dir)
+            .filter {
+                ($0.hasPrefix("AppleSidebar") || $0.hasPrefix("SidebarContextMenu") || $0.hasPrefix("SidebarSheets"))
+                    && $0.hasSuffix(".swift")
+            }
+            .sorted()
+        return try files.map { try String(contentsOfFile: dir + $0, encoding: .utf8) }
+            .joined(separator: "\n")
+    }
+
+
     // MARK: - SidebarSheets.swift presence (= 4 sheets + 2 state types)
 
     func testSidebarSheets_file_exists() {
@@ -142,10 +175,7 @@ final class SidebarCreateDeleteRenameTests: XCTestCase {
     // MARK: - SidebarService.swift create/delete/rename API
 
     func testSidebarService_has_createShelf() throws {
-        let body = try String(
-            contentsOfFile: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Features/Library/View/SidebarService.swift",
-            encoding: .utf8
-        )
+        let body = try loadSidebarServiceBody()
         XCTAssertTrue(
             body.contains("func createShelf("),
             "SidebarService must expose `createShelf` business method (= legacy NewLibraryOutlineView had it)"
@@ -153,10 +183,7 @@ final class SidebarCreateDeleteRenameTests: XCTestCase {
     }
 
     func testSidebarService_has_createBook() throws {
-        let body = try String(
-            contentsOfFile: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Features/Library/View/SidebarService.swift",
-            encoding: .utf8
-        )
+        let body = try loadSidebarServiceBody()
         XCTAssertTrue(
             body.contains("func createBook("),
             "SidebarService must expose `createBook` business method (= legacy NewLibraryOutlineView had it)"
@@ -164,10 +191,7 @@ final class SidebarCreateDeleteRenameTests: XCTestCase {
     }
 
     func testSidebarService_has_deleteShelf_and_deleteBook() throws {
-        let body = try String(
-            contentsOfFile: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Features/Library/View/SidebarService.swift",
-            encoding: .utf8
-        )
+        let body = try loadSidebarServiceBody()
         XCTAssertTrue(
             body.contains("func deleteShelf("),
             "SidebarService must expose `deleteShelf` business method"
@@ -179,10 +203,7 @@ final class SidebarCreateDeleteRenameTests: XCTestCase {
     }
 
     func testSidebarService_has_renameShelf_and_renameBook() throws {
-        let body = try String(
-            contentsOfFile: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Features/Library/View/SidebarService.swift",
-            encoding: .utf8
-        )
+        let body = try loadSidebarServiceBody()
         XCTAssertTrue(
             body.contains("func renameShelf("),
             "SidebarService must expose `renameShelf` business method"
@@ -194,10 +215,7 @@ final class SidebarCreateDeleteRenameTests: XCTestCase {
     }
 
     func testSidebarService_has_picker_helpers() throws {
-        let body = try String(
-            contentsOfFile: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Features/Library/View/SidebarService.swift",
-            encoding: .utf8
-        )
+        let body = try loadSidebarServiceBody()
         XCTAssertTrue(
             body.contains("func availableShelvesForPicker("),
             "SidebarService must expose `availableShelvesForPicker` (= the legacy helper for the New Book sheet's shelf picker)"
@@ -213,10 +231,7 @@ final class SidebarCreateDeleteRenameTests: XCTestCase {
     }
 
     func testSidebarService_blocks_default_shelf_deletion() throws {
-        let body = try String(
-            contentsOfFile: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Features/Library/View/SidebarService.swift",
-            encoding: .utf8
-        )
+        let body = try loadSidebarServiceBody()
         // The default shelf (UUID 00000000-0000-0000-0000-000000000000)
         // must NOT be deletable (= legacy Reference Library behavior;
         // = boss 2026-09 OOB 'Reference Library cannot be deleted').
@@ -228,10 +243,7 @@ final class SidebarCreateDeleteRenameTests: XCTestCase {
     }
 
     func testSidebarService_has_reserved_name_guard() throws {
-        let body = try String(
-            contentsOfFile: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Features/Library/View/SidebarService.swift",
-            encoding: .utf8
-        )
+        let body = try loadSidebarServiceBody()
         // NewLibraryOutlineView had `reservedNames = ["Reference Library",
         // "书架"]`; = the migration block must still reject the
         // legacy system shelf name (= boss 2026-09 OOB).
@@ -244,10 +256,7 @@ final class SidebarCreateDeleteRenameTests: XCTestCase {
     // MARK: - AppleSidebarView.swift wires it all together
 
     func testAppleSidebarView_wires_sheets() throws {
-        let body = try String(
-            contentsOfFile: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Features/Library/View/AppleSidebarView.swift",
-            encoding: .utf8
-        )
+        let body = try loadAppleSidebarWiringBody()
         XCTAssertTrue(
             body.contains("showNewChoiceSheet") &&
             body.contains("showNewShelfSheet") &&
@@ -263,23 +272,23 @@ final class SidebarCreateDeleteRenameTests: XCTestCase {
     }
 
     func testAppleSidebarView_wires_request_counters() throws {
-        let body = try String(
-            contentsOfFile: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Features/Library/View/AppleSidebarView.swift",
-            encoding: .utf8
-        )
+        let body = try loadAppleSidebarWiringBody()
+        // The 3 request counters moved from `AppState` (= legacy) to
+        // `SheetRequestState` (= the dedicated sheet-counter holder; =
+        // v2.x refactor). AppleSidebarView observes them via
+        // `.onChange(of: sheetRequests.{choice, newShelf, newBook})`
+        // (= 3 separate observers = one per counter). The test
+        // verifies the new names survive the split.
         XCTAssertTrue(
-            body.contains("choiceRequestCount") &&
-            body.contains("newShelfRequestCount") &&
-            body.contains("newBookRequestCount"),
-            "AppleSidebarView must observe the 3 AppState request counters"
+            body.contains("sheetRequests.choice") &&
+            body.contains("sheetRequests.newShelf") &&
+            body.contains("sheetRequests.newBook"),
+            "AppleSidebarView must observe the 3 SheetRequestState request counters"
         )
     }
 
     func testAppleSidebarView_wires_rename_and_delete() throws {
-        let body = try String(
-            contentsOfFile: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Features/Library/View/AppleSidebarView.swift",
-            encoding: .utf8
-        )
+        let body = try loadAppleSidebarWiringBody()
         XCTAssertTrue(
             body.contains(".sheet(item: $renaming)"),
             "AppleSidebarView must present the rename sheet via .sheet(item:)"
