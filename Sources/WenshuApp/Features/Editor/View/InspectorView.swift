@@ -378,6 +378,19 @@ struct InspectorView: View {
             // ToolbarItem(placement:) blocks.' Combine the 3 .principal
             // items into one ToolbarItemGroup.
             ToolbarItemGroup(placement: .principal) {
+                // Inspector-specific controls (= the inspector toggle + the
+                // ⌘K command palette trigger). The 9 window-open buttons
+                // (kanban/todo/canvas/.../summaries) that previously lived here
+                // were moved to Features/Chrome/View/ChromeMainToolbar.swift
+                // (= the canonical full set per boss 2026-10-16 OOB: 1 source
+                // of truth for the 11-window button format; = the title
+                // bar already shows the full set; = showing them again
+                // here = duplicate entry = same feature surface but 2
+                // buttons per window = the user 看到的标题栏重复).
+
+                // 1. Inspector toggle (= the only inspector-specific
+                // window control that DOES belong here; = the
+                // `.inspector(isPresented:)` modifier's toggle).
                 Button {
                     inspectorVisibleBinding.toggle()
                 } label: {
@@ -389,36 +402,10 @@ struct InspectorView: View {
                 }
                 .help(String(localized: "inspector.toggle.help"))
 
-                Button {
-                    wenshuLogger.info("[wenshu.window] click: openWindow id=\(WindowID.kanban)")
-                    openWindow(id: WindowID.kanban)
-                } label: {
-                    Label {
-                        Text(String(localized: "window.kanban.open"))
-                    } icon: {
-                        SFIcon("rectangle.split.3x1", style: .inlineSmall, color: IconColor.tint)
-                    }
-                }
-                .help(String(localized: "window.kanban.help"))
-
-                Button {
-                    wenshuLogger.info("[wenshu.window] click: openWindow id=\(WindowID.todo)")
-                    openWindow(id: WindowID.todo)
-                } label: {
-                    Label {
-                        Text(String(localized: "window.todo.open"))
-                    } icon: {
-                        SFIcon("checklist", style: .inlineSmall, color: IconColor.tint)
-                    }
-                }
-                .help(String(localized: "window.todo.help"))
-
-                // explicit
-                // CommandPalette toolbar button. The palette
-                // sheet host in LibraryRootView already listens
-                // for `.wenshuShowCommandPalette` notifications;
-                // = this button is the visible trigger (= posts
-                // the notification via CommandPaletteController.show).
+                // 2. ⌘K command palette trigger (= the only other
+                // inspector-specific control). The palette is a sheet
+                // (= not a window; = lives in the inspector zone, not
+                // the title bar).
                 Button {
                     CommandPaletteController.show()
                 } label: {
@@ -429,138 +416,7 @@ struct InspectorView: View {
                     }
                 }
                 .help(String(localized: "command_palette.open.help"))
-
-                // 4
-                // toolbar buttons that open 4 independent windows
-                // for previously-unwired features (= same shape as
-                // kanban + todo).
-                Button {
-                    wenshuLogger.info("[wenshu.window] click: openWindow id=\(WindowID.canvas)")
-                    openWindow(id: WindowID.canvas)
-                } label: {
-                    Label {
-                        Text(String(localized: "window.canvas.open"))
-                    } icon: {
-                        SFIcon("rectangle.3.group", style: .inlineSmall, color: IconColor.tint)
-                    }
-                }
-                .help(String(localized: "window.canvas.help"))
-
-                Button {
-                    wenshuLogger.info("[wenshu.window] click: openWindow id=\(WindowID.composer)")
-                    openWindow(id: WindowID.composer)
-                } label: {
-                    Label {
-                        Text(String(localized: "window.composer.open"))
-                    } icon: {
-                        SFIcon("arrow.triangle.merge", style: .inlineSmall, color: IconColor.tint)
-                    }
-                }
-                .help(String(localized: "window.composer.help"))
-
-                Button {
-                    wenshuLogger.info("[wenshu.window] click: openWindow id=\(WindowID.foreshadowingGraph)")
-                    openWindow(id: WindowID.foreshadowingGraph)
-                } label: {
-                    Label {
-                        Text(String(localized: "window.foreshadowing_graph.open"))
-                    } icon: {
-                        SFIcon("arrow.triangle.branch", style: .inlineSmall, color: IconColor.tint)
-                    }
-                }
-                .help(String(localized: "window.foreshadowing_graph.help"))
-
-                Button {
-                                    wenshuLogger.info("[wenshu.window] click: openWindow id=\\(WindowID.cron)")
-                                    openWindow(id: WindowID.cron)
-                                } label: {
-                                    Label {
-                                        Text(String(localized: "window.cron.open"))
-                                    } icon: {
-                                        SFIcon("clock", style: .inlineSmall, color: IconColor.tint)
-                                    }
-                                }
-                                .help(String(localized: "window.cron.help"))
-
-                                Button {
-                                    wenshuLogger.info("[wenshu.window] click: openWindow id=\(WindowID.attachments)")
-                                    openWindow(id: WindowID.attachments)
-                                } label: {
-                                    Label {
-                                        Text(String(localized: "window.attachments.title"))
-                                    } icon: {
-                                        SFIcon("paperclip", style: .inlineSmall, color: IconColor.tint)
-                                    }
-                                }
-                                .help(String(localized: "window.attachments.title"))
-
-                                Button {
-                                    wenshuLogger.info("[wenshu.window] click: openWindow id=\(WindowID.manifest)")
-                                    openWindow(id: WindowID.manifest)
-                                } label: {
-                                    Label {
-                                        Text(String(localized: "window.manifest.title"))
-                                    } icon: {
-                                        SFIcon("doc.text.below.ecg", style: .inlineSmall, color: IconColor.tint)
-                                    }
-                                }
-                                .help(String(localized: "window.manifest.title"))
-
-                                Button {
-                                    wenshuLogger.info("[wenshu.window] click: openWindow id=\(WindowID.summaries)")
-                                    openWindow(id: WindowID.summaries)
-                                } label: {
-                                    Label {
-                                        Text(String(localized: "window.summaries.title"))
-                                    } icon: {
-                                        SFIcon("text.bubble", style: .inlineSmall, color: IconColor.tint)
-                                    }
-                                }
-                                .help(String(localized: "window.summaries.title"))
-
-                                // LLM Wiki
-                                // operator button = the manual surface for
-                                // LLMWikiOps.runAll. LLM can already call the
-                                // 'llm_wiki' tool (= v2.8d T17), and every
-                                // raw reference save auto-triggers derivation
-                                // (= v2.8d auto-call hook), but the operator
-                                // (= the user) has no direct "Re-derive wiki
-                                // now" affordance. This button closes A4.
-                                Button {
-                                    Task {
-                                        do {
-                                            if let result = try await LLMWikiOps.runAllFromActiveLibrary() {
-                                                let s = result.stats
-                                                wenshuLogger.info("[wenshu.llm_wiki.operator] ranAt=\(String(describing: result.ranAt)) raw=\(s?.rawCount ?? 0) abstracts=\(s?.abstractsWritten ?? 0) indexes=\(s?.indexesWritten ?? 0) lint=\(result.lintFindings?.count ?? 0)")
-                                            } else {
-                                                wenshuLogger.info("[wenshu.llm_wiki.operator] no active library bound (= wenshu.libraryPath missing or .ws absent)")
-                                            }
-                                        } catch {
-                                            wenshuLogger.info("[wenshu.llm_wiki.operator] failed: \(String(describing: error))")
-                                        }
-                                    }
-                                } label: {
-                                    Label {
-                                        Text(String(localized: "llm_wiki.operator.open"))
-                                    } icon: {
-                                        SFIcon("book.circle", style: .inlineSmall, color: IconColor.tint)
-                                    }
-                                }
-                                .help(String(localized: "llm_wiki.operator.help"))
-
-                                // ((see OOB.md #2026-09-28) OOB B5
-                // follow-up): Restore operator (= the Backup
-                // restore UI per AGENTS.md §11 baseline; = the
-                // canonical backup path is
-                // `BackupTools.list` / `BackupTools.restore`
-                // wrapped in @MainActor enum AppBackupOps).
-                Button {
-                                    Task { await restoreLatestBackup() }
-                                } label: {
-                                    Label(String(localized: "backup.operator.open"), systemImage: "arrow.uturn.backward.circle")
-                                }
-                                .help(String(localized: "backup.operator.help"))
-                }
+            }
         }
         // Re-inject AppState into the env chain. SwiftUI 6+ breaks
         // the @Environment chain across NavigationSplitView's
