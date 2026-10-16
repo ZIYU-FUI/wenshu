@@ -38,7 +38,7 @@ struct EditorView: View {
     // WenshuEditorServicesFactory.make needs referenceLibraryRoot + active book
     // root. Both come from BookStore (= injected via .environment(bookStore) at
     // the WindowGroup root in App.swift + LibraryRootView, per fix pattern).
-    @Environment(BookStore.self) private var bookStore
+    @Environment(BookStore.self) var bookStore
     // chapter-focus-lock 2026-09-28: editor flips to read-only when the user
     // has this tab focused AND the chat zone isn't visible (= the LLM is
     // rewriting this chapter). The chatVisible gate lives here because AppState
@@ -56,7 +56,7 @@ struct EditorView: View {
     // engine's coordinator; today the buttons act on the whole draft when no
     // selection is reported (= matches the existing FormatToolbarButtons
     // fallback behavior).
-    @State private var selectedText: String = ""
+    @State var selectedText: String = ""
 
     /// P2 #19 (WIRE-PARAGRAPH-002): applyParagraphAI spinner flag. Disables the
     /// 3 toolbar buttons + the menu while an LLM call is in flight (= prevents
@@ -696,7 +696,7 @@ struct EditorView: View {
     // (= single source of truth). These computed properties expose the per-tab
     // state to the rest of the view (= the @State versions are gone; =
     // switching tabs switches the active data set; = matches Safari behavior).
-    private var activeTab: EditorTab? {
+    var activeTab: EditorTab? {
         guard let idx = appState.openTabs.firstIndex(where: { $0.id == appState.activeTabId }) else { return nil }
         return appState.openTabs[idx]
     }
@@ -712,7 +712,7 @@ struct EditorView: View {
         activeTab?.documentPath
     }
 
-    private var draft: String {
+    var draft: String {
         // (see OOB.md #2026-09-07): when no tab is open, return empty string (=
         // no samplePreviewBody placeholder). The editor zone shows its empty-
         // state hint (= "libraryin progressdouble-clickcardopen") via
@@ -723,7 +723,7 @@ struct EditorView: View {
             appState.openTabs[idx].draft = newValue
         }
     }
-    private var originalBody: String {
+    var originalBody: String {
         get { activeTab?.originalBody ?? "" }
         nonmutating set {
             guard let idx = activeTabIndex else { return }
@@ -788,28 +788,8 @@ struct EditorView: View {
             appState.openTabs[idx].showDirtyDiscardConfirm = newValue
         }
     }
-    // save action writes draft back over originalBody (= dirty detection
-    // clears). When documentPath is non-nil (= the ticket 027-35 wires real
-    // document load), also write to disk (= atomic UTF-8 = Apple HIG file write
-    // pattern). Cmd+S hotkey (canonical surface) and Save toolbar button both
-    // call this directly. editor- mvvm T2b: disk IO + dirty state machine
-    // migrated to `EditorPersistence`. `saveDraft` is now a 3-line thin call
-    // site (= wire originalBody = draft → write to disk → mark clean).
-    private func saveDraft() {
-        guard let tab = activeTab else { return }
-        originalBody = draft
-        // editor-mvvm T2b: B-22 dirty-transition cleanup = mark the document
-        // clean (= cancels any pending auto-save Task via
-        // EditorPersistence.handleDirtyTransition(false, ...). Pass `nil` for
-        // bookStore (= the save path already ran with the right bookStore = the
-        // user just Cmd+S = the doc was either fresh-proposed via Path 2 or had
-        // documentPath from a previous save = no need to re-resolve the
-        // proposedPath). The tab.documentPath mutation (= the auto-bind from
-        // Path 2) only happens inside save(), so any subsequent save call sees
-        // the new path.
-        EditorPersistence.save(tab: tab, bookStore: bookStore)
-        EditorPersistence.handleDirtyTransition(false, tab: tab, bookStore: bookStore)
-    }
+    // (saveDraft extracted to EditorViewEditHelpers.swift in A86; = see that file)
+
 
     // editor-mvvm T2b: `EditorPersistence.reloadFromDisk` returns the new
     // content + conflict notice as a struct (= the helper is pure). This
@@ -845,7 +825,7 @@ struct EditorView: View {
     /// Looks up the display name in the reference library first (=
     /// library-public entities), then in the active book. On hit, opens the
     /// target as a new tab and switches to it.
-    private func handlePreviewWikiLink(displayName: String) {
+    func handlePreviewWikiLink(displayName: String) {
         guard !displayName.isEmpty else { return }
         guard let result = WikiLinkNavigation.handle(
             displayName: displayName,
@@ -873,20 +853,8 @@ struct EditorView: View {
         appState.openTabs.append(newTab)
         appState.activeTabId = newTab.id
     }
+    // (handleEditorWikiLink extracted to EditorViewEditHelpers.swift in A86; = see that file)
 
-    /// handle a wiki-link click from the live editor surface (= the engine
-    /// fires onLinkClick with the resolved link id, NOT the display name).
-    /// Resolve the id back to the display name via the active
-    /// WikiLinkResolver's name(forID:) and route through the preview-mode
-    /// navigation flow.
-    private func handleEditorWikiLink(linkId: String) {
-        guard !linkId.isEmpty else { return }
-        let resolver = ReferenceLibraryWikiLinkResolver(
-            referenceLibraryRoot: bookStore.stores.referenceLibraryRoot
-        )
-        let displayName = resolver.name(forID: linkId) ?? linkId
-        handlePreviewWikiLink(displayName: displayName)
-    }
 
     // MARK: - P2 #19 paragraph_ai apply
 
@@ -942,21 +910,8 @@ struct EditorView: View {
             wenshuLogger.info("[wenshu.editor] applyParagraphAI(\(transform.rawValue)) failed: \(String(describing: error))")
         }
     }
+    // (replaceSelectedText extracted to EditorViewEditHelpers.swift in A86; = see that file)
 
-    /// P2 #19: replace the current selection (= today: whole draft) with the
-    /// supplied text. Once the engine selection bridge lands, this becomes a
-    /// surgical NSRange replace (= same signature; only the body changes).
-    private func replaceSelectedText(with newText: String) {
-        // Fallback behavior (= mirrors FormatToolbarButtons in when the
-        // TextEditor selection isn't observable, wrap/overwrite the whole
-        // draft). Future ticket narrows to selected NSRange once the engine
-        // exposes an NSTextViewDelegate bridge.
-        draft = newText
-        // Reset the selection snapshot so the toolbar buttons disable until the
-        // user re- selects (= prevents the "press shortcut twice" footgun where
-        // the same LLM response replaces itself).
-        selectedText = ""
-    }
 
     // MARK: - B-23 file-system watcher editor-mvvm T1b: the DispatchSource
     // lifecycle (= fd open + event handler + cancel + close) migrated to
