@@ -13,40 +13,7 @@ import Foundation
 
 enum WCIRHelpers {
 
-        // MARK: - webSearchToolSchema
-
-    static let webSearchToolSchema: [ToolRegistrySchema] = [
-        ToolRegistrySchema(
-            name: "web_search",
-            description: """
-            Web search via the keyless anonymous public free tier ring \
-            (Parallel / Exa / Keenable, in that order). No API key \
-            or configuration is needed; works on first launch. \
-            Use this tool to find the canonical content for the entity \
-            the user is importing (= search the entity name; = return \
-            the top results with title / url / snippet; = the LLM \
-            then incorporates the search results into the rewritten \
-            body).
-            """,
-            inputSchema: [
-                "action": ToolRegistrySchemaProperty(
-                    type: "string",
-                    description: "The web_search operation to perform.",
-                    enumValues: ["search", "research"]
-                ),
-                "query": ToolRegistrySchemaProperty(
-                    type: "string",
-                    description: "Search query string (= required)."
-                ),
-                "limit": ToolRegistrySchemaProperty(
-                    type: "integer",
-                    description: "Maximum number of results to return."
-                )
-            ],
-            required: ["action", "query"]
-        )
-    ]
-
+        // (webSearchToolSchema extracted to WCIRToolSchema.swift in A89; = see that file)
     // MARK: - Prompt + parse
 
     /// The per-file user prompt (= asks the LLM to produce a structured JSON

@@ -186,7 +186,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         userPrompt: String
     ) -> LLMCallOptions {
         let tools: [ToolRegistrySchema] = (input.rewriteMode == .searchAndRewrite)
-            ? WCIRHelpers.webSearchToolSchema
+            ? WCIRToolSchema.webSearchToolSchema
             : []
         return LLMCallOptions(
             model: modelSlug,
@@ -424,7 +424,7 @@ actor WenshuConductorImportRouter: ImportRouter {
     /// Canonical `web_search` tool schema (= mirrors the registration in
     /// `WebSearchTool`; = the LLM sees this schema and decides when to call
     /// `web_search` for an entity).
-    // see WCIRHelpers.webSearchToolSchema (extracted in A19 for §6.6 god-class split).
+    // see WCIRToolSchema.webSearchToolSchema (extracted in A19 for §6.6 god-class split).
     // see WCIRHelpers.userPrompt (extracted in A19 for §6.6 god-class split).
     // see WCIRHelpers.rewriteModeBlock (extracted in A19 for §6.6 god-class split).
     // see WCIRHelpers.jsonShape (extracted in A19 for §6.6 god-class split).
