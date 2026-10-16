@@ -20,8 +20,20 @@
 //
 // (= 1 commit covering both connectors).
 //
+// AUDIT.md §2.6 partial (2026-10-16): WALogger.model logs
+// the connector-level lifecycle for OpenAI native +
+// OpenAI-compatible (= DeepSeek / OpenRouter / Ollama /
+// extra minimax providers that all use this wire format).
+// = every chat turn shows up in Console.app as
+// `WALogger.model debug "send start model=..."` then
+// `WALogger.network info "SSE attempt=..."`.
 
 import Foundation
+import os.log
+
+private let connectorLogger = Logger(
+    subsystem: "com.wenshu.agent", category: "model"
+)
 
 // MARK: - OpenAI native
 
@@ -32,12 +44,15 @@ actor OpenAIConnector: LLMConnector {
 
     init(session: URLSession = .shared) {
         self.session = session
+        connectorLogger.info("OpenAIConnector init")
     }
 
     func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
         let credentials = ConnectorCredentials.resolve(for: .openaiCodex)
+        connectorLogger.debug("send start model=\(options.model, privacy: .public) messages=\(messages.count)")
 
         guard !credentials.apiKey.isEmpty else {
+            connectorLogger.error("send missing API key")
             throw LLMConnectorError.missingAPIKey(provider: connectorID)
         }
 
@@ -65,15 +80,18 @@ actor OpenAIConnector: LLMConnector {
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
             let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
             let bodyPreview = String(data: data.prefix(500), encoding: .utf8) ?? ""
+            connectorLogger.error("send HTTP \(statusCode) body=\(bodyPreview, privacy: .private)")
             throw LLMConnectorError.transport(provider: connectorID, statusCode: statusCode, body: bodyPreview)
         }
 
         // Decode via shared helper (= TICKET-HERMES-GAP-002).
-        return try RequestHelpers.decodeOpenAIResponse(
+        let decoded = try RequestHelpers.decodeOpenAIResponse(
             data: data,
             model: options.model,
             providerID: connectorID
         )
+        connectorLogger.debug("send finish HTTP \(http.statusCode) tokens=in:\(decoded.usage.inputTokens)/out:\(decoded.usage.outputTokens)")
+        return decoded
     }
 
     // MARK: - Native streaming (P0-AGENT-STREAMING, boss 2026-10-16)
@@ -131,13 +149,16 @@ actor OpenAICompatibleConnector: LLMConnector {
         self.provider = provider
         self.session = session
         self.connectorID = provider.slug
+        connectorLogger.info("OpenAICompatibleConnector init provider=\(self.connectorID, privacy: .public)")
     }
 
     func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
         let credentials = ConnectorCredentials.resolve(for: provider)
+        connectorLogger.debug("send start provider=\(self.connectorID, privacy: .public) model=\(options.model, privacy: .public) messages=\(messages.count)")
 
         guard !credentials.apiKey.isEmpty || provider.slug == "ollama" else {
             // For non-Ollama providers, apiKey is required
+            connectorLogger.error("send missing API key")
             throw LLMConnectorError.missingAPIKey(provider: connectorID)
         }
 
@@ -167,15 +188,18 @@ actor OpenAICompatibleConnector: LLMConnector {
         guard let http = response as? HTTPURLResponse, (200..<300).contains(http.statusCode) else {
             let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
             let bodyPreview = String(data: data.prefix(500), encoding: .utf8) ?? ""
+            connectorLogger.error("send HTTP \(statusCode) body=\(bodyPreview, privacy: .private)")
             throw LLMConnectorError.transport(provider: connectorID, statusCode: statusCode, body: bodyPreview)
         }
 
         // Decode via shared helper (= TICKET-HERMES-GAP-002).
-        return try RequestHelpers.decodeOpenAIResponse(
+        let decoded = try RequestHelpers.decodeOpenAIResponse(
             data: data,
             model: options.model,
             providerID: connectorID
         )
+        connectorLogger.debug("send finish HTTP \(http.statusCode) tokens=in:\(decoded.usage.inputTokens)/out:\(decoded.usage.outputTokens)")
+        return decoded
     }
 
     /// T12b-WIRE-OPENAI-STATEFUL (2026-09-18): override the default
