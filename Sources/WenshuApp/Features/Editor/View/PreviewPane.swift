@@ -92,8 +92,8 @@ struct PreviewPane: View {
     /// rename / delete from either surface; = but the PreviewPane gets its own
     /// local sheet state since `AppleSidebarView`'s sheet is local to that
     /// view).
-    @State private var cardRenaming: SidebarRenamingTarget?
-    @State private var cardPendingDelete: SidebarPendingDelete?
+    @State var cardRenaming: SidebarRenamingTarget?
+    @State var cardPendingDelete: SidebarPendingDelete?
     /// a local SidebarService (= the second column's reference cards need a
     /// service to call `renameReference` / `deleteReference`). The service is
     /// @State (= the service is an actor-isolated class; = @State holds the
@@ -1092,58 +1092,14 @@ struct PreviewPane: View {
         cardService = service
         return service
     }
+    // (beginReferenceRename extracted to PreviewPaneCardActions.swift in A80; = see that file)
 
-    /// begin the rename flow for a single reference card (= set `cardRenaming`
-    /// to a `.reference` target). The `originalName` is read from the
-    /// `Reference`'s current title.
-    func beginReferenceRename(_ entity: Reference) {
-        cardRenaming = SidebarRenamingTarget(
-            kind: .reference,
-            itemId: entity.id,
-            originalName: entity.title,
-            shelfId: nil
-        )
-    }
+    // (beginReferenceDelete extracted to PreviewPaneCardActions.swift in A80; = see that file)
 
-    /// begin the delete flow for a single reference card (= set
-    /// `cardPendingDelete` to a `.reference` target). The delete alert shows
-    /// the reference's title + a destructive confirm button.
-    func beginReferenceDelete(_ entity: Reference) {
-        cardPendingDelete = SidebarPendingDelete(
-            kind: .reference,
-            itemId: entity.id,
-            itemName: entity.title
-        )
-    }
+    // (beginBookDocRename extracted to PreviewPaneCardActions.swift in A80; = see that file)
 
-    /// begin the rename flow for a single book doc card (= set `cardRenaming`
-    /// to a `.bookDoc` target). Mirrors the reference helper (= the rename
-    /// sheet's `.bookDoc` case shows the file's current title + uses
-    /// `otherBookDocTitles` for the duplicate check; = the underlying service
-    /// method `renameBookDoc` updates the .md file's filename + content
-    /// heading).
-    func beginBookDocRename(_ doc: BookDoc) {
-        cardRenaming = SidebarRenamingTarget(
-            kind: .bookDoc,
-            itemId: doc.id,
-            originalName: doc.title,
-            shelfId: nil
-        )
-    }
+    // (beginBookDocDelete extracted to PreviewPaneCardActions.swift in A80; = see that file)
 
-    /// begin the delete flow for a single book doc card (= set
-    /// `cardPendingDelete` to a `.bookDoc` target). The delete alert shows the
-    /// file's title + a destructive confirm button. The underlying
-    /// `deleteBookDoc` service method removes the .md file from disk (= the
-    /// book doc is JUST a file; = no entities.json index entry to remove; = the
-    /// file deletion IS the complete delete).
-    func beginBookDocDelete(_ doc: BookDoc) {
-        cardPendingDelete = SidebarPendingDelete(
-            kind: .bookDoc,
-            itemId: doc.id,
-            itemName: doc.title
-        )
-    }
 
     /// helper for shelfScopeView. Returns the books that live under the given
     /// shelf (= the books whose `.shelfId` matches). Reads from the same
