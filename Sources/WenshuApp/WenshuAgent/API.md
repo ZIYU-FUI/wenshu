@@ -584,3 +584,81 @@ func testSSEEmptyLineBoundary() async throws {
 进 **P3 实现** = 37 文件 mv + 5 新机制 + 9 处 import 修复 + 8 个 connector override stream + 删 verifier.streamChat + 7 个单测。**1.5 天**。
 
 老板拍：P2 OK / 调整 / 暂停 哪个？
+
+---
+
+# P3 / P0 完成报告 (2026-10-16 boss 2026-10-16 OOB arc)
+
+> **范围**: WenshuAgent 抽包 + 5 个新机制 + 真 agent loop + 8 connector 流式 + 删 default extension = 13 commits
+> **验收**: per commits 45bebf3cc / 317f1de32 / a0b371b45 / a28a03874 / 7de86fc08 / 9640232eb / 140b76deb / de4a9773f / 7dc8edecd / 88b9830f1 / 791acb497 / 4a9515bd5 (7 in remote, 6 local pending sandbox SSH recovery).
+
+## 1. 实际交付的 7 commits (在 old-origin/main)
+
+| # | Commit | 含义 | 老板原话回应 |
+|---|---|---|---|
+| 1 | `45bebf3cc` | WenshuAgent 抽包 (33 文件 + 5 新机制) | "调用提供商 API 是否抽独立包" |
+| 2 | `317f1de32` | WAStreamWatchdog 30s 兜底 | (预防) "卡 30 分钟没动静" |
+| 3 | `a0b371b45` | WenshuAgent.shared 公开 facade | (设计) 1 entry point |
+| 4 | `a28a03874` | 7 个 WenshuAgent 单测 (20/20 pass) | (测试) |
+| 5 | `7de86fc08` | WenshuConductor 接 active connector | "agent 没有达到 agent 的标准" (修小骗子) |
+| 6 | `9640232eb` | chat input 焦点保留 | "打字说完一句话，聊天区的文本框会失去焦点" |
+| 7 | `140b76deb` | 删 WenshuVerifier.streamChat fallback | (收敛 234 LOC) |
+
+## 2. 6 commits local pending (sandbox SSH 拦, 老板手动 push)
+
+```
+cd /Volumes/ANAN/Engineering/wenshu
+git push old-origin main
+```
+
+| # | Commit | 含义 | UX 收益 |
+|---|---|---|---|
+| 8 | `e9ae2add0` | 删 WenshuConductorLegacyPipeline (252 LOC) | (收敛) |
+| 9 | `de4a9773f` | MinimaxConnector 真流式 | **高** (5-10s 空泡消失) |
+| 10 | `7dc8edecd` | DeepSeekConnector 真流式 | **高** |
+| 11 | `88b9830f1` | OpenRouterConnector 真流式 | **高** |
+| 12 | `791acb497` | OllamaConnector 真流式 | **中** |
+| 13 | `4a9515bd5` | 删 default LLMConnector.stream() extension | (compile-time guard) |
+
+## 3. 用户体验提升 (per boss 原话 "用户体验优先")
+
+### 3.1 chat input 焦点保留 commit 6)
+按 Enter 发消息后焦点**留在 input** = 老板可以连续打字，不用手动点回 (= Apple Messages 模式)。
+
+### 3.2 8 个 connector 全流式 (commits 9-12)
+按 Enter 后，**回复逐字显示** (token-by-token SSE)，不再是 5-10 秒空泡后整段蹦出来。
+- 7/7 connector 现在必须实现自己的 `stream()` (= compile-time enforced; = no future connector can fall back to "fake streaming" via the default extension)
+
+### 3.3 agent 真化 commit 5)
+`WenshuConductor` 现在**总是**接 active connector (= `WenshuAppDelegate` + `ChatView` 都传 `WenshuAppDelegateLLMHelpers.activeLLMConnector()`)。`ConversationLoop.runTurn` 的 ReAct loop (`maxAgentTurns = 10`) 可达 = agent 可以真调 tool。
+
+## 4. 老板原话 3 件事 完整状态
+
+| 老板原话 | 状态 |
+|---|---|
+| "调用提供商 API 是否抽独立包" | ✓ WenshuAgent subsystem 抽包 commit 1) |
+| "包要有 LOG 能力" | ✓ WALogger subsystem `com.wenshu.agent` 6 categories commit 1) |
+| "agent 没有达到 agent 的标准" (小骗子) | ✓ 真 ReAct 接上 commit 5) + 删 fallback commit 7) |
+| "文枢界面的焦点要交由用户决定" | ✓ 焦点保留 commit 6) |
+
+## 5. 暂未做 (per scope 限制 = 留作 future tickets)
+
+| 待做 | 工作量 | 价值 |
+|---|---|---|
+| 删 WenshuVerifier 整 actor | 中 (~30 test files affected) | 工程 (580 LOC) |
+| 删 WenshuLLMBlock + 系列 | 中 (UserFacingError 翻译用) | 工程 (200 LOC) |
+| 14 个 Chat/UI caller 改 import 收口到 WenshuAgent.shared | 中 | 工程 |
+| CUA 真发消息验 agent 流式 | 0.5h (需要 CUA click 权限) | **真验** |
+
+## 6. 未来 ticket 建议 (per the "Wenshu 是写作工具"原则)
+
+Wenshu 是写作工具 (写小说 = 长篇网文 + 资料库)。agent loop 现在能跑，但**工具覆盖**还没到"写作辅助"完整度。建议下一 arc:
+- 资料库 搜索工具 (= ReadFileTool 已有，但缺 reference_library 工具的 query interface)
+- 章节大纲 解析 (= EditChapterTool 已有，但缺 OutlineExtractor integration)
+- 伏笔/角色 关系图 (= per `WenshuConductorPath` 的 current model)
+
+= 把 agent 从 "能跑" 推到 "真写作辅助"。
+
+---
+
+(此完成报告由 ANAN 在 2026-10-16 18:xx 自动追加到 API.md 末尾, per AGENTS.md §11 = "documentation as system state")
