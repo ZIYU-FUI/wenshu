@@ -184,6 +184,27 @@ struct AssetsPane: View {
                             .controlSize(.regular)
                             .textFieldStyle(.plain)
                         }
+                        // Per boss 2026-10-16 OOB "视觉上就高了一像素 ...
+                        // 搜索框的文字大小的光学尺寸的问题": without this,
+                        // SwiftUI centers the inner HStack by the
+                        // TextField's NSTextField control bounding box
+                        // (= the focus ring + inset box, which is taller
+                        // than the actual glyph baseline-to-baseline height).
+                        // That puts the TextField's bottom edge (= where the
+                        // chrome Divider visually anchors) 1 PT lower than
+                        // the editor's title text bottom edge (= which is
+                        // anchored to true text baseline). `.lastTextBaseline`
+                        // re-anchors the inner HStack on the actual text
+                        // baseline (= Pages / Notes document-toolbar
+                        // pattern; = the search glyph bottom aligns with the
+                        // editor title glyph bottom at the same Y).
+                        .frame(
+                            maxWidth: .infinity,
+                            alignment: Alignment(
+                                horizontal: .leading,
+                                vertical: .lastTextBaseline
+                            )
+                        )
                     }
                 )
             )
