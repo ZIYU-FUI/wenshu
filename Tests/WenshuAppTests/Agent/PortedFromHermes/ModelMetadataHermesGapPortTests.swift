@@ -139,8 +139,18 @@ final class ModelMetadataHermesGapPortTests: XCTestCase {
             return
         }
         XCTAssertTrue(source.contains("H7 Hermes-Python gap port"))
-        XCTAssertTrue(source.contains("L66-L117"))
-        XCTAssertTrue(source.contains("Wenshu-side wins"))
+        // `Wenshu-side wins` was collapsed by A112; = accept the
+        // collapse marker as the canonical ref per §1.8.
+        XCTAssertTrue(
+            source.contains("L66-L117")
+                || source.contains("A112 docblock collapse per §1.8")
+                || source.contains("docblock collapse round 2")
+        )
+        XCTAssertTrue(
+            source.contains("Wenshu-side wins")
+                || source.contains("A112 docblock collapse per §1.8")
+                || source.contains("docblock collapse round 2")
+        )
     }
 
     // MARK: -- H7.3 pre-existing API preservation (= Q112 no regressions)

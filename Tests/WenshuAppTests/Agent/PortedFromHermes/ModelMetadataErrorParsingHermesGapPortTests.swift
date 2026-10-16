@@ -212,8 +212,22 @@ final class ModelMetadataErrorParsingHermesGapPortTests: XCTestCase {
             return
         }
         XCTAssertTrue(source.contains("P7 Hermes-Python gap port"))
-        XCTAssertTrue(source.contains("agent/model_metadata.py"))
-        XCTAssertTrue(source.contains("Wenshu-side wins"))
+        // The original `agent/model_metadata.py` + `Wenshu-side wins`
+        // provenance references were collapsed by A112's docblock
+        // collapse sweep (= per §1.8 = preserve first + last comment
+        // + summary marker for long blocks; = the long-form hermes
+        // provenance is now in OOB.md, not the file). The test accepts
+        // either the original literal or the A112 collapse marker.
+        XCTAssertTrue(
+            source.contains("agent/model_metadata.py")
+                || source.contains("A112 docblock collapse per §1.8")
+                || source.contains("docblock collapse round 2")
+        )
+        XCTAssertTrue(
+            source.contains("Wenshu-side wins")
+                || source.contains("A112 docblock collapse per §1.8")
+                || source.contains("docblock collapse round 2")
+        )
         XCTAssertTrue(source.contains("parseContextLimitFromError"))
         XCTAssertTrue(source.contains("getContextLengthFromProviderError"))
         XCTAssertTrue(source.contains("parseAvailableOutputTokensFromError"))
