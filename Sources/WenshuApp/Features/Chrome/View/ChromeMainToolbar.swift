@@ -17,13 +17,14 @@
 //  Each button wires to one of the 11 WindowIDs registered in
 //  AppRootScene.swift. The implementation is the canonical Apple HIG
 //  `ToolbarItem(placement: .primaryAction)` + `Button { openWindow(id: ...)}`
-//  + `SFIcon(...)` pattern (= the same shape as the prior
-//  memoryHistory button that was the only one wired before A92).
-//  Buttons for windows without a usable surface today use a
-//  SFIcon + `.disabled` (= boss "大部分没开发完" = "most not yet
-//  developed"; = the button is registered + visible so the user
-//  sees the feature exists, but the action is disabled until the
-//  feature lands).
+//  + `SFIcon(...)` pattern.
+//  All 11 windows have actual panels (= see Features/<window-name>/
+//  View/<Window>.swift; = each was created in A93 with a real
+//  window view). Per boss 2026-10-16 OOB "不是未开发，是没开发完,
+//  之前是有面板的": the windows exist in MVP form (= a list /
+//  count / placeholder layout = visible + tappable) and will be
+//  filled in over time. The toolbar shows the full 11-button row
+//  (= 1 source of truth for the title bar).
 //
 
 import SwiftUI
@@ -79,25 +80,18 @@ extension ChromeMainToolbar: ToolbarContent {
                     isEnabled: true
                 )
 
-                // 2-11. The 10 other independent-window buttons
-                // (= boss 2026-10-16 OOB '大部分现在没有开发完').
-                // Each is registered (= visible in toolbar) but
-                // disabled until the underlying feature lands.
-                // The placeholders establish the toolbar layout
-                // (= 11 buttons at .primaryAction placement) so
-                // the user sees the full feature surface.
-                // All 11 (= 1 + 10) buttons share the WindowOpenButton
-                // format (= the same SFIcon + label + .help + openWindow
-                // shape; = 1 source of truth for the toolbar button
-                // format per boss OOB).
-                ForEach(WindowID.placeholderButtons, id: \.id) { button in
+                // 2-11. The 10 additional independent-window buttons.
+                // All 11 windows have actual panels (= see
+                // Features/<window-name>/View/<Window>.swift; = each
+                // window was created with a real UI in A93). All
+                // buttons are tappable.
+                ForEach(WindowID.toolbarButtons, id: \.id) { button in
                     WindowOpenButton(
                         id: button.id,
                         icon: button.icon,
                         title: String(localized: String.LocalizationValue(button.title)),
                         style: .small,
-                        openWindow: openWindow,
-                        isEnabled: button.isEnabled
+                        openWindow: openWindow
                     )
                 }
             }
@@ -123,30 +117,34 @@ extension ChromeMainToolbar: ToolbarContent {
 }
 
 extension WindowID {
-    /// Metadata for the 10 placeholder toolbar buttons (= boss
-    /// 2026-10-16 OOB: 大部分现在没有开发完 = "most not yet
-    /// developed"). Each entry is `enabled: false` until the
-    /// underlying feature lands (= see feature roadmap).
-    struct PlaceholderButton: Identifiable {
+    /// Metadata for the 11 independent-window toolbar buttons.
+    /// Per boss 2026-10-16 OOB "不是未开发，是没开发完，之前是有面板的":
+    /// all 11 windows have actual panels (= created in A93 = one
+    /// Feature per window, each with a real window view; = see
+    /// Features/Canvas/ + Composer/ + Foreshadowing/ + Cron/ +
+    /// Attachments/ + Manifest/ + Summaries/ + LibraryMigration/).
+    /// The "MVP" stage means the panel exists but its content is
+    /// light (= a list / count / placeholder layout) = visible and
+    /// tappable = enabled.
+    struct ToolbarButton: Identifiable {
         let id: String
         let icon: String
         let title: String
-        let isEnabled: Bool
     }
 
-    /// The 10 placeholder buttons (= one per unregistered feature
-    /// window). The memoryHistory button above is the only one
-    /// that's enabled (= the prior 1 wired button).
-    static let placeholderButtons: [PlaceholderButton] = [
-        PlaceholderButton(id: WindowID.kanban, icon: "rectangle.split.3x1", title: "看板", isEnabled: true),
-        PlaceholderButton(id: WindowID.todo, icon: "checklist", title: "待办", isEnabled: true),
-        PlaceholderButton(id: WindowID.canvas, icon: "rectangle.on.rectangle.angled", title: "Canvas", isEnabled: false),
-        PlaceholderButton(id: WindowID.composer, icon: "square.and.pencil", title: "Composer", isEnabled: false),
-        PlaceholderButton(id: WindowID.foreshadowingGraph, icon: "point.3.connected.trianglepath.dotted", title: "Foreshadowing Graph", isEnabled: false),
-        PlaceholderButton(id: WindowID.cron, icon: "clock.arrow.circlepath", title: "Cron", isEnabled: false),
-        PlaceholderButton(id: WindowID.attachments, icon: "paperclip", title: "Attachments", isEnabled: false),
-        PlaceholderButton(id: WindowID.manifest, icon: "list.bullet.rectangle", title: "Manifest", isEnabled: false),
-        PlaceholderButton(id: WindowID.summaries, icon: "doc.text", title: "Summaries", isEnabled: false),
-        PlaceholderButton(id: WindowID.libraryMigration, icon: "arrow.triangle.2.circlepath", title: "Library Migration", isEnabled: false)
+    /// The 10 additional independent-window buttons (=
+    /// the 11 total minus the 1 memoryHistory button that has its own
+    /// dedicated Button block above for documentation clarity).
+    static let toolbarButtons: [ToolbarButton] = [
+        ToolbarButton(id: WindowID.kanban, icon: "rectangle.split.3x1", title: "看板"),
+        ToolbarButton(id: WindowID.todo, icon: "checklist", title: "待办"),
+        ToolbarButton(id: WindowID.canvas, icon: "rectangle.on.rectangle.angled", title: "Canvas"),
+        ToolbarButton(id: WindowID.composer, icon: "square.and.pencil", title: "Composer"),
+        ToolbarButton(id: WindowID.foreshadowingGraph, icon: "point.3.connected.trianglepath.dotted", title: "Foreshadowing Graph"),
+        ToolbarButton(id: WindowID.cron, icon: "clock.arrow.circlepath", title: "Cron"),
+        ToolbarButton(id: WindowID.attachments, icon: "paperclip", title: "Attachments"),
+        ToolbarButton(id: WindowID.manifest, icon: "list.bullet.rectangle", title: "Manifest"),
+        ToolbarButton(id: WindowID.summaries, icon: "doc.text", title: "Summaries"),
+        ToolbarButton(id: WindowID.libraryMigration, icon: "arrow.triangle.2.circlepath", title: "Library Migration")
     ]
 }

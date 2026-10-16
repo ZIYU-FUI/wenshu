@@ -60,7 +60,12 @@ struct WindowOpenButton: View {
     let openWindow: OpenWindowAction
     /// Whether the button is enabled (= false for the 10 placeholder
     /// windows whose underlying feature has not landed).
-    let isEnabled: Bool
+    /// Defaults to `true` (= most windows have actual panels per
+    /// boss 2026-10-16 OOB "不是未开发，是没开发完，之前是有面板的";
+    /// = the MVP windows in Features/Canvas/ + Composer/ + Foreshadowing/
+    /// + Cron/ + Attachments/ + Manifest/ + Summaries/ + LibraryMigration/
+    /// all have a real window view that opens on tap).
+    var isEnabled: Bool = true
 
     var body: some View {
         Button {
