@@ -11,6 +11,7 @@ struct SettingView: View {
 
     @AppStorage("appearanceMode") private var appearanceMode: AppearanceMode = .system
     @AppStorage("wenshu.llm.provider") private var providerSlug: String = Provider.minimaxCn.slug
+    @AppStorage("wenshu.useKeychainForProviderKeys") private var useKeychainForProviderKeys: Bool = true
     // / Single-owner centralization: AppState.llmModel (= v1.72 T3b).
     // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / pattern as before.
@@ -432,6 +433,35 @@ struct SettingView: View {
 
     private var providersPane: some View {
         Form {
+            Section {
+                Toggle(isOn: $useKeychainForProviderKeys) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("使用系统钥匙串保存 key")
+                            .font(.body)
+                        Text(useKeychainForProviderKeys
+                            ? "钥匙存到 macOS 钥匙串 (= 加密, 仅本机, 跨 app 不可见)"
+                            : "钥匙存到 ~/Library/Application Support/com.wenshu.app/provider-keys.json (= 明文, 仅本机, 文枢内部 AI 读不到)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .onChange(of: useKeychainForProviderKeys) { _, newValue in
+                    // Re-resolve the backend so the next saveKeySync / loadKeySync
+                    // hits the right store. Without this the lazy-initialized
+                    // `ProviderKeychain.backend` would keep using whatever it
+                    // was first resolved to (= the user's first launch choice;
+                    // = toggling later would be silently ignored).
+                    ProviderKeychain.backend = ProviderKeychain.resolveBackend()
+                    NotificationCenter.default.post(
+                        name: .wenshuProviderKeychainChanged,
+                        object: nil
+                    )
+                }
+            } header: {
+                Text("钥匙串")
+            } footer: {
+                Text("默认走钥匙串 (= 安全 + 自动跨 app 隔离). 切到文件模式后, key 会随登录用户而非 app 沙箱隔离; 重装 wenshu 不会丢; 但同机其他管理员账号能读到.")
+            }
             Section {
                 ForEach(filteredProviders) { p in
                     Button {

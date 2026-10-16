@@ -331,46 +331,43 @@ enum ProviderKeychain {
     // Production path = AppleKeychainStore (= the user's macOS
     // Keychain = persists across app restarts + encrypted at rest
     // by the OS + sandbox-safe + survives wenshu updates).
-    nonisolated(unsafe) static var backend: any ProviderKeychainStoring = {
-        // apple-001 phase 1 candidate A-revised: eager env-var check
-        // (= test bundles that never call applicationWillFinishLaunching
-        // still honor the override; = cua / dev / CI overrides also
-        // honored).
-        //
-        // Build a remote-debug mode,
-        // once it's on, don't require the keychain — I can't test chat remotely otherwise, I can only poke at the UI':
-        // add a UserDefaults-based remote-debug switch (= for off-site
-        // macOS Keychain prompt for ad-hoc-signed wenshu.app hangs
-        // onboarding with no remote way to dismiss it; = for UI
-        // iteration over NavigationSplitView / sidebar / preview /
-        // editor / chat layout, the user needs to be able to launch
-        // wenshu.app WITHOUT touching keychain at all). 3 sources
-        // of the override, checked in this order (= first hit wins):
-        // 1. `WENSHU_DEBUG_INMEMORY_KEYCHAIN=1` env var (cua / dev
-        //    / CI; pre-existing convention from B-10 phase A).
-        // 2. UserDefaults key `wenshu.debugNoKeychain = YES` (NEW;
-        //    settable on the company Mac via
-        //    `defaults write com.wenshu.app wenshu.debugNoKeychain
-        //    -bool YES` before launching wenshu.app via `open`;
-        //    = persists across launches; = the canonical
-        //    'remote debug mode' toggle for off-site UI iteration).
-        // 3. Default: AppleKeychainStore (= the production path; =
-        //    the user's real API keys).
-        //
-        // Override flips the backend to InMemoryKeychainStore (=
-        // loadKeySync returns nil for every provider = ChatZoneView
-        // shows the empty-state hint 'please configure the LLM
-        // provider in Settings first'
-        // = no LLM call can be sent = the user can iterate on UI
-        // without ever touching macOS Keychain).
+    nonisolated(unsafe) static var backend: any ProviderKeychainStoring = resolveBackend()
+
+    /// Per-call backend resolver. The `static var backend` initializer
+    /// captures the result of this function the first time `backend` is
+    /// accessed (= lazy resolution). The toggle handler (= the
+    /// `wenshu.useKeychainForProviderKeys` change in SettingView)
+    /// re-invokes this and writes the new value back via the setter
+    /// (= `backend = resolveBackend()`), then posts the
+    /// `wenshuProviderKeychainChanged` notification (= the
+    /// ChatZoneView re-render path used by `3776296f6`).
+    ///
+    /// Resolution order (= 1 rationale lines collapsed; = A115 aggressive docblock collapse):
+    /// 1. `WENSHU_DEBUG_INMEMORY_KEYCHAIN=1` env var (= CI / UI iteration
+    ///    without a real keychain; = Apple HIG path for build-time
+    ///    overrides).
+    /// 2. `wenshu.debugNoKeychain` UserDefaults flag (= the dev-mode
+    ///    toggle; = see `WenshuAppDelegate` comments for the on/off
+    ///    path; = persists across launches).
+    /// 3. `wenshu.useKeychainForProviderKeys` UserDefaults flag
+    ///    (= the new boss-requested toggle; = default = ON = Apple
+    ///    Keychain; = OFF = file-based storage at
+    ///    `~/Library/Application Support/com.wenshu.app/provider-keys.json`).
+    /// 4. Default: AppleKeychainStore (= the canonical wenshu path;
+    ///    = the user's real API keys; = the AGENTS.md §11.2
+    ///    mandate).
+    static func resolveBackend() -> any ProviderKeychainStoring {
         if ProcessInfo.processInfo.environment["WENSHU_DEBUG_INMEMORY_KEYCHAIN"] == "1" {
             return InMemoryKeychainStore()
         }
         if UserDefaults.standard.bool(forKey: "wenshu.debugNoKeychain") {
             return InMemoryKeychainStore()
         }
+        if !UserDefaults.standard.bool(forKey: "wenshu.useKeychainForProviderKeys") {
+            return FileProviderKeyStore()
+        }
         return AppleKeychainStore()
-    }()
+    }
 
     /// Test-only override. Production code must never call this.
     static func setBackendForTesting(_ store: any ProviderKeychainStoring) {
