@@ -150,7 +150,14 @@ struct ObsidianVaultBatchImportTests {
         }
         let referenceStore = launchResult.stores.referenceStore
         let verifier = WenshuVerifier()
-        let verifierAvailable = (try? verifier.resolveCredentials()) != nil
+        // AUDIT.md §2.6 partial (2026-10-16 boss "清老代码必须做完" arc):
+        // WenshuVerifier.resolveCredentials was deleted; = the verifier
+        // is now a thin bridge to WenshuAgent.shared. The "verifier
+        // available" check is now derived from the public facade
+        // (= a conductor must be installed for the chat path to
+        // work; = the test harness installs the conductor in the
+        // launch path).
+        let verifierAvailable = (await WenshuAgent.shared.currentConductorSync()) != nil
         print("[BatchImport] library launched; verifier = \(verifierAvailable ? "available" : "nil (= keyword pass only)")")
 
         // 4. Walk each .md: rewrite body + classify + write.
