@@ -79,4 +79,15 @@ extension PreviewPane {
     }
 
 
+
+    @ViewBuilder
+    func emptyScopeView() -> some View {
+        emptyState(
+            icon: "book.pages",
+            titleKey: "preview.empty_state.pick_book",
+            bodyKey: "preview.empty.scope_hint"
+        )
+    }
+
+
 }

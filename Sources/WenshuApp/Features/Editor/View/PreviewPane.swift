@@ -734,7 +734,7 @@ struct PreviewPane: View {
 
     @ViewBuilder
 
-    private func referenceScopeView(category: EntityCategory?, tagOverride: String? = nil) -> some View {
+    func referenceScopeView(category: EntityCategory?, tagOverride: String? = nil) -> some View {
         // (see OOB.md #2026-09-07) — 'search,': apply the search filter (=
         // previewSearchQuery) on top of the category filter. Both filters
         // compose (= all entities → search filter → category filter).
@@ -771,7 +771,7 @@ struct PreviewPane: View {
     /// folderName nil = union of all 8 standard folders; non-nil = just that
     /// folder.
     @ViewBuilder
-    private func bookScopeView(bookId: UUID, folderName: String?) -> some View {
+    func bookScopeView(bookId: UUID, folderName: String?) -> some View {
         // the `libraryChangeTick` `@State` is read in the body's `.onReceive` (= the
         // parent's body re-evaluates when the tick changes; = this view is re-
         // instantiated as part of the body re-render; = the `loadBookDocs`
@@ -806,7 +806,7 @@ struct PreviewPane: View {
     /// union of all `loadBookDocs(bookId:, folderName: nil)` results filtered
     /// to books whose `shelfId == shelfId`).
     @ViewBuilder
-    private func shelfScopeView(shelfId: UUID) -> some View {
+    func shelfScopeView(shelfId: UUID) -> some View {
         // see the comment on `bookScopeView` (= the body's `.onReceive` reads the
         // `libraryChangeTick` @State; = no explicit read needed here). Stable-
         // id root-cause fix: the original ran FileManager I/O (= walk shelves
@@ -851,15 +851,6 @@ struct PreviewPane: View {
     }
 
     /// Empty scope: empty state with hint to select a sidebar item.
-    @ViewBuilder
-    private func emptyScopeView() -> some View {
-        emptyState(
-            icon: "book.pages",
-            titleKey: "preview.empty_state.pick_book",
-            bodyKey: "preview.empty.scope_hint"
-        )
-    }
-
     // MARK: - 3 view modes
 
     /// deleted `singleEntityDetail(_ entity: Reference) -> some View` (=
@@ -1129,17 +1120,15 @@ struct PreviewPane: View {
     /// scans one or more of the 8 standard folders for .md files. Errors (=
     /// missing folders, permission denied, etc.) are silently skipped so a
     /// single bad folder doesn't break the whole view (= partial load is more
-    /// useful than nothing).
-    /// Sort book docs by the current sort order (= same menu as entity scope,
-    /// but applied to BookDoc). (see OOB.md #2026-08-31) — sort still defaults
-    /// to .pinyinFirstLetter so docs in Chinese filenames also flow
-    /// alphabetically.
-    /// Sort entities by the selected sort order ((see OOB.md #2026-08-30)).
-    /// Returns a NEW array (doesn't mutate input). Stable sort by using id as
-    /// the tiebreaker (= prevents visual shuffle on re-render when entities
-    /// have equal sort keys).
-    /// Flat LazyVGrid for book docs (= same visual style as entity card grid,
-    /// but BookDocCard instead of EntityCard).
+    /// useful than nothing). Sort book docs by the current sort order (= same
+    /// menu as entity scope, but applied to BookDoc). (see OOB.md #2026-08-31)
+    /// — sort still defaults to .pinyinFirstLetter so docs in Chinese filenames
+    /// also flow alphabetically. Sort entities by the selected sort order ((see
+    /// OOB.md #2026-08-30)). Returns a NEW array (doesn't mutate input). Stable
+    /// sort by using id as the tiebreaker (= prevents visual shuffle on
+    /// re-render when entities have equal sort keys). Flat LazyVGrid for book
+    /// docs (= same visual style as entity card grid, but BookDocCard instead
+    /// of EntityCard).
     @ViewBuilder
     private func bookDocsGrid(docs: [BookDoc]) -> some View {
         let sorted = PreviewPaneOps.sortBookDocs(docs, by: previewSortOrder)
