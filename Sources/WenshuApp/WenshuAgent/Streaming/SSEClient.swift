@@ -68,10 +68,41 @@ actor SSEClient {
     func stream(body: Data? = nil) -> AsyncThrowingStream<SSEEvent, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
-                let diag = WAStreamDiag(attemptId: UUID())
-                let diagBox = MutableWAStreamDiag(diag)
-                WALogger.network.debug("SSE stream attempt=\(diagBox.diag.attemptId.uuidString.prefix(8), privacy: .public) url=\(self.url, privacy: .public) bodyBytes=\(body?.count ?? 0)")
+                let attemptId = UUID()
                 do {
+                    try await WAStreamWatchdog.shared.watch(attemptId: attemptId, timeout: 30) {
+                        await self.runStream(
+                            attemptId: attemptId,
+                            body: body,
+                            continuation: continuation
+                        )
+                    }
+                } catch is CancellationError {
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+            self.task = task
+            continuation.onTermination = { _ in
+                task.cancel()
+            }
+        }
+    }
+
+    /// Internal helper that performs the actual SSE work (= the body
+    /// inside the WAStreamWatchdog race). The watchdog throws
+    /// `WAStreamTimeoutError` if the entire stream takes longer than
+    /// 30s (= the user sees "AI 暂时不可用" instead of "(no reply)").
+    private func runStream(
+        attemptId: UUID,
+        body: Data?,
+        continuation: AsyncThrowingStream<SSEEvent, Error>.Continuation
+    ) async {
+        let diag = WAStreamDiag(attemptId: attemptId)
+        let diagBox = MutableWAStreamDiag(diag)
+        WALogger.network.debug("SSE stream attempt=\(diagBox.diag.attemptId.uuidString.prefix(8), privacy: .public) url=\(self.url, privacy: .public) bodyBytes=\(body?.count ?? 0)")
+        do {
                     var request = URLRequest(url: url)
                     request.httpMethod = "POST"
                     for (k, v) in headers {
@@ -223,12 +254,6 @@ actor SSEClient {
                 } catch {
                     continuation.finish(throwing: error)
                 }
-            }
-            self.task = task
-            continuation.onTermination = { _ in
-                task.cancel()
-            }
-        }
     }
 
     /// Cancel the current stream (= closes the URLSession bytes
