@@ -930,50 +930,8 @@ actor ImportService {
     }
     // (recordInCache extracted to ImportServiceDispatchHelpers.swift in A63; = see that file)
     // (writeExtraFile extracted to ImportServiceExtraFileWriter.swift in A66; = see that file)
+    // (writeReference extracted to ImportServiceReferenceWriter.swift in A67; = see that file)
 
-
-    /// Write the file to the reference library. Reuses the existing
-    /// `FileSystemReferenceStore.saveReferenceToFileSystem` (= see the e2e
-    /// scaffold's 4-phase pattern; = the LLM-supplied category + tags +
-    /// entityType are encoded into the Reference envelope).
-    private func writeReference(
-        body: String,
-        routing: ImportRoutingResult,
-        target: ImportTarget,
-        contentHash: String
-    ) async throws {
-        // uuid = content-hash-prefixed (= the same body always lands at the same
-        // reference-library file; = idempotent re-import dedup).
-        let uuid = ImportServiceHashing.uuidFromHash(contentHash)
-        // Build a Reference struct from the routing result (= the LLM supplies the
-        // metadata; = the orchestrator maps ImportRoutingResult onto the
-        // existing Reference struct).
-        let reference = Reference(
-            id: uuid,
-            title: routing.title,
-            source: ImportServiceDispatchHelpers.sourceStringFromPath(target: target),
-            layer: .layerEntities,
-            category: routing.category.flatMap { EntityCategory(rawValue: $0) },
-            tags: routing.tags,
-            entityType: EntityType.fromPromptNumber(Int(routing.entityType) ?? 0),
-            summary: routing.summary
-        )
-        // Write through the existing storage layer (= the FileSystemReferenceStore
-        // handles the index file at `entities/entities.json`).
-        try await MainActor.run { try target.referenceStore.saveReference(reference, bodyMarkdown: body) }
-        // Record the on-disk trail for the cancel-and-rollback path (= the reference-
-        // library .md file lives at the same path the
-        // `FileSystemReferenceStore` just wrote; = we reconstruct the URL from
-        // the same source-of-truth = no race with the storage layer's index
-        // file). The rollback handler deletes these .md files in reverse order
-        // and restores the prior `entities.json` from the snapshot taken at
-        // `importFiles` start.
-        let refMdURL = target.wsRoot
-            .appendingPathComponent("reference-library")
-            .appendingPathComponent("entities")
-            .appendingPathComponent("\(uuid.uuidString).md")
-        writtenURLs.append(refMdURL)
-    }
     // (sourceStringFromPath extracted to ImportServiceDispatchHelpers.swift in A63; = see that file)
 
 
