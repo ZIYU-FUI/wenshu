@@ -363,10 +363,21 @@ enum ProviderKeychain {
         if UserDefaults.standard.bool(forKey: "wenshu.debugNoKeychain") {
             return InMemoryKeychainStore()
         }
-        if !UserDefaults.standard.bool(forKey: "wenshu.useKeychainForProviderKeys") {
-            return FileProviderKeyStore()
-        }
-        return AppleKeychainStore()
+        // Per boss 2026-10-16 OOB "在用户配 key 的时候, 就两头
+        // 存. 无论用户怎么开关, 只是切换读 key 的位置":
+        // wrap the per-toggle primary in a `MirroredKeychainStore`
+        // that always writes both Apple Keychain AND
+        // `~/Library/Application Support/com.wenshu.app/provider-keys.json`,
+        // and reads the per-toggle primary first (= the
+        // keychain when ON, the file when OFF) with the
+        // other store as a self-healing fallback. The
+        // user's "key 配好后切换开关就读不到" bug (= the
+        // `2a132f25c` toggle behavior) goes away because
+        // both stores always hold the key.
+        let keychainPrimary = UserDefaults.standard.bool(
+            forKey: "wenshu.useKeychainForProviderKeys"
+        )
+        return MirroredKeychainStore(keychainPrimary: keychainPrimary)
     }
 
     /// Test-only override. Production code must never call this.

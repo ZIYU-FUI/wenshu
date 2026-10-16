@@ -439,10 +439,11 @@ struct SettingView: View {
                 }
                 .onChange(of: useKeychainForProviderKeys) { _, newValue in
                     // Re-resolve the backend so the next saveKeySync / loadKeySync
-                    // hits the right store. Without this the lazy-initialized
-                    // `ProviderKeychain.backend` would keep using whatever it
-                    // was first resolved to (= the user's first launch choice;
-                    // = toggling later would be silently ignored).
+                    // hits the right primary. The new `MirroredKeychainStore`
+                    // (= `d09c5d11` commit) always writes BOTH stores
+                    // (= Apple Keychain + file), so toggling the switch no
+                    // longer causes "key 没配" (= the previous bug the user
+                    // reported); the toggle only swaps the read primary.
                     ProviderKeychain.backend = ProviderKeychain.resolveBackend()
                     NotificationCenter.default.post(
                         name: .wenshuProviderKeychainChanged,
