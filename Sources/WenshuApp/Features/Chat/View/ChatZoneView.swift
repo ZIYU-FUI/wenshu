@@ -50,6 +50,22 @@ struct ChatZoneView: View {
     }
 
     @State private var vm: ChatViewModel
+    // / Reactive counter incremented every time
+    // / `Notification.Name.wenshuProviderKeychainChanged` fires.
+    // / The empty-state gate below (= `if !ProviderKeychain
+    // / .listProvidersWithKeys().isEmpty`) reads the keychain
+    // / on every body evaluation; = bumping this counter via
+    // / `.onReceive` makes SwiftUI re-evaluate the body and
+    // / re-pick up the freshly-configured key (= the
+    // / `ChatHelpTextOverlay` disappears the moment a key is
+    // / configured; = the chat input row becomes interactive).
+    // The previous commit (= 342098394) gated the history load;
+    // / the commit right after this one (= fffd74af5) gated
+    // / `ChatView` re-render. This gate (= on `ChatZoneView`)
+    // / was still missing; = the empty-state overlay kept
+    // / floating above the now-loaded transcript until the user
+    // / manually forced a body invalidation.
+    @State private var keychainRevision: Int = 0
 
     init(conductor: WenshuConductor?) {
         self.conductor = conductor
@@ -70,6 +86,20 @@ struct ChatZoneView: View {
         // the outer VStack so the chat zone fills the full width
         // and height of its NSSplitViewItem slot.
         VStack(spacing: 0) {
+            // / Per boss 2026-10-16 OOB "配上了 KEY 之后,
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+            // / the keychain is the empty-state gate (= below); =
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+            // / body dependency (= = the SwiftUI re-render trigger
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+            // / `.onReceive` of `wenshuProviderKeychainChanged` at
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+            // / empty-state overlay disappears the moment a key
+            // / is configured. Reading the counter here (= in the
+            // / outer body) registers the @State as a body
+            // / dependency for the whole `VStack`.
+            let _ = keychainRevision
             ZStack {
                 ChatView(conductor: conductor, vm: vm)
                 // Switch the empty
@@ -146,6 +176,20 @@ struct ChatZoneView: View {
         }
         .onChange(of: library.selectedBookId) { _, _ in
             Task { await wireBookScopeGuardIfPossible() }
+        }
+        // / Per boss 2026-10-16 OOB "配上了 KEY 之后, 聊天记
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+        // / The chat zone's body reads `ProviderKeychain
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+        // / the `ChatHelpTextOverlay` (= the empty-state hint)
+        // / on top of the now-loaded transcript. Bumping the
+        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+        // / `ChatHelpTextOverlay` to disappear the moment a key
+        // / is configured.
+        .onReceive(NotificationCenter.default.publisher(
+            for: .wenshuProviderKeychainChanged
+        )) { _ in
+            keychainRevision &+= 1
         }
         // 2026-09-23: ' UI ，windows ，
         // NVS，，， NVS ，
