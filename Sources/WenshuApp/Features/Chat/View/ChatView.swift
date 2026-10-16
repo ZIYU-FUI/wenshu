@@ -313,136 +313,8 @@ struct ChatView: View {
             // bubble). 10 PT is the user's verbatim
             // spec.
             ScrollViewReader { proxy in
-                ScrollView {
-                    // 2026-09-23: 'the user's message bubble, like
-                    // hermes ，。 AI 
-                    // ' (= implement sticky-top for the user bubble
-                    // like hermes; = so the user can see which question
-                    // the AI is replying to when they scroll). Use
-                    // `LazyVStack(pinnedViews: [.sectionHeaders])` (= the
-                    // macOS 27 SwiftUI equivalent of CSS
-                    // `position: sticky; top: 0`; = continuous sticky,
-                    // scrolls WITH content = no jarring yank). Group
-                    // messages into "turns" (= user message + its
-                    // following assistant reply + any placeholders).
-                    // Each turn's user bubble is the Section.header
-                    // (= pinned to the scroll viewport top). When user
-                    // scrolls down, the most recent user bubble pins at
-                    // top (= the desired "let me see which
-                    // question AI is replying to" affordance). When user
-                    // scrolls up, older user bubbles pass through (= CSS
-                    // sticky semantics).
-                    LazyVStack(alignment: .leading, spacing: DesignTokens.spacingStandard, pinnedViews: [.sectionHeaders]) {
-                        ForEach(turns) { turn in
-                            Section(header: turnHeader(for: turn)) {
-                                ForEach(turn.replies) { reply in
-                                    ChatMessageView(
-                                        message: reply,
-                                        isLatestUser: false,
-                                        onApprovePlan: { plan in
-                                            vm.inputText = plan.query
-                                            Task { await vm.send() }
-                                        }
-                                    )
-                                    .id(reply.id)
-                                }
-                            }
-                        }
-                    }
-                    .padding(DesignTokens.spacingStandard)
-                    // 
-                    // hermes `--composer-width: 100%` (= not a fixed
-                    // pixel cap; = the chat content column fills the
-                    // full chat pane width). The only horizontal
-                    // constraint is `min(var(--composer-width),
-                    // calc(100% - 2rem))` on the composer dock
-                    // (= 2rem = 32 PT = horizontal gutter so the
-                    // composer doesn't touch the pane edges).
-                    // = the chat content column has NO cap.
-                    //
-                    // Earlier version used `.frame(maxWidth: 720,
-                    // alignment: .center)` (= wrong; = I inferred
-                    // 720 PT from a screenshot guess). The hermes
-                    //  is "fill the chat pane width, with 32 PT
-                    // gutter". This commit drops the 720 cap and
-                    // keeps the 32 PT gutter (= `px-6` from the
-                    // MC6 commit was 24 PT = wrong; = 2rem = 32 PT
-                    // is the hermes).
-                    //
-                    // The user glass card (= 75% maxWidth cap inside
-                    // UserGlassCardModifier) stays at 75% so a long
-                    // user message breaks inside the card (= per
-                    // ; = 100% 1:1 means
-                    // the COLUMN fills, not that the user card
-                    // becomes full-width too).
-                    //
-                    // -cleanup E3.5 (see OOB.md #2026-09-21) '，
-                    // ， 10PT， 10PT。
-                    // ' (= the chat column used 32 PT
-                    // horizontal gutter; = too much padding; = the
-                    // chat content sat in a narrow strip in the
-                    // middle of the column; = the explicit
-                    // requires exactly 10 PT on each side). Set
-                    // horizontal padding to 10 PT (= matches Apple
-                    // HIG px-2.5 = 10 PT; = matches the chat input
-                    // -cleanup E8 (see OOB.md #2026-09-21) '， AI ，
-                    //  20PT':
-                    // dropped `.padding(.horizontal, 10)` (= chat transcript
-                    // content now sits flush against the chat column edge;
-                    // = the user glass card has its own L2 inner padding
-                    // in UserGlassCardModifier for the card-edge-to-text
-                    // distance; = the chat transcript itself no longer adds
-                    // a second horizontal padding on top of the card's;
-                    // = maintenance = single source of truth per concern).
-                    // Visual result: AI text + user card bg sit at the chat
-                    // column edge (= 0 PT from chat column border).
-                    // The user card's L2 inner padding (= 10 PT inside the
-                    // card) is unchanged per E7 (= user card text ↔ card edge
-                    // = 10 PT, preserved as the user-card visual identity).
-                    // Vertical 8 PT retained (= chat transcript row vertical
-                    // gap; = Apple HIG py-2 vertical row gap convention).
-                    // The floating chat input panel is semi-transparent
-                    // (= macOS 27 .regular tier = Apple Mail/Notes
-                    // translucency), so the chat history content scrolls
-                    // behind the panel (= the Apple Messages / Slack /
-                    // Telegram chat input pattern where the last message
-                    // peeks behind the input bar).
-                    .contentMargins(.bottom, DesignTokens.chatInputBarHeight, for: .scrollContent)
-                    // 2026-10-12 round-19 — add 10 PT top
-                    // padding to the chat ScrollView
-                    // (= the 10 PT applies to the scroll
-                    // content area; = the sticky user
-                    // message bubble (=
-                    // `LazyVStack(pinnedViews:
-                    // [.sectionHeaders])` first item) is
-                    // pushed down 10 PT inside the scroll
-                    // viewport; = 10 PT visible gap between
-                    // the editor zone's bottom status bar
-                    // above and the first user message
-                    // bubble). 10 PT is the user's verbatim
-                    // spec.
-                    .padding(.top, 10)
-                    // -cleanup E3 (see OOB.md #2026-09-21) '
-                    // ，' (= the chat
-                    // transcript area was using the macOS default
-                    // windowBackgroundColor = RGB(28,28,28) on dark
-                    // mode; = the same near-black as the user glass
-                    // card's controlBackgroundColor; = visually
-                    // indistinguishable from the user bubble surface;
-                    // = the user card lost its contrast). Apply the
-                    // Apple HIG sidebar/inspector tint
-                    // (= Color(nsColor: .controlBackgroundColor); =
-                    // RGB ~36,36,36 on dark mode; = noticeably lighter
-                    // than windowBackgroundColor and matches the
-                    // sidebar background visible in the leftmost
-                    // column = the requested 'use the left
-                    // sidebar's color'). The user glass card uses
-                    // .underPageBackgroundColor (one SwiftUI tint
-                    // step lighter; = +14pt luminance above the chat
-                    // bg; = visibly lifted off the surface; = the
-                    // Apple HIG pattern of inspector / popover content
-                    // sitting above the window tier).
-                }
+                // Inner ScrollView content extracted to `transcript` computed property (= the chat transcript viewport; = ~129 LOC moved out of body; = A99 god-class split)
+                transcript
                 // ScrollView background. SwiftUI on macOS 27 wraps the
                 // SwiftUI ScrollView in an NSScrollView (= visible
                 // background is the AppKit window background, = SwiftUI
@@ -1345,5 +1217,144 @@ struct ChatView: View {
     // (markdownForConversation extracted to ChatViewMarkdownIO.swift in A87; = see that file)
 
     // (importMarkdown extracted to ChatViewMarkdownIO.swift in A87; = see that file)
+
+
+
+    // MARK: - Transcript viewport (= the inner ScrollView { LazyVStack { ForEach turns { Section { ... } } } } block; = extracted from body in A99 to fight the 1368-LOC god-class)
+
+    @ViewBuilder
+    private var transcript: some View {
+
+    ScrollView {
+                        // 2026-09-23: 'the user's message bubble, like
+                        // hermes ，。 AI 
+                        // ' (= implement sticky-top for the user bubble
+                        // like hermes; = so the user can see which question
+                        // the AI is replying to when they scroll). Use
+                        // `LazyVStack(pinnedViews: [.sectionHeaders])` (= the
+                        // macOS 27 SwiftUI equivalent of CSS
+                        // `position: sticky; top: 0`; = continuous sticky,
+                        // scrolls WITH content = no jarring yank). Group
+                        // messages into "turns" (= user message + its
+                        // following assistant reply + any placeholders).
+                        // Each turn's user bubble is the Section.header
+                        // (= pinned to the scroll viewport top). When user
+                        // scrolls down, the most recent user bubble pins at
+                        // top (= the desired "let me see which
+                        // question AI is replying to" affordance). When user
+                        // scrolls up, older user bubbles pass through (= CSS
+                        // sticky semantics).
+                        LazyVStack(alignment: .leading, spacing: DesignTokens.spacingStandard, pinnedViews: [.sectionHeaders]) {
+                            ForEach(turns) { turn in
+                                Section(header: turnHeader(for: turn)) {
+                                    ForEach(turn.replies) { reply in
+                                        ChatMessageView(
+                                            message: reply,
+                                            isLatestUser: false,
+                                            onApprovePlan: { plan in
+                                                vm.inputText = plan.query
+                                                Task { await vm.send() }
+                                            }
+                                        )
+                                        .id(reply.id)
+                                    }
+                                }
+                            }
+                        }
+                        .padding(DesignTokens.spacingStandard)
+                        // 
+                        // hermes `--composer-width: 100%` (= not a fixed
+                        // pixel cap; = the chat content column fills the
+                        // full chat pane width). The only horizontal
+                        // constraint is `min(var(--composer-width),
+                        // calc(100% - 2rem))` on the composer dock
+                        // (= 2rem = 32 PT = horizontal gutter so the
+                        // composer doesn't touch the pane edges).
+                        // = the chat content column has NO cap.
+                        //
+                        // Earlier version used `.frame(maxWidth: 720,
+                        // alignment: .center)` (= wrong; = I inferred
+                        // 720 PT from a screenshot guess). The hermes
+                        //  is "fill the chat pane width, with 32 PT
+                        // gutter". This commit drops the 720 cap and
+                        // keeps the 32 PT gutter (= `px-6` from the
+                        // MC6 commit was 24 PT = wrong; = 2rem = 32 PT
+                        // is the hermes).
+                        //
+                        // The user glass card (= 75% maxWidth cap inside
+                        // UserGlassCardModifier) stays at 75% so a long
+                        // user message breaks inside the card (= per
+                        // ; = 100% 1:1 means
+                        // the COLUMN fills, not that the user card
+                        // becomes full-width too).
+                        //
+                        // -cleanup E3.5 (see OOB.md #2026-09-21) '，
+                        // ， 10PT， 10PT。
+                        // ' (= the chat column used 32 PT
+                        // horizontal gutter; = too much padding; = the
+                        // chat content sat in a narrow strip in the
+                        // middle of the column; = the explicit
+                        // requires exactly 10 PT on each side). Set
+                        // horizontal padding to 10 PT (= matches Apple
+                        // HIG px-2.5 = 10 PT; = matches the chat input
+                        // -cleanup E8 (see OOB.md #2026-09-21) '， AI ，
+                        //  20PT':
+                        // dropped `.padding(.horizontal, 10)` (= chat transcript
+                        // content now sits flush against the chat column edge;
+                        // = the user glass card has its own L2 inner padding
+                        // in UserGlassCardModifier for the card-edge-to-text
+                        // distance; = the chat transcript itself no longer adds
+                        // a second horizontal padding on top of the card's;
+                        // = maintenance = single source of truth per concern).
+                        // Visual result: AI text + user card bg sit at the chat
+                        // column edge (= 0 PT from chat column border).
+                        // The user card's L2 inner padding (= 10 PT inside the
+                        // card) is unchanged per E7 (= user card text ↔ card edge
+                        // = 10 PT, preserved as the user-card visual identity).
+                        // Vertical 8 PT retained (= chat transcript row vertical
+                        // gap; = Apple HIG py-2 vertical row gap convention).
+                        // The floating chat input panel is semi-transparent
+                        // (= macOS 27 .regular tier = Apple Mail/Notes
+                        // translucency), so the chat history content scrolls
+                        // behind the panel (= the Apple Messages / Slack /
+                        // Telegram chat input pattern where the last message
+                        // peeks behind the input bar).
+                        .contentMargins(.bottom, DesignTokens.chatInputBarHeight, for: .scrollContent)
+                        // 2026-10-12 round-19 — add 10 PT top
+                        // padding to the chat ScrollView
+                        // (= the 10 PT applies to the scroll
+                        // content area; = the sticky user
+                        // message bubble (=
+                        // `LazyVStack(pinnedViews:
+                        // [.sectionHeaders])` first item) is
+                        // pushed down 10 PT inside the scroll
+                        // viewport; = 10 PT visible gap between
+                        // the editor zone's bottom status bar
+                        // above and the first user message
+                        // bubble). 10 PT is the user's verbatim
+                        // spec.
+                        .padding(.top, 10)
+                        // -cleanup E3 (see OOB.md #2026-09-21) '
+                        // ，' (= the chat
+                        // transcript area was using the macOS default
+                        // windowBackgroundColor = RGB(28,28,28) on dark
+                        // mode; = the same near-black as the user glass
+                        // card's controlBackgroundColor; = visually
+                        // indistinguishable from the user bubble surface;
+                        // = the user card lost its contrast). Apply the
+                        // Apple HIG sidebar/inspector tint
+                        // (= Color(nsColor: .controlBackgroundColor); =
+                        // RGB ~36,36,36 on dark mode; = noticeably lighter
+                        // than windowBackgroundColor and matches the
+                        // sidebar background visible in the leftmost
+                        // column = the requested 'use the left
+                        // sidebar's color'). The user glass card uses
+                        // .underPageBackgroundColor (one SwiftUI tint
+                        // step lighter; = +14pt luminance above the chat
+                        // bg; = visibly lifted off the surface; = the
+                        // Apple HIG pattern of inspector / popover content
+                        // sitting above the window tier).
+                    }
+        }
 
 }
