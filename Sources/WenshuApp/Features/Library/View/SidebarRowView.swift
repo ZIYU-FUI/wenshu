@@ -275,7 +275,16 @@ struct SidebarRowView: View {
                 Image(systemName: SidebarIconResolver.sfSymbol(
                     forTitle: node.title
                 ))
-                .font(.system(size: 16, weight: .regular))
+                // Per boss 2026-10-16 OOB "目录树的 ICON, 没有用 SF
+                // 符号的纤细体, 就是倒数第二个细的选项": the
+                // sidebar pinyin letter icons render with SF
+                // Symbols `.thin` weight (= the second-thinnest
+                // weight Apple ships in the SF Symbols 6 picker
+                // above `.ultraLight`; = thin is the canonical
+                // Apple HIG body-content weight for 16-24 PT icons
+                // per the SF Symbols 6 weight-split rule for
+                // reading-heavy surfaces like sidebar monograms).
+                .font(.system(size: 16, weight: .thin))
                 .symbolRenderingMode(.monochrome)
                 .foregroundStyle(.primary)
                 .frame(width: 18, height: 18)

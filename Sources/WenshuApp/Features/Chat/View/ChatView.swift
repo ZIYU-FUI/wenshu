@@ -31,10 +31,23 @@ struct ChatView: View {
     // Pre-computed .md body for the current conversation (= cached so
     // .fileExporter does not have to re-format on every render).
     @State private var exportMarkdownBody: String = ""
+    // / Reactive counter incremented every time
+    // / `Notification.Name.wenshuProviderKeychainChanged` fires.
+    // / The `hasUsableKey` computed property (= below) reads the
+    // / keychain on every body evaluation; = bumping this counter
+    // / via `.onReceive` makes SwiftUI re-evaluate the body and
+    // / re-pick up the freshly-configured key (= the empty-state
+    // / overlay disappears; = the chat input row enables).
+    @State private var keychainRevision: Int = 0
     // Reactive check: is the current model usable?
     // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // signal.
     private var hasUsableKey: Bool {
+        // / Read `keychainRevision` (= an unused read; = the
+        // / only purpose is to register the @State as a body
+        // / dependency so SwiftUI re-evaluates this computed
+        // / property when the counter changes).
+        _ = keychainRevision
         // chat-input-disabled-key-check: gate on the
         // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // race-fire a second send; = Apple Messages behavior).
@@ -189,6 +202,36 @@ struct ChatView: View {
                 if hasUsableKey {
                     await vm.loadHistory()
                 }
+            }
+            // / Per boss 2026-10-16 OOB "配上了 KEY 之后, 界面
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+            // / the empty-state overlay is still shown after the
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+            // / `hasUsableKey` (= reads `ProviderKeychain`) is a
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+            // / never re-runs unless the view re-evaluates. The
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+            // / `wenshuProviderKeychainChanged` notification (= posted
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+            // / deletes). When it fires, increment `keychainRevision`
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+            // / re-render (= the empty-state overlay disappears
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+            // / chat input row enables = the canonical Apple HIG
+            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+            .onReceive(NotificationCenter.default.publisher(
+                for: .wenshuProviderKeychainChanged
+            )) { _ in
+                keychainRevision &+= 1
+                // / The user just configured a key. Re-run the
+                // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+                // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+                // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+                // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+                if ProviderKeychain.listProvidersWithKeys().isEmpty {
+                    return
+                }
+                Task { await vm.loadHistory() }
             }
 
             // 2026-09-23: the compression pill dropped entirely
