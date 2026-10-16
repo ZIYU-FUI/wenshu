@@ -98,7 +98,7 @@ struct PreviewPane: View {
     /// service to call `renameReference` / `deleteReference`). The service is
     /// @State (= the service is an actor-isolated class; = @State holds the
     /// reference; = the closures capture it for the card's `.contextMenu`).
-    @State private var cardService: SidebarService?
+    @State var cardService: SidebarService?
 
     /// cached snapshot of `(shelfId → books)` so the shelf subtree can be
     /// cheaply skipped across body re-renders. The shelfScopeView ran
@@ -946,50 +946,10 @@ struct PreviewPane: View {
 
     /// Empty-state placeholder ((see OOB.md #2026-08-27) — '...no markdown body
     /// = leave a clear empty state, not a blank white pane').
-    @ViewBuilder
-    // (emptyState extracted to PreviewPaneGrids.swift in A79; = see that file)
+    // (ensureCardService extracted to PreviewPaneDataAccess.swift in A83; = see that file)
 
+    // (loadBooksInShelf extracted to PreviewPaneDataAccess.swift in A83; = see that file)
 
-    /// the 3 helpers that the right-click `Card` callbacks call into. They
-    /// mirror the `AppleSidebarView` `renaming` / `pendingDelete` state pattern
-    /// (= the rename sheet + delete alert pick up the local @State and show the
-    /// corresponding UI). The service is built lazily from the same closures
-    /// the sidebar uses (= the same source of truth for the business methods
-    /// `renameReference` / `deleteReference`). Lazy service init (= the service
-    /// is an actor; = we build it on first access and cache it in
-    /// `cardService`). Returns the service (= creates a new one if the cache is
-    /// empty).
-    private func ensureCardService() -> SidebarService {
-        if let cached = cardService {
-            return cached
-        }
-        let service = SidebarService(
-            loadShelves: { try self.bookStore.sidebarLoadShelves() },
-            loadAllBooks: { try self.bookStore.sidebarLoadAllBooks() },
-            loadReferences: { try self.bookStore.loadAllReferences() },
-            bookStore: self.bookStore
-        )
-        cardService = service
-        return service
-    }
-    // (beginReferenceRename extracted to PreviewPaneCardActions.swift in A80; = see that file)
-
-    // (beginReferenceDelete extracted to PreviewPaneCardActions.swift in A80; = see that file)
-
-    // (beginBookDocRename extracted to PreviewPaneCardActions.swift in A80; = see that file)
-
-    // (beginBookDocDelete extracted to PreviewPaneCardActions.swift in A80; = see that file)
-
-
-    /// helper for shelfScopeView. Returns the books that live under the given
-    /// shelf (= the books whose `.shelfId` matches). Reads from the same
-    /// BookStore.sidebarLoadAllBooks source the sidebar already uses (= single
-    /// source of truth; = no parallel book list). Returns [] (= empty shelf =
-    /// empty-state card grid) when the lookup fails (= disk error) so the
-    /// caller doesn't have to do its own error-handling.
-    private func loadBooksInShelf(shelfId: UUID) -> [Book] {
-        return PreviewPaneOps.loadBooksInShelf(bookStore: bookStore, shelfId: shelfId).books
-    }
 
     /// pre-computes the shelf's books exactly once per shelfId change (= called
     /// from `.task(id: shelfId)` at the call site). SwiftUI cancels any
@@ -999,10 +959,8 @@ struct PreviewPane: View {
     /// shelf subtree reads from cache, not from disk = no I/O storm = no
     /// SwiftUI NSHostingView constraint cycle).
     @MainActor
-    private func loadShelfBooksAsync(shelfId: UUID) async {
-        let result = await PreviewPaneOps.loadShelfBooksAsync(bookStore: bookStore, shelfId: shelfId)
-        cachedShelfBooks[shelfId] = result.books
-    }
+    // (loadShelfBooksAsync extracted to PreviewPaneDataAccess.swift in A83; = see that file)
+
 
     /// load .md files from a book folder on the filesystem. Walks all shelves
     /// (= shelves/<shelf>/books/<book>/) to find the matching bookId, then
