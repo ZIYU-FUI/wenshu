@@ -435,15 +435,7 @@ struct SettingView: View {
         Form {
             Section {
                 Toggle(isOn: $useKeychainForProviderKeys) {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("使用系统钥匙串保存 key")
-                            .font(.body)
-                        Text(useKeychainForProviderKeys
-                            ? "钥匙存到 macOS 钥匙串 (= 加密, 仅本机, 跨 app 不可见)"
-                            : "钥匙存到 ~/Library/Application Support/com.wenshu.app/provider-keys.json (= 明文, 仅本机, 文枢内部 AI 读不到)")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
+                    Text("使用系统钥匙串保存 key")
                 }
                 .onChange(of: useKeychainForProviderKeys) { _, newValue in
                     // Re-resolve the backend so the next saveKeySync / loadKeySync
@@ -460,7 +452,7 @@ struct SettingView: View {
             } header: {
                 Text("钥匙串")
             } footer: {
-                Text("默认走钥匙串 (= 安全 + 自动跨 app 隔离). 切到文件模式后, key 会随登录用户而非 app 沙箱隔离; 重装 wenshu 不会丢; 但同机其他管理员账号能读到.")
+                Text("开启 = 存到 macOS 钥匙串; 关闭 = 存到本地文件.")
             }
             Section {
                 ForEach(filteredProviders) { p in
