@@ -93,6 +93,14 @@ actor SSEClient {
                     guard let http = response as? HTTPURLResponse else {
                         throw URLError(.badServerResponse)
                     }
+                    // Diagnostic: log status + content-type + first 200 chars
+                    // of any readable body bytes (the body might be
+                    // streamable but URLSession may not have read the
+                    // first chunk by the time the diagnostic runs).
+                    let ct = (http.value(forHTTPHeaderField: "content-type") ?? "nil") as String
+                    let cl = (http.value(forHTTPHeaderField: "content-length") ?? "nil") as String
+                    let ce = (http.value(forHTTPHeaderField: "content-encoding") ?? "nil") as String
+                    try? "status=\(http.statusCode) ct=\(ct) cl=\(cl) ce=\(ce)\n---\n".write(toFile: "/tmp/wsstream-status-\(getpid()).log", atomically: true, encoding: .utf8)
                     guard (200..<300).contains(http.statusCode) else {
                         // Capture the body bytes so the caller can
                         // see the real reason (= minimax returns
@@ -116,8 +124,12 @@ actor SSEClient {
                     // event: + data: until blank line.
                     var pendingEvent = ""
                     var pendingData: [String] = []
+                    var rawLineCount = 0
+                    var firstRawLines = ""
                     for try await line in bytes.lines {
                         if Task.isCancelled { break }
+                        rawLineCount += 1
+                        if rawLineCount <= 3 { firstRawLines += "[\(rawLineCount)]'\(line)' " }
                         if line.isEmpty {
                             // Event boundary: emit.
                             if !pendingEvent.isEmpty || !pendingData.isEmpty {
@@ -144,6 +156,7 @@ actor SSEClient {
                             continue
                         }
                     }
+                    try? "rawLineCount=\(rawLineCount) firstLines=\(firstRawLines)\n---\n".write(toFile: "/tmp/wsstream-lines-\(getpid()).log", atomically: true, encoding: .utf8)
                     continuation.finish()
                 } catch is CancellationError {
                     continuation.finish()
