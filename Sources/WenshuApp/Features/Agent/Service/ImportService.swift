@@ -236,110 +236,12 @@ actor ImportService {
     /// stores an empty-data sentinel = the cancel handler deletes the file
     /// outright).
     // (snapshotReferenceLibraryIndex extracted to ImportServiceCancellation.swift in A57; = see that file)
+    // (runConcurrentPipeline extracted to ImportServiceConcurrency.swift in A71; = see that file)
 
+    // (enqueueTask extracted to ImportServiceConcurrency.swift in A71; = see that file)
 
+    // (makeProcessFileInput extracted to ImportServiceConcurrency.swift in A71; = see that file)
 
-    /// Phase 3+4 = unified per-file pipeline (= the orchestrator's 5-way
-    /// parallel TaskGroup; = the actor's serialized state mutation is safe
-    /// across the concurrent `processFile` calls; = `CacheBox` / `TasksBox` are
-    /// the class-wrapper workaround that hold the shared mutable state the
-    /// TaskGroup needs to mutate from concurrent contexts).
-    private func runConcurrentPipeline(
-        dispatchIndices: [Int],
-        target: ImportTarget,
-        router: ImportRouter,
-        cacheBox: CacheBox,
-        tasksBox: TasksBox,
-        onProgress: (@Sendable ([ImportTask]) async -> Void)?
-    ) async {
-        await withTaskGroup(of: Void.self) { (group: inout TaskGroup<Void>) in
-            var inFlight = 0
-            var nextIndex = 0
-            // Seed the first `maxParallel` tasks (= 5 today; = the LLM
-            // pressure knob; = the LLMConnector adapter handles its own
-            // provider-side rate limiting). The drain loop below
-            // refills via `enqueueTask` (= same shape as the seed).
-            while inFlight < target.maxParallel, nextIndex < dispatchIndices.count {
-                inFlight += 1
-                let i = dispatchIndices[nextIndex]
-                nextIndex += 1
-                await enqueueTask(
-                    group: &group,
-                    tasksBox: tasksBox,
-                    taskIndex: i,
-                    target: target,
-                    router: router,
-                    cacheBox: cacheBox,
-                    onProgress: onProgress
-                )
-            }
-            // Drain + refill (= each completed task frees a slot in the
-            // semaphore; = the next pending task is seeded; = the
-            // pipeline keeps 5 files in flight concurrently for the
-            // entire batch).
-            while await group.next() != nil {
-                inFlight -= 1
-                if nextIndex < dispatchIndices.count, tasksBox.value[dispatchIndices[nextIndex]].state == .pending {
-                    inFlight += 1
-                    let j = dispatchIndices[nextIndex]
-                    nextIndex += 1
-                    await enqueueTask(
-                        group: &group,
-                        tasksBox: tasksBox,
-                        taskIndex: j,
-                        target: target,
-                        router: router,
-                        cacheBox: cacheBox,
-                        onProgress: onProgress
-                    )
-                }
-            }
-        }
-    }
-
-    /// Mark the task `.routing` + emit progress + enqueue the `processFile`
-    /// task on the TaskGroup. Used by both the seed loop (= first `maxParallel`
-    /// tasks) and the drain loop (= refilling slots as tasks complete) so the
-    /// per-task dispatch is in one place.
-    private func enqueueTask(
-        group: inout TaskGroup<Void>,
-        tasksBox: TasksBox,
-        taskIndex i: Int,
-        target: ImportTarget,
-        router: ImportRouter,
-        cacheBox: CacheBox,
-        onProgress: (@Sendable ([ImportTask]) async -> Void)?
-    ) async {
-        tasksBox.value[i].state = .routing
-        await onProgress?(tasksBox.value)
-        let input = makeProcessFileInput(tasksBox: tasksBox, i: i, target: target)
-        group.addTask { [self] in
-            await self.processFile(
-                taskIndex: i,
-                input: input,
-                target: target,
-                router: router,
-                cacheBox: cacheBox,
-                tasksBox: tasksBox,
-                onProgress: onProgress
-            )
-        }
-    }
-
-    /// Build the `ImportFileInput` for a non-retry (= the body field is nil; =
-    /// `processFile` reads the body from disk).
-    private func makeProcessFileInput(
-        tasksBox: TasksBox,
-        i: Int,
-        target: ImportTarget
-    ) -> ImportFileInput {
-        return ImportFileInput(
-            filePath: tasksBox.value[i].sourcePath,
-            targetBookId: target.bookId,
-            targetShelfId: target.shelfId,
-            rewriteMode: target.rewriteMode
-        )
-    }
     // (dedupAndHash extracted to ImportServiceCache.swift in A62; = see that file)
 
 
@@ -787,7 +689,7 @@ extension ImportService {
     /// disk; = the body is byte-equal to the source body) - any state → .failed
     /// (= the LLM call or the file write threw; = the row's `errorMessage`
     /// carries the cause)
-    fileprivate func processFile(
+    func processFile(
         taskIndex i: Int,
         input: ImportFileInput,
         target: ImportTarget,
