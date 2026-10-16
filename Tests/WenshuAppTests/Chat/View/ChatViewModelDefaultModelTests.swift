@@ -147,7 +147,7 @@ struct ChatViewModelDefaultModelTests {
         // worktree-local file (= or the main file when run from main).
         let cwd = FileManager.default.currentDirectoryPath
         let keychainOpsURL = URL(fileURLWithPath: cwd)
-            .appendingPathComponent("Sources/WenshuApp/Features/Agent/Service/KeychainOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/WenshuAgent/Keychain/KeychainOps.swift")
         let keychainOps = try? String(contentsOf: keychainOpsURL, encoding: .utf8)
         #expect(keychainOps != nil, "KeychainOps.swift must be readable at \(keychainOpsURL.path)")
         // Strip comments (= historical references in headers must not count).

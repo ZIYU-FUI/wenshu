@@ -23,7 +23,7 @@ struct UserFacingErrorSSEClientTests {
 
     /// Build an SSEClient-shaped NSError for a given HTTP
     /// status. Mirrors the production throw site at
-    /// `Sources/WenshuApp/Features/Agent/Service/SSEClient.swift:75`.
+    /// `Sources/WenshuApp/WenshuAgent/Streaming/SSEClient.swift:75`.
     private func sseError(status: Int) -> NSError {
         NSError(
             domain: "SSEClient",

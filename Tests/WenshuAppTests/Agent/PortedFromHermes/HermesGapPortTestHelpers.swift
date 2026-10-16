@@ -112,7 +112,7 @@ public enum HermesGapPortTestHelpers {
 
         // Fast path 2: known canonical mapping for Provider subtree.
         let providerSourcePath = wenshuRoot
-            + "/Sources/WenshuApp/Features/Agent/Service/"
+            + "/Sources/WenshuApp/WenshuAgent/"
             + sourceFileName
         if let contents = try? String(contentsOfFile: providerSourcePath, encoding: .utf8) {
             return contents

@@ -68,6 +68,9 @@ actor SSEClient {
     func stream(body: Data? = nil) -> AsyncThrowingStream<SSEEvent, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
+                let diag = WAStreamDiag(attemptId: UUID())
+                let diagBox = MutableWAStreamDiag(diag)
+                WALogger.network.debug("SSE stream attempt=\(diagBox.diag.attemptId.uuidString.prefix(8), privacy: .public) url=\(self.url, privacy: .public) bodyBytes=\(body?.count ?? 0)")
                 do {
                     var request = URLRequest(url: url)
                     request.httpMethod = "POST"
@@ -79,18 +82,18 @@ actor SSEClient {
                     }
                     let (bytes, response) = try await session.bytes(for: request)
                     guard let http = response as? HTTPURLResponse else {
+                        WALogger.network.error("SSE stream attempt=\(diagBox.diag.attemptId.uuidString.prefix(8), privacy: .public) no HTTPURLResponse")
                         throw URLError(.badServerResponse)
                     }
+                    diagBox.diag.httpStatus = http.statusCode
+                    WALogger.network.info("SSE stream attempt=\(diagBox.diag.attemptId.uuidString.prefix(8), privacy: .public) HTTP \(http.statusCode)")
                     guard (200..<300).contains(http.statusCode) else {
-                        // Capture the body bytes so the caller can
-                        // see the real reason (= minimax returns
-                        // a JSON error with a `message` field;
-                        // = the previous `throw NSError(domain: "SSEClient", ...)`
-                        // dropped these bytes on the floor).
                         var errorBody = ""
                         if let errorBytes = try? await bytes.lines.reduce(into: "") { $0 += "\n" + $1 } {
                             errorBody = errorBytes
                         }
+                        diagBox.diag.lastError = "HTTP \(http.statusCode)"
+                        WALogger.network.error("SSE stream attempt=\(diagBox.diag.attemptId.uuidString.prefix(8), privacy: .public) \(diagBox.diag.summary, privacy: .public) body=\(errorBody, privacy: .private)")
                         throw NSError(
                             domain: "SSEClient",
                             code: http.statusCode,
@@ -126,6 +129,7 @@ actor SSEClient {
                     var currentLineBytes: [UInt8] = []
                     for try await byte in bytes {
                         if Task.isCancelled { break }
+                        diagBox.diag.bytes += 1
                         if byte == 0x0A { // \n
                             // End of line: strip trailing CR
                             // (= handle \r\n).
@@ -136,6 +140,10 @@ actor SSEClient {
                             if lineOut.isEmpty {
                                 // Event boundary: emit.
                                 if !pendingEvent.isEmpty || !pendingData.isEmpty {
+                                    if diagBox.diag.firstChunkAt == nil {
+                                        diagBox.diag.firstChunkAt = Date()
+                                    }
+                                    diagBox.diag.chunks += 1
                                     continuation.yield(SSEEvent(
                                         event: pendingEvent,
                                         data: pendingData.joined(separator: "\n")
@@ -171,6 +179,10 @@ actor SSEClient {
                         if lineOut.isEmpty {
                             // Trailing empty line: emit any pending event.
                             if !pendingEvent.isEmpty || !pendingData.isEmpty {
+                                if diagBox.diag.firstChunkAt == nil {
+                                    diagBox.diag.firstChunkAt = Date()
+                                }
+                                diagBox.diag.chunks += 1
                                 continuation.yield(SSEEvent(
                                     event: pendingEvent,
                                     data: pendingData.joined(separator: "\n")
@@ -191,6 +203,10 @@ actor SSEClient {
                         // line; = some Anthropic-compatible
                         // endpoints do this on the last event).
                         if !pendingEvent.isEmpty || !pendingData.isEmpty {
+                            if diagBox.diag.firstChunkAt == nil {
+                                diagBox.diag.firstChunkAt = Date()
+                            }
+                            diagBox.diag.chunks += 1
                             continuation.yield(SSEEvent(
                                 event: pendingEvent,
                                 data: pendingData.joined(separator: "\n")
@@ -199,6 +215,8 @@ actor SSEClient {
                             pendingData = []
                         }
                     }
+                    diagBox.diag.finishReasonSeen = true
+                    WALogger.network.info("SSE stream attempt=\(diagBox.diag.attemptId.uuidString.prefix(8), privacy: .public) finished \(diagBox.diag.summary, privacy: .public)")
                     continuation.finish()
                 } catch is CancellationError {
                     continuation.finish()
