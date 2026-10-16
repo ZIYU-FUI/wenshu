@@ -256,11 +256,41 @@ struct SidebarRowView: View {
         if node.kind == .divider {
             Divider()
         } else {
-            SFLabelRow(
-                title: node.title,
-                systemImage: node.systemImage,
-                subtitle: node.subtitle
-            )
+            // Per boss 2026-10-16 OOB "目录树的 ICON, 根据目录项的首字的拼
+            // 音首字母, 匹配 SF 字符的 A-Z 的 26 个字母字符 a.circle":
+            // resolve the row's icon via `SidebarIconResolver` (= pinyin
+            // first letter of `node.title` → `a.circle` / `b.circle` /
+            // ...). Bypass the 16 PT `SFLabelRow` sidebar slot for this
+            // new behavior (= the letter-circle SF Symbol needs at
+            // least 18-20 PT to render the letter glyph; = the
+            // canonical 16 PT sidebar slot would clip the letter to
+            // nothing). Use a custom 22 PT `HStack` with the icon at
+            // 20 PT (= Apple HIG `.controlSize(.regular)`).
+            //
+            // The original `node.systemImage` (= a hardcoded SF
+            // symbol per node kind) is preserved on the data model
+            // for downstream consumers; = `SidebarRowView` opts into
+            // the new behaviour via this rendering path.
+            HStack(spacing: DesignTokens.spacingIconic) {
+                Image(systemName: SidebarIconResolver.sfSymbol(
+                    forTitle: node.title
+                ))
+                .font(.system(size: 16, weight: .regular))
+                .symbolRenderingMode(.monochrome)
+                .foregroundStyle(.primary)
+                .frame(width: 18, height: 18)
+                Text(node.title)
+                    .font(.body)
+                    .lineLimit(1)
+                Spacer(minLength: 0)
+                if let subtitle = node.subtitle {
+                    Text(subtitle)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            }
+            .frame(height: DesignTokens.sidebarRowHeight)
         }
     }
 }
