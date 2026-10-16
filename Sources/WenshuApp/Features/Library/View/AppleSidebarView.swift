@@ -58,17 +58,17 @@ import os
 private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "applesidebarview")
 
 struct AppleSidebarView: View {
-    @Environment(BookStore.self) private var bookStore
+    @Environment(BookStore.self) var bookStore
     @Environment(AppState.self) private var appState
     // sidebarSelection moved from ShellState to WorkspaceUIState
     // (= single environment-injected class for all column-local UI
     // state; = the Pages / Numbers / Keynote canonical shape).
-    @Environment(WorkspaceUIState.self) private var workspaceUI
+    @Environment(WorkspaceUIState.self) var workspaceUI
     @Environment(SheetRequestState.self) private var sheetRequests
 
     /// SidebarService owns the tree (= data + business logic; = SwiftUI doesn't
     /// see it; = the List renders it).
-    @State private var service: SidebarService?
+    @State var service: SidebarService?
 
     /// Selection state (= forwarded to ShellState.sidebarSelection via
     /// .onChange below).
@@ -711,219 +711,12 @@ struct AppleSidebarView: View {
         }
     }
 
-    // MARK: Reference-row right-click helpers
-    // (= the rename
-    // sheet needs the
-    // reference's
-    // current title +
-    // the list of all
-    // other reference
-    // titles for the
-    // duplicate check).
 
-    /// Resolve the `otherNames` list for the rename sheet based on the target's
-    /// `Kind` (= shelf / book / reference). The reference case uses
-    /// `SidebarService. otherReferenceTitles` (= the v2.7 round-63 addition).
-    private func otherNamesForRename(target: SidebarRenamingTarget) -> [String] {
-        switch target.kind {
-        case .shelf:
-            return service?.otherShelfNames(excluding: target.itemId) ?? []
-        case .book:
-            return service?.otherBookTitles(excluding: target.itemId) ?? []
-        case .reference:
-            return service?.otherReferenceTitles(excluding: target.itemId) ?? []
-        case .bookDoc:
-            // the
-            // sidebar's
-            // own
-            // otherNames
-            // dispatch
-            // also
-            // gains a
-            // `.bookDoc`
-            // case
-            // (= same
-            // SidebarService
-            // method
-            // used by
-            // PreviewPane's
-            // rename
-            // sheet).
-            return service?.otherBookDocTitles(excluding: target.itemId) ?? []
-        }
-    }
-
-    /// Resolve the current title of a reference by id (= the rename sheet's
-    /// `originalName` field; = the existing `renameShelf` / `renameBook`
-    /// callbacks look up the name from `service.shelves` / `service.books`
-    /// synchronously; = the reference equivalent reads from `bookStore.
-    /// loadAllReferences()`). Returns nil if the reference is missing (= the
-    /// rename sheet opens with an empty name; = the user can still type a new
-    /// one; = the save fails with `bookNotFound`).
-    private func referenceTitle(for id: UUID) -> String? {
-        guard let references = try? bookStore.loadAllReferences() else {
-            return nil
-        }
-        return references.first(where: { $0.id == id })?.title
-    }
-
-    /// ', ': context-menu builder (= extracted from the inline body of
-    /// `.contextMenu(forSelectionType:menuItems:)` above; = the inline closure
-    /// body was so large the Swift type checker gave up; = extracting it to a
-    /// focused method gives the type-checker room to work). The handler
-    /// forwards to `SidebarContextMenuBuilder.build(...)` with closures that
-    /// flip `renaming` / `pendingDelete` / `appState.*RequestCount` (= the
-    /// sidebar's local `@State` and the AppState shared counter; = the .sheet +
-    /// .alert modifiers elsewhere on this body observe + present). context-menu
-    /// builder (= extracted from the inline body of
-    /// `.contextMenu(forSelectionType:menuItems:)` above; = the inline closure
-    /// body was so large the Swift type checker gave up; = extracting it to a
-    /// focused method gives the type-checker room to work). The handler
-    /// forwards to `SidebarContextMenuBuilder.build(...)` with closures that
-    /// flip `renaming` / `pendingDelete` / `appState.*RequestCount` (= the
-    /// sidebar's local `@State` and the AppState shared counter; = the .sheet +
-    /// .alert modifiers elsewhere on this body observe + present). Apple HIG
-    /// canonical: the closure passed to `.contextMenu(forSelectionType:menu:)`
-    /// must return a @ViewBuilder block (= no `AnyView` wrapper, no explicit
-    /// Group, no Divider between buttons). The `AnyView` wrapper collapses the
-    /// @ContentBuilder tuple type and the menu item extractor drops trailing
-    /// items (= the v1.69y symptom: the menu only renders the "create new"
-    /// item). The `?` shorthand below ensures both return paths produce the
-    /// same @ContentBuilder tuple (= Apple HIG canonical shape). Map the
-    /// user-clicked sidebar row to the corresponding AppState.sidebarSelection
-    /// discriminator (= so the rest of wenshu continues to read the same value
-    /// it did before the v1.69 MVVM split (= when SidebarItem still lived
-    /// inline inside NewLibraryOutlineView)). ' ，' (= the 5 standard folders
-    /// under each book are now visible in the sidebar; = the folder rows
-    /// forward their selection to AppState.sidebarSelection AND open the folder
-    /// in the editor's tab strip).
-    private func forwardSelection(_ node: SidebarNode?) {
-        // RATIONALE: the sidebar click
-        // is a scope filter only (= NOT
-        // a tab-opener; = the previous
-        // behavior fired
-        // `openFolderInEditor` /
-        // `openBookInEditor` on every
-        // click; = that mutates
-        // `appState.openTabs`; = the
-        // wenshu 1:1 macOS Finder
-        // canonical = "click to scope,
-        // double-click to open"). The
-        // sidebar selection is still
-        // recorded in
-        // `workspaceUI.sidebarSelection`
-        // (= the middle column re-scopes
-        // to show the cards inside the
-        // selected folder / book; = the
-        // user can see what's inside the
-        // folder without the editor
-        // automatically opening a tab).
-        guard let node else { return }
-        switch node.kind {
-        case .shelf:
-            workspaceUI.sidebarSelection = .shelf(node.id)
-        case .book:
-            // Determine if this is a real book (top-level row) or a
-            // folder row (child of a book). Folder rows have a
-            // parent in the sidebar tree (= the v1.68f folder
-            // children, = 5 standard folders per book); real books
-            // are children of a shelf. Walk the tree to disambiguate.
-            if let parent = Self.parentBookInfo(for: node.id, in: service?.nodes ?? []) {
-                // Folder row.
-                // RATIONALE 2026-10-13: the
-                // `openFolderInEditor(...)` call
-                // is removed (= the boss asked
-                // the sidebar click to NOT
-                // open a tab; = the sidebar
-                // click only records the
-                // selection in
-                // `workspaceUI.sidebarSelection`;
-                // = the middle column re-scopes
-                // to show the cards inside the
-                // folder; = the user can
-                // double-click a card to open
-                // a tab if they want to edit).
-                workspaceUI.sidebarSelection = .folder(bookId: parent.bookId, folderName: parent.folderName)
-            } else {
-                // Real book row. RATIONALE 2026-10-13:
-                // the `openBookInEditor(...)` call
-                // is removed (= same reason as
-                // the folder row above).
-                workspaceUI.sidebarSelection = .book(node.id)
-            }
-        case .reference:
-            // reference-library leaf (= a single Reference
-            // document). node.title carries the reference's
-            // display title, not its category, so writing
-            // `.referenceCategory(node.title)` here is incorrect;
-            // the correct route is `.referenceCategory(<ref's
-            // category directoryName>)` — but the SidebarNode
-            // doesn't carry the Reference struct (= only id +
-            // title + subtitle), so we resolve the reference's
-            // category downstream by storing a structured
-            // selection. Without that plumbing (= v1.69 ticket
-            // scope = expand the CLC category tree only; =
-            // single-reference selection lands on a future
-            // ticket), the leaf row falls through to
-            // .referenceScope(nil) in the preview pane via
-            // ShellMiddleColumn's case-mismatch fallback (= =
-            // the user sees the full overview; = the leaf can
-            // be opened via the existing double-click pipeline
-            // on the middle-column card).
-            workspaceUI.sidebarSelection = .referenceCategory(node.title)
-        case .referenceCategory:
-            // :
-            // a category parent row (= one of the 22 CLC
-            // top-level categories under the Reference-Library
-            // root). Selecting it scopes the middle-column card
-            // grid to that category.
-            //
-            // p (see OOB.md #2026-09-22) OOB: read the routing key
-            // (= the EntityCategory.directoryName, stored in
-            // SidebarNode.routingKey during the v1.69j projection;
-            // = lowercase letter for the official 22 cases,
-            // "" for .z, "" for pre-v0.29 nil-category
-            // references). The routing key is what
-            // ShellMiddleColumn.previewScope's case-insensitive
-            // EntityCategory(rawValue:) lookup resolves back to
-            // a category — the user-visible title (= "") can't
-            // be used directly because no EntityCategory rawValue
-            // is "". Falling back to node.title (= the previous
-            // m behaviour) leaves the routing key in the
-            // user-visible slot (= the user's ', 
-            // ' complaint).
-            workspaceUI.sidebarSelection = .referenceCategory(node.routingKey ?? node.title)
-        case .tag:
-            // tag row (= SidebarNode.Kind.tag,
-            // populated by SidebarService from the union of
-            // Reference.tags across all references). Routing
-            // uses the node title (= the tag string) directly;
-            // AssetsPane.previewScope() maps .tag(let tagString)
-            // to .referenceScope(nil) AND sets
-            // workspaceUI.activeTag = tagString (= PreviewPane
-            // applies the tag filter on top of the reference
-            // scope). This case must be its own branch
-            // (= NOT a .referenceCategory fallback; = the
-            // previous code used .referenceCategory here and
-            // the tag filter was silently unreachable).
-            workspaceUI.sidebarSelection = .tag(node.title)
-        case .divider:
-            // bb (see OOB.md #2026-09-23) OOB '
-            // ': divider rows are non-interactive;
-            // = the user can never select a divider (= it's
-            // pure chrome between sections). Forwarding a
-            // sidebarSelection here would corrupt the
-            // .referenceCategory discriminator (= the divider
-            // sentinel has no EntityCategory mapping). Simply
-            // no-op so the previous selection stays put.
-            break
-        }
-    }
 
     /// Walk the sidebar tree to find the parent book + folder name for a row id
     /// (= returns nil for top-level books, = non-nil for folder rows under
     /// child books).
-    private static func parentBookInfo(for rowId: UUID, in nodes: [SidebarNode]) -> (bookId: UUID, folderName: String)? {
+    static func parentBookInfo(for rowId: UUID, in nodes: [SidebarNode]) -> (bookId: UUID, folderName: String)? {
         // Walk each top-level shelf. If a shelf's direct child is
         // the rowId (= top-level book), return nil. If a book's
         // children contains the rowId (= folder row), return the
