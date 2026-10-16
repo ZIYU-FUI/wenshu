@@ -482,13 +482,21 @@ actor WenshuVerifier {
                         throw WenshuLLMError.invalidBaseURL(url: creds.baseURL)
                     }
                     // Build POST body with `stream: true` (= Anthropic
-                    // SSE handshake). Note: SSEClient takes only the
-                    // URL + headers (= the body is appended inside
-                    // its URLSession dataTask = the dict below is
-                    // not consumed by the current API; = future ticket
-                    // should thread `body` through to make Anthropic
-                    // message/role/content fields work).
-                    let _body: [String: Any] = [
+                    // SSE handshake). Per the SSEClient signature
+                    // (= `stream(body:)`), the body Data is appended
+                    // inside the URLSession bytes task. The previous
+                    // shape (= per OOB 2026-10-16 "测试还是不通" =
+                    // "minimax-cn returns HTTP 400") discarded the
+                    // body with `let _ = _body` (= sent an empty
+                    // body; = minimax rejected the empty POST with
+                    // `HTTP 400` and a JSON `message` field that the
+                    // upstream error mapper consumed as a generic
+                    // "HTTP 400"). Threading the body through is
+                    // the actual fix (= per the
+                    // `Sources/WenshuApp/Features/Agent/Service/
+                    // SSEClient.swift:75` throw site comment that
+                    // pointed at this gap for the next ticket).
+                    let bodyDict: [String: Any] = [
                         "model": effectiveModel,
                         "max_tokens": 1024,
                         "stream": true,
@@ -497,13 +505,13 @@ actor WenshuVerifier {
                             ? WenshuVerifier.systemPromptEnglishOnly
                             : WenshuVerifier.systemPromptEnglishOnly + "\n\n---\n\n" + system
                     ]
-                    _ = _body  // suppress unused warning (= body construction kept for reference)
+                    let body = try JSONSerialization.data(withJSONObject: bodyDict)
                     let sse = SSEClient(url: url, headers: [
                         "x-api-key": creds.apiKey,
                         "anthropic-version": "2023-06-01",
                         "content-type": "application/json"
                     ])
-                    let stream = await sse.stream()
+                    let stream = await sse.stream(body: body)
                     var textBuffer = ""
                     for try await event in stream {
                         if Task.isCancelled { break }

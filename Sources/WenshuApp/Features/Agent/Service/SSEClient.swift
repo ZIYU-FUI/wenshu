@@ -58,7 +58,14 @@ actor SSEClient {
     /// Stream SSE events. Caller `break`s out of the loop to cancel
     /// (= partial events are dropped; URLSession.bytes task is
     /// automatically cancelled when the iterator is deallocated).
-    func stream() -> AsyncThrowingStream<SSEEvent, Error> {
+    /// Pass `body: Data?` to send a POST body (= the body is
+    /// appended inside the URLSession bytes task; = the previous
+    /// shape took only URL + headers and sent an empty body, which
+    /// the Anthropic-compatible endpoint rejected with HTTP 400).
+    /// When `body` is nil, the request sends an empty body (=
+    /// matches the old behavior; = `WenshuVerifier` and any
+    /// GET-shaped callers keep working).
+    func stream(body: Data? = nil) -> AsyncThrowingStream<SSEEvent, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
                 do {
@@ -67,15 +74,30 @@ actor SSEClient {
                     for (k, v) in headers {
                         request.setValue(v, forHTTPHeaderField: k)
                     }
+                    if let body {
+                        request.httpBody = body
+                    }
                     let (bytes, response) = try await session.bytes(for: request)
                     guard let http = response as? HTTPURLResponse else {
                         throw URLError(.badServerResponse)
                     }
                     guard (200..<300).contains(http.statusCode) else {
+                        // Capture the body bytes so the caller can
+                        // see the real reason (= minimax returns
+                        // a JSON error with a `message` field;
+                        // = the previous `throw NSError(domain: "SSEClient", ...)`
+                        // dropped these bytes on the floor).
+                        var errorBody = ""
+                        if let errorBytes = try? await bytes.lines.reduce(into: "") { $0 += "\n" + $1 } {
+                            errorBody = errorBytes
+                        }
                         throw NSError(
                             domain: "SSEClient",
                             code: http.statusCode,
-                            userInfo: [NSLocalizedDescriptionKey: "HTTP \(http.statusCode)"]
+                            userInfo: [
+                                NSLocalizedDescriptionKey: "HTTP \(http.statusCode)",
+                                "responseBody": errorBody
+                            ]
                         )
                     }
                     // Parse SSE: read line by line, accumulate
