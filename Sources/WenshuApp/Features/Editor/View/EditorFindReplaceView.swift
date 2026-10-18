@@ -36,7 +36,7 @@
 //   engine-driven indicator).
 //
 // View-lifecycle scope (= observer registration follows the same
-// pattern as `EditorFormatReadoutView`).
+// pattern as the prior editor-inspector sub-views).
 import SwiftUI
 import MarkdownEngine
 

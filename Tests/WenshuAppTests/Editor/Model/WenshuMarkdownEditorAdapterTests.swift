@@ -397,11 +397,11 @@ struct WenshuMarkdownEditorAdapterTests {
         )
     }
 
-    /// The 5 sub-tools (= formatReadout / findReplace / headingOutline /
-    /// codeBlocks / spellToggles) all live behind `EditorDocumentToolsSubToolPicker`.
+    /// The 4 sub-tools (= findReplace / headingOutline / codeBlocks /
+    /// spellToggles) all live behind `EditorDocumentToolsSubToolPicker`.
     /// Source-content test gates the contract: if anyone removes a
     /// case, the picker source contract drift surface triggers a fail.
-    @Test("EditorDocumentToolsSubTool covers the engine's 5-sub-tool surface (= T-04)")
+    @Test("EditorDocumentToolsSubTool covers the engine's 4-sub-tool surface (= T-04)")
     func documentToolsSubToolCoverage() throws {
         let viewPath = resolve("Sources/WenshuApp/Views/Inspector/EditorDocumentToolsView.swift")
         let view = try String(contentsOfFile: viewPath, encoding: .utf8)
@@ -410,17 +410,16 @@ struct WenshuMarkdownEditorAdapterTests {
             "EditorDocumentToolsSubTool enum must live in EditorDocumentToolsView.swift"
         )
         let expectedCases: Set<String> = [
-            "formatReadout", "findReplace", "headingOutline",
-            "codeBlocks", "spellToggles"
+            "findReplace", "headingOutline", "codeBlocks", "spellToggles"
         ]
         #expect(
-            EditorDocumentToolsSubTool.allCases.count == 5,
-            "EditorDocumentToolsSubTool.allCases must cover exactly 5 sub-tools (= Apple HIG document-inspector surface)"
+            EditorDocumentToolsSubTool.allCases.count == 4,
+            "EditorDocumentToolsSubTool.allCases must cover exactly 4 sub-tools (= Apple HIG document-inspector surface; formatReadout was removed per OOB.md #2026-10-18)"
         )
         let actualCases = Set(EditorDocumentToolsSubTool.allCases.map(\.rawValue))
         #expect(
             actualCases == expectedCases,
-            "EditorDocumentToolsSubTool cases must match the 5-sub-tool contract (= T-05..09 each fill one case body)"
+            "EditorDocumentToolsSubTool cases must match the 4-sub-tool contract (= T-06..09 each fill one case body)"
         )
     }
 
@@ -447,43 +446,12 @@ struct WenshuMarkdownEditorAdapterTests {
     }
 
     // MARK: - ed-smc-defaults T-05: format-readout sub-tool body shipped
-
-    /// The `.formatReadout` case in `EditorDocumentToolsView` must now
-    /// construct the real `EditorFormatReadoutView` (= the placeholder
-    /// from T-04 was a contract surface, = T-05 replaces it with a
-    /// live body that observes the engine's selection-state events).
-    /// Source-content gate: if anyone reverts the T-05 wiring this
-    /// test fails (= the right-column format readout silently drops
-    /// back to the T-04 placeholder).
-    @Test("EditorDocumentToolsView wires .formatReadout → EditorFormatReadoutView (= T-05)")
-    func editorDocumentToolsWiresFormatReadout() throws {
-        let viewPath = resolve("Sources/WenshuApp/Views/Inspector/EditorDocumentToolsView.swift")
-        let view = try String(contentsOfFile: viewPath, encoding: .utf8)
-        #expect(
-            view.contains("EditorFormatReadoutView(bus: bus)"),
-            "EditorDocumentToolsView's .formatReadout case must construct EditorFormatReadoutView (= T-05 live body)"
-        )
-    }
-
-    /// `EditorFormatReadoutView` (= the new T-05 sub-tool body) reads
-    /// the 3 engine selection-state events. The bus names live on
-    /// `MarkdownEditorBus` (= set by `MarkdownEditorBus.buildWenshu()` =
-    /// the factory wenshu exposes); = the observer registration must
-    /// read these 3 names or the readout silently stays frozen.
-    @Test("EditorFormatReadoutView observes the 3 engine selection events (= T-05)")
-    func editorFormatReadoutObservesSelectionEvents() throws {
-        let viewPath = resolve("Sources/WenshuApp/Views/Inspector/EditorFormatReadoutView.swift")
-        let view = try String(contentsOfFile: viewPath, encoding: .utf8)
-        // One #expect per engine selection-state event (= if any of
-        // the 3 disappears the readout silently drops that toggle =
-        // AND from the user's perspective = all 3 must be wired).
-        #expect(view.contains("bus.selectionBoldDidChange"),
-                "EditorFormatReadoutView must register an observer for bus.selectionBoldDidChange (= the engine's bold-toggle notification)")
-        #expect(view.contains("bus.selectionItalicDidChange"),
-                "EditorFormatReadoutView must register an observer for bus.selectionItalicDidChange (= the engine's italic-toggle notification)")
-        #expect(view.contains("bus.selectionHighlightDidChange"),
-                "EditorFormatReadoutView must register an observer for bus.selectionHighlightDidChange (= the engine's highlight-toggle notification)")
-    }
+    //
+    // Removed 2026-10-18: formatReadout was deleted as a feature
+    // (= boss directive; = no future T-05 will reintroduce it).
+    // See OOB.md #2026-10-18 for the full rationale and rejection
+    // criterion (= any subsequent .formatReadout restoration is a
+    // reject-on-sight violation).
 
     // MARK: - ed-smc-defaults T-06: find & replace sub-tool body shipped
 
