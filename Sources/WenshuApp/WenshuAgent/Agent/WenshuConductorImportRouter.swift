@@ -355,7 +355,7 @@ actor WenshuConductorImportRouter: ImportRouter {
     ) async throws -> LLMResponse {
         var messages: [LLMMessage] = [.user(initialUserPrompt)]
         let maxTurns = 5
-        for turn in 0..<maxTurns {
+        for _ in 0..<maxTurns {
             let response = try await connector.send(messages: messages, options: options)
             // Check stop reason (= endTurn = LLM finished; = toolUse = LLM wants to call
             // a tool; = maxTokens = LLM hit the cap; = unknown = bail).
@@ -477,7 +477,7 @@ actor WenshuConductorImportRouter: ImportRouter {
             )
         }
         let isContentSame = (parsed["isContentSame"] as? Bool) ?? false
-        let confidence = (parsed["confidence"] as? Double ?? parsed["confidence"] as? Float as? Double) ?? 0.0
+        let confidence = (parsed["confidence"] as? Double) ?? 0.0
         let reasoning = (parsed["reasoning"] as? String) ?? ""
         return ContentSameResult(
             isContentSame: isContentSame,

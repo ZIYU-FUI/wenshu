@@ -141,7 +141,7 @@ enum UserFacingError: Error, LocalizedError {
             }
             return String.localizedStringWithFormat(NSLocalizedString("error.timeout.generic", comment: ""), operation)
 
-        case .unknown(let underlying):
+        case .unknown:
             // Per boss 2026-10-16 OOB "只接提示, 模型
             // 配置有误就行了": the previous behavior
             // (= `0f48a3b6a`) showed the raw underlying

@@ -146,7 +146,6 @@ extension SidebarService {
             .appendingPathComponent(bookId.uuidString, isDirectory: true)
         let fm = FileManager.default
         try fm.createDirectory(at: bookDir, withIntermediateDirectories: true)
-        let now = Date()
         let standardFolders = [
             "world", "characters", "outlines", "chapters",
             "drafts", "sessions", "foreshadowing", "placeholders"
