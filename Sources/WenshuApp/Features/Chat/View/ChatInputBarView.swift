@@ -404,18 +404,19 @@ struct ChatInputBarView: View {
             }
         }
         .help(String(localized: "chat.input.help"))
-        // Auto-grow shape = `RoundedRectangle`, not `Capsule`. The
-        // previous `Capsule` shape (= Apple HIG canonical for 1-2
-        // line chat input pills) renders as an ellipse when the
-        // field auto-grows past ~3 rows (= the height grows but the
-        // corner radius auto-tracks the half-height, producing a
-        // pizza-slice outline) and the glyphs start spilling past
-        // the rounded boundary. Switching to a fixed-corner
-        // `RoundedRectangle(cornerRadius: …)` (= the same shape
-        // Apple Messages uses for its multi-line input row;
-        // = `surfaceCornerRadiusWindow` = 10 PT) keeps the bar
-        // visually contained AND the cap height stable.
-        .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusWindow))
+        // Dynamic chat input shape (= resting = RoundedRectangle with
+        // a fixed `surfaceCornerRadiusWindow` corner radius +
+        // when the field shrinks to a single horizontal pill,
+        // the corner radius auto-tracks `height / 2` so it
+        // reads as a capsule). Replaces the previous Capsule
+        // (= height grew to the 5-line cap and the corner
+        // radius auto-followed half-height, producing an ellipse
+        // outline with glyphs spilling past the rounded boundary)
+        // AND the prior RoundedRectangle(cornerRadius: 10) (=
+        // the field at its resting 36 PT height read as a flat
+        // chip with hard edges instead of the canonical Apple
+        // Messages single-line capsule).
+        .glassEffect(.regular.interactive(), in: ChatInputBarShape())
         .modifier(SlashCommandAutocompleteModifier(inputText: $vm.inputText))
         .modifier(ImagePasteModifier(onAttach: { url in
             Task { _ = await vm.attachImage(at: url) }
@@ -488,5 +489,36 @@ private struct ImagePasteModifier: ViewModifier {
                 }
             }
         }
+    }
+}
+
+// MARK: - ChatInputBarShape
+//
+// Single horizontal pill (= resting / 1-row / 2-row state of the
+// chat input field) wants a capsule shape with corner radius =
+// height / 2; = Apple canonical Messages single-line input row.
+// Past that height (= the user has typed enough content to auto-
+// grow the field past 2 rows, the canonical trigger for "input
+// is now a text block, not a pill") the corner radius must stop
+// tracking half-height or the outline degenerates into an ellipse
+// that the glyphs spill out of.
+//
+// Implementation (= one-line `path(in:)` override): corner radius
+// is the smaller of half-height (= capsule candidate) and a
+// 18 PT cap (= the canonical Messages "rounded chip" max corner).
+//   - height = 36 PT (resting)  -> corner = min(18, 18) = 18 -> capsule.
+//   - height = 60 PT (mid-grow)  -> corner = min(30, 18) = 18 -> rounded rect.
+//   - height = 90 PT (5-row cap) -> corner = min(45, 18) = 18 -> rounded rect.
+// Used by `.glassEffect(... in:)` so the chat input field shows the
+// same shape under the glass material mask (= no ellipse dump).
+private struct ChatInputBarShape: Shape {
+    /// Maximum corner radius (= capsule rest state + chip cap).
+    /// 18 PT (= half of the 36 PT resting chat-input row
+    /// `DesignTokens.controlHeightLarge`) so an empty 1-row
+    /// field reads as the canonical Apple Messages capsule.
+    private let maxCorner: CGFloat = 18
+    func path(in rect: CGRect) -> Path {
+        let radius = min(rect.height / 2, maxCorner)
+        return Path(roundedRect: rect, cornerRadius: radius)
     }
 }
