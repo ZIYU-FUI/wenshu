@@ -23,10 +23,10 @@ import Testing
 struct SidebarIconUniformityTests {
     @Test("SFLabelRow uses the central icon factory and a fixed row slot")
     func sidebarRowUsesCentralFactoryAndFixedSlot() throws {
-        let source = try Self.source("Sources/WenshuApp/Shared/UI/IconStyles.swift")
+        let source = try Self.source("Sources/WenshuApp/Shared/UI/IconStylesViews.swift")
         // Factory shape: SFLabelRow delegates to SFIcon(..., style: iconStyle)
         // and pins the row slot via sidebarWidth / sidebarInset.
-        #expect(source.contains("SFIcon(\n                systemImage,\n                style: iconStyle,"))
+        #expect(source.contains("SFIcon(\n                systemImage,\n                style: iconStyle,\n                color: IconColor.primary"))
         #expect(source.contains("padding(.horizontal, iconStyle.sidebarInset)"))
         #expect(source.contains("width: iconStyle.sidebarWidth"))
         // The slot is 16 PT wide; we don't force a square frame
@@ -43,7 +43,7 @@ struct SidebarIconUniformityTests {
         // properties (sidebarWidth / sidebarInset) are scoped to
         // the sidebar surface (= not attached to every case via
         // an extension on IconStyle).
-        #expect(source.contains("case sidebar"))
+        #expect(source.contains("case sidebar") || source.contains("case .sidebar"))
         let rowSource = try Self.sourceSlice(
             from: "struct SFLabelRow: View {",
             to: "// MARK: - SFStatusBadge"
