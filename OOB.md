@@ -99,3 +99,5 @@ New entries = append 1 line. Outdated = delete (= per AGENTS.md §10.3).
 | 2026-10-19 | §11.26 弧完结 + 收尾会话 (= 6 票 merge main: ticket 02/03/04/A1/C2/A2; = 4 remote provider (OpenAI/minimax/Gemini/DeepSeek); = 砍 AppleNLEmbeddingBackend + MockEmbeddingModel; = 触发点 WSEntityRepository.replaceBody 接线缺, 老板 MacBook 试用发现再补; = ahead vs origin 0 0, vs old-origin 0 12) | — |
 
 | 2026-10-19 | 红 12 + 黄 28023 Xcode 问题清完 (= ticket 01-27 一次性修复; = Xcode 12 workspace 红 = DerivedData stale 大小写删; = 黄 warning = 4 真 warning + 16 stale substring + 7 stale path; = Swift Testing 12 真红 = ticket 02/04/05/06/07/09/10/11/12/14/15/16/19/20/21/24/25/26/27 全修; = Connector 4 类 + EditorTabTitle + TodoStore 等 source bug 类保留, 老板 OOB "先清问题不动功能" 后留; = 47 unpushed to old-origin; = 推送通道 = core.sshCommand=nc -X connect -x 127.0.0.1:7897) | — |
+
+| 2026-10-19 | EditorTab.displayTitle 优先级反转 (= source 先 title 后 path basename; = boss 2026-09-12 OOB "tab title 走 document name" 要求 path basename 优先; = 当前 source 与 OOB 反; = 5 个测试 fail 是真 source bug; = 老板 "先清问题不动功能" 保留 = 留 ticket) | — |
