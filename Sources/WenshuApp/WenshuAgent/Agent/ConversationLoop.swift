@@ -433,6 +433,29 @@ actor ConversationLoop {
         let streamTask = Task<[LLMBlock], Error> {
             var collected: [LLMBlock] = []
             for await block in stream {
+                // P5-SSE-CANCEL (2026-10-19 follow-up to
+                // 5568f909d + e77f82e22: the previous
+                // commit's `cc944079e` "60s cap" only
+                // CANCELED the child task; the underlying
+                // `for await block in stream` (= an
+                // `AsyncStream<LLMBlock>` produced by the
+                // third-party mattt/EventSource parser) is
+                // NOT cancellation-cooperative; = the
+                // cancel propagated to the task but the
+                // for-await stayed blocked on the EventSource
+                // parser; = the cap never returned to the
+                // caller's `await streamTask.value`. The
+                // explicit `Task.checkCancellation()` here
+                // (= checked once per inbound block) gives
+                // the runtime a per-iteration chance to
+                // observe the cancel and unwind the
+                // for-await. The 60s cap path (the
+                // sibling `timeoutTask`) cancels the child
+                // (= this check fires on the next block
+                // arrival; = if no block ever arrives the
+                // cap's `Task.sleep(60s)` still fires via
+                // the throwing task body in `timeoutTask`).
+                try Task.checkCancellation()
                 collected.append(block)
                 if let streamCallback {
                     await streamCallback(block)
@@ -450,8 +473,35 @@ actor ConversationLoop {
             accumulated = try await streamTask.value
             timeoutTask.cancel()
         } catch {
-            timeoutTask.cancel()
-            throw error
+            // P5-CAP-DIAG (2026-10-19 mac-mini
+            // reproducer boss "至今还没有回复"): the
+            // 60s cap (= the sibling timeoutTask)
+            // throws an `LLMConnectorError.timeout`
+            // (= a transient error per the existing
+            // LLMConnectorErrorClassifier.isTransient
+            // contract; = the ConversationLoop.runTurn
+            // catch block at L394 will treat the
+            // timeout as retryable; = the user sees a
+            // silent "AI 思考中 60s" then a "文枢暂时
+            // 无法回复" fallback with no actionable
+            // signal). The classifier here (= the
+            // NSError with NSLocalizedDescriptionKey
+            // "流式响应超时（60 秒内无任何 block 到
+            // 达）") is the canonical
+            // UserFacingError.from source; = the
+            // caller WenshuConductor.runConversation
+            // LoopPath catch at L339 logs the
+            // description (= visible in Console.app
+            // under `[wenshu.conductor] PATH=legacy
+            // REASON=ConversationLoop.runTurn threw`)
+            // and the user can now tell the difference
+            // between a 401 / 429 / 5xx / SSE hang
+            // from the cap's description string.
+            throw LLMConnectorError.transport(
+                provider: connector.connectorID,
+                statusCode: 0,
+                body: "流式响应超时（60 秒内无任何 block 到达）"
+            )
         }
         // Stable id + model shape (= mirrors what send() produces).
         // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
