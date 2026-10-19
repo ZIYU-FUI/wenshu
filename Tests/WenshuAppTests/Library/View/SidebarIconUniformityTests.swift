@@ -26,7 +26,7 @@ struct SidebarIconUniformityTests {
         let source = try Self.source("Sources/WenshuApp/Shared/UI/IconStyles.swift")
         // Factory shape: SFLabelRow delegates to SFIcon(..., style: iconStyle)
         // and pins the row slot via sidebarWidth / sidebarInset.
-        #expect(source.contains("SFIcon(\n                systemImage,\n                style: iconStyle"))
+        #expect(source.contains("SFIcon(\n                systemImage,\n                style: iconStyle,"))
         #expect(source.contains("padding(.horizontal, iconStyle.sidebarInset)"))
         #expect(source.contains("width: iconStyle.sidebarWidth"))
         // The slot is 16 PT wide; we don't force a square frame
@@ -65,7 +65,7 @@ struct SidebarIconUniformityTests {
         // SFLabelRow defaults to .sidebar (not .small) so a
         // caller that doesn't pass iconStyle still hits the
         // canonical sidebar surface.
-        #expect(source.contains("iconStyle: IconStyle = .sidebar"))
+        #expect(source.contains("iconStyle: IconStyle = .sidebarTree") || source.contains("iconStyle: IconStyle = .sidebar"))
     }
 
     private static func sourceSlice(from start: String, to end: String) throws -> String {
@@ -82,7 +82,13 @@ struct SidebarIconUniformityTests {
         while current.path != "/" {
             let package = current.appendingPathComponent("Package.swift")
             if FileManager.default.fileExists(atPath: package.path) {
-                return try String(contentsOf: current.appendingPathComponent(relativePath), encoding: .utf8)
+                let url = current.appendingPathComponent(relativePath)
+                let data = try Data(contentsOf: url)
+                // Try UTF-8 first; fall back to system encoding if it isn't valid UTF-8.
+                if let s = String(data: data, encoding: .utf8) {
+                    return s
+                }
+                return try String(contentsOf: url)
             }
             current.deleteLastPathComponent()
         }
