@@ -273,7 +273,21 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // deprecation bridge for SwiftUI `var` callers like
         // ChatZoneView, ChatView, ChatSessionViewModel,
         // EditorChatNSController) still reads from the
-        // facade's nonisolated snapshot.
+        // / facade's nonisolated snapshot.
+        // Boss 2026-10-19 mac-mini reproducer (= chat hang
+        // "AI 思考中 20s"): the previous `Task { await ...
+        // installConductor }` form deferred the snapshot
+        // write to the next actor scheduler tick, = the
+        // chat path's `currentConductorSync()` returned nil
+        // the moment the user pressed send (= the
+        // `if let conductor = conductor` else branch in
+        // ChatSessionViewModel took the "agent 未配置"
+        // fallback path). The sync shim publishes the
+        // conductor to the nonisolated snapshot RIGHT
+        // NOW (= no actor hop), then the async install
+        // catches up the actor-isolated `self.conductor`
+        // field at its leisure.
+        WenshuAgent.installConductorSync(conductorInstance)
         Task { await WenshuAgent.shared.installConductor(conductorInstance) }
 
         // Warm the provider-with-keys cache (= AUDIT.md §2.2 partial:
@@ -318,6 +332,11 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // above), so installing it on the facade propagates that
         // fix to every future caller that uses WenshuAgent.shared
         // .chat() / .currentConductor().
+        // Same sync-snapshot shim as `applicationDidFinishLaunching`
+        // (= the boss 2026-10-19 mac-mini reproducer required both
+        // install sites to publish synchronously; = the screenshot
+        // re-launch path also goes through here).
+        WenshuAgent.installConductorSync(conductorInstance)
         Task { await WenshuAgent.shared.installConductor(conductorInstance) }
 
         NSApp.activate(ignoringOtherApps: true)

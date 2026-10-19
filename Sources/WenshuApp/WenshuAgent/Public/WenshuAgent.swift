@@ -54,6 +54,26 @@ actor WenshuAgent {
         WenshuAgent.conductorSnapshot.withLock { $0 = conductor }
     }
 
+    /// Sync shim (= the Boss 2026-10-19 mac-mini reproducer
+    /// "AI 思考中 20s" hung the chat because the chat path's
+    /// `WenshuAgent.shared.currentConductorSync()` returned nil
+    /// the moment the user pressed send; = the install was
+    /// scheduled via `Task { await WenshuAgent.shared.installConductor
+    /// (conductorInstance) }` (= actor hop; = the snapshot write
+    /// was deferred to the next actor scheduler tick; = the chat
+    /// `if let conductor = conductor` path took the else branch
+    /// within the same UI tick the user pressed send).
+    /// Writing the snapshot directly here (= the same lock the
+    /// async path uses; = the actor-field write inside the
+    /// async `installConductor` is still a best-effort update
+    /// for callers that prefer the async variant) lets callers
+    /// publish the conductor SYNCHRONOUSLY at app startup, so
+    /// `currentConductorSync()` is non-nil by the time the first
+    /// chat send fires.
+    nonisolated static func installConductorSync(_ conductor: WenshuConductor) {
+        WenshuAgent.conductorSnapshot.withLock { $0 = conductor }
+    }
+
     /// Removes the conductor instance (= cleanup on app
     /// termination; = symmetry with install). Most callers
     /// do not need to call this (= the singleton lives for
