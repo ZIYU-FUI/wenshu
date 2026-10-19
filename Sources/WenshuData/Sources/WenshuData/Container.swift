@@ -131,15 +131,20 @@ public enum WSPersistenceContainer {
             cloudKitDatabase: .none
         )
         do {
-            // Plan-aware init: SwiftData runs WenshuMigrationPlan
-            // (= .lightweight V1 -> V2 today) automatically when the
-            // on-disk store is at an older schema version. The plan's
-            // schema namespace is built from ModelsSchemaV1.models (= the
-            // current 22 @Model class set).
+            // Implicit lightweight init: SwiftData handles additive schema
+            // changes (= new optional properties, new @Model classes, new
+            // optional relationships) without any `SchemaMigrationPlan`.
+            // The current V1/V2 schema pair holds the same 29 @Model class
+            // set (= additive placeholder; = no real schema delta yet),
+            // so a plan would only produce duplicate-version checksums
+            // (= NSInvalidArgumentException at launch). WenshuMigrationPlan
+            // + ModelsSchemaV1/V2 stay declared for the future non-additive
+            // change (= rename, type change, cardinality flip), but they
+            // are not wired into the container initializer until a real
+            // delta ships.
             let schemaV1 = Schema(ModelsSchemaV1.models)
             return try ModelContainer(
                 for: schemaV1,
-                migrationPlan: WenshuMigrationPlan.self,
                 configurations: [config]
             )
         } catch {
@@ -184,7 +189,6 @@ public enum WSPersistenceContainer {
         let schemaV1 = Schema(ModelsSchemaV1.models)
         return try ModelContainer(
             for: schemaV1,
-            migrationPlan: WenshuMigrationPlan.self,
             configurations: [config]
         )
     }
