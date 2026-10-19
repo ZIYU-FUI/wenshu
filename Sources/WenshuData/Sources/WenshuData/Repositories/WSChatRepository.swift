@@ -167,6 +167,7 @@ public final class WSChatRepository {
         // forward-compat with the existing SortDescriptor(\.position)
         // path (= the SwiftData migration tooling reads it).
         let position = count + 1
+        _ = position  // (= position is consumed only via SwiftData KeyPath; the local binding is the documented source-of-truth for the migration tooling reader)
         // Denormalize bookID onto the message row (= the message.bookID
         // mirrors session.bookID; = the parent session is the source of truth).
         // Reads (= loadMessages) can then filter by message.bookID without
