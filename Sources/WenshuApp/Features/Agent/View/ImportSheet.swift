@@ -212,7 +212,7 @@ struct ImportSheet: View {
         // auto-advance from .running to .results once the import finishes (= the user
         // … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // flip.
-        .onChange(of: isRunComplete) { newValue in
+        .onChange(of: isRunComplete) { _, newValue in
             if newValue && currentStep == .running {
                 currentStep = .results
             }

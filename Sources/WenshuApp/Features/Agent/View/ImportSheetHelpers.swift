@@ -428,7 +428,7 @@ extension ImportSheet {
                 HStack {
                     Spacer()
                     Button {
-                        Task { await retryFailedTitleOnly() }
+                        Task { retryFailedTitleOnly() }
                     } label: {
                         if isRetryingFailed {
                             HStack(spacing: DesignTokens.spacingIconic) {

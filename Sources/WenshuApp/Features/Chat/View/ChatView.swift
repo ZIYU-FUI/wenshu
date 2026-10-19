@@ -196,7 +196,7 @@ struct ChatView: View {
                 // 
                 // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
                 // new values).
-                .onChange(of: vm.messages.last(where: { $0.source == .user })?.id) { newLatestID in
+                .onChange(of: vm.messages.last(where: { $0.source == .user })?.id) { _, newLatestID in
                     if let newLatestID {
                         // anchor: .top pins the new latest user row
                         // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
