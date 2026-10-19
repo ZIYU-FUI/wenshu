@@ -155,23 +155,19 @@ struct ChatView: View {
                 }
             )
             .id(userMsg.id)
+            .padding(.vertical, 10)
             // section header needs `.background()` to mask
             // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // seamlessly with the scroll viewport background.
+            // Background applied AFTER padding (= the canonical
+            // Apple shape: the background extends into the 10 PT
+            // padding zone above + below the bubble glyph, so the
+            // 10 PT gaps between the chrome band and the sticky
+            // bubble AND between the sticky bubble and the AI
+            // reply directly underneath both render as visible
+            // sidebarBackground-tinted empty space, not as
+            // padding-only transparent slivers).
             .background(DesignTokens.sidebarBackground)
-            // 10 PT (= Apple's macOS 27 HIG macOS chat
-            // (= Messages / Mail conversation list)
-            // shows each reply's first line ~10 PT
-            // below the user's bubble (= the
-            // canonical gap shape). Wenshu's previous
-            // default placed the AI reply directly
-            // adjacent to the user bubble inside the
-            // same Section (= no separation). Add
-            // 10 PT top padding to the Section's
-            // content (= the ForEach below) so every
-            // reply starts 10 PT below the header /
-            // user-bubble boundary.
-            .padding(.bottom, 10)
         }
     }
 
