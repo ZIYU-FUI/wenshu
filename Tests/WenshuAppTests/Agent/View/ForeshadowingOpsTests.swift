@@ -202,6 +202,6 @@ struct ForeshadowingOpsTests {
             .deletingLastPathComponent()
         let sourcePath = repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/ForeshadowingOps.swift")
-        #expect(sourcePath.path.contains("/Views/Tools/"))
+        #expect(sourcePath.path.contains("/Features/Agent/View/"))
     }
 }
