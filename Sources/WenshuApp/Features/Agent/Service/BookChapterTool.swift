@@ -254,15 +254,11 @@ actor BookChapterActor {
             }
         )
         let documents: [Document]
-        do {
-            documents = (try? FileSystemChapterStore.loadChaptersFromFileSystem(
-                bookDirectory: draftsDirectory,
-                chaptersDirectory: draftsDirectory,
-                indexURL: draftsDirectory.deletingLastPathComponent().appendingPathComponent("drafts.json")
-            )) ?? []
-        } catch {
-            throw BookChapterError.underlying(String(describing: error))
-        }
+        documents = (try? FileSystemChapterStore.loadChaptersFromFileSystem(
+            bookDirectory: draftsDirectory,
+            chaptersDirectory: draftsDirectory,
+            indexURL: draftsDirectory.deletingLastPathComponent().appendingPathComponent("drafts.json")
+        )) ?? []
         guard let existing = documents.first(where: { $0.id == id }) else {
             throw BookChapterError.entryNotFound(id: id)
         }
@@ -305,15 +301,11 @@ actor BookChapterActor {
     func listChapters(bookId: UUID) async throws -> [ChapterDescriptor] {
         let (_, chaptersDirectory, indexURL) = try resolvePaths()
         let documents: [Document]
-        do {
-            documents = (try? FileSystemChapterStore.loadChaptersFromFileSystem(
-                bookDirectory: chaptersDirectory,
-                chaptersDirectory: chaptersDirectory,
-                indexURL: indexURL
-            )) ?? []
-        } catch {
-            throw BookChapterError.underlying(String(describing: error))
-        }
+        documents = (try? FileSystemChapterStore.loadChaptersFromFileSystem(
+            bookDirectory: chaptersDirectory,
+            chaptersDirectory: chaptersDirectory,
+            indexURL: indexURL
+        )) ?? []
         let filtered = documents.filter { $0.bookId == bookId }
         let sorted = filtered.sorted { $0.updatedAt > $1.updatedAt }
         return sorted.map { ChapterDescriptor($0) }
@@ -323,15 +315,11 @@ actor BookChapterActor {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let (_, chaptersDirectory, indexURL) = try resolvePaths()
         let documents: [Document]
-        do {
-            documents = (try? FileSystemChapterStore.loadChaptersFromFileSystem(
-                bookDirectory: chaptersDirectory,
-                chaptersDirectory: chaptersDirectory,
-                indexURL: indexURL
-            )) ?? []
-        } catch {
-            throw BookChapterError.underlying(String(describing: error))
-        }
+        documents = (try? FileSystemChapterStore.loadChaptersFromFileSystem(
+            bookDirectory: chaptersDirectory,
+            chaptersDirectory: chaptersDirectory,
+            indexURL: indexURL
+        )) ?? []
         let match = documents.first { document in
             document.bookId == bookId &&
             document.title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == trimmed
@@ -345,15 +333,11 @@ actor BookChapterActor {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let (_, draftsDirectory, indexURL) = try resolveDraftsPaths()
         let documents: [Document]
-        do {
-            documents = (try? FileSystemChapterStore.loadChaptersFromFileSystem(
-                bookDirectory: draftsDirectory,
-                chaptersDirectory: draftsDirectory,
-                indexURL: indexURL
-            )) ?? []
-        } catch {
-            throw BookChapterError.underlying(String(describing: error))
-        }
+        documents = (try? FileSystemChapterStore.loadChaptersFromFileSystem(
+            bookDirectory: draftsDirectory,
+            chaptersDirectory: draftsDirectory,
+            indexURL: indexURL
+        )) ?? []
         let match = documents.first { document in
             document.bookId == bookId &&
             document.title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == trimmed
