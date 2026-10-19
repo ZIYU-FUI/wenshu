@@ -46,9 +46,9 @@ struct IconStylesTests {
         #expect(IconStyle.paneTab.pointSize == 18)
     }
 
-    @Test("IconStyle.toolbar = 22 (= SwiftUI ControlSize.small / macOS toolbar default)")
+    @Test("IconStyle.toolbar = 18 (= SwiftUI ControlSize.small / macOS toolbar default)")
     func toolbarPointSize() {
-        #expect(IconStyle.toolbar.pointSize == 22)
+        #expect(IconStyle.toolbar.pointSize == 18)
     }
 
     @Test("IconStyle.nav = 24 (= SwiftUI ControlSize.regular / HIG macOS nav)")
@@ -125,14 +125,14 @@ struct IconStylesTests {
 
     // MARK: - IconStyle coverage
 
-    @Test("IconStyle.allCases = 12 (= the full Apple-HIG surface list)")
+    @Test("IconStyle.allCases = 13 (= the full Apple-HIG surface list + sidebarTree)")
     func iconStyleAllCasesCount() {
         let cases = IconStyle.allCases
-        #expect(cases.count == 12, "IconStyle has 12 cases; = the union of all Apple-HIG-tier + .hitArea / .toolbarButton / .surface / .sidebar wrappers")
+        #expect(cases.count == 13, "IconStyle has 13 cases; = the union of all Apple-HIG-tier + .hitArea / .toolbarButton / .surface / .sidebar / .sidebarTree wrappers")
         let names = Set(cases.map { String(describing: $0) })
         for expected in ["inlineSmall", "small", "paneTab", "toolbar", "nav",
                           "hitArea", "emptyStateHero", "avatar", "cover",
-                          "toolbarButton", "surface", "sidebar"] {
+                          "toolbarButton", "surface", "sidebar", "sidebarTree"] {
             #expect(names.contains(expected), "IconStyle is missing case: \(expected)")
         }
     }
