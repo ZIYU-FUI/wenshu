@@ -429,13 +429,29 @@ actor ConversationLoop {
         options: LLMCallOptions,
         streamCallback: (@Sendable (LLMBlock) async -> Void)?
     ) async throws -> LLMResponse {
-        var accumulated: [LLMBlock] = []
         let stream = connector.stream(messages: messages, options: options)
-        for await block in stream {
-            accumulated.append(block)
-            if let streamCallback {
-                await streamCallback(block)
+        let streamTask = Task<[LLMBlock], Error> {
+            var collected: [LLMBlock] = []
+            for await block in stream {
+                collected.append(block)
+                if let streamCallback {
+                    await streamCallback(block)
+                }
             }
+            return collected
+        }
+        let timeoutTask = Task<Void, Error> {
+            try await Task.sleep(nanoseconds: 60_000_000_000)
+            streamTask.cancel()
+            throw CancellationError()
+        }
+        let accumulated: [LLMBlock]
+        do {
+            accumulated = try await streamTask.value
+            timeoutTask.cancel()
+        } catch {
+            timeoutTask.cancel()
+            throw error
         }
         // Stable id + model shape (= mirrors what send() produces).
         // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
