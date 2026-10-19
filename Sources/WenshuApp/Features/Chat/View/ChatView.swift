@@ -159,6 +159,14 @@ struct ChatView: View {
             // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // seamlessly with the scroll viewport background.
             .background(DesignTokens.sidebarBackground)
+            // 2026-10-19 ticket: chat sticky user-bubble top padding
+            // 10 PT (= the user's latest-message bubble that sticks to
+            // the scroll-viewport top via
+            // `LazyVStack(pinnedViews: [.sectionHeaders])` now stays
+            // 10 PT below the header chrome band). The padding
+            // applies inside the pinned header so it does not shift
+            // when content scrolls underneath.
+            .padding(.top, 10)
         }
     }
 
