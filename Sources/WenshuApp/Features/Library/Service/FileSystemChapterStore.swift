@@ -213,7 +213,7 @@ struct FileSystemChapterStore: ChapterStoring {
         let model = WSChapter(
             id: chapterIDString,
             bookID: bookID.uuidString,
-            title: chapter.title ?? "",
+            title: chapter.title,
             position: 0,
             status: "draft",
             summary: chapter.summary,
@@ -223,7 +223,7 @@ struct FileSystemChapterStore: ChapterStoring {
         try context.save()
 
         // Bootstrap into Spotlight (= ⌘F finds it).
-        let chapterTitle = chapter.title ?? chapter.id.uuidString
+        let chapterTitle = chapter.title
         Task.detached(priority: .utility) {
             do {
                 try await CSSearchableIndexSearch.shared.index(
@@ -263,14 +263,14 @@ struct FileSystemChapterStore: ChapterStoring {
 
         // Update the existing row in place (= SwiftData observes the field writes and
         // auto-persists on save).
-        existing.title = chapter.title ?? existing.title
+        existing.title = chapter.title
         existing.summary = chapter.summary
         existing.body = bodyMarkdown
         existing.updatedAt = Date()
         try context.save()
 
         // Re-index Spotlight (= title or body may have changed).
-        let chapterTitle = chapter.title ?? chapter.id.uuidString
+        let chapterTitle = chapter.title
         Task.detached(priority: .utility) {
             do {
                 try await CSSearchableIndexSearch.shared.index(
