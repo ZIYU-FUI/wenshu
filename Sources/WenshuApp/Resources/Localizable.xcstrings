@@ -18,7 +18,6 @@
         }
       }
     },
-
     "View": {
       "extractionState": "manual",
       "localizations": {
@@ -36,7 +35,6 @@
         }
       }
     },
-
     "inspector.documentTools.codeBlocks.title": {
       "extractionState": "manual",
       "localizations": {
@@ -54,7 +52,6 @@
         }
       }
     },
-
     "inspector.documentTools.codeBlocks.empty": {
       "extractionState": "manual",
       "localizations": {
@@ -72,7 +69,6 @@
         }
       }
     },
-
     "inspector.documentTools.entry.title": {
       "extractionState": "manual",
       "localizations": {
@@ -90,7 +86,6 @@
         }
       }
     },
-
     "inspector.documentTools.findReplace.title": {
       "extractionState": "manual",
       "localizations": {
@@ -108,7 +103,6 @@
         }
       }
     },
-
     "inspector.documentTools.findReplace.query.placeholder": {
       "extractionState": "manual",
       "localizations": {
@@ -126,7 +120,6 @@
         }
       }
     },
-
     "inspector.documentTools.findReplace.replacement.placeholder": {
       "extractionState": "manual",
       "localizations": {
@@ -144,7 +137,6 @@
         }
       }
     },
-
     "inspector.documentTools.findReplace.previous.help": {
       "extractionState": "manual",
       "localizations": {
@@ -162,7 +154,6 @@
         }
       }
     },
-
     "inspector.documentTools.findReplace.next.help": {
       "extractionState": "manual",
       "localizations": {
@@ -180,7 +171,6 @@
         }
       }
     },
-
     "inspector.documentTools.findReplace.replace.label": {
       "extractionState": "manual",
       "localizations": {
@@ -198,7 +188,6 @@
         }
       }
     },
-
     "inspector.documentTools.findReplace.replace.help": {
       "extractionState": "manual",
       "localizations": {
@@ -216,7 +205,6 @@
         }
       }
     },
-
     "inspector.documentTools.findReplace.replaceAll.label": {
       "extractionState": "manual",
       "localizations": {
@@ -234,7 +222,6 @@
         }
       }
     },
-
     "inspector.documentTools.findReplace.replaceAll.help": {
       "extractionState": "manual",
       "localizations": {
@@ -252,7 +239,6 @@
         }
       }
     },
-
     "inspector.documentTools.headingOutline.title": {
       "extractionState": "manual",
       "localizations": {
@@ -270,7 +256,6 @@
         }
       }
     },
-
     "inspector.documentTools.headingOutline.empty": {
       "extractionState": "manual",
       "localizations": {
@@ -288,7 +273,6 @@
         }
       }
     },
-
     "inspector.documentTools.spellToggles.title": {
       "extractionState": "manual",
       "localizations": {
@@ -306,7 +290,6 @@
         }
       }
     },
-
     "inspector.documentTools.spellToggles.footer": {
       "extractionState": "manual",
       "localizations": {
@@ -324,7 +307,6 @@
         }
       }
     },
-
     "inspector.documentTools.spellToggles.continuous": {
       "extractionState": "manual",
       "localizations": {
@@ -342,7 +324,6 @@
         }
       }
     },
-
     "inspector.documentTools.spellToggles.continuous.help": {
       "extractionState": "manual",
       "localizations": {
@@ -360,7 +341,6 @@
         }
       }
     },
-
     "inspector.documentTools.spellToggles.grammar": {
       "extractionState": "manual",
       "localizations": {
@@ -378,7 +358,6 @@
         }
       }
     },
-
     "inspector.documentTools.spellToggles.grammar.help": {
       "extractionState": "manual",
       "localizations": {
@@ -396,7 +375,6 @@
         }
       }
     },
-
     "inspector.documentTools.spellToggles.autocorrect": {
       "extractionState": "manual",
       "localizations": {
@@ -414,7 +392,6 @@
         }
       }
     },
-
     "inspector.documentTools.spellToggles.autocorrect.help": {
       "extractionState": "manual",
       "localizations": {
@@ -432,7 +409,6 @@
         }
       }
     },
-
     "inspector.page.documentTools": {
       "extractionState": "manual",
       "localizations": {
@@ -450,7 +426,6 @@
         }
       }
     },
-
     "library.migration.title": {
       "extractionState": "manual",
       "localizations": {
@@ -468,7 +443,6 @@
         }
       }
     },
-
     "library.migration.retry": {
       "extractionState": "manual",
       "localizations": {
@@ -486,7 +460,6 @@
         }
       }
     },
-
     "library.migration.exit": {
       "extractionState": "manual",
       "localizations": {
@@ -504,7 +477,6 @@
         }
       }
     },
-
     "library.migration.failure.title": {
       "extractionState": "manual",
       "localizations": {
@@ -522,7 +494,6 @@
         }
       }
     },
-
     "library.migration.stage.preparing": {
       "extractionState": "manual",
       "localizations": {
@@ -540,7 +511,6 @@
         }
       }
     },
-
     "library.migration.stage.executing": {
       "extractionState": "manual",
       "localizations": {
@@ -558,7 +528,6 @@
         }
       }
     },
-
     "library.migration.stage.finalizing": {
       "extractionState": "manual",
       "localizations": {
@@ -576,7 +545,6 @@
         }
       }
     },
-
     "library.migration.estimate.idle": {
       "extractionState": "manual",
       "localizations": {
@@ -594,7 +562,6 @@
         }
       }
     },
-
     "library.migration.estimate.active.pending": {
       "extractionState": "manual",
       "localizations": {
@@ -612,7 +579,6 @@
         }
       }
     },
-
     "library.migration.estimate.done": {
       "extractionState": "manual",
       "localizations": {
@@ -630,7 +596,6 @@
         }
       }
     },
-
     "library.migration.estimate.failed": {
       "extractionState": "manual",
       "localizations": {
@@ -648,14 +613,13 @@
         }
       }
     },
-
     "settings.appearance.appLanguage.zh-Hans": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Simplified Chinese"
+            "value": "简体中文"
           }
         },
         "zh-Hans": {
@@ -666,7 +630,6 @@
         }
       }
     },
-
     "a11y.emotion_curve": {
       "extractionState": "manual",
       "localizations": {
@@ -12278,23 +12241,6 @@
         }
       }
     },
-    "settings.appearance.appLanguage.zh-Hans": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "简体中文"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "简体中文"
-          }
-        }
-      }
-    },
     "settings.appearance.appLanguage.restartAlert_title": {
       "extractionState": "manual",
       "localizations": {
@@ -13091,6 +13037,108 @@
           "stringUnit": {
             "state": "translated",
             "value": "字"
+          }
+        }
+      }
+    },
+    "settings.embedding.section_label": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Embedding model"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Embedding 模型"
+          }
+        }
+      }
+    },
+    "settings.embedding.section_caption": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Embedding powers semantic search across entity bodies. Reuses the same API key as the LLM model."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Embedding 给人物卡/设定/章节等文档做语义检索。跟大模型共用同一份 API key, 不需要单独配。"
+          }
+        }
+      }
+    },
+    "settings.embedding.provider_label": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Provider"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "提供商"
+          }
+        }
+      }
+    },
+    "settings.embedding.status_label": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Status"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "状态"
+          }
+        }
+      }
+    },
+    "settings.embedding.status_key_ready": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API key ready"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "API key 已就绪"
+          }
+        }
+      }
+    },
+    "settings.embedding.status_key_missing": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "no API key (set in Providers)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未配 API key (去 Providers 配置)"
           }
         }
       }
