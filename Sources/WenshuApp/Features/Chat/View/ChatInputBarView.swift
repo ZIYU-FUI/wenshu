@@ -354,13 +354,23 @@ struct ChatInputBarView: View {
     /// Single-line (= axis: .horizontal) with `.lineLimit(1)` per
     /// input is a single horizontal row; = multi-line editing
     /// uses ⌘↩ for newline if ever needed).
+    /// Auto-grow input field. The TextField starts at the canonical
+    /// chat-input height (= `DesignTokens.controlHeightLarge` = 36 PT;
+    /// = the same chat-input row height Apple Messages uses) and grows
+    /// vertically with content, up to a 5-line cap (= beyond that, the
+    /// field scrolls internally; = the input bar does NOT push the
+    /// chat transcript off-screen). Switch axis from `.horizontal` to
+    /// `.vertical` so ⏎ inserts newlines (= multi-line typing) and
+    /// lift the `.lineLimit(1)` constraint to a range, while
+    /// preserving `.frame(minHeight:)` so the field stays anchored at
+    /// the canonical chat-input height even when empty.
     private var textField: some View {
         TextField(
             String(localized: "chat.input.placeholder"),
             text: $vm.inputText,
-            axis: .horizontal
+            axis: .vertical
         )
-        .lineLimit(1)
+        .lineLimit(1 ... 5)
         .textFieldStyle(.plain)
         // 2026-09-23: 'input message... needs 10PT left padding from the chat box'.
         // Apple Messages chat input pattern: the placeholder /
@@ -369,7 +379,7 @@ struct ChatInputBarView: View {
         // in macOS Messages chat input are followed by the same
         // padding to the text).
         .padding(.leading, DesignTokens.spacingModerate)
-        .frame(minHeight: DesignTokens.controlHeightLarge, maxHeight: DesignTokens.controlHeightLarge)
+        .frame(minHeight: DesignTokens.controlHeightLarge)
         .frame(maxWidth: .infinity)
         .disabled(!hasUsableKey)
         .focused(inputFocused)
