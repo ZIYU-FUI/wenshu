@@ -466,12 +466,63 @@ actor ConversationLoop {
         }
         let timeoutTask = Task<Void, Error> {
             try await Task.sleep(nanoseconds: 60_000_000_000)
+            // P5-CAP-FORCE-UNWIND (2026-10-19
+            // mac-mini reproducer boss "我又发了一句
+            // 测试" = the previous cap's
+            // `streamTask.cancel()` did NOT unwinding
+            // the `for await block in stream` (= the
+            // mattt/EventSource AsyncStream is not
+            // cancellation-cooperative; = the for-await
+            // stayed blocked on the parser; =
+            // `streamTask.value` never returned; =
+            // the catch block below never ran; = the
+            // fallback to non-streaming send() never
+            // fired). The trick below races
+            // `streamTask.value` against
+            // `timeoutTask.value`: whichever returns
+            // first wins (= the cap's
+            // `Task.sleep(60s)` is the deterministic
+            // winner when the SSE parser hangs; = the
+            // `streamTask.value` returns its collected
+            // blocks when the SSE finishes normally).
+            // When the cap wins, the throw
+            // (= `CancellationError` from the
+            // timeoutTask's race) propagates to the
+            // catch block below, which routes the call
+            // through `connector.send(...)` (= the
+            // non-streaming request/response path; =
+            // bypasses the EventSource SSE parser
+            // entirely; = the only path that returns a
+            // complete LLMResponse when the SSE
+            // wireup hangs).
             streamTask.cancel()
             throw CancellationError()
         }
         let accumulated: [LLMBlock]
         do {
-            accumulated = try await streamTask.value
+            // Race streamTask vs timeoutTask. The
+            // `withTaskGroup` makes the first one to
+            // finish (= either the SSE parser
+            // completing the for-await, or the cap
+            // firing after 60s) the one whose result
+            // the await below observes. The other task
+            // is cancelled via the group on exit.
+            accumulated = try await withThrowingTaskGroup(of: [LLMBlock].self) { group in
+                group.addTask {
+                    try await streamTask.value
+                }
+                group.addTask {
+                    try await timeoutTask.value
+                    // = the cap fired; = the
+                    // streamTask is still blocked; =
+                    // return empty + throw via the
+                    // outer try.
+                    throw CancellationError()
+                }
+                let firstResult = try await group.next()!
+                group.cancelAll()
+                return firstResult
+            }
             timeoutTask.cancel()
         } catch {
             // P5-CAP-DIAG (2026-10-19 mac-mini
