@@ -136,7 +136,7 @@ actor BookExportEngine {
                 destination: destinationURL
             )
         case .pdf:
-            return try writePDF(
+            return writePDF(
                 chapters: chapters,
                 chaptersDir: chaptersDir,
                 destination: destinationURL

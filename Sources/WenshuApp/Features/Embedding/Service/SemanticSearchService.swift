@@ -39,7 +39,7 @@ public actor SemanticSearchService {
         // Pull all embeddings of the active model. For a small library
         // (= a few thousand bodies) this is fast; for a large one, a
         // dedicated vector index lands in a future ticket.
-        let rows = try await MainActor.run { body_rows(modelKindRaw: kind.rawValue) }
+        let rows = await MainActor.run { body_rows(modelKindRaw: kind.rawValue) }
         guard !rows.isEmpty else { return [] }
 
         // Score every row, drop zero-norm, sort descending, take K.
