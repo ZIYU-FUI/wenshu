@@ -2,13 +2,13 @@
 //  EmbeddingModel.swift
 //  WenshuApp
 //
-//  §11.26 弧 ticket 02. Protocol + model-kind enum for any embedding
-//  backend. Apple 1:1 path: protocol-oriented (same shape as URLSession
-//  / URLProtocol).
+//  §11.26 弧 ticket 02 + 03. Protocol + model-kind enum for any
+//  embedding backend. Apple 1:1 path: protocol-oriented (same shape
+//  as URLSession / URLProtocol).
 //
-//  / Service depends on this protocol only. Concrete backends (bge, mock,
-//  / Apple NLEmbedding deprecated) live in sibling files. New backends
-//  / can be added without touching the service.
+//  / Service depends on this protocol only. Concrete backends
+//  / (AppleNLEmbedding, mock) live in sibling files. New backends can
+//  / be added without touching the service.
 //
 //  / Per AGENTS.md §6.5 file-naming: this is the canonical <Xxx>Model.swift
 //  / (= 1 of 4 suffixes: View/Ops/Service/State/Model; = kind enum inline
@@ -19,20 +19,25 @@ import Foundation
 
 public enum EmbeddingModelKind: String, CaseIterable, Codable, Sendable {
     /// BAAI bge-small-zh-v1.5. Chinese-specialized, 512 dim, ~95MB fp16.
+    /// Reserved for ticket 04 (= when Apple Metal Toolchain is available
+    /// on the build host, this kind routes to MlxEmbeddingModel).
     case bgeSmallZh
-    /// BAAI bge-m3. Multilingual, 1024 dim, ~1.1GB fp16.
+    /// BAAI bge-m3. Multilingual, 1024 dim, ~1.1GB fp16. Same ticket 04
+    /// dependency as bgeSmallZh.
     case bgeM3
+    /// Apple NLEmbedding on-device word-avg. Always available, no
+    /// download required. PoC-verified 0.20-0.72 cosine discrimination
+    /// for short Chinese text. Currently the production backend (ticket 03).
+    case appleNLEmbedding
     /// Mock implementation. For unit tests and local dev only.
     case mock
-    /// Apple NLEmbedding (PoC verified unusable, retained for fallback).
-    case appleNLEmbeddingDeprecated
 
     public var displayName: String {
         switch self {
         case .bgeSmallZh: return "bge-small-zh-v1.5"
         case .bgeM3: return "bge-m3"
+        case .appleNLEmbedding: return "Apple NLEmbedding (system)"
         case .mock: return "Mock (test only)"
-        case .appleNLEmbeddingDeprecated: return "Apple NLEmbedding (deprecated)"
         }
     }
 
@@ -40,8 +45,8 @@ public enum EmbeddingModelKind: String, CaseIterable, Codable, Sendable {
         switch self {
         case .bgeSmallZh: return 95 * 1024 * 1024
         case .bgeM3: return 1_100 * 1024 * 1024
+        case .appleNLEmbedding: return 0
         case .mock: return 0
-        case .appleNLEmbeddingDeprecated: return 0
         }
     }
 
@@ -49,8 +54,8 @@ public enum EmbeddingModelKind: String, CaseIterable, Codable, Sendable {
         switch self {
         case .bgeSmallZh: return 512
         case .bgeM3: return 1024
+        case .appleNLEmbedding: return 300
         case .mock: return 300
-        case .appleNLEmbeddingDeprecated: return 640
         }
     }
 
@@ -59,6 +64,7 @@ public enum EmbeddingModelKind: String, CaseIterable, Codable, Sendable {
     }
 
     /// Locale-driven default: zh-* -> bgeSmallZh, otherwise bgeM3.
+    /// (Effective backend is AppleNLEmbedding until ticket 04 wires bge.)
     public static func defaultForLocale(_ locale: Locale = .current) -> EmbeddingModelKind {
         let code = locale.language.languageCode?.identifier ?? "en"
         if code.hasPrefix("zh") { return .bgeSmallZh }

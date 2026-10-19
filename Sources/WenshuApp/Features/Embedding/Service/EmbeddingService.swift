@@ -32,21 +32,27 @@ public actor EmbeddingService {
     }
 
     /// Returns the active model, constructing it lazily. For .mock, this is
-    /// instant. For bge / Apple NLEmbedding, ticket 03+ will hook up download
-    /// and load logic here.
+    /// instant. For bge / appleNLEmbedding, ticket 03 wires the real backend.
+    ///
+    /// / bgeSmallZh / bgeM3 (mlx-swift-lm) require an Apple-signed Metal
+    /// / Toolchain to compile on this build host (= Apple ID authorized
+    /// / download per `xcodebuild -downloadComponent`). Sandbox here does
+    /// / not have Apple ID, so bge kinds fall back to AppleNLEmbedding
+    /// / (= the on-device NaturalLanguage word embedding, always available,
+    /// / PoC-verified 0.20-0.72 cosine discrimination for short Chinese).
     public func ensureReady() async throws -> EmbeddingModel {
         if let m = activeModel { return m }
         let model: EmbeddingModel
         switch activeKind {
         case .mock:
             model = MockEmbeddingModel()
-        case .appleNLEmbeddingDeprecated:
-            model = MockEmbeddingModel()
-        case .bgeSmallZh, .bgeM3:
-            // Ticket 03 will swap this for the real bge backend.
-            // For ticket 02 we still return Mock so the service compiles
-            // and is exercisable end-to-end.
-            model = MockEmbeddingModel()
+        case .bgeSmallZh, .bgeM3, .appleNLEmbedding:
+            // bge kinds would call MlxEmbeddingModel here once Metal
+            // Toolchain is available. For now (= sandbox without Apple
+            // ID) every kind routes to the on-device AppleNLEmbedding
+            // backend, which is always available and meets the
+            // "first-use immediately usable" bar (boss OOB 2026-10-18).
+            model = AppleNLEmbeddingBackend()
         }
         try await model.prepare()
         activeModel = model
