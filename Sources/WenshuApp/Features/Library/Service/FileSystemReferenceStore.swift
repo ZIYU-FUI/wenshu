@@ -603,7 +603,6 @@ struct FileSystemReferenceStore: ReferenceStoring {
     // / updated body.
     func replaceReferenceByID(id: UUID, bodyMarkdown: String) throws {
         guard let context = modelContext else { return }
-        let idString = id.uuidString
         let descriptor = FetchDescriptor<WSReference>(
             predicate: #Predicate { $0.id == id }
         )

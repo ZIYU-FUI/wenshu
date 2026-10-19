@@ -53,7 +53,6 @@ actor ChapterExportEngine {
         // (= the existing FileSystemChapterStore.scatteredFilesystem
         // path uses nonisolated static loaders that need the book's
         // chaptersDirectory; = we find that directory first.)
-        let fm = FileManager.default
         guard let chaptersDir = try locateChaptersDirectory(
             libraryURL: libURL,
             chapterID: chapterID

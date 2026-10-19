@@ -107,16 +107,13 @@ actor CSSearchableIndexSearch {
         let tokens = TokenOverlapRanking.tokenize(body + " " + title)
         mirror[docId] = SearchDocMirrorEntry(docId: docId, title: title, body: body, tokens: tokens)
 
-        // Build CSSearchableItem (= Apple Spotlight index entry).
+        // Build CSSearchableItemAttributeSet (= Apple Spotlight index entry).
+        // The actual CSSearchableItem is constructed inside flushPending() to
+        // batch with the other pending entries (= Apple HIG recommendation).
         let attrSet = CSSearchableItemAttributeSet(contentType: .text)
         attrSet.title = title
         attrSet.contentDescription = body
         attrSet.identifier = docId
-        let item = CSSearchableItem(
-            uniqueIdentifier: CSSearchDomain.itemIdentifier(for: docId),
-            domainIdentifier: CSSearchDomain.domainIdentifier,
-            attributeSet: attrSet
-        )
 
         // Coalesce into pendingIndex (= batch flush on next `flush()` or search()).
         // Apple HIG: CSSearchableIndex.indexSearchableItems accepts batches of 100s;
@@ -166,7 +163,7 @@ actor CSSearchableIndexSearch {
     /// `start()` is Void (= error surfaces via completionHandler).
     private func querySpotlight(query: String, limit: Int) throws -> [CSSearchResult] {
         let queryString = "contentDescription == \"*\(query)*\"c OR title == \"*\(query)*\"c"
-        let cssQuery = CSSearchQuery(queryString: queryString, attributes: nil)
+        let cssQuery = CSSearchQuery(queryString: queryString, queryContext: nil)
 
         var collected: [CSSearchableItem] = []
         var queryError: Error?
