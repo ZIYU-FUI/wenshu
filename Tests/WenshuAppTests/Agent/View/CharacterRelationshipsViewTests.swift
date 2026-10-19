@@ -149,7 +149,7 @@ struct CharacterRelationshipsViewTests {
 
     @Test("CharacterRelationshipsViewState mirror file exists")
     func testStateMirrorFileExists() throws {
-        let filePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Features/Agent/View/CharacterRelationshipsViewState.swift"
+        let filePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Features/Agent/Store/CharacterRelationshipsViewState.swift"
         #expect(FileManager.default.fileExists(atPath: filePath))
         let source = try String(contentsOfFile: filePath, encoding: .utf8)
         #expect(source.contains("@Observable"))
