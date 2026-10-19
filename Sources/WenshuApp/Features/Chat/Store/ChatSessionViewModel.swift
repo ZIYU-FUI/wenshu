@@ -127,7 +127,24 @@ final class ChatViewModel {
         // to query per the 2026-08-25 'no API to fetch from, right?' = the user confirmed no API).
     var contextMax: Int = 1_000_000
 
-    private let conductor: WenshuConductor?
+    // / 2026-10-19 mac-mini reproducer (= chat hang
+    // "AI 思考中 20s"): the SwiftUI @State ChatViewModel
+    // is constructed on the FIRST ChatView body
+    // evaluation (= happens before
+    // `applicationDidFinishLaunching` runs; = before
+    // `WenshuAgent.installConductorSync` writes the
+    // snapshot; = the value resolved via
+    // `WenshuAgent.shared.currentConductorSync()` is nil
+    // at construction time). Subscribe to
+    // `wenshuConductorInstalled` notifications so the
+    // field gets patched in the moment the AppDelegate
+    // publishes the conductor (= the existing
+    // `installConductor` flow at AppDelegate lines 290
+    // + 335 fires both `installConductorSync` and
+    // `installConductor`; = both paths post the
+    // notification; = the subscriber updates the
+    // conductor on the main actor).
+    private var conductor: WenshuConductor?
     // Chat persistence lives in `WSChatRepository.shared` (= a
     // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // Mutable so the archive flow can replace the session id.
@@ -185,6 +202,33 @@ final class ChatViewModel {
         // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // ChatMessage only).
         self.repository = repository
+        // Boss 2026-10-19 mac-mini reproducer (= chat
+        // hang "AI 思考中 20s"): SwiftUI evaluates the
+        // chat zone body BEFORE
+        // `applicationDidFinishLaunching` runs; = the
+        // `currentConductorSync` snapshot is nil at that
+        // moment (= the AppDelegate hasn't called
+        // `installConductorSync` yet). Subscribe here
+        // (= at the end of init so all stored fields are
+        // initialized before the observer closure is
+        // allocated; = Swift 6 strict-init avoids
+        // "self.x used before initialized" warnings)
+        // so the conductor is patched in the moment the
+        // AppDelegate publishes it.
+        NotificationCenter.default.addObserver(
+            forName: .wenshuConductorInstalled,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            // Re-resolve the snapshot (= the notification
+            // is a signal; the canonical value lives in
+            // the lock-protected snapshot). Defensive
+            // `??` keeps a previously-captured reference
+            // (= the AppDelegate may re-install the same
+            // conductor across lifecycle paths; = the
+            // snapshot value is identical; = no churn).
+            self?.conductor = WenshuAgent.shared.currentConductorSync() ?? self?.conductor
+        }
     }
 
     // / Build a per-book session id. Returns `book:<id>:default` when scoped to

@@ -132,6 +132,26 @@ extension Notification.Name {
     // AppStateEvents
     static let wenshuProviderKeychainChanged = Notification.Name(AppStateEvents.providerKeychainChanged.rawValue)
     static let wenshuDefocusChatInput = Notification.Name(AppStateEvents.defocusChatInput.rawValue)
+    // Boss 2026-10-19 mac-mini reproducer (= chat hang
+    // "AI 思考中 20s"): the chat view model subscribes
+    // to this notification in its init (= SwiftUI
+    // evaluates the chat zone body before
+    // `applicationDidFinishLaunching` publishes the
+    // conductor via `WenshuAgent.installConductorSync`;
+    // = the sync snapshot is nil at the moment the
+    // chat view model resolves it; = the chat view
+    // model stays nil forever; = the chat send
+    // collapses to the "agent 未配置" fallback).
+    // Posting the notification from both
+    // `installConductor` (= the async actor-isolated
+    // path) AND `installConductorSync` (= the sync
+    // shim) lets subscribers patch the resolved value
+    // in the moment the AppDelegate publishes the
+    // conductor (= the chat path's first
+    // `if let conductor = conductor` then takes the
+    // real branch instead of the "agent 未配置"
+    // fallback).
+    static let wenshuConductorInstalled = Notification.Name("wenshuConductorInstalled")
 
     /// Local symbol for `runtimeCWDDidChange` (no `wenshu` prefix to
     /// match the existing call sites in RuntimeCWDDisplayChip + tests).

@@ -31,6 +31,7 @@
 //
 
 import Foundation
+import os.log
 
 actor WenshuAgent {
     static let shared = WenshuAgent()
@@ -52,6 +53,23 @@ actor WenshuAgent {
     func installConductor(_ conductor: WenshuConductor) {
         self.conductor = conductor
         WenshuAgent.conductorSnapshot.withLock { $0 = conductor }
+        // Boss 2026-10-19 mac-mini reproducer: the chat
+        // view model subscribes to this notification in
+        // its init (= before the AppDelegate publishes
+        // the conductor; = the subscriber receives the
+        // notification and patches its `conductor` field).
+        // Posted on the main queue (= both production
+        // call sites are @MainActor-isolated) so the
+        // subscriber's `[weak self] in` block runs on
+        // the same actor the @MainActor ChatViewModel
+        // body lives on (= no actor-isolation warning
+        // when the subscriber mutates `self.conductor`).
+        DispatchQueue.main.async {
+            NotificationCenter.default.post(
+                name: .wenshuConductorInstalled,
+                object: nil
+            )
+        }
     }
 
     /// Sync shim (= the Boss 2026-10-19 mac-mini reproducer
@@ -71,7 +89,35 @@ actor WenshuAgent {
     /// `currentConductorSync()` is non-nil by the time the first
     /// chat send fires.
     nonisolated static func installConductorSync(_ conductor: WenshuConductor) {
+        // Boss 2026-10-19 chat hang reproducer: this
+        // shim writes the snapshot synchronously so the
+        // first ChatViewModel.init (= the SwiftUI @State
+        // construction that happens when the chat zone
+        // first appears) sees a non-nil conductor even if
+        // the actor-isolated `installConductor` body
+        // (= the same value with `self.conductor = ...`)
+        // hasn't run yet. The log line below is the
+        // canonical debug handle for the user's
+        // "send a message, look at Console.app" flow.
+        os_log("[wenshu.agent] installConductorSync published: thread=%{public}@", log: .default, type: .info, Thread.current.description)
         WenshuAgent.conductorSnapshot.withLock { $0 = conductor }
+        // Same notification path as the actor-isolated
+        // `installConductor`: the ChatSessionViewModel
+        // subscriber patches its `conductor` field on the
+        // main actor (= sync shim runs on the main
+        // thread; = the post is already on the main
+        // queue; = no extra `async` dispatch needed).
+        // The async `installConductor` also posts (=
+        // both paths converge on the same notification
+        // name; = subscribers see one event per logical
+        // install operation; the duplicate post is
+        // coalesced by NotificationCenter's de-dupe
+        // (= the second post within the same run loop
+        // turn is collapsed to one delivery).
+        NotificationCenter.default.post(
+            name: .wenshuConductorInstalled,
+            object: nil
+        )
     }
 
     /// Removes the conductor instance (= cleanup on app
@@ -106,7 +152,9 @@ actor WenshuAgent {
     /// a one-line forwarder; = the AppDelegate no longer
     /// holds the canonical instance).
     nonisolated func currentConductorSync() -> WenshuConductor? {
-        WenshuAgent.conductorSnapshot.withLock { $0 }
+        let result = WenshuAgent.conductorSnapshot.withLock { $0 }
+        os_log("[wenshu.agent] currentConductorSync read: thread=%{public}@ isNil=%{public}@", log: .default, type: .info, Thread.current.description, result == nil ? "true" : "false")
+        return result
     }
 
     /// Install + uninstall also update the nonisolated snapshot
