@@ -56,7 +56,7 @@ struct IconFontMagicSweepSummaryTests {
         // Exception files = sweep boundary exceptions (PreviewPane hero card,
         // ContentUnavailableView, ChatToolUsePartView status pulse animation).
         let exceptionFiles = [
-            "Sources/WenshuApp/Workspace/PreviewPane.swift",
+            "Sources/WenshuApp/Features/Editor/View/PreviewPane.swift",
             "Sources/WenshuApp/Features/Chat/View/ChatToolUsePartView.swift",
         ]
         // Source tree uses SFIcon central factory (= v3.0 sweep core invariant).
