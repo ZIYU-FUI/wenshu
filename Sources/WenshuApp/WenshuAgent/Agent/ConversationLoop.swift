@@ -2,6 +2,7 @@
 // … (= 49 rationale lines collapsed; = A112 docblock collapse per §1.8)
 // unit tests + callers that don't care about progress emission).
 import Foundation
+import os.log
 import WenshuData
 
 // / Result of a single ConversationLoop.runConversation call.
@@ -476,7 +477,7 @@ actor ConversationLoop {
             // P5-CAP-DIAG (2026-10-19 mac-mini
             // reproducer boss "至今还没有回复"): the
             // 60s cap (= the sibling timeoutTask)
-            // throws an `LLMConnectorError.timeout`
+            // throws an `LLMConnectorError.transport`
             // (= a transient error per the existing
             // LLMConnectorErrorClassifier.isTransient
             // contract; = the ConversationLoop.runTurn
@@ -497,11 +498,54 @@ actor ConversationLoop {
             // and the user can now tell the difference
             // between a 401 / 429 / 5xx / SSE hang
             // from the cap's description string.
-            throw LLMConnectorError.transport(
-                provider: connector.connectorID,
-                statusCode: 0,
-                body: "流式响应超时（60 秒内无任何 block 到达）"
-            )
+            //
+            // Boss 2026-10-19 follow-up: the user
+            // asked "你应该修让他回复我, 怎么只修一个
+            // 提示, 让他告诉我无法回复就完了" (= the
+            // cap + structured error alone is the
+            // "tell the user we can't reply" half; the
+            // "actually reply" half needs a fallback
+            // to the non-streaming send() path so the
+            // user sees a real LLM response when the
+            // SSE parser hangs on the upstream).
+            // The fallback here routes the same
+            // (messages, options) through
+            // `connector.send(...)` (= the
+            // non-streaming request/response path;
+            // = bypasses the EventSource SSE parser
+            // entirely; = the only path that returns
+            // a complete LLMResponse even when the
+            // SSE wireup hangs). The catch below
+            // emits a structured timeout log line so
+            // the user can still tell from
+            // Console.app which path fired (= a
+            // streaming hang that fell back to
+            // non-streaming, vs a clean streaming
+            // success).
+            os_log("[wenshu.conversationLoop] PATH=stream-cap-fallback REASON=60s_no_blocks falling back to non-streaming send provider=%{public}@", log: .default, type: .error, connector.connectorID)
+            do {
+                let fallback = try await connector.send(
+                    messages: messages,
+                    options: options
+                )
+                return fallback
+            } catch {
+                // The non-streaming fallback also
+                // failed (= genuine provider error, not
+                // just a streaming parser hang). Throw
+                // the structured timeout so the chat
+                // surface shows the user-facing message
+                // (= the `UserFacingError.from`
+                // classifier in 8cdcb8d69 maps this to
+                // "流式响应超时" = the user can re-send
+                // or fall back to a different provider).
+                os_log("[wenshu.conversationLoop] PATH=stream-cap-fallback-failed REASON=non_streaming_also_failed error=%{public}@", log: .default, type: .error, String(describing: error))
+                throw LLMConnectorError.transport(
+                    provider: connector.connectorID,
+                    statusCode: 0,
+                    body: "流式响应超时（60 秒内无任何 block 到达；非流式重试也失败：\(String(describing: error))）"
+                )
+            }
         }
         // Stable id + model shape (= mirrors what send() produces).
         // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
