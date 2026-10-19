@@ -68,6 +68,10 @@ struct ChatInputBarView: View {
     var inputFocused: FocusState<Bool>.Binding
     var hasUsableKey: Bool
     @Binding var showingImageImporter: Bool
+    // / §11.26 弧 ticket A2. Semantic search across WSBodyEmbedding rows
+    // / (= "find characters similar to this query"). Sheet is presented
+    // / from the chat zone's outer container (= ChatView holds the state).
+    @Binding var showingSemanticSearch: Bool
     @Binding var isDropTargeted: Bool
     // FOCUS-RETENTION (boss 2026-10-16 OOB "现在打字说完一句话，聊天区
     // 的文本框会失去焦点"; = Apple HIG canonical Messages / Slack
@@ -242,6 +246,7 @@ struct ChatInputBarView: View {
         //    10  10  10  ...auto-fill...  10  10
         HStack(alignment: .center, spacing: 10) {
             attachButton
+            semanticSearchButton
             agentPathButton
             turnCounterButton
 
@@ -294,6 +299,14 @@ struct ChatInputBarView: View {
     private var attachButton: some View {
         GlassIconButton(systemName: "paperclip", help: "附件") {
             showingImageImporter = true
+        }
+    }
+
+    // / §11.26 弧 ticket A2. Per boss OOB 2026-10-19 "查找相关 character":
+    // / tap to open the semantic search sheet (= cosine over WSBodyEmbedding).
+    private var semanticSearchButton: some View {
+        GlassIconButton(systemName: "magnifyingglass", help: "查找相关") {
+            showingSemanticSearch = true
         }
     }
 
