@@ -234,12 +234,7 @@ extension ShellHookChain {
         for (k, v) in kwargs where !topLevelKeys.contains(k) {
             extras[k] = v
         }
-        let cwd: String
-        do {
-            cwd = String(describing: FileManager.default.currentDirectoryPath)
-        } catch {
-            cwd = ""
-        }
+        let cwd = String(describing: FileManager.default.currentDirectoryPath)
         let payload: [String: Any] = [
             "hook_event_name": event,
             "tool_name": kwargs["tool_name"] as Any? ?? NSNull(),
