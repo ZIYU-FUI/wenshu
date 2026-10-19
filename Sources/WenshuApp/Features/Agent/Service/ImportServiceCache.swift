@@ -37,7 +37,7 @@ enum ImportServiceCache {
         tasks: inout [ImportTask],
         cacheFile: URL
     ) -> [String: ImportService.CacheEntry] {
-        var cache = readCache(cacheFile: cacheFile)
+        let cache = readCache(cacheFile: cacheFile)
         for i in tasks.indices {
             let hash: String
             do {

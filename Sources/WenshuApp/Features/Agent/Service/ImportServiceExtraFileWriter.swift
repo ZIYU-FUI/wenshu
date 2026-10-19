@@ -59,7 +59,7 @@ extension ImportService {
         // "same content" path. If a match exists, overwrite (= the LLM may
         // have refined the body in a re-import).
         let fm = FileManager.default
-        var bodyForFile = extra.body
+        let bodyForFile = extra.body
         if fm.fileExists(atPath: folderURL.appendingPathComponent(basename + ".md").path) {
             NSLog(
                 "[wenshu.import] extraFile %d (%@) overwriting existing file in %@",

@@ -65,7 +65,7 @@ extension ImportService {
         // failures and write failures are excluded; = the user clicked
         // "重新调研" with the explicit understanding that this is the
         // "I trust the filename + LLM search alone" path).
-        let candidateIndices = ImportServiceDispatchHelpers.filterRetryCandidates(tasks: tasks)
+        _ = ImportServiceDispatchHelpers.filterRetryCandidates(tasks: tasks)
         // Step 2: compute the sibling-context list ONCE (= the user's
         // whole source directory; = all .md files in the same folder as
         // the failed file; = the LLM uses the list as "what other

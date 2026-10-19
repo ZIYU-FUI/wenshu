@@ -51,7 +51,6 @@ extension ImportService {
         onProgress: (@Sendable ([ImportTask]) async -> Void)?,
         routerForProvider: (@Sendable (String) async -> ImportRouter?)? = nil
     ) async -> ImportRoutingResult? {
-        let maxLLMAttempts = 3
         lastDispatchError = nil
         // Try the active provider first (= the one the user pinned
         // in Settings → Providers). On network-class failure, walk

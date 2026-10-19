@@ -63,7 +63,7 @@ extension ImportService {
             guard let connector = WenshuAppDelegateLLMHelpers.connectorForSlug(slug) else {
                 return nil
             }
-            return await WenshuConductorImportRouter(
+            return WenshuConductorImportRouter(
                 connector: connector,
                 modelSlug: nil
             )
