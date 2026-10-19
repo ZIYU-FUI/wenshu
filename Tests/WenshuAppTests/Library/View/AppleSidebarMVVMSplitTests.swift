@@ -365,10 +365,10 @@ struct AppleSidebarMVVMSplitTests {
             contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Editor/View/PreviewPane.swift"),
             encoding: .utf8
         )
-        #expect(src.contains("private func shelfScopeView(shelfId: UUID)"),
-                "shelfScopeView MUST accept a shelfId parameter")
-        #expect(src.contains("func loadBooksInShelf(shelfId: UUID)"),
-                "PreviewPane MUST expose loadBooksInShelf(= helper that filters BookStore.sidebarLoadAllBooks by shelfId)")
+        #expect(src.contains("shelfScopeView(shelfId: shelfId)") || src.contains("private func shelfScopeView(shelfId: UUID)"),
+                "shelfScopeView MUST accept a shelfId parameter (= current source calls shelfScopeView(shelfId:) inline)")
+        #expect(src.contains("PreviewPaneOps.loadBooksInShelf") || src.contains("func loadBooksInShelf(shelfId: UUID)"),
+                "PreviewPane MUST expose loadBooksInShelf(= helper that filters BookStore.sidebarLoadAllBooks by shelfId; = current source delegates to PreviewPaneOps.loadBooksInShelf per ADR-0009)")
     }
 
     @Test("previewPane_shelfScopeView_empty_state_uses_shelf_specific_copy")
@@ -382,16 +382,16 @@ struct AppleSidebarMVVMSplitTests {
         // (= when shelves were a drill-down intermediate
         // rather than a document scope).
         let src = try String(
-            contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Editor/View/PreviewPane.swift"),
+            contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Editor/View/PreviewPaneScopeViews.swift"),
             encoding: .utf8
         )
         #expect(src.contains("titleKey: \"preview.empty_state.shelf_empty\""),
-                "shelfScopeView MUST use the shelf-specific empty-state title key")
+                "shelfScopeView MUST use the shelf-specific empty-state title key (= lives in PreviewPaneScopeViews per SS6.2 split)")
         #expect(src.contains("bodyKey: \"preview.empty.shelf_no_books\""),
-                "shelfScopeView MUST use a shelf-specific body key (= distinct from book_scope / reference_scope body keys)")
+                "shelfScopeView MUST use a shelf-specific body key (= distinct from book_scope / reference_scope body keys; = lives in PreviewPaneScopeViews per SS6.2 split)")
 
         // Verify both Localizable.strings files define the keys
-        // 
+        //
         let enKeys = try Self.localizableKeys(relaPath: "Sources/WenshuApp/Resources/en.lproj/Localizable.strings")
         let zhKeys = try Self.localizableKeys(relaPath: "Sources/WenshuApp/Resources/zh-Hans.lproj/Localizable.strings")
         #expect(enKeys.contains("preview.empty_state.shelf_empty"),
@@ -415,7 +415,7 @@ struct AppleSidebarMVVMSplitTests {
             encoding: .utf8
         )
         let ops = try String(
-            contentsOfFile: Self.repoPath("Sources/WenshuApp/UI/Layout/PreviewPaneOps.swift"),
+            contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Editor/View/PreviewPaneOps.swift"),
             encoding: .utf8
         )
         #expect(pane.contains("private func loadBookDocs(bookId: UUID, folderName: String?) -> [BookDoc]"),
