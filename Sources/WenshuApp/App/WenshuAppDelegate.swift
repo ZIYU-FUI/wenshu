@@ -275,6 +275,21 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // EditorChatNSController) still reads from the
         // facade's nonisolated snapshot.
         Task { await WenshuAgent.shared.installConductor(conductorInstance) }
+
+        // Warm the provider-with-keys cache (= AUDIT.md §2.2 partial:
+        // ChatView.hasUsableKey + ChatZoneView's empty-state gate
+        // both read the sync-cached variant via
+        // `WenshuAgent.shared.hasProvidersWithKeysCached()`). The
+        // cache is empty until something calls `providersWithKeys()`.
+        // `providersWithKeys()` now posts `.wenshuProviderKeychainChanged`
+        // on the main queue when the contents change (= the canonical
+        // trigger ChatZoneView + ChatView already subscribe to), so
+        // a single warm-up at launch both fills the cache and
+        // tells the SwiftUI tree to re-evaluate the empty-state
+        // overlay (= no leftover "请先在设置中设置..." card after
+        // a launch when a key is already present).
+        Task { await WenshuAgent.shared.providersWithKeys() }
+
         let card = AgentCard(
             name: "wenshu",
             description: "wenshu 本地主 agent, 接 MiniMax key, 支持 chat UI",

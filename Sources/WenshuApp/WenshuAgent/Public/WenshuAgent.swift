@@ -117,8 +117,24 @@ actor WenshuAgent {
         // (= AUDIT.md §2.2 partial: ChatView.hasUsableKey +
         // ChatZoneView body are `var` (= non-async) and
         // cannot `await providersWithKeys()`).
+        let changed = (cachedProvidersWithKeys != result)
         cachedProvidersWithKeys = result
         _publishCachedSnapshot()
+        // Apple canonical pattern for one-way broadcast: when the
+        // cache contents change, post the same keychain-changed
+        // notification that Settings already posts so every
+        // ChatView / ChatZoneView subscriber re-evaluates its body
+        // and the empty-state overlay disappears. Posting on `main`
+        // is required = NotificationCenter's `forName:` observer
+        // matching is documented on the main queue.
+        if changed {
+            await MainActor.run {
+                NotificationCenter.default.post(
+                    name: .wenshuProviderKeychainChanged,
+                    object: nil
+                )
+            }
+        }
         return result
     }
 
