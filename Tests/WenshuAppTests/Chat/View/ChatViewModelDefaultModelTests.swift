@@ -51,7 +51,7 @@ struct ChatViewModelDefaultModelTests {
         // test reads the worktree-local file (= not the hardcoded main path).
         let cwd = FileManager.default.currentDirectoryPath
         let settingViewURL = URL(fileURLWithPath: cwd)
-            .appendingPathComponent("Sources/WenshuApp/Features/Settings/SettingView.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Settings/View/SettingView.swift")
         let settingView = try? String(contentsOf: settingViewURL, encoding: .utf8)
         #expect(settingView != nil, "SettingView.swift must be readable at \(settingViewURL.path)")
         // 
