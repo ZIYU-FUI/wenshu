@@ -28,7 +28,7 @@ struct SummariesWindowTests {
 
     @Test("SummariesWindow file exists (= independent window)")
     func testSummariesWindowExists() throws {
-        let filePath = resolve("Sources/WenshuApp/Views/Windows/SummariesWindow.swift")
+        let filePath = resolve("Sources/WenshuApp/Features/Summaries/View/SummariesWindow.swift")
         #expect(FileManager.default.fileExists(atPath: filePath),
                 "SummariesWindow.swift must exist as a standalone file")
         let source = try String(contentsOfFile: filePath, encoding: .utf8)
@@ -42,7 +42,7 @@ struct SummariesWindowTests {
 
     @Test("SummariesWindow fetches WSSummary (= real SwiftData read)")
     func testSummariesWindowFetchesWSSummary() throws {
-        let filePath = resolve("Sources/WenshuApp/Views/Windows/SummariesWindow.swift")
+        let filePath = resolve("Sources/WenshuApp/Features/Summaries/View/SummariesWindow.swift")
         let source = try String(contentsOfFile: filePath, encoding: .utf8)
         #expect(source.contains("FetchDescriptor<WSSummary>"),
                 "Window must fetch WSSummary via FetchDescriptor")
@@ -66,7 +66,7 @@ struct SummariesWindowTests {
 
     @Test("ShellDetailColumn has toolbar button opening summaries window")
     func testToolbarButtonForSummaries() throws {
-        let toolbarPath = resolve("Sources/WenshuApp/Views/Inspector/InspectorView.swift")
+        let toolbarPath = resolve("Sources/WenshuApp/Features/Editor/View/InspectorView.swift")
         let source = try String(contentsOfFile: toolbarPath, encoding: .utf8)
         #expect(source.contains("openWindow(id: WindowID.summaries)"),
                 "Toolbar must wire openWindow(id: WindowID.summaries)")

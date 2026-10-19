@@ -27,7 +27,7 @@ struct ManifestWindowTests {
 
     @Test("ManifestWindow file exists (= independent window)")
     func testManifestWindowExists() throws {
-        let filePath = resolve("Sources/WenshuApp/Views/Windows/ManifestWindow.swift")
+        let filePath = resolve("Sources/WenshuApp/Features/Manifest/View/ManifestWindow.swift")
         #expect(FileManager.default.fileExists(atPath: filePath),
                 "ManifestWindow.swift must exist as a standalone file")
         let source = try String(contentsOfFile: filePath, encoding: .utf8)
@@ -41,7 +41,7 @@ struct ManifestWindowTests {
 
     @Test("ManifestWindow fetches WSManifest (= real SwiftData read)")
     func testManifestWindowFetchesWSManifest() throws {
-        let filePath = resolve("Sources/WenshuApp/Views/Windows/ManifestWindow.swift")
+        let filePath = resolve("Sources/WenshuApp/Features/Manifest/View/ManifestWindow.swift")
         let source = try String(contentsOfFile: filePath, encoding: .utf8)
         #expect(source.contains("FetchDescriptor<WSManifest>"),
                 "Window must fetch WSManifest via FetchDescriptor")
@@ -63,7 +63,7 @@ struct ManifestWindowTests {
 
     @Test("ShellDetailColumn has toolbar button opening manifest window")
     func testToolbarButtonForManifest() throws {
-        let toolbarPath = resolve("Sources/WenshuApp/Views/Inspector/InspectorView.swift")
+        let toolbarPath = resolve("Sources/WenshuApp/Features/Editor/View/InspectorView.swift")
         let source = try String(contentsOfFile: toolbarPath, encoding: .utf8)
         #expect(source.contains("openWindow(id: WindowID.manifest)"),
                 "Toolbar must wire openWindow(id: WindowID.manifest)")

@@ -37,7 +37,7 @@ struct AttachmentsWindowTests {
 
     @Test("AttachmentsWindow file exists (= independent window)")
     func testAttachmentsWindowExists() throws {
-        let filePath = resolve("Sources/WenshuApp/Views/Windows/AttachmentsWindow.swift")
+        let filePath = resolve("Sources/WenshuApp/Features/Attachments/View/AttachmentsWindow.swift")
         #expect(FileManager.default.fileExists(atPath: filePath),
                 "AttachmentsWindow.swift must exist as a standalone file")
         let source = try String(contentsOfFile: filePath, encoding: .utf8)
@@ -51,7 +51,7 @@ struct AttachmentsWindowTests {
 
     @Test("AttachmentsWindow fetches WSAttachment (= real SwiftData read)")
     func testAttachmentsWindowFetchesWSAttachment() throws {
-        let filePath = resolve("Sources/WenshuApp/Views/Windows/AttachmentsWindow.swift")
+        let filePath = resolve("Sources/WenshuApp/Features/Attachments/View/AttachmentsWindow.swift")
         let source = try String(contentsOfFile: filePath, encoding: .utf8)
         #expect(source.contains("FetchDescriptor<WSAttachment>"),
                 "Window must fetch WSAttachment via FetchDescriptor")
@@ -79,7 +79,7 @@ struct AttachmentsWindowTests {
 
     @Test("ShellDetailColumn has toolbar button opening attachments window")
     func testToolbarButtonForAttachments() throws {
-        let toolbarPath = resolve("Sources/WenshuApp/Views/Inspector/InspectorView.swift")
+        let toolbarPath = resolve("Sources/WenshuApp/Features/Editor/View/InspectorView.swift")
         let source = try String(contentsOfFile: toolbarPath, encoding: .utf8)
         #expect(source.contains("openWindow(id: WindowID.attachments)"),
                 "Toolbar must wire openWindow(id: WindowID.attachments)")
