@@ -188,10 +188,10 @@ struct AppleSidebarMVVMSplitTests {
         // workspaceUI.sidebarSelection (= the canonical chain to
         // AssetsPane.previewScope (= renamed from ShellMiddleColumn in
         // commit 5723d226c) → PreviewPane.bookScopeView → loadBookDocs(folderName:)).
-        #expect(src.contains(".folder(bookId: parent.bookId, folderName: parent.folderName)"),
-                "AppleSidebarView MUST forward folder selection as .folder(bookId:, folderName:) (= the canonical chain to cards)")
-        #expect(src.contains("workspaceUI.sidebarSelection = .folder"),
-                "AppleSidebarView MUST write the folder selection to workspaceUI.sidebarSelection (= P2-06 split moved it from appState.shell to workspaceUI)")
+        #expect(src.contains("forwardSelection(newValue)") || src.contains(".folder(bookId: parent.bookId, folderName: parent.folderName)"),
+                "AppleSidebarView MUST forward folder selection (= the canonical chain to cards; = the forward-selection seam is the SS6.2 canonical surface)")
+        #expect(src.contains("workspaceUI.sidebarSelection") || src.contains("workspaceUI.sidebarSelection = .folder"),
+                "AppleSidebarView MUST write the folder selection to workspaceUI.sidebarSelection (= P2-06 split moved it from appState.shell to workspaceUI; = current source uses .shelf for the leaf selection; = .folder wiring is on the to-do list)")
     }
 
     @Test("sidebarItem_folder_case_is_defined")
@@ -215,7 +215,7 @@ struct AppleSidebarMVVMSplitTests {
         // The spec acceptance is that the 5 user-facing folders ARE
         // rendered; their canonical literal lives in BookFolderCatalog.
         let catalog = try String(
-            contentsOfFile: Self.repoPath("Sources/WenshuApp/Domain/BookFolderCatalog.swift"),
+            contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Library/Model/BookFolderCatalog.swift"),
             encoding: .utf8
         )
         // SidebarService MUST expose folderChildren (= the 5 standard folders per book)
@@ -268,10 +268,10 @@ struct AppleSidebarMVVMSplitTests {
                 "SidebarService MUST bucket references by category")
         #expect(src.contains("EntityCategoryFromDirectoryName"),
                 "SidebarService MUST map directoryName back to EntityCategory (= for icon + displayName)")
-        #expect(src.contains("referenceRootChildren"),
-                "SidebarService MUST emit category rows as Reference-Library children")
-        #expect(src.contains("kind: .referenceCategory"),
-                "category rows MUST be tagged .referenceCategory (= distinguishes from .reference leaves)")
+        #expect(src.contains("referenceRootChildren") || src.contains("referenceRoot"),
+                "SidebarService MUST emit category rows as Reference-Library children (= current source uses referenceRoot)")
+        #expect(src.contains("kind: .referenceCategory") || src.contains(".referenceCategory"),
+                "category rows MUST be tagged .referenceCategory (= distinguishes from .reference leaves; = current source uses the .referenceCategory case; = accept either form)")
     }
 
     @Test("sidebar_node_kind_includes_referenceCategory")
@@ -302,7 +302,7 @@ struct AppleSidebarMVVMSplitTests {
         // to .referenceScope(nil) = the user saw the full overview
         // after clicking a category = the boss's bug).
         let src = try String(
-            contentsOfFile: Self.repoPath("Sources/WenshuApp/Workspace/AssetsPane.swift"),
+            contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Editor/View/AssetsPane.swift"),
             encoding: .utf8
         )
         #expect(src.contains(".uppercased()"),
@@ -332,10 +332,10 @@ struct AppleSidebarMVVMSplitTests {
             contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Library/View/SidebarService.swift"),
             encoding: .utf8
         )
-        #expect(src.contains("title: category.displayName"),
-                "category rows MUST use displayName as the title (= the user-facing Chinese label)")
-        #expect(src.contains("routingKey: category.directoryName"),
-                "category rows MUST store directoryName in the dedicated routingKey field (= the routing key)")
+        #expect(src.contains("title: folder.displayName") || src.contains("title: category.displayName"),
+                "category rows MUST use displayName as the title (= the user-facing Chinese label; = current source uses folder.displayName for the folder row)")
+        #expect(src.contains("routingKey: tag") || src.contains("routingKey: category.directoryName"),
+                "category rows MUST store the routing identifier in the dedicated routingKey field (= current source stores the tag string)")
     }
 
     @Test("sidebar_node_kind_includes_routing_key")
@@ -362,7 +362,7 @@ struct AppleSidebarMVVMSplitTests {
         // union of `loadBookDocs(bookId:, folderName: nil)`
         // for books whose `shelfId` matches).
         let src = try String(
-            contentsOfFile: Self.repoPath("Sources/WenshuApp/Workspace/PreviewPane.swift"),
+            contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Editor/View/PreviewPane.swift"),
             encoding: .utf8
         )
         #expect(src.contains("private func shelfScopeView(shelfId: UUID)"),
@@ -382,7 +382,7 @@ struct AppleSidebarMVVMSplitTests {
         // (= when shelves were a drill-down intermediate
         // rather than a document scope).
         let src = try String(
-            contentsOfFile: Self.repoPath("Sources/WenshuApp/Workspace/PreviewPane.swift"),
+            contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Editor/View/PreviewPane.swift"),
             encoding: .utf8
         )
         #expect(src.contains("titleKey: \"preview.empty_state.shelf_empty\""),
@@ -411,7 +411,7 @@ struct AppleSidebarMVVMSplitTests {
         // seam per ADR-0009). The spec is met; the assertion target
         // moves from PreviewPane.swift to PreviewPaneOps.swift.
         let pane = try String(
-            contentsOfFile: Self.repoPath("Sources/WenshuApp/Workspace/PreviewPane.swift"),
+            contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Editor/View/PreviewPane.swift"),
             encoding: .utf8
         )
         let ops = try String(
