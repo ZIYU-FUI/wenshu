@@ -205,28 +205,14 @@ actor AgentProtocol {
             tasksByAgent[agentCard.name, default: []].append(taskId)
             return A2AResponse(id: request.id, error: A2AError(code: -32603, message: "conductor not configured (= install via WenshuAgent.shared.installConductor)"))
         }
-        do {
-            // AUDIT.md §2.2 partial (2026-10-16 boss "把切换包的事
-            // 清干净" arc): the conductor with the active
-            // connector routes the user message through the
-            // ReAct loop; = the verifier bridge is gone.
-            let (reply, _, _) = await conductor.handle(
-                userMessage: message.content,
-                sessionId: taskId.uuidString,
-                model: ""  // (= the conductor resolves the active model)
-            )
-            let visibleReply = reply ?? "(empty reply)"
-            let agentMsg = AgentMessage(role: .agent, content: visibleReply)
-            task.messages.append(agentMsg)
-            task.status = .completed
-        } catch {
-            task.status = .failed
-            task.updatedAt = Date()
-            tasks[taskId] = task  // + S3: task save
-            tasksByAgent[agentCard.name, default: []].append(taskId)
-            let err = A2AError(code: -32603, message: "LLM failed: \(error.localizedDescription)")
-            return A2AResponse(id: request.id, error: err)
-        }
+        let (reply, _, _) = await conductor.handle(
+            userMessage: message.content,
+            sessionId: taskId.uuidString,
+            model: ""  // (= the conductor resolves the active model)
+        )
+        let agentMsg = AgentMessage(role: .agent, content: reply)
+        task.messages.append(agentMsg)
+        task.status = .completed
         task.updatedAt = Date()
         tasks[taskId] = task
         tasksByAgent[agentCard.name, default: []].append(taskId)
