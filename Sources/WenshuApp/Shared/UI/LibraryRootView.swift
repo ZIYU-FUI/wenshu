@@ -99,6 +99,7 @@ struct LibraryRootView: View {
                 WenshuAppDelegate.sharedAppState = appState
                 WenshuAppDelegate.openWindowAction = openWindow
             }
+            .background(WindowFirstResponderSuppressor())
     }
 
     @ViewBuilder
