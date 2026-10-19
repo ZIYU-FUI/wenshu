@@ -475,6 +475,18 @@ struct SettingView: View {
                         // whatever the new primary is.
                         mirrored.migrateToCurrentPrimary()
                     }
+                    // RATIONALE: re-fill the
+                    // WenshuAgent.shared cached
+                    // provider-with-keys snapshot so the
+                    // chat input field re-enables
+                    // immediately after the toggle flip
+                    // (= the cache is otherwise
+                    // populated only by the next
+                    // `providersWithKeys()` await; = the
+                    // migration above doesn't write to
+                    // the cache; = without this re-await
+                    // the chat input stays disabled).
+                    Task { await WenshuAgent.shared.providersWithKeys() }
                     NotificationCenter.default.post(
                         name: .wenshuProviderKeychainChanged,
                         object: nil
