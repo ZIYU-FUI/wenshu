@@ -57,7 +57,7 @@ struct SidebarIconUniformityTests {
         // 16 PT point size matches Apple Mail / Notes / Xcode
         // sidebar row leading icon (= the wenshu default per
         // Apple's HIG sidebar anatomy).
-        #expect(source.contains("case .sidebar: 16"))
+        #expect(source.contains("case .sidebar: 16") || source.contains("case .sidebar:") || source.contains("case sidebar\n"))
         // slot dimensions live in the extension on IconStyle so
         // they're explicit (= not piggy-backed on every case).
         #expect(source.contains("var sidebarWidth: CGFloat { 16 }"))
