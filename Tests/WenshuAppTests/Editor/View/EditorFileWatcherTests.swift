@@ -73,6 +73,7 @@ struct EditorFileWatcherTests {
     func fileExistsAtCanonicalPath() throws {
         let testFileURL = URL(fileURLWithPath: #filePath)
         let testsRoot = testFileURL
+            .deletingLastPathComponent()  // View/
             .deletingLastPathComponent()  // Editor/
             .deletingLastPathComponent()  // WenshuAppTests/
             .deletingLastPathComponent()  // Tests/
@@ -80,7 +81,9 @@ struct EditorFileWatcherTests {
         let sourcePath = testsRoot
             .appendingPathComponent("Sources")
             .appendingPathComponent("WenshuApp")
+            .appendingPathComponent("Features")
             .appendingPathComponent("Editor")
+            .appendingPathComponent("Model")
             .appendingPathComponent("EditorFileWatcher.swift")
             .path
         #expect(FileManager.default.fileExists(atPath: sourcePath),
@@ -96,12 +99,13 @@ struct EditorFileWatcherTests {
     func exposesPublicAPI() throws {
         let testFileURL = URL(fileURLWithPath: #filePath)
         let testsRoot = testFileURL
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+            .deletingLastPathComponent()  // View/
+            .deletingLastPathComponent()  // Editor/
+            .deletingLastPathComponent()  // WenshuAppTests/
+            .deletingLastPathComponent()  // Tests/
+            .deletingLastPathComponent()  // repo root
         let sourcePath = testsRoot
-            .appendingPathComponent("Sources/WenshuApp/Editor/EditorFileWatcher.swift").path
+            .appendingPathComponent("Sources/WenshuApp/Features/Editor/Model/EditorFileWatcher.swift").path
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("static func start(") || source.contains("func start("),
                 "EditorFileWatcher must expose start(...) public method")
@@ -157,12 +161,13 @@ struct EditorFileWatcherTests {
     func onChangeHandlerInvokesCallback() throws {
         let testFileURL = URL(fileURLWithPath: #filePath)
         let testsRoot = testFileURL
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+            .deletingLastPathComponent()  // View/
+            .deletingLastPathComponent()  // Editor/
+            .deletingLastPathComponent()  // WenshuAppTests/
+            .deletingLastPathComponent()  // Tests/
+            .deletingLastPathComponent()  // repo root
         let sourcePath = testsRoot
-            .appendingPathComponent("Sources/WenshuApp/Editor/EditorFileWatcher.swift").path
+            .appendingPathComponent("Sources/WenshuApp/Features/Editor/Model/EditorFileWatcher.swift").path
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         // Legacy EditorView called `reloadDocumentFromDisk()` (= the
         // callback closure) directly inside the event handler. The extracted

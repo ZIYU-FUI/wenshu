@@ -100,8 +100,9 @@ struct KanbanOpsTests {
         let sourcePath = repoRoot
             .appendingPathComponent("Sources")
             .appendingPathComponent("WenshuApp")
-            .appendingPathComponent("Views")
+            .appendingPathComponent("Features")
             .appendingPathComponent("Kanban")
+            .appendingPathComponent("Service")
             .appendingPathComponent("KanbanOps.swift")
             .path
         #expect(FileManager.default.fileExists(atPath: sourcePath),
