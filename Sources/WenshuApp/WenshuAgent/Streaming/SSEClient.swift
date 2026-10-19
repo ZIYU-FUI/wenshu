@@ -120,7 +120,7 @@ actor SSEClient {
                     WALogger.network.info("SSE stream attempt=\(diagBox.diag.attemptId.uuidString.prefix(8), privacy: .public) HTTP \(http.statusCode)")
                     guard (200..<300).contains(http.statusCode) else {
                         var errorBody = ""
-                        if let errorBytes = try? await bytes.lines.reduce(into: "") { $0 += "\n" + $1 } {
+                        if let errorBytes = try? await bytes.lines.reduce(into: "", { $0 += "\n" + $1 }) {
                             errorBody = errorBytes
                         }
                         diagBox.diag.lastError = "HTTP \(http.statusCode)"

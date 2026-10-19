@@ -61,7 +61,7 @@ actor OpenAIStreamingWireup {
                     // convention; = no separate stop event).
                     let trimmed = data.trimmingCharacters(in: .whitespacesAndNewlines)
                     if trimmed == "[DONE]" {
-                        await self.finish()
+                        self.finish()
                     }
                 }
             }
@@ -261,7 +261,7 @@ enum OpenAIStreamingWireupFactory {
                     // separate thinking block in the request shape; =
                     // surface as text so the model has the context.
                     return ["type": "text", "text": s]
-                case .toolUse(let id, let name, let input):
+                case .toolUse(_, let name, let input):
                     return [
                         "type": "function",
                         "function": [

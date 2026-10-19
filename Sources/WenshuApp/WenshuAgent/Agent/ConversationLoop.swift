@@ -334,7 +334,7 @@ actor ConversationLoop {
                     label: "Finalizing reply",
                     etaSeconds: nil
                 )
-                let (compressedMessages, compressedSystem) = await conversationCompression.historyAfterCompression(
+                let (compressedMessages, _) = await conversationCompression.historyAfterCompression(
                     messages: result.messages,
                     systemMessage: await composeSystemPrompt(
                         override: systemMessage,
