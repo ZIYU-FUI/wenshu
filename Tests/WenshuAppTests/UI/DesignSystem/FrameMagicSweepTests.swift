@@ -71,7 +71,7 @@ struct FrameMagicSweepTests {
 
     @Test("Round 9 — PreviewPane 64×64 hero card thumbnail preserved as sweep boundary exception")
     func previewPaneHeroCardException() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Workspace/PreviewPane.swift")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Editor/View/PreviewPane.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         // L1569 is the 64 PT hero card thumbnail (= round 6 sweep
         // boundary exception; = .resizable() + .aspectRatio() +
