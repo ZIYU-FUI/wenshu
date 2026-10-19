@@ -76,6 +76,7 @@ public enum ModelsSchemaV1: VersionedSchema {
             WSKanbanTask.self,
             WSEntity.self,
             WSBody.self,
+            WSBodyEmbedding.self,
             WSOutlineEntry.self,
             WSReference.self,
             // Tier 4: workspace layout tree (= 2026-10-05 #9 commit 1)
@@ -126,6 +127,7 @@ public enum ModelsSchemaV2: VersionedSchema {
             WSKanbanTask.self,
             WSEntity.self,
             WSBody.self,
+            WSBodyEmbedding.self,
             WSOutlineEntry.self,
             WSReference.self,
             // Tier 4: workspace layout tree (= 2026-10-05 #9 commit 1)
