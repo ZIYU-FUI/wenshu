@@ -89,8 +89,9 @@ struct SettingsOpsTests {
         let sourcePath = repoRoot
             .appendingPathComponent("Sources")
             .appendingPathComponent("WenshuApp")
-            .appendingPathComponent("Views")
+            .appendingPathComponent("Features")
             .appendingPathComponent("Settings")
+            .appendingPathComponent("Service")
             .appendingPathComponent("SettingsOps.swift")
             .path
         #expect(FileManager.default.fileExists(atPath: sourcePath),

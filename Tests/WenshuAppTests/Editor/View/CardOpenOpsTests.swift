@@ -85,7 +85,7 @@ struct CardOpenOpsTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/UI/Layout/CardOpenOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Editor/View/CardOpenOps.swift")
         let exists = FileManager.default.fileExists(atPath: sourcePath.path)
         #expect(exists, "CardOpenOps.swift must exist at \(sourcePath.path)")
     }

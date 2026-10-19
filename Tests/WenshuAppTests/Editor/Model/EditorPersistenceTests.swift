@@ -82,6 +82,7 @@ struct EditorPersistenceTests {
     func fileExistsAtCanonicalPath() throws {
         let testFileURL = URL(fileURLWithPath: #filePath)
         let testsRoot = testFileURL
+            .deletingLastPathComponent()  // Model/
             .deletingLastPathComponent()  // Editor/
             .deletingLastPathComponent()  // WenshuAppTests/
             .deletingLastPathComponent()  // Tests/
@@ -89,7 +90,9 @@ struct EditorPersistenceTests {
         let sourcePath = testsRoot
             .appendingPathComponent("Sources")
             .appendingPathComponent("WenshuApp")
+            .appendingPathComponent("Features")
             .appendingPathComponent("Editor")
+            .appendingPathComponent("Store")
             .appendingPathComponent("EditorPersistence.swift")
             .path
         #expect(FileManager.default.fileExists(atPath: sourcePath),
@@ -110,7 +113,7 @@ struct EditorPersistenceTests {
             .deletingLastPathComponent()
             .deletingLastPathComponent()
         let sourcePath = testsRoot
-            .appendingPathComponent("Sources/WenshuApp/Editor/EditorPersistence.swift").path
+            .appendingPathComponent("Sources/WenshuApp/Features/Editor/Store/EditorPersistence.swift").path
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("static func save(") || source.contains("func save("),
                 "EditorPersistence must expose save(...) method")
