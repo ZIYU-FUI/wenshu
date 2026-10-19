@@ -13,15 +13,15 @@ struct AppleSplitViewAutomaticBoundsTests {
         #expect(source.contains("min: 200"))
         #expect(source.contains("ideal: 240"))
         #expect(source.contains("max: 320"))
-        #expect(source.contains("min: 280"))
-        #expect(source.contains("ideal: 360"))
-        #expect(source.contains("max: 520"))
+        #expect(source.contains("min: 240"))
+        #expect(source.contains("ideal: 300"))
+        #expect(source.contains("max: 340"))
     }
 
     @Test("editor and chat use Apple automatic lower, preferred, and upper bounds")
     func editorAndChatUseAutomaticBounds() throws {
         let source = try Self.source(
-            "Sources/WenshuApp/UI/Layout/EditorChatNSController.swift"
+            "Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift"
         )
         #expect(source.components(separatedBy: "minimumThickness = NSSplitViewItem.unspecifiedDimension").count == 3)
         #expect(source.components(separatedBy: "preferredThicknessFraction = 1.0 / 2.0").count == 3)
