@@ -41,14 +41,31 @@ enum WenshuAppDelegateLLMHelpers {
         // Resolves the same UserDefaults + keychain signal as
         // `activeLLMConnector` but returns the slug string (= no connector
         // allocation).
+        let slug = resolveActiveConnectorSlugWithLog()
+        if let slug, !slug.isEmpty {
+            os_log("[wenshu.llm.connector] activeConnectorSlug resolved: %{public}@", log: .default, type: .info, slug)
+        } else {
+            os_log("[wenshu.llm.connector] activeConnectorSlug resolved: <nil> (= no provider available; chat will show 'agent 未配置' fallback)", log: .default, type: .error)
+        }
+        return slug ?? "anthropic"
+    }
+
+    /// Resolved-pipeline helper (= extracted so the resolution path
+    /// can be logged in one place; = the boss 2026-10-19 reproducer
+    /// "chat 一直 AI 思考中" needs a single os_log point to surface
+    /// the full UserDefaults + keychain + fallback chain). The log
+    /// line above the return makes each step visible in Console.app.
+    private nonisolated static func resolveActiveConnectorSlugWithLog() -> String? {
         if let slug = UserDefaults.standard.string(forKey: "wenshu.llm.activeConnector"),
            Provider.by(slug: slug) != nil {
             return slug
         }
+        os_log("[wenshu.llm.connector] activeConnector UserDefaults = <empty> OR slug not in Provider.by; falling back to keychain listProvidersWithKeys", log: .default, type: .info)
         if let first = ProviderKeychain.listProvidersWithKeys().first(where: { Provider.by(slug: $0) != nil }) {
+            os_log("[wenshu.llm.connector] keychain first configured slug = %{public}@", log: .default, type: .info, first)
             return first
         }
-        return "anthropic"
+        return nil
     }
 
     nonisolated static func activeLLMConnector() -> any LLMConnector {
