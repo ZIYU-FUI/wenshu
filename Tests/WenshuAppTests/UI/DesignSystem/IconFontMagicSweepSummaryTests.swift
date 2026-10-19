@@ -140,7 +140,7 @@ struct IconFontMagicSweepSummaryTests {
 
     @Test("Round 23 — SFRegions.md index exists (= per-region wrapper index)")
     func sfRegionsIndexExists() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/UI/SFRegions.md")
+        let url = URL(fileURLWithPath: "Sources/WenshuApp/Shared/UI/ComponentDocs/SFRegions.md")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("SFRegions"), "SFRegions.md title must exist")
         #expect(content.contains("SFLabelRow"), "SFRegions.md must list SFLabelRow")
