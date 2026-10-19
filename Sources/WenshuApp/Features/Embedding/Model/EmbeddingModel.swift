@@ -2,13 +2,12 @@
 //  EmbeddingModel.swift
 //  WenshuApp
 //
-//  §11.26 弧 ticket 02 + 03. Protocol + model-kind enum for any
-//  embedding backend. Apple 1:1 path: protocol-oriented (same shape
-//  as URLSession / URLProtocol).
+//  §11.26 弧 ticket 04. Protocol + model-kind enum for remote
+//  embedding providers (= OpenAI / minimax / Gemini / DeepSeek).
 //
-//  / Service depends on this protocol only. Concrete backends
-//  / (AppleNLEmbedding, mock) live in sibling files. New backends can
-//  / be added without touching the service.
+//  / Per boss OOB 2026-10-19: only remote APIs. Local fallbacks
+//  / (Apple NLEmbedding, Mock) removed (= 体验打折扣). When the
+//  / remote call fails, the service throws (= no silent fallback).
 //
 //  / Per AGENTS.md §6.5 file-naming: this is the canonical <Xxx>Model.swift
 //  / (= 1 of 4 suffixes: View/Ops/Service/State/Model; = kind enum inline
@@ -18,74 +17,67 @@
 import Foundation
 
 public enum EmbeddingModelKind: String, CaseIterable, Codable, Sendable {
-    /// BAAI bge-small-zh-v1.5. Chinese-specialized, 512 dim, ~95MB fp16.
-    /// Reserved for ticket 04 (= when Apple Metal Toolchain is available
-    /// on the build host, this kind routes to MlxEmbeddingModel).
-    case bgeSmallZh
-    /// BAAI bge-m3. Multilingual, 1024 dim, ~1.1GB fp16. Same ticket 04
-    /// dependency as bgeSmallZh.
-    case bgeM3
-    /// Apple NLEmbedding on-device word-avg. Always available, no
-    /// download required. PoC-verified 0.20-0.72 cosine discrimination
-    /// for short Chinese text. Currently the production backend (ticket 03).
-    case appleNLEmbedding
-    /// Mock implementation. For unit tests and local dev only.
-    case mock
+    /// OpenAI text-embedding-3-small. 1536 dim. Generic multilingual.
+    case openai
+    /// minimax M2-Embedding. 1024 dim. (per boss 2026-10-19: "minimaxi 的 token plan 是有向量模型的".)
+    case minimax
+    /// Google text-embedding-004. 768 dim.
+    case gemini
+    /// DeepSeek embedding (via OpenAI-compatible /v1/embeddings endpoint). 1024 dim.
+    case deepseek
 
     public var displayName: String {
         switch self {
-        case .bgeSmallZh: return "bge-small-zh-v1.5"
-        case .bgeM3: return "bge-m3"
-        case .appleNLEmbedding: return "Apple NLEmbedding (system)"
-        case .mock: return "Mock (test only)"
+        case .openai: return "OpenAI"
+        case .minimax: return "minimax"
+        case .gemini: return "Gemini"
+        case .deepseek: return "DeepSeek"
         }
     }
 
-    public var sizeBytes: UInt64 {
+    /// Reuses WenshuAgent's existing provider slugs (= same key can power
+    /// both LLM and embedding per boss OOB 2026-10-19 "可以沿用大模型").
+    public var providerSlug: String {
         switch self {
-        case .bgeSmallZh: return 95 * 1024 * 1024
-        case .bgeM3: return 1_100 * 1024 * 1024
-        case .appleNLEmbedding: return 0
-        case .mock: return 0
+        case .openai: return "openai"
+        case .minimax: return "minimax-cn"
+        case .gemini: return "gemini"
+        case .deepseek: return "deepseek"
         }
     }
 
     public var dimension: Int {
         switch self {
-        case .bgeSmallZh: return 512
-        case .bgeM3: return 1024
-        case .appleNLEmbedding: return 300
-        case .mock: return 300
+        case .openai: return 1536
+        case .minimax: return 1024
+        case .gemini: return 768
+        case .deepseek: return 1024
         }
     }
 
-    public var isLarge: Bool {
-        sizeBytes > 500 * 1024 * 1024
+    public var endpointURL: String {
+        switch self {
+        case .openai: return "https://api.openai.com/v1/embeddings"
+        case .minimax: return "https://api.minimax.chat/v1/embeddings"
+        case .gemini:
+            return "https://generativelanguage.googleapis.com/v1beta/models/text-embedding-004:embedContent"
+        case .deepseek: return "https://api.deepseek.com/v1/embeddings"
+        }
     }
 
-    /// Locale-driven default: zh-* -> bgeSmallZh, otherwise bgeM3.
-    /// (Effective backend is AppleNLEmbedding until ticket 04 wires bge.)
-    public static func defaultForLocale(_ locale: Locale = .current) -> EmbeddingModelKind {
-        let code = locale.language.languageCode?.identifier ?? "en"
-        if code.hasPrefix("zh") { return .bgeSmallZh }
-        return .bgeM3
+    public var modelIdentifier: String {
+        switch self {
+        case .openai: return "text-embedding-3-small"
+        case .minimax: return "M2-Embedding"
+        case .gemini: return "text-embedding-004"
+        case .deepseek: return "deepseek-embedding"
+        }
     }
 }
 
 public protocol EmbeddingModel: Sendable {
-    /// The kind of model this implementation represents.
     var kind: EmbeddingModelKind { get }
-
-    /// Whether the model is ready to embed (downloaded + loaded into memory).
-    var isReady: Bool { get async }
-
-    /// Load weights if needed. Idempotent. No-op when already ready.
-    func prepare() async throws
-
-    /// Embed a single text into a fixed-dimension Float vector.
     func embed(_ text: String) async throws -> [Float]
-
-    /// Embed a batch of texts. Default implementation calls embed one-by-one.
     func embedBatch(_ texts: [String]) async throws -> [[Float]]
 }
 
