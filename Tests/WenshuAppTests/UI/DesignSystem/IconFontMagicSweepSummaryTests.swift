@@ -123,16 +123,19 @@ struct IconFontMagicSweepSummaryTests {
         #expect(content.contains("case .surface"), "IconStyle must include .surface (= 56 PT)")
     }
 
-    @Test("Round 23 — IconStyles file declares the 6 SF region view wrappers")
+    @Test("Round 23 — IconStyles + IconStylesViews files declare the 6 SF region view wrappers")
     func iconStylesFileHasSFRegionWrappers() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Shared/UI/IconStyles.swift")
-        let content = try String(contentsOf: url, encoding: .utf8)
-        #expect(content.contains("struct SFIcon"), "SFIcon central wrapper must exist")
-        #expect(content.contains("struct SFLabelRow"), "SFLabelRow sidebar-row wrapper must exist")
-        #expect(content.contains("struct SFStatusBadge"), "SFStatusBadge status-badge wrapper must exist")
-        #expect(content.contains("struct SFCardHero"), "SFCardHero card-hero wrapper must exist")
-        #expect(content.contains("struct SFToolbarButton"), "SFToolbarButton toolbar-button wrapper must exist")
-        #expect(content.contains("struct SFListRow"), "SFListRow general-list-row wrapper must exist")
+        let iconStylesURL = URL(fileURLWithPath: "Sources/WenshuApp/Shared/UI/IconStyles.swift")
+        let iconStylesContent = try String(contentsOf: iconStylesURL, encoding: .utf8)
+        #expect(iconStylesContent.contains("struct SFIcon"), "SFIcon central wrapper must exist (= IconStyles.swift)")
+
+        let viewsURL = URL(fileURLWithPath: "Sources/WenshuApp/Shared/UI/IconStylesViews.swift")
+        let viewsContent = try String(contentsOf: viewsURL, encoding: .utf8)
+        #expect(viewsContent.contains("struct SFLabelRow"), "SFLabelRow sidebar-row wrapper must exist (= IconStylesViews.swift)")
+        #expect(viewsContent.contains("struct SFStatusBadge"), "SFStatusBadge status-badge wrapper must exist (= IconStylesViews.swift)")
+        #expect(viewsContent.contains("struct SFCardHero"), "SFCardHero card-hero wrapper must exist (= IconStylesViews.swift)")
+        #expect(viewsContent.contains("struct SFToolbarButton"), "SFToolbarButton toolbar-button wrapper must exist (= IconStylesViews.swift)")
+        #expect(viewsContent.contains("struct SFListRow"), "SFListRow general-list-row wrapper must exist (= IconStylesViews.swift)")
     }
 
     @Test("Round 23 — SFRegions.md index exists (= per-region wrapper index)")
