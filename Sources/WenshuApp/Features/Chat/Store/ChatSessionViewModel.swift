@@ -591,26 +591,38 @@ final class ChatViewModel {
                 Self.logSwallowedPersistenceFailure(operation: "summarizeIfNeeded", error: error)
             }
         } catch {
-            // route through the chat-layer single-message
-            // collapse (= per boss 2026-10-16 OOB "只接
-            // 提示, 模型配置有误就行了"): the user
-            // sees the same friendly message
-            // regardless of whether the cause was
-            // 4xx / 5xx / network / key / malformed.
-            // The granular `UserFacingError.from` mapping
-            // (= network, key, rate-limit, etc.) is still
-            // available for non-chat callers (= Settings;
-            // = import flow) but the chat layer collapses
-            // to one message (= `modelConfigInvalid`).
+            // Per boss 2026-10-19 OOB "macbook 上聊天一直思考
+            // 中, 看不到实际错误": the chat layer no longer
+            // collapses every error to the single `modelConfigInvalid`
+            // line. The granular `UserFacingError.from` mapping
+            // (= network, key, rate-limit, etc.) is now the user-
+            // visible message so the user (= the boss + power
+            // users) can tell whether the failure is a 401 (key
+            // missing / wrong) vs a transport timeout (network /
+            // proxy) vs a 5xx (server) vs a malformed body
+            // (response shape). The previous single-line collapse
+            // hid the real cause (= boss reported "AI 思考中
+            // 29.4s" with no further detail; = impossible to
+            // distinguish key from network).
             let activeProvider = WenshuAppDelegateLLMHelpers.activeConnectorSlug()
-            // The raw underlying description is preserved
-            // for the unified os_log (= dev surface;
-            // = the cause is NOT rendered to the user).
             let rawDesc = String(describing: error)
             Logger(subsystem: "com.wenshu.app", category: "chat.persist")
                 .error("[wenshu.chat.persist] operation=send_chat error=\(rawDesc, privacy: .public) provider=\(activeProvider, privacy: .public)")
-            let userErr = UserFacingError.modelConfigInvalid(cause: rawDesc)
-            let errMsg = userErr.errorDescription ?? "模型配置有误"
+            // Use the granular classifier (= surfaces the real
+            // underlying message body, not the generic
+            // "模型配置有误" line). Falls back to the raw
+            // underlying description when no classifier matches
+            // (= matches the previous behavior for unknown error
+            // shapes).
+            let userErr = UserFacingError.from(error)
+            let errMsg: String
+            switch userErr {
+            case .modelConfigInvalid:
+                errMsg = userErr.errorDescription ?? "模型配置有误"
+            default:
+                let granular = userErr.errorDescription ?? rawDesc
+                errMsg = "[\(activeProvider)] \(granular)"
+            }
             lastError = errMsg
             if let idx = messages.firstIndex(where: { $0.id == placeholderId }) {
                 messages[idx] = ChatMessage(id: placeholderId, role: .system, source: .system, content: errMsg)
