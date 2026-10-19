@@ -75,12 +75,8 @@ struct WriteBookDocTool: Tool, Sendable {
             .appendingPathComponent(relPath)
         // Path-guard v2: reject `..` escapes (= canonicalize and verify the resolved path
         // stays inside the book root).
-        let canonicalFull = (try? URL(
-            fileURLWithPath: fullPath
-        ).standardizedFileURL.path) ?? fullPath
-        let canonicalRoot = (try? URL(
-            fileURLWithPath: bookRoot
-        ).standardizedFileURL.path) ?? bookRoot
+        let canonicalFull = URL(fileURLWithPath: fullPath).standardizedFileURL.path
+        let canonicalRoot = URL(fileURLWithPath: bookRoot).standardizedFileURL.path
         guard canonicalFull.hasPrefix(canonicalRoot + "/") else {
             throw ToolExecutorError.pathGuardViolation(
                 toolName: "writeBookDoc",
