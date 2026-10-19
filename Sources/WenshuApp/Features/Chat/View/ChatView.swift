@@ -159,14 +159,19 @@ struct ChatView: View {
             // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // seamlessly with the scroll viewport background.
             .background(DesignTokens.sidebarBackground)
-            // 2026-10-19 ticket: chat sticky user-bubble top padding
-            // 10 PT (= the user's latest-message bubble that sticks to
-            // the scroll-viewport top via
-            // `LazyVStack(pinnedViews: [.sectionHeaders])` now stays
-            // 10 PT below the header chrome band). The padding
-            // applies inside the pinned header so it does not shift
-            // when content scrolls underneath.
-            .padding(.top, 10)
+            // 10 PT (= Apple's macOS 27 HIG macOS chat
+            // (= Messages / Mail conversation list)
+            // shows each reply's first line ~10 PT
+            // below the user's bubble (= the
+            // canonical gap shape). Wenshu's previous
+            // default placed the AI reply directly
+            // adjacent to the user bubble inside the
+            // same Section (= no separation). Add
+            // 10 PT top padding to the Section's
+            // content (= the ForEach below) so every
+            // reply starts 10 PT below the header /
+            // user-bubble boundary.
+            .padding(.bottom, 10)
         }
     }
 
