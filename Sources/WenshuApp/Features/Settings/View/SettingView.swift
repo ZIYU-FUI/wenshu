@@ -39,6 +39,7 @@ struct SettingView: View {
     enum SettingsPane: String, CaseIterable, Identifiable {
         case appearance
         case editor
+        case network
         case providers
         case models
         case memory
@@ -51,7 +52,8 @@ struct SettingView: View {
             switch self {
             case .appearance: return "paintpalette"
             case .editor:      return "apple.writing.tools"
-            case .providers:   return "network"
+            case .network:     return "wifi.router"
+            case .providers:   return "key.fill"
             case .models:      return "sparkles"
             case .memory:      return "bonjour"
             }
@@ -200,6 +202,7 @@ struct SettingView: View {
         switch raw {
         case "general":       return .appearance
         case "agentBehavior": return .editor
+        case "network":       return .network
         case "providerApi":   return .providers
         case "model":         return .models
         case "memory":        return .memory
@@ -213,6 +216,7 @@ struct SettingView: View {
         switch pane {
         case .appearance: appearancePane
         case .editor:      editorPane
+        case .network:     NetworkDiagnosticsPane()
         case .providers:   providersPane
         case .models:      modelsPane
         case .memory:      MemorySettingsView()
@@ -225,6 +229,7 @@ struct SettingView: View {
         switch pane {
         case .appearance: return String(localized: "settings.pane.appearance")
         case .editor:      return String(localized: "settings.pane.editor")
+        case .network:     return String(localized: "settings.pane.network")
         case .providers:   return String(localized: "settings.pane.providers")
         case .models:      return String(localized: "settings.pane.models")
         case .memory:      return String(localized: "settings.pane.memory")
@@ -576,8 +581,26 @@ struct SettingView: View {
         let hasKey = providersWithKeys.contains(p.slug)
         return HStack {
             SFIcon("key", style: .inlineSmall, color: hasKey ? IconColor.green : IconColor.secondary)
-            Text(p.name)
-                .font(.body)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(p.name)
+                    .font(.body)
+                // RATIONALE: distinguish the two MiniMax siblings
+                // (= international `https://api.minimax.chat` and
+                // china `https://api.minimaxi.com`). The name alone
+                // (= "MiniMax" vs "MiniMax (China)") is not enough
+                // for a user to tell which API the key goes to;
+                // = they sit on different keychain slots and different
+                // base URLs (= Hermes's `Cloud / Custom / Local`
+                // 3-tab ModelConfigPage surfaces the same fact by
+                // grouping). Surface the slug as the role hint so the
+                // user reads which endpoint is which before typing a
+                // key.
+                if p.slug == "minimax" || p.slug == "minimax-cn" {
+                    Text(minimaxRegionHint(for: p))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
             Spacer()
             if hasKey {
                 Text(keyPrefix12(for: p))
@@ -590,6 +613,21 @@ struct SettingView: View {
             }
         }
         .contentShape(Rectangle())
+    }
+
+    /// Localized hint distinguishing the two MiniMax providers.
+    /// Mirrors the canonical Apple-HIG URL-on-row pattern
+    /// (= show the endpoint so the user types the right key into
+    /// the right row).
+    private func minimaxRegionHint(for provider: Provider) -> String {
+        switch provider.slug {
+        case "minimax":
+            return "国际 · https://api.minimax.chat/anthropic"
+        case "minimax-cn":
+            return "中国 · https://api.minimaxi.com/anthropic"
+        default:
+            return ""
+        }
     }
 
     private func keyPrefix12(for provider: Provider) -> String {
