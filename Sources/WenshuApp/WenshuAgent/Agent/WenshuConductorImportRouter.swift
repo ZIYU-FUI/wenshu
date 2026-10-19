@@ -205,6 +205,35 @@ actor WenshuConductorImportRouter: ImportRouter {
     /// + tags - returns rewrittenBody (= the main INDEX file body; = metadata
     /// header + 6 必填子文件路径引用 + 1 段简短概述) - decides the destination folder - does
     /// NOT return extraFiles
+    private func runClassificationPhase(
+        input: ImportFileInput,
+        body: String,
+        fallbackTitle: String,
+        progress: (@Sendable (String) async -> Void)?
+    ) async throws -> ImportRoutingResult {
+        // Phase-1 LLM call (= the `.reorganize` equivalent of what
+        // `routeSingleTurn` does for `.consolidate`). Inlined here so
+        // the call bypasses the `routeSingleTurn` switch-exhaustive
+        // sentinel that fires for `.reorganize` (= see the RATIONALE
+        // block above the call site in `routeReorganizeMultiTurn`).
+        let userPrompt = WCIRPromptHelpers.userPrompt(
+            filePath: input.filePath,
+            body: body,
+            rewriteMode: input.rewriteMode
+        )
+        let options = buildLLMCallOptions(input: input, userPrompt: userPrompt)
+        let response = try await connector.send(
+            messages: [.user(userPrompt)],
+            options: options
+        )
+        let raw = response.blocks.map(\.textValue).joined()
+        return WCIRHelpers.parseAndMap(
+            raw: raw,
+            body: body,
+            fallbackTitle: fallbackTitle,
+            filePath: input.filePath
+        )
+    }
     /// Phase 2/3 = `splitRequired`: - LLM reads A again - returns 6 必填
     /// extraFiles (= 核心设定 / 地理或位置 / 体系或规则 / 历史脉络 / 与其他元素的关系 / 关键场景种子)
     /// Phase 3/3 = `splitCustom`: - LLM reads A again - returns 0-5 自定义
@@ -223,7 +252,23 @@ actor WenshuConductorImportRouter: ImportRouter {
         await progress?("  🔵 文档管理员 agent 启动 ...")
         // Phase 1: classify the source via a single LLM call (= the SOP
         // lookup is keyed on the folder; = we need this before launching).
-        let classification = try await routeSingleTurn(
+        //
+        // RATIONALE for the inline `connector.send` (= not via
+        // `routeSingleTurn`): `routeSingleTurn` carries a switch-exhaustive
+        // `case .reorganize:` that throws NSError(code: 0, "unreachable");
+        // = that branch is a sentinel for "no one should dispatch
+        // .reorganize into the single-turn path", which is true at the
+        // outer `route(_:)` call (= rewrites dispatch to
+        // `routeReorganizeMultiTurn` first). Calling `routeSingleTurn`
+        // from inside `routeReorganizeMultiTurn` (= the previous shape)
+        // immediately fell into the sentinel and surfaced as the
+        // user-visible "智能重组 (provider: minimax-cn) ... 失败
+        // unreachable code=0" error = the LLM was NEVER called for
+        // `智能重组` imports. By inlining the connector.send here we
+        // bypass the sentinel while staying on the same Minimax-cn
+        // endpoint (= sandbox curl against this exact URL with the
+        // user's same key returns 200 OK = no network or auth issue).
+        let classification = try await runClassificationPhase(
             input: input,
             body: body,
             fallbackTitle: fallbackTitle,
