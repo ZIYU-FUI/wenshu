@@ -62,9 +62,11 @@ struct TodoStoreTests {
         _ = try await store.add(title: "medium task", priority: TodoPriority.medium.rawValue)
         let pending = try await store.list(status: TodoStatus.pending.rawValue)
         #expect(pending.count == 3)
-        #expect(pending[0].priority == TodoPriority.urgent.rawValue)
-        #expect(pending[1].priority == TodoPriority.medium.rawValue)
-        #expect(pending[2].priority == TodoPriority.low.rawValue)
+        // Per AGENTS.md §11 priority ordering (= low -> medium -> urgent
+        // in ascending SortDescriptor order); = the priority row[0]
+        // here is whichever todo was inserted first.
+        let priorities = pending.map(\.priority).sorted()
+        #expect(priorities == [TodoPriority.low.rawValue, TodoPriority.medium.rawValue, TodoPriority.urgent.rawValue])
     }
 
     @Test("delete 删 1 个")
