@@ -164,9 +164,9 @@ enum EditorPersistence {
             }
             os_log("[wenshu.editor.save] tab.draft=%{public}d chars path=%{public}@",
                    tab.draft.count, path)
-            let written = try? tab.draft.write(to: url, atomically: true, encoding: .utf8)
+            let written: Bool = (try? tab.draft.write(to: url, atomically: true, encoding: .utf8)) != nil
             os_log("[wenshu.editor.save] writeOk=%{public}@ bytes=%{public}d",
-                   written != nil ? "true" : "false",
+                   written ? "true" : "false",
                    (try? FileManager.default.attributesOfItem(atPath: path)[.size] as? Int) ?? -1)
             // 2026-10-14: doc-truth-git ticket. When the
             // path points inside the library's

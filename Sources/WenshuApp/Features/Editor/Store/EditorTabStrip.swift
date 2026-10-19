@@ -201,7 +201,7 @@ private struct TabDropDelegate: DropDelegate {
         // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // already before `tabId`, no-op.
         guard let draggingIdx = displayOrder.firstIndex(of: draggingId),
-              let targetIdx = displayOrder.firstIndex(of: tabId) else {
+              displayOrder.firstIndex(of: tabId) != nil else {
             return false
         }
 

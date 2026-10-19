@@ -181,7 +181,9 @@ struct EditorFindReplaceView: View {
             queue: .main
         ) { notification in
             if let count = notification.userInfo?["count"] as? Int {
-                self.matchCount = count
+                Task { @MainActor in
+                    self.matchCount = count
+                }
             }
         }
     }
