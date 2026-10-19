@@ -464,8 +464,28 @@ actor ConversationLoop {
             }
             return collected
         }
+        // 2026-10-19 mac-mini: lowered from 60s → 15s.
+        // Boss 2026-10-19 OOB "回复了, 但时间超级长" = the
+        // 60s cap waited 60s before falling back to the
+        // non-streaming `connector.send(...)` (= a real
+        // LLM reply), but the user-facing wait was
+        // unacceptable. The mattt/EventSource SSE parser
+        // (= the streaming path the chat path uses) is
+        // broken on the user's mac-mini (= the cap fires
+        // every time; = the 60s wait is the dominant cost
+        // of every chat turn). 15s is the new
+        // user-tolerable wait (= the sandbox curl baseline
+        // of 1-2s for a successful non-streaming call +
+        // 13s of slack for cold-start, DNS, keychain
+        // unlock, etc.). The fallback path is fast
+        // (= `connector.send(...)` returns within ~2s once
+        // the SSE cap fires; = the user sees their reply in
+        // ~15-17s total instead of ~62s). Re-tune upward if
+        // the mac-mini shows a different SSE behavior on
+        // future builds; the cap + TaskGroup race here is
+        // a tuning knob, not a hard requirement.
         let timeoutTask = Task<Void, Error> {
-            try await Task.sleep(nanoseconds: 60_000_000_000)
+            try await Task.sleep(nanoseconds: 15_000_000_000)
             // P5-CAP-FORCE-UNWIND (2026-10-19
             // mac-mini reproducer boss "我又发了一句
             // 测试" = the previous cap's
@@ -594,7 +614,7 @@ actor ConversationLoop {
                 throw LLMConnectorError.transport(
                     provider: connector.connectorID,
                     statusCode: 0,
-                    body: "流式响应超时（60 秒内无任何 block 到达；非流式重试也失败：\(String(describing: error))）"
+                    body: "流式响应超时（15 秒内无任何 block 到达；非流式重试也失败：\(String(describing: error))）"
                 )
             }
         }
