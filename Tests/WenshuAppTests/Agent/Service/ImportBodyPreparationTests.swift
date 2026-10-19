@@ -155,39 +155,33 @@ struct ImportBodyPreparationTests {
     /// H2 set is preserved as
     /// the user wrote it).
     /// The world skeleton has
-    /// 8 H2 sections (per
+    /// 1 H2 section (per
     /// `ImportDocumentTemplate.worldSkeleton`):
-    /// - 核心设定
-    /// - 地理或位置（如果是地点类）
-    /// - 体系或规则（如果是魔法/科技/社会类）
-    /// - 历史脉络（如果是历史/势力类）
-    /// - 与其他元素的关系
-    /// - 关键场景种子
-    /// - 备注
+    /// - 6 份必填子文档
+    /// (= round-69 refactor split
+    /// the 8 mandatory H2 fields
+    /// into 6 standalone sub-docs;
+    /// = the skeleton now carries
+    /// only the H1 + a sub-doc
+    /// index section header; = the
+    /// per-field content lives in
+    /// the linked sub-doc files,
+    /// not in this skeleton body).
     @Test func noH2AppendedWhenAllPresent() {
         let raw = """
         # 我的世界观
 
-        ## 核心设定
-        A.
+        ## 6 份必填子文档
 
-        ## 地理或位置（如果是地点类）
-        B.
+        (= round-69 拆分后, 世界观 = 1 主索引 + 6 份独立 .md
+        在 world/ 同目录下):
 
-        ## 体系或规则（如果是魔法/科技/社会类）
-        C.
-
-        ## 历史脉络（如果是历史/势力类）
-        D.
-
-        ## 与其他元素的关系
-        E.
-
-        ## 关键场景种子
-        F.
-
-        ## 备注
-        G.
+        - [`核心设定.md`](核心设定.md) — 这个元素"是什么"和"为什么重要"
+        - [`地理或位置.md`](地理或位置.md) — 地形 / 气候 / 资源 / 危险
+        - [`体系或规则.md`](体系或规则.md) — 能力 / 成本与限制 / 边界情况
+        - [`历史脉络.md`](历史脉络.md) — 起源 → 关键转折 → 当前状态
+        - [`与其他元素的关系.md`](与其他元素的关系.md) — 引用 / 反派 / 盟友
+        - [`关键场景种子.md`](关键场景种子.md) — 主角会面临的场景
         """
         let result = ImportDocumentTemplate.prepareBodyForWrite(
             rawBody: raw,
