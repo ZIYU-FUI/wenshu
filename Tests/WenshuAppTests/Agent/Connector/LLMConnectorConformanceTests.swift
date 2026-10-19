@@ -52,7 +52,7 @@ struct LLMConnectorConformanceTests {
         #expect(expectedConnectors.count == 7, "§11.2 requires 7 connector profiles")
         // Find each connector's file (= convention = Core/Agent/Connector/<Name>.swift).
         for name in expectedConnectors {
-            let file = "Sources/WenshuApp/Core/Agent/Connector/\(name).swift"
+            let file = "Sources/WenshuApp/WenshuAgent/Connector/\(name).swift"
             let url = URL(fileURLWithPath: file)
             #expect(
                 FileManager.default.fileExists(atPath: url.path),
@@ -74,7 +74,7 @@ struct LLMConnectorConformanceTests {
         ]
         var nonConforming: [String] = []
         for name in expectedConnectors {
-            let file = "Sources/WenshuApp/Core/Agent/Connector/\(name).swift"
+            let file = "Sources/WenshuApp/WenshuAgent/Connector/\(name).swift"
             let url = URL(fileURLWithPath: file)
             guard FileManager.default.fileExists(atPath: url.path) else { continue }
             let content = try String(contentsOf: url, encoding: .utf8)
@@ -121,8 +121,7 @@ struct LLMConnectorConformanceTests {
         var runtimeIDs: [String] = []         // actors using runtime slug
         var duplicates: [String] = []
         for name in expectedConnectors {
-            let file = "Sources/WenshuApp/Core/Connector/\(name).swift"
-                .replacingOccurrences(of: "/Connector/", with: "/Agent/Connector/")
+            let file = "Sources/WenshuApp/WenshuAgent/Connector/\(name).swift"
             let url = URL(fileURLWithPath: file)
             guard FileManager.default.fileExists(atPath: url.path) else { continue }
             let content = try String(contentsOf: url, encoding: .utf8)
@@ -182,7 +181,7 @@ struct LLMConnectorConformanceTests {
         ]
         var missing: [String] = []
         for name in expectedConnectors {
-            let file = "Sources/WenshuApp/Core/Agent/Connector/\(name).swift"
+            let file = "Sources/WenshuApp/WenshuAgent/Connector/\(name).swift"
             let url = URL(fileURLWithPath: file)
             guard FileManager.default.fileExists(atPath: url.path) else { continue }
             let content = try String(contentsOf: url, encoding: .utf8)
