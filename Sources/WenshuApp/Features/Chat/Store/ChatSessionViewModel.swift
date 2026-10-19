@@ -407,6 +407,7 @@ final class ChatViewModel {
         }
 
         do {
+            try Task.checkCancellation()
             // streaming path = render each text chunk as it
             // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // owner maintained).
