@@ -91,7 +91,7 @@ enum WenshuAppDelegateLLMHelpers {
             if provider.slug == "anthropic" {
                 return AnthropicConnector()
             }
-            return MinimaxConnector()
+            return MinimaxConnector(provider: provider)
         case "openai_chat":
             return OpenAICompatibleConnector(provider: provider)
         default:
@@ -117,7 +117,7 @@ enum WenshuAppDelegateLLMHelpers {
             if provider.slug == "anthropic" {
                 return AnthropicConnector()
             }
-            return MinimaxConnector()
+            return MinimaxConnector(provider: provider)
         case "openai_chat":
             return OpenAICompatibleConnector(provider: provider)
         default:

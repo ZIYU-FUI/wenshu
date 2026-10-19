@@ -48,19 +48,38 @@ private let connectorLogger = Logger(
 )
 
 actor MinimaxConnector: LLMConnector {
-    nonisolated let connectorID = "minimax-cn"
+    nonisolated let connectorID: String
+
+    /// The provider whose keychain slot this connector reads from
+    /// (= `Provider.by(slug: "minimax")` for the international
+    /// endpoint, `Provider.by(slug: "minimax-cn")` for the china
+    /// endpoint). The previous hard-coded `.minimaxCn` lookup made
+    /// the connector pick up the wrong key (= "configured in
+    /// Settings -> Providers" but for the wrong region) the moment
+    /// the user toggled their active provider slug between
+    /// `minimax` and `minimax-cn`. Mirroring `OpenAICompatible
+    /// Connector(provider:)` so the same factory side that
+    /// resolves the Provider shape hands the matching keychain slot
+    /// to the connector instance.
+    private let provider: Provider
 
     private let session: URLSession
     private let useCacheControl: Bool
 
-    init(session: URLSession = .shared, useCacheControl: Bool = true) {
+    init(
+        provider: Provider = .minimaxCn,
+        session: URLSession = .shared,
+        useCacheControl: Bool = true
+    ) {
+        self.provider = provider
         self.session = session
         self.useCacheControl = useCacheControl
-        connectorLogger.info("MinimaxConnector init useCacheControl=\(useCacheControl, privacy: .public)")
+        connectorID = provider.slug
+        connectorLogger.info("MinimaxConnector init providerSlug=\(provider.slug, privacy: .public) useCacheControl=\(useCacheControl, privacy: .public)")
     }
 
     func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
-        let credentials = ConnectorCredentials.resolve(for: .minimaxCn)
+        let credentials = ConnectorCredentials.resolve(for: provider)
         connectorLogger.debug("send start model=\(options.model, privacy: .public) messages=\(messages.count)")
 
         guard !credentials.apiKey.isEmpty else {
@@ -157,7 +176,7 @@ actor MinimaxConnector: LLMConnector {
         messages: [LLMMessage],
         options: LLMCallOptions
     ) -> AsyncStream<LLMBlock> {
-        let credentials = ConnectorCredentials.resolve(for: .minimaxCn)
+        let credentials = ConnectorCredentials.resolve(for: provider)
         connectorLogger.debug("stream start model=\(options.model, privacy: .public) messages=\(messages.count)")
 
         // Empty key -> emit synthetic error block (= no silent
@@ -165,7 +184,7 @@ actor MinimaxConnector: LLMConnector {
         if credentials.apiKey.isEmpty {
             connectorLogger.error("stream missing API key")
             return AnthropicChunkToLLMBlockConverter.errorStream(
-                "[stream error] missing API key for minimax-cn"
+                "[stream error] missing API key for \(provider.slug)"
             )
         }
 

@@ -87,7 +87,14 @@ struct Provider: Identifiable, Hashable, Sendable {
     static let minimax = Provider(
         slug: "minimax",
         name: "MiniMax",
-        defaultBaseURL: "https://api.minimaxi.com/anthropic",
+        // International MiniMax endpoint (= the China-resolved
+        // `.minimaxCn` below uses the same `api.minimaxi.com`
+        // host). The previous default had both `minimax` and
+        // `minimaxCn` pointing at the china host (= a wiring bug
+        // surfaced by the boss 2026-10-19 OOB "minimax 国际 = direct,
+        // no proxy needed"). Hermes uses the same split:
+        // platform.minimax.io for the international region.
+        defaultBaseURL: "https://api.minimax.chat/anthropic",
         apiMode: "anthropic_messages",
         authHeader: .xApiKey,
         // Sourced from platform.minimax.io docs
