@@ -70,6 +70,9 @@ struct SettingView: View {
     // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / replaces the previous provider-only `.searchable(placement: .toolbar)`).
     @State private var globalSearchQuery: String = ""
+    // / §11.26 弧 ticket C2. Embedding model kind (= persisted across app
+    // / restarts). Default = .minimax (per EmbeddingService default).
+    @AppStorage("wenshu.embedding.kind") private var embeddingProviderSlug: String = EmbeddingModelKind.minimax.rawValue
 
     // MARK: - Editor pane 8 @AppStorage (= EditorPreferences 8 fields)
     // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
@@ -684,6 +687,40 @@ struct SettingView: View {
                 Text(String(localized: "settings.assistant.caption"))
                     .font(.caption)
             }
+
+            // §11.26 弧 ticket C2. Embedding model section (= separate
+            // configuration from the LLM model, per boss OOB 2026-10-19
+            // "设置分开配, 两类模型"). The same Provider key powers both LLM
+            // and embedding (= reuses WenshuAgent's existing Apple Keychain
+            // entry). The dropdown is the list of remote providers; the
+            // subtext shows the active embedding kind and dimension.
+            Section {
+                Picker(String(localized: "settings.embedding.provider_label"),
+                       selection: embeddingProviderSlugBinding) {
+                    ForEach(EmbeddingModelKind.allCases, id: \.rawValue) { kind in
+                        Text(kind.displayName).tag(kind.rawValue)
+                    }
+                }
+                .pickerStyle(.menu)
+                .onChange(of: embeddingProviderSlug) { _, new in
+                    if let k = EmbeddingModelKind(rawValue: new) {
+                        Task { await EmbeddingService.shared.setActiveKind(k) }
+                    }
+                }
+
+                HStack {
+                    Text(String(localized: "settings.embedding.status_label"))
+                    Spacer()
+                    Text(embeddingStatusText)
+                        .foregroundStyle(embeddingHasKey ? .primary : .secondary)
+                        .font(.callout)
+                }
+            } header: {
+                Text(String(localized: "settings.embedding.section_label"))
+            } footer: {
+                Text(String(localized: "settings.embedding.section_caption"))
+                    .font(.caption)
+            }
         }
         .formStyle(.grouped)
         .onAppear { Task { await reloadModels() } }
@@ -691,6 +728,36 @@ struct SettingView: View {
 
     private var modelIdList: [String] {
         liveModelIds.isEmpty ? currentProvider.defaultModels : liveModelIds
+    }
+
+    // / §11.26 弧 ticket C2. Binding that wraps the persisted kind
+    // / string. Setting the picker mutates @AppStorage; EmbeddingService
+    // / is updated via onChange (= the actor is the source of truth at
+    // / runtime, this @AppStorage is just for the picker display).
+    private var embeddingProviderSlugBinding: Binding<String> {
+        Binding(
+            get: { embeddingProviderSlug },
+            set: { embeddingProviderSlug = $0 }
+        )
+    }
+
+    // / Human-readable status: shows "minimax (1024-dim) — API key ready"
+    // / or "... — no API key, set in Providers" depending on whether the
+    // / user has added the matching provider key in Apple Keychain.
+    private var embeddingStatusText: String {
+        guard let kind = EmbeddingModelKind(rawValue: embeddingProviderSlug) else { return "" }
+        let dim = kind.dimension
+        let slug = kind.providerSlug
+        let hasKey = providersWithKeys.contains(slug)
+        let keyState = hasKey
+            ? String(localized: "settings.embedding.status_key_ready")
+            : String(localized: "settings.embedding.status_key_missing")
+        return "\(kind.displayName) (\(dim)-dim) — \(keyState)"
+    }
+
+    private var embeddingHasKey: Bool {
+        guard let kind = EmbeddingModelKind(rawValue: embeddingProviderSlug) else { return false }
+        return providersWithKeys.contains(kind.providerSlug)
     }
 
     // MARK: - SettingsOps plumbing (= unchanged)
