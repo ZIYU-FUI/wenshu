@@ -51,7 +51,7 @@ struct FontSystemSizeSweepTests {
     func iconStylesInternalSystemSizePreserved() throws {
         let url = URL(fileURLWithPath: "Sources/WenshuApp/Shared/UI/IconStyles.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
-        #expect(content.contains(".font(.system(size: style.pointSize"),
-                "IconStyles.swift L357 SFIcon factory must keep .font(.system(size: style.pointSize)) (= IconStyle.pointSize is dynamic; = the canonical built-in is not available for dynamic sizing; = round 7 sweep exception)")
+        #expect(content.contains(".font(.system(size: pointSizeOverride ?? style.pointSize"),
+                "IconStyles.swift SFIcon factory must keep .font(.system(size:)) with the dynamic-size expression (= IconStyle.pointSize is dynamic; = the canonical built-in is not available for dynamic sizing; = round 7 sweep exception)")
     }
 }
