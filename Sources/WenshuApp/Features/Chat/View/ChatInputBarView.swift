@@ -244,7 +244,16 @@ struct ChatInputBarView: View {
         // Layout (= 5 buttons + 1 fill text field; = all gaps 10 PT):
         //   [📎 attach] [✨ agentPath] [🔄 turnCounter] [TextField fill] [🎯 goal] [✈️ send]
         //    10  10  10  ...auto-fill...  10  10
-        HStack(alignment: .center, spacing: 10) {
+        // Bottom-aligned chat input bar. 5 buttons + 1 fill text
+        // field (= all gaps 10 PT):
+        //   [📎 attach] [✨ agentPath] [🔄 turnCounter] [TextField fill] [🎯 goal] [✈️ send]
+        //    10  10  10  ...auto-fill...  10  10
+        // The HStack alignment is `.bottom` (= the buttons stay
+        // visually anchored to the last baseline of the TextField
+        // glyph regardless of how many lines the field has grown to;
+        // = the same shape Apple Messages uses for its chat input
+        // row when the user pastes a multi-line draft).
+        HStack(alignment: .bottom, spacing: 10) {
             attachButton
             semanticSearchButton
             agentPathButton
@@ -395,7 +404,18 @@ struct ChatInputBarView: View {
             }
         }
         .help(String(localized: "chat.input.help"))
-        .glassEffect(.regular.interactive(), in: Capsule())
+        // Auto-grow shape = `RoundedRectangle`, not `Capsule`. The
+        // previous `Capsule` shape (= Apple HIG canonical for 1-2
+        // line chat input pills) renders as an ellipse when the
+        // field auto-grows past ~3 rows (= the height grows but the
+        // corner radius auto-tracks the half-height, producing a
+        // pizza-slice outline) and the glyphs start spilling past
+        // the rounded boundary. Switching to a fixed-corner
+        // `RoundedRectangle(cornerRadius: …)` (= the same shape
+        // Apple Messages uses for its multi-line input row;
+        // = `surfaceCornerRadiusWindow` = 10 PT) keeps the bar
+        // visually contained AND the cap height stable.
+        .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusWindow))
         .modifier(SlashCommandAutocompleteModifier(inputText: $vm.inputText))
         .modifier(ImagePasteModifier(onAttach: { url in
             Task { _ = await vm.attachImage(at: url) }
