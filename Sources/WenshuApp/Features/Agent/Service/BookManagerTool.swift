@@ -224,10 +224,9 @@ actor BookManager {
     // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / row" idiom).
     func showBook(id: UUID) async throws -> BookDescriptor? {
-        guard let book: Book? = await MainActor.run(body: { bookStore.books.first(where: { $0.id == id }) }) else {
+        guard let book = await MainActor.run(body: { bookStore.books.first(where: { $0.id == id }) }) else {
             return nil
         }
-        guard let book else { return nil }
         return BookDescriptor(
             id: book.id,
             title: book.title,

@@ -384,7 +384,7 @@ actor ToolRegistry {
         description: String = "",
         emoji: String = ""
     ) async {
-        await register(
+        register(
             name: name,
             toolset: toolset,
             schema: schema,
