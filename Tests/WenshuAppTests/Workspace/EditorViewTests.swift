@@ -36,6 +36,16 @@ struct EditorViewTests {
         return try String(contentsOfFile: Self.editorPlaceholderPath, encoding: .utf8)
     }
 
+    /// The god-view split moved the mutation methods and the per-tab editing
+    /// state out of EditorView. Assertions about them read their new homes.
+    private func readEditHelpersSource() throws -> String {
+        try SourceLocator.read("Sources/WenshuApp/Features/Editor/View/EditorViewEditHelpers.swift")
+    }
+
+    private func readEditorTabSource() throws -> String {
+        try SourceLocator.read("Sources/WenshuApp/Shared/State/AppState.swift")
+    }
+
 
     @Test("struct conforms to View")
     func conformsToView() throws {
@@ -61,7 +71,7 @@ struct EditorViewTests {
         let editorPlaceholderSection = String(section[..<endOfStruct])
         #expect(editorPlaceholderSection.contains("@Environment(AppState.self) private var appState"),
                 "EditorView must read AppState from environment (= v0.34 B-24)")
-        #expect(editorPlaceholderSection.contains("@Environment(BookStore.self) private var bookStore"),
+        #expect(editorPlaceholderSection.contains("@Environment(BookStore.self) var bookStore"),
                 "EditorView must read BookStore from environment (= v0.39 ticket 001)")
     }
 
@@ -103,7 +113,7 @@ struct EditorViewTests {
 
         // Per P2 #19 (WIRE-PARAGRAPH-002): live editor selection snapshot
         // + applyParagraphAI spinner flag.
-        #expect(codeRegion.contains("@State private var selectedText: String = \"\""),
+        #expect(codeRegion.contains("@State var selectedText: String = \"\""),
                 "EditorView must declare @State var selectedText (= P2 #19 WIRE-PARAGRAPH-002)")
         #expect(codeRegion.contains("@State private var isApplyingParagraphAI: Bool = false"),
                 "EditorView must declare @State var isApplyingParagraphAI (= P2 #19 Apple HIG actionable-control-while-busy rule)")
@@ -206,13 +216,16 @@ struct EditorViewTests {
     @Test("declares per-tab dirty-state vars as computed properties (= v0.34 B-24 single source of truth)")
     func declaresDirtyStateVarsAsComputed() throws {
         let code = try editorPlaceholderCodeRegion(readEditorViewSource())
+        let EditorTabSource = try readEditorTabSource()
         // AppState.openTabs[activeTabIndex].
         // EditorView reads/writes the ACTIVE tab via computed properties.
         // These computed properties expose the per-tab state (= Safari behavior).
-        #expect(code.contains("private var draft: String {"),
-                "EditorView must declare draft as computed (= per-tab editing buffer)")
-        #expect(code.contains("private var originalBody: String {"),
-                "EditorView must declare originalBody as computed (= for dirty comparison)")
+        // draft + originalBody live on EditorTab (= AppState) since the
+        // per-tab state migration; the view proxies them, it does not own them.
+        #expect(EditorTabSource.contains("var draft: String"),
+                "EditorTab must own draft (= per-tab editing buffer)")
+        #expect(EditorTabSource.contains("var originalBody: String"),
+                "EditorTab must own originalBody (= for dirty comparison)")
         #expect(code.contains("private var documentPath: String? {"),
                 "EditorView must declare documentPath as computed (= resolved file path)")
         #expect(code.contains("private var isDirty: Bool {"),
@@ -245,7 +258,7 @@ struct EditorViewTests {
         // the engine-bridge @State vars remain in EditorView itself:
         //   - selectedText (= live editor selection snapshot for replaceSelectedText bridge)
         //   - isApplyingParagraphAI (= busy flag for the applyParagraphAI action)
-        #expect(code.contains("@State private var selectedText: String = \"\""),
+        #expect(code.contains("@State var selectedText: String = \"\""),
                 "EditorView must declare @State var selectedText (= engine bridge)")
         #expect(code.contains("@State private var isApplyingParagraphAI: Bool = false"),
                 "EditorView must declare @State var isApplyingParagraphAI (= busy flag)")
@@ -254,28 +267,33 @@ struct EditorViewTests {
     @Test("declares 3 private mutation methods = saveDraft + handlePreviewWikiLink + handleEditorWikiLink (= v1.70 T2b)")
     func declaresFiveMutationMethods() throws {
         let code = try editorPlaceholderCodeRegion(readEditorViewSource())
+        let EditHelpersSource = try readEditHelpersSource()
         // writeDraftToDisk + reloadDocumentFromDisk
         // + handleDirtyTransition migrated to EditorPersistence (= the
         // view now has 3 thin call sites + the saveDraft entry point).
-        #expect(code.contains("private func saveDraft()"),
-                "EditorView must declare saveDraft (= debounced entry point)")
-        #expect(code.contains("private func handlePreviewWikiLink"),
+        // The three mutation methods live in the EditorViewEditHelpers
+        // extension (= god-view split), not on the view body itself.
+        #expect(EditHelpersSource.contains("func saveDraft()"),
+                "EditorViewEditHelpers must declare saveDraft (= debounced entry point)")
+        // handlePreviewWikiLink stayed on the view (= only its caller moved).
+        #expect(code.contains("func handlePreviewWikiLink"),
                 "EditorView must declare handlePreviewWikiLink (= preview wikilink tap)")
-        #expect(code.contains("private func handleEditorWikiLink"),
-                "EditorView must declare handleEditorWikiLink (= editor wikilink tap)")
+        #expect(EditHelpersSource.contains("func handleEditorWikiLink"),
+                "EditorViewEditHelpers must declare handleEditorWikiLink (= editor wikilink tap)")
     }
 
     @Test("declares 2 lifecycle methods = applyParagraphAI + replaceSelectedText (= v1.70 T2b)")
     func declaresLifecycleMethods() throws {
         let code = try editorPlaceholderCodeRegion(readEditorViewSource())
+        let EditHelpersSource = try readEditHelpersSource()
         // handleDirtyTransition migrated to
         // EditorPersistence.handleDirtyTransition(_:tab:bookStore:).
         // The view no longer holds the dirty-state machine.
         // applyParagraphAI is public (= engine bridge), takes EditorTransform parameter.
         #expect(code.contains("func applyParagraphAI(_ transform: EditorTransform)"),
                 "EditorView must declare public func applyParagraphAI(_ transform:) (= P2 #19 WIRE-PARAGRAPH-002 engine bridge)")
-        #expect(code.contains("private func replaceSelectedText(with newText: String)"),
-                "EditorView must declare replaceSelectedText(with:) (= SMC engine bridge)")
+        #expect(EditHelpersSource.contains("func replaceSelectedText(with newText: String)"),
+                "EditorViewEditHelpers must declare replaceSelectedText(with:) (= SMC engine bridge)")
         // `startFileWatcher` + `stopFileWatcher`
         // migrated to `EditorFileWatcher`. The view no longer declares
         // them (= the helper is the single owner of the fd lifecycle).
@@ -288,7 +306,7 @@ struct EditorViewTests {
     @Test("activeTab / activeTabIndex resolve from appState.openTabs (= v0.34 B-24)")
     func activeTabResolvedFromOpenTabs() throws {
         let code = try editorPlaceholderCodeRegion(readEditorViewSource())
-        #expect(code.contains("private var activeTab: EditorTab? {"),
+        #expect(code.contains("var activeTab: EditorTab? {"),
                 "EditorView must declare activeTab: EditorTab? computed (= nil when no tabs open)")
         #expect(code.contains("private var activeTabIndex: Int? {"),
                 "EditorView must declare activeTabIndex computed (= nil when no tabs open)")
