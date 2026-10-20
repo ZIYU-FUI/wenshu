@@ -51,11 +51,7 @@ struct ChatBubbleWidthDragThresholdSweepTests {
 
     @Test("Swept sites use DesignTokens for maxWidth + drag threshold")
     func sweptSitesUseDesignTokens() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()  // UI/
-            .deletingLastPathComponent()  // Tests/WenshuAppTests/
-            .deletingLastPathComponent()  // Tests/
-            .deletingLastPathComponent()  // repo root
+        let root = SourceLocator.repoRoot
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         let sweptFiles: [(String, String)] = [
@@ -83,11 +79,7 @@ struct ChatBubbleWidthDragThresholdSweepTests {
 
     @Test("DesignTokens exposes 6 new tokens")
     func designTokensExposesNewTokens() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let root = SourceLocator.repoRoot
         let tokensPath = root.appendingPathComponent("Sources/WenshuApp/DesignTokens.swift")
         let content = try String(contentsOf: tokensPath, encoding: .utf8)
 
@@ -105,11 +97,7 @@ struct ChatBubbleWidthDragThresholdSweepTests {
 
     @Test("Zero magic .frame(maxWidth: N) literal in production source")
     func zeroMagicFrameMaxWidth() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let root = SourceLocator.repoRoot
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         let enumerator = FileManager.default.enumerator(
@@ -149,11 +137,7 @@ struct ChatBubbleWidthDragThresholdSweepTests {
 
     @Test("Zero magic DragGesture(minimumDistance: 5) outside DesignTokens")
     func zeroMagicDragGestureMinimumDistance5() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let root = SourceLocator.repoRoot
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         let enumerator = FileManager.default.enumerator(

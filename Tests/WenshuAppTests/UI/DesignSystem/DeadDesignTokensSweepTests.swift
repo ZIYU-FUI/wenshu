@@ -39,11 +39,7 @@ struct DeadDesignTokensSweepTests {
 
     @Test("7 new dead tokens deleted from DesignTokens")
     func sevenDeadTokensDeleted() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let root = SourceLocator.repoRoot
         let tokensPath = root.appendingPathComponent("Sources/WenshuApp/DesignTokens.swift")
         let content = try String(contentsOf: tokensPath, encoding: .utf8)
 
@@ -65,11 +61,7 @@ struct DeadDesignTokensSweepTests {
 
     @Test("Zero dead DesignTokens with 0 callers in production")
     func zeroDeadTokens() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let root = SourceLocator.repoRoot
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         let tokensPath = root.appendingPathComponent("Sources/WenshuApp/DesignTokens.swift")
@@ -141,11 +133,7 @@ struct DeadDesignTokensSweepTests {
 
     @Test("Historical comment tokens preserved (Token was: ...)")
     func historicalCommentTokensPreserved() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let root = SourceLocator.repoRoot
         let tokensPath = root.appendingPathComponent("Sources/WenshuApp/DesignTokens.swift")
         let content = try String(contentsOf: tokensPath, encoding: .utf8)
 

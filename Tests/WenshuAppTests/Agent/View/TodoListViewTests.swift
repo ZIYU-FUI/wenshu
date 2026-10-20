@@ -30,7 +30,7 @@ struct TodoListViewTests {
     /// EditorView was in a worktree because the old hardcoded
     /// path pointed to the main worktree).
     private static var todoListViewPath: String {
-        let testFileURL = URL(fileURLWithPath: #filePath)
+        let testFileURL = SourceLocator.repoRoot
         let testsDir = testFileURL.deletingLastPathComponent()  // Views/Todo/
         let repoRoot = testsDir
             .deletingLastPathComponent()  // Views/

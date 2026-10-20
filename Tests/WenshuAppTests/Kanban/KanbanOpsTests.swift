@@ -91,12 +91,7 @@ struct KanbanOpsTests {
         // #filePath resolves to .../Tests/WenshuAppTests/Views/KanbanOpsTests.swift
         // (= 5 segments above the file). Walk up 5 levels to reach
         // the repo root (= .../wt/v1.72-settings-kanban-todo-mvvm-2026-09-22/).
-        let testFileURL = URL(fileURLWithPath: #filePath)
-        let repoRoot = testFileURL
-            .deletingLastPathComponent()  // Views/        -> WenshuAppTests/
-            .deletingLastPathComponent()  // WenshuAppTests/ -> Tests/
-            .deletingLastPathComponent()  // Tests/         -> <worktree>/
-            .deletingLastPathComponent()  // <worktree>/    -> repo root
+        let repoRoot = SourceLocator.repoRoot
         let sourcePath = repoRoot
             .appendingPathComponent("Sources")
             .appendingPathComponent("WenshuApp")

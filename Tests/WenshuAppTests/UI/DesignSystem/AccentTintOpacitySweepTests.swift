@@ -40,11 +40,7 @@ struct AccentTintOpacitySweepTests {
 
     @Test("Zero magic .tint.opacity(0.18) literal")
     func zeroMagicTintOpacity18() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let root = SourceLocator.repoRoot
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         let enumerator = FileManager.default.enumerator(
@@ -88,21 +84,13 @@ struct AccentTintOpacitySweepTests {
     func accentTintOpacityHeroUsage() throws {
         // Verify the 3 known call sites use the token (not the literal).
         let content = try String(
-            contentsOf: URL(fileURLWithPath: #filePath)
-                .deletingLastPathComponent()
-                .deletingLastPathComponent()
-                .deletingLastPathComponent()
-                .deletingLastPathComponent()
-                .appendingPathComponent("Sources/WenshuApp/Views/Kanban/KanbanView.swift"),
+            contentsOf: SourceLocator.repoRoot
+                .appendingPathComponent("Sources/WenshuApp/Features/Kanban/View/KanbanView.swift"),
             encoding: .utf8
         )
         let content2 = try String(
-            contentsOf: URL(fileURLWithPath: #filePath)
-                .deletingLastPathComponent()
-                .deletingLastPathComponent()
-                .deletingLastPathComponent()
-                .deletingLastPathComponent()
-                .appendingPathComponent("Sources/WenshuApp/Views/Kanban/KanbanTicketDetailSheet.swift"),
+            contentsOf: SourceLocator.repoRoot
+                .appendingPathComponent("Sources/WenshuApp/Features/Kanban/View/KanbanTicketDetailSheet.swift"),
             encoding: .utf8
         )
 
@@ -116,11 +104,7 @@ struct AccentTintOpacitySweepTests {
     @Test("accentTintOpacityHero value is 0.18 (hero accent canonical)")
     func accentTintOpacityHeroValueIs018() throws {
         // Verify the DesignTokens token value (= the source of truth).
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let root = SourceLocator.repoRoot
         let designTokens = root
             .appendingPathComponent("Sources/WenshuApp/DesignTokens.swift")
         let content = try String(contentsOf: designTokens, encoding: .utf8)

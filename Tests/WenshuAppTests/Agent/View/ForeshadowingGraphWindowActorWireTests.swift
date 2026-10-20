@@ -39,29 +39,28 @@ import Foundation
 struct ForeshadowingGraphWindowActorWireTests {
 
     private func resolve(_ relative: String) -> String {
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<5 { url.deleteLastPathComponent() }
+        var url = SourceLocator.repoRoot
         url.appendPathComponent(relative)
         return url.path
     }
 
     @Test("ForeshadowingGraphWindow.reload calls ForeshadowingTracker.list")
     func testForeshadowingGraphWindowCallsTracker() throws {
-        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Views/Windows/ForeshadowingGraphWindow.swift"), encoding: .utf8)
+        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Features/Foreshadowing/View/ForeshadowingGraphWindow.swift"), encoding: .utf8)
         #expect(source.contains("ForeshadowingTracker(bookStore:") && source.contains("tracker.list(bookId:"),
                 "ForeshadowingGraphWindow.reload must call ForeshadowingTracker.list (= boss A5 follow-up = 'window 是占位')")
     }
 
     @Test("ForeshadowingGraphWindow.toolbar has refresh button (= i18n key foreshadowing_graph.refresh)")
     func testForeshadowingGraphWindowRefreshToolbarButton() throws {
-        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Views/Windows/ForeshadowingGraphWindow.swift"), encoding: .utf8)
+        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Features/Foreshadowing/View/ForeshadowingGraphWindow.swift"), encoding: .utf8)
         #expect(source.contains("foreshadowing_graph.refresh"),
                 "ForeshadowingGraphWindow.toolbar must include a refresh action")
     }
 
     @Test("ForeshadowingGraphWindow shows no-book empty state when activeBookId is nil")
     func testForeshadowingGraphWindowNoBookEmptyState() throws {
-        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Views/Windows/ForeshadowingGraphWindow.swift"), encoding: .utf8)
+        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Features/Foreshadowing/View/ForeshadowingGraphWindow.swift"), encoding: .utf8)
         #expect(source.contains("foreshadowing_graph.no_book.title"),
                 "ForeshadowingGraphWindow must show a no-book empty state (= user feedback instead of silent empty)")
     }

@@ -47,8 +47,7 @@ import Foundation
 struct UnusedSpmDepRemovalTests {
 
     private func resolve(_ relative: String) -> String {
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<4 { url.deleteLastPathComponent() }
+        var url = SourceLocator.repoRoot
         url.appendPathComponent(relative)
         return url.path
     }
@@ -71,7 +70,7 @@ struct UnusedSpmDepRemovalTests {
 
     @Test("Highlighter HAS consumer (= WenshuEditorServicesFactory wires HighlighterSwiftBridge)")
     func testHighlighterHasConsumer() throws {
-        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Editor/WenshuEditorServicesFactory.swift"), encoding: .utf8)
+        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Features/Editor/Service/WenshuEditorServicesFactory.swift"), encoding: .utf8)
         let hasConsumer = source.contains("HighlighterSwiftBridge()")
         #expect(hasConsumer,
                 "Highlighter must have a consumer (= HighlighterSwiftBridge in WenshuEditorServicesFactory); = the Highlighter pin is justified")

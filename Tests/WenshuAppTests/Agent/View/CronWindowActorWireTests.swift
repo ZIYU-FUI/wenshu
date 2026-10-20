@@ -38,15 +38,14 @@ import Foundation
 struct CronWindowActorWireTests {
 
     private func resolve(_ relative: String) -> String {
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<5 { url.deleteLastPathComponent() }
+        var url = SourceLocator.repoRoot
         url.appendPathComponent(relative)
         return url.path
     }
 
     @Test("CronWindow.reload + addSchedule call CronjobStore.list / .add")
     func testCronWindowCallsCronjobStore() throws {
-        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Views/Windows/CronWindow.swift"), encoding: .utf8)
+        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Features/Cron/View/CronWindow.swift"), encoding: .utf8)
         let callsList = source.contains("await store.list()")
         let callsAdd = source.contains("await store.add(")
         #expect(callsList && callsAdd,
@@ -55,14 +54,14 @@ struct CronWindowActorWireTests {
 
     @Test("CronWindow.toolbar has refresh button (= i18n key cron.refresh)")
     func testCronWindowRefreshToolbarButton() throws {
-        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Views/Windows/CronWindow.swift"), encoding: .utf8)
+        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Features/Cron/View/CronWindow.swift"), encoding: .utf8)
         #expect(source.contains("cron.refresh"),
                 "CronWindow.toolbar must include a refresh action")
     }
 
     @Test("CronWindow has inline add-form with schedule / prompt fields + Add button")
     func testCronWindowAddScheduleForm() throws {
-        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Views/Windows/CronWindow.swift"), encoding: .utf8)
+        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Features/Cron/View/CronWindow.swift"), encoding: .utf8)
         let hasScheduleField = source.contains("cron.field.schedule")
         let hasNameField = source.contains("cron.field.name")
         let hasCommandField = source.contains("cron.field.command")

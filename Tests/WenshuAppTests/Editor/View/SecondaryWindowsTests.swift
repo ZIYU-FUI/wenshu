@@ -41,23 +41,20 @@ struct SecondaryWindowsTests {
     // AppRootScene.swift line 44, where it is co-located with the Window()
     // declarations that use those IDs (= single-source-of-truth).
     private var windowIDSourcePath: String {
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<5 { url.deleteLastPathComponent() }
+        var url = SourceLocator.repoRoot
         url.appendPathComponent("Sources/WenshuApp/App/AppRootScene.swift")
         return url.path
     }
 
     private var appRootScenePath: String {
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<5 { url.deleteLastPathComponent() }
+        var url = SourceLocator.repoRoot
         url.appendPathComponent("Sources/WenshuApp/App/AppRootScene.swift")
         return url.path
     }
 
     private var shellDetailColumnPath: String {
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<5 { url.deleteLastPathComponent() }
-        url.appendPathComponent("Sources/WenshuApp/Views/Inspector/InspectorView.swift")
+        var url = SourceLocator.repoRoot
+        url.appendPathComponent("Sources/WenshuApp/Features/Editor/View/InspectorView.swift")
         return url.path
     }
 

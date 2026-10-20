@@ -43,8 +43,7 @@ import Foundation
 struct BackgroundReviewTabTests {
 
     private func resolve(_ relative: String) -> String {
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<5 { url.deleteLastPathComponent() }
+        var url = SourceLocator.repoRoot
         url.appendPathComponent(relative)
         return url.path
     }
@@ -52,9 +51,9 @@ struct BackgroundReviewTabTests {
     @Test("BackgroundReviewView calls BackgroundReviewOps.listPending (= real proposal loading, not placeholder)")
     func testBackgroundReviewViewWiresListPending() throws {
         let candidates = [
-            "Sources/WenshuApp/UI/SpecializedTools/BackgroundReviewView.swift",
             "Sources/WenshuApp/Features/Agent/View/BackgroundReviewView.swift",
-            "Sources/WenshuApp/Views/Inspector/BackgroundReviewView.swift"
+            "Sources/WenshuApp/Features/Agent/View/BackgroundReviewView.swift",
+            "Sources/WenshuApp/Features/Agent/View/BackgroundReviewView.swift"
         ]
         var foundFile = false
         for path in candidates {

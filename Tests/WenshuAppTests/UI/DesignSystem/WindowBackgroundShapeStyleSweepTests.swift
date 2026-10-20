@@ -44,11 +44,7 @@ struct WindowBackgroundShapeStyleSweepTests {
 
     @Test("Swept sites use SwiftUI native .windowBackground shape-style")
     func sweptSitesUseSwiftUINativeShapeStyle() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()  // UI/
-            .deletingLastPathComponent()  // Tests/WenshuAppTests/
-            .deletingLastPathComponent()  // Tests/
-            .deletingLastPathComponent()  // repo root
+        let root = SourceLocator.repoRoot
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         let sweptFiles = [
@@ -79,11 +75,7 @@ struct WindowBackgroundShapeStyleSweepTests {
 
     @Test("AnyShapeStyle sites preserve Color(nsColor: .windowBackgroundColor).opacity(N) (= Apple SwiftUI limitation)")
     func preservedAnyShapeStyleSitesUseColorOpacity() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let root = SourceLocator.repoRoot
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         let preservedFiles = [
@@ -107,11 +99,7 @@ struct WindowBackgroundShapeStyleSweepTests {
 
     @Test("Zero magic Color(nsColor: .windowBackgroundColor) outside AnyShapeStyle")
     func zeroMagicColorNsColorWindowBackground() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let root = SourceLocator.repoRoot
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         // Use file manager to recursively collect all .swift files

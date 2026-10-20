@@ -52,11 +52,7 @@ struct PanelMaxHeightSweepTests {
 
     @Test("Swept sites use DesignTokens for maxHeight")
     func sweptSitesUseDesignTokens() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()  // UI/
-            .deletingLastPathComponent()  // Tests/WenshuAppTests/
-            .deletingLastPathComponent()  // Tests/
-            .deletingLastPathComponent()  // repo root
+        let root = SourceLocator.repoRoot
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         let sweptFiles: [(String, String)] = [
@@ -84,11 +80,7 @@ struct PanelMaxHeightSweepTests {
 
     @Test("DesignTokens exposes 5 new panel maxHeight tokens")
     func designTokensExposesNewTokens() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let root = SourceLocator.repoRoot
         let tokensPath = root.appendingPathComponent("Sources/WenshuApp/DesignTokens.swift")
         let content = try String(contentsOf: tokensPath, encoding: .utf8)
 
@@ -105,11 +97,7 @@ struct PanelMaxHeightSweepTests {
 
     @Test("Zero magic .frame(maxHeight: N) literal in source tree")
     func zeroMagicFrameMaxHeight() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let root = SourceLocator.repoRoot
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         let enumerator = FileManager.default.enumerator(

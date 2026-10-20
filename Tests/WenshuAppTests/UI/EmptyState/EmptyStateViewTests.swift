@@ -22,9 +22,8 @@ import Testing
 struct EmptyStateViewTests {
 
     private var sourcePath: String {
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<5 { url.deleteLastPathComponent() }
-        url.appendPathComponent("Sources/WenshuApp/UI/EmptyState/EmptyStateView.swift")
+        var url = SourceLocator.repoRoot
+        url.appendPathComponent("Sources/WenshuApp/Shared/UI/EmptyStateView.swift")
         return url.path
     }
 

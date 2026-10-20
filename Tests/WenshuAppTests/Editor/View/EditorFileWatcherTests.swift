@@ -71,13 +71,7 @@ struct EditorFileWatcherTests {
 
     @Test("EditorFileWatcher.swift exists at the canonical path")
     func fileExistsAtCanonicalPath() throws {
-        let testFileURL = URL(fileURLWithPath: #filePath)
-        let testsRoot = testFileURL
-            .deletingLastPathComponent()  // View/
-            .deletingLastPathComponent()  // Editor/
-            .deletingLastPathComponent()  // WenshuAppTests/
-            .deletingLastPathComponent()  // Tests/
-            .deletingLastPathComponent()  // repo root
+        let testsRoot = SourceLocator.repoRoot
         let sourcePath = testsRoot
             .appendingPathComponent("Sources")
             .appendingPathComponent("WenshuApp")
@@ -97,13 +91,7 @@ struct EditorFileWatcherTests {
 
     @Test("EditorFileWatcher exposes start(path:tab:) + stop(tab:) public API")
     func exposesPublicAPI() throws {
-        let testFileURL = URL(fileURLWithPath: #filePath)
-        let testsRoot = testFileURL
-            .deletingLastPathComponent()  // View/
-            .deletingLastPathComponent()  // Editor/
-            .deletingLastPathComponent()  // WenshuAppTests/
-            .deletingLastPathComponent()  // Tests/
-            .deletingLastPathComponent()  // repo root
+        let testsRoot = SourceLocator.repoRoot
         let sourcePath = testsRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Editor/Model/EditorFileWatcher.swift").path
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
@@ -159,13 +147,7 @@ struct EditorFileWatcherTests {
 
     @Test("start() sets onChange handler that invokes onChange() on .write + .extend events (= B-23)")
     func onChangeHandlerInvokesCallback() throws {
-        let testFileURL = URL(fileURLWithPath: #filePath)
-        let testsRoot = testFileURL
-            .deletingLastPathComponent()  // View/
-            .deletingLastPathComponent()  // Editor/
-            .deletingLastPathComponent()  // WenshuAppTests/
-            .deletingLastPathComponent()  // Tests/
-            .deletingLastPathComponent()  // repo root
+        let testsRoot = SourceLocator.repoRoot
         let sourcePath = testsRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Editor/Model/EditorFileWatcher.swift").path
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)

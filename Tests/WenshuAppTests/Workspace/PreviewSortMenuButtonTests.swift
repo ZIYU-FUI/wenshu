@@ -31,17 +31,9 @@ struct PreviewSortMenuButtonTests {
     // file's location: Tests/WenshuAppTests/Views/Workspace/PreviewSortMenuButtonTests.swift
     // → Sources/WenshuApp/Workspace/PreviewSortMenuButton.swift).
     private static var sourcePath: String {
-        let testFile = URL(fileURLWithPath: #filePath)
-        // <repo>/Tests/WenshuAppTests/Views/Workspace/PreviewSortMenuButtonTests.swift
-        // → <repo>/Sources/WenshuApp/Workspace/PreviewSortMenuButton.swift
-        let repoRoot = testFile
-            .deletingLastPathComponent()  // Views/Workspace
-            .deletingLastPathComponent()  // Views
-            .deletingLastPathComponent()  // WenshuAppTests
-            .deletingLastPathComponent()  // Tests
-            .deletingLastPathComponent()  // <repo>
+        let repoRoot = SourceLocator.repoRoot
         return repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Workspace/PreviewSortMenuButton.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Editor/View/PreviewSortMenuButton.swift")
             .path
     }
 

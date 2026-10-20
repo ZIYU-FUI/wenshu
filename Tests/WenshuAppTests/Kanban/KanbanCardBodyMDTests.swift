@@ -30,15 +30,14 @@ struct KanbanCardBodyMDTests {
         // Tests/WenshuAppTests/Views/Kanban/Tests.swift → 5 dirs up to
         // reach the repo root (= KanbanCardBodyMDTests.swift sits one
         // level deeper than the persistence tests).
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<5 { url.deleteLastPathComponent() }
+        var url = SourceLocator.repoRoot
         return url
     }
 
     @Test("KanbanView.swift references ChatTextPartView.parseMarkdown for body rendering")
     func sourceLevelRendererWiring() throws {
         let kanban = repoRootFromTestFile()
-            .appendingPathComponent("Sources/WenshuApp/Views/Kanban/KanbanView.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Kanban/View/KanbanView.swift")
         let text = try String(contentsOf: kanban, encoding: .utf8)
         // The kanban card must render ticket.body through the same helper
         // chat uses (1:1 with hermes 0.21.5 reusing MessageTextContent).

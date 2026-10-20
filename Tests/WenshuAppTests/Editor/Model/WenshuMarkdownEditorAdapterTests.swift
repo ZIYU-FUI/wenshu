@@ -177,8 +177,7 @@ struct WenshuMarkdownEditorAdapterTests {
     /// worktree). One more segment up (5) would step out of the
     /// worktree into the wenshu main repo; = don't do that.
     private func resolve(_ relative: String) -> String {
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<4 { url.deleteLastPathComponent() }
+        var url = SourceLocator.repoRoot
         url.appendPathComponent(relative)
         return url.path
     }
@@ -225,7 +224,7 @@ struct WenshuMarkdownEditorAdapterTests {
     /// If anyone walks the slot away, the contract disclaims.
     @Test("WenshuMarkdownEditor forwards SMC `header:` and `placeholder:`")
     func forwardsSMCHeaderAndPlaceholderSlots() throws {
-        let editorPath = resolve("Sources/WenshuApp/Editor/WenshuMarkdownEditor.swift")
+        let editorPath = resolve("Sources/WenshuApp/Features/Editor/Model/WenshuMarkdownEditor.swift")
         let content = try String(contentsOfFile: editorPath, encoding: .utf8)
 
         // Header slot forwarded — the wenshu view MUST pass a non-nil
@@ -260,7 +259,7 @@ struct WenshuMarkdownEditorAdapterTests {
     /// Source-content gate: if anyone walks the file, this fails.
     @Test("EditorHeaderView owns the 28 PT document-toolbar chrome (= T-01)")
     func editorHeaderViewExists() throws {
-        let headerPath = resolve("Sources/WenshuApp/UI/Editor/EditorHeaderView.swift")
+        let headerPath = resolve("Sources/WenshuApp/Features/Editor/View/EditorHeaderView.swift")
         let content = try String(contentsOfFile: headerPath, encoding: .utf8)
         #expect(
             content.contains("struct EditorHeaderView: View"),
@@ -290,7 +289,7 @@ struct WenshuMarkdownEditorAdapterTests {
     /// fails (= the toolbar silently loses a button).
     @Test("EditorFormatAction covers the engine's 12-button format surface (= T-02)")
     func formatActionCoverage() throws {
-        let toolbarPath = resolve("Sources/WenshuApp/UI/Editor/EditorFormatToolbar.swift")
+        let toolbarPath = resolve("Sources/WenshuApp/Features/Editor/View/EditorFormatToolbar.swift")
         let toolbar = try String(contentsOfFile: toolbarPath, encoding: .utf8)
         #expect(
             toolbar.contains("enum EditorFormatAction"),
@@ -323,7 +322,7 @@ struct WenshuMarkdownEditorAdapterTests {
     /// use (= bold) AND the bus-name dispatch (= the other 11).
     @Test("EditorFormatToolbar dispatches via FormatDispatcher + bus names (= T-02)")
     func formatToolbarDispatchContract() throws {
-        let toolbarPath = resolve("Sources/WenshuApp/UI/Editor/EditorFormatToolbar.swift")
+        let toolbarPath = resolve("Sources/WenshuApp/Features/Editor/View/EditorFormatToolbar.swift")
         let toolbar = try String(contentsOfFile: toolbarPath, encoding: .utf8)
         #expect(
             toolbar.contains("FormatDispatcher(bus: bus)"),
@@ -359,7 +358,7 @@ struct WenshuMarkdownEditorAdapterTests {
     /// Numbers document-chrome-survives-WYSIWYG-toggle pattern).
     @Test("EditorEditContent forwards SMC `editorHeader:` + `editorPlaceholder:` (= T-02)")
     func editorEditContentForwardsChromeSlots() throws {
-        let editPath = resolve("Sources/WenshuApp/Workspace/EditorEditContent.swift")
+        let editPath = resolve("Sources/WenshuApp/Features/Editor/View/EditorEditContent.swift")
         let edit = try String(contentsOfFile: editPath, encoding: .utf8)
         #expect(
             edit.contains("var editorHeader: AnyView? = nil"),
@@ -385,7 +384,7 @@ struct WenshuMarkdownEditorAdapterTests {
     /// changes its icon (= the toolbar picks this page on the icon).
     @Test("InspectorPage adds the 5th documentTools case (= T-04)")
     func inspectorPageAddsDocumentToolsCase() throws {
-        let statePath = resolve("Sources/WenshuApp/State/WorkspaceUIState.swift")
+        let statePath = resolve("Sources/WenshuApp/Shared/State/WorkspaceUIState.swift")
         let state = try String(contentsOfFile: statePath, encoding: .utf8)
         #expect(
             state.contains("case documentTools"),
@@ -403,7 +402,7 @@ struct WenshuMarkdownEditorAdapterTests {
     /// case, the picker source contract drift surface triggers a fail.
     @Test("EditorDocumentToolsSubTool covers the engine's 4-sub-tool surface (= T-04)")
     func documentToolsSubToolCoverage() throws {
-        let viewPath = resolve("Sources/WenshuApp/Views/Inspector/EditorDocumentToolsView.swift")
+        let viewPath = resolve("Sources/WenshuApp/Features/Editor/View/EditorDocumentToolsView.swift")
         let view = try String(contentsOfFile: viewPath, encoding: .utf8)
         #expect(
             view.contains("enum EditorDocumentToolsSubTool"),
@@ -429,7 +428,7 @@ struct WenshuMarkdownEditorAdapterTests {
     /// body when the user selects the 5th tab).
     @Test("InspectorView routes .documentTools → EditorDocumentToolsView (= T-04)")
     func inspectorViewRoutesDocumentTools() throws {
-        let inspectorPath = resolve("Sources/WenshuApp/Views/Inspector/InspectorView.swift")
+        let inspectorPath = resolve("Sources/WenshuApp/Features/Editor/View/InspectorView.swift")
         let inspector = try String(contentsOfFile: inspectorPath, encoding: .utf8)
         #expect(
             inspector.contains("case .documentTools:"),
@@ -462,7 +461,7 @@ struct WenshuMarkdownEditorAdapterTests {
     /// and observes `bus.findResults` for the live count).
     @Test("EditorDocumentToolsView wires .findReplace → EditorFindReplaceView (= T-06)")
     func editorDocumentToolsWiresFindReplace() throws {
-        let viewPath = resolve("Sources/WenshuApp/Views/Inspector/EditorDocumentToolsView.swift")
+        let viewPath = resolve("Sources/WenshuApp/Features/Editor/View/EditorDocumentToolsView.swift")
         let view = try String(contentsOfFile: viewPath, encoding: .utf8)
         #expect(
             view.contains("EditorFindReplaceView(bus: bus)"),
@@ -476,7 +475,7 @@ struct WenshuMarkdownEditorAdapterTests {
     /// (= AND from the user's perspective).
     @Test("EditorFindReplaceView wires the 4 bus names (= T-06)")
     func editorFindReplaceWiresBusNames() throws {
-        let viewPath = resolve("Sources/WenshuApp/Views/Inspector/EditorFindReplaceView.swift")
+        let viewPath = resolve("Sources/WenshuApp/Features/Editor/View/EditorFindReplaceView.swift")
         let view = try String(contentsOfFile: viewPath, encoding: .utf8)
         // Request direction (= 3 names).
         #expect(view.contains("bus.findQuery"),
@@ -498,7 +497,7 @@ struct WenshuMarkdownEditorAdapterTests {
     /// parses `^#{1,6}\s` rows from the current draft).
     @Test("EditorDocumentToolsView wires .headingOutline → EditorHeadingOutlineView (= T-07)")
     func editorDocumentToolsWiresHeadingOutline() throws {
-        let viewPath = resolve("Sources/WenshuApp/Views/Inspector/EditorDocumentToolsView.swift")
+        let viewPath = resolve("Sources/WenshuApp/Features/Editor/View/EditorDocumentToolsView.swift")
         let view = try String(contentsOfFile: viewPath, encoding: .utf8)
         #expect(
             view.contains("EditorHeadingOutlineView(activeDocumentText: activeDocumentText)"),
@@ -514,7 +513,7 @@ struct WenshuMarkdownEditorAdapterTests {
     /// outline contract breaks.
     @Test("EditorHeadingOutlineView parses the CommonMark heading pattern (= T-07)")
     func editorHeadingOutlineParsesCommonMark() throws {
-        let viewPath = resolve("Sources/WenshuApp/Views/Inspector/EditorHeadingOutlineView.swift")
+        let viewPath = resolve("Sources/WenshuApp/Features/Editor/View/EditorHeadingOutlineView.swift")
         let view = try String(contentsOfFile: viewPath, encoding: .utf8)
         // Test the heading pattern pieces (= CommonMark requires
         // leading 1-6 hashes followed by whitespace; = a token-level
@@ -540,7 +539,7 @@ struct WenshuMarkdownEditorAdapterTests {
     /// parses ```/~~~ rows from the current draft).
     @Test("EditorDocumentToolsView wires .codeBlocks → EditorCodeBlocksView (= T-08)")
     func editorDocumentToolsWiresCodeBlocks() throws {
-        let viewPath = resolve("Sources/WenshuApp/Views/Inspector/EditorDocumentToolsView.swift")
+        let viewPath = resolve("Sources/WenshuApp/Features/Editor/View/EditorDocumentToolsView.swift")
         let view = try String(contentsOfFile: viewPath, encoding: .utf8)
         #expect(
             view.contains("EditorCodeBlocksView(activeDocumentText: activeDocumentText)"),
@@ -555,7 +554,7 @@ struct WenshuMarkdownEditorAdapterTests {
     /// surfaces silently drop from the inspector.
     @Test("EditorCodeBlocksView parses both fence markers (= T-08)")
     func editorCodeBlocksParsesBothFences() throws {
-        let viewPath = resolve("Sources/WenshuApp/Views/Inspector/EditorCodeBlocksView.swift")
+        let viewPath = resolve("Sources/WenshuApp/Features/Editor/View/EditorCodeBlocksView.swift")
         let view = try String(contentsOfFile: viewPath, encoding: .utf8)
         #expect(view.contains(#"triple backtick"#) || view.contains("```"),
                         "EditorCodeBlocksView must parse the triple-backtick fence (= the canonical CommonMark code-block opener)")
@@ -573,7 +572,7 @@ struct WenshuMarkdownEditorAdapterTests {
     /// This is the LAST of the 5 sub-tool bodies.
     @Test("EditorDocumentToolsView wires .spellToggles → EditorSpellTogglesView (= T-09)")
     func editorDocumentToolsWiresSpellToggles() throws {
-        let viewPath = resolve("Sources/WenshuApp/Views/Inspector/EditorDocumentToolsView.swift")
+        let viewPath = resolve("Sources/WenshuApp/Features/Editor/View/EditorDocumentToolsView.swift")
         let view = try String(contentsOfFile: viewPath, encoding: .utf8)
         #expect(
             view.contains("EditorSpellTogglesView("),
@@ -588,7 +587,7 @@ struct WenshuMarkdownEditorAdapterTests {
     /// hides that affordance.
     @Test("EditorSpellTogglesView renders all 3 spell toggles (= T-09)")
     func editorSpellTogglesRendersAllThree() throws {
-        let viewPath = resolve("Sources/WenshuApp/Views/Inspector/EditorSpellTogglesView.swift")
+        let viewPath = resolve("Sources/WenshuApp/Features/Editor/View/EditorSpellTogglesView.swift")
         let view = try String(contentsOfFile: viewPath, encoding: .utf8)
         #expect(view.contains("continuousSpellChecking"),
                 "EditorSpellTogglesView must reflect initialPolicy.continuousSpellChecking (= NSTextView.isContinuousSpellCheckingEnabled mirror)")
@@ -609,7 +608,7 @@ struct WenshuMarkdownEditorAdapterTests {
     /// wenshu-tuned one has one place to edit).
     @Test("WenshuEditorServicesFactory binds MarkdownEditorTheme.default (= T-11)")
     func servicesFactoryBindsMarkdownEditorThemeDefault() throws {
-        let factoryPath = resolve("Sources/WenshuApp/Editor/WenshuEditorServicesFactory.swift")
+        let factoryPath = resolve("Sources/WenshuApp/Features/Editor/Service/WenshuEditorServicesFactory.swift")
         let factory = try String(contentsOfFile: factoryPath, encoding: .utf8)
         #expect(
             factory.contains("config.theme = MarkdownEditorTheme.default"),
@@ -626,7 +625,7 @@ struct WenshuMarkdownEditorAdapterTests {
     /// panel has no place to bind).
     @Test("EditorPreferences schema exists with 8 keys (= 6 T-12 + 2 list-editing)")
     func editorPreferencesSchemaHasEightKeys() throws {
-        let prefPath = resolve("Sources/WenshuApp/Editor/EditorPreferences.swift")
+        let prefPath = resolve("Sources/WenshuApp/Features/Editor/Model/EditorPreferences.swift")
         let pref = try String(contentsOfFile: prefPath, encoding: .utf8)
         #expect(pref.contains("struct EditorPreferences"),
                 "EditorPreferences struct must exist (= host-side AppStorage schema)")
@@ -664,7 +663,7 @@ struct WenshuMarkdownEditorAdapterTests {
     /// the editor).
     @Test("WenshuEditorServicesFactory forwards EditorPreferences to config (= 5 binding lines)")
     func servicesFactoryForwardsEditorPreferences() throws {
-        let factoryPath = resolve("Sources/WenshuApp/Editor/WenshuEditorServicesFactory.swift")
+        let factoryPath = resolve("Sources/WenshuApp/Features/Editor/Service/WenshuEditorServicesFactory.swift")
         let factory = try String(contentsOfFile: factoryPath, encoding: .utf8)
         #expect(factory.contains("config.readingWidth = preferences.readingWidth"),
                 "Factory must bind config.readingWidth from preferences.readingWidth")
@@ -687,7 +686,7 @@ struct WenshuMarkdownEditorAdapterTests {
     /// loses scroll memory.
     @Test("EditorScrollMemory persists + restores scroll offsets (= T-13)")
     func editorScrollMemoryPersistsAndRestores() throws {
-        let memoryPath = resolve("Sources/WenshuApp/Editor/EditorScrollMemory.swift")
+        let memoryPath = resolve("Sources/WenshuApp/Features/Editor/Store/EditorScrollMemory.swift")
         let memory = try String(contentsOfFile: memoryPath, encoding: .utf8)
         #expect(memory.contains("struct EditorScrollMemory"),
                 "EditorScrollMemory struct must exist (= host-side scroll-memory persistence)")
@@ -704,7 +703,7 @@ struct WenshuMarkdownEditorAdapterTests {
     /// memory on next session.
     @Test("WenshuMarkdownEditor wires the 3 scroll-memory closures (= T-13)")
     func wenshuMarkdownEditorWiresScrollMemory() throws {
-        let editorPath = resolve("Sources/WenshuApp/Editor/WenshuMarkdownEditor.swift")
+        let editorPath = resolve("Sources/WenshuApp/Features/Editor/Model/WenshuMarkdownEditor.swift")
         let editor = try String(contentsOfFile: editorPath, encoding: .utf8)
         #expect(editor.contains("retainedScrollDocumentIds:"),
                 "WenshuMarkdownEditor must wire retainedScrollDocumentIds (= the engine's opt-in subset)")
@@ -727,7 +726,7 @@ struct WenshuMarkdownEditorAdapterTests {
     /// chrome (= the canonical Pages / Numbers inspector status bar).
     @Test("EditorStatusBarView exists as the 24 PT bottom chrome (= T-03)")
     func editorStatusBarViewExists() throws {
-        let barPath = resolve("Sources/WenshuApp/UI/Editor/EditorStatusBarView.swift")
+        let barPath = resolve("Sources/WenshuApp/Features/Editor/View/EditorStatusBarView.swift")
         let bar = try String(contentsOfFile: barPath, encoding: .utf8)
         #expect(bar.contains("struct EditorStatusBarView"),
                 "EditorStatusBarView must exist (= the bottom chrome band of the editor zone)")
@@ -741,7 +740,7 @@ struct WenshuMarkdownEditorAdapterTests {
     /// bottom chrome.
     @Test("EditorView mounts EditorStatusBarView in zone outer VStack (= T-03)")
     func editorViewMountsStatusBar() throws {
-        let editorPath = resolve("Sources/WenshuApp/Workspace/EditorView.swift")
+        let editorPath = resolve("Sources/WenshuApp/Features/Editor/View/EditorView.swift")
         let editor = try String(contentsOfFile: editorPath, encoding: .utf8)
         #expect(editor.contains("EditorStatusBarView("),
                 "EditorView must construct EditorStatusBarView (= the bottom chrome band mount)")
@@ -757,7 +756,7 @@ struct WenshuMarkdownEditorAdapterTests {
     /// location (= falls back to the "Ln —, Col —" placeholder).
     @Test("WenshuMarkdownEditor forwards onCaretRectChange to engine (= T-03)")
     func wenshuMarkdownEditorForwardsCaretRectChange() throws {
-        let editorPath = resolve("Sources/WenshuApp/Editor/WenshuMarkdownEditor.swift")
+        let editorPath = resolve("Sources/WenshuApp/Features/Editor/Model/WenshuMarkdownEditor.swift")
         let editor = try String(contentsOfFile: editorPath, encoding: .utf8)
         #expect(editor.contains("onCaretRectChange: onCaretRectChange"),
                 "WenshuMarkdownEditor must forward onCaretRectChange to NativeTextViewWrapper")

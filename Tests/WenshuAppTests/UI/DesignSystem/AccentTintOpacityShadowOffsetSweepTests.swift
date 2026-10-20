@@ -43,11 +43,7 @@ struct AccentTintOpacityShadowOffsetSweepTests {
 
     @Test("Swept sites use DesignTokens for accent opacity + shadow offset")
     func sweptSitesUseDesignTokens() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()  // UI/
-            .deletingLastPathComponent()  // Tests/WenshuAppTests/
-            .deletingLastPathComponent()  // Tests/
-            .deletingLastPathComponent()  // repo root
+        let root = SourceLocator.repoRoot
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         let sweptFiles = [
@@ -70,11 +66,7 @@ struct AccentTintOpacityShadowOffsetSweepTests {
 
     @Test("DesignTokens exposes 4 new tokens")
     func designTokensExposesNewTokens() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let root = SourceLocator.repoRoot
         let tokensPath = root.appendingPathComponent("Sources/WenshuApp/DesignTokens.swift")
         let content = try String(contentsOf: tokensPath, encoding: .utf8)
 
@@ -90,11 +82,7 @@ struct AccentTintOpacityShadowOffsetSweepTests {
 
     @Test("Zero magic accent.opacity(0.12) or (0.18) in source tree")
     func zeroMagicAccentOpacity() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let root = SourceLocator.repoRoot
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         let enumerator = FileManager.default.enumerator(
@@ -131,11 +119,7 @@ struct AccentTintOpacityShadowOffsetSweepTests {
 
     @Test("Zero magic .shadow(...y: 4) or (...y: 2) in source tree")
     func zeroMagicShadowOffset() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let root = SourceLocator.repoRoot
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         let enumerator = FileManager.default.enumerator(

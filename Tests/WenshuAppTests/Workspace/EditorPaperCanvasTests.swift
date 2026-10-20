@@ -35,12 +35,7 @@ struct EditorPaperCanvasTests {
     /// by walking up 5 levels to the project root and appending the
     /// canonical `Sources/...` path.
     private var editorPaperCanvasPath: String {
-        var url = URL(fileURLWithPath: #filePath)
-        url.deleteLastPathComponent()  // drop file name → .../Workspace
-        url.deleteLastPathComponent()  // drop Workspace → .../Views
-        url.deleteLastPathComponent()  // drop Views → .../WenshuAppTests
-        url.deleteLastPathComponent()  // drop WenshuAppTests → .../Tests
-        url.deleteLastPathComponent()  // drop Tests → project root
+        var url = SourceLocator.repoRoot
         url.appendPathComponent("Sources")
         url.appendPathComponent("WenshuApp")
         url.appendPathComponent("Views")

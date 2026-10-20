@@ -53,11 +53,7 @@ struct TextEditorHeightSweepTests {
 
     @Test("Swept sites use DesignTokens for TextEditor minHeight/maxHeight")
     func sweptSitesUseDesignTokens() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()  // UI/
-            .deletingLastPathComponent()  // Tests/WenshuAppTests/
-            .deletingLastPathComponent()  // Tests/
-            .deletingLastPathComponent()  // repo root
+        let root = SourceLocator.repoRoot
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         let sweptFiles: [(String, [String])] = [
@@ -83,11 +79,7 @@ struct TextEditorHeightSweepTests {
 
     @Test("DesignTokens exposes 5 new TextEditor tokens")
     func designTokensExposesNewTokens() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let root = SourceLocator.repoRoot
         let tokensPath = root.appendingPathComponent("Sources/WenshuApp/DesignTokens.swift")
         let content = try String(contentsOf: tokensPath, encoding: .utf8)
 
@@ -104,11 +96,7 @@ struct TextEditorHeightSweepTests {
 
     @Test("Zero magic .frame(minHeight: N, maxHeight: N) for TextEditor")
     func zeroMagicTextEditorFrame() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let root = SourceLocator.repoRoot
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         let enumerator = FileManager.default.enumerator(

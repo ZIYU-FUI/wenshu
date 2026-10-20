@@ -30,8 +30,7 @@ import Testing
 struct ChatToolDiffPreviewTests {
 
     private func repoRootFromTestFile() -> URL {
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<5 { url.deleteLastPathComponent() }
+        var url = SourceLocator.repoRoot
         return url
     }
 

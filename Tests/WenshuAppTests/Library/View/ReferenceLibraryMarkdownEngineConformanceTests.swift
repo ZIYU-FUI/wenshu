@@ -37,29 +37,28 @@ import Foundation
 struct ReferenceLibraryMarkdownEngineConformanceTests {
 
     private func resolve(_ relative: String) -> String {
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<4 { url.deleteLastPathComponent() }
+        var url = SourceLocator.repoRoot
         url.appendPathComponent(relative)
         return url.path
     }
 
     @Test("ReferenceLibraryImageProvider conforms to markdown-engine EmbeddedImageProvider")
     func testImageProviderConformsToEmbeddedImageProvider() throws {
-        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Editor/ReferenceLibraryImageProvider.swift"), encoding: .utf8)
+        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Features/Editor/Model/ReferenceLibraryImageProvider.swift"), encoding: .utf8)
         #expect(source.contains(": EmbeddedImageProvider"),
                 "ReferenceLibraryImageProvider must conform to EmbeddedImageProvider (= the markdown-engine protocol)")
     }
 
     @Test("ReferenceLibraryWikiLinkResolver conforms to markdown-engine WikiLinkResolver")
     func testWikiLinkResolverConformsToWikiLinkResolver() throws {
-        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Editor/ReferenceLibraryWikiLinkResolver.swift"), encoding: .utf8)
+        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Features/Editor/Model/ReferenceLibraryWikiLinkResolver.swift"), encoding: .utf8)
         #expect(source.contains(": WikiLinkResolver"),
                 "ReferenceLibraryWikiLinkResolver must conform to WikiLinkResolver (= the markdown-engine protocol)")
     }
 
     @Test("WenshuEditorServicesFactory wires both providers (= the canonical production consumer)")
     func testProvidersUsedByEditorServicesFactory() throws {
-        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Editor/WenshuEditorServicesFactory.swift"), encoding: .utf8)
+        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Features/Editor/Service/WenshuEditorServicesFactory.swift"), encoding: .utf8)
         let wiresWikiLinks = source.contains("ReferenceLibraryWikiLinkResolver(")
         let wiresImages = source.contains("ReferenceLibraryImageProvider(")
         #expect(wiresWikiLinks && wiresImages,

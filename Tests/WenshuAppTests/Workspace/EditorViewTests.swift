@@ -33,7 +33,7 @@ struct EditorViewTests {
     /// when EditorView was in a worktree because the old
     /// hardcoded path pointed to the main worktree).
     private static var editorPlaceholderPath: String {
-        let testFileURL = URL(fileURLWithPath: #filePath)
+        let testFileURL = SourceLocator.repoRoot
         let testsDir = testFileURL.deletingLastPathComponent()  // Views/Workspace/
         let repoRoot = testsDir
             .deletingLastPathComponent()  // Views/
@@ -319,15 +319,9 @@ struct EditorViewTests {
         // `EditorPersistence.save(tab:bookStore:)`. The view no longer
         // holds the disk-write logic. Assert the new helper uses
         // atomically: true (= prevents half-written file on crash).
-        let testFileURL = URL(fileURLWithPath: #filePath)
-        let testsRoot = testFileURL
-            .deletingLastPathComponent()  // Views/Workspace/
-            .deletingLastPathComponent()  // Views/
-            .deletingLastPathComponent()  // WenshuAppTests/
-            .deletingLastPathComponent()  // Tests/
-            .deletingLastPathComponent()  // repo root
+        let testsRoot = SourceLocator.repoRoot
         let helperPath = testsRoot
-            .appendingPathComponent("Sources/WenshuApp/Editor/EditorPersistence.swift").path
+            .appendingPathComponent("Sources/WenshuApp/Features/Editor/Store/EditorPersistence.swift").path
         let helperSource = try String(contentsOfFile: helperPath, encoding: .utf8)
         #expect(helperSource.contains("atomically: true"),
                 "EditorPersistence.save must use atomically: true write option (= prevents half-written file on crash)")
@@ -338,15 +332,9 @@ struct EditorViewTests {
         // the DispatchSource + POSIX open
         // lifecycle migrated to `EditorFileWatcher`. The assertions
         // now point at the new file (= the view no longer holds them).
-        let testFileURL = URL(fileURLWithPath: #filePath)
-        let testsRoot = testFileURL
-            .deletingLastPathComponent()  // Views/Workspace/
-            .deletingLastPathComponent()  // Views/
-            .deletingLastPathComponent()  // WenshuAppTests/
-            .deletingLastPathComponent()  // Tests/
-            .deletingLastPathComponent()  // repo root
+        let testsRoot = SourceLocator.repoRoot
         let helperPath = testsRoot
-            .appendingPathComponent("Sources/WenshuApp/Editor/EditorFileWatcher.swift").path
+            .appendingPathComponent("Sources/WenshuApp/Features/Editor/Model/EditorFileWatcher.swift").path
         let code = try String(contentsOfFile: helperPath, encoding: .utf8)
         //
         // DispatchSourceFileSystemObject event source.
@@ -368,15 +356,9 @@ struct EditorViewTests {
     func stopFileWatcherCancelsDispatchSource() throws {
         // the stop path migrated to
         // `EditorFileWatcher.stop(tab:)`.
-        let testFileURL = URL(fileURLWithPath: #filePath)
-        let testsRoot = testFileURL
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let testsRoot = SourceLocator.repoRoot
         let helperPath = testsRoot
-            .appendingPathComponent("Sources/WenshuApp/Editor/EditorFileWatcher.swift").path
+            .appendingPathComponent("Sources/WenshuApp/Features/Editor/Model/EditorFileWatcher.swift").path
         let code = try String(contentsOfFile: helperPath, encoding: .utf8)
         #expect(code.contains("tab.fileWatcher?.cancel()"),
                 "EditorFileWatcher.stop must cancel the DispatchSource (= no event leak)")
@@ -418,15 +400,9 @@ struct EditorViewTests {
         // `EditorPersistence.handleDirtyTransition(_:tab:bookStore:)`.
         // The view no longer holds it. Assert the helper holds the
         // 3-second debounce + cancel logic (= boss 9/2 spec).
-        let testFileURL = URL(fileURLWithPath: #filePath)
-        let testsRoot = testFileURL
-            .deletingLastPathComponent()  // Views/Workspace/
-            .deletingLastPathComponent()  // Views/
-            .deletingLastPathComponent()  // WenshuAppTests/
-            .deletingLastPathComponent()  // Tests/
-            .deletingLastPathComponent()  // repo root
+        let testsRoot = SourceLocator.repoRoot
         let helperPath = testsRoot
-            .appendingPathComponent("Sources/WenshuApp/Editor/EditorPersistence.swift").path
+            .appendingPathComponent("Sources/WenshuApp/Features/Editor/Store/EditorPersistence.swift").path
         let helperSource = try String(contentsOfFile: helperPath, encoding: .utf8)
         #expect(helperSource.contains("handleDirtyTransition"),
                 "EditorPersistence must declare handleDirtyTransition (= state machine)")

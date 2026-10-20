@@ -44,12 +44,7 @@ struct LazyVStackSpacingAspectRatioSweepTests {
 
     @Test("Swept sites use DesignTokens for LazyVStack spacing + aspectRatio")
     func sweptSitesUseDesignTokens() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()  // DesignSystem/
-            .deletingLastPathComponent()  // UI/
-            .deletingLastPathComponent()  // WenshuAppTests/
-            .deletingLastPathComponent()  // Tests/
-            .deletingLastPathComponent()  // repo root
+        let root = SourceLocator.repoRoot
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         let sweptFiles: [(String, String)] = [
@@ -72,12 +67,7 @@ struct LazyVStackSpacingAspectRatioSweepTests {
 
     @Test("DesignTokens exposes presetThumbnailAspectRatio")
     func designTokensExposesAspectRatioToken() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()  // DesignSystem/
-            .deletingLastPathComponent()  // UI/
-            .deletingLastPathComponent()  // WenshuAppTests/
-            .deletingLastPathComponent()  // Tests/
-            .deletingLastPathComponent()  // repo root
+        let root = SourceLocator.repoRoot
         let tokensPath = root.appendingPathComponent("Sources/WenshuApp/DesignTokens.swift")
         let content = try String(contentsOf: tokensPath, encoding: .utf8)
         #expect(
@@ -88,12 +78,7 @@ struct LazyVStackSpacingAspectRatioSweepTests {
 
     @Test("Zero magic LazyVStack spacing (excluding canonical 0)")
     func zeroMagicLazyVStackSpacing() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()  // DesignSystem/
-            .deletingLastPathComponent()  // UI/
-            .deletingLastPathComponent()  // WenshuAppTests/
-            .deletingLastPathComponent()  // Tests/
-            .deletingLastPathComponent()  // repo root
+        let root = SourceLocator.repoRoot
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         let enumerator = FileManager.default.enumerator(
@@ -133,12 +118,7 @@ struct LazyVStackSpacingAspectRatioSweepTests {
 
     @Test("Zero magic .aspectRatio(N/M) numeric ratio literal")
     func zeroMagicAspectRatioNumeric() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()  // DesignSystem/
-            .deletingLastPathComponent()  // UI/
-            .deletingLastPathComponent()  // WenshuAppTests/
-            .deletingLastPathComponent()  // Tests/
-            .deletingLastPathComponent()  // repo root
+        let root = SourceLocator.repoRoot
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         let enumerator = FileManager.default.enumerator(

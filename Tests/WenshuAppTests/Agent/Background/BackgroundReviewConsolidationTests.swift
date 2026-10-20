@@ -48,30 +48,26 @@ import Foundation
 struct BackgroundReviewConsolidationTests {
 
     private var wenshuConductorPath: String {
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<6 { url.deleteLastPathComponent() }
-        url.appendPathComponent("Sources/WenshuApp/Core/Agent/Conversation/WenshuConductor.swift")
+        var url = SourceLocator.repoRoot
+        url.appendPathComponent("Sources/WenshuApp/WenshuAgent/Agent/WenshuConductor.swift")
         return url.path
     }
 
     private var backgroundReviewOpsPath: String {
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<6 { url.deleteLastPathComponent() }
-        url.appendPathComponent("Sources/WenshuApp/Core/Agent/Background/BackgroundReviewOps.swift")
+        var url = SourceLocator.repoRoot
+        url.appendPathComponent("Sources/WenshuApp/Features/Agent/Store/BackgroundReviewOps.swift")
         return url.path
     }
 
     private var backgroundReviewToolPath: String {
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<6 { url.deleteLastPathComponent() }
-        url.appendPathComponent("Sources/WenshuApp/Core/Agent/Tool/BackgroundReviewTool.swift")
+        var url = SourceLocator.repoRoot
+        url.appendPathComponent("Sources/WenshuApp/Features/Agent/Service/BackgroundReviewTool.swift")
         return url.path
     }
 
     private var conversationLoopPath: String {
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<6 { url.deleteLastPathComponent() }
-        url.appendPathComponent("Sources/WenshuApp/Core/Agent/Conversation/ConversationLoop.swift")
+        var url = SourceLocator.repoRoot
+        url.appendPathComponent("Sources/WenshuApp/WenshuAgent/Agent/ConversationLoop.swift")
         return url.path
     }
 

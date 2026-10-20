@@ -53,7 +53,7 @@ struct SettingViewTests {
     /// 
     /// from THIS test file's path (= worktree-aware).
     private static var settingViewPath: String {
-        let testFileURL = URL(fileURLWithPath: #filePath)
+        let testFileURL = SourceLocator.repoRoot
         let testsDir = testFileURL.deletingLastPathComponent()  // Views/Settings/
         let repoRoot = testsDir
             .deletingLastPathComponent()  // Views/

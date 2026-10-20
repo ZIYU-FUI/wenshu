@@ -73,12 +73,7 @@ struct TagManagerOpsTests {
         // #filePath resolves to .../Tests/WenshuAppTests/Views/TagManagerOpsTests.swift
         // (= 5 segments above the file). Walk up 5 levels to reach
         // the repo root (= the worktree root).
-        let testFileURL = URL(fileURLWithPath: #filePath)
-        let repoRoot = testFileURL
-            .deletingLastPathComponent()  // Views/         -> WenshuAppTests/
-            .deletingLastPathComponent()  // WenshuAppTests/ -> Tests/
-            .deletingLastPathComponent()  // Tests/          -> <worktree>/
-            .deletingLastPathComponent()  // <worktree>/     -> repo root
+        let repoRoot = SourceLocator.repoRoot
         let sourcePath = repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/TagManagerOps.swift")
         let exists = FileManager.default.fileExists(atPath: sourcePath.path)

@@ -22,8 +22,7 @@ import Testing
 struct AppTests {
 
     private var sourcePath: String {
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<3 { url.deleteLastPathComponent() }
+        var url = SourceLocator.repoRoot
         url.appendPathComponent("Sources/WenshuApp/App/WenshuAppMain.swift")
         return url.path
     }

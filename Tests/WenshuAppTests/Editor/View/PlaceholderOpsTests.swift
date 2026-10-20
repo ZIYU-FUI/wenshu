@@ -70,13 +70,7 @@ struct PlaceholderOpsTests {
 
     @Test("PlaceholderOps.swift exists at the canonical path under Features/Agent/View/")
     func fileExistsAtCanonicalPath() throws {
-        let testFileURL = URL(fileURLWithPath: #filePath)
-        let repoRoot = testFileURL
-            .deletingLastPathComponent()  // View/
-            .deletingLastPathComponent()  // Editor/
-            .deletingLastPathComponent()  // WenshuAppTests/
-            .deletingLastPathComponent()  // Tests/
-            .deletingLastPathComponent()  // repo root
+        let repoRoot = SourceLocator.repoRoot
         let sourcePath = repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/PlaceholderOps.swift")
         let exists = FileManager.default.fileExists(atPath: sourcePath.path)

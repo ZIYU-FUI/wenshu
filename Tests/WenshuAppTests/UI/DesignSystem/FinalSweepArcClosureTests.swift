@@ -108,11 +108,7 @@ struct FinalSweepArcClosureTests {
 
     @Test("Zero magic .cornerRadius(N) deprecated API")
     func zeroMagicCornerRadius() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let root = SourceLocator.repoRoot
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         let enumerator = FileManager.default.enumerator(
@@ -140,11 +136,7 @@ struct FinalSweepArcClosureTests {
 
     @Test("Zero magic Stack(spacing: N) with numeric literal")
     func zeroMagicStackSpacing() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let root = SourceLocator.repoRoot
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         let enumerator = FileManager.default.enumerator(
@@ -192,11 +184,7 @@ struct FinalSweepArcClosureTests {
 
     @Test("Zero magic .frame(maxWidth: N) literal")
     func zeroMagicFrameMaxWidth() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let root = SourceLocator.repoRoot
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         let enumerator = FileManager.default.enumerator(
@@ -233,11 +221,7 @@ struct FinalSweepArcClosureTests {
 
     @Test("Zero magic .accentColor.opacity(N) literal")
     func zeroMagicAccentColorOpacity() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let root = SourceLocator.repoRoot
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         let enumerator = FileManager.default.enumerator(

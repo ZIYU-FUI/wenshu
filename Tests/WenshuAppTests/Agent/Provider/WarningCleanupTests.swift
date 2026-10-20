@@ -44,18 +44,17 @@ import WenshuData
 struct WarningCleanupTests {
 
     private static let affectedSources: [String] = [
-        "Sources/WenshuApp/Features/Settings/SecretScope.swift",
+        "Sources/WenshuApp/Features/Settings/Service/SecretScope.swift",
         "Sources/WenshuApp/WenshuAgent/Discovery/AvailableModelsDiscovery.swift",
         "Sources/WenshuApp/Features/Agent/Service/OAuthFlow.swift",
-        "Sources/WenshuApp/Core/Agent/Runtime/RuntimeHelpers.swift",
-        "Sources/WenshuApp/Core/Agent/Todo/HermesTodoTool.swift",
-        "Sources/WenshuApp/Core/Agent/Connector/WenshuVerifier.swift",
-        "Sources/WenshuApp/Core/Agent/Connector/ConnectorCredentials.swift",
+        "Sources/WenshuApp/Features/Agent/Store/RuntimeHelpers.swift",
+        "Sources/WenshuApp/Features/Agent/Service/HermesTodoTool.swift",
+        "Sources/WenshuApp/WenshuAgent/Agent/WenshuVerifier.swift",
+        "Sources/WenshuApp/WenshuAgent/Discovery/ConnectorCredentials.swift",
     ]
 
     private func resolve(_ relative: String) -> String {
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<5 { url.deleteLastPathComponent() }
+        var url = SourceLocator.repoRoot
         url.appendPathComponent(relative)
         return url.path
     }
@@ -76,7 +75,7 @@ struct WarningCleanupTests {
 
     @Test("HermesTodoTool hermes-side scratchpad #warning removed")
     func testNoHermesScratchpadWarning() throws {
-        let path = resolve("Sources/WenshuApp/Core/Agent/Todo/HermesTodoTool.swift")
+        let path = resolve("Sources/WenshuApp/Features/Agent/Service/HermesTodoTool.swift")
         let source = try String(contentsOfFile: path, encoding: .utf8)
         // Only the #warning(...) compiler directive counts; = a
         // plain comment referencing "warning" by name (= the

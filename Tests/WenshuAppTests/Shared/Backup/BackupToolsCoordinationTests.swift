@@ -39,9 +39,8 @@ import Foundation
 struct BackupToolsCoordinationTests {
 
     private var backupPath: String {
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<5 { url.deleteLastPathComponent() }
-        url.appendPathComponent("Sources/WenshuApp/Features/Shared/Backup.swift")
+        var url = SourceLocator.repoRoot
+        url.appendPathComponent("Sources/WenshuApp/Features/Backup/Service/Backup.swift")
         return url.path
     }
 

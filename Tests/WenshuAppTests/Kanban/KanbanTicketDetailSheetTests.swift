@@ -24,15 +24,14 @@ import Testing
 struct KanbanTicketDetailSheetTests {
 
     private func repoRootFromTestFile() -> URL {
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<5 { url.deleteLastPathComponent() }
+        var url = SourceLocator.repoRoot
         return url
     }
 
     @Test("KanbanTicketDetailSheet.swift exists and references ChatTextPartView.parseMarkdown")
     func sourceLevelSheetRenderer() throws {
         let path = repoRootFromTestFile()
-            .appendingPathComponent("Sources/WenshuApp/Views/Kanban/KanbanTicketDetailSheet.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Kanban/View/KanbanTicketDetailSheet.swift")
         let text = try String(contentsOf: path, encoding: .utf8)
         // The sheet must re-use chat's markdown helper (= 1:1 with hermes 0.21.5
         // reusing MessageTextContent across surfaces).
@@ -43,7 +42,7 @@ struct KanbanTicketDetailSheetTests {
     @Test("KanbanView.swift wires the sheet via .sheet(item:) tied to a card tap")
     func sourceLevelWiring() throws {
         let path = repoRootFromTestFile()
-            .appendingPathComponent("Sources/WenshuApp/Views/Kanban/KanbanView.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Kanban/View/KanbanView.swift")
         let text = try String(contentsOf: path, encoding: .utf8)
         // The wire-up must:
         //  - declare a sheet item binding (@State var ... ticket: KanbanTicket?)

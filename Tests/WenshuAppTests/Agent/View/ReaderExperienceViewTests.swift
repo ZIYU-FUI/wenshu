@@ -25,8 +25,7 @@ import Testing
 struct ReaderExperienceViewTests {
 
     private var sourcePath: String {
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<5 { url.deleteLastPathComponent() }
+        var url = SourceLocator.repoRoot
         url.appendPathComponent("Sources/WenshuApp/Features/Agent/View/ReaderExperienceView.swift")
         return url.path
     }

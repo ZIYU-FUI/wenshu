@@ -44,11 +44,7 @@ struct ColorSweepArcClosureTests {
 
     @Test("Zero raw RGB Color(red:green:blue:) literals")
     func zeroRawRGBColorLiterals() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let root = SourceLocator.repoRoot
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         let enumerator = FileManager.default.enumerator(
@@ -78,11 +74,7 @@ struct ColorSweepArcClosureTests {
 
     @Test("Zero Color(white:) raw gray literals")
     func zeroColorWhiteLiterals() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let root = SourceLocator.repoRoot
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         let enumerator = FileManager.default.enumerator(
@@ -124,11 +116,7 @@ struct ColorSweepArcClosureTests {
 
     @Test("Zero hex color literal (#RRGGBB)")
     func zeroHexColorLiterals() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let root = SourceLocator.repoRoot
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         let enumerator = FileManager.default.enumerator(
@@ -156,11 +144,7 @@ struct ColorSweepArcClosureTests {
 
     @Test("Zero wenshu-specific custom Color tokens (= DesignColor.zoneSurface etc.)")
     func zeroWenshuCustomColorTokens() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let root = SourceLocator.repoRoot
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         let enumerator = FileManager.default.enumerator(

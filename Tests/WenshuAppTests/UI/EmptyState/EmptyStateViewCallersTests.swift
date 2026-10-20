@@ -86,9 +86,9 @@ struct EmptyStateViewCallersTests {
         let mainZoneFiles = [
             // EditorView = editor zone (= v1.34 ticket 001 extracted
             // the WorkspaceView empty state into EditorView.swift)
-            "Sources/WenshuApp/Workspace/EditorView.swift",
+            "Sources/WenshuApp/Features/Editor/View/EditorView.swift",
             // PreviewPane = middle-left assets column (the middle-left cards area)
-            "Sources/WenshuApp/Workspace/PreviewPane.swift",
+            "Sources/WenshuApp/Features/Editor/View/PreviewPane.swift",
             // ChatHelpTextOverlay = chat empty state with inline Settings link
             "Sources/WenshuApp/Features/Chat/View/ChatHelpTextOverlay.swift",
         ]
@@ -121,9 +121,8 @@ struct EmptyStateViewCallersTests {
     /// would break the unified icon style).
     @Test("EmptyStateView_uses_LucideThinIcon_for_visual_consistency")
     func EmptyStateView_uses_LucideThinIcon_for_visual_consistency() throws {
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<5 { url.deleteLastPathComponent() }
-        url.appendPathComponent("Sources/WenshuApp/UI/EmptyState/EmptyStateView.swift")
+        var url = SourceLocator.repoRoot
+        url.appendPathComponent("Sources/WenshuApp/Shared/UI/EmptyStateView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         let stripped = content.components(separatedBy: "\n").filter { line in
             let trimmed = line.trimmingCharacters(in: .whitespaces)

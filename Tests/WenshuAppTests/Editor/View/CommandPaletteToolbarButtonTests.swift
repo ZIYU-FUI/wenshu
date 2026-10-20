@@ -27,9 +27,8 @@ import Foundation
 struct CommandPaletteToolbarButtonTests {
 
     private var shellDetailPath: String {
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<5 { url.deleteLastPathComponent() }
-        url.appendPathComponent("Sources/WenshuApp/Views/Inspector/InspectorView.swift")
+        var url = SourceLocator.repoRoot
+        url.appendPathComponent("Sources/WenshuApp/Features/Editor/View/InspectorView.swift")
         return url.path
     }
 

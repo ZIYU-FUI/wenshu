@@ -32,15 +32,9 @@ struct PreviewPaneOpsTests {
 
     @Test("PreviewPaneOps.swift exists at the canonical path under UI/Layout/")
     func fileExistsAtCanonicalPath() throws {
-        let testFileURL = URL(fileURLWithPath: #filePath)
-        let repoRoot = testFileURL
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let repoRoot = SourceLocator.repoRoot
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/UI/Layout/PreviewPaneOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Editor/View/PreviewPaneOps.swift")
         let exists = FileManager.default.fileExists(atPath: sourcePath.path)
         #expect(exists, "PreviewPaneOps.swift must exist at \(sourcePath.path)")
     }
@@ -139,15 +133,9 @@ struct PreviewPaneOpsTests {
 
     @Test("source-marker: ops file contains 11 public static funcs")
     func sourceHasElevenPublicStaticFuncs() throws {
-        let testFileURL = URL(fileURLWithPath: #filePath)
-        let repoRoot = testFileURL
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let repoRoot = SourceLocator.repoRoot
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/UI/Layout/PreviewPaneOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Editor/View/PreviewPaneOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("static func loadAllEntities"))
         #expect(source.contains("static func loadBooksInShelf"))
@@ -164,15 +152,9 @@ struct PreviewPaneOpsTests {
 
     @Test("ops file is a stateless enum (= no @Observable / @MainActor class)")
     func sourceIsStatelessEnum() throws {
-        let testFileURL = URL(fileURLWithPath: #filePath)
-        let repoRoot = testFileURL
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let repoRoot = SourceLocator.repoRoot
         let sourcePath = repoRoot
-            .appendingPathComponent("Sources/WenshuApp/UI/Layout/PreviewPaneOps.swift")
+            .appendingPathComponent("Sources/WenshuApp/Features/Editor/View/PreviewPaneOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("@MainActor"))
         #expect(source.contains("enum PreviewPaneOps"))

@@ -49,15 +49,14 @@ import Foundation
 struct BackupRestoreUITests {
 
     private func resolve(_ relative: String) -> String {
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<5 { url.deleteLastPathComponent() }
+        var url = SourceLocator.repoRoot
         url.appendPathComponent(relative)
         return url.path
     }
 
     @Test("AppBackupOps.swift exists (= the canonical @MainActor bridge)")
     func testAppBackupOpsExists() throws {
-        let path = resolve("Sources/WenshuApp/Features/Shared/AppBackupOps.swift")
+        let path = resolve("Sources/WenshuApp/Features/Backup/Service/AppBackupOps.swift")
         let exists = FileManager.default.fileExists(atPath: path)
         #expect(exists,
                 "AppBackupOps.swift must exist at Sources/WenshuApp/Features/Shared/AppBackupOps.swift (= boss B5 follow-up = '我们有备份, 没 restore UI')")
@@ -65,14 +64,14 @@ struct BackupRestoreUITests {
 
     @Test("AppBackupOps.restore delegates to BackupTools.restore")
     func testAppBackupOpsCallsBackupToolsRestore() throws {
-        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Features/Shared/AppBackupOps.swift"), encoding: .utf8)
+        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Features/Backup/Service/AppBackupOps.swift"), encoding: .utf8)
         #expect(source.contains("BackupTools().restore"),
                 "AppBackupOps.restore must delegate to BackupTools.restore (= SSOT on BackupTools)")
     }
 
     @Test("InspectorView.toolbar has the Restore-from-backup button (= i18n key backup.operator.open)")
     func testInspectorViewRestoreButton() throws {
-        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Views/Inspector/InspectorView.swift"), encoding: .utf8)
+        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Features/Editor/View/InspectorView.swift"), encoding: .utf8)
         let hasButton = source.contains("backup.operator.open")
         let hasHelp = source.contains("backup.operator.help")
         let hasRestoreCall = source.contains("AppBackupOps.restore(backupName:")

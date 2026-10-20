@@ -37,15 +37,14 @@ import Foundation
 struct SidebarItemTagPreviewFilterTests {
 
     private func resolve(_ relative: String) -> String {
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<5 { url.deleteLastPathComponent() }
+        var url = SourceLocator.repoRoot
         url.appendPathComponent(relative)
         return url.path
     }
 
     @Test("WorkspaceUIState exposes activeTag filter")
     func testWorkspaceUIStateHasActiveTag() throws {
-        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/State/WorkspaceUIState.swift"), encoding: .utf8)
+        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Shared/State/WorkspaceUIState.swift"), encoding: .utf8)
         #expect(source.contains("var activeTag: String?"),
                 "WorkspaceUIState must expose activeTag (= boss A7 follow-up = 'tag preview-pane filter')")
     }
@@ -56,14 +55,14 @@ struct SidebarItemTagPreviewFilterTests {
         // Views/Workspace/ in 2026-10-03 (= commit 5723d226c). The
         // production contract = "workspaceUI.activeTag = tagString"
         // is preserved in AssetsPane.swift L185.
-        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Workspace/AssetsPane.swift"), encoding: .utf8)
+        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Features/Editor/View/AssetsPane.swift"), encoding: .utf8)
         #expect(source.contains("workspaceUI.activeTag = tagString"),
                 "AssetsPane.previewScope() must set workspaceUI.activeTag on .tag(String) (= the canonical producer path)")
     }
 
     @Test("PreviewPane.referenceScopeView filters by activeTag (= only references whose tags contains the string)")
     func testPreviewPaneFiltersByActiveTag() throws {
-        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Workspace/PreviewPane.swift"), encoding: .utf8)
+        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Features/Editor/View/PreviewPane.swift"), encoding: .utf8)
         let hasFilter = source.contains("entity.tags.contains(activeTag)")
         let hasBinding = source.contains("@Binding var activeTag: String?")
         #expect(hasFilter && hasBinding,

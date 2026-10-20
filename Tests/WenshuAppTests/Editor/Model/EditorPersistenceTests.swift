@@ -80,13 +80,7 @@ struct EditorPersistenceTests {
 
     @Test("EditorPersistence.swift exists at the canonical path")
     func fileExistsAtCanonicalPath() throws {
-        let testFileURL = URL(fileURLWithPath: #filePath)
-        let testsRoot = testFileURL
-            .deletingLastPathComponent()  // Model/
-            .deletingLastPathComponent()  // Editor/
-            .deletingLastPathComponent()  // WenshuAppTests/
-            .deletingLastPathComponent()  // Tests/
-            .deletingLastPathComponent()  // repo root
+        let testsRoot = SourceLocator.repoRoot
         let sourcePath = testsRoot
             .appendingPathComponent("Sources")
             .appendingPathComponent("WenshuApp")
@@ -106,12 +100,7 @@ struct EditorPersistenceTests {
 
     @Test("EditorPersistence exposes save / reloadFromDisk / handleDirtyTransition API")
     func exposesPublicAPI() throws {
-        let testFileURL = URL(fileURLWithPath: #filePath)
-        let testsRoot = testFileURL
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let testsRoot = SourceLocator.repoRoot
         let sourcePath = testsRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Editor/Store/EditorPersistence.swift").path
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)

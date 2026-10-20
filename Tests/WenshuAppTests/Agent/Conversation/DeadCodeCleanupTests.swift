@@ -47,15 +47,14 @@ import Foundation
 struct DeadCodeCleanupTests {
 
     private func resolve(_ relative: String) -> String {
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<5 { url.deleteLastPathComponent() }
+        var url = SourceLocator.repoRoot
         url.appendPathComponent(relative)
         return url.path
     }
 
     @Test("WenshuConductor.defaultToolNames has no 'skill_bundles' string (= boss B2 dangling removed)")
     func testWenshuConductorDefaultToolNamesHasNoSkillBundles() throws {
-        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Core/Agent/Conversation/WenshuConductor.swift"), encoding: .utf8)
+        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/WenshuAgent/Agent/WenshuConductor.swift"), encoding: .utf8)
         // defaultToolNames contains a string literal "skill_bundles"
         // OR a "toolNames" array element. The fix removes it.
         let hasDangling = source.contains("\"skill_bundles\"")

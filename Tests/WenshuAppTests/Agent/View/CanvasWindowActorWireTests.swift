@@ -39,22 +39,21 @@ import Foundation
 struct CanvasWindowActorWireTests {
 
     private func resolve(_ relative: String) -> String {
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<5 { url.deleteLastPathComponent() }
+        var url = SourceLocator.repoRoot
         url.appendPathComponent(relative)
         return url.path
     }
 
     @Test("CanvasWindow.toolbar has save button (= i18n key canvas.save)")
     func testCanvasWindowHasSaveToolbarButton() throws {
-        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Views/Windows/CanvasWindow.swift"), encoding: .utf8)
+        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Features/Canvas/View/CanvasWindow.swift"), encoding: .utf8)
         #expect(source.contains("canvas.save"),
                 "CanvasWindow.toolbar must include a save action (= boss B6 follow-up = '能 save-back')")
     }
 
     @Test("CanvasWindow save-back encodes via JSONCanvasCodec (= SSOT on the codec)")
     func testCanvasWindowSavePathEncodesViaJSONCanvasCodec() throws {
-        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Views/Windows/CanvasWindow.swift"), encoding: .utf8)
+        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Features/Canvas/View/CanvasWindow.swift"), encoding: .utf8)
         let usesEncode = source.contains("JSONCanvasCodec.encode") || source.contains("JSONCanvasCodec.encodeToString")
         #expect(usesEncode,
                 "CanvasWindow save-back must call JSONCanvasCodec.encode / encodeToString (= SSOT = the view never touches Codable directly)")
@@ -62,7 +61,7 @@ struct CanvasWindowActorWireTests {
 
     @Test("CanvasWindow uses Apple HIG .fileExporter (= the canonical save-back surface)")
     func testCanvasWindowSaveUsesFileExporter() throws {
-        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Views/Windows/CanvasWindow.swift"), encoding: .utf8)
+        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Features/Canvas/View/CanvasWindow.swift"), encoding: .utf8)
         #expect(source.contains(".fileExporter"),
                 "CanvasWindow must use .fileExporter (= Apple HIG canonical save-back surface; = no NSOpenPanel hacks)")
     }

@@ -39,22 +39,21 @@ import Foundation
 struct ComposerWindowActorWireTests {
 
     private func resolve(_ relative: String) -> String {
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<5 { url.deleteLastPathComponent() }
+        var url = SourceLocator.repoRoot
         url.appendPathComponent(relative)
         return url.path
     }
 
     @Test("ComposerWindow has Run button (= i18n key composer.run)")
     func testComposerWindowRunButton() throws {
-        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Views/Windows/ComposerWindow.swift"), encoding: .utf8)
+        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Features/Composer/View/ComposerWindow.swift"), encoding: .utf8)
         #expect(source.contains("composer.run"),
                 "ComposerWindow.form must include a Run action (= boss A5 follow-up = '没真的调用 NoteComposer')")
     }
 
     @Test("ComposerWindow.runOperation calls NoteComposer.rename / merge / split")
     func testComposerWindowCallsNoteComposer() throws {
-        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Views/Windows/ComposerWindow.swift"), encoding: .utf8)
+        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Features/Composer/View/ComposerWindow.swift"), encoding: .utf8)
         let callsRename = source.contains("NoteComposer.rename")
         let callsMerge = source.contains("NoteComposer.merge")
         let callsSplit = source.contains("NoteComposer.split")
@@ -64,7 +63,7 @@ struct ComposerWindowActorWireTests {
 
     @Test("NoteComposer.merge signature is the canonical (targetName:sourceContents:) shape")
     func testComposerWindowNoteComposerMergeSignature() throws {
-        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Views/Windows/ComposerWindow.swift"), encoding: .utf8)
+        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Features/Composer/View/ComposerWindow.swift"), encoding: .utf8)
         let usesCanonicalSignature = source.contains("NoteComposer.merge(\n                targetName:") ||
                                      source.contains("NoteComposer.merge(") && source.contains("targetName:") && source.contains("sourceContents:")
         #expect(usesCanonicalSignature,

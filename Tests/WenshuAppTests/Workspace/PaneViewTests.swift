@@ -46,7 +46,7 @@ struct PaneViewTests {
         // #filePath = "Tests/.../PaneViewTests.swift" (= relative)
         // Get the directory containing this test file (= ".../Tests/.../")
         // then append the target source file's relative path.
-        let testFileURL = URL(fileURLWithPath: #filePath)
+        let testFileURL = SourceLocator.repoRoot
         let testsDir = testFileURL.deletingLastPathComponent()  // Views/Workspace/
         // Walk up to the repo root: Tests/WenshuAppTests/Views/Workspace/
         // → Tests/WenshuAppTests/Views/ → Tests/WenshuAppTests/ → Tests/

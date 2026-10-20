@@ -80,12 +80,7 @@ struct SettingsOpsTests {
         // #filePath = .../Tests/WenshuAppTests/Views/SettingsOpsTests.swift
         // (= 4 segments above the file: Views -> WenshuAppTests ->
         // Tests -> worktree = repo root).
-        let testFileURL = URL(fileURLWithPath: #filePath)
-        let repoRoot = testFileURL
-            .deletingLastPathComponent()  // Views/        -> WenshuAppTests/
-            .deletingLastPathComponent()  // WenshuAppTests/ -> Tests/
-            .deletingLastPathComponent()  // Tests/         -> <worktree>/
-            .deletingLastPathComponent()  // <worktree>/    -> repo root
+        let repoRoot = SourceLocator.repoRoot
         let sourcePath = repoRoot
             .appendingPathComponent("Sources")
             .appendingPathComponent("WenshuApp")

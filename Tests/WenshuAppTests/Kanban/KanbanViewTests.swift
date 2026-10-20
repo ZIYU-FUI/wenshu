@@ -22,9 +22,8 @@ import Testing
 struct KanbanViewTests {
 
     private var sourcePath: String {
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<5 { url.deleteLastPathComponent() }
-        url.appendPathComponent("Sources/WenshuApp/Views/Kanban/KanbanView.swift")
+        var url = SourceLocator.repoRoot
+        url.appendPathComponent("Sources/WenshuApp/Features/Kanban/View/KanbanView.swift")
         return url.path
     }
 

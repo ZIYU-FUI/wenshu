@@ -16,8 +16,7 @@ import Testing
 struct AppRootSceneTests {
 
     private var sourcePath: String {
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<4 { url.deleteLastPathComponent() }
+        var url = SourceLocator.repoRoot
         url.appendPathComponent("Sources/WenshuApp/App/AppRootScene.swift")
         return url.path
     }

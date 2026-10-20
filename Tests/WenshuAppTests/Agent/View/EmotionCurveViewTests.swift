@@ -25,8 +25,7 @@ import Testing
 struct EmotionCurveViewTests {
 
     private var sourcePath: String {
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<5 { url.deleteLastPathComponent() }
+        var url = SourceLocator.repoRoot
         url.appendPathComponent("Sources/WenshuApp/Features/Agent/View/EmotionCurveView.swift")
         return url.path
     }

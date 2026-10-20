@@ -31,13 +31,7 @@ struct ReaderExperienceOpsTests {
 
     @Test("ReaderExperienceOps.swift exists at the canonical path under Views/SpecializedTools/")
     func fileExistsAtCanonicalPath() throws {
-        let testFileURL = URL(fileURLWithPath: #filePath)
-        let repoRoot = testFileURL
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let repoRoot = SourceLocator.repoRoot
         let sourcePath = repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/ReaderExperienceOps.swift")
         let exists = FileManager.default.fileExists(atPath: sourcePath.path)
@@ -110,13 +104,7 @@ struct ReaderExperienceOpsTests {
 
     @Test("source-marker: ops file contains 2 public static funcs")
     func sourceHasTwoPublicStaticFuncs() throws {
-        let testFileURL = URL(fileURLWithPath: #filePath)
-        let repoRoot = testFileURL
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let repoRoot = SourceLocator.repoRoot
         let sourcePath = repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/ReaderExperienceOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
@@ -126,13 +114,7 @@ struct ReaderExperienceOpsTests {
 
     @Test("ops file is a stateless enum (= no @Observable / @MainActor class)")
     func sourceIsStatelessEnum() throws {
-        let testFileURL = URL(fileURLWithPath: #filePath)
-        let repoRoot = testFileURL
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let repoRoot = SourceLocator.repoRoot
         let sourcePath = repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/ReaderExperienceOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
@@ -144,13 +126,7 @@ struct ReaderExperienceOpsTests {
 
     @Test("ensureAnalyzer declares inout analyzer parameter (= caller mutates state)")
     func sourceDeclaresInoutAnalyzer() throws {
-        let testFileURL = URL(fileURLWithPath: #filePath)
-        let repoRoot = testFileURL
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let repoRoot = SourceLocator.repoRoot
         let sourcePath = repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/ReaderExperienceOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
@@ -159,13 +135,7 @@ struct ReaderExperienceOpsTests {
 
     @Test("source-marker: runAnalyze declares chapterText: String parameter")
     func sourceDeclaresRunAnalyzeChapterTextParameter() throws {
-        let testFileURL = URL(fileURLWithPath: #filePath)
-        let repoRoot = testFileURL
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let repoRoot = SourceLocator.repoRoot
         let sourcePath = repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/ReaderExperienceOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
@@ -174,13 +144,7 @@ struct ReaderExperienceOpsTests {
 
     @Test("source-marker: runAnalyze declares kind: ReaderExperienceKind parameter")
     func sourceDeclaresRunAnalyzeKindParameter() throws {
-        let testFileURL = URL(fileURLWithPath: #filePath)
-        let repoRoot = testFileURL
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let repoRoot = SourceLocator.repoRoot
         let sourcePath = repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/ReaderExperienceOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)

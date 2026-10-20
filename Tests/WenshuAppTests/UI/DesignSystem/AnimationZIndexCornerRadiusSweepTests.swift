@@ -33,13 +33,9 @@ struct AnimationZIndexCornerRadiusSweepTests {
 
     @Test("SubAgentProgressView migrated to .clipShape + RoundedRectangle")
     func subAgentProgressViewMigrated() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let root = SourceLocator.repoRoot
         let path = root.appendingPathComponent(
-            "Sources/WenshuApp/Views/Kanban/SubAgentProgressView.swift"
+            "Sources/WenshuApp/Features/Kanban/View/SubAgentProgressView.swift"
         )
         let content = try String(contentsOf: path, encoding: .utf8)
 
@@ -54,11 +50,7 @@ struct AnimationZIndexCornerRadiusSweepTests {
 
     @Test("Zero .cornerRadius(N) deprecated API in source tree")
     func zeroDeprecatedCornerRadius() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let root = SourceLocator.repoRoot
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         let enumerator = FileManager.default.enumerator(
@@ -101,11 +93,7 @@ struct AnimationZIndexCornerRadiusSweepTests {
         // - PreviewPane.swift L928/1164/1226/1366: 0.18 + 0.22
         //   (= SwiftUI idiomatic micro-interaction durations)
         // Apple HIG does not mandate exact values; = preserve as is.
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let root = SourceLocator.repoRoot
         let path = root.appendingPathComponent(
             "Sources/WenshuApp/Features/Chat/View/ChatMessageHoverActions.swift"
         )
@@ -120,11 +108,7 @@ struct AnimationZIndexCornerRadiusSweepTests {
         // 9 .transition(.opacity) + 4 .transition(.wenshuThinkingAppear)
         // = SwiftUI canonical enum + wenshu custom transition
         // = all preserved per sweep boundary
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
+        let root = SourceLocator.repoRoot
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         let enumerator = FileManager.default.enumerator(

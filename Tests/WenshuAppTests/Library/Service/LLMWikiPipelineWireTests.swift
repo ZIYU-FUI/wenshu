@@ -41,30 +41,26 @@ import Foundation
 struct LLMWikiPipelineWireTests {
 
     private var wenshuConductorPath: String {
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<4 { url.deleteLastPathComponent() }
-        url.appendPathComponent("Sources/WenshuApp/Core/Agent/Conversation/WenshuConductor.swift")
+        var url = SourceLocator.repoRoot
+        url.appendPathComponent("Sources/WenshuApp/WenshuAgent/Agent/WenshuConductor.swift")
         return url.path
     }
 
     private var llmWikiOpsPath: String {
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<4 { url.deleteLastPathComponent() }
-        url.appendPathComponent("Sources/WenshuApp/Core/Agent/Wiki/LLMWikiOps.swift")
+        var url = SourceLocator.repoRoot
+        url.appendPathComponent("Sources/WenshuApp/Features/Agent/Service/LLMWikiOps.swift")
         return url.path
     }
 
     private var llmWikiToolPath: String {
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<4 { url.deleteLastPathComponent() }
-        url.appendPathComponent("Sources/WenshuApp/Core/Agent/Tool/LLMWikiTool.swift")
+        var url = SourceLocator.repoRoot
+        url.appendPathComponent("Sources/WenshuApp/Features/Agent/Service/LLMWikiTool.swift")
         return url.path
     }
 
     private var fileSystemReferenceStorePath: String {
-        var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<4 { url.deleteLastPathComponent() }
-        url.appendPathComponent("Sources/WenshuApp/Storage/FileSystemReferenceStore.swift")
+        var url = SourceLocator.repoRoot
+        url.appendPathComponent("Sources/WenshuApp/Features/Library/Service/FileSystemReferenceStore.swift")
         return url.path
     }
 
