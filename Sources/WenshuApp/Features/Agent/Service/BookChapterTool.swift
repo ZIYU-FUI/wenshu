@@ -98,9 +98,16 @@ actor BookChapterActor {
         // Per boss 2026-10-05 (see OOB.md #2026-10-05) → SwiftData migration commit 1):
         // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // layer migrates to a Sendable protocol.
+        let chapters = dir.appendingPathComponent("chapters", isDirectory: true)
+        if let body = FileSystemChapterStore.loadChapterBodyFromFileSystem(
+            id: id,
+            chaptersDirectory: chapters
+        ) {
+            return body
+        }
         return FileSystemChapterStore.loadChapterBodyFromFileSystem(
             id: id,
-            chaptersDirectory: dir.appendingPathComponent("chapters", isDirectory: true)
+            chaptersDirectory: dir.appendingPathComponent("drafts", isDirectory: true)
         )
     }
 
@@ -195,22 +202,34 @@ actor BookChapterActor {
         return ChapterDescriptor(document)
     }
 
+    /// The chapter tiers to read from, in resolution order.
+    /// `chapters/` = confirmed body; `drafts/` = the agent's staging area.
+    private func readTiers() throws -> [ChapterTier] {
+        let (bookDirectory, chaptersDirectory, indexURL) = try resolvePaths()
+        let (_, draftsDirectory, draftsIndexURL) = try resolveDraftsPaths()
+        return [
+            ChapterTier(
+                name: "chapters",
+                bookDirectory: bookDirectory,
+                directory: chaptersDirectory,
+                indexURL: indexURL
+            ),
+            ChapterTier(
+                name: "drafts",
+                bookDirectory: bookDirectory,
+                directory: draftsDirectory,
+                indexURL: draftsIndexURL
+            )
+        ]
+    }
+
     func readChapter(id: UUID) async throws -> (ChapterDescriptor, String?) {
         do {
-            let (_, chaptersDirectory, indexURL) = try resolvePaths()
-            let documents = (try? FileSystemChapterStore.loadChaptersFromFileSystem(
-                bookDirectory: chaptersDirectory,
-                chaptersDirectory: chaptersDirectory,
-                indexURL: indexURL
-            )) ?? []
-            guard let document = documents.first(where: { $0.id == id }) else {
+            let tiers = try readTiers()
+            guard let located = Self.locateChapter(id: id, across: tiers) else {
                 throw BookChapterError.entryNotFound(id: id)
             }
-            let body = FileSystemChapterStore.loadChapterBodyFromFileSystem(
-                id: id,
-                chaptersDirectory: chaptersDirectory
-            )
-            return (ChapterDescriptor(document), body)
+            return (ChapterDescriptor(located.document), located.tier.body(id: id))
         } catch let err as BookChapterError {
             throw err
         } catch {
@@ -284,12 +303,15 @@ actor BookChapterActor {
 
     func deleteChapter(id: UUID) async throws {
         do {
-            let (bookDirectory, chaptersDirectory, indexURL) = try resolvePaths()
+            let tiers = try readTiers()
+            guard let located = Self.locateChapter(id: id, across: tiers) else {
+                throw BookChapterError.entryNotFound(id: id)
+            }
             try Self.deleteFileSystemChapter(
                 id: id,
-                bookDirectory: bookDirectory,
-                chaptersDirectory: chaptersDirectory,
-                indexURL: indexURL
+                bookDirectory: located.tier.bookDirectory,
+                chaptersDirectory: located.tier.directory,
+                indexURL: located.tier.indexURL
             )
         } catch let err as BookChapterError {
             throw err
@@ -299,13 +321,8 @@ actor BookChapterActor {
     }
 
     func listChapters(bookId: UUID) async throws -> [ChapterDescriptor] {
-        let (_, chaptersDirectory, indexURL) = try resolvePaths()
-        let documents: [Document]
-        documents = (try? FileSystemChapterStore.loadChaptersFromFileSystem(
-            bookDirectory: chaptersDirectory,
-            chaptersDirectory: chaptersDirectory,
-            indexURL: indexURL
-        )) ?? []
+        let tiers = try readTiers()
+        let documents = Self.chapterDocuments(across: tiers)
         let filtered = documents.filter { $0.bookId == bookId }
         let sorted = filtered.sorted { $0.updatedAt > $1.updatedAt }
         return sorted.map { ChapterDescriptor($0) }
@@ -313,13 +330,8 @@ actor BookChapterActor {
 
     func findChapter(bookId: UUID, title: String) async throws -> ChapterDescriptor? {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        let (_, chaptersDirectory, indexURL) = try resolvePaths()
-        let documents: [Document]
-        documents = (try? FileSystemChapterStore.loadChaptersFromFileSystem(
-            bookDirectory: chaptersDirectory,
-            chaptersDirectory: chaptersDirectory,
-            indexURL: indexURL
-        )) ?? []
+        let tiers = try readTiers()
+        let documents = Self.chapterDocuments(across: tiers)
         let match = documents.first { document in
             document.bookId == bookId &&
             document.title.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == trimmed
@@ -502,11 +514,14 @@ actor BookChapterActor {
                     bodyMarkdown: body,
                     summary: summary
                 )
+                let tierName = Self.tierName(for: id, across: (try? readTiers()) ?? [])
+                    ?? "drafts"
                 return Self.encodeSuccessUpdate(
                     action: action,
                     chapter: chapter,
                     oldBody: oldBody,
-                    newBody: body
+                    newBody: body,
+                    tierName: tierName
                 )
 
             case .delete:
@@ -591,7 +606,8 @@ actor BookChapterActor {
         action: BookChapterAction,
         chapter: ChapterDescriptor,
         oldBody: String,
-        newBody: String
+        newBody: String,
+        tierName: String
     ) -> String {
         let diff = computeUnifiedDiff(old: oldBody, new: newBody)
         let stats = ChatToolDiffPreview.LineStats(
@@ -601,7 +617,7 @@ actor BookChapterActor {
             removedChars: diff.removedChars
         )
         let diffBlock: [String: Any] = [
-            "path": "chapters/\(chapter.id.uuidString).md",
+            "path": "\(tierName)/\(chapter.id.uuidString).md",
             "old_text": oldBody,
             "new_text": newBody,
             "stats": [

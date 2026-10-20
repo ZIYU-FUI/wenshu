@@ -147,4 +147,64 @@ extension BookChapterActor {
             close(fd)
         }
     }
+
+    /// One chapter tier on disk (= body directory + index file).
+    struct ChapterTier: Sendable {
+        let name: String
+        let bookDirectory: URL
+        let directory: URL
+        let indexURL: URL
+
+        /// Index rows for this tier (= empty when the index is missing or unreadable).
+        func documents() -> [Document] {
+            (try? FileSystemChapterStore.loadChaptersFromFileSystem(
+                bookDirectory: bookDirectory,
+                chaptersDirectory: directory,
+                indexURL: indexURL
+            )) ?? []
+        }
+
+        /// Body text for a chapter id (= nil when no body file exists).
+        func body(id: UUID) -> String? {
+            FileSystemChapterStore.loadChapterBodyFromFileSystem(id: id, chaptersDirectory: directory)
+        }
+
+        /// Whether a body file exists for a chapter id.
+        func hasBody(id: UUID) -> Bool {
+            FileManager.default.fileExists(
+                atPath: directory.appendingPathComponent("\(id.uuidString).md").path
+            )
+        }
+    }
+
+    /// Every chapter across the tiers (= confirmed body first, then staging drafts).
+    /// A chapter id present in more than one tier resolves to the earlier tier.
+    static func chapterDocuments(across tiers: [ChapterTier]) -> [Document] {
+        var seen = Set<UUID>()
+        var documents: [Document] = []
+        for tier in tiers {
+            for document in tier.documents() {
+                guard seen.insert(document.id).inserted else { continue }
+                documents.append(document)
+            }
+        }
+        return documents
+    }
+
+    /// Locate one chapter across the tiers.
+    /// A tier holding the body file wins over a tier holding only an index row.
+    static func locateChapter(id: UUID, across tiers: [ChapterTier]) -> (document: Document, tier: ChapterTier)? {
+        var indexed: (document: Document, tier: ChapterTier)?
+        for tier in tiers {
+            guard let document = tier.documents().first(where: { $0.id == id }) else { continue }
+            if tier.hasBody(id: id) { return (document, tier) }
+            if indexed == nil { indexed = (document, tier) }
+        }
+        return indexed
+    }
+
+    /// The tier a chapter body lives in (= nil when the id is in no tier).
+    static func tierName(for id: UUID, across tiers: [ChapterTier]) -> String? {
+        locateChapter(id: id, across: tiers)?.tier.name
+    }
 }
