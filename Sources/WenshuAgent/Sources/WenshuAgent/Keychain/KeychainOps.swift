@@ -28,11 +28,11 @@ import Security
 ///    UserDefaults flag is set (= remote-debug mode).
 /// 2. Throws `KeychainOpsError` (= canonical keychain errors; = each
 ///    provider file maps these into its own domain-specific error type).
-enum KeychainOps {
+public enum KeychainOps {
 
     /// Save (= insert or replace) a UTF-8 string value into the keychain
     /// under `(service, account)`.
-    static func save(
+    public static func save(
         value: String,
         service: String,
         account: String
@@ -64,7 +64,7 @@ enum KeychainOps {
 
     /// Load a UTF-8 string value from the keychain. Returns nil if missing
     /// (= caller treats as "not configured").
-    static func load(
+    public static func load(
         service: String,
         account: String
     ) -> String? {
@@ -83,7 +83,7 @@ enum KeychainOps {
     }
 
     /// Delete a keychain entry (= no-op when missing).
-    static func delete(
+    public static func delete(
         service: String,
         account: String
     ) throws {
@@ -101,7 +101,7 @@ enum KeychainOps {
 
     /// List all configured accounts under a service (= returns the account
     /// suffix-stripped names, = e.g. "anthropic" instead of "anthropic.api.key").
-    static func listAccounts(service: String, suffix: String = ".api.key") -> [String] {
+    public static func listAccounts(service: String, suffix: String = ".api.key") -> [String] {
         if isRemoteDebugMode() { return [] }
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -141,12 +141,12 @@ enum KeychainOps {
 /// ad-hoc-signed wenshu.app (= no TeamIdentifier = no embedded
 /// provisioning profile). The new case preserves the OSStatus code for
 /// callers that need to log it, while giving users an actionable hint.
-enum KeychainOpsError: Error, LocalizedError {
+public enum KeychainOpsError: Error, LocalizedError {
     case keychainStatus(OSStatus)
     case missingEntitlement(OSStatus = -34018)
     case invalidKeyFormat
 
-    var errorDescription: String? {
+    public var errorDescription: String? {
         switch self {
         case .keychainStatus(let s):
             return "Keychain operation failed (status=\(s))"
@@ -163,7 +163,7 @@ enum KeychainOpsError: Error, LocalizedError {
     /// canonical `errSecMissingEntitlement` (= team identifier missing
     /// 
     /// root cause for the chat zone showing a generic Swift error).
-    static func from(_ status: OSStatus) -> KeychainOpsError {
+    public static func from(_ status: OSStatus) -> KeychainOpsError {
         if status == -34018 {
             return .missingEntitlement(status)
         }

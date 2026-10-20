@@ -30,6 +30,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("RequestHelpers (TICKET-HERMES-GAP-002)", .serialized)

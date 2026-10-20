@@ -14,6 +14,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("ConnectorCredentials deep (= v0.36 ticket 012)")

@@ -27,6 +27,7 @@
 // events from the shared SSEClient).
 
 import Foundation
+import WenshuAgent
 import os.log
 
 private let connectorLogger = Logger(

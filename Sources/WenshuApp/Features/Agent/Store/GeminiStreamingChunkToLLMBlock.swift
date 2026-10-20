@@ -40,6 +40,7 @@
 //
 
 import Foundation
+import WenshuAgent
 
 enum GeminiStreamingChunk: Sendable, Equatable {
     /// New text delta (= content.parts[i].text).

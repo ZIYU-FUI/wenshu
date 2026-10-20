@@ -20,6 +20,7 @@
 //
 
 import Foundation
+import WenshuAgent
 
 actor OllamaConnector: LLMConnector {
     nonisolated let connectorID = "ollama"

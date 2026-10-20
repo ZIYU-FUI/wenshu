@@ -15,6 +15,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("UserFacingError i18n parity (cjk-i18n-sweep 2026-09-25)")

@@ -23,6 +23,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("ConversationLoop (ticket 001 sub-step 3)")

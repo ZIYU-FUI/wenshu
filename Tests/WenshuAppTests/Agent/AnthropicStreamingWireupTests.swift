@@ -21,6 +21,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("AnthropicStreamingWireupFactory (ticket 004 sub-step 5 Z contract)")

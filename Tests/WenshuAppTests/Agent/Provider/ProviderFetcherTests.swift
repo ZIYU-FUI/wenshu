@@ -4,6 +4,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("ProviderFetcher (多 provider live fetch, Hermes probe_api_models 范式)")

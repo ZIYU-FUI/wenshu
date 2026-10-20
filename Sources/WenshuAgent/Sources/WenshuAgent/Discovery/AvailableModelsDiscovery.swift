@@ -29,11 +29,11 @@ import Foundation
 
 /// One provider's available models (filtered by Keychain presence).
 /// 2026-08-23: provider key show provider defaultModels.
-struct AvailableProviderModels: Sendable, Equatable {
-    let provider: Provider
-    let models: [String]
+public struct AvailableProviderModels: Sendable, Equatable {
+    public let provider: Provider
+    public let models: [String]
 
-    init(provider: Provider, models: [String]) {
+    public init(provider: Provider, models: [String]) {
         self.provider = provider
         self.models = models
     }
@@ -41,12 +41,12 @@ struct AvailableProviderModels: Sendable, Equatable {
 
 /// Discover providers that have keys configured + their defaultModels.
 /// Scans `Provider.all` (curated list of 11 providers) and filters by Keychain presence.
-enum AvailableModelsDiscovery {
+public enum AvailableModelsDiscovery {
 
     /// loadFromKeychain: returns providers with non-empty Keychain keys + their defaultModels.
     /// Returns empty array if no providers are configured (e.g. fresh install).
     /// Sync (AppleKeychainStore.loadKeySync is sync). Caller wraps in async if needed.
-    static func loadFromKeychain() -> [AvailableProviderModels] {
+    public static func loadFromKeychain() -> [AvailableProviderModels] {
         // use the shared ProviderKeychain backend (= respects
         // setBackendForTesting for dev/cua verify) instead of constructing
         // a fresh AppleKeychainStore (which would always hit the real
@@ -72,7 +72,7 @@ enum AvailableModelsDiscovery {
     /// unreachable. Used by the Settings UI's model
     /// picker (= per boss 2026-10-16 OOB "配好 KEY
     /// 后, 模型设置中的可选模型, 也应该通过 API 查询").
-    static func loadLive() async -> [AvailableProviderModels] {
+    public static func loadLive() async -> [AvailableProviderModels] {
         let discovery = LLMModelDiscovery()
         var results: [AvailableProviderModels] = []
         for provider in Provider.all {

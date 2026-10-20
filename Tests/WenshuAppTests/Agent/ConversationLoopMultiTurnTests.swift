@@ -8,6 +8,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("ConversationLoop multi-turn (T3-MULTI-TURN-LOOP)")

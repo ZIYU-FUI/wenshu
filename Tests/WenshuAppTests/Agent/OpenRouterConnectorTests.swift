@@ -23,6 +23,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("OpenRouterConnector (§11.2 gap-fill)", .serialized)

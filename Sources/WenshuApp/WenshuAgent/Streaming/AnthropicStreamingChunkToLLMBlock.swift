@@ -58,6 +58,7 @@
 //
 
 import Foundation
+import WenshuAgent
 
 enum AnthropicChunkToLLMBlockConverter {
 

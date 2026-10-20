@@ -18,7 +18,7 @@
 
 import Foundation
 
-enum WireFormat: String, Sendable, Codable {
+public enum WireFormat: String, Sendable, Codable {
     /// Anthropic Messages API format (= compatible with minimax-cn's
     /// Anthropic-compatible endpoint).
     case anthropic
@@ -34,7 +34,7 @@ enum WireFormat: String, Sendable, Codable {
     case ollama
 }
 
-protocol WABaseProvider: Sendable {
+public protocol WABaseProvider: Sendable {
     var slug: String { get }
     var displayName: String { get }
     var defaultBaseURL: String { get }

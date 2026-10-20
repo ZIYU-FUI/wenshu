@@ -13,6 +13,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("TurnContext bundle (ticket 001 sub-step 4)")

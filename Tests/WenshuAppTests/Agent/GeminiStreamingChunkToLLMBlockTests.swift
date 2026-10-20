@@ -9,6 +9,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("Gemini streaming chunks (T15)")

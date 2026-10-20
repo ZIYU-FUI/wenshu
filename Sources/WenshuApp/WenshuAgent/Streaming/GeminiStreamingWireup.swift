@@ -20,6 +20,7 @@
 
 import Foundation
 import EventSource
+import WenshuAgent
 
 /// Wraps EventSource (= mattt/EventSource 1.5.1) and yields typed
 /// `GeminiStreamingChunk` events. The caller (= connector.stream)

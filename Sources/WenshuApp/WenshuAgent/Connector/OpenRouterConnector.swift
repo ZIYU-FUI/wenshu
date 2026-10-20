@@ -20,6 +20,7 @@
 //
 
 import Foundation
+import WenshuAgent
 
 actor OpenRouterConnector: LLMConnector {
     nonisolated let connectorID = "openrouter"

@@ -50,6 +50,7 @@
 // callers using `ToolExecutor()`).
 
 import Foundation
+import WenshuAgent
 
 actor ToolExecutor {
 

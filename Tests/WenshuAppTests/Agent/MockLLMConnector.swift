@@ -33,6 +33,7 @@
 //
 
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 /// Echo + scripted-response mock connector for tests.

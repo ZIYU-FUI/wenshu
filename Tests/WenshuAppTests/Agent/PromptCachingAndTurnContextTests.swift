@@ -15,6 +15,7 @@
 import Testing
 import Combine
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("PromptCaching deep (= v0.35 ticket 002)")

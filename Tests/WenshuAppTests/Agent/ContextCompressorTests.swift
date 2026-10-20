@@ -15,6 +15,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("ContextCompressor (ticket 003 sub-step 1)")

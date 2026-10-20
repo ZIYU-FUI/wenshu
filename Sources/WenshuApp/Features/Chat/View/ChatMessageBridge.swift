@@ -15,6 +15,7 @@
 //
 
 import Foundation
+import WenshuAgent
 
 // MARK: - Role bridge (ChatRole ↔ LLMMessage.Role)
 //

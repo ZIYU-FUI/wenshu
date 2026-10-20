@@ -21,6 +21,7 @@
 //
 
 import Foundation
+import WenshuAgent
 
 actor DeepSeekConnector: LLMConnector {
     nonisolated let connectorID = "deepseek"

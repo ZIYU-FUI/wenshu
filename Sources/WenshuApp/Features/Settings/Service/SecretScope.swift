@@ -25,6 +25,7 @@
 //
 
 import Foundation
+import WenshuAgent
 
 // MARK: - SecretSource protocol
 

@@ -95,6 +95,13 @@ let package = Package(
         // v3.1 governance A1g.4.1: local WenshuData package (= data layer; = extracted per ADR-0016).
         .package(name: "WenshuData", path: "Sources/WenshuData"),
 
+        // Local WenshuAgent package (= agent layer; = extracted per AGENTS.md 6.4).
+        // Independent of WenshuData so the agent runtime keeps its own version
+        // boundary and test target. Layering: WenshuApp -> WenshuTool<Name> ->
+        // WenshuAgent -> WenshuData. A writing tool reaches this package's
+        // public surface only; it cannot reach WenshuApp.
+        .package(name: "WenshuAgent", path: "Sources/WenshuAgent"),
+
         // TEST — SwiftUI pixel snapshot tests (batch 1 issue 05; testTarget only)
         // Adopted per 2026-08-28-six-module-audit M1 (drag-lost regression suite).
         // Pairs with ViewInspector: structure assertions vs pixel snapshots.
@@ -114,6 +121,7 @@ let package = Package(
                 // smoke-test clean; = the App target can now see all
                 // public @Model + Container + Repository types).
                 .product(name: "WenshuData", package: "WenshuData"),
+                .product(name: "WenshuAgent", package: "WenshuAgent"),
 
                 // RUNTIME — Apple SF Symbols 6 (= built into macOS 27; = zero SPM
                 // dependency; = see top-level note in the dependencies array).

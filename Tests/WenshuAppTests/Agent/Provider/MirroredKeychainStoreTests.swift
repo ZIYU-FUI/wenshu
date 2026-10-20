@@ -20,6 +20,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("MirroredKeychainStore (dual-store mirror)")

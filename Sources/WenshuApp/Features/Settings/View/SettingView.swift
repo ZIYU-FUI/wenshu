@@ -4,6 +4,7 @@
 import SwiftUI
 import AppKit
 import MarkdownEngine
+import WenshuAgent
 
 struct SettingView: View {
     @Environment(AppState.self) private var appState

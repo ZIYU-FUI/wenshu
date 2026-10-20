@@ -33,6 +33,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("SubAgentRunner · v2.7d real LLM", .serialized)

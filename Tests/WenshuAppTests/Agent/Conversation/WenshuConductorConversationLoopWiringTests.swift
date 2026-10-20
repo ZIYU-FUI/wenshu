@@ -33,6 +33,7 @@
 import Foundation
 import SwiftData
 import Testing
+import WenshuAgent
 import WenshuData
 @testable import WenshuApp
 

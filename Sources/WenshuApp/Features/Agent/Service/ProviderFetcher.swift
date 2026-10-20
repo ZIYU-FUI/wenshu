@@ -1,6 +1,7 @@
 // ProviderFetcher.swift
 
 import Foundation
+import WenshuAgent
 import os
 
 private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "providerfetcher")

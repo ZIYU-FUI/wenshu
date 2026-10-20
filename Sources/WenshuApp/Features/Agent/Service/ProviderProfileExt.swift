@@ -41,6 +41,7 @@
 // migration to a second provider has a clean extension point.
 
 import Foundation
+import WenshuAgent
 
 // MARK: - Optional Provider extensions (= hermes ProviderProfile fields)
 

@@ -87,7 +87,7 @@ public enum WAStreamDiagHeader: String, CaseIterable {
 
 public extension Dictionary where Key == String, Value == String {
     /// Extracts hermes STREAM_DIAG_HEADERS into a flat dict.
-    func waStreamDiagHeaders() -> [String: String] {
+    public func waStreamDiagHeaders() -> [String: String] {
         var out: [String: String] = [:]
         for key in WAStreamDiagHeader.allCases {
             if let value = self[key.rawValue] {
@@ -101,10 +101,10 @@ public extension Dictionary where Key == String, Value == String {
 /// Mutable reference-box for `WAStreamDiag` (= a `var` `struct`
 /// captured by a closure cannot be mutated; = this box solves the
 /// mutation-across-async-task problem).
-final class MutableWAStreamDiag: @unchecked Sendable {
-    var diag: WAStreamDiag
+public final class MutableWAStreamDiag: @unchecked Sendable {
+    public var diag: WAStreamDiag
 
-    init(_ initial: WAStreamDiag) {
+    public init(_ initial: WAStreamDiag) {
         self.diag = initial
     }
 }

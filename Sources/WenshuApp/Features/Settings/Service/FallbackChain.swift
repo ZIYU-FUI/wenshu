@@ -26,6 +26,7 @@
 //
 
 import Foundation
+import WenshuAgent
 import os
 
 private let wenshuFallbackLogger = Logger(subsystem: "org.wenshu.auth", category: "fallback")

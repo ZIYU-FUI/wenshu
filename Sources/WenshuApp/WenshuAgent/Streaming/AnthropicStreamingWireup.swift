@@ -23,6 +23,7 @@
 
 import Foundation
 import EventSource
+import WenshuAgent
 
 /// Anthropic SSE streaming wire-up (= AsyncStream producer).
 /// Wraps EventSource (= mattt/EventSource 1.5.1) and yields

@@ -18,6 +18,7 @@
 //       legacy path in A5).
 //
 
+import WenshuAgent
 import XCTest
 @testable import WenshuApp
 

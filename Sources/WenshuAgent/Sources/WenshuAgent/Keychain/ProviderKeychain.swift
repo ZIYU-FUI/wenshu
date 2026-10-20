@@ -28,11 +28,11 @@
 
 import Foundation
 
-enum ProviderKeychainError: Error, LocalizedError {
+public enum ProviderKeychainError: Error, LocalizedError {
     case keychainStatus(OSStatus)
     case invalidKeyFormat
 
-    var errorDescription: String? {
+    public var errorDescription: String? {
         switch self {
         case .keychainStatus(let s): return "Provider keychain operation failed (status=\(s))"
         case .invalidKeyFormat: return "Provider API key format invalid"
@@ -44,7 +44,7 @@ enum ProviderKeychainError: Error, LocalizedError {
     /// error type. The dry-violation dedup partner:
     /// `AppleKeychainStore` now delegates to `KeychainOps` like
     /// `AppleSearchKeychainStore` does.
-    static func from(_ error: KeychainOpsError) -> ProviderKeychainError {
+    public static func from(_ error: KeychainOpsError) -> ProviderKeychainError {
         switch error {
         case .keychainStatus(let s):
             return .keychainStatus(s)
@@ -68,7 +68,7 @@ enum ProviderKeychainError: Error, LocalizedError {
 /// methods with default no-op implementations. Backwards-compatible: existing
 /// implementations (= AppleKeychainStore / InMemoryKeychainStore) compile
 /// without changes. New backends can opt-in by overriding the rotation methods.
-protocol ProviderKeychainStoring: Sendable {
+public protocol ProviderKeychainStoring: Sendable {
     func saveKeySync(_ key: String, for provider: Provider) throws
     func loadKeySync(for provider: Provider) -> String?
     func deleteKeySync(for provider: Provider) throws
@@ -87,21 +87,21 @@ protocol ProviderKeychainStoring: Sendable {
 }
 
 extension ProviderKeychainStoring {
-    func loadMetadata(for provider: Provider) -> ProviderKeychainMetadata? { nil }
-    func saveMetadata(_ metadata: ProviderKeychainMetadata, for provider: Provider) throws {}
+    public func loadMetadata(for provider: Provider) -> ProviderKeychainMetadata? { nil }
+    public func saveMetadata(_ metadata: ProviderKeychainMetadata, for provider: Provider) throws {}
 }
 
 /// Metadata accompanying an API key for credential rotation + OAuth flows.
 /// Stored alongside the key (= Apple Keychain attribute, or in-memory dict
 /// for test backends).
-struct ProviderKeychainMetadata: Sendable, Equatable, Codable {
-    var expiresAt: Date?
-    var oauthRefreshToken: String?
-    var oauthAccessToken: String?
-    var oauthScopes: [String]
-    var rotatedAt: Date
+public struct ProviderKeychainMetadata: Sendable, Equatable, Codable {
+    public var expiresAt: Date?
+    public var oauthRefreshToken: String?
+    public var oauthAccessToken: String?
+    public var oauthScopes: [String]
+    public var rotatedAt: Date
 
-    init(
+    public init(
         expiresAt: Date? = nil,
         oauthRefreshToken: String? = nil,
         oauthAccessToken: String? = nil,
@@ -116,13 +116,13 @@ struct ProviderKeychainMetadata: Sendable, Equatable, Codable {
     }
 
     /// True if metadata expiry is in the past (= key needs rotation).
-    var isExpired: Bool {
+    public var isExpired: Bool {
         guard let expiresAt else { return false }
         return expiresAt < Date()
     }
 
     /// True if metadata has OAuth credentials (= OAuth flow active).
-    var isOAuth: Bool {
+    public var isOAuth: Bool {
         return oauthRefreshToken != nil || oauthAccessToken != nil
     }
 }
@@ -138,10 +138,10 @@ struct ProviderKeychainMetadata: Sendable, Equatable, Codable {
 /// are preserved as `/* ... */` comments for future restoration
 /// when the user accepts the SecurityAgent modal prompt on first
 /// key save.
-final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Sendable {
-    static let service = "com.wenshu.app.provider"
+public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Sendable {
+    public static let service = "com.wenshu.app.provider"
 
-    init() {}
+    public init() {}
 
     /// Build a remote-debug mode,
     /// once it's on, don't require the keychain — I can't test chat remotely otherwise, I can only poke at the UI': the
@@ -169,7 +169,7 @@ final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Sendable {
         UserDefaults.standard.bool(forKey: "wenshu.debugNoKeychain")
     }
 
-    func saveKeySync(_ key: String, for provider: Provider) throws {
+    public func saveKeySync(_ key: String, for provider: Provider) throws {
         //  delegate to KeychainOps (= canonical shared
                // helper; = eliminates the 16% dry_violation flagged by repowise
                // before SearchAPIKeychain.swift was deleted
@@ -207,7 +207,7 @@ final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Sendable {
         }
     }
 
-    func loadKeySync(for provider: Provider) -> String? {
+    public func loadKeySync(for provider: Provider) -> String? {
         // delegate to KeychainOps. See saveKeySync header.
         //
         // Also short-circuits the Apple Security framework
@@ -221,7 +221,7 @@ final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Sendable {
         return KeychainOps.load(service: Self.service, account: "\(provider.slug).api.key")
     }
 
-    func deleteKeySync(for provider: Provider) throws {
+    public func deleteKeySync(for provider: Provider) throws {
         // delegate to KeychainOps. See saveKeySync header.
         do {
             try KeychainOps.delete(service: Self.service, account: "\(provider.slug).api.key")
@@ -230,7 +230,7 @@ final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Sendable {
         }
     }
 
-    func listProvidersWithKeys() -> [String] {
+    public func listProvidersWithKeys() -> [String] {
         // delegate to KeychainOps. See saveKeySync header.
         return KeychainOps.listAccounts(service: Self.service)
     }
@@ -238,43 +238,43 @@ final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Sendable {
 
 /// Test backend — in-memory dict, no OS Keychain entitlements required.
 /// Mirrors AppleKeychainStore public API (save / load / delete / list).
-final class InMemoryKeychainStore: ProviderKeychainStoring, @unchecked Sendable {
+public final class InMemoryKeychainStore: ProviderKeychainStoring, @unchecked Sendable {
     private var store: [String: String] = [:]
     private var metadata: [String: ProviderKeychainMetadata] = [:]
     private let lock = NSLock()
 
-    init() {}
+    public init() {}
 
-    func saveKeySync(_ key: String, for provider: Provider) throws {
+    public func saveKeySync(_ key: String, for provider: Provider) throws {
         guard !key.isEmpty else { throw ProviderKeychainError.invalidKeyFormat }
         lock.lock(); defer { lock.unlock() }
         store[provider.slug] = key
     }
 
-    func loadKeySync(for provider: Provider) -> String? {
+    public func loadKeySync(for provider: Provider) -> String? {
         lock.lock(); defer { lock.unlock() }
         return store[provider.slug]
     }
 
-    func deleteKeySync(for provider: Provider) throws {
+    public func deleteKeySync(for provider: Provider) throws {
         lock.lock(); defer { lock.unlock() }
         store.removeValue(forKey: provider.slug)
         metadata.removeValue(forKey: provider.slug)
     }
 
-    func listProvidersWithKeys() -> [String] {
+    public func listProvidersWithKeys() -> [String] {
         lock.lock(); defer { lock.unlock() }
         return Array(store.keys).sorted()
     }
 
     // MARK: - Metadata (= in-memory for the test backend)
 
-    func loadMetadata(for provider: Provider) -> ProviderKeychainMetadata? {
+    public func loadMetadata(for provider: Provider) -> ProviderKeychainMetadata? {
         lock.lock(); defer { lock.unlock() }
         return metadata[provider.slug]
     }
 
-    func saveMetadata(_ metadata: ProviderKeychainMetadata, for provider: Provider) throws {
+    public func saveMetadata(_ metadata: ProviderKeychainMetadata, for provider: Provider) throws {
         lock.lock(); defer { lock.unlock() }
         self.metadata[provider.slug] = metadata
     }
@@ -284,7 +284,7 @@ final class InMemoryKeychainStore: ProviderKeychainStoring, @unchecked Sendable 
 /// Delegates to `ProviderKeychain.backend` (default = InMemoryKeychainStore
 /// after B-10 revert; was AppleKeychainStore before the 2026-09-04 emergency
 /// in-place revert). Tests override `backend` via `setBackendForTesting()`.
-enum ProviderKeychain {
+public enum ProviderKeychain {
     // phase A ((see OOB.md #2026-09-04)): entitlement embed done (= fix
     // codesign --entitlements in build-app.sh, commit 71349be49).
     // phase B (= real AppleKeychainStore default): pending
@@ -331,7 +331,7 @@ enum ProviderKeychain {
     // Production path = AppleKeychainStore (= the user's macOS
     // Keychain = persists across app restarts + encrypted at rest
     // by the OS + sandbox-safe + survives wenshu updates).
-    nonisolated(unsafe) static var backend: any ProviderKeychainStoring = resolveBackend()
+    public nonisolated(unsafe) static var backend: any ProviderKeychainStoring = resolveBackend()
 
     /// Per-call backend resolver. The `static var backend` initializer
     /// captures the result of this function the first time `backend` is
@@ -356,7 +356,7 @@ enum ProviderKeychain {
     /// 4. Default: AppleKeychainStore (= the canonical wenshu path;
     ///    = the user's real API keys; = the AGENTS.md §11.2
     ///    mandate).
-    static func resolveBackend() -> any ProviderKeychainStoring {
+    public static func resolveBackend() -> any ProviderKeychainStoring {
         if ProcessInfo.processInfo.environment["WENSHU_DEBUG_INMEMORY_KEYCHAIN"] == "1" {
             return InMemoryKeychainStore()
         }
@@ -381,7 +381,7 @@ enum ProviderKeychain {
     }
 
     /// Test-only override. Production code must never call this.
-    static func setBackendForTesting(_ store: any ProviderKeychainStoring) {
+    public static func setBackendForTesting(_ store: any ProviderKeychainStoring) {
         backend = store
     }
 
@@ -418,7 +418,7 @@ enum ProviderKeychain {
     /// hermetic backend pattern. Tests that already use the global
     /// `setBackendForTesting` continue to work (= backward
     /// compatible). New tests should prefer this helper.
-    static func withBackendForTesting<R>(
+    public static func withBackendForTesting<R>(
         _ store: any ProviderKeychainStoring,
         perform body: () async throws -> R
     ) async rethrows -> R {
@@ -438,7 +438,7 @@ enum ProviderKeychain {
         return backend
     }
 
-    static func saveKeySync(_ key: String, for provider: Provider) throws {
+    public static func saveKeySync(_ key: String, for provider: Provider) throws {
         // Belt-and-braces remote-debug short-circuit
         // at the ProviderKeychain shim level (= the dispatch layer
         // that all call sites reach). Combined with the backend lazy
@@ -456,21 +456,21 @@ enum ProviderKeychain {
         // hermetic isolation per task.
         try currentBackend().saveKeySync(key, for: provider)
     }
-    static func loadKeySync(for provider: Provider) -> String? {
+    public static func loadKeySync(for provider: Provider) -> String? {
         // See saveKeySync.
         if UserDefaults.standard.bool(forKey: "wenshu.debugNoKeychain") {
             return nil
         }
         return currentBackend().loadKeySync(for: provider)
     }
-    static func deleteKeySync(for provider: Provider) throws {
+    public static func deleteKeySync(for provider: Provider) throws {
         // See saveKeySync.
         if UserDefaults.standard.bool(forKey: "wenshu.debugNoKeychain") {
             return
         }
         try currentBackend().deleteKeySync(for: provider)
     }
-    static func listProvidersWithKeys() -> [String] {
+    public static func listProvidersWithKeys() -> [String] {
         // See saveKeySync.
         if UserDefaults.standard.bool(forKey: "wenshu.debugNoKeychain") {
             return []
@@ -478,10 +478,10 @@ enum ProviderKeychain {
         return currentBackend().listProvidersWithKeys()
     }
     // shim methods (= delegate to backend).
-    static func loadMetadata(for provider: Provider) -> ProviderKeychainMetadata? {
+    public static func loadMetadata(for provider: Provider) -> ProviderKeychainMetadata? {
         currentBackend().loadMetadata(for: provider)
     }
-    static func saveMetadata(_ metadata: ProviderKeychainMetadata, for provider: Provider) throws {
+    public static func saveMetadata(_ metadata: ProviderKeychainMetadata, for provider: Provider) throws {
         try currentBackend().saveMetadata(metadata, for: provider)
     }
 }

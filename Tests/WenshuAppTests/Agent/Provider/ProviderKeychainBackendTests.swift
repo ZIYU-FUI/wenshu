@@ -14,6 +14,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("ProviderKeychain.backend (B-10 phase B prep)")

@@ -22,6 +22,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("RequestHelpers tools serialization (P5-AGENT-STREAMING-VISIBILITY)", .serialized)

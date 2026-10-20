@@ -31,6 +31,7 @@
 //
 
 import Foundation
+import WenshuAgent
 import os.log
 
 actor WenshuAgent {

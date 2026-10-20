@@ -7,6 +7,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("LLMConnector stream() default (T7-STREAM-DEFAULT)")

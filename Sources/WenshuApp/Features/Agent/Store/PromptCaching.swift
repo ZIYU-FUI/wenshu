@@ -25,6 +25,7 @@
 //
 
 import Foundation
+import WenshuAgent
 
 enum PromptCaching {
 

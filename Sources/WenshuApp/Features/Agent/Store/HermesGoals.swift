@@ -11,6 +11,7 @@
 //
 
 import Foundation
+import WenshuAgent
 
 enum GoalsJudgment: Sendable, Equatable {
     case done(reason: String)

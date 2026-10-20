@@ -41,6 +41,7 @@
 // turn; = matches the hermes `agent.Agent` log shape).
 
 import Foundation
+import WenshuAgent
 import os.log
 
 private let connectorLogger = Logger(

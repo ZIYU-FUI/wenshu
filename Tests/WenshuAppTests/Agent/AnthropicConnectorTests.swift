@@ -15,6 +15,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("AnthropicConnector (ticket 004 sub-step 1)", .serialized)

@@ -24,6 +24,7 @@
 // `sanitizeAll(_:)` — runs the entire sanitization pipeline.
 
 import Foundation
+import WenshuAgent
 
 enum MessageSanitization {
 

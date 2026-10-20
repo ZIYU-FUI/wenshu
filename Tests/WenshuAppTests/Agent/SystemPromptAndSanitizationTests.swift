@@ -13,6 +13,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("SystemPrompt deep (= v0.35 ticket 002)")

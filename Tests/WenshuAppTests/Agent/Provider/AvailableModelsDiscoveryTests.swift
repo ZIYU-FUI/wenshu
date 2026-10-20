@@ -7,6 +7,7 @@
 
 import Foundation
 import Testing
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("AvailableModelsDiscovery (multi-provider model grouping)")

@@ -10,6 +10,7 @@
 // `coalesceAdjacentText` independently for streaming display.
 
 import Foundation
+import WenshuAgent
 
 enum MessageContent {
 

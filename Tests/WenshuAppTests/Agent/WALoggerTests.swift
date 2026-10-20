@@ -11,6 +11,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 import os
 
 @testable import WenshuApp

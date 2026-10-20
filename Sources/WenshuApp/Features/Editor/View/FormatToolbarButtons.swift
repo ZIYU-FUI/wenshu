@@ -15,6 +15,7 @@
 //
 
 import SwiftUI
+import WenshuAgent
 
 struct FormatToolbarButtons: View {
     @Binding var draft: String

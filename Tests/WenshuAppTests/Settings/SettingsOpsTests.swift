@@ -40,6 +40,7 @@
 import Foundation
 import SwiftUI
 import Testing
+import WenshuAgent
 @testable import WenshuApp
 
 @MainActor

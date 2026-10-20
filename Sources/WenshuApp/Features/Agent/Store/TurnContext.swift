@@ -23,6 +23,7 @@
 // `ConversationLoop.runTurn` now calls this once per turn.
 
 import Foundation
+import WenshuAgent
 
 struct TurnContext: Sendable, Equatable {
     let taskId: String

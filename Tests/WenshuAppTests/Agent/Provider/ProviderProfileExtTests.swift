@@ -13,6 +13,7 @@
 
 import Foundation
 import Testing
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("ProviderProfileExt (hermes verbatim port — M6 ticket 16)")

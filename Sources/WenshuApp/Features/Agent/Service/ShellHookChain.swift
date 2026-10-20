@@ -32,6 +32,7 @@
 //
 
 import Foundation
+import WenshuAgent
 
 // MARK: - Placeholder types
 //

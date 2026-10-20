@@ -29,6 +29,7 @@
 // `WALogger.network info "SSE attempt=..."`.
 
 import Foundation
+import WenshuAgent
 import os.log
 
 private let connectorLogger = Logger(

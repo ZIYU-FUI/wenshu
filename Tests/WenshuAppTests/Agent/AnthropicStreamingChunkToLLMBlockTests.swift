@@ -9,6 +9,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("AnthropicStreamingChunkToLLMBlock (T6-ANTHROPIC-STREAMING-THINKING)")

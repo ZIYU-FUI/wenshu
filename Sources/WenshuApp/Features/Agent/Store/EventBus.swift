@@ -1,4 +1,5 @@
 import Foundation
+import WenshuAgent
 
 /// Events emitted by the agent runtime.
 enum AgentEvent: Sendable {

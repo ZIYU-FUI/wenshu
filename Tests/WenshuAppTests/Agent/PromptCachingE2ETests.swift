@@ -17,6 +17,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("PromptCaching e2e (ticket 002 sub-step 4)")

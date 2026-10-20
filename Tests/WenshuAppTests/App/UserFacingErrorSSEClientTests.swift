@@ -16,6 +16,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("UserFacingError.from (SSEClient mapping)")

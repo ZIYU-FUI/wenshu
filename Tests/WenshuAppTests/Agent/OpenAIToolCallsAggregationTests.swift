@@ -8,6 +8,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("OpenAIToolCallsAggregation (T12)")

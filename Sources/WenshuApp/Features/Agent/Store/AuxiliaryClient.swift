@@ -32,6 +32,7 @@
 //
 
 import Foundation
+import WenshuAgent
 
 /// A single coalesced SSE event (= hermes _coalesce_sse_buffer L1-180).
 ///

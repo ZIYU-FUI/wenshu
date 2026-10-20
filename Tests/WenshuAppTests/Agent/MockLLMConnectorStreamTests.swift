@@ -11,6 +11,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("MockLLMConnector stream override (T13)")

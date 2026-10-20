@@ -62,12 +62,12 @@ import Foundation
 /// takes arbitrary stores (= `ProviderKeychainStoring` instances;
 /// = the test suite uses InMemoryKeychainStore on both sides for
 /// hermetic introspection).
-final class MirroredKeychainStore: ProviderKeychainStoring, @unchecked Sendable {
+public final class MirroredKeychainStore: ProviderKeychainStoring, @unchecked Sendable {
     /// The two underlying stores. Both are thread-safe; = the
     /// per-store `NSLock` (File) + Apple Security framework
     /// (Keychain) cover the cross-thread cases.
-    let keychainStore: any ProviderKeychainStoring
-    let fileStore: any ProviderKeychainStoring
+    public let keychainStore: any ProviderKeychainStoring
+    public let fileStore: any ProviderKeychainStoring
 
     /// Which store is PRIMARY for reads. Decided by
     /// `wenshu.useKeychainForProviderKeys`:
@@ -78,11 +78,11 @@ final class MirroredKeychainStore: ProviderKeychainStoring, @unchecked Sendable 
     /// `ProviderKeychain.resolveBackend` passes the right value
     /// here based on the toggle). Reads can flip `keychainPrimary`
     /// at any time (= the toggle change re-runs `resolveBackend`).
-    var keychainPrimary: Bool
+    public var keychainPrimary: Bool
 
     /// Production initializer. Builds Apple Keychain + file
     /// backends (= the canonical wenshu dual-store path).
-    init(keychainPrimary: Bool) {
+    public init(keychainPrimary: Bool) {
         self.keychainStore = AppleKeychainStore()
         self.fileStore = FileProviderKeyStore()
         self.keychainPrimary = keychainPrimary
@@ -92,7 +92,7 @@ final class MirroredKeychainStore: ProviderKeychainStoring, @unchecked Sendable 
     /// backends. Used by `MirroredKeychainStoreTests` to inject
     /// two `InMemoryKeychainStore` instances for hermetic
     /// assertions on each side.
-    init(
+    public init(
         keychainStore: any ProviderKeychainStoring,
         fileStore: any ProviderKeychainStoring,
         keychainPrimary: Bool
@@ -118,7 +118,7 @@ final class MirroredKeychainStore: ProviderKeychainStoring, @unchecked Sendable 
     /// denied (= `errSecMissingEntitlement` on ad-hoc-signed
     /// wenshu.app) — the file write still lands, so the next
     /// read with the file-primary toggle succeeds.
-    func saveKeySync(_ key: String, for provider: Provider) throws {
+    public func saveKeySync(_ key: String, for provider: Provider) throws {
         // Primary: must succeed (= caller expects a stable
         // contract: save = durably stored somewhere). Throws
         // on failure (= the Settings Save button surfaces the
@@ -146,7 +146,7 @@ final class MirroredKeychainStore: ProviderKeychainStoring, @unchecked Sendable 
     /// secondary hit happens, re-write the key to the primary so
     /// the next read doesn't need the fallback (= self-healing;
     /// = matches the boss's "切换开关时 key 还在" requirement).
-    func loadKeySync(for provider: Provider) -> String? {
+    public func loadKeySync(for provider: Provider) -> String? {
         if let primaryValue = primary.loadKeySync(for: provider) {
             return primaryValue
         }
@@ -172,7 +172,7 @@ final class MirroredKeychainStore: ProviderKeychainStoring, @unchecked Sendable 
     /// could surprise the user later). If either fails, the
     /// error is thrown (= the Settings Delete button surfaces
     /// it to the user).
-    func deleteKeySync(for provider: Provider) throws {
+    public func deleteKeySync(for provider: Provider) throws {
         // Both stores: attempt both, throw the first error
         // (= the second deletion is still attempted so a
         // transient failure in one doesn't leave the other
@@ -194,7 +194,7 @@ final class MirroredKeychainStore: ProviderKeychainStoring, @unchecked Sendable 
     /// (= e.g., user just toggled, write to secondary
     /// succeeded but primary write failed transiently) still
     /// shows the green badge.
-    func listProvidersWithKeys() -> [String] {
+    public func listProvidersWithKeys() -> [String] {
         var set = Set<String>()
         set.formUnion(primary.listProvidersWithKeys())
         set.formUnion(secondary.listProvidersWithKeys())
@@ -226,7 +226,7 @@ final class MirroredKeychainStore: ProviderKeychainStoring, @unchecked Sendable 
     /// logged via `NSLog`; = the migration is best-effort;
     /// = the user's `saveKeySync` path stays the contract
     /// for the "key was just configured" case).
-    func migrateToCurrentPrimary() {
+    public func migrateToCurrentPrimary() {
         let secondarySlugs = secondary.listProvidersWithKeys()
         for slug in secondarySlugs {
             guard let provider = Provider.by(slug: slug) else { continue }

@@ -94,6 +94,7 @@
 //      owns the NotificationCenter wiring).
 
 import Foundation
+import WenshuAgent
 
 /// Stateless business layer for the Settings pane. Lifts the
 /// ProviderKeychain + ProviderFetcher + Set<String> expansion logic

@@ -47,18 +47,18 @@ import Foundation
 /// `Provider.defaultModels` fallback when the endpoint is
 /// unreachable / unauthorized / returned an unexpected
 /// payload).
-struct LLMDiscoveredModels: Sendable, Equatable {
-    let provider: Provider
-    let models: [String]
+public struct LLMDiscoveredModels: Sendable, Equatable {
+    public let provider: Provider
+    public let models: [String]
     /// `true` when the live `/models` endpoint answered (= the
     /// user can tell whether the picker is showing live data
     /// vs. the static fallback; = useful in the Settings UI
     /// = "最后更新于 5 分钟前" or "未连接 (= 使用默认列表)").
-    let isLive: Bool
+    public let isLive: Bool
     /// Last successful fetch timestamp (= nil when the
     /// fallback path was taken). The Settings UI uses
     /// this to show the freshness label.
-    let fetchedAt: Date?
+    public let fetchedAt: Date?
 }
 
 /// Discovers the live model list for a single provider via
@@ -67,7 +67,7 @@ struct LLMDiscoveredModels: Sendable, Equatable {
 /// failure, 401, 4xx, 5xx, parse error, unexpected
 /// payload shape). Never throws (= the picker always
 /// has at least the fallback list to show).
-actor LLMModelDiscovery {
+public actor LLMModelDiscovery {
 
     /// Cache TTL (= how long the live list is considered
     /// fresh). 5 minutes is the same as the OpenAI
@@ -76,7 +76,7 @@ actor LLMModelDiscovery {
     /// provider adds them, long enough that flipping
     /// the model picker doesn't hit the network on
     /// every keystroke).
-    static let cacheTTL: TimeInterval = 5 * 60
+    public static let cacheTTL: TimeInterval = 5 * 60
 
     /// Cached results keyed by provider slug (= one
     /// cache entry per provider; = the chat input
@@ -93,7 +93,7 @@ actor LLMModelDiscovery {
     /// per-test URLProtocolStub stays in scope).
     private let session: URLSession
 
-    init(session: URLSession = .shared) {
+    public init(session: URLSession = .shared) {
         self.session = session
     }
 
@@ -101,7 +101,7 @@ actor LLMModelDiscovery {
     /// list for a provider. `forceRefresh = true`
     /// bypasses the cache (= used by the Settings UI's
     /// "刷新" button).
-    func discover(
+    public func discover(
         provider: Provider,
         forceRefresh: Bool = false
     ) async -> LLMDiscoveredModels {
@@ -149,7 +149,7 @@ actor LLMModelDiscovery {
     /// the Settings UI's "刷新" button when the user
     /// toggles the keychain mode, or when the user
     /// re-enters the key).
-    func invalidate(providerSlug: String) {
+    public func invalidate(providerSlug: String) {
         cache.removeValue(forKey: providerSlug)
     }
 

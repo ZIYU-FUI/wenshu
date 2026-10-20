@@ -19,6 +19,7 @@
 // `route(_:)` call is serialized at the LLM-boundary inside the actor).
 
 import Foundation
+import WenshuAgent
 
 /// The production `ImportRouter` that the sheet uses. Each `route(_:)`
 /// invocation makes a real LLM call (= the `LLMConnector` from

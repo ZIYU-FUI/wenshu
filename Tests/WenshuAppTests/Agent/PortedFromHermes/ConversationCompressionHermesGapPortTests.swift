@@ -16,6 +16,7 @@
 //  per file = the remaining 9 hermes functions deferred).
 //
 
+import WenshuAgent
 import XCTest
 @testable import WenshuApp
 

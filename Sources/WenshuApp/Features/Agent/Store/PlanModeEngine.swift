@@ -21,6 +21,7 @@
 //
 
 import Foundation
+import WenshuAgent
 
 /// One step in a plan. Backend-agnostic (= the engine parses the
 /// LLM response into these structs regardless of which provider

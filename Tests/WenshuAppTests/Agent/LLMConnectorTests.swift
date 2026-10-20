@@ -21,6 +21,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("LLMConnector (ticket 001 sub-step 2)")

@@ -22,6 +22,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("SubAgentRunner storage dispatch · v2.7d Archivist + Auditor", .serialized)

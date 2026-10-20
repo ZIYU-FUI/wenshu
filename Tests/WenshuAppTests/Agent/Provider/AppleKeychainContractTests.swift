@@ -20,6 +20,7 @@
 import Foundation
 import OSLog
 import Testing
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite(.serialized)
@@ -41,7 +42,7 @@ struct AppleKeychainContractTests {
 
     @Test("KeychainOps uses kSecClassGenericPassword (= Apple canonical for app secrets)")
     func keychainOpsUsesGenericPasswordClass() throws {
-        let src = try Self.source(for: "Sources/WenshuApp/WenshuAgent/Keychain/KeychainOps.swift")
+        let src = try Self.source(for: "Sources/WenshuAgent/Sources/WenshuAgent/Keychain/KeychainOps.swift")
         #expect(src.contains("kSecClassGenericPassword"),
                 "KeychainOps must use kSecClassGenericPassword (= Apple canonical for app secrets)")
     }
@@ -51,21 +52,21 @@ struct AppleKeychainContractTests {
         // Pin the canonical service name (= AppleKeychain uses this as the
         // kSecAttrService value; = the per-app namespace that isolates our
         // keys from other apps on the same macOS user account).
-        let src = try Self.source(for: "Sources/WenshuApp/WenshuAgent/Keychain/ProviderKeychain.swift")
+        let src = try Self.source(for: "Sources/WenshuAgent/Sources/WenshuAgent/Keychain/ProviderKeychain.swift")
         #expect(src.contains("com.wenshu.app"),
                 "ProviderKeychain must namespace keys under com.wenshu.app.* service identifier")
     }
 
     @Test("ProviderKeychain stores each provider under its own .api.key account")
     func providerKeychainPerProviderAccountKey() throws {
-        let src = try Self.source(for: "Sources/WenshuApp/WenshuAgent/Keychain/ProviderKeychain.swift")
+        let src = try Self.source(for: "Sources/WenshuAgent/Sources/WenshuAgent/Keychain/ProviderKeychain.swift")
         #expect(src.contains("\\(provider.slug).api.key"),
                 "ProviderKeychain must key each provider under <slug>.api.key account (= isolation between providers)")
     }
 
     @Test("ProviderKeychain never writes a key to disk via plain file APIs")
     func providerKeychainDoesNotWriteKeysToDisk() throws {
-        let src = try Self.source(for: "Sources/WenshuApp/WenshuAgent/Keychain/ProviderKeychain.swift")
+        let src = try Self.source(for: "Sources/WenshuAgent/Sources/WenshuAgent/Keychain/ProviderKeychain.swift")
         // Heuristic: no FileManager writes that include 'key' / 'api' in
         // their argument name. Allow commented-out code references.
         let codeLines = src.components(separatedBy: "\n")
@@ -84,7 +85,7 @@ struct AppleKeychainContractTests {
 
     @Test("ProviderKeychain masks keys in any debug/log output")
     func providerKeychainMasksKeysInLogs() throws {
-        let src = try Self.source(for: "Sources/WenshuApp/WenshuAgent/Keychain/ProviderKeychain.swift")
+        let src = try Self.source(for: "Sources/WenshuAgent/Sources/WenshuAgent/Keychain/ProviderKeychain.swift")
         // Look for either NSLog / print / os_log wrapping a key — if any
         // such call exists, the key MUST be masked (= prefix-only display).
         let logCallPatterns = ["NSLog(", "print(", "os_log(", "logger."]

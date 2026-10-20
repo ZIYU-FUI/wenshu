@@ -12,6 +12,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("ProviderKeychain (Apple Security framework, multi-provider)", .serialized)

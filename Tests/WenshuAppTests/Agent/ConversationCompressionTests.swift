@@ -13,6 +13,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("ConversationCompression (ticket 003 sub-step 2)")

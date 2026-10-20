@@ -188,4 +188,5 @@ extension Data {
 
 // SHA256 import (= Apple CommonCrypto; pure C, no external dep)
 import CommonCrypto
+import WenshuAgent
 

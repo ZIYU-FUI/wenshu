@@ -19,6 +19,7 @@
 //
 
 import SwiftUI
+import WenshuAgent
 
 /// ChatPartView for plan-mode plans. Renders the Plan as a card
 /// with numbered steps + Approve/Decline buttons.

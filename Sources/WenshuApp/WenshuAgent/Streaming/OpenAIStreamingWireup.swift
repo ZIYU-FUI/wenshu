@@ -32,6 +32,7 @@
 
 import Foundation
 import EventSource
+import WenshuAgent
 
 /// OpenAI-compatible SSE wire-up (= AsyncStream producer of raw `data:`
 /// payloads). Wraps EventSource (= mattt/EventSource 1.5.1) and yields

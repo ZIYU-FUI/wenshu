@@ -28,6 +28,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("ToolDispatchHelpers (TICKET-HERMES-GAP-008)")

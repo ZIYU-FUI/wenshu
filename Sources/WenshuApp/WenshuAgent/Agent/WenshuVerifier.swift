@@ -12,6 +12,7 @@
 //     integrates with the minimax-cn API.
 
 import Foundation
+import WenshuAgent
 import os
 
 // AUDIT.md §2.6 partial (2026-10-16 boss 2026-10-16 OOB

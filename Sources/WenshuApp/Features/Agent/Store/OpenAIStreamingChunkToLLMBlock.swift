@@ -40,6 +40,7 @@
 //
 
 import Foundation
+import WenshuAgent
 
 enum OpenAIChunkToLLMBlockConverter {
 

@@ -4,6 +4,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("ProviderCatalog (Hermes 范式)")

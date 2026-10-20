@@ -10,6 +10,7 @@
 // no LLM calls in classifier path).
 
 import Foundation
+import WenshuAgent
 
 /// Error category (= single source of truth for user-facing error messages
 /// + retry policy). Use these categories instead of raw error types

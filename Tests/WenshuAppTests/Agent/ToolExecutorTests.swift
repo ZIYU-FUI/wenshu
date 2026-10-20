@@ -27,6 +27,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("ToolExecutor (ticket 001 sub-step 5)")

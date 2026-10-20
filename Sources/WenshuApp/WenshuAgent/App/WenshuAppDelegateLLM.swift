@@ -15,6 +15,7 @@
 //
 
 import AppKit
+import WenshuAgent
 import WenshuData
 import os
 

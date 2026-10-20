@@ -8,6 +8,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("OpenAIConnector (ticket 005)", .serialized)

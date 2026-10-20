@@ -28,28 +28,28 @@
 import Foundation
 
 /// A single Server-Sent Event parsed from a streaming HTTP response.
-struct SSEEvent: Sendable {
+public struct SSEEvent: Sendable {
     /// Event name (= "message" for default / unnamed; "error" for
     /// stream-level errors; provider-specific names for tool calls
     /// etc.). Empty string if the server omitted `event:` line.
-    let event: String
+    public let event: String
 
     /// Event data payload (= single-line or multi-line joined with
     /// '\n' per W3C SSE spec). Empty string if the server omitted
     /// `data:` line.
-    let data: String
+    public let data: String
 }
 
 /// SSE client = URLSession.bytes consumer that parses the W3C SSE
 /// wire format. Supports both Anthropic Messages API and OpenAI
 /// Chat Completions streaming (= both use the same SSE envelope).
-actor SSEClient {
-    let url: URL
-    var headers: [String: String]
+public actor SSEClient {
+    public let url: URL
+    public var headers: [String: String]
     private var session: URLSession
     private var task: Task<Void, Never>?
 
-    init(url: URL, headers: [String: String] = [:], session: URLSession = .shared) {
+    public init(url: URL, headers: [String: String] = [:], session: URLSession = .shared) {
         self.url = url
         self.headers = headers
         self.session = session
@@ -65,7 +65,7 @@ actor SSEClient {
     /// When `body` is nil, the request sends an empty body (=
     /// matches the old behavior; = `WenshuVerifier` and any
     /// GET-shaped callers keep working).
-    func stream(body: Data? = nil) -> AsyncThrowingStream<SSEEvent, Error> {
+    public func stream(body: Data? = nil) -> AsyncThrowingStream<SSEEvent, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
                 let attemptId = UUID()
@@ -258,7 +258,7 @@ actor SSEClient {
 
     /// Cancel the current stream (= closes the URLSession bytes
     /// task + finishes the continuation).
-    func cancel() {
+    public func cancel() {
         task?.cancel()
     }
 
@@ -273,7 +273,7 @@ actor SSEClient {
     ///   event: <name>\n
     ///   data: <data>\n
     ///   \n                  <- empty line = event boundary
-    static func parseSSEBytes(_ bytes: [UInt8]) -> [SSEEvent] {
+    public static func parseSSEBytes(_ bytes: [UInt8]) -> [SSEEvent] {
         var events: [SSEEvent] = []
         var currentLineBytes: [UInt8] = []
         var pendingEvent = ""

@@ -34,6 +34,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("v0.71 P1 — ConversationLoop.runTurn(...streamCallback:) = Hermes streaming")

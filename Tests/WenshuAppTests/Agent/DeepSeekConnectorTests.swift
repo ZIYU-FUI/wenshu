@@ -26,6 +26,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("DeepSeekConnector (§11.2 gap-fill)", .serialized)

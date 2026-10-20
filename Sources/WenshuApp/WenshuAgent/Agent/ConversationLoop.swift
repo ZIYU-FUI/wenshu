@@ -2,6 +2,7 @@
 // … (= 49 rationale lines collapsed; = A112 docblock collapse per §1.8)
 // unit tests + callers that don't care about progress emission).
 import Foundation
+import WenshuAgent
 import os.log
 import WenshuData
 

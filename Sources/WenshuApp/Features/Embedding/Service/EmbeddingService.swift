@@ -13,6 +13,7 @@
 //
 
 import Foundation
+import WenshuAgent
 
 public actor EmbeddingService {
     public static let shared = EmbeddingService()

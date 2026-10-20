@@ -14,6 +14,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("LLMBlock + LLMResponse + LLMUsage deep (= v0.35 ticket 001)")

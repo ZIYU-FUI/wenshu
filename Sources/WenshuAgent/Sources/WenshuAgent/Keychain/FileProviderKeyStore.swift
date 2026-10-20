@@ -44,12 +44,12 @@
 
 import Foundation
 
-final class FileProviderKeyStore: ProviderKeychainStoring, @unchecked Sendable {
+public final class FileProviderKeyStore: ProviderKeychainStoring, @unchecked Sendable {
     /// File name within the Application Support directory.
     /// Hard-coded to `provider-keys.json` (= visible name; = the
     /// file mode + the Application Support path provide the
     /// permissions isolation).
-    static let fileName = "provider-keys.json"
+    public static let fileName = "provider-keys.json"
 
     /// Computed file URL. The Application Support directory is the
     /// canonical macOS location (= sandbox-safe + per-user; =
@@ -57,7 +57,7 @@ final class FileProviderKeyStore: ProviderKeychainStoring, @unchecked Sendable {
     /// the `.ws` library when the user shares / syncs it).
     /// Per Apple HIG: `FileManager.default.url(for: .applicationSupportDirectory,
     /// in: .userDomainMask, appropriateFor: nil, create: true)`.
-    static let fileURL: URL = {
+    public static let fileURL: URL = {
         let fm = FileManager.default
         let dir = (try? fm.url(
             for: .applicationSupportDirectory,
@@ -84,11 +84,11 @@ final class FileProviderKeyStore: ProviderKeychainStoring, @unchecked Sendable {
     private var cache: [String: String]?
     private let lock = NSLock()
 
-    init() {}
+    public init() {}
 
     // MARK: - ProviderKeychainStoring
 
-    func saveKeySync(_ key: String, for provider: Provider) throws {
+    public func saveKeySync(_ key: String, for provider: Provider) throws {
         guard !key.isEmpty else { throw ProviderKeychainError.invalidKeyFormat }
         lock.lock()
         var dict = loadLocked() ?? [:]
@@ -98,7 +98,7 @@ final class FileProviderKeyStore: ProviderKeychainStoring, @unchecked Sendable {
         lock.unlock()
     }
 
-    func loadKeySync(for provider: Provider) -> String? {
+    public func loadKeySync(for provider: Provider) -> String? {
         lock.lock(); defer { lock.unlock() }
         if let cache = cache {
             return cache[provider.slug]
@@ -108,7 +108,7 @@ final class FileProviderKeyStore: ProviderKeychainStoring, @unchecked Sendable {
         return dict[provider.slug]
     }
 
-    func deleteKeySync(for provider: Provider) throws {
+    public func deleteKeySync(for provider: Provider) throws {
         lock.lock()
         var dict = loadLocked() ?? [:]
         dict.removeValue(forKey: provider.slug)
@@ -117,7 +117,7 @@ final class FileProviderKeyStore: ProviderKeychainStoring, @unchecked Sendable {
         lock.unlock()
     }
 
-    func listProvidersWithKeys() -> [String] {
+    public func listProvidersWithKeys() -> [String] {
         lock.lock(); defer { lock.unlock() }
         let dict = loadLocked() ?? [:]
         return dict.keys.sorted()

@@ -17,6 +17,7 @@
 import Testing
 import Combine
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("ChatMessageBridge deep (= v0.35 ticket 003 sub-step 5)")

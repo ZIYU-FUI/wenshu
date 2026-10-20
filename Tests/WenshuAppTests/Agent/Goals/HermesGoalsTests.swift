@@ -41,6 +41,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("HermesGoals (HERMES-SUBSYSTEM-5)")

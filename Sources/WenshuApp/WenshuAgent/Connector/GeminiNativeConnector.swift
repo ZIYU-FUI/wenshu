@@ -21,6 +21,7 @@
 // this commit).
 
 import Foundation
+import WenshuAgent
 import os.log
 
 private let connectorLogger = Logger(

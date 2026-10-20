@@ -14,6 +14,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("OpenAIStreamingChunkToLLMBlock (T10-OPENAI-STREAMING-WIRE)")

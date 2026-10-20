@@ -21,6 +21,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("MinimaxConnector (ticket 001 sub-step 7)", .serialized)

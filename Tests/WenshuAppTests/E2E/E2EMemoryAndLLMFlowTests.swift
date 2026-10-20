@@ -57,6 +57,7 @@
 import Testing
 import SwiftData
 import Foundation
+import WenshuAgent
 import WenshuData
 import os
 @testable import WenshuApp

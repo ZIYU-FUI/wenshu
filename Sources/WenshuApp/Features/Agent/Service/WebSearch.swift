@@ -8,6 +8,7 @@
 //
 
 import Foundation
+import WenshuAgent
 
 struct WebSearchResult: Sendable, Codable, Equatable {
     let title: String

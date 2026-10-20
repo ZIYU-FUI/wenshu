@@ -26,6 +26,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("ShellHookChain (TICKET-HERMES-GAP-004)")

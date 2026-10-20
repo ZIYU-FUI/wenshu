@@ -18,6 +18,7 @@
 //  remains the wenshu-side source of truth).
 //
 
+import WenshuAgent
 import XCTest
 @testable import WenshuApp
 

@@ -71,6 +71,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("Obsidian vault batch import (= 十二地仙 12-地仙 → wenshu reference library)")

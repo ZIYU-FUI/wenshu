@@ -25,6 +25,7 @@
 //      `LLMStreamingConnector` work.
 
 import Foundation
+import WenshuAgent
 
 /// Public-facing protocol for all 7 LLM connector profiles.
 ///

@@ -19,15 +19,15 @@
 import Foundation
 
 
-struct ConnectorCredentials: Sendable {
-    let provider: Provider
-    let apiKey: String
-    let baseURL: String
+public struct ConnectorCredentials: Sendable {
+    public let provider: Provider
+    public let apiKey: String
+    public let baseURL: String
     /// rotation metadata (= expiry + OAuth tokens).
     /// nil if metadata not yet loaded (= fresh key, no rotation tracking).
-    let metadata: ProviderKeychainMetadata?
+    public let metadata: ProviderKeychainMetadata?
 
-    init(
+    public init(
         provider: Provider,
         apiKey: String,
         baseURL: String,
@@ -49,7 +49,7 @@ struct ConnectorCredentials: Sendable {
     ///   - provider: The connector profile (= Provider enum from Core/Provider).
     /// - Returns: ConnectorCredentials with apiKey from Keychain (= "" for
     ///   no-auth providers like Ollama) and baseURL from Provider.defaultBaseURL.
-    static func resolve(for provider: Provider) -> ConnectorCredentials {
+    public static func resolve(for provider: Provider) -> ConnectorCredentials {
         let key: String
         // Ollama = local, no auth (= per AGENTS.md §11.2 P1 row "Ollama | None (local)")
         if provider.slug == "ollama" {
@@ -69,14 +69,14 @@ struct ConnectorCredentials: Sendable {
 
     /// True if credentials have rotation metadata AND metadata is expired.
     /// Caller should trigger OAuth refresh before using these credentials.
-    var needsRotation: Bool {
+    public var needsRotation: Bool {
         guard let metadata else { return false }
         return metadata.isExpired && metadata.isOAuth
     }
 
     /// True if credentials are ready to use for an LLM call.
     /// (= have a non-empty apiKey, or no auth required like Ollama).
-    var isReady: Bool {
+    public var isReady: Bool {
         if provider.slug == "ollama" { return true }
         return !apiKey.isEmpty
     }

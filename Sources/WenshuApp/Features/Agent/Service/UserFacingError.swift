@@ -28,6 +28,7 @@
 // 12. unknown (= catch-all fallback)
 
 import Foundation
+import WenshuAgent
 
 /// Wenshu user-facing error envelope (= central Chinese translation
 /// for raw wenshu errors). Conforms to `LocalizedError` (= Apple

@@ -6,6 +6,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("AgentRuntime (多 agent runtime)")

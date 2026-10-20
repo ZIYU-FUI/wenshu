@@ -37,6 +37,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 import WenshuData
 @testable import WenshuApp
 
@@ -45,12 +46,12 @@ struct WarningCleanupTests {
 
     private static let affectedSources: [String] = [
         "Sources/WenshuApp/Features/Settings/Service/SecretScope.swift",
-        "Sources/WenshuApp/WenshuAgent/Discovery/AvailableModelsDiscovery.swift",
+        "Sources/WenshuAgent/Sources/WenshuAgent/Discovery/AvailableModelsDiscovery.swift",
         "Sources/WenshuApp/Features/Agent/Service/OAuthFlow.swift",
         "Sources/WenshuApp/Features/Agent/Store/RuntimeHelpers.swift",
         "Sources/WenshuApp/Features/Agent/Service/HermesTodoTool.swift",
         "Sources/WenshuApp/WenshuAgent/Agent/WenshuVerifier.swift",
-        "Sources/WenshuApp/WenshuAgent/Discovery/ConnectorCredentials.swift",
+        "Sources/WenshuAgent/Sources/WenshuAgent/Discovery/ConnectorCredentials.swift",
     ]
 
     private func resolve(_ relative: String) -> String {

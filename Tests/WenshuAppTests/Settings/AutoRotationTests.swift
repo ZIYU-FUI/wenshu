@@ -7,6 +7,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 // MARK: - Test scaffolding

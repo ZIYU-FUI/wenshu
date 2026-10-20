@@ -26,6 +26,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("SecretScope (TICKET-HERMES-GAP-005)", .serialized)

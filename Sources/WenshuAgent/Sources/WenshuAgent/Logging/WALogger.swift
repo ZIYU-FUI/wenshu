@@ -25,13 +25,13 @@
 import Foundation
 import os
 
-enum WALogger {
-    static let subsystem = "com.wenshu.agent"
+public enum WALogger {
+    public static let subsystem = "com.wenshu.agent"
 
-    static let agent    = Logger(subsystem: subsystem, category: "agent")
-    static let network  = Logger(subsystem: subsystem, category: "network")
-    static let keychain = Logger(subsystem: subsystem, category: "keychain")
-    static let model    = Logger(subsystem: subsystem, category: "model")
-    static let watchdog = Logger(subsystem: subsystem, category: "watchdog")
-    static let stream   = Logger(subsystem: subsystem, category: "stream")
+    public static let agent    = Logger(subsystem: subsystem, category: "agent")
+    public static let network  = Logger(subsystem: subsystem, category: "network")
+    public static let keychain = Logger(subsystem: subsystem, category: "keychain")
+    public static let model    = Logger(subsystem: subsystem, category: "model")
+    public static let watchdog = Logger(subsystem: subsystem, category: "watchdog")
+    public static let stream   = Logger(subsystem: subsystem, category: "stream")
 }

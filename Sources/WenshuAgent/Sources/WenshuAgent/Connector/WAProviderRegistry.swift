@@ -18,32 +18,32 @@
 
 import Foundation
 
-actor WAProviderRegistry {
-    static let shared = WAProviderRegistry()
+public actor WAProviderRegistry {
+    public static let shared = WAProviderRegistry()
 
     private var providers: [String: any WABaseProvider] = [:]
 
-    init() {}
+    public init() {}
 
-    func register(_ provider: any WABaseProvider) {
+    public func register(_ provider: any WABaseProvider) {
         providers[provider.slug] = provider
         WALogger.agent.info("register provider=\(provider.slug, privacy: .public) displayName=\(provider.displayName, privacy: .public)")
     }
 
-    func unregister(slug: String) {
+    public func unregister(slug: String) {
         providers.removeValue(forKey: slug)
         WALogger.agent.info("unregister provider=\(slug, privacy: .public)")
     }
 
-    func provider(slug: String) -> (any WABaseProvider)? {
+    public func provider(slug: String) -> (any WABaseProvider)? {
         providers[slug]
     }
 
-    var all: [any WABaseProvider] {
+    public var all: [any WABaseProvider] {
         Array(providers.values)
     }
 
-    func snapshot() -> [String] {
+    public func snapshot() -> [String] {
         Array(providers.keys)
     }
 
@@ -51,7 +51,7 @@ actor WAProviderRegistry {
     /// after a feature flag flipped the registry off). The previously
     /// registered providers are NOT removed (= this is an additive
     /// restore; = for full reset use `replaceAll(_:)`).
-    func restore(snapshot: [String]) async {
+    public func restore(snapshot: [String]) async {
         // No-op in production (= the built-ins remain registered
         // until the actor is destroyed). In tests, `replaceAll(_:)`
         // is the deterministic reset path.
@@ -59,7 +59,7 @@ actor WAProviderRegistry {
 
     /// Test-only deterministic reset (= replaces the entire registry
     /// with the provided set).
-    func replaceAll(_ newProviders: [any WABaseProvider]) {
+    public func replaceAll(_ newProviders: [any WABaseProvider]) {
         providers = Dictionary(uniqueKeysWithValues: newProviders.map { ($0.slug, $0) })
     }
 }

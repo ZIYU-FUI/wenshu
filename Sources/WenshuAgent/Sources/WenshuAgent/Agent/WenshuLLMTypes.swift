@@ -74,7 +74,7 @@ public enum WenshuLLMBlock: Codable, Sendable, Equatable {
         }
     }
 
-    enum CodingKeys: String, CodingKey {
+    public enum CodingKeys: String, CodingKey {
         case type
         case text
         case thinking

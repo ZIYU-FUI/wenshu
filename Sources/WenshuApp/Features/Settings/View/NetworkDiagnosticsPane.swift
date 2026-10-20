@@ -16,6 +16,7 @@
 import Foundation
 import Network
 import SwiftUI
+import WenshuAgent
 
 struct NetworkDiagnosticsPane: View {
     /// Active LLM provider (mirrors `SettingView.providerSlug`).

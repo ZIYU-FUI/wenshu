@@ -30,6 +30,7 @@
 //
 
 import Foundation
+import WenshuAgent
 import WenshuData
 
 // Migrated to `WSMemoryRepository.shared`.

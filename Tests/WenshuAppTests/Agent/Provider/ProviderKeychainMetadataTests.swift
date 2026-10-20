@@ -11,6 +11,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("ProviderKeychainMetadata (ticket 012 Z contract)")

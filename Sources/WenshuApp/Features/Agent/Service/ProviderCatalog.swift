@@ -1,6 +1,7 @@
 // ProviderCatalog.swift
 
 import Foundation
+import WenshuAgent
 
 enum ProviderCatalog {
     static func defaultModels(for slug: String) -> [String] {

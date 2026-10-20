@@ -13,6 +13,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("AnthropicConnector stream() override (T9-ANTHROPIC-STREAMING-WIRE)")
