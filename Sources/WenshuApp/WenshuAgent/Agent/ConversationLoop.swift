@@ -527,13 +527,61 @@ actor ConversationLoop {
     // / T14-CONVLOOP-STREAMING (2026-09-18): replace direct `connector.send(...)`
     // … (= 21 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / (= runConversation + TurnFinalizer) still gets a valid shape.
+    /// Holds the streaming task so the cap can await and cancel it.
+    final class StreamTaskBox: @unchecked Sendable {
+        private let lock = NSLock()
+        private var _task: Task<[LLMBlock], Error>?
+
+        var task: Task<[LLMBlock], Error>? {
+            get {
+                lock.lock()
+                defer { lock.unlock() }
+                return _task
+            }
+            set {
+                lock.lock()
+                _task = newValue
+                lock.unlock()
+            }
+        }
+    }
+
+    /// Whether a stream has produced anything yet.
+    ///
+    /// The streaming cap applies to the connection, not to the reply: once
+    /// the provider has said anything, the stream is alive and is allowed
+    /// to finish. This holder is the flag both sides read.
+    final class StreamProgress: @unchecked Sendable {
+        private let lock = NSLock()
+        private var _sawFirstBlock = false
+
+        var sawFirstBlock: Bool {
+            get {
+                lock.lock()
+                defer { lock.unlock() }
+                return _sawFirstBlock
+            }
+            set {
+                lock.lock()
+                _sawFirstBlock = newValue
+                lock.unlock()
+            }
+        }
+    }
+
     private func streamInto(
         messages: [LLMMessage],
         options: LLMCallOptions,
         streamCallback: (@Sendable (LLMBlock) async -> Void)?
     ) async throws -> LLMResponse {
         let stream = connector.stream(messages: messages, options: options)
-        let streamTask = Task<[LLMBlock], Error> {
+        let streamProgress = StreamProgress()
+        // The stream task is held in a box so the cap can await it: the cap
+        // waits for the stream once the connection has answered. A box
+        // rather than a local variable, because the cap task captures it
+        // and a captured local of task type is not sendable.
+        let streamBox = StreamTaskBox()
+        streamBox.task = Task<[LLMBlock], Error> {
             var collected: [LLMBlock] = []
             for await block in stream {
                 // P5-SSE-CANCEL (2026-10-19 follow-up to
@@ -559,6 +607,11 @@ actor ConversationLoop {
                 // cap's `Task.sleep(60s)` still fires via
                 // the throwing task body in `timeoutTask`).
                 try Task.checkCancellation()
+                if collected.isEmpty {
+                    // The connection answered. The cap no longer applies:
+                    // a reply that is still arriving is not a hang.
+                    streamProgress.sawFirstBlock = true
+                }
                 collected.append(block)
                 if let streamCallback {
                     await streamCallback(block)
@@ -566,28 +619,37 @@ actor ConversationLoop {
             }
             return collected
         }
-        // 2026-10-19 mac-mini: lowered from 60s → 15s.
-        // Boss 2026-10-19 OOB "回复了, 但时间超级长" = the
-        // 60s cap waited 60s before falling back to the
-        // non-streaming `connector.send(...)` (= a real
-        // LLM reply), but the user-facing wait was
-        // unacceptable. The mattt/EventSource SSE parser
-        // (= the streaming path the chat path uses) is
-        // broken on the user's mac-mini (= the cap fires
-        // every time; = the 60s wait is the dominant cost
-        // of every chat turn). 15s is the new
-        // user-tolerable wait (= the sandbox curl baseline
-        // of 1-2s for a successful non-streaming call +
-        // 13s of slack for cold-start, DNS, keychain
-        // unlock, etc.). The fallback path is fast
-        // (= `connector.send(...)` returns within ~2s once
-        // the SSE cap fires; = the user sees their reply in
-        // ~15-17s total instead of ~62s). Re-tune upward if
-        // the mac-mini shows a different SSE behavior on
-        // future builds; the cap + TaskGroup race here is
-        // a tuning knob, not a hard requirement.
+        // The cap covers the wait for the FIRST block, not the whole
+        // reply.
+        //
+        // It used to be a wall-clock limit on the entire stream, which was
+        // added when the third-party SSE parser could not deliver a
+        // provider's events at all (= every turn hit the cap and fell back
+        // to a non-streaming call). The parser now reads the stream
+        // directly, so a reply that is still arriving is not a hang: it is
+        // a reply in progress, and the user is watching it arrive.
+        //
+        // A wall-clock limit on the whole stream would cut off exactly the
+        // long replies the streaming path exists to deliver. So the limit
+        // now applies to the connection only: if nothing arrives within
+        // the window, the connection is dead and the non-streaming path
+        // takes over. Once something arrives, the stream is allowed to
+        // finish.
+        //
+        // The window is generous because it only has to outlast a slow
+        // handshake. A provider that answers in two seconds has no chance
+        // of tripping it.
+        let firstBlockDeadline = Date().addingTimeInterval(60)
         let timeoutTask = Task<Void, Error> {
-            try await Task.sleep(nanoseconds: 15_000_000_000)
+            while !streamProgress.sawFirstBlock, Date() < firstBlockDeadline {
+                try await Task.sleep(for: .milliseconds(200))
+            }
+            if streamProgress.sawFirstBlock {
+                // The stream is alive. Wait for it to finish rather than
+                // racing it: the same result the other branch produces.
+                _ = try? await streamBox.task?.value
+                return
+            }
             // P5-CAP-FORCE-UNWIND (2026-10-19
             // mac-mini reproducer boss "我又发了一句
             // 测试" = the previous cap's
@@ -617,7 +679,7 @@ actor ConversationLoop {
             // entirely; = the only path that returns a
             // complete LLMResponse when the SSE
             // wireup hangs).
-            streamTask.cancel()
+            streamBox.task?.cancel()
             throw CancellationError()
         }
         let accumulated: [LLMBlock]
@@ -631,7 +693,7 @@ actor ConversationLoop {
             // is cancelled via the group on exit.
             accumulated = try await withThrowingTaskGroup(of: [LLMBlock].self) { group in
                 group.addTask {
-                    try await streamTask.value
+                    try await streamBox.task?.value ?? []
                 }
                 group.addTask {
                     try await timeoutTask.value
