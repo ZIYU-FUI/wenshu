@@ -130,15 +130,30 @@ public struct RecoverySettings: Sendable, Equatable {
     public var retryOnTruncation: Bool
     /// Backoff before the second attempt, in seconds.
     public var retryBackoffSeconds: Double
+    /// Whether a cut-off reply is continued in the same turn. Preferred over
+    /// retrying, because a retry discards prose the user asked for.
+    public var continueOnTruncation: Bool
+    /// Whether a reply that claims completion without the deliverable gets one
+    /// more pass.
+    public var checkStopGates: Bool
+    /// Whether an overflow falls back to a smaller output cap once compressing
+    /// was not enough.
+    public var degradeOutputCapOnOverflow: Bool
 
     public init(
         retryOnEmptyReply: Bool = true,
         retryOnTruncation: Bool = true,
-        retryBackoffSeconds: Double = 2.0
+        retryBackoffSeconds: Double = 2.0,
+        continueOnTruncation: Bool = true,
+        checkStopGates: Bool = true,
+        degradeOutputCapOnOverflow: Bool = true
     ) {
         self.retryOnEmptyReply = retryOnEmptyReply
         self.retryOnTruncation = retryOnTruncation
         self.retryBackoffSeconds = retryBackoffSeconds
+        self.continueOnTruncation = continueOnTruncation
+        self.checkStopGates = checkStopGates
+        self.degradeOutputCapOnOverflow = degradeOutputCapOnOverflow
     }
 }
 

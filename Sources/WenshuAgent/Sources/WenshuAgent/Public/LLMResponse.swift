@@ -37,6 +37,17 @@ public struct LLMResponse: Sendable, Equatable {
         self.usage = usage
     }
 
+    /// A response with only blocks. For places that synthesise a reply
+    /// locally (= a refusal notice, a recovery message) and carry no provider
+    /// identity or token counts.
+    public init(blocks: [LLMBlock]) {
+        self.id = ""
+        self.model = ""
+        self.blocks = blocks
+        self.stopReason = .endTurn
+        self.usage = LLMUsage(inputTokens: 0, outputTokens: 0)
+    }
+
     public enum StopReason: String, Sendable, Equatable, Codable {
         case endTurn = "end_turn"
         case toolUse = "tool_use"

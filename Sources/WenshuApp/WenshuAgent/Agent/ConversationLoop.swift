@@ -196,6 +196,8 @@ actor ConversationLoop {
         tools: [String: any Tool] = [:],
         taskId: String? = nil,
         maxAttempts: Int = 3,
+        settings: AgentSettings = .init(),
+        requiredDeliverables: [String] = [],
         streamCallback: (@Sendable (LLMBlock) async -> Void)? = nil,
         // / Tool schemas advertised to the model. Empty (= default)
         // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
@@ -262,6 +264,86 @@ actor ConversationLoop {
                     label: "Parsing response",
                     etaSeconds: nil
                 )
+
+                // Reply guard (= hermes turn_empty_response / turn_truncation /
+                // turn_overflow / turn_stop_gates, collapsed into one ladder).
+                // Sits here because this is the first point where a finished
+                // reply exists to judge: continuing a truncated answer and
+                // rejecting an empty one both need the text, and both must
+                // happen before tool dispatch so a retry does not run a tool
+                // twice.
+                let replyFacts = ReplyFacts(
+                    text: Self.flattenText(result.response.blocks),
+                    finishReason: result.response.stopReason.rawValue,
+                    hasToolCalls: result.messages.last?.blocks.contains { block in
+                        if case .toolUse = block { return true }
+                        return false
+                    } ?? false
+                )
+                let ladder = RecoveryLadder(
+                    settings: settings.recovery,
+                    requiredDeliverables: requiredDeliverables,
+                    attemptsUsed: retry.attemptNumber,
+                    isLastAttempt: !retry.canRetry
+                )
+                switch ladder.evaluate(replyFacts) {
+                case .accept:
+                    break
+                case .continueText(let prompt):
+                    // Keep the prose already produced and ask for the rest. A
+                    // retry here would throw away text the user asked for.
+                    result.messages.append(
+                        LLMMessage(role: .user, blocks: [.text(prompt)])
+                    )
+                    let continued = try await streamInto(
+                        messages: result.messages,
+                        options: LLMCallOptions(
+                            model: defaultModelForConnector(),
+                            maxTokens: 4096,
+                            systemPrompt: await composeSystemPrompt(
+                                override: systemMessage,
+                                persistent: systemPrompt
+                            ),
+                            temperature: nil,
+                            reasoningEffort: UserDefaults.standard.string(
+                                forKey: "wenshu.llm.reasoningEffort"
+                            ),
+                            tools: toolSchemas
+                        ),
+                        streamCallback: streamCallback
+                    )
+                    result.messages.append(
+                        LLMMessage(role: .assistant, blocks: continued.blocks)
+                    )
+                    result = ConversationResult(
+                        response: TurnFinalizer.finalize(response: continued),
+                        messages: result.messages,
+                        taskId: resolvedTaskId
+                    )
+                case .retry, .degrade:
+                    if !retry.canRetry {
+                        break
+                    }
+                    retry.recordAttempt()
+                    await progressTracker.setStep(
+                        id: progressEntry.id,
+                        stepNumber: retry.attemptNumber,
+                        label: "Retrying (\(Self.retryLabel(for: ladder.evaluate(replyFacts))))"
+                    )
+                    if settings.recovery.retryBackoffSeconds > 0 {
+                        try? await Task.sleep(
+                            nanoseconds: UInt64(settings.recovery.retryBackoffSeconds * 1_000_000_000)
+                        )
+                    }
+                    continue
+                case .abort(_, let message):
+                    await progressTracker.complete(id: progressEntry.id, status: .failed)
+                    return ConversationResult(
+                        response: LLMResponse(blocks: [.text(message)]),
+                        messages: result.messages,
+                        taskId: resolvedTaskId
+                    )
+                }
 
                 // Tool dispatch loop (= hermes _execute_tool_calls_sequential).
                 // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
@@ -699,6 +781,29 @@ actor ConversationLoop {
         // buildOpenAISystem / buildGeminiSystemInstruction output).
         return stable + "\n\n---\n\n" + dynamic
     }
+
+    /// Flatten a reply's text blocks for the guards (= the content-filter and
+    /// tail-punctuation checks both read prose, not block structure).
+    static func flattenText(_ blocks: [LLMBlock]) -> String {
+        blocks.compactMap { block in
+            if case .text(let text) = block { return text }
+            return nil
+        }.joined(separator: "\n")
+    }
+
+    /// Progress label for a retry, so the user sees why the agent is still
+    /// working rather than a bare spinner.
+    static func retryLabel(for verdict: ResponseVerdict) -> String {
+        switch verdict.reason {
+        case .emptyReply: return "empty reply"
+        case .truncated, .incompleteSentence: return "incomplete reply"
+        case .contextOverflow: return "context too long"
+        case .contentFiltered: return "filtered by provider"
+        case .quotaExhausted: return "quota exhausted"
+        case .transientError: return "connection issue"
+        case .permanentError, .none: return "error"
+        }
+    }
 }
 
 // / Mixture-of-Agents config (= hermes `moa_config` param).
@@ -713,3 +818,4 @@ struct MOAConfig: Sendable {
         self.aggregatorModel = aggregatorModel
     }
 }
+
