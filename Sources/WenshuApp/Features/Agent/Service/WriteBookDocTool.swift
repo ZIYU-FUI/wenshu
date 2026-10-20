@@ -23,9 +23,11 @@ import WenshuAgent
 
 /// The agent's write tool for the import
 /// flow. Lives next to the rest of the
-/// agent toolset (= Sources/WenshuApp/Core/Agent/Tool/)
-/// so `ToolRegistry` discovers it via the
-/// module-load `_registryBootstrap`.
+/// agent toolset (= Sources/WenshuApp/Core/Agent/Tool/).
+/// The import driver binds it per run (= see
+/// `ImportAgentDriver`; = it passes the
+/// active book's root as a closure, so the
+/// tool always writes relative to that book).
 struct WriteBookDocTool: Tool, Sendable {
 
     /// Mutable: holds the active book
@@ -128,56 +130,4 @@ struct WriteBookDocTool: Tool, Sendable {
         let data = try JSONEncoder().encode(result)
         return String(data: data, encoding: .utf8) ?? "{}"
     }
-}
-
-// MARK: - ToolRegistry bootstrap
-
-extension WriteBookDocTool {
-    /// Module-load registration (= fires
-    /// once at first type access; = the
-    /// underlying Task schedules the
-    /// async registerTool() off the init
-    /// thread).
-    ///
-    /// Toolset = `"world"` (= semantic
-    /// group; = the ImportService will
-    /// filter toolsets for the import
-    /// task so the agent only sees the
-    /// world-write tool, not the
-    /// path-anywhere `WriteFileTool`).
-    static let _registryBootstrap: Void = {
-        Task {
-            // Default bookPathProvider = nil (= no active book). The ImportService
-            // replaces this before the agent run starts (= see
-            // `ImportAgentDriver`).
-            await ToolRegistry.shared.registerTool(
-                name: "writeBookDoc",
-                toolset: "world",
-                schema: ToolRegistrySchema(
-                    name: "writeBookDoc",
-                    description: """
-                    Write 1 .md file inside the active book (= e.g. world/<title>.md). \
-                    The path is relative to the book's root; = absolute paths are rejected. \
-                    The orchestrator sets the active book before the agent runs.
-                    """,
-                    inputSchema: [
-                        "path": ToolRegistrySchemaProperty(
-                            type: "string",
-                            description: "Relative path inside the active book (= e.g. 'world/核心设定.md'). Must NOT start with '/'."
-                        ),
-                        "body": ToolRegistrySchemaProperty(
-                            type: "string",
-                            description: "The complete file content (= Markdown)."
-                        )
-                    ],
-                    required: ["path", "body"]
-                ),
-                handler: WriteBookDocTool(
-                    bookPathProvider: { nil }
-                ),
-                description: "Write 1 .md file to the active book's filesystem (= e.g. world/<title>.md).",
-                emoji: "📝"
-            )
-        }
-    }()
 }
