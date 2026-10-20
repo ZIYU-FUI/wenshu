@@ -20,7 +20,7 @@ struct EditorViewIconMigrationTests {
 
     @Test("EditorView source no longer uses naked Image(systemName:)")
     func sourceNoLongerUsesNakedImage() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Workspace/EditorView.swift")
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         let stripped = content.components(separatedBy: "\n").filter { line in
             let trimmed = line.trimmingCharacters(in: .whitespaces)
@@ -36,7 +36,7 @@ struct EditorViewIconMigrationTests {
         // EditorView's ad-hoc HStack into the new EditorTabStrip
         // component (= boss OOB 2026-10-10). The source-level
         // migration check now lives on EditorTabStrip.swift.
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Editor/EditorTabStrip.swift")
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/Store/EditorTabStrip.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("SFIcon(\"xmark\", style: .inlineSmall, color: IconColor.secondary)"),
                 "EditorTabStrip tab-close icon must render via SFIcon(.inlineSmall, IconColor.secondary)")

@@ -27,7 +27,7 @@ struct ChapterFocusLockDialogWrapperTests {
 
     @Test("Conductor wrapper calls into ChapterFocusLockDialogPresenter")
     func wrapperUsesPresenter() throws {
-        let path = Self.repoSourcePath("Sources/WenshuApp/Core/Agent/Conversation/WenshuConductor.swift")
+        let path = Self.repoSourcePath("Sources/WenshuApp/WenshuAgent/Agent/WenshuConductor.swift")
         let source = try String(contentsOfFile: path, encoding: .utf8)
         #expect(source.contains("ChapterFocusLockDialogPresenter"))
         #expect(source.contains("present("))
@@ -35,14 +35,14 @@ struct ChapterFocusLockDialogWrapperTests {
 
     @Test("Wrapper throws DatasetLockDeniedByBoss on Deny")
     func wrapperThrowsOnDeny() throws {
-        let path = Self.repoSourcePath("Sources/WenshuApp/Core/Agent/Librarian/EditChapterActor.swift")
+        let path = Self.repoSourcePath("Sources/WenshuApp/Features/Agent/Service/EditChapterActor.swift")
         let source = try String(contentsOfFile: path, encoding: .utf8)
         #expect(source.contains("DatasetLockDeniedByBoss"))
     }
 
     @Test("Wrapper snapshots + restores focusedChapterPath around the inner call")
     func wrapperSnapshotsAndRestores() throws {
-        let path = Self.repoSourcePath("Sources/WenshuApp/Core/Agent/Conversation/WenshuConductor.swift")
+        let path = Self.repoSourcePath("Sources/WenshuApp/WenshuAgent/Agent/WenshuConductor.swift")
         let source = try String(contentsOfFile: path, encoding: .utf8)
         // The snapshot must happen BEFORE the dialog is presented
         // (= so restore can put the prior value back even if the

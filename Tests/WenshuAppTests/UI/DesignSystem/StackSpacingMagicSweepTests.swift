@@ -29,7 +29,7 @@ struct StackSpacingMagicSweepTests {
 
     @Test("Round 11 — DesignTokens defines spacingRelaxed (10) new token")
     func designTokensDefinesNewSpacingRelaxed() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/DesignTokens.swift")
+        let url = SourceLocator.url("Sources/WenshuApp/DesignTokens.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("static let spacingRelaxed: CGFloat = 10"),
                 "spacingRelaxed (10) must be defined (= round 11 new)")
@@ -39,13 +39,13 @@ struct StackSpacingMagicSweepTests {
     func productionCodeHasNoMagicStackSpacing() throws {
         // All source files that had Stack spacing literals pre-sweep
         let sweptFiles = [
-            "Sources/WenshuApp/Workspace/AssetsPane.swift",
-            "Sources/WenshuApp/Views/Inspector/InspectorView.swift",
-            "Sources/WenshuApp/UI/EmptyState/EmptyStateView.swift",
-            "Sources/WenshuApp/Features/Settings/SettingView.swift",
+            "Sources/WenshuApp/Features/Editor/View/AssetsPane.swift",
+            "Sources/WenshuApp/Features/Editor/View/InspectorView.swift",
+            "Sources/WenshuApp/Shared/UI/EmptyStateView.swift",
+            "Sources/WenshuApp/Features/Settings/View/SettingView.swift",
             "Sources/WenshuApp/Features/Agent/View/ForeshadowingView.swift",
             "Sources/WenshuApp/Features/Agent/View/PlaceholderView.swift",
-            "Sources/WenshuApp/Views/Dynamic/AgentProgressPanel.swift",
+            "Sources/WenshuApp/Features/Editor/View/AgentProgressPanel.swift",
             "Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift",
             "Sources/WenshuApp/Features/Chat/View/ChatPlanPartView.swift",
             "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
@@ -54,13 +54,13 @@ struct StackSpacingMagicSweepTests {
             "Sources/WenshuApp/Features/Chat/View/ChatToolDiffPreview.swift",
             "Sources/WenshuApp/Features/Chat/View/ChatMessagePlaceholderRow.swift",
             "Sources/WenshuApp/Features/Chat/View/ChatSlashCommandAutocomplete.swift",
-            "Sources/WenshuApp/Workspace/EditModeBadge.swift",
-            "Sources/WenshuApp/Workspace/TabContentDispatcher.swift",
-            "Sources/WenshuApp/Workspace/LayoutPicker/LayoutPicker.swift",
-            "Sources/WenshuApp/Workspace/LayoutPicker/LayoutEditBar.swift",
-            "Sources/WenshuApp/Workspace/LayoutPicker/PresetCard.swift",
-            "Sources/WenshuApp/Workspace/LayoutPicker/PresetThumbnail.swift",
-            "Sources/WenshuApp/Workspace/LayoutPicker/ZoneEditor.swift",
+            "Sources/WenshuApp/Features/Editor/View/EditModeBadge.swift",
+            "Sources/WenshuApp/Features/Editor/View/TabContentDispatcher.swift",
+            "Sources/WenshuApp/Features/Editor/View/LayoutPicker.swift",
+            "Sources/WenshuApp/Features/Editor/View/LayoutEditBar.swift",
+            "Sources/WenshuApp/Features/Editor/View/PresetCard.swift",
+            "Sources/WenshuApp/Features/Editor/View/PresetThumbnail.swift",
+            "Sources/WenshuApp/Features/Editor/View/ZoneEditor.swift",
             "Sources/WenshuApp/Features/Agent/View/LongFormGuardrailsView.swift",
             "Sources/WenshuApp/Features/Agent/View/EmotionCurveView.swift",
             "Sources/WenshuApp/Features/Agent/View/BackgroundReviewView.swift",
@@ -68,9 +68,9 @@ struct StackSpacingMagicSweepTests {
             "Sources/WenshuApp/Features/Library/View/SidebarSheets.swift",
             "Sources/WenshuApp/Features/Library/View/AppleSidebarBottomNewButton.swift",
             "Sources/WenshuApp/Features/Agent/View/TodoListView.swift",
-            "Sources/WenshuApp/Views/Kanban/KanbanView.swift",
-            "Sources/WenshuApp/Views/Kanban/SubAgentProgressView.swift",
-            "Sources/WenshuApp/Views/CommandPalette/CommandPaletteView.swift",
+            "Sources/WenshuApp/Features/Kanban/View/KanbanView.swift",
+            "Sources/WenshuApp/Features/Kanban/View/SubAgentProgressView.swift",
+            "Sources/WenshuApp/Shared/UI/CommandPaletteView.swift",
             "Sources/WenshuApp/Shared/UI/LibraryRootView.swift",
         ]
         for path in sweptFiles {

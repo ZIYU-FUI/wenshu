@@ -15,7 +15,7 @@ struct CharacterRelationshipsViewIconMigrationTests {
 
     @Test("CharacterRelationshipsView source no longer uses DesignTokens.tabIconSize")
     func relationshipsViewNoLongerUsesTabIconSize() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Agent/View/CharacterRelationshipsView.swift")
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Agent/View/CharacterRelationshipsView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(!content.contains("DesignTokens.tabIconSize"),
                 "CharacterRelationshipsView must drop DesignTokens.tabIconSize for inline leading icons")
@@ -23,7 +23,7 @@ struct CharacterRelationshipsViewIconMigrationTests {
 
     @Test("CharacterRelationshipsView relationshipRow uses SFIcon style: .inlineSmall + .tint")
     func relationshipRowUsesSFIcon() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Agent/View/CharacterRelationshipsView.swift")
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Agent/View/CharacterRelationshipsView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("SFIcon(row.kind.icon, style: .inlineSmall, color: IconColor.tint)"),
                 "relationshipRow must render kind icon via SFIcon(.inlineSmall, .tint)")
@@ -31,7 +31,7 @@ struct CharacterRelationshipsViewIconMigrationTests {
 
     @Test("CharacterRelationshipsView inconsistency row uses SFIcon with .orange color")
     func inconsistencyRowUsesSFIcon() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Agent/View/CharacterRelationshipsView.swift")
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Agent/View/CharacterRelationshipsView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("SFIcon(\"exclamationmark.triangle\", style: .inlineSmall, color: IconColor.orange)"),
                 "inconsistency row must render triangle via SFIcon(.inlineSmall, .orange)")

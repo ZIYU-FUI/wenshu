@@ -26,7 +26,7 @@ struct ForeshadowingViewIconMigrationTests {
 
     @Test("ForeshadowingView source no longer uses DesignTokens.tabIconSize")
     func foreshadowingViewNoLongerUsesTabIconSize() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Agent/View/ForeshadowingView.swift")
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Agent/View/ForeshadowingView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(!content.contains("DesignTokens.tabIconSize"),
                 "ForeshadowingView must drop DesignTokens.tabIconSize for inline leading icons")
@@ -34,7 +34,7 @@ struct ForeshadowingViewIconMigrationTests {
 
     @Test("ForeshadowingView foreshadowingRow uses SFIcon style: .inlineSmall")
     func foreshadowingViewRowUsesSFIcon() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Agent/View/ForeshadowingView.swift")
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Agent/View/ForeshadowingView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("SFIcon(row.status.icon, style: .inlineSmall, color: IconColor.tint)"),
                 "foreshadowingRow must render the status icon via SFIcon(.inlineSmall)")

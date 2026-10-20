@@ -44,15 +44,14 @@ struct WindowBackgroundShapeStyleSweepTests {
 
     @Test("Swept sites use SwiftUI native .windowBackground shape-style")
     func sweptSitesUseSwiftUINativeShapeStyle() throws {
-        let root = SourceLocator.repoRoot
-        let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
+        let sourcesRoot = SourceLocator.url("Sources/WenshuApp")
 
         let sweptFiles = [
-            "Views/CommandPalette/CommandPaletteView.swift",
-            "Views/Workspace/LayoutPicker/ZoneEditor.swift",
-            "Views/SpecializedTools/LongFormGuardrailsView.swift",
-            "Views/Library/BookEditorSheet.swift",
-            "Views/Onboarding/LibraryRootView.swift",
+            "Shared/UI/CommandPaletteView.swift",
+            "Features/Editor/View/ZoneEditor.swift",
+            "Features/Agent/View/LongFormGuardrailsView.swift",
+            "Features/Library/View/BookEditorSheet.swift",
+            "Shared/UI/LibraryRootView.swift",
         ]
 
         for relative in sweptFiles {
@@ -75,12 +74,11 @@ struct WindowBackgroundShapeStyleSweepTests {
 
     @Test("AnyShapeStyle sites preserve Color(nsColor: .windowBackgroundColor).opacity(N) (= Apple SwiftUI limitation)")
     func preservedAnyShapeStyleSitesUseColorOpacity() throws {
-        let root = SourceLocator.repoRoot
-        let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
+        let sourcesRoot = SourceLocator.url("Sources/WenshuApp")
 
         let preservedFiles = [
-            "Views/Chat/ChatToolUsePartView.swift",
-            "Views/Chat/ChatToolResultPartView.swift",
+            "Features/Chat/View/ChatToolUsePartView.swift",
+            "Features/Chat/View/ChatToolResultPartView.swift",
         ]
 
         for relative in preservedFiles {
@@ -99,8 +97,7 @@ struct WindowBackgroundShapeStyleSweepTests {
 
     @Test("Zero magic Color(nsColor: .windowBackgroundColor) outside AnyShapeStyle")
     func zeroMagicColorNsColorWindowBackground() throws {
-        let root = SourceLocator.repoRoot
-        let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
+        let sourcesRoot = SourceLocator.url("Sources/WenshuApp")
 
         // Use file manager to recursively collect all .swift files
         let enumerator = FileManager.default.enumerator(

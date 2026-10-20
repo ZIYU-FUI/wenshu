@@ -32,7 +32,7 @@ struct CornerRadiusMagicSweepTests {
 
     @Test("Round 8 — DesignTokens defines 6 cornerRadius tokens (= 3 existing + 3 new)")
     func designTokensDefinesAllCornerRadiusTokens() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/DesignTokens.swift")
+        let url = SourceLocator.url("Sources/WenshuApp/DesignTokens.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         // 3 existing tokens
         #expect(content.contains("static let surfaceCornerRadiusSmallChip: CGFloat = 3"),
@@ -53,8 +53,8 @@ struct CornerRadiusMagicSweepTests {
     @Test("Round 8 — production code has no naked RoundedRectangle(cornerRadius: <int>) literals")
     func productionCodeHasNoMagicCornerRadius() throws {
         let sweptFiles = [
-            "Sources/WenshuApp/UI/HoverWash.swift",
-            "Sources/WenshuApp/Workspace/AssetsPane.swift",
+            "Sources/WenshuApp/Shared/UI/HoverWash.swift",
+            "Sources/WenshuApp/Features/Editor/View/AssetsPane.swift",
             "Sources/WenshuApp/Features/Chat/View/ChatAttachmentPreviewChip.swift",
             "Sources/WenshuApp/Features/Chat/View/ChatMessageAttachmentPreview.swift",
             "Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift",
@@ -66,13 +66,13 @@ struct CornerRadiusMagicSweepTests {
             "Sources/WenshuApp/Features/Chat/View/ChatPlanPartView.swift",
             "Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift",
             "Sources/WenshuApp/Features/Agent/View/PlaceholderView.swift",
-            "Sources/WenshuApp/Views/Kanban/KanbanView.swift",
-            "Sources/WenshuApp/Views/CommandPalette/CommandPaletteView.swift",
-            "Sources/WenshuApp/Workspace/EditModeBadge.swift",
-            "Sources/WenshuApp/Workspace/LayoutPicker/LayoutPicker.swift",
-            "Sources/WenshuApp/Workspace/LayoutPicker/PresetCard.swift",
-            "Sources/WenshuApp/Workspace/LayoutPicker/LayoutEditBar.swift",
-            "Sources/WenshuApp/Workspace/PreviewPane.swift",
+            "Sources/WenshuApp/Features/Kanban/View/KanbanView.swift",
+            "Sources/WenshuApp/Shared/UI/CommandPaletteView.swift",
+            "Sources/WenshuApp/Features/Editor/View/EditModeBadge.swift",
+            "Sources/WenshuApp/Features/Editor/View/LayoutPicker.swift",
+            "Sources/WenshuApp/Features/Editor/View/PresetCard.swift",
+            "Sources/WenshuApp/Features/Editor/View/LayoutEditBar.swift",
+            "Sources/WenshuApp/Features/Editor/View/PreviewPane.swift",
             "Sources/WenshuApp/Features/Library/View/SidebarSheets.swift",
             "Sources/WenshuApp/Features/Agent/View/ReaderExperienceView.swift",
             "Sources/WenshuApp/Features/Agent/View/BookSettingConstraintsView.swift",

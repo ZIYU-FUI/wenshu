@@ -14,7 +14,7 @@ struct IdeaLibraryViewIconMigrationTests {
 
     @Test("IdeaLibraryView source no longer uses DesignTokens.tabIconSize")
     func ideaLibraryViewNoLongerUsesTabIconSize() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Agent/View/IdeaLibraryView.swift")
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Agent/View/IdeaLibraryView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(!content.contains("DesignTokens.tabIconSize"),
                 "IdeaLibraryView must drop DesignTokens.tabIconSize for inline leading icons")
@@ -22,7 +22,7 @@ struct IdeaLibraryViewIconMigrationTests {
 
     @Test("IdeaLibraryView ideaRow uses SFIcon style: .inlineSmall + .tint")
     func ideaRowUsesSFIcon() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Agent/View/IdeaLibraryView.swift")
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Agent/View/IdeaLibraryView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("SFIcon(idea.status.icon, style: .inlineSmall, color: IconColor.tint)"),
                 "ideaRow must render status icon via SFIcon(.inlineSmall, .tint)")
@@ -30,7 +30,7 @@ struct IdeaLibraryViewIconMigrationTests {
 
     @Test("IdeaLibraryView linkRow uses SFIcon style: .inlineSmall + .tint")
     func linkRowUsesSFIcon() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Agent/View/IdeaLibraryView.swift")
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Agent/View/IdeaLibraryView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("SFIcon(link.target.icon, style: .inlineSmall, color: IconColor.tint)"),
                 "linkRow must render target icon via SFIcon(.inlineSmall, .tint)")

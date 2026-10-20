@@ -15,7 +15,7 @@ struct SettingViewIconMigrationTests {
 
     @Test("SettingView source no longer uses DesignTokens.tabIconSize")
     func settingViewNoLongerUsesTabIconSize() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Settings/SettingView.swift")
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Settings/View/SettingView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(!content.contains("DesignTokens.tabIconSize"),
                 "SettingView must drop DesignTokens.tabIconSize for inline leading icons")
@@ -23,7 +23,7 @@ struct SettingViewIconMigrationTests {
 
     @Test("SettingView provider key row uses SFIcon style: .inlineSmall + .green/.secondary")
     func providerKeyRowUsesSFIcon() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Settings/SettingView.swift")
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Settings/View/SettingView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("SFIcon(\"key\", style: .inlineSmall, color: hasKey ? IconColor.green : IconColor.secondary)"),
                 "provider key leading must render via SFIcon(.inlineSmall, hasKey ? .green : .secondary)")
@@ -31,7 +31,7 @@ struct SettingViewIconMigrationTests {
 
     @Test("SettingView AuxTask leading uses SFIcon style: .inlineSmall + .secondary")
     func auxTaskLeadingUsesSFIcon() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Settings/SettingView.swift")
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Settings/View/SettingView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("SFIcon(task.icon, style: .inlineSmall, color: IconColor.secondary)"),
                 "AuxTask leading must render via SFIcon(.inlineSmall, .secondary)")

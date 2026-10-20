@@ -20,7 +20,7 @@ struct SubAgentProgressViewIconMigrationTests {
 
     @Test("SubAgentProgressView source no longer uses naked Image(systemName:)")
     func sourceNoLongerUsesNakedImage() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/Kanban/SubAgentProgressView.swift")
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Kanban/View/SubAgentProgressView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         let stripped = content.components(separatedBy: "\n").filter { line in
             let trimmed = line.trimmingCharacters(in: .whitespaces)
@@ -32,7 +32,7 @@ struct SubAgentProgressViewIconMigrationTests {
 
     @Test("SubAgentProgressView 4 status icons use SFIcon with IconColor semantic tokens")
     func statusIconsUseSFIcon() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Views/Kanban/SubAgentProgressView.swift")
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Kanban/View/SubAgentProgressView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("SFIcon(\"circle.dashed\", style: .inlineSmall, color: IconColor.blue)"),
                 "SubAgentProgressView circle.dashed status icon must use SFIcon")

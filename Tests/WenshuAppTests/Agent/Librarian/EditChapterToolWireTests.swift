@@ -119,7 +119,7 @@ struct EditChapterToolWireTests {
         // declarations and tools dict both contain book_edit_chapter.
         // (= mirrors the v1.85 hermes 0.21.5 wire-up; = same shape
         // as BookChapterTool / BookEntityTool.)
-        let conductorPath = Self.repoSourcePath("Sources/WenshuApp/Core/Agent/Conversation/WenshuConductor.swift")
+        let conductorPath = Self.repoSourcePath("Sources/WenshuApp/WenshuAgent/Agent/WenshuConductor.swift")
         let source = try String(contentsOfFile: conductorPath, encoding: .utf8)
         #expect(source.contains("\"book_edit_chapter\""), "conductor must declare the new tool name")
         #expect(source.contains("EditChapterTool("), "conductor must wire EditChapterTool into tools dict")

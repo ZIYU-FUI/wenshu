@@ -47,11 +47,11 @@ struct AccentTintOpacityShadowOffsetSweepTests {
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         let sweptFiles = [
-            ("Views/Workspace/EditorView.swift", "accentTintOpacitySubtle"),
-            ("Views/SpecializedTools/EmotionCurveView.swift", "accentTintOpacitySubtle"),
-            ("Views/Workspace/PreviewPane.swift", "accentTintOpacityHero"),
-            ("Views/Workspace/LayoutPicker/LayoutEditBar.swift", "surfaceShadowOffsetWindow"),
-            ("Views/Workspace/EditorPaperCanvas.swift", "surfaceShadowOffsetButton"),
+            ("Features/Editor/View/EditorView.swift", "accentTintOpacitySubtle"),
+            ("Features/Agent/View/EmotionCurveView.swift", "accentTintOpacitySubtle"),
+            ("Features/Editor/View/PreviewPane.swift", "accentTintOpacityHero"),
+            ("Features/Editor/View/LayoutEditBar.swift", "surfaceShadowOffsetWindow"),
+            ("Features/Editor/View/EditorPaperCanvas.swift", "surfaceShadowOffsetButton"),
         ]
 
         for (relative, expectedToken) in sweptFiles {

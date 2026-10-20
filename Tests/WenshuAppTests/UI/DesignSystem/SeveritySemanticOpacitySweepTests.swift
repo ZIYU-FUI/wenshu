@@ -57,8 +57,7 @@ struct SeveritySemanticOpacitySweepTests {
 
     @Test("chipStyle returns AnyShapeStyle for bg")
     func chipStyleReturnsAnyShapeStyle() throws {
-        let root = SourceLocator.repoRoot
-        let url = root
+        let url = SourceLocator.repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/TodoListView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
 
@@ -80,8 +79,7 @@ struct SeveritySemanticOpacitySweepTests {
 
     @Test("LongFormGuardrailsView badgeColor preserved at call site (= severity 0.18)")
     func longFormGuardrailsBadgeColorPreserved() throws {
-        let root = SourceLocator.repoRoot
-        let url = root
+        let url = SourceLocator.repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/LongFormGuardrailsView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
 
@@ -96,8 +94,7 @@ struct SeveritySemanticOpacitySweepTests {
 
     @Test("ReaderExperienceView scoreBadge preserved at call site (= severity 0.22)")
     func readerExperienceScoreBadgePreserved() throws {
-        let root = SourceLocator.repoRoot
-        let url = root
+        let url = SourceLocator.repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/ReaderExperienceView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
 
@@ -112,8 +109,7 @@ struct SeveritySemanticOpacitySweepTests {
 
     @Test("accentTintOpacityHero = 0.18 (round 73 + 74 unified value)")
     func accentTintOpacityHeroUnifiedValue() throws {
-        let root = SourceLocator.repoRoot
-        let url = root
+        let url = SourceLocator.repoRoot
             .appendingPathComponent("Sources/WenshuApp/DesignTokens.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
 

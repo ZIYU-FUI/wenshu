@@ -64,12 +64,7 @@ struct TodoOpsTests {
         // (= 5 segments above the file). Walk up 4 levels to reach
         // the repo root (= .../wt/v1.72-settings-kanban-todo-mvvm-2026-09-22/).
         let repoRoot = SourceLocator.repoRoot
-        let sourcePath = repoRoot
-            .appendingPathComponent("Sources")
-            .appendingPathComponent("WenshuApp")
-            .appendingPathComponent("Views")
-            .appendingPathComponent("Todo")
-            .appendingPathComponent("TodoOps.swift")
+        let sourcePath = repoRoot.appendingPathComponent("Sources/WenshuApp/Features/Agent/View/TodoOps.swift")
             .path
         #expect(FileManager.default.fileExists(atPath: sourcePath),
                 "TodoOps.swift must exist at \(sourcePath) (= v1.72 T2b extraction target)")

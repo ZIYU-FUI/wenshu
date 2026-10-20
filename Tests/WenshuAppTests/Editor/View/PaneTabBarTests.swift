@@ -54,7 +54,7 @@ struct PaneTabBarTests {
 
     @Test("PaneTabBar source declares @MainActor + generic Item: Identifiable & Sendable, Trailing: View")
     func paneTabBarSourceSignature() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/UI/PaneTabBar.swift")
+        let url = SourceLocator.url("Sources/WenshuApp/Shared/UI/PaneTabBar.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("@MainActor"), "PaneTabBar must be @MainActor (= macOS SwiftUI main-thread only)")
         #expect(content.contains("struct PaneTabBar<Item: Identifiable & Sendable, Trailing: View>"),
@@ -63,7 +63,7 @@ struct PaneTabBarTests {
 
     @Test("PaneTabBar source has the convenience initializer for PaneTabItem items")
     func paneTabBarConvenienceInit() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/UI/PaneTabBar.swift")
+        let url = SourceLocator.url("Sources/WenshuApp/Shared/UI/PaneTabBar.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("where Item == PaneTabItem"),
                 "PaneTabBar must expose `where Item == PaneTabItem` convenience init")
@@ -74,7 +74,7 @@ struct PaneTabBarTests {
 
     @Test("PaneTabBar source always renders trailing (= the no-EmptyView-skip rule)")
     func paneTabBarAlwaysRendersTrailing() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/UI/PaneTabBar.swift")
+        let url = SourceLocator.url("Sources/WenshuApp/Shared/UI/PaneTabBar.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("Spacer(minLength: 0)"),
                 "PaneTabBar must use Spacer(minLength: 0) to push trailing to the right edge")
@@ -84,7 +84,7 @@ struct PaneTabBarTests {
 
     @Test("PaneIconTab source uses matchedGeometryEffect for the selected-state underline")
     func paneIconTabMatchedGeometry() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/UI/PaneTabBar.swift")
+        let url = SourceLocator.url("Sources/WenshuApp/Shared/UI/PaneTabBar.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("matchedGeometryEffect(id: namespaceID, in: namespace)"),
                 "PaneIconTab must use matchedGeometryEffect for the slide animation")

@@ -98,7 +98,7 @@ struct EntityTypeEntityCategoryDeadCodeTests {
     /// EntityType.displayName thinking it's also dead, the build will
     /// fail loudly via the EntityClassifier LLM prompt caller).
     @Test func active_entity_type_properties_still_present() {
-        let path = "Sources/WenshuApp/Domain/EntityType.swift"
+        let path = "Sources/WenshuApp/Features/Library/Model/EntityType.swift"
         guard let text = try? String(contentsOfFile: path, encoding: .utf8) else {
             Issue.record("Cannot read \(path)")
             return
@@ -114,7 +114,7 @@ struct EntityTypeEntityCategoryDeadCodeTests {
     }
 
     @Test func active_entity_category_properties_still_present() {
-        let path = "Sources/WenshuApp/Domain/EntityCategory.swift"
+        let path = "Sources/WenshuApp/Features/Library/Model/EntityCategory.swift"
         guard let text = try? String(contentsOfFile: path, encoding: .utf8) else {
             Issue.record("Cannot read \(path)")
             return

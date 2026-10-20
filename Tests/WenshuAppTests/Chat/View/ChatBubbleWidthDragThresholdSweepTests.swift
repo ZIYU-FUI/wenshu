@@ -55,16 +55,16 @@ struct ChatBubbleWidthDragThresholdSweepTests {
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         let sweptFiles: [(String, String)] = [
-            ("Views/Chat/ChatToolUsePartView.swift", "chatBubbleMaxWidth"),
-            ("Views/Chat/ChatPlanPartView.swift", "planListMaxWidth"),
-            ("Views/Chat/ChatMessageAttachmentPreview.swift", "attachmentPreviewMaxSize"),
-            ("Views/Chat/ChatToolDiffPreview.swift", "chatBubbleMaxWidth"),
-            ("Views/Chat/ChatToolResultPartView.swift", "chatBubbleMaxWidth"),
-            ("Views/Chat/ChatSlashCommandAutocomplete.swift", "chatBubbleMaxWidth"),
-            ("Views/SpecializedTools/ReaderExperienceView.swift", "metadataPanelMaxWidth"),
-            ("Views/SpecializedTools/GenreFitView.swift", "metadataPanelMaxWidth"),
-            ("Views/Onboarding/LibraryRootView.swift", "onboardingWelcomeMaxWidth"),
-            ("Views/Workspace/LayoutPicker/ZoneEditor.swift", "dragGestureThresholdCanvas"),
+            ("Features/Chat/View/ChatToolUsePartView.swift", "chatBubbleMaxWidth"),
+            ("Features/Chat/View/ChatPlanPartView.swift", "planListMaxWidth"),
+            ("Features/Chat/View/ChatMessageAttachmentPreview.swift", "attachmentPreviewMaxSize"),
+            ("Features/Chat/View/ChatToolDiffPreview.swift", "chatBubbleMaxWidth"),
+            ("Features/Chat/View/ChatToolResultPartView.swift", "chatBubbleMaxWidth"),
+            ("Features/Chat/View/ChatSlashCommandAutocomplete.swift", "chatBubbleMaxWidth"),
+            ("Features/Agent/View/ReaderExperienceView.swift", "metadataPanelMaxWidth"),
+            ("Features/Agent/View/GenreFitView.swift", "metadataPanelMaxWidth"),
+            ("Shared/UI/LibraryRootView.swift", "onboardingWelcomeMaxWidth"),
+            ("Features/Editor/View/ZoneEditor.swift", "dragGestureThresholdCanvas"),
         ]
 
         for (relative, expectedToken) in sweptFiles {

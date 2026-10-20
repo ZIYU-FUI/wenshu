@@ -26,27 +26,10 @@ import Testing
 
 @Suite("EditorView (v0.93 — editor pane wrapper with tab strip + dirty alert)")
 struct EditorViewTests {
-    /// 
-    /// EditorView source path from THIS test file's path
-    /// (= #filePath). This means the tests work regardless of
-    /// where the worktree is mounted (= v1.32 hit a build failure
-    /// when EditorView was in a worktree because the old
-    /// hardcoded path pointed to the main worktree).
+    /// Resolved through SourceLocator (= a Package.swift probe), so this test
+    /// keeps working wherever it sits in the tree.
     private static var editorPlaceholderPath: String {
-        let testFileURL = SourceLocator.repoRoot
-        let testsDir = testFileURL.deletingLastPathComponent()  // Views/Workspace/
-        let repoRoot = testsDir
-            .deletingLastPathComponent()  // Views/
-            .deletingLastPathComponent()  // WenshuAppTests/
-            .deletingLastPathComponent()  // Tests/
-            .deletingLastPathComponent()  // repo root
-        return repoRoot
-            .appendingPathComponent("Sources")
-            .appendingPathComponent("WenshuApp")
-            .appendingPathComponent("Views")
-            .appendingPathComponent("Workspace")
-            .appendingPathComponent("EditorView.swift")
-            .path
+        SourceLocator.path("Sources/WenshuApp/Features/Editor/View/EditorView.swift")
     }
 
     private func readEditorViewSource() throws -> String {

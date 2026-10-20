@@ -21,7 +21,7 @@ struct EmptyStateViewIconMigrationTests {
 
     @Test("EmptyStateView source no longer uses DesignTokens.emptyStateIconSize in production code")
     func emptyStateViewNoLongerUsesEmptyStateIconSize() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/UI/EmptyState/EmptyStateView.swift")
+        let url = SourceLocator.url("Sources/WenshuApp/Shared/UI/EmptyStateView.swift")
         let raw = try String(contentsOf: url, encoding: .utf8)
         // Strip comment lines so doc-comment cross-references don't false-positive.
         let stripped = raw.components(separatedBy: "\n").filter { line in
@@ -34,7 +34,7 @@ struct EmptyStateViewIconMigrationTests {
 
     @Test("EmptyStateView hero icon uses SFIcon style: .emptyStateHero + .secondary")
     func emptyStateViewHeroUsesSFIcon() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/UI/EmptyState/EmptyStateView.swift")
+        let url = SourceLocator.url("Sources/WenshuApp/Shared/UI/EmptyStateView.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("SFIcon(icon, style: .emptyStateHero, color: IconColor.secondary)"),
                 "EmptyStateView hero icon must render via SFIcon(.emptyStateHero, .secondary)")

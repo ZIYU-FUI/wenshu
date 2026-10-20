@@ -17,7 +17,7 @@ struct SidebarZoneHeaderButtonsIconMigrationTests {
 
     @Test("SidebarZoneHeaderButtons source no longer uses naked Image(systemName:)")
     func sourceNoLongerUsesNakedImage() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Library/View/SidebarZoneHeaderButtons.swift")
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Library/View/SidebarZoneHeaderButtons.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         let stripped = content.components(separatedBy: "\n").filter { line in
             let trimmed = line.trimmingCharacters(in: .whitespaces)
@@ -29,7 +29,7 @@ struct SidebarZoneHeaderButtonsIconMigrationTests {
 
     @Test("SidebarZoneHeaderButtons zone header icon uses SFIcon style: .paneTab + .tint")
     func zoneHeaderIconUsesSFIcon() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Library/View/SidebarZoneHeaderButtons.swift")
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Library/View/SidebarZoneHeaderButtons.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("SFIcon(iconName, style: .paneTab, color: IconColor.tint)"),
                 "SidebarZoneHeaderButtons zone header icon must render via SFIcon(.paneTab, IconColor.tint)")

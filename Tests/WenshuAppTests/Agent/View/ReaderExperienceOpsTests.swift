@@ -31,8 +31,7 @@ struct ReaderExperienceOpsTests {
 
     @Test("ReaderExperienceOps.swift exists at the canonical path under Views/SpecializedTools/")
     func fileExistsAtCanonicalPath() throws {
-        let repoRoot = SourceLocator.repoRoot
-        let sourcePath = repoRoot
+        let sourcePath = SourceLocator.repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/ReaderExperienceOps.swift")
         let exists = FileManager.default.fileExists(atPath: sourcePath.path)
         #expect(exists, "ReaderExperienceOps.swift must exist at \(sourcePath.path)")
@@ -104,8 +103,7 @@ struct ReaderExperienceOpsTests {
 
     @Test("source-marker: ops file contains 2 public static funcs")
     func sourceHasTwoPublicStaticFuncs() throws {
-        let repoRoot = SourceLocator.repoRoot
-        let sourcePath = repoRoot
+        let sourcePath = SourceLocator.repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/ReaderExperienceOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("static func ensureAnalyzer"))
@@ -114,8 +112,7 @@ struct ReaderExperienceOpsTests {
 
     @Test("ops file is a stateless enum (= no @Observable / @MainActor class)")
     func sourceIsStatelessEnum() throws {
-        let repoRoot = SourceLocator.repoRoot
-        let sourcePath = repoRoot
+        let sourcePath = SourceLocator.repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/ReaderExperienceOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("@MainActor"))
@@ -126,8 +123,7 @@ struct ReaderExperienceOpsTests {
 
     @Test("ensureAnalyzer declares inout analyzer parameter (= caller mutates state)")
     func sourceDeclaresInoutAnalyzer() throws {
-        let repoRoot = SourceLocator.repoRoot
-        let sourcePath = repoRoot
+        let sourcePath = SourceLocator.repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/ReaderExperienceOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("analyzer: inout ReaderExperienceAnalyzer?"))
@@ -135,8 +131,7 @@ struct ReaderExperienceOpsTests {
 
     @Test("source-marker: runAnalyze declares chapterText: String parameter")
     func sourceDeclaresRunAnalyzeChapterTextParameter() throws {
-        let repoRoot = SourceLocator.repoRoot
-        let sourcePath = repoRoot
+        let sourcePath = SourceLocator.repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/ReaderExperienceOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("chapterText: String"))
@@ -144,8 +139,7 @@ struct ReaderExperienceOpsTests {
 
     @Test("source-marker: runAnalyze declares kind: ReaderExperienceKind parameter")
     func sourceDeclaresRunAnalyzeKindParameter() throws {
-        let repoRoot = SourceLocator.repoRoot
-        let sourcePath = repoRoot
+        let sourcePath = SourceLocator.repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/ReaderExperienceOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("kind: ReaderExperienceKind"))

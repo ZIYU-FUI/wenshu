@@ -24,26 +24,10 @@ import Testing
 @Suite("TodoListView (v0.93 ticket 004 — per-(book × scope) todo list)")
 struct TodoListViewTests {
 
-    /// 
-    /// from THIS test file's path. Tests work regardless of where
-    /// the worktree is mounted (= v1.32 hit a build failure when
-    /// EditorView was in a worktree because the old hardcoded
-    /// path pointed to the main worktree).
+    /// Resolved through SourceLocator (= a Package.swift probe), so this test
+    /// keeps working wherever it sits in the tree.
     private static var todoListViewPath: String {
-        let testFileURL = SourceLocator.repoRoot
-        let testsDir = testFileURL.deletingLastPathComponent()  // Views/Todo/
-        let repoRoot = testsDir
-            .deletingLastPathComponent()  // Views/
-            .deletingLastPathComponent()  // WenshuAppTests/
-            .deletingLastPathComponent()  // Tests/
-            .deletingLastPathComponent()  // repo root
-        return repoRoot
-            .appendingPathComponent("Sources")
-            .appendingPathComponent("WenshuApp")
-            .appendingPathComponent("Views")
-            .appendingPathComponent("Todo")
-            .appendingPathComponent("TodoListView.swift")
-            .path
+        SourceLocator.path("Sources/WenshuApp/Features/Agent/View/TodoListView.swift")
     }
 
     private func readTodoListViewSource() throws -> String {

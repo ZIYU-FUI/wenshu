@@ -21,7 +21,7 @@ struct ChapterFocusLockConductorTests {
 
     @Test("WenshuConductor catches ChapterFocusLockedError and retries")
     func conductorCatchesAndRetries() throws {
-        let path = Self.repoSourcePath("Sources/WenshuApp/Core/Agent/Conversation/WenshuConductor.swift")
+        let path = Self.repoSourcePath("Sources/WenshuApp/WenshuAgent/Agent/WenshuConductor.swift")
         let source = try String(contentsOfFile: path, encoding: .utf8)
         #expect(source.contains("ChapterFocusLockedError"))
         #expect(source.contains("focusedChapterPath"))
@@ -29,7 +29,7 @@ struct ChapterFocusLockConductorTests {
 
     @Test("ChapterFocusLockConductor retries with a temporary lock release")
     func conductorReleasesLockDuringRetry() throws {
-        let path = Self.repoSourcePath("Sources/WenshuApp/Core/Agent/Conversation/WenshuConductor.swift")
+        let path = Self.repoSourcePath("Sources/WenshuApp/WenshuAgent/Agent/WenshuConductor.swift")
         let source = try String(contentsOfFile: path, encoding: .utf8)
         // The retry path must set focusedChapterPath to nil (= or
         // whatever the prior value was; = restored on exit) so the

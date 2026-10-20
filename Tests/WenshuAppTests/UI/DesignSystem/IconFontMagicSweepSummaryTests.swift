@@ -83,7 +83,7 @@ struct IconFontMagicSweepSummaryTests {
 
     @Test("Round 22 — DesignTokens file exists with all sweep-added tokens")
     func designTokensFileHasSweepAddedTokens() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/DesignTokens.swift")
+        let url = SourceLocator.url("Sources/WenshuApp/DesignTokens.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         // Round 8 cornerRadius tokens
         #expect(content.contains("static let surfaceCornerRadiusSmallButton: CGFloat = 5"))
@@ -113,7 +113,7 @@ struct IconFontMagicSweepSummaryTests {
 
     @Test("Round 22 — IconStyles file defines 11-case IconStyle + 11-case IconColor")
     func iconStylesFileHasCanonicalSurface() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Shared/UI/IconStyles.swift")
+        let url = SourceLocator.url("Sources/WenshuApp/Shared/UI/IconStyles.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("enum IconStyle"), "IconStyle enum must exist")
         #expect(content.contains("enum IconColor"), "IconColor enum must exist")
@@ -125,11 +125,11 @@ struct IconFontMagicSweepSummaryTests {
 
     @Test("Round 23 — IconStyles + IconStylesViews files declare the 6 SF region view wrappers")
     func iconStylesFileHasSFRegionWrappers() throws {
-        let iconStylesURL = URL(fileURLWithPath: "Sources/WenshuApp/Shared/UI/IconStyles.swift")
+        let iconStylesURL = SourceLocator.url("Sources/WenshuApp/Shared/UI/IconStyles.swift")
         let iconStylesContent = try String(contentsOf: iconStylesURL, encoding: .utf8)
         #expect(iconStylesContent.contains("struct SFIcon"), "SFIcon central wrapper must exist (= IconStyles.swift)")
 
-        let viewsURL = URL(fileURLWithPath: "Sources/WenshuApp/Shared/UI/IconStylesViews.swift")
+        let viewsURL = SourceLocator.url("Sources/WenshuApp/Shared/UI/IconStylesViews.swift")
         let viewsContent = try String(contentsOf: viewsURL, encoding: .utf8)
         #expect(viewsContent.contains("struct SFLabelRow"), "SFLabelRow sidebar-row wrapper must exist (= IconStylesViews.swift)")
         #expect(viewsContent.contains("struct SFStatusBadge"), "SFStatusBadge status-badge wrapper must exist (= IconStylesViews.swift)")
@@ -140,7 +140,7 @@ struct IconFontMagicSweepSummaryTests {
 
     @Test("Round 23 — SFRegions.md index exists (= per-region wrapper index)")
     func sfRegionsIndexExists() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Shared/UI/ComponentDocs/SFRegions.md")
+        let url = SourceLocator.url("Sources/WenshuApp/Shared/UI/ComponentDocs/SFRegions.md")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("SFRegions"), "SFRegions.md title must exist")
         #expect(content.contains("SFLabelRow"), "SFRegions.md must list SFLabelRow")

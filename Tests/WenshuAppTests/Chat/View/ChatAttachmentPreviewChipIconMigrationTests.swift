@@ -19,7 +19,7 @@ struct ChatAttachmentPreviewChipIconMigrationTests {
 
     @Test("ChatAttachmentPreviewChip source no longer uses naked Image(systemName:)")
     func sourceNoLongerUsesNakedImage() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Chat/View/ChatAttachmentPreviewChip.swift")
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Chat/View/ChatAttachmentPreviewChip.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         let stripped = content.components(separatedBy: "\n").filter { line in
             let trimmed = line.trimmingCharacters(in: .whitespaces)
@@ -31,7 +31,7 @@ struct ChatAttachmentPreviewChipIconMigrationTests {
 
     @Test("ChatAttachmentPreviewChip clear-button icon uses SFIcon style: .inlineSmall + .secondary")
     func clearButtonIconUsesSFIcon() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/Features/Chat/View/ChatAttachmentPreviewChip.swift")
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Chat/View/ChatAttachmentPreviewChip.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("SFIcon(\"xmark\", style: .inlineSmall, color: IconColor.secondary)"),
                 "ChatAttachmentPreviewChip clear-button icon must render via SFIcon(.inlineSmall, IconColor.secondary)")

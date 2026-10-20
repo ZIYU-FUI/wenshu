@@ -31,7 +31,7 @@ struct LibraryOnboardingWorkspaceImporterTests {
     }
 
     private static let foreshadowingGraphSourcePath = Self.repositoryURL(
-        relativePath: "Sources/WenshuApp/Views/Windows/ForeshadowingGraphWindow.swift"
+        relativePath: "Sources/WenshuApp/Features/Foreshadowing/View/ForeshadowingGraphWindow.swift"
     )
 
     @Test("foreshadowing graph window constructs its own BookStore")

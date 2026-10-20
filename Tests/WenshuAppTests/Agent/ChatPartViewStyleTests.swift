@@ -76,7 +76,7 @@ struct ChatPartViewStyleTests {
     /// Helper: load Swift source from the wenshu tree (= for style
     /// invariant checks).
     private static func loadSource(named file: String) -> String {
-        let path = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Features/Chat/View/\(file)"
+        let path = SourceLocator.path("Sources/WenshuApp/Features/Chat/View/\(file)")
         return (try? String(contentsOfFile: path, encoding: .utf8)) ?? ""
     }
 }

@@ -81,13 +81,7 @@ struct EditorPersistenceTests {
     @Test("EditorPersistence.swift exists at the canonical path")
     func fileExistsAtCanonicalPath() throws {
         let testsRoot = SourceLocator.repoRoot
-        let sourcePath = testsRoot
-            .appendingPathComponent("Sources")
-            .appendingPathComponent("WenshuApp")
-            .appendingPathComponent("Features")
-            .appendingPathComponent("Editor")
-            .appendingPathComponent("Store")
-            .appendingPathComponent("EditorPersistence.swift")
+        let sourcePath = testsRoot.appendingPathComponent("Sources/WenshuApp/Features/Editor/Store/EditorPersistence.swift")
             .path
         #expect(FileManager.default.fileExists(atPath: sourcePath),
                 "EditorPersistence.swift must exist at \(sourcePath) (= v1.70 T2a extraction target)")
@@ -100,8 +94,7 @@ struct EditorPersistenceTests {
 
     @Test("EditorPersistence exposes save / reloadFromDisk / handleDirtyTransition API")
     func exposesPublicAPI() throws {
-        let testsRoot = SourceLocator.repoRoot
-        let sourcePath = testsRoot
+        let sourcePath = SourceLocator.repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Editor/Store/EditorPersistence.swift").path
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("static func save(") || source.contains("func save("),

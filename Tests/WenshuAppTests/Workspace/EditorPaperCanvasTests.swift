@@ -30,18 +30,10 @@ import Testing
 @Suite("EditorPaperCanvas (v0.93 — A4 paper-canvas wrapper)")
 struct EditorPaperCanvasTests {
 
-    /// Resolves the EditorPaperCanvas.swift path from this test file's
-    /// `#filePath` (= `.../Tests/WenshuAppTests/Views/Workspace/EditorPaperCanvasTests.swift`)
-    /// by walking up 5 levels to the project root and appending the
-    /// canonical `Sources/...` path.
+    /// Resolved through SourceLocator (= a Package.swift probe), so this test
+    /// keeps working wherever it sits in the tree.
     private var editorPaperCanvasPath: String {
-        var url = SourceLocator.repoRoot
-        url.appendPathComponent("Sources")
-        url.appendPathComponent("WenshuApp")
-        url.appendPathComponent("Views")
-        url.appendPathComponent("Workspace")
-        url.appendPathComponent("EditorPaperCanvas.swift")
-        return url.path
+        SourceLocator.path("Sources/WenshuApp/Features/Editor/View/EditorPaperCanvas.swift")
     }
 
     @Test("source imports SwiftUI")

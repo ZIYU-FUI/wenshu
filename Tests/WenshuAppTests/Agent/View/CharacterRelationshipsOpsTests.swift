@@ -31,8 +31,7 @@ struct CharacterRelationshipsOpsTests {
 
     @Test("CharacterRelationshipsOps.swift exists at the canonical path under Views/SpecializedTools/")
     func fileExistsAtCanonicalPath() throws {
-        let repoRoot = SourceLocator.repoRoot
-        let sourcePath = repoRoot
+        let sourcePath = SourceLocator.repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/CharacterRelationshipsOps.swift")
         let exists = FileManager.default.fileExists(atPath: sourcePath.path)
         #expect(exists, "CharacterRelationshipsOps.swift must exist at \(sourcePath.path)")
@@ -174,8 +173,7 @@ struct CharacterRelationshipsOpsTests {
 
     @Test("source-marker: ops file contains 3 public static funcs")
     func sourceHasThreePublicStaticFuncs() throws {
-        let repoRoot = SourceLocator.repoRoot
-        let sourcePath = repoRoot
+        let sourcePath = SourceLocator.repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/CharacterRelationshipsOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("static func reload"))
@@ -185,8 +183,7 @@ struct CharacterRelationshipsOpsTests {
 
     @Test("ops file is a stateless enum (= no @Observable / @MainActor class)")
     func sourceIsStatelessEnum() throws {
-        let repoRoot = SourceLocator.repoRoot
-        let sourcePath = repoRoot
+        let sourcePath = SourceLocator.repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/CharacterRelationshipsOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("@MainActor"))

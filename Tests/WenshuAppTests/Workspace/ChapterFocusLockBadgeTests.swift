@@ -24,7 +24,7 @@ struct ChapterFocusLockBadgeTests {
 
     @Test("Editor placeholder surfaces the badge when the LLM holds the cursor")
     func editorSurfacesBadge() throws {
-        let path = Self.repoSourcePath("Sources/WenshuApp/Workspace/EditorView.swift")
+        let path = Self.repoSourcePath("Sources/WenshuApp/Features/Editor/View/EditorView.swift")
         let source = try String(contentsOfFile: path, encoding: .utf8)
         // The badge sits next to the title when the LLM has the
         // cursor (= focusedChapterPath == tab.documentPath AND

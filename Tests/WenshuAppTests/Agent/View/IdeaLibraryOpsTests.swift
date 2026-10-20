@@ -63,8 +63,7 @@ struct IdeaLibraryOpsTests {
 
     @Test("IdeaLibraryOps.swift exists at the canonical path under Views/SpecializedTools/")
     func fileExistsAtCanonicalPath() throws {
-        let repoRoot = SourceLocator.repoRoot
-        let sourcePath = repoRoot
+        let sourcePath = SourceLocator.repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/IdeaLibraryOps.swift")
         let exists = FileManager.default.fileExists(atPath: sourcePath.path)
         #expect(exists, "IdeaLibraryOps.swift must exist at \(sourcePath.path)")

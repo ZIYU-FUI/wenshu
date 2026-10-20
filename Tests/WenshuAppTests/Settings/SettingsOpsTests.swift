@@ -81,13 +81,7 @@ struct SettingsOpsTests {
         // (= 4 segments above the file: Views -> WenshuAppTests ->
         // Tests -> worktree = repo root).
         let repoRoot = SourceLocator.repoRoot
-        let sourcePath = repoRoot
-            .appendingPathComponent("Sources")
-            .appendingPathComponent("WenshuApp")
-            .appendingPathComponent("Features")
-            .appendingPathComponent("Settings")
-            .appendingPathComponent("Service")
-            .appendingPathComponent("SettingsOps.swift")
+        let sourcePath = repoRoot.appendingPathComponent("Sources/WenshuApp/Features/Settings/Service/SettingsOps.swift")
             .path
         #expect(FileManager.default.fileExists(atPath: sourcePath),
                 "SettingsOps.swift must exist at \(sourcePath) (= v1.72 T3b extraction target)")

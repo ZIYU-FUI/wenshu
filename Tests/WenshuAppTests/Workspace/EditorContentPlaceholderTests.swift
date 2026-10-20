@@ -71,8 +71,7 @@ struct EditorContentPlaceholderTests {
     /// worktree; = replaces v1.52 hardcoded worktree path that broke
     /// after v0.83 worktree merged and was deleted).
     private static func readSource() throws -> String {
-        let repoRoot = SourceLocator.repoRoot
-        let path = repoRoot
+        let path = SourceLocator.repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Editor/View/EditorContentPlaceholder.swift")
             .path
         return try String(contentsOfFile: path)

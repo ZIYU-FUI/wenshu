@@ -61,7 +61,7 @@ struct EditorChatNSControllerTests {
 
     @Test("autosaveName persists the divider position via Apple HIG UserDefaults path")
     func autosaveNameStable() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/UI/Layout/EditorChatNSController.swift")
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         // The autosaveName literal must match the UserDefaults
         // prefix 'NSSplitView Subview Frames'; = AppKit wires the
@@ -72,7 +72,7 @@ struct EditorChatNSControllerTests {
 
     @Test("firstLaunchSetKey = the one-shot UserDefaults flag that gates the 50:50 reset")
     func firstLaunchSetKeyStable() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/UI/Layout/EditorChatNSController.swift")
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("\"wenshu.editor.split.firstLaunchDidSet\""),
                 "firstLaunchSetKey must be the literal 'wenshu.editor.split.firstLaunchDidSet'")
@@ -82,7 +82,7 @@ struct EditorChatNSControllerTests {
 
     @Test("Source wires NSSplitView.dividerStyle = .thin (= Apple HIG hairline divider)")
     func sourceThinDividerStyle() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/UI/Layout/EditorChatNSController.swift")
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("self.splitView.dividerStyle = .thin"),
                 "EditorChatNSController must set dividerStyle = .thin (= Apple HIG Keynote/Pages standard)")
@@ -90,7 +90,7 @@ struct EditorChatNSControllerTests {
 
     @Test("Source wires NSSplitView.isVertical = false (= top-to-bottom Keynote speaker-notes layout)")
     func sourceTopToBottomLayout() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/UI/Layout/EditorChatNSController.swift")
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("self.splitView.isVertical = false"),
                 "EditorChatNSController must set isVertical = false so editor sits above the chat zone")
@@ -98,7 +98,7 @@ struct EditorChatNSControllerTests {
 
     @Test("Source wires splitView.autosaveName so the user's drag persists across launches")
     func sourceAutosaveWiring() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/UI/Layout/EditorChatNSController.swift")
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("self.splitView.autosaveName = Self.autosaveName"),
                 "EditorChatNSController must assign the static autosaveName (= persistence is automatic once wired)")
@@ -106,7 +106,7 @@ struct EditorChatNSControllerTests {
 
     @Test("Source applies 50:50 first-launch reset via splitView.bounds.height / 2 (= canonical formula)")
     func sourceFiftyFiftyFormula() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/UI/Layout/EditorChatNSController.swift")
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("splitView.bounds.height / 2"),
                 "applyFiftyFiftyFirstLaunch must compute dividerY = splitView.bounds.height / 2 (= 50% from the top)")
@@ -116,7 +116,7 @@ struct EditorChatNSControllerTests {
 
     @Test("Source toggles chat zone visibility via animator().isCollapsed (= native NSSplitView animation)")
     func sourceAnimatedCollapseToggle() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/UI/Layout/EditorChatNSController.swift")
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("item.animator().isCollapsed.toggle()"),
                 "toggleChatZone must use animator().isCollapsed.toggle() (= canonical NSSplitView animated collapse)")

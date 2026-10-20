@@ -43,7 +43,7 @@ struct PreviewPaneEmptyStateLocalizationTests {
     @Test("PreviewPane uses localized reference empty state")
     func previewPaneUsesLocalizedReferenceEmptyState() throws {
         let sourceURL = try Self.catalogURL(
-            relativePath: "Sources/WenshuApp/Workspace/PreviewPane.swift"
+            relativePath: "Sources/WenshuApp/Features/Editor/View/PreviewPane.swift"
         )
         let source = try String(contentsOf: sourceURL, encoding: .utf8)
 

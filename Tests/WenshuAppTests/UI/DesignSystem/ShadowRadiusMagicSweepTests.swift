@@ -28,7 +28,7 @@ struct ShadowRadiusMagicSweepTests {
 
     @Test("Round 12 — DesignTokens defines 2 new shadow radius tokens")
     func designTokensDefinesNewShadowRadiusTokens() throws {
-        let url = URL(fileURLWithPath: "Sources/WenshuApp/DesignTokens.swift")
+        let url = SourceLocator.url("Sources/WenshuApp/DesignTokens.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("static let surfaceShadowRadiusWindow: CGFloat = 12"),
                 "surfaceShadowRadiusWindow (12) must be defined (= round 12 new)")
@@ -39,8 +39,8 @@ struct ShadowRadiusMagicSweepTests {
     @Test("Round 12 — production code has no naked .shadow(radius: <int>) literals")
     func productionCodeHasNoMagicShadowRadius() throws {
         let sweptFiles = [
-            "Sources/WenshuApp/Workspace/LayoutPicker/LayoutEditBar.swift",
-            "Sources/WenshuApp/Workspace/EditorPaperCanvas.swift",
+            "Sources/WenshuApp/Features/Editor/View/LayoutEditBar.swift",
+            "Sources/WenshuApp/Features/Editor/View/EditorPaperCanvas.swift",
         ]
         for path in sweptFiles {
             let url = URL(fileURLWithPath: path)

@@ -55,7 +55,7 @@ struct LabelIconSlotSweepTests {
     // 14 swept files (= 24 sites; = the original 26 minus 2 dropped
     // sites in LibraryRootView).
     static let sweptFiles: [(path: String, sites: Int)] = [
-        ("Sources/WenshuApp/Views/Kanban/KanbanView.swift", 1),
+        ("Sources/WenshuApp/Features/Kanban/View/KanbanView.swift", 1),
         ("Sources/WenshuApp/Features/Agent/View/BookSettingConstraintsView.swift", 2),
         ("Sources/WenshuApp/Features/Agent/View/CharacterLifecycleView.swift", 1),
         ("Sources/WenshuApp/Features/Agent/View/CharacterRelationshipsView.swift", 1),

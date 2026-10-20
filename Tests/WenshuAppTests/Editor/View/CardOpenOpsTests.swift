@@ -77,8 +77,7 @@ struct CardOpenOpsTests {
 
     @Test("CardOpenOps.swift exists at the canonical path under UI/Layout/")
     func fileExistsAtCanonicalPath() throws {
-        let repoRoot = SourceLocator.repoRoot
-        let sourcePath = repoRoot
+        let sourcePath = SourceLocator.repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Editor/View/CardOpenOps.swift")
         let exists = FileManager.default.fileExists(atPath: sourcePath.path)
         #expect(exists, "CardOpenOps.swift must exist at \(sourcePath.path)")

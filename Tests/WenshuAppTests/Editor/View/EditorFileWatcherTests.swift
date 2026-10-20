@@ -72,13 +72,7 @@ struct EditorFileWatcherTests {
     @Test("EditorFileWatcher.swift exists at the canonical path")
     func fileExistsAtCanonicalPath() throws {
         let testsRoot = SourceLocator.repoRoot
-        let sourcePath = testsRoot
-            .appendingPathComponent("Sources")
-            .appendingPathComponent("WenshuApp")
-            .appendingPathComponent("Features")
-            .appendingPathComponent("Editor")
-            .appendingPathComponent("Model")
-            .appendingPathComponent("EditorFileWatcher.swift")
+        let sourcePath = testsRoot.appendingPathComponent("Sources/WenshuApp/Features/Editor/Model/EditorFileWatcher.swift")
             .path
         #expect(FileManager.default.fileExists(atPath: sourcePath),
                 "EditorFileWatcher.swift must exist at \(sourcePath) (= v1.70 T1a extraction target)")
@@ -91,8 +85,7 @@ struct EditorFileWatcherTests {
 
     @Test("EditorFileWatcher exposes start(path:tab:) + stop(tab:) public API")
     func exposesPublicAPI() throws {
-        let testsRoot = SourceLocator.repoRoot
-        let sourcePath = testsRoot
+        let sourcePath = SourceLocator.repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Editor/Model/EditorFileWatcher.swift").path
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         #expect(source.contains("static func start(") || source.contains("func start("),
@@ -147,8 +140,7 @@ struct EditorFileWatcherTests {
 
     @Test("start() sets onChange handler that invokes onChange() on .write + .extend events (= B-23)")
     func onChangeHandlerInvokesCallback() throws {
-        let testsRoot = SourceLocator.repoRoot
-        let sourcePath = testsRoot
+        let sourcePath = SourceLocator.repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Editor/Model/EditorFileWatcher.swift").path
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
         // Legacy EditorView called `reloadDocumentFromDisk()` (= the

@@ -146,7 +146,7 @@ struct EmotionCurveViewTests {
 
     @Test("EmotionCurveViewState mirror file exists (= companion file under Views/SpecializedTools/)")
     func testStateMirrorFileExists() throws {
-        let filePath = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Features/Agent/Store/EmotionCurveViewState.swift"
+        let filePath = SourceLocator.path("Sources/WenshuApp/Features/Agent/Store/EmotionCurveViewState.swift")
         #expect(FileManager.default.fileExists(atPath: filePath),
                 "EmotionCurveViewState.swift must exist as a companion file")
         let source = try String(contentsOfFile: filePath, encoding: .utf8)

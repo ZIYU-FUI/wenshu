@@ -20,7 +20,7 @@ struct PlanModelTests {
     /// T30 contract: Plan has a `model: String?` field.
     @Test func plan_has_model_field() throws {
         let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Core/Agent/Plan/PlanModeEngine.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Agent/Store/PlanModeEngine.swift",
             encoding: .utf8
         )
         #expect(source.contains("let model: String?"),
@@ -31,7 +31,7 @@ struct PlanModelTests {
     /// backward-compat for older plans without the field).
     @Test func plan_init_accepts_optional_model() throws {
         let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Core/Agent/Plan/PlanModeEngine.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Agent/Store/PlanModeEngine.swift",
             encoding: .utf8
         )
         #expect(source.contains("model: String? = nil"))
@@ -63,7 +63,7 @@ struct PlanModelTests {
     /// `model` field) and surfaces it on the returned Plan.
     @Test func engine_run_surfaces_model() throws {
         let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Core/Agent/Plan/PlanModeEngine.swift",
+            contentsOfFile: "Sources/WenshuApp/Features/Agent/Store/PlanModeEngine.swift",
             encoding: .utf8
         )
         // The engine's run() should construct a new Plan with

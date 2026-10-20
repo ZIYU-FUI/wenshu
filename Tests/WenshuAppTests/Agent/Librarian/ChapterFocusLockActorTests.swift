@@ -22,7 +22,7 @@ struct ChapterFocusLockActorTests {
 
     @Test("EditChapterActor declares ChapterFocusLockedError and reads the lock")
     func editActorDeclaresError() throws {
-        let path = Self.repoSourcePath("Sources/WenshuApp/Core/Agent/Librarian/EditChapterActor.swift")
+        let path = Self.repoSourcePath("Sources/WenshuApp/Features/Agent/Service/EditChapterActor.swift")
         let source = try String(contentsOfFile: path, encoding: .utf8)
         #expect(source.contains("ChapterFocusLockedError"))
         #expect(source.contains("focusedChapterPath"))
@@ -33,7 +33,7 @@ struct ChapterFocusLockActorTests {
         // v1.85 chat-diff-preview arc (= §11.20) consolidated BookChapterActor
         // into BookChapterTool.swift (= the actor + tool live in the same
         // file). Tests assert against the canonical file containing the actor.
-        let path = Self.repoSourcePath("Sources/WenshuApp/Core/Agent/Librarian/BookChapterTool.swift")
+        let path = Self.repoSourcePath("Sources/WenshuApp/Features/Agent/Service/BookChapterTool.swift")
         let source = try String(contentsOfFile: path, encoding: .utf8)
         // Both `update` and the patch-style `edit` surfaces must
         // honor the lock. The book_chapter tool exposes update

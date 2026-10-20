@@ -32,8 +32,7 @@ struct PreviewPaneOpsTests {
 
     @Test("PreviewPaneOps.swift exists at the canonical path under UI/Layout/")
     func fileExistsAtCanonicalPath() throws {
-        let repoRoot = SourceLocator.repoRoot
-        let sourcePath = repoRoot
+        let sourcePath = SourceLocator.repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Editor/View/PreviewPaneOps.swift")
         let exists = FileManager.default.fileExists(atPath: sourcePath.path)
         #expect(exists, "PreviewPaneOps.swift must exist at \(sourcePath.path)")
@@ -133,8 +132,7 @@ struct PreviewPaneOpsTests {
 
     @Test("source-marker: ops file contains 11 public static funcs")
     func sourceHasElevenPublicStaticFuncs() throws {
-        let repoRoot = SourceLocator.repoRoot
-        let sourcePath = repoRoot
+        let sourcePath = SourceLocator.repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Editor/View/PreviewPaneOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("static func loadAllEntities"))
@@ -152,8 +150,7 @@ struct PreviewPaneOpsTests {
 
     @Test("ops file is a stateless enum (= no @Observable / @MainActor class)")
     func sourceIsStatelessEnum() throws {
-        let repoRoot = SourceLocator.repoRoot
-        let sourcePath = repoRoot
+        let sourcePath = SourceLocator.repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Editor/View/PreviewPaneOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("@MainActor"))

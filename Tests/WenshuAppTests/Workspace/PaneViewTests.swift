@@ -42,28 +42,10 @@ struct PaneViewTests {
     /// Per Q173 ponytail: derive path with simple string replacement.
     /// Per Q34 5.2 + Q57: keep this helper inside the test struct so
     /// the test file remains self-contained.
+    /// Resolved through SourceLocator (= a Package.swift probe), so this test
+    /// keeps working wherever it sits in the tree.
     private static var zoneModuleViewPath: String {
-        // #filePath = "Tests/.../PaneViewTests.swift" (= relative)
-        // Get the directory containing this test file (= ".../Tests/.../")
-        // then append the target source file's relative path.
-        let testFileURL = SourceLocator.repoRoot
-        let testsDir = testFileURL.deletingLastPathComponent()  // Views/Workspace/
-        // Walk up to the repo root: Tests/WenshuAppTests/Views/Workspace/
-        // → Tests/WenshuAppTests/Views/ → Tests/WenshuAppTests/ → Tests/
-        // → repo root (4 levels up from Views/Workspace/).
-        let repoRoot = testsDir
-            .deletingLastPathComponent()  // Views/
-            .deletingLastPathComponent()  // WenshuAppTests/
-            .deletingLastPathComponent()  // Tests/
-            .deletingLastPathComponent()  // repo root
-        // Append the target source file's relative path from repo root.
-        return repoRoot
-            .appendingPathComponent("Sources")
-            .appendingPathComponent("WenshuApp")
-            .appendingPathComponent("Views")
-            .appendingPathComponent("Workspace")
-            .appendingPathComponent("PaneView.swift")
-            .path
+        SourceLocator.path("Sources/WenshuApp/Features/Editor/View/PaneView.swift")
     }
 
     /// Helper: read the entire PaneView.swift source.

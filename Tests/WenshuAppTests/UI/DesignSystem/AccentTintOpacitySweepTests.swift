@@ -104,8 +104,7 @@ struct AccentTintOpacitySweepTests {
     @Test("accentTintOpacityHero value is 0.18 (hero accent canonical)")
     func accentTintOpacityHeroValueIs018() throws {
         // Verify the DesignTokens token value (= the source of truth).
-        let root = SourceLocator.repoRoot
-        let designTokens = root
+        let designTokens = SourceLocator.repoRoot
             .appendingPathComponent("Sources/WenshuApp/DesignTokens.swift")
         let content = try String(contentsOf: designTokens, encoding: .utf8)
         #expect(content.contains("accentTintOpacityHero: Double = 0.18"),

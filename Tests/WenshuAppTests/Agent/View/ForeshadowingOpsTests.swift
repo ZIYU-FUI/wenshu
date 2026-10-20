@@ -31,8 +31,7 @@ struct ForeshadowingOpsTests {
 
     @Test("ForeshadowingOps.swift exists at the canonical path under Views/Tools/")
     func fileExistsAtCanonicalPath() throws {
-        let repoRoot = SourceLocator.repoRoot
-        let sourcePath = repoRoot
+        let sourcePath = SourceLocator.repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/ForeshadowingOps.swift")
         let exists = FileManager.default.fileExists(atPath: sourcePath.path)
         #expect(exists, "ForeshadowingOps.swift must exist at \(sourcePath.path)")
@@ -152,8 +151,7 @@ struct ForeshadowingOpsTests {
 
     @Test("source-marker: ops file contains 3 public static funcs")
     func sourceHasThreePublicStaticFuncs() throws {
-        let repoRoot = SourceLocator.repoRoot
-        let sourcePath = repoRoot
+        let sourcePath = SourceLocator.repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/ForeshadowingOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("static func reload"))
@@ -163,8 +161,7 @@ struct ForeshadowingOpsTests {
 
     @Test("ops file is a stateless enum (= no @Observable / @MainActor class)")
     func sourceIsStatelessEnum() throws {
-        let repoRoot = SourceLocator.repoRoot
-        let sourcePath = repoRoot
+        let sourcePath = SourceLocator.repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/ForeshadowingOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("@MainActor"))
@@ -175,8 +172,7 @@ struct ForeshadowingOpsTests {
 
     @Test("ops file is in Views/Tools/ (= matches ForeshadowingView location)")
     func sourceIsInViewsToolsDirectory() throws {
-        let repoRoot = SourceLocator.repoRoot
-        let sourcePath = repoRoot
+        let sourcePath = SourceLocator.repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/ForeshadowingOps.swift")
         #expect(sourcePath.path.contains("/Features/Agent/View/"))
     }

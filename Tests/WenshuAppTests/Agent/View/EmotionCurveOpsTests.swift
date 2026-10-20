@@ -31,8 +31,7 @@ struct EmotionCurveOpsTests {
 
     @Test("EmotionCurveOps.swift exists at the canonical path under Views/SpecializedTools/")
     func fileExistsAtCanonicalPath() throws {
-        let repoRoot = SourceLocator.repoRoot
-        let sourcePath = repoRoot
+        let sourcePath = SourceLocator.repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/EmotionCurveOps.swift")
         let exists = FileManager.default.fileExists(atPath: sourcePath.path)
         #expect(exists, "EmotionCurveOps.swift must exist at \(sourcePath.path)")
@@ -111,8 +110,7 @@ struct EmotionCurveOpsTests {
 
     @Test("source-marker: ops file contains 2 public static funcs")
     func sourceHasTwoPublicStaticFuncs() throws {
-        let repoRoot = SourceLocator.repoRoot
-        let sourcePath = repoRoot
+        let sourcePath = SourceLocator.repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/EmotionCurveOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("static func ensureAnalyzer"))
@@ -121,8 +119,7 @@ struct EmotionCurveOpsTests {
 
     @Test("ops file is a stateless enum (= no @Observable / @MainActor class)")
     func sourceIsStatelessEnum() throws {
-        let repoRoot = SourceLocator.repoRoot
-        let sourcePath = repoRoot
+        let sourcePath = SourceLocator.repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/EmotionCurveOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("@MainActor"))
@@ -133,8 +130,7 @@ struct EmotionCurveOpsTests {
 
     @Test("ensureAnalyzer declares inout analyzer parameter (= caller mutates state)")
     func sourceDeclaresInoutAnalyzer() throws {
-        let repoRoot = SourceLocator.repoRoot
-        let sourcePath = repoRoot
+        let sourcePath = SourceLocator.repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/EmotionCurveOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("analyzer: inout EmotionCurveAnalyzer?"))
@@ -142,8 +138,7 @@ struct EmotionCurveOpsTests {
 
     @Test("source-marker: runAnalyze declares chapterText: String parameter")
     func sourceDeclaresRunAnalyzeChapterTextParameter() throws {
-        let repoRoot = SourceLocator.repoRoot
-        let sourcePath = repoRoot
+        let sourcePath = SourceLocator.repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/EmotionCurveOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("chapterText: String"))
@@ -151,8 +146,7 @@ struct EmotionCurveOpsTests {
 
     @Test("source-marker: runAnalyze declares windowCount: Int parameter")
     func sourceDeclaresRunAnalyzeWindowCountParameter() throws {
-        let repoRoot = SourceLocator.repoRoot
-        let sourcePath = repoRoot
+        let sourcePath = SourceLocator.repoRoot
             .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/EmotionCurveOps.swift")
         let source = try String(contentsOf: sourcePath, encoding: .utf8)
         #expect(source.contains("windowCount: Int"))

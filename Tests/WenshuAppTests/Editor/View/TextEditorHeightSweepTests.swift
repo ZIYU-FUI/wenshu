@@ -57,12 +57,12 @@ struct TextEditorHeightSweepTests {
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         let sweptFiles: [(String, [String])] = [
-            ("Views/Tools/PlaceholderView.swift", ["textEditorSmallMinHeight", "textEditorSmallMaxHeight"]),
-            ("Views/SpecializedTools/ReaderExperienceView.swift", ["textEditorSmallMinHeight", "textEditorSmallMaxHeight"]),
-            ("Views/SpecializedTools/BookSettingConstraintsView.swift", ["textEditorMediumMinHeight", "textEditorMediumMaxHeight"]),
-            ("Views/SpecializedTools/LongFormGuardrailsView.swift", ["textEditorSmallMinHeight", "textEditorCompactMaxHeight"]),
-            ("Views/SpecializedTools/EmotionCurveView.swift", ["textEditorSmallMinHeight", "textEditorSmallMaxHeight"]),
-            ("Views/SpecializedTools/GenreFitView.swift", ["textEditorSmallMinHeight", "textEditorSmallMaxHeight"]),
+            ("Features/Agent/View/PlaceholderView.swift", ["textEditorSmallMinHeight", "textEditorSmallMaxHeight"]),
+            ("Features/Agent/View/ReaderExperienceView.swift", ["textEditorSmallMinHeight", "textEditorSmallMaxHeight"]),
+            ("Features/Agent/View/BookSettingConstraintsView.swift", ["textEditorMediumMinHeight", "textEditorMediumMaxHeight"]),
+            ("Features/Agent/View/LongFormGuardrailsView.swift", ["textEditorSmallMinHeight", "textEditorCompactMaxHeight"]),
+            ("Features/Agent/View/EmotionCurveView.swift", ["textEditorSmallMinHeight", "textEditorSmallMaxHeight"]),
+            ("Features/Agent/View/GenreFitView.swift", ["textEditorSmallMinHeight", "textEditorSmallMaxHeight"]),
         ]
 
         for (relative, expectedTokens) in sweptFiles {

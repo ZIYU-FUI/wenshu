@@ -27,7 +27,7 @@ final class SidebarCreateDeleteRenameTests: XCTestCase {
     /// helpers live in a sibling file). Tests use this helper to verify
     /// the business surface across the split.
     private func loadSidebarServiceBody() throws -> String {
-        let dir = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Features/Library/View/"
+        let dir = SourceLocator.path("Sources/WenshuApp/Features/Library/View/")
         let files = try FileManager.default.contentsOfDirectory(atPath: dir)
             .filter { $0.hasPrefix("SidebarService") && $0.hasSuffix(".swift") }
             .sorted()
@@ -41,7 +41,7 @@ final class SidebarCreateDeleteRenameTests: XCTestCase {
     /// helper to verify the wiring (= showNew*Sheet state, SidebarContextMenu
     /// Modifier, .sheet(item:) for rename, .alert for delete) survives the split.
     private func loadAppleSidebarWiringBody() throws -> String {
-        let dir = "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Features/Library/View/"
+        let dir = SourceLocator.path("Sources/WenshuApp/Features/Library/View/")
         let files = try FileManager.default.contentsOfDirectory(atPath: dir)
             .filter {
                 ($0.hasPrefix("AppleSidebar") || $0.hasPrefix("SidebarContextMenu") || $0.hasPrefix("SidebarSheets"))
@@ -58,7 +58,7 @@ final class SidebarCreateDeleteRenameTests: XCTestCase {
     func testSidebarSheets_file_exists() {
         XCTAssertTrue(
             FileManager.default.fileExists(
-                atPath: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Features/Library/View/SidebarSheets.swift"
+                atPath: SourceLocator.path("Sources/WenshuApp/Features/Library/View/SidebarSheets.swift")
             ),
             "SidebarSheets.swift must exist (= v1.69y restored sheets file)"
         )
@@ -66,7 +66,7 @@ final class SidebarCreateDeleteRenameTests: XCTestCase {
 
     func testSidebarSheets_defines_NewChoiceSheet() throws {
         let body = try String(
-            contentsOfFile: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Features/Library/View/SidebarSheets.swift",
+            contentsOfFile: SourceLocator.path("Sources/WenshuApp/Features/Library/View/SidebarSheets.swift"),
             encoding: .utf8
         )
         XCTAssertTrue(
@@ -77,7 +77,7 @@ final class SidebarCreateDeleteRenameTests: XCTestCase {
 
     func testSidebarSheets_defines_NewShelfSheet() throws {
         let body = try String(
-            contentsOfFile: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Features/Library/View/SidebarSheets.swift",
+            contentsOfFile: SourceLocator.path("Sources/WenshuApp/Features/Library/View/SidebarSheets.swift"),
             encoding: .utf8
         )
         XCTAssertTrue(
@@ -88,7 +88,7 @@ final class SidebarCreateDeleteRenameTests: XCTestCase {
 
     func testSidebarSheets_defines_NewBookSheet() throws {
         let body = try String(
-            contentsOfFile: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Features/Library/View/SidebarSheets.swift",
+            contentsOfFile: SourceLocator.path("Sources/WenshuApp/Features/Library/View/SidebarSheets.swift"),
             encoding: .utf8
         )
         XCTAssertTrue(
@@ -99,7 +99,7 @@ final class SidebarCreateDeleteRenameTests: XCTestCase {
 
     func testSidebarSheets_defines_RenameItemSheet() throws {
         let body = try String(
-            contentsOfFile: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Features/Library/View/SidebarSheets.swift",
+            contentsOfFile: SourceLocator.path("Sources/WenshuApp/Features/Library/View/SidebarSheets.swift"),
             encoding: .utf8
         )
         XCTAssertTrue(
@@ -110,7 +110,7 @@ final class SidebarCreateDeleteRenameTests: XCTestCase {
 
     func testSidebarSheets_defines_state_types_for_dismiss_target() throws {
         let body = try String(
-            contentsOfFile: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Features/Library/View/SidebarSheets.swift",
+            contentsOfFile: SourceLocator.path("Sources/WenshuApp/Features/Library/View/SidebarSheets.swift"),
             encoding: .utf8
         )
         // The `.sheet(item: $renaming)` and `.alert(presenting:)`
@@ -128,7 +128,7 @@ final class SidebarCreateDeleteRenameTests: XCTestCase {
     func testSidebarContextMenu_file_exists() {
         XCTAssertTrue(
             FileManager.default.fileExists(
-                atPath: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Features/Library/View/SidebarContextMenu.swift"
+                atPath: SourceLocator.path("Sources/WenshuApp/Features/Library/View/SidebarContextMenu.swift")
             ),
             "SidebarContextMenu.swift must exist (= v1.69y restored context-menu file)"
         )
@@ -141,7 +141,7 @@ final class SidebarCreateDeleteRenameTests: XCTestCase {
         // the closure body uses direct Button rows; = no Divider; = no
         // Group; = no AnyView; = matches the Apple Developer doc example).
         let body = try String(
-            contentsOfFile: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Features/Library/View/SidebarContextMenu.swift",
+            contentsOfFile: SourceLocator.path("Sources/WenshuApp/Features/Library/View/SidebarContextMenu.swift"),
             encoding: .utf8
         )
         XCTAssertTrue(
@@ -156,7 +156,7 @@ final class SidebarCreateDeleteRenameTests: XCTestCase {
 
     func testSidebarContextMenu_modifier_handles_shelf_and_book() throws {
         let body = try String(
-            contentsOfFile: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Features/Library/View/SidebarContextMenu.swift",
+            contentsOfFile: SourceLocator.path("Sources/WenshuApp/Features/Library/View/SidebarContextMenu.swift"),
             encoding: .utf8
         )
         // Modifier must handle both `.shelf` (= new book here + rename + delete)
@@ -307,7 +307,7 @@ final class SidebarCreateDeleteRenameTests: XCTestCase {
 
     func testSidebarSheets_header_carries_v169y_marker() throws {
         let body = try String(
-            contentsOfFile: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Features/Library/View/SidebarSheets.swift",
+            contentsOfFile: SourceLocator.path("Sources/WenshuApp/Features/Library/View/SidebarSheets.swift"),
             encoding: .utf8
         )
         XCTAssertTrue(
@@ -318,7 +318,7 @@ final class SidebarCreateDeleteRenameTests: XCTestCase {
 
     func testSidebarContextMenu_header_carries_v169y_marker() throws {
         let body = try String(
-            contentsOfFile: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Features/Library/View/SidebarContextMenu.swift",
+            contentsOfFile: SourceLocator.path("Sources/WenshuApp/Features/Library/View/SidebarContextMenu.swift"),
             encoding: .utf8
         )
         XCTAssertTrue(

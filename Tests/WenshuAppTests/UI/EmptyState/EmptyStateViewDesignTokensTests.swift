@@ -27,7 +27,7 @@ import Foundation
 struct EmptyStateViewDesignTokensTests {
 
     private static let emptyStateSourceURL = URL(
-        fileURLWithPath: "Sources/WenshuApp/UI/EmptyState/EmptyStateView.swift"
+        fileURLWithPath: "Sources/WenshuApp/Shared/UI/EmptyStateView.swift"
     )
 
     private static func loadEmptyStateSource() throws -> String {
@@ -101,7 +101,7 @@ struct EmptyStateViewDesignTokensTests {
     /// value is no longer a magic-number duplicate.
     @Test("design_tokens_drops_emptyStateIconSize_in_favor_of_IconStyle")
     func design_tokens_defines_canonical_empty_state_values() throws {
-        let tokensURL = URL(fileURLWithPath: "Sources/WenshuApp/DesignTokens.swift")
+        let tokensURL = SourceLocator.url("Sources/WenshuApp/DesignTokens.swift")
         let tokens = try String(contentsOf: tokensURL, encoding: .utf8)
         #expect(
             !tokens.contains("emptyStateIconSize: CGFloat = 76"),

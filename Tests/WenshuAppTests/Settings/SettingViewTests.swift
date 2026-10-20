@@ -50,23 +50,10 @@ import Foundation
 @Suite("SettingView (v0.93 ticket 005 — Settings tab)")
 struct SettingViewTests {
 
-    /// 
-    /// from THIS test file's path (= worktree-aware).
+    /// Resolved through SourceLocator (= a Package.swift probe), so this test
+    /// keeps working wherever it sits in the tree.
     private static var settingViewPath: String {
-        let testFileURL = SourceLocator.repoRoot
-        let testsDir = testFileURL.deletingLastPathComponent()  // Views/Settings/
-        let repoRoot = testsDir
-            .deletingLastPathComponent()  // Views/
-            .deletingLastPathComponent()  // WenshuAppTests/
-            .deletingLastPathComponent()  // Tests/
-            .deletingLastPathComponent()  // repo root
-        return repoRoot
-            .appendingPathComponent("Sources")
-            .appendingPathComponent("WenshuApp")
-            .appendingPathComponent("Views")
-            .appendingPathComponent("Settings")
-            .appendingPathComponent("SettingView.swift")
-            .path
+        SourceLocator.path("Sources/WenshuApp/Features/Settings/View/SettingView.swift")
     }
 
     private func readSettingViewSource() throws -> String {

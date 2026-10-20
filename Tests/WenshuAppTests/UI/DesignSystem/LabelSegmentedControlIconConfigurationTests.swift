@@ -7,7 +7,7 @@ struct LabelSegmentedControlIconConfigurationTests {
     @Test("segmented symbols use the central toolbar style before AppKit rendering")
     func segmentedSymbolsUseCentralToolbarStyle() throws {
         let sourceURL = try Self.repositoryURL(
-            relativePath: "Sources/WenshuApp/UI/Segmented/LabelSegmentedControl.swift"
+            relativePath: "Sources/WenshuApp/Shared/UI/LabelSegmentedControl.swift"
         )
         let source = try String(contentsOf: sourceURL, encoding: .utf8)
 

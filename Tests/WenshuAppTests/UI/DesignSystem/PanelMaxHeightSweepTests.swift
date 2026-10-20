@@ -56,16 +56,16 @@ struct PanelMaxHeightSweepTests {
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         let sweptFiles: [(String, String)] = [
-            ("Views/Tools/ForeshadowingView.swift", "DesignTokens.panelLargeMaxHeight"),
-            ("Views/Tools/PlaceholderView.swift", "DesignTokens.panelLargeMaxHeight"),
-            ("Views/SpecializedTools/BookSettingConstraintsView.swift", "DesignTokens.panelMediumMaxHeight"),
-            ("Views/SpecializedTools/CharacterRelationshipsView.swift", "DesignTokens.panelLargeMaxHeight"),
-            ("Views/SpecializedTools/CharacterLifecycleView.swift", "DesignTokens.panelMediumMaxHeight"),
-            ("Views/SpecializedTools/IdeaLibraryView.swift", "DesignTokens.panelMediumMaxHeight"),
-            ("Views/CommandPalette/CommandPaletteView.swift", "DesignTokens.commandPaletteMaxHeight"),
-            ("Views/Kanban/KanbanView.swift", "DesignTokens.kanbanBoardMaxHeight"),
-            ("Views/SpecializedTools/TagManagerView.swift", "DesignTokens.textEditorSmallMaxHeight"),
-            ("Views/Library/SidebarSheets.swift", "DesignTokens.panelLargeMaxHeight"),
+            ("Features/Agent/View/ForeshadowingView.swift", "DesignTokens.panelLargeMaxHeight"),
+            ("Features/Agent/View/PlaceholderView.swift", "DesignTokens.panelLargeMaxHeight"),
+            ("Features/Agent/View/BookSettingConstraintsView.swift", "DesignTokens.panelMediumMaxHeight"),
+            ("Features/Agent/View/CharacterRelationshipsView.swift", "DesignTokens.panelLargeMaxHeight"),
+            ("Features/Agent/View/CharacterLifecycleView.swift", "DesignTokens.panelMediumMaxHeight"),
+            ("Features/Agent/View/IdeaLibraryView.swift", "DesignTokens.panelMediumMaxHeight"),
+            ("Shared/UI/CommandPaletteView.swift", "DesignTokens.commandPaletteMaxHeight"),
+            ("Features/Kanban/View/KanbanView.swift", "DesignTokens.kanbanBoardMaxHeight"),
+            ("Features/Agent/View/TagManagerView.swift", "DesignTokens.textEditorSmallMaxHeight"),
+            ("Features/Library/View/SidebarSheets.swift", "DesignTokens.panelLargeMaxHeight"),
         ]
 
         for (relative, expectedToken) in sweptFiles {
