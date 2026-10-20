@@ -205,6 +205,22 @@ let package = Package(
             // The .lproj children are produced at build time by
             // `xcstringstool compile` (= Tools/build-wenshu.sh +
             // Scripts/build-app.sh).
+        ),
+
+        // The local packages' own test suites. Declared here because `swift
+        // test` only runs targets this manifest names: without these two
+        // lines WenshuDataTests and WenshuAgentTests compile nowhere and run
+        // nowhere, and a green `swift test` says nothing about them. Both were
+        // added after noticing the data layer's 142 tests had never executed.
+        .testTarget(
+            name: "WenshuDataTests",
+            dependencies: [.product(name: "WenshuData", package: "WenshuData")],
+            path: "Sources/WenshuData/Tests/WenshuDataTests"
+        ),
+        .testTarget(
+            name: "WenshuAgentTests",
+            dependencies: [.product(name: "WenshuAgent", package: "WenshuAgent")],
+            path: "Sources/WenshuAgent/Tests/WenshuAgentTests"
         )
     ]
 )
