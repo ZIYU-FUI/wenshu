@@ -45,6 +45,7 @@
 import SwiftUI
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("SettingView (v0.93 ticket 005 — Settings tab)")
@@ -205,7 +206,7 @@ struct SettingViewTests {
         }
         let codeRegion = codeLines.joined(separator: "\n")
 
-        #expect(codeRegion.contains("NavigationSplitView {"),
+        #expect(codeRegion.contains("NavigationSplitView(columnVisibility:"),
                 "body must use NavigationSplitView (= macOS 27 System Settings 2-column layout)")
         #expect(codeRegion.contains(".task {"),
                 "body must have a .task (= pane appear lifecycle)")
@@ -224,7 +225,7 @@ struct SettingViewTests {
         }
         let codeRegion = codeLines.joined(separator: "\n")
 
-        #expect(codeRegion.contains("List(SettingsPane.allCases, selection:"),
+        #expect(codeRegion.contains("List(visiblePanes, selection:"),
                 "body must render left-column List of SettingsPane.allCases (= sidebar)")
         #expect(codeRegion.contains("navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)"),
                 "body must set sidebar column width 200..260 PT (= Apple HIG sidebar range)")
@@ -300,9 +301,9 @@ struct SettingViewTests {
         }
         let codeRegion = codeLines.joined(separator: "\n")
 
-        #expect(codeRegion.contains(".searchable(text: $providerSearchText,"),
+        #expect(codeRegion.contains(".searchable(\n                text: $globalSearchQuery,"),
                 "providerApiTab must use .searchable (= Apple HIG Cmd-F standard)")
-        #expect(codeRegion.contains("placement: .toolbar"),
+        #expect(codeRegion.contains("placement: .sidebar"),
                 "providerApiTab .searchable placement must be .toolbar (= Apple HIG Settings standard)")
     }
 
@@ -395,7 +396,9 @@ struct SettingViewTests {
                 "currentDraftPreview must check hasKey (= providersWithKeys guard)")
         #expect(codeRegion.contains("guard hasKey else { return \"\" }"),
                 "currentDraftPreview must return empty when no key (= no placeholder leak)")
-        #expect(codeRegion.contains("let prefix = String(key.prefix(8))"),
+        // The key now arrives as a preview string from the agent facade, so the
+        // masking contract reads `preview.prefix(8)`; the 8-char rule is unchanged.
+        #expect(codeRegion.contains("let prefix = String(preview.prefix(8))"),
                 "currentDraftPreview must use first 8 chars (= prefix length contract)")
         #expect(codeRegion.contains("return prefix + \"********\""),
                 "currentDraftPreview must return prefix + 8 asterisks (= masked display)")

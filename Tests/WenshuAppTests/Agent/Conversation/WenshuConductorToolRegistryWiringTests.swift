@@ -49,7 +49,7 @@ struct WenshuConductorToolRegistryWiringTests {
         // the helper can satisfy the full set. Each registration uses
         // a distinct toolset so override protection does not
         // interfere.
-        for (index, name) in WenshuConductor.defaultToolNames.enumerated() {
+        for (index, name) in await WenshuConductor.defaultToolNames.enumerated() {
             let schema = ToolRegistrySchema(name: name, description: "tool #\(index)")
             await registry.register(
                 name: name,
@@ -62,11 +62,12 @@ struct WenshuConductorToolRegistryWiringTests {
         let tools = await WenshuConductor.buildTools(from: registry)
 
         // One entry per default name (= all 12 reachable).
-        #expect(tools.count == WenshuConductor.defaultToolNames.count,
+        let expectedCount = await WenshuConductor.defaultToolNames.count
+        #expect(tools.count == expectedCount,
                 "buildTools must return one entry per name in defaultToolNames")
 
         // Every default name is present AND its handler is non-nil.
-        for name in WenshuConductor.defaultToolNames {
+        for name in await WenshuConductor.defaultToolNames {
             #expect(tools[name] != nil, "buildTools must include a handler for '\(name)'")
         }
     }
@@ -101,7 +102,7 @@ struct WenshuConductorToolRegistryWiringTests {
 
         // The 9 absent names are NOT in the dict (= hermes
         // `entries_by_name.get(name)` returns None → helper drops it).
-        let absent = Set(WenshuConductor.defaultToolNames).subtracting(present)
+        let absent = Set(await WenshuConductor.defaultToolNames).subtracting(present)
         for name in absent {
             #expect(tools[name] == nil, "absent name '\(name)' must NOT appear in the built dict")
         }

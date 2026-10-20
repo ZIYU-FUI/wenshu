@@ -84,7 +84,15 @@ struct BackgroundReviewConsolidationTests {
     @Test("WenshuConductor registers background_review tool (= the agent's tool-call entry)")
     func testWenshuConductorRegistersBackgroundReviewTool() throws {
         let source = try String(contentsOfFile: wenshuConductorPath, encoding: .utf8)
-        #expect(source.contains("\"background_review\""),
+        // The conductor's tool list delegates to ToolCatalogue (= the flat name
+        // list moved there when each tool grew a category), so the file that
+        // actually holds the name is the one to read.
+        let cataloguePath = URL(fileURLWithPath: wenshuConductorPath)
+            .deletingLastPathComponent()
+            .appendingPathComponent("../../Features/Agent/Service/ToolCatalogue.swift")
+            .standardizedFileURL
+        let catalogue = try String(contentsOf: cataloguePath, encoding: .utf8)
+        #expect(catalogue.contains("\"background_review\""),
                 "WenshuConductor.defaultToolNames must contain \"background_review\"")
     }
 

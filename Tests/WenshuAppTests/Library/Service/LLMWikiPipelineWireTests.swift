@@ -76,7 +76,15 @@ struct LLMWikiPipelineWireTests {
     @Test("WenshuConductor registers llm_wiki tool (= the agent's tool-call entry)")
     func testWenshuConductorRegistersLLMWikiTool() throws {
         let source = try String(contentsOfFile: wenshuConductorPath, encoding: .utf8)
-        #expect(source.contains("\"llm_wiki\""),
+        // The conductor's tool list delegates to ToolCatalogue (= the flat name
+        // list moved there when each tool grew a category), so the file that
+        // actually holds the name is the one to read.
+        let cataloguePath = URL(fileURLWithPath: wenshuConductorPath)
+            .deletingLastPathComponent()
+            .appendingPathComponent("../../Features/Agent/Service/ToolCatalogue.swift")
+            .standardizedFileURL
+        let catalogue = try String(contentsOf: cataloguePath, encoding: .utf8)
+        #expect(catalogue.contains("\"llm_wiki\""),
                 "WenshuConductor.defaultToolNames must contain \"llm_wiki\"")
     }
 

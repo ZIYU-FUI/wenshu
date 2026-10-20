@@ -70,21 +70,31 @@ struct EditorPaperCanvasTests {
                 "EditorPaperCanvas body must wrap content in ScrollView with horizontal + vertical axes (= per boss 2026-09-10 OOB)")
     }
 
-    @Test("paper width = 595 PT (= A4 width, per Pages standard)")
-    func paperWidthIsA4() throws {
+    @Test("no fixed A4 paper width (= the wrapper follows the editor column)")
+    func paperWidthIsNotFixed() throws {
+        // The A4 sheet was dropped: a fixed 595 PT width clipped the text on a
+        // narrow column. The engine's NSTextView now reads the column width and
+        // scrolls horizontally itself, so the constraint must stay gone.
         let source = try String(contentsOfFile: editorPaperCanvasPath, encoding: .utf8)
-        // Design the paper as a single A4
-        // sheet (= Pages / Numbers use the same). The paperWidth
-        // constant must be 595 PT (= A4 width in points).
-        #expect(source.contains("paperWidth: CGFloat { 595 }"),
-                "EditorPaperCanvas.paperWidth must be 595 PT (= A4 width)")
+        let code = source.components(separatedBy: "\n")
+            .filter { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//") }
+            .joined(separator: "\n")
+        #expect(!code.contains("paperWidth"),
+                "EditorPaperCanvas must not reintroduce a fixed paperWidth (= column drives the width)")
+        #expect(!code.contains(".frame(width: 595)"),
+                "EditorPaperCanvas must not reintroduce a 595 PT fixed frame")
     }
 
-    @Test("paper margin = 72 PT (= 1 inch Pages default)")
-    func paperMarginIsOneInch() throws {
+    @Test("no fixed paper margin (= the engine supplies the inner inset)")
+    func paperMarginIsNotFixed() throws {
         let source = try String(contentsOfFile: editorPaperCanvasPath, encoding: .utf8)
-        #expect(source.contains("paperMargin: CGFloat { 72 }"),
-                "EditorPaperCanvas.paperMargin must be 72 PT (= 1 inch; = Pages default)")
+        let code = source.components(separatedBy: "\n")
+            .filter { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//") }
+            .joined(separator: "\n")
+        #expect(!code.contains("paperMargin"),
+                "EditorPaperCanvas must not reintroduce a paperMargin (= engine textContainerInset owns the inset)")
+        #expect(!code.contains(".padding(72)"),
+                "EditorPaperCanvas must not reintroduce a 72 PT paper padding")
     }
 
     @Test("body uses Color.white background + shadow for the paper sheet")

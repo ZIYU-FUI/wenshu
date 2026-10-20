@@ -380,29 +380,24 @@ actor WenshuConductor {
     // MARK: - ToolRegistry wiring (WIRE-TOOLREGISTRY-003)
     // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / and the ChatView wiring agree on the set (= deterministic diff).
-    static let defaultToolNames: [String] = [
-        "ParagraphAI",      // Core/Agent/Tool/ParagraphAITool.swift
-        "ReadFile",         // Core/Agent/Tool/ReadFileTool.swift
-        "WriteFile",        // Core/Agent/Tool/WriteFileTool.swift
-        "av",               // Core/Tools/AVMediaTools.swift
-        "background_review", // Core/Agent/Tool/BackgroundReviewTool.swift  (= manual + auto BackgroundReview consolidation surface)
-        "book_chapter",     // Core/Agent/Librarian/BookChapterTool.swift
-        "book_edit_chapter", // Core/Agent/Librarian/EditChapterTool.swift  (= hermes edit_file 1:1)
-        "book_entity",      // Core/Agent/Librarian/BookEntityTool.swift  (= entity schema redesign)
-        "book_manager",     // Core/Agent/Librarian/BookManagerTool.swift
-        "book_outline",     // Core/Agent/Librarian/BookOutlineTool.swift
-        "file",             // Core/Tools/FileTools.swift
-        "delegate_research", // Core/Agent/Tool/DelegateResearchTool.swift  (= self-evolution: main agent delegates research to researcher sub-agent async; = main agent does NOT block on web_search)
-        "kanban",           // Core/Agent/Tool/KanbanStoreTool.swift
-        "llm_wiki",         // Core/Agent/Tool/LLMWikiTool.swift  (= LLM Wiki 4-layer pipeline manual + auto surface)
-        "process",          // Core/Tools/ProcessTools.swift
-        "reference_library",// Core/Agent/Librarian/ReferenceLibraryTool.swift
-        "todo",             // Core/Tool/TodoStoreTool.swift
-        "todo_hermes",      // Core/Agent/Todo/HermesTodoTool.swift
-        "vision",           // Core/Tools/VisionTools.swift
-        "web",              // Core/Tools/WebTools.swift  (= URL fetch only)
-        "web_search"        // Core/Agent/Tool/WebSearchTool.swift — main agent has this for synchronous lookups; = for noun research, prefer `delegate_research` (fire-and-forget)
-    ]
+    /// Tool names the conductor asks the registry for.
+    ///
+    /// Delegates to ToolCatalogue so the list carries a category per tool and
+    /// the settings presets can be derived from it. An empty selection means
+    /// every tool, so an existing installation changes nothing until someone
+    /// opens settings and chooses.
+    @MainActor
+    static var defaultToolNames: [String] {
+        ToolCatalogue.exposedNames(settings: agentSettings.prompt)
+    }
+
+    /// Behaviour knobs for the turn runtime, as the user configured them.
+    ///
+    /// MainActor because the store is: settings are written from the settings
+    /// screen and read from here, and a turn already hops there for the
+    /// libraries.
+    @MainActor
+    static var agentSettings: AgentSettings { AgentSettingsStore.shared.load() }
 
     // / Maximum time `buildToolsSync(from:)` will wait for the detached async
     // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
@@ -421,7 +416,10 @@ actor WenshuConductor {
         // Step 2: assemble the dict via `getHandler`. Unknown names are
         // silently dropped (= spec: `testBuildTools_excludesUnknownNames`).
         var tools: [String: any Tool] = [:]
-        for name in defaultToolNames {
+        // The configured selection is read on the main actor because the
+        // settings store is; everything else below is actor-local.
+        let wanted = await defaultToolNames
+        for name in wanted {
             if let handler = await registry.getHandler(name: name) {
                 tools[name] = handler
             }

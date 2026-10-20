@@ -126,7 +126,7 @@ struct TriggerClosureWiringTests {
         #expect(allNames.count >= 1,
                 "ToolRegistry.shared should have at least one registered tool in the test process (got \(allNames.count))")
         let tools = WenshuConductor.buildToolsSync(from: registry)
-        let reachableDefaults = WenshuConductor.defaultToolNames.filter { name in
+        let reachableDefaults = await WenshuConductor.defaultToolNames.filter { name in
             tools[name] != nil
         }
         #expect(!reachableDefaults.isEmpty,

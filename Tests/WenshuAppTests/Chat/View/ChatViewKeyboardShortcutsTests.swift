@@ -113,7 +113,10 @@ struct ChatViewKeyboardShortcutsTests {
         #expect(!inputBarSrc.contains("Button(\"Focus input\")"))
         // The input row HStack lives in ChatInputBarView (= the top layer;
         // = boss v1.82 spec 'spacing: 10' = 10PT between every element).
-        #expect(inputBarSrc.contains("HStack(alignment: .center, spacing: 10) {"))
-        #expect(!chatViewSrc.contains("HStack(alignment: .center, spacing: 10) {"))
+        // The row aligns to `.bottom` (not `.center`) so the icons and the
+        // growing editor share a baseline; the 10 PT gap the spec asks for is
+        // unchanged.
+        #expect(inputBarSrc.contains("HStack(alignment: .bottom, spacing: 10) {"))
+        #expect(!chatViewSrc.contains("HStack(alignment: .bottom, spacing: 10) {"))
     }
 }

@@ -9,7 +9,7 @@
 //  B2 + B3): the §11.17 v2.4 skill cleanup arc deleted
 //  SkillBundlesTool + SkillBundles + SkillBundlesYAMLDiscovery + 13
 //  test files, but left a dangling 'skill_bundles' string in
-//  WenshuConductor.defaultToolNames (= silent drop on every launch).
+//  await WenshuConductor.defaultToolNames (= silent drop on every launch).
 //
 //  v2.9a fixes B2 by removing the dangling string.
 //
@@ -25,7 +25,7 @@
 //  Three source-level tests pin the canonical shape:
 //
 //    1. testWenshuConductorDefaultToolNamesHasNoSkillBundles —
-//       WenshuConductor.defaultToolNames does NOT contain
+//       await WenshuConductor.defaultToolNames does NOT contain
 //       "skill_bundles" (= boss B2 dangling string removed).
 //
 //    2. testQuickSwitcherIndexDeleted —

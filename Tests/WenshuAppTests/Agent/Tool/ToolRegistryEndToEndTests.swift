@@ -223,7 +223,7 @@ struct ToolRegistryEndToEndTests {
         // must be present in the produced dict (= hermes parity:
         // buildTools silently drops unknown names but never drops
         // names that ARE registered).
-        for toolName in WenshuConductor.defaultToolNames {
+        for toolName in await WenshuConductor.defaultToolNames {
             if tools[toolName] == nil {
                 let registered = await ToolRegistry.shared.getHandler(name: toolName)
                 #expect(

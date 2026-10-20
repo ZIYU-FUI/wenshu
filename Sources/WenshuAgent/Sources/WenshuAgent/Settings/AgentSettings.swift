@@ -15,7 +15,7 @@
 import Foundation
 
 /// Aggregate settings for one agent runtime.
-public struct AgentSettings: Sendable, Equatable {
+public struct AgentSettings: Sendable, Equatable, Codable {
     public var prompt: PromptSettings
     public var turn: TurnSettings
     public var context: ContextSettings
@@ -41,7 +41,7 @@ public struct AgentSettings: Sendable, Equatable {
 }
 
 /// Toggles for system prompt assembly (= hermes `agent.*` guidance toggles).
-public struct PromptSettings: Sendable, Equatable {
+public struct PromptSettings: Sendable, Equatable, Codable {
     // Section switches.
     public var identityEnabled: Bool
     public var providerGuidanceEnabled: Bool
@@ -97,7 +97,7 @@ public struct PromptSettings: Sendable, Equatable {
 }
 
 /// Turn-loop knobs. Fields arrive as the corresponding mechanism lands.
-public struct TurnSettings: Sendable, Equatable {
+public struct TurnSettings: Sendable, Equatable, Codable {
     /// Hard ceiling on iterations within one turn.
     public var maxIterations: Int
     /// Retries for a turn that failed for a retryable reason.
@@ -110,7 +110,7 @@ public struct TurnSettings: Sendable, Equatable {
 }
 
 /// Context-window knobs.
-public struct ContextSettings: Sendable, Equatable {
+public struct ContextSettings: Sendable, Equatable, Codable {
     /// Fraction of the window at which compression starts.
     public var compressionThreshold: Double
     /// Fraction kept after compression.
@@ -123,7 +123,7 @@ public struct ContextSettings: Sendable, Equatable {
 }
 
 /// Recovery knobs (= the retry ladder's rung boundaries).
-public struct RecoverySettings: Sendable, Equatable {
+public struct RecoverySettings: Sendable, Equatable, Codable {
     /// Whether an empty assistant reply triggers a retry.
     public var retryOnEmptyReply: Bool
     /// Whether a truncated reply triggers a retry.
@@ -158,7 +158,7 @@ public struct RecoverySettings: Sendable, Equatable {
 }
 
 /// Which memory implementation backs the agent.
-public enum MemoryBackend: String, Sendable, CaseIterable, Equatable {
+public enum MemoryBackend: String, Sendable, CaseIterable, Equatable, Codable {
     /// Memory lives in the user's library as plain Markdown. No key, nothing
     /// leaves the machine, and the user can read and edit it themselves.
     case localMarkdown
@@ -168,7 +168,7 @@ public enum MemoryBackend: String, Sendable, CaseIterable, Equatable {
 }
 
 /// Memory subsystem knobs.
-public struct MemorySettings: Sendable, Equatable {
+public struct MemorySettings: Sendable, Equatable, Codable {
     public var backend: MemoryBackend
     public var enabled: Bool
     public var retentionDays: Int
@@ -197,7 +197,7 @@ public struct MemorySettings: Sendable, Equatable {
 }
 
 /// Tool-exposure knobs. Fields arrive as the tool work lands.
-public struct ToolSettings: Sendable, Equatable {
+public struct ToolSettings: Sendable, Equatable, Codable {
     /// Whether tools may run without asking.
     public var autoApprove: Bool
     /// Whether tool calls are recorded in the transcript.
