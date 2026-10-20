@@ -116,6 +116,42 @@ struct MemoryBackendResolverTests {
                 "that memory leaves the machine is the part a user must know")
     }
 
+    // MARK: - Context engine wiring
+
+    @Test("the engine resolves the configured backend")
+    func engineResolvesConfiguredBackend() async {
+        let engine = ContextEngine(
+            memorySettings: MemorySettings(),
+            memoryProviders: [StubProvider(slug: MemoryBackendResolver.localSlug)]
+        )
+        let resolved = await engine.resolvedMemoryBackend()
+        #expect(resolved?.backend == .localMarkdown)
+        let recorded = await engine.lastResolution
+        #expect(recorded?.provider.slug == MemoryBackendResolver.localSlug)
+    }
+
+    @Test("the engine records a substitution for the settings screen")
+    func engineRecordsSubstitution() async {
+        var settings = MemorySettings()
+        settings.backend = .remoteService
+        settings.remoteEndpoint = ""
+        let engine = ContextEngine(
+            memorySettings: settings,
+            memoryProviders: [StubProvider(slug: MemoryBackendResolver.localSlug)]
+        )
+        _ = await engine.resolvedMemoryBackend()
+        let recorded = await engine.lastResolution
+        #expect(recorded?.matchesSelection == false)
+        #expect(recorded?.substitutedReason == .remoteNotConfigured)
+    }
+
+    @Test("the engine defaults to local with no providers at all")
+    func engineWithNoProvidersResolvesToNil() async {
+        let engine = ContextEngine(memoryProviders: [])
+        let resolved = await engine.resolvedMemoryBackend()
+        #expect(resolved == nil)
+    }
+
     @Test("resolution is nil only when there is no provider at all")
     func noProvidersResolvesToNil() {
         let empty = MemoryBackendResolver(providers: [])

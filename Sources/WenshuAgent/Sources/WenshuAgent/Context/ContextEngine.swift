@@ -39,6 +39,50 @@ import WenshuData
 
 public actor ContextEngine {
 
+    /// Which memory backend to read from. Held rather than read at each call
+    /// so a settings change takes effect on the next turn instead of
+    /// producing a transcript where early turns came from one backend and late
+    /// turns from another.
+    private let memorySettings: MemorySettings
+    /// Providers the app can construct, in preference order.
+    private let memoryProviders: [any MemoryProvider]
+
+    private var recordedResolution: ResolvedMemoryBackend?
+
+    /// The backend actually in use for the last turn. Read by the settings
+    /// screen to explain a substitution rather than letting the user wonder
+    /// why their choice did nothing.
+    public var lastResolution: ResolvedMemoryBackend? { recordedResolution }
+
+    /// Resolve the configured backend, or nil when nothing can be built.
+    ///
+    /// Not async for the local case: MemoryBackendResolver takes the provider
+    /// list, and a caller that already holds a local provider passes it in
+    /// `memoryProviders`. The convenience overload below supplies the shared
+    /// one from its owning actor.
+    public func resolvedMemoryBackend() -> ResolvedMemoryBackend? {
+        MemoryBackendResolver(providers: memoryProviders).resolve(settings: memorySettings).also { resolution in
+            recordedResolution = resolution
+        }
+    }
+
+    /// Supply the local provider from its owning actor, then resolve.
+    ///
+    /// WSMemoryProvider.shared is MainActor-isolated, so a caller on another
+    /// actor cannot reach it directly. This is the one place that hop lives,
+    /// rather than at every call site.
+    @MainActor
+    public static func makeBackendResolver(
+        settings: MemorySettings = .init(),
+        additionalProviders: [any MemoryProvider] = []
+    ) -> MemoryBackendResolver {
+        var all = additionalProviders
+        if !all.contains(where: { $0.slug == MemoryBackendResolver.localSlug }) {
+            all.append(WSMemoryProvider.shared)
+        }
+        return MemoryBackendResolver(providers: all)
+    }
+
     public struct ContextBundle: Sendable {
         public let memories: [MemoryEntry]
         public let characterContext: [String]
@@ -140,7 +184,14 @@ public actor ContextEngine {
     public var protectFirstN: Int = 3
     public var protectLastN: Int = 6
 
-    public init() {}
+    public init(
+        memorySettings: MemorySettings = .init(),
+        memoryProviders: [any MemoryProvider] = []
+    ) {
+        self.memorySettings = memorySettings
+        self.memoryProviders = memoryProviders
+        self.recordedResolution = nil
+    }
 
     // MARK: - Per-turn context bundle assembly (= wenshu port)
 

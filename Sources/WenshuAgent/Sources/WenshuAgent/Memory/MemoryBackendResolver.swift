@@ -166,3 +166,14 @@ public struct MemoryBackendResolver: Sendable {
         }
     }
 }
+
+extension Optional where Wrapped: Sendable {
+    /// Run a side effect on the value and hand it back.
+    ///
+    /// Reads as "resolve and record" instead of a temporary, and keeps the
+    /// recording next to the resolution so the two cannot drift.
+    func also(_ body: (Wrapped) -> Void) -> Wrapped? {
+        if let value = self { body(value) }
+        return self
+    }
+}
