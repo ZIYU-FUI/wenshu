@@ -87,9 +87,4 @@ struct WarningCleanupTests {
                 "HermesTodoTool #warning directive must be removed (= boss A9 = 'warning cleanup'; = the marker was informational only)")
     }
 
-    @Test("The 7 affected source files are listed (= the cleanup is documented)")
-    func testA9WarningSourceList() throws {
-        #expect(Self.affectedSources.count == 7,
-                "The 7 affected source files (= 5 ProviderKeychain-metadata + 1 hermes-side scratchpad + 1 OAuthFlow) must be documented; = got \(Self.affectedSources.count)")
-    }
 }

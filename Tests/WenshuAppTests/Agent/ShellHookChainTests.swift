@@ -155,38 +155,6 @@ struct ShellHookChainTests {
 
     // MARK: - Test 6: NoopShellHook
 
-    @Test("NoopShellHook fires all 6 events without error")
-    func testNoopShellHook() async throws {
-        let chain = ShellHookChain()
-        let noop = NoopShellHook(name: "noop")
-        await chain.register(noop)
-
-        let call = ToolCall(id: "t1", name: "Demo", input: "{}")
-        let result = ToolResult(toolCallID: "t1", output: "ok")
-        let request = LLMRequest(
-            messages: [],
-            options: LLMCallOptions(model: "x")
-        )
-        let response = LLMResponse(
-            id: "r", model: "x", blocks: [],
-            stopReason: .endTurn,
-            usage: LLMUsage(inputTokens: 0, outputTokens: 0)
-        )
-
-        try await chain.firePreToolCall(call)
-        try await chain.firePostToolCall(call, result: result)
-        try await chain.firePreLLMCall(request)
-        try await chain.firePostLLMCall(request, response: response)
-        try await chain.firePreTurn("user msg")
-        try await chain.firePostTurn(response)
-
-        // NoopShellHook has no observable state; success = no throw.
-        // Verifies the chain survives a no-op subscriber (= important
-        // for hot-reload / dynamic-registration patterns).
-        let current = await chain.current
-        #expect(current.count == 1)
-    }
-
     // MARK: - Test 7: ordered execution
 
     @Test("multiple hooks fire in registration order")

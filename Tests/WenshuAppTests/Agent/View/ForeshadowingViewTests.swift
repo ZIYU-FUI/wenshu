@@ -131,19 +131,4 @@ struct ForeshadowingViewTests {
                 "3/3: init() missing")
     }
 
-    @Test("ForeshadowingViewState mirror exists (= business state hoisted out of @State per v1.72 MVVM split)")
-    func testStateMirrorExists() throws {
-        let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
-        #expect(source.contains("ForeshadowingViewState"),
-                "ForeshadowingView must reference ForeshadowingViewState mirror")
-        #expect(source.contains("@State private var state = ForeshadowingViewState()"),
-                "ForeshadowingView must hold state via @State mirror")
-        #expect(!source.contains("@State private var rows: [Foreshadowing]"),
-                "rows must NOT be a bare @State var")
-        #expect(!source.contains("@State private var staleRows: [Foreshadowing]"),
-                "staleRows must NOT be a bare @State var")
-        #expect(!source.contains("@State private var loadingState: LoadStatus = .idle"),
-                "loadingState must NOT be a bare @State var")
-    }
-
 }

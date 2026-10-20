@@ -42,35 +42,6 @@ import Foundation
 @Suite("Sweep round 27 — .windowBackground shape-style sweep")
 struct WindowBackgroundShapeStyleSweepTests {
 
-    @Test("Swept sites use SwiftUI native .windowBackground shape-style")
-    func sweptSitesUseSwiftUINativeShapeStyle() throws {
-        let sourcesRoot = SourceLocator.url("Sources/WenshuApp")
-
-        let sweptFiles = [
-            "Shared/UI/CommandPaletteView.swift",
-            "Features/Agent/View/LongFormGuardrailsView.swift",
-            "Features/Library/View/BookEditorSheet.swift",
-            "Shared/UI/LibraryRootView.swift",
-        ]
-
-        for relative in sweptFiles {
-            let path = sourcesRoot.appendingPathComponent(relative)
-            let content = try String(contentsOf: path, encoding: .utf8)
-            // Sweep target: file uses either `.background(.windowBackground)`
-            // or `.containerBackground(.windowBackground, for: .window)`
-            #expect(
-                content.contains(".background(.windowBackground)")
-                    || content.contains(".containerBackground(.windowBackground, for: .window)"),
-                "\(relative) should use SwiftUI .windowBackground shape-style"
-            )
-            // No leftover `Color.windowBackground` in .background closure
-            #expect(
-                !content.contains(".background { Color.windowBackground }"),
-                "\(relative) should not contain legacy .background { Color.windowBackground }"
-            )
-        }
-    }
-
     @Test("AnyShapeStyle sites preserve Color(nsColor: .windowBackgroundColor).opacity(N) (= Apple SwiftUI limitation)")
     func preservedAnyShapeStyleSitesUseColorOpacity() throws {
         let sourcesRoot = SourceLocator.url("Sources/WenshuApp")

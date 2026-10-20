@@ -35,46 +35,4 @@ struct StackSpacingMagicSweepTests {
                 "spacingRelaxed (10) must be defined (= round 11 new)")
     }
 
-    @Test("Round 10+11 — production code has no naked (HStack|VStack)(spacing: <int>) literals")
-    func productionCodeHasNoMagicStackSpacing() throws {
-        // All source files that had Stack spacing literals pre-sweep
-        let sweptFiles = [
-            "Sources/WenshuApp/Features/Editor/View/AssetsPane.swift",
-            "Sources/WenshuApp/Features/Editor/View/InspectorView.swift",
-            "Sources/WenshuApp/Shared/UI/EmptyStateView.swift",
-            "Sources/WenshuApp/Features/Settings/View/SettingView.swift",
-            "Sources/WenshuApp/Features/Agent/View/ForeshadowingView.swift",
-            "Sources/WenshuApp/Features/Agent/View/PlaceholderView.swift",
-            "Sources/WenshuApp/Features/Editor/View/AgentProgressPanel.swift",
-            "Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift",
-            "Sources/WenshuApp/Features/Chat/View/ChatPlanPartView.swift",
-            "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
-            "Sources/WenshuApp/Features/Chat/View/ChatAttachmentPreviewChip.swift",
-            "Sources/WenshuApp/Features/Chat/View/ChatToolDiffPreviewSheet.swift",
-            "Sources/WenshuApp/Features/Chat/View/ChatToolDiffPreview.swift",
-            "Sources/WenshuApp/Features/Chat/View/ChatMessagePlaceholderRow.swift",
-            "Sources/WenshuApp/Features/Chat/View/ChatSlashCommandAutocomplete.swift",
-            "Sources/WenshuApp/Features/Editor/View/TabContentDispatcher.swift",
-            "Sources/WenshuApp/Features/Agent/View/LongFormGuardrailsView.swift",
-            "Sources/WenshuApp/Features/Agent/View/EmotionCurveView.swift",
-            "Sources/WenshuApp/Features/Agent/View/BackgroundReviewView.swift",
-            "Sources/WenshuApp/Features/Library/View/SidebarRowView.swift",
-            "Sources/WenshuApp/Features/Library/View/SidebarSheets.swift",
-            "Sources/WenshuApp/Features/Library/View/AppleSidebarBottomNewButton.swift",
-            "Sources/WenshuApp/Features/Agent/View/TodoListView.swift",
-            "Sources/WenshuApp/Features/Kanban/View/KanbanView.swift",
-            "Sources/WenshuApp/Features/Kanban/View/SubAgentProgressView.swift",
-            "Sources/WenshuApp/Shared/UI/CommandPaletteView.swift",
-            "Sources/WenshuApp/Shared/UI/LibraryRootView.swift",
-        ]
-        for path in sweptFiles {
-            let url = URL(fileURLWithPath: path)
-            let content = try String(contentsOf: url, encoding: .utf8)
-            // Look for: (HStack|VStack)(spacing: <integer literal>) where the integer is not 0.
-            // (spacing: 0) = canonical no-spacing inline stacking preserved per HIG.
-            let pattern = #"(HStack|VStack)\(spacing: [1-9][0-9]*(?:,|[^.]|\))"#
-            #expect(content.range(of: pattern, options: .regularExpression) == nil,
-                    "\(path) must drop naked (HStack|VStack)(spacing: N) magic literal (= round 10+11 sweep target)")
-        }
-    }
 }

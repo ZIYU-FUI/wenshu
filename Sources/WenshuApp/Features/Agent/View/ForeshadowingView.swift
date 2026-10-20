@@ -80,13 +80,6 @@ struct ForeshadowingView: View {
     // Status filter.
     @State private var filterStatus: ForeshadowingStatus? = nil
 
-    private enum LoadStatus: Equatable, Sendable {
-        case idle
-        case loading
-        case loaded
-        case failed(String)
-    }
-
     init() {}
 
     var body: some View {

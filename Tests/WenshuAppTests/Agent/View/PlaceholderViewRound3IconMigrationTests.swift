@@ -48,21 +48,4 @@ struct PlaceholderViewRound3IconMigrationTests {
                 "PlaceholderView viewfinder preview must use SFIcon")
     }
 
-    @Test("PlaceholderViewState mirror exists (= business state hoisted out of @State per v1.72 MVVM split)")
-    func testStateMirrorExists() throws {
-        let url = SourceLocator.url("Sources/WenshuApp/Features/Agent/View/PlaceholderView.swift")
-        let content = try String(contentsOf: url, encoding: .utf8)
-        #expect(content.contains("PlaceholderViewState"),
-                "PlaceholderView must reference PlaceholderViewState mirror")
-        #expect(content.contains("@State private var state = PlaceholderViewState()"),
-                "PlaceholderView must hold state via @State mirror (not bare @State vars)")
-        let bareRows = content.contains("@State private var rows: [Placeholder]")
-        let bareLastScan = content.contains("@State private var lastScanCount: Int? = nil")
-        let bareLoading = content.contains("@State private var loadingState: LoadStatus = .idle")
-        let bareErrorText = content.contains("@State private var errorText: String?")
-        #expect(!bareRows, "rows must NOT be a bare @State var")
-        #expect(!bareLastScan, "lastScanCount must NOT be a bare @State var")
-        #expect(!bareLoading, "loadingState must NOT be a bare @State var (use SpecializedToolLoadStatus)")
-        #expect(!bareErrorText, "errorText must NOT be a bare @State var")
-    }
 }

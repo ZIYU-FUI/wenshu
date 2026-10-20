@@ -23,13 +23,6 @@ import SwiftUI
 @Suite("RuntimeCWDDisplayChip (= Batch 2.4 UI component)", .serialized)
 struct RuntimeCWDDisplayChipTests {
 
-    @Test("RuntimeCWDDisplayChip: instantiates without crash")
-    func instantiate() {
-        let chip = RuntimeCWDDisplayChip()
-        // Verify the chip body builds (= view graph construction succeeds)
-        _ = chip.body
-    }
-
     @Test("RuntimeCWD: displayLabel returns 'Unset' when no library + no override")
     func displayLabelUnset() async {
         await ActiveLibrary.$overrideForTesting.withValue(nil, operation: {

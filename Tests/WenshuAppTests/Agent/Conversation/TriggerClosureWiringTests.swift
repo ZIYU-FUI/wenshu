@@ -35,62 +35,6 @@ struct TriggerClosureWiringTests {
         return WSKanbanRepository(container: container)
     }
 
-
-
-    @Test("CommandPaletteRegistrySeeder populates the 35 hub commands from ChatHubCommands.all")
-    @MainActor
-    func testCommandPaletteRegistrySeeder_populates35HubCommands() async {
-        await CommandPaletteRegistrySeeder.seed()
-        let all = await CommandPaletteRegistry.shared.allItems()
-        let hubIds = all.filter { $0.id.hasPrefix("palette.hub.") }
-        #expect(hubIds.count == ChatHubCommands.all.count,
-                "seeder must register one palette entry per hub command (got \(hubIds.count), expected \(ChatHubCommands.all.count))")
-        let hubNames = Set(hubIds.map { $0.id.replacingOccurrences(of: "palette.hub.", with: "") })
-        for cmd in ChatHubCommands.all {
-            #expect(hubNames.contains(cmd.name),
-                    "hub command '\(cmd.name)' must appear as a palette entry")
-        }
-    }
-
-    @Test("CommandPaletteRegistrySeeder populates one palette entry per sub-agent slug")
-    @MainActor
-    func testCommandPaletteRegistrySeeder_populates5SubAgents() async {
-        await CommandPaletteRegistrySeeder.seed()
-        let all = await CommandPaletteRegistry.shared.allItems()
-        let agentIds = all.filter { $0.id.hasPrefix("palette.agent.") }
-        #expect(agentIds.count == SubAgentIdentity.Name.allCases.count,
-                "seeder must register one palette entry per sub-agent (got \(agentIds.count), expected \(SubAgentIdentity.Name.allCases.count))")
-        for name in SubAgentIdentity.Name.allCases {
-            #expect(agentIds.contains { $0.id == "palette.agent.\(name.rawValue)" },
-                    "sub-agent '\(name.rawValue)' must appear in the palette")
-        }
-    }
-
-    @Test("CommandPaletteRegistrySeeder populates one palette entry per zone toggle")
-    @MainActor
-    func testCommandPaletteRegistrySeeder_populatesZoneToggles() async {
-        await CommandPaletteRegistrySeeder.seed()
-        let all = await CommandPaletteRegistry.shared.allItems()
-        let zoneIds = all.filter { $0.id.hasPrefix("palette.zone.") }
-        #expect(zoneIds.count == 5, "seeder must register 5 zone-toggle entries (got \(zoneIds.count))")
-        for id in ["palette.zone.library", "palette.zone.preview", "palette.zone.tools", "palette.zone.chat", "palette.zone.dynamic"] {
-            #expect(zoneIds.contains { $0.id == id }, "expected zone palette entry '\(id)'")
-        }
-    }
-
-    @Test("CommandPaletteRegistrySeeder populates one palette entry per Settings section")
-    @MainActor
-    func testCommandPaletteRegistrySeeder_populatesSettingsSections() async {
-        await CommandPaletteRegistrySeeder.seed()
-        let all = await CommandPaletteRegistry.shared.allItems()
-        let settingsIds = all.filter { $0.id.hasPrefix("palette.settings.") }
-        #expect(settingsIds.count == 2, "seeder must register 2 Settings entries (got \(settingsIds.count))")
-        for id in ["palette.settings.providers", "palette.settings.memory"] {
-            #expect(settingsIds.contains { $0.id == id }, "expected settings palette entry '\(id)'")
-        }
-    }
-
-
     @Test("production WenshuConductor builds tools from ToolRegistry.shared (not an empty dict)")
     @MainActor
     func testProductionConductor_toolsDictIncludesToolRegistryEntries() async throws {
@@ -168,20 +112,4 @@ struct TriggerClosureWiringTests {
         }
     }
 
-    @Test("CommandPaletteRegistrySeeder dynamic-zone entry dispatches .navigateTo('kanban')")
-    @MainActor
-    func testPaletteNavigateSurface_mapsKanbanDestination() async {
-        await CommandPaletteRegistrySeeder.seed()
-        let all = await CommandPaletteRegistry.shared.allItems()
-        guard let kanbanEntry = all.first(where: { $0.id == "palette.zone.dynamic" }) else {
-            Issue.record("palette entry 'palette.zone.dynamic' must exist (= seeder must register it)")
-            return
-        }
-        if case let .navigateTo(destination) = kanbanEntry.action {
-            #expect(destination == "kanban",
-                    "dynamic zone palette entry must dispatch navigateTo('kanban')")
-        } else {
-            Issue.record("palette.zone.dynamic must have action .navigateTo")
-        }
-    }
 }

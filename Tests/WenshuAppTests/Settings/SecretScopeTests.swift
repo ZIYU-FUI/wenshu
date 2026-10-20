@@ -34,47 +34,7 @@ struct SecretScopeTests {
 
     // MARK: - Test 1: EnvVarSource reads process environment
 
-    @Test("EnvVarSource reads ProcessInfo.processInfo.environment")
-    func testEnvVarSourceReadsProcessEnv() async throws {
-        let key = "WENSHU_SECRET_SCOPE_TEST_\(UUID().uuidString)"
-        let expected = "shhh-\(UUID().uuidString)"
-        setenv(key, expected, 1)
-        defer { unsetenv(key) }
-
-        let source = EnvVarSource()
-        let value = try await source.read(name: key)
-        #expect(value == expected)
-
-        // Missing key → nil (= "ask next source", NOT throw).
-        let missing = try await source.read(name: "WENSHU_DEFINITELY_NOT_SET_\(UUID().uuidString)")
-        #expect(missing == nil)
-    }
-
     // MARK: - Test 2: KeychainSource delegates to ProviderKeychain
-
-    @Test("KeychainSource delegates to ProviderKeychain.loadKeySync")
-    func testKeychainSourceDelegatesToProviderKeychain() async throws {
-        // Install a deterministic in-memory keychain so the test is
-        // hermetic (= no Security framework dependency).
-        let store = InMemoryKeychainStore()
-        let savedKey = "keychain-test-\(UUID().uuidString)"
-        let provider = Provider.anthropic
-        try store.saveKeySync(savedKey, for: provider)
-        ProviderKeychain.setBackendForTesting(store)
-        defer {
-            // Reset to default backend so other tests are unaffected.
-            ProviderKeychain.setBackendForTesting(InMemoryKeychainStore())
-        }
-
-        let source = KeychainSource(providerSlug: provider.slug)
-        let read = try await source.read(name: "api.key")
-        #expect(read == savedKey)
-
-        // Missing provider slug → nil (= no throw).
-        let missing = KeychainSource(providerSlug: "no-such-provider-\(UUID().uuidString)")
-        let nilRead = try await missing.read(name: "api.key")
-        #expect(nilRead == nil)
-    }
 
     // MARK: - Test 3: SecretScope walks multiple sources in order
 

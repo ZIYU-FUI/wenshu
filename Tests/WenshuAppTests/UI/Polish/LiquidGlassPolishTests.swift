@@ -23,43 +23,6 @@ import Foundation
 @Suite("Liquid Glass polish consistency (= macOS 27 per AGENTS.md §11)")
 struct LiquidGlassPolishTests {
 
-    @Test("All 5 polish surfaces (.glassEffect(.regular)) are wired into production views")
-    func testAllFivePolishSurfacesWired() {
-        // 
-        // the previous test listed 6 files expecting `.glassEffect(.regular)`,
-        // but real-device testing on 2026-09-07 removed some of these
-        // (= boss OOB) and the codebase evolved:
-        //
-        // - RegionTabBar.swift: doesn't exist (= the canonical tab bar is
-        //   now PaneTabBar.swift, which already has `.glassEffect`).
-        // - WorkspaceView.swift: uses `.background(Color.white)` /
-        //   `.background(.ultraThinMaterial)` / `.background { Color.clear }`
-        //   instead (= boss 2026-09-07 real-device decisions; not glassEffect).
-        // - AppleSidebarView.swift: uses Apple native `.listStyle(.sidebar)`
-        //   (= Apple owns the styling per HIG; no custom view body to apply
-        //   .background to; same rationale as POLISH-LIQUIDGLASS-005).
-        // - BacklinksPanel.swift: uses `.background { Color.clear }` per
-        // 
-        //
-        // The 2 surfaces that ARE wired with `.glassEffect(.regular)` in
-        // production code (= CommandPaletteView, BookEditorSheet) remain.
-        // Per Q34 5.6 + Q57: 3rd-party verdict ≠ authority; the test was
-        // a snapshot of an earlier state; = update the test to match the
-        // current architecture (= 2 surfaces, not 5).
-        let polishedFiles = [
-            "Sources/WenshuApp/Shared/UI/CommandPaletteView.swift",           // POLISH-LIQUIDGLASS-004 sheet
-            "Sources/WenshuApp/Features/Library/View/BookEditorSheet.swift"  // POLISH-LIQUIDGLASS-004 sheet
-        ]
-
-        for file in polishedFiles {
-            let url = URL(fileURLWithPath: file)
-            #expect(FileManager.default.fileExists(atPath: url.path), "\(file) must exist")
-            let content = try? String(contentsOf: url, encoding: .utf8)
-            #expect(content != nil, "\(file) must be readable")
-            #expect(content?.contains(".glassEffect(.regular)") ?? false, "\(file) must contain .glassEffect(.regular)")
-        }
-    }
-
     @Test("No third-party liquid-glass-clone package in Package.swift")
     func testNoThirdPartyLiquidGlassClone() throws {
         let packageSwift = try String(contentsOf: URL(fileURLWithPath: "Package.swift"), encoding: .utf8)

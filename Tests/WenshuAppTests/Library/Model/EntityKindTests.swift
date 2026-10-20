@@ -65,16 +65,6 @@ struct EntityKindTests {
 @Suite("PersonRole (v2.3)")
 struct PersonRoleTests {
 
-    @Test func allRolesRoundTrip() {
-        let roles: [PersonRole] = [
-            .protagonist, .antagonist, .deuteragonist,
-            .tritagonist, .supporting, .narrator, .other
-        ]
-        for role in roles {
-            let parsed = PersonRole(rawValue: role.rawValue)
-            #expect(parsed == role)
-        }
-    }
 }
 
 // MARK: - EntityKindSpecific

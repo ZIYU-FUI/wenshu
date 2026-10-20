@@ -64,26 +64,6 @@ import WenshuAgent
 import WenshuData
 @testable import WenshuApp
 
-/// Sendable collector for AsyncStream todo notifications
-/// (= mirrors the per-listener notification contract that
-/// TodoStore.subscribe exposes). Actor = guarantees safe
-/// concurrent append from the detached consumer Task.
-private actor NotificationCollector {
-    private var items: [TodoItem] = []
-
-    func append(_ item: TodoItem) {
-        items.append(item)
-    }
-
-    var count: Int {
-        items.count
-    }
-
-    func contains(id: String) -> Bool {
-        items.contains(where: { $0.id == id })
-    }
-}
-
 @Suite("Integration plan end-to-end (= all 22 wire-up tickets exercised together)")
 struct IntegrationPlanEndToEndTests {
     /// Per-test in-memory SwiftData container (= tests don't share state via

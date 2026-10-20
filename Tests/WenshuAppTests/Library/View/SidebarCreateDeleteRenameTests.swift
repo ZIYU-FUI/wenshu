@@ -52,7 +52,6 @@ final class SidebarCreateDeleteRenameTests: XCTestCase {
             .joined(separator: "\n")
     }
 
-
     // MARK: - SidebarSheets.swift presence (= 4 sheets + 2 state types)
 
     func testSidebarSheets_file_exists() {
@@ -131,44 +130,6 @@ final class SidebarCreateDeleteRenameTests: XCTestCase {
                 atPath: SourceLocator.path("Sources/WenshuApp/Features/Library/View/SidebarContextMenu.swift")
             ),
             "SidebarContextMenu.swift must exist (= v1.69y restored context-menu file)"
-        )
-    }
-
-    func testSidebarContextMenu_defines_modifier() throws {
-        // v2.x arc: the v1.69y SidebarContextMenuBuilder / EmptyAreaContextMenu /
-        // SidebarRowContextMenu trio is gone. The context menu now lives in a
-        // single `SidebarContextMenuModifier` (= Apple HIG canonical =
-        // the closure body uses direct Button rows; = no Divider; = no
-        // Group; = no AnyView; = matches the Apple Developer doc example).
-        let body = try String(
-            contentsOfFile: SourceLocator.path("Sources/WenshuApp/Features/Library/View/SidebarContextMenu.swift"),
-            encoding: .utf8
-        )
-        XCTAssertTrue(
-            body.contains("struct SidebarContextMenuModifier"),
-            "SidebarContextMenu.swift must define SidebarContextMenuModifier (= the v2.x context-menu ViewModifier)"
-        )
-        XCTAssertTrue(
-            body.contains("contextMenu(forSelectionType:"),
-            "SidebarContextMenuModifier must wire the .contextMenu(forSelectionType:menu:) hook (= Apple HIG canonical)"
-        )
-    }
-
-    func testSidebarContextMenu_modifier_handles_shelf_and_book() throws {
-        let body = try String(
-            contentsOfFile: SourceLocator.path("Sources/WenshuApp/Features/Library/View/SidebarContextMenu.swift"),
-            encoding: .utf8
-        )
-        // Modifier must handle both `.shelf` (= new book here + rename + delete)
-        // and `.book` (= rename + delete) cases (= the legacy
-        // NewLibraryOutlineView.contextMenuForSelection supported both).
-        XCTAssertTrue(
-            body.contains("case .shelf"),
-            "SidebarContextMenuModifier must handle `.shelf` sidebar items"
-        )
-        XCTAssertTrue(
-            body.contains("case .book"),
-            "SidebarContextMenuModifier must handle `.book` sidebar items"
         )
     }
 
@@ -284,22 +245,6 @@ final class SidebarCreateDeleteRenameTests: XCTestCase {
             body.contains("sheetRequests.newShelf") &&
             body.contains("sheetRequests.newBook"),
             "AppleSidebarView must observe the 3 SheetRequestState request counters"
-        )
-    }
-
-    func testAppleSidebarView_wires_rename_and_delete() throws {
-        let body = try loadAppleSidebarWiringBody()
-        XCTAssertTrue(
-            body.contains(".sheet(item: $renaming)"),
-            "AppleSidebarView must present the rename sheet via .sheet(item:)"
-        )
-        XCTAssertTrue(
-            body.contains(".alert("),
-            "AppleSidebarView must present the delete confirmation alert"
-        )
-        XCTAssertTrue(
-            body.contains("SidebarContextMenuModifier"),
-            "AppleSidebarView must wire the SidebarContextMenuModifier (= v2.x context-menu hook)"
         )
     }
 

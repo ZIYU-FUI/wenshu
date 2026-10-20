@@ -147,32 +147,5 @@ final class AllFixedAbsorberIndexTests: XCTestCase {
 }
 
 final class PaneFrameModeTests: XCTestCase {
-    func testFlexDefault() {
-        let f = PaneFrameMode(mode: .flex, flex: 1.0)
-        XCTAssertEqual(f.mode, .flex)
-        XCTAssertEqual(f.flex, 1.0)
-        XCTAssertNil(f.size)
-        XCTAssertNil(f.minWidth)
-        XCTAssertNil(f.maxWidth)
-    }
 
-    func testFixedWithSize() {
-        let f = PaneFrameMode(mode: .fixed, size: 300, minWidth: 200)
-        XCTAssertEqual(f.mode, .fixed)
-        XCTAssertEqual(f.size, 300)
-        XCTAssertEqual(f.minWidth, 200)
-    }
-
-    func testUncapped() {
-        let f = PaneFrameMode(mode: .uncapped)
-        XCTAssertEqual(f.mode, .uncapped)
-        XCTAssertNil(f.maxWidth)
-    }
-
-    func testCodable() throws {
-        let f = PaneFrameMode(mode: .fixed, size: 300, minWidth: 200, flex: 0.5, maxWidth: 500)
-        let data = try JSONEncoder().encode(f)
-        let decoded = try JSONDecoder().decode(PaneFrameMode.self, from: data)
-        XCTAssertEqual(decoded, f)
-    }
 }

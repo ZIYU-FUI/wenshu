@@ -173,23 +173,6 @@ actor ShellHookChain {
     }
 }
 
-// MARK: - No-op default
-
-/// Empty hook = no-op default. Useful for "I want to subscribe to one
-/// event without implementing all 6." (= Swift has no default method
-/// implementations on protocols; this is the wenshu-side equivalent.)
-struct NoopShellHook: ShellHook {
-    let name: String
-    init(name: String) { self.name = name }
-
-    func preToolCall(_: ToolCall) async throws {}
-    func postToolCall(_: ToolCall, result: ToolResult) async throws {}
-    func preLLMCall(_: LLMRequest) async throws {}
-    func postLLMCall(_: LLMRequest, response: LLMResponse) async throws {}
-    func preTurn(_: String) async throws {}
-    func postTurn(_: LLMResponse) async throws {}
-}
-
 // MARK: - H8 Hermes-Python gap port (= 1:1 port of hermes
 //         `agent/shell_hooks.py` payload + response + allowlist
 //         helpers).

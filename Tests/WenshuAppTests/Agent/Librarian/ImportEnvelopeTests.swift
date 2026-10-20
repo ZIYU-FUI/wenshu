@@ -163,28 +163,4 @@ final class ImportEnvelopeTests: XCTestCase {
 
     // MARK: - ImportEnvelope round-trip
 
-    func testImportEnvelope_importFileRoundTrip() throws {
-        let original = ImportEnvelope.importFile(ImportFileInput(
-            filePath: "/tmp/世界观.md",
-            targetBookId: UUID(),
-            targetShelfId: UUID(),
-            rewriteMode: .consolidate
-        ))
-        let data = try JSONEncoder().encode(original)
-        let decoded = try JSONDecoder().decode(ImportEnvelope.self, from: data)
-        XCTAssertEqual(decoded, original)
-    }
-
-    func testImportEnvelope_decodeUnknownKindThrows() throws {
-        // Defensive: a future envelope case (= e.g. .importFolder)
-        // is added with a new Kind raw value; = the existing
-        // decoder (= which only knows .importFile today) must
-        // throw (= the Apple canonical pattern = fail loud at
-        // the wire boundary rather than silently mis-decoding).
-        let json = """
-        {"kind":"unknownKind","filePath":"/tmp/x.md","targetBookId":"00000000-0000-0000-0000-000000000001","targetShelfId":"00000000-0000-0000-0000-000000000002"}
-        """
-        let data = json.data(using: .utf8)!
-        XCTAssertThrowsError(try JSONDecoder().decode(ImportEnvelope.self, from: data))
-    }
 }

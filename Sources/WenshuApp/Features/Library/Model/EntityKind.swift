@@ -25,21 +25,6 @@ enum EntityKind: String, Codable, Sendable, CaseIterable {
     case event
 }
 
-// MARK: - Person role sub-enum
-
-/// Sub-role for the `.person` kind. Open-ish (= a tag is allowed
-/// to differ from a role); the role here is the LLM-prompted
-/// default. A "mentor" is `.supporting` with `tags: ["mentor"]`.
-enum PersonRole: String, Codable, Sendable {
-    case protagonist
-    case antagonist
-    case deuteragonist
-    case tritagonist
-    case supporting
-    case narrator
-    case other
-}
-
 // MARK: - Kind-specific value (5 fields per kind)
 
 /// Per-kind enum bag (= 5 fields × kind). The shape is the same

@@ -23,28 +23,6 @@ enum TodoPriority: Int, Codable, Sendable, CaseIterable {
     case urgent = 3
 }
 
-/// Todo
-struct TodoItem: Equatable, Sendable {
-    let id: String
-    var title: String
-    var status: TodoStatus
-    var priority: TodoPriority
-    var dueDate: Date?
-    let createdAt: Date
-    var updatedAt: Date
-
-    init(id: String = UUID().uuidString, title: String, status: TodoStatus = .pending, priority: TodoPriority = .medium, dueDate: Date? = nil, createdAt: Date = Date(), updatedAt: Date = Date()) {
-        self.id = id
-        self.title = title
-        self.status = status
-        self.priority = priority
-        self.dueDate = dueDate
-        self.createdAt = createdAt
-        self.updatedAt = updatedAt
-    }
-}
-
-
 /// Reserved for future-hook callers (= no consumers yet; = the
 /// pre-migration deleted TodoStore actor's error type was extracted
 /// in  and renamed here; = currently dead code but

@@ -21,64 +21,6 @@
 
 import SwiftUI
 
-struct ChatMessageHoverActions: View {
-    /// The message content to copy when the user clicks Copy.
-    let content: String
-    @State private var isHovering: Bool = false
-
-    init(content: String) {
-        self.content = content
-    }
-
-    var body: some View {
-        HStack(spacing: DesignTokens.spacingTight) {
-            // Copy button (= SF Symbols 6 `document.on.document` icon;
-            // = copies the message text to NSPasteboard).
-            Button {
-                copyToPasteboard()
-            } label: {
-                SFIcon("document.on.document", style: .inlineSmall, color: IconColor.tint)
-            }
-            .buttonStyle(.borderless)
-            .controlSize(.small)
-            .help(String(localized: "chatview.message_action.copy"))
-            // Delete button (= SF Symbols 6 `trash` icon; = marks the
-            // message for deletion = the caller wires the actual
-            // delete logic via a parent state).
-            Button {
-                // (= the delete action is wired at the call site via
-                // a parent State binding; = this button just emits
-                // a Notification for the parent to observe; = the
-                // parent can decide whether to remove from the
-                // message list or just hide).
-                NotificationCenter.default.post(
-                    name: .wenshuChatMessageDeleteRequested,
-                    object: content
-                )
-            } label: {
-                SFIcon("trash", style: .inlineSmall, color: IconColor.tint)
-            }
-            .buttonStyle(.borderless)
-            .controlSize(.small)
-            .help(String(localized: "chatview.message_action.delete"))
-        }
-        .padding(.horizontal, DesignTokens.spacingTight)
-        .padding(.vertical, DesignTokens.spacingIconic)
-        .background(.regularMaterial, in: Capsule())
-        .opacity(isHovering ? 1 : 0)
-        .animation(.easeInOut(duration: 0.15), value: isHovering)
-    }
-
-    /// Copy the message text to NSPasteboard (= the canonical macOS
-    /// clipboard). Uses `NSPasteboard.general` (= the shared system
-    /// pasteboard).
-    private func copyToPasteboard() {
-        let pb = NSPasteboard.general
-        pb.clearContents()
-        pb.setString(content, forType: .string)
-    }
-}
-
 /// Notification name posted when the user clicks the delete button
 /// on a chat message (= the parent view observes this notification
 /// and wires the actual deletion logic).

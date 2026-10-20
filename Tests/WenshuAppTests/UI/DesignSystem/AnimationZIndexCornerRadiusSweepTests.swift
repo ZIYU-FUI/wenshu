@@ -31,23 +31,6 @@ import Foundation
 @Suite("Sweep round 38 — deprecated API + zIndex/transition/aspectRatio sweep")
 struct AnimationZIndexCornerRadiusSweepTests {
 
-    @Test("SubAgentProgressView migrated to .clipShape + RoundedRectangle")
-    func subAgentProgressViewMigrated() throws {
-        let root = SourceLocator.repoRoot
-        let path = root.appendingPathComponent(
-            "Sources/WenshuApp/Features/Kanban/View/SubAgentProgressView.swift"
-        )
-        let content = try String(contentsOf: path, encoding: .utf8)
-
-        #expect(content.contains(
-            ".clipShape(RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusProgressCard))"
-        ), "SubAgentProgressView should use .clipShape + RoundedRectangle")
-        #expect(
-            !content.contains(".cornerRadius(DesignTokens.surfaceCornerRadiusProgressCard)"),
-            "SubAgentProgressView should NOT use deprecated .cornerRadius"
-        )
-    }
-
     @Test("Zero .cornerRadius(N) deprecated API in source tree")
     func zeroDeprecatedCornerRadius() throws {
         let root = SourceLocator.repoRoot
@@ -84,23 +67,6 @@ struct AnimationZIndexCornerRadiusSweepTests {
         }
 
         #expect(violations.isEmpty, "Unexpected .cornerRadius(N): \(violations)")
-    }
-
-    @Test("Animation duration literals preserved (= SwiftUI idiomatic)")
-    func animationDurationsPreserved() throws {
-        // 6 .animation(duration:) sites are intentional:
-        // - ChatMessageHoverActions.swift L69: 0.15 (SwiftUI idiomatic hover)
-        // - PreviewPane.swift L928/1164/1226/1366: 0.18 + 0.22
-        //   (= SwiftUI idiomatic micro-interaction durations)
-        // Apple HIG does not mandate exact values; = preserve as is.
-        let root = SourceLocator.repoRoot
-        let path = root.appendingPathComponent(
-            "Sources/WenshuApp/Features/Chat/View/ChatMessageHoverActions.swift"
-        )
-        let content = try String(contentsOf: path, encoding: .utf8)
-
-        #expect(content.contains(".animation(.easeInOut(duration: 0.15)"),
-               "ChatMessageHoverActions should preserve .animation(duration: 0.15)")
     }
 
     @Test("Transition sites use SwiftUI canonical enum")

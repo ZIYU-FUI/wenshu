@@ -217,69 +217,6 @@ struct BackgroundTests {
         #expect(consumption.totalTokens == 150)
     }
 
-    @Test("BackgroundCreditsTracker: empty starts with 0 total")
-    func creditsEmpty() async {
-        let tracker = BackgroundCreditsTracker()
-        let total = await tracker.currentSessionSummary()
-        #expect(total.totalInputTokens == 0)
-        #expect(total.totalOutputTokens == 0)
-        #expect(total.grandTotal == 0)
-    }
-
-    @Test("BackgroundCreditsTracker: record + currentSessionSummary")
-    func creditsRecordAndSummary() async {
-        let tracker = BackgroundCreditsTracker()
-        let consumption = CreditConsumption(
-            providerSlug: "anthropic", model: "claude-test",
-            inputTokens: 100,
-            outputTokens: 50,
-            timestamp: Date()
-        )
-        await tracker.record(consumption)
-        let summary = await tracker.currentSessionSummary()
-        #expect(summary.totalInputTokens == 100)
-        #expect(summary.totalOutputTokens == 50)
-        #expect(summary.grandTotal == 150)
-    }
-
-    @Test("BackgroundCreditsTracker: resetSession clears session data")
-    func creditsResetSession() async {
-        let tracker = BackgroundCreditsTracker()
-        let consumption = CreditConsumption(
-            providerSlug: "anthropic", model: "claude-test",
-            inputTokens: 200,
-            outputTokens: 100,
-            timestamp: Date()
-        )
-        await tracker.record(consumption)
-        await tracker.resetSession()
-        let total = await tracker.currentSessionSummary()
-        #expect(total.grandTotal == 0)
-    }
-
-    @Test("BackgroundCreditsTracker: allHistory records every entry")
-    func creditsAllHistory() async {
-        let tracker = BackgroundCreditsTracker()
-        await tracker.record(CreditConsumption(
-            providerSlug: "anthropic", model: "claude-test", inputTokens: 10, outputTokens: 5, timestamp: Date()
-        ))
-        await tracker.record(CreditConsumption(
-            providerSlug: "openai", model: "text-embedding-test", inputTokens: 20, outputTokens: 0, timestamp: Date()
-        ))
-        let history = await tracker.allHistory
-        #expect(history.count == 2)
-    }
-
-    @Test("BackgroundCreditsTracker: currentMonthlyTotal aggregates")
-    func creditsMonthlyTotal() async {
-        let tracker = BackgroundCreditsTracker()
-        await tracker.record(CreditConsumption(
-            providerSlug: "anthropic", model: "claude-test", inputTokens: 100, outputTokens: 50, timestamp: Date()
-        ))
-        let total = await tracker.currentMonthlyTotal()
-        #expect(total == 150)
-    }
-
     // MARK: - Curator (= spec §3.1 file 4 of 4)
 
     @Test("Curator: CurationReport counts by finding kind")

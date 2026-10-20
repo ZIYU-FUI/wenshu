@@ -238,65 +238,6 @@ enum SmartQueryResult: Hashable, Sendable {
 /// High-level SmartQuery engine (= constructs the index from stores
 /// + evaluates a SmartQuery).
 @MainActor
-struct SmartQueryEngine: Sendable {
-    let entityStore: FileSystemEntityStore
-    let referenceStore: ReferenceStoring
-
-    /// Build a SmartQueryIndex from the current store contents.
-    /// world + character entries are unified into a single
-    /// entity store (= kind-discriminated; = person / location /
-    /// object / ability / event). The SmartQueryIndex keeps the
-    /// legacy `characters` + `worldEntries` buckets as a facade so
-    /// the SmartQueryEvaluator (= which still speaks Character /
-    /// WorldEntry) keeps working during the migration window.
-    func buildIndex() throws -> SmartQueryIndex {
-        let allEntities = (try? entityStore.loadEntities()) ?? []
-        let characters = allEntities
-            .filter { $0.kind == .person }
-            .map { entity in
-                Character(
-                    id: UUID(uuidString: entity.id.rawValue) ?? UUID(),
-                    bookId: UUID(uuidString: entity.bookIDRaw) ?? UUID(),
-                    name: entity.name,
-                    age: entity.attributes["age"].flatMap { Int($0) },
-                    role: CharacterRole(rawValue: entity.tags.first ?? "other") ?? .other,
-                    arc: entity.attributes["arc"],
-                    summary: entity.description,
-                    createdAt: entity.createdAt,
-                    updatedAt: entity.updatedAt
-                )
-            }
-        let worldEntries = allEntities
-            .filter { $0.kind == .location }
-            .map { entity in
-                WorldEntry(
-                    id: UUID(uuidString: entity.id.rawValue) ?? UUID(),
-                    bookId: UUID(uuidString: entity.bookIDRaw) ?? UUID(),
-                    type: WorldEntryType(rawValue: entity.tags.first ?? "other") ?? .other,
-                    name: entity.name,
-                    summary: entity.description,
-                    createdAt: entity.createdAt,
-                    updatedAt: entity.updatedAt
-                )
-            }
-        let references = (try? referenceStore.loadAllReferences()) ?? []
-        return SmartQueryIndex(
-            characters: characters,
-            worldEntries: worldEntries,
-            references: references
-        )
-    }
-
-    /// Run a saved query (= returns matching entities + the index used).
-    func run(query: SmartQuery) throws -> SmartQueryRunResult {
-        guard let predicate = SmartQueryPredicate.decode(json: query.queryJSON) else {
-            return SmartQueryRunResult(query: query, results: [], error: .invalidPredicateJSON)
-        }
-        let index = try buildIndex()
-        let results = SmartQueryEvaluator(predicate: predicate).evaluate(against: index)
-        return SmartQueryRunResult(query: query, results: results, error: nil)
-    }
-}
 
 struct SmartQueryRunResult: Sendable {
     let query: SmartQuery

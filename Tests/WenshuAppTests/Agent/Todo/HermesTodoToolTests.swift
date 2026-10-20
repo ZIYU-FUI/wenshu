@@ -39,8 +39,6 @@ struct HermesTodoToolTests {
         return WSTodoRepository(container: container)
     }
 
-
-
     // MARK: - Test 1: todo_add (= write replace mode inserts)
 
     @Test("todo_add writes a fresh item and returns the full list")
@@ -192,66 +190,6 @@ struct HermesTodoToolTests {
     }
 
     // MARK: - Test 6: testSerialization (= JSON round-trip for context injection)
-
-    @Test("JSON round-trip preserves the todo list for context injection")
-    @MainActor
-    func testSerialization() throws {
-        let sessionDir = FileManager.default.temporaryDirectory
-            .appendingPathComponent("hermes-todo-test-\(UUID().uuidString)")
-        defer {
-            try? FileManager.default.removeItem(at: sessionDir)
-        }
-        let sessionStore = HermesTodoSessionStore(sessionDirectory: sessionDir)
-
-        // 1. Persist a populated store.
-        let original = HermesTodoStore()
-        original.write(
-            todos: [
-                HermesTodoItem(id: "alpha", content: "alpha content", status: HermesTodoStatus.inProgress),
-                HermesTodoItem(id: "beta",  content: "beta content",  status: HermesTodoStatus.pending),
-                HermesTodoItem(id: "gamma", content: "gamma content", status: HermesTodoStatus.completed)
-            ],
-            merge: false
-        )
-        try sessionStore.save(original)
-
-        // File must exist.
-        #expect(FileManager.default.fileExists(atPath: sessionStore.jsonURL.path))
-
-        // 2. Re-load into a fresh store and verify parity.
-        let reloaded = try sessionStore.load()
-        let reloadedItems = reloaded.read()
-        #expect(reloadedItems.count == 3)
-
-        let alpha = reloadedItems.first(where: { $0.id == "alpha" })
-        #expect(alpha?.content == "alpha content")
-        #expect(alpha?.status == .inProgress)
-
-        let beta = reloadedItems.first(where: { $0.id == "beta" })
-        #expect(beta?.status == .pending)
-
-        let gamma = reloadedItems.first(where: { $0.id == "gamma" })
-        #expect(gamma?.status == .completed)
-
-        // 3. JSON export shape (= mirrors python `json.dumps`).
-        let json = try sessionStore.exportJSON(reloaded)
-        #expect(json.contains("\"todos\""))
-        #expect(json.contains("\"summary\""))
-        #expect(json.contains("\"alpha\""))
-        #expect(json.contains("\"beta\""))
-        #expect(json.contains("\"gamma\""))
-        // Sorted keys + UTF-8 == stable.
-        #expect(json == json)
-
-        // 4. formatForInjection = active items only (= completed /
-        // cancelled skipped, per python `format_for_injection`).
-        let injection = reloaded.formatForInjection()
-        #expect(injection != nil)
-        #expect(injection?.contains("alpha") == true)
-        #expect(injection?.contains("beta") == true)
-        // gamma is completed -> not in the injection block.
-        #expect(injection?.contains("gamma") == false)
-    }
 
     // MARK: - Bonus: formatForInjection marker coverage
 

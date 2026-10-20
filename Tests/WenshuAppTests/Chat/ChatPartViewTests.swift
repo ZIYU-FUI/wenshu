@@ -362,19 +362,7 @@ struct ChatPartViewTests {
         #expect(p1.id != UUID(), "Identifiable id is non-zero")
     }
 
-
     // MARK: - ChatMessageHoverActions (= hermes MessageActions)
-
-    /// 
-    /// ChatMessageHoverActions view MUST be constructible from any
-    /// message content (= no crash; = the canonical initialization
-    /// path). The view's actual hover behavior is rendered by SwiftUI
-    /// (= no test-time UI render; = we verify the public surface).
-    @Test("ChatMessageHoverActions_initialization_doesNotCrash")
-    func ChatMessageHoverActions_initialization_doesNotCrash() {
-        let actions = ChatMessageHoverActions(content: "hello world")
-        _ = actions.body
-    }
 
     /// The hover modifier extension MUST be available on every View
     /// (= the canonical SwiftUI ergonomic). Verifies the call site

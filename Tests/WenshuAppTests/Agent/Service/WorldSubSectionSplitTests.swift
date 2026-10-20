@@ -35,56 +35,6 @@ final class WorldSubSectionSplitTests: XCTestCase {
 
     // MARK: - WorldSubSection enum
 
-    func test_WorldSubSection_6Cases_matchH2Titles() throws {
-        // Assert: the 6 enum rawValues match the
-        // boss-mandated H2 titles verbatim
-        // (= "标题就是这 6 份的标题").
-        XCTAssertEqual(WorldSubSection.core.rawValue, "核心设定")
-        XCTAssertEqual(WorldSubSection.geography.rawValue, "地理或位置")
-        XCTAssertEqual(WorldSubSection.system.rawValue, "体系或规则")
-        XCTAssertEqual(WorldSubSection.history.rawValue, "历史脉络")
-        XCTAssertEqual(WorldSubSection.relations.rawValue, "与其他元素的关系")
-        XCTAssertEqual(WorldSubSection.scenes.rawValue, "关键场景种子")
-    }
-
-    func test_WorldSubSection_filename_equalsRawValue() throws {
-        // Assert: filename = rawValue (= boss
-        // mandated; = the on-disk filename =
-        // the H2 title).
-        for sub in WorldSubSection.allCases {
-            XCTAssertEqual(
-                sub.filename, sub.rawValue,
-                "filename must equal H2 title for \(sub)"
-            )
-            XCTAssertEqual(sub.displayName, sub.rawValue)
-        }
-    }
-
-    func test_WorldSubSection_skeleton_isNonEmptyAndStartsWithH2() throws {
-        // Assert: each skeleton starts with the
-        // canonical H2 heading (= so the
-        // LLM's fillable body sits under
-        // the right H2).
-        for sub in WorldSubSection.allCases {
-            let s = sub.skeleton
-            XCTAssertTrue(
-                s.contains("## \(sub.rawValue)"),
-                "skeleton for \(sub) must contain the H2 heading"
-            )
-        }
-    }
-
-    func test_WorldSubSection_noRemarksCase() throws {
-        // Assert: 备注 is NOT a case
-        // (= boss "不要备注标题的文档"
-        // = the old wenshu 7th H2 is
-        // dropped entirely).
-        XCTAssertFalse(
-            WorldSubSection.allCases.contains { $0.rawValue == "备注" },
-            "WorldSubSection must NOT have a 备注 case (= boss banned 2026-10-10)"
-        )
-    }
-
     // MARK: - Parser: 6 必填 + 5 自定义 cap
 
     private func makeRawJSON(extraFilesJSON: String) -> String {

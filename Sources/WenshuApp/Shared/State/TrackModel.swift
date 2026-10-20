@@ -150,44 +150,6 @@ enum SplitAxis: String, Codable, Sendable, Equatable {
     case column
 }
 
-// MARK: - PaneFrame mode (= extended for fixed/flex/uncapped)
-
-/// Extended PaneFrame (= existing Wenshu `PaneFrame` has `flex` only;
-/// this addition adds explicit mode + min/max clamps). Wenshu
-/// `PaneFrame` is the per-pane sizing contribution; this struct
-/// enriches it with TrackKind + optional size contribution.
-///
-/// For backward compatibility (= existing call sites use
-/// `PaneFrame.minWidth/idealWidth/flex`), we provide convenience
-/// initializers:
-/// - `PaneFrame.minWidth(_:)` = flex pane with minWidth floor
-/// - `PaneFrame.fixed(_:)` = fixed pane with exact width
-/// - `PaneFrame.flex(_:)` = flex pane with weight
-struct PaneFrameMode: Equatable, Codable, Sendable {
-    var mode: TrackKind
-    var size: CGFloat?           // width (row axis) or height (column axis)
-    var minWidth: CGFloat?       // min along primary axis (= row)
-    var idealWidth: CGFloat?     // ideal (= unused in pure track model, kept for compat)
-    var flex: CGFloat            // weight (= 1.0 default)
-    var maxWidth: CGFloat?       // max along primary axis (= row)
-
-    init(
-        mode: TrackKind = .flex,
-        size: CGFloat? = nil,
-        minWidth: CGFloat? = nil,
-        idealWidth: CGFloat? = nil,
-        flex: CGFloat = 1.0,
-        maxWidth: CGFloat? = nil
-    ) {
-        self.mode = mode
-        self.size = size
-        self.minWidth = minWidth
-        self.idealWidth = idealWidth
-        self.flex = flex
-        self.maxWidth = maxWidth
-    }
-}
-
 // MARK: - All-fixed absorber (= the last uncapped track absorbs leftover)
 
 /// Returns the child index to absorb leftover space, or `-1` when

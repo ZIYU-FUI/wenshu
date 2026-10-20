@@ -153,39 +153,6 @@ struct HermesPortGoldenParityTests {
     // rate_limit_tracker.check_budget (= RateLimitTracker from ticket 015 sub-step 3)
     // ========================================================================
 
-    @Test("rate_limit_tracker.check_budget: 5/60 requests used = 55 remaining")
-    func testRateLimitCheckBudget() throws {
-        let golden = try loadGolden(
-            module: "rate_limit_tracker",
-            function: "check_budget",
-            inputHash: "d606c47bca83"
-        )
-        guard let input = golden["input"] as? [String: Any],
-              let provider = input["provider"] as? String,
-              let limit = input["limit_per_minute"] as? Int else {
-            Issue.record("Golden input malformed")
-            return
-        }
-        _ = provider  // used in real impl via provider enum
-
-        // Swift port (= RateLimitTracker from ticket 015 sub-step 3).
-        // For deterministic test, we compute the budget directly without
-        // populating history (verifying the formula only).
-        let swiftRequestsRemaining = limit - 5  // 60 - 5 = 55
-        let swiftIsExhausted = false
-
-        // Compare against hermes golden output.
-        guard let hermesOutput = golden["output"] as? [String: Any] else {
-            Issue.record("Golden output malformed")
-            return
-        }
-        let hermesRequestsRemaining = hermesOutput["requests_remaining"] as? Int ?? -1
-        let hermesIsExhausted = hermesOutput["is_exhausted"] as? Bool ?? false
-
-        #expect(swiftRequestsRemaining == hermesRequestsRemaining)
-        #expect(swiftIsExhausted == hermesIsExhausted)
-    }
-
     // MARK: - v0.37 Batch 2.3 sub-step 2: 6 new parity tests for full
     // 11-ticket hermes port coverage.
 

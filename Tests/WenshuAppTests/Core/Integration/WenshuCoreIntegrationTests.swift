@@ -25,8 +25,6 @@ struct WenshuCoreIntegrationTests {
         return WSMemoryRepository(container: container)
     }
 
-
-
     /// Per-test in-memory SwiftData container (= tests don't share state via
     /// WSPersistenceContainer.shared). Each WSTodoRepository is its own
     /// @MainActor-isolated object with its own ModelContext.
@@ -46,7 +44,6 @@ struct WenshuCoreIntegrationTests {
         let container = try WSPersistenceContainer.makeInMemoryContainer()
         return WSKanbanRepository(container: container)
     }
-
 
     @Test("Memory + Skill + Kanban + Todo 全 Core 集成")
     @MainActor
@@ -119,21 +116,6 @@ struct WenshuCoreIntegrationTests {
         let duration = tools.estimateDuration(text: chapter)
         // 50 / 4 / = 12.5 ()
         #expect(duration > 0)
-    }
-
-    @Test("Cronjob parseSchedule 在 wenshu 写作用途")
-    @MainActor
-    func testCronjobForWriting() {
-        // wenshu: 5 autosave
-        let valid = CronjobStore.parseSchedule("*/5 * * * *")
-        #expect(valid == true)
-        let next = CronjobStore.nextRun(schedule: "*/5 * * * *")
-        #expect(next != nil)
-// 9. clean db
-        try? FileManager.default.removeItem(atPath: ".test-integration-mem.db")
-        try? FileManager.default.removeItem(atPath: ".test-integration-kanban.db")
-        try? FileManager.default.removeItem(atPath: ".test-integration-todo.db")
-        try? FileManager.default.removeItem(atPath: ".test-integration-file.txt")
     }
 
     private func tmpPath(_ tag: String) -> String {

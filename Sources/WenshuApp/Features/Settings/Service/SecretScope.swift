@@ -45,61 +45,6 @@ protocol SecretSource: Sendable {
     func read(name: String) async throws -> String?
 }
 
-// MARK: - EnvVarSource
-
-/// Source backed by the process environment (= `ProcessInfo.processInfo.environment`).
-/// Matches hermes `secret_scope.get_secret` step 1 / step 3 fallback
-/// ("read `os.environ`").
-struct EnvVarSource: SecretSource {
-    init() {}
-
-    func read(name: String) async throws -> String? {
-        ProcessInfo.processInfo.environment[name]
-    }
-}
-
-// MARK: - KeychainSource
-
-/// Source backed by wenshu's existing `ProviderKeychain` shim
-/// (= Apple Security framework via `AppleKeychainStore`, or
-/// `InMemoryKeychainStore` in tests).
-///
-/// `providerKey` is a stable identifier that maps onto a `Provider`
-/// slug (= e.g. `"anthropic.api.key"` for the Anthropic provider).
-/// This is the wenshu-side surface for the original hermes "keychain"
-/// source: hermes stores per-profile keys under
-/// `~/.hermes/profiles/<slug>/.env`; wenshu stores them under the Apple
-/// Keychain account `AppleKeychainStore.service / <slug>.api.key`
-/// (= see `ProviderKeychain.swift` for the canonical key layout).
-struct KeychainSource: SecretSource {
-    /// Provider identifier (= `Provider.slug`, e.g. `"anthropic"`).
-    /// Resolved via `Provider.by(slug:)` against the static catalog.
-    let providerSlug: String
-
-    init(providerSlug: String) {
-        self.providerSlug = providerSlug
-    }
-
-    func read(name: String) async throws -> String? {
-        // Route through the existing `ProviderKeychain` shim (= Apple
-        // Security in production, in-memory dict in tests). We do NOT
-        // re-implement SecItemCopyMatching here (= wenshu-side wins).
-        // AUDIT.md §2.2 partial (2026-10-16): the public facade
-        // already exposes `loadKeyPreview(for:)` as a sync
-        // forwarder; = for full-key load (= not just the
-        // preview), the public facade delegates through
-        // `keychainBackend() -> any ProviderKeychainStoring`;
-        // = the Settings/Service callers can keep using
-        // the typed protocol instead of reaching into
-        // the internal `ProviderKeychain` static.
-        guard let provider = Provider.by(slug: providerSlug) else {
-            return nil
-        }
-        let backend = WenshuAgent.shared.keychainBackend()
-        return backend.loadKeySync(for: provider)
-    }
-}
-
 // MARK: - SecretScope actor
 
 /// Thread-safe registry + resolution chain for `SecretSource`s.
