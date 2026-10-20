@@ -20,7 +20,7 @@ import Foundation
 import Testing
 @testable import WenshuAgent
 
-@Suite("Unsigned builds skip the keychain")
+@Suite("Unsigned builds skip the keychain", .serialized)
 struct UnsignedKeychainPromptTests {
 
     /// A store that may or may not touch the keychain, with in-memory
@@ -117,7 +117,9 @@ struct UnsignedKeychainPromptTests {
         UserDefaults.standard.set(true, forKey: "wenshu.debugNoKeychain")
         defer { UserDefaults.standard.set(previous, forKey: "wenshu.debugNoKeychain") }
 
-        let backend = ProviderKeychain.resolveBackend()
+        // The signed-build branch is asked for directly: a test run
+        // resolves to the in-memory store, which is a different gate.
+        let backend = ProviderKeychain.resolveBackend(isTestProcess: false)
         #expect(backend is FileProviderKeyStore,
                 "the debug override must resolve to the file store, not to a store that discards the key")
     }
@@ -130,5 +132,38 @@ struct UnsignedKeychainPromptTests {
         let store = FileProviderKeyStore()
         let listed = store.listProvidersWithKeys()
         #expect(listed == listed.sorted(), "the provider list must be sorted")
+    }
+
+    @Test("a test run never resolves to a store that touches the keychain")
+    func testProcessNeverResolvesToKeychainStore() {
+        let backend = ProviderKeychain.resolveBackend()
+        #expect(backend is InMemoryKeychainStore)
+        #expect(!(backend is AppleKeychainStore))
+        #expect(!(backend is MirroredKeychainStore))
+    }
+
+    @Test("an ad-hoc signed build never resolves to the keychain")
+    func adhocBuildNeverResolvesToKeychainStore() {
+        // The signature check is what makes "always allow" hold: the
+        // signature hash changes with every rebuild, so the keychain
+        // treats the next build as a different application and asks
+        // again.
+        let previous = MirroredKeychainStore.stableSigningOverride
+        defer { MirroredKeychainStore.stableSigningOverride = previous }
+        MirroredKeychainStore.stableSigningOverride = false
+
+        let backend = ProviderKeychain.resolveBackend(isTestProcess: false)
+        #expect(backend is FileProviderKeyStore)
+        #expect(!(backend is MirroredKeychainStore))
+    }
+
+    @Test("a signed build resolves to the keychain store")
+    func signedBuildResolvesToKeychainStore() {
+        let previous = MirroredKeychainStore.stableSigningOverride
+        defer { MirroredKeychainStore.stableSigningOverride = previous }
+        MirroredKeychainStore.stableSigningOverride = true
+
+        let backend = ProviderKeychain.resolveBackend(isTestProcess: false)
+        #expect(backend is MirroredKeychainStore)
     }
 }

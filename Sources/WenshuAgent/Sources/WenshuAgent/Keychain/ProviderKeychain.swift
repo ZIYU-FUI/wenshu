@@ -357,7 +357,29 @@ public enum ProviderKeychain {
     ///    = the user's real API keys; = the AGENTS.md §11.2
     ///    mandate).
     public static func resolveBackend() -> any ProviderKeychainStoring {
+        resolveBackend(isTestProcess: isRunningUnderTest)
+    }
+
+    /// The resolver, with the test-process answer given by the caller.
+    ///
+    /// The parameter exists so each branch can be exercised on its own:
+    /// a test that runs inside the test process cannot reach the
+    /// signed-build branch, because the test gate comes first.
+    static func resolveBackend(isTestProcess: Bool) -> any ProviderKeychainStoring {
         if ProcessInfo.processInfo.environment["WENSHU_DEBUG_INMEMORY_KEYCHAIN"] == "1" {
+            return InMemoryKeychainStore()
+        }
+        if isTestProcess {
+            // A test run never touches the real keychain. The test
+            // process has a different bundle identifier, so the app's
+            // own settings are not visible here, and a run that read
+            // the keychain would ask the user for permission once per
+            // provider. The grant would not survive either, because an
+            // ad-hoc signature changes with every build.
+            //
+            // The in-memory store is used rather than the file store, so
+            // a test that saves a key cannot overwrite the key the
+            // developer configured.
             return InMemoryKeychainStore()
         }
         if UserDefaults.standard.bool(forKey: "wenshu.debugNoKeychain") {
@@ -380,10 +402,36 @@ public enum ProviderKeychain {
         // user's "key 配好后切换开关就读不到" bug (= the
         // `2a132f25c` toggle behavior) goes away because
         // both stores always hold the key.
+        // An ad-hoc signed build asks for keychain access on every
+        // launch, and "always allow" does not help: the signature hash
+        // changes with every rebuild, so the keychain treats the next
+        // build as a different application and asks again. A signed
+        // build is the only case where the keychain is worth using.
+        //
+        // The file store keeps the key between launches and never asks
+        // for permission, so a development build behaves the same way
+        // on every launch.
+        guard MirroredKeychainStore.isStableSigned else {
+            return FileProviderKeyStore()
+        }
         let keychainPrimary = UserDefaults.standard.bool(
             forKey: "wenshu.useKeychainForProviderKeys"
         )
         return MirroredKeychainStore(keychainPrimary: keychainPrimary)
+    }
+
+    /// Whether this process is a test run.
+    ///
+    /// The check is on the process, not on the app's settings: a test
+    /// process has a different bundle identifier, so the app's own
+    /// settings never reach it.
+    private static var isRunningUnderTest: Bool {
+        let environment = ProcessInfo.processInfo.environment
+        if environment["XCTestConfigurationFilePath"] != nil { return true }
+        if environment["SWIFT_TESTING"] != nil { return true }
+        let executable = Bundle.main.executableURL?.lastPathComponent ?? ""
+        if executable.contains("swiftpm-testing-helper") { return true }
+        return Bundle.main.bundlePath.hasSuffix(".xctest")
     }
 
     /// Test-only override. Production code must never call this.
