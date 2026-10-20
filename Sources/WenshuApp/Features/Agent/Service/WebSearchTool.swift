@@ -8,6 +8,7 @@
 //
 
 import Foundation
+import WenshuAgent
 
 final class WebSearchTool: Tool, @unchecked Sendable {
 

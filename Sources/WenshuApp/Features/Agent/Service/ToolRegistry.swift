@@ -1,257 +1,12 @@
+// ToolRegistry.swift
 //
-//  ToolRegistry.swift
-//
-//  1:1 Swift port of hermes `tools/registry.py` (= 766 LOC).
-//
-//  Source of truth:
-//    /Volumes/ANAN/.hermes/tools/registry.py
-//  Spec:
-//    .scratch/2026-09-05-v0-40-toolregistry-port-spec.md
-//
-//  The hermes implementation = thread-safe singleton (`threading.RLock`).
-//  Swift equivalent = `actor` (= compiler-enforced serialized mutation).
-//
-//  Surface (mirrors hermes):
-//    - `ToolRegistrySchema` (= JSON-schema-style tool declaration;
-//      renamed from the spec sketch `ToolSchema` because a file-internal
-//      `MemoryProvider.ToolSchema` already exists; per the spec hard
-//      rule "DO NOT remove any existing public surface", we keep the
-//      existing one untouched and use a registry-scoped name here).
-//    - `ToolRegistrySchemaProperty` (= single property in the schema).
-//    - `ToolEntry` (= metadata for one registered tool; 10 fields).
-//    - `ToolRegistry` (= `actor` singleton; `register` with override
-//      protection, `getDefinitions` for LLM, `getHandler` for dispatch,
-//      `generation` counter for cache invalidation, `clear` +
-//      `deregister` for testing + MCP dynamic refresh).
-//
-//  Out of scope (per spec):
-//    - AST-based auto-discovery (= hermes Python has this via stdlib
-//      `ast`; Swift would need SwiftSyntax lib = new dep = deferred to
-//      separate ticket).
-//    - check_fn TTL cache + transient-failure suppression (= hermes-
-//      specific Python detail; Swift actor model does not need it).
-//    - Migration of existing 12 wenshu tool registrations to
-//      `ToolRegistry.shared.register(...)` (= separate ticket
-//      MIGRATE-TOOLREGISTRY-002).
-//
-//  Hard rules (per spec):
-//    - English-only in all files.
-//    - No new third-party dependency.
-//    - No removal of existing `Tool` protocol public surface.
-//    - Additive only.
-//
+// The registry half of the tool contract: registration, definition
+// lookup, handler dispatch, and the generation counter callers memoize
+// on. The declarations it stores live in ToolSchema.swift.
 
 import Foundation
+import WenshuAgent
 
-// MARK: - ToolRegistrySchema
-
-/// JSON-schema-style declaration of one tool (= hermes `ToolEntry.schema`).
-///
-/// Mirrors the OpenAI `function` tool shape: name + description +
-/// input properties + required-field list. `inputSchema` keys = property
-/// names, values = `ToolRegistrySchemaProperty`.
-struct ToolRegistrySchema: Sendable, Equatable {
-    let name: String
-    let description: String
-    let inputSchema: [String: ToolRegistrySchemaProperty]
-    let required: [String]
-
-    init(
-        name: String,
-        description: String,
-        inputSchema: [String: ToolRegistrySchemaProperty] = [:],
-        required: [String] = []
-    ) {
-        self.name = name
-        self.description = description
-        self.inputSchema = inputSchema
-        self.required = required
-    }
-
-    /// Render to a JSON-compatible dictionary (= hermes
-    /// `schema_with_name` in `get_definitions`).
-    func toJSON() -> [String: Any] {
-        var props: [String: Any] = [:]
-        for (key, prop) in inputSchema {
-            props[key] = prop.toJSON()
-        }
-        var json: [String: Any] = [
-            "name": name,
-            "description": description
-        ]
-        if !props.isEmpty {
-            json["parameters"] = [
-                "type": "object",
-                "properties": props,
-                "required": required
-            ]
-        }
-        return json
-    }
-}
-
-// MARK: - ToolRegistrySchemaProperty
-
-/// Single property in a `ToolRegistrySchema.inputSchema` (= hermes
-/// property objects inside the `properties` map).
-///
-/// `type` = "string" | "number" | "boolean" | "array" | "object".
-/// `enumValues` populated only when the value is a closed enum
-/// (= hermes uses `enum` arrays in JSON Schema).
-struct ToolRegistrySchemaProperty: Sendable, Codable, Equatable {
-    let type: String
-    let description: String
-    let enumValues: [String]?
-
-    enum CodingKeys: String, CodingKey {
-        case type
-        case description
-        case enumValues = "enum"
-    }
-
-    init(
-        type: String,
-        description: String,
-        enumValues: [String]? = nil
-    ) {
-        self.type = type
-        self.description = description
-        self.enumValues = enumValues
-    }
-
-    /// Render to a JSON-compatible dictionary.
-    func toJSON() -> [String: Any] {
-        var json: [String: Any] = [
-            "type": type,
-            "description": description
-        ]
-        if let enumValues {
-            json["enum"] = enumValues
-        }
-        return json
-    }
-}
-
-// MARK: - ToolEntry
-
-/// Metadata for a single registered tool (= hermes `ToolEntry`).
-///
-/// 10 fields, mirroring hermes 1:1 minus `handler` (= replaced by
-/// `handlerID` — a stable identifier for the handler slot; wenshu
-/// tools are mostly `struct`-based so we wrap them in a class-bound
-/// `HandlerBox` to give `ObjectIdentifier` a stable key) and minus
-/// `dynamic_schema_overrides` (= Python-specific dynamic re-binding;
-/// Swift actor model makes this simpler: re-register with the new
-/// schema if config changes).
-struct ToolEntry: Sendable {
-    let name: String
-    let toolset: String
-    let schema: ToolRegistrySchema
-    /// Stable identifier for the handler slot (= `ObjectIdentifier` of
-    /// the internal `HandlerBox` holding the `any Tool` instance). Use
-    /// `registry.getHandler(name:)` to retrieve the live handler.
-    let handlerID: ObjectIdentifier
-    /// Optional availability check (= hermes `check_fn`). When
-    /// `nil`, the tool is always available. When set, called
-    /// synchronously at `getDefinitions` time.
-    let checkFn: (@Sendable () -> Bool)?
-    let requiresEnv: [String]
-    let isAsync: Bool
-    let description: String
-    let emoji: String
-    let maxResultSizeChars: Int?
-
-    init(
-        name: String,
-        toolset: String,
-        schema: ToolRegistrySchema,
-        handlerID: ObjectIdentifier,
-        checkFn: (@Sendable () -> Bool)? = nil,
-        requiresEnv: [String] = [],
-        isAsync: Bool = true,
-        description: String,
-        emoji: String,
-        maxResultSizeChars: Int? = nil
-    ) {
-        self.name = name
-        self.toolset = toolset
-        self.schema = schema
-        self.handlerID = handlerID
-        self.checkFn = checkFn
-        self.requiresEnv = requiresEnv
-        self.isAsync = isAsync
-        self.description = description
-        self.emoji = emoji
-        self.maxResultSizeChars = maxResultSizeChars
-    }
-
-    /// Manual `Equatable` (= closure field `checkFn` cannot be auto-
-    /// synthesized). Excludes `checkFn` from comparison (= hermes
-    /// treats two entries with the same metadata as equal regardless
-    /// of the check callable identity).
-    static func == (lhs: ToolEntry, rhs: ToolEntry) -> Bool {
-        lhs.name == rhs.name
-            && lhs.toolset == rhs.toolset
-            && lhs.schema == rhs.schema
-            && lhs.handlerID == rhs.handlerID
-            && lhs.requiresEnv == rhs.requiresEnv
-            && lhs.isAsync == rhs.isAsync
-            && lhs.description == rhs.description
-            && lhs.emoji == rhs.emoji
-            && lhs.maxResultSizeChars == rhs.maxResultSizeChars
-    }
-}
-
-// MARK: - HandlerBox
-
-/// Class wrapper that gives a `any Tool` existential a stable identity
-/// (= `ObjectIdentifier`). Necessary because `Tool` is implemented by
-/// value types like `ReadFileTool` (`struct`), and `ObjectIdentifier`
-/// requires class-bound references.
-private final class HandlerBox: @unchecked Sendable {
-    let id: ObjectIdentifier
-    let handler: any Tool
-
-    init(handler: any Tool) {
-        // Allocate a tiny marker class per box; the marker is the
-        // stable ObjectIdentifier key. `ObjectIdentifier(self)` would
-        // require both stored properties to be set first, which
-        // creates a chicken-and-egg initialization problem. The
-        // marker is held only inside this stored property; once the
-        // box is constructed, it is never accessed again.
-        self.handler = handler
-        self.id = ObjectIdentifier(HandlerBoxIdentity())
-    }
-}
-
-/// Marker class used to give each `HandlerBox` a unique
-/// `ObjectIdentifier`. Allocated once per registered tool; held only
-/// inside the box's `id` property.
-private final class HandlerBoxIdentity: Sendable {}
-
-// MARK: - ToolRegistry
-
-/// Singleton registry that collects tool schemas + handlers (= hermes
-/// `ToolRegistry`).
-///
-/// Thread-safe via Swift `actor` isolation (= compiler-enforced
-/// serialized mutation; equivalent to hermes `threading.RLock`).
-///
-/// Override protection (mirrors hermes `register()` L356-448):
-///   - If a tool with the same name is already registered under a
-///     different toolset AND `override=false`, the new registration
-///     is rejected (= stored `lastRegisterError`, state unchanged).
-///     This prevents accidental shadowing of built-in tools by
-///     plugins / MCP servers.
-///   - If `override=true`, the new registration replaces the existing
-///     entry.
-///   - If the new registration matches the existing toolset, it
-///     silently wins (= re-registration by the same owner is
-///     idempotent).
-///
-/// Generation counter (mirrors hermes `_generation`): bumped on every
-/// mutation (= `register`, `deregister`, `clear`). External callers
-/// can key their memoization on `generation()` (= equivalent of hermes
 /// cache invalidation on registry mutation).
 actor ToolRegistry {
 
@@ -489,3 +244,54 @@ actor ToolRegistry {
         _tools.count
     }
 }
+
+// MARK: - HandlerBox
+
+/// Class wrapper that gives a `any Tool` existential a stable identity
+/// (= `ObjectIdentifier`). Necessary because `Tool` is implemented by
+/// value types like `ReadFileTool` (`struct`), and `ObjectIdentifier`
+/// requires class-bound references.
+private final class HandlerBox: @unchecked Sendable {
+    let id: ObjectIdentifier
+    let handler: any Tool
+
+    init(handler: any Tool) {
+        // Allocate a tiny marker class per box; the marker is the
+        // stable ObjectIdentifier key. `ObjectIdentifier(self)` would
+        // require both stored properties to be set first, which
+        // creates a chicken-and-egg initialization problem. The
+        // marker is held only inside this stored property; once the
+        // box is constructed, it is never accessed again.
+        self.handler = handler
+        self.id = ObjectIdentifier(HandlerBoxIdentity())
+    }
+}
+
+/// Marker class used to give each `HandlerBox` a unique
+/// `ObjectIdentifier`. Allocated once per registered tool; held only
+/// inside the box's `id` property.
+private final class HandlerBoxIdentity: Sendable {}
+
+// MARK: - ToolRegistry
+
+/// Singleton registry that collects tool schemas + handlers (= hermes
+/// `ToolRegistry`).
+///
+/// Thread-safe via Swift `actor` isolation (= compiler-enforced
+/// serialized mutation; equivalent to hermes `threading.RLock`).
+///
+/// Override protection (mirrors hermes `register()` L356-448):
+///   - If a tool with the same name is already registered under a
+///     different toolset AND `override=false`, the new registration
+///     is rejected (= stored `lastRegisterError`, state unchanged).
+///     This prevents accidental shadowing of built-in tools by
+///     plugins / MCP servers.
+///   - If `override=true`, the new registration replaces the existing
+///     entry.
+///   - If the new registration matches the existing toolset, it
+///     silently wins (= re-registration by the same owner is
+///     idempotent).
+///
+/// Generation counter (mirrors hermes `_generation`): bumped on every
+/// mutation (= `register`, `deregister`, `clear`). External callers
+/// can key their memoization on `generation()` (= equivalent of hermes

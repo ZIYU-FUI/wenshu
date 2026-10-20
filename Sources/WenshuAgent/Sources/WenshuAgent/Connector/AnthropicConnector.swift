@@ -27,26 +27,25 @@
 // events from the shared SSEClient).
 
 import Foundation
-import WenshuAgent
 import os.log
 
 private let connectorLogger = Logger(
     subsystem: "com.wenshu.agent", category: "model"
 )
 
-actor AnthropicConnector: LLMConnector {
-    nonisolated let connectorID = "anthropic"
+public actor AnthropicConnector: LLMConnector {
+    public nonisolated let connectorID = "anthropic"
 
     private let session: URLSession
     private let useCacheControl: Bool
 
-    init(session: URLSession = .shared, useCacheControl: Bool = true) {
+    public init(session: URLSession = .shared, useCacheControl: Bool = true) {
         self.session = session
         self.useCacheControl = useCacheControl
         connectorLogger.info("AnthropicConnector init useCacheControl=\(useCacheControl, privacy: .public)")
     }
 
-    func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
+    public func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
         let credentials = ConnectorCredentials.resolve(for: .anthropic)
         connectorLogger.debug("send start model=\(options.model, privacy: .public) messages=\(messages.count)")
 
@@ -136,7 +135,7 @@ actor AnthropicConnector: LLMConnector {
     /// safe to read from any actor context). The default
     /// implementation in LLMConnector extension is also nonisolated,
     /// so this override matches.
-    nonisolated func stream(
+    public nonisolated func stream(
         messages: [LLMMessage],
         options: LLMCallOptions
     ) -> AsyncStream<LLMBlock> {

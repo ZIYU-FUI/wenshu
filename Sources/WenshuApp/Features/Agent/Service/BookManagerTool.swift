@@ -2,6 +2,7 @@
 // … (= 50 rationale lines collapsed; = A112 docblock collapse per §1.8)
 // 
 import Foundation
+import WenshuAgent
 import os
 
 private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "bookmanagertool")

@@ -35,6 +35,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("Sub-agent web_search live E2E · v2.7d", .serialized)

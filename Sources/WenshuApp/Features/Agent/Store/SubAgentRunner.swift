@@ -2,6 +2,7 @@
 // … (= 97 rationale lines collapsed; = A112 docblock collapse per §1.8)
 // 
 import Foundation
+import WenshuAgent
 
 // / Typed errors for the SubAgentRunner (= hermes `_execute_child`
 // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)

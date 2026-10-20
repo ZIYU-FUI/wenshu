@@ -20,18 +20,17 @@
 //
 
 import Foundation
-import WenshuAgent
 
-actor OllamaConnector: LLMConnector {
-    nonisolated let connectorID = "ollama"
+public actor OllamaConnector: LLMConnector {
+    public nonisolated let connectorID = "ollama"
 
     private let delegate: OpenAICompatibleConnector
 
-    init(session: URLSession = .shared) {
+    public init(session: URLSession = .shared) {
         self.delegate = OpenAICompatibleConnector(provider: .ollama, session: session)
     }
 
-    func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
+    public func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
         try await delegate.send(messages: messages, options: options)
     }
 
@@ -48,7 +47,7 @@ actor OllamaConnector: LLMConnector {
     // `OpenAIStreamingWireupFactory.streamingStream` is `static`
     // and accepts the credentials by value (= Sendable + immutable
     // across actor contexts).
-    nonisolated func stream(
+    public nonisolated func stream(
         messages: [LLMMessage],
         options: LLMCallOptions
     ) -> AsyncStream<LLMBlock> {

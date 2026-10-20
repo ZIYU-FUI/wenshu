@@ -5,6 +5,7 @@
 // list surface.
 
 import Foundation
+import WenshuAgent
 
 /// File entry (hermes list)
 struct FileEntry: Equatable, Sendable {

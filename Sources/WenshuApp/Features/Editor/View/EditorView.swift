@@ -2,6 +2,7 @@
 // … (= 9 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)
 // behavior change).
 import SwiftUI
+import WenshuAgent
 import os
 import MarkdownEngine
 

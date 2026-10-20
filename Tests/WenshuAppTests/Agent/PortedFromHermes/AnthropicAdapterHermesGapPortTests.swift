@@ -20,6 +20,7 @@
 //  macOS Keychain layer per AGENTS.md §11).
 //
 
+import WenshuAgent
 import XCTest
 @testable import WenshuApp
 

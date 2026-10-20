@@ -45,6 +45,7 @@
 //
 
 import Foundation
+import WenshuAgent
 
 struct ParagraphAITool: Tool, Sendable {
 

@@ -32,22 +32,21 @@
 
 import Foundation
 import EventSource
-import WenshuAgent
 
 /// OpenAI-compatible SSE wire-up (= AsyncStream producer of raw `data:`
 /// payloads). Wraps EventSource (= mattt/EventSource 1.5.1) and yields
 /// raw `data:` strings (= JSON decoding happens in
 /// OpenAIChunkToLLMBlockConverter).
-actor OpenAIStreamingWireup {
+public actor OpenAIStreamingWireup {
 
     private var eventSource: EventSource?
     private var continuation: AsyncStream<String>.Continuation?
 
-    init() {}
+    public init() {}
 
     /// Connect to an OpenAI-compatible streaming endpoint and yield raw
     /// `data:` payloads (= one EventSource.Event per SSE message).
-    func connect(request: URLRequest) -> AsyncStream<String> {
+    public func connect(request: URLRequest) -> AsyncStream<String> {
         AsyncStream { continuation in
             self.continuation = continuation
             let eventSource = EventSource(request: request)
@@ -100,7 +99,7 @@ actor OpenAIStreamingWireup {
         close()
     }
 
-    func close() {
+    public func close() {
         let source = eventSource
         eventSource = nil
         continuation = nil
@@ -110,11 +109,11 @@ actor OpenAIStreamingWireup {
 
 // MARK: - Convenience factory (= single entry point for OpenAICompatibleConnector)
 
-enum OpenAIStreamingWireupFactory {
+public enum OpenAIStreamingWireupFactory {
 
     /// Build a streaming URLRequest and wire it up (= returns AsyncStream of
     /// raw `data:` payloads; = JSON decoding is the consumer's job).
-    static func streamingStream(
+    public static func streamingStream(
         credentials: ConnectorCredentials,
         model: String,
         maxTokens: Int,
@@ -150,7 +149,7 @@ enum OpenAIStreamingWireupFactory {
     /// Pure URLRequest builder (= extracted for Sendable capture in factory).
     /// `bearerToken` is separate from `credentials.apiKey` because Ollama
     /// (= no-auth local provider) sends no Authorization header.
-    static func buildRequest(
+    public static func buildRequest(
         credentials: ConnectorCredentials,
         model: String,
         maxTokens: Int,

@@ -42,7 +42,7 @@
 import Foundation
 import WenshuAgent
 
-enum OpenAIChunkToLLMBlockConverter {
+public enum OpenAIChunkToLLMBlockConverter {
 
     /// Single SSE event payload from OpenAI's chat completions streaming
     /// endpoint (= one `data: { ... }` line, with the `data: ` prefix
@@ -53,11 +53,11 @@ enum OpenAIChunkToLLMBlockConverter {
     /// (= String, [String: String], etc.) before crossing actor
     /// boundaries. The converter below does this synchronously
     /// inside the same Task that reads the EventSource stream.
-    struct OpenAISSEEvent {
-        let rawData: String
-        let parsed: [String: Any]?
+    public struct OpenAISSEEvent {
+        public let rawData: String
+        public let parsed: [String: Any]?
 
-        init(rawData: String, parsed: [String: Any]?) {
+        public init(rawData: String, parsed: [String: Any]?) {
             self.rawData = rawData
             self.parsed = parsed
         }
@@ -66,7 +66,7 @@ enum OpenAIChunkToLLMBlockConverter {
     /// Parse one SSE `data: {...}` payload into a structured event.
     /// Returns nil for "[DONE]" markers (= stream end), empty payloads,
     /// or malformed JSON (= graceful skip).
-    static func parse(rawData: String) -> OpenAISSEEvent? {
+    public static func parse(rawData: String) -> OpenAISSEEvent? {
         let trimmed = rawData.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty || trimmed == "[DONE]" {
             return nil
@@ -81,7 +81,7 @@ enum OpenAIChunkToLLMBlockConverter {
     /// Convert one OpenAI SSE event to zero or more LLMBlock events.
     /// Returns [] (= no blocks) for stream-end markers, malformed
     /// payloads, or chunks that carry no user-visible content.
-    static func convert(_ event: OpenAISSEEvent) -> [LLMBlock] {
+    public static func convert(_ event: OpenAISSEEvent) -> [LLMBlock] {
         guard let json = event.parsed else { return [] }
 
         // choices[0].delta.{content, reasoning, ...}
@@ -152,7 +152,7 @@ enum OpenAIChunkToLLMBlockConverter {
     /// Convert an AsyncStream of raw SSE `data:` payloads (= one per
     /// EventSource message) to an AsyncStream of LLMBlock events.
     /// Drops chunks that don't produce user-visible blocks.
-    static func convert(
+    public static func convert(
         stream: AsyncStream<String>
     ) -> AsyncStream<LLMBlock> {
         AsyncStream { continuation in
@@ -173,7 +173,7 @@ enum OpenAIChunkToLLMBlockConverter {
     }
 
     /// Synthetic error stream (= T9 pattern: missing-key path).
-    static func errorStream(_ message: String, provider: String) -> AsyncStream<LLMBlock> {
+    public static func errorStream(_ message: String, provider: String) -> AsyncStream<LLMBlock> {
         AsyncStream { continuation in
             continuation.yield(.text("[stream error] \(message) provider=\(provider)"))
             continuation.finish()
@@ -198,7 +198,7 @@ enum OpenAIChunkToLLMBlockConverter {
     /// yields one chunk at a time; = no concurrent mutation). Cross-
     /// stream sharing would require external synchronization (= future
     /// ticket if needed).
-    final class ToolUseAccumulator: @unchecked Sendable {
+    public final class ToolUseAccumulator: @unchecked Sendable {
         private struct PendingToolCall: Sendable {
             var id: String?
             var name: String?
@@ -206,7 +206,7 @@ enum OpenAIChunkToLLMBlockConverter {
         }
         private var pending: [Int: PendingToolCall] = [:]
 
-        init() {}
+        public init() {}
 
         /// Per-chunk state mutation. Returns zero or one LLMBlock to emit
         /// at the appropriate moment (= content/reasoning emit
@@ -317,7 +317,7 @@ enum OpenAIChunkToLLMBlockConverter {
     ///
     /// Parallel tool_calls (= multiple `index` in the same response)
     /// are tracked independently.
-    static func convert(
+    public static func convert(
         stream: AsyncStream<String>,
         accumulator: ToolUseAccumulator
     ) -> AsyncStream<LLMBlock> {

@@ -58,9 +58,8 @@
 //
 
 import Foundation
-import WenshuAgent
 
-enum AnthropicChunkToLLMBlockConverter {
+public enum AnthropicChunkToLLMBlockConverter {
 
     // MARK: - Stateless converter (= T6 / T9 contract; = unchanged)
 
@@ -68,7 +67,7 @@ enum AnthropicChunkToLLMBlockConverter {
     /// Returns nil for chunks that don't produce a user-visible block.
     /// Tool_use aggregation is NOT performed here (= use the stateful
     /// variant when tool_use needs to be assembled from delta chunks).
-    static func convert(_ chunk: AnthropicStreamingChunk) -> LLMBlock? {
+    public static func convert(_ chunk: AnthropicStreamingChunk) -> LLMBlock? {
         switch chunk.kind {
         case .contentBlockStart:
             // Block headers don't carry content yet. = nil.
@@ -108,7 +107,7 @@ enum AnthropicChunkToLLMBlockConverter {
     /// AsyncStream of LLMBlock (= drops the chunks that don't produce
     /// user-visible blocks; = no tool_use aggregation here; = use the
     /// stateful variant for that).
-    static func convert(
+    public static func convert(
         stream: AsyncStream<AnthropicStreamingChunk>
     ) -> AsyncStream<LLMBlock> {
         AsyncStream { continuation in
@@ -129,7 +128,7 @@ enum AnthropicChunkToLLMBlockConverter {
     /// when credentials are missing (= no SSE connection can be opened)
     /// so ChatView surfaces the error instead of ending the stream
     /// silently.
-    static func errorStream(_ message: String) -> AsyncStream<LLMBlock> {
+    public static func errorStream(_ message: String) -> AsyncStream<LLMBlock> {
         AsyncStream { continuation in
             continuation.yield(.text("[stream error] \(message)"))
             continuation.finish()
@@ -154,7 +153,7 @@ enum AnthropicChunkToLLMBlockConverter {
     /// invocation (= the AsyncStream yields one chunk at a time; =
     /// no concurrent mutation). Cross-stream sharing would require
     /// external synchronization (= future ticket if needed).
-    final class ToolUseAccumulator: @unchecked Sendable {
+    public final class ToolUseAccumulator: @unchecked Sendable {
         private struct PendingToolUse: Sendable {
             var id: String
             var name: String
@@ -162,12 +161,12 @@ enum AnthropicChunkToLLMBlockConverter {
         }
         private var pending: [Int: PendingToolUse] = [:]
 
-        init() {}
+        public init() {}
 
         /// Per-chunk state mutation. Returns zero or one LLMBlock to emit
         /// (= text/thinking deltas emit immediately; tool_use emits
         /// on content_block_stop with the assembled JSON).
-        func ingest(_ chunk: AnthropicStreamingChunk) -> LLMBlock? {
+        public func ingest(_ chunk: AnthropicStreamingChunk) -> LLMBlock? {
             switch chunk.kind {
             case .contentBlockStart(let blockType, let blockIndex, let toolId, let toolName):
                 if blockType == "tool_use", let id = toolId, let name = toolName {
@@ -223,7 +222,7 @@ enum AnthropicChunkToLLMBlockConverter {
     /// Parallel tool_use blocks (= multiple contentBlockStart with
     /// different blockIndex in the same response) are tracked
     /// independently.
-    static func convert(
+    public static func convert(
         stream: AsyncStream<AnthropicStreamingChunk>,
         accumulator: ToolUseAccumulator
     ) -> AsyncStream<LLMBlock> {
@@ -298,7 +297,7 @@ extension AnthropicChunkToLLMBlockConverter {
     /// returns deep copies of the thinking / redacted_thinking
     /// blocks (= the only types that need preservation for
     /// signature chain continuity on subsequent turns).
-    static func extractPreservedThinkingBlocks(
+    public static func extractPreservedThinkingBlocks(
         _ message: [String: Any]
     ) -> [[String: Any]] {
         guard let rawDetails = message["reasoning_details"] as? [Any] else {
@@ -341,7 +340,7 @@ extension AnthropicChunkToLLMBlockConverter {
     /// Each part is normalized via
     /// `convertContentPartToAnthropic(part)`. Parts that
     /// convert to nil are dropped.
-    static func convertContentToAnthropic(_ content: Any) -> Any {
+    public static func convertContentToAnthropic(_ content: Any) -> Any {
         guard let parts = content as? [Any] else { return content }
         var converted: [Any] = []
         for part in parts {
@@ -359,7 +358,7 @@ extension AnthropicChunkToLLMBlockConverter {
     /// Supports text + image + document blocks (= the
     /// multi-content image/document block support the audit
     /// flagged as missing).
-    static func convertContentPartToAnthropic(_ part: Any) -> [String: Any]? {
+    public static func convertContentPartToAnthropic(_ part: Any) -> [String: Any]? {
         guard let dict = part as? [String: Any] else {
             // Plain string content → wrap as a text block.
             if let text = part as? String {
@@ -416,7 +415,7 @@ extension AnthropicChunkToLLMBlockConverter {
     /// SDK output-only fields cannot reintroduce the bug
     /// (= hermes explicitly chose this pattern). Returns a
     /// clean block, or nil to drop it.
-    static func sanitizeReplayBlock(_ block: [String: Any]) -> [String: Any]? {
+    public static func sanitizeReplayBlock(_ block: [String: Any]) -> [String: Any]? {
         let btype = block["type"] as? String ?? ""
         switch btype {
         case "text":

@@ -5,6 +5,7 @@
 // shell is blocked by default (= path guard + read-only allowlist).
 
 import Foundation
+import WenshuAgent
 
 /// Mutable box for sharing Data across concurrent closures. Acts as
 /// an explicit shared-state cell that the Swift 6 concurrency

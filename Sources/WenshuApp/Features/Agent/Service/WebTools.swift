@@ -4,6 +4,7 @@
 // `URLSession` + `URL` parsing.
 
 import Foundation
+import WenshuAgent
 
 /// Web fetch
 struct WebFetchResult: Equatable, Sendable {

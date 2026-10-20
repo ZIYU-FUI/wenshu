@@ -15,6 +15,7 @@
 //
 
 import Foundation
+import WenshuAgent
 
 struct ReadFileTool: Tool, Sendable {
     init() {}

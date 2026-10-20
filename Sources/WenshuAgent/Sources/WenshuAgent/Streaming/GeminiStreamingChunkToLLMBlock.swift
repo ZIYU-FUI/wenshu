@@ -40,9 +40,8 @@
 //
 
 import Foundation
-import WenshuAgent
 
-enum GeminiStreamingChunk: Sendable, Equatable {
+public enum GeminiStreamingChunk: Sendable, Equatable {
     /// New text delta (= content.parts[i].text).
     case textDelta(String)
     /// New thinking delta (= content.parts[i].text when thinking
@@ -61,13 +60,13 @@ enum GeminiStreamingChunk: Sendable, Equatable {
     case finish(reason: String?)
 }
 
-enum GeminiStreamingParser {
+public enum GeminiStreamingParser {
 
     /// Parse one Gemini streaming JSON payload (= the JSON inside
     /// a `data:` SSE event, with the `data: ` prefix already
     /// stripped). Returns nil on malformed JSON (= caller should
     /// treat as end-of-stream).
-    static func parse(rawData: String) -> GeminiStreamingChunk? {
+    public static func parse(rawData: String) -> GeminiStreamingChunk? {
         // Trim + unwrap the SSE `data:` prefix (= same convention
         // as Anthropic + OpenAI wireups).
         let trimmed = rawData.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -154,12 +153,12 @@ enum GeminiStreamingParser {
 //
 
 
-enum GeminiChunkToLLMBlockConverter {
+public enum GeminiChunkToLLMBlockConverter {
 
     /// Convert a single Gemini streaming chunk to one LLMBlock.
     /// Returns nil for end-of-stream markers and ignore-worthy
     /// payloads (= the wireup/stream caller treats nil as a no-op).
-    static func convert(_ chunk: GeminiStreamingChunk) -> LLMBlock? {
+    public static func convert(_ chunk: GeminiStreamingChunk) -> LLMBlock? {
         switch chunk {
         case .textDelta(let s):
             if s.isEmpty { return nil }
@@ -217,7 +216,7 @@ enum GeminiChunkToLLMBlockConverter {
     /// fully assembled per chunk); = this wrapper is essentially
     /// stateless (= the accumulator is unused but kept for API
     /// consistency with Anthropic/OpenAI variants).
-    static func convert(
+    public static func convert(
         stream: AsyncStream<GeminiStreamingChunk>
     ) -> AsyncStream<LLMBlock> {
         AsyncStream { continuation in

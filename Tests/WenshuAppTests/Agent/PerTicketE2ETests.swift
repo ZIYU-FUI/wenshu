@@ -18,6 +18,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("PerTicketE2E (= 7-connector BYOK end-to-end)")

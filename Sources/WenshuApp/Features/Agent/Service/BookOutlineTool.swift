@@ -2,6 +2,7 @@
 // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
 // string) for hierarchy; `order` for sort.
 import Foundation
+import WenshuAgent
 
 // MARK: - OutlineEntryDescriptor
 

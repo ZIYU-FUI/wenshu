@@ -19,6 +19,7 @@
 //
 
 import Foundation
+import WenshuAgent
 
 /// Namespace container for the tool schema registry. Wrapped in an
 /// enum (= same pattern as A56's `enum ImportServiceDedup` and

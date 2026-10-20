@@ -42,6 +42,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("Drain loop live E2E · v2.7d", .serialized)

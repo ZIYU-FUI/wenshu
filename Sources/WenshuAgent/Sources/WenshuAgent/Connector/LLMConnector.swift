@@ -25,7 +25,6 @@
 //      `LLMStreamingConnector` work.
 
 import Foundation
-import WenshuAgent
 
 /// Public-facing protocol for all 7 LLM connector profiles.
 ///
@@ -33,7 +32,7 @@ import WenshuAgent
 /// / GeminiNativeConnector / etc.) implement the cross-connector wire format
 /// mapping. Callers (= ConversationLoop, ToolExecutor, WenshuVerifier) depend
 /// only on this protocol.
-protocol LLMConnector: Sendable {
+public protocol LLMConnector: Sendable {
     /// Identifier for the active connector (= e.g. "anthropic", "openai-codex",
     /// "minimax-cn", "gemini", "deepseek", "ollama", "openrouter").
     var connectorID: String { get }
@@ -71,31 +70,31 @@ protocol LLMConnector: Sendable {
 }
 
 /// Per-call options for `LLMConnector.send`.
-struct LLMCallOptions: Sendable {
-    let model: String
-    let maxTokens: Int
-    let systemPrompt: String?
-    let temperature: Double?
+public struct LLMCallOptions: Sendable {
+    public let model: String
+    public let maxTokens: Int
+    public let systemPrompt: String?
+    public let temperature: Double?
     /// Reasoning effort level from `wenshu.llm.reasoningEffort` (= user setting).
     /// Values: "low" / "medium" / "high" / "xhigh" / "max". nil = connector uses provider default.
     /// wired from SettingView picker through to connector adapters
     /// (= Anthropic thinking budget_tokens, OpenAI reasoning_effort, Gemini thinkingBudget).
-    let reasoningEffort: String?
+    public let reasoningEffort: String?
     /// Tool schemas made available to the model for this call.
     /// When non-empty, the connector serializes them into the provider's
     /// `tools` parameter so the model can issue `tool_use` blocks.
     /// Empty (= default) preserves the prior behavior of omitting the
     /// `tools` field from the request body.
-    let tools: [ToolRegistrySchema]
+    public let tools: [ToolRegistrySchema]
 
-    init(
-            model: String,
-            maxTokens: Int = 1024,
-            systemPrompt: String? = nil,
-            temperature: Double? = nil,
-            reasoningEffort: String? = nil,
-            tools: [ToolRegistrySchema] = []
-        ) {
+    public init(
+        model: String,
+        maxTokens: Int = 1024,
+        systemPrompt: String? = nil,
+        temperature: Double? = nil,
+        reasoningEffort: String? = nil,
+        tools: [ToolRegistrySchema] = []
+    ) {
         self.model = model
         self.maxTokens = maxTokens
         self.systemPrompt = systemPrompt
@@ -106,14 +105,13 @@ struct LLMCallOptions: Sendable {
 }
 
 /// Errors thrown by `LLMConnector.send`.
-enum LLMConnectorError: Error, LocalizedError, Sendable {
+public enum LLMConnectorError: Error, LocalizedError, Sendable {
     case missingAPIKey(provider: String)
     case transport(provider: String, statusCode: Int, body: String)
     case decode(provider: String, underlying: String)
     case unsupportedProvider(slug: String)
     case streamingFailed(provider: String)  // sub-step 4
-
-    var errorDescription: String? {
+    public var errorDescription: String? {
         switch self {
         case .missingAPIKey(let p):
             return "Missing API key for provider '\(p)'."

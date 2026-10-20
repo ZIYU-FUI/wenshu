@@ -14,6 +14,7 @@
 //
 
 import Foundation
+import WenshuAgent
 
 /// Patch-style chapter edit tool (= hermes edit_file 1:1).
 /// `actor:` is the underlying `EditChapterActor`. The tool wrapper

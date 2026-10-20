@@ -2,6 +2,7 @@
 // … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
 // BookWorldActor in an earlier version.
 import Foundation
+import WenshuAgent
 import WenshuData
 
 // MARK: - Actions

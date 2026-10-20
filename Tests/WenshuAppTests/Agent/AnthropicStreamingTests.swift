@@ -10,6 +10,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("AnthropicStreaming (= L30 thinking + tool_use decoder)")

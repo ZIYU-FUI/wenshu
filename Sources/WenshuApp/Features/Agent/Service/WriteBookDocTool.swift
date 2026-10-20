@@ -19,6 +19,7 @@
 // ConversationLoop.runTurn); = this tool is the agent's only write surface.
 
 import Foundation
+import WenshuAgent
 
 /// The agent's write tool for the import
 /// flow. Lives next to the rest of the

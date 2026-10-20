@@ -2,17 +2,16 @@
 // … (= 39 rationale lines collapsed; = A112 docblock collapse per §1.8)
 // 
 import Foundation
-import WenshuAgent
 
 // / Shared request/response marshaling for the 5 wenshu LLM connectors.
 // … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
 // / helper (= no silent unification across providers).
-enum RequestHelpers {
+public enum RequestHelpers {
 
     // MARK: - Anthropic native
     // … (= 11 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / - Returns: JSON-encoded request body Data
-    static func buildAnthropicRequest(
+    public static func buildAnthropicRequest(
         model: String,
         messages: [LLMMessage],
         maxTokens: Int,
@@ -129,7 +128,7 @@ enum RequestHelpers {
     // / Decode an Anthropic-format JSON response into an `LLMResponse`.
     // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / same Anthropic-compatible wire shape on the response side).
-    static func decodeAnthropicResponse(
+    public static func decodeAnthropicResponse(
         data: Data,
         model: String,
         providerID: String
@@ -200,7 +199,7 @@ enum RequestHelpers {
     // MARK: - Minimax-compatible (= thin Anthropic wrapper for minimax cn)
     // … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / breakpoints from `PromptCaching.applyCacheControl`).
-    static func buildMinimaxRequest(
+    public static func buildMinimaxRequest(
         model: String,
         messages: [LLMMessage],
         maxTokens: Int,
@@ -315,7 +314,7 @@ enum RequestHelpers {
     // MARK: - OpenAI chat completions
     // … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / - Returns: JSON-encoded request body Data
-    static func buildOpenAIRequest(
+    public static func buildOpenAIRequest(
         model: String,
         messages: [LLMMessage],
         maxTokens: Int,
@@ -403,7 +402,7 @@ enum RequestHelpers {
     // / Decode an OpenAI-format JSON response into an `LLMResponse`.
     // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / Stop reason mapping: `"length"` -> `.maxTokens`, else `.endTurn`.
-    static func decodeOpenAIResponse(
+    public static func decodeOpenAIResponse(
         data: Data,
         model: String,
         providerID: String
@@ -443,7 +442,7 @@ enum RequestHelpers {
     // MARK: - Gemini native
     // … (= 12 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / - Returns: JSON-encoded request body Data
-    static func buildGeminiRequest(
+    public static func buildGeminiRequest(
         model: String,
         messages: [LLMMessage],
         maxTokens: Int,
@@ -504,7 +503,7 @@ enum RequestHelpers {
 
     /// Decode a Gemini-format JSON response into an `LLMResponse`.
     /// Maps `candidates[0].content.parts[].text` to a single text block.
-    static func decodeGeminiResponse(
+    public static func decodeGeminiResponse(
         data: Data,
         model: String,
         providerID: String

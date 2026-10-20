@@ -13,6 +13,7 @@
 // logging + task UI.
 
 import Foundation
+import WenshuAgent
 
 /// Single-call driver. Imports a .md file
 /// by handing the task to the wenshu

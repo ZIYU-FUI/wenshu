@@ -10,14 +10,11 @@
 // `coalesceAdjacentText` independently for streaming display.
 
 import Foundation
-import WenshuAgent
 
-enum MessageContent {
+public enum MessageContent {
 
-    /// empty and text is returned verbatim. (see OOB.md #2026-10-15)
-    /// 和你在 hermes 里回复完全不是一种形态" (= the
-    /// wenshu agent's reply has no visible thinking
-    /// / verification / execution trace; = the user
+    /// empty and text is returned verbatim. The agent's reply
+    /// needs a visible thinking / verification / execution trace; the user
     /// wants the same step-by-step transparency that
     /// hermes provides).
     ///
@@ -43,7 +40,7 @@ enum MessageContent {
     /// the input has no tag (= the LLM didn't follow the
     /// convention, or reasoning is disabled), thinking is
     /// empty and text is returned verbatim.
-    static func extractThinkingTags(from text: String) -> (thinking: String, text: String) {
+    public static func extractThinkingTags(from text: String) -> (thinking: String, cleaned: String) {
         // Match `[[thinking: <content>]]` anywhere in the text.
         // The content can span multiple lines (= use [\s\S]).
         // Non-greedy so a later reply doesn't capture too much.
@@ -80,7 +77,7 @@ enum MessageContent {
 
     /// Canonicalize a block list: drop empty .text("") blocks,
     /// preserve all other blocks in order.
-    static func canonicalize(_ blocks: [LLMBlock]) -> [LLMBlock] {
+    public static func canonicalize(_ blocks: [LLMBlock]) -> [LLMBlock] {
         blocks.filter { block in
             switch block {
             case .text(let s):
@@ -98,7 +95,7 @@ enum MessageContent {
     /// Coalesce adjacent .text blocks into one. Non-text blocks (= thinking,
     /// tool_use, tool_result) are NEVER coalesced (= they carry structured
     /// semantics that must be preserved).
-    static func coalesceAdjacentText(_ blocks: [LLMBlock]) -> [LLMBlock] {
+    public static func coalesceAdjacentText(_ blocks: [LLMBlock]) -> [LLMBlock] {
         var result: [LLMBlock] = []
         for block in blocks {
             if case .text(let s) = block {
@@ -230,7 +227,7 @@ enum MessageContent {
     ///     (= default "\n"; = hermes default).
     /// - Returns: The extracted visible text (= never nil;
     ///   = empty string for unrecoverable content).
-    static func flattenMessageText(
+    public static func flattenMessageText(
         _ content: Any,
         sep: String = "\n"
     ) -> String {

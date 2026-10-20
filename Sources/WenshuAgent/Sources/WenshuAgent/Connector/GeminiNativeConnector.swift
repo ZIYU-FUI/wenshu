@@ -21,24 +21,23 @@
 // this commit).
 
 import Foundation
-import WenshuAgent
 import os.log
 
 private let connectorLogger = Logger(
     subsystem: "com.wenshu.agent", category: "model"
 )
 
-actor GeminiNativeConnector: LLMConnector {
-    nonisolated let connectorID = "gemini"
+public actor GeminiNativeConnector: LLMConnector {
+    public nonisolated let connectorID = "gemini"
 
     private let session: URLSession
 
-    init(session: URLSession = .shared) {
+    public init(session: URLSession = .shared) {
         self.session = session
         connectorLogger.info("GeminiNativeConnector init")
     }
 
-    func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
+    public func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
         let credentials = ConnectorCredentials.resolve(for: .gemini)
         connectorLogger.debug("send start model=\(options.model, privacy: .public) messages=\(messages.count)")
 
@@ -107,7 +106,7 @@ actor GeminiNativeConnector: LLMConnector {
     ///
     /// Empty-key path: synthetic errorStream so ChatView surfaces
     /// the auth failure.
-    nonisolated func stream(
+    public nonisolated func stream(
         messages: [LLMMessage],
         options: LLMCallOptions
     ) -> AsyncStream<LLMBlock> {

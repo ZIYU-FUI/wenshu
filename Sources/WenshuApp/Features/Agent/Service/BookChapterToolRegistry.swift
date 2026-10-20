@@ -19,6 +19,7 @@
 //
 
 import Foundation
+import WenshuAgent
 import os
 
 extension BookChapterTool {

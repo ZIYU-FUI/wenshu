@@ -1,72 +1,70 @@
 //
-//  DeepSeekConnector.swift
+//  OpenRouterConnector.swift
 //
-//  DeepSeek connector (= one of 7 LLM connector profiles per AGENTS.md §11.2).
+//  OpenRouter connector (= one of 7 LLM connector profiles per AGENTS.md §11.2).
 //
-//  DeepSeek exposes an OpenAI-compatible chat completions endpoint at
-//  https://api.deepseek.com/v1/chat/completions (= same wire format as
-//  OpenAI native, with `Authorization: Bearer <DEEPSEEK_API_KEY>`).
+//  OpenRouter exposes an OpenAI-compatible chat completions endpoint at
+//  https://openrouter.ai/api/v1/chat/completions (= multi-provider router
+//  that proxies Anthropic, OpenAI, DeepSeek, Meta, Google, etc. behind a
+//  single API key + OpenAI wire format).
 //
 //  Per AGENTS.md §11.3 wenshu-side wins: this struct is a thin typed wrapper
 //  over the shared `OpenAICompatibleConnector` (= it owns the slug identity
 //  + the credential resolver, but delegates wire-format marshaling and HTTP
 //  transport to the existing openai-compatible path via RequestHelpers).
 //
-//  This is intentional duplication-by-identity: callers that need a DeepSeek-
-//  specific connector (= e.g. ProviderPicker, per-connector tests, or any
-//  downstream that switches on `connectorID == "deepseek"`) get a typed
-//  entry point that matches the shape of AnthropicConnector / OpenAIConnector
-//  / GeminiNativeConnector / MinimaxConnector. The actual HTTP path stays
-//  single-source-of-truth in `OpenAICompatibleConnector`.
+//  Per AGENTS.md §11.2 row "OpenRouter | OPENROUTER_API_KEY | Multi-provider
+//  router (Anthropic, OpenAI, Google, Meta via single endpoint)": auth is
+//  Bearer, base URL = https://openrouter.ai/api/v1, default models include
+//  `anthropic/claude-opus-4.8` and `deepseek/deepseek-v4-pro`.
 //
 
 import Foundation
-import WenshuAgent
 
-actor DeepSeekConnector: LLMConnector {
-    nonisolated let connectorID = "deepseek"
+public actor OpenRouterConnector: LLMConnector {
+    public nonisolated let connectorID = "openrouter"
 
     private let delegate: OpenAICompatibleConnector
 
-    init(session: URLSession = .shared) {
-        self.delegate = OpenAICompatibleConnector(provider: .deepseek, session: session)
+    public init(session: URLSession = .shared) {
+        self.delegate = OpenAICompatibleConnector(provider: .openrouter, session: session)
     }
 
-    func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
+    public func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
         try await delegate.send(messages: messages, options: options)
     }
 
     // MARK: - Native streaming (P0-AGENT-STREAMING, boss 2026-10-16)
     //
-    // DeepSeek uses the OpenAI chat-completions protocol (= the same
-    // wire format as `OpenAIConnector`). The native streaming SSE
-    // path lives in `OpenAIStreamingWireupFactory.streamingStream`
-    // (= reused wholesale; = DeepSeek has a documented `stream:
-    // true` flag; = the upstream emits OpenAI-shaped chunk events
+    // OpenRouter is an OpenAI-compat multi-provider router. The wire
+    // format is byte-compatible with the OpenAI chat-completions
+    // protocol (= `Authorization: Bearer <key>` + the same SSE
+    // chunk shape). The native streaming SSE path lives in
+    // `OpenAIStreamingWireupFactory.streamingStream` (= reused
+    // wholesale; = the upstream emits OpenAI-shaped chunk events
     // that `OpenAIChunkToLLMBlockConverter` maps to LLMBlock).
     //
     // `nonisolated` (T9 protocol conformance): the underlying
     // `OpenAIStreamingWireupFactory.streamingStream` is `static`
     // and accepts the credentials by value (= Sendable + immutable
     // across actor contexts).
-    nonisolated func stream(
+    public nonisolated func stream(
         messages: [LLMMessage],
         options: LLMCallOptions
     ) -> AsyncStream<LLMBlock> {
-        let credentials = ConnectorCredentials.resolve(for: .deepseek)
+        let credentials = ConnectorCredentials.resolve(for: .openrouter)
 
         // Empty key -> emit synthetic error block (= no silent
-        // stream end; = matches OpenAIConnector + AnthropicConnector
-        // pattern).
+        // stream end; = matches OpenAIConnector + DeepSeek pattern).
         if credentials.apiKey.isEmpty {
             return OpenAIChunkToLLMBlockConverter.errorStream(
-                "[stream error] missing API key for deepseek",
+                "[stream error] missing API key for openrouter",
                 provider: connectorID
             )
         }
 
-        // DeepSeek accepts `Authorization: Bearer <key>` (= the OpenAI
-        // convention; = not `x-api-key` like Anthropic / Minimax).
+        // OpenRouter accepts `Authorization: Bearer <key>` (= the
+        // OpenAI convention).
         let bearer = credentials.apiKey
 
         let rawStream = OpenAIStreamingWireupFactory.streamingStream(
@@ -80,7 +78,7 @@ actor DeepSeekConnector: LLMConnector {
         )
         // T12b: stateful converter (= aggregates tool_calls across
         // chunks). = the agent's ReAct loop sees coherent .toolUse
-        // blocks (= no half-built tool calls in the chat).
+        // blocks.
         let accumulator = OpenAIChunkToLLMBlockConverter.ToolUseAccumulator()
         return OpenAIChunkToLLMBlockConverter.convert(
             stream: rawStream,

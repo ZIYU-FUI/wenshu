@@ -13,6 +13,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("ToolGuardrails deep (= v0.36 ticket 015)")

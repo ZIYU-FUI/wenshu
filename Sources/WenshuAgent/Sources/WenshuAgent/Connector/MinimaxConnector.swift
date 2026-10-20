@@ -41,15 +41,14 @@
 // turn; = matches the hermes `agent.Agent` log shape).
 
 import Foundation
-import WenshuAgent
 import os.log
 
 private let connectorLogger = Logger(
     subsystem: "com.wenshu.agent", category: "model"
 )
 
-actor MinimaxConnector: LLMConnector {
-    nonisolated let connectorID: String
+public actor MinimaxConnector: LLMConnector {
+    public nonisolated let connectorID: String
 
     /// The provider whose keychain slot this connector reads from
     /// (= `Provider.by(slug: "minimax")` for the international
@@ -67,7 +66,7 @@ actor MinimaxConnector: LLMConnector {
     private let session: URLSession
     private let useCacheControl: Bool
 
-    init(
+    public init(
         provider: Provider = .minimaxCn,
         session: URLSession = .shared,
         useCacheControl: Bool = true
@@ -79,7 +78,7 @@ actor MinimaxConnector: LLMConnector {
         connectorLogger.info("MinimaxConnector init providerSlug=\(provider.slug, privacy: .public) useCacheControl=\(useCacheControl, privacy: .public)")
     }
 
-    func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
+    public func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
         let credentials = ConnectorCredentials.resolve(for: provider)
         connectorLogger.debug("send start model=\(options.model, privacy: .public) messages=\(messages.count)")
 
@@ -173,7 +172,7 @@ actor MinimaxConnector: LLMConnector {
     // `nonisolated` (T9 protocol conformance): `useCacheControl` is
     // a `let` (= Sendable + immutable = safe to read from any actor
     // context = matches the AnthropicConnector pattern).
-    nonisolated func stream(
+    public nonisolated func stream(
         messages: [LLMMessage],
         options: LLMCallOptions
     ) -> AsyncStream<LLMBlock> {

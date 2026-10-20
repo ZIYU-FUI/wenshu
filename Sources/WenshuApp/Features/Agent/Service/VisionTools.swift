@@ -14,6 +14,7 @@ import CoreImage
 #endif
 #if canImport(AppKit)
 import AppKit
+import WenshuAgent
 #endif
 
 /// (hermes vision_analyze text field)

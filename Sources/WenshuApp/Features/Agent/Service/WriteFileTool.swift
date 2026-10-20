@@ -14,6 +14,7 @@
 //
 
 import Foundation
+import WenshuAgent
 
 struct WriteFileTool: Tool, Sendable {
     init() {}

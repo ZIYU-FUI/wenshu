@@ -67,6 +67,7 @@
 //
 
 import Foundation
+import WenshuAgent
 import WenshuData
 
 struct KanbanStoreTool: Tool, Sendable {

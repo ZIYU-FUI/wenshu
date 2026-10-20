@@ -29,7 +29,6 @@
 // `WALogger.network info "SSE attempt=..."`.
 
 import Foundation
-import WenshuAgent
 import os.log
 
 private let connectorLogger = Logger(
@@ -38,17 +37,17 @@ private let connectorLogger = Logger(
 
 // MARK: - OpenAI native
 
-actor OpenAIConnector: LLMConnector {
-    nonisolated let connectorID = "openai"
+public actor OpenAIConnector: LLMConnector {
+    public nonisolated let connectorID = "openai"
 
     private let session: URLSession
 
-    init(session: URLSession = .shared) {
+    public init(session: URLSession = .shared) {
         self.session = session
         connectorLogger.info("OpenAIConnector init")
     }
 
-    func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
+    public func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
         let credentials = ConnectorCredentials.resolve(for: .openaiCodex)
         connectorLogger.debug("send start model=\(options.model, privacy: .public) messages=\(messages.count)")
 
@@ -103,7 +102,7 @@ actor OpenAIConnector: LLMConnector {
     //
     // `nonisolated` (matches the protocol requirement; = SSE
     // setup is a pure function of the inputs).
-    nonisolated func stream(
+    public nonisolated func stream(
         messages: [LLMMessage],
         options: LLMCallOptions
     ) -> AsyncStream<LLMBlock> {
@@ -141,20 +140,20 @@ actor OpenAIConnector: LLMConnector {
 
 // MARK: - OpenAI-compatible (minimax cn / DeepSeek / Ollama / OpenRouter)
 
-actor OpenAICompatibleConnector: LLMConnector {
-    nonisolated let connectorID: String  // = provider.slug (set at init)
+public actor OpenAICompatibleConnector: LLMConnector {
+    public nonisolated let connectorID: String  // = provider.slug (set at init)
 
     private let session: URLSession
     private let provider: Provider
 
-    init(provider: Provider, session: URLSession = .shared) {
+    public init(provider: Provider, session: URLSession = .shared) {
         self.provider = provider
         self.session = session
         self.connectorID = provider.slug
         connectorLogger.info("OpenAICompatibleConnector init provider=\(self.connectorID, privacy: .public)")
     }
 
-    func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
+    public func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
         let credentials = ConnectorCredentials.resolve(for: provider)
         connectorLogger.debug("send start provider=\(self.connectorID, privacy: .public) model=\(options.model, privacy: .public) messages=\(messages.count)")
 
@@ -227,7 +226,7 @@ actor OpenAICompatibleConnector: LLMConnector {
     ///
     /// Empty-key path (= no API key for non-Ollama): synthetic
     /// errorStream so ChatView surfaces the failure.
-    nonisolated func stream(
+    public nonisolated func stream(
         messages: [LLMMessage],
         options: LLMCallOptions
     ) -> AsyncStream<LLMBlock> {

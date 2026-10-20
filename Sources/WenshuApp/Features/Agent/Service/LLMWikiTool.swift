@@ -18,6 +18,7 @@
 // arc).
 
 import Foundation
+import WenshuAgent
 import WenshuData
 
 final class LLMWikiTool: Tool, @unchecked Sendable {

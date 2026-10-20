@@ -46,6 +46,7 @@
 //
 
 import Foundation
+import WenshuAgent
 import WenshuData
 
 struct TodoStoreTool: Tool, Sendable {

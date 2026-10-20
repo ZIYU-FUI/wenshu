@@ -43,6 +43,7 @@
 // the tool).
 
 import Foundation
+import WenshuAgent
 
 final class BackgroundReviewTool: Tool, @unchecked Sendable {
 

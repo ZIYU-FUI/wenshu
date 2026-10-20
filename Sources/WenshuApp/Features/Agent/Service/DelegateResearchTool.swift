@@ -51,6 +51,7 @@
 //
 
 import Foundation
+import WenshuAgent
 import WenshuData
 
 final class DelegateResearchTool: Tool, @unchecked Sendable {

@@ -7,6 +7,7 @@
 import Foundation
 #if canImport(AVFoundation)
 import AVFoundation
+import WenshuAgent
 #endif
 
 /// TTS (hermes tts)
