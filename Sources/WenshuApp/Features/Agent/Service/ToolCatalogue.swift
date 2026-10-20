@@ -19,11 +19,15 @@ import Foundation
 import WenshuAgent
 
 /// One tool the app ships, and where it belongs.
-public struct CataloguedTool: Sendable {
+public struct CataloguedTool: Sendable, Identifiable {
     public let name: String
     public let category: ToolCategory
     /// Whether the tool changes something on disk.
     public let mutates: Bool
+
+    /// Identity is the registry name. Two tools with the same name are the
+    /// same tool, so the name is the identity rather than a derived one.
+    public var id: String { name }
 
     public init(name: String, category: ToolCategory, mutates: Bool) {
         self.name = name

@@ -52,7 +52,7 @@ public struct ExposedTool: Sendable, Equatable {
 }
 
 /// A named bundle of tools a user can turn on as a unit.
-public struct ToolPreset: Sendable, Equatable {
+public struct ToolPreset: Sendable, Equatable, Identifiable {
     public let id: String
     public let title: String
     /// One line, in product language (= "search the library" not "BM25 index").
