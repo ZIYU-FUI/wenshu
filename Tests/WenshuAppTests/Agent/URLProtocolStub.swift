@@ -21,16 +21,23 @@
 //  (= previously unused by most callers) so the snapshot is captured before
 //  `startLoading()` runs.
 //
-//  Usage:
-//    let stub = URLProtocolStub()
+//  Usage (= the only supported form):
+//    let (stub, protocolClass) = URLProtocolStub.makeIsolatedStub()
 //    stub.response = makeResponse(...)
-//    URLProtocolStub.register(stub)
+//    config.protocolClasses = [protocolClass]
 //    defer { URLProtocolStub.unregister() }
-//    let req = URLRequest(...)
-//    session.dataTask(with: req)...
-//    let body = URLProtocolStub.stub?.lastRequest?.httpBody
-//                ?? drainStream(URLProtocolStub.stub?.lastRequest?.httpBodyStream)
+//    …
+//    stub.lastRequest
 //
+//  Each call to `makeIsolatedStub()` mints a fresh `URLProtocol` subclass
+//  carrying its own stub in an associated object, so suites running in
+//  parallel cannot overwrite one another's canned responses. The legacy
+//  `register(_:)` path keeps the response in a process-global static, which
+//  means every session shares it — it is retained only for older callers and
+//  must not be used in new tests.
+//
+//  Keychain state is scoped the same way, via
+//  `ProviderKeychain.withBackendForTesting(_:perform:)`.
 //
 
 import Foundation
@@ -162,6 +169,19 @@ public final class URLProtocolStub: URLProtocol, @unchecked Sendable {
     public override class func canInit(with request: URLRequest) -> Bool { true }
     public override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
 
+    /// The receiver's real Objective-C class.
+    ///
+    /// `type(of: self)` is a generic function, and inside a class method `self`
+    /// has the static type of the enclosing class — so it reports
+    /// `URLProtocolStub.self` even when Foundation instantiated one of the
+    /// per-test subclasses. The isolated branch therefore never ran, every
+    /// request fell through to the process-global snapshot, and parallel suites
+    /// overwrote each other's canned responses. `object_getClass` returns the
+    /// dynamic class and restores the routing.
+    private func dynamicClass() -> AnyClass {
+        object_getClass(self) ?? URLProtocolStub.self
+    }
+
     public override func startLoading() {
         // 
         // per-test isolated stub routing. If `self` is an instance
@@ -177,7 +197,7 @@ public final class URLProtocolStub: URLProtocol, @unchecked Sendable {
         // instance). For isolated subclasses, the test's stub is
         // captured on the class via associated objects (= survives
         // across instance creations).
-        if type(of: self) != URLProtocolStub.self {
+        if dynamicClass() != URLProtocolStub.self {
             // Isolated subclass: route to per-instance stub.
             routeToIsolatedStub(request: request, client: client)
             return
@@ -327,7 +347,7 @@ public final class URLProtocolStub: URLProtocol, @unchecked Sendable {
         request: URLRequest,
         client: URLProtocolClient?
     ) {
-        guard let stub = IsolatedStubSubclass.getAssociatedStub(type(of: self)) else {
+        guard let stub = IsolatedStubSubclass.getAssociatedStub(dynamicClass()) else {
             // No associated stub: fall through to default behavior
             // (= empty response; = the test will see a fail but won't
             // crash). This is a safety net for malformed subclasses.

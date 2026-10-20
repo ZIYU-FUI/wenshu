@@ -305,28 +305,27 @@ struct RequestHelpersTests {
 
     @Test("ConnectorAfterRefactor Anthropic: byte-identical httpBody to pre-refactor")
     func testConnectorAfterRefactorAnthropic() async throws {
-        let stub = URLProtocolStub()
+        let (stub, protocolClass) = URLProtocolStub.makeIsolatedStub()
         stub.response = makeAnthropicResponse(content: "ok")
-        URLProtocolStub.register(stub)
-        defer { URLProtocolStub.unregister() }
         let config = URLSessionConfiguration.ephemeral
-        config.protocolClasses = [URLProtocolStub.self]
+        config.protocolClasses = [protocolClass]
         let session = URLSession(configuration: config)
 
         let store = InMemoryKeychainStore()
         try store.saveKeySync("sk-test", for: .anthropic)
-        ProviderKeychain.setBackendForTesting(store)
 
-        let connector = AnthropicConnector(session: session)
-        _ = try await connector.send(
-            messages: [LLMMessage.user("test")],
-            options: LLMCallOptions(model: "claude-sonnet-4-5", maxTokens: 4096, systemPrompt: "stable")
-        )
+        try await ProviderKeychain.withBackendForTesting(store) {
+            let connector = AnthropicConnector(session: session)
+            _ = try await connector.send(
+                messages: [LLMMessage.user("test")],
+                options: LLMCallOptions(model: "claude-sonnet-4-5", maxTokens: 4096, systemPrompt: "stable")
+            )
+        }
 
         // URLSession migrates `httpBody` -> `httpBodyStream` for POST bodies,
         // so `httpBody` may be nil even when bytes are present. Drain the
         // stream when httpBody is missing (= captures the real request body).
-        let captured = URLProtocolStub.stub?.lastRequest
+        let captured = stub.lastRequest
         let bodyData: Data = try {
             if let direct = captured?.httpBody { return direct }
             guard let stream = captured?.httpBodyStream else { return Data() }
@@ -361,25 +360,24 @@ struct RequestHelpersTests {
 
     @Test("ConnectorAfterRefactor OpenAI: byte-identical httpBody to pre-refactor")
     func testConnectorAfterRefactorOpenAI() async throws {
-        let stub = URLProtocolStub()
+        let (stub, protocolClass) = URLProtocolStub.makeIsolatedStub()
         stub.response = makeOpenAIResponse(content: "ok")
-        URLProtocolStub.register(stub)
-        defer { URLProtocolStub.unregister() }
         let config = URLSessionConfiguration.ephemeral
-        config.protocolClasses = [URLProtocolStub.self]
+        config.protocolClasses = [protocolClass]
         let session = URLSession(configuration: config)
 
         let store = InMemoryKeychainStore()
         try store.saveKeySync("sk-test", for: .openaiCodex)
-        ProviderKeychain.setBackendForTesting(store)
 
-        let connector = OpenAIConnector(session: session)
-        _ = try await connector.send(
-            messages: [LLMMessage.user("test")],
-            options: LLMCallOptions(model: "gpt-5", maxTokens: 4096, systemPrompt: "stable")
-        )
+        try await ProviderKeychain.withBackendForTesting(store) {
+            let connector = OpenAIConnector(session: session)
+            _ = try await connector.send(
+                messages: [LLMMessage.user("test")],
+                options: LLMCallOptions(model: "gpt-5", maxTokens: 4096, systemPrompt: "stable")
+            )
+        }
 
-        let captured = URLProtocolStub.stub?.lastRequest
+        let captured = stub.lastRequest
         let bodyData: Data = try {
             if let direct = captured?.httpBody { return direct }
             guard let stream = captured?.httpBodyStream else { return Data() }

@@ -5,6 +5,13 @@
 //  Verifies full Anthropic-native wire format: cache_control, thinking blocks,
 //  tool_use round-trip, system field with cache_control, structured content.
 //
+//  Stubbing is per test (`makeIsolatedStub`) rather than process-global
+//  (`URLProtocolStub.register`). The global form registers the class for the
+//  whole process and parks the canned response in a class-level static, so a
+//  suite running in parallel reads whichever stub registered last. That made
+//  this file fail its neighbours (Exa / MCP / Parallel / Keenable) whenever the
+//  two ran together, while both passed alone.
+//
 
 import Testing
 import Foundation
@@ -13,28 +20,39 @@ import Foundation
 @Suite("AnthropicConnector (ticket 004 sub-step 1)", .serialized)
 struct AnthropicConnectorTests {
 
-    @Test("Anthropic-native system field with cache_control")
-    func testSystemFieldCacheControl() async throws {
-        let stub = URLProtocolStub()
-        stub.response = makeAnthropicResponse(content: "ok")
-        URLProtocolStub.register(stub)
-        defer { URLProtocolStub.unregister() }
-        let config = URLSessionConfiguration.ephemeral
-        config.protocolClasses = [URLProtocolStub.self]
-        let session = URLSession(configuration: config)
+    // MARK: - Harness
 
+    /// A session wired to a stub that belongs to this test alone.
+    private func makeSession() -> (session: URLSession, stub: URLProtocolStub) {
+        let (stub, protocolClass) = URLProtocolStub.makeIsolatedStub()
+        stub.response = makeAnthropicResponse(content: "ok")
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [protocolClass]
+        return (URLSession(configuration: config), stub)
+    }
+
+    private func keychainWithTestKey() throws -> InMemoryKeychainStore {
         let store = InMemoryKeychainStore()
         try store.saveKeySync("sk-test", for: .anthropic)
-        ProviderKeychain.setBackendForTesting(store)
+        return store
+    }
 
-        let connector = AnthropicConnector(session: session)
-        _ = try await connector.send(
-            messages: [LLMMessage.user("test")],
-            options: LLMCallOptions(model: "claude-sonnet-4-5", systemPrompt: "stable")
-        )
+    // MARK: - Wire format
 
-        let bodyData = capturedRequestBody()
-        let body = try JSONSerialization.jsonObject(with: bodyData) as? [String: Any]
+    @Test("Anthropic-native system field with cache_control")
+    func testSystemFieldCacheControl() async throws {
+        let (session, stub) = makeSession()
+        let store = try keychainWithTestKey()
+
+        try await ProviderKeychain.withBackendForTesting(store) {
+            let connector = AnthropicConnector(session: session)
+            _ = try await connector.send(
+                messages: [LLMMessage.user("test")],
+                options: LLMCallOptions(model: "claude-sonnet-4-5", systemPrompt: "stable")
+            )
+        }
+
+        let body = try decodedBody(from: stub)
         let system = body?["system"] as? [String: Any]
         #expect(system?["type"] as? String == "text")
         #expect(system?["text"] as? String == "stable")
@@ -43,63 +61,46 @@ struct AnthropicConnectorTests {
 
     @Test("Anthropic-native content blocks array (not joined string)")
     func testContentBlocksArray() async throws {
-        let stub = URLProtocolStub()
-        stub.response = makeAnthropicResponse(content: "ok")
-        URLProtocolStub.register(stub)
-        defer { URLProtocolStub.unregister() }
-        let config = URLSessionConfiguration.ephemeral
-        config.protocolClasses = [URLProtocolStub.self]
-        let session = URLSession(configuration: config)
+        let (session, stub) = makeSession()
+        let store = try keychainWithTestKey()
 
-        let store = InMemoryKeychainStore()
-        try store.saveKeySync("sk-test", for: .anthropic)
-        ProviderKeychain.setBackendForTesting(store)
+        try await ProviderKeychain.withBackendForTesting(store) {
+            let connector = AnthropicConnector(session: session)
+            _ = try await connector.send(
+                messages: [LLMMessage.user("test")],
+                options: LLMCallOptions(model: "claude-sonnet-4-5")
+            )
+        }
 
-        let connector = AnthropicConnector(session: session)
-        _ = try await connector.send(
-            messages: [LLMMessage.user("test")],
-            options: LLMCallOptions(model: "claude-sonnet-4-5")
-        )
-
-        let bodyData = capturedRequestBody()
-        let body = try JSONSerialization.jsonObject(with: bodyData) as? [String: Any]
-        let messages = body?["messages"] as? [[String: Any]]
-        let userMessage = messages?[0]
+        let body = try decodedBody(from: stub)
+        let userMessage = (body?["messages"] as? [[String: Any]])?.first
         // Content must be an array (= Anthropic native), not a joined string
         #expect(userMessage?["content"] is [[String: Any]])
     }
 
     @Test("Tool use block encoded with type=tool_use + id + name + input as JSON object")
     func testToolUseBlock() async throws {
-        let stub = URLProtocolStub()
-        stub.response = makeAnthropicResponse(content: "ok")
-        URLProtocolStub.register(stub)
-        defer { URLProtocolStub.unregister() }
-        let config = URLSessionConfiguration.ephemeral
-        config.protocolClasses = [URLProtocolStub.self]
-        let session = URLSession(configuration: config)
-
-        let store = InMemoryKeychainStore()
-        try store.saveKeySync("sk-test", for: .anthropic)
-        ProviderKeychain.setBackendForTesting(store)
-
-        let connector = AnthropicConnector(session: session)
+        let (session, stub) = makeSession()
+        let store = try keychainWithTestKey()
         let messages = [
             LLMMessage(
                 role: .assistant,
                 blocks: [.toolUse(id: "t1", name: "ReadFile", input: "{\"path\":\"/tmp/x\"}")]
             )
         ]
-        _ = try await connector.send(
-            messages: messages,
-            options: LLMCallOptions(model: "claude-sonnet-4-5")
-        )
 
-        let bodyData = capturedRequestBody()
-        let body = try JSONSerialization.jsonObject(with: bodyData) as? [String: Any]
-        let messages2 = body?["messages"] as? [[String: Any]]
-        let content = messages2?[0]["content"] as? [[String: Any]]
-        let toolUse = content?[0]
+        try await ProviderKeychain.withBackendForTesting(store) {
+            let connector = AnthropicConnector(session: session)
+            _ = try await connector.send(
+                messages: messages,
+                options: LLMCallOptions(model: "claude-sonnet-4-5")
+            )
+        }
+
+        let body = try decodedBody(from: stub)
+        let content = (body?["messages"] as? [[String: Any]])?.first?["content"]
+            as? [[String: Any]]
+        let toolUse = content?.first
         #expect(toolUse?["type"] as? String == "tool_use")
         #expect(toolUse?["id"] as? String == "t1")
         #expect(toolUse?["name"] as? String == "ReadFile")
@@ -114,32 +115,24 @@ struct AnthropicConnectorTests {
 
     @Test("Tool result block encoded with type=tool_result + tool_use_id + content")
     func testToolResultBlock() async throws {
-        let stub = URLProtocolStub()
-        stub.response = makeAnthropicResponse(content: "ok")
-        URLProtocolStub.register(stub)
-        defer { URLProtocolStub.unregister() }
-        let config = URLSessionConfiguration.ephemeral
-        config.protocolClasses = [URLProtocolStub.self]
-        let session = URLSession(configuration: config)
-
-        let store = InMemoryKeychainStore()
-        try store.saveKeySync("sk-test", for: .anthropic)
-        ProviderKeychain.setBackendForTesting(store)
-
-        let connector = AnthropicConnector(session: session)
+        let (session, stub) = makeSession()
+        let store = try keychainWithTestKey()
         let messages = [
             LLMMessage.toolResult(toolUseID: "t1", output: "file content here")
         ]
-        _ = try await connector.send(
-            messages: messages,
-            options: LLMCallOptions(model: "claude-sonnet-4-5")
-        )
 
-        let bodyData = capturedRequestBody()
-        let body = try JSONSerialization.jsonObject(with: bodyData) as? [String: Any]
-        let messages2 = body?["messages"] as? [[String: Any]]
-        let content = messages2?[0]["content"] as? [[String: Any]]
-        let toolResult = content?[0]
+        try await ProviderKeychain.withBackendForTesting(store) {
+            let connector = AnthropicConnector(session: session)
+            _ = try await connector.send(
+                messages: messages,
+                options: LLMCallOptions(model: "claude-sonnet-4-5")
+            )
+        }
+
+        let body = try decodedBody(from: stub)
+        let content = (body?["messages"] as? [[String: Any]])?.first?["content"]
+            as? [[String: Any]]
+        let toolResult = content?.first
         #expect(toolResult?["type"] as? String == "tool_result")
         #expect(toolResult?["tool_use_id"] as? String == "t1")
         #expect(toolResult?["content"] as? String == "file content here")
@@ -148,15 +141,15 @@ struct AnthropicConnectorTests {
     @Test("Missing API key throws LLMConnectorError.missingAPIKey")
     func testMissingAPIKey() async {
         let store = InMemoryKeychainStore()
-        ProviderKeychain.setBackendForTesting(store)
 
-        let connector = AnthropicConnector(session: .shared)
-
-        await #expect(throws: LLMConnectorError.self) {
-            _ = try await connector.send(
-                messages: [LLMMessage.user("test")],
-                options: LLMCallOptions(model: "claude-sonnet-4-5")
-            )
+        await ProviderKeychain.withBackendForTesting(store) {
+            let connector = AnthropicConnector(session: .shared)
+            await #expect(throws: LLMConnectorError.self) {
+                _ = try await connector.send(
+                    messages: [LLMMessage.user("test")],
+                    options: LLMCallOptions(model: "claude-sonnet-4-5")
+                )
+            }
         }
     }
 
@@ -180,12 +173,16 @@ struct AnthropicConnectorTests {
         return buf
     }
 
-    /// Capture the bytes the connector actually sent on the wire.
-    /// Returns `httpBody` if populated, otherwise drains `httpBodyStream`.
-    private func capturedRequestBody() -> Data {
-        let captured = URLProtocolStub.stub?.lastRequest
-        if let direct = captured?.httpBody { return direct }
-        return drainStream(captured?.httpBodyStream)
+    /// The bytes this test's own stub captured on the wire.
+    private func capturedRequestBody(from stub: URLProtocolStub) throws -> Data {
+        let captured = try #require(stub.lastRequest, "connector made no request")
+        if let direct = captured.httpBody { return direct }
+        return drainStream(captured.httpBodyStream)
+    }
+
+    private func decodedBody(from stub: URLProtocolStub) throws -> [String: Any]? {
+        let data = try capturedRequestBody(from: stub)
+        return try JSONSerialization.jsonObject(with: data) as? [String: Any]
     }
 }
 
