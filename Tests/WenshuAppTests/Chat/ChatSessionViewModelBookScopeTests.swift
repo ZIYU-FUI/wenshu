@@ -66,7 +66,7 @@ struct ChatSessionViewModelBookScopeTests {
     @Test("init with bookID = nil defaults to global un-attached; all calls use nil")
     func defaultNilScopesAllCallsToGlobal() async throws {
         let fake = FakeChatRepository()
-        let vm = ChatViewModel(repository: fake, bookID: nil)
+        let vm = ChatViewModel(repository: fake, bookID: nil, providersConfigured: { true })
         await vm.loadHistory()
         // loadHistory called once at init via setCurrentBookID? No — setCurrentBookID
         // is only called when bookID changes; = init does not auto-load.
@@ -91,7 +91,7 @@ struct ChatSessionViewModelBookScopeTests {
     @Test("init with bookID = Some(\"book-A\") scopes the session id and all calls")
     func initWithBookIDScopesAllCalls() async throws {
         let fake = FakeChatRepository()
-        let vm = ChatViewModel(repository: fake, bookID: BookID(rawValue: "book-A"))
+        let vm = ChatViewModel(repository: fake, bookID: BookID(rawValue: "book-A"), providersConfigured: { true })
         await vm.loadHistory()
         #expect(fake.loadBookIDs == [BookID(rawValue: "book-A")])
         // Session id is synthetic per-book (= "book:book-A:default").
@@ -102,7 +102,7 @@ struct ChatSessionViewModelBookScopeTests {
     @Test("setCurrentBookID switches the scope; reload fires against new scope")
     func setCurrentBookIDSwitchesScope() async throws {
         let fake = FakeChatRepository()
-        let vm = ChatViewModel(repository: fake, bookID: BookID(rawValue: "book-A"))
+        let vm = ChatViewModel(repository: fake, bookID: BookID(rawValue: "book-A"), providersConfigured: { true })
         await vm.loadHistory()
         // Switch to book-B.
         vm.setCurrentBookID(BookID(rawValue: "book-B"))
@@ -118,7 +118,7 @@ struct ChatSessionViewModelBookScopeTests {
     @Test("setCurrentBookID with same value is a no-op (no reload)")
     func setCurrentBookIDSameValueNoOp() async throws {
         let fake = FakeChatRepository()
-        let vm = ChatViewModel(repository: fake, bookID: BookID(rawValue: "book-A"))
+        let vm = ChatViewModel(repository: fake, bookID: BookID(rawValue: "book-A"), providersConfigured: { true })
         await vm.loadHistory()
         let loadsBefore = fake.loadBookIDs.count
         vm.setCurrentBookID(BookID(rawValue: "book-A"))
@@ -127,10 +127,28 @@ struct ChatSessionViewModelBookScopeTests {
     }
 
     @MainActor
+    @Test("with no provider configured, history stays empty and the repository is never read")
+    func unconfiguredShowsEmptyState() async throws {
+        // Boss 2026-10-16: with nothing configured, persisted rows must not
+        // appear behind the empty-state overlay. This branch had no coverage,
+        // which is why the four cases above failed on a machine with an empty
+        // keychain instead of telling anyone the guard existed.
+        let fake = FakeChatRepository()
+        let vm = ChatViewModel(
+            repository: fake,
+            bookID: nil,
+            providersConfigured: { false }
+        )
+        await vm.loadHistory()
+        #expect(fake.loadBookIDs.isEmpty, "an unconfigured app must not read history")
+        #expect(vm.messages.isEmpty)
+    }
+
+    @MainActor
     @Test("setCurrentBookID(nil) returns to global un-attached")
     func setCurrentBookIDNilReturnsToGlobal() async throws {
         let fake = FakeChatRepository()
-        let vm = ChatViewModel(repository: fake, bookID: BookID(rawValue: "book-A"))
+        let vm = ChatViewModel(repository: fake, bookID: BookID(rawValue: "book-A"), providersConfigured: { true })
         await vm.loadHistory()
         vm.setCurrentBookID(nil)
         try await Task.sleep(nanoseconds: 50_000_000)

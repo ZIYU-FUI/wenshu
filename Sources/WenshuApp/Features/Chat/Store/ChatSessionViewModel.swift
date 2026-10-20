@@ -156,6 +156,11 @@ final class ChatViewModel {
     // P2-02 audit (2026-09-24): BookID brand wrapper.
     @MainActor internal var currentBookID: BookID?
 
+    /// Whether any provider holds a key. Nil asks the facade (= production);
+    /// a closure lets a test state the answer instead of inheriting whatever
+    /// happens to be in the developer's keychain.
+    private let providersConfigured: (@Sendable () async -> Bool)?
+
     // / Update the active scope (= called by the view layer when the user picks
     // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / session) and reloads history. No-op if the bookID is unchanged.
@@ -179,7 +184,12 @@ final class ChatViewModel {
         initialMessages: [ChatMessage] = [],
         appState: AppState? = nil,
         repository: ChatRepositoryProtocol = LiveChatRepository.shared,
-        bookID: BookID? = nil
+        bookID: BookID? = nil,
+        // Whether a provider is configured. Injected for the same reason the
+        // repository is: loadHistory shows an empty state when nothing is
+        // configured (= boss 2026-10-16 OOB), and a test cannot make that
+        // decision for itself because the real answer comes from the keychain.
+        providersConfigured: (@Sendable () async -> Bool)? = nil
     ) {
         // AUDIT.md §2.2 partial (2026-10-16): the public
         // facade is the canonical source of truth for
@@ -195,6 +205,7 @@ final class ChatViewModel {
         self.sessionId = Self.makeSessionID(for: bookID, fallback: sessionId.rawValue)
         self.currentBookID = bookID
         self.messages = initialMessages
+        self.providersConfigured = providersConfigured
         // hold a strong reference to the AppState instance so
         // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // lifetime as the WindowGroup that owns it).
@@ -727,7 +738,14 @@ final class ChatViewModel {
         // `a0b371b45` added `providersWithKeys()`; =
         // commit `fd5baaee6` added the conductor
         // lifecycle).
-        if await WenshuAgent.shared.providersWithKeys().isEmpty {
+        let isConfigured: Bool
+        if let providersConfigured {
+            isConfigured = await providersConfigured()
+        } else {
+            let configured = await WenshuAgent.shared.providersWithKeys()
+            isConfigured = !configured.isEmpty
+        }
+        if !isConfigured {
             self.messages = []
             return
         }
