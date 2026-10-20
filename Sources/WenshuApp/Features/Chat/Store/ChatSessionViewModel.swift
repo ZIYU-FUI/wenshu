@@ -8,9 +8,6 @@ import os.log
 // / reference-type accumulator for the streaming LLMBlock callback. Required
 // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // / returned by `snapshotParts()` is safe to pass across actor boundaries.
-final class StreamingTaskBox: @unchecked Sendable {
-    var tasks: [Task<Void, Never>] = []
-}
 
 final class StreamingAccumulator: @unchecked Sendable {
     private let lock = NSLock()
@@ -35,6 +32,42 @@ final class StreamingAccumulator: @unchecked Sendable {
         lock.lock(); defer { lock.unlock() }
         return _thinking
     }
+
+    /// Append text to the trailing text part, or start one.
+    ///
+    /// The streaming path used to rebuild the whole parts array per chunk,
+    /// which copied every part written so far on every chunk. Appending in
+    /// place keeps the cost proportional to the new text.
+    func appendText(_ chunk: String) {
+        guard !chunk.isEmpty else { return }
+        lock.lock(); defer { lock.unlock() }
+        if case .text(let last)? = _parts.last?.kind {
+            _parts[_parts.count - 1] = .text(last + chunk)
+        } else {
+            _parts.append(.text(chunk))
+        }
+    }
+
+    /// Append reasoning to the trailing reasoning part, or start one.
+    func appendReasoning(_ chunk: String) {
+        guard !chunk.isEmpty else { return }
+        lock.lock(); defer { lock.unlock() }
+        if case .reasoning(let last)? = _parts.last?.kind {
+            _parts[_parts.count - 1] = .reasoning(last + chunk)
+        } else {
+            _parts.append(.reasoning(chunk))
+        }
+        _thinking += chunk
+    }
+
+    /// Append a discrete part (= a tool call or a tool result).
+    ///
+    /// These never coalesce: the user is watching for the boundary between
+    /// one tool finishing and the next starting.
+    func appendPart(_ part: ChatMessagePart) {
+        lock.lock(); defer { lock.unlock() }
+        _parts.append(part)
+    }
 }
 
 /// ChatViewModel: state management (Apple Observable + WSChatRepository + WenshuConductor)
@@ -49,6 +82,50 @@ final class ChatViewModel {
     var attachedImagePath: String?
     var isSending: Bool = false
     var lastError: String?
+
+    /// Write one coalesced batch into the streaming message.
+    ///
+    /// The accumulator is updated in place, and the message is rebuilt once
+    /// from the accumulated parts. Rebuilding is cheap here because the
+    /// accumulator already holds the finished text: the cost that used to
+    /// matter was re-parsing and re-copying per token, and that is gone.
+    private func applyStreamBatch(
+        _ batch: StreamBatch,
+        placeholderId: UUID,
+        accumulator: StreamingAccumulator
+    ) {
+        if !batch.text.isEmpty { accumulator.appendText(batch.text) }
+        if !batch.reasoning.isEmpty { accumulator.appendReasoning(batch.reasoning) }
+        for block in batch.blocks {
+            switch block {
+            case .toolUse(let id, let name, let input):
+                accumulator.appendPart(.toolUse(id: ToolCallID(rawValue: id), name: name, args: input))
+            case .toolResult(let toolUseID, let output):
+                accumulator.appendPart(.toolResult(toolUseID: ToolCallID(rawValue: toolUseID), content: output, isError: false))
+            case .text, .thinking:
+                break
+            }
+        }
+        guard let idx = messages.firstIndex(where: { $0.id == placeholderId }) else { return }
+        messages[idx] = ChatMessage(
+            id: placeholderId,
+            role: .agent,
+            source: .wenshu,
+            content: ChatMessagePart.joinedText(accumulator.parts),
+            tokens: nil,
+            thinking: accumulator.snapshotThinking(),
+            parts: accumulator.snapshotParts(),
+            streamState: .streaming
+        )
+    }
+
+    /// The coalescing buffer for the reply in flight.
+    ///
+    /// It exists only while a turn is streaming. Its flush handler writes
+    /// the accumulated text into the streaming message, so the view sees one
+    /// update per frame instead of one per token.
+    @ObservationIgnored
+    private var streamBuffer: StreamBuffer?
     // 'check split, check dead code'.
     // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // retention (= keep cancelRequested):
@@ -485,7 +562,16 @@ final class ChatViewModel {
                 // 
                 // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
                 // message with an in-flight snapshot).
-                let streamingTaskBox = StreamingTaskBox()
+                // The buffer owns the rate at which the view updates. Its
+                // flush handler is the single place that writes to the
+                // streaming message, so the message is touched once per
+                // frame rather than once per token.
+                let buffer = StreamBuffer { [weak self] batch in
+                    guard let self else { return }
+                    self.applyStreamBatch(batch, placeholderId: placeholderId, accumulator: accumulator)
+                }
+                self.streamBuffer = buffer
+                defer { self.streamBuffer = nil }
                 let result = await conductor.handle(
                     userMessage: text,
                     sessionId: sessionId.rawValue,
@@ -502,65 +588,28 @@ final class ChatViewModel {
                             case .toolResult: return "toolResult"
                             }
                         }()
-                        // Per Apple HIG + 12 standard + Swift 6 strict-concurrency:
-                        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-                        // accesses).
                         let kindTagForLog = kindTag
                         let modelForLog = currentModel
                         Logger(subsystem: "com.wenshu.app", category: "chat.conductor")
                             .info("[wenshu.conductor] PATH=stream BLOCK=\(kindTagForLog, privacy: .public) (model=\(modelForLog, privacy: .public)")
-                        // dead marker-parsing block
-                        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-                        // we can pass it across the actor boundary.
-                        let blockCopy = block
-                        // First, accumulate parts in the
-                        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-                        // isolation needed for the mutation).
-                        switch blockCopy {
-                        case .text(let chunk):
-                            if case .text(let last) = accumulator.parts.last?.kind {
-                                accumulator.parts[accumulator.parts.count - 1] = .text(last + chunk)
-                            } else {
-                                accumulator.parts.append(.text(chunk))
-                            }
-                        case .thinking(let t, _):
-                            if case .reasoning(let last) = accumulator.parts.last?.kind {
-                                accumulator.parts[accumulator.parts.count - 1] = .reasoning(last + t)
-                            } else {
-                                accumulator.parts.append(.reasoning(t))
-                            }
-                            accumulator.thinking += t
-                        case .toolUse(let id, let name, let input):
-                            accumulator.parts.append(.toolUse(id: ToolCallID(rawValue: id), name: name, args: input))
-                        case .toolResult(let toolUseID, let output):
-                            accumulator.parts.append(.toolResult(
-                                toolUseID: ToolCallID(rawValue: toolUseID), content: output, isError: false
-                            ))
-                        }
-                        // Then dispatch the messages mutation to
-                        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-                        // @MainActor-isolated).
-                        streamingTaskBox.tasks.append(Task { @MainActor [weak self] in
-                            guard let self else { return }
-                            if let idx = self.messages.firstIndex(where: { $0.id == placeholderId }) {
-                                self.messages[idx] = ChatMessage(
-                                    id: placeholderId,
-                                    role: .agent,
-                                    source: .wenshu,
-                                    content: ChatMessagePart.joinedText(accumulator.parts),
-                                    tokens: nil,
-                                    thinking: accumulator.thinking,
-                                    parts: accumulator.parts,
-                                    streamState: .streaming
-                                )
-                            }
-                        })
+                        // The chunk goes into the buffer, not into the view.
+                        //
+                        // Every chunk used to enqueue its own MainActor task
+                        // that rebuilt the whole message, so a long reply
+                        // meant hundreds of queued tasks and hundreds of full
+                        // message replacements, and the display rendered
+                        // whatever state survived the queue (= text arriving
+                        // in jumps). The buffer publishes once per frame
+                        // instead, which is the only rate a person can read.
+                        guard let self else { return }
+                        await self.streamBuffer?.append(block)
                     }
                 )
-                // Wait for all in-flight streaming-update Tasks to complete
-                // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-                // the final sealed mutation below).
-                for task in streamingTaskBox.tasks { await task.value }
+                // Publish whatever the buffer still holds before sealing the
+                // message. Without this the last partial frame would land
+                // after the bubble was already marked complete, and the tail
+                // of the reply would appear late.
+                buffer.flushNow()
                 reply = result.reply
                 replyThinking = result.thinking ?? accumulator.thinking
                 replyTokens = result.totalTokens
