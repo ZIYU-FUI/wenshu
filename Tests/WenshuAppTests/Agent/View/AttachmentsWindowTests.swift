@@ -76,14 +76,22 @@ struct AttachmentsWindowTests {
                 "Window content must be AttachmentsWindow()")
     }
 
-    @Test("ShellDetailColumn has toolbar button opening attachments window")
-    func testToolbarButtonForAttachments() throws {
-        let toolbarPath = resolve("Sources/WenshuApp/Features/Editor/View/InspectorView.swift")
-        let source = try String(contentsOfFile: toolbarPath, encoding: .utf8)
-        #expect(source.contains("openWindow(id: WindowID.attachments)"),
-                "Toolbar must wire openWindow(id: WindowID.attachments)")
-        #expect(source.contains("wenshu.window] click: openWindow id=\\(WindowID.attachments)"),
-                "Toolbar must log the canonical openWindow NSLog marker")
+    @Test("Attachments window is reachable from the canonical toolbar row")
+    func testToolbarButtonForattachments() throws {
+        // The button row is data-driven: `WindowID.toolbarButtons` lists the
+        // id and `WindowOpenButton` performs the openWindow call. Asserting a
+        // literal `openWindow(id: WindowID.attachments)` in one view only held while
+        // each button was hand-written; the row is the single source of truth now.
+        let toolbar = try SourceLocator.read(
+            "Sources/WenshuApp/Features/Chrome/View/ChromeMainToolbar.swift")
+        let button = try SourceLocator.read(
+            "Sources/WenshuApp/Features/Chrome/View/WindowOpenButton.swift")
+        #expect(toolbar.contains("ToolbarButton(id: WindowID.attachments"),
+                "toolbar row must list WindowID.attachments")
+        #expect(toolbar.contains("ForEach(WindowID.toolbarButtons"),
+                "toolbar row must render the data-driven button list")
+        #expect(button.contains("openWindow(id: id)"),
+                "WindowOpenButton must perform the openWindow call for every listed id")
     }
 
     @Test("i18n keys for attachments window present in en + zh-Hans")

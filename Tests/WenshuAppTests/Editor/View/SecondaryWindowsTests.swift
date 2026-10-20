@@ -85,12 +85,21 @@ struct SecondaryWindowsTests {
         }
     }
 
-    @Test("ShellDetailColumn toolbar wires 4 new openWindow buttons (= boss B6+B7+B9 click surface)")
-    func testShellDetailColumnWiresFourButtons() throws {
-        let source = try String(contentsOfFile: shellDetailColumnPath, encoding: .utf8)
+    @Test("canonical toolbar row wires the 4 new window buttons (= boss B6+B7+B9 click surface)")
+    func testCanonicalToolbarRowWiresFourButtons() throws {
+        // The row is data-driven: `WindowID.toolbarButtons` lists each id and
+        // `WindowOpenButton` performs the openWindow call. A literal
+        // `openWindow(id: WindowID.x)` per button only existed while the
+        // buttons were hand-written; the listed row is the single source now.
+        let toolbar = try SourceLocator.read(
+            "Sources/WenshuApp/Features/Chrome/View/ChromeMainToolbar.swift")
+        let button = try SourceLocator.read(
+            "Sources/WenshuApp/Features/Chrome/View/WindowOpenButton.swift")
         for windowID in ["canvas", "composer", "foreshadowingGraph", "cron"] {
-            #expect(source.contains("openWindow(id: WindowID.\(windowID))"),
-                    "ShellDetailColumn must wire an openWindow(id: WindowID.\(windowID)) button in the .principal ToolbarItemGroup")
+            #expect(toolbar.contains("ToolbarButton(id: WindowID.\(windowID),"),
+                    "toolbar row must list WindowID.\(windowID)")
         }
+        #expect(button.contains("openWindow(id: id)"),
+                "WindowOpenButton must perform the openWindow call for every listed id")
     }
 }
