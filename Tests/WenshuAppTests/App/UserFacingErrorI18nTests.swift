@@ -22,29 +22,7 @@ import WenshuAgent
 struct UserFacingErrorI18nTests {
 
     private func readStrings(at path: String) -> [String: String] {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/plutil")
-        process.arguments = ["-p", path]
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = Pipe()
-        try? process.run()
-        process.waitUntilExit()
-        guard process.terminationStatus == 0 else { return [:] }
-        let raw = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-        var dict: [String: String] = [:]
-        let pattern = try? NSRegularExpression(
-            pattern: "^\\s*\"((?:[^\"\\\\]|\\\\.)*)\"\\s*=>\\s*\"((?:[^\"\\\\]|\\\\.)*)\"",
-            options: [.anchorsMatchLines]
-        )
-        let range = NSRange(raw.startIndex..<raw.endIndex, in: raw)
-        pattern?.enumerateMatches(in: raw, options: [], range: range) { match, _, _ in
-            guard let m = match, m.numberOfRanges == 3 else { return }
-            guard let keyRange = Range(m.range(at: 1), in: raw),
-                  let valRange = Range(m.range(at: 2), in: raw) else { return }
-            dict[String(raw[keyRange])] = String(raw[valRange])
-        }
-        return dict
+        StringCatalogReader.strings(from: path)
     }
 
     /// All 19 error.* keys must exist in BOTH en + zh-Hans catalogs.

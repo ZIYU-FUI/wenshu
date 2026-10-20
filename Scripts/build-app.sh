@@ -147,6 +147,32 @@ fi
 # Source-tree per-locale .lproj directories are excluded from the SPM target
 # (= Package.swift exclude list) so they are NOT shipped and the SPM bundle's
 # .xcstrings-derived .lproj is the canonical runtime catalog.
+# Compile the string catalog into the per-locale .lproj that Foundation
+# reads. SwiftPM ships Localizable.xcstrings verbatim; it does NOT run
+# xcstringstool, so without this step the app ships no catalog at all and
+# every String(localized:) renders as its own key. This is the only place the
+# catalog is compiled, which is what makes Localizable.xcstrings the single
+# source: a hand-edited .strings beside it used to win, and the two drifted
+# until the UI showed raw keys for anything added recently.
+XCATALOG="Sources/WenshuApp/Resources/Localizable.xcstrings"
+if [ -f "$XCATALOG" ]; then
+    COMPILED="$RES_DIR/.xcstrings-compiled"
+    rm -rf "$COMPILED"
+    mkdir -p "$COMPILED"
+    if xcrun xcstringstool compile "$XCATALOG" --output-directory "$COMPILED" >/dev/null 2>&1; then
+        for lproj in "$COMPILED"/*.lproj; do
+            if [ -d "$lproj" ]; then
+                mkdir -p "$RES_DIR/$(basename "$lproj")"
+                cp -R "$lproj/." "$RES_DIR/$(basename "$lproj")/"
+            fi
+        done
+        rm -rf "$COMPILED"
+        echo ">>> compiled string catalog -> $RES_DIR/*.lproj"
+    else
+        echo ">>> WARNING: xcstringstool compile failed; user-facing strings will show raw keys" >&2
+    fi
+fi
+
 if [ -n "$SPM_BUNDLE_PATH" ]; then
     for lproj in "$SPM_BUNDLE_PATH/Contents/Resources/"*.lproj; do
         if [ -d "$lproj" ]; then

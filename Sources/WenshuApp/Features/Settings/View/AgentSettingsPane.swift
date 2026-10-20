@@ -149,8 +149,25 @@ struct AgentSettingsPane: View {
         )
     }
 
+    /// Localised title for one tool category.
+    ///
+    /// A switch, not an interpolation: String(localized:) takes a
+    /// compile-time literal key, so an interpolated one resolves to itself and
+    /// renders as the key. The same mistake appears wherever a rawValue is
+    /// spliced into a lookup.
     private func categoryTitle(_ category: ToolCategory) -> String {
-        String(localized: "settings.agent.category.\(category.rawValue)")
+        switch category {
+        case .writing:
+            return String(localized: "settings.agent.category.writing")
+        case .navigation:
+            return String(localized: "settings.agent.category.navigation")
+        case .research:
+            return String(localized: "settings.agent.category.research")
+        case .media:
+            return String(localized: "settings.agent.category.media")
+        case .system:
+            return String(localized: "settings.agent.category.system")
+        }
     }
 
     // MARK: - Behaviour

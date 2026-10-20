@@ -42,10 +42,10 @@ struct ChatTextPartViewCursorTooltipTests {
 
     /// T61 contract: chatview.streaming_cursor.generating exists in BOTH locales.
     @Test func localized_key_in_both_locales() throws {
-        let en = try runPlutil("Sources/WenshuApp/Resources/en.lproj/Localizable.strings")
-        let zh = try runPlutil("Sources/WenshuApp/Resources/zh-Hans.lproj/Localizable.strings")
-        #expect(en.contains("\"chatview.streaming_cursor.generating\""))
-        #expect(zh.contains("\"chatview.streaming_cursor.generating\""))
+        let en = StringCatalogReader.strings(language: "en")
+        let zh = StringCatalogReader.strings(language: "zh-Hans")
+        #expect(en["chatview.streaming_cursor.generating"] != nil)
+        #expect(zh["chatview.streaming_cursor.generating"] != nil)
     }
 
     /// T61 contract: T42 streaming cursor preserved.
@@ -69,34 +69,4 @@ struct ChatTextPartViewCursorTooltipTests {
         #expect(src.contains(".wenshuThinkingAppear"))
     }
 
-    private func runPlutil(_ path: String) throws -> String {
-        // Apple canonical source of truth: Localizable.xcstrings
-        // (Xcode 15+ String Catalog format). Produce a plutil -p
-        // style "key" => "value" output (= the format the
-        // existing contains() assertions match on). The path
-        // argument is preserved for caller compatibility; the
-        // helper detects the locale from the path suffix.
-        let lang: String
-        if path.contains("zh-Hans.lproj") {
-            lang = "zh-Hans"
-        } else if path.contains("en.lproj") {
-            lang = "en"
-        } else {
-            return ""
-        }
-        let xcstringsPath = "Sources/WenshuApp/Resources/Localizable.xcstrings"
-        let data = try Data(contentsOf: URL(fileURLWithPath: xcstringsPath))
-        guard let catalog = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let strings = catalog["strings"] as? [String: [String: Any]] else { return "" }
-        var out = "{\n"
-        for (key, entry) in strings.sorted(by: { $0.key < $1.key }) {
-            guard let localizations = entry["localizations"] as? [String: Any],
-                  let loc = localizations[lang] as? [String: Any],
-                  let unit = loc["stringUnit"] as? [String: Any],
-                  let value = unit["value"] as? String else { continue }
-            out += "  \"\(key)\" => \"\(value)\"\n"
-        }
-        out += "}"
-        return out
-    }
 }

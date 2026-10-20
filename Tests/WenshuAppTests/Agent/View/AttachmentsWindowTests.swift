@@ -96,28 +96,16 @@ struct AttachmentsWindowTests {
 
     @Test("i18n keys for attachments window present in en + zh-Hans")
     func testI18nKeysForAttachments() throws {
-        let enPath = resolve("Sources/WenshuApp/Resources/en.lproj/Localizable.strings")
-        let zhPath = resolve("Sources/WenshuApp/Resources/zh-Hans.lproj/Localizable.strings")
-        for path in [enPath, zhPath] {
+        let enLanguage = "en"
+        let zhLanguage = "zh-Hans"
+        for language in [enLanguage, zhLanguage] {
             // plutil -p prints key=value pairs from a binary plist
-            let output = try shellOut("plutil -p \"\(path)\"")
-            #expect(output.contains("\"window.attachments.title\""),
-                    "\(path) must contain window.attachments.title")
-            #expect(output.contains("\"window.attachments.empty\""),
-                    "\(path) must contain window.attachments.empty")
+            let output = StringCatalogReader.strings(language: language)
+            #expect(output["window.attachments.title"] != nil,
+                    "\(language) must contain window.attachments.title")
+            #expect(output["window.attachments.empty"] != nil,
+                    "\(language) must contain window.attachments.empty")
         }
     }
 
-    private func shellOut(_ cmd: String) throws -> String {
-        let process = Process()
-        process.launchPath = "/bin/bash"
-        process.arguments = ["-c", cmd]
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = pipe
-        try process.run()
-        process.waitUntilExit()
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        return String(data: data, encoding: .utf8) ?? ""
-    }
 }

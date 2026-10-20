@@ -38,15 +38,7 @@ struct EmptyStateLocalizationParityTests {
     }
 
     private static func catalog(language: String) throws -> [String: String] {
-        let url = try repositoryURL(
-            relativePath: "Sources/WenshuApp/Resources/\(language).lproj/Localizable.strings"
-        )
-        let object = try PropertyListSerialization.propertyList(
-            from: Data(contentsOf: url),
-            options: [],
-            format: nil
-        )
-        return try #require(object as? [String: String])
+        StringCatalogReader.strings(language: language)
     }
 
     private static func repositoryURL(relativePath: String) throws -> URL {

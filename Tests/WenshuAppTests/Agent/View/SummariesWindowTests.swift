@@ -83,27 +83,15 @@ struct SummariesWindowTests {
 
     @Test("i18n keys for summaries window present in en + zh-Hans")
     func testI18nKeysForSummaries() throws {
-        let enPath = resolve("Sources/WenshuApp/Resources/en.lproj/Localizable.strings")
-        let zhPath = resolve("Sources/WenshuApp/Resources/zh-Hans.lproj/Localizable.strings")
-        for path in [enPath, zhPath] {
-            let output = try shellOut("plutil -p \"\(path)\"")
-            #expect(output.contains("\"window.summaries.title\""),
-                    "\(path) must contain window.summaries.title")
-            #expect(output.contains("\"window.summaries.empty\""),
-                    "\(path) must contain window.summaries.empty")
+        let enLanguage = "en"
+        let zhLanguage = "zh-Hans"
+        for language in [enLanguage, zhLanguage] {
+            let output = StringCatalogReader.strings(language: language)
+            #expect(output["window.summaries.title"] != nil,
+                    "\(language) must contain window.summaries.title")
+            #expect(output["window.summaries.empty"] != nil,
+                    "\(language) must contain window.summaries.empty")
         }
     }
 
-    private func shellOut(_ cmd: String) throws -> String {
-        let process = Process()
-        process.launchPath = "/bin/bash"
-        process.arguments = ["-c", cmd]
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = pipe
-        try process.run()
-        process.waitUntilExit()
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        return String(data: data, encoding: .utf8) ?? ""
-    }
 }

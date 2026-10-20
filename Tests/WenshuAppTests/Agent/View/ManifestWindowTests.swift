@@ -80,29 +80,17 @@ struct ManifestWindowTests {
 
     @Test("i18n keys for manifest window present in en + zh-Hans")
     func testI18nKeysForManifest() throws {
-        let enPath = resolve("Sources/WenshuApp/Resources/en.lproj/Localizable.strings")
-        let zhPath = resolve("Sources/WenshuApp/Resources/zh-Hans.lproj/Localizable.strings")
-        for path in [enPath, zhPath] {
-            let output = try shellOut("plutil -p \"\(path)\"")
-            #expect(output.contains("\"window.manifest.title\""),
-                    "\(path) must contain window.manifest.title")
-            #expect(output.contains("\"window.manifest.workspace_uuid\""),
-                    "\(path) must contain window.manifest.workspace_uuid")
-            #expect(output.contains("\"window.manifest.schema_version\""),
-                    "\(path) must contain window.manifest.schema_version")
+        let enLanguage = "en"
+        let zhLanguage = "zh-Hans"
+        for language in [enLanguage, zhLanguage] {
+            let output = StringCatalogReader.strings(language: language)
+            #expect(output["window.manifest.title"] != nil,
+                    "\(language) must contain window.manifest.title")
+            #expect(output["window.manifest.workspace_uuid"] != nil,
+                    "\(language) must contain window.manifest.workspace_uuid")
+            #expect(output["window.manifest.schema_version"] != nil,
+                    "\(language) must contain window.manifest.schema_version")
         }
     }
 
-    private func shellOut(_ cmd: String) throws -> String {
-        let process = Process()
-        process.launchPath = "/bin/bash"
-        process.arguments = ["-c", cmd]
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = pipe
-        try process.run()
-        process.waitUntilExit()
-        let data = pipe.fileHandleForReading.readDataToEndOfFile()
-        return String(data: data, encoding: .utf8) ?? ""
-    }
 }

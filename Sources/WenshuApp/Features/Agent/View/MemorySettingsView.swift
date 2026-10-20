@@ -84,7 +84,7 @@ struct MemorySettingsView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(description.title)
                         .foregroundStyle(.primary)
-                    Text(String(localized: "settings.memory.backend.\(option.rawValue).detail"))
+                    Text(backendDetail(option))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -97,6 +97,21 @@ struct MemorySettingsView: View {
         .disabled(!isMemoryEnabled)
         .accessibilityLabel(description.title)
         .accessibilityValue(backend == option ? String(localized: "settings.agent.selected") : "")
+    }
+
+    /// Localised detail line for one backend.
+    ///
+    /// Written as a switch rather than interpolating the raw value into the
+    /// key: String(localized:) takes its key as a compile-time literal, so an
+    /// interpolated one is treated as a literal string and renders as itself.
+    /// That failure is invisible in a unit test and obvious on screen.
+    private func backendDetail(_ option: MemoryBackend) -> String {
+        switch option {
+        case .localMarkdown:
+            return String(localized: "settings.memory.backend.localMarkdown.detail")
+        case .remoteService:
+            return String(localized: "settings.memory.backend.remoteService.detail")
+        }
     }
 
     @ViewBuilder

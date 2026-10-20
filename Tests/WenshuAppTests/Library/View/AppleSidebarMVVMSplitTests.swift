@@ -62,14 +62,9 @@ struct AppleSidebarMVVMSplitTests {
     /// the keys are present in the plist (= not just the Swift
     /// call site that reads them).
     private static func localizableKeys(relaPath: String) throws -> Set<String> {
-        let url = URL(fileURLWithPath: repoPath(relaPath))
-        let data = try Data(contentsOf: url)
-        // binary1 Localizable.strings == NSDictionary of String → String.
-        let plist = try PropertyListSerialization.propertyList(from: data, options: [], format: nil)
-        guard let dict = plist as? [String: String] else {
-            return []
-        }
-        return Set(dict.keys)
+        // Localizable.xcstrings is the only catalog; the hand-written
+        // .lproj/Localizable.strings this used to open is gone.
+        Set(StringCatalogReader.strings(from: relaPath).keys)
     }
 
     // MARK: - 1. Old legacy sidebar is gone

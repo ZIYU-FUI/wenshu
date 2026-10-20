@@ -47,14 +47,20 @@ enum EditorFormatAction: String, CaseIterable, Identifiable {
     // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / `editor.format.<action>.tooltip`).
     var localizedLabel: String {
-        String(localized: "editor.format.\(rawValue).tooltip")
+        // Runtime key lookup rather than String(localized:) with an
+        // interpolated key: that takes a compile-time literal, so a spliced
+        // one resolves to itself and the tooltip reads
+        // "editor.format.bold.tooltip" instead of "加粗". Every one of the
+        // twelve keys exists in the catalog; the lookup form is what reaches
+        // them.
+        NSLocalizedString("editor.format.\(rawValue).tooltip", comment: "Editor toolbar tooltip for \(rawValue)")
     }
 
     // / Accessibility label (= used by VoiceOver; = the same
     // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / future punctuation tweaks don't conflict).
     var localizedAccessibilityLabel: String {
-        String(localized: "editor.format.\(rawValue).a11y")
+        NSLocalizedString("editor.format.\(rawValue).a11y", comment: "VoiceOver label for the \(rawValue) format button")
     }
 
     // / Bus notification name this action posts. `FormatDispatcher`

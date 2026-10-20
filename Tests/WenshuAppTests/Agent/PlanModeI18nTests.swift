@@ -16,33 +16,7 @@ import Foundation
 struct PlanModeI18nTests {
 
     private func readStrings(at path: String) -> [String: String] {
-        // Apple canonical source of truth: Localizable.xcstrings
-        // (Xcode 15+ String Catalog format). The path parameter
-        // is preserved for caller compatibility (= existing tests
-        // pass per-locale paths like ".../en.lproj/Localizable.strings"
-        // for documentation); the helper detects the locale from
-        // the path suffix and reads the .xcstrings JSON once.
-        let lang: String
-        if path.contains("zh-Hans.lproj") {
-            lang = "zh-Hans"
-        } else if path.contains("en.lproj") {
-            lang = "en"
-        } else {
-            return [:]
-        }
-        let xcstringsPath = "Sources/WenshuApp/Resources/Localizable.xcstrings"
-        guard let data = try? Data(contentsOf: URL(fileURLWithPath: xcstringsPath)) else { return [:] }
-        guard let catalog = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return [:] }
-        guard let strings = catalog["strings"] as? [String: [String: Any]] else { return [:] }
-        var dict: [String: String] = [:]
-        for (key, entry) in strings {
-            guard let localizations = entry["localizations"] as? [String: Any] else { continue }
-            guard let loc = localizations[lang] as? [String: Any] else { continue }
-            guard let unit = loc["stringUnit"] as? [String: Any] else { continue }
-            guard let value = unit["value"] as? String else { continue }
-            dict[key] = value
-        }
-        return dict
+        StringCatalogReader.strings(from: path)
     }
 
     /// T21 contract: chatview.plan.via exists in en.lproj.
