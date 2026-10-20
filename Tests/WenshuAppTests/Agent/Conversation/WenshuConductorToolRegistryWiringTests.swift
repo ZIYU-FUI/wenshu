@@ -79,10 +79,10 @@ struct WenshuConductorToolRegistryWiringTests {
     func testBuildTools_excludesUnknownNames() async {
         let registry = ToolRegistry()
 
-        // Register only 3 of the 12 default names (= the others stay
+        // Register only 3 of the default names (= the others stay
         // absent on this fresh registry, since we never touched the
         // shared singleton).
-        let present = ["ParagraphAI", "todo", "book_manager"]
+        let present = ["web_search", "todo", "book_manager"]
         for (index, name) in present.enumerated() {
             let schema = ToolRegistrySchema(name: name, description: "p#\(index)")
             await registry.register(
@@ -119,7 +119,7 @@ struct WenshuConductorToolRegistryWiringTests {
         // any prior registration of the same name from a different
         // toolset, ensuring the handler in the dict is the one we
         // just registered.
-        let targetName = "ParagraphAI"
+        let targetName = "todo"
         let tag = "round-trip"
         let schema = ToolRegistrySchema(name: targetName, description: "echo")
         await registry.register(
@@ -229,7 +229,7 @@ struct WenshuConductorToolRegistryWiringTests {
     func testToolRegistryToolList_isConsistentAcrossCalls() async {
         let registry = ToolRegistry()
         // Register a stable subset of 5 names.
-        let names = ["ParagraphAI", "todo", "book_manager", "ReadFile", "WriteFile"]
+        let names = ["web_search", "todo", "book_manager", "ReadFile", "WriteFile"]
         for (index, name) in names.enumerated() {
             let schema = ToolRegistrySchema(name: name, description: "c#\(index)")
             await registry.register(

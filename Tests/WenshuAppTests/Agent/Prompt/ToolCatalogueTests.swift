@@ -14,7 +14,7 @@ struct ToolCatalogueTests {
 
     /// The names that were in the flat list before the catalogue existed.
     private static let previousNames: Set<String> = [
-        "ParagraphAI", "ReadFile", "WriteFile", "av", "background_review",
+        "ReadFile", "WriteFile", "av", "background_review",
         "book_chapter", "book_edit_chapter", "book_entity", "book_manager",
         "book_outline", "file", "delegate_research", "kanban", "llm_wiki",
         "process", "reference_library", "todo", "todo_hermes", "vision",
@@ -49,19 +49,19 @@ struct ToolCatalogueTests {
     @Test("a narrowed selection drops the rest")
     func narrowedSelectionDropsTheRest() {
         var settings = PromptSettings()
-        settings.visibleTools = ["book_chapter", "ParagraphAI"]
-        #expect(Set(ToolCatalogue.exposedNames(settings: settings)) == ["book_chapter", "ParagraphAI"])
+        settings.visibleTools = ["book_chapter", "todo"]
+        #expect(Set(ToolCatalogue.exposedNames(settings: settings)) == ["book_chapter", "todo"])
     }
 
     @Test("catalogue order is preserved under filtering, so the tool list stays cache-stable")
     func orderIsPreservedUnderFiltering() {
         let all = ToolCatalogue.names
         var settings = PromptSettings()
-        settings.visibleTools = ["web_search", "ParagraphAI", "book_chapter"]
+        settings.visibleTools = ["web_search", "todo", "book_chapter"]
         let filtered = ToolCatalogue.exposedNames(settings: settings)
         // Catalogue order puts the library first, because that is what a novel
         // needs most; the selection order the user clicked in is irrelevant.
-        #expect(filtered == ["book_chapter", "ParagraphAI", "web_search"],
+        #expect(filtered == ["book_chapter", "todo", "web_search"],
                 "the model sees the list in catalogue order regardless of selection order")
         #expect(filtered == all.filter { filtered.contains($0) })
     }
@@ -78,7 +78,7 @@ struct ToolCatalogueTests {
         let names = ToolCatalogue.exposedNames(settings: settings)
         #expect(!names.contains("process"))
         #expect(!names.contains("WriteFile"))
-        #expect(names.contains("ParagraphAI"))
+        #expect(names.contains("todo"))
         #expect(names.contains("book_chapter"))
     }
 
@@ -97,7 +97,7 @@ struct ToolCatalogueTests {
         let presets = ToolExposure.standardPresets(registry: ToolCatalogue.exposureRegistry)
         for preset in presets {
             #expect(preset.tools.contains("book_chapter"), "\(preset.id) must reach the chapters")
-            #expect(preset.tools.contains("ParagraphAI"), "\(preset.id) must reach the writing aid")
+            #expect(preset.tools.contains("todo"), "\(preset.id) must reach the writing aid")
         }
     }
 
@@ -105,7 +105,7 @@ struct ToolCatalogueTests {
     func presetSelectionResolves() {
         let exposure = ToolCatalogue.exposure(enabledPresetIDs: ["writing"])
         #expect(!exposure.visible.contains { $0.name == "process" })
-        #expect(exposure.visible.contains { $0.name == "ParagraphAI" })
+        #expect(exposure.visible.contains { $0.name == "todo" })
     }
 
     @Test("mutating tools are flagged, so a surface can distinguish them")

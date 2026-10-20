@@ -108,8 +108,8 @@ struct WenshuConductorToolWiringTests {
                     model: "mock",
                     blocks: [.toolUse(
                         id: "t1",
-                        name: "ParagraphAI",
-                        input: "{\"text\":\"hello world\",\"mode\":\"expand\"}"
+                        name: "todo_hermes",
+                        input: "{\"todos\":[{\"id\":\"t1\",\"content\":\"hello world\",\"status\":\"pending\"}]}"
                     )],
                     stopReason: .toolUse,
                     usage: LLMUsage(inputTokens: 1, outputTokens: 1)
@@ -125,7 +125,7 @@ struct WenshuConductorToolWiringTests {
         )
         let conductor = try await makeConductor(
             connector: connector,
-            tools: ["ParagraphAI": ParagraphAITool.shared]
+            tools: ["todo_hermes": HermesTodoTool.shared]
         )
 
         _ = await conductor.handle(
@@ -140,9 +140,9 @@ struct WenshuConductorToolWiringTests {
         // block. If the registry reached the executor, the tool
         // message will be present.
         let toolResults = await connector.allToolResults()
-        #expect(toolResults.count >= 1, "tool_use → ParagraphAI must produce at least one tool result")
-        let paragraphResult = toolResults.first { $0.contains("ParagraphAI stub") || $0.contains("hello world") }
-        #expect(paragraphResult != nil, "ParagraphAITool's canned expansion must surface in the tool result stream")
+        #expect(toolResults.count >= 1, "tool_use must produce at least one tool result")
+        let paragraphResult = toolResults.first { $0.contains("hello world") }
+        #expect(paragraphResult != nil, "the tool output must surface in the tool result stream")
     }
 
     // MARK: - Test 3: tool output bubbles back into the final reply
@@ -152,7 +152,7 @@ struct WenshuConductorToolWiringTests {
     func testConductor_toolDispatch_resultsBackInFinalResponse() async throws {
         // The mock returns a toolUse block on the first call. The
         // ConversationLoop runs the ToolExecutor (= ParagraphAITool
-        // stub returns canned text) and re-invokes the connector with
+        // tool returns text) and re-invokes the connector with
         // the tool result appended. We capture the messages passed to
         // the SECOND connector call (= the re-invocation) and assert
         // the toolResult block is present (= tool output reached the
@@ -163,7 +163,7 @@ struct WenshuConductorToolWiringTests {
                 LLMResponse(
                     id: "r1",
                     model: "mock",
-                    blocks: [.toolUse(id: "t1", name: "ParagraphAI", input: "{\"text\":\"input-text\",\"mode\":\"expand\"}")],
+                    blocks: [.toolUse(id: "t1", name: "todo_hermes", input: "{\"todos\":[{\"id\":\"t1\",\"content\":\"input-text\",\"status\":\"pending\"}]}")],
                     stopReason: .toolUse,
                     usage: LLMUsage(inputTokens: 1, outputTokens: 1)
                 ),
@@ -178,7 +178,7 @@ struct WenshuConductorToolWiringTests {
         )
         let conductor = try await makeConductor(
             connector: connector,
-            tools: ["ParagraphAI": ParagraphAITool.shared]
+            tools: ["todo_hermes": HermesTodoTool.shared]
         )
 
         let result = await conductor.handle(

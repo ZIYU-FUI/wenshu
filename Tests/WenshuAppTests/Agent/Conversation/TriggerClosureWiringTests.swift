@@ -106,7 +106,6 @@ struct TriggerClosureWiringTests {
         // report "production wiring broken". Mirroring production
         // = referencing each known tool type's bootstrap exactly
         // the way `applicationDidFinishLaunching` does.
-        _ = ParagraphAITool._registryBootstrap
         _ = ReadFileTool._registryBootstrap
         _ = WriteFileTool._registryBootstrap
         _ = AVMediaTools._registryBootstrap

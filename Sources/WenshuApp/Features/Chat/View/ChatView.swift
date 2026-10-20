@@ -20,9 +20,6 @@ struct ChatView: View {
     // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // live on the input row itself (= ChatInputBarView body).
     @State private var showingImageImporter: Bool = false
-    // / §11.26 弧 ticket A2. Semantic search sheet (= "find characters
-    // / similar to this query"). Presented as a .sheet from the chat view.
-    @State private var showingSemanticSearch: Bool = false
     // / True while a drag is hovering the input row, so the row can show a drop
     // / highlight. Apple's .dropDestination reports this for free.
     @State private var isDropTargeted: Bool = false
@@ -223,7 +220,6 @@ struct ChatView: View {
                         inputFocused: $inputFocused,
                         hasUsableKey: hasUsableKey,
                         showingImageImporter: $showingImageImporter,
-                        showingSemanticSearch: $showingSemanticSearch,
                         isDropTargeted: $isDropTargeted,
                         // FOCUS-RETENTION (boss 2026-10-16 OOB "现在打
                         // 字说完一句话，聊天区的文本框会失去焦点"):
@@ -811,12 +807,6 @@ struct ChatView: View {
             if case .failure(let error) = result {
                 wenshuLogger.info("[wenshu.export] failed: \(String(describing: error))")
             }
-        }
-        // §11.26 弧 ticket A2. Semantic search sheet (cosine over
-        // WSBodyEmbedding rows). Triggered by the magnifyingglass
-        // button in ChatInputBarView.
-        .sheet(isPresented: $showingSemanticSearch) {
-            SemanticSearchPanel()
         }
         .fileImporter(
             isPresented: $isOpeningMarkdown,

@@ -58,7 +58,6 @@ public enum ToolCatalogue {
         CataloguedTool(name: "llm_wiki", category: .navigation, mutates: false),
 
         // Writing aids.
-        CataloguedTool(name: "ParagraphAI", category: .writing, mutates: false),
         CataloguedTool(name: "todo", category: .writing, mutates: true),
         CataloguedTool(name: "todo_hermes", category: .writing, mutates: true),
         CataloguedTool(name: "kanban", category: .writing, mutates: true),

@@ -38,7 +38,7 @@ struct AgentSettingsPaneTests {
         settings.memory.backend = .remoteService
         settings.memory.remoteEndpoint = "https://memory.example.com"
         settings.memory.retentionDays = 30
-        settings.prompt.visibleTools = ["book_chapter", "ParagraphAI"]
+        settings.prompt.visibleTools = ["book_chapter", "todo"]
         settings.recovery.checkStopGates = false
         settings.recovery.continueOnTruncation = false
         settings.turn.maxIterations = 40
@@ -49,7 +49,7 @@ struct AgentSettingsPaneTests {
         #expect(loaded.memory.backend == .remoteService)
         #expect(loaded.memory.remoteEndpoint == "https://memory.example.com")
         #expect(loaded.memory.retentionDays == 30)
-        #expect(loaded.prompt.visibleTools == ["book_chapter", "ParagraphAI"])
+        #expect(loaded.prompt.visibleTools == ["book_chapter", "todo"])
         #expect(loaded.recovery.checkStopGates == false)
         #expect(loaded.recovery.continueOnTruncation == false)
         #expect(loaded.turn.maxIterations == 40)
@@ -101,7 +101,7 @@ struct AgentSettingsPaneTests {
         var settings = AgentSettings()
         store.applyPresets(["writing"], to: &settings)
         #expect(store.loadEnabledPresetIDs() == ["writing"])
-        #expect(store.load().prompt.visibleTools.contains("ParagraphAI"))
+        #expect(store.load().prompt.visibleTools.contains("todo"))
         #expect(!store.load().prompt.visibleTools.contains("process"))
     }
 
@@ -115,7 +115,7 @@ struct AgentSettingsPaneTests {
         store.applyPresets(["writing"], to: &settings)
         let loaded = store.load()
         let names = ToolCatalogue.exposedNames(settings: loaded.prompt)
-        #expect(names.contains("ParagraphAI"))
+        #expect(names.contains("todo"))
         #expect(!names.contains("process"))
         #expect(!names.contains("web_search"))
     }
@@ -130,7 +130,7 @@ struct AgentSettingsPaneTests {
         store.applyPresets(["system"], to: &settings)
         let names = ToolCatalogue.exposedNames(settings: store.load().prompt)
         #expect(names.contains("process"))
-        #expect(names.contains("ParagraphAI"))
+        #expect(names.contains("todo"))
     }
 
     // MARK: - The pane is reachable

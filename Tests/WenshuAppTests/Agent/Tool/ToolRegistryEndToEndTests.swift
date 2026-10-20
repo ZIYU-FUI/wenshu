@@ -61,14 +61,13 @@ struct ToolRegistryEndToEndTests {
 
 
 
-    /// Canonical 12 tool names as registered by the 12 tool files at
+    /// Canonical 11 tool names as registered by the 11 tool files at
     /// module-import time. Names match `WenshuConductor.defaultToolNames`
     /// (= single source of truth for the conductor's tool surface).
     ///
     /// Kept in declaration order to match the conductor list for
     /// diff-clarity.
     private static let expectedToolNames: [String] = [
-        "ParagraphAI",     // Core/Agent/Tool/ParagraphAITool.swift
         "ReadFile",        // Core/Agent/Tool/ReadFileTool.swift
         "WriteFile",       // Core/Agent/Tool/WriteFileTool.swift
         "av",              // Core/Tools/AVMediaTools.swift
@@ -113,7 +112,7 @@ struct ToolRegistryEndToEndTests {
         return missing
     }
 
-    /// Force every one of the 12 tool types' `_registryBootstrap`
+    /// Force every one of the 11 tool types' `_registryBootstrap`
     /// static `let` to run (= the Swift 6-compatible lazy module-load
     /// registration site). Each tool file wraps its
     /// `Task { await ToolRegistry.shared.register(...) }` inside
@@ -125,7 +124,6 @@ struct ToolRegistryEndToEndTests {
     /// Order-independent: each bootstrap registers a distinct name so
     /// no override protection fires.
     private static func triggerAllToolBootstraps() {
-        _ = ParagraphAITool._registryBootstrap
         _ = ReadFileTool._registryBootstrap
         _ = WriteFileTool._registryBootstrap
         _ = AVMediaTools._registryBootstrap
@@ -142,9 +140,9 @@ struct ToolRegistryEndToEndTests {
     /// Test 1 -- every expected tool name resolves via the shared
     /// registry's `getHandler` (= the dispatch path used by
     /// `ToolExecutor`).
-    @Test("All 12 expected tools are registered in ToolRegistry.shared")
-    func testAll12ToolsRegistered() async throws {
-        // Force all 12 tool bootstraps to fire (= production
+    @Test("All 11 expected tools are registered in ToolRegistry.shared")
+    func testAll11ToolsRegistered() async throws {
+        // Force all 11 tool bootstraps to fire (= production
         // type-access pattern).
         Self.triggerAllToolBootstraps()
 
@@ -164,10 +162,10 @@ struct ToolRegistryEndToEndTests {
         }
     }
 
-    /// Test 2 -- `getDefinitions` returns >= 12 schemas, each with
+    /// Test 2 -- `getDefinitions` returns >= 11 schemas, each with
     /// non-empty name + description (= the schema surface used by the
     /// LLM function-call envelope).
-    @Test("ToolRegistry.getDefinitions returns 12+ schemas with valid name + description")
+    @Test("ToolRegistry.getDefinitions returns 11+ schemas with valid name + description")
     func testGetDefinitionsReturnsAll() async throws {
         Self.triggerAllToolBootstraps()
         let unsettled = await Self.awaitSettledRegistration()
@@ -177,8 +175,8 @@ struct ToolRegistryEndToEndTests {
         let requested = Set(Self.expectedToolNames)
         let definitions = await ToolRegistry.shared.getDefinitions(toolNames: requested)
         #expect(
-            definitions.count >= 12,
-            "Expected at least 12 schemas from ToolRegistry.getDefinitions, got \(definitions.count)"
+            definitions.count >= 11,
+            "Expected at least 11 schemas from ToolRegistry.getDefinitions, got \(definitions.count)"
         )
 
         // Each schema must carry a non-empty name + description (= the
@@ -204,9 +202,9 @@ struct ToolRegistryEndToEndTests {
     }
 
     /// Test 3 -- `WenshuConductor.buildTools(from:)` (= the production
-    /// wiring site used by ChatView) yields >= 12 tool handlers from
+    /// wiring site used by ChatView) yields >= 11 tool handlers from
     /// the shared registry.
-    @Test("WenshuConductor.buildTools yields 12 tools from ToolRegistry.shared")
+    @Test("WenshuConductor.buildTools yields 11 tools from ToolRegistry.shared")
     func testBuildToolsYieldsTwelve() async throws {
         Self.triggerAllToolBootstraps()
         let unsettled = await Self.awaitSettledRegistration()
@@ -215,8 +213,8 @@ struct ToolRegistryEndToEndTests {
 
         let tools = await WenshuConductor.buildTools(from: ToolRegistry.shared)
         #expect(
-            tools.count >= 12,
-            "Expected at least 12 tools from WenshuConductor.buildTools(from:), got \(tools.count)"
+            tools.count >= 11,
+            "Expected at least 11 tools from WenshuConductor.buildTools(from:), got \(tools.count)"
         )
 
         // Every conductor default name that has a registered handler
@@ -255,8 +253,8 @@ struct ToolRegistryEndToEndTests {
         )
 
         // Use any live tool as the handler payload (= matches the
-        // 12 tool files' pattern of passing `MyTool.shared`).
-        let payloadHandler = ParagraphAITool.shared
+        // 11 tool files' pattern of passing `MyTool.shared`).
+        let payloadHandler = HermesTodoTool.shared
 
         await registry.register(
             name: uniqueName,

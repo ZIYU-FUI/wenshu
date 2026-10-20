@@ -25,7 +25,6 @@ actor ToolRegistry {
     /// Touch every production registration point exactly once.
     private enum ProductionToolRegistryBootstrap {
         static let start: Void = {
-            _ = ParagraphAITool._registryBootstrap
             _ = ReadFileTool._registryBootstrap
             _ = WriteFileTool._registryBootstrap
             _ = AVMediaTools._registryBootstrap

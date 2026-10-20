@@ -281,21 +281,19 @@ struct IntegrationPlanEndToEndTests {
         // ===== P0 #2: ToolExecutor + ParagraphAITool =====
 
 
-        print("[P0 #2: ToolExecutor + ParagraphAITool] starting")
-        // Builds ToolExecutor, registers ParagraphAITool as a
-        // single Tool, calls executeSequential with one tool_use
-        // block (= P1 #10 stub replacement shape). The mock
+        print("[P0 #2: ToolExecutor + a registered tool] starting")
+        // Builds ToolExecutor, registers one tool, calls
+        // executeSequential with one tool_use block. The mock
         // connector is reused so the executor stays offline.
         let executor = ToolExecutor()
-        let paragraphTool = ParagraphAITool(editorTools: EditorTransformTools())
-        let tools: [String: any Tool] = ["paragraph_ai": paragraphTool]
+        let tools: [String: any Tool] = ["todo_hermes": HermesTodoTool.shared]
         let assistantMessage = LLMMessage(
             role: .assistant,
             blocks: [
                 .toolUse(
                     id: "t-pai",
-                    name: "paragraph_ai",
-                    input: #"{"text":"Original prose paragraph.","action":"expand"}"#
+                    name: "todo_hermes",
+                    input: #"{"todos":[{"id":"t1","content":"Original prose paragraph.","status":"pending"}]}"#
                 )
             ]
         )
@@ -450,21 +448,18 @@ struct IntegrationPlanEndToEndTests {
         // ===== P1 #10: EditorTransformTools + ParagraphAITool stub replacement =====
 
 
-        print("[P1 #10: EditorTransformTools + ParagraphAITool stub replacement] starting")
-        // Builds EditorTransformTools + ParagraphAITool, verifies
-        // the new shape returns a real prompt prefix (= the
-        // P0 #2 stub-frame is replaced by a real directive
-        // string under the new wire).
+        print("[P1 #10: EditorTransformTools prompt prefixes] starting")
+        // Builds EditorTransformTools, verifies it exposes 6 transforms
+        // and that each one yields a real prompt prefix.
         let editorTools = EditorTransformTools()
         let transforms = await editorTools.availableTransforms()
         #expect(transforms.count == 6,
                 "P1 #10 EditorTransformTools should expose 6 transforms")
-        let paragraphTool2 = ParagraphAITool(editorTools: editorTools)
-        let paragraphFrame = try await paragraphTool2.execute(
-            input: #"{"text":"a tight sentence","action":"expand"}"#
-        )
-        #expect(paragraphFrame.contains("[ParagraphAI action=expand"),
-                "P1 #10 ParagraphAITool.execute should produce the new frame shape (no longer the stub)")
+        for transform in transforms {
+            let prefix = await editorTools.promptPrefix(for: transform)
+            #expect(!prefix.isEmpty,
+                    "P1 #10 EditorTransformTools should yield a prompt prefix per transform")
+        }
 
         // ===== P1 #11: EmotionCurveAnalyzer =====
 
@@ -610,27 +605,18 @@ struct IntegrationPlanEndToEndTests {
         // ===== P2 #19: paragraph_ai toolbar buttons =====
 
 
-        print("[P2 #19: paragraph_ai toolbar buttons] starting")
-        // Already covered by P1 #10 above (= the ParagraphAITool
-        // stub-replacement wire IS the paragraph_ai toolbar wire;
-        // both reuse the same tool). Re-assert the canonical
-        // shape with the 3 toolbar actions (expand / shorten /
-        // rewrite per AGENTS.md P3 ticket).
-        let expandFrame = try await paragraphTool2.execute(
-            input: #"{"text":"short.","action":"expand"}"#
-        )
-        #expect(expandFrame.contains("action=expand"),
-                "P2 #19 ParagraphAITool.execute should produce expand frame")
-        let shortenFrame = try await paragraphTool2.execute(
-            input: #"{"text":"a very long sentence with many clauses.","action":"shorten"}"#
-        )
-        #expect(shortenFrame.contains("action=shorten"),
-                "P2 #19 ParagraphAITool.execute should produce shorten frame")
-        let rewriteFrame = try await paragraphTool2.execute(
-            input: #"{"text":"It was raining.","action":"rephrase"}"#
-        )
-        #expect(rewriteFrame.contains("action=rephrase"),
-                "P2 #19 ParagraphAITool.execute should produce rephrase (rewrite) frame")
+        print("[P2 #19: paragraph transform prompts] starting")
+        // The toolbar actions (expand / shorten / rephrase) each map
+        // to a transform whose prompt prefix is what the model sees.
+        for action in ["expand", "shorten", "rephrase"] {
+            guard let transform = EditorTransform(rawValue: action) else {
+                Issue.record("P2 #19 should expose a transform named \(action)")
+                continue
+            }
+            let prefix = await editorTools.promptPrefix(for: transform)
+            #expect(!prefix.isEmpty,
+                    "P2 #19 the \(action) transform should yield a prompt prefix")
+        }
 
         // ===== P2 #20: BookManager =====
 
