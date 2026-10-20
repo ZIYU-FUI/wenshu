@@ -220,13 +220,42 @@ public struct HistoryCompressor: Sendable {
         }
 
         var rebuilt: [LLMMessage] = Array(pruned[..<window.start])
-        rebuilt.append(LLMMessage(role: .user, blocks: [.text(summaryBlock(summary))]))
+        // The summary speaks as the assistant: it is this assistant's own
+        // record of what happened, which is both what it is and what keeps the
+        // role alternation intact when the window it replaces began on a user
+        // turn. Naming the boundary in the text means the model does not have
+        // to infer it from the role.
+        rebuilt.append(LLMMessage(role: .assistant, blocks: [.text(summaryBlock(summary))]))
         rebuilt.append(contentsOf: pruned[window.end...])
+        // A summary landing next to a message of the same role is rejected
+        // outright, and which side it lands on is a coin flip on the window
+        // boundary, so both directions get folded.
+        rebuilt = mergeAdjacentSameRoleMessages(rebuilt)
         return .summarised(
             messages: repairToolPairs(in: rebuilt),
             summary: summary,
             replacedTurns: middle.count
         )
+    }
+
+    /// Fold consecutive messages that share a role, preserving order.
+    ///
+    /// Providers require alternating roles. The summary speaks as the
+    /// assistant, and the window it replaces can begin on either side of a
+    /// turn, so it lands next to an assistant message on one side and a user
+    /// message on the other. Merging is lossless: both texts survive, in
+    /// order, under a separator so the boundary stays readable.
+    func mergeAdjacentSameRoleMessages(_ messages: [LLMMessage]) -> [LLMMessage] {
+        var merged: [LLMMessage] = []
+        for message in messages {
+            if let last = merged.last, last.role == message.role {
+                let combined = last.blocks + [.text("")] + message.blocks
+                merged[merged.count - 1] = LLMMessage(role: last.role, blocks: combined)
+                continue
+            }
+            merged.append(message)
+        }
+        return merged
     }
 
     /// Phase 4: close or drop tool pairs left open by the rewrite.

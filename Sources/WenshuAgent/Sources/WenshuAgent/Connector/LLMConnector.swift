@@ -37,6 +37,16 @@ public protocol LLMConnector: Sendable {
     /// "minimax-cn", "gemini", "deepseek", "ollama", "openrouter").
     var connectorID: String { get }
 
+    /// Token window this connector's models accept.
+    ///
+    /// Needed before the first call, not after: compression has to decide
+    /// whether to run before the provider is asked to fit the prompt, because
+    /// waiting for an overflow means the user waits for a failure and then
+    /// waits again for the recovery. Providers that accept several models
+    /// return the smallest window among them, so the estimate is never
+    /// optimistic.
+    var contextWindow: Int { get }
+
     /// Send messages to the active connector's LLM, return the response.
     ///
     /// - Parameters:
@@ -150,4 +160,19 @@ public enum LLMConnectorError: Error, LocalizedError, Sendable {
             return "Anthropic streaming failed for \(p)."
         }
     }
+}
+
+
+// MARK: - Default window
+
+public extension LLMConnector {
+    /// Window assumed for a connector that does not state one. Matches the
+    /// hermes fallback (= agent/models_dev.py, 200,000): a connector serving a
+    /// smaller model must override this, and one serving a larger one should,
+    /// because an optimistic estimate delays compression until the provider
+    /// refuses the prompt.
+    static var defaultContextWindow: Int { 200_000 }
+
+    /// Connectors that do not know better answer with the shared default.
+    var contextWindow: Int { Self.defaultContextWindow }
 }

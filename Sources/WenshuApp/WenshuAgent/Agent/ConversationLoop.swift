@@ -43,6 +43,7 @@ actor ConversationLoop {
         runtime: RuntimeHelpers? = nil,
         shellHookChain: ShellHookChain = ShellHookChain(),
         conversationCompression: ConversationCompression = ConversationCompression(),
+        historyCompressor: HistoryCompressor = HistoryCompressor(),
         progressTracker: AgentProgressTracker = .noop
     ) {
         // Back-compat: the parameter is named `connector` everywhere in
@@ -53,6 +54,7 @@ actor ConversationLoop {
         self.runtime = runtime ?? RuntimeHelpers()
         self.shellHookChain = shellHookChain
         self.conversationCompression = conversationCompression
+        self.historyCompressor = historyCompressor
         self.progressTracker = progressTracker
     }
 
@@ -83,6 +85,10 @@ actor ConversationLoop {
     // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / conversation_history_after_compression).
     private let conversationCompression: ConversationCompression
+    /// Reduces the transcript before the provider call. Injected so the
+    /// budget is a construction-time decision rather than a constant read
+    /// here (= see OOB.md #2026-10-20 on agent settings).
+    private let historyCompressor: HistoryCompressor
 
     // / Agent progress tracker (= WIRE-AGENT-006). Default = `.noop`
     // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
@@ -227,6 +233,19 @@ actor ConversationLoop {
                     label: "Compressing context if needed"
                 )
 
+                // Compress before the call, not after (= hermes
+                // run_turn_start_compaction). Doing it after means the provider
+                // has already refused the oversized prompt, so the user waits
+                // for a failure and then waits again for the recovery.
+                let compressed = await compressIfNeeded(
+                    messages: conversationHistory,
+                    incomingMessage: userMessage,
+                    systemMessage: await composeSystemPrompt(
+                        override: systemMessage,
+                        persistent: systemPrompt
+                    ) ?? ""
+                ) ?? conversationHistory
+
                 // step 3 + 4: "Building prompt" + "Calling LLM".
                 // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
                 // realistic countdown that the next step will clear.
@@ -249,7 +268,7 @@ actor ConversationLoop {
                 var result = try await runConversation(
                     userMessage: userMessage,
                     systemMessage: systemMessage,
-                    conversationHistory: conversationHistory,
+                    conversationHistory: compressed,
                     taskId: resolvedTaskId,
                     streamCallback: streamCallback,
                     toolSchemas: toolSchemas
@@ -780,6 +799,93 @@ actor ConversationLoop {
         // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // buildOpenAISystem / buildGeminiSystemInstruction output).
         return stable + "\n\n---\n\n" + dynamic
+    }
+
+    /// Compress the history when it has grown past the budget.
+    ///
+    /// Returns the reduced history, or nil when nothing was needed (= the
+    /// caller keeps what it had). The provider call for the summary goes
+    /// through the same connector as the turn itself: a summary produced by a
+    /// different model than the one reading it is a summary with a different
+    /// sense of what mattered.
+    ///
+    /// `incomingMessage` is measured with the history but never returned: the
+    /// caller appends it itself when it builds the request, so folding it into
+    /// the compressed history would deliver it twice.
+    private func compressIfNeeded(
+        messages history: [LLMMessage],
+        incomingMessage: String,
+        systemMessage: String
+    ) async -> [LLMMessage]? {
+        let window = connector.contextWindow
+        let withIncoming = history + [LLMMessage(role: .user, blocks: [.text(incomingMessage)])]
+        guard historyCompressor.needsCompression(withIncoming, contextWindow: window) else {
+            return nil
+        }
+        // Compress the history alone. The incoming message is what the model is
+        // being asked, not what it did, and replacing it with a summary would
+        // answer a different question.
+        let outcome = await historyCompressor.compress(history) { [weak self] middle in
+            await self?.summariseHistory(middle, systemMessage: systemMessage)
+        }
+        switch outcome {
+        case .unnecessary(let untouched):
+            return untouched.count < history.count ? untouched : nil
+        case .pruned(let reduced, _):
+            return reduced.count < history.count ? reduced : nil
+        case .summarised(let reduced, _, _):
+            return reduced
+        }
+    }
+
+    /// One provider call that turns a slice of history into prose.
+    ///
+    /// Deliberately small and non-streaming. A summary that fails returns nil
+    /// and the caller keeps the un-summarised transcript, so a provider hiccup
+    /// costs a little context rather than the turn.
+    private func summariseHistory(
+        _ messages: [LLMMessage],
+        systemMessage: String
+    ) async -> String? {
+        guard !messages.isEmpty else { return nil }
+        let transcript = messages.map { message in
+            let role = message.role == .user ? "老板" : "文枢"
+            let text = message.blocks.map(\.textValue).joined(separator: " ")
+            return "\(role)：\(text)"
+        }.joined(separator: "\n")
+
+        let instruction = """
+        把下面这段写作过程压缩成一份交接笔记，供同一个助手在后续对话里接着写。
+
+        写清楚这些，不要加评论：
+        - 已经确定的剧情、人物设定、世界规则
+        - 尚未解决的情节伏笔
+        - 用户明确表达过的偏好和约束
+        - 故事当前进行到哪里
+
+        不要复述原文，不要评价，不要加建议。控制在 400 字以内。
+
+        \(transcript)
+        """
+        do {
+            let response = try await connector.send(
+                messages: [
+                    LLMMessage(role: .user, blocks: [.text(instruction)])
+                ],
+                options: LLMCallOptions(
+                    model: defaultModelForConnector(),
+                    maxTokens: 1_024,
+                    systemPrompt: systemMessage,
+                    temperature: 0.2,
+                    reasoningEffort: nil,
+                    tools: []
+                )
+            )
+            let text = response.blocks.map(\.textValue).joined().trimmingCharacters(in: .whitespacesAndNewlines)
+            return text.isEmpty ? nil : text
+        } catch {
+            return nil
+        }
     }
 
     /// Flatten a reply's text blocks for the guards (= the content-filter and

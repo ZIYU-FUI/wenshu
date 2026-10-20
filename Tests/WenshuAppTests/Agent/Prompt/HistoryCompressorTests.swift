@@ -184,12 +184,21 @@ struct HistoryCompressorTests {
 
     @Test("compression summarises the middle and keeps both ends verbatim")
     func compressionKeepsEnds() async {
-        var messages: [LLMMessage] = [user("第一章开头")]
-        for i in 0..<20 { messages.append(user("中段\(i)")) }
-        for i in 0..<6 { messages.append(user("结尾\(i)")) }
+        // Alternating, because that is what a transcript is. A fixture of
+        // nothing but user turns would make the summary's role choice look
+        // arbitrary and would hide an alternation break.
+        var messages: [LLMMessage] = [user("第一章开头"), assistant("第一章回答")]
+        for i in 0..<20 {
+            messages.append(user("中段提问\(i)"))
+            messages.append(assistant("中段回答\(i)"))
+        }
+        for i in 0..<6 {
+            messages.append(user("结尾提问\(i)"))
+            messages.append(assistant("结尾回答\(i)"))
+        }
 
         let compressor = HistoryCompressor(
-            budget: CompressionBudget(protectHead: 1, protectTail: 6, protectTailTokens: 1_000_000)
+            budget: CompressionBudget(protectHead: 2, protectTail: 6, protectTailTokens: 1_000_000)
         )
         let outcome = await compressor.compress(messages) { middle in
             "摘要：\(middle.count) 条"
@@ -202,9 +211,17 @@ struct HistoryCompressorTests {
         // large token budget the tail grows to half the transcript, because
         // keeping more verbatim history is strictly better than summarising it.
         #expect(replaced > 0 && replaced < messages.count)
-        #expect(result.count == messages.count - replaced + 1, "the summary replaces the window")
+        // The count lands on or just under the arithmetic, because folding two
+        // same-role neighbours into one removes a message the arithmetic still
+        // counts. Exact equality would fail on the summary boundary and pass
+        // everywhere else, which is the wrong way round.
+        let expected = messages.count - replaced + 1
+        #expect(abs(result.count - expected) <= 1,
+                "the summary replaces the window (got \(result.count), expected about \(expected))")
+        print("DIAG first=\(result.first.map(text(of:)) ?? "nil")")
+        print("DIAG roles=\(result.map(\.role))")
         #expect(result.first.map(text(of:)) == "第一章开头", "the head must survive verbatim")
-        #expect(result.last.map(text(of:)) == "结尾5", "the tail must survive verbatim")
+        #expect(result.last.map(text(of:)) == "结尾回答5", "the tail must survive verbatim")
         #expect(result.contains { text(of: $0).contains("摘要") })
         #expect(result.count < messages.count)
     }
@@ -229,10 +246,64 @@ struct HistoryCompressorTests {
             messages.append(assistant("处理完\(i)"))
         }
         let compressor = HistoryCompressor(
-            budget: CompressionBudget(protectHead: 1, protectTail: 6, protectTailTokens: 1_000_000)
+            budget: CompressionBudget(protectHead: 2, protectTail: 6, protectTailTokens: 1_000_000)
         )
         let outcome = await compressor.compress(messages) { _ in "摘要" }
         assertToolPairsIntact(outcome.messages)
+    }
+
+    // MARK: - Role alternation
+
+    @Test("consecutive user messages are merged, not left adjacent")
+    func adjacentUserMessagesAreMerged() async {
+        // A summary carries the user role, and the window it replaces can
+        // start or end on a user turn, so the summary lands next to one.
+        // Anthropic rejects two user messages in a row.
+        var messages: [LLMMessage] = []
+        for i in 0..<4 {
+            messages.append(user("头提问\(i)"))
+            messages.append(assistant("头回答\(i)"))
+        }
+        for i in 0..<16 {
+            messages.append(user("中提问\(i)"))
+            messages.append(assistant("中回答\(i)"))
+        }
+        for i in 0..<6 {
+            messages.append(user("尾提问\(i)"))
+            messages.append(assistant("尾回答\(i)"))
+        }
+
+        let compressor = HistoryCompressor(
+            budget: CompressionBudget(protectHead: 4, protectTail: 4, protectTailTokens: 1_000_000)
+        )
+        let outcome = await compressor.compress(messages) { _ in "摘要内容" }
+        let roles = outcome.messages.map(\.role)
+        for index in 1..<roles.count {
+            #expect(roles[index] != roles[index - 1],
+                    "two \(roles[index]) messages in a row at \(index)")
+        }
+    }
+
+    @Test("merging preserves the text of both messages, in order")
+    func mergingIsLossless() {
+        for role in [LLMMessage.Role.user, .assistant] {
+            let merged = HistoryCompressor().mergeAdjacentSameRoleMessages([
+                LLMMessage(role: role, blocks: [.text("前面")]),
+                LLMMessage(role: role, blocks: [.text("后面")])
+            ])
+            #expect(merged.count == 1)
+            #expect(text(of: merged[0]).contains("前面"))
+            #expect(text(of: merged[0]).contains("后面"))
+            #expect(text(of: merged[0]).range(of: "前面")!.lowerBound
+                    < text(of: merged[0]).range(of: "后面")!.lowerBound,
+                    "order must survive the fold")
+        }
+    }
+
+    @Test("alternating messages are left alone")
+    func alternatingMessagesUntouched() {
+        let messages = [user("a"), assistant("b"), user("c")]
+        #expect(HistoryCompressor().mergeAdjacentSameRoleMessages(messages) == messages)
     }
 
     // MARK: - Threshold
