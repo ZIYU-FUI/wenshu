@@ -5,14 +5,7 @@ Source of truth = `Package.swift`. Do not edit by hand —
 re-run the scanner (= `bash Scripts/build-app.sh` invokes it
 before build) to refresh after a dependency change.
 
-Total upstreams: **7**.
-
-## swiftlang/swift-markdown
-
-- **URL**: https://github.com/swiftlang/swift-markdown
-- **Version**: 0.4.0
-- **License**: Apache-2.0
-- **Reason**: CommonMark/GFM 解析 (Apple AttributedString 替代品)
+Total upstreams: **4**.
 
 ## nodes-app/swift-markdown-engine
 
@@ -35,23 +28,9 @@ Total upstreams: **7**.
 - **License**: MIT
 - **Reason**: SSE 客户端 (Apple URLSession.bytes 替代品)
 
-## krzysztofzablocki/Inject
-
-- **URL**: https://github.com/krzysztofzablocki/Inject
-- **Version**: 1.6.0
-- **License**: MIT
-- **Reason**: SwiftUI 热重载 (DEV/TEST only; Apple HIG 替代品)
-
 ## nalexn/ViewInspector
 
 - **URL**: https://github.com/nalexn/ViewInspector
 - **Version**: 0.10.3
 - **License**: MIT
 - **Reason**: SwiftUI 视图层级反射 (TEST only; Apple HIG 替代品)
-
-## pointfreeco/swift-snapshot-testing
-
-- **URL**: https://github.com/pointfreeco/swift-snapshot-testing
-- **Version**: 1.19.4
-- **License**: MIT
-- **Reason**: SwiftUI 像素快照测试 (TEST only; Apple HIG 替代品)

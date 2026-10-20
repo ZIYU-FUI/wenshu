@@ -7,18 +7,12 @@
 // Architecture: Swift/SwiftUI single-process macOS desktop app (= Apple ecosystem exclusive, v1 only macOS).
 // v0.00.0 bootstrap = app entry point that opens a window; features follow via /to-tickets.
 //
-// 2026-09-05 update (DEAD-PIN-CLEANUP-001): 10 third-party libraries with zero source consumers
-// removed after grep cross-check (= sindresorhus/Defaults, sindresorhus/KeyboardShortcuts,
-// kean/Nuke + kean/NukeUI, weichsel/ZIPFoundation, witekbobrowski/EPUBKit, davecom/SwiftGraph,
-// li3zhen1/Grape [ForceSimulation], orchestract/MenuBarExtraAccess, gonzalezreal/Textual,
-// apple/swift-log). Per AGENTS.md §11.1 4-criteria gate all 10 remain ratified; this cleanup
-// does not re-litigate the ratification, only removes the SPM resolution cost. The remaining
-// pins each have >= 1 source consumer (= Highlighter is transitive via MarkdownEngineCodeBlocks'
-// HighlighterSwiftBridge type used by WenshuEditorServicesFactory; EventSource has 2 import sites
-// in AnthropicStreaming + AnthropicStreamingWireup; the rest are either explicit in Package.swift
-// comment or required by the v0.39 editor adoption). See `git log -1 -- Package.swift` for the
-// audit commit. Reintroducing any removed pin requires a v0.X ticket with the first consumer's
-// import path documented.
+// Third-party pins are limited to what a call site names. Removing a pin
+// requires the same grep cross-check that retired the earlier batch:
+// a package with zero `import` sites stays out of this file, and its
+// transitive tail (swift-markdown -> cmark-gfm, swift-snapshot-testing ->
+// swift-syntax / swift-custom-dump / swift-issue-reporting) goes with it.
+// Reintroducing one requires a ticket naming the first consumer's import path.
 
 import PackageDescription
 
@@ -89,13 +83,7 @@ let package = Package(
         // boundary and test target. Layering: WenshuApp -> WenshuTool<Name> ->
         // WenshuAgent -> WenshuData. A writing tool reaches this package's
         // public surface only; it cannot reach WenshuApp.
-        .package(name: "WenshuAgent", path: "Sources/WenshuAgent"),
-
-        // TEST — SwiftUI pixel snapshot tests (batch 1 issue 05; testTarget only)
-        // Adopted per 2026-08-28-six-module-audit M1 (drag-lost regression suite).
-        // Pairs with ViewInspector: structure assertions vs pixel snapshots.
-        // Per the README, must be wired into testTarget ONLY (not runtime target).
-        .package(url: "https://github.com/pointfreeco/swift-snapshot-testing", from: "1.19.4")
+        .package(name: "WenshuAgent", path: "Sources/WenshuAgent")
     ],
     targets: [
         .executableTarget(
@@ -186,10 +174,6 @@ let package = Package(
                 "WenshuApp",
                 .product(name: "WenshuData", package: "WenshuData"),
                 .product(name: "ViewInspector", package: "viewinspector"),
-                // batch 1 issue 05: visual regression test support for ticket 028-011
-                // (= drag-lost regression suite). Pairs with ViewInspector: structure
-                // assertions vs pixel snapshots. README warns NOT to add to runtime target.
-                .product(name: "SnapshotTesting", package: "swift-snapshot-testing"),
                 // 2026-10-11 LaTeX regression gate (= factory wires SwiftMathBridge).
                 .product(name: "MarkdownEngineLatex", package: "swift-markdown-engine"),
             ],

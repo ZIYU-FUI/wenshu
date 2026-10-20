@@ -2,15 +2,8 @@
   "version": 1,
   "generated_by": "Tools/wenshu-devtool/upstreams-scan.py",
   "source_of_truth": "Package.swift",
-  "count": 7,
+  "count": 4,
   "upstreams": [
-    {
-      "name": "swiftlang/swift-markdown",
-      "url": "https://github.com/swiftlang/swift-markdown",
-      "version": "0.4.0",
-      "license": "Apache-2.0",
-      "reason": "CommonMark/GFM 解析 (Apple AttributedString 替代品)"
-    },
     {
       "name": "nodes-app/swift-markdown-engine",
       "url": "https://github.com/nodes-app/swift-markdown-engine",
@@ -33,25 +26,11 @@
       "reason": "SSE 客户端 (Apple URLSession.bytes 替代品)"
     },
     {
-      "name": "krzysztofzablocki/Inject",
-      "url": "https://github.com/krzysztofzablocki/Inject",
-      "version": "1.6.0",
-      "license": "MIT",
-      "reason": "SwiftUI 热重载 (DEV/TEST only; Apple HIG 替代品)"
-    },
-    {
       "name": "nalexn/ViewInspector",
       "url": "https://github.com/nalexn/ViewInspector",
       "version": "0.10.3",
       "license": "MIT",
       "reason": "SwiftUI 视图层级反射 (TEST only; Apple HIG 替代品)"
-    },
-    {
-      "name": "pointfreeco/swift-snapshot-testing",
-      "url": "https://github.com/pointfreeco/swift-snapshot-testing",
-      "version": "1.19.4",
-      "license": "MIT",
-      "reason": "SwiftUI 像素快照测试 (TEST only; Apple HIG 替代品)"
     }
   ]
 }

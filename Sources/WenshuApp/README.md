@@ -82,7 +82,6 @@ WenshuApp is a single SwiftPM target (= `name: "WenshuApp"`).
 It depends on:
   - `WenshuData` (= local SPM package; = A1g.4 data layer)
   - `ViewInspector` (= SwiftUI view test framework)
-  - `SnapshotTesting` (= visual regression test framework)
   - `MarkdownEngineLatex` (= LaTeX rendering)
 
 The `WenshuApp` target produces the `Wenshu.app` macOS

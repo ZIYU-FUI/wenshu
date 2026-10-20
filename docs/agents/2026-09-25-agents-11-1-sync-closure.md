@@ -121,9 +121,9 @@ The replacement text matches the actual Package.swift state (= 7 active pins, 10
 
 #### DEV / TEST only (no runtime impact):
 - `nalexn/ViewInspector` 0.10.3 — SwiftUI view hierarchy reflection for XCTest (MIT, 2.6k★, testTarget only; ADR-0008 named for v0.28 ticket 028-011; = 5+ source consumers in view tests).
-- `krzysztofzablocki/Inject` 1.6.0 — SwiftUI hot-reload (MIT, 3.5k★; `#if DEBUG` only, Brewfile distribution).
-- `pointfreeco/swift-snapshot-testing` 1.19.4 — SwiftUI pixel-snapshot regression tests (MIT, ~14.9k★ org; adopted in v0.28 batch 1; testTarget only; README warns NEVER to add to runtime target; = 3+ source consumers in view regression tests).
 - `realm/SwiftLint` 0.65.1 + `nicklockwood/SwiftFormat` 0.62.1 — lint + format CI gates (MIT, 19.6k★ + 8.8k★; binary tooling via Brewfile + `wenshu-devtool` hooks chain; SwiftLint bumped from 0.62.1 per `brew info swiftlint` 2026-08-28 returning 0.65.1 as latest stable).
+
+Removed after the dead-pin sweep: `krzysztofzablocki/Inject` (no `#if DEBUG import` call site existed) and `pointfreeco/swift-snapshot-testing` (zero `assertSnapshot` call sites; the "3+ source consumers" note above was never true). ViewInspector stays as the structure-assertion framework.
 
 #### Force-directed graph layout (batch 2 issue 05, CONDITIONAL WARN, DEAD-PIN-CLEANUP-001 candidate):
 - ~~`li3zhen1/Grape::ForceSimulation` 1.1.0~~ — DEAD-PIN-CLEANUP-001 2026-09-05 (= zero source consumers; = re-introduce when ForeshadowingGraph ticket lands).
