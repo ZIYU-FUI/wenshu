@@ -30,19 +30,6 @@ struct LibraryOnboardingWorkspaceImporterTests {
         #expect(!source.contains("allowedContentTypes: [UTType.folder]"))
     }
 
-    private static let foreshadowingGraphSourcePath = Self.repositoryURL(
-        relativePath: "Sources/WenshuApp/Features/Foreshadowing/View/ForeshadowingGraphWindow.swift"
-    )
-
-    @Test("foreshadowing graph window constructs its own BookStore")
-    func foreshadowingGraphConstructsOwnBookStore() throws {
-        let source = try String(contentsOf: Self.foreshadowingGraphSourcePath, encoding: .utf8)
-
-        #expect(source.contains("@State private var bookStore: BookStore?"))
-        #expect(source.contains("LibraryLifecycleHook(wsRoot: wsRoot).runLaunch()"))
-        #expect(!source.contains("@Environment(BookStore.self)"))
-    }
-
     @Test("selection updates observable route after bookmark persistence")
     func selectionUpdatesObservableRoute() throws {
         let source = try String(contentsOf: Self.libraryRootSourcePath, encoding: .utf8)

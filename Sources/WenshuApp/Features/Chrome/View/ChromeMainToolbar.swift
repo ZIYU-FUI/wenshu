@@ -62,37 +62,19 @@ struct ChromeMainToolbar {
 }
 
 extension ChromeMainToolbar: ToolbarContent {
-    /// The 11 independent-window buttons + the export button.
+    /// The kanban window button + the export button.
     /// Apple HIG canonical: `.primaryAction` placement for the
     /// rightmost toolbar slot (= matches the wenshu 1:1 macOS 27
     /// Liquid Glass default).
     var body: some ToolbarContent {
         ToolbarItem(placement: .primaryAction) {
-            HStack(spacing: DesignTokens.spacingTight) {
-                // 1. Memory history (= the only previously-wired
-                // button). Active.
-                WindowOpenButton(
-                    id: WindowID.memoryHistory,
-                    icon: "brain",
-                    title: String(localized: "window.memoryHistory.title"),
-                    openWindow: openWindow,
-                    isEnabled: true
-                )
-
-                // 2-11. The 10 additional independent-window buttons.
-                // All 11 windows have actual panels (= see
-                // Features/<window-name>/View/<Window>.swift; = each
-                // window was created with a real UI in A93). All
-                // buttons are tappable.
-                ForEach(WindowID.toolbarButtons, id: \.id) { button in
-                    WindowOpenButton(
-                        id: button.id,
-                        icon: button.icon,
-                        title: String(localized: String.LocalizationValue(button.title)),
-                        openWindow: openWindow
-                    )
-                }
-            }
+            WindowOpenButton(
+                id: WindowID.kanban,
+                icon: "rectangle.split.3x1",
+                title: String(localized: "window.kanban.title"),
+                openWindow: openWindow,
+                isEnabled: true
+            )
         }
         ToolbarItem(placement: .automatic) {
             // Export button (= the 2nd `.toolbar` block that lived
@@ -112,37 +94,4 @@ extension ChromeMainToolbar: ToolbarContent {
             .help(String(localized: "export.toolbar.label"))
         }
     }
-}
-
-extension WindowID {
-    /// Metadata for the 11 independent-window toolbar buttons.
-    /// Per boss 2026-10-16 OOB "不是未开发，是没开发完，之前是有面板的":
-    /// all 11 windows have actual panels (= created in A93 = one
-    /// Feature per window, each with a real window view; = see
-    /// Features/Canvas/ + Composer/ + Foreshadowing/ + Cron/ +
-    /// Attachments/ + Manifest/ + Summaries/ + LibraryMigration/).
-    /// The "MVP" stage means the panel exists but its content is
-    /// light (= a list / count / placeholder layout) = visible and
-    /// tappable = enabled.
-    struct ToolbarButton: Identifiable {
-        let id: String
-        let icon: String
-        let title: String
-    }
-
-    /// The 10 additional independent-window buttons (=
-    /// the 11 total minus the 1 memoryHistory button that has its own
-    /// dedicated Button block above for documentation clarity).
-    static let toolbarButtons: [ToolbarButton] = [
-        ToolbarButton(id: WindowID.kanban, icon: "rectangle.split.3x1", title: "看板"),
-        ToolbarButton(id: WindowID.todo, icon: "checklist", title: "待办"),
-        ToolbarButton(id: WindowID.canvas, icon: "rectangle.on.rectangle.angled", title: "Canvas"),
-        ToolbarButton(id: WindowID.composer, icon: "square.and.pencil", title: "Composer"),
-        ToolbarButton(id: WindowID.foreshadowingGraph, icon: "point.3.connected.trianglepath.dotted", title: "Foreshadowing Graph"),
-        ToolbarButton(id: WindowID.cron, icon: "clock.arrow.circlepath", title: "Cron"),
-        ToolbarButton(id: WindowID.attachments, icon: "paperclip", title: "Attachments"),
-        ToolbarButton(id: WindowID.manifest, icon: "list.bullet.rectangle", title: "Manifest"),
-        ToolbarButton(id: WindowID.summaries, icon: "doc.text", title: "Summaries"),
-        ToolbarButton(id: WindowID.libraryMigration, icon: "arrow.triangle.2.circlepath", title: "Library Migration")
-    ]
 }

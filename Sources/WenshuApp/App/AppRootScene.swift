@@ -10,28 +10,13 @@ import WenshuData
 // / scenes, prefer this same naming convention.
 enum WindowID {
     static let kanban = "wenshu-kanban"
-    static let todo = "wenshu-todo"
-    // 4 new
-    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // kanban + todo windows.
-    static let canvas = "wenshu-canvas"
-    static let composer = "wenshu-composer"
-    static let foreshadowingGraph = "wenshu-foreshadowing-graph"
-    static let cron = "wenshu-cron"
-    // WS model entry windows (= each opens a dedicated independent
-    // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // feature is decided).
-    static let attachments = "wenshu-attachments"
-    static let manifest = "wenshu-manifest"
-    static let summaries = "wenshu-summaries"
     // SwiftData library upgrade panel window (see OOB.md #2026-10-06). Single-instance Window (= macOS
     // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // must walk through the panel's 重试 / 退出 button path).
+    // This one has no toolbar button: it is opened by the migration
+    // pipeline itself when a library upgrade starts, and it is the only
+    // way out of a failed upgrade.
     static let libraryMigration = "wenshu-library-migration"
-    // Independent 记忆 history window (= the per-conversation
-    // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // `openWindow(id: WindowID.memoryHistory)`.
-    static let memoryHistory = "wenshu-memory-history"
 }
 
 struct AppRootScene: Scene {
@@ -162,50 +147,6 @@ struct AppRootScene: Scene {
         // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // macOS toolbar) for consistency.
         .windowToolbarStyle(.unified)
-        Window("待办", id: WindowID.todo) {
-            TodoWindow(library: library)
-        }
-        .windowResizability(.contentSize)
-        .windowToolbarStyle(.unified)
-        // 4 new independent windows for previously-unwired features.
-        // Per the same shape as the existing kanban + todo windows.
-        Window(String(localized: "window.canvas"), id: WindowID.canvas) {
-            CanvasWindow()
-        }
-        .windowResizability(.contentSize)
-        .windowToolbarStyle(.unified)
-        Window(String(localized: "window.composer"), id: WindowID.composer) {
-            ComposerWindow()
-        }
-        .windowResizability(.contentSize)
-        .windowToolbarStyle(.unified)
-        Window(String(localized: "window.foreshadowing_graph"), id: WindowID.foreshadowingGraph) {
-            ForeshadowingGraphWindow()
-        }
-        .windowResizability(.contentSize)
-        .windowToolbarStyle(.unified)
-        Window(String(localized: "window.cron"), id: WindowID.cron) {
-            CronWindow()
-        }
-        .windowResizability(.contentSize)
-        .windowToolbarStyle(.unified)
-        // WS model entry windows (= Attachments + Manifest + Summaries).
-        // Per the same shape as the existing kanban + todo windows.
-        Window(String(localized: "window.attachments.title"), id: WindowID.attachments) {
-            AttachmentsWindow()
-        }
-        .windowResizability(.contentSize)
-        .windowToolbarStyle(.unified)
-        Window(String(localized: "window.manifest.title"), id: WindowID.manifest) {
-            ManifestWindow()
-        }
-        .windowResizability(.contentSize)
-        .windowToolbarStyle(.unified)
-        Window(String(localized: "window.summaries.title"), id: WindowID.summaries) {
-            SummariesWindow()
-        }
-        .windowResizability(.contentSize)
-        .windowToolbarStyle(.unified)
         // SwiftData library upgrade panel (= boss OOB 2026-10-06
         // … (= 26 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // arguments from outside).
@@ -235,13 +176,5 @@ struct AppRootScene: Scene {
         }
         .windowStyle(.hiddenTitleBar)
         .windowResizability(.contentSize)
-        // Independent 记忆 history window (= the per-conversation
-        // … (= 14 rationale lines collapsed; = A112 docblock collapse per §1.8)
-        // pattern), so this window matches them visually.
-        Window(String(localized: "window.memoryHistory.title"), id: WindowID.memoryHistory) {
-            MemoryHistoryView()
-        }
-        .windowResizability(.contentSize)
-        .windowToolbarStyle(.unified)
     }
 }
