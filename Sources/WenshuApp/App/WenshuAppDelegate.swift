@@ -227,7 +227,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         }
 
         // SwiftData library upgrade check (see OOB.md #2026-10-06). When the user's .ws
-        // Info.plist WSSchemaVersion is below ModelsSchemaV2 (= the current
+        // Info.plist WSSchemaVersion is below the current schema (= the
         // SwiftData version), open the migration panel BEFORE the main app
         // mounts the NavigationSplitView (= the columns would otherwise read
         // half-migrated SwiftData state). The panel runs the .lightweight V1
@@ -519,8 +519,8 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     // SwiftData library upgrade entry point (see OOB.md #2026-10-06). Wired from
     // applicationDidFinishLaunching; = called once per launch with the user's
     // active .ws root. Detection: read Info.plist's WSSchemaVersion (= the
-    // application-layer schema version), compare against ModelsSchemaV2 (= the
-    // current SwiftData version). When the application layer is below, we open the
+    // application-layer schema version), compare against the current
+    // SwiftData version. When the application layer is below, we open the
     // migration panel and run the 3-stage pipeline. 3-stage pipeline (= real
     // progress; = not a fake timer): preparing = back up the user's
     // .ws/WenshuStore.store to .ws/migration-backups/v<old>-<ts>.store; =

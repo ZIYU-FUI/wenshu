@@ -119,7 +119,7 @@ enum WenshuAppDelegateSwiftDataMigration {
             // LibraryMigrator already wrote 1 when the .ws was first
             // migrated to v0.26; = we now bump to 2 (= the new
             // application-layer schema version that matches
-            // ModelsSchemaV2's versionIdentifier).
+            // the current schema's versionIdentifier).
             try bumpSchemaVersion(wsRoot: wsRoot, newVersion: 2)
             state.complete()
 
@@ -167,7 +167,7 @@ enum WenshuAppDelegateSwiftDataMigration {
 
     /// Bump the application-layer schema version stored in the .ws Info.plist
     /// (= the WSSchemaVersion key that LibraryInfo.needsMigration reads on
-    /// every launch). The SwiftData ModelsSchemaV2 versionIdentifier is 2.0.0;
+    /// every launch). The SwiftData current schema versionIdentifier is 2.0.0;
     /// = bumping the Info.plist to 2 keeps them in lockstep.
     static func bumpSchemaVersion(wsRoot: URL, newVersion: Int) throws {
         let infoPlistURL = wsRoot.appendingPathComponent("Info.plist")

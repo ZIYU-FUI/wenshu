@@ -17,7 +17,6 @@
 //  - ModelsSchemaV1 = the schema as it shipped in v1 of the post-SwiftData
 //    migration wenshu (= the state captured in Container.swift:63-99
 //    prior to this commit). Persistent on user disks today.
-//  - ModelsSchemaV2 = identical to V1 today. When a real schema delta
 //    lands (= e.g. a new field, an optional default, a renamed entity),
 //    V2's `models` array and the schema enum bodies diverge from V1.
 //    Lightweight migration runs automatically for additive changes; = a
@@ -41,8 +40,8 @@ import SwiftData
 
 /// VersionedSchema snapshot of the 22 @Model classes as they shipped
 /// in v1 of the post-SwiftData migration wenshu. Persistent on user
-/// disks today. Bump CURRENT_SCHEMA_VERSION and add ModelsSchemaV2
-/// divergence when the next breaking schema change ships.
+/// disks today. Bump CURRENT_SCHEMA_VERSION and add a v2 snapshot
+/// when the next breaking schema change ships.
 public enum ModelsSchemaV1: VersionedSchema {
     public static var versionIdentifier: Schema.Version { Schema.Version(1, 0, 0) }
 
@@ -87,52 +86,3 @@ public enum ModelsSchemaV1: VersionedSchema {
     }
 }
 
-/// VersionedSchema snapshot at v2 (= identical to V1 today; = the
-/// placeholder for the next real schema delta). When a real delta
-/// ships, this enum's model list diverges from V1 (= e.g. a new field
-/// in WSBook), and SchemaMigrationPlan routes lightweight migration
-/// automatically.
-public enum ModelsSchemaV2: VersionedSchema {
-    public static var versionIdentifier: Schema.Version { Schema.Version(2, 0, 0) }
-
-    /// The 22 @Model class types at v2 (= same as V1 today). When a
-    /// breaking change lands, this list changes (= additions are
-    /// picked up by lightweight migration; = renames or deletions
-    /// require a custom MigrationStage).
-    public static var models: [any PersistentModel.Type] {
-        [
-            // Tier 1: leaf entities (= no relationships)
-            WSManifest.self,
-            WSMemory.self,
-            WSTodo.self,
-            WSBookmark.self,
-            WSLink.self,
-            WSPreference.self,
-            WSProviderKey.self,
-            WSAttachment.self,
-            // Tier 2: chat session + children
-            WSSession.self,
-            WSChatMessage.self,
-            WSSummary.self,
-            WSSubAgentRun.self,
-            // Tier 3: book + descendants
-            WSBook.self,
-            WSBookShelf.self,
-            WSChapter.self,
-            WSOutlineNode.self,
-            WSForeshadowing.self,
-            WSPlaceholder.self,
-            WSOutlineDocument.self,
-            WSKanbanTask.self,
-            WSEntity.self,
-            WSBody.self,
-            WSOutlineEntry.self,
-            WSReference.self,
-            // Tier 4: workspace layout tree (= 2026-10-05 #9 commit 1)
-            WSLayoutTreeState.self,
-            WSLayoutNode.self,
-            WSPaneNode.self,
-            WSTabSpec.self
-        ]
-    }
-}

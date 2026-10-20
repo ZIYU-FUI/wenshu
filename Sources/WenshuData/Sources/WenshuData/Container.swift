@@ -122,10 +122,10 @@ public enum WSPersistenceContainer {
             // set (= additive placeholder; = no real schema delta yet),
             // so a plan would only produce duplicate-version checksums
             // (= NSInvalidArgumentException at launch).
-            // + ModelsSchemaV1/V2 stay declared for the future non-additive
-            // change (= rename, type change, cardinality flip), but they
-            // are not wired into the container initializer until a real
-            // delta ships.
+            // + a future v2 snapshot stays undeclared until the first
+            // non-additive change (= rename, type change, cardinality
+            // flip), because it is not wired into the container
+            // initializer until a real delta ships.
             let schemaV1 = Schema(ModelsSchemaV1.models)
             return try ModelContainer(
                 for: schemaV1,

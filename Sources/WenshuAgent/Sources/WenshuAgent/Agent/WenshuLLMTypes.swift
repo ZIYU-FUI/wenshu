@@ -2,8 +2,8 @@
 //  WenshuLLMTypes.swift · Wenshu · v0.35 ticket 001 (preserved types)
 //
 //  AUDIT.md §2.6 partial (2026-10-16 boss "清老代码必须
-//  做完" arc): these 5 types (WenshuLLMMessage /
-//  WenshuLLMBlock / WenshuLLMUsage /
+//  做完" arc): these types (WenshuLLMBlock /
+//  WenshuLLMUsage /
 //  WenshuLLMResponse) were originally defined inline in
 //  WenshuVerifier.swift. They are now extracted here
 //  because the WenshuVerifier actor (= the legacy LLM
@@ -21,20 +21,6 @@
 //
 
 import Foundation
-
-/// WenshuLLMMessage: a single chat message (= role + content)
-/// in the Anthropic-compatible wire format (= the format
-/// WenshuVerifier.send uses to talk to the minimax-cn
-/// endpoint).
-public struct WenshuLLMMessage: Codable, Sendable {
-    public let role: String
-    public let content: String
-
-    public init(role: String, content: String) {
-        self.role = role
-        self.content = content
-    }
-}
 
 // union content block (Apple Codable enum ground truth)
 // Anthropic-compatible content blocks include text / thinking (CoT) / tool_use variants
