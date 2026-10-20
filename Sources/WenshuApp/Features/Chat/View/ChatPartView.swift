@@ -158,7 +158,12 @@ private struct ChatPartRow: View {
     var body: some View {
         switch part.kind {
         case .text(let s):
-            ChatTextPartView(text: s, isOutgoing: isOutgoing, isStreaming: isStreaming)
+            // A reply that carries markers is drawn in two layers: the
+            // answer in the body, the steps as labelled lines. While
+            // the reply streams it stays plain text, because a marker
+            // that is only half written would make the body flicker
+            // between the two renderings.
+            textRow(for: s)
                 // T49-TEXT-FADEIN (2026-09-18): apply the same
                 // appear-from-top transition as T40 reasoning parts
                 // + T41 tool parts. Text parts also fade in when
@@ -206,6 +211,22 @@ private struct ChatPartRow: View {
             )
         }
     }
+
+    /// The body of a text part.
+    ///
+    /// A reply that carries markers is drawn in two layers: the answer
+    /// in the body, the steps as labelled lines. While the reply
+    /// streams it stays plain text, because a marker that is only half
+    /// written would make the body flicker between the two renderings.
+    @ViewBuilder
+    private func textRow(for text: String) -> some View {
+        if !isStreaming, ReasoningMarkupParser.hasMarkup(text) {
+            ChatTraceTextView(text: text, isOutgoing: isOutgoing)
+        } else {
+            ChatTextPartView(text: text, isOutgoing: isOutgoing, isStreaming: isStreaming)
+        }
+    }
+
 }
 
 // MARK: - User message hover actions (= hermes MessageActions)

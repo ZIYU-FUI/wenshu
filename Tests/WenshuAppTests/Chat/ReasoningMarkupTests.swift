@@ -134,4 +134,39 @@ struct ToolActivityTests {
         let text = ToolActivityNarrator.action(toolName: "ReadFile", arguments: #"{"path": "\#(long)"}"#)
         #expect(text.count < 80)
     }
+
+    @Test("the bracketed marker the prompt teaches is understood")
+    func bracketedMarkerIsUnderstood() async {
+        // The system prompt teaches `[[action: ...]]`, so that is the form
+        // a cooperating model writes. The angle-bracket form is Hermes's
+        // and stays supported for a model that learned that habit.
+        let segments = ReasoningMarkupParser.parse("[[action: Reading the outline]]")
+        #expect(segments == [.action("Reading the outline")])
+    }
+
+    @Test("bracketed action and result are different kinds")
+    func bracketedActionAndResultDiffer() async {
+        let segments = ReasoningMarkupParser.parse(
+            "[[action: Checked the chapter list]]\n[[result: Three chapters, the third unfinished]]"
+        )
+        #expect(segments == [
+            .action("Checked the chapter list"),
+            .result("Three chapters, the third unfinished"),
+        ])
+    }
+
+    @Test("text around a bracketed marker is kept")
+    func textAroundBracketedMarkerIsKept() async {
+        let segments = ReasoningMarkupParser.parse("Before [[action: x]] after")
+        #expect(segments.count == 3)
+        #expect(segments[1] == .action("x"))
+    }
+
+    @Test("a reply that carries markers is detected")
+    func markerDetectionCoversBracketedForm() {
+        #expect(ReasoningMarkupParser.hasMarkup("Before [[action: x]] after"))
+        #expect(ReasoningMarkupParser.hasMarkup("[[result: done]]"))
+        #expect(!ReasoningMarkupParser.hasMarkup("a plain reply"))
+        #expect(!ReasoningMarkupParser.hasMarkup("```\n[[action: x]]\n```"))
+    }
 }

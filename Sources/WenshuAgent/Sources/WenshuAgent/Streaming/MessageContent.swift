@@ -41,40 +41,69 @@ public enum MessageContent {
     /// convention, or reasoning is disabled), thinking is
     /// empty and text is returned verbatim.
     public static func extractThinkingTags(from text: String) -> (thinking: String, cleaned: String) {
-        // Match `[[thinking: <content>]]` anywhere in the text.
-        // The content can span multiple lines (= use [\s\S]).
-        // Non-greedy so a later reply doesn't capture too much.
-        let pattern = #"\[\[thinking:\s*([\s\S]*?)\]\]"#
-        guard let regex = try? NSRegularExpression(pattern: pattern) else {
-            return ("", text)
-        }
-        let nsText = text as NSString
-        let matches = regex.matches(
-            in: text,
-            range: NSRange(location: 0, length: nsText.length)
-        )
-        guard let first = matches.first else {
-            return ("", text)
-        }
-        // First match's capture group 1 = the thinking content.
-        let thinkingRange = first.range(at: 1)
-        let thinking = nsText.substring(with: thinkingRange)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        // Remove ALL matches from the text (= the user shouldn't
-        // see the marker tags in the rendered reply).
-        var remaining = text
-        for match in matches.reversed() {
-            let nsRemaining = remaining as NSString
-            remaining = nsRemaining.replacingCharacters(
-                in: match.range,
-                with: ""
-            )
-        }
-        let cleaned = remaining
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        return (thinking, cleaned)
+        let trace = extractTraceTags(from: text)
+        return (trace.thinking, trace.cleaned)
     }
 
+    /// The trace the model wrote: its thinking, plus the steps it marked.
+    ///
+    /// Three markers are recognised, all in the same ASCII-only form the
+    /// thinking marker already uses:
+    ///
+    ///   `[[thinking: ...]]`  the reasoning
+    ///   `[[action: ...]]`    a step the assistant took
+    ///   `[[result: ...]]`    what came back
+    ///
+    /// The action and result markers exist so the reader can see the work
+    /// as it happens rather than only its conclusion. They are stripped
+    /// from the reply body for the same reason the thinking marker is: the
+    /// reader should see the step, not the marker.
+    ///
+    /// They are folded into the thinking text, because that is where the
+    /// surface that renders them reads from. The order is kept, so a reader
+    /// sees the steps in the order they happened.
+    public static func extractTraceTags(
+        from text: String
+    ) -> (thinking: String, steps: String, cleaned: String) {
+        var thinking = ""
+        var steps = ""
+        var remaining = text
+
+        for marker in ["thinking", "action", "result"] {
+            let pattern = "\\[\\[" + marker + ":\\s*([\\s\\S]*?)\\]\\]"
+            guard let regex = try? NSRegularExpression(pattern: pattern) else { continue }
+            let nsText = remaining as NSString
+            let matches = regex.matches(
+                in: remaining,
+                range: NSRange(location: 0, length: nsText.length)
+            )
+            for match in matches {
+                let content = nsText.substring(with: match.range(at: 1))
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !content.isEmpty else { continue }
+                if marker == "thinking" {
+                    thinking += (thinking.isEmpty ? "" : "\n\n") + content
+                } else {
+                    steps += (steps.isEmpty ? "" : "\n") + "[[" + marker + ": " + content + "]]"
+                }
+            }
+            // Strip every occurrence of this marker from the body.
+            for match in matches.reversed() {
+                let nsRemaining = remaining as NSString
+                remaining = nsRemaining.replacingCharacters(in: match.range, with: "")
+            }
+        }
+
+        // Text with no marker in it is returned untouched. Trimming it
+        // would change the reply (= a trailing space is part of the
+        // answer), and the caller cannot tell a trimmed reply from an
+        // untrimmed one.
+        guard !thinking.isEmpty || !steps.isEmpty else {
+            return ("", "", text)
+        }
+        let cleaned = remaining.trimmingCharacters(in: .whitespacesAndNewlines)
+        return (thinking, steps, cleaned)
+    }
     /// Canonicalize a block list: drop empty .text("") blocks,
     /// preserve all other blocks in order.
     public static func canonicalize(_ blocks: [LLMBlock]) -> [LLMBlock] {

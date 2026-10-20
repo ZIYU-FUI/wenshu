@@ -48,6 +48,59 @@ final class StreamingAccumulator: @unchecked Sendable {
         }
     }
 
+    /// The reply text accumulated so far.
+    func accumulatedText() -> String {
+        lock.lock(); defer { lock.unlock() }
+        return _parts.compactMap { part in
+            if case .text(let text) = part.kind { return text }
+            return nil
+        }.joined()
+    }
+
+    /// Move a completed trace marker out of the reply text.
+    ///
+    /// The model wraps its reasoning in a marker so the reader sees the
+    /// reasoning as a separate block rather than as part of the answer. The
+    /// marker is complete only once its closing bracket has arrived, so the
+    /// check is made on the accumulated text each time the view updates.
+    ///
+    /// Until the marker is complete the text shows as it arrives, which
+    /// includes the opening bracket. The alternative (= hiding the text
+    /// until the marker closes) would hide the reply's beginning for as
+    /// long as the reasoning takes, which is worse.
+    func liftTraceMarker() {
+        lock.lock(); defer { lock.unlock() }
+        // A model that marks only its steps (= no thinking marker) still
+        // gets them lifted, so the condition looks for any of the markers.
+        guard let textIndex = _parts.firstIndex(where: { part in
+            if case .text(let text) = part.kind {
+                return text.contains("[[thinking:")
+                    || text.contains("[[action:")
+                    || text.contains("[[result:")
+            }
+            return false
+        }) else { return }
+        guard case .text(let text) = _parts[textIndex].kind else { return }
+
+        // The whole segment is scanned, not only the thinking marker: the
+        // step markers sit after it, in the same text run, and leaving them
+        // in the body would show the reader the raw markers.
+        let trace = MessageContent.extractTraceTags(from: text)
+        guard !trace.thinking.isEmpty || !trace.steps.isEmpty else { return }
+
+        // The trace becomes a reasoning part; the answer stays a text part.
+        _parts.remove(at: textIndex)
+        var content = trace.thinking
+        if !trace.steps.isEmpty {
+            content += (content.isEmpty ? "" : "\n") + trace.steps
+        }
+        _parts.insert(.reasoning(content), at: textIndex)
+        let remainder = trace.cleaned
+        if !remainder.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            _parts.insert(.text(remainder), at: textIndex + 1)
+        }
+    }
+
     /// Append reasoning to the trailing reasoning part, or start one.
     func appendReasoning(_ chunk: String) {
         guard !chunk.isEmpty else { return }
@@ -96,6 +149,10 @@ final class ChatViewModel {
     ) {
         if !batch.text.isEmpty { accumulator.appendText(batch.text) }
         if !batch.reasoning.isEmpty { accumulator.appendReasoning(batch.reasoning) }
+        // The trace marker is lifted once it is complete, so the reader
+        // sees the reasoning as its own block rather than as part of the
+        // answer.
+        accumulator.liftTraceMarker()
         for block in batch.blocks {
             switch block {
             case .toolUse(let id, let name, let input):

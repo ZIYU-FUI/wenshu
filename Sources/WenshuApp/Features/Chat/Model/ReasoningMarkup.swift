@@ -42,6 +42,12 @@ enum ReasoningMarkupParser {
     /// `thinking` and `reflection` are read but not given their own block:
     /// they are the model narrating to itself, which is prose. `action` and
     /// `result` are the two that carry a step.
+    ///
+    /// Two spellings are accepted. The bracketed one (`[[action: ...]]`) is
+    /// the form the system prompt teaches, so it is what a model following
+    /// the instructions will write. The angle-bracket one (`<action>`) is
+    /// the form Hermes uses, so a model that learned that habit is still
+    /// understood.
     private static let knownTags: Set<String> = ["thinking", "reflection", "action", "result"]
 
     /// Split the reasoning into segments.
@@ -62,7 +68,7 @@ enum ReasoningMarkupParser {
     static func hasMarkup(_ content: String) -> Bool {
         splitFenceAware(content).contains { chunk in
             guard !chunk.isCode else { return false }
-            return firstCompleteTag(in: chunk.text) != nil
+            return nextMarker(in: chunk.text, from: chunk.text.startIndex) != nil
         }
     }
 
@@ -110,31 +116,7 @@ enum ReasoningMarkupParser {
 
     // MARK: - Tag handling
 
-    /// A located marker.
-    private struct Tag {
-        let name: String
-        /// The range the marker's content occupies.
-        let contentRange: Range<String.Index>
-    }
 
-    /// Find the first marker that has a matching closing tag.
-    ///
-    /// A marker without a closing tag is not structure: the model may have
-    /// been cut off mid-sentence, and treating the rest of the message as
-    /// marker content would swallow the reply.
-    private static func firstCompleteTag(in content: String) -> Tag? {
-        var searchCursor = content.startIndex
-        while let open = content.range(of: "<", range: searchCursor..<content.endIndex) {
-            searchCursor = open.upperBound
-            guard let name = tagName(in: content, at: open.lowerBound), knownTags.contains(name) else { continue }
-            guard let close = content.range(of: "</\(name)>", range: open.upperBound..<content.endIndex) else { continue }
-            return Tag(
-                name: name,
-                contentRange: open.upperBound..<close.lowerBound
-            )
-        }
-        return nil
-    }
 
     /// The tag name at the given position, if the position starts one.
     private static func tagName(in content: String, at index: String.Index) -> String? {
@@ -146,37 +128,105 @@ enum ReasoningMarkupParser {
     }
 
 
+    /// A located marker, in either spelling.
+    private struct Marker {
+        let name: String
+        /// The range the marker's content occupies.
+        let contentRange: Range<String.Index>
+        /// The range the whole marker occupies.
+        let markerRange: Range<String.Index>
+    }
+
+    /// Find the next marker, in either spelling.
+    ///
+    /// The bracketed form comes first because it is the form the prompt
+    /// teaches, so it is the one a cooperating model writes.
+    private static func nextMarker(in content: String, from cursor: String.Index) -> Marker? {
+        var search = cursor
+        while search < content.endIndex {
+            // Bracketed form: "[[action: content]]".
+            if let open = content.range(of: "[[", range: search..<content.endIndex) {
+                let afterOpen = open.upperBound
+                // The colon that ends the name is found without a length
+                // limit: a bracketed run that is not a marker simply has a
+                // name that is not one of the known ones, and is skipped.
+                guard let colon = content.range(of: ":", range: afterOpen..<content.endIndex)
+                else {
+                    search = open.upperBound
+                    continue
+                }
+                let name = String(content[afterOpen..<colon.lowerBound])
+                    .trimmingCharacters(in: .whitespaces)
+                guard knownTags.contains(name),
+                      let close = content.range(of: "]]", range: colon.upperBound..<content.endIndex)
+                else {
+                    search = open.upperBound
+                    continue
+                }
+                return Marker(
+                    name: name,
+                    contentRange: colon.upperBound..<close.lowerBound,
+                    markerRange: open.lowerBound..<close.upperBound
+                )
+            }
+            // Angle-bracket form: "<action>content</action>".
+            if let open = content.range(of: "<", range: search..<content.endIndex) {
+                guard let name = tagName(in: content, at: open.lowerBound), knownTags.contains(name),
+                      let close = content.range(of: "</\(name)>", range: open.upperBound..<content.endIndex)
+                else {
+                    search = open.upperBound
+                    continue
+                }
+                // The content starts after the tag name, not after the
+                // opening angle bracket: "<action>text</action>" carries
+                // the name and its ">" between the bracket and the text.
+                guard let contentStart = content.index(
+                    open.upperBound,
+                    offsetBy: name.count + 1,
+                    limitedBy: close.lowerBound
+                ) else {
+                    search = open.upperBound
+                    continue
+                }
+                return Marker(
+                    name: name,
+                    contentRange: contentStart..<close.lowerBound,
+                    markerRange: open.lowerBound..<close.upperBound
+                )
+            }
+            return nil
+        }
+        return nil
+    }
+
     /// Split one chunk into segments by its markers.
     private static func parseTags(_ content: String) -> [ReasoningSegment] {
         var segments: [ReasoningSegment] = []
         var outputCursor = content.startIndex
         var searchCursor = content.startIndex
 
-        while let open = content.range(of: "<", range: searchCursor..<content.endIndex) {
-            searchCursor = open.upperBound
-            guard let name = tagName(in: content, at: open.lowerBound), knownTags.contains(name),
-                  let close = content.range(of: "</\(name)>", range: open.upperBound..<content.endIndex)
-            else { continue }
-
-            if open.lowerBound > outputCursor {
-                let prose = String(content[outputCursor..<open.lowerBound])
-                segments.append(.prose(prose))
+        while let marker = nextMarker(in: content, from: searchCursor) {
+            if marker.markerRange.lowerBound > outputCursor {
+                segments.append(.prose(String(content[outputCursor..<marker.markerRange.lowerBound])))
+            } else if marker.markerRange.lowerBound < outputCursor {
+                // The marker starts before the text already consumed, so
+                // it overlaps what was read. It is skipped rather than
+                // read backwards, which would be out of range.
+                searchCursor = marker.markerRange.upperBound
+                outputCursor = marker.markerRange.upperBound
+                continue
             }
-            // The content starts after the tag name, not after the opening
-            // angle bracket: "<action>text</action>" carries the name and
-            // its ">" between the bracket and the text.
-            let contentStart = content.index(open.upperBound, offsetBy: name.count + 1)
-            let inner = String(content[contentStart..<close.lowerBound])
+            let inner = String(content[marker.contentRange])
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             if !inner.isEmpty {
-                switch name {
+                switch marker.name {
                 case "action": segments.append(.action(inner))
                 case "result": segments.append(.result(inner))
                 default: segments.append(.prose(inner))
                 }
             }
-            outputCursor = close.upperBound
-            searchCursor = close.upperBound
+            outputCursor = marker.markerRange.upperBound
+            searchCursor = marker.markerRange.upperBound
         }
 
         if outputCursor < content.endIndex {
@@ -205,8 +255,13 @@ enum ReasoningMarkupParser {
     private static func mergeAdjacentProse(_ segments: [ReasoningSegment]) -> [ReasoningSegment] {
         var merged: [ReasoningSegment] = []
         for segment in segments {
-            if case .prose(let text) = segment, case .prose(let last)? = merged.last {
-                merged[merged.count - 1] = .prose(last + text)
+            // The previous entry is read through an explicit unwrap rather
+            // than an optional pattern: the pattern also matches a missing
+            // entry, and then the index below would be out of range.
+            if case .prose(let text) = segment,
+               let previous = merged.last,
+               case .prose(let previousText) = previous {
+                merged[merged.count - 1] = .prose(previousText + text)
             } else {
                 merged.append(segment)
             }

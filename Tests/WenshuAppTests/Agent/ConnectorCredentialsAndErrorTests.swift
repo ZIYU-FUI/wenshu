@@ -135,9 +135,13 @@ struct ConnectorCredentialsDeepTests {
 
     @Test("ConnectorCredentials.resolve: non-Ollama = empty key when no key saved")
     func resolveNonOllamaEmptyKey() async {
-        // Clear any existing anthropic key
-        let store = InMemoryKeychainStore()
-        try? store.deleteKeySync(for: .anthropic)
+        // The resolver reads the shared backend, so the test has to put
+        // an empty store there. Creating a store of its own does not
+        // change what the resolver reads, and the real store holds the
+        // key the developer configured.
+        let previous = ProviderKeychain.backend
+        defer { ProviderKeychain.setBackendForTesting(previous) }
+        ProviderKeychain.setBackendForTesting(InMemoryKeychainStore())
         let creds = ConnectorCredentials.resolve(for: .anthropic)
         #expect(creds.apiKey.isEmpty)
     }

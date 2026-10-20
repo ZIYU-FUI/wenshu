@@ -569,6 +569,18 @@ public enum SystemPrompt {
               (= 1-2 sentences describing the intent and the
               tone you're aiming for). The user values the
               trace even for simple replies.
+            - Mark the steps you took with `[[action: ...]]` and
+              `[[result: ...]]`, one pair per step, before the
+              `[[thinking: ...]]` block:
+                [[action: Checked the chapter list]]
+                [[result: Three chapters, the third is unfinished]]
+              The user reads these as a running log, so they
+              should say what you did and what came back, in
+              one short sentence each. Do not use them for
+              anything you did not actually do.
+            - Keep the markers at the top of the reply and out of
+              the prose. The parser strips them from the text
+              and shows each one as its own labelled line.
             """
         case "parallel_tool_call":
             return """
