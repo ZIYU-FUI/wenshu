@@ -242,9 +242,14 @@ extension PromptBuilder {
     public static func truncateContent(
         _ content: String,
         filename: String,
-        contextLength: Int? = nil
+        contextLength: Int? = nil,
+        maxChars: Int? = nil
     ) -> String {
-        let cap = dynamicContextFileMaxChars(contextLength: contextLength)
+        // An explicit cap wins (= hermes: an explicit context_file_max_chars
+        // in config always beats the window-derived value). Zero and nil both
+        // mean "derive from the window".
+        let cap = maxChars.flatMap { $0 > 0 ? $0 : nil }
+            ?? dynamicContextFileMaxChars(contextLength: contextLength)
         guard content.count > cap else {
             return content
         }

@@ -262,7 +262,11 @@ public enum SystemPrompt {
         agentDriverGuidance: Bool = true,
         userName: String? = nil,
         bookTitle: String? = nil,
-        speakingStyle: SpeakingStyle = .literary
+        speakingStyle: SpeakingStyle = .literary,
+        identityEnabled: Bool = true,
+        helpGuidanceEnabled: Bool = true,
+        includeContextFiles: Bool = true,
+        includeEnvironmentHints: Bool = true
     ) -> String {
         var sections: [String] = []
 
@@ -282,16 +286,20 @@ public enum SystemPrompt {
         // Identity block (= locale-aware base prompt).
         // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // the parallel definition).
-        if locale == .chinese {
-            sections.append(PromptBuilder.defaultIdentity())
-        } else {
-            sections.append(localeIdentityBlock(locale: locale))
+        if identityEnabled {
+            if locale == .chinese {
+                sections.append(PromptBuilder.defaultIdentity())
+            } else {
+                sections.append(localeIdentityBlock(locale: locale))
+            }
         }
 
         // Help guidance (= PromptBuilder.helpGuidance, = wenshu
         // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // when it needs to look up project conventions).
-        sections.append(PromptBuilder.helpGuidance)
+        if helpGuidanceEnabled {
+            sections.append(PromptBuilder.helpGuidance)
+        }
 
         // Per-provider operational guidance.
         sections.append(providerGuidance(provider: provider))
@@ -299,20 +307,24 @@ public enum SystemPrompt {
         // Environment hints (= PromptBuilder.buildEnvironmentHints(),
         // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // description; = reimplemented per (see OOB.md #2026-10-04) OOB).
-        let envHints = PromptBuilder.buildEnvironmentHints()
-        if !envHints.isEmpty {
-            sections.append(envHints)
+        if includeEnvironmentHints {
+            let envHints = PromptBuilder.buildEnvironmentHints()
+            if !envHints.isEmpty {
+                sections.append(envHints)
+            }
         }
 
         // Context files block (= PromptBuilder.buildContextFilesPrompt(),
         // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // = nil contextLength = no truncation cap).
-        let contextFiles = PromptBuilder.buildContextFilesPrompt(
-            cwdPath: FileManager.default.currentDirectoryPath,
-            contextLength: nil,
-        )
-        if !contextFiles.isEmpty {
-            sections.append(contextFiles)
+        if includeContextFiles {
+            let contextFiles = PromptBuilder.buildContextFilesPrompt(
+                cwdPath: FileManager.default.currentDirectoryPath,
+                contextLength: nil,
+            )
+            if !contextFiles.isEmpty {
+                sections.append(contextFiles)
+            }
         }
 
         // Tool-aware behavioral guidance.
