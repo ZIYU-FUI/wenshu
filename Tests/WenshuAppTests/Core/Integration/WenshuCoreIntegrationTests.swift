@@ -8,6 +8,7 @@
 import Testing
 import SwiftData
 import Foundation
+import WenshuAgent
 import WenshuData
 @testable import WenshuApp
 

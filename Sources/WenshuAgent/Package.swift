@@ -20,7 +20,14 @@ let package = Package(
     products: [
         .library(name: "WenshuAgent", targets: ["WenshuAgent"])
     ],
+    dependencies: [
+        .package(name: "WenshuData", path: "../WenshuData")
+    ],
     targets: [
-        .target(name: "WenshuAgent", path: "Sources/WenshuAgent")
+        .target(
+            name: "WenshuAgent",
+            dependencies: [.product(name: "WenshuData", package: "WenshuData")],
+            path: "Sources/WenshuAgent"
+        )
     ]
 )

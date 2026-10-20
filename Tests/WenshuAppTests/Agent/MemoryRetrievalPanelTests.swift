@@ -4,6 +4,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("MemoryRetrievalPanel (ticket 009)")

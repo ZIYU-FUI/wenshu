@@ -21,6 +21,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("AgentProgressTracker (WIRE-AGENT-006)")

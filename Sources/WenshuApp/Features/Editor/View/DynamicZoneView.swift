@@ -18,6 +18,7 @@
 //
 
 import SwiftUI
+import WenshuAgent
 
 /// DynamicZoneView: body. 3 tabs (task / progress / search).
 struct DynamicZoneView: View {

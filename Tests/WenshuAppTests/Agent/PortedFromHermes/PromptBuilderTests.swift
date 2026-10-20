@@ -32,6 +32,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("PromptBuilder (TICKET-HERMES-GAP-001)")

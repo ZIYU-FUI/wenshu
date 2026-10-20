@@ -37,26 +37,39 @@ import WenshuData
 // subsequent step (= `makeDefaultMemoryManager` returns MemoryManager() with
 // no args = uses WSMemoryRepository.shared by default.
 
-actor ContextEngine {
+public actor ContextEngine {
 
-    struct ContextBundle: Sendable {
-        let memories: [MemoryEntry]
-        let characterContext: [String]
-        let worldContext: [String]
-        let foreshadowContext: [String]
+    public struct ContextBundle: Sendable {
+        public let memories: [MemoryEntry]
+        public let characterContext: [String]
+        public let worldContext: [String]
+        public let foreshadowContext: [String]
 
-        var isEmpty: Bool {
+        public var isEmpty: Bool {
             memories.isEmpty && characterContext.isEmpty
                 && worldContext.isEmpty && foreshadowContext.isEmpty
         }
+
+        public init(
+            memories: [MemoryEntry],
+            characterContext: [String],
+            worldContext: [String],
+            foreshadowContext: [String]
+        ) {
+            self.memories = memories
+            self.characterContext = characterContext
+            self.worldContext = worldContext
+            self.foreshadowContext = foreshadowContext
+        }
+
     }
 
     /// Lightweight memory entry (= consumed from wenshu Core/Memory in
     /// subsequent tickets; stub shape for sub-step 3).
-    struct MemoryEntry: Sendable {
-        let source: String  // file path
-        let snippet: String
-        init(source: String, snippet: String) {
+    public struct MemoryEntry: Sendable {
+        public let source: String  // file path
+        public let snippet: String
+        public init(source: String, snippet: String) {
             self.source = source
             self.snippet = snippet
         }
@@ -64,15 +77,15 @@ actor ContextEngine {
 
     /// LLM usage normalized (= hermes usage dict with input/output/cache_read/
     /// cache_write/reasoning tokens).
-    struct Usage: Sendable, Equatable {
-        let promptTokens: Int
-        let completionTokens: Int
-        let totalTokens: Int
-        let cacheReadTokens: Int
-        let cacheWriteTokens: Int
-        let reasoningTokens: Int
+    public struct Usage: Sendable, Equatable {
+        public let promptTokens: Int
+        public let completionTokens: Int
+        public let totalTokens: Int
+        public let cacheReadTokens: Int
+        public let cacheWriteTokens: Int
+        public let reasoningTokens: Int
 
-        init(
+        public init(
             promptTokens: Int,
             completionTokens: Int,
             totalTokens: Int = 0,
@@ -90,14 +103,14 @@ actor ContextEngine {
     }
 
     /// Status dict (= hermes get_status L192-213).
-    struct Status: Sendable, Equatable {
-        let lastPromptTokens: Int
-        let thresholdTokens: Int
-        let contextLength: Int
-        let usagePercent: Double
-        let compressionCount: Int
+    public struct Status: Sendable, Equatable {
+        public let lastPromptTokens: Int
+        public let thresholdTokens: Int
+        public let contextLength: Int
+        public let usagePercent: Double
+        public let compressionCount: Int
 
-        init(
+        public init(
             lastPromptTokens: Int,
             thresholdTokens: Int,
             contextLength: Int,
@@ -123,11 +136,11 @@ actor ContextEngine {
 
     // MARK: - Compaction parameters (= hermes threshold_percent + protect_first/last)
 
-    var thresholdPercent: Double = 0.75
-    var protectFirstN: Int = 3
-    var protectLastN: Int = 6
+    public var thresholdPercent: Double = 0.75
+    public var protectFirstN: Int = 3
+    public var protectLastN: Int = 6
 
-    init() {}
+    public init() {}
 
     // MARK: - Per-turn context bundle assembly (= wenshu port)
 
@@ -160,7 +173,7 @@ actor ContextEngine {
     /// runtime TRAP). We bridge to MainActor with `MainActor.run`
     /// so the `MemoryManager` init runs on the MainActor (= where
     /// `WSMemoryRepository.shared` is valid).
-    func aggregateContextForTurn(
+    public func aggregateContextForTurn(
         bookId: String?,
         userMessage: String
     ) async -> ContextBundle {
@@ -180,7 +193,7 @@ actor ContextEngine {
     /// that own a persisted `MemoryStore` can inject it here so
     /// per-book Character / World retrieval can land in a follow-up
     /// without changing this entry point.
-    func aggregateContextForTurn(
+    public func aggregateContextForTurn(
         bookId: String?,
         userMessage: String,
         memoryManager: MemoryManager
@@ -211,7 +224,7 @@ actor ContextEngine {
     /// bundle-construction surface; the caller wires ephemeral hint +
     /// cacheable references + per-turn memos through this entry point
     /// without depending on the Memory subsystem).
-    func assembleBundle(
+    public func assembleBundle(
         ephemeralHint: String = "",
         cacheableReferences: [String] = [],
         perTurnMemos: [MemoryEntry] = [],
@@ -234,7 +247,7 @@ actor ContextEngine {
 
     /// Format a context bundle as a system-prompt dynamic tier (= renders
     /// for LLM consumption).
-    func formatContextBundle(_ bundle: ContextBundle) -> String {
+    public func formatContextBundle(_ bundle: ContextBundle) -> String {
         var sections: [String] = []
         if !bundle.memories.isEmpty {
             let memoryLines = bundle.memories.map { "- [\($0.source)] \($0.snippet)" }.joined(separator: "\n")
@@ -256,27 +269,27 @@ actor ContextEngine {
 
     /// Update tracked token usage from an API response (= hermes
     /// update_from_response L71-82). Called after every LLM call.
-    func updateFromResponse(usage: Usage) {
+    public func updateFromResponse(usage: Usage) {
         lastPromptTokens = usage.promptTokens
         lastCompletionTokens = usage.completionTokens
         lastTotalTokens = usage.totalTokens
     }
 
     /// Whether compaction should fire this turn (= hermes should_compress L83).
-    func shouldCompress(promptTokens: Int? = nil) -> Bool {
+    public func shouldCompress(promptTokens: Int? = nil) -> Bool {
         let tokens = promptTokens ?? lastPromptTokens
         return thresholdTokens > 0 && tokens >= thresholdTokens
     }
 
     /// Whether preflight compression should run (= hermes should_compress_preflight L110).
-    func shouldCompressPreflight(messagesCount: Int) -> Bool {
+    public func shouldCompressPreflight(messagesCount: Int) -> Bool {
         return messagesCount > protectFirstN + protectLastN + 1
     }
 
     /// Compact the message list and return the new list (= hermes compress L87).
     /// In wenshu-side-wins mode, delegates to ContextCompressor with the
     /// current engine's policy (protect_first_n / protect_last_n).
-    func compress(
+    public func compress(
         messages: [LLMMessage],
         currentTokens: Int? = nil,
         focusTopic: String? = nil
@@ -297,7 +310,7 @@ actor ContextEngine {
 
     /// Update on model switch or fallback activation (= hermes update_model L215-231).
     /// Recalculates threshold_tokens from threshold_percent.
-    func updateModel(
+    public func updateModel(
         model: String,
         contextLength: Int,
         baseURL: String = "",
@@ -310,7 +323,7 @@ actor ContextEngine {
     }
 
     /// Status dict for display/logging (= hermes get_status L192-213).
-    func getStatus() -> Status {
+    public func getStatus() -> Status {
         let lastPrompt = lastPromptTokens > 0 ? lastPromptTokens : 0
         let percent = contextLength > 0
             ? min(100.0, Double(lastPrompt) / Double(contextLength) * 100.0)

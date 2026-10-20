@@ -26,12 +26,12 @@
 import Foundation
 import WenshuAgent
 
-enum MessageSanitization {
+public enum MessageSanitization {
 
     // MARK: - C0 control-character strip (= existing sub-step 4 surface)
 
     /// Strip C0 control characters from text (= preserve newlines).
-    static func sanitizeText(_ text: String) -> String {
+    public static func sanitizeText(_ text: String) -> String {
         let scalars = text.unicodeScalars.filter { scalar in
             let v = scalar.value
             return !(v < 0x20 && v != 0x0A && v != 0x0D) && v != 0x7F
@@ -40,7 +40,7 @@ enum MessageSanitization {
     }
 
     /// Sanitize a list of messages (= in-place replacement of text blocks).
-    static func sanitize(_ messages: [LLMMessage]) -> [LLMMessage] {
+    public static func sanitize(_ messages: [LLMMessage]) -> [LLMMessage] {
         messages.map { msg in
             let sanitizedBlocks = msg.blocks.map { block -> LLMBlock in
                 switch block {
@@ -66,7 +66,7 @@ enum MessageSanitization {
     /// get rejected by strict providers. We filter out lone high/low
     /// surrogates while preserving valid surrogate pairs (i.e. real
     /// characters in supplementary planes).
-    static func sanitizeSurrogates(_ text: String) -> String {
+    public static func sanitizeSurrogates(_ text: String) -> String {
         var out = String()
         out.reserveCapacity(text.count)
         let scalars = text.unicodeScalars
@@ -108,7 +108,7 @@ enum MessageSanitization {
     /// the common llama.cpp case where models emit literal \t / \n / \r
     /// inside JSON strings — strict-mode JSON parsers reject these but
     /// many providers' tool-arg validators do too.
-    static func escapeInvalidCharsInJSONStrings(_ raw: String) -> String {
+    public static func escapeInvalidCharsInJSONStrings(_ raw: String) -> String {
         var out = String()
         out.reserveCapacity(raw.count)
         var inString = false
@@ -160,7 +160,7 @@ enum MessageSanitization {
     /// "invalid tool call arguments". This function applies common repairs;
     /// if all fail it returns `"{}"` so the request succeeds (better than
     /// crashing the session).
-    static func repairToolCallArguments(_ rawArgs: String, toolName: String = "?") -> String {
+    public static func repairToolCallArguments(_ rawArgs: String, toolName: String = "?") -> String {
         let raw = rawArgs.trimmingCharacters(in: .whitespacesAndNewlines)
         if raw.isEmpty {
             return "{}"
@@ -254,7 +254,7 @@ enum MessageSanitization {
     /// (Gemini, Claude) reject ``tool → user`` alternation and hallucinate a
     /// continuation of the user's message. We close the gap with a synthetic
     /// assistant message so the persisted transcript is a valid alternation.
-    static func closeInterruptedToolSequence(
+    public static func closeInterruptedToolSequence(
         _ messages: [LLMMessage],
         fallbackResponse: LLMResponse? = nil
     ) -> [LLMMessage] {
@@ -280,7 +280,7 @@ enum MessageSanitization {
     /// Used for tool-call argument sanitization to avoid downstream encoding
     /// bugs in providers that don't handle UTF-8 well. Anything outside ASCII
     /// printable + standard whitespace is replaced with `?`.
-    static func stripNonASCII(_ text: String) -> String {
+    public static func stripNonASCII(_ text: String) -> String {
         var out = String()
         out.reserveCapacity(text.count)
         for scalar in text.unicodeScalars {
@@ -299,7 +299,7 @@ enum MessageSanitization {
     /// Drop trailing empty-response scaffolding (= hermes pattern from
     /// turn_finalizer). Some recovery paths emit empty assistant turns at
     /// the tail; rewind them so the next turn doesn't replay them.
-    static func dropTrailingEmptyResponseScaffolding(_ messages: [LLMMessage]) -> [LLMMessage] {
+    public static func dropTrailingEmptyResponseScaffolding(_ messages: [LLMMessage]) -> [LLMMessage] {
         var out = messages
         while let last = out.last {
             if case .assistant = last.role {

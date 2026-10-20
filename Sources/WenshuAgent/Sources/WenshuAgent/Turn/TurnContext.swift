@@ -25,23 +25,23 @@
 import Foundation
 import WenshuAgent
 
-struct TurnContext: Sendable, Equatable {
-    let taskId: String
-    let userMessage: String
-    let systemMessage: String?
-    let conversationHistory: [LLMMessage]
-    let model: String
-    let maxTokens: Int
-    let attemptNumber: Int
+public struct TurnContext: Sendable, Equatable {
+    public let taskId: String
+    public let userMessage: String
+    public let systemMessage: String?
+    public let conversationHistory: [LLMMessage]
+    public let model: String
+    public let maxTokens: Int
+    public let attemptNumber: Int
 
     /// Timestamp the per-turn setup completed (= .now when build_turn_context ran).
-    let builtAt: Date
+    public let builtAt: Date
 
     /// Per-turn retry-counter reset log (= hermes `agent._invalid_tool_retries = 0`
     /// etc. inline assignments).
-    let resetCounters: [String: Int]
+    public let resetCounters: [String: Int]
 
-    init(
+    public init(
         taskId: String,
         userMessage: String,
         systemMessage: String?,
@@ -72,7 +72,7 @@ struct TurnContext: Sendable, Equatable {
     /// are equal for diffing purposes; the creation time is
     /// observability metadata, not identity. Mirrors the manual
     /// `Equatable` pattern on `DisplayStateMachine` and `ContextBreakdown`.
-    static func == (lhs: TurnContext, rhs: TurnContext) -> Bool {
+    public static func == (lhs: TurnContext, rhs: TurnContext) -> Bool {
         return lhs.taskId == rhs.taskId
             && lhs.userMessage == rhs.userMessage
             && lhs.systemMessage == rhs.systemMessage
@@ -91,38 +91,38 @@ struct TurnContext: Sendable, Equatable {
 /// the driver itself only orchestrates (= hermes pattern: the original
 /// prologue mutated agent heavily, so the helpers are passed in explicitly
 /// to keep the module free of import cycles with the agent runtime).
-struct TurnContextBuilder: Sendable {
+public struct TurnContextBuilder: Sendable {
 
     /// Side-effect hooks (= hermes passes these into build_turn_context as
     /// explicit callables so the module stays free of agent imports).
-    struct Hooks: Sendable {
+    public struct Hooks: Sendable {
         /// Install safe stdio (= guard against OSError from broken pipes
         /// under systemd/headless/daemon launches).
-        var installSafeStdio: @Sendable () -> Void
+        public var installSafeStdio: @Sendable () -> Void
         /// Sanitize surrogate characters from a user string (= NFC + strip
         /// unpaired surrogates).
-        var sanitizeSurrogates: @Sendable (String) -> String
+        public var sanitizeSurrogates: @Sendable (String) -> String
         /// Restore the primary runtime (= undo any fallback that activated
         /// in the previous turn).
-        var restorePrimaryRuntime: @Sendable () -> Void
+        public var restorePrimaryRuntime: @Sendable () -> Void
         /// Set the auxiliary client's runtime main (= provider / model /
         /// base_url / api_key / api_mode).
-        var setAuxiliaryRuntimeMain: @Sendable (String, String, String, String, String) -> Void
+        public var setAuxiliaryRuntimeMain: @Sendable (String, String, String, String, String) -> Void
         /// Reset the tool guardrails for a fresh turn.
-        var resetToolGuardrails: @Sendable () -> Void
+        public var resetToolGuardrails: @Sendable () -> Void
         /// Refresh credentials (= oauth / api key rotation before the turn).
-        var refreshCredentials: @Sendable () -> Void
+        public var refreshCredentials: @Sendable () -> Void
         /// Restore the cached system prompt (or rebuild from scratch if missing).
-        var restoreOrBuildSystemPrompt: @Sendable () -> String?
+        public var restoreOrBuildSystemPrompt: @Sendable () -> String?
         /// Reset all retry counters (= invalid_tool_retries,
         /// invalid_json_retries, empty_content_retries,
         /// incomplete_scratchpad_retries, codex_incomplete_retries,
         /// thinking_prefill_retries, post_tool_empty_retried, etc.).
-        var resetRetryCounters: @Sendable () -> [String: Int]
+        public var resetRetryCounters: @Sendable () -> [String: Int]
         /// Persist the user message (= DB / session row).
-        var persistUserMessage: @Sendable (String, String?) -> Void
+        public var persistUserMessage: @Sendable (String, String?) -> Void
 
-        init(
+        public init(
             installSafeStdio: @escaping @Sendable () -> Void = {},
             sanitizeSurrogates: @escaping @Sendable (String) -> String = { $0 },
             restorePrimaryRuntime: @escaping @Sendable () -> Void = {},
@@ -145,11 +145,11 @@ struct TurnContextBuilder: Sendable {
         }
 
         /// Default no-op hooks (= for tests).
-        static let noop = Hooks()
+        public static let noop = Hooks()
     }
 
-    let hooks: Hooks
-    init(hooks: Hooks = .noop) { self.hooks = hooks }
+    public let hooks: Hooks
+    public init(hooks: Hooks = .noop) { self.hooks = hooks }
 
     /// Run the once-per-turn setup and return the loop's input context
     /// (= hermes build_turn_context L119-565 body).
@@ -166,7 +166,7 @@ struct TurnContextBuilder: Sendable {
     ///   8. restoreOrBuildSystemPrompt        — cache-stable identity layer
     ///   9. persistUserMessage                — DB / session row
     @discardableResult
-    func buildTurnContext(
+    public func buildTurnContext(
         userMessage: String,
         conversationHistory: [LLMMessage],
         model: String,
@@ -225,7 +225,7 @@ struct TurnContextBuilder: Sendable {
     /// Returns `true` when either:
     ///   (a) message count exceeds the protected ranges, or
     ///   (b) a cheap char-based estimate already crosses the threshold.
-    static func shouldRunPreflightEstimate(
+    public static func shouldRunPreflightEstimate(
         messagesCount: Int,
         protectFirstN: Int,
         protectLastN: Int,
@@ -243,7 +243,7 @@ struct TurnContextBuilder: Sendable {
     ///
     /// Token reduction must be material (>5%) to count as progress so a
     /// sub-5% wobble doesn't keep the multi-pass loop spinning.
-    static func compressionMadeProgress(
+    public static func compressionMadeProgress(
         origMessageCount: Int,
         newMessageCount: Int,
         origTokens: Int,

@@ -16,6 +16,7 @@
 // - No third-party imports; Apple Foundation only per wenshu §11 hard rule.
 
 import Foundation
+import WenshuAgent
 
 enum RetryUtils {
 

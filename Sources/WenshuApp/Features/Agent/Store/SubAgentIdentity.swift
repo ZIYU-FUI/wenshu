@@ -11,12 +11,13 @@
 //
 
 import Foundation
+import WenshuAgent
 import WenshuData
 
 /// 5 sub-agent identities, each a domain expert dispatched by WenshuConductor.
-enum SubAgentIdentity {
+public enum SubAgentIdentity {
     /// Sub-agent name enum. String rawValue used for intent classify and dispatch.
-    enum Name: String, CaseIterable, Sendable {
+    public enum Name: String, CaseIterable, Sendable {
         case researcher
         case writer
         case analyst
@@ -25,7 +26,7 @@ enum SubAgentIdentity {
     }
 
     /// Per-sub-agent system prompt. Prepended to sub-agent LLM call (independent context).
-    static func systemPrompt(name: Name) -> String {
+    public static func systemPrompt(name: Name) -> String {
         let base: String
         switch name {
         case .researcher: base = researcherPrompt

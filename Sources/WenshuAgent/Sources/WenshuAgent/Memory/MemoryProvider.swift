@@ -29,7 +29,7 @@ import WenshuData
 /// Plugin-extensible memory provider ABC (= hermes MemoryProvider).
 /// Mirrors the hermes surface: get_system_prompt / prefetch /
 /// sync / get_tool_schemas / pre_compress_hook.
-protocol MemoryProvider: Sendable {
+public protocol MemoryProvider: Sendable {
 
     /// Plugin slug (= unique identifier for registration).
     var slug: String { get }
@@ -66,9 +66,9 @@ protocol MemoryProvider: Sendable {
 
 /// API version constant for the pre-compress checkpoint contract
 /// (= hermes PRE_COMPRESS_CHECKPOINT_API_VERSION = 2).
-enum PreCompressCheckpointAPI {
+public enum PreCompressCheckpointAPI {
     /// Latest API version (= hermes v2).
-    static let currentVersion: Int = 2
+    public static let currentVersion: Int = 2
 
     // (legacyVersion removed 2026-10 in q99-spec-p0-batch2 — verify-dead.py
     //  confirmed 0 external callers; = no provider still references the
@@ -83,13 +83,13 @@ enum PreCompressCheckpointAPI {
 
 /// A tool schema exposed by a memory provider.
 /// Mirrors the OpenAI tool format (= {name, description, parameters}).
-struct ToolSchema: Sendable, Hashable {
-    let name: String
-    let description: String
+public struct ToolSchema: Sendable, Hashable {
+    public let name: String
+    public let description: String
     /// Parameters as JSON Schema (= stored as raw JSON for flexibility).
-    let parametersJSON: String
+    public let parametersJSON: String
 
-    init(name: String, description: String, parametersJSON: String = "{}") {
+    public init(name: String, description: String, parametersJSON: String = "{}") {
         self.name = name
         self.description = description
         self.parametersJSON = parametersJSON
@@ -98,7 +98,7 @@ struct ToolSchema: Sendable, Hashable {
     /// Normalize an arbitrary schema (= hermes normalize_tool_schema).
     /// Unwraps an already-wrapped OpenAI tool entry and returns nil
     /// for anything without a resolvable name.
-    static func normalize(_ schema: Any) -> ToolSchema? {
+    public static func normalize(_ schema: Any) -> ToolSchema? {
         // Convert to JSON dictionary (= works for both [String: Any]
         // and JSON-string forms).
         let dict: [String: Any]

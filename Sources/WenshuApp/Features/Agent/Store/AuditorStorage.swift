@@ -27,6 +27,7 @@
 //
 
 import Foundation
+import WenshuAgent
 import WenshuData
 
 @MainActor

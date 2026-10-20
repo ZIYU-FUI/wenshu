@@ -5,6 +5,7 @@
 // `/Volumes/ANAN/.hermes/tools/delegate tool.py` (3,459 LOC).
 
 import Foundation
+import WenshuAgent
 
 /// State of a background delegation.
 enum BackgroundDelegationState: String, Codable, Sendable {

@@ -7,6 +7,7 @@
 
 import Foundation
 import Testing
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("Tool security guardrails (boss 8/23 拍: 用户不可通过聊天改系统)")

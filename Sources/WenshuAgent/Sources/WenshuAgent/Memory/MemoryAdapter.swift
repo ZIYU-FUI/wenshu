@@ -26,22 +26,34 @@ import Foundation
 import WenshuData
 
 @MainActor
-final class MemoryAdapter {
-    struct MemoryEntry: Sendable, Equatable, Identifiable {
-        let id: String
-        let source: String
-        let snippet: String
-        let relevanceScore: Double
-        var idString: String { id }
+public final class MemoryAdapter {
+    public struct MemoryEntry: Sendable, Equatable, Identifiable {
+        public let id: String
+        public let source: String
+        public let snippet: String
+        public let relevanceScore: Double
+        public var idString: String { id }
+
+        public init(
+            id: String,
+            source: String,
+            snippet: String,
+            relevanceScore: Double
+        ) {
+            self.id = id
+            self.source = source
+            self.snippet = snippet
+            self.relevanceScore = relevanceScore
+        }
     }
 
-    enum DefaultsKey {
-        static let enabled = "wenshu.memory.enabled"
-        static let scope = "wenshu.memory.scope"
-        static let retentionDays = "wenshu.memory.retentionDays"
+    public enum DefaultsKey {
+        public static let enabled = "wenshu.memory.enabled"
+        public static let scope = "wenshu.memory.scope"
+        public static let retentionDays = "wenshu.memory.retentionDays"
     }
 
-    enum MemoryScope: String, CaseIterable, Sendable {
+    public enum MemoryScope: String, CaseIterable, Sendable {
         case perBook
         case global
         case libraryPublic
@@ -55,44 +67,44 @@ final class MemoryAdapter {
     /// MemoryManager + WSMemoryProvider.
     private let memory: WSMemoryRepository
 
-    init(defaults: UserDefaults = .standard, memory: WSMemoryRepository? = nil) {
+    public init(defaults: UserDefaults = .standard, memory: WSMemoryRepository? = nil) {
         self.defaults = defaults
         self.memory = memory ?? .shared
     }
 
-    var isEnabled: Bool {
+    public var isEnabled: Bool {
         if defaults.object(forKey: DefaultsKey.enabled) == nil { return true }
         return defaults.bool(forKey: DefaultsKey.enabled)
     }
 
-    var scope: MemoryScope {
+    public var scope: MemoryScope {
         guard let raw = defaults.string(forKey: DefaultsKey.scope),
               let parsed = MemoryScope(rawValue: raw)
         else { return .perBook }
         return parsed
     }
 
-    var retentionDays: Int {
+    public var retentionDays: Int {
         if defaults.object(forKey: DefaultsKey.retentionDays) == nil { return 90 }
         let stored = defaults.integer(forKey: DefaultsKey.retentionDays)
         return min(max(stored, 7), 365)
     }
 
-    func setEnabled(_ enabled: Bool) {
+    public func setEnabled(_ enabled: Bool) {
         defaults.set(enabled, forKey: DefaultsKey.enabled)
     }
 
-    func setScope(_ scope: MemoryScope) {
+    public func setScope(_ scope: MemoryScope) {
         defaults.set(scope.rawValue, forKey: DefaultsKey.scope)
     }
 
-    func setRetentionDays(_ days: Int) -> Int {
+    public func setRetentionDays(_ days: Int) -> Int {
         let clamped = min(max(days, 7), 365)
         defaults.set(clamped, forKey: DefaultsKey.retentionDays)
         return (try? memory.purgeOlderThan(userId: defaultUserId, retentionDays: clamped)) ?? 0
     }
 
-    func recentEntries(limit: Int = 20) -> [MemoryEntry] {
+    public func recentEntries(limit: Int = 20) -> [MemoryEntry] {
         // A1 boundary: convert WSMemory -> Memory inside this sync caller
         // (called on the @MainActor by the window surface, so the
         // PersistentModel stays on the same actor as its context).
@@ -108,7 +120,7 @@ final class MemoryAdapter {
         }
     }
 
-    func retrieve(forUserMessage userMessage: String, bookId: String? = nil) async -> [MemoryEntry] {
+    public func retrieve(forUserMessage userMessage: String, bookId: String? = nil) async -> [MemoryEntry] {
         guard isEnabled else { return [] }
         // Sync read from WSMemoryProvider mirror cache (= thread-safe;
         // = no SwiftData hop). Falls back to WSMemoryRepository when
@@ -128,7 +140,7 @@ final class MemoryAdapter {
         }
     }
 
-    func write(snippet: String, source: String, bookId: String? = nil) async {
+    public func write(snippet: String, source: String, bookId: String? = nil) async {
         _ = bookId
         _ = source
         _ = snippet

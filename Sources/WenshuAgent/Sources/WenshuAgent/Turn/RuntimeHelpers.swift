@@ -56,40 +56,40 @@ import os
 /// `RuntimeHelpers` actor only exposes its `state` as a let constant;
 /// mutations go through dedicated setters that return a NEW `RuntimeState`,
 /// preserving actor isolation without needing locks on read).
-struct RuntimeState: Sendable, Equatable {
+public struct RuntimeState: Sendable, Equatable {
 
     /// Emit verbose agent log lines (= hermes `agent.verbose_logging`).
     /// Drives `RuntimeHelpers.vprint(_:)` output.
-    var verbose: Bool
+    public var verbose: Bool
 
     /// Emit debug log lines (= hermes `logger.debug(...)`).
     /// Drives `RuntimeHelpers.dprint(_:)` output. Off by default; intended
     /// for development builds and `TestRunnerHooks` debug toggles.
-    var debug: Bool
+    public var debug: Bool
 
     /// Sandbox flag (= hermes `agent.sandbox`). Off by default. Consumers
     /// (ToolExecutor, FileTools) gate destructive ops behind this. The
     /// flag itself does nothing in this module; it is plumbed here so
     /// downstream code has a single source of truth for runtime mode.
-    var sandbox: Bool
+    public var sandbox: Bool
 
     /// Mock-time injection point. When set, `RuntimeHelpers.now()` returns
     /// this value instead of `Date()`. Required for hermes-port Z-contract
     /// tests that need deterministic timestamps in conversation transcripts
     /// + rate-limit reset windows + trajectory dumps.
-    var mockTime: Date?
+    public var mockTime: Date?
 
     /// Active runtime profile override (= hermes `agent.profile_override`).
     /// When non-nil, downstream code should treat this profile as canonical
     /// regardless of which profile the active LLMConnector is bound to.
-    var profileOverride: String?
+    public var profileOverride: String?
 
     /// Per-runtime trace identifier (= hermes `agent.trace_id`). Auto-generated
     /// as a UUID string on init; callers can override for distributed-tracing
     /// correlation. Surfaces in API request dumps and trajectory filenames.
-    var traceId: String
+    public var traceId: String
 
-    init(
+    public init(
         verbose: Bool = false,
         debug: Bool = false,
         sandbox: Bool = false,
@@ -126,31 +126,31 @@ struct RuntimeState: Sendable, Equatable {
 ///   async signature future-proofs it for the `SecItemAdd` async path).
 /// - Verbose / debug flag flips during a test run shouldn't race with the
 ///   emit functions; actor isolation gives us that for free.
-actor RuntimeHelpers {
+public actor RuntimeHelpers {
 
     /// Current state. Reads are cheap (= the actor hops, but the value is
     /// a small struct). Mutators return a new `RuntimeHelpers` with the
     /// updated state (= functional-style update; preserves isolation).
-    let initialState: RuntimeState
+    public let initialState: RuntimeState
 
     /// Provider-scoped environment-variable prefix. The full var name is
     /// `<envPrefix>_<UPPER_SNAKE_SLUG>_API_KEY` (= e.g. `WENSHU_ANTHROPIC_API_KEY`,
     /// `WENSHU_OPENAI_API_KEY`). Mirrors the wenshu-wide convention from
     /// `App.swift` (= `WS_SCREENSHOT_PATH`, `WENSHU_DEBUG_INMEMORY_KEYCHAIN`).
-    let envPrefix: String
+    public let envPrefix: String
 
     /// Test seam: a closure that resolves the "keychain" tier. Production
     /// code uses the default which calls `ProviderKeychain.loadKeySync(for:)`
     /// (= the wenshu Keychain facade). Tests override to inject a fake
     /// backend without touching Security framework.
-    typealias KeychainResolver = @Sendable (String) -> String?
+    public typealias KeychainResolver = @Sendable (String) -> String?
 
     private let keychainResolver: KeychainResolver
 
     /// Test seam: a closure that resolves the "system default" tier. The
     /// lowest-priority fallback (= typically empty on macOS). Tests override
     /// to inject a deterministic default.
-    typealias SystemDefaultResolver = @Sendable (String) -> String?
+    public typealias SystemDefaultResolver = @Sendable (String) -> String?
 
     private let systemDefaultResolver: SystemDefaultResolver
 
@@ -158,12 +158,12 @@ actor RuntimeHelpers {
     /// default writes to `os.Logger`. Tests override to capture into a buffer
     /// for assertion (= the `testVerbose_vprint_emits` / `testDebug_dprint_emits`
     /// cases capture stdout via this seam).
-    typealias OutputSink = @Sendable (String) -> Void
+    public typealias OutputSink = @Sendable (String) -> Void
 
     private let vprintSink: OutputSink
     private let dprintSink: OutputSink
 
-    init(
+    public init(
         state: RuntimeState = .init(),
         envPrefix: String = "WENSHU",
         keychainResolver: @escaping KeychainResolver = RuntimeHelpers.defaultKeychainResolver,
@@ -187,7 +187,7 @@ actor RuntimeHelpers {
     ///
     /// Use this in place of literal `Date()` calls anywhere the runtime is
     /// available — see `ConversationLoop.swift` for the wire-up.
-    func now() -> Date {
+    public func now() -> Date {
         initialState.mockTime ?? Date()
     }
 
@@ -195,7 +195,7 @@ actor RuntimeHelpers {
     /// state is immutable from the outside (= this returns a new instance
     /// rather than mutating in place) so consumers that hold a reference
     /// keep their original behavior unless they explicitly swap.
-    func withMockTime(_ date: Date?) -> RuntimeHelpers {
+    public func withMockTime(_ date: Date?) -> RuntimeHelpers {
         var newState = initialState
         newState.mockTime = date
         return RuntimeHelpers(
@@ -213,7 +213,7 @@ actor RuntimeHelpers {
     /// Emit a verbose log line when `state.verbose == true`; silent otherwise.
     /// Mirrors hermes `agent._vprint(...)` (= the gated print helper on the
     /// AIAgent class).
-    func vprint(_ message: String) {
+    public func vprint(_ message: String) {
         guard initialState.verbose else { return }
         vprintSink(message)
     }
@@ -222,7 +222,7 @@ actor RuntimeHelpers {
     /// Mirrors hermes `logger.debug(...)` (= the standard library logging
     /// debug helper, gated here so consumers don't need to import a logger
     /// surface and so the flag is testable in isolation).
-    func dprint(_ message: String) {
+    public func dprint(_ message: String) {
         guard initialState.debug else { return }
         dprintSink(message)
     }
@@ -243,7 +243,7 @@ actor RuntimeHelpers {
     /// - Parameter providerSlug: The provider slug (= e.g. `"anthropic"`,
     ///   `"openai"`, `"minimax-cn"`). Case-insensitive — the slug is
     ///   upper-snake-cased internally for env-var name construction.
-    func resolveCredential(for providerSlug: String) throws -> String? {
+    public func resolveCredential(for providerSlug: String) throws -> String? {
         // Tier 1: environment variable.
         if let envValue = readEnvCredential(for: providerSlug) {
             return envValue
@@ -258,7 +258,7 @@ actor RuntimeHelpers {
 
     /// Construct the env-var name for a given slug. Exposed (internal) so
     /// tests can assert the exact name without exercising the chain.
-    func envVarName(for providerSlug: String) -> String {
+    public func envVarName(for providerSlug: String) -> String {
         let upper = providerSlug
             .uppercased()
             .replacingOccurrences(of: "-", with: "_")
@@ -287,7 +287,7 @@ actor RuntimeHelpers {
     /// The slug is resolved against the existing `Provider.by(slug:)` catalog
     /// (defined in `Core/Provider/Provider.swift`); an unknown slug returns
     /// nil (= the chain falls through to the system default tier).
-    static let defaultKeychainResolver: KeychainResolver = { slug in
+    public static let defaultKeychainResolver: KeychainResolver = { slug in
         guard let provider = Provider.by(slug: slug) else { return nil }
         return ProviderKeychain.loadKeySync(for: provider)
     }
@@ -296,7 +296,7 @@ actor RuntimeHelpers {
     /// (= no system-level credential store ships by default; macOS Keychain
     /// IS the system store, which we already covered in tier 2). Pluggable so
     /// future builds can add a Netrc / config-file fallback.
-    static let defaultSystemDefaultResolver: SystemDefaultResolver = { _ in
+    public static let defaultSystemDefaultResolver: SystemDefaultResolver = { _ in
         nil
     }
 
@@ -304,7 +304,7 @@ actor RuntimeHelpers {
     /// under the "org.wenshu.runtime" subsystem (= visible in Console.app
     /// under the wenshu bundle). Mirrors the existing `apple/swift-log`
     /// integration that `App.swift` wires for telemetry.
-    static let defaultVPrintSink: OutputSink = { message in
+    public static let defaultVPrintSink: OutputSink = { message in
         let logger = Logger(subsystem: "org.wenshu.runtime", category: "vprint")
         logger.info("\(message, privacy: .public)")
     }
@@ -313,7 +313,7 @@ actor RuntimeHelpers {
     /// under "org.wenshu.runtime". `.debug` is stripped from release builds
     /// by `os.Logger`'s privacy-aware filtering (= opt-in via
     /// `OS_ACTIVITY_MODE`); test builds see it.
-    static let defaultDPrintSink: OutputSink = { message in
+    public static let defaultDPrintSink: OutputSink = { message in
         let logger = Logger(subsystem: "org.wenshu.runtime", category: "dprint")
         logger.debug("\(message, privacy: .public)")
     }
@@ -396,7 +396,7 @@ extension RuntimeHelpers {
     ///   * `<function_call>…</function_call>`
     ///   * `<function_calls>…</function_calls>`
     ///   * `<function name="…">…</function>` (= Gemma style)
-    static func stripThinkBlocks(_ content: String) -> String {
+    public static func stripThinkBlocks(_ content: String) -> String {
         guard !content.isEmpty else { return "" }
 
         var result = content

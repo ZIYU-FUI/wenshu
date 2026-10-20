@@ -26,6 +26,7 @@
 //
 
 import SwiftUI
+import WenshuAgent
 
 struct MemoryHistoryView: View {
     @State private var entries: [MemoryAdapter.MemoryEntry] = []

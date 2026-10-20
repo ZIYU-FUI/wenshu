@@ -42,6 +42,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("BackgroundReview consolidation (v2.8c — boss 2026-09-28 OOB B8)")
@@ -55,7 +56,7 @@ struct BackgroundReviewConsolidationTests {
 
     private var backgroundReviewOpsPath: String {
         var url = SourceLocator.repoRoot
-        url.appendPathComponent("Sources/WenshuApp/Features/Agent/Store/BackgroundReviewOps.swift")
+        url.appendPathComponent("Sources/WenshuAgent/Sources/WenshuAgent/Memory/BackgroundReviewOps.swift")
         return url.path
     }
 

@@ -3,10 +3,10 @@
 // 
 import Foundation
 
-enum SystemPrompt {
+public enum SystemPrompt {
 
     /// Per-provider guidance block (= hermes per-model operational guidance).
-    enum ProviderGuidance: String, Sendable, CaseIterable {
+    public enum ProviderGuidance: String, Sendable, CaseIterable {
         case anthropic
         case openai
         case google
@@ -16,7 +16,7 @@ enum SystemPrompt {
         case minimaxCn = "minimax-cn"
         case unknown
 
-        init(providerSlug: String) {
+        public init(providerSlug: String) {
             switch providerSlug {
             case "anthropic": self = .anthropic
             case "openai", "openai-codex": self = .openai
@@ -31,7 +31,7 @@ enum SystemPrompt {
     }
 
     /// Per-locale override (= hermes DEFAULT_AGENT_IDENTITY language table).
-    enum Locale: String, Sendable, CaseIterable {
+    public enum Locale: String, Sendable, CaseIterable {
         case english = "en"
         case chinese = "zh"
         case japanese = "ja"
@@ -40,7 +40,7 @@ enum SystemPrompt {
         case german = "de"
         case spanish = "es"
 
-        init(languageCode: String) {
+        public init(languageCode: String) {
             let lc = languageCode.lowercased()
             switch lc {
             case "en", "en-us", "en-gb": self = .english
@@ -55,7 +55,7 @@ enum SystemPrompt {
         }
 
         /// Native name (= for system-prompt language match).
-        var nativeName: String {
+        public var nativeName: String {
             switch self {
             case .english: return "English"
             case .chinese: return "中文"
@@ -69,21 +69,21 @@ enum SystemPrompt {
     }
 
     /// Options for buildParts.
-    struct BuildOptions: Sendable {
-        var ephemeralHint: String
-        var callerMessage: String?
-        var provider: ProviderGuidance
-        var locale: Locale
-        var memoryGuidance: Bool
-        var sessionSearchGuidance: Bool
-        var skillGuidance: Bool
-        var kanbanGuidance: String?
-        var parallelToolGuidance: Bool
-        var taskCompletionGuidance: Bool
-        var userName: String?
-        var bookTitle: String?
+    public struct BuildOptions: Sendable {
+        public var ephemeralHint: String
+        public var callerMessage: String?
+        public var provider: ProviderGuidance
+        public var locale: Locale
+        public var memoryGuidance: Bool
+        public var sessionSearchGuidance: Bool
+        public var skillGuidance: Bool
+        public var kanbanGuidance: String?
+        public var parallelToolGuidance: Bool
+        public var taskCompletionGuidance: Bool
+        public var userName: String?
+        public var bookTitle: String?
 
-        init(
+        public init(
             ephemeralHint: String = "",
             callerMessage: String? = nil,
             provider: ProviderGuidance = .unknown,
@@ -115,7 +115,7 @@ enum SystemPrompt {
     // / Build the system prompt (= hermes build_system_prompt).
     // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // /   to LLMCallOptions.systemPrompt).
-    static func build(
+    public static func build(
         ephemeralHint: String,
         callerMessage: String? = nil,
         userName: String? = nil,
@@ -140,7 +140,7 @@ enum SystemPrompt {
     // / The "Librarian" / "调研员" role prompt (= used by
     // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / system / user two-message structure).
-    static func librarianRole(_ locale: Locale) -> String {
+    public static func librarianRole(_ locale: Locale) -> String {
         switch locale {
         case .chinese:
             return """
@@ -176,7 +176,7 @@ enum SystemPrompt {
     // / Build the system prompt as a dict of tiers (= hermes build_system_prompt_parts).
     // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // /   PromptBuilder.composeDynamicTier).
-    static func buildParts(
+    public static func buildParts(
         ephemeralHint: String,
         callerMessage: String? = nil,
         userName: String? = nil,
@@ -193,7 +193,7 @@ enum SystemPrompt {
     // / Build the system prompt as a dict of tiers with full options
     // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // /   and locale-specific identity. (Empty by default in wenshu.)
-    static func buildParts(options: BuildOptions) -> [String: String] {
+    public static func buildParts(options: BuildOptions) -> [String: String] {
         var parts: [String: String] = [:]
 
         // Stable tier (= byte-stable across all turns in a session)
@@ -234,7 +234,7 @@ enum SystemPrompt {
     // / The byte-stable system identity tier (= hermes _build_platform_specific_baseline).
     // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / Cache hits depend on byte stability.
-    static func stableTier() -> String {
+    public static func stableTier() -> String {
         return stableTier(
             provider: .unknown,
             locale: .chinese,
@@ -250,7 +250,7 @@ enum SystemPrompt {
     }
 
     /// Stable tier with full wenshu port options.
-    static func stableTier(
+    public static func stableTier(
         provider: ProviderGuidance,
         locale: Locale,
         memoryGuidance: Bool,

@@ -7,6 +7,7 @@
 //  stub-no-op behavior is gone (= see AGENTS.md §11.14).
 
 import Testing
+import WenshuAgent
 import WenshuData
 @testable import WenshuApp
 

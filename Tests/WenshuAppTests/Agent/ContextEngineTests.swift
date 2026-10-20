@@ -10,6 +10,7 @@
 
 import Testing
 import SwiftData
+import WenshuAgent
 import WenshuData
 @testable import WenshuApp
 

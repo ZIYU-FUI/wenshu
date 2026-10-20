@@ -9,13 +9,13 @@ private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "promptbuil
 // MARK: - Public types
 // … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8)
 // / on subsequent calls within the same session).
-struct PromptBuilder: Sendable {
-    let stableTier: String
-    let dynamicTier: String
+public struct PromptBuilder: Sendable {
+    public let stableTier: String
+    public let dynamicTier: String
 
     /// Build a PromptBuilder from explicit tiers (= the canonical
     /// construction path used by ConversationLoop + SystemPrompt).
-    init(stableTier: String, dynamicTier: String) {
+    public init(stableTier: String, dynamicTier: String) {
         self.stableTier = stableTier
         self.dynamicTier = dynamicTier
     }
@@ -23,7 +23,7 @@ struct PromptBuilder: Sendable {
     // / Convenience init: compose the dynamic tier from the live
     // … (= 29 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // /     section in the dynamic tier when non-empty).
-    init(
+    public init(
         systemPrompt: SystemPrompt.Type = SystemPrompt.self,
         contextBundle: ContextEngine.ContextBundle,
         memories: [MemoryAdapter.MemoryEntry],
@@ -42,12 +42,12 @@ struct PromptBuilder: Sendable {
     }
 
     /// Stable tier only (= for tests / callers that want just the prefix).
-    static func stableTierOnly() -> String {
+    public static func stableTierOnly() -> String {
         SystemPrompt.stableTier()
     }
 
     /// Dynamic tier only (= for tests / callers that want just the suffix).
-    static func dynamicTier(
+    public static func dynamicTier(
         contextBundle: ContextEngine.ContextBundle,
         memories: [MemoryAdapter.MemoryEntry],
         callerExtras: [String: String] = [:],
@@ -64,7 +64,7 @@ struct PromptBuilder: Sendable {
     // MARK: - Per-provider system builders
     // … (= 11 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / RequestHelpers can splice directly into the request body).
-    func buildAnthropicSystem() -> [[String: Any]] {
+    public func buildAnthropicSystem() -> [[String: Any]] {
         var blocks: [[String: Any]] = []
 
         if !stableTier.isEmpty {
@@ -91,7 +91,7 @@ struct PromptBuilder: Sendable {
     // / Build the OpenAI Chat-Completions API system field.
     // … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / for direct splice into the OpenAI messages list.
-    func buildOpenAISystem() -> [String: Any] {
+    public func buildOpenAISystem() -> [String: Any] {
         var sections: [String] = []
         if !stableTier.isEmpty {
             sections.append(stableTier)
@@ -109,7 +109,7 @@ struct PromptBuilder: Sendable {
     // / Build the Gemini native `systemInstruction.parts[].text` field.
     // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / OpenAI for parity.
-    func buildGeminiSystemInstruction() -> String {
+    public func buildGeminiSystemInstruction() -> String {
         var sections: [String] = []
         if !stableTier.isEmpty {
             sections.append(stableTier)
@@ -122,7 +122,7 @@ struct PromptBuilder: Sendable {
 
     /// Byte-stable joined prompt (= back-compat with
     /// `SystemPrompt.build` callers; same separator as OpenAI/Gemini).
-    var joinedPrompt: String {
+    public var joinedPrompt: String {
         buildGeminiSystemInstruction()
     }
 }
@@ -189,7 +189,7 @@ extension PromptBuilder {
     // / Environment-specific guidance (= hermes `build_environment_hints`).
     // … (= 12 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // /     in the agent runtime path; that's a hermes-CLI-only concept)
-    static func buildEnvironmentHints(
+    public static func buildEnvironmentHints(
         hostOS: String = "macOS",
         hostVersion: String = "",
         userHome: String = NSHomeDirectory(),
@@ -207,7 +207,7 @@ extension PromptBuilder {
     // / Dynamic context-file truncation cap (= hermes
     // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / 6% window slice, with a 20K floor and 500K ceiling.
-    static func dynamicContextFileMaxChars(contextLength: Int?) -> Int {
+    public static func dynamicContextFileMaxChars(contextLength: Int?) -> Int {
         let floor = 20_000
         let ceiling = 500_000
         guard let ctx = contextLength, ctx > 0 else {
@@ -224,7 +224,7 @@ extension PromptBuilder {
     // / Scan context content for prompt injection patterns. Returns the
     // … (= 16 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / method becomes the single hook for threat-pattern scanning.
-    static func scanContextContent(_ content: String, filename: String) -> String {
+    public static func scanContextContent(_ content: String, filename: String) -> String {
         // Placeholder: future wenshu ticket will wire in threat-pattern library
         // (mirroring hermes `tools.threat_patterns.scan_for_threats`).
         _ = filename
@@ -239,7 +239,7 @@ extension PromptBuilder {
     // / Truncate context-file content to fit the model's context window
     // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / between them. No-op when content is already under the cap.
-    static func truncateContent(
+    public static func truncateContent(
         _ content: String,
         filename: String,
         contextLength: Int? = nil
@@ -272,7 +272,7 @@ extension PromptBuilder {
     // / Render a ContextEngine.ContextBundle as a system-prompt dynamic-tier section.
     // … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / an actor call per turn.
-    static func renderContextBundle(_ bundle: ContextEngine.ContextBundle) -> String {
+    public static func renderContextBundle(_ bundle: ContextEngine.ContextBundle) -> String {
         var sections: [String] = []
         if !bundle.memories.isEmpty {
             let memoryLines = bundle.memories.map { "- [\($0.source)] \($0.snippet)" }.joined(separator: "\n")
@@ -297,7 +297,7 @@ extension PromptBuilder {
     // / Default agent identity block (= hermes `DEFAULT_AGENT_IDENTITY`).
     // … (= 11 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / version. Kept in lockstep via a parallel-check on tests.
-    static func defaultIdentity() -> String {
+    public static func defaultIdentity() -> String {
         return """
         你是嵌入在文枢（Wenshu）中的 AI 助手——文枢是一款 macOS 上的长篇小说创作工具。
         文枢是写作工具，不是 LLM 平台。你协助用户撰写小说、发展人物、规划故事大纲、
@@ -318,7 +318,7 @@ extension PromptBuilder {
     // / Help-guidance block (= hermes `HERMES_AGENT_HELP_GUIDANCE`).
     // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / text lands when the wenshu help-system ticket ships.
-    static var helpGuidance: String {
+    public static var helpGuidance: String {
         return """
         You run on Wenshu (a long-form novel authoring tool for macOS).
         When the user needs help with Wenshu itself — configuring, using,
@@ -335,7 +335,7 @@ extension PromptBuilder {
     // (PromptBuilder.buildNousSubscriptionPrompt removed 2026-10-05 in dead-code-
     // … (= 31 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // /   threshold).
-    static func buildContextFilesPrompt(
+    public static func buildContextFilesPrompt(
         cwdPath: String = FileManager.default.currentDirectoryPath,
         contextLength: Int? = nil,
     ) -> String {
@@ -382,7 +382,7 @@ extension PromptBuilder {
     // MARK: -- H1.4 build_environment_hints (hermes L1047-L1185)
     // … (= 16 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // /   when on a non-macOS platform).
-    static func buildEnvironmentHints() -> String {
+    public static func buildEnvironmentHints() -> String {
         // Wenshu-side wins: hermes probes a remote backend cache and builds a multi-line
         // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // stack bullets.
@@ -403,7 +403,7 @@ extension PromptBuilder {
     // MARK: -- H1.6 drain_truncation_warnings (hermes L1241-L1259)
     // … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // /   no truncations happened since last drain).
-    static func drainTruncationWarnings() -> [String] {
+    public static func drainTruncationWarnings() -> [String] {
         PromptBuilderCaches.truncationWarningsDrain()
     }
 }
@@ -411,7 +411,7 @@ extension PromptBuilder {
 // MARK: - H1 caches (= hermes `_SKILLS_PROMPT_CACHE` + `_TRUNCATION_WARNINGS`).
 // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
 // for truncation warnings. Wenshu uses NSCache for thread-safe bounded-buffer storage.
-enum PromptBuilderCaches {
+public enum PromptBuilderCaches {
 
     /// Truncation-warnings ring buffer (= wenshu's NSCache-backed
     /// version of hermes's `_TRUNCATION_WARNINGS`).
@@ -422,7 +422,7 @@ enum PromptBuilderCaches {
     }()
 
     /// Scan context content (= hermes L46-L63 = `_scan_context_content`).
-    static func scanContextContent(content: String, filename: String) -> String {
+    public static func scanContextContent(content: String, filename: String) -> String {
         // Wenshu-side wins: hermes uses `tools.threat_patterns.scan_for_threats`; wenshu
         // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // follow-up).
@@ -432,7 +432,7 @@ enum PromptBuilderCaches {
 
     /// Strip YAML frontmatter (= hermes L105-L120 =
     /// `_strip_yaml_frontmatter`).
-    static func stripYamlFrontmatter(_ content: String) -> String {
+    public static func stripYamlFrontmatter(_ content: String) -> String {
         guard content.hasPrefix("---") else { return content }
         guard let endRange = content.range(of: "\n---", range: content.index(content.startIndex, offsetBy: 3)..<content.endIndex) else {
             return content
@@ -443,7 +443,7 @@ enum PromptBuilderCaches {
 
     /// Compute dynamic context-file max chars (= hermes L1187-L1232 =
     /// `_dynamic_context_file_max_chars` + `_get_context_file_max_chars`).
-    static func dynamicContextFileMaxChars(contextLength: Int?) -> Int {
+    public static func dynamicContextFileMaxChars(contextLength: Int?) -> Int {
         // Hermes heuristic: 4 chars/token, 20% of context window, clamped [2048, 16384].
         guard let ctx = contextLength, ctx > 0 else { return 8192 }
         let raw = (ctx * 4) / 5
@@ -451,7 +451,7 @@ enum PromptBuilderCaches {
     }
 
     /// Truncate content (= hermes L1756-L1794 = `_truncate_content`).
-    static func truncateContent(content: String, maxChars: Int) -> String {
+    public static func truncateContent(content: String, maxChars: Int) -> String {
         guard content.count > maxChars else { return content }
         let head = content.prefix(maxChars)
         return """
@@ -463,7 +463,7 @@ enum PromptBuilderCaches {
 
     /// Append to truncation-warnings ring buffer (= hermes
     /// L1232-L1259 = `_record_truncation_warnings` + `drain`).
-    static func recordTruncationWarning(_ msg: String) {
+    public static func recordTruncationWarning(_ msg: String) {
         let key = NSString(string: "warnings")
         let existing = (truncationWarningsStorage.object(forKey: key) as? [String]) ?? []
         let updated = existing + [msg]
@@ -471,7 +471,7 @@ enum PromptBuilderCaches {
     }
 
     /// Drain truncation warnings (= atomic read + clear).
-    static func truncationWarningsDrain() -> [String] {
+    public static func truncationWarningsDrain() -> [String] {
         let key = NSString(string: "warnings")
         let existing = (truncationWarningsStorage.object(forKey: key) as? [String]) ?? []
         truncationWarningsStorage.removeObject(forKey: key)

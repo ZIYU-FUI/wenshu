@@ -23,6 +23,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("SystemPrompt (ticket 002 sub-step 2)")

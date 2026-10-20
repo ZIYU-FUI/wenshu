@@ -52,25 +52,25 @@ import Foundation
 /// session. `stepNumber` is 1-based; `totalSteps` is the constant
 /// 8 (= see file header step catalog). `etaSeconds` is an estimate
 /// (= nil = unknown; positive = estimated remaining seconds).
-struct AgentProgressEntry: Sendable, Codable, Equatable, Identifiable {
-    let id: UUID
-    let sessionId: String
-    var label: String
-    var stepNumber: Int
-    let totalSteps: Int
-    var etaSeconds: Int?
-    var status: Status
-    let createdAt: Date
-    var updatedAt: Date
+public struct AgentProgressEntry: Sendable, Codable, Equatable, Identifiable {
+    public let id: UUID
+    public let sessionId: String
+    public var label: String
+    public var stepNumber: Int
+    public let totalSteps: Int
+    public var etaSeconds: Int?
+    public var status: Status
+    public let createdAt: Date
+    public var updatedAt: Date
 
-    enum Status: String, Sendable, Codable {
+    public enum Status: String, Sendable, Codable {
         case running
         case succeeded
         case failed
         case cancelled
     }
 
-    init(
+    public init(
         id: UUID = UUID(),
         sessionId: String,
         label: String,
@@ -109,15 +109,15 @@ struct AgentProgressEntry: Sendable, Codable, Equatable, Identifiable {
 /// want progress emitted (= WenshuConductor, future tickets) pass
 /// `AgentProgressTracker.shared` to `ConversationLoop(...progressTracker:)`;
 /// callers that don't care (= unit tests) pass `.noop`.
-actor AgentProgressTracker {
+public actor AgentProgressTracker {
 
     /// Shared singleton for the wenshu process (= WIRE-OPENBOX-001).
     /// The OpenBox panel reads from this; the agent writes to this.
-    static let shared: AgentProgressTracker = AgentProgressTracker()
+    public static let shared: AgentProgressTracker = AgentProgressTracker()
 
     /// Default constant for the standard 7-step wenshu conversation
     /// turn (= matches ConversationLoop.runTurn hook order).
-    static let standardStepCount: Int = 7
+    public static let standardStepCount: Int = 7
 
     /// All entries keyed by entry id. `list(sessionId:)` filters
     /// by `entry.sessionId`.
@@ -130,14 +130,14 @@ actor AgentProgressTracker {
 
     /// No-op singleton. Use when ConversationLoop doesn't need
     /// real progress emission (= e.g. unit tests that don't care).
-    static let noop: AgentProgressTracker = AgentProgressTracker()
+    public static let noop: AgentProgressTracker = AgentProgressTracker()
 
-    init() {}
+    public init() {}
 
     /// Start a new progress entry for `sessionId`. Returns the
     /// created entry so callers can capture the `id` for later
     /// `advance()` / `complete()` / `cancel()` calls.
-    func start(
+    public func start(
         sessionId: String,
         label: String,
         totalSteps: Int = AgentProgressTracker.standardStepCount
@@ -161,7 +161,7 @@ actor AgentProgressTracker {
     /// Advance `entry` to the next step (label = new step label,
     /// stepNumber bumps by 1). Sets ETA to nil (= caller can
     /// override per-step; e.g. step 4 "Calling LLM" sets ETA > 0).
-    func advance(id: UUID, label: String) async {
+    public func advance(id: UUID, label: String) async {
         guard var entry = entries[id] else { return }
         entry.stepNumber = min(entry.stepNumber + 1, entry.totalSteps)
         entry.label = label
@@ -172,7 +172,7 @@ actor AgentProgressTracker {
 
     /// Set a custom step number (= e.g. when a step is skipped or
     /// the loop jumps). Also updates label + ETA.
-    func setStep(id: UUID, stepNumber: Int, label: String, etaSeconds: Int? = nil) async {
+    public func setStep(id: UUID, stepNumber: Int, label: String, etaSeconds: Int? = nil) async {
         guard var entry = entries[id] else { return }
         entry.stepNumber = max(1, min(stepNumber, entry.totalSteps))
         entry.label = label
@@ -184,7 +184,7 @@ actor AgentProgressTracker {
     /// Mark `entry` as complete (= default status = .succeeded).
     /// After this call, `current(sessionId:)` will skip the entry
     /// (= status != .running).
-    func complete(
+    public func complete(
         id: UUID,
         status: AgentProgressEntry.Status = .succeeded
     ) async {
@@ -198,12 +198,12 @@ actor AgentProgressTracker {
     /// preserved for caller clarity (= the OpenBox panel treats
     /// .cancelled the same as .failed visually, but the API lets
     /// callers distinguish intent at the call site).
-    func cancel(id: UUID) async {
+    public func cancel(id: UUID) async {
         await complete(id: id, status: .cancelled)
     }
 
     /// List all entries for a session, in insertion order.
-    func list(sessionId: String) async -> [AgentProgressEntry] {
+    public func list(sessionId: String) async -> [AgentProgressEntry] {
         let ids = sessionOrder[sessionId] ?? []
         return ids.compactMap { entries[$0] }
     }
@@ -211,7 +211,7 @@ actor AgentProgressTracker {
     /// Return the most-recent running entry for a session, OR nil
     /// if no running entry exists (= turn finished, cancelled, or
     /// session never started a turn on this tracker).
-    func current(sessionId: String) async -> AgentProgressEntry? {
+    public func current(sessionId: String) async -> AgentProgressEntry? {
         let ids = sessionOrder[sessionId] ?? []
         // Walk from the end (= most-recent insertion first); return
         // the first entry with status == .running.
@@ -232,7 +232,7 @@ actor AgentProgressTracker {
     /// recent session first), then each session's ids in reverse
     /// (= most-recent entry first). Returns the first running
     /// entry found, OR nil if no entry is currently running.
-    func currentLatestRunning() async -> AgentProgressEntry? {
+    public func currentLatestRunning() async -> AgentProgressEntry? {
         // Walk sessions in REVERSE insertion order (= most recently
         // created session first). Sessions are stored in a dictionary
         // so we collect + reverse-sort them by their first-seen id.

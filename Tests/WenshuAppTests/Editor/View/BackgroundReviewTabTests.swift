@@ -37,6 +37,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("BackgroundReview inspector tab (v2.9a — boss 2026-09-28 OOB A3)")

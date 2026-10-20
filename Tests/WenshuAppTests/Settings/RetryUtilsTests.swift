@@ -12,6 +12,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("RetryUtils (ticket GAP-007)")

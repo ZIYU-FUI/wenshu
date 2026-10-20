@@ -14,6 +14,7 @@
 //  PromptCaching per the wenshu-side-wins pattern; = per Q112 = one
 //  ticket per file = the remaining 27 hermes functions deferred).
 
+import WenshuAgent
 import XCTest
 @testable import WenshuApp
 

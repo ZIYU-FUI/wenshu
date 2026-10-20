@@ -14,6 +14,7 @@
 import Testing
 import Combine
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("Background subsystem (= v0.36 ticket 016)")

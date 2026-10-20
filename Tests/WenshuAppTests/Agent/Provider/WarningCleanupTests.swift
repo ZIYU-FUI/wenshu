@@ -48,7 +48,7 @@ struct WarningCleanupTests {
         "Sources/WenshuApp/Features/Settings/Service/SecretScope.swift",
         "Sources/WenshuAgent/Sources/WenshuAgent/Discovery/AvailableModelsDiscovery.swift",
         "Sources/WenshuApp/Features/Agent/Service/OAuthFlow.swift",
-        "Sources/WenshuApp/Features/Agent/Store/RuntimeHelpers.swift",
+        "Sources/WenshuAgent/Sources/WenshuAgent/Turn/RuntimeHelpers.swift",
         "Sources/WenshuApp/Features/Agent/Service/HermesTodoTool.swift",
         "Sources/WenshuApp/WenshuAgent/Agent/WenshuVerifier.swift",
         "Sources/WenshuAgent/Sources/WenshuAgent/Discovery/ConnectorCredentials.swift",

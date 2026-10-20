@@ -6,6 +6,7 @@
 
 import Foundation
 import Testing
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("MemoryWriteGate (hermes _apply_write_gate parity)")

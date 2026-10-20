@@ -9,7 +9,7 @@
 import Foundation
 
 /// Decision returned by MemoryWriteGate.
-enum MemoryWriteDecision: Sendable, Equatable {
+public enum MemoryWriteDecision: Sendable, Equatable {
     case allow                  // write proceeds
     case block(reason: String)   // write refused; caller surfaces reason
     case stageForApproval       // write deferred to pending queue (future GUI hook)
@@ -17,13 +17,13 @@ enum MemoryWriteDecision: Sendable, Equatable {
 
 /// Per-write gate policy for memory mutations.
 /// Mirrors hermes `_apply_write_gate(action, target, content, old_text)`.
-enum MemoryWriteGate {
+public enum MemoryWriteGate {
 
     /// Decision rules for `memory.add`:
     /// - empty content → block (defensive)
     /// - content > 500 chars → stageForApproval (should not be surprised by big dumps)
     /// - otherwise → allow
-    static func evaluateAdd(content: String) -> MemoryWriteDecision {
+    public static func evaluateAdd(content: String) -> MemoryWriteDecision {
         if content.isEmpty {
             return .block(reason: "memory content is empty (nothing to remember)")
         }
@@ -36,7 +36,7 @@ enum MemoryWriteGate {
     /// Decision rules for `memory.replace`:
     /// - oldText empty → block
     /// - content differs significantly from oldText → stageForApproval
-    static func evaluateReplace(content: String, oldText: String) -> MemoryWriteDecision {
+    public static func evaluateReplace(content: String, oldText: String) -> MemoryWriteDecision {
         if oldText.isEmpty {
             return .block(reason: "memory replace requires non-empty oldText")
         }
@@ -54,7 +54,7 @@ enum MemoryWriteGate {
 
     /// Decision rules for `memory.remove`:
     /// - ALWAYS requires approval (destructive)
-    static func evaluateRemove() -> MemoryWriteDecision {
+    public static func evaluateRemove() -> MemoryWriteDecision {
         return .stageForApproval
     }
 }

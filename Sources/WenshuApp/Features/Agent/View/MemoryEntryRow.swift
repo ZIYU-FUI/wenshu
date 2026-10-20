@@ -19,6 +19,7 @@
 //
 
 import SwiftUI
+import WenshuAgent
 
 struct MemoryEntryRow: View {
     let entry: MemoryAdapter.MemoryEntry

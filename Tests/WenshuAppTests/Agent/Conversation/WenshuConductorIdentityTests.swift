@@ -6,6 +6,7 @@
 
 import Foundation
 import Testing
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("WenshuConductorIdentity (文枢 agent 基础设定)")

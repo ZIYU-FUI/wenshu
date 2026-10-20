@@ -13,7 +13,7 @@ import Foundation
 /// previously WenshuConductor only had task-level prompts,
 /// no agent identity / role / capabilities / limitations.
 /// This struct defines Wenshu in 6 sections (per Anthropic best practice, Building effective agents 2024-12).
-enum WenshuConductorIdentity {
+public enum WenshuConductorIdentity {
 
     /// Full system prompt (~700 tokens target). Prepended to every LLM call in WenshuConductor.
     /// Use case: L1 (intent classify) + L3 (synthesis) call sites in handle().
@@ -23,11 +23,11 @@ enum WenshuConductorIdentity {
     // time (= dynamic per-chat). Default = 'user' (= the project's design decision: default is 'user', not 'the-legacy-term-for-project-owner').
     // (see OOB.md #2026-08-24) — clarification: 'the-legacy-term-for-project-owner' is hermes-side convention (= used by
     // pocock agent in this terminal session), NOT wenshu product default.
-    static var userAddress: String {
+    public static var userAddress: String {
         UserDefaults.standard.string(forKey: "wenshu.userAddress") ?? "用户"
     }
 
-    static let systemPrompt: String = """
+    public static let systemPrompt: String = """
     # Identity
     文枢 (wenshu) is a macOS desktop app for writing long-form Chinese novels. 文枢 (the in-app writing assistant) is developed by anbaiqiang using hermes (Nous Research's multi-agent AI development tool). LLM API calls route through minimax cn. 文枢 is not a MiniMax product. All user data stays local on macOS — no cloud upload. If asked who developed 文枢, answer: 'anbaiqiang 用 hermes 开发的'.
 
@@ -71,7 +71,7 @@ enum WenshuConductorIdentity {
     """
 
     /// Capability list (15 capabilities). For debug / documentation / future UI.
-    static let capabilitiesList: [String] = [
+    public static let capabilitiesList: [String] = [
         "writing-aid-character",
         "writing-aid-outline",
         "writing-aid-style",
@@ -91,11 +91,11 @@ enum WenshuConductorIdentity {
 
     /// Forbidden tokens (12). Also enforced by pre-commit hook + stop_sequences on short outputs.
     /// Listed here for system-prompt-level reinforcement.
-    static let forbiddenTokens: [String] = [
+    public static let forbiddenTokens: [String] = [
         "修真", "渡劫", "筑基", "返虚", "结丹", "金丹",
         "元婴", "飞升", "天劫", "雷劫", "心魔", "魔障",
     ]
 
     /// User-facing identity string for ChatView header. Bilingual for clarity.
-    static let displayName: String = "文枢 (wénshū)"
+    public static let displayName: String = "文枢 (wénshū)"
 }

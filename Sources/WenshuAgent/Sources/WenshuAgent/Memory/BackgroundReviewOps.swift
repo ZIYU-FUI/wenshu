@@ -34,27 +34,27 @@ import Foundation
 /// BackgroundReview unified façade (= manual + auto go through
 /// these 4 entry points).
 @MainActor
-enum BackgroundReviewOps {
+public enum BackgroundReviewOps {
 
     /// Submit a proposal (= manual callers + agent auto-call both
     /// use this entry point).
-    static func submit(_ proposal: BackgroundProposal) async {
+    public static func submit(_ proposal: BackgroundProposal) async {
         await BackgroundReview.shared.submit(proposal)
     }
 
     /// Approve a proposal (= manual operator decision).
-    static func approve(_ proposalID: UUID) async throws {
+    public static func approve(_ proposalID: UUID) async throws {
         try await BackgroundReview.shared.approve(proposalID)
     }
 
     /// Reject a proposal (= manual operator decision).
-    static func reject(_ proposalID: UUID) async throws {
+    public static func reject(_ proposalID: UUID) async throws {
         try await BackgroundReview.shared.reject(proposalID)
     }
 
     /// List all pending proposals (= manual list render + agent
     /// status query both use this entry point).
-    static func listPending() async -> [BackgroundProposal] {
+    public static func listPending() async -> [BackgroundProposal] {
         return await BackgroundReview.shared.allPending()
     }
 }

@@ -22,11 +22,11 @@ import Foundation
 
 /// Centralized permission policy for sub-agent tool calls.
 /// Mirrors hermes `DELEGATE_BLOCKED_TOOLS` frozenset.
-enum SubAgentPermissions {
+public enum SubAgentPermissions {
 
     /// Tools that sub-agents must NEVER call (any op).
     /// Mirrors 4 of 5 hermes DELEGATE_BLOCKED_TOOLS (memory handled separately).
-    static let writeOnlyBlocked: Set<String> = [
+    public static let writeOnlyBlocked: Set<String> = [
         "delegate_task",  // no recursive delegation
         "clarify",        // no user interaction
         "send_message",   // no cross-platform side effects
@@ -36,13 +36,13 @@ enum SubAgentPermissions {
     /// Tools that sub-agents may call BUT only in read-only mode.
     /// Per hermes contract: 'memory' is read-only for sub-agents; only main agent writes.
     /// Implementation: sub-agent calls with op="read" are allowed; "add"/"delete" blocked.
-    static let readOnlyAllowed: Set<String> = [
+    public static let readOnlyAllowed: Set<String> = [
         "memory",
     ]
 
     /// Check if a sub-agent can call a given tool (with a given op).
     /// Returns nil if allowed; returns reason string if blocked.
-    static func checkPermission(tool: String, op: String = "") -> String? {
+    public static func checkPermission(tool: String, op: String = "") -> String? {
         // writeOnlyBlocked: sub-agent blocked entirely
         if writeOnlyBlocked.contains(tool) {
             return blockReason(tool: tool, why: "write-only-blocked (hermes DELEGATE_BLOCKED_TOOLS)")
@@ -59,7 +59,7 @@ enum SubAgentPermissions {
 
     /// Check tool only (ignoring op) — for tools that don't have op semantics.
     /// Returns nil if allowed; reason if blocked.
-    static func checkToolOnly(_ tool: String) -> String? {
+    public static func checkToolOnly(_ tool: String) -> String? {
         if writeOnlyBlocked.contains(tool) {
             return blockReason(tool: tool, why: "write-only-blocked (hermes DELEGATE_BLOCKED_TOOLS)")
         }
@@ -72,11 +72,11 @@ enum SubAgentPermissions {
 }
 
 /// Identifies who is calling invokeTool — used for permission check.
-enum AgentCaller: Sendable, Equatable {
+public enum AgentCaller: Sendable, Equatable {
     case main              // WenshuConductor (textbook main agent)
     case subAgent(name: String)  // any of the 5 sub-agents (researcher/writer/analyst/archivist/auditor)
 
-    var isSubAgent: Bool {
+    public var isSubAgent: Bool {
         if case .subAgent = self { return true }
         return false
     }

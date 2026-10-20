@@ -22,22 +22,22 @@
 import Foundation
 import WenshuAgent
 
-enum TurnFinalizer {
+public enum TurnFinalizer {
 
     /// Result of a finalized turn (= hermes `finalize_turn` return dict).
-    struct FinalizedTurn: Sendable, Equatable {
+    public struct FinalizedTurn: Sendable, Equatable {
         /// Final LLMResponse after coalescing + canonicalization.
-        let response: LLMResponse
+        public let response: LLMResponse
         /// Whether the conversation completed successfully
         /// (= hermes `completed = final_response is not None and not failed`).
-        let completed: Bool
+        public let completed: Bool
         /// Reason the turn exited (= hermes `_turn_exit_reason`).
-        let exitReason: String
+        public let exitReason: String
         /// Cleanup errors surfaced from trajectory save / VM cleanup /
         /// session persistence (= hermes `_cleanup_errors` list).
-        let cleanupErrors: [String]
+        public let cleanupErrors: [String]
 
-        init(
+        public init(
             response: LLMResponse,
             completed: Bool,
             exitReason: String,
@@ -54,14 +54,14 @@ enum TurnFinalizer {
     /// session persistence, kanban failure recording). Each hook is best-effort
     /// — a failure in one hook must NOT skip the others (= hermes pattern:
     /// `_cleanup_errors` collects per-step failures).
-    struct PostTurnHooks: Sendable {
-        var saveTrajectory: @Sendable ([LLMMessage], String, Bool) -> Void
-        var cleanupTaskResources: @Sendable (String) -> Void
-        var persistSession: @Sendable ([LLMMessage]) -> Void
-        var recordBudgetExhaustion: @Sendable (Int, Int) -> Void  // (apiCallCount, maxIterations)
-        var reviewMemory: @Sendable () -> Void
+    public struct PostTurnHooks: Sendable {
+        public var saveTrajectory: @Sendable ([LLMMessage], String, Bool) -> Void
+        public var cleanupTaskResources: @Sendable (String) -> Void
+        public var persistSession: @Sendable ([LLMMessage]) -> Void
+        public var recordBudgetExhaustion: @Sendable (Int, Int) -> Void  // (apiCallCount, maxIterations)
+        public var reviewMemory: @Sendable () -> Void
 
-        init(
+        public init(
             saveTrajectory: @escaping @Sendable ([LLMMessage], String, Bool) -> Void = { _, _, _ in },
             cleanupTaskResources: @escaping @Sendable (String) -> Void = { _ in },
             persistSession: @escaping @Sendable ([LLMMessage]) -> Void = { _ in },
@@ -75,7 +75,7 @@ enum TurnFinalizer {
             self.reviewMemory = reviewMemory
         }
 
-        static let noop = PostTurnHooks()
+        public static let noop = PostTurnHooks()
     }
 
     /// Finalize an LLMResponse into the canonical ConversationResult shape.
@@ -88,7 +88,7 @@ enum TurnFinalizer {
     ///   sequence the model emitted; adjacent non-empty text blocks
     ///   are NOT merged here — use `coalesceAdjacentText(_:)` directly
     ///   when callers want a streaming-display merge.)
-    static func finalize(response: LLMResponse) -> LLMResponse {
+    public static func finalize(response: LLMResponse) -> LLMResponse {
         let canonical = MessageContent.canonicalize(response.blocks)
         return LLMResponse(
             id: response.id,
@@ -103,7 +103,7 @@ enum TurnFinalizer {
     /// adjacent-text coalesce pattern: a series of [.text("a"), .text("b")]
     /// becomes a single [.text("a\n\nb")] to keep the model output clean
     /// for downstream consumers).
-    static func coalesceAdjacentText(_ blocks: [LLMBlock]) -> [LLMBlock] {
+    public static func coalesceAdjacentText(_ blocks: [LLMBlock]) -> [LLMBlock] {
         var out: [LLMBlock] = []
         for block in blocks {
             if case .text(let s) = block {
@@ -139,7 +139,7 @@ enum TurnFinalizer {
     /// - Returns: FinalizedTurn with the normalized response + completion flag
     ///   + exit reason + cleanup errors (= hermes `result` dict shape).
     @discardableResult
-    static func finalizeTurn(
+    public static func finalizeTurn(
         finalResponse: LLMResponse?,
         apiCallCount: Int,
         maxIterations: Int,
@@ -239,7 +239,7 @@ enum TurnFinalizer {
 
     /// Append a synthetic assistant message closing an interrupted tool sequence
     /// (= hermes close_interrupted_tool_sequence L350-380 in message_sanitization.py).
-    static func closeInterruptedToolSequence(
+    public static func closeInterruptedToolSequence(
         _ messages: [LLMMessage],
         fallbackResponse: LLMResponse?
     ) -> [LLMMessage] {
@@ -262,7 +262,7 @@ enum TurnFinalizer {
     /// Drop trailing empty-response scaffolding (= hermes
     /// drop_trailing_empty_response_scaffolding: a series of empty assistant
     /// turns at the tail get rewound so the next turn doesn't replay them).
-    static func dropTrailingEmptyResponseScaffolding(_ messages: [LLMMessage]) -> [LLMMessage] {
+    public static func dropTrailingEmptyResponseScaffolding(_ messages: [LLMMessage]) -> [LLMMessage] {
         var out = messages
         while let last = out.last {
             if case .assistant = last.role {

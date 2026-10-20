@@ -46,16 +46,16 @@ final class WSMemoryMirror: @unchecked Sendable {
 //  references/v3.0-design-system-rule.md + wenshu-dead-code-cleanup
 //  SKILL.md.)
 
-final class WSMemoryProvider: MemoryProvider, @unchecked Sendable {
+public final class WSMemoryProvider: MemoryProvider, @unchecked Sendable {
 
-    let slug: String
-    var isEnabled: Bool
+    public let slug: String
+    public var isEnabled: Bool
 
     /// Shared singleton (= matches the WSMemoryRepository.shared +
     /// MemoryManager.shared pattern). Created lazily on first access
     /// from a @MainActor context (= per init's assumeIsolated contract).
     @MainActor
-    static let shared: WSMemoryProvider = WSMemoryProvider()
+    public static let shared: WSMemoryProvider = WSMemoryProvider()
 
     /// In-memory mirror cache (= thread-safe; = updated by async prefetch/sync).
     private let mirror = WSMemoryMirror()
@@ -70,7 +70,7 @@ final class WSMemoryProvider: MemoryProvider, @unchecked Sendable {
     /// and `MemoryManager.memory`.
     private let memory: WSMemoryRepository
 
-    init(slug: String = "swiftdata-memory", isEnabled: Bool = true, memory: WSMemoryRepository? = nil) {
+    public init(slug: String = "swiftdata-memory", isEnabled: Bool = true, memory: WSMemoryRepository? = nil) {
         self.slug = slug
         self.isEnabled = isEnabled
         if let memory {
@@ -101,7 +101,7 @@ final class WSMemoryProvider: MemoryProvider, @unchecked Sendable {
         mirror.update(entries)
     }
 
-    func getSystemPrompt() -> String {
+    public func getSystemPrompt() -> String {
         // Sync read from mirror (= no SwiftData hop; = safe from any actor).
         let entries = mirror.current()
         if entries.isEmpty { return "" }
@@ -109,7 +109,7 @@ final class WSMemoryProvider: MemoryProvider, @unchecked Sendable {
         return "Recent memories about this user:\n\(bullets)"
     }
 
-    func prefetch(forUserMessage message: String) async -> String {
+    public func prefetch(forUserMessage message: String) async -> String {
         // Async (= bridges to @MainActor SwiftData + updates mirror).
         // extract Sendable scalars inside MainActor.run
         // (WSMemory is non-Sendable, = can't cross the boundary).
@@ -128,7 +128,7 @@ final class WSMemoryProvider: MemoryProvider, @unchecked Sendable {
         return mapped
     }
 
-    func sync(userMessage: String, assistantResponse: String) async {
+    public func sync(userMessage: String, assistantResponse: String) async {
         let content = "User: \(userMessage)\nAssistant: \(assistantResponse)"
         // add() returns the inserted WSMemory (= non-Sendable).
         // The caller only needs the write to succeed; = drop the value via Void.
@@ -138,7 +138,7 @@ final class WSMemoryProvider: MemoryProvider, @unchecked Sendable {
         await refreshMirror()
     }
 
-    func getToolSchemas() -> [ToolSchema] {
+    public func getToolSchemas() -> [ToolSchema] {
         return [
             ToolSchema(
                 name: "memory_add",
@@ -158,7 +158,7 @@ final class WSMemoryProvider: MemoryProvider, @unchecked Sendable {
         ]
     }
 
-    func preCompressCheckpoint() -> String? {
+    public func preCompressCheckpoint() -> String? {
         // Sync read from mirror.
         let entries = mirror.current()
         if entries.isEmpty { return nil }
@@ -172,7 +172,7 @@ final class WSMemoryProvider: MemoryProvider, @unchecked Sendable {
     }
 
     /// Reset in-memory state (= for tests).
-    func resetCache() {
+    public func resetCache() {
         mirror.update([])
         prefetchQueue.sync {
             lastPrefetch = ""

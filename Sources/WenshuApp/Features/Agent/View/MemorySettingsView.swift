@@ -3,6 +3,7 @@
 //
 
 import SwiftUI
+import WenshuAgent
 
 // (smallChipCornerRadius / subtleSurfaceAlpha removed 2026-10 in
 //  q99-spec-p0-batch2 — verify-dead.py confirmed 0 external callers;

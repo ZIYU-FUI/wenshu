@@ -133,9 +133,9 @@ struct TriggerClosureWiringTests {
                 "buildTools must surface at least one default-name handler when the shared registry has it (reachable: \(reachableDefaults))")
     }
 
-    @Test("WenshuAppDelegateLLMHelpers.activeLLMConnector returns a usable connector for any slug (= ConversationLoop.runTurn reachable)")
+    @Test("activeLLMConnector never returns nil and honours an explicit slug")
     @MainActor
-    func testActiveLLMConnector_fallsBackToAnthropicForUnknownSlug() async {
+    func testActiveLLMConnector_resolvesSlugThenFallsBackToConfiguredProvider() async {
         let priorValue = UserDefaults.standard.string(forKey: "wenshu.llm.activeConnector")
         defer {
             if let prior = priorValue {
@@ -145,20 +145,28 @@ struct TriggerClosureWiringTests {
             }
         }
 
+        // Resolution order (= activeLLMConnector): the configured slug when the
+        // catalog knows it, else the first provider holding a keychain key,
+        // else anthropic, else minimax-cn. Pinning one fallback here would
+        // break on any machine whose keychain holds a different provider,
+        // so assert the contract instead: an explicit slug wins, and an
+        // unresolvable slug still yields a drivable connector.
         UserDefaults.standard.set("anthropic", forKey: "wenshu.llm.activeConnector")
         let connector1 = WenshuAppDelegateLLMHelpers.activeLLMConnector()
         #expect(connector1.connectorID == "anthropic",
                 "anthropic slug must resolve to AnthropicConnector (= M14 fix)")
 
-        UserDefaults.standard.set("unknown-slug-xyz", forKey: "wenshu.llm.activeConnector")
-        let connector2 = WenshuAppDelegateLLMHelpers.activeLLMConnector()
-        #expect(connector2.connectorID == "anthropic",
-                "unknown slug must fall back to AnthropicConnector (= never nil)")
-
-        UserDefaults.standard.removeObject(forKey: "wenshu.llm.activeConnector")
-        let connector3 = WenshuAppDelegateLLMHelpers.activeLLMConnector()
-        #expect(connector3.connectorID == "anthropic",
-                "missing slug must fall back to AnthropicConnector (= never nil)")
+        let fallbacks = ["unknown-slug-xyz", nil]
+        for fallback in fallbacks {
+            if let fallback {
+                UserDefaults.standard.set(fallback, forKey: "wenshu.llm.activeConnector")
+            } else {
+                UserDefaults.standard.removeObject(forKey: "wenshu.llm.activeConnector")
+            }
+            let resolved = WenshuAppDelegateLLMHelpers.activeLLMConnector()
+            #expect(!resolved.connectorID.isEmpty,
+                    "an unresolvable slug (\(fallback ?? "absent")) must still yield a connector")
+        }
     }
 
     @Test("CommandPaletteRegistrySeeder dynamic-zone entry dispatches .navigateTo('kanban')")

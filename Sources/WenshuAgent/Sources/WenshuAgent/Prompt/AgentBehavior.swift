@@ -39,17 +39,17 @@ import Foundation
 /// Reply style preset (= closed enum; = users pick from these 4,
 /// no custom string input allowed). Drives the "Speaking style"
 /// section appended to the system prompt.
-enum SpeakingStyle: String, CaseIterable, Identifiable, Sendable {
+public enum SpeakingStyle: String, CaseIterable, Identifiable, Sendable {
     case formal
     case casual
     case literary
     case concise
 
-    var id: String { rawValue }
+    public var id: String { rawValue }
 
     /// User-visible label (= follows the OS locale; = see String(localized:)
     /// fallback for non-localized environments).
-    var label: String {
+    public var label: String {
         switch self {
         case .formal:   return "演讲式"
         case .casual:   return "口语化"
@@ -61,7 +61,7 @@ enum SpeakingStyle: String, CaseIterable, Identifiable, Sendable {
     /// Per-style guidance appended to the system prompt's stable
     /// tier. Sentences are short and concrete so the LLM picks up
     /// the register reliably.
-    var promptGuidance: String {
+    public var promptGuidance: String {
         switch self {
         case .formal:
             return "Speaking style: formal. Use measured, third-person prose. Avoid colloquialisms, contractions, and rhetorical questions. Maintain a dignified narrative voice throughout."
@@ -82,16 +82,16 @@ enum SpeakingStyle: String, CaseIterable, Identifiable, Sendable {
 ///
 /// Adding a new setting? Add a new `currentX()` + `setCurrentX(_:)`
 /// pair following the same shape.
-enum AgentBehavior {
+public enum AgentBehavior {
     /// UserDefaults key for `SpeakingStyle`. Stable (= never
     /// rename; = user data migration depends on it).
-    static let speakingStyleKey = "wenshu.agent.behavior.speakingStyle"
+    public static let speakingStyleKey = "wenshu.agent.behavior.speakingStyle"
 
     /// Read the user's currently-selected speaking style. Defaults
     /// to `.literary` (= the canonical wenshu writing-tool register;
     /// = a Chinese-novel assistant should sound like a writer by
     /// default, not like a customer-support bot).
-    static func currentSpeakingStyle(
+    public static func currentSpeakingStyle(
         defaults: UserDefaults = .standard
     ) -> SpeakingStyle {
         guard let raw = defaults.string(forKey: speakingStyleKey),
@@ -103,7 +103,7 @@ enum AgentBehavior {
     }
 
     /// Write a new speaking style selection.
-    static func setCurrentSpeakingStyle(
+    public static func setCurrentSpeakingStyle(
         _ style: SpeakingStyle,
         defaults: UserDefaults = .standard
     ) {

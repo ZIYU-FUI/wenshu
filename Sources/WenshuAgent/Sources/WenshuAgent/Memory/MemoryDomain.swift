@@ -9,14 +9,14 @@
 import Foundation
 import WenshuData
 
-struct Memory: Equatable, Sendable {
-    let userId: String
-    let memoryId: MemoryID
-    var content: String
-    let createdAt: Date
-    var updatedAt: Date
+public struct Memory: Equatable, Sendable {
+    public let userId: String
+    public let memoryId: MemoryID
+    public var content: String
+    public let createdAt: Date
+    public var updatedAt: Date
 
-    init(
+    public init(
         userId: String,
         memoryId: MemoryID = MemoryID.newID(),
         content: String,

@@ -16,11 +16,11 @@
 import Foundation
 import WenshuAgent
 
-actor ConversationCompression {
+public actor ConversationCompression {
 
     private let compressor: ContextCompressor
 
-    init(compressor: ContextCompressor? = nil) {
+    public init(compressor: ContextCompressor? = nil) {
         self.compressor = compressor ?? ContextCompressor(
             policy: ContextCompressor.Policy(keepRecentTurns: .max)
         )
@@ -44,7 +44,7 @@ actor ConversationCompression {
     ///   if no compression needed). Caller can detect "compression
     ///   happened" via `result.0.count < messages.count`.
     ///
-    func historyAfterCompression(
+    public func historyAfterCompression(
         messages: [LLMMessage],
         systemMessage: String
     ) async -> (messages: [LLMMessage], systemMessage: String) {
@@ -53,7 +53,7 @@ actor ConversationCompression {
 
     /// Manual compression trigger (= user clicks "Compress and continue"
     /// button in ChatView). Returns the new compressed history.
-    func manualTrigger(
+    public func manualTrigger(
         messages: [LLMMessage],
         systemMessage: String
     ) async -> (messages: [LLMMessage], systemMessage: String) {
@@ -164,7 +164,7 @@ extension ConversationCompression {
     ///   - compressed: The post-compression transcript
     ///     (= mutated in place to ensure a user turn is
     ///     present at the end).
-    func ensureCompressedHasUserTurn(
+    public func ensureCompressedHasUserTurn(
         originalMessages: [LLMMessage],
         compressed: inout [LLMMessage]
     ) {

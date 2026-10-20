@@ -8,6 +8,7 @@
 //
 
 import SwiftUI
+import WenshuAgent
 
 struct MemoryRetrievalPanel: View {
     @State var entries: [MemoryAdapter.MemoryEntry]

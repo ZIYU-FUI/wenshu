@@ -31,6 +31,7 @@
 //
 
 import SwiftUI
+import WenshuAgent
 
 /// Agent progress panel: top-of-DynamicZone strip that surfaces
 /// real-time step-by-step feedback from the running conversation
