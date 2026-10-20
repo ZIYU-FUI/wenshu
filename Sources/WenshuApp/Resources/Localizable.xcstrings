@@ -13975,6 +13975,142 @@
           }
         }
       }
+    },
+    "settings.memory.backend.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Where memories are kept"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "记忆存在哪儿"
+          }
+        }
+      }
+    },
+    "settings.memory.backend.footer": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Both work the same way from the agent's side. The difference is who holds the text and whether you need to configure anything."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "两种方式对助手来说没有区别。区别在于谁存着这些内容，以及你要不要配置什么。"
+          }
+        }
+      }
+    },
+    "settings.memory.backend.localMarkdown.detail": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plain files in your library. Nothing to set up, nothing leaves this Mac, and you can open them in any editor."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "就是资料库里的纯文本文件。不用配置，不联网，用什么编辑器都能打开。"
+          }
+        }
+      }
+    },
+    "settings.memory.backend.remoteService.detail": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kept by an outside service, which finds them by meaning rather than by keyword. Needs an address and a key, and your memories leave this Mac."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "交给外部服务托管，找回来的时候按意思找而不是按词找。需要填地址和密钥，记忆会离开这台电脑。"
+          }
+        }
+      }
+    },
+    "settings.memory.backend.remote.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Service address"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "服务地址"
+          }
+        }
+      }
+    },
+    "settings.memory.backend.remote.endpoint": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Address"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "地址"
+          }
+        }
+      }
+    },
+    "settings.memory.backend.remote.footer": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Until this is filled in, the agent keeps using local Markdown. Nothing is sent anywhere until it is."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在填上之前，助手还是用本地 Markdown。在填上之前不会有任何东西被发出去。"
+          }
+        }
+      }
+    },
+    "settings.agent.selected": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Selected"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已选择"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

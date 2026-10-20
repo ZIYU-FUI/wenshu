@@ -35,7 +35,101 @@ struct MemorySettingsView: View {
     // purged" after a retention-change.
     @State var lastPurgeCount: Int = 0
 
+    // Where the memories live. Backed by the agent settings store rather than
+    // its own @AppStorage, because ContextEngine reads the same value when it
+    // resolves a provider: two copies of one setting drift, and the drift shows
+    // up as memory that was written somewhere the reader never looks.
+    @State private var backend: MemoryBackend = AgentSettingsStore.shared.load().memory.backend
+    @State private var remoteEndpoint: String = AgentSettingsStore.shared.load().memory.remoteEndpoint
+
+    /// What the engine actually used last turn. Non-nil with a reason means the
+    /// choice above is not what is running, and the user needs to know why.
+    @State private var substitutionNotice: MemoryBackendProblem?
+
     init() {}
+
+    // MARK: - Where the memories live
+
+    /// Two options answering two different questions, presented as a radio
+    /// group rather than a picker: each carries a paragraph saying what it
+    /// costs, and a segmented control has no room for that. The order is
+    /// local first because it needs nothing (= choosing it must not feel like
+    /// a decision about infrastructure).
+    private var backendSection: some View {
+        Section {
+            backendRow(.localMarkdown)
+            backendRow(.remoteService)
+        } header: {
+            Text(String(localized: "settings.memory.backend.title"))
+        } footer: {
+            if let problem = substitutionNotice {
+                Text(problem.explanation)
+                    .foregroundStyle(.secondary)
+            } else {
+                Text(String(localized: "settings.memory.backend.footer"))
+            }
+        }
+    }
+
+    private func backendRow(_ option: MemoryBackend) -> some View {
+        let description = MemoryBackendResolver.description(for: option)
+        return Button {
+            backend = option
+            persistBackend()
+        } label: {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: backend == option ? "largecircle.fill.circle" : "circle")
+                    .foregroundStyle(backend == option ? Color.accentColor : .secondary)
+                    .font(.title3)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(description.title)
+                        .foregroundStyle(.primary)
+                    Text(String(localized: "settings.memory.backend.\(option.rawValue).detail"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!isMemoryEnabled)
+        .accessibilityLabel(description.title)
+        .accessibilityValue(backend == option ? String(localized: "settings.agent.selected") : "")
+    }
+
+    @ViewBuilder
+    private var remoteEndpointSection: some View {
+        if backend == .remoteService {
+            Section {
+                TextField(
+                    String(localized: "settings.memory.backend.remote.endpoint"),
+                    text: $remoteEndpoint
+                )
+                .textContentType(.URL)
+                .onSubmit { persistBackend() }
+            } header: {
+                Text(String(localized: "settings.memory.backend.remote.title"))
+            } footer: {
+                Text(String(localized: "settings.memory.backend.remote.footer"))
+            }
+        }
+    }
+
+    /// Write the choice where the turn runtime reads it, then ask the engine
+    /// what it would actually use. A choice that cannot be honoured comes back
+    /// with a reason, and the footer shows it rather than letting the user
+    /// believe a setting took effect.
+    private func persistBackend() {
+        var settings = AgentSettingsStore.shared.load()
+        settings.memory.backend = backend
+        settings.memory.remoteEndpoint = remoteEndpoint
+        AgentSettingsStore.shared.save(settings)
+
+        let resolver = ContextEngine.makeBackendResolver(settings: settings.memory)
+        substitutionNotice = resolver.resolve(settings: settings.memory)?.substitutedReason
+    }
 
     var scope: MemoryScope {
         MemoryScope(rawValue: scopeRaw) ?? .perBook
@@ -57,6 +151,9 @@ struct MemorySettingsView: View {
         // closed-enum retention picker (= 30 / 90 / 180 / 365 days)
         // + last-purge confirmation footer.
         Form {
+            backendSection
+            remoteEndpointSection
+
             Section {
                 Toggle(String(localized: "settings.memory.enable"), isOn: $isMemoryEnabled)
                     .toggleStyle(.switch)
