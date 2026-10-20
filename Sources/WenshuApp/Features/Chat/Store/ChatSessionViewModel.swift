@@ -142,7 +142,7 @@ final class ChatViewModel {
     /// from the accumulated parts. Rebuilding is cheap here because the
     /// accumulator already holds the finished text: the cost that used to
     /// matter was re-parsing and re-copying per token, and that is gone.
-    private func applyStreamBatch(
+    func applyStreamBatch(
         _ batch: StreamBatch,
         placeholderId: UUID,
         accumulator: StreamingAccumulator
@@ -164,16 +164,16 @@ final class ChatViewModel {
             }
         }
         guard let idx = messages.firstIndex(where: { $0.id == placeholderId }) else { return }
-        messages[idx] = ChatMessage(
-            id: placeholderId,
-            role: .agent,
-            source: .wenshu,
-            content: ChatMessagePart.joinedText(accumulator.parts),
-            tokens: nil,
-            thinking: accumulator.snapshotThinking(),
-            parts: accumulator.snapshotParts(),
-            streamState: .streaming
-        )
+        // The message is updated in place rather than replaced. Replacing
+        // an element of the observed array tells the view that the row
+        // is a different row, so the row is rebuilt on every frame: the
+        // text jumps, the animations restart, and the reader sees a
+        // flicker. Writing the changed fields of the same message keeps
+        // the row's identity, so only the text is drawn again.
+        messages[idx].content = ChatMessagePart.joinedText(accumulator.parts)
+        messages[idx].thinking = accumulator.snapshotThinking()
+        messages[idx].parts = accumulator.snapshotParts()
+        messages[idx].streamState = .streaming
     }
 
     /// The coalescing buffer for the reply in flight.
