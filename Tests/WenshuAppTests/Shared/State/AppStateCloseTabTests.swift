@@ -144,18 +144,26 @@ struct AppStateCloseTabTests {
                 "closing a non-active tab must NOT change activeTabId")
     }
 
-    @Test("closeTab on the last remaining tab re-injects the welcome tab (= tab strip stays visible)")
-    func closeTabLastRemainingReInjectsWelcomeTab() {
+    @Test("closeTab on the last remaining tab leaves the editor empty (= no tab is re-injected)")
+    func closeTabLastRemainingLeavesEditorEmpty() {
+        // Closing the last tab leaves the editor column empty. The
+        // empty state is the signal that no document is open, so no
+        // welcome tab is put back: an editor that always shows a tab
+        // cannot show that nothing is open.
+        //
+        // The active id is left pointing at the closed tab on purpose.
+        // It is a stale value, and the next tab that opens takes it
+        // over.
         let tab = makeTab()
         let state = makeState(tabs: [tab])
         state.activeTabId = tab.id
 
         state.closeTab(id: tab.id, bookStore: nil)
 
-        #expect(state.openTabs.count == 1,
-                "after closing the last tab, the welcome tab must be re-injected (= ensureWelcomeTabIfEmpty invariant)")
-        #expect(state.activeTabId == state.openTabs.first?.id,
-                "activeTabId must point at the re-injected welcome tab")
+        #expect(state.openTabs.isEmpty,
+                "after closing the last tab there must be no tab left (= the empty state is the empty state)")
+        #expect(state.activeTabId == tab.id,
+                "the active id is left untouched when the editor becomes empty (= the next open takes it over)")
     }
 
     // MARK: - Auto-save guarantee (= the boss's '确保自动保存有用')

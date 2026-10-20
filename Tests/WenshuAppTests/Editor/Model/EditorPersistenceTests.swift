@@ -239,14 +239,23 @@ struct EditorPersistenceTests {
         try "# before\n".write(toFile: path, atomically: true, encoding: .utf8)
         let tab = makeTab(documentPath: path, draft: "# auto-saved\n", originalBody: "# before\n")
         EditorPersistence.handleDirtyTransition(true, tab: tab, bookStore: nil)
-        // The Task sleeps 3 seconds (= boss 9/2 spec). Wait up to
-        // 5 seconds (= 3s debounce + 2s headroom for dispatch +
-        // run-loop scheduling on slow CI). The `async waitFor` yields
-        // the main actor between polls (= gives the dispatched Task
-        // a chance to resume on @MainActor + mutate tab fields).
-        await waitFor(seconds: 5.0) { tab.originalBody == "# auto-saved\n" }
+        // The Task sleeps 3 seconds (= boss 9/2 spec) and runs on the
+        // main actor. The wait is generous, because the main actor is
+        // shared with every other suite in the run: when the whole
+        // suite set runs at once, the queue is long enough that the
+        // auto-save task starts well after the three seconds are up.
+        // A short wait made this test fail only in a full run.
+        //
+        // The `async waitFor` yields the main actor between polls (= it
+        // gives the dispatched Task a chance to resume and mutate the
+        // tab fields).
+        await waitFor(seconds: 30.0) { tab.originalBody == "# auto-saved\n" }
         #expect(tab.originalBody == "# auto-saved\n",
                 "the 3-second auto-save Task must complete and set originalBody = draft (= B-22 invariant)")
+        // The task clears itself a moment after it writes, so the
+        // second condition is waited for as well (= a read taken in
+        // between the two steps sees a task that is still finishing).
+        await waitFor(seconds: 5.0) { tab.autoSaveTask == nil }
         #expect(tab.autoSaveTask == nil,
                 "the auto-save Task must nil itself out after firing (= idempotent cycle end)")
     }
