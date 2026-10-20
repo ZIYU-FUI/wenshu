@@ -203,30 +203,30 @@ def cmd_settings_dump(_args) -> dict:
     return {"bundle_id": WENSHU_BUNDLE_ID, "defaults": values}
 
 
-def cmd_keychain_list(_args) -> dict:
-    """List ProviderKeychain's stored providers.
+# The file the provider keys live in during development. The app writes
+# here whenever the keychain is not in use, which is every unsigned build.
+PROVIDER_KEYS_FILE = os.path.expanduser(
+    "~/Library/Application Support/com.wenshu.app/provider-keys.json"
+)
 
-    v0.24 fix: was using 'security dump-keychain' which doesn't show
-    generic password account names. Switch to iterating known provider
-    slugs via 'find-generic-password' (returns non-zero if absent = skip).
+
+def cmd_keychain_list(_args) -> dict:
+    """List the provider slugs that have a key.
+
+    Reads the file the app itself writes to. The earlier version asked the
+    `security` command for each known slug, and every one of those calls
+    made macOS put up a keychain permission dialog, because the tool has
+    no code-signing identity the keychain recognises. The dialogs were
+    unrecoverable from a remote session and buried whatever the caller was
+    trying to see.
     """
-    # v0.24: iterate known provider slugs (hardcoded to avoid Swift import).
-    slugs = [
-        "minimax-cn", "minimax", "anthropic", "openai-codex",
-        "openrouter", "nous-portal", "github-copilot",
-        "github-copilot-acp", "xai-oauth", "minimax-cn-mirror"
-    ]
-    providers = []
-    for slug in slugs:
-        stdout, stderr, rc = _run_cmd(
-            ["security", "find-generic-password",
-             "-s", "com.wenshu.app.provider",
-             "-a", f"{slug}.api.key"],
-            timeout=5
-        )
-        if rc == 0:
-            providers.append(slug)
-    return {"service": "com.wenshu.app.provider", "providers": sorted(providers)}
+    try:
+        with open(PROVIDER_KEYS_FILE, "r", encoding="utf-8") as handle:
+            data = json.load(handle)
+    except (OSError, ValueError):
+        return {"service": "com.wenshu.app.provider", "providers": [], "source": "file"}
+    providers = sorted(data.keys()) if isinstance(data, dict) else []
+    return {"service": "com.wenshu.app.provider", "providers": providers, "source": "file"}
 
 
 
@@ -235,15 +235,14 @@ def cmd_keychain_get(args) -> dict:
     if not args.provider_slug:
         raise ValueError("usage: keychain_get <provider_slug>")
     slug = args.provider_slug
-    stdout, stderr, rc = _run_cmd([
-        "security", "find-generic-password",
-        "-s", "com.wenshu.app.provider",
-        "-a", f"{slug}.api.key",
-        "-w",
-    ], timeout=10)
-    if rc != 0:
+    try:
+        with open(PROVIDER_KEYS_FILE, "r", encoding="utf-8") as handle:
+            data = json.load(handle)
+    except (OSError, ValueError):
         return {"provider": slug, "found": False}
-    key = stdout.strip()
+    if not isinstance(data, dict) or slug not in data:
+        return {"provider": slug, "found": False}
+    key = str(data[slug])
     masked = key[:4] + "..." + key[-4:] if len(key) > 8 else "***"
     return {"provider": slug, "found": True, "key_preview": masked, "length": len(key)}
 
