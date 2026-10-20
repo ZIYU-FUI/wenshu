@@ -361,7 +361,13 @@ public enum ProviderKeychain {
             return InMemoryKeychainStore()
         }
         if UserDefaults.standard.bool(forKey: "wenshu.debugNoKeychain") {
-            return InMemoryKeychainStore()
+            // The file store, not the in-memory one: the point of this
+            // override is to keep the macOS permission dialog away, and the
+            // in-memory store throws the key away on every launch, so the
+            // user has to type the key again each time (= the loop this
+            // override was supposed to end). The file store keeps the key
+            // between launches and still never asks for permission.
+            return FileProviderKeyStore()
         }
         // Per boss 2026-10-16 OOB "在用户配 key 的时候, 就两头
         // 存. 无论用户怎么开关, 只是切换读 key 的位置":

@@ -53,26 +53,31 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         set { _openSettings = newValue }
     }
 
-    /// user-attached login keychain (= the InMemoryKeychainStore stub prevents
+    /// user-attached login keychain (= the file-backed store prevents
     /// SecItemCopyMatching from blocking wenshu main thread on the Keychain
     /// permission modal during dev/verify). Gated by
     /// WENSHU_DEBUG_INMEMORY_KEYCHAIN env var (= 1 = use in-memory stub, 0 =
     /// use real Apple keychain). Production builds never set this.
-    /// don't require the keychain — I can't test chat remotely otherwise, I can
-    /// only poke at the UI': add the same UserDefaults override (=
-    /// `wenshu.debugNoKeychain = YES`) for off-site UI iteration. The user-set
+    /// don't require the keychain — I can't test chat remotely otherwise, I
+    /// only poke at the UI': add the same UserDefaults override (= 
+    /// `wenshu.debugNoKeychain = YES`) for off-site UI iteration. The user-
     /// UserDefaults flip persists across launches (= the canonical 'remote
-    /// debug mode' toggle = no keychain modal prompts = the user can iterate on
-    /// UI without touching macOS Keychain). ProviderKeychain.backend also reads
+    /// debug mode' toggle = no keychain modal prompts = the user can iterat
+    /// UI without touching macOS Keychain). ProviderKeychain.backend also r
     /// this UserDefaults (= two paths converge to the same
-    /// InMemoryKeychainStore = no race condition on first keychain access).
+    /// file-backed store = no race condition on first keychain access).
     static let sharedKeychainBackend: Void = {
         if ProcessInfo.processInfo.environment["WENSHU_DEBUG_INMEMORY_KEYCHAIN"] == "1" {
             ProviderKeychain.setBackendForTesting(InMemoryKeychainStore())
-            wenshuLogger.info("[wenshu.debug] keychain backend = InMemoryKeychainStore (env var override)")
+            wenshuLogger.info("[wenshu.debug] keychain backend = InMemoryKeychainStore")
         } else if UserDefaults.standard.bool(forKey: "wenshu.debugNoKeychain") {
-            ProviderKeychain.setBackendForTesting(InMemoryKeychainStore())
-            wenshuLogger.info("[wenshu.debug] keychain backend = InMemoryKeychainStore (UserDefaults override)")
+            // The file-backed store, not the in-memory one: the point of this
+            // override is to keep the macOS permission dialog away, and the
+            // in-memory store throws the key away on every launch, so the
+            // user has to type the key again each time (= the loop this
+            // override was supposed to end).
+            ProviderKeychain.setBackendForTesting(FileProviderKeyStore())
+            wenshuLogger.info("[wenshu.debug] keychain backend = FileProviderKeyStore")
         }
     }()
 

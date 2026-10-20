@@ -69,6 +69,16 @@ public final class MirroredKeychainStore: ProviderKeychainStoring, @unchecked Se
     public let keychainStore: any ProviderKeychainStoring
     public let fileStore: any ProviderKeychainStoring
 
+    /// Whether this store may reach the keychain.
+    ///
+    /// `nil` = decide from the build's signature. A test injects `false` to
+    /// exercise the unsigned-build path without touching process-wide state,
+    /// which matters because the package tests run in parallel.
+    private let keychainAllowedOverride: Bool?
+
+    /// The effective answer, resolved once per store.
+    private let keychainAllowed: Bool
+
     /// Which store is PRIMARY for reads. Decided by
     /// `wenshu.useKeychainForProviderKeys`:
     /// - toggle ON (= default) = keychainPrimary = true
@@ -86,6 +96,8 @@ public final class MirroredKeychainStore: ProviderKeychainStoring, @unchecked Se
         self.keychainStore = AppleKeychainStore()
         self.fileStore = FileProviderKeyStore()
         self.keychainPrimary = keychainPrimary
+        self.keychainAllowedOverride = nil
+        self.keychainAllowed = Self.isStableSigned
     }
 
     /// Test initializer. Accepts any two `ProviderKeychainStoring`
@@ -95,11 +107,180 @@ public final class MirroredKeychainStore: ProviderKeychainStoring, @unchecked Se
     public init(
         keychainStore: any ProviderKeychainStoring,
         fileStore: any ProviderKeychainStoring,
-        keychainPrimary: Bool
+        keychainPrimary: Bool,
+        keychainAllowed: Bool? = nil
     ) {
         self.keychainStore = keychainStore
         self.fileStore = fileStore
         self.keychainPrimary = keychainPrimary
+        self.keychainAllowedOverride = keychainAllowed
+        // An injected pair holds no real keychain, so the build's signature
+        // says nothing about it: the injected value decides, and the default
+        // (= nil) means "no restriction", which keeps the mirrored-store
+        // tests asserting what they always asserted.
+        self.keychainAllowed = keychainAllowed ?? true
+    }
+
+    /// Whether this store will touch the keychain.
+    ///
+    /// False for an unsigned build, which is what keeps the macOS permission
+    /// dialog off the user's screen during development.
+    public var mayUseKeychain: Bool { keychainAllowed }
+
+    /// Whether this build has a code-signing identity macOS will remember.
+    ///
+    /// macOS keys the keychain's "which app asked for this" record on the
+    /// code signature. An ad-hoc-signed binary (= every local development
+    /// build) counts as a new app on every launch and gets prompted every
+    /// launch. A signed build keeps one identity, is prompted once, and is
+    /// then on the item's ACL.
+    ///
+    /// The test seam is `WENSHU_STABLE_SIGNING=1`: a test process is
+    /// unsigned too, and without the seam every mirrored-store test would
+    /// skip the mirror write those tests exist to assert.
+    /// Resolved once per process: the signature cannot change while the app
+    /// runs, and spawning codesign on every key write would be absurd.
+    nonisolated(unsafe) private static let stableSignedOnce: Bool = resolveStableSigning()
+
+    /// The override the test seam sets.
+    ///
+    /// A process-wide override rather than an environment variable: the
+    /// package tests run in parallel, and an environment variable is shared
+    /// across them, so one test flipping it changes what the others see.
+    nonisolated(unsafe) static var stableSigningOverride: Bool?
+
+    /// The env seam is read on every call rather than folded into the cached
+    /// value, so a test can flip it after the process has already resolved
+    /// the signature once.
+    static var isStableSigned: Bool {
+        if let override = stableSigningOverride { return override }
+        if ProcessInfo.processInfo.environment["WENSHU_STABLE_SIGNING"] == "1" {
+            return true
+        }
+        return stableSignedOnce
+    }
+
+    private static func resolveStableSigning() -> Bool {
+        guard let binary = runningBinaryURL else { return false }
+        return !SigningIdentity.isAdhoc(binaryAt: binary)
+    }
+
+    /// The executable this process runs from.
+    ///
+    /// The bundle's own executable, not `Bundle.main.executableURL`: under
+    /// XCTest the main bundle is the Apple-signed `xctest` runner, so asking
+    /// it would report a stable identity for a process that is not the app.
+    private static var runningBinaryURL: URL? {
+        if let executable = Bundle.main.executableURL,
+           !isToolchainHelper(executable.path),
+           FileManager.default.fileExists(atPath: executable.path) {
+            return executable
+        }
+        for index in 0..<_dyld_image_count() {
+            guard let raw = _dyld_get_image_name(index) else { continue }
+            let path = String(validatingUTF8: raw) ?? ""
+            if path.hasSuffix("/WenshuApp"), FileManager.default.fileExists(atPath: path) {
+                return URL(fileURLWithPath: path)
+            }
+        }
+        return nil
+    }
+
+    /// Whether the path belongs to a Swift toolchain helper rather than to
+    /// the app.
+    ///
+    /// Under `swift test` the running process is the toolchain's testing
+    /// helper, which carries Apple's signature. Judging the signature of
+    /// that helper would report a stable identity for a process that is
+    /// emphatically not the app, so the check has to name the app's own
+    /// binary instead of whatever happens to be running.
+    private static func isToolchainHelper(_ path: String) -> Bool {
+        path.hasSuffix("/xctest")
+            || path.hasSuffix("/swiftpm-testing-helper")
+            || path.contains("/Xcode.app/")
+            || path.contains("/.xctest/")
+    }
+
+    /// Reads the code signature to classify the build.
+    enum SigningIdentity {
+        /// True when the binary carries an ad-hoc signature (= no stable
+        /// identity) or no signature at all.
+        ///
+        /// `codesign -dv --verbose=4` prints `Signature=adhoc` for an ad-hoc
+        /// binary, and an `Authority=` chain for a properly signed one. The
+        /// authority chain is the discriminator, not the presence of a
+        /// signature: an ad-hoc binary has a signature and no authority, and
+        /// `codesign -s -` on an already-signed binary fails outright, so
+        /// "does it have any signature" is the wrong question.
+        static func isAdhoc(binaryAt url: URL) -> Bool {
+            guard let output = codesignDescription(of: url) else { return true }
+            if output.contains("Signature=adhoc") { return true }
+            return !output.contains("Authority=")
+        }
+
+        /// The `codesign -dv` output, or nil when the tool is unavailable.
+        ///
+        /// `codesign -dv` writes the signature description to stderr, not
+        /// stdout; reading only stdout yields an empty string, which would
+        /// make every binary look unsigned.
+        static func codesignDescription(of url: URL) -> String? {
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/codesign")
+            process.arguments = ["-dv", "--verbose=4", url.path]
+            let pipe = Pipe()
+            process.standardOutput = pipe
+            process.standardError = pipe
+            do {
+                try process.run()
+            } catch {
+                return nil
+            }
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            process.waitUntilExit()
+            let output = String(decoding: data, as: UTF8.self)
+            return output.isEmpty ? nil : output
+        }
+    }
+
+    /// The executable this process runs from, or nil when it is not a file.
+    private static var adHocSignedBinaryURL: URL? {
+        var path: String?
+        if let executable = Bundle.main.executableURL {
+            path = executable.path
+        } else {
+            for index in 0..<_dyld_image_count() {
+                let raw = _dyld_get_image_name(index)
+                if let raw, let cString = String(validatingUTF8: raw) {
+                    if cString.hasSuffix("/WenshuApp") {
+                        path = cString
+                        break
+                    }
+                }
+            }
+        }
+        guard let path, FileManager.default.fileExists(atPath: path) else { return nil }
+        return URL(fileURLWithPath: path)
+    }
+
+    /// True when the on-disk binary carries an ad-hoc signature rather than a
+    /// Developer ID.
+    ///
+    /// Read from the code signature rather than inferred from the bundle
+    /// identifier: a locally built .app carries a perfectly normal bundle id
+    /// and is still ad-hoc signed, which is exactly the case that needs to be
+    /// detected.
+    static func hasDeveloperID(binaryAt url: URL) -> Bool {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/codesign")
+        process.arguments = ["-dv", url.path]
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = pipe
+        guard (try? process.run()) != nil else { return false }
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+        let output = String(decoding: data, as: UTF8.self)
+        return output.contains("Authority=Developer ID") || output.contains("Authority=Apple Development")
     }
 
     private var primary: any ProviderKeychainStoring {
@@ -135,6 +316,20 @@ public final class MirroredKeychainStore: ProviderKeychainStoring, @unchecked Se
         // = throwing here would block the user from
         // configuring a key at all when only the secondary
         // (= keychain) is denied.
+        // Never touch the keychain on an unsigned build. macOS decides whether
+        // to prompt from the code signature, so an ad-hoc-signed binary counts
+        // as a different app on every launch and the keychain asks for
+        // permission each time — and it asks before returning any OSStatus, so
+        // the catch below is too late to matter: the dialog has already been
+        // shown by the time it runs. The check belongs before the call.
+        //
+        // A Developer ID build has a stable identity, the prompt does not
+        // reappear, and the mirror fills in normally (= the path a released app
+        // takes, and the one this toggle was written for).
+        guard keychainAllowed else {
+            NSLog("WSKeychain: this build may not use the keychain; skipping the mirror write")
+            return
+        }
         do {
             try secondary.saveKeySync(key, for: provider)
         } catch {
@@ -147,6 +342,12 @@ public final class MirroredKeychainStore: ProviderKeychainStoring, @unchecked Se
     /// the next read doesn't need the fallback (= self-healing;
     /// = matches the boss's "切换开关时 key 还在" requirement).
     public func loadKeySync(for provider: Provider) -> String? {
+        // An unsigned build must not read the keychain either: the read
+        // prompts exactly like the write does, and it does so on every
+        // launch. The file store is the whole answer for such a build.
+        guard keychainAllowed || !keychainParticipates else {
+            return fileStore.loadKeySync(for: provider)
+        }
         if let primaryValue = primary.loadKeySync(for: provider) {
             return primaryValue
         }
@@ -196,9 +397,25 @@ public final class MirroredKeychainStore: ProviderKeychainStoring, @unchecked Se
     /// shows the green badge.
     public func listProvidersWithKeys() -> [String] {
         var set = Set<String>()
-        set.formUnion(primary.listProvidersWithKeys())
-        set.formUnion(secondary.listProvidersWithKeys())
+        // Same unsigned-build rule as the read: the keychain list prompts too.
+        // This runs on every launch (= it backs the chat empty-state), so it
+        // is the most visible source of the dialog.
+        if keychainAllowed {
+            set.formUnion(primary.listProvidersWithKeys())
+            set.formUnion(secondary.listProvidersWithKeys())
+        } else {
+            set.formUnion(fileStore.listProvidersWithKeys())
+        }
         return Array(set).sorted()
+    }
+
+    /// Whether this store pair can reach the real keychain.
+    ///
+    /// False for the injected test pair, which is what keeps the
+    /// unsigned-build guard from short-circuiting the mirror writes the
+    /// mirrored-store tests assert.
+    public var keychainParticipates: Bool {
+        keychainStore is AppleKeychainStore || fileStore is AppleKeychainStore
     }
 
     // MARK: - Toggle-time migration
