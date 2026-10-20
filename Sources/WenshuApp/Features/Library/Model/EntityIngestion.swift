@@ -1,6 +1,6 @@
 // EntityIngestion.swift · Wenshu () (FCP library replica)
 //
-// Writes IngestionRequests (= entities from ChatTrigger) into the
+// Writes IngestionRequests (= entities detected from chat) into the
 // reference library's entities layer (= LLM Wiki entities; per the
 // 8/26 'user').
 //

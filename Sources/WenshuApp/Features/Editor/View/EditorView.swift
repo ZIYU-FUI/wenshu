@@ -201,15 +201,6 @@ struct EditorView: View {
                 onClose: { closedId in
                     appState.closeTab(id: closedId, bookStore: bookStore)
                 },
-                onReorder: { newOrder in
-                    // Reorder AppState.openTabs to match the dragged drop
-                    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)
-                    // relaunch.
-                    let reordered = newOrder.compactMap { id in
-                        appState.openTabs.first(where: { $0.id == id })
-                    }
-                    appState.openTabs = reordered
-                }
             )
             // dirty-discard confirm dialog. Shown when user tries to close with
             // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)

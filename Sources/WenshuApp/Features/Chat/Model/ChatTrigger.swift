@@ -1,4 +1,4 @@
-// ChatTrigger.swift · Wenshu () (FCP library replica)
+// IngestionRequest.swift · Wenshu (FCP library replica)
 //
 // Detects when a chat message hints at a new entity (= a character /
 // world fact / research reference) and emits an `IngestionRequest`
@@ -33,76 +33,5 @@ struct IngestionRequest: Identifiable, Hashable, Codable, Sendable {
         self.kind = kind
         self.sourceMessageId = sourceMessageId
         self.createdAt = createdAt
-    }
-}
-
-/// Chat trigger detector (= the v0.27 scaffolding). Given a chat
-/// message, returns IngestionRequests for any surface forms detected.
-struct ChatTrigger: Sendable {
-    /// Chinese quotation marks (= single corner brackets, double corner brackets, and double angle brackets).
-    private let quotationRegex: NSRegularExpression
-    /// Common Chinese book-title patterns (= hard-coded list).
-    private let bookTitlePatterns: [String]
-
-    init() {
-        self.quotationRegex = NSRegularExpression.literal("[\\u{300C}\\u{300D}\\u{300E}\\u{300F}\\u{300A}\\u{300B}]([^\\u{300C}\\u{300D}\\u{300E}\\u{300F}\\u{300A}\\u{300B}]+)[\\u{300D}\\u{300F}\\u{300B}]",
-            options: []
-        )
-        self.bookTitlePatterns = [
-            "万历十五年", "永乐大典", "大明王朝",
-            "三国演义", "红楼梦", "水浒传", "西游记",
-            "资治通鉴", "史记", "汉书"
-        ]
-    }
-
-    /// Detect IngestionRequests in a chat message.
-    func detect(in message: String, messageId: UUID? = nil) -> [IngestionRequest] {
-        var requests: [IngestionRequest] = []
-        requests.append(contentsOf: detectQuotedNames(in: message, messageId: messageId))
-        requests.append(contentsOf: detectBookTitles(in: message, messageId: messageId))
-        return dedupe(requests)
-    }
-
-    private func detectQuotedNames(in message: String, messageId: UUID?) -> [IngestionRequest] {
-        let nsMessage = message as NSString
-        let range = NSRange(location: 0, length: nsMessage.length)
-        let matches = quotationRegex.matches(in: message, options: [], range: range)
-        var requests: [IngestionRequest] = []
-        for match in matches where match.numberOfRanges >= 2 {
-            let innerRange = match.range(at: 1)
-            guard innerRange.location != NSNotFound else { continue }
-            let inner = nsMessage.substring(with: innerRange)
-            requests.append(IngestionRequest(
-                surfaceForm: inner,
-                kind: .character,  // (= v0.27 default; future LLM extraction will refine)
-                sourceMessageId: messageId
-            ))
-        }
-        return requests
-    }
-
-    private func detectBookTitles(in message: String, messageId: UUID?) -> [IngestionRequest] {
-        var requests: [IngestionRequest] = []
-        for title in bookTitlePatterns where message.contains(title) {
-            requests.append(IngestionRequest(
-                surfaceForm: title,
-                kind: .reference,
-                sourceMessageId: messageId
-            ))
-        }
-        return requests
-    }
-
-    /// Dedupe by (surfaceForm, kind) tuple.
-    private func dedupe(_ requests: [IngestionRequest]) -> [IngestionRequest] {
-        var seen: Set<String> = []
-        var result: [IngestionRequest] = []
-        for request in requests {
-            let key = "\(request.surfaceForm)|\(request.kind.rawValue)"
-            if seen.insert(key).inserted {
-                result.append(request)
-            }
-        }
-        return result
     }
 }

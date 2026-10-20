@@ -58,7 +58,7 @@
 //   default; = wenshu's smaller-scope tasks don't need the
 //   longer hermes budget).
 // - Result callback surface = `onResult (Data) -> Void` + `onError
-//   (AgentLifecycleError) -> Void` (= same shape as hermes).
+//   (Error) -> Void` (= same shape as hermes).
 //
 // Per AGENTS.md Section 8 pollution-defense hex-encoding rule:
 // this file does NOT contain the 12-token forbidden vocab literal;
@@ -116,16 +116,6 @@ struct AgentLifecycleRecord: Sendable, Hashable, Identifiable {
         self.result = result
         self.error = error
     }
-}
-
-/// Lifecycle error variants (= hermes SubAgentLifecycleError surface).
-enum AgentLifecycleError: Error, Sendable, Hashable {
-    case spawnFailed(String)
-    case timedOut(elapsedSeconds: Double)
-    case cancelledByUser
-    case profileNotFound(slug: String)
-    case heartbeatLost(elapsedSeconds: Double)
-    case unknownError(String)
 }
 
 /// Per-sub-agent lifecycle tracker. One instance is created per spawn

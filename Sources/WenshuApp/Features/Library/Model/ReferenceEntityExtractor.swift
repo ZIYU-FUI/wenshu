@@ -36,7 +36,7 @@ struct ReferenceEntityExtractor: Sendable {
     /// `\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b` — multi-word capitalized phrases.
     /// Hermes regex: `\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b`
     /// Note: anchored on Latin script only. CJK entity extraction (= Chinese person / place names)
-    /// remains handled by ChatTrigger.detectQuotedNames (= existing CN-quote detection).
+    /// remains handled by the existing CN-quote detection.
     private static let capitalized = NSRegularExpression.literal(#"\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b"#
     )
 

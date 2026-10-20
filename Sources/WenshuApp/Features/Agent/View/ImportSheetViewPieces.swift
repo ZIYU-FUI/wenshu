@@ -214,42 +214,6 @@ struct ImportTaskRow: View {
     }
 }
 
-/// Placeholder router for the sheet (= kept as a
-/// fallback for unit tests + the dev hot-reload
-/// path; = the production sheet wires
-/// `WenshuConductorImportRouter` instead).
-struct StubImportRouterForSheet: ImportRouter {
-    func route(
-        _ input: ImportFileInput,
-        progress: (@Sendable (String) async -> Void)? = nil
-    ) async throws -> ImportRoutingResult {
-        return ImportRoutingResult(
-            destination: .referenceLibrary,
-            title: (input.filePath as NSString).deletingPathExtension,
-            summary: "stub classification",
-            tags: ["imported"],
-            entityType: "other",
-            category: nil,
-            confidence: 1.0,
-            rewrittenBody: nil,
-            extraFiles: [],
-        )
-    }
-    // the stub's isContentSame is a conservative "always different" default (= the user
-    // always sees a fresh import in stub mode; = no false skips in the stub path).
-    func isContentSame(
-        sourceBody: String,
-        existingBody: String,
-        sourceTitle: String
-    ) async throws -> ContentSameResult {
-        return ContentSameResult(
-            isContentSame: false,
-            confidence: 0.0,
-            reasoning: "Stub router; 始终按不同内容处理。"
-        )
-    }
-}
-
 // MARK: - Wizard chrome (= step indicator + nav bar)
 
 /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
@@ -407,43 +371,6 @@ struct PickerRow<Leading: View, Trailing: View>: View {
             trailing
         }
         .frame(height: DesignTokens.pickerCardHeight)
-    }
-}
-
-/// renamed
-/// from `PickerSectionLabel`
-/// (= the boss rejected
-/// per-section labels; =
-/// sections are now
-/// separated by a single
-/// `Divider`; = no label
-/// needed). Kept here as
-/// (= kept for future use;
-/// deleting it = dead-code
-/// sweep, deferred to a
-/// dedicated cleanup pass).
-
-/// a Pages-style
-/// section label (= the bold
-/// text-only label that introduces
-/// a new section in the inspector;
-/// = e.g. "字体", "字符样式",
-/// "文本颜色"; = the label is
-/// NOT in a card; = it sits
-/// directly on the panel surface
-/// with 24 PT gap above (= the
-/// section gap; = the Pages
-/// inspector uses a larger gap
-/// between major sections than
-/// within a section).
-struct PickerSectionLabel: View {
-    let text: String
-
-    var body: some View {
-        Text(text)
-            .font(.headline)
-            .foregroundStyle(.primary)
-            .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

@@ -231,7 +231,6 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // SwiftData version), open the migration panel BEFORE the main app
         // mounts the NavigationSplitView (= the columns would otherwise read
         // half-migrated SwiftData state). The panel runs the .lightweight V1
-        // -> V2 migration driven by WenshuMigrationPlan (= 002 ticket); = on
         // success the main window appears and the user continues normally.
         // NOTE (= TODO): the trigger condition `LibraryInfo(wsRoot:
         // ...).needsMigration` compares Info.plist's WSSchemaVersion (=
@@ -527,7 +526,7 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     // .ws/WenshuStore.store to .ws/migration-backups/v<old>-<ts>.store; =
     // bookkeeping so a catastrophic migration failure never costs the user their
     // library. executing = ModelContainer init with the plan in place (= SwiftData
-    // runs WenshuMigrationPlan.lightweight V1 -> V2 internally); = this is where
+    // runs the lightweight V1 -> V2 migration internally); = this is where
     // the real schema diff is applied. finalizing = write the new WSSchemaVersion
     // (= 2) to the .ws Info.plist so the next launch skips the panel (= the user
     // is on V2). The pipeline drives LibraryMigrationState (= 003 ticket) through

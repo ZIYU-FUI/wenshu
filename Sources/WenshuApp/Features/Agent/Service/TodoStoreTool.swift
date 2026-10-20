@@ -86,7 +86,7 @@ struct TodoStoreTool: Tool, Sendable {
     }()
 
 
-    /// Tool name (matches HermesTodoSchema.name = "todo"; ToolExecutor
+    /// Tool name (matches the "todo" contract; ToolExecutor
     /// routes one tool_use block to one Tool by name).
     let name = "todo"
 

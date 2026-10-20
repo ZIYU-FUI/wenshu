@@ -56,22 +56,6 @@ import os.log
 
 private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "container")
 
-/// SchemaMigrationPlan driving the per-version evolution of the wenshu
-/// SwiftData store. Lives at the top of Container.swift (= close to the
-/// schema namespace it migrates). Lightweight between V1 and V2 today
-/// (= both schemas hold the same 22 @Model class set; = no breaking
-/// delta). When a real schema delta ships (= new field, renamed entity,
-/// deleted field), the V1toV2 stage body changes to a custom MigrationStage
-/// (= with willMigrate + didMigrate) while the plan skeleton stays.
-public enum WenshuMigrationPlan: SchemaMigrationPlan {
-    public static var schemas: [any VersionedSchema.Type] {
-        [ModelsSchemaV1.self, ModelsSchemaV2.self]
-    }
-    public static var stages: [MigrationStage] {
-        [.lightweight(fromVersion: ModelsSchemaV1.self, toVersion: ModelsSchemaV2.self)]
-    }
-}
-
 /// Singleton ModelContainer (= held by AppState).
 /// Initialization is lazy (= defer until first access).
 public enum WSPersistenceContainer {
@@ -137,7 +121,7 @@ public enum WSPersistenceContainer {
             // The current V1/V2 schema pair holds the same 29 @Model class
             // set (= additive placeholder; = no real schema delta yet),
             // so a plan would only produce duplicate-version checksums
-            // (= NSInvalidArgumentException at launch). WenshuMigrationPlan
+            // (= NSInvalidArgumentException at launch).
             // + ModelsSchemaV1/V2 stay declared for the future non-additive
             // change (= rename, type change, cardinality flip), but they
             // are not wired into the container initializer until a real

@@ -13,14 +13,12 @@
 //    4. Empty tabs (= strip is empty view, no crash).
 //    5. Click closes tab (= onClose fires with the right id).
 //    6. Click selects tab (= onSelect fires with the right id).
-//    7. Drag-reorder (= displayOrder mutates + onReorder fires with
 //       the new id order).
 //
 //  Approach: SwiftUI View testing without hosting (= no NSHostingView
 //  + NSApplication). The View is constructed directly, the body is
 //  walked via the SwiftUI internal `body` (= not stable across SDK
 //  versions), so we test the *semantics* not the rendering tree.
-//  For the drag-reorder case, we invoke the TabDropDelegate directly
 //  (= the closure side-effects are pure: state mutation + callback
 //  invocation).
 
@@ -59,7 +57,6 @@ struct EditorTabStripTests {
             selectedTabId: nil,
             onSelect: { _ in },
             onClose: { _ in },
-            onReorder: { _ in }
         )
         // body access would normally force-render (= which we want
         // to avoid in unit tests without hosting); = just confirming
@@ -78,7 +75,6 @@ struct EditorTabStripTests {
             selectedTabId: tab2.id,
             onSelect: { _ in },
             onClose: { _ in },
-            onReorder: { _ in }
         )
         _ = strip.body
     }
@@ -98,7 +94,6 @@ struct EditorTabStripTests {
             selectedTabId: nil,
             onSelect: { _ in },
             onClose: { _ in },
-            onReorder: { _ in }
         )
         _ = strip.body
         // The title resolves to the entity title (= no path = use
@@ -117,7 +112,6 @@ struct EditorTabStripTests {
             selectedTabId: nil,
             onSelect: { _ in },
             onClose: { _ in },
-            onReorder: { _ in }
         ).body
         #expect(
             EditorTab.displayTitle(tab) == "Hello World",
@@ -140,7 +134,6 @@ struct EditorTabStripTests {
             selectedTabId: tab2.id,
             onSelect: { _ in },
             onClose: { _ in },
-            onReorder: { _ in }
         )
         // The active tab id is the one passed in. The view's
         // internal state holds this as a binding reference (= no
@@ -171,14 +164,12 @@ struct EditorTabStripTests {
             selectedTabId: tab1.id,
             onSelect: { _ in },
             onClose: { _ in },
-            onReorder: { _ in }
         )
         let strip2 = EditorTabStrip(
             tabs: after,
             selectedTabId: tab3.id,
             onSelect: { _ in },
             onClose: { _ in },
-            onReorder: { _ in }
         )
         // Same tabs, different active; = the rendered ForEach iterates
         // the same id list (= no order change).
@@ -201,7 +192,6 @@ struct EditorTabStripTests {
             selectedTabId: tab1.id,
             onSelect: { _ in },
             onClose: { id in receivedId = id },
-            onReorder: { _ in }
         )
         _ = strip.body
         // Simulate the user clicking × on tab2 (= invoke the
@@ -229,7 +219,6 @@ struct EditorTabStripTests {
             selectedTabId: tab1.id,
             onSelect: { id in receivedId = id },
             onClose: { _ in },
-            onReorder: { _ in }
         )
         _ = strip.body
         strip.onSelect(tab2.id)
@@ -237,88 +226,6 @@ struct EditorTabStripTests {
             receivedId == tab2.id,
             "Expected onSelect(tab2.id) to surface the selected tab id"
         )
-    }
-
-    // MARK: - Drag reorder (via TabDropDelegate directly)
-
-    /// When the user drops a tab ON a target tab, the displayOrder
-    /// should reorder to put the dragged tab before the target
-    /// (= Apple's HIG multi-tab reorder pattern).
-    @Test("dropDelegate_reordersDisplayOrder")
-    func dropDelegate_reordersDisplayOrder() {
-        let tab1 = makeTab(documentPath: "/foo/a.md")
-        let tab2 = makeTab(documentPath: "/foo/b.md")
-        let tab3 = makeTab(documentPath: "/foo/c.md")
-
-        var displayOrder: [UUID] = [tab1.id, tab2.id, tab3.id]
-        var receivedReorder: [UUID]?
-        var receivedDraggingId: UUID?
-
-        let strip = EditorTabStrip(
-            tabs: [tab1, tab2, tab3],
-            selectedTabId: tab1.id,
-            onSelect: { _ in },
-            onClose: { _ in },
-            onReorder: { newOrder in
-                receivedReorder = newOrder
-                displayOrder = newOrder
-            }
-        )
-        _ = strip.body
-
-        // The TabDropDelegate is private to the file (= we cannot
-        // construct it from outside). However, the same closure
-        // logic is exercised by the onDrop(.delegate:) hook on each
-        // tab; = for unit-test purposes we verify the *contract* by
-        // simulating the reorder callback (= the delegate fires
-        // onReorder when performDrop returns true).
-        //
-        // Test the contract: simulate a drop(= drag tab3 onto tab1).
-        // The expected new order: [tab3, tab1, tab2].
-        let expectedNewOrder = [tab3.id, tab1.id, tab2.id]
-
-        // The delegate runs through the SwiftUI .onDrop machinery
-        // (= not directly callable). We verify the *callback*
-        // contract: when onReorder fires with the expected order,
-        // the caller's displayOrder is rewritten to match.
-        strip.onReorder(expectedNewOrder)
-        #expect(
-            receivedReorder == expectedNewOrder,
-            "Expected onReorder to receive the dropped order"
-        )
-        #expect(
-            displayOrder == expectedNewOrder,
-            "Expected caller's displayOrder to be rewritten to match the new order"
-        )
-        receivedDraggingId = nil
-    }
-
-    /// Drag-reorder preserves the active tab (= critical for UX:
-    /// dropping the selected tab between two others must not lose
-    /// the active highlight).
-    @Test("reorder_doesNotChangeActiveTabId")
-    func reorder_doesNotChangeActiveTabId() {
-        let tab1 = makeTab(documentPath: "/foo/a.md")
-        let tab2 = makeTab(documentPath: "/foo/b.md")
-        let tab3 = makeTab(documentPath: "/foo/c.md")
-        let activeId = tab2.id
-        let newOrder = [tab1.id, tab3.id, tab2.id]
-        let strip = EditorTabStrip(
-            tabs: [tab1, tab3, tab2],
-            selectedTabId: activeId,
-            onSelect: { _ in },
-            onClose: { _ in },
-            onReorder: { _ in }
-        )
-        _ = strip.body
-        // The active tab id is whatever the caller passes (= the
-        // strip never mutates it). Reorder = same id, different
-        // position.
-        #expect(
-            strip.selectedTabId == activeId,
-            "Expected selectedTabId to survive reorder"
-        )
-        _ = newOrder // order is the caller's responsibility
     }
 
     // MARK: - Tabs list mutation (= external add/remove)
@@ -336,7 +243,6 @@ struct EditorTabStripTests {
             selectedTabId: tab1.id,
             onSelect: { _ in },
             onClose: { _ in },
-            onReorder: { _ in }
         )
         _ = strip1.body
 
@@ -347,7 +253,6 @@ struct EditorTabStripTests {
             selectedTabId: tab1.id,
             onSelect: { _ in },
             onClose: { _ in },
-            onReorder: { _ in }
         )
         _ = strip2.body
         // The strip reflects the new tabs in the new order.
@@ -371,7 +276,6 @@ struct EditorTabStripTests {
             selectedTabId: tab1.id,
             onSelect: { _ in },
             onClose: { _ in },
-            onReorder: { _ in }
         )
         _ = strip.body
         #expect(

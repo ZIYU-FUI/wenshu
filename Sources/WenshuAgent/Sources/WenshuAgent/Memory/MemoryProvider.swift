@@ -6,7 +6,7 @@
 //
 // SwiftData-backed persistence uses WSMemoryRepository (@MainActor)
 // wrapping the WSMemory @Model.
-// (= PreCompressCheckpointAPI + ToolSchema.normalize +
+// (= ToolSchema.normalize +
 // memoryProviderToolsEnabled), but DEFER the wenshu-irrelevant
 // hermes-side surface (= queue_prefetch for background prefetching +
 // recall_status for deterministic indicator rendering + is_available
@@ -60,23 +60,6 @@ public protocol MemoryProvider: Sendable {
     /// checkpoint payload that survives the compression.
     /// Default: nil (= provider doesn't need pre-compress checkpointing).
     func preCompressCheckpoint() async -> String?
-}
-
-// MARK: - Pre-compress API version (= hermes constant)
-
-/// API version constant for the pre-compress checkpoint contract
-/// (= hermes PRE_COMPRESS_CHECKPOINT_API_VERSION = 2).
-public enum PreCompressCheckpointAPI {
-    /// Latest API version (= hermes v2).
-    public static let currentVersion: Int = 2
-
-    // (legacyVersion removed 2026-10 in q99-spec-p0-batch2 — verify-dead.py
-    //  confirmed 0 external callers; = no provider still references the
-    //  checkpoint contract (= all migrated in the SwiftData
-    //  migration; = the constant was retained as a hermes-port artifact
-    //  but never wired). See wenshu-pocock-workflow
-    //  references/v3.0-design-system-rule.md + wenshu-dead-code-cleanup
-    //  SKILL.md.)
 }
 
 // MARK: - Tool schema (= hermes normalize_tool_schema surface)

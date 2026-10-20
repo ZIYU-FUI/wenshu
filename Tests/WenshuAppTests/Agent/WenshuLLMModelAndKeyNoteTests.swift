@@ -1,7 +1,7 @@
 //
 //  WenshuLLMModelAndKeyNoteTests.swift · Wenshu · v0.38 Batch 3 sub-step 15
 //
-//  Tests for WenshuLLMModel + WenshuVerifierKeyNote + WenshuLLMModelFetcher
+//  Tests for WenshuLLMModel + WenshuVerifierKeyNote
 //  (= v0.21 ticket 04 + v0.23 ticket 009 + v0.36 ticket 008).
 //
 // Per cadence 2026-09-03 'resume' (= auto-pilot mode
@@ -9,7 +9,7 @@
 // don't' + '1 RULE 1 commit'.
 //
 //  Safe scope (= NOT v0.34 in-flight) = WenshuLLMModel.swift is v0.21,
-//  WenshuVerifierKeyNote.swift is v0.23, WenshuLLMModelFetcher.swift is
+//  WenshuVerifierKeyNote.swift is v0.23, the model-fetch layer
 // 
 
 import Testing

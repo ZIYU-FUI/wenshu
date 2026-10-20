@@ -76,7 +76,6 @@ public enum ModelsSchemaV1: VersionedSchema {
             WSKanbanTask.self,
             WSEntity.self,
             WSBody.self,
-            WSBodyEmbedding.self,
             WSOutlineEntry.self,
             WSReference.self,
             // Tier 4: workspace layout tree (= 2026-10-05 #9 commit 1)
@@ -99,7 +98,7 @@ public enum ModelsSchemaV2: VersionedSchema {
     /// The 22 @Model class types at v2 (= same as V1 today). When a
     /// breaking change lands, this list changes (= additions are
     /// picked up by lightweight migration; = renames or deletions
-    /// require a custom MigrationStage in WenshuMigrationPlan).
+    /// require a custom MigrationStage).
     public static var models: [any PersistentModel.Type] {
         [
             // Tier 1: leaf entities (= no relationships)
@@ -127,7 +126,6 @@ public enum ModelsSchemaV2: VersionedSchema {
             WSKanbanTask.self,
             WSEntity.self,
             WSBody.self,
-            WSBodyEmbedding.self,
             WSOutlineEntry.self,
             WSReference.self,
             // Tier 4: workspace layout tree (= 2026-10-05 #9 commit 1)

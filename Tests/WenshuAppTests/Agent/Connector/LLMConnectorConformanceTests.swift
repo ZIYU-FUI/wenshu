@@ -14,7 +14,7 @@
 //    2. conforms to `LLMConnector` (= has both `connectorID: String`
 //       and `send(messages:options:) async throws -> LLMResponse`)
 //    3. has a unique `connectorID` (= no duplicates = the routing
-//       layer in AuxiliaryClient can disambiguate)
+//       layer can disambiguate)
 //
 //  These tests don't make any network calls; they only verify the
 //  type-level conformance (= Swift's type system = the canonical
@@ -91,7 +91,7 @@ struct LLMConnectorConformanceTests {
         )
     }
 
-    /// The 7 connector IDs MUST be unique (= the AuxiliaryClient
+    /// The 7 connector IDs MUST be unique (= the auxiliary
     /// routing layer dispatches by connectorID; = duplicates
     /// would silently route to the wrong connector).
     ///

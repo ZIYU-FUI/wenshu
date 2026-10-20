@@ -27,13 +27,6 @@ extension WenshuConductor {
             return [:]
         }
     
-        // / Sendable-safe result box for the sync-over-async bridge (= `any Tool` is
-        // … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8)
-        // / invariant.
-        private final class SyncResultBox: @unchecked Sendable {
-            var value: [String: any Tool] = [:]
-        }
-    
         // / thread-safe cache for `buildToolsSync`. Uses `NSLock` instead of an
         // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // / via `cachedTools` return instantly when the cache is hot.

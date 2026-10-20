@@ -39,59 +39,6 @@ import WenshuData
 // the migration window so the 17 existing call sites compile unchanged.
 extension Notification.Name {}  // placeholder; all members moved to AppNotifications.swift
 
-// MARK: - Layout tokens (ratio operators 0~1, "1:1 PT truth" + "convert to ratios" decisions)
-//
-// Data source: Sketch AF7B1C87 / Artboard Home 1920×984 PT 1:1 mapping
-// Formula: layoutPT(token) = totalW * ratio (e.g. projectSidebar ratio = 200/1920 = 0.1042)
-// Apple HIG responsive: GeometryReader reads actual window size × ratio = 1:1 self-adaptive at any window size
-
-/// Apple Semantic Color — fully dark-mode adapted, zero RGB hardcoded
-// removed the `DesignColor` enum entirely. The 5 static
-// lets (= titleBar / zoneSurface / dynamicZoneSurface / accentBlue /
-// splitterLine) were each just a thin wrapper over a bare
-// `Color(nsColor: .NSColorStaticProperty)` Apple API call. The
-// wrapper added an extra type with no semantic value (= it renamed
-// Apple NSColor static properties with no-op translation). All 4
-// callers migrated to bare `Color(nsColor: .NSColor)` form in this
-// commit. The 1 unused member (dynamicZoneSurface) had zero callers
-// and is gone entirely. Apple canonical = direct NSColor calls; no
-// project-local color wrapper enum.
-
-enum LayoutTokens {
-    // (designW / designH / chromeControlHeight removed 2026-10 in
-    //  q99-spec-p0-batch1 commit after verify-dead.py confirmed 0
-    //  external callers; = the original 1480 / 980 baseline never
-    //  bound to a window, and macOS NavigationSplitView ignores the
-    //  design values; = chromeControlHeight was superseded by
-    //  DesignTokens chromeHeight = 30 (= the canonical chrome standard
-    //  per AGENTS §11 token rule). See wenshu-pocock-workflow
-    //  references/v3.0-design-system-rule.md.)
-
-
-    // complete code, regarding styles, inconsistent — why don't you audit them'): single source
-    // of truth for chrome padding (= replaces magic numbers 4, 6, 8
-    // scattered across 15 files). Centralized here so future padding
-    // changes apply uniformly across the app (= one place to edit,
-    // every pane updates at once).
-    //
-    // Apple HIG canonical padding values for per-pane chrome items:
-    // - chromePaddingSmall = 4 PT (= tight spacing for chip / pill)
-    // - chromePaddingLarge = 8 PT (= roomier spacing for top/bottom
-    //   alignment of text inside chrome bars — matches Apple HIG
-    //   toolbar button padding)
-    static let chromePaddingSmall: CGFloat = 4
-    static let chromePaddingLarge: CGFloat = 8
-
-    // per-region control heights (= chat input row buttons, tab
-    // buttons, hover hot areas). chromeControlHeight was removed
-    // 2026-10 (= verify-dead.py confirmed 0 external callers; =
-    // superseded by DesignTokens chromeHeight = 30, the canonical
-    // chrome standard per AGENTS §11 token rule). See
-    // wenshu-pocock-workflow references/v3.0-design-system-rule.md.
-
-
-}
-
 // MARK: - Self screenshot (= the canonical practice: screenshot after every code change)
 
 enum SelfScreenshot {

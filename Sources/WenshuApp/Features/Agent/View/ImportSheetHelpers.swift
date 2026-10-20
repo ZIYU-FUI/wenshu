@@ -253,7 +253,7 @@ extension ImportSheet {
 
             // Divider between the file / source section and the destination section (=
             // the boss's "用一条 分割线分割" directive; = the previous
-            // `PickerSectionLabel ` + 24 PT gap is replaced with a single
+            // the section label + 24 PT gap is replaced with a single
             // hairline Divider; = the small vertical padding around the
             // Divider is 8 PT (= `spacing Standard`) = enough for the user
             // to see the Divider as a deliberate separator; = matches the

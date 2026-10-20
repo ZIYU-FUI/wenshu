@@ -200,34 +200,3 @@ enum EditorDocumentToolsSubTool: String, CaseIterable, Identifiable {
         }
     }
 }
-
-/// Placeholder body (= T-04 ships empty placeholders so the page
-/// structure is wired end-to-end before any sub-tool lands). Each
-/// placeholder names the upcoming ticket (= so future agents know
-/// exactly where to land the body when the ticket fires).
-///
-/// `wiredIn` is shown as a `help()` on the title (= a 1-line audit
-/// trail = which ticket fills this body; = disappears once a real
-/// body lands in T-06..09).
-private struct EditorDocumentToolsPlaceholder: View {
-    /// Localized title key (= rendered as the placeholder header).
-    let titleKey: String
-    /// Localized body key (= rendered as the placeholder description).
-    let bodyKey: String
-    /// Upcoming ticket name (= shown as `.help()` audit trail so
-    /// future agents know where the real body lands).
-    let wiredIn: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.spacingStandard) {
-            Text(LocalizedStringKey(titleKey))
-                .font(.body)
-                .foregroundStyle(.secondary)
-                .help("wired in \(wiredIn)")
-            Text(LocalizedStringKey(bodyKey))
-                .font(.callout)
-                .foregroundStyle(.tertiary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}

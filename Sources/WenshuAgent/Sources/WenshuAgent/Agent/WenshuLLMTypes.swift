@@ -3,7 +3,7 @@
 //
 //  AUDIT.md §2.6 partial (2026-10-16 boss "清老代码必须
 //  做完" arc): these 5 types (WenshuLLMMessage /
-//  WenshuLLMRequest / WenshuLLMBlock / WenshuLLMUsage /
+//  WenshuLLMBlock / WenshuLLMUsage /
 //  WenshuLLMResponse) were originally defined inline in
 //  WenshuVerifier.swift. They are now extracted here
 //  because the WenshuVerifier actor (= the legacy LLM
@@ -33,20 +33,6 @@ public struct WenshuLLMMessage: Codable, Sendable {
     public init(role: String, content: String) {
         self.role = role
         self.content = content
-    }
-}
-
-/// WenshuLLMRequest: the request envelope for the
-/// minimax-cn API (= model + max_tokens + messages).
-public struct WenshuLLMRequest: Codable, Sendable {
-    public let model: String
-    public let max_tokens: Int
-    public let messages: [WenshuLLMMessage]
-
-    public init(model: String, max_tokens: Int, messages: [WenshuLLMMessage]) {
-        self.model = model
-        self.max_tokens = max_tokens
-        self.messages = messages
     }
 }
 
