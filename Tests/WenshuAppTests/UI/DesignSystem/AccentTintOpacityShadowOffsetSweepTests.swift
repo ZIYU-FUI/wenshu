@@ -50,7 +50,6 @@ struct AccentTintOpacityShadowOffsetSweepTests {
             ("Features/Editor/View/EditorView.swift", "accentTintOpacitySubtle"),
             ("Features/Agent/View/EmotionCurveView.swift", "accentTintOpacitySubtle"),
             ("Features/Editor/View/PreviewPane.swift", "accentTintOpacityHero"),
-            ("Features/Editor/View/LayoutEditBar.swift", "surfaceShadowOffsetWindow"),
             ("Features/Editor/View/EditorPaperCanvas.swift", "surfaceShadowOffsetButton"),
         ]
 

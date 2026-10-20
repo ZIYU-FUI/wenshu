@@ -52,7 +52,6 @@ struct LazyVStackSpacingAspectRatioSweepTests {
             ("Features/Agent/View/PlaceholderView.swift", "DesignTokens.spacingTight"),
             ("Features/Chat/View/ChatView.swift", "DesignTokens.spacingStandard"),
             ("Features/Kanban/View/KanbanView.swift", "DesignTokens.spacingTight"),
-            ("Features/Editor/View/PresetCard.swift", "DesignTokens.presetThumbnailAspectRatio"),
         ]
 
         for (relative, expectedToken) in sweptFiles {

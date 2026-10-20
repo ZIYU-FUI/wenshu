@@ -68,13 +68,6 @@ final class WorkspaceUIState {
     /// AppState).
     var previewSortOrder: EntitySortOrder = .pinyinFirstLetter
 
-    /// Layout edit mode state (= `⌘⇧\` toggle / `Escape` exit).
-    /// Hoisted to `appState.editMode` so all workspace
-    /// descendants share one instance (= per-window via
-    /// WenshuApp's `@State`). Hotkey binding lives in
-    /// `EditModeHotkey.swift`.
-    var editMode = LayoutEditMode()
-
     /// Active tag filter (= the user clicked a `.tag(String)`
     /// sidebar item; = the preview pane renders only references
     /// whose `tags` set contains this string). `nil` means

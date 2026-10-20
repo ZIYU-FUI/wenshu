@@ -64,7 +64,6 @@ struct ChatBubbleWidthDragThresholdSweepTests {
             ("Features/Agent/View/ReaderExperienceView.swift", "metadataPanelMaxWidth"),
             ("Features/Agent/View/GenreFitView.swift", "metadataPanelMaxWidth"),
             ("Shared/UI/LibraryRootView.swift", "onboardingWelcomeMaxWidth"),
-            ("Features/Editor/View/ZoneEditor.swift", "dragGestureThresholdCanvas"),
         ]
 
         for (relative, expectedToken) in sweptFiles {

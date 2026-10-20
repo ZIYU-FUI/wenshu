@@ -48,7 +48,6 @@ struct WindowBackgroundShapeStyleSweepTests {
 
         let sweptFiles = [
             "Shared/UI/CommandPaletteView.swift",
-            "Features/Editor/View/ZoneEditor.swift",
             "Features/Agent/View/LongFormGuardrailsView.swift",
             "Features/Library/View/BookEditorSheet.swift",
             "Shared/UI/LibraryRootView.swift",
