@@ -453,9 +453,13 @@ public enum ProviderKeychain {
         // method-level short-circuits (= every SecItem* call is
         // no-op'd), this gives 3 layers of defense against the
         // macOS SecurityAgent modal prompt.
-        if UserDefaults.standard.bool(forKey: "wenshu.debugNoKeychain") {
-            return
-        }
+        // The `wenshu.debugNoKeychain` flag no longer short-circuits these
+        // calls. It used to mean "pretend there is no key at all", which made
+        // the chat empty-state appear even when the key was on disk (= the
+        // user had to retype it on every launch). It now means "use the file
+        // store instead of the keychain", which `resolveBackend` already
+        // handles; short-circuiting here threw the key away instead of
+        // redirecting it.
         // read from the per-task TaskLocal (= or
         // fall back to the global `backend`). Tests that opt into
         // the TaskLocal pattern via `withBackendForTesting` get
@@ -464,23 +468,14 @@ public enum ProviderKeychain {
     }
     public static func loadKeySync(for provider: Provider) -> String? {
         // See saveKeySync.
-        if UserDefaults.standard.bool(forKey: "wenshu.debugNoKeychain") {
-            return nil
-        }
         return currentBackend().loadKeySync(for: provider)
     }
     public static func deleteKeySync(for provider: Provider) throws {
         // See saveKeySync.
-        if UserDefaults.standard.bool(forKey: "wenshu.debugNoKeychain") {
-            return
-        }
         try currentBackend().deleteKeySync(for: provider)
     }
     public static func listProvidersWithKeys() -> [String] {
         // See saveKeySync.
-        if UserDefaults.standard.bool(forKey: "wenshu.debugNoKeychain") {
-            return []
-        }
         return currentBackend().listProvidersWithKeys()
     }
     // shim methods (= delegate to backend).

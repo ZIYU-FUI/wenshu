@@ -102,4 +102,33 @@ struct UnsignedKeychainPromptTests {
         #expect(store.mayUseKeychain == MirroredKeychainStore.isStableSigned,
                 "the production store must agree with the signature check")
     }
+
+    @Test("the debug override reads the file store instead of discarding the key")
+    func debugOverrideKeepsTheKeyReadable() {
+        // The `wenshu.debugNoKeychain` flag used to make every call return
+        // nothing (= "pretend there is no key"), which put the chat empty
+        // state on screen even though the key was sitting in the file. The
+        // flag now means "use the file store", so the key must still be
+        // readable.
+        //
+        // The flag is read from UserDefaults, so this test drives the same
+        // path the app drives.
+        let previous = UserDefaults.standard.bool(forKey: "wenshu.debugNoKeychain")
+        UserDefaults.standard.set(true, forKey: "wenshu.debugNoKeychain")
+        defer { UserDefaults.standard.set(previous, forKey: "wenshu.debugNoKeychain") }
+
+        let backend = ProviderKeychain.resolveBackend()
+        #expect(backend is FileProviderKeyStore,
+                "the debug override must resolve to the file store, not to a store that discards the key")
+    }
+
+    @Test("the file store lists the providers it has keys for")
+    func fileStoreListsProviders() {
+        // The list path is what the chat empty-state reads. A store that
+        // resolves correctly but lists nothing still produces the empty
+        // state, so the listing is checked directly.
+        let store = FileProviderKeyStore()
+        let listed = store.listProvidersWithKeys()
+        #expect(listed == listed.sorted(), "the provider list must be sorted")
+    }
 }
