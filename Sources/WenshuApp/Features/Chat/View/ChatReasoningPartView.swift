@@ -22,12 +22,20 @@
 //  - isRunning pulse (= the wenshu StatusPulse private struct) is
 //    rendered inline as the row identity when still streaming.
 //
+//  The reasoning is split into labelled steps when it carries markers
+//  (= the model's own action and result notes) and shown as one block
+//  when it does not. The tool-derived activity is a separate list under
+//  the same disclosure, because the tool calls are facts and the model's
+//  prose is its own account of them.
+//
 
 import SwiftUI
 
 struct ChatReasoningPartView: View {
     let text: String
     let isRunning: Bool
+    /// The steps the assistant performed, when the reply performed any.
+    let activity: [ToolActivity]
     // -cleanup E2 (see OOB.md #2026-09-21) OOB 'AI ' (= the
     // thinking content was collapsed by default; = the user could see
     // only the brain-head-profile icon and the "AI thought for Xs"
@@ -38,9 +46,10 @@ struct ChatReasoningPartView: View {
     // can collapse it manually via the disclosure chevron.
     @State private var isExpanded: Bool = true
 
-    init(text: String, isRunning: Bool = false) {
+    init(text: String, isRunning: Bool = false, activity: [ToolActivity] = []) {
         self.text = text
         self.isRunning = isRunning
+        self.activity = activity
     }
 
     var body: some View {
@@ -49,16 +58,16 @@ struct ChatReasoningPartView: View {
         // Mail / Notes "Show Details" toggles). Renders a label +
         // chevron that the user clicks to expand.
         DisclosureGroup(isExpanded: $isExpanded) {
-            // Reasoning content (= same markdown treatment as the
-            // text part = inline bold/italic/code works). Use .caption
-            // (= smaller than the main text) + .secondary tone (= the
-            // standard Apple HIG "supplementary content" tone).
-            Text(Self.renderMarkdown(text))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .textSelection(.enabled)
-                .padding(.top, DesignTokens.spacingIconic)
-                .transition(.opacity)
+            VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
+                ForEach(Array(segments.enumerated()), id: \.offset) { _, segment in
+                    ReasoningSegmentView(segment: segment)
+                }
+                if !activity.isEmpty {
+                    ToolActivityList(activity: activity)
+                }
+            }
+            .padding(.top, DesignTokens.spacingIconic)
+            .transition(.opacity)
         } label: {
             // -cleanup E2 (see OOB.md #2026-09-21) OOB 'AI '
             // (= the brain-head-profile icon was C2-era wenshu-side chrome
@@ -92,6 +101,78 @@ struct ChatReasoningPartView: View {
     /// contains structure like `**KEY POINT**: ...`).
     private static func renderMarkdown(_ raw: String) -> AttributedString {
         ChatTextPartView.parseMarkdown(raw)
+    }
+
+    /// The reasoning split into steps.
+    ///
+    /// A message whose reasoning carries no markers is one prose block, so
+    /// the rendering matches what the reader would see anyway.
+    private var segments: [ReasoningSegment] {
+        let parsed = ReasoningMarkupParser.parse(text)
+        return parsed.isEmpty ? [.prose(text)] : parsed
+    }
+}
+
+/// One labelled step of the assistant's reasoning.
+private struct ReasoningSegmentView: View {
+    let segment: ReasoningSegment
+
+    var body: some View {
+        switch segment {
+        case .prose(let text):
+            // Reasoning content (= same markdown treatment as the
+            // text part = inline bold/italic/code works). Use .caption
+            // (= smaller than the main text) + .secondary tone (= the
+            // standard Apple HIG "supplementary content" tone).
+            Text(ChatTextPartView.parseMarkdown(text))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .textSelection(.enabled)
+        case .action(let text), .result(let text):
+            // A step the assistant took, labelled so the reader can tell
+            // an attempt from an outcome. The label is what makes the
+            // difference: without it, "reading the outline" and "the
+            // outline has three parts" look like the same kind of line.
+            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.spacingTight) {
+                Text(label)
+                    .font(.caption.monospaced())
+                    .foregroundStyle(.tertiary)
+                Text(ChatTextPartView.parseMarkdown(text))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+            }
+        }
+    }
+
+    private var label: String {
+        switch segment {
+        case .action: return String(localized: "chatview.reasoning.action")
+        case .result: return String(localized: "chatview.reasoning.result")
+        case .prose: return ""
+        }
+    }
+}
+
+/// The steps the assistant performed, as a running log.
+private struct ToolActivityList: View {
+    let activity: [ToolActivity]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
+            ForEach(activity) { step in
+                HStack(alignment: .firstTextBaseline, spacing: DesignTokens.spacingTight) {
+                    Text(step.kind == .action
+                         ? String(localized: "chatview.reasoning.action")
+                         : String(localized: "chatview.reasoning.result"))
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.tertiary)
+                    Text(step.text)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+        }
     }
 }
 

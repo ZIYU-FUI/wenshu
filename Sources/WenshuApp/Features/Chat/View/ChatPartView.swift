@@ -100,12 +100,23 @@ struct ChatMessageBodyView: View {
                         part: part,
                         isOutgoing: isOutgoing,
                         isStreaming: isStreaming,
+                        activity: activity,
                         onApprovePlan: onApprovePlan
                     )
                 }
             }
         }
         .foregroundStyle(roleForeground)
+    }
+
+    /// The steps the assistant performed during this reply.
+    ///
+    /// Derived from the tool calls the reply recorded. A tool call is a
+    /// fact the program observed, so it is a better source for "what did
+    /// the assistant just do" than the model's own account of itself in
+    /// its reasoning prose.
+    private var activity: [ToolActivity] {
+        ToolActivity.activity(from: message.parts)
     }
 }
 
@@ -117,6 +128,12 @@ private struct ChatPartRow: View {
     let part: ChatMessagePart
     let isOutgoing: Bool
     let isStreaming: Bool
+    /// The steps the assistant performed during this reply.
+    ///
+    /// The reasoning view needs the whole reply's tool calls to describe
+    /// the work, and a single part cannot see the rest of the message, so
+    /// the body view computes the list once and hands it down.
+    let activity: [ToolActivity]
     /// T22: optional approval closure for plan parts (= the user
     /// clicks Approve & Run = the parent = ChatMessageView = decides
     /// how to re-invoke the conductor with the approved plan). Nil
@@ -128,11 +145,13 @@ private struct ChatPartRow: View {
         part: ChatMessagePart,
         isOutgoing: Bool,
         isStreaming: Bool,
+        activity: [ToolActivity] = [],
         onApprovePlan: ((Plan) -> Void)? = nil
     ) {
         self.part = part
         self.isOutgoing = isOutgoing
         self.isStreaming = isStreaming
+        self.activity = activity
         self.onApprovePlan = onApprovePlan
     }
 
@@ -148,7 +167,7 @@ private struct ChatPartRow: View {
                 // streaming is alive).
                 .transition(.wenshuThinkingAppear())
         case .reasoning(let s):
-            ChatReasoningPartView(text: s, isRunning: isStreaming)
+            ChatReasoningPartView(text: s, isRunning: isStreaming, activity: activity)
                 // T40-THINKING-FADEIN (2026-09-18): when a reasoning
                 // part is added to or removed from a streaming message,
                 // the view fades in from the top (= Apple HIG content
