@@ -51,11 +51,6 @@ let package = Package(
         // .regular weight with .symbolRenderingMode(.palette) /
         // (.hierarchical).
 
-        // RUNTIME — CommonMark / GFM parser
-        // swift-markdown tags weren't returned by `git ls-remote` (it uses GitHub Releases,
-        // not git tags). Pin to a permissive lower bound; SPM will pick latest.
-        .package(url: "https://github.com/swiftlang/swift-markdown", from: "0.4.0"),
-
         // RUNTIME — chapter editor (v0.39 ticket 001, boss 2026-09-04 OOB '尝试接入')
         // Adopted per .scratch/2026-09-04-editor-migration/spec.md §2.1. nodes-app/swift-markdown-engine
         // = 971★ / Apache-2.0 / 3 contributors / Munich+Zurich / 0.12.0 latest 2026-08-10
@@ -73,21 +68,15 @@ let package = Package(
         // pre-1.0 SemVer rule anchored at 0.13.0 (= SPM does NOT climb to 0.14.x).
         .package(url: "https://github.com/nodes-app/swift-markdown-engine", "0.13.0"..<"0.14.0"),
 
-        // RUNTIME — UI enhancement: code-fence syntax highlight (transitive via
-        // MarkdownEngineCodeBlocks.HighlighterSwiftBridge which constructs a Highlighter instance
-        // at runtime; see Sources/WenshuApp/Editor/WenshuEditorServicesFactory.swift lines 64 + 86).
-        // Adopted per 2026-08-28-six-module-audit M2 (P1, 105 stars, 185 languages,
-        // 89 themes, pure-Swift no JS). Thin 5-star margin above the 100-star gate
-        // is acceptable per boss拍 A. SPM product name is `Highlighter` (not
-        // `HighlighterSwift`) per upstream Package.swift.
+        // RUNTIME — UI enhancement: code-fence syntax highlight. Highlighter itself
+        // is reached through MarkdownEngineCodeBlocks.HighlighterSwiftBridge; the
+        // product is not linked into WenshuApp because no call site names a
+        // Highlighter type directly. The pin stays because it holds the version
+        // floor above swift-markdown-engine's own `from: "3.0.0"`.
         .package(url: "https://github.com/smittytone/HighlighterSwift", from: "3.1.0"),
 
         // RUNTIME — SSE stream client (= AnthropicStreaming + AnthropicStreamingWireup import EventSource)
         .package(url: "https://github.com/mattt/EventSource", from: "1.5.1"),
-
-        // DEV — hot-reload (declared unconditionally for SPM; see per-file
-        // `#if DEBUG import Inject #endif` for the actual gate)
-        .package(url: "https://github.com/krzysztofzablocki/Inject", from: "1.6.0"),
 
         // TEST — SwiftUI view hierarchy inspection (testTarget only, no runtime)
         .package(url: "https://github.com/nalexn/ViewInspector", from: "0.10.3"),
@@ -125,21 +114,13 @@ let package = Package(
 
                 // RUNTIME — Apple SF Symbols 6 (= built into macOS 27; = zero SPM
                 // dependency; = see top-level note in the dependencies array).
-                .product(name: "Markdown", package: "swift-markdown"),
                 // v0.39 ticket 001: chapter editor.
                 .product(name: "MarkdownEngineCodeBlocks", package: "swift-markdown-engine"),
                 // LaTeX rendering via SwiftMathBridge (= enable 2026-10-11 boss拍).
                 // Same Package, separate product. Hosts SwiftMath 1.7.3 transitively
                 // (= Package.resolved already pins it).
                 .product(name: "MarkdownEngineLatex", package: "swift-markdown-engine"),
-                // Highlighter product (= the SPM product name is `Highlighter` even though
-                // the repo URL is HighlighterSwift; see upstream Package.swift). Required at
-                // runtime because MarkdownEngineCodeBlocks.HighlighterSwiftBridge instantiates
-                // a Highlighter in its init (Sources/WenshuApp/Editor/WenshuEditorServicesFactory.swift
-                // lines 64 + 86 wire HighlighterSwiftBridge into MarkdownEditorConfiguration).
-                .product(name: "Highlighter", package: "HighlighterSwift"),
                 .product(name: "EventSource", package: "EventSource"),
-                .product(name: "Inject", package: "Inject"),
             ],
             path: "Sources/WenshuApp",
             exclude: [
