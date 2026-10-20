@@ -41,44 +41,42 @@ struct MemorySettingsView: View {
     }
 
     var body: some View {
-        // The inline "最近记忆" list (= 100-row cap, scrollable)
-        // that used to live here was moved to the independent
-        // `MemoryHistoryView` (= `Sources/WenshuApp/UI/Memory/
-        // MemoryHistoryView.swift`) per the user's 2026-10-12
-        // directive "最近记忆不应该在设置中, 而是在一个独立的
-        // weindows, 在工具栏加一个 ICON 入口, 做一个独立
-        // windows 放记忆历史". This pane now owns the configuration
-        // surface only (= enable / scope / retention) and the
-        // list entry lives in its own `Window` Scene
-        // (`WindowID.memoryHistory`).
-        VStack(alignment: .leading, spacing: DesignTokens.spacingModerate) {
-            Text(String(localized: "settings.memory.title"))
-                .font(.headline)
-            Text(String(localized: "settings.memory.subtitle"))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            Divider()
-
-            Toggle(String(localized: "settings.memory.enable"), isOn: $isMemoryEnabled)
-                .toggleStyle(.switch)
-
-            Picker(String(localized: "settings.memory.scope"), selection: $scopeRaw) {
-                Text(String(localized: "settings.memory.scope.perBook")).tag(MemoryScope.perBook.rawValue)
-                Text(String(localized: "settings.memory.scope.libraryPublic")).tag(MemoryScope.libraryPublic.rawValue)
+        // Canonical Apple HIG macOS Settings layout (= Form with
+        // `.grouped` style; = the same shape the other Settings panes
+        // use, including the freshly-added "网络" (= Network) pane).
+        // The previous incarnation used a custom `VStack + .padding`
+        // (= title + subtitle + Divider + Toggle + 2 segmented
+        // pickers) which broke visual consistency with the rest of
+        // the Settings scene tree.
+        // Each logical row now lives in its own Section (= header +
+        // content + footer per Apple settings convention): Section
+        // 1 = the description + enable toggle (= the conceptual
+        // on/off for the entire Memory subsystem); Section 2 = the
+        // per-book / library-wide scope selector; Section 3 = the
+        // closed-enum retention picker (= 30 / 90 / 180 / 365 days)
+        // + last-purge confirmation footer.
+        Form {
+            Section {
+                Toggle(String(localized: "settings.memory.enable"), isOn: $isMemoryEnabled)
+                    .toggleStyle(.switch)
+            } header: {
+                Text(String(localized: "settings.memory.title"))
+            } footer: {
+                Text(String(localized: "settings.memory.subtitle"))
             }
-            .pickerStyle(.segmented)
-            .disabled(!isMemoryEnabled)
 
-            // Closed-enum retention picker (= product philosophy:
-            // = users pick from a closed set, no free-text input).
-            // The numeric slider becomes a Picker over 30 / 90 / 180 / 365 days.
-            // Each preset maps to a fixed retention budget (= per retentionDays
-            // in hermes MEMORY_RETENTION_BUCKETS).
+            Section {
+                Picker(String(localized: "settings.memory.scope"), selection: $scopeRaw) {
+                    Text(String(localized: "settings.memory.scope.perBook")).tag(MemoryScope.perBook.rawValue)
+                    Text(String(localized: "settings.memory.scope.libraryPublic")).tag(MemoryScope.libraryPublic.rawValue)
+                }
+                .pickerStyle(.segmented)
+                .disabled(!isMemoryEnabled)
+            } header: {
+                Text(String(localized: "settings.memory.scope"))
+            }
 
-            HStack {
-                Text(String(localized: "settings.memory.retention"))
-                    .frame(width: DesignTokens.settingsRowLabelWidth, alignment: .leading)
+            Section {
                 Picker(String(localized: "settings.memory.retention"), selection: $retentionDays) {
                     Text(String(localized: "settings.memory.retention.d30")).tag(30)
                     Text(String(localized: "settings.memory.retention.d90")).tag(90)
@@ -87,38 +85,22 @@ struct MemorySettingsView: View {
                 }
                 .pickerStyle(.segmented)
                 .disabled(!isMemoryEnabled)
-            }
-            .onChange(of: retentionDays) { _, newValue in
-                Task {
-                    // The `reloadEntries()` call was removed when
-                    // the inline list was moved to the independent
-                    // `MemoryHistoryView` (= the configuration
-                    // surface no longer holds the entries array,
-                    // = reload is the new window's responsibility).
-                    // The purge count stays here so the "N memories
-                    // purged" footer keeps updating on retention
-                    // changes.
-                    let deleted = MemoryAdapter().setRetentionDays(newValue)
-                    await MainActor.run { self.lastPurgeCount = deleted }
+            } header: {
+                Text(String(localized: "settings.memory.retention"))
+            } footer: {
+                if lastPurgeCount > 0 {
+                    Text(String.localizedStringWithFormat(NSLocalizedString("settings.memory.purge.count", comment: ""), lastPurgeCount))
                 }
             }
-
-            if lastPurgeCount > 0 {
-                Text(String.localizedStringWithFormat(NSLocalizedString("settings.memory.purge.count", comment: ""), lastPurgeCount))
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+        }
+        .formStyle(.grouped)
+        .navigationTitle(String(localized: "settings.memory.title"))
+        .onChange(of: retentionDays) { _, newValue in
+            Task {
+                let deleted = MemoryAdapter().setRetentionDays(newValue)
+                await MainActor.run { self.lastPurgeCount = deleted }
             }
         }
-        .padding(DesignTokens.spacingModerate)
-        // Removed the chrome tier background tint (= .windowBackgroundColor
-        // = #1E = creates a visible lighter strip = gone per the
-        // 'go up another layer and remove the background' cleanup).
-        // Settings panel now matches the surrounding Settings content.
-        // The `.task { await reloadEntries() }` block was removed
-        // alongside the inline list (= `recentEntries` /
-        // `isLoadingEntries` no longer exist; = the configuration
-        // surface reads from `lastPurgeCount` only, which the
-        // retention-change callback updates in place).
     }
 }
 

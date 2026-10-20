@@ -1252,3 +1252,45 @@
 	<string>更多变换: 调整语气 / 简化 / 戏剧化</string>
 </dict>
 </plist>
+	<key>settings.network.title</key>
+	<string>网络</string>
+	<key>settings.network.section.interface</key>
+	<string>当前网络状态</string>
+	<key>settings.network.section.mode</key>
+	<string>URLSession 模式</string>
+	<key>settings.network.section.mode.footer</key>
+	<string>默认让系统代理自动路由，不需要修改。如果你的网络环境让代理拦截了服务，把模式切换到直连。</string>
+	<key>settings.network.section.probe</key>
+	<string>端到端探测</string>
+	<key>settings.network.section.probe.footer</key>
+	<string>对当前服务方的接入地址发一次最小请求看实际是否可达。</string>
+	<key>settings.network.interface.realtime</key>
+	<string>实况</string>
+	<key>settings.network.interface.status.ok</key>
+	<string>在线</string>
+	<key>settings.network.interface.status.down</key>
+	<string>离线</string>
+	<key>settings.network.interface.status.connecting</key>
+	<string>连接中</string>
+	<key>settings.network.interface.status.unknown</key>
+	<string>未知</string>
+	<key>settings.network.interface.expensive</key>
+	<string>高成本</string>
+	<key>settings.network.interface.constrained</key>
+	<string>低带宽</string>
+	<key>settings.network.interface.normal</key>
+	<string>正常</string>
+	<key>settings.network.mode.label</key>
+	<string>模式</string>
+	<key>settings.network.mode.systemDefault</key>
+	<string>跟随系统（默认）</string>
+	<key>settings.network.mode.direct</key>
+	<string>直连（不走任何代理）</string>
+	<key>settings.network.mode.customProxy</key>
+	<string>自定义代理</string>
+	<key>settings.network.proxyURL.placeholder</key>
+	<string>http://127.0.0.1:7897</string>
+	<key>settings.network.probe.button</key>
+	<string>测试连接</string>
+	<key>settings.pane.network</key>
+	<string>网络</string>

@@ -1252,3 +1252,45 @@ Or just chat normally.</string>
 	<string>More transforms: shift tone, simplify, dramatize</string>
 </dict>
 </plist>
+	<key>settings.network.title</key>
+	<string>Network</string>
+	<key>settings.network.section.interface</key>
+	<string>Current Network Status</string>
+	<key>settings.network.section.mode</key>
+	<string>URLSession Mode</string>
+	<key>settings.network.section.mode.footer</key>
+	<string>Default: follow the system proxy. Switch to direct if your proxy blocks the service.</string>
+	<key>settings.network.section.probe</key>
+	<string>End-to-End Probe</string>
+	<key>settings.network.section.probe.footer</key>
+	<string>对当前服务方的接入地址发一次最小请求看实际是否可达。</string>
+	<key>settings.network.interface.realtime</key>
+	<string>Realtime</string>
+	<key>settings.network.interface.status.ok</key>
+	<string>Online</string>
+	<key>settings.network.interface.status.down</key>
+	<string>Offline</string>
+	<key>settings.network.interface.status.connecting</key>
+	<string>Connecting</string>
+	<key>settings.network.interface.status.unknown</key>
+	<string>Unknown</string>
+	<key>settings.network.interface.expensive</key>
+	<string>Expensive</string>
+	<key>settings.network.interface.constrained</key>
+	<string>Constrained</string>
+	<key>settings.network.interface.normal</key>
+	<string>Normal</string>
+	<key>settings.network.mode.label</key>
+	<string>Mode</string>
+	<key>settings.network.mode.systemDefault</key>
+	<string>Follow System (Default)</string>
+	<key>settings.network.mode.direct</key>
+	<string>Direct (No Proxy)</string>
+	<key>settings.network.mode.customProxy</key>
+	<string>Custom Proxy</string>
+	<key>settings.network.proxyURL.placeholder</key>
+	<string>http://127.0.0.1:7897</string>
+	<key>settings.network.probe.button</key>
+	<string>Test Connection</string>
+	<key>settings.pane.network</key>
+	<string>Network</string>
