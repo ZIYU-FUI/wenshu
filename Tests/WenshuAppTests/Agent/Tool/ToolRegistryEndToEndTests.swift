@@ -81,11 +81,36 @@ struct ToolRegistryEndToEndTests {
         "web"              // Core/Tools/WebTools.swift
     ]
 
-    /// Settle window identical to `WenshuConductor.toolRegistryWarmupMs`
-    /// so tests and production agree on the bootstrap window (= the
-    /// module-load `Task { await registry.register(...) }` blocks
-    /// finish scheduling before assertions run).
-    private static let warmupMs: UInt64 = 50
+    /// Upper bound on how long to wait for the module-load registrations to
+    /// land. Each `_registryBootstrap` schedules its `Task { await … }` on the
+    /// cooperative pool, so how long that takes depends on what else the
+    /// process is doing. A fixed sleep tuned for an idle run is too short when
+    /// the whole suite runs in parallel — `kanban` and `todo` were the two that
+    /// lost the race, every time. Poll instead of sleeping once.
+    private static let settleTimeoutMs: UInt64 = 5_000
+    private static let settlePollMs: UInt64 = 20
+
+    /// Waits until every expected tool has a handler, then returns the names
+    /// still missing (empty = settled). FAILURE MODE: returns the missing set
+    /// rather than trapping, so the assertion reports which tools did not land.
+    private static func awaitSettledRegistration() async -> [String] {
+        var missing = expectedToolNames
+        let deadline = ContinuousClock.now.advanced(
+            by: .milliseconds(Int64(settleTimeoutMs))
+        )
+        while ContinuousClock.now < deadline {
+            var stillMissing: [String] = []
+            for name in missing {
+                if await ToolRegistry.shared.getHandler(name: name) == nil {
+                    stillMissing.append(name)
+                }
+            }
+            if stillMissing.isEmpty { return [] }
+            missing = stillMissing
+            try? await Task.sleep(nanoseconds: settlePollMs * 1_000_000)
+        }
+        return missing
+    }
 
     /// Force every one of the 12 tool types' `_registryBootstrap`
     /// static `let` to run (= the Swift 6-compatible lazy module-load
@@ -125,7 +150,9 @@ struct ToolRegistryEndToEndTests {
         // Brief settle so the Task blocks have time to land on the
         // actor (= matches `WenshuConductor.buildTools(from:)`
         // warmup window).
-        try? await Task.sleep(nanoseconds: Self.warmupMs * 1_000_000)
+        let unsettled = await Self.awaitSettledRegistration()
+        #expect(unsettled.isEmpty,
+                "tools never registered within 5s: \(unsettled)")
 
         for toolName in Self.expectedToolNames {
             let handler = await ToolRegistry.shared.getHandler(name: toolName)
@@ -142,7 +169,9 @@ struct ToolRegistryEndToEndTests {
     @Test("ToolRegistry.getDefinitions returns 12+ schemas with valid name + description")
     func testGetDefinitionsReturnsAll() async throws {
         Self.triggerAllToolBootstraps()
-        try? await Task.sleep(nanoseconds: Self.warmupMs * 1_000_000)
+        let unsettled = await Self.awaitSettledRegistration()
+        #expect(unsettled.isEmpty,
+                "tools never registered within 5s: \(unsettled)")
 
         let requested = Set(Self.expectedToolNames)
         let definitions = await ToolRegistry.shared.getDefinitions(toolNames: requested)
@@ -179,7 +208,9 @@ struct ToolRegistryEndToEndTests {
     @Test("WenshuConductor.buildTools yields 12 tools from ToolRegistry.shared")
     func testBuildToolsYieldsTwelve() async throws {
         Self.triggerAllToolBootstraps()
-        try? await Task.sleep(nanoseconds: Self.warmupMs * 1_000_000)
+        let unsettled = await Self.awaitSettledRegistration()
+        #expect(unsettled.isEmpty,
+                "tools never registered within 5s: \(unsettled)")
 
         let tools = await WenshuConductor.buildTools(from: ToolRegistry.shared)
         #expect(
