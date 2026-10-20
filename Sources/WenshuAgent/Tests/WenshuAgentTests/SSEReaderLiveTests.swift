@@ -56,50 +56,6 @@ struct SSEReaderLiveTests {
             return false
         }, "the provider's stream carries content deltas")
     }
-}
-
-/// The live provider probe, kept apart so the availability check is in one
-/// place.
-struct LiveProviderProbe {
-    init() {}
-    /// Whether a credential is configured.
-    ///
-    /// The key is read the same way the app reads it: the file store during
-    /// development, the keychain in a signed build.
-    static var isAvailable: Bool {
-        credential() != nil
-    }
-
-    /// A request that asks for a short reply.
-    static func request() -> URLRequest {
-        let key = credential() ?? ""
-        var request = URLRequest(url: URL(string: "https://api.minimaxi.com/anthropic/v1/messages")!)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
-        request.setValue(key, forHTTPHeaderField: "x-api-key")
-        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
-        request.httpBody = try? JSONSerialization.data(withJSONObject: [
-            "model": "MiniMax-M3.1-Flash",
-            "max_tokens": 64,
-            "stream": true,
-            "messages": [["role": "user", "content": [["type": "text", "text": "Reply with one short sentence."]]]]
-        ])
-        return request
-    }
-
-    /// The configured key, when there is one.
-    static func credential() -> String? {
-        let path = FileManager.default
-            .homeDirectoryForCurrentUser
-            .appendingPathComponent("Library/Application Support/com.wenshu.app/provider-keys.json")
-        guard let data = try? Data(contentsOf: path),
-              let object = try? JSONSerialization.jsonObject(with: data) as? [String: String],
-              let key = object["minimax-cn"], !key.isEmpty
-        else { return nil }
-        return key
-    }
-
     @Test("the full wire-up path streams the provider's blocks")
     func wireUpPathStreams() async throws {
         // The reader is only half the path. This exercises the same route
@@ -154,4 +110,48 @@ struct LiveProviderProbe {
         count = await collector.value
         #expect(count > 0, "the connector's stream produced no blocks")
     }
+}
+
+/// The live provider probe, kept apart so the availability check is in one
+/// place.
+struct LiveProviderProbe {
+    init() {}
+    /// Whether a credential is configured.
+    ///
+    /// The key is read the same way the app reads it: the file store during
+    /// development, the keychain in a signed build.
+    static var isAvailable: Bool {
+        credential() != nil
+    }
+
+    /// A request that asks for a short reply.
+    static func request() -> URLRequest {
+        let key = credential() ?? ""
+        var request = URLRequest(url: URL(string: "https://api.minimaxi.com/anthropic/v1/messages")!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
+        request.setValue(key, forHTTPHeaderField: "x-api-key")
+        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
+        request.httpBody = try? JSONSerialization.data(withJSONObject: [
+            "model": "MiniMax-M3.1-Flash",
+            "max_tokens": 64,
+            "stream": true,
+            "messages": [["role": "user", "content": [["type": "text", "text": "Reply with one short sentence."]]]]
+        ])
+        return request
+    }
+
+    /// The configured key, when there is one.
+    static func credential() -> String? {
+        let path = FileManager.default
+            .homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Application Support/com.wenshu.app/provider-keys.json")
+        guard let data = try? Data(contentsOf: path),
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: String],
+              let key = object["minimax-cn"], !key.isEmpty
+        else { return nil }
+        return key
+    }
+
 }
