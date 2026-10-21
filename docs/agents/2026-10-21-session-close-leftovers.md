@@ -217,3 +217,18 @@ raw translation key, and the inspector's empty state.
    in the skill: control the bundle before you bisect the code, and treat
    an experiment as void if its artifact is deleted mid-run.
 
+4. *The suite gate has two halves, and only one of them hangs.* The gate is
+   the SET of failing names, and the set has two parts: the Swift Testing
+   summary and the XCTest summary. On this machine the XCTest phase of a
+   FULL `swift test` deadlocks in class enumeration (= the AddressBook
+   framework's preferences lock), before any test runs, and it does so on
+   unmodified main too (= it is the machine, not the change). The XCTest
+   half is still measurable, because the hang is in the enumeration and a
+   NAMED filter skips it: naming the suites that carry the baseline's
+   XCTest failures and running exactly those reported 99 tests and 13
+   failures in 1.2 s, with the failing set IDENTICAL to the baseline's. So
+   both halves of the promptware gate are measured (= 0 new names in the
+   Swift Testing set, 0 new in the XCTest set), and the recipe is in
+   `wenshu-visual-audit/references/measuring-the-xctest-half.md`.
+
+
