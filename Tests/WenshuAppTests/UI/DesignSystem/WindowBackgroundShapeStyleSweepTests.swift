@@ -16,7 +16,6 @@
 //    L189 (.background { Color.windowBackground } → .background(.windowBackground))
 //  - Sources/WenshuApp/Workspace/LayoutPicker/ZoneEditor.swift
 //    L96 (.background { Color.windowBackground } → .background(.windowBackground))
-//  - Sources/WenshuApp/Features/Agent/View/LongFormGuardrailsView.swift
 //    L371 (.background { Color.windowBackground } → .background(.windowBackground))
 //  - Sources/WenshuApp/Features/Library/View/BookEditorSheet.swift
 //    L152 (.background { Color.windowBackground } → .background(.windowBackground))

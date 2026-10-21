@@ -10,7 +10,7 @@
 //  个文件里才好控制格式': the 11 independent-window button
 //  format (= Image(systemName:) + .help + openWindow action) was
 //  duplicated 3x (= ChromeMainToolbar in the main window title bar
-//  + InspectorView's secondary toolbar + WenshuAppDelegateSwiftData
+//  + the secondary toolbar + WenshuAppDelegateSwiftData
 //  Migration in the app startup bridge). This file consolidates
 //  that shape into 1 reusable view = 1 source of truth for the
 //  format = changing the icon font weight / .help tooltip pattern
@@ -45,7 +45,7 @@ import SwiftUI
 /// - `Features/Chrome/View/ChromeMainToolbar.swift` (= the main
 ///   window's title bar; = 11 window buttons at .primaryAction =
 ///   the canonical full set).
-/// - `Features/Editor/View/InspectorView.swift` (the inspector's
+/// - the editor's secondary toolbar (the
 ///   own inspector-specific controls, NOT the 9 duplicate window
 ///   buttons that lived there pre-A96).
 /// - `Sources/WenshuApp/App/WenshuAppDelegateSwiftDataMigration.swift`

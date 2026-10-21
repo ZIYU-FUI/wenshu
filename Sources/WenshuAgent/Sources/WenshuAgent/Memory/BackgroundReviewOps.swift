@@ -24,7 +24,7 @@
 // Wiring (v2.8c acceptance):
 //   - `WenshuConductor.defaultToolNames` contains
 //     "background_review".
-//   - `BackgroundReviewTool.swift` wraps `BackgroundReviewOps.submit`
+//   - the app's background-review surface wraps `BackgroundReviewOps.submit`
 //     (= the manual LLM tool surface).
 //   - `ConversationLoop` calls `BackgroundReviewOps.submit` in the
 //     auto-call hook (= the agent's auto surface).

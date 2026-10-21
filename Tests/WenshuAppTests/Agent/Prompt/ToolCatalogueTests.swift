@@ -12,9 +12,14 @@ import WenshuAgent
 @Suite("Tool catalogue")
 struct ToolCatalogueTests {
 
-    /// The names that were in the flat list before the catalogue existed.
+    /// The names the catalogue is expected to expose.
+    ///
+    /// This started as "the names that were in the flat list before the
+    /// catalogue existed" (= the no-tool-lost property). The
+    /// background-review tool was then removed with the right rail, so
+    /// the fixture tracks the current catalogue instead.
     private static let previousNames: Set<String> = [
-        "ReadFile", "WriteFile", "av", "background_review",
+        "ReadFile", "WriteFile", "av",
         "book_chapter", "book_edit_chapter", "book_entity", "book_manager",
         "book_outline", "file", "delegate_research", "kanban", "llm_wiki",
         "process", "reference_library", "todo", "todo_hermes", "vision",

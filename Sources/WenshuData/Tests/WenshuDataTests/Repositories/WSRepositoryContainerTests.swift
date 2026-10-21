@@ -6,11 +6,11 @@ import Combine
 import Testing
 import WenshuData
 
-@Suite("WSRepositoryContainer (= SwiftData @Observable singleton holding all 9 repos)")
+@Suite("WSRepositoryContainer (= SwiftData @Observable singleton holding all 8 repos)")
 struct WSRepositoryContainerTests {
 
     @MainActor
-    @Test("WSRepositoryContainer init succeeds + all 9 repos present")
+    @Test("WSRepositoryContainer init succeeds + all 8 repos present")
     func initContainer() throws {
         let container = try WSPersistenceContainer.makeInMemoryContainer()
         let repoContainer = WSRepositoryContainer(container: container)
@@ -18,7 +18,6 @@ struct WSRepositoryContainerTests {
         _ = repoContainer.memory
         _ = repoContainer.chat
         _ = repoContainer.todo
-        _ = repoContainer.bookmark
         _ = repoContainer.kanban
         _ = repoContainer.link
         _ = repoContainer.providerKey

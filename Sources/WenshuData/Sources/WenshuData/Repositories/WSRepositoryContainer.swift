@@ -31,7 +31,6 @@ public final class WSRepositoryContainer {
     public let memory: WSMemoryRepository
     public let chat: WSChatRepository
     public let todo: WSTodoRepository
-    public let bookmark: WSBookmarkRepository
     public let kanban: WSKanbanRepository
     public let link: WSLinkRepository
     public let providerKey: WSProviderKeyRepository
@@ -41,7 +40,6 @@ public final class WSRepositoryContainer {
         self.memory = WSMemoryRepository(container: container)
         self.chat = WSChatRepository(container: container)
         self.todo = WSTodoRepository(container: container)
-        self.bookmark = WSBookmarkRepository(container: container)
         self.kanban = WSKanbanRepository(container: container)
         self.link = WSLinkRepository(container: container)
         self.providerKey = WSProviderKeyRepository(container: container)
@@ -65,9 +63,6 @@ public extension WSChatRepository {
 }
 public extension WSTodoRepository {
     @MainActor static let shared = WSTodoRepository()
-}
-public extension WSBookmarkRepository {
-    @MainActor static let shared = WSBookmarkRepository()
 }
 public extension WSKanbanRepository {
     @MainActor static let shared = WSKanbanRepository()

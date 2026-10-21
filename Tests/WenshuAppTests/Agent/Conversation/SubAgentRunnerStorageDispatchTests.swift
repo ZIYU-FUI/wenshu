@@ -34,34 +34,10 @@ struct SubAgentRunnerStorageDispatchTests {
     /// In-memory ArchivistStorage (= no SwiftData coupling).
     private final class StubArchivistStorage: ArchivistStorage, @unchecked Sendable {
         private let lock = NSLock()
-        private var _bookmarks: [ArchivistBookmark] = []
         private var _backupURLs: [URL] = []
 
-        var addCount: Int {
-            lock.withLock { _bookmarks.count }
-        }
         var backupCount: Int {
             lock.withLock { _backupURLs.count }
-        }
-
-        func addBookmark(docID: String, label: String) async throws {
-            let bookmark = ArchivistBookmark(
-                id: UUID().uuidString,
-                docId: docID,
-                label: label,
-                createdAt: Date()
-            )
-            lock.withLock { _bookmarks.append(bookmark) }
-        }
-
-        func listBookmarks() async throws -> [ArchivistBookmark] {
-            lock.withLock { _bookmarks }
-        }
-
-        func removeBookmark(id: String) async throws {
-            lock.withLock {
-                _bookmarks.removeAll { $0.id == id }
-            }
         }
 
         func writeBackup(label: String, contents: String) async throws -> URL {
@@ -123,7 +99,7 @@ struct SubAgentRunnerStorageDispatchTests {
 
         let result = try await delegate(
             subagentProfile: SubAgentIdentity.Name.archivist.rawValue,
-            task: "add doc-chapter-1 关键章节",
+            task: "backup chapter-1 body",
             context: [:],
             registry: registry
         )
@@ -132,15 +108,15 @@ struct SubAgentRunnerStorageDispatchTests {
         #expect(n >= 1)
         let final = await registry.get(id: handleID)
         #expect(final?.state == .completed, "archivist handle should complete; got \(String(describing: final?.state))")
-        #expect(final?.result?.contains("\"action\":\"add\"") == true)
-        #expect(archivist.addCount == 1)
+        #expect(final?.result?.contains("\"action\":\"backup\"") == true)
+        #expect(archivist.backupCount == 1)
         // No LLM call (= archivist domain is deterministic).
         #expect(connector.sendCount == 0, "archivist must NOT call LLM send; got sendCount=\(connector.sendCount)")
         #expect(connector.streamCount == 0, "archivist must NOT call LLM stream; got streamCount=\(connector.streamCount)")
     }
 
-    @Test("archivist handles list / delete / backup tasks")
-    func archivistHandlesAllActions() async throws {
+    @Test("archivist handles the backup task")
+    func archivistHandlesBackup() async throws {
         let registry = AsyncDelegationRegistry()
         let connector = RecordingConnector()
         let archivist = StubArchivistStorage()
@@ -150,29 +126,6 @@ struct SubAgentRunnerStorageDispatchTests {
             archivistStorage: archivist
         )
 
-        // Step 1: add a bookmark
-        let addResult = try await delegate(
-            subagentProfile: SubAgentIdentity.Name.archivist.rawValue,
-            task: "add doc-A label-A",
-            context: [:],
-            registry: registry
-        )
-        await runner.drainPending()
-        #expect(archivist.addCount == 1)
-
-        // Step 2: list (= expects 1 bookmark)
-        let listResult = try await delegate(
-            subagentProfile: SubAgentIdentity.Name.archivist.rawValue,
-            task: "list",
-            context: [:],
-            registry: registry
-        )
-        await runner.drainPending()
-        let listFinal = await registry.get(id: listResult.handle.id)
-        #expect(listFinal?.result?.contains("\"stored\":1") == true)
-        #expect(listFinal?.result?.contains("\"action\":\"list\"") == true)
-
-        // Step 3: backup
         let backupResult = try await delegate(
             subagentProfile: SubAgentIdentity.Name.archivist.rawValue,
             task: "backup chapter-snapshot # chapter 1 content",
@@ -197,7 +150,7 @@ struct SubAgentRunnerStorageDispatchTests {
 
         let result = try await delegate(
             subagentProfile: SubAgentIdentity.Name.archivist.rawValue,
-            task: "add doc-1 label-1",
+            task: "backup chapter-1 body",
             context: [:],
             registry: registry
         )

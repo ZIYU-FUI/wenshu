@@ -61,7 +61,6 @@ public enum ToolCatalogue {
         CataloguedTool(name: "todo", category: .writing, mutates: true),
         CataloguedTool(name: "todo_hermes", category: .writing, mutates: true),
         CataloguedTool(name: "kanban", category: .writing, mutates: true),
-        CataloguedTool(name: "background_review", category: .writing, mutates: true),
 
         // Research (= leaves the library, does not leave the machine's control
         // of the text).

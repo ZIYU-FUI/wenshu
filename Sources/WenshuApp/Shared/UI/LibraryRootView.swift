@@ -62,10 +62,6 @@ struct LibraryRootView: View {
     @State private var activeLibrarySelection: String?
     @State private var commandPaletteModel = CommandPaletteModel()
     @State private var commandPaletteVisible: Bool = false
-    // / Apple HIG inspector visibility. Per WWDC23-10161,
-    // … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / owning split view, so the inspector state lives on it).
-    @State private var inspectorVisible: Bool = true
     @Environment(\.openSettings) private var openSettings
     @Environment(\.openWindow) private var openWindow
 
@@ -149,13 +145,6 @@ struct LibraryRootView: View {
                     library: library
                 )
                 .environment(appState)
-                .inspector(isPresented: $inspectorVisible) {
-                    InspectorView(
-                        appState: appState,
-                        workspaceUI: workspaceUI,
-                        inspectorVisibleBinding: $inspectorVisible
-                    )
-                }
             }
             // Apple HIG canonical toolbar placement for the
             // … (= 11 rationale lines collapsed; = A112 docblock collapse per §1.8)

@@ -8,14 +8,8 @@
 //  TextEditor variants).
 //
 //  Swept sites (= 6):
-//  - PlaceholderView.swift L367: .frame(minHeight: 80, maxHeight: 140)
-//  - ReaderExperienceView.swift L133: same
-//  - BookSettingConstraintsView.swift L317:
 //    .frame(minHeight: 100, maxHeight: 160)
-//  - LongFormGuardrailsView.swift L246:
 //    .frame(minHeight: 80, maxHeight: 120)
-//  - EmotionCurveView.swift L138: .frame(minHeight: 80, maxHeight: 140)
-//  - GenreFitView.swift L135: same
 //
 //  New DesignTokens (= 5):
 //  - textEditorSmallMinHeight (80) — Apple HIG macOS
@@ -37,7 +31,6 @@
 //    (= standard macOS sheet min; = sheet-specific decision)
 //  - ZoneEditor.swift L80: .frame(minWidth: 720, minHeight: 540)
 //    (= canvas-specific decision)
-//  - EmotionCurveView.swift L114 + L222:
 //    .frame(minWidth: 28 / 64, alignment: ...)
 //    (= column-width layout decision; = no Apple HIG token)
 //  - BookEditorSheet.swift L145: .frame(minWidth: 420)
@@ -57,12 +50,6 @@ struct TextEditorHeightSweepTests {
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         let sweptFiles: [(String, [String])] = [
-            ("Features/Agent/View/PlaceholderView.swift", ["textEditorSmallMinHeight", "textEditorSmallMaxHeight"]),
-            ("Features/Agent/View/ReaderExperienceView.swift", ["textEditorSmallMinHeight", "textEditorSmallMaxHeight"]),
-            ("Features/Agent/View/BookSettingConstraintsView.swift", ["textEditorMediumMinHeight", "textEditorMediumMaxHeight"]),
-            ("Features/Agent/View/LongFormGuardrailsView.swift", ["textEditorSmallMinHeight", "textEditorCompactMaxHeight"]),
-            ("Features/Agent/View/EmotionCurveView.swift", ["textEditorSmallMinHeight", "textEditorSmallMaxHeight"]),
-            ("Features/Agent/View/GenreFitView.swift", ["textEditorSmallMinHeight", "textEditorSmallMaxHeight"]),
         ]
 
         for (relative, expectedTokens) in sweptFiles {

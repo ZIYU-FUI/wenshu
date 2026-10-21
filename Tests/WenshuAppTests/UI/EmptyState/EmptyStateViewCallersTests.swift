@@ -6,12 +6,11 @@
 //  strokes. The goal is to unify all empty-state styles' + 'audit the right column's 12 tabs; many of them
 //  are missing an empty state'):
 //
-//  Code-level verification (= no UI render) that the 12 specialized
-//  tool tabs (= Foreshadowing / Placeholder / Plot Thread / Long-Form
-//  Guardrails / Reader Experience / Genre Fit / Emotion Curve / Character
-//  Relationships / Character Lifecycle / Idea Library / Tag Manager /
-//  Book Settings) + the editor / chat / PreviewPane (= the 3 main
-//  empty-state zones) ALL use the unified EmptyStateView component.
+//  Code-level verification (= no UI render) that the editor / chat /
+//  PreviewPane (= the 3 main empty-state zones) ALL use the unified
+//  EmptyStateView component. The right column's 12 specialized tool
+//  tabs were removed with the right-rail removal (2026-10-21), so
+//  their coverage went with them.
 //
 //  Before this regression test, a single tab could lose its empty state
 //  (= e.g. switch to a hand-rolled VStack + Text layout) and ship
@@ -27,56 +26,8 @@ import SwiftUI
 import Foundation
 @testable import WenshuApp
 
-@Suite("v0.71 P1 — EmptyStateView caller coverage (= 12 specialized tool tabs + 3 main zones)")
+@Suite("v0.71 P1 — EmptyStateView caller coverage (= 3 main zones)")
 struct EmptyStateViewCallersTests {
-
-    /// boss 9/12 OOB 'audit the right column's 12 tabs': the 12 specialized tool
-    /// tabs MUST use the unified EmptyStateView (= no hand-rolled
-    /// VStack + Text duplicates = no legacy 38 PT icons).
-    @Test("all_12_specialized_tool_tabs_use_EmptyStateView")
-    func all_12_specialized_tool_tabs_use_EmptyStateView() throws {
-        // The 12 specialized tool tab files (= the canonical list
-        // per the boss's OOB; = the inspector's ZoneContentView tabs).
-        let twelveToolFiles = [
-            "Sources/WenshuApp/Features/Agent/View/ForeshadowingView.swift",
-            "Sources/WenshuApp/Features/Agent/View/PlaceholderView.swift",
-            "Sources/WenshuApp/Features/Agent/View/PlotThreadView.swift",
-            "Sources/WenshuApp/Features/Agent/View/LongFormGuardrailsView.swift",
-            "Sources/WenshuApp/Features/Agent/View/ReaderExperienceView.swift",
-            "Sources/WenshuApp/Features/Agent/View/GenreFitView.swift",
-            "Sources/WenshuApp/Features/Agent/View/EmotionCurveView.swift",
-            "Sources/WenshuApp/Features/Agent/View/CharacterRelationshipsView.swift",
-            "Sources/WenshuApp/Features/Agent/View/CharacterLifecycleView.swift",
-            "Sources/WenshuApp/Features/Agent/View/IdeaLibraryView.swift",
-            "Sources/WenshuApp/Features/Agent/View/TagManagerView.swift",
-            "Sources/WenshuApp/Features/Agent/View/BookSettingConstraintsView.swift",
-        ]
-        #expect(twelveToolFiles.count == 12, "Specialized tool tab list must be 12 (= boss's OOB count)")
-        var missing: [String] = []
-        for file in twelveToolFiles {
-            let url = URL(fileURLWithPath: file)
-            guard FileManager.default.fileExists(atPath: url.path) else {
-                Issue.record("Specialized tool tab file MUST exist: \(file)")
-                continue
-            }
-            let content = try String(contentsOf: url, encoding: .utf8)
-            // The file MUST reference EmptyStateView (= the unified
-            // component; = no hand-rolled empty state).
-            // Strip comments (= historical notes mentioning
-            // EmptyStateView don't count as actual usage).
-            let stripped = content.components(separatedBy: "\n").filter { line in
-                let trimmed = line.trimmingCharacters(in: .whitespaces)
-                return !trimmed.hasPrefix("//") && !trimmed.hasPrefix("*") && !trimmed.hasPrefix("/*")
-            }.joined(separator: "\n")
-            if !stripped.contains("EmptyStateView(") {
-                missing.append(file)
-            }
-        }
-        #expect(
-            missing.isEmpty,
-            "Specialized tool tabs not using EmptyStateView (= boss's '统一所有空态的样式' OOB): \(missing)"
-        )
-    }
 
     /// boss 9/12 OOB 'editor and chat — empty state wasn't pulled out into a component': the editor +
     /// chat zones MUST also use the unified EmptyStateView (= boss

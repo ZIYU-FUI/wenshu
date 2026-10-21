@@ -65,16 +65,10 @@ struct CornerRadiusMagicSweepTests {
             "Sources/WenshuApp/Features/Chat/View/ChatSlashCommandAutocomplete.swift",
             "Sources/WenshuApp/Features/Chat/View/ChatPlanPartView.swift",
             "Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift",
-            "Sources/WenshuApp/Features/Agent/View/PlaceholderView.swift",
             "Sources/WenshuApp/Features/Kanban/View/KanbanView.swift",
             "Sources/WenshuApp/Shared/UI/CommandPaletteView.swift",
             "Sources/WenshuApp/Features/Editor/View/PreviewPane.swift",
             "Sources/WenshuApp/Features/Library/View/SidebarSheets.swift",
-            "Sources/WenshuApp/Features/Agent/View/ReaderExperienceView.swift",
-            "Sources/WenshuApp/Features/Agent/View/BookSettingConstraintsView.swift",
-            "Sources/WenshuApp/Features/Agent/View/LongFormGuardrailsView.swift",
-            "Sources/WenshuApp/Features/Agent/View/GenreFitView.swift",
-            "Sources/WenshuApp/Features/Agent/View/IdeaLibraryView.swift",
         ]
         for path in sweptFiles {
             let url = URL(fileURLWithPath: path)

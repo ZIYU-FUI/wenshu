@@ -259,15 +259,20 @@ These were removed in various phases (= Apple-API-first sweep + iron-rules pass)
 - **Use instead**: `PaneStatusBar` (= new in Phase 5, file `Sources/WenshuApp/UI/PaneStatusBar.swift`)
 
 ### 8.3 ❌ ZoneContentTabBar / chat-zone wrapper / DynamicZoneTabBar (custom tab bodies)
-- **Was in**: `Sources/WenshuApp/Views/Dynamic/ZoneContentView.swift` + `DynamicZoneView.swift` + `Workspace/TabContentDispatcher.swift`
+- **Was in**: `Sources/WenshuApp/Views/Dynamic/ZoneContentView.swift` + `DynamicZoneView.swift` + `Workspace/TabContentDispatcher.swift` (= the zone system; = `ZoneContentView` itself was deleted with the right rail on 2026-10-21)
 - **Refactored**: Phase 2-3 + commits `dcde7cff5` + `a6b6c75d3`
-- **Use instead**: `ZoneContentView`'s inline tab strip (= native macOS 27 `NSSegmentedControl` via `LabelSegmentedControl`) + `PaneTrailingIconButton` (= `Sources/WenshuApp/Shared/UI/PaneTrailingIconButton.swift`)
+- **Use instead**: `LabelSegmentedControl` (= native macOS 27 `NSSegmentedControl`) + `PaneTrailingIconButton` (= `Sources/WenshuApp/Shared/UI/PaneTrailingIconButton.swift`)
 - **Note**: `DynamicZoneTabBar` still survives (= enum↔string binding shim = SwiftUI Binding limitation; tracked in backlog.md entry B-02). The chat-zone wrapper (= the since-deleted wrapper that hard-coded the chat tab + archive trailing button, now inlined into `TabContentDispatcher.aiChat` as a single `PaneTabItem(id:"chat")`) was deleted in commit `a6b6c75d3`.
 
 ### 8.3b ❌ PaneTabBar / PaneTabItem / PaneIconTab (generic per-pane tab bar)
 - **Was in**: `Sources/WenshuApp/Shared/UI/PaneTabBar.swift`
 - **Deleted**: 2026-10-21 (= the right-rail dead-code cleanup; = 0 constructors and 0 non-comment references = the pane system had already been replaced by `ZoneContentView`'s inline tab strip)
-- **Use instead**: `ZoneContentView` (= hosts its own tab bar inline, against the native macOS 27 `NSSegmentedControl` via `LabelSegmentedControl`) + `PaneTrailingIconButton` (= the surviving trailing-slot button, now in its own file)
+- **Use instead**: `LabelSegmentedControl` (= the surviving segmented-control wrapper, against the native macOS 27 `NSSegmentedControl`) + `PaneTrailingIconButton` (= the surviving trailing-slot button, now in its own file)
+
+### 8.3c ❌ The right rail (= InspectorView + its 5 pages + 15 tool views + ZoneContentView)
+- **Was in**: `Sources/WenshuApp/Features/Editor/View/InspectorView.swift` + `EditorDocumentToolsView.swift` + `ZoneContentView.swift` + the 14 tool views / 12 ops / 12 view-state mirrors under `Sources/WenshuApp/Features/Agent/` + the 12 right-rail agent-tool / domain files + `BookProjectConfigStore` + `WSBookmarkRepository`
+- **Deleted**: 2026-10-21 (= the right-rail removal; = the 5-page picker, the 15 tool views and their agent-tool twins had no live user after the top-window cleanup)
+- **Use instead**: nothing (= the right rail had no replacement; = the top toolbar (`ChromeMainToolbar`) is the single source of truth for the window's toolbar buttons, and it now hosts the ⌘K command-palette button)
 
 ### 8.4 ❌ zoneContentTabBarIcon / dynamicZoneTabBarIcon / chatZoneTabBarIcon
 - **Was in**: same files as 8.3
@@ -467,14 +472,14 @@ The Workspace editor surface is decomposed into 9 single-file sub-views (= extra
 - **Path**: `Sources/WenshuApp/Features/Chrome/View/ChromeMainToolbar.swift` (A92, 146 LOC)
 - **Purpose**: The 11 independent-window button row in the unified macOS toolbar (= 1 source of truth for the title bar)
 - **Use when**: The main window's `.toolbar { ChromeMainToolbar(...) }` modifier (= the 11 windows: kanban + todo + canvas + composer + foreshadowingGraph + cron + attachments + manifest + summaries + libraryMigration + memoryHistory).
-- **Don't use when**: Inside the inspector (= the inspector is inspector-specific, not window-list); = use `InspectorView`'s own buttons there.
+- **Don't use when**: Inside a detail column (= a column is column-specific, not window-list); = use that column's own buttons there.
 - **API**:
   ```swift
   .toolbar {
       ChromeMainToolbar(openWindow: openWindow, sheetRequests: sheetRequests)
   }
   ```
-- **Replaces**: The 2 inline `.toolbar {}` blocks previously in `LibraryRootView.body` (= the original 11 + 9 duplicate in `InspectorView` were both 1 source of truth; = A95 deleted the 9 from InspectorView).
+- **Replaces**: The 2 inline `.toolbar {}` blocks previously in `LibraryRootView.body` (= the original 11 + 9 duplicate in the right rail were both 1 source of truth; = A95 deleted the 9 from the right rail).
 
 ### 9.2 WindowOpenButton
 - **Path**: `Sources/WenshuApp/Features/Chrome/View/WindowOpenButton.swift` (A94, 98 LOC)
@@ -490,7 +495,7 @@ The Workspace editor surface is decomposed into 9 single-file sub-views (= extra
       openWindow: openWindow
   )
   ```
-- **Replaces**: The 3 duplicate `SFIcon + Button { openWindow } + .help(...)` blocks that were inline in `ChromeMainToolbar` + `InspectorView` + `WenshuAppDelegateSwiftDataMigration`.
+- **Replaces**: The 3 duplicate `SFIcon + Button { openWindow } + .help(...)` blocks that were inline in `ChromeMainToolbar` + the right rail + `WenshuAppDelegateSwiftDataMigration`.
 
 ### 9.3 The 11 dedicated Feature directories (= 1 per window)
 

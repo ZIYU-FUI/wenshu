@@ -5,7 +5,7 @@
 //   - Writer: `paragraph_ai`.
 //   - Analyst: (= no wenshu tool counterpart yet; = tool list
 //     empty).
-//   - Archivist: (= storage via `WSBookmarkRepository` + filesystem
+//   - Archivist: (= storage via the per-book archive dir + filesystem
 //     directly; = tool list empty).
 // - Auditor: (read memory via WSMemoryProvider directly; = tool list empty)
 //
@@ -69,13 +69,13 @@ public enum SubAgentIdentity {
     ///     counterpart; = per §11 baseline "no placeholder/stub text",
     ///     the tool list is empty. Follow-up ticket lands the
     ///     outline / graph tools and re-enables them.
-    ///   - archivist: `bookmark` + `backup` have no wenshu tool
-    ///     counterpart; = archivist's writes go through
-    ///     `WSBookmarkRepository.shared` + filesystem directly (=
-    ///     bypassing the LLM-facing ToolRegistry, per the same
-    ///     pattern as DelegateResearchTool.addKanbanTask). Empty
-    ///     tool list is correct (= archivist's domain is storage,
-    ///     not LLM tool dispatch).
+    ///   - archivist: `backup` has no wenshu tool counterpart; =
+    ///     archivist's writes go to the per-book archive dir on the
+    ///     filesystem directly (= bypassing the LLM-facing
+    ///     ToolRegistry, per the same pattern as
+    ///     DelegateResearchTool.addKanbanTask). Empty tool list is
+    ///     correct (= archivist's domain is storage, not LLM tool
+    ///     dispatch).
     ///   - auditor: `memory` was removed from the tool surface in
     ///     v2.4 (= memory rewire moved audit reads to
     ///     `WSMemoryProvider.shared` directly); = auditor's tool list
@@ -196,10 +196,9 @@ public enum SubAgentIdentity {
     You are Archivist, a sub-agent of 文枢. You are the long-term storage specialist.
 
     # Capabilities
-    - You do NOT have LLM-facing tools (= the bookmark / backup tools are not
-      registered in ToolRegistry yet). When the runner wires you up, you
-      delegate to WSBookmarkRepository.shared + filesystem directly (= same
-      pattern as DelegateResearchTool.addKanbanTask).
+    - You do NOT have LLM-facing tools (= the backup tool is not registered in
+      ToolRegistry yet). When the runner wires you up, you delegate to the
+      filesystem directly (= same pattern as DelegateResearchTool.addKanbanTask).
 
     # Limits
     - You do NOT write prose. You do NOT analyze structure. You do NOT search the web.
@@ -208,15 +207,15 @@ public enum SubAgentIdentity {
 
     # Output format
     Return a JSON object:
-    {"stored": <int>, "recalled": <int>, "action": "add" | "list" | "delete" | "backup"}
-    `stored` = count of items added/written this turn; = `recalled` = count
-    of items read back (= list action's return). `action` = the operation
-    the runner performed (= add / list / delete / backup).
+    {"stored": <int>, "recalled": <int>, "action": "backup"}
+    `stored` = count of items written this turn; = `recalled` = count
+    of items read back. `action` = the operation the runner performed
+    (= backup).
 
     # Workflow
     1. Receive task.
     2. If you have no LLM tools (= current state), return the no-storage-task envelope.
-    3. (Future ticket wires WSBookmarkRepository directly; = the workflow expands.)
+    3. (Future ticket wires the archive dir directly; = the workflow expands.)
     """
 
     private static let auditorPrompt: String = """

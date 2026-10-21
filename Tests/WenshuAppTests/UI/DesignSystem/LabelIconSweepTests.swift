@@ -26,16 +26,13 @@
 //  v3.0 sweep SKIPS this case (= outside the central SFIcon factory
 //  scope; = Apple first-party surface).
 //
-//  Sweep files (13 total, 23 sites swept): LibraryRootView dropped
+//  Sweep files (1 total, 1 site swept): LibraryRootView dropped
 //  on 2026-10-08 after commit c67d1ce2c intentionally replaced the
 //  sweep pattern with a unified button shape (= see sweptFiles
-//  comment + totalSitesConsistent test). Remaining swept files:
-//    KanbanView (1) / BookSettingConstraintsView (2)
-//    / CharacterLifecycleView (1) / CharacterRelationshipsView (1)
-//    / EmotionCurveView (2) / GenreFitView (2) / IdeaLibraryView (3)
-//    / LongFormGuardrailsView (3) / PlotThreadView (1) / ReaderExperienceView (2)
-//    / TagManagerView (2) / ForeshadowingView (1)
-//    / PlaceholderView (2)
+//  comment + totalSitesConsistent test). The 12 right-rail tool
+//  views dropped on 2026-10-21 when the right-rail removal took
+//  them out. Remaining swept files:
+//    KanbanView (1)
 //
 
 import Foundation
@@ -43,7 +40,7 @@ import SwiftUI
 import Testing
 @testable import WenshuApp
 
-@Suite("Label icon slot sweep (= 13 view files / 23 sites to SFIcon(tint))")
+@Suite("Label icon slot sweep (= 1 view file / 1 site to SFIcon(tint))")
 struct LabelIconSlotSweepTests {
 
     // LibraryRootView was removed from sweptFiles on 2026-10-08:
@@ -56,18 +53,6 @@ struct LabelIconSlotSweepTests {
     // sites in LibraryRootView minus 1 in the deleted TodoListView).
     static let sweptFiles: [(path: String, sites: Int)] = [
         ("Sources/WenshuApp/Features/Kanban/View/KanbanView.swift", 1),
-        ("Sources/WenshuApp/Features/Agent/View/BookSettingConstraintsView.swift", 2),
-        ("Sources/WenshuApp/Features/Agent/View/CharacterLifecycleView.swift", 1),
-        ("Sources/WenshuApp/Features/Agent/View/CharacterRelationshipsView.swift", 1),
-        ("Sources/WenshuApp/Features/Agent/View/EmotionCurveView.swift", 2),
-        ("Sources/WenshuApp/Features/Agent/View/GenreFitView.swift", 2),
-        ("Sources/WenshuApp/Features/Agent/View/IdeaLibraryView.swift", 3),
-        ("Sources/WenshuApp/Features/Agent/View/LongFormGuardrailsView.swift", 3),
-        ("Sources/WenshuApp/Features/Agent/View/PlotThreadView.swift", 1),
-        ("Sources/WenshuApp/Features/Agent/View/ReaderExperienceView.swift", 2),
-        ("Sources/WenshuApp/Features/Agent/View/TagManagerView.swift", 2),
-        ("Sources/WenshuApp/Features/Agent/View/ForeshadowingView.swift", 1),
-        ("Sources/WenshuApp/Features/Agent/View/PlaceholderView.swift", 2),
     ]
 
     @Test("Label icon slot sweep — 13 view files dropped `Image(systemName: x).imageScale(.small)` in Label icon slot")
@@ -94,7 +79,7 @@ struct LabelIconSlotSweepTests {
     // EmptyStateView has no naked Image(systemName:) in any Label slot;
     // = the sweep closes itself with no ShellPlaceholder check needed.
 
-    @Test("Label icon slot sweep — totals: 23 sites across 13 view files")
+    @Test("Label icon slot sweep — totals: 1 site across 1 view file")
     func totalSitesConsistent() throws {
         var totalSFIconInlineSmall = 0
         for entry in Self.sweptFiles {
@@ -105,7 +90,7 @@ struct LabelIconSlotSweepTests {
             let range = content.range(of: pattern, options: .regularExpression)
             if let _ = range { totalSFIconInlineSmall += 1 }
         }
-        #expect(totalSFIconInlineSmall == 13,
-                "Label icon slot sweep must produce 13 view files using SFIcon(.inlineSmall, .tint) inside icon: { } (= one SFIcon per file = the post-LibraryRootView count)")
+        #expect(totalSFIconInlineSmall == 1,
+                "Label icon slot sweep must produce 1 view file using SFIcon(.inlineSmall, .tint) inside icon: { } (= one SFIcon per file = the post-right-rail-removal count)")
     }
 }

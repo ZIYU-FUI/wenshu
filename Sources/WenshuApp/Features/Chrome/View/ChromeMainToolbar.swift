@@ -77,6 +77,22 @@ extension ChromeMainToolbar: ToolbarContent {
             )
         }
         ToolbarItem(placement: .automatic) {
+            // Command palette button (= the ⌘K surface). It lived
+            // in the right-rail column's toolbar group until the
+            // right-rail removal (2026-10-21); the top toolbar is
+            // its new home (= the canonical single source of truth
+            // for the window's toolbar buttons).
+            Button {
+                CommandPaletteController.show()
+            } label: {
+                Label(
+                    String(localized: "command_palette.open"),
+                    systemImage: "command"
+                )
+            }
+            .help(String(localized: "command_palette.open.help"))
+        }
+        ToolbarItem(placement: .automatic) {
             // Export button (= the 2nd `.toolbar` block that lived
             // in LibraryRootView.content). Cross-component sync:
             // tapping it bumps `sheetRequests.exportSheet += 1`

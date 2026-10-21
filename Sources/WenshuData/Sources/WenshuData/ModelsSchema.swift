@@ -54,7 +54,6 @@ public enum ModelsSchemaV1: VersionedSchema {
             WSManifest.self,
             WSMemory.self,
             WSTodo.self,
-            WSBookmark.self,
             WSLink.self,
             WSPreference.self,
             WSProviderKey.self,

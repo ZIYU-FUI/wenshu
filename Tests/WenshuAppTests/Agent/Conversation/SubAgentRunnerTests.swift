@@ -311,7 +311,7 @@ struct SubAgentRunnerTests {
 
         let handle = BackgroundDelegationHandle(
             agentName: SubAgentIdentity.Name.archivist.rawValue,
-            userMessage: "add doc-1 label-1"
+            userMessage: "backup doc-1 body"
         )
         await registry.register(handle: handle)
         _ = await runner.drainPending()
@@ -322,25 +322,21 @@ struct SubAgentRunnerTests {
         #expect(stub.receivedMessages.isEmpty,
                 "Archivist sub-agent must NOT call the LLM; receivedMessages.count=\(stub.receivedMessages.count)")
         // Storage adapter must have been called.
-        #expect(archivist.addCount == 1)
+        #expect(archivist.backupCount == 1)
     }
 }
 
 /// Minimal ArchivistStorage stub used by `archivistBypassesLLM`.
-/// Counts addBookmark calls so the test can assert the storage
+/// Counts writeBackup calls so the test can assert the storage
 /// path was reached (= Archivist dispatched to storage, not LLM).
 private final class ArchivistStorageStubForLLMGuard: ArchivistStorage, @unchecked Sendable {
     private let lock = NSLock()
-    private var _addCount = 0
-    var addCount: Int { lock.withLock { _addCount } }
+    private var _backupCount = 0
+    var backupCount: Int { lock.withLock { _backupCount } }
 
-    func addBookmark(docID: String, label: String) async throws {
-        lock.withLock { _addCount += 1 }
-    }
-    func listBookmarks() async throws -> [ArchivistBookmark] { [] }
-    func removeBookmark(id: String) async throws {}
     func writeBackup(label: String, contents: String) async throws -> URL {
-        URL(fileURLWithPath: "/tmp/\(label)-backup.md")
+        lock.withLock { _backupCount += 1 }
+        return URL(fileURLWithPath: "/tmp/\(label)-backup.md")
     }
 }
 

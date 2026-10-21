@@ -158,7 +158,7 @@ final class LLMWikiTool: Tool, @unchecked Sendable {
 extension LLMWikiTool {
 
     /// Module-load registration (= same pattern as
-    /// BackgroundReviewTool, DelegateResearchTool, etc.).
+    /// DelegateResearchTool, etc.).
     /// Idempotent.
     static let _registryBootstrap: Void = {
         Task {

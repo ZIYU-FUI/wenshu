@@ -367,30 +367,6 @@ final class SubAgentRunner {
         let restAfterAction = parts.count > 1 ? String(parts[1]) : ""
 
         switch action {
-        case "add":
-            // "add <docID> <label>" — split restAfterAction on first space.
-            let addParts = restAfterAction.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: true)
-            guard addParts.count == 2 else {
-                return #"{"stored":0,"action":"add","reason":"expected: add <docID> <label>"}"#
-            }
-            let docID = String(addParts[0])
-            let label = String(addParts[1])
-            try await storage.addBookmark(docID: docID, label: label)
-            return #"{"stored":1,"action":"add","docID":"\#(docID)","label":"\#(label)"}"#
-
-        case "list":
-            let bookmarks = try await storage.listBookmarks()
-            let ids = bookmarks.map { $0.id }.joined(separator: ",")
-            return #"{"stored":\#(bookmarks.count),"action":"list","ids":"\#(ids)"}"#
-
-        case "delete":
-            let bmID = restAfterAction.trimmingCharacters(in: .whitespaces)
-            guard !bmID.isEmpty else {
-                return #"{"stored":0,"action":"delete","reason":"missing bookmark id"}"#
-            }
-            try await storage.removeBookmark(id: bmID)
-            return #"{"stored":1,"action":"delete","id":"\#(bmID)"}"#
-
         case "backup":
             // "backup <label> <contents>" — split restAfterAction on first space.
             let backupParts = restAfterAction.split(separator: " ", maxSplits: 1, omittingEmptySubsequences: true)

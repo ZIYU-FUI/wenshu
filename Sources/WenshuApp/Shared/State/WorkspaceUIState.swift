@@ -44,9 +44,9 @@ import Foundation
 /// 'should disappear on restart' expectation for ephemeral UI
 /// state.
 ///
-/// chatVisible + inspectorPage were previously on `ShellState`
+/// chatVisible was previously on `ShellState`
 /// (= a separate 4-property @Observable class). Apple HIG
-/// treats all 5 fields here as the same shape (= view-local UI
+/// treats all 4 fields here as the same shape (= view-local UI
 /// state shared across column descendants; = the Pages /
 /// Numbers / Keynote pattern is to keep them in one
 /// environment-injected class, not split across multiple
@@ -88,22 +88,9 @@ final class WorkspaceUIState {
     /// = matches Keynote's 'presenter notes' Show/Hide
     /// behavior).
     ///
-    /// Co-varies with `inspectorPage` (= both are shell chrome
-    /// toggled via macOS menu items; = both are cross-view
+    /// Toggled via a macOS menu item (= cross-view
     /// column-local state; = single source of truth lives here).
     var chatVisible: Bool = true
-
-    /// Inspector tab selection (= `Authoring / Style /
-    /// Characters / Project Management` = 4 pages). When the
-    /// inspector column is hidden (= `inspectorVisible` in
-    /// NavigationSplitShell `@State`), this page is still
-    /// remembered so reopening restores the last selection
-    /// (= Apple Keynote/Pages inspector reopen behavior).
-    ///
-    /// Lives here (= not as `@State` inside `ShellDetailColumn`)
-    /// because the toolbar Picker in ShellDetailColumn binds to
-    /// `$workspaceUI.inspectorPage` (= cross-view state).
-    var inspectorPage: InspectorPage = .authoringFiction
 
     /// Sidebar tree selection (= 5 cases: .book(UUID) / .folder /
     /// .shelf / .referenceCategory / .referenceLibraryRoot,
@@ -145,63 +132,6 @@ final class WorkspaceUIState {
         if let data = UserDefaultsStore.shared.data(forKey: .sidebarSelection),
            let decoded = try? JSONDecoder().decode(SidebarItem.self, from: data) {
             self.sidebarSelection = decoded
-        }
-    }
-}
-
-// MARK: - InspectorPage
-
-/// Inspector column page selection. 4 pages of the right-column
-/// inspector: Authoring / Style / Characters / Project Management.
-///
-/// Was co-located with the dead `InspectorCatalog` enum (= the
-/// 14-tool static catalog no caller referenced after the
-/// ). `InspectorPage` is the only
-/// survivor of that file; it lives next to its single state-field
-/// owner (`WorkspaceUIState.inspectorPage`).
-///
-/// Migration: `InspectorCatalog` enum + `InspectorTool` struct +
-/// `InspectorPage.tools` array (= the legacy per-page tool list)
-/// were deleted in this commit. The 4 inspector pages still drive
-/// their per-page tab strip via `LabelSegmentedControl`, but the
-/// tool list per page now lives in `InspectorView` directly
-/// (= the page → tools mapping is no longer a static catalog;
-/// each page enumerates its views in its own body branch).
-enum InspectorPage: Hashable, CaseIterable {
-    case authoringFiction
-    case authoringStyle
-    case authoringCharacters
-    case projectManagement
-    // ed-smc-defaults T-04: documents-tools page (= the engine-side
-    // format / find / outline / code-block / spell-check affordances
-    // that Apple HIG places in the right-column document inspector
-    // for Pages / Numbers / Keynote. Wenshu slots all five on one
-    // page (= the engine's `MarkdownEditorBus` is one surface; =
-    // splitting the URL on multiple pages would scatter the
-    // bus-coordinated tools). Sub-tools wire in T-05..09.
-    case documentTools
-
-    var localizedTitle: String {
-        switch self {
-        case .authoringFiction:     return String(localized: "inspector.page.authoringFiction")
-        case .authoringStyle:       return String(localized: "inspector.page.authoringStyle")
-        case .authoringCharacters:  return String(localized: "inspector.page.authoringCharacters")
-        case .projectManagement:    return String(localized: "inspector.page.projectManagement")
-        case .documentTools:        return String(localized: "inspector.page.documentTools")
-        }
-    }
-
-    var icon: String {
-        switch self {
-        case .authoringFiction:     return "book.pages"
-        case .authoringStyle:       return "paintpalette"
-        case .authoringCharacters:  return "person.2"
-        case .projectManagement:    return "folder.badge.gearshape"
-        // documentTools page icon (= SF Symbols 6 / picker / inlineSmall
-        // per SFIcon central abstraction). 5 sub-tools live here; =
-        // the page itself is "tools for this document" so the icon
-        // reads as a generic document-with-controls surface.
-        case .documentTools:        return "textformat"
         }
     }
 }

@@ -34,21 +34,6 @@ import Foundation
 @Suite("Severity semantic opacity sweep (= LongFormGuardrailsView badge)")
 struct SeveritySemanticOpacitySweepTests {
 
-    @Test("ReaderExperienceView scoreBadge preserved at call site (= severity 0.22)")
-    func readerExperienceScoreBadgePreserved() throws {
-        let url = SourceLocator.repoRoot
-            .appendingPathComponent("Sources/WenshuApp/Features/Agent/View/ReaderExperienceView.swift")
-        let content = try String(contentsOf: url, encoding: .utf8)
-
-        // ReaderExperienceView is preserved (= wenshu-specific 0.22)
-        #expect(content.contains(".green.opacity(0.22)"),
-                "ReaderExperienceView high score should keep 0.22 literal")
-        #expect(content.contains(".orange.opacity(0.22)"),
-                "ReaderExperienceView mid score should keep 0.22 literal")
-        #expect(content.contains(".gray.opacity(0.22)"),
-                "ReaderExperienceView low score should keep 0.22 literal")
-    }
-
     @Test("accentTintOpacityHero = 0.18 (round 73 + 74 unified value)")
     func accentTintOpacityHeroUnifiedValue() throws {
         let url = SourceLocator.repoRoot

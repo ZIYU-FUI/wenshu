@@ -10,7 +10,6 @@
 //  - Sources/WenshuApp/Workspace/EditorView.swift
 //    L153 .accentColor.opacity(0.12) →
 //    .accentColor.opacity(DesignTokens.accentTintOpacitySubtle)
-//  - Sources/WenshuApp/Features/Agent/View/EmotionCurveView.swift
 //    L379 .accentColor.opacity(0.12) →
 //    .accentColor.opacity(DesignTokens.accentTintOpacitySubtle)
 //  - Sources/WenshuApp/Workspace/PreviewPane.swift
@@ -48,7 +47,6 @@ struct AccentTintOpacityShadowOffsetSweepTests {
 
         let sweptFiles = [
             ("Features/Editor/View/EditorView.swift", "accentTintOpacitySubtle"),
-            ("Features/Agent/View/EmotionCurveView.swift", "accentTintOpacitySubtle"),
             ("Features/Editor/View/PreviewPane.swift", "accentTintOpacityHero"),
             ("Features/Editor/View/EditorPaperCanvas.swift", "surfaceShadowOffsetButton"),
         ]

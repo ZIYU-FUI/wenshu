@@ -124,8 +124,6 @@ enum ToolActivityNarrator {
             return "Checking the reference library"
         case "delegate_research":
             return "Delegating research"
-        case "background_review":
-            return "Running a background review"
         case "kanban":
             return "Updating the board"
         case "vision":

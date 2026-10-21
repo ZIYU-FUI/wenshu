@@ -4,19 +4,17 @@
 //  Storage adapter for the Archivist sub-agent.
 //
 //  Background:
-//  Archivist's domain (= bookmark CRUD + filesystem backup) does
-//  NOT have an LLM-facing tool in `ToolRegistry.shared` (= the
-//  bookmark / backup tools were never ported). The Archivist
-//  sub-agent writes to the canonical SwiftData store via
-//  `WSBookmarkRepository.shared` + filesystem directly (same
-//  pattern as `DelegateResearchTool.addKanbanTask`).
+//  Archivist's domain (= filesystem backup) does NOT have an
+//  LLM-facing tool in `ToolRegistry.shared` (= the backup tool was
+//  never ported). The Archivist sub-agent writes to the per-book
+//  archive dir on the filesystem directly (same pattern as
+//  `DelegateResearchTool.addKanbanTask`).
 //
 //  This protocol isolates the storage calls so the runner can be
-//  tested without a real SwiftData container (= the test passes an
-//  in-memory ArchivistStorage stub).
+//  tested without a real filesystem (the test passes an in-memory
+//  ArchivistStorage stub).
 //
-//  Threading: all methods are `@MainActor` (the underlying
-//  WSBookmarkRepository is `@MainActor`). Callers (= SubAgentRunner)
+//  Threading: all methods are `@MainActor`. Callers (= SubAgentRunner)
 //  hop to MainActor before invoking.
 //
 
@@ -28,83 +26,20 @@ private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "archivists
 
 @MainActor
 protocol ArchivistStorage: Sendable {
-    /// Add a bookmark (= docId + label) to the canonical store.
-    func addBookmark(docID: String, label: String) async throws
-
-    /// List all bookmarks (= newest first).
-    func listBookmarks() async throws -> [ArchivistBookmark]
-
-    /// Remove a bookmark by id.
-    func removeBookmark(id: String) async throws
-
     /// Write a backup snapshot (= blob) to the per-book archive dir.
     /// Used by Archivist's "backup" sub-task (= copies current
     /// chapter content + meta to a dated snapshot file).
     func writeBackup(label: String, contents: String) async throws -> URL
 }
 
-/// Value-object bookmark record (= mirrors `WSBookmarkRepository.list()`
-/// output but stripped of the SwiftData type to keep the protocol
-/// surface framework-free for testing).
-struct ArchivistBookmark: Sendable, Equatable {
-    let id: String
-    let docId: String
-    let label: String
-    let createdAt: Date
-}
-
-/// Production default implementation. Delegates to
-/// `WSBookmarkRepository.shared` (= the canonical SwiftData-backed
-/// bookmark store) + the per-book archive dir for backups.
+/// Production default implementation. Writes backups to the per-book
+/// archive dir on the filesystem.
 @MainActor
 final class LiveArchivistStorage: ArchivistStorage {
-    private let bookmarkRepo: WSBookmarkRepository
     private let archiveRoot: URL
 
-    init(
-        bookmarkRepo: WSBookmarkRepository = WSBookmarkRepository(),
-        archiveRoot: URL
-    ) {
-        self.bookmarkRepo = bookmarkRepo
+    init(archiveRoot: URL) {
         self.archiveRoot = archiveRoot
-    }
-
-    func addBookmark(docID: String, label: String) async throws {
-        let newID = UUID().uuidString
-        _ = try bookmarkRepo.add(id: newID, title: label, docID: docID)
-        // Spotlight bootstrap moved to caller (= data layer no
-        // longer owns app-side infrastructure). The original logic
-        // (= index after add, remove after delete) is preserved 1:1.
-        Task.detached(priority: .utility) {
-            do {
-                try await CSSearchableIndexSearch.shared.index(
-                    docId: newID,
-                    title: label,
-                    body: label
-                )
-            } catch {
-                wenshuLogger.info("[wenshu.spotlight.auto] index failed after bookmark add: \(String(describing: error))")
-            }
-        }
-    }
-
-    func listBookmarks() async throws -> [ArchivistBookmark] {
-        try bookmarkRepo.list().map { model in
-            ArchivistBookmark(
-                id: model.id,
-                docId: model.docID ?? "",
-                label: model.title,
-                createdAt: model.createdAt
-            )
-        }
-    }
-
-    func removeBookmark(id: String) async throws {
-        try bookmarkRepo.remove(id: id)
-        // Spotlight remove moved to caller.
-        Task.detached(priority: .utility) {
-            try? await CSSearchableIndexSearch.shared.remove(docId: id)
-        }
     }
 
     func writeBackup(label: String, contents: String) async throws -> URL {

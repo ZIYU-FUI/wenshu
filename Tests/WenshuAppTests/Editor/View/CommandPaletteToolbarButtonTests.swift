@@ -28,22 +28,22 @@ struct CommandPaletteToolbarButtonTests {
 
     private var shellDetailPath: String {
         var url = SourceLocator.repoRoot
-        url.appendPathComponent("Sources/WenshuApp/Features/Editor/View/InspectorView.swift")
+        url.appendPathComponent("Sources/WenshuApp/Features/Chrome/View/ChromeMainToolbar.swift")
         return url.path
     }
 
-    @Test("ShellDetailColumn wires a CommandPaletteController.show button (= boss B3 surface)")
+    @Test("the top toolbar wires a CommandPaletteController.show button (= boss B3 surface)")
     func testShellDetailColumnWiresCommandPaletteButton() throws {
         let source = try String(contentsOfFile: shellDetailPath, encoding: .utf8)
         // The button MUST call CommandPaletteController.show() so the
         // existing NotificationCenter.post(.wenshuShowCommandPalette)
         // (= the .sheet host in LibraryRootView) opens the palette.
         #expect(source.contains("CommandPaletteController.show()"),
-                "ShellDetailColumn must contain a toolbar Button that calls CommandPaletteController.show() (= the v2.8a boss B3 surface)")
-        // The button must be inside the .principal ToolbarItemGroup
-        // (= the same placement as the existing inspector toggle /
-        // kanban / todo buttons).
-        #expect(source.contains("ToolbarItemGroup(placement: .principal)"),
-                "ShellDetailColumn must host the CommandPalette button in the .principal ToolbarItemGroup (= the same placement as the existing inspector / kanban / todo buttons)")
+                "the top toolbar must contain a Button that calls CommandPaletteController.show() (= the v2.8a boss B3 surface)")
+        // The button must live in the window's toolbar
+        // (= the top toolbar = the canonical single source of truth
+        // for the window's toolbar buttons).
+        #expect(source.contains("ToolbarItem(placement: .automatic)"),
+                "the top toolbar must host the CommandPalette button in a ToolbarItem (= the same pattern as the export button)")
     }
 }

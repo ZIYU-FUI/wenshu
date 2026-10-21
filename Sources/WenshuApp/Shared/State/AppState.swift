@@ -10,7 +10,7 @@
 // cross-zone state (= searchText + openTabs + activeTabId +
 // llmModel). Column-local UI state moved to WorkspaceUIState
 // (= sidebarSelection + previewSortOrder + editMode +
-// inspectorPage + chatVisible). Sheet-request triggers
+// chatVisible). Sheet-request triggers
 // (= newBook / newShelf / choice) moved to SheetRequestState.
 // Editor counters (= wordCount / etc) moved to EditorCounters.
 //

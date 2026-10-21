@@ -8,21 +8,8 @@
 //  specialized tool views).
 //
 //  Swept sites (= 16):
-//  - ForeshadowingView.swift L256: .frame(maxHeight: 220)
-//  - ForeshadowingView.swift L348: .frame(maxHeight: 120)
-//  - PlaceholderView.swift L265: .frame(maxHeight: 220)
-//  - BookSettingConstraintsView.swift L232: .frame(maxHeight: 180)
-//  - CharacterRelationshipsView.swift L227: .frame(maxHeight: 220)
-//  - CharacterLifecycleView.swift L239: .frame(maxHeight: 180)
-//  - CharacterLifecycleView.swift L329: .frame(maxHeight: 140)
-//  - IdeaLibraryView.swift L280: .frame(maxHeight: 180)
-//  - IdeaLibraryView.swift L447: .frame(maxHeight: 120)
-//  - IdeaLibraryView.swift L536: .frame(maxHeight: 100)
 //  - CommandPaletteView.swift L167: .frame(maxHeight: 320)
 //  - KanbanView.swift L379: .frame(maxHeight: 360)
-//  - TagManagerView.swift L216: .frame(maxHeight: 140)
-//  - TagManagerView.swift L340: .frame(maxHeight: 140)
-//  - TagManagerView.swift L397: .frame(maxHeight: 120)
 //  - SidebarSheets.swift L393: .frame(maxHeight: 220)
 //
 //  New DesignTokens (= 5):
@@ -56,15 +43,8 @@ struct PanelMaxHeightSweepTests {
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         let sweptFiles: [(String, String)] = [
-            ("Features/Agent/View/ForeshadowingView.swift", "DesignTokens.panelLargeMaxHeight"),
-            ("Features/Agent/View/PlaceholderView.swift", "DesignTokens.panelLargeMaxHeight"),
-            ("Features/Agent/View/BookSettingConstraintsView.swift", "DesignTokens.panelMediumMaxHeight"),
-            ("Features/Agent/View/CharacterRelationshipsView.swift", "DesignTokens.panelLargeMaxHeight"),
-            ("Features/Agent/View/CharacterLifecycleView.swift", "DesignTokens.panelMediumMaxHeight"),
-            ("Features/Agent/View/IdeaLibraryView.swift", "DesignTokens.panelMediumMaxHeight"),
             ("Shared/UI/CommandPaletteView.swift", "DesignTokens.commandPaletteMaxHeight"),
             ("Features/Kanban/View/KanbanView.swift", "DesignTokens.kanbanBoardMaxHeight"),
-            ("Features/Agent/View/TagManagerView.swift", "DesignTokens.textEditorSmallMaxHeight"),
             ("Features/Library/View/SidebarSheets.swift", "DesignTokens.panelLargeMaxHeight"),
         ]
 

@@ -81,61 +81,22 @@ struct SwiftDataBackedLiveE2ETests {
     }
 
     // Gap 4: Archivist storage adapter writes a real SwiftData row.
-    @Test("Gap 4: archivist sub-agent writes a bookmark to SwiftData via LiveArchivistStorage")
-    func archivistWritesBookmarkToSwiftData() async throws {
+    // Gap 4: Archivist storage adapter writes a real file.
+    @Test("Gap 4: archivist sub-agent writes a backup via LiveArchivistStorage")
+    func archivistWritesBackupToArchiveDir() async throws {
         guard Self.liveEnabled else { return }
-        try setUpInMemoryContainer()
-        defer { tearDownContainer() }
+        let archiveRoot = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("wenshu-e2e-archives-\(UUID().uuidString)",
+                                    isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: archiveRoot) }
 
-        // Cross-test state hygiene (= @Suite(.serialized) means the
-        // tests run sequentially; = the per-test AsyncDelegationRegistry
-        // must be isolated from prior tests, OR handle state from a
-        // prior run leaks into the current run (= the runner
-        // detects the handle as already terminal and markFailed it).
-        // Use an isolated registry (= fresh actor instance) to avoid
-        // the singleton contamination.
-        let registry = AsyncDelegationRegistry()
-
-        // LiveArchivistStorage.init requires an archiveRoot URL
-        // (= for writeBackup). Use a per-test tmp directory so
-        // the test does not touch the user's filesystem.
-        let archiveRoot = FileManager.default.temporaryDirectory
-            .appendingPathComponent("wenshu-archivist-e2e-\(UUID().uuidString)", isDirectory: true)
-        let runner = SubAgentRunner(
-            isolatedRegistry: registry,
-            connector: MinimaxConnector(),
-            toolRegistry: nil,
-            archivistStorage: LiveArchivistStorage(archiveRoot: archiveRoot)
+        let storage = LiveArchivistStorage(archiveRoot: archiveRoot)
+        let url = try await storage.writeBackup(
+            label: "chapter-1",
+            contents: "the chapter body"
         )
-
-        // The archivist handle routes to runArchivistSubAgent (= no
-        // LLM call). Per SubAgentRunner.runArchivistSubAgent:
-        //   "add <docID> <label>" -> addBookmark(docID:label:)
-        let label = "长安资料"
-        let docID = "doc-changan-001"
-        let task = "add \(docID) \(label)"
-        let handle = BackgroundDelegationHandle(
-            agentName: SubAgentIdentity.Name.archivist.rawValue,
-            userMessage: task,
-            state: .pending
-        )
-        await registry.register(handle: handle)
-        try? await Task.sleep(nanoseconds: 100_000_000)
-
-        let n = await runner.drainPending()
-        #expect(n >= 1, "drainPending should process the archivist handle")
-
-        let finalHandle = await registry.get(id: handle.id)
-        #expect(finalHandle?.state == .completed, "archivist handle must complete; got \(String(describing: finalHandle?.state))")
-
-        // Verify the bookmark landed in the SwiftData-backed
-        // WSBookmarkRepository.shared (= the per-test in-memory
-        // container).
-        let bookmarks = (try? WSBookmarkRepository.shared.list()) ?? []
-        let matching = bookmarks.first { bookmark in
-            bookmark.title == label && bookmark.docID == docID
-        }
-        #expect(matching != nil, "archivist must persist a SwiftData row; current bookmark count=\(bookmarks.count)")
+        #expect(FileManager.default.fileExists(atPath: url.path),
+                "archivist backup must write a file into the archive dir")
     }
 
     // Gap 5: Auditor storage adapter reads from SwiftData.

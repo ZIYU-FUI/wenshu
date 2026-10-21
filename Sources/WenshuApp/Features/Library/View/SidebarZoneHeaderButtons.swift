@@ -26,7 +26,7 @@
 import SwiftUI
 
 /// Trailing 'New' + 'Import' icon HStack that sat in the
-/// ZoneContentView trailing slot (= preserved from the
+/// The zone's trailing slot (= preserved from the
 /// pre-v1.69e legacy NewLibraryOutlineView.zoneHeaderButtons).
 /// Same content as the v0.30 legacy implementation (= SF Symbols
 /// icon buttons + hover tint via system
@@ -36,7 +36,7 @@ import SwiftUI
 /// `.onChange(of:)` / `.onReceive`).
 ///
 /// Why HStack-only (= no surrounding chrome):
-/// - Trailing slot in ZoneContentView already supplies the
+/// - The zone's trailing slot already supplies the
 ///   horizontal frame + alignment.
 /// - Per-button padding + icon size is auto-applied by
 ///   `.buttonStyle(.borderless)`.

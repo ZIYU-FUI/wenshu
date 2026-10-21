@@ -19,8 +19,6 @@
 //  - ChatToolDiffPreview.swift L53: .frame(maxWidth: 360)
 //  - ChatToolResultPartView.swift L116: .frame(maxWidth: 360)
 //  - ChatSlashCommandAutocomplete.swift L152: .frame(maxWidth: 360)
-//  - ReaderExperienceView.swift L114: .frame(maxWidth: 320, alignment: .trailing)
-//  - GenreFitView.swift L116: .frame(maxWidth: 320, alignment: .trailing)
 //  - LibraryRootView.swift L388: .frame(maxWidth: 480)
 //  - ZoneEditor.swift L186: DragGesture(minimumDistance: 5)
 //
@@ -61,8 +59,6 @@ struct ChatBubbleWidthDragThresholdSweepTests {
             ("Features/Chat/View/ChatToolDiffPreview.swift", "chatBubbleMaxWidth"),
             ("Features/Chat/View/ChatToolResultPartView.swift", "chatBubbleMaxWidth"),
             ("Features/Chat/View/ChatSlashCommandAutocomplete.swift", "chatBubbleMaxWidth"),
-            ("Features/Agent/View/ReaderExperienceView.swift", "metadataPanelMaxWidth"),
-            ("Features/Agent/View/GenreFitView.swift", "metadataPanelMaxWidth"),
             ("Shared/UI/LibraryRootView.swift", "onboardingWelcomeMaxWidth"),
         ]
 

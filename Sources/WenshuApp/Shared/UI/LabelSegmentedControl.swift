@@ -30,10 +30,9 @@
 //
 //  Renamed from `InspectorPageSegmentedControl` to
 //  `LabelSegmentedControl` (= generic over any selection type;
-//  = the toolbar uses a Label-typed picker; = the inspector
-//  body uses an InspectorPage-typed picker; = both delegate
-//  to the same underlying macOS 27 native NSSegmentedControl
-//  wrapper).
+//  = the toolbar uses a Label-typed picker; = the editor tab
+//  strip uses a String-typed picker; = both delegate to the
+//  same underlying macOS 27 native NSSegmentedControl wrapper).
 //
 //  Implementation: a SwiftUI `NSViewRepresentable` that hosts a
 //  native `NSSegmentedControl` and configures it with the
@@ -79,10 +78,9 @@ import AppKit
 ///
 /// Generic over the selection type `Selection` (= Hashable; =
 /// the caller binds the segmented control to a typed selection;
-/// = the toolbar uses `[Label]` (= String segments) for the
-/// 4-page picker; = the inspector body uses `[InspectorPage]`
-/// (= enum cases) for the per-page tool tabs; = both delegate
-/// to the same NSViewRepresentable wrapper).
+/// = the toolbar uses `[Label]` (= String segments) for its
+/// picker; = the editor tab strip uses `[String]` (= tab ids);
+/// = both delegate to the same NSViewRepresentable wrapper).
 ///
 /// Usage:
 ///

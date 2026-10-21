@@ -23,22 +23,11 @@
 //      #5 KanbanStoreTool -> KanbanStoreTool.execute(add action)
 //
 //    P1 — wire LongForm surface (11 tickets):
-//      #6 LongFormGuardrails -> actor init + loadGuardrails round-trip
-//      #7 ReaderExperienceTools -> ReaderExperienceAnalyzer.analyze
 //      #8 PlotThreadTracker -> actor init + add/list round-trip
-//      #9 GenreFitAnalyzer -> actor init + availableGenres
 //     #10 EditorTransformTools + ParagraphAITool stub replacement ->
 //         EditorTransformTools() + ParagraphAITool.execute
-//     #11 EmotionCurveAnalyzer -> actor init + analyze
-//     #12 CharacterRelationshipTracker -> actor init + add/list
-//     #13 CharacterLifecycleTracker -> actor init + add/list
-//     #14 TagManager -> actor init + add/list
-//     #15 IdeaLibrary -> actor init + add/list
-//     #16 BookSettingConstraints -> actor init + add/list
 //
 //    P2 — wire SpecializedTools (6 tickets):
-//     #17 ForeshadowingTracker -> actor init + add/list
-//     #18 PlaceholderScanner -> actor init + add/list
 //     #19 paragraph_ai toolbar buttons -> ParagraphAITool.execute (covered by #10)
 //     #20 BookManager -> BookManager.createBook round-trip
 //     #21 AgentProgressTracker -> tracker.start + complete round-trip
@@ -104,8 +93,7 @@ struct IntegrationPlanEndToEndTests {
 
     /// Build a tiny LibraryStores + BookStore bundle rooted in a
     /// unique /tmp directory. Mirrors the makeBookStore helper in
-    /// every per-tool test (= ForeshadowingTracker / IdeaLibrary /
-    /// TagManager / LongFormGuardrails / etc.) so the integration
+    /// every per-tool test so the integration
     /// test reuses the canonical wenshu-side test scaffolding.
     /// @MainActor because BookStore is @MainActor (P1-04 audit 2026-09-24).
     @MainActor
@@ -357,74 +345,6 @@ struct IntegrationPlanEndToEndTests {
         #expect(!kanbanAddResult.isEmpty,
                 "P0 #5 KanbanStoreTool.execute(add) should return a non-empty JSON string")
 
-        // ===== P1 #6: LongFormGuardrails =====
-
-
-        print("[P1 #6: LongFormGuardrails] starting")
-        // Builds the actor, calls loadGuardrails (= the actor
-        // auto-derives the 6 default rows on first access).
-        let longForm = LongFormGuardrails(bookStore: bookStore)
-        let autoDerived = try await longForm.loadGuardrails(for: bookId)
-        #expect(autoDerived.count == LongFormGuardrailKind.allCases.count,
-                "P1 #6 LongFormGuardrails should auto-derive 6 rows (one per kind)")
-        #expect(autoDerived.allSatisfy { $0.isAutoDerived },
-                "P1 #6 the auto-derived set must all carry isAutoDerived=true")
-
-        // ===== P1 #7: ReaderExperienceTools =====
-
-
-        print("[P1 #7: ReaderExperienceTools] starting")
-        // Builds the analyzer, calls .analyze(= offline; produces
-        // a deterministic report based on the lexicon match).
-        let readerExp = ReaderExperienceAnalyzer()
-        let readerReport = try await readerExp.analyze(
-            chapterText: "She laughed with joy and felt the bright hope of a new day.",
-            kind: .pacing
-        )
-        #expect(!readerReport.suggestions.isEmpty || !readerReport.highlights.isEmpty,
-                "P1 #7 ReaderExperienceAnalyzer.analyze should produce at least one highlight or suggestion")
-
-        // ===== P1 #8: PlotThreadTracker =====
-
-
-        print("[P1 #8: PlotThreadTracker] starting")
-        // PlotThreadTracker takes a projectRoot (= NOT a BookStore),
-        // so we reuse the same /tmp dir shape as
-        // PlotThreadToolsTests. The /tmp project root is freshly
-        // generated; the actor walks down to the book directory
-        // inside it (= no shelf required because the actor uses
-        // BookProjectConfigStore keyed on bookId).
-        let plotThreadDir = FileManager.default.temporaryDirectory
-            .appendingPathComponent("Wenshu-PlotThread-p5-23-\(UUID().uuidString)", isDirectory: true)
-        try FileManager.default.createDirectory(
-            at: plotThreadDir.appendingPathComponent("books/\(bookId.uuidString)", isDirectory: true),
-            withIntermediateDirectories: true
-        )
-        let plotThreadTracker = PlotThreadTracker(projectRoot: plotThreadDir)
-        let plotThread = PlotThread(bookId: bookId, title: "the withered oak")
-        try await plotThreadTracker.add(plotThread)
-        let plotList = try await plotThreadTracker.list(bookId: bookId)
-        #expect(plotList.count == 1,
-                "P1 #8 PlotThreadTracker should have 1 thread after add")
-        #expect(plotList.first?.id == plotThread.id)
-
-        // ===== P1 #9: GenreFitAnalyzer =====
-
-
-        print("[P1 #9: GenreFitAnalyzer] starting")
-        // Pure offline analyzer (= no BookStore dep); .analyze
-        // returns a deterministic GenreFitReport.
-        let genreFit = GenreFitAnalyzer()
-        let genreSummaries = await genreFit.availableGenres()
-        #expect(genreSummaries.count == LiteraryGenre.allCases.count,
-                "P1 #9 GenreFitAnalyzer.availableGenres should cover all 10 LiteraryGenre cases")
-        let genreReport = try await genreFit.analyze(
-            chapterText: "Detective Mara arrived at the crime scene.",
-            genre: .mystery
-        )
-        #expect(genreReport.genre == .mystery,
-                "P1 #9 GenreFitAnalyzer.analyze should round-trip the genre")
-
         // ===== P1 #10: EditorTransformTools + ParagraphAITool stub replacement =====
 
 
@@ -440,147 +360,6 @@ struct IntegrationPlanEndToEndTests {
             #expect(!prefix.isEmpty,
                     "P1 #10 EditorTransformTools should yield a prompt prefix per transform")
         }
-
-        // ===== P1 #11: EmotionCurveAnalyzer =====
-
-
-        print("[P1 #11: EmotionCurveAnalyzer] starting")
-        // Pure offline analyzer; .analyze produces a deterministic
-        // EmotionCurveReport based on lexicon hit counts.
-        let emotion = EmotionCurveAnalyzer()
-        let emotionReport = try await emotion.analyze(
-            chapterText: "The joyful morning brought hope and bright celebration across the village.",
-            windowCount: 5
-        )
-        #expect(emotionReport.windows.count == 5,
-                "P1 #11 EmotionCurveAnalyzer.analyze should produce 5 windows")
-        #expect(emotionReport.overallScore > 0.0,
-                "P1 #11 the joyful chapter should score positive")
-
-        // ===== P1 #12: CharacterRelationshipTracker =====
-
-
-        print("[P1 #12: CharacterRelationshipTracker] starting")
-        let characterRelTracker = CharacterRelationshipTracker(bookStore: bookStore)
-        let alice = UUID()
-        let bob = UUID()
-        let rel = CharacterRelationship(
-            bookId: bookId,
-            fromCharacterId: alice,
-            toCharacterId: bob,
-            kind: .ally,
-            description: "childhood friends"
-        )
-        try await characterRelTracker.add(rel)
-        let rels = try await characterRelTracker.list(bookId: bookId)
-        #expect(rels.count == 1,
-                "P1 #12 CharacterRelationshipTracker should have 1 relationship after add")
-        #expect(rels.first?.id == rel.id)
-
-        // ===== P1 #13: CharacterLifecycleTracker =====
-
-
-        print("[P1 #13: CharacterLifecycleTracker] starting")
-        let characterLifeTracker = CharacterLifecycleTracker(bookStore: bookStore)
-        let lifeEvent = LifecycleEvent(
-            bookId: bookId,
-            characterId: alice,
-            stage: .introduced,
-            excerpt: "The stranger stepped into the courtyard."
-        )
-        try await characterLifeTracker.add(lifeEvent)
-        let lifeEvents = try await characterLifeTracker.list(bookId: bookId)
-        #expect(lifeEvents.count == 1,
-                "P1 #13 CharacterLifecycleTracker should have 1 event after add")
-        #expect(lifeEvents.first?.stage == .introduced)
-
-        // ===== P1 #14: TagManager =====
-
-
-        print("[P1 #14: TagManager] starting")
-        let tagManager = TagManager(bookStore: bookStore)
-        let tag = Tag(
-            bookId: bookId,
-            label: "redemption",
-            category: .theme
-        )
-        try await tagManager.addTag(tag)
-        let tags = try await tagManager.listTags(bookId: bookId)
-        #expect(tags.count == 1,
-                "P1 #14 TagManager should have 1 tag after add")
-        #expect(tags.first?.label == "redemption")
-
-        // ===== P1 #15: IdeaLibrary =====
-
-
-        print("[P1 #15: IdeaLibrary] starting")
-        let ideaLibrary = IdeaLibrary(bookStore: bookStore)
-        let idea = Idea(
-            bookId: bookId,
-            title: "The Mirror Motif",
-            description: "Mirrors recur in every chapter to mark recognition.",
-            status: IdeaStatus.seedling,
-            tags: ["mirror", "recognition"]
-        )
-        try await ideaLibrary.add(idea)
-        let ideas = try await ideaLibrary.list(bookId: bookId)
-        #expect(ideas.count == 1,
-                "P1 #15 IdeaLibrary should have 1 idea after add")
-        #expect(ideas.first?.title == "The Mirror Motif")
-
-        // ===== P1 #16: BookSettingConstraints =====
-
-
-        print("[P1 #16: BookSettingConstraints] starting")
-        let constraint = BookSettingConstraint(
-            bookId: bookId,
-            title: "Magic requires eye contact",
-            description: "No off-screen magic without prior setup.",
-            severity: .hard,
-            scope: .world,
-            forbiddenPatterns: []
-        )
-        let constraints = BookSettingConstraints(bookStore: bookStore)
-        try await constraints.add(constraint)
-        let constraintList = try await constraints.list(bookId: bookId)
-        #expect(constraintList.count == 1,
-                "P1 #16 BookSettingConstraints should have 1 constraint after add")
-        #expect(constraintList.first?.title == "Magic requires eye contact")
-
-        // ===== P2 #17: ForeshadowingTracker =====
-
-
-        print("[P2 #17: ForeshadowingTracker] starting")
-        let foreshadowTracker = ForeshadowingTracker(bookStore: bookStore)
-        let foreshadowing = Foreshadowing(
-            bookId: bookId,
-            title: "the withered oak",
-            setupExcerpt: "She noticed the withered oak near the gate."
-        )
-        try await foreshadowTracker.add(foreshadowing)
-        let foreshadowList = try await foreshadowTracker.list(bookId: bookId)
-        #expect(foreshadowList.count == 1,
-                "P2 #17 ForeshadowingTracker should have 1 entry after add")
-        #expect(foreshadowList.first?.title == "the withered oak")
-
-        // ===== P2 #18: PlaceholderScanner =====
-
-
-        print("[P2 #18: PlaceholderScanner] starting")
-        let placeholderScanner = PlaceholderScanner(bookStore: bookStore)
-        let chapterId = UUID()
-        let placeholder = Placeholder(
-            bookId: bookId,
-            chapterId: chapterId,
-            lineNumber: 12,
-            context: "TODO: research how the river trade worked",
-            pattern: "TODO"
-        )
-        try await placeholderScanner.add(placeholder)
-        let placeholderList = try await placeholderScanner.list(bookId: bookId)
-        #expect(placeholderList.count == 1,
-                "P2 #18 PlaceholderScanner should have 1 entry after add")
-        #expect(placeholderList.first?.pattern == "TODO")
 
         // ===== P2 #19: paragraph_ai toolbar buttons =====
 
@@ -656,7 +435,7 @@ struct IntegrationPlanEndToEndTests {
         #expect(afterAddList.contains(where: { $0.id == reactiveTodo.id }),
                 "P2 #22 TodoStore.add must persist the new row (= no reactive fan-out post-ticket 3)")
 
-        // ===== END: all 22 wire-up tickets have fired at least once =====
+        // ===== END: all wire-up tickets have fired at least once =====
         // If we reach this line, every wire-up ticket produced at
         // least one observable side effect (= the test passes when
         // all #expect assertions above pass; no final assertion

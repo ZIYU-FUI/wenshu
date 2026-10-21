@@ -27,7 +27,7 @@
 //  - UUID / UUID? (= round-trip via uuidString)
 //
 //  Dynamic-key escape hatch (= for keys whose name is computed at
-//  runtime, e.g. `wenshu.tabIndex.<zoneSlug>` in ZoneContentView):
+//  runtime, e.g. `wenshu.tabIndex.<zoneSlug>` in the zone tab strip):
 //  - Int only (= the dynamic-key call sites in wenshu all store Int)
 //  - `forDynamicKey:` String-typed parameter (= typo-prone by design;
 //    prefer `WenshuDefaultsKey.<case>` when the key is static)

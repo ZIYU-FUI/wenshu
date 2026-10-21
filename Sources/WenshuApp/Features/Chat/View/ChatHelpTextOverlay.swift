@@ -64,7 +64,7 @@ struct ChatHelpTextOverlay: View {
         // content + Spacer` (= top + bottom Spacers push the
         // content to vertical center inside the chat zone).
         ZStack {
-            Color.clear  // zone background shows through (= Apple canonical: parent ZoneContentView provides background)
+            Color.clear  // zone background shows through (= Apple canonical: the parent zone provides the background)
             VStack(spacing: 0) {
                 Spacer(minLength: 0)
                 // -m1-shell (see OOB.md #2026-09-12) OOB 'the current empty state isn't

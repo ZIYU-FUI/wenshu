@@ -10,11 +10,8 @@
 //  standard).
 //
 //  Swept sites (= 6):
-//  - ForeshadowingView.swift L250:
 //    LazyVStack(spacing: 6) → spacingTight
-//  - ForeshadowingView.swift L342:
 //    LazyVStack(spacing: 4) → spacingIconic
-//  - PlaceholderView.swift L259:
 //    LazyVStack(spacing: 6) → spacingTight
 //  - ChatView.swift L329:
 //    LazyVStack(spacing: 8, pinnedViews:) → spacingStandard
@@ -48,8 +45,6 @@ struct LazyVStackSpacingAspectRatioSweepTests {
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         let sweptFiles: [(String, String)] = [
-            ("Features/Agent/View/ForeshadowingView.swift", "DesignTokens.spacingTight"),
-            ("Features/Agent/View/PlaceholderView.swift", "DesignTokens.spacingTight"),
             ("Features/Chat/View/ChatView.swift", "DesignTokens.spacingStandard"),
             ("Features/Kanban/View/KanbanView.swift", "DesignTokens.spacingTight"),
         ]
