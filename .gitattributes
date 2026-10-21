@@ -1,0 +1,23 @@
+# Merge drivers for the files a wave touches most.
+#
+# WHY
+#
+# The string catalog is the most-touched file in a wave (4 cards on the
+# current board, 7 touches inside a 12-commit window on main). Its keys are
+# NOT sorted: a new key lands in the MIDDLE of the file. So two cards that
+# each add a DIFFERENT key produce a textual conflict under git's normal
+# merge, because both insertions land in the same neighbourhood.
+#
+# Measured: `git merge-tree` on two branches that each added one distinct
+# key returned CONFLICT.
+#
+# The driver merges the catalog at the KEY level instead, so that class of
+# collision does not happen. A genuine disagreement (the same key, two
+# different values) still conflicts, and the driver NAMES the key, so the
+# human resolves a string instead of hunting a marker in a 6400-line file.
+#
+# The driver path is repo-relative: git runs a merge driver from the top of
+# the working tree. The matching config lives in .git/config (a local
+# setting, so it is not part of this file) and is installed by
+# Scripts/setup-dev-env.sh.
+*.xcstrings merge=xcstrings
