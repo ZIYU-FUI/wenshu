@@ -244,5 +244,30 @@ raw translation key, and the inspector's empty state.
    log is not evidence against a branch. Compare the failing SET, and
    exclude a name that the baseline also produces.
 
+6. *The narrow-window card's premise was wrong, and its own harness is
+   why.* `t_575a8577` asserted "THIS IS NOT THE INSPECTOR" on the strength
+   of a 3/3 measurement. The single-variable pair, run with the harness's
+   four identity defects fixed, says the opposite: the parent commit
+   (= no inspector) crashed **0 of 10**, and the commit that adds the
+   `.inspector` modifier crashed **10 of 10** with AppKit's own counter
+   reading `limit: 342, count: 348`. The card's number came from a harness
+   whose counter readback was dead (= it grepped a format AppKit does not
+   emit), whose log predicate had no pid filter, and whose resize readback
+   was discarded. The lesson is the one the card's own review already
+   stated: **a rate measured by a harness with broken identity assertions
+   is not a rate.** The measurement was the deliverable, and it had to be
+   re-done before it could be believed.
+
+7. *A harness's own abort can discard the very result it was looking for.*
+   The arm aborted with "the resize never landed" when a trial CRASHED
+   mid-drag, because the width could not be read back from a process that
+   had already died. The arm therefore threw away the arm that reproduced
+   the crash and kept the one that did not. A crash trial IS a trial where
+   the resize landed (= the window was being resized when it died); only
+   the readback is unavailable. Same shape as the dead-counter bug: the
+   instrument fails in a way that is invisible in the summary line, and
+   the failure is always in the direction that loses the result.
+
+
 
 
