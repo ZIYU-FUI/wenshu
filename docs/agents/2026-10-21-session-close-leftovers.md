@@ -81,37 +81,54 @@ change finished in the card's own worktree, on the card's branch.
 
 ### 6.1 Product
 
-1. **The promptware defense is still not ported.** The untrusted-tool-result
-   wrapper (= hermes's `maybeWrapUntrusted` and its three siblings) is the
-   control that marks a tool's output as untrusted data before the model reads
-   it. The port needs its own ticket and its own design, and the hermes
-   source it would be ported from is not on this machine. The gap is now named
-   in the code instead of claimed, and the four helper names are listed where
-   the next reader will look (= the dispatch helpers' header, the port test's
-   H4.2 marker, and the `ErrorClassifier` gap marker).
-2. **The suite is not green.** The baseline itself has 47 failing tests, and
+1. **The promptware defense is now ported.** The untrusted-tool-result
+   wrapper (= hermes's `maybeWrapUntrusted` and its three siblings) marks a
+   tool's output as untrusted data before the model reads it. The `web` and
+   `web_search` outputs now reach the model inside a boundary that says the
+   content is data, that directives inside it must not be followed, and that
+   only the user can issue instructions; the content itself is unchanged, and
+   only the model's copy is framed (= the user still sees the page's text,
+   and the permission gate's own denial is left alone, because that is the
+   app's message, not the tool's output). The high-risk list is a NAME list
+   chosen for THIS app: hermes wraps `web_extract` plus any `browser_*` /
+   `mcp_*` tool, and this app has none of those, so a literal copy of hermes's
+   list would have wrapped nothing while appearing to be done. `delegate_research`
+   is deliberately off the list (= it returns a "research delegated" receipt,
+   not the fetched content). The three gap markers now state what was ported,
+   with the real hermes path and the real line numbers.
+2. **The suite is not green.** The baseline itself has failing tests, and
    the failures move between runs (= the timing tests are load-sensitive: one
    3-second auto-save test failed once under load and passed 5/5 in
-   isolation). The gate is the failing-test SET, never the issue count. The
-   delivered tree is at 40 failing tests with 0 new.
+   isolation). The gate is the failing-test SET, never the issue count.
+   The delivered tree has 0 new failing names against the base-commit
+   control.
+
+   One environment caveat, measured: the XCTest phase of `swift test`
+   intermittently deadlocks in test DISCOVERY (= `XCTestCase.allSubclasses`
+   against the AddressBook framework's `CFPrefsSearchListSource` lock), before
+   any test runs. It reproduces on unmodified main in a separate worktree, so
+   it is not a property of any change. A run that hangs there produced no
+   result at all; the Swift Testing phase is the part that reports.
 
 ### 6.2 The board and the tree
 
-3. **Two cards are blocked and need a human.** `t_7bae9cda` (= the editor
-   status bar) and `t_c53736f4` (= the chat turn spacing) are blocked; their
-   re-dispatched replacements `t_c50a2cdf` (= the tab strip) and
-   `t_4bd0e18b` (= the kanban window) are running, and `t_575a8577` (= the
-   narrow-window crash) is running. A blocked card waits for the boss.
-4. **One branch carries work that is not on the board.**
-   `feature/inspector-wake` is 2 commits ahead of main (= the inspector's page
-   strip waking a hidden column, and a note on launching the app without
-   taking the focus) and has no card. It needs a card or it is lost.
-5. **Eight worktrees are still on disk**, one per live card plus
-   `/private/tmp/ws-baseline` and `scratch/wt-inspector-wake`. Each card's
-   worktree goes when its branch merges: `git worktree remove --force` then
-   `git branch -D`. This session removed its own six plus four stale ones
-   (= two `ab-*` and two `vw-*`/two `cw-*` at the pre-rail commit, which held
-   old builds that fought for the foreground and for the app's process).
+3. **Two cards are blocked and need a human.** `t_575a8577` (= the
+   narrow-window crash) came back from review with no deliverable (= the
+   worktree is clean at its base commit and the fix arm still crashed 10/10,
+   so both acceptance criteria were unmet), and `t_22e72dc5` (= moving the
+   tool contract, registry, executor and path guard into the WenshuAgent
+   package) ran out of its wall clock twice with its move staged but
+   uncommitted in its worktree. A blocked card waits for the boss.
+4. **The orphan branch is gone.** `feature/inspector-wake` (= the
+   inspector's page strip waking a hidden column, and a note on launching the
+   app without taking the focus) had no card and would have been lost. It
+   now has one (`t_0c4aa820`), and its work is on main.
+5. **The worktrees are mostly cleaned.** Each card's worktree goes when its
+   branch merges: `git worktree remove --force` then `git branch -D`. The
+   merged cards' worktrees and branches are gone, and the branches whose
+   content is already on main were removed after comparing them by CONTENT
+   (not by SHA, because a rebased or cherry-picked branch carries the same
+   change under a different SHA).
 6. **The Info.plist card merged cleanly** (`0e9dbd405`) and its edit to
    `Tools/build-wenshu.sh` went with the file's deletion (= the board comment
    on that card was the right call).
@@ -120,8 +137,8 @@ change finished in the card's own worktree, on the card's branch.
 
 | Item | Value |
 | ---- | ----- |
-| `main` | `0e9dbd405` (= this session's 8 commits + 3 from the parallel sessions) |
-| `origin` / `old-origin` | 3 commits behind main (= the parallel sessions' merges are not pushed yet; = whoever pushes next pushes all four) |
+| `main` | `0bea8cac6` (= this session's commits + the parallel sessions' merges) |
+| `origin` / `old-origin` | in sync with main (= the GitHub remote needs SSH over port 443 on this machine; = port 22 is closed by the local proxy) |
 | The working tree | clean |
 | The catalog | 363 keys (= every key a literal names, plus every key an interpolation site can reach) |
 | The app bundle | `bash Scripts/build-app.sh` exits 0 (= the canonical script; = the stale duplicate is gone) |
@@ -135,3 +152,50 @@ the pitfalls (= a stale build script that nobody runs, a visual finding that
 the measurement contradicts, a "before" snapshot pinned to `HEAD~1`), and
 `wenshu-parallel-dev` carries the card-body rules (= exact `file:line`
 anchors, a comparison basis pinned by SHA).
+
+## 8. What the follow-up session added
+
+The follow-up session worked this document's section 6 as its task list.
+
+**Landed on main** (= each one commit, each one fast-forward):
+
+| Card | What landed | Commit |
+| ---- | ----------- | ------ |
+| `t_0c4aa820` | The inspector's page strip wakes a hidden column, plus the launch note that keeps the focus off the user's machine | `4012a75f1` + `e3c2f118d` |
+| `t_c50a2cdf` | The editor's selected tab shows its title; the user's own chat message gets a surface its words can sit on; the status bar stops slicing the last line | `5824726c7` + `0503303a5` + `a0720c5e3` |
+| `t_937280a6` | The promptware defense (= the untrusted-tool-result wrapper) | `0bea8cac6` |
+
+The three cards' branches carried the same content under different SHAs
+(= a rebased or cherry-picked branch), so they were compared by CONTENT
+before anything was deleted: `git diff main <branch> -- Sources/ Tests/`
+on the files each commit touched, not a comparison of commit lists.
+
+**One real conflict, resolved by keeping both intents.** The chat bubble
+commit and main's band-height commit touched the same modifier chain
+(`ChatMessageView.swift`): main's version drops the vertical padding and
+floors the band at the composer's field height, and the bubble commit's
+version replaces the glass fill with the semantic inactive-selection surface
+and adds a hairline edge. The merge keeps both = the semantic surface, the
+hairline edge, the shared `ChatSurfaceShape`, AND the height floor.
+
+**The trial build.** The five fixes were combined into one bundle with a
+unique bundle identifier, so it could not take the foreground from another
+live instance, and it was captured in-process. The capture shows the
+selected tab's title readable, the user bubbles on a distinct surface, no
+raw translation key, and the inspector's empty state.
+
+**Two lessons the board taught, and they are now in the skills.**
+
+1. *A worker that burns its budget is a card problem, not a lost ticket.*
+   The promptware worker spent two 45-minute budgets reading and wrote
+   nothing (= 55 terminal calls, 0 writes, twice). The fix was to finish the
+   change in the card's own worktree, which is what the worktree was for.
+   The second attempt failed the same way even after the card body was
+   rewritten to lead with the recipe instead of the architecture, so the
+   body alone was not the lever.
+2. *A branch that a card moved is a rename, and a rename plus an edit is a
+   conflict waiting to happen.* The tool-mechanism move card relocates the
+   very files the promptware wrapper lives in (= `ToolDispatchHelpers.swift`
+   and `ToolExecutor.swift`), so the two cards had to be sequenced, not run
+   side by side. The wrapper is in the file that moves, and the call sites
+   are in the file that moves, so the two changes travel together.
