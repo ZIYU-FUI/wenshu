@@ -126,7 +126,13 @@ whole (25 PT) when the card carried a 6 PT vertical padding.
 It is left open because it collides with a contract another card committed to `main` in the
 meantime: `ChatSurfaceGeometryTests` requires the outgoing band to rest at the composer
 field's 36 PT, and the 36 PT floor cannot hold the card's own content AND a vertical
-padding. A variant matrix (one card chain per row, rendered through `ImageRenderer`) found that
+padding. The crop test was proved against the UNFIXED code before it was trusted: with the fix it
+PASSES, and without it it FAILS (`bottomBright > 60` not met). The threshold counts the
+bright (= glyph) pixels in the bottom half of the render, where the reply row lives: 300 in
+the passing case, 0 in the failing one. So the assertion is that the reply's glyphs are
+actually painted, not merely that the reply exists.
+
+A variant matrix (one card chain per row, rendered through `ImageRenderer`) found that
 the reply is visible only when the card has BOTH a vertical padding and a paint. Moving the
 fill and the border BEFORE the height floor (= painting the surface at the content's size,
 so it cannot reach into the row below) does NOT bring the reply back, which rules out the
