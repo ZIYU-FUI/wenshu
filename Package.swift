@@ -124,29 +124,21 @@ let package = Package(
                 // Per-region view wrapper design docs (= humans + LLMs,
                 // not Swift compiler; = no runtime Bundle access).
                 "Shared/UI/ComponentDocs/SFRegions.md",
-                // Localizable.strings inside each .lproj/. The single
-                // source of truth is Localizable.xcstrings; SPM 6.4
-                // compiles it into per-locale Localizable.strings
-                // inside Wenshu_WenshuApp.bundle at swift-build time
-                // (= Apple's String Catalog native support). Excluding
-                // these from the SPM target prevents the 'Multiple
-                // commands produce ...' duplicate-output error when
-                // SPM processes both the source .lproj/Localizable.strings
-                // AND the .xcstrings-derived equivalent. The .lproj/
-                // directory itself is still processed (= InfoPlist.strings
-                // for localized CFBundleDisplayName etc. ships as a
-                // normal SPM resource).
-                "Resources/en.lproj/Localizable.strings",
-                "Resources/zh-Hans.lproj/Localizable.strings",
             ],
-            // Per (see OOB.md #2026-10-06): single source of truth is
-            // Localizable.xcstrings (= Apple Xcode 15+ String Catalog
-            // format; = JSON; = git-tracked; = edited in Xcode's String
-            // Catalog editor). SPM .process("Resources") ships the
-            // .xcstrings file verbatim; the build pipeline
-            // (= Scripts/build-app.sh) then runs `xcstringstool compile`
-            // to produce the per-locale .lproj/Localizable.strings
-            // files that NSLocalizedString actually consumes at runtime.
+            // Per (see OOB.md #2026-10-06): one String Catalog per table.
+            // Localizable.xcstrings is the on-screen text table; the
+            // InfoPlist.xcstrings sibling holds the names the system reads
+            // from the bundle's Info.plist (= CFBundleDisplayName and
+            // friends). The build system compiles every catalog in this
+            // processed resource directory into
+            // <Bundle>/Contents/Resources/<locale>.lproj/<Table>.strings,
+            // as UTF-16 (= Apple's String Catalog native support); it
+            // does not ship a catalog verbatim. There is no hand-written
+            // .lproj folder in the source tree: a hand-written .strings
+            // beside a catalog shadows every key added to the catalog
+            // afterwards. Scripts/build-app.sh promotes the compiled
+            // per-locale folders into the app bundle, because Bundle.main
+            // does not read the nested module bundle.
             resources: [
                 .process("Resources")
             ],
@@ -202,8 +194,9 @@ let package = Package(
             // Removing the .copy("/.process") declaration prevents
             // SPM from emitting 'duplicate output file' warnings
             // (= the production target already ships the file).
-            // The .lproj children are produced at build time by
-            // `xcstringstool compile` (= Scripts/build-app.sh).
+            // The test target declares no resources of its own, so
+            // Bundle.module in a test file resolves to the app module's
+            // resource bundle (= where the SOP files live).
         ),
 
         // The local packages' own test suites. Declared here because `swift

@@ -20,6 +20,33 @@ echo "before: $BEFORE"
 echo "after:  $AFTER"
 echo
 
+# Print the keys of the given String Catalogs that lack an English or a
+# Simplified Chinese localization. One "path: key" line per offender, so the
+# caller can diff the output against an empty result.
+catalog_missing_locales() {
+    python3 - "$@" <<'PYTHON'
+import json
+import os
+import sys
+
+for path in sys.argv[1:]:
+    if not os.path.exists(path):
+        # A catalog the commit deleted has no localizations left to check.
+        continue
+    try:
+        with open(path, encoding="utf-8") as handle:
+            catalog = json.load(handle)
+    except (OSError, ValueError) as error:
+        print(f"{path}: unreadable ({error})")
+        continue
+    for key, entry in catalog.get("strings", {}).items():
+        locales = entry.get("localizations", {})
+        for locale in ("en", "zh-Hans"):
+            if locale not in locales:
+                print(f"{path}: {key} has no {locale} localization")
+PYTHON
+}
+
 # Files changed
 echo "--- Files changed ---"
 git diff --name-only "$BEFORE" "$AFTER"
@@ -134,20 +161,26 @@ else
     echo "    WARN: exceeds Q112 single-file budget"
 fi
 
-# 6. i18n 双套: en.lproj + zh-Hans.lproj both updated if any key added
-echo -n "  [6/7] i18n 双套 (= en + zh-Hans both updated) ... "
-# Use || true to prevent set -e exit when grep matches 0 lines (= the no-i18n-change case)
-I18N_CHANGED=$(git diff --name-only "$BEFORE" "$AFTER" | { grep -E "\.lproj/Localizable" || true; })
+# 6. i18n dual-locale: every changed String Catalog carries both an English
+#    and a Simplified Chinese localization for every key.
+echo -n "  [6/7] i18n dual-locale (= en + zh-Hans in every changed catalog) ... "
+# Use || true to prevent set -e exit when grep matches 0 lines (= the no-catalog-change case)
+I18N_CHANGED=$(git diff --name-only "$BEFORE" "$AFTER" | { grep -E "\.xcstrings$" || true; })
 if [ -n "$I18N_CHANGED" ]; then
-    EN=$(echo "$I18N_CHANGED" | { grep -c "en.lproj" || true; })
-    ZH=$(echo "$I18N_CHANGED" | { grep -c "zh-Hans.lproj" || true; })
-    if [ "$EN" = "$ZH" ] && [ "$EN" -gt 0 ]; then
-        echo "OK (en=$EN zh-Hans=$ZH)"
+    if ! command -v python3 >/dev/null 2>&1; then
+        echo "WARN: python3 not found (= catalog locales not verified)"
     else
-        echo "FAIL: i18n files updated but en != zh-Hans (en=$EN zh-Hans=$ZH)"
+        MISSING=$(catalog_missing_locales $I18N_CHANGED || true)
+        if [ -z "$MISSING" ]; then
+            COUNT=$(echo "$I18N_CHANGED" | wc -l | tr -d ' ')
+            echo "OK ($COUNT catalog(s) carry en + zh-Hans)"
+        else
+            echo "FAIL: catalog(s) missing a locale:"
+            echo "$MISSING" | head -5
+        fi
     fi
 else
-    echo "OK (no i18n changes in this commit)"
+    echo "OK (no catalog changes in this commit)"
 fi
 
 # 7. Apple HIG canonical: no magic number (= prefer DesignTokens)

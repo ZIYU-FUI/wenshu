@@ -7,9 +7,10 @@
 //      A spliced one resolves to itself, so the UI prints the key. Every key
 //      exists in the catalog and the screen still shows
 //      "settings.memory.backend.localMarkdown.detail".
-//   2. Two catalogs. Localizable.xcstrings is the source, and the hand-written
-//      .lproj/Localizable.strings beside it used to win at runtime until it
-//      drifted. It is gone; this asserts it stays gone.
+//   2. Two copies of one table. The String Catalog is the source, and the
+//      hand-written .lproj/Localizable.strings beside it used to win at
+//      runtime until it drifted. The whole .lproj folder is gone; this
+//      asserts it stays gone.
 
 import Foundation
 import Testing
@@ -72,25 +73,49 @@ struct LocalizedKeyTests {
         return offenders
     }
 
-    // MARK: - One catalog only
+    // MARK: - One catalog per table
 
-    @Test("the hand-written .strings beside the catalog is gone")
+    @Test("the hand-written .lproj folder beside the catalogs is gone")
     func handWrittenCatalogIsGone() {
         let resources = URL(fileURLWithPath: SourceLocator.path("Sources/WenshuApp/Resources"))
-        // InfoPlist.strings stays: it localises CFBundleDisplayName and has
-        // no String Catalog equivalent the build pipeline compiles.
-        let stale = ["en.lproj/Localizable.strings", "zh-Hans.lproj/Localizable.strings"]
+        // A hand-written .strings beside a catalog wins at runtime and
+        // shadows every key added to the catalog afterwards, so the whole
+        // folder has to stay absent (= not just one file name).
+        let stale = ["en.lproj", "zh-Hans.lproj"]
             .filter { FileManager.default.fileExists(atPath: resources.appendingPathComponent($0).path) }
         #expect(stale.isEmpty,
-                "these shadow the catalog at runtime: \(stale). Localizable.xcstrings is the only source.")
+                "these shadow the catalogs at runtime: \(stale). The .xcstrings files are the only source.")
     }
 
-    @Test("the build pipeline compiles the catalog")
-    func buildScriptCompilesTheCatalog() throws {
+    @Test("the app ships one String Catalog per table")
+    func catalogsArePresent() {
+        let resources = URL(fileURLWithPath: SourceLocator.path("Sources/WenshuApp/Resources"))
+        for catalog in ["Localizable.xcstrings", "InfoPlist.xcstrings"] {
+            let path = resources.appendingPathComponent(catalog).path
+            #expect(FileManager.default.fileExists(atPath: path),
+                    "missing catalog \(catalog)")
+        }
+        for folder in ["en.lproj", "zh-Hans.lproj"] {
+            let path = resources.appendingPathComponent(folder).path
+            #expect(!FileManager.default.fileExists(atPath: path),
+                    "the .lproj folder \(folder) is back (= it shadows the catalogs)")
+        }
+    }
+
+    @Test("the build script promotes the build system's compiled tables")
+    func buildScriptPromotesTheCompiledTables() throws {
         let script = URL(fileURLWithPath: SourceLocator.path("Scripts/build-app.sh"))
         let text = try String(contentsOf: script, encoding: .utf8)
-        #expect(text.contains("xcstringstool compile"),
-                "SwiftPM ships .xcstrings verbatim; without this the app has no catalog")
+        // The build system compiles every .xcstrings in a processed
+        // resource directory into <locale>.lproj/<Table>.strings; the
+        // script only has to copy those per-locale folders up to the
+        // app bundle, because Bundle.main does not read the nested
+        // module bundle. A hand-run catalog compiler is not needed and
+        // would only handle one of the two tables.
+        #expect(!text.contains("xcstringstool"),
+                "the build system compiles the catalogs; the script must not hand-run a compiler")
+        #expect(text.contains("promoted .lproj"),
+                "the script must promote the build system's per-locale folders into the app bundle")
     }
 
     // MARK: - The keys this feature needs

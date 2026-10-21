@@ -134,45 +134,21 @@ if [ -n "$SPM_BUNDLE_PATH" ]; then
     echo ">>> copied SPM bundle: $SPM_BUNDLE_PATH -> $RES_DIR/$(basename "$SPM_BUNDLE_PATH")"
 fi
 
-# Promote the SPM-compiled .lproj/Localizable.strings to .app/Contents/Resources/
+# Promote the build system's compiled .lproj folders to .app/Contents/Resources/
 # so Bundle.main (= String(localized:) / NSLocalizedString) can resolve them.
 # Without this promotion, the user sees the raw key string (e.g.
 # "onboarding.library.choose_location") instead of the translated value,
 # because Foundation's Bundle.main does NOT recurse into the nested
 # Wenshu_WenshuApp.bundle (= it reads only the top-level Resources/). The
 # SPM-generated .lproj inside the nested bundle is the canonical source
-# (= compiled at swift-build time from Sources/WenshuApp/Resources/Localizable.xcstrings;
-# no xcstringstool invocation needed here). Apple HIG canonical pattern:
-# all app-localized resources must live directly under Contents/Resources/.
-# Source-tree per-locale .lproj directories are excluded from the SPM target
-# (= Package.swift exclude list) so they are NOT shipped and the SPM bundle's
-# .xcstrings-derived .lproj is the canonical runtime catalog.
-# Compile the string catalog into the per-locale .lproj that Foundation
-# reads. SwiftPM ships Localizable.xcstrings verbatim; it does NOT run
-# xcstringstool, so without this step the app ships no catalog at all and
-# every String(localized:) renders as its own key. This is the only place the
-# catalog is compiled, which is what makes Localizable.xcstrings the single
-# source: a hand-edited .strings beside it used to win, and the two drifted
-# until the UI showed raw keys for anything added recently.
-XCATALOG="Sources/WenshuApp/Resources/Localizable.xcstrings"
-if [ -f "$XCATALOG" ]; then
-    COMPILED="$RES_DIR/.xcstrings-compiled"
-    rm -rf "$COMPILED"
-    mkdir -p "$COMPILED"
-    if xcrun xcstringstool compile "$XCATALOG" --output-directory "$COMPILED" >/dev/null 2>&1; then
-        for lproj in "$COMPILED"/*.lproj; do
-            if [ -d "$lproj" ]; then
-                mkdir -p "$RES_DIR/$(basename "$lproj")"
-                cp -R "$lproj/." "$RES_DIR/$(basename "$lproj")/"
-            fi
-        done
-        rm -rf "$COMPILED"
-        echo ">>> compiled string catalog -> $RES_DIR/*.lproj"
-    else
-        echo ">>> WARNING: xcstringstool compile failed; user-facing strings will show raw keys" >&2
-    fi
-fi
-
+# (= compiled at swift-build time from the String Catalogs in
+# Sources/WenshuApp/Resources/; = no catalog-compiler invocation is
+# needed here).
+# Apple HIG canonical pattern: all app-localized resources must live directly
+# under Contents/Resources/. Both tables ride along in the same per-locale
+# folder (= Localizable.strings + InfoPlist.strings), because Bundle.main
+# reads one .lproj per locale and the system reads the Info.plist names from
+# the same folder.
 if [ -n "$SPM_BUNDLE_PATH" ]; then
     for lproj in "$SPM_BUNDLE_PATH/Contents/Resources/"*.lproj; do
         if [ -d "$lproj" ]; then
@@ -182,21 +158,7 @@ if [ -n "$SPM_BUNDLE_PATH" ]; then
     done
 fi
 
-# Per-language runtime catalog is the SPM-compiled output (= Apple Xcode 15+
-# String Catalog native support). `Localizable.xcstrings` is the single
-# source of truth; SPM 6.4 compiles it at swift-build time into
-# `Wenshu_WenshuApp.bundle/Contents/Resources/{locale}.lproj/Localizable.strings`,
-# which the promote step above copies into the .app. The historical hand-
-# written `Sources/WenshuApp/Resources/{en,zh-Hans}.lproj/Localizable.strings`
-# files are excluded from the SPM target (`Package.swift` `exclude:` list)
-# and stay in git as a static snapshot only — they do not feed runtime.
-# A prior "refresh from source tree" step here silently overrode the
-# SPM-compiled output with the stale source snapshot, dropping every key
-# added after the snapshot was last regenerated (notably the 102
-# `settings.appearance.*` / `settings.pane.*` keys introduced by the
-# Settings restructure). The canonical promote step above is the only
-# path that reaches `Bundle.main`, so this section is intentionally empty.
-: # noop — runtime catalog arrives via the SPM promote step above
+: # noop — every runtime table arrives via the SPM promote step above
 # Copy all third-party SPM-generated resource bundles into the .app
 # (= Highlighter_Highlighter, GRDB_GRDB, Defaults_Defaults, etc.) so
 # their `Bundle.module` lookups succeed at runtime. Without these,
