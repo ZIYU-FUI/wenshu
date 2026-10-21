@@ -19,7 +19,30 @@
 //
 //  Callers (= 1 site, ChatView.swift:1103): unchanged.
 //
+import AppKit
 import SwiftUI
+
+/// Colour relationship of the user bubble (= the surface the user's own
+/// words sit on, and the text tier on top of it).
+///
+/// The surface is an Apple semantic colour: it resolves to a different
+/// value in the light and the dark appearance, so the bubble separates
+/// from the chat panel background in both, and the body text tier on top
+/// of it stays readable in both. (= the panel background is
+/// `DesignTokens.sidebarBackground`; = the bubble must not collapse into
+/// it in either appearance.)
+@MainActor
+enum ChatUserBubblePalette {
+    /// Bubble fill (= the macOS inactive-selection surface: = the
+    /// neutral raised surface Apple uses for a selected-but-unfocused
+    /// item; = lighter than the panel in the dark appearance and
+    /// darker in the light one).
+    static let surface: NSColor = .unemphasizedSelectedTextBackgroundColor
+    /// Bubble hairline (= the macOS separator).
+    static let border: NSColor = .separatorColor
+    /// Text tier on the bubble (= the four-tier ladder's body tier).
+    static let text: HierarchicalShapeStyle = DesignTokens.textBody
+}
 
 /// One chat-message view (Apple HIG ground truth)
 struct ChatMessageView: View {
@@ -490,37 +513,30 @@ private struct UserGlassCardModifier: ViewModifier {
             // resting height comes from the frame floor below; = a grown
             // message keeps its own text height instead of being padded
             // twice; = the band matches the composer field height).
+            //
+            // The surface is the Apple semantic inactive-selection fill
+            // (= an appearance-aware colour that resolves to a different
+            // value in the light and the dark appearance). The previous
+            // Liquid Glass fill collapsed to the chat panel's own colour
+            // in the dark appearance, so the user's own words rendered as
+            // text on a field of the same tone and became the least
+            // readable text in the window.
+            //
+            // Shape = ChatSurfaceShape (= the shared chat-surface
+            // outline; = the composer field wears the same shape, so the
+            // two surfaces agree by construction).
             content
                 .padding(.horizontal, DesignTokens.spacingModerate)
                 .frame(maxWidth: .infinity, minHeight: DesignTokens.controlHeightLarge, alignment: .leading)
-                // -cleanup E9: apply the macOS 27 `.glassEffect(.regular)`
-                // API (= the canonical Apple HIG Liquid Glass container;
-                // = blurs + refracts the chat content underneath; = same
-                // surface the chat input row uses).
-                // Shape = ChatSurfaceShape (= the shared chat-surface
-                // outline; = the composer field wears the same shape, so
-                // the two surfaces agree by construction). The
-                // `.interactive()` modifier lets the glass respond to
-                // pointer events (= Apple HIG chat input is interactive; =
-                // user card surface mirrors that affordance). Border
-                // dropped (= the glass edge is its own visual boundary; =
-                // matches Apple HIG chat input row which has no separate
-                // border).
-                //
-                // -cleanup E10: translucency follows Apple System
-                // Settings > Appearance > Liquid Glass slider via the
-                // canonical macOS 27 `Glass.translucency` SwiftUI
-                // environment value (= Apple's canonical 'follow the
-                // system liquid glass setting' API surface; = the system
-                // automatically animates between glass and flat for the
-                // user as they move the slider). The
-                // `.glassEffect(.regular.interactive())` API already
-                // follows this slider by default (= per
-                // ComponentIndex.md §4.1 'Apple canonical .glassEffect
-                // auto-adapts to system Liquid Glass setting'); = no
-                // manual @Environment read or fallback branch needed here
-                // (= the manual fallback was overengineering = reverted).
-                .glassEffect(.regular.interactive(), in: ChatSurfaceShape())
+                .background(
+                    ChatSurfaceShape()
+                        .fill(Color(nsColor: ChatUserBubblePalette.surface))
+                )
+                .overlay(
+                    ChatSurfaceShape()
+                        .stroke(Color(nsColor: ChatUserBubblePalette.border), lineWidth: 1)
+                )
+                .foregroundStyle(ChatUserBubblePalette.text)
         } else {
             content
         }

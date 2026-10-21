@@ -152,7 +152,12 @@ struct ChatView: View {
                 }
             )
             .id(userMsg.id)
-            .padding(.vertical, 10)
+            // The section header carries the same vertical band as every
+            // other transcript row (= the standard spacing token), so the
+            // user's turn sits the same distance from its neighbours as the
+            // assistant's turn does. A taller band on the first turn made
+            // it read as detached from the conversation.
+            .padding(.vertical, DesignTokens.spacingStandard)
             // section header needs `.background()` to mask
             // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // seamlessly with the scroll viewport background.
