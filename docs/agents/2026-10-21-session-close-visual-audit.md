@@ -155,7 +155,9 @@ resting height), and a 6 PT vertical padding (= 12 PT on both sides) is what pus
 past it. The 44 PT row also fixes the content's size (44 - 12 = 32 PT), so the floor stands
 4 PT above the content. That figure is derived from the measured 44, not measured on its
 own: removing the floor to measure the bare content does not work, because the floor is
-what the hosting view reports.
+what the hosting view reports. The 32 PT is the card's body plus the row's own vertical
+padding (8 PT on both sides), with NO source label row (= the wenshu-side chrome was
+removed in an earlier cleanup, so the label is not part of the height).
 
 So no chain satisfies both contracts, and the reason is structural: any padding at all
 pushes the card past 36 PT, and no padding leaves the content short of the floor.
