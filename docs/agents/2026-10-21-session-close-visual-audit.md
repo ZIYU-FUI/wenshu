@@ -134,9 +134,14 @@ of the two contracts:
 
 | production chain | the card's height | the crop test | the 36 PT contract |
 | ----------------- | ----------------- | ------------- | ------------------ |
-| `padding -> frame(minHeight: 36) -> paint` | 42 PT | passes | FAILS (= 42, not 36) |
+| `padding -> frame(minHeight: 36) -> paint` | 44 PT | passes | FAILS (= 44, not 36) |
 | `frame(minHeight: 36) -> padding -> paint` | 48 PT | passes | FAILS (= 48, not 36) |
 | no vertical padding | 36 PT | FAILS | passes |
+
+(Every height is the hosting view's `fittingSize`, measured in its own cold worktree =
+one variant per worktree, so no run inherited another's binary. An earlier version of
+this table said 42 PT: that number came from the PAINTED bubble in a capture, which is a
+different quantity.)
 
 So the two contracts are mutually exclusive on the production card (= its content is
 taller than the 36 PT floor leaves room for), and the order of the padding is NOT the
