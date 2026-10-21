@@ -143,8 +143,8 @@ let package = Package(
             // Localizable.xcstrings (= Apple Xcode 15+ String Catalog
             // format; = JSON; = git-tracked; = edited in Xcode's String
             // Catalog editor). SPM .process("Resources") ships the
-            // .xcstrings file verbatim; the build pipeline (= Tools/build-wenshu.sh
-            // + Scripts/build-app.sh) then runs `xcstringstool compile`
+            // .xcstrings file verbatim; the build pipeline
+            // (= Scripts/build-app.sh) then runs `xcstringstool compile`
             // to produce the per-locale .lproj/Localizable.strings
             // files that NSLocalizedString actually consumes at runtime.
             resources: [
@@ -203,8 +203,7 @@ let package = Package(
             // SPM from emitting 'duplicate output file' warnings
             // (= the production target already ships the file).
             // The .lproj children are produced at build time by
-            // `xcstringstool compile` (= Tools/build-wenshu.sh +
-            // Scripts/build-app.sh).
+            // `xcstringstool compile` (= Scripts/build-app.sh).
         ),
 
         // The local packages' own test suites. Declared here because `swift

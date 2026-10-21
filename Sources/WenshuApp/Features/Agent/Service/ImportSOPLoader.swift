@@ -66,7 +66,7 @@ struct ImportSOPLoader {
         var errorDescription: String? {
             switch self {
             case .fileMissing(let n):
-                return "ImportSOPLoader: SOP file '\(n).md' is missing from the .app bundle (= build-wenshu.sh did not copy it; = check Package.swift `.process(\"Resources\")`)."
+                return "ImportSOPLoader: SOP file '\(n).md' is missing from the .app bundle (= the bundle step did not copy it; = check Package.swift `.process(\"Resources\")`)."
             case .decodeFailed(let n, let u):
                 return "ImportSOPLoader: SOP file '\(n).md' decode failed: \(u)"
             }
