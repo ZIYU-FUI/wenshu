@@ -145,6 +145,17 @@ different quantity. The 36 PT row was confirmed a second time in a separate work
 the 44 PT row matches a run taken on the working tree at the time, so two of the three
 numbers have two independent sources.)
 
+The three heights are one content size plus the chain arithmetic, not three unrelated
+measurements: the card's own content is shorter than the 36 PT floor (= the floor sets the
+resting height), and a 6 PT vertical padding (= 12 PT on both sides) is what pushes a chain
+past it. The 44 PT row also fixes the content's size (44 - 12 = 32 PT), so the floor stands
+4 PT above the content. That figure is derived from the measured 44, not measured on its
+own: removing the floor to measure the bare content does not work, because the floor is
+what the hosting view reports.
+
+So no chain satisfies both contracts, and the reason is structural: any padding at all
+pushes the card past 36 PT, and no padding leaves the content short of the floor.
+
 One warning for whoever measures this next: a script that edits the production file and
 runs one probe per variant in a SINGLE shared `.build` reports each variant's PREVIOUS
 build. Measured 2026-10-21, that run reported 44 / 48 / 48 PT for the three chains above
