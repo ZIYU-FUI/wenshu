@@ -43,6 +43,11 @@ struct EditorTabStrip: View {
     // / behavior).
     @State private var columnWidth: CGFloat = 0
 
+    /// Stable value standing for "no tab is active". It never matches a
+    /// tab id, so the segmented control keeps whatever segment it had,
+    /// and it does not change between reads.
+    static let noSelectionSentinel = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
+
     var body: some View {
         // RATIONALE: per Apple HIG SwiftUI macOS 27 + the Safari
         // … (= 20 rationale lines collapsed; = A112 docblock collapse per §1.8)
@@ -64,7 +69,12 @@ struct EditorTabStrip: View {
             // VStack).
             let control = LabelSegmentedControl(
                 selection: Binding(
-                    get: { selectedTabId ?? UUID() },
+                    // A stable sentinel for "no tab is active" (= a tab
+                    // was closed while another was selected). A fresh
+                    // UUID per read could never match a label, and the
+                    // random value also changed on every read, so the
+                    // control's selected segment never settled.
+                    get: { selectedTabId ?? Self.noSelectionSentinel },
                     set: { newId in onSelect(newId) }
                 ),
                 labels: displayOrder.compactMap { tabId in
@@ -81,10 +91,16 @@ struct EditorTabStrip: View {
                     guard segmentIndex >= 0 && segmentIndex < displayOrder.count else { return }
                     onClose(displayOrder[segmentIndex])
                 },
-                // 
-                // … (= 20 rationale lines collapsed; = A112 docblock collapse per §1.8)
+                //
+                // … (= 20 rationale lines collapsed; = A112 docblock collapse per §1.8
                 // column).
-                fixedSegmentWidth: 0
+                fixedSegmentWidth: 0,
+                // The segments carry the open documents' TITLES, so the
+                // role must be `.valueSelection`. The `.tabs` role draws
+                // the selected segment as a dark inset and leaves its
+                // label unpainted, which put the active document's name
+                // behind a blank dark capsule.
+                role: .valueSelection
             )
             // 2026-10-14 v3: wrap the
             // … (= 84 rationale lines collapsed; = A112 docblock collapse per §1.8)

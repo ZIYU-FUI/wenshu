@@ -121,6 +121,15 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         iconStyle.fontWeight == .thin ? .thin : .regular
     }
 
+    /// macOS 27 segmented-control role. The role decides how the
+    /// SELECTED segment is drawn.
+    ///
+    /// `.valueSelection` is the default because a text label inside a
+    /// `.tabs` segment is not painted (the selected segment becomes a
+    /// dark inset with an invisible label). `.tabs` suits a strip whose
+    /// segments carry SYMBOLS, where the symbol carries the state.
+    var role: NSSegmentedControl.Role = .valueSelection
+
     /// Per-segment display strings (= the `String` shown in
     /// `setLabel(_:forSegment:)`; = default uses
     /// `String(describing: labels[index])`; = callers can
@@ -184,7 +193,8 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         iconStyle: IconStyle = .paneTab,
         icon: ((Selection) -> NSImage?)? = nil,
         onDoubleClickSegment: ((Int) -> Void)? = nil,
-        fixedSegmentWidth: CGFloat = 0
+        fixedSegmentWidth: CGFloat = 0,
+        role: NSSegmentedControl.Role = .valueSelection
     ) {
         self.selection = selection
         self.labels = labels
@@ -193,6 +203,7 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         self.icon = icon
         self.onDoubleClickSegment = onDoubleClickSegment
         self.fixedSegmentWidth = fixedSegmentWidth
+        self.role = role
     }
 
     func makeNSView(context: Context) -> NSSegmentedControl {
@@ -285,13 +296,25 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         // strips actually render with).
         if #available(macOS 27.0, *) {
             control.segmentStyle = .roundRect
-            // macOS 27 NEW role API: `.tabs` explicitly
-            // marks the control as a tab switcher (= vs
-            // `.automatic` = the pre-macOS-27 generic group
-            // selection = the visual difference is subtle
-            // but Accessibility / VoiceOver reads it as
-            // "page N of M"; = semantically correct).
-            control.role = .tabs
+            // macOS 27 role API. The role decides how the SELECTED
+            // segment is drawn, and the two roles are not
+            // interchangeable for a text-labelled strip:
+            //
+            // - `.tabs` draws the selected segment as a dark inset and
+            //   leaves its LABEL UNPAINTED (measured on macOS 27.0.1:
+            //   the selected segment's max luminance is 46 and it has
+            //   ZERO pixels above 140, while the unselected segments
+            //   peak at 223). The role exists for ICON segments, where
+            //   the symbol carries the state; a text label inside a
+            //   `.tabs` segment is invisible.
+            // - `.valueSelection` paints the selected segment's label
+            //   normally (max luminance 227, 1049 pixels above 140) and
+            //   still marks the selection with the dark inset.
+            //
+            // So a strip whose segments carry TEXT must use
+            // `.valueSelection`; a strip whose segments carry SYMBOLS may
+            // use `.tabs`.
+            control.role = role
         } else {
             // Defensive fallback (= NSSegmentedControl.role
             // is macOS 27 only; = older OS gets the legacy
