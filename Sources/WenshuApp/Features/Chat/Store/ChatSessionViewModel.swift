@@ -441,16 +441,33 @@ final class ChatViewModel {
         recomputeContextUsed()
     }
 
-    /// recomputeContextUsed: sum of all agent message tokens (real LLM API usage, replaces chars/4 heuristic)
+    /// recomputeContextUsed: the conversation's CURRENT context usage
+    /// (real LLM API usage, replaces the chars/4 heuristic).
+    ///
+    /// The number is the LATEST turn's `usage.totalTokens`, not the sum
+    /// over the turns. Each turn's `totalTokens` is the provider's report
+    /// for that request, and its INPUT side is the whole conversation so
+    /// far — so adding the turns together counted the history once per
+    /// turn and grew quadratically. Four turns of a 1,000-token
+    /// conversation reported 10,000 tokens of context when the context was
+    /// 1,000.
+    ///
+    /// That also matches what the number is compared against: the chat
+    /// footer compares it with `tokenCompressionContextThreshold`, which
+    /// is a CONTEXT-WINDOW limit, not a spend limit. A cumulative number
+    /// measured against a window limit is the wrong unit.
+    ///
+    /// The latest turn with a token count is the one that was sent with
+    /// the most history, so it is the one that reports the most context
+    /// in use. Messages without a token count (= the user's own turns,
+    /// which the provider does not bill as a separate request, and
+    /// messages from before usage was recorded) are skipped.
     func recomputeContextUsed() {
-        contextUsed = messages.compactMap { $0.tokens }.reduce(0, +)
-        // trace: ChatViewModel.contextUsed accumulation
-        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-        // counts as a closure).
+        contextUsed = messages.last(where: { ($0.tokens ?? 0) > 0 })?.tokens ?? 0
         let totalContext = contextUsed
         let messageCount = messages.count
         Logger(subsystem: "com.wenshu.app", category: "chat.context")
-            .info("[wenshu.context] sum tokens after recompute: total=\(totalContext, privacy: .public) messages=\(messageCount, privacy: .public)")
+            .info("[wenshu.context] context usage after recompute: total=\(totalContext, privacy: .public) messages=\(messageCount, privacy: .public)")
     }
 
     // / routeInput is the front-door for chat input. It dispatches `/plan

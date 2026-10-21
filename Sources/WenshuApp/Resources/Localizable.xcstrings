@@ -670,13 +670,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%d tokens used"
+            "value": "Context: %d tokens"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "已使用 %d tokens"
+            "value": "上下文 %d tokens"
           }
         }
       }
@@ -687,13 +687,13 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "%d / %d tokens (%d%%)"
+            "value": "Context: %d / %d tokens (%d%%)"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "已使用 %d / %d tokens（%d%%）"
+            "value": "上下文 %d / %d tokens（%d%%）"
           }
         }
       }

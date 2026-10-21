@@ -517,8 +517,13 @@ struct ChatView: View {
             Button("Show conversation history") {
                 let firstTs = vm.messages.first?.timestamp
                 let lastTs = vm.messages.last?.timestamp
-                let totalTokens = vm.messages.compactMap { $0.tokens }.reduce(0, +)
-                wenshuLogger.info("[wenshu.history] \(vm.messages.count) messages · \(totalTokens) tokens · first: \(String(describing: firstTs)) · last: \(String(describing: lastTs))")
+                // The same unit the chat footer shows: the conversation's
+                // current context usage (= the latest turn's reported
+                // total), not a sum over the turns. Each turn's count
+                // already includes the history it was sent with, so
+                // adding them counted the history once per turn.
+                let contextTokens = vm.messages.last(where: { ($0.tokens ?? 0) > 0 })?.tokens ?? 0
+                wenshuLogger.info("[wenshu.history] \(vm.messages.count) messages · context \(contextTokens) tokens · first: \(String(describing: firstTs)) · last: \(String(describing: lastTs))")
             }
             .keyboardShortcut("y", modifiers: [.command])
             .frame(width: 0, height: 0)
