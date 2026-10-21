@@ -22,10 +22,10 @@ private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "inspectorv
 /// detail column is also 1 column with 2 stacked sub-areas.
 ///
 /// 2 sub-areas:
-/// - top sub-area: PaneView(zoneSlot: .specializedTools)
+/// - top sub-area: ZoneContentView(tabs:)
 ///   (real tools pane; = foreshadowing tracking, memory
 ///   retrieval, etc.)
-/// - bottom sub-area: PaneView(zoneSlot: .aiDynamic)
+/// - bottom sub-area: the page picker's tool content
 ///   (real dynamic pane; = kanban + todo + scope status)
 ///
 /// Right column uses the same simple 2-stack VStack pattern as
@@ -34,7 +34,7 @@ private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "inspectorv
 /// picker toggle). The 2-toggle Tools / Dynamic picker is
 /// attached via Apple's canonical .toolbar with ToolbarItem
 /// placement .principal (= exactly matching ShellSidebarColumn's
-/// books.vertical leading icon + PaneTabBar principal tabs).
+/// books.vertical leading icon + the page picker's principal tabs).
 /// Per WWDC25-323: 'The canonical column pattern uses VStack
 /// (spacing: 0) with 2 sub-areas and a .toolbar for the column
 /// chrome. No custom inspector wrapper needed.'

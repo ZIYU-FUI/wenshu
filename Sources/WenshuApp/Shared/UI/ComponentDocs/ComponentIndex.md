@@ -91,7 +91,7 @@ Each component has:
   ```swift
   RegionTabBar {
       HStack(spacing: 0) {
-          // Your tab buttons here (= use PaneIconTab for canonical tabs)
+          // Your tab buttons here (= use the native Picker / LabelSegmentedControl)
       }
       .padding(.leading, DesignTokens.chromePaddingLeading)
   }
@@ -138,43 +138,18 @@ Each component has:
 
 ## 🎯 LEVEL 3: Tab bar 组件 (= pane 内的 tab UI)
 
-### 3.1 PaneIconTab (NEW, Phase 2)
-- **Path**: `Sources/WenshuApp/UI/PaneIconTab.swift` (NEW)
-- **Purpose**: Single tab button (= 28×28 hot area + SF Symbol icon + selected underline + matchGeometry animation)
-- **Use when**: Building ANY per-pane tab with icon + selected state
-- **Don't use when**: Tab needs label text (= use SwiftUI's native `Picker`)
+### 3.1 PaneTrailingIconButton
+- **Path**: `Sources/WenshuApp/Shared/UI/PaneTrailingIconButton.swift`
+- **Purpose**: The trailing-slot action button of a tab bar (= icon-only, 28 PT hot area, `.plain` style, `.hoverWash()` background)
+- **Use when**: A tab bar needs a trailing action (= the editor's expand/shrink button)
+- **Don't use when**: The button is a selection tab (= use the native `Picker` / `LabelSegmentedControl` instead)
 - **API**:
   ```swift
-  PaneIconTab(
-      id: item.id,
-      icon: item.icon,
-      label: item.label,
-      isSelected: item.id == selection,
-      namespace: tabBarNamespace,
-      namespaceID: "tabBarUnderline",
-      onTap: { selection = item.id }
-  )
+  PaneTrailingIconButton(
+      icon: "arrow.up.left.and.arrow.down.right",
+      tooltip: String(localized: "editor.zone.expand.help")
+  ) { toggleZoneExpanded() }
   ```
-- **Replaces**: Inline `Button { Color.clear.frame(28,28).overlay { Image(systemName:) }.overlay(.bottom) { Rectangle }` patterns (= 3 implementations, ~90 LOC each)
-
-### 3.2 PaneTabBar (NEW, Phase 3)
-- **Path**: `Sources/WenshuApp/UI/PaneTabBar.swift` (NEW)
-- **Purpose**: Generic wrapper for a list of PaneIconTab + optional trailing buttons (= 1 line to create a full tab bar)
-- **Use when**: Defining a pane's complete top tab bar (= sidebar/preview/editor/tools/chat/dynamic tabs)
-- **API**:
-  ```swift
-  PaneTabBar(
-      items: [
-          PaneTabItem(id: "library", icon: "square-library", label: "书架"),
-          PaneTabItem(id: "preview", icon: "book-open-text", label: "预览"),
-      ],
-      selection: $selectedTab,
-      trailing: {
-          Button { ... } label: { Image(systemName: "gear") }
-      }
-  )
-  ```
-- **Replaces**: `ZoneContentTabBar` (166 LOC) + `DynamicZoneTabBar` (135 LOC; survives as the enum↔string binding shim) + the since-deleted chat-zone wrapper (74 LOC) = 375 LOC → 80 LOC generic
 
 ---
 
@@ -286,8 +261,13 @@ These were removed in various phases (= Apple-API-first sweep + iron-rules pass)
 ### 8.3 ❌ ZoneContentTabBar / chat-zone wrapper / DynamicZoneTabBar (custom tab bodies)
 - **Was in**: `Sources/WenshuApp/Views/Dynamic/ZoneContentView.swift` + `DynamicZoneView.swift` + `Workspace/TabContentDispatcher.swift`
 - **Refactored**: Phase 2-3 + commits `dcde7cff5` + `a6b6c75d3`
-- **Use instead**: `PaneTabBar` + `PaneIconTab` + `PaneTrailingIconButton` (= new generic components in `Sources/WenshuApp/UI/PaneTabBar.swift`)
+- **Use instead**: `ZoneContentView`'s inline tab strip (= native macOS 27 `NSSegmentedControl` via `LabelSegmentedControl`) + `PaneTrailingIconButton` (= `Sources/WenshuApp/Shared/UI/PaneTrailingIconButton.swift`)
 - **Note**: `DynamicZoneTabBar` still survives (= enum↔string binding shim = SwiftUI Binding limitation; tracked in backlog.md entry B-02). The chat-zone wrapper (= the since-deleted wrapper that hard-coded the chat tab + archive trailing button, now inlined into `TabContentDispatcher.aiChat` as a single `PaneTabItem(id:"chat")`) was deleted in commit `a6b6c75d3`.
+
+### 8.3b ❌ PaneTabBar / PaneTabItem / PaneIconTab (generic per-pane tab bar)
+- **Was in**: `Sources/WenshuApp/Shared/UI/PaneTabBar.swift`
+- **Deleted**: 2026-10-21 (= the right-rail dead-code cleanup; = 0 constructors and 0 non-comment references = the pane system had already been replaced by `ZoneContentView`'s inline tab strip)
+- **Use instead**: `ZoneContentView` (= hosts its own tab bar inline, against the native macOS 27 `NSSegmentedControl` via `LabelSegmentedControl`) + `PaneTrailingIconButton` (= the surviving trailing-slot button, now in its own file)
 
 ### 8.4 ❌ zoneContentTabBarIcon / dynamicZoneTabBarIcon / chatZoneTabBarIcon
 - **Was in**: same files as 8.3

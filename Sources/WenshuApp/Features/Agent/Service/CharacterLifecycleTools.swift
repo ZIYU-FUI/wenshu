@@ -241,7 +241,7 @@ struct CharacterLifecycleSidecar: Codable, Sendable, Equatable {
 // MARK: - Actor errors
 
 /// Errors thrown by `CharacterLifecycleTracker`. Mirrors the
-/// BookProjectConfigStore / BookTodoStore / LongFormGuardrails /
+/// BookProjectConfigStore / BookKanbanStore / LongFormGuardrails /
 /// CharacterRelationshipTracker error conventions (= a
 /// LocalizedError per case).
 enum CharacterLifecycleTrackerError: Error, LocalizedError, Sendable, Equatable {
@@ -522,7 +522,7 @@ actor CharacterLifecycleTracker {
             // Forgiving: log nothing (= no logger dependency);
             // return an empty sidecar so the caller can keep
             // going. Matches `BookKanbanStore` /
-            // `BookTodoStore` load paths.
+            // `BookKanbanStore` load paths.
             let empty = CharacterLifecycleSidecar(bookId: bookId)
             cache[bookId] = empty
             return empty

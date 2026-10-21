@@ -4,7 +4,7 @@
 //  Settings pane business layer, extracted from SettingView.
 //
 // 
-//  + the KanbanOps + TodoOps precedents:
+//  + the KanbanOps precedent:
 //  SettingView currently owns the business logic for the 9-tab
 //  Settings pane (= 5 private methods touching ProviderKeychain +
 //  ProviderFetcher + Set<String> expansion state). This helper lifts
@@ -19,7 +19,7 @@
 //    stateless.
 //  - The View holds the @State (= per ADR-0009 = the View layer
 //    owns reactive state); the helper is pure behavior on inputs.
-//  - Same editor-mvvm / KanbanOps / TodoOps shape.
+//  - Same editor-mvvm / KanbanOps shape.
 //
 //  Why 2 seams (= ProviderKeychainStoring + ProviderFetcherSeam):
 //  - ProviderKeychainStoring (= shipped per AGENTS.md §11.1 = a

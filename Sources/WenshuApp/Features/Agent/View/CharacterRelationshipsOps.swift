@@ -20,7 +20,7 @@
 import Foundation
 
 /// Stateless business layer for CharacterRelationshipsView. Mirrors the
-/// Mirrors the KanbanOps / TodoOps / SettingsOps / TagManagerOps /
+/// Mirrors the KanbanOps / SettingsOps / TagManagerOps /
 /// CharacterLifecycleOps / BookSettingConstraintsOps /
 /// LongFormGuardrailsOps / ForeshadowingOps / IdeaLibraryOps /
 /// PlaceholderOps / EmotionCurveOps / GenreFitOps /

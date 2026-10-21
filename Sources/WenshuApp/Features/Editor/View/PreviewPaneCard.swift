@@ -273,7 +273,7 @@ struct Card: View {
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
         // parent component owns style, child component only does function. Hover tint (=
-        // matches PaneIconTab hover pattern).
+        // matches the pane tab hover pattern).
         .background(
             RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusWindow, style: .continuous)
                 .fill(isHovered ? AnyShapeStyle(.tertiary) : AnyShapeStyle(Color.clear))

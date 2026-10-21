@@ -6,7 +6,7 @@
 // open one card in the editor) with no persistent state. - The 3 callers differ only
 // in how they expose `previewScope` (= computed var / func / @Environment read); = Ops
 // accepts a value `PreviewScope` (= the seam that lets tests pass any scope without
-// standing up a view). - Per the settings-kanban-todo precedent (= KanbanOps / TodoOps
+// standing up a view). - Per the settings-kanban precedent (= KanbanOps
 // / SettingsOps = stateless enums with @MainActor static funcs), the wenshu MVVM shape
 // is "enum + static + Result types", not "@Observable class ViewModel". Why
 // `bookStore: BookStore?` (nil-able): - `referenceStore.loadAllReferences()` is the
@@ -20,15 +20,15 @@
 // CardTriad - openTab(triad:previewScope:appState:) -> OpenCardResult Why 2 entry
 // points (not 1): - WorkspaceView's openCardInEditor handles only the reference- scope
 // + bookScope-deferred paths (= [archived] will lift the BookDocLoader into a
-// shared service). - PaneView's openCardInEditor adds a filesystem scan in the
+// shared service). - The preview pane's openCardInEditor adds a filesystem scan in the
 // bookScope case (= walk shelves/<shelf-uuid>/books/ <book-uuid>/<folder>/*.md and
-// pick the first .md). That scan stays in the View (= too PaneView-specific to lift; =
+// pick the first .md). That scan stays in the View (= too view-specific to lift; =
 // [archived] will replace it). - The shared part = the dedup check + EditorTab
 // construction + appState.openTabs.append + activeTabId mutation. That's what
 // `openTab` does (= the body that all 3 views duplicated verbatim after the scope
 // switch). - `computeCardTriad` wraps the reference-scope filter + body load (= the
 // part all 3 views duplicated verbatim). The book- scope case in `computeCardTriad`
-// returns a "deferred" triad (= silent no-op); PaneView's view-local file-scan
+// returns a "deferred" triad (= silent no-op); the preview pane's view-local file-scan
 // overrides that triad before calling `openTab`. Out of scope (= NOT moved here, stays
 // in View): - `previewScope` derivation (= the view-local computed var / func that
 // reads `workspaceUI.sidebarSelection`). Ops accepts a value `PreviewScope`; = the
@@ -41,7 +41,7 @@ import os.log
 
 /// Stateless business layer for opening a card in the editor.
 /// Lifts the duplicated openCardInEditor (= the 3 verbatim copies
-/// that lived in the now-deleted WorkspaceView / PaneView /
+/// that lived in the now-deleted WorkspaceView /
 /// ShellMiddleColumn) into a single shared function (= UI /
 /// business logic / data separation audit per ADR-0009).
 @MainActor
@@ -101,7 +101,7 @@ enum CardOpenOps {
     /// - `.bookScope(bookId, folderName)` → if the caller passed a
     ///   `.bookDoc(source)` use its doc (= correct book doc per
     ///   (see OOB.md #2026-09-08) — fix; otherwise return a deferred triad (=
-    ///   empty content). PaneView's view-local file-scan
+    ///   empty content). The preview pane's view-local file-scan
     ///   overrides this triad before calling `openTab`.
     /// - `.shelfScope` / `.empty` → empty triad.
     static func computeCardTriad(
@@ -228,7 +228,7 @@ enum CardOpenOps {
             // tagScope opens a reference entity (= the same triad shape as
             // .referenceScope; = the editor opens the document by id; =
             // tag is a facet of the reference, not a separate document
-            // type). PaneView routes .tagScope through this helper via the
+            // type). The preview pane routes .tagScope through this helper via the
             // .referenceScope branch (= see its switch; = this case is
             // here for exhaustiveness and to keep the editor's sourceScope
             // Codable for .tagScope pickling across launches).

@@ -6,7 +6,7 @@
 //
 //  Library-level (= global, not per-book) progress tracker. Stores
 //  ephemeral in-memory entries keyed by chat session id; the OpenBox
-//  panel (DynamicZoneView's progress strip) reads `current(sessionId:)`
+//  panel (the agent progress strip) reads `current(sessionId:)`
 //  every render cycle to display the running step + ETA.
 //
 //  Why an actor and not @Observable: the tracker is touched from
@@ -98,13 +98,13 @@ public struct AgentProgressEntry: Sendable, Codable, Equatable, Identifiable {
 /// Pass as a dependency to ConversationLoop (= default = a no-op
 /// actor instance via `AgentProgressTracker.noop`). Call `start()`
 /// at the beginning of a turn and `complete()` (or `cancel()`) at
-/// the end. The OpenBox panel (`DynamicZoneView`'s progress strip)
+/// the end. The OpenBox panel (the agent progress strip)
 /// polls `current(sessionId:)` every ~1s to render the running step.
 ///
 /// WIRE-OPENBOX-001: also exposed via `.shared` so
 /// the OpenBox progress panel can read the latest running entry
 /// without needing a dependency-injection chain (= the panel is
-/// constructed via `DynamicZoneView()` in WorkspaceView, no args).
+/// constructed by the agent progress panel, no args).
 /// The shared instance is the canonical wiring path: callers that
 /// want progress emitted (= WenshuConductor, future tickets) pass
 /// `AgentProgressTracker.shared` to `ConversationLoop(...progressTracker:)`;

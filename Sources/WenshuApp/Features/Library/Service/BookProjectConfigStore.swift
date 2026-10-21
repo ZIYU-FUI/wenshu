@@ -114,7 +114,7 @@ actor BookProjectConfigStore {
 
     /// Delete the config file for a book. No-op (= success) when
     /// the file does not exist — matches the canonical
-    /// `BookTodoStore`-style forgiving delete where the absence of
+    /// `BookKanbanStore`-style forgiving delete where the absence of
     /// a config is indistinguishable from a successful delete.
     func deleteConfig(bookId: UUID) async throws {
         guard let bookDir = resolveBookDirectory(bookId: bookId) else {

@@ -4,7 +4,7 @@
 //  P2 #21 wire progress ((see OOB.md #2026-09-04) OOB 'wire progress from
 //  ConversationLoop into OpenBox so user sees step-by-step feedback').
 //
-//  Small panel displayed at the top of DynamicZoneView (the OpenBox
+//  Small panel displayed at the top of the agent progress panel (the OpenBox
 //  dynamic zone = kanban / todo tabs). The panel polls the shared
 //  AgentProgressTracker every ~1s and shows the latest running
 //  entry (= the in-flight user turn), including:
@@ -18,7 +18,7 @@
 //  the user sends the next message.
 //
 //  Apple HIG: thinMaterial background + ProgressView() native control.
-//  Matches DynamicZoneView's existing `.regularMaterial` card pattern
+//  Matches the agent progress panel's existing `.regularMaterial` card pattern
 //  (= used by SubAgentProgressView's TaskRowView).
 //
 //  Why not @Observable: the panel queries an actor from a SwiftUI

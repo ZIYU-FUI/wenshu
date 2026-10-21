@@ -31,8 +31,14 @@ struct PreviewPaneEmptyStateLocalizationTests {
 
     @Test("PreviewPane uses localized reference empty state")
     func previewPaneUsesLocalizedReferenceEmptyState() throws {
+        // The empty-state calls live in the `extension PreviewPane`
+        // grid helpers (= PreviewPaneGrids.swift), not in
+        // PreviewPane.swift itself. The A79 god-class split
+        // (7c445f3fb) moved the 6 grid view helpers out, and this
+        // assertion was not repointed at the new home (= it has
+        // been red since that split).
         let sourceURL = try Self.catalogURL(
-            relativePath: "Sources/WenshuApp/Features/Editor/View/PreviewPane.swift"
+            relativePath: "Sources/WenshuApp/Features/Editor/View/PreviewPaneGrids.swift"
         )
         let source = try String(contentsOf: sourceURL, encoding: .utf8)
 

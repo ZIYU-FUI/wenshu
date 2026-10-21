@@ -8,14 +8,14 @@
 //
 //  History:
 //  - Q2 era: this view was wrapped by ZoneContentTabBar (= per-zone
-//    chrome). The wrapper was deleted in v0.28 (= PaneTabBar absorbed
-//    the chrome), and ZoneContentView now hosts its own tab bar
-//    inline (= LabelSegmentedControl against the native macOS 27
-//    NSSegmentedControl).
+//    chrome). The wrapper was deleted in v0.28 (= the generic pane tab
+//    bar absorbed the chrome), and ZoneContentView now hosts its own
+//    tab bar inline (= LabelSegmentedControl against the native macOS
+//    27 NSSegmentedControl).
 //  - v0.40: the `zoneSlug: String` init parameter and the per-zone
 //    `wenshu.tabIndex.<slug>` UserDefaults key were removed. The
-//    slug-bound persistence was redundant with PaneTabBar's per-pane
-//    storage (= already keyed by pane id) and forced every caller
+//    slug-bound persistence was redundant with the generic pane tab
+//    bar's per-pane storage (= already keyed by pane id) and forced every caller
 //    to invent a slug string. The view now persists selectedTabId
 //    under a single shared key (= at most one ZoneContentView is
 //    visible at a time).

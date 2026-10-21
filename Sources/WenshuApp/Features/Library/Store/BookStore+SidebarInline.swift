@@ -170,7 +170,7 @@ extension BookStore {
     ///
     /// (= kanban + todo UI functional linkage): the Kanban + Todo
     /// views use this to construct per-book ``BookKanbanStore`` /
-    /// ``BookTodoStore`` instances (= read/write kanban.json + todo.json
+    /// ``BookKanbanStore`` instances (= read/write kanban.json
     /// inside the active book directory). Returns nil if the book id
     /// is not on disk (= caller decides how to render the empty state).
     ///

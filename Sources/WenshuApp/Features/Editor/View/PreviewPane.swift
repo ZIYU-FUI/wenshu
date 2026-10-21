@@ -44,7 +44,7 @@ struct PreviewPane: View {
     // / CardSource?) which uses the supplied source instead of `filtered.first`.
     let onDoubleClick: (CardSource) -> Void
 
-    // / trailing button rendered in the pane's tab bar (= PaneTabBar trailing
+    // / trailing button rendered in the pane's tab bar (= the trailing
     // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / + content).
     var trailingButton: AnyView? = nil

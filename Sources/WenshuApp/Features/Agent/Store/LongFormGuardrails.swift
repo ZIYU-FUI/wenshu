@@ -532,7 +532,7 @@ actor LongFormGuardrails {
         } catch {
             // Forgiving: log nothing (= no logger dependency);
             // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-            // (= see BookKanbanStore / BookTodoStore load paths).
+            // (= see BookKanbanStore load paths).
             let empty = LongFormGuardrailsSidecar(bookId: bookId)
             cache[bookId] = empty
             return empty

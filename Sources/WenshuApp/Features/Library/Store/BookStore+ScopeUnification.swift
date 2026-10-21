@@ -24,7 +24,7 @@ import Foundation
 //   picker in Kanban + Todo views uses `availableScopes(bookId:)`
 //   to enumerate the user's choices for the active book.
 //   - `scopeDirectory(bookId:scope:)` is the single helper views call
-//   to resolve the URL that BookKanbanStore / BookTodoStore should
+//   to resolve the URL that BookKanbanStore should
 //   write to.
 
 /// One of the 8 standard sub-folders every book carries (= `chapters/`,
@@ -57,7 +57,7 @@ enum StandardBookFolder: String, CaseIterable, Sendable, Codable {
 /// A scope variant for Kanban / Todo data. Either the book root, one of
 /// the 8 standard sub-folders inside the active book, or the reference
 /// library (= library-public, cross-book). Scope is a view filter, not
-/// a data-layer change: BookKanbanStore / BookTodoStore resolve to
+/// a data-layer change: BookKanbanStore resolves to
 /// different JSON filenames per scope (see `bookKanbanStoreURL` /
 /// `bookTodoStoreURL` on the store types).
 enum TaskScope: Hashable, Identifiable, Sendable {

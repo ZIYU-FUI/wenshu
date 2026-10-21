@@ -27,7 +27,7 @@ struct EditorTabStrip: View {
 
     // / SwiftUI namespace for the matchedGeometryEffect underline (= Apple's HIG
     // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / pattern as PaneTabBar).
+    // / pattern as the pane tab strip).
     @Namespace private var tabBarNamespace
 
     // / Tab ids in display order (= tracked separately from `tabs` parameter for

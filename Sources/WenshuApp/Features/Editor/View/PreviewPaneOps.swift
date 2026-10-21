@@ -3,7 +3,7 @@
 // .scratch/2026-09-23-mvvm-audit/spec.md §9 arc). Per KanbanOps template (= @MainActor
 // enum + Result types + static funcs). Per one ticket per file. Per the rule:
 // "PreviewPane single-consumer (B)" (= BookDocLoaderOps is PreviewPane's private copy;
-// = future ticket lifts to shared service when PaneView consumes it too). Public
+// = future ticket lifts to shared service when another view consumes it too). Public
 // surface (= 11 entry points + 5 Result types): 1. loadAllEntities(bookStore:) ->
 // LoadEntitiesResult 2. loadBooksInShelf(bookStore:shelfId:) -> LoadBooksResult 3.
 // loadShelfBooksAsync(bookStore:shelfId:) async -> LoadBooksResult 4.

@@ -3,7 +3,7 @@
 //
 //  Per-book tag business layer, extracted from TagManagerView.
 //
-//  Mirrors the KanbanOps / TodoOps / SettingsOps template (= stateless
+//  Mirrors the KanbanOps / SettingsOps template (= stateless
 //  enums with @MainActor static funcs): TagManagerView currently
 //  owns the business logic for the per-book tag board. reload /
 //  runFilter / addTag / removeTag / applyTag / unapply are
@@ -41,7 +41,7 @@
 //    on @MainActor for view safety).
 //  - The Result types are simple value types; = no shared
 //    mutation.
-//  - Same isolation as KanbanOps / TodoOps per v1.72.
+//  - Same isolation as KanbanOps per v1.72.
 //
 //  Public surface (= 6 entry points):
 //    - reload(manager:bookId:) -> LoadResult

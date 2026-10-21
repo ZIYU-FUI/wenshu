@@ -19,6 +19,10 @@
 //  - 4 priority cases use AnyShapeStyle wrapper (= preserves ShapeStyle
 //    identity so future code can swap to .tertiary)
 //  - 2 cases (.high + .urgent) reuse DesignTokens.accentTintOpacityHero
+//  - TodoListView was later deleted with the right-rail todo chain;
+//    the severity-opacity invariants it carried are now guarded by
+//    SeveritySemanticOpacitySweepTests (= ReaderExperienceView +
+//    the accentTintOpacityHero token).
 //
 //  Round 75 — closure verification:
 //  - 0 raw RGB / gray / hue / hex color literals

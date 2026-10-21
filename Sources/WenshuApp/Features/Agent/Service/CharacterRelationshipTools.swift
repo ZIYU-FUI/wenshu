@@ -585,7 +585,7 @@ actor CharacterRelationshipTracker {
         } catch {
             // Forgiving: log nothing (= no logger dependency);
             // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-            // `BookTodoStore` load paths.
+            // `BookKanbanStore` load paths.
             let empty = CharacterRelationshipSidecar(bookId: bookId)
             cache[bookId] = empty
             return empty

@@ -76,7 +76,7 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
     /// measured on Mail / Safari / Xcode).
     /// Apple HIG source: `NSToolbar > Toolbar item > Default icon = 18 PT`
     /// ((see OOB.md #2026-10-01)).
-    /// Used by: PaneTabBar (11 sites), pane close-button glyph, font-format
+    /// Used by: pane tab bars, pane close-button glyph, font-format
     /// toolbar buttons (= FormatToolbarButtons), inline format toolbar (=
     /// ParagraphAIToolbarButtons). Weight: .regular.
     case paneTab

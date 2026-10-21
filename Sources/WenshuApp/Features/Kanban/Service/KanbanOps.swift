@@ -260,7 +260,7 @@ enum KanbanOps {
 
 // MARK: - Shared production seam: BookStore adapter
 //
-// Shared adapter (= not nested inside KanbanOps or TodoOps) because
+// Shared adapter (= not nested inside KanbanOps) because
 // both helpers need to bridge the global @Observable BookStore
 // container to their own ScopeDirectoryResolver protocol. Per
 // WikiLinkNavigation + ReferenceStoring precedent (= a thin
@@ -268,17 +268,12 @@ enum KanbanOps {
 // protocol seam; = reusable across multiple helpers).
 //
 // Same role (= BookStore.scopeDirectory(bookId:scope:) →
-// KanbanOps.ScopeDirectoryResolver / TodoOps.ScopeDirectoryResolver).
-// The two protocols are identical; = the adapter satisfies both.
+// KanbanOps.ScopeDirectoryResolver).
 
 /// Wires `BookStore.scopeDirectory(bookId:scope:)` (= the production
-/// resolver) into `KanbanOps.ScopeDirectoryResolver` AND
-/// `TodoOps.ScopeDirectoryResolver` (= both protocols are identical
-/// shapes; = one adapter satisfies both via composition-free
-/// conformance).
+/// resolver) into `KanbanOps.ScopeDirectoryResolver`.
 @MainActor
-struct BookStoreScopeDirectoryResolver: KanbanOps.ScopeDirectoryResolver,
-                                       TodoOps.ScopeDirectoryResolver {
+struct BookStoreScopeDirectoryResolver: KanbanOps.ScopeDirectoryResolver {
     let bookStore: BookStore
     init(bookStore: BookStore) { self.bookStore = bookStore }
     func resolve(bookId: UUID?, scope: TaskScope) -> URL? {

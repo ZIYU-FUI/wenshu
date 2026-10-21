@@ -457,7 +457,7 @@ actor TagManager {
         } catch {
             // Forgiving: log nothing (= no logger dependency);
             // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
-            // `BookTodoStore` load paths.
+            // `BookKanbanStore` load paths.
             let empty = TagManagerSidecar(bookId: bookId)
             cache[bookId] = empty
             return empty

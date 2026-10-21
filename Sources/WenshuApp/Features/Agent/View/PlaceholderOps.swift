@@ -3,7 +3,7 @@
 //
 //  Per-book placeholder business layer, extracted from PlaceholderView.
 //
-//  Mirrors the KanbanOps / TodoOps / SettingsOps template (= stateless
+//  Mirrors the KanbanOps / SettingsOps template (= stateless
 //  enums with @MainActor static funcs) + the TagManagerOps pattern (= nil-able actor reference seam
 //  passed via environment):
 //  for tests): PlaceholderView currently owns the business logic

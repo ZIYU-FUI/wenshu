@@ -34,7 +34,7 @@
 
 import SwiftUI
 
-/// Per-(book × scope) kanban board view. Mounted by `DynamicZoneView`
+/// Per-(book × scope) kanban board view. Mounted by `KanbanWindow`
 /// in the `aiDynamic` zone (= tab "kanban"). Reads from `BookKanbanStore`
 /// (= scope-aware kanban JSON: `kanban.json` / `kanban-<folder>.json`
 /// / `library-kanban.json`).
