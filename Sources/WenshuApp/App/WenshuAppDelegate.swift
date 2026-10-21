@@ -128,6 +128,10 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.regular)
         // debug override takes effect before any Keychain access.
         _ = Self.sharedKeychainBackend
+        // The agent runtime owns the tool registry; the app owns the
+        // tools. Hand the runtime the app's registration points and the
+        // library-root accessor before any window or tool call.
+        ToolRegistryBootstrap.install()
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {

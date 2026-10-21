@@ -51,7 +51,7 @@ import WenshuData
 /// by `ToolDispatchHookChain.firePostDispatch` to avoid breaking
 /// the tool execution path (= hermes post-tool errors are non-
 /// fatal).
-protocol ToolDispatchHook: Sendable {
+public protocol ToolDispatchHook: Sendable {
     /// Stable identifier; used for `unregister(_:)` deduplication
     /// (= name-based, since protocol types don't compare by `==`).
     var name: String { get }
@@ -72,29 +72,29 @@ protocol ToolDispatchHook: Sendable {
 /// the first throw (= aborts the tool call); `firePostDispatch`
 /// swallows throws (= observability hooks must not break the tool
 /// execution path).
-actor ToolDispatchHookChain {
+public actor ToolDispatchHookChain {
     private var hooks: [ToolDispatchHook] = []
 
-    init() {}
+    public init() {}
 
     /// Append a hook. Duplicate `name` is allowed (= caller's
     /// responsibility to deduplicate before registering).
-    func register(_ hook: ToolDispatchHook) { hooks.append(hook) }
+    public func register(_ hook: ToolDispatchHook) { hooks.append(hook) }
 
     /// Remove the first hook whose `name` matches `hook.name`.
-    func unregister(_ hook: ToolDispatchHook) {
+    public func unregister(_ hook: ToolDispatchHook) {
         hooks.removeAll { $0.name == hook.name }
     }
 
     /// Clear every registered hook (= useful for tests + hot reload).
-    func unregisterAll() { hooks.removeAll() }
+    public func unregisterAll() { hooks.removeAll() }
 
     /// Snapshot of currently-registered hooks, in registration order.
-    var current: [ToolDispatchHook] { hooks }
+    public var current: [ToolDispatchHook] { hooks }
 
     /// Fire all pre-dispatch hooks in order. First throw short-
     /// circuits the rest (= matches hermes pre-tool semantics).
-    func firePreDispatch(toolName: String, input: [String: String]) async throws {
+    public func firePreDispatch(toolName: String, input: [String: String]) async throws {
         for hook in hooks {
             try await hook.preDispatch(toolName: toolName, input: input)
         }
@@ -102,7 +102,7 @@ actor ToolDispatchHookChain {
 
     /// Fire all post-dispatch hooks in order. Throws are SWALLOWED
     /// (= observability hooks must not break the tool execution).
-    func firePostDispatch(toolName: String, input: [String: String], output: String) async {
+    public func firePostDispatch(toolName: String, input: [String: String], output: String) async {
         for hook in hooks {
             do {
                 try await hook.postDispatch(toolName: toolName, input: input, output: output)
@@ -149,8 +149,8 @@ actor ToolDispatchHookChain {
 /// Returns an empty dict when the input is not valid JSON (= matches
 /// hermes' "couldn't parse → fall through" semantics in
 /// `_should_parallelize_tool_batch`).
-enum ToolDispatchInputParser {
-    static func parse(_ json: String) -> [String: String] {
+public enum ToolDispatchInputParser {
+    public static func parse(_ json: String) -> [String: String] {
         guard let data = json.data(using: .utf8),
               let object = try? JSONSerialization.jsonObject(with: data),
               let dict = object as? [String: Any]
@@ -192,7 +192,7 @@ enum ToolDispatchInputParser {
     /// the canonical input envelope.
     ///
     /// Returns "{}" for an empty dict (= the parser's empty-dict input).
-    static func serialize(_ input: [String: String]) -> String {
+    public static func serialize(_ input: [String: String]) -> String {
         guard !input.isEmpty,
               JSONSerialization.isValidJSONObject(input),
               let data = try? JSONSerialization.data(
@@ -259,7 +259,7 @@ extension ToolDispatchInputParser {
     /// string-only fallbacks.
     ///
     /// Pure function (= no side effects; = hermes equivalent).
-    static func isMultimodalToolResult(_ value: Any) -> Bool {
+    public static func isMultimodalToolResult(_ value: Any) -> Bool {
         guard let dict = value as? [String: Any] else { return false }
         let hasMultimodal = (dict["_multimodal"] as? Bool) == true
         let contentIsList = dict["content"] is [Any]
@@ -275,7 +275,7 @@ extension ToolDispatchInputParser {
     /// that don't support multipart tool messages).
     ///
     /// Pure function (= no side effects; = hermes equivalent).
-    static func multimodalTextSummary(_ value: Any) -> String {
+    public static func multimodalTextSummary(_ value: Any) -> String {
         if isMultimodalToolResult(value), let dict = value as? [String: Any] {
             if let summary = dict["text_summary"] as? String, !summary.isEmpty {
                 return summary
@@ -347,7 +347,7 @@ extension ToolDispatchInputParser {
 // "research delegated" receipt, not the fetched content itself
 // (`DelegateResearchTool.swift`). Its sub-agent runs in a separate
 // context with its own tool surface.
-enum UntrustedToolResult {
+public enum UntrustedToolResult {
 
     // MARK: - The high-risk tool list
 
@@ -359,20 +359,20 @@ enum UntrustedToolResult {
     /// deliberately not a list of tool TYPES: the wrapper runs on the
     /// output string, and a type list would make the dispatch layer
     /// depend on the app's tool catalogue.
-    static let highRiskToolNames: Set<String> = ["web", "web_search"]
+    public static let highRiskToolNames: Set<String> = ["web", "web_search"]
 
     /// Outputs shorter than this cannot carry a meaningful injection, so
     /// they are left alone (= hermes L469 `_UNTRUSTED_WRAP_MIN_CHARS`).
-    static let minimumWrapLength = 32
+    public static let minimumWrapLength = 32
 
     /// The token that opens and closes the boundary (= hermes L570-571
     /// `untrusted_tool_result`).
-    static let boundaryToken = "untrusted_tool_result"
+    public static let boundaryToken = "untrusted_tool_result"
 
     /// The defanged form of the boundary token, written with hyphens so
     /// it cannot close the boundary early (= hermes L551
     /// `untrusted-tool-result`).
-    static let defangedBoundaryToken = "untrusted-tool-result"
+    public static let defangedBoundaryToken = "untrusted-tool-result"
 
     // MARK: - The three ported helpers
 
@@ -383,7 +383,7 @@ enum UntrustedToolResult {
     /// no tool in either family, so a prefix rule would match nothing
     /// (= a rule that can never fire is a rule that reads as coverage
     /// while providing none).
-    static func isUntrustedTool(_ name: String) -> Bool {
+    public static func isUntrustedTool(_ name: String) -> Bool {
         highRiskToolNames.contains(name)
     }
 
@@ -394,7 +394,7 @@ enum UntrustedToolResult {
     /// Case-insensitive, because a differently-cased tag would still
     /// close the block for a model reading it. The replacement uses
     /// hyphens (= it stays readable but no longer matches the token).
-    static func neutralizeDelimiters(_ content: String) -> String {
+    public static func neutralizeDelimiters(_ content: String) -> String {
         content.replacingOccurrences(
             of: boundaryToken,
             with: defangedBoundaryToken,
@@ -412,7 +412,7 @@ enum UntrustedToolResult {
     /// Deliberately no "already wrapped" fast-path: an attacker could
     /// forge a wrapper, and a fast-path would trust the forgery.
     /// Re-wrapping is harmless; trusting a forged marker is not.
-    static func maybeWrapUntrusted(toolName: String, content: String) -> String {
+    public static func maybeWrapUntrusted(toolName: String, content: String) -> String {
         guard isUntrustedTool(toolName) else { return content }
         guard content.count >= minimumWrapLength else { return content }
 

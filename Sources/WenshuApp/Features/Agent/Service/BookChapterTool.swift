@@ -2,6 +2,7 @@
 // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // Document struct with category=.chapter (= the canonical wenshu-side metadata shape).
 import Foundation
+import WenshuAgent
 
 // MARK: - ChapterDescriptor
 

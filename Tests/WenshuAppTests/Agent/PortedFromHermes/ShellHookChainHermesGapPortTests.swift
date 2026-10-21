@@ -19,6 +19,7 @@
 //  in ToolExecutor per the wenshu-side-wins pattern; = per Q112 =
 //  one ticket per file = the remaining 12 hermes functions deferred).
 
+import WenshuAgent
 import XCTest
 import Foundation
 @testable import WenshuApp

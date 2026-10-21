@@ -8,9 +8,9 @@
 //  (= now that the rename + move is complete, the integration test
 //  reads "PathGuard" instead of "WenshuSandbox").
 //
-//  ActiveLibrary.overrideForTesting is a `@TaskLocal` (= Apple
+//  PathGuard.libraryRootOverride is a `@TaskLocal` (= Apple
 //  HIG canonical pattern for test seams). Tests wrap their body
-//  in `ActiveLibrary.$overrideForTesting.withValue(...) { ... }`
+//  in `PathGuard.$libraryRootOverride.withValue(...) { ... }`
 //  via the `withLibraryRoot` helper (= per-task scope; = no
 //  cross-suite pollution; = no init() reset needed).
 //
@@ -26,11 +26,11 @@ struct ToolExecutorPathGuardTests {
 
     private let libraryRoot = "/Users/anbaiqiang/libraries/test.ws"
 
-    /// Run `body` with `ActiveLibrary.overrideForTesting` bound to
+    /// Run `body` with `PathGuard.libraryRootOverride` bound to
     /// `libraryRoot` for the duration of the closure (= Apple HIG
     /// canonical TaskLocal pattern; = no cross-suite pollution).
     private func withLibraryRoot<R>(_ body: () async throws -> R) async rethrows -> R {
-        try await ActiveLibrary.$overrideForTesting.withValue(libraryRoot, operation: body)
+        try await PathGuard.$libraryRootOverride.withValue(libraryRoot, operation: body)
     }
 
     /// Echo-style tool returning the input verbatim with a "RAN:"

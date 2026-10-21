@@ -5,16 +5,17 @@
 // on. The declarations it stores live in ToolSchema.swift.
 
 import Foundation
-import WenshuAgent
 
 /// cache invalidation on registry mutation).
-actor ToolRegistry {
+public actor ToolRegistry {
 
     /// Module-level singleton (= hermes `registry = ToolRegistry()`).
-    /// Access also starts the production tool bootstraps. Swift static
-    /// properties are lazy, so merely linking the tool files does not
-    /// execute their registration initializers.
-    nonisolated static var shared: ToolRegistry {
+    ///
+    /// Access also runs the registered production bootstrap, so the
+    /// app's tools are present the first time the registry is read.
+    /// Swift static properties are lazy, so merely linking the tool
+    /// files does not execute their registration initializers.
+    public nonisolated static var shared: ToolRegistry {
         let registry = sharedStorage
         _ = ProductionToolRegistryBootstrap.start
         return registry
@@ -22,21 +23,15 @@ actor ToolRegistry {
 
     private nonisolated static let sharedStorage = ToolRegistry()
 
-    /// Touch every production registration point exactly once.
-    private enum ProductionToolRegistryBootstrap {
-        static let start: Void = {
-            _ = ReadFileTool._registryBootstrap
-            _ = WriteFileTool._registryBootstrap
-            _ = AVMediaTools._registryBootstrap
-            _ = BookManagerTool._registryBootstrap
-            _ = FileTools._registryBootstrap
-            _ = KanbanStoreTool._registryBootstrap
-            _ = ProcessTools._registryBootstrap
-            _ = TodoStoreTool._registryBootstrap
-            _ = HermesTodoTool._registryBootstrap
-            _ = VisionTools._registryBootstrap
-            _ = WebTools._registryBootstrap
-        }()
+    /// The app's production registration points, supplied by the app.
+    ///
+    /// The runtime owns the registry; the app owns the tools. The app
+    /// installs the closure that touches its own tool types once, and
+    /// the registry runs it on first access. The runtime never names an
+    /// app type.
+    public enum ProductionToolRegistryBootstrap {
+        /// Touch every production registration point exactly once.
+        public nonisolated(unsafe) static var start: @Sendable () -> Void = {}
     }
 
     // MARK: - State
@@ -54,7 +49,7 @@ actor ToolRegistry {
 
     // MARK: - Init
 
-    init() {}
+    public init() {}
 
     // MARK: - Register (= hermes `register()` L356-448)
 
@@ -65,7 +60,7 @@ actor ToolRegistry {
     /// existing built-in tool implementation. Without it, registrations
     /// that would shadow an existing tool from a different toolset are
     /// rejected to prevent accidental overwrites.
-    func register(
+    public func register(
         name: String,
         toolset: String,
         schema: ToolRegistrySchema,
@@ -130,7 +125,7 @@ actor ToolRegistry {
     /// pattern; = the wrapper schedules the async call off the init
     /// thread; = collapse each call site from 8-line `Task { ... }`
     /// to 1-line `Task { await registerTool(...) }`).
-    func registerTool(
+    public func registerTool(
         name: String,
         toolset: String,
         schema: ToolRegistrySchema,
@@ -148,7 +143,7 @@ actor ToolRegistry {
         )
     }
 
-    func lastRegisterError() -> String? { _lastRegisterError }
+    public func lastRegisterError() -> String? { _lastRegisterError }
 
     // MARK: - Deregister (= hermes `deregister()` L450-515)
 
@@ -156,7 +151,7 @@ actor ToolRegistry {
     ///
     /// Bumps the generation counter on success. No-op when the tool is
     /// not registered.
-    func deregister(name: String) {
+    public func deregister(name: String) {
         guard let entry = _tools[name] else { return }
         _tools.removeValue(forKey: name)
         // Drop the handler box if no other tool still references it.
@@ -176,7 +171,7 @@ actor ToolRegistry {
     /// Only tools whose `checkFn` returns `true` (or have no `checkFn`)
     /// are included. Output is sorted by tool name (= hermes
     /// `sorted(tool_names)`).
-    func getDefinitions(toolNames: Set<String>) -> [ToolRegistrySchema] {
+    public func getDefinitions(toolNames: Set<String>) -> [ToolRegistrySchema] {
         var result: [ToolRegistrySchema] = []
         let sortedNames = toolNames.sorted()
         for name in sortedNames {
@@ -192,7 +187,7 @@ actor ToolRegistry {
     // MARK: - Dispatch (= hermes `dispatch()` query helpers)
 
     /// Return the registered `Tool` handler for the given name, or nil.
-    func getHandler(name: String) -> (any Tool)? {
+    public func getHandler(name: String) -> (any Tool)? {
         guard let entry = _tools[name],
               let box = _handlers[entry.handlerID]
         else { return nil }
@@ -201,7 +196,7 @@ actor ToolRegistry {
 
     /// Return the registered `ToolEntry` for the given name, or nil
     /// (= hermes `get_entry()`).
-    func getEntry(name: String) -> ToolEntry? {
+    public func getEntry(name: String) -> ToolEntry? {
         _tools[name]
     }
 
@@ -209,13 +204,13 @@ actor ToolRegistry {
 
     /// Sorted list of all registered tool names (= hermes
     /// `get_all_tool_names()`).
-    func getAllToolNames() -> [String] {
+    public func getAllToolNames() -> [String] {
         _tools.keys.sorted()
     }
 
     /// Emoji for a given tool, or `default` if unset (= hermes
     /// `get_emoji()`).
-    func getEmoji(name: String, default defaultEmoji: String = "⚡") -> String {
+    public func getEmoji(name: String, default defaultEmoji: String = "⚡") -> String {
         guard let entry = _tools[name] else { return defaultEmoji }
         return entry.emoji.isEmpty ? defaultEmoji : entry.emoji
     }
@@ -224,7 +219,7 @@ actor ToolRegistry {
 
     /// Drop all registrations (= testing convenience; hermes equivalent
     /// achieved via `registry._tools.clear()`).
-    func clear() {
+    public func clear() {
         _tools.removeAll()
         _handlers.removeAll()
         _lastRegisterError = nil
@@ -234,12 +229,12 @@ actor ToolRegistry {
     /// Current mutation generation (= hermes `_generation`).
     /// External callers can key memoization on this (= cache is valid
     /// while generation is unchanged).
-    func generation() -> Int {
+    public func generation() -> Int {
         _generation
     }
 
     /// Total number of registered tools (= hermes `len(_tools)`).
-    func count() -> Int {
+    public func count() -> Int {
         _tools.count
     }
 }

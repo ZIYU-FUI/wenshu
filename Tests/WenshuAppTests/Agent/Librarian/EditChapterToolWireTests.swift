@@ -9,15 +9,16 @@
 //  Async Swift Testing — drives the actor directly via the
 //  EditChapterTool.execute(input:) entry point.
 //
-//  ActiveLibrary.overrideForTesting is a `@TaskLocal` (= Apple
+//  PathGuard.libraryRootOverride is a `@TaskLocal` (= Apple
 //  HIG canonical pattern for test seams). Tests wrap their body
-//  in `ActiveLibrary.$overrideForTesting.withValue(...) { ... }`
+//  in `PathGuard.$libraryRootOverride.withValue(...) { ... }`
 //  via the `withLibraryRoot` helper (= per-task scope; = no
 //  cross-suite pollution; = no init() reset needed).
 //
 
 import Foundation
 import Testing
+import WenshuAgent
 @testable import WenshuApp
 
 @MainActor
@@ -29,11 +30,11 @@ struct EditChapterToolWireTests {
     /// comparison matches).
     private static let libraryRoot = URL(fileURLWithPath: "/tmp").resolvingSymlinksInPath().path
 
-    /// Run `body` with `ActiveLibrary.overrideForTesting` bound to
+    /// Run `body` with `PathGuard.libraryRootOverride` bound to
     /// the canonical /tmp library root (= Apple HIG canonical
     /// TaskLocal pattern; = no cross-suite pollution).
     private func withLibraryRoot<R>(_ body: () async throws -> R) async rethrows -> R {
-        try await ActiveLibrary.$overrideForTesting.withValue(Self.libraryRoot, operation: body)
+        try await PathGuard.$libraryRootOverride.withValue(Self.libraryRoot, operation: body)
     }
 
     @Test("EditChapterTool.execute(input:) routes the JSON envelope to the actor and returns the diff envelope")

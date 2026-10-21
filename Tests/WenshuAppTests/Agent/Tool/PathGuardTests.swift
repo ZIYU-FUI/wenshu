@@ -7,15 +7,16 @@
 //  rejection / relative path handling / empty path / symlink
 //  escape (= the v1 missing test case).
 //
-//  ActiveLibrary.overrideForTesting is a `@TaskLocal` (= Apple
+//  PathGuard.libraryRootOverride is a `@TaskLocal` (= Apple
 //  HIG canonical pattern for test seams). Tests wrap their body
-//  in `ActiveLibrary.$overrideForTesting.withValue(...) { ... }`
+//  in `PathGuard.$libraryRootOverride.withValue(...) { ... }`
 //  via the `withLibraryRoot` helper (= per-task scope; = no
 //  cross-suite pollution; = no init() reset needed).
 //
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @MainActor
@@ -24,12 +25,12 @@ struct PathGuardTests {
 
     private let libraryRoot = "/Users/anbaiqiang/libraries/test.ws"
 
-    /// Run `body` with `ActiveLibrary.overrideForTesting` bound to
+    /// Run `body` with `PathGuard.libraryRootOverride` bound to
     /// `libraryRoot` for the duration of the closure (= Apple HIG
     /// canonical TaskLocal pattern; = no cross-suite pollution; =
     /// automatic scope restoration on closure exit).
     private func withLibraryRoot<R>(_ body: () throws -> R) rethrows -> R {
-        try ActiveLibrary.$overrideForTesting.withValue(libraryRoot, operation: body)
+        try PathGuard.$libraryRootOverride.withValue(libraryRoot, operation: body)
     }
 
     // MARK: - Library root resolution

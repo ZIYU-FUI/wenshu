@@ -25,16 +25,21 @@
 //      ├── Recovery/                   (error classification + response guards)
 //      ├── Settings/                   (agent settings)
 //      ├── Streaming/                  (SSE + chunk converters + watchdog + fence)
-//      ├── Tool/                       (tool schema + tool exposure)
+//      ├── Tool/                       (tool mechanism = contract + registry
+//      │                               + executor + path guard + schema
+//      │                               + exposure)
 //      └── Turn/                       (turn context + finalizer + notes)
 //
 //  Eight source files stay inside the app target at
 //  `Sources/WenshuApp/WenshuAgent/`.
-//  They stay because they reference the app's tool registry, the tool
-//  executor, the auth pool, the provider catalogue and the app delegate,
+//  They stay because they reference the app's auth pool, the app's
+//  provider catalogue, the app's import layer and the app delegate,
 //  all of which live in the app target.
-//  Moving them into the runtime package is separate work that needs the
-//  dependency-inversion decision first.
+//  The tool registry and the tool executor no longer count against
+//  them: both moved into the runtime package, so the conductor's
+//  tool plumbing already reaches the runtime's public surface.
+//  Moving the remaining eight files into the runtime package is
+//  separate work that needs the dependency-inversion decision first.
 //
 //      Sources/WenshuApp/WenshuAgent/
 //      ├── Agent/
@@ -49,6 +54,36 @@
 //      │   └── KeychainSelector.swift
 //      └── Public/
 //          └── WenshuAgent.swift
+//
+//  The app's tool implementations also stay in the app target, in
+//  `Sources/WenshuApp/Features/Agent/Service/`. They bind the app's
+//  storage, and they satisfy the runtime's `Tool` protocol.
+//
+//  TOOL MECHANISM:
+//
+//  The `Tool/` subfolder holds the tool mechanism: the `Tool` protocol
+//  every tool satisfies, the registry that holds the instances, the
+//  executor that dispatches them, and the path guard that keeps a tool
+//  inside the user's library.
+//
+//  The runtime owns the mechanism. The app owns the tools. The app's
+//  tool implementations stay in the app target (= they bind the app's
+//  storage), and they reach the runtime through the protocol. The
+//  runtime never names an app type.
+//
+//  Two seams carry the app's contribution into the runtime:
+//    1. `ToolRegistry.ProductionToolRegistryBootstrap.start` = the app
+//       installs the closure that touches its own tool types; the
+//       runtime runs it when the shared registry is read.
+//    2. `PathGuard.libraryRootProvider` = the app installs the accessor
+//       for the active library root; the runtime reads it when a path
+//       is checked.
+//
+//  The path guard's test override (`PathGuard.$libraryRootOverride`)
+//  lives in the runtime package, next to the guard that reads it. A
+//  task local's storage belongs to the module that declares it, so the
+//  runtime could not read one the app declared. The app's
+//  `ActiveLibrary.path` reads the same value, so both sides agree.
 //
 //  ACCESS POLICY:
 //

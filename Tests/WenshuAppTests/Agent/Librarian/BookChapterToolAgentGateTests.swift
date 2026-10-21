@@ -27,6 +27,7 @@
 
 import Foundation
 import Testing
+import WenshuAgent
 @testable import WenshuApp
 
 @MainActor
@@ -42,11 +43,11 @@ struct BookChapterToolAgentGateTests {
     private static let libraryRoot = URL(fileURLWithPath: "/tmp").resolvingSymlinksInPath().path
 
     /// Run `body` with
-    /// `ActiveLibrary.overrideForTesting`
+    /// `PathGuard.libraryRootOverride`
     /// bound to the canonical
     /// /tmp library root.
     private func withLibraryRoot<R>(_ body: () async throws -> R) async rethrows -> R {
-        try await ActiveLibrary.$overrideForTesting.withValue(Self.libraryRoot, operation: body)
+        try await PathGuard.$libraryRootOverride.withValue(Self.libraryRoot, operation: body)
     }
 
     /// Create a fresh `BookChapterActor`

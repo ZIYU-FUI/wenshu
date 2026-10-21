@@ -26,32 +26,32 @@ let toolGuardrailsMaxInputBytes: Int = 1_048_576  // 1 MB
 
 /// Tool name whitelist (= enforce known tools only).
 /// Actor (= Swift 6 strict-concurrency-safe mutable global).
-actor ToolNameWhitelist {
+public actor ToolNameWhitelist {
     private(set) var names: Set<String> = []
 
-    init() {}
+    public init() {}
 
-    func set(_ names: Set<String>) {
+    public func set(_ names: Set<String>) {
         self.names = names
     }
 
-    func contains(_ name: String) -> Bool {
+    public func contains(_ name: String) -> Bool {
         return names.contains(name)
     }
 
-    var isEmpty: Bool { names.isEmpty }
+    public var isEmpty: Bool { names.isEmpty }
 }
 
 /// Global singleton (= process-wide whitelist, configured by app startup).
 let toolNameWhitelist = ToolNameWhitelist()
 
 /// Pre-tool guardrail result.
-struct ToolGuardrailsResult: Sendable, Equatable {
-    let passed: Bool
-    let reason: String?
+public struct ToolGuardrailsResult: Sendable, Equatable {
+    public let passed: Bool
+    public let reason: String?
 
-    static let pass = ToolGuardrailsResult(passed: true, reason: nil)
-    static func failure(reason: String) -> ToolGuardrailsResult {
+    public static let pass = ToolGuardrailsResult(passed: true, reason: nil)
+    public static func failure(reason: String) -> ToolGuardrailsResult {
         return ToolGuardrailsResult(passed: false, reason: reason)
     }
 }

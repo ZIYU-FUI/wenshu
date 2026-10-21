@@ -17,6 +17,7 @@
 //  remaining 7 hermes helpers are actor-state-bound and don't
 //  belong in a top-level pure function).
 
+import WenshuAgent
 import XCTest
 import Foundation
 @testable import WenshuApp

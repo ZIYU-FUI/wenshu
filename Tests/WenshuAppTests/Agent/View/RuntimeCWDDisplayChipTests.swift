@@ -5,11 +5,11 @@
 //  Per cadence 2026-09-03 'resume' + 'PO execute,don't'
 //  + 'when done, verify visual and frontend flow together' + '1 RULE 1 commit'.
 //
-//  ActiveLibrary.overrideForTesting is a `@TaskLocal` (= Apple
+//  PathGuard.libraryRootOverride is a `@TaskLocal` (= Apple
 //  HIG canonical pattern for test seams; = per-task scope, no
 //  cross-suite pollution; = no init() reset needed). Tests
 //  wrap their body in
-//  `ActiveLibrary.$overrideForTesting.withValue(value, operation: { ... }`
+//  `PathGuard.$libraryRootOverride.withValue(value, operation: { ... }`
 //  = the override is automatically scoped to the test;
 //  = no save/restore boilerplate.
 //
@@ -17,6 +17,7 @@
 import Testing
 import Foundation
 import SwiftUI
+import WenshuAgent
 @testable import WenshuApp
 
 @MainActor
@@ -25,7 +26,7 @@ struct RuntimeCWDDisplayChipTests {
 
     @Test("RuntimeCWD: displayLabel returns 'Unset' when no library + no override")
     func displayLabelUnset() async {
-        await ActiveLibrary.$overrideForTesting.withValue(nil, operation: {
+        await PathGuard.$libraryRootOverride.withValue(nil, operation: {
             // Clear the cwd override too so we have a clean state
             UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
             let cwd = RuntimeCWD()
@@ -37,7 +38,7 @@ struct RuntimeCWDDisplayChipTests {
     @Test("RuntimeCWD: displayLabel shows 'Library:' prefix when library path is set")
     func displayLabelLibrary() async {
         let tempPath = "/tmp/wenshu-test-library-\(UUID().uuidString).ws"
-        await ActiveLibrary.$overrideForTesting.withValue(tempPath, operation: {
+        await PathGuard.$libraryRootOverride.withValue(tempPath, operation: {
             UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
             let cwd = RuntimeCWD()
             let label = await cwd.displayLabel()
@@ -49,7 +50,7 @@ struct RuntimeCWDDisplayChipTests {
     @Test("RuntimeCWD: displayLabel shows 'Override:' prefix when override is set")
     func displayLabelOverride() async {
         let overridePath = "/tmp/wenshu-override-\(UUID().uuidString)"
-        await ActiveLibrary.$overrideForTesting.withValue(nil, operation: {
+        await PathGuard.$libraryRootOverride.withValue(nil, operation: {
             UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
             UserDefaults.standard.set(overridePath, forKey: RuntimeCWD.cwdOverrideKey)
             let cwd = RuntimeCWD()
@@ -65,7 +66,7 @@ struct RuntimeCWDDisplayChipTests {
     func setCWDOverride() async throws {
         let libraryPath = "/tmp/wenshu-library-\(UUID().uuidString).ws"
         let overridePath = "/tmp/wenshu-override-\(UUID().uuidString)"
-        try await ActiveLibrary.$overrideForTesting.withValue(libraryPath, operation: {
+        try await PathGuard.$libraryRootOverride.withValue(libraryPath, operation: {
             UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
             let cwd = RuntimeCWD()
 
@@ -89,7 +90,7 @@ struct RuntimeCWDDisplayChipTests {
     @Test("RuntimeCWD: resolve(relativePath) uses current CWD")
     func resolveRelativePath() async throws {
         let overridePath = "/tmp/wenshu-resolve-\(UUID().uuidString)"
-        try await ActiveLibrary.$overrideForTesting.withValue(nil, operation: {
+        try await PathGuard.$libraryRootOverride.withValue(nil, operation: {
             UserDefaults.standard.removeObject(forKey: RuntimeCWD.cwdOverrideKey)
             UserDefaults.standard.set(overridePath, forKey: RuntimeCWD.cwdOverrideKey)
             let cwd = RuntimeCWD()
@@ -111,7 +112,7 @@ struct RuntimeCWDDisplayChipTests {
 
     @Test("RuntimeCWD: setCWD posts runtimeCWDDidChange notification")
     func setCWDPostsNotification() async throws {
-        try await ActiveLibrary.$overrideForTesting.withValue(nil, operation: {
+        try await PathGuard.$libraryRootOverride.withValue(nil, operation: {
             let cwd = RuntimeCWD()
             var receivedNotification = false
             let observer = NotificationCenter.default.addObserver(

@@ -9,6 +9,7 @@
 // directly is removed.
 
 import Foundation
+import WenshuAgent
 
 /// Single source of truth for the user's active .ws library path string.
 ///
@@ -17,21 +18,6 @@ import Foundation
 /// bookmark is the SOLE persistence. Consumers call `ActiveLibrary.path`
 /// instead of `UserDefaults.standard.string(forKey: "wenshu.libraryPath")`.
 enum ActiveLibrary {
-    /// Test-only override hook. Visible only in DEBUG builds via
-    /// the `#if DEBUG` block on `path`.
-    ///
-    /// Apple HIG canonical pattern for test seams: `@TaskLocal` =
-    /// the value lives in the current Swift task's context only;
-    /// = tests wrap their body in
-    /// `ActiveLibrary.$overrideForTesting.withValue(value) { ... }`
-    /// = the override is automatically scoped to that block; = no
-    /// cross-suite pollution; = no per-suite init() reset needed;
-    /// = Swift 6 strict-concurrency safe (no `nonisolated(unsafe)`).
-    ///
-    /// See [ActiveLibrary path override usage for tests] in the SKILL
-    /// references for the canonical test wrapper.
-    @TaskLocal
-    static var overrideForTesting: String?
 
     /// The active .ws library path string (= the bookmark-resolved
     /// path). Returns nil when no library has been picked yet (= the
@@ -49,12 +35,18 @@ enum ActiveLibrary {
     ///
     /// `nonisolated` (= Swift 6 strict-concurrency safe; = the
     /// underlying `LibraryBookmark.resolve` is pure and Sendable).
-    /// The `#if DEBUG` block reads the test override hook (= the
-    /// only mutation surface; = production callers never see the
-    /// `overrideForTesting` symbol).
+    /// The `#if DEBUG` block reads the test override hook
+    /// (= `PathGuard.libraryRootOverride`; = the only mutation
+    /// surface; = production callers never see the override symbol).
+    ///
+    /// The override is a `@TaskLocal` that lives in the runtime
+    /// package (= `PathGuard`), next to the path guard that reads it:
+    /// a task local's storage is per-module, so the package cannot
+    /// read one the app declares. Tests scope it with
+    /// `PathGuard.$libraryRootOverride.withValue(root) { ... }`.
     static nonisolated var path: String? {
         #if DEBUG
-        if let testOverride = Self.overrideForTesting {
+        if let testOverride = PathGuard.libraryRootOverride {
             return testOverride
         }
         #endif

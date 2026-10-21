@@ -10,6 +10,7 @@
 
 import Foundation
 import Testing
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("Reasoning markup")

@@ -12,6 +12,7 @@
 //  Per AGENTS.md §11.3 wenshu-side wins: pure-function port;
 //  = wenshus FileTools owns the actual file mutation layer.
 
+import WenshuAgent
 import XCTest
 @testable import WenshuApp
 

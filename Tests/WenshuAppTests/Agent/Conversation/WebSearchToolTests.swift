@@ -17,6 +17,7 @@
 
 import Foundation
 import Testing
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("WebSearchTool (v0.74 ticket 003 — wire WebSearch into ToolRegistry)")

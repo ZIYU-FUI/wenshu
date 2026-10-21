@@ -50,21 +50,20 @@
 // callers using `ToolExecutor()`).
 
 import Foundation
-import WenshuAgent
 
-actor ToolExecutor {
+public actor ToolExecutor {
 
     // MARK: - Public state (= hermes dispatch-layer plumbing)
 
     /// Lifecycle hook chain (= TICKET-HERMES-GAP-004). Default = empty
     /// (= `firePreToolCall` / `firePostToolCall` are no-ops on an empty
     /// registry). Inject hooks via `init(hookChain:)`.
-    let hookChain: ShellHookChain
+    public let hookChain: ShellHookChain
 
     /// Dispatch hook chain (= TICKET-HERMES-GAP-008). Default = empty
     /// (= `firePreDispatch` / `firePostDispatch` are no-ops on an empty
     /// registry). Inject hooks via `init(hookChain:dispatchHookChain:)`.
-    let dispatchHookChain: ToolDispatchHookChain
+    public let dispatchHookChain: ToolDispatchHookChain
 
     // MARK: - wenshu port dispatch helpers (6 helpers)
 
@@ -72,17 +71,17 @@ actor ToolExecutor {
     /// SubAgentPermissions parity). Invoked BEFORE `tool.execute(input:)`.
     /// Return `nil` to allow; return a non-nil string to deny (= the
     /// string becomes the tool result output).
-    let permissionGate: @Sendable (String, String) -> String?
+    public let permissionGate: @Sendable (String, String) -> String?
 
     /// Output truncator (= hermes tool_result_storage.enforce_turn_budget).
     /// Invoked AFTER `tool.execute(input:)`, BEFORE post hooks fire.
     /// Return the (possibly truncated) output string.
-    let outputTruncator: @Sendable (String, String) -> String
+    public let outputTruncator: @Sendable (String, String) -> String
 
     /// Error classifier (= hermes tool_result_classification). Invoked
     /// when `tool.execute(input:)` throws. Return a classification
     /// string for observability.
-    let errorClassifier: @Sendable (String, Error) -> String
+    public let errorClassifier: @Sendable (String, Error) -> String
 
     /// Result formatter (= hermes make_tool_result_message). Invoked
     /// AFTER output truncator + post-dispatch validator. Returns the
@@ -105,7 +104,7 @@ actor ToolExecutor {
     /// Initializer accepting the optional pre-configured hook chains
     /// + 6 wenshu port dispatch helpers. Defaults preserve
     /// pre-wenshu port behavior.
-    init(
+    public init(
         hookChain: ShellHookChain = ShellHookChain(),
         dispatchHookChain: ToolDispatchHookChain = ToolDispatchHookChain(),
         permissionGate: @escaping @Sendable (String, String) -> String? = ToolExecutor.defaultPermissionGate,
@@ -138,16 +137,16 @@ actor ToolExecutor {
     // MARK: - Default helper closures (= hermes-equivalent fallbacks)
 
     /// Default permission gate: allow all.
-    static let defaultPermissionGate: @Sendable (String, String) -> String? = { _, _ in nil }
+    public static let defaultPermissionGate: @Sendable (String, String) -> String? = { _, _ in nil }
 
     /// Default output truncator: no-op.
-    static let defaultOutputTruncator: @Sendable (String, String) -> String = { output, _ in output }
+    public static let defaultOutputTruncator: @Sendable (String, String) -> String = { output, _ in output }
 
     /// Default error classifier: classify everything as "internal".
-    static let defaultErrorClassifier: @Sendable (String, Error) -> String = { _, _ in "internal" }
+    public static let defaultErrorClassifier: @Sendable (String, Error) -> String = { _, _ in "internal" }
 
     /// Default result formatter: identity.
-    static let defaultResultFormatter: @Sendable (String, String) -> String = { output, _ in output }
+    public static let defaultResultFormatter: @Sendable (String, String) -> String = { output, _ in output }
 
     // (defaultPreDispatchValidator removed 2026-10 in q99-spec-p0-batch2 —
     //  verify-dead.py confirmed 0 external callers; = the identity closure
@@ -160,7 +159,7 @@ actor ToolExecutor {
     /// Adapts `[String: String]` ↔ `PathGuardInput` so the typed
     /// PathGuard layer can stay Sendable + sync while the closure
     /// shim maintains ToolExecutor's `async throws` contract.
-    static let defaultPathGuardValidator: @Sendable (String, [String: String]) async throws -> [String: String] = { toolName, input in
+    public static let defaultPathGuardValidator: @Sendable (String, [String: String]) async throws -> [String: String] = { toolName, input in
         let typed = PathGuardInput(raw: input)
         let result = try PathGuard.preDispatchValidator(toolName: toolName, input: typed)
         return result.allKeys.reduce(into: [String: String]()) { acc, key in
@@ -169,7 +168,7 @@ actor ToolExecutor {
     }
 
     /// Default post-dispatch validator: identity.
-    static let defaultPostDispatchValidator: @Sendable (String, String) async throws -> String = { _, output in output }
+    public static let defaultPostDispatchValidator: @Sendable (String, String) async throws -> String = { _, output in output }
 
     // MARK: - Sequential execution
 
@@ -181,7 +180,7 @@ actor ToolExecutor {
     /// UI cards (ChatToolUsePartView / ChatToolResultPartView) because
     /// the blocks stayed inside ConversationResult.blocks[] without
     /// a per-block notification.
-    func executeSequential(
+    public func executeSequential(
         assistantMessage: LLMMessage,
         messages: inout [LLMMessage],
         taskId: String,
@@ -304,7 +303,7 @@ actor ToolExecutor {
 
     /// Run tool_use blocks concurrently (= all in parallel via TaskGroup).
     /// T2-TOOL-UI (2026-09-18): same streamCallback wiring as executeSequential.
-    func executeConcurrent(
+    public func executeConcurrent(
         assistantMessage: LLMMessage,
         messages: inout [LLMMessage],
         taskId: String,
@@ -465,7 +464,7 @@ actor ToolExecutor {
     // MARK: - Lookup
 
     /// Look up a tool by name from the registry.
-    func lookupTool(name: String, registry: [String: any Tool]) -> (any Tool)? {
+    public func lookupTool(name: String, registry: [String: any Tool]) -> (any Tool)? {
         registry[name]
     }
 }
@@ -540,7 +539,7 @@ extension ToolExecutor {
     /// preserves hermes's API shape for API parity but
     /// returns false in practice (= wenshu RuntimeErrors
     /// don't carry this signature).
-    static func isInterpreterShutdownSubmitError(_ error: Error) -> Bool {
+    public static func isInterpreterShutdownSubmitError(_ error: Error) -> Bool {
         let message = String(describing: error)
         return message.contains("cannot schedule new futures after interpreter shutdown")
     }
@@ -558,7 +557,7 @@ extension ToolExecutor {
     ///   "status": "cancelled"
     /// }
     /// ```
-    static func cancelledToolResultJSON(reason: String = "user interrupt") -> String {
+    public static func cancelledToolResultJSON(reason: String = "user interrupt") -> String {
         let dict: [String: Any] = [
             "error": "Tool execution cancelled by \(reason)",
             "status": "cancelled",

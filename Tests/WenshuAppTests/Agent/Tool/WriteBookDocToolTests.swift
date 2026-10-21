@@ -17,6 +17,7 @@
 //       throw invalidInput).
 //
 
+import WenshuAgent
 import XCTest
 import Foundation
 @testable import WenshuApp

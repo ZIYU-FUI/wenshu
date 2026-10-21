@@ -40,7 +40,7 @@
 import Foundation
 import os.log
 
-enum PathGuard {
+public enum PathGuard {
 
     private static let logger = Logger(
         subsystem: "ai.wenshu.app",
@@ -49,12 +49,12 @@ enum PathGuard {
 
     // MARK: - Errors
 
-    enum GuardError: Error, LocalizedError, Sendable, Equatable {
+    public enum GuardError: Error, LocalizedError, Sendable, Equatable {
         case libraryRootUnconfigured
         case pathOutsideLibrary(resolved: LibraryPath, root: LibraryPath)
         case invalidPath(reason: String)
 
-        var errorDescription: String? {
+        public var errorDescription: String? {
             switch self {
             case .libraryRootUnconfigured:
                 return "PathGuard: library root is not configured."
@@ -70,7 +70,7 @@ enum PathGuard {
             }
         }
 
-        static func == (lhs: GuardError, rhs: GuardError) -> Bool {
+        public static func == (lhs: GuardError, rhs: GuardError) -> Bool {
             switch (lhs, rhs) {
             case (.libraryRootUnconfigured, .libraryRootUnconfigured):
                 return true
@@ -86,17 +86,45 @@ enum PathGuard {
 
     // MARK: - Library root resolution
 
-    /// Resolve the library root from `ActiveLibrary` (= the canonical
-    /// single source of truth; = the security-scoped bookmark).
-    /// Returns nil when no library is bound (= pre-onboarding state,
-    /// or the bookmark can't be resolved).
-    static func resolveLibraryRoot() -> LibraryPath? {
-        guard let raw = ActiveLibrary.path else { return nil }
+    /// The app's library-root accessor, installed by the app.
+    ///
+    /// The runtime cannot reach the app's storage layer, so the app
+    /// supplies the path it resolves. The closure is read at the moment
+    /// a path is checked, not captured at install time, so a library
+    /// picked after launch is still guarded correctly.
+    nonisolated(unsafe) public static var libraryRootProvider: (@Sendable () -> String?)?
+
+    /// Test-only override for the library root.
+    ///
+    /// Apple HIG canonical pattern for test seams: `@TaskLocal` = the
+    /// value lives in the current Swift task's context only; = tests
+    /// wrap their body in
+    /// `PathGuard.$libraryRootOverride.withValue(value) { ... }`
+    /// = the override is automatically scoped to that block; = no
+    /// cross-suite pollution; = no per-suite init() reset needed; =
+    /// Swift 6 strict-concurrency safe (no `nonisolated(unsafe)`).
+    ///
+    /// The seam lives here, next to its only consumer, so a test can
+    /// set the root the guard reads without the app's launch path
+    /// running.
+    @TaskLocal
+    public static var libraryRootOverride: String?
+
+    /// Resolve the library root (= the canonical single source of
+    /// truth; = the security-scoped bookmark).
+    ///
+    /// The test override wins, so a test can pin the root without the
+    /// app's provider being installed. Otherwise the app's provider
+    /// answers. Returns nil when no library is bound (= pre-onboarding
+    /// state, or the bookmark can't be resolved).
+    public static func resolveLibraryRoot() -> LibraryPath? {
+        if let override = libraryRootOverride { return LibraryPath(rawValueOrNil: override) }
+        guard let raw = libraryRootProvider?() else { return nil }
         return LibraryPath(rawValueOrNil: raw)
     }
 
     /// Canonical library root path (= symlinks collapsed).
-    static func resolveLibraryRootCanonical() -> LibraryPath? {
+    public static func resolveLibraryRootCanonical() -> LibraryPath? {
         guard let root = resolveLibraryRoot() else { return nil }
         return LibraryPath(rawValue: root.canonicalPath)
     }
@@ -105,7 +133,7 @@ enum PathGuard {
 
     /// Assert `path` (absolute or library-relative) resolves inside
     /// the library root. Throws `GuardError` on failure.
-    static func assertInsideLibrary(path: String) throws {
+    public static func assertInsideLibrary(path: String) throws {
         let root = try requireRoot()
         let resolved = try resolveAgainstRoot(path: path, root: root)
         let resolvedLibPath = LibraryPath(rawValue: resolved)
@@ -117,7 +145,7 @@ enum PathGuard {
     /// Assert a `LibraryPath` (absolute path already typed) is inside
     /// the library root. Useful for tool bodies that have already
     /// constructed a `LibraryPath` from a UUID (= e.g. BookChapterTool).
-    static func assertInsideLibrary(path: LibraryPath) throws {
+    public static func assertInsideLibrary(path: LibraryPath) throws {
         let root = try requireRoot()
         let resolved = LibraryPath(rawValue: path.canonicalPath)
         guard isInside(resolved: resolved, root: root) else {
@@ -128,7 +156,7 @@ enum PathGuard {
     /// Boolean variant. Useful in `if` / `guard` where the caller
     /// wants to render a tool-specific error rather than the guard
     /// error.
-    static func isInsideLibrary(path: String) -> Bool {
+    public static func isInsideLibrary(path: String) -> Bool {
         do {
             try assertInsideLibrary(path: path)
             return true
@@ -137,7 +165,7 @@ enum PathGuard {
         }
     }
 
-    static func isInsideLibrary(path: LibraryPath) -> Bool {
+    public static func isInsideLibrary(path: LibraryPath) -> Bool {
         do {
             try assertInsideLibrary(path: path)
             return true
@@ -151,7 +179,7 @@ enum PathGuard {
     /// Path-bearing keys inspected by the default validator.
     /// Extensible (= future tools add keys here without changing
     /// the validator signature).
-    static let pathKeys: [String] = [
+    public static let pathKeys: [String] = [
         "path", "file", "cwd", "from", "to", "rootDir"
     ]
 
@@ -165,7 +193,7 @@ enum PathGuard {
     ///
     /// When the library root is not configured, this validator throws
     /// (no implicit allow).
-    static nonisolated func preDispatchValidator(
+    public nonisolated static func preDispatchValidator(
         toolName: String,
         input: PathGuardInput
     ) throws -> PathGuardInput {

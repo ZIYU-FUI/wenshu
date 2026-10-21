@@ -17,6 +17,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("ToolExecutorError (v1.27 health-check pin)")

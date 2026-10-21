@@ -19,12 +19,18 @@
 
 import Foundation
 
-protocol Tool: Sendable {
+/// The contract every wenshu tool satisfies.
+///
+/// A tool is a `Sendable` async function: `String` input (typically
+/// JSON) to `String` output (typically JSON). The `ToolExecutor`
+/// calls `execute(input:)` at most once per tool invocation, with
+/// the tool-use block's `input` field passed through verbatim.
+public protocol Tool: Sendable {
     func execute(input: String) async throws -> String
 }
 
 /// Errors thrown by Tool.execute or ToolExecutor dispatch.
-enum ToolExecutorError: Error, LocalizedError, Sendable {
+public enum ToolExecutorError: Error, LocalizedError, Sendable {
     case toolNotFound(name: String)
     case toolFailed(name: String, underlying: String)
     case invalidInput(name: String, reason: String)
@@ -34,7 +40,7 @@ enum ToolExecutorError: Error, LocalizedError, Sendable {
     /// see AGENTS.md §11 baseline + PathGuard).
     case pathGuardViolation(toolName: String, key: String, underlying: PathGuard.GuardError)
 
-    var errorDescription: String? {
+    public var errorDescription: String? {
         switch self {
         case .toolNotFound(let n):
             return String(format: "Tool '%@' not found in registry.", n)

@@ -18,6 +18,7 @@
 //
 
 import Testing
+import WenshuAgent
 import WenshuData
 import Foundation
 @testable import WenshuApp

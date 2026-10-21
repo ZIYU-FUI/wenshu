@@ -217,7 +217,7 @@ private struct ShellHookTestError: Error, Equatable {
 
 /// Recording hook: counts invocations + stores last-seen payloads.
 private actor RecordingHook: ShellHook {
-    let name: String
+    public let name: String
     var preCount = 0
     var postCount = 0
     var preLLMCount = 0
@@ -254,7 +254,7 @@ private actor RecordingHook: ShellHook {
 
 /// Hook that always throws (= used to verify propagation + short-circuit).
 private actor ThrowingHook: ShellHook {
-    let name: String
+    public let name: String
     let message: String
     init(name: String, message: String) {
         self.name = name
@@ -284,7 +284,7 @@ private actor OrderRecorder {
 
 /// Hook that records its `name` into a shared recorder on each fire.
 private actor OrderRecordingHook: ShellHook {
-    let name: String
+    public let name: String
     let recorder: OrderRecorder
     init(name: String, recorder: OrderRecorder) {
         self.name = name

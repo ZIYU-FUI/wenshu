@@ -12,9 +12,9 @@
 // 'PO execute,don't' + '1 RULE 1 commit' + '
 // when done, verify visual and frontend flow together'.
 //
-//  ActiveLibrary.overrideForTesting is a `@TaskLocal` (= Apple
+//  PathGuard.libraryRootOverride is a `@TaskLocal` (= Apple
 //  HIG canonical pattern for test seams). Tests wrap their body
-//  in `ActiveLibrary.$overrideForTesting.withValue(...) { ... }`
+//  in `PathGuard.$libraryRootOverride.withValue(...) { ... }`
 //  via the `withLibraryRoot` helper (= per-task scope; = no
 //  cross-suite pollution; = no init() reset needed).
 //
@@ -31,11 +31,11 @@ struct RealAgentDispatchTests {
     /// Library root path (= the path PathGuard validates against).
     private let libraryRoot = "/Users/anbaiqiang/libraries/test-real-agent.ws"
 
-    /// Run `body` with `ActiveLibrary.overrideForTesting` bound to
+    /// Run `body` with `PathGuard.libraryRootOverride` bound to
     /// `libraryRoot` for the duration of the closure (= Apple HIG
     /// canonical TaskLocal pattern; = no cross-suite pollution).
     private func withLibraryRoot<R>(_ body: () async throws -> R) async rethrows -> R {
-        try await ActiveLibrary.$overrideForTesting.withValue(libraryRoot, operation: body)
+        try await PathGuard.$libraryRootOverride.withValue(libraryRoot, operation: body)
     }
 
     /// Set up a temp directory with a sample book file under the library root

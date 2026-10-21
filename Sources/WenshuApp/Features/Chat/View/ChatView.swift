@@ -2,6 +2,7 @@
 // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
 // 
 import SwiftUI
+import WenshuAgent
 import WenshuData
 import os
 

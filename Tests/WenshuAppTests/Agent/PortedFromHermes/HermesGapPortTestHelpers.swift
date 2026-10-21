@@ -49,6 +49,7 @@
 // the doc-comment markers.
 
 import Foundation
+import WenshuAgent
 
 /// Shared helper for HermesGapPortTests (= ~20 test files under
 /// Tests/WenshuAppTests/Agent/PortedFromHermes/).

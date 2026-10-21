@@ -32,7 +32,6 @@
 //
 
 import Foundation
-import WenshuAgent
 
 // MARK: - Placeholder types
 //
@@ -47,11 +46,11 @@ import WenshuAgent
 /// Future: real struct will live alongside `Tool.swift` and reuse the
 /// (toolUseID, toolName, input) tuple currently threaded through
 /// ToolExecutor.
-struct ToolCall: Sendable, Equatable {
-    let id: String
-    let name: String
-    let input: String
-    init(id: String, name: String, input: String) {
+public struct ToolCall: Sendable, Equatable {
+    public let id: String
+    public let name: String
+    public let input: String
+    public init(id: String, name: String, input: String) {
         self.id = id
         self.name = name
         self.input = input
@@ -61,11 +60,11 @@ struct ToolCall: Sendable, Equatable {
 /// Placeholder for a tool execution result (= post-tool-call payload).
 /// Future: real struct will wrap `LLMBlock.toolResult(toolUseID:output:)`
 /// or the tool's raw return value, plus an `isError` flag.
-struct ToolResult: Sendable, Equatable {
-    let toolCallID: String
-    let output: String
-    let isError: Bool
-    init(toolCallID: String, output: String, isError: Bool = false) {
+public struct ToolResult: Sendable, Equatable {
+    public let toolCallID: String
+    public let output: String
+    public let isError: Bool
+    public init(toolCallID: String, output: String, isError: Bool = false) {
         self.toolCallID = toolCallID
         self.output = output
         self.isError = isError
@@ -77,10 +76,10 @@ struct ToolResult: Sendable, Equatable {
 /// = the canonical wire envelope used by all 14 first-class + custom profiles.
 /// Currently `LLMCallOptions` + `[LLMMessage]` are passed separately; a
 /// unified request type is a future refactor.
-struct LLMRequest: Sendable {
-    let messages: [LLMMessage]
-    let options: LLMCallOptions
-    init(messages: [LLMMessage], options: LLMCallOptions) {
+public struct LLMRequest: Sendable {
+    public let messages: [LLMMessage]
+    public let options: LLMCallOptions
+    public init(messages: [LLMMessage], options: LLMCallOptions) {
         self.messages = messages
         self.options = options
     }
@@ -95,7 +94,7 @@ struct LLMRequest: Sendable {
 /// All methods are `async throws` (= matches hermes' async hook
 /// signature) and `Sendable` (= hook can be passed across actor
 /// boundaries). Hooks fire sequentially in registration order.
-protocol ShellHook: Sendable {
+public protocol ShellHook: Sendable {
     /// Stable identifier; used by `ShellHookChain.unregister(_:)`.
     var name: String { get }
 
@@ -126,49 +125,49 @@ protocol ShellHook: Sendable {
 /// Hooks fire in registration order; first throw short-circuits the
 /// remaining hooks in that batch (= matches hermes `shell_hooks.py`
 /// fire-and-abort-on-error semantics).
-actor ShellHookChain {
+public actor ShellHookChain {
     private var hooks: [ShellHook] = []
 
-    init() {}
+    public init() {}
 
     /// Append a hook to the chain. Duplicate `name` is allowed (= caller's
     /// responsibility to deduplicate before registering).
-    func register(_ hook: ShellHook) { hooks.append(hook) }
+    public func register(_ hook: ShellHook) { hooks.append(hook) }
 
     /// Remove the first hook whose `name` matches the given hook's `name`.
-    func unregister(_ hook: ShellHook) {
+    public func unregister(_ hook: ShellHook) {
         hooks.removeAll { $0.name == hook.name }
     }
 
     /// Remove every registered hook (= useful for tests + hot reload).
-    func unregisterAll() { hooks.removeAll() }
+    public func unregisterAll() { hooks.removeAll() }
 
     /// Snapshot of currently-registered hooks (= in registration order).
-    var current: [ShellHook] { hooks }
+    public var current: [ShellHook] { hooks }
 
     // MARK: - Fire methods
 
-    func firePreToolCall(_ call: ToolCall) async throws {
+    public func firePreToolCall(_ call: ToolCall) async throws {
         for hook in hooks { try await hook.preToolCall(call) }
     }
 
-    func firePostToolCall(_ call: ToolCall, result: ToolResult) async throws {
+    public func firePostToolCall(_ call: ToolCall, result: ToolResult) async throws {
         for hook in hooks { try await hook.postToolCall(call, result: result) }
     }
 
-    func firePreLLMCall(_ request: LLMRequest) async throws {
+    public func firePreLLMCall(_ request: LLMRequest) async throws {
         for hook in hooks { try await hook.preLLMCall(request) }
     }
 
-    func firePostLLMCall(_ request: LLMRequest, response: LLMResponse) async throws {
+    public func firePostLLMCall(_ request: LLMRequest, response: LLMResponse) async throws {
         for hook in hooks { try await hook.postLLMCall(request, response: response) }
     }
 
-    func firePreTurn(_ userMessage: String) async throws {
+    public func firePreTurn(_ userMessage: String) async throws {
         for hook in hooks { try await hook.preTurn(userMessage) }
     }
 
-    func firePostTurn(_ response: LLMResponse) async throws {
+    public func firePostTurn(_ response: LLMResponse) async throws {
         for hook in hooks { try await hook.postTurn(response) }
     }
 }
@@ -210,7 +209,7 @@ extension ShellHookChain {
     /// Unserialisable values are stringified via `JSONEncoder`
     /// fallback (= wenshu uses `String(describing:)` instead of
     /// hermes's Python `default=str`; = same effect).
-    static func serializePayload(event: String, kwargs: [String: Any]) -> String {
+    public static func serializePayload(event: String, kwargs: [String: Any]) -> String {
         let topLevelKeys: Set<String> = [
             "tool_name", "args", "session_id", "parent_session_id",
         ]
@@ -250,7 +249,7 @@ extension ShellHookChain {
     /// Accepts two candidate fields (= primary wins over secondary)
     /// so callers can express field-priority differences between
     /// the two hook wire formats.
-    static func blockMessage(primary: Any?, secondary: Any?) -> String {
+    public static func blockMessage(primary: Any?, secondary: Any?) -> String {
         if let raw = primary as? String, !raw.isEmpty {
             return raw
         }
@@ -275,7 +274,7 @@ extension ShellHookChain {
     ///      = translated to canonical `{"action": "continue", ...}`.
     ///   3. `pre_llm_call` = `{"context": "..."}` = passed through
     ///      unchanged.
-    static func parseResponse(event: String, stdout: String) -> [String: Any]? {
+    public static func parseResponse(event: String, stdout: String) -> [String: Any]? {
         let trimmed = stdout.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
         guard let data = trimmed.data(using: .utf8) else { return nil }
@@ -333,7 +332,7 @@ extension ShellHookChain {
     /// Wenshu-side wins: returns the macOS
     /// `~/Library/Application Support/wenshu/` path (= matches
     /// the wenshu `.ws` bundle path from AGENTS.md §11).
-    static func allowlistPath() -> URL {
+    public static func allowlistPath() -> URL {
         let base: URL
         if let appSupport = try? FileManager.default.url(
             for: .applicationSupportDirectory,
@@ -354,7 +353,7 @@ extension ShellHookChain {
     /// Pure-function: return the parsed allowlist, or an empty
     /// skeleton if absent (= hermes `load_allowlist` at
     /// `agent/shell_hooks.py` L632-L644).
-    static func loadAllowlist() -> [String: Any] {
+    public static func loadAllowlist() -> [String: Any] {
         let path = allowlistPath()
         guard let data = try? Data(contentsOf: path),
               let raw = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
@@ -378,7 +377,7 @@ extension ShellHookChain {
     /// Wenshu-side wins: uses Foundation's
     /// `FileManager.replaceItem` for atomic write (= the macOS
     /// equivalent of Python's `mkstemp + os.replace`).
-    static func saveAllowlist(_ data: [String: Any]) throws {
+    public static func saveAllowlist(_ data: [String: Any]) throws {
         let path = allowlistPath()
         try FileManager.default.createDirectory(
             at: path.deletingLastPathComponent(),
@@ -396,7 +395,7 @@ extension ShellHookChain {
     /// Pure-function: return true when the (event, command) pair
     /// is in the allowlist (= hermes `_is_allowlisted` at
     /// `agent/shell_hooks.py` L678-L687).
-    static func isAllowlisted(event: String, command: String) -> Bool {
+    public static func isAllowlisted(event: String, command: String) -> Bool {
         let data = loadAllowlist()
         guard let approvals = data["approvals"] as? [[String: Any]] else {
             return false

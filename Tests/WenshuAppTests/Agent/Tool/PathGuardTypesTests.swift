@@ -8,6 +8,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("PathGuardTypes (wt/path-guard-v2-2026-09-25)", .serialized)
