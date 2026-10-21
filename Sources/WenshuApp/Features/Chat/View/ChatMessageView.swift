@@ -454,9 +454,11 @@ struct ChatMessageView: View {
 /// semantic `Color(nsColor: .separatorColor).opacity(0.5)` (= 0.5
 /// PT; = matches hermes border-UI-STROKE-TERTIARY token in spirit).
 ///
-/// Card internal padding = 12 PT horizontal + 6 PT vertical (= was
-/// 16 + 8 in MC6; = tighter, matches hermes `px-3 py-2` from
-/// USER_BUBBLE_BASE_CLASS).
+/// Card internal padding = 12 PT horizontal (= was 16 in MC6; = tighter,
+/// matches hermes `px-3 py-2` from USER_BUBBLE_BASE_CLASS). Vertical
+/// padding = 0 (= the card floors at the 36 PT resting chat-surface
+/// height instead of padding itself taller; = the band matches the
+/// composer field and grows with its own text).
 ///
 /// 
 /// remove the broken `.frame(maxWidth: 0.95, alignment: .trailing)` line.
@@ -480,36 +482,30 @@ private struct UserGlassCardModifier: ViewModifier {
     func body(content: Content) -> some View {
         if isOutgoing {
             // -cleanup E3.5: the user text inside the glass card is at
-            // 10 PT horizontal padding (= the Apple HIG px-2.5 = 10 PT
-            // convention; = the hermes `UserBubbleBaseClass
-            // px-3 py-2` = 12 PT px / 8 PT py is slightly more
-            // spacious; = 10 PT chosen for compact card height).
-            // Vertical padding stays at 6 PT (= compact card height; =
-            // matches Apple HIG py-1.5 = 6 PT).
-            // -cleanup E8: L1 in ChatView.swift is now 0 PT = chat
-            // transcript content sits flush against the chat column
-            // edge; = the user card L2 inner padding below is the SOLE
-            // source of horizontal padding for user cards; = user card
-            // text ↔ card edge = chromePaddingContentHorizontal
-            // (= 10 PT).
-            // Vertical chromePaddingSmall (= 6 PT) retained (= card
-            // height breathing room).
+            // 12 PT horizontal padding (= the user card L2 inner padding
+            // below is the SOLE source of horizontal padding for user
+            // cards; = L1 in ChatView.swift is 0 PT = transcript content
+            // sits flush against the chat column edge).
+            // The card carries NO vertical padding of its own (= the
+            // resting height comes from the frame floor below; = a grown
+            // message keeps its own text height instead of being padded
+            // twice; = the band matches the composer field height).
             content
                 .padding(.horizontal, DesignTokens.spacingModerate)
-                .padding(.vertical, DesignTokens.spacingTight)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity, minHeight: DesignTokens.controlHeightLarge, alignment: .leading)
                 // -cleanup E9: apply the macOS 27 `.glassEffect(.regular)`
                 // API (= the canonical Apple HIG Liquid Glass container;
                 // = blurs + refracts the chat content underneath; = same
-                // surface the chat input row uses at ChatView.swift:1960).
-                // Shape = 12 PT continuous corner radius rounded-rectangle
-                // (= matches the existing card shape; = Apple HIG popover
-                // surface convention). The `.interactive()` modifier lets
-                // the glass respond to pointer events (= Apple HIG chat
-                // input is interactive; = user card surface mirrors that
-                // affordance). Border dropped (= the glass edge is its
-                // own visual boundary; = matches Apple HIG chat input
-                // row which has no separate border).
+                // surface the chat input row uses).
+                // Shape = ChatSurfaceShape (= the shared chat-surface
+                // outline; = the composer field wears the same shape, so
+                // the two surfaces agree by construction). The
+                // `.interactive()` modifier lets the glass respond to
+                // pointer events (= Apple HIG chat input is interactive; =
+                // user card surface mirrors that affordance). Border
+                // dropped (= the glass edge is its own visual boundary; =
+                // matches Apple HIG chat input row which has no separate
+                // border).
                 //
                 // -cleanup E10: translucency follows Apple System
                 // Settings > Appearance > Liquid Glass slider via the
@@ -524,10 +520,7 @@ private struct UserGlassCardModifier: ViewModifier {
                 // auto-adapts to system Liquid Glass setting'); = no
                 // manual @Environment read or fallback branch needed here
                 // (= the manual fallback was overengineering = reverted).
-                // The same API is used by the chat input row at
-                // ChatView.swift:1960 (= the canonical Apple HIG pattern
-                // across wenshu).
-                .glassEffect(.regular.interactive(), in: RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusHeroCard, style: .continuous))
+                .glassEffect(.regular.interactive(), in: ChatSurfaceShape())
         } else {
             content
         }

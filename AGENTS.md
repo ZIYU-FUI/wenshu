@@ -85,6 +85,7 @@ Single source of truth for every wenshu contributor and every AI agent acting on
 | `Sources/.../App/WenshuAppMain.swift` (the @main App shell) | `Sources/.../Features/Chrome/View/ChromeMainToolbar.swift` | 112 | `struct ChromeMainToolbar: ToolbarContent` = the toolbar's button row (= the kanban window button + the command palette + export; = 1 source of truth for the title bar). |
 | `Sources/.../Features/Chrome/View/ChromeMainToolbar.swift` | `Sources/.../Features/Chrome/View/WindowOpenButton.swift` | 98 | `struct WindowOpenButton: View` = reusable button format (= Image(systemName:) + .help + openWindow). |
 | `Sources/.../LibraryRootView.swift` (434 LOC, under the 600 cap, the 4 sibling dirs are at the 4 features) | `Sources/.../Library/View/AppleSidebarView.swift` | 454 | god-class TODO (split candidate for A150+). |
+| `Sources/.../Chat/View/ChatInputBarView.swift` (475 LOC, under cap) | `Sources/.../Chat/View/ChatSurfaceShape.swift` | 35 | `struct ChatSurfaceShape: Shape` = the shared chat-surface outline (= the composer field + the outgoing message band wear the same shape; = the radius tracks half the surface height up to a cap). |
 
 ## §2 Stack baseline
 
