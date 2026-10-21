@@ -126,8 +126,12 @@ whole (25 PT) when the card carried a 6 PT vertical padding.
 It is left open because it collides with a contract another card committed to `main` in the
 meantime: `ChatSurfaceGeometryTests` requires the outgoing band to rest at the composer
 field's 36 PT, and the 36 PT floor cannot hold the card's own content AND a vertical
-padding. A variant matrix (one card chain per row, rendered through `ImageRenderer`) found
-that the reply is visible only when the card has BOTH a vertical padding and a paint.
+padding. A variant matrix (one card chain per row, rendered through `ImageRenderer`) found that
+the reply is visible only when the card has BOTH a vertical padding and a paint. Moving the
+fill and the border BEFORE the height floor (= painting the surface at the content's size,
+so it cannot reach into the row below) does NOT bring the reply back, which rules out the
+obvious explanation: the overlap is not the card's surface painting over the row below,
+but the frame's own height being what the next row is laid out against.
 
 Both orders of the padding were then tried against the PRODUCTION card, and both fail one
 of the two contracts:
