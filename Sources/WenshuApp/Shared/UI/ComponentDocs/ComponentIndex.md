@@ -272,7 +272,19 @@ These were removed in various phases (= Apple-API-first sweep + iron-rules pass)
 ### 8.3c ❌ The right rail (= InspectorView + its 5 pages + 15 tool views + ZoneContentView)
 - **Was in**: `Sources/WenshuApp/Features/Editor/View/InspectorView.swift` + `EditorDocumentToolsView.swift` + `ZoneContentView.swift` + the 14 tool views / 12 ops / 12 view-state mirrors under `Sources/WenshuApp/Features/Agent/` + the 12 right-rail agent-tool / domain files + `BookProjectConfigStore` + `WSBookmarkRepository`
 - **Deleted**: 2026-10-21 (= the right-rail removal; = the 5-page picker, the 15 tool views and their agent-tool twins had no live user after the top-window cleanup)
-- **Use instead**: nothing (= the right rail had no replacement; = the top toolbar (`ChromeMainToolbar`) is the single source of truth for the window's toolbar buttons, and it now hosts the ⌘K command-palette button)
+- **Use instead**: the empty rail shell (= 8.3d; = the column came back without its tools); = the top toolbar (`ChromeMainToolbar`) is the single source of truth for the window's toolbar buttons, and it now hosts the ⌘K command-palette button
+
+### 8.3d The right-rail shell (= InspectorView, live, no tools)
+- **Path**: `Sources/WenshuApp/Features/Editor/View/InspectorView.swift` (89 LOC)
+- **Purpose**: The window's trailing inspector column (= the Apple HIG `.inspector` surface; = the active page's title + the shared `EmptyStateView`; = 4 pages, and no page owns a tool yet)
+- **Use when**: Giving one of the 4 pages a tool (= that is a new ticket; = the 15 tools the rail used to hold stay deleted, see 8.3c)
+- **Don't use when**: Reaching for a tool the rail used to have (= the removal in 8.3c is deliberate)
+- **API**:
+  ```swift
+  InspectorView(appState:workspaceUI:inspectorVisibleBinding:)
+  // 4 pages: authoringFiction / authoringStyle / authoringCharacters / projectManagement
+  ```
+  The page picker (= the 4 page icons) and the column's visibility toggle live in the window toolbar (`ChromeMainToolbar`), which also hosts the ⌘K command palette.
 
 ### 8.4 ❌ zoneContentTabBarIcon / dynamicZoneTabBarIcon / chatZoneTabBarIcon
 - **Was in**: same files as 8.3
