@@ -198,4 +198,22 @@ raw translation key, and the inspector's empty state.
    very files the promptware wrapper lives in (= `ToolDispatchHelpers.swift`
    and `ToolExecutor.swift`), so the two cards had to be sequenced, not run
    side by side. The wrapper is in the file that moves, and the call sites
-   are in the file that moves, so the two changes travel together.
+   are in the file that moves, so the two changes travel together. The move
+   has since landed, and it carried the wrapper with it (= the wrapper and
+   its two call sites are now in
+   `Sources/WenshuAgent/Sources/WenshuAgent/Tool/`).
+
+3. *A windowless app is a bundle problem until the bundle is controlled.*
+   A review build launched, stayed alive for 98 minutes, and never produced
+   a window. The first three experiments all pointed at the code: the
+   bundle's base was 8 commits behind a base that worked, the ONE UI
+   commit in that range was the obvious suspect, and rebuilding without it
+   DID produce a window. All three were coincidence. The decisive control
+   was to rebuild the SUSPECTED BASE IN THE SAME WORKTREE that had just
+   produced a working window, changing only the commit: both bases
+   produced a window on the first try. The variable that mattered was the
+   bundle (= the unique bundle id, the re-sign, the seeded UserDefaults
+   domain, and the worktree it was built in), not the code. The lesson is
+   in the skill: control the bundle before you bisect the code, and treat
+   an experiment as void if its artifact is deleted mid-run.
+
