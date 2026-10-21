@@ -55,38 +55,15 @@ Single source of truth for every wenshu contributor and every AI agent acting on
 
 ### §1.11 Nervous file index (NFI)
 
-| Parent (god-class) | Extracted file | LOC | Content tag |
-| ------------------ | -------------- | --- | ----------- |
-| `Sources/.../ImportService.swift` (now 444 LOC, under cap) | `Sources/.../ImportServiceCancellation.swift` | 129 | `extension ImportService { cancel() rollback() resetRollbackTrail() snapshotReferenceLibraryIndex() }` = the cancel + rollback surface. |
-| `Sources/.../ImportService.swift` | `Sources/.../ImportServiceDedup.swift` | 118 | `enum ImportServiceDedup { findEntityByTitle + normalizeTitle + sanitizeFilename }` = dedup + filename helpers. |
-| `Sources/.../ImportService.swift` | `Sources/.../ImportServiceFileSystem.swift` | 74 | `enum ImportServiceFileSystem { walkSourceDir }` = file-system walker. |
-| `Sources/.../ImportService.swift` | `Sources/.../ImportServiceHashing.swift` | 89 | `enum ImportServiceHashing { sha256 + uuidFromHash }` = hash + UUID-derivation helpers. |
-| `Sources/.../ImportService.swift` | `Sources/.../ImportServiceCache.swift` | 83 | `enum ImportServiceCache { dedupAndHash + readCache + writeCache }` = dedup + cache IO helpers. |
-| `Sources/.../ImportService.swift` | `Sources/.../ImportServiceDispatchHelpers.swift` | 85 | `enum ImportServiceDispatchHelpers { filterRetryCandidates + selectRetryIndices }` = dispatch retry selection. |
-| `Sources/.../ImportService.swift` | `Sources/.../ImportServiceTitleOnlyHelpers.swift` | 110 | `enum ImportServiceTitleOnlyHelpers { runRetryTaskGroup + 5 retry helpers }` = title-only retry pipeline. |
-| `Sources/.../ImportService.swift` | `Sources/.../ImportServiceBodyWriter.swift` | 63 | `extension ImportService { writeMainFileAndExtras }` = main body writer (split into sub-helpers). |
-| `Sources/.../ImportService.swift` | `Sources/.../ImportServiceExtraFileWriter.swift` | 97 | `extension ImportService { writeExtraFile }` = extra file writer. |
-| `Sources/.../ImportService.swift` | `Sources/.../ImportServiceReferenceWriter.swift` | 70 | `extension ImportService { writeReference }` = reference file writer. |
-| `Sources/.../ImportService.swift` | `Sources/.../ImportServiceWriters.swift` | 271 | `extension ImportService { writeFile + writeToBookFolder + writeToReferenceLibrary }` = 3 file-write helpers. |
-| `Sources/.../WenshuAppDelegate.swift` (566 LOC, under cap) | `Sources/.../WenshuAppDelegateSwiftDataMigration.swift` | 186 | `enum WenshuAppDelegateSwiftDataMigration { attemptSwiftDataMigrationIfNeeded + runSwiftDataMigrationPipeline + writeMigrationBackup + bumpSchemaVersion }` = the SwiftData migration surface. |
-| `Sources/.../ImportDocumentTemplates.swift` | `Sources/.../ImportDocumentTemplateSkeletons.swift` | ~428 | `static let` 6 per-template skeleton constants. |
-| `Sources/.../WenshuConductorImportRouter.swift` (under cap) | `Sources/.../WenshuConductorImportRouterHelpers.swift` | ~709 | `enum WCIRHelpers { 18 static helpers }` = routing orchestrator helper namespace. |
-| `Sources/.../Library/Service/SidebarService.swift` (under cap) | `Sources/.../Library/View/SidebarServiceMutation.swift` | ~577 | `enum SidebarServiceMutation { 18 static helpers }` = sidebar mutation namespace. |
-| `Sources/.../Editor/View/PreviewPane.swift` (now 286 LOC, under the 600 cap, remains 1 main view) | `Sources/.../Editor/View/PreviewPaneCard.swift` | 443 | `internal struct Card: View` + `internal enum CardSource` = the card UI sub-view. |
-| `Sources/.../Editor/View/PreviewPane.swift` | `Sources/.../Editor/View/PreviewPaneModels.swift` | ~284 | 5 supporting types for the preview pane. |
-| `Sources/.../Editor/View/PreviewPane.swift` | `Sources/.../Editor/View/PreviewPaneScopeViews.swift` | 149 | `extension PreviewPane { referenceScopeView + bookScopeView + shelfScopeView + emptyScopeView }` = 4 scope views. |
-| `Sources/.../Editor/View/PreviewPane.swift` | `Sources/.../Editor/View/PreviewPaneDataAccess.swift` | 76 | `extension PreviewPane { ensureCardService + loadBooksInShelf + loadShelfBooksAsync }` = data accessors. |
-| `Sources/.../Editor/View/PreviewPane.swift` | `Sources/.../Editor/View/PreviewPaneGrids.swift` | 351 | `extension PreviewPane { 6 grid view helpers }` = referenceCategoryCard + emptyState + emptyScopeView + categoryGrid + categoryGridContent + overviewGrid + bookDocsGrid. |
-| `Sources/.../Chat/View/ChatView.swift` (now 865 LOC, 1.44x cap, remains 1 main view) | `Sources/.../Chat/View/ChatViewMarkdownIO.swift` | 91 | `enum ChatViewMarkdownIO { markdownForConversation + importMarkdown }` = chat markdown IO namespace. |
-| `Sources/.../Chat/View/ChatView.swift` | `Sources/.../Chat/View/ChatTurn.swift` | 40 | `struct ChatTurn: Identifiable` = the transcript grouping type. |
-| `Sources/.../Agent/Service/BookChapterTool.swift` (now 745 LOC, 1.24x cap) | `Sources/.../Agent/Service/BookChapterFileSystem.swift` | 210 | `extension BookChapterActor { saveFileSystemChapter + writeFileSystemChapter + deleteFileSystemChapter + ensureChaptersDirectoryExists + atomicWrite }` = 5 file-system static helpers. |
-| `Sources/.../App/WenshuAppMain.swift` (= the @main App struct, formerly `App.swift` at root) | `Sources/.../App/AppNotifications.swift` | 191 | `enum AppCommands + enum AppStateEvents + enum LayoutEvents` = 3 cross-cutting NotificationCenter naming enums. |
-| `Sources/.../Features/Shared/Backup.swift` (formerly at `Features/Shared/`) | `Sources/.../Features/Backup/Service/Backup.swift` | 219 | `struct BackupMetadata + struct BackupTools + enum BackupError` = 3 backup types (= 4 callers in LibraryMigrator + SubAgentRunner + ArchivistStorage + WenshuAppDelegateSwiftDataMigration). |
-| `Sources/.../App/WenshuAppMain.swift` (the @main App shell) | `Sources/.../Features/Chrome/View/ChromeMainToolbar.swift` | 112 | `struct ChromeMainToolbar: ToolbarContent` = the toolbar's button row (= the kanban window button + the command palette + export; = 1 source of truth for the title bar). |
-| `Sources/.../Features/Chrome/View/ChromeMainToolbar.swift` | `Sources/.../Features/Chrome/View/WindowOpenButton.swift` | 98 | `struct WindowOpenButton: View` = reusable button format (= Image(systemName:) + .help + openWindow). |
-| `Sources/.../LibraryRootView.swift` (434 LOC, under the 600 cap, the 4 sibling dirs are at the 4 features) | `Sources/.../Library/View/AppleSidebarView.swift` | 454 | god-class TODO (split candidate for A150+). |
-| `Sources/.../Chat/View/ChatInputBarView.swift` (475 LOC, under cap) | `Sources/.../Chat/View/ChatSurfaceShape.swift` | 35 | `struct ChatSurfaceShape: Shape` = the shared chat-surface outline (= the composer field + the outgoing message band wear the same shape; = the radius tracks half the surface height up to a cap). |
-| `Sources/.../Features/Kanban/View/KanbanView.swift` (560 LOC, under cap) | `Sources/.../Features/Kanban/Model/KanbanBoardStyle.swift` | 66 | `extension KanbanStatus { boardLabel + boardTone + boardOrder }` = the board's status presentation (= one column label + one tone per status; = the mapping is total so no status hides its cards). |
+The registry itself lives in `docs/agents/nfi.md` (= one row per
+extracted or added file: parent file, extracted file, current LOC,
+content tag). It lives there because it is append-only: two cards
+each adding one row both wrote the same last line in this file and
+collided. In its own file it merges at the key level, so two cards'
+rows both survive and a genuine disagreement still conflicts with
+the key named.
+
+Register a new row there, not here. The rule is unchanged.
 
 ## §2 Stack baseline
 

@@ -21,3 +21,24 @@
 # setting, so it is not part of this file) and is installed by
 # Scripts/setup-dev-env.sh.
 *.xcstrings merge=xcstrings
+
+# The nervous file index is a table with one row per extracted file (= the
+# row's key is the extracted file, and it is unique). It is append-only, so
+# two cards each adding one row both wrote the same last line and collided.
+# Measured: appending = CONFLICT, and inserting at a sorted position = STILL
+# a conflict (the hunks end up adjacent).
+#
+# The driver merges the table at the KEY level, so two cards' rows both
+# survive, and a genuine disagreement (the same row, two different contents)
+# still conflicts WITH THE KEY NAMED. `merge=union` would have kept both
+# versions of a disagreeing row as two rows with the same key, silently.
+#
+# The rule is scoped to this ONE file on purpose. AGENTS.md also holds prose,
+# and union on prose would keep BOTH versions of a rewritten paragraph
+# instead of reporting the disagreement. Prose keeps the normal merge.
+#
+# The driver path is repo-relative: git runs a merge driver from the top of
+# the working tree. The matching config lives in .git/config (a local
+# setting, so it is not part of this file) and is installed by
+# Scripts/setup-dev-env.sh.
+docs/agents/nfi.md merge=nfi-registry
