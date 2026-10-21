@@ -1,48 +1,47 @@
 //
 //  ChromeMainToolbar.swift
 //
-//  Main toolbar (= the 11 independent-window button row).
+//  Main toolbar (= the window button row).
 //  Extracted from LibraryRootView in A92 (= §6.2 god-class split:
 //  the 10+ LOC inline `.toolbar` block moved out of the 809-LOC
 //  LibraryRootView into this dedicated file).
 //
 //  Why extracted (= §6.2 god-class split + discoverability): the main
-//  `LibraryRootView` is 809 LOC = 1.35x the 600-LOC cap. The main
-//  toolbar is a single concern (= "the 11 independent-window button
-//  row that sits in the unified macOS toolbar"). Putting it in a
-//  dedicated file named after the concern (= ChromeMainToolbar.swift)
-//  lets the next reader find the toolbar button row by name.
+//  `LibraryRootView` is now 434 LOC = under the 600-LOC cap. The main
+//  toolbar is a single concern (= "the button row that sits in the
+//  unified macOS toolbar"). Putting it in a dedicated file named after
+//  the concern (= ChromeMainToolbar.swift) lets the next reader find
+//  the toolbar button row by name.
 //
-//  Design (= 11 independent-window buttons per boss 2026-10-16 OOB):
-//  Each button wires to one of the 11 WindowIDs registered in
+//  Design (per boss 2026-10-16 OOB):
+//  The row carries the kanban window button, the command palette and
+//  export. The window button wires to a `WindowID` registered in
 //  AppRootScene.swift. The implementation is the canonical Apple HIG
 //  `ToolbarItem(placement: .primaryAction)` + `Button { openWindow(id: ...)}`
 //  + `SFIcon(...)` pattern.
-//  All 11 windows have actual panels (= see Features/<window-name>/
-//  View/<Window>.swift; = each was created in A93 with a real
-//  window view). Per boss 2026-10-16 OOB "不是未开发，是没开发完,
-//  之前是有面板的": the windows exist in MVP form (= a list /
-//  count / placeholder layout = visible + tappable) and will be
-//  filled in over time. The toolbar shows the full 11-button row
-//  (= 1 source of truth for the title bar).
+//  The other secondary windows were removed on 2026-10-21 (= the
+//  top-window cleanup; = the kanban window and the export stayed, and
+//  the library-migration window stays as the recovery path out of a
+//  failed library upgrade, with no toolbar button). The toolbar is the
+//  single source of truth for the title bar.
 //
 
 import SwiftUI
 import AppKit
 
-/// Main toolbar (= the 11 independent-window button row that sits
-/// in the unified macOS toolbar at the top of the main window).
+/// Main toolbar (= the button row that sits in the unified macOS
+/// toolbar at the top of the main window).
 /// Per boss 2026-10-16 OOB '标题栏/工具栏应该拆出来一个独立目录
 /// 来处理 (= the title bar / toolbar should be split out into a
 /// dedicated directory)': this is the single source of truth for
-/// the title bar's independent-window buttons.
+/// the title bar's buttons.
 ///
 /// `openWindow` is the macOS 13+ SwiftUI environment action that
-/// opens an `AppRootScene` `Window` scene by its `WindowID`. The 11
-/// `WindowID`s (= kanban / todo / canvas / composer /
-/// foreshadowingGraph / cron / attachments / manifest /
-/// summaries / libraryMigration / memoryHistory) are registered in
-/// `AppRootScene.swift` and in `OOB.md #2026-09-28`.
+/// opens an `AppRootScene` `Window` scene by its `WindowID`. The
+/// `WindowID`s (= kanban / libraryMigration) are registered in
+/// `AppRootScene.swift`; the library-migration window has no toolbar
+/// button (= it is opened by the migration pipeline itself, and it is
+/// the way out of a failed upgrade).
 ///
 /// `sheetRequests` is the cross-component state for the legacy
 /// sheet pattern (= buttons that need to open a `.sheet(item:)`
