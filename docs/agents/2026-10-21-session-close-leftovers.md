@@ -268,6 +268,36 @@ raw translation key, and the inspector's empty state.
    instrument fails in a way that is invisible in the summary line, and
    the failure is always in the direction that loses the result.
 
+8. *The narrow-window crash is fixed: the nested split was reporting a
+   second, competing width number.* The outer `NavigationSplitView`'s
+   detail column hosts an AppKit `NSSplitViewController`, and the default
+   `sizeThatFits` reported that inner split's OWN size to the SwiftUI
+   layout engine. So the outer split negotiated the column width against
+   a number the nested split kept recomputing, each negotiation re-armed
+   the window's "Update Constraints in Window" pass, and AppKit's
+   runaway-layout guard aborted the app once the count passed the
+   window's view count. Reporting the parent's PROPOSAL instead makes the
+   reported size a function of the parent's own layout, so the feedback
+   loop has nowhere to close. Measured over 10+ trials per arm, each arm
+   with its own worktree, build directory, binary uuid and bundle id, and
+   a crash counted only when a crash report carried that arm's uuid AND
+   the expected AppKit frame: the parent commit 0/10, the commit that
+   adds the inspector 10/10, HEAD 10/10, HEAD + the fix 0/10, and the
+   fix on top of current main 0/12. The fixed build narrowed the window
+   to 711 px, which is narrower than the 897 px the crashing build
+   reached (= the fixed window is not sitting at its floor being
+   refused; it really did resize).
+
+   Two things worth keeping from that: the card's own premise ("THIS IS
+   NOT THE INSPECTOR") was wrong and the reason it was wrong was the
+   measurement, not the reasoning; and the skill's OTHER named suspect
+   (= value-guarding the thickness write in `viewDidLayout`) is a real
+   self-feeding loop but does NOT fix this crash on its own (10/10). It
+   had only ever been tested bundled with a second change, so it had
+   never been isolated. A suspect named by a skill is a hypothesis, not
+   a measurement.
+
+
 
 
 
