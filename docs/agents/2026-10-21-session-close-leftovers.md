@@ -297,6 +297,39 @@ raw translation key, and the inspector's empty state.
    never been isolated. A suspect named by a skill is a hypothesis, not
    a measurement.
 
+9. *A failing test's SET can differ between two runs of the SAME code.*
+   The narrow-window fix was gated on "no NEW failing name versus the
+   baseline", and four full-suite runs of the SAME two commits produced
+   four different sets, each with one or two names the others did not
+   have. Reading them as a branch difference would have been wrong:
+   every disputed name flips between runs of the SAME branch and the
+   SAME code, so none of them is a property of a change. The
+   mechanisms, each proven rather than assumed:
+
+   - `FileTools` fails ONLY in a worktree under `/.hermes/`, because
+     `FileTools.swift`'s path guard deny-list contains `/.hermes/` and
+     the tests write to `FileManager.default.currentDirectoryPath`. The
+     report says it outright: `Caught error: .pathDenied(path:
+     "/Volumes/ANAN/.hermes/.../wt-loadmain/.test-test-924327EB.txt")`.
+     The same tests PASS in a worktree under the repo. So the failing
+     set depends on WHERE the worktree lives, which is a property of
+     the harness, not of the diff.
+   - `ToolRegistry` (3 names) fails in three of the four runs and passes
+     in one; `TodoStoreTool` is the known 5-second wall-clock budget;
+     the conductor test is a ~30-second timeout at the edge of the
+     machine's capacity; `network fail 返 curated fallback` asserts that
+     an HTTP call FAILS, so it passes or fails with the network's
+     reachability (it passes 4/4 in isolation on both branches).
+
+   The rule: **compare the failing set only across runs that share the
+   same worktree LOCATION, the same load, and the same protocol.** A
+   name that appears in one run of a branch and not another is a
+   candidate for investigation, never evidence of a regression, and the
+   cheapest way to tell them apart is to run the disputed test in
+   isolation on BOTH branches: if it passes on both, it is the
+   environment.
+
+
 
 
 
