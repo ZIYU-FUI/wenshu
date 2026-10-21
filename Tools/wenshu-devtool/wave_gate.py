@@ -33,9 +33,11 @@ from __future__ import annotations
 
 import argparse
 import collections
+import fnmatch
 import re
 import subprocess
 import sys
+from pathlib import Path
 
 REPO = "/Volumes/ANAN/Engineering/wenshu"
 
@@ -49,9 +51,42 @@ EXCLUSION_SECTIONS = {
 }
 
 # A path followed by a section marker (= a citation of a rule, not an edit).
+#
+# The marker can be a section number with a subsection (= "AGENTS.md §7.3"),
+# so the number part takes decimals. And the path and the marker are often
+# separated by a closing backtick (= "Follow `AGENTS.md` §7.3"), so the
+# pattern allows quotes and spaces between them.
+#
+# Measured: the pattern without the decimals and the quotes matched neither
+# "§7.3" nor "`AGENTS.md` §7.3", and the gate counted "Follow AGENTS.md §7.3"
+# as a write of AGENTS.md.
 CITATION_RE = re.compile(
     r"[A-Za-z0-9_./-]+\.(?:swift|md|sh|xcstrings|py|yml|yaml|plist)"
-    r"\s*(?:§|section|rule|clause)\s*[0-9]"
+    r"[\"'`\s]*(?:§|section|rule|clause)\s*[0-9]+(?:\.[0-9]+)*"
+)
+
+# A sentence that GRANTS an edit to the path it names, even when the
+# sentence sits in an exclusion section.
+#
+# Measured: a card's "MUST NOT CHANGE" list held the line "docs/agents/nfi.md.
+# The nervous file index must gain a row for each of the four moved files",
+# and another held "No other row of the docs/agents/nfi.md table may be
+# edited. You are adding one row, not rewriting the table." Both GRANT a
+# write. Classifying them as forbidden made the gate report a stale
+# must-not-change list against a file every card writes, and it hid the
+# real fact (three cards append a row to the same table).
+GRANT_RE = re.compile(
+    r"\b(?:must|should|has to|needs to|will)\s+"
+    r"(?:gain|add|append|register|be registered|get a row|receive a row)"
+    r"|\byou are (?:adding|appending|registering)\b"
+    r"|\badd(?:s|ing)? (?:a|an|one|two|three|four|five) (?:new )?rows?\b"
+    r"|\bappend(?:s|ing)? (?:a|an|one|two|three|four|five) (?:new )?rows?\b"
+    r"|\bregister(?:s|ing)? (?:a|the|its|each)\b"
+    r"|\bnew file must be registered\b"
+    r"|\bmust be registered in\b"
+    r"|\bgain a row\b"
+    r"|\bmust gain\b"
+    r"|\bupdate it in this ticket\b"
 )
 
 PATH_RE = re.compile(
@@ -72,6 +107,37 @@ def kanban(*args: str) -> str:
     return out.stdout
 
 
+def driver_for(path: str) -> str | None:
+    """The merge driver git uses for a path, or None.
+
+    A file with a merge driver is NOT a collision that needs serializing: the
+    driver merges the file at the key level, so two cards that each add one
+    row both keep theirs. The gate reports the driver so the boss knows the
+    overlap is already handled, instead of serializing cards for nothing.
+
+    The driver name comes from .gitattributes (tracked), and the driver
+    itself is a local git config (= .git/config), so the gate reads the
+    attributes file and not the config.
+    """
+    attrs = Path(REPO) / ".gitattributes"
+    if not attrs.exists():
+        return None
+    name = Path(path).name
+    for line in attrs.read_text(encoding="utf-8").split("\n"):
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        parts = line.split()
+        if len(parts) < 2:
+            continue
+        pattern, attr = parts[0], parts[1]
+        if not attr.startswith("merge="):
+            continue
+        if fnmatch.fnmatch(name, pattern) or fnmatch.fnmatch(path, pattern):
+            return attr[len("merge=") :]
+    return None
+
+
 def card_ids() -> list[tuple[str, str]]:
     """Every card on the board as (id, status)."""
     found = []
@@ -83,9 +149,30 @@ def card_ids() -> list[tuple[str, str]]:
 
 
 def card_body(card_id: str) -> str:
+    """The card's body text, WITHOUT its comments and event log.
+
+    `hermes kanban show` prints the body and then the comments and the event
+    log under the same stream, so taking everything after "Body:" sweeps the
+    comments in too. A comment that names a file then reads as if the card
+    writes it, and the gate reports a collision that does not exist.
+
+    Measured: a comment on a card that said "take main's AGENTS.md unchanged"
+    made the gate report that card and another as both writing AGENTS.md,
+    when neither card's body mentions it.
+
+    The body ends where the comments begin ("Comments (N):"), and also at
+    the event log if the card has no comments.
+    """
     text = kanban("show", card_id)
     i = text.find("\nBody:\n")
-    return text[i + 7 :] if i >= 0 else ""
+    if i < 0:
+        return ""
+    body = text[i + 7 :]
+    for marker in ("\nComments (", "\nEvents", "\nRun History"):
+        j = body.find(marker)
+        if j >= 0:
+            body = body[:j]
+    return body
 
 
 def sections(body: str) -> list[tuple[str, str]]:
@@ -99,17 +186,60 @@ def sections(body: str) -> list[tuple[str, str]]:
 
 
 def files_of(body: str) -> tuple[set[str], set[str]]:
-    """The (written, forbidden) file sets of a card body."""
+    """The (written, forbidden) file sets of a card body.
+
+    A path in an exclusion section is forbidden only when the sentence that
+    names it does NOT also grant an edit to it. A card can list a file under
+    "MUST NOT CHANGE" and still be told to add a row to it (= the nervous
+    file index, which every card appends to), and classifying that as
+    forbidden hides the real collision.
+    """
     written: set[str] = set()
     forbidden: set[str] = set()
     for name, text in sections(body):
         stripped = CITATION_RE.sub("", text)
-        paths = set(PATH_RE.findall(stripped))
-        if name in EXCLUSION_SECTIONS:
-            forbidden |= paths
-        else:
-            written |= paths
+        if name not in EXCLUSION_SECTIONS:
+            written |= set(PATH_RE.findall(stripped))
+            continue
+        for bullet in _bullets(stripped):
+            paths = set(PATH_RE.findall(bullet))
+            if not paths:
+                continue
+            if GRANT_RE.search(bullet):
+                written |= paths
+            else:
+                forbidden |= paths
     return written - forbidden, forbidden
+
+
+def _bullets(text: str) -> list[str]:
+    """Split a section into BULLETS.
+
+    A bullet is the unit of meaning here, not a sentence: the card writes
+    "docs/agents/nfi.md. The nervous file index must gain a row for each of
+    the four moved files", where the path and the sentence that grants the
+    write are two sentences of ONE bullet. Splitting on sentence ends would
+    separate the path from its own permission.
+
+    A line that starts with "-" opens a bullet; the lines that follow belong
+    to it until the next "-" or a blank line.
+    """
+    bullets: list[str] = []
+    current: list[str] = []
+    for line in text.split("\n"):
+        stripped = line.strip()
+        if not stripped:
+            if current:
+                bullets.append(" ".join(current))
+                current = []
+            continue
+        if re.match(r"^[-*]\s+", stripped) and current:
+            bullets.append(" ".join(current))
+            current = []
+        current.append(stripped)
+    if current:
+        bullets.append(" ".join(current))
+    return [b for b in bullets if b.strip()]
 
 
 def main() -> int:
@@ -136,22 +266,47 @@ def main() -> int:
     ids = sorted(cards)
 
     # --- collisions: two cards writing the same file -------------------
+    # A file with a merge driver is not a collision to serialize: the driver
+    # merges it at the key level, so both cards keep their row. Those are
+    # reported separately, as "handled by the driver".
     collisions = []
+    driver_managed = []
     for i, a in enumerate(ids):
         for b in ids[i + 1 :]:
             shared = cards[a]["written"] & cards[b]["written"]
-            if shared:
-                collisions.append((len(shared), a, b, sorted(shared)))
+            if not shared:
+                continue
+            driven = [f for f in sorted(shared) if driver_for(f)]
+            plain = [f for f in sorted(shared) if not driver_for(f)]
+            if plain:
+                collisions.append((len(plain), a, b, plain))
+            if driven:
+                driver_managed.append((len(driven), a, b, driven))
 
     # --- staleness: one card writes a file another was told to leave ---
+    # A scoped constraint (= "no OTHER row of this table may be edited")
+    # is not a stale list: the card that holds it also writes the file, and
+    # the constraint is about the other rows, not the file. Only a file the
+    # card is told to leave ENTIRELY counts.
     stale = []
+    scoped = []
     for i, a in enumerate(ids):
         for b in ids[i + 1 :]:
             crossed = (cards[a]["written"] & cards[b]["forbidden"]) | (
                 cards[b]["written"] & cards[a]["forbidden"]
             )
-            if crossed:
-                stale.append((len(crossed), a, b, sorted(crossed)))
+            if not crossed:
+                continue
+            own = [
+                f
+                for f in sorted(crossed)
+                if f in cards[a]["written"] and f in cards[b]["written"]
+            ]
+            whole = [f for f in sorted(crossed) if f not in own]
+            if whole:
+                stale.append((len(whole), a, b, whole))
+            if own:
+                scoped.append((len(own), a, b, own))
 
     magnets = collections.Counter()
     for c in cards.values():
@@ -179,12 +334,32 @@ def main() -> int:
                 print(f"      {f}")
         print()
 
+    if driver_managed:
+        print("=== HANDLED BY A MERGE DRIVER: both cards keep their rows ===")
+        for n, a, b, shared in sorted(driver_managed, reverse=True):
+            print(f"\n  {a} [{cards[a]['status']}] vs {b} [{cards[b]['status']}]")
+            for f in shared:
+                print(f"      {f}   (= merges by key, driver '{driver_for(f)}')")
+        print()
+
     if stale:
         print("=== STALE must-not-change lists: the second card's list is out of date ===")
         for n, a, b, shared in sorted(stale, reverse=True):
             print(f"\n  {a} vs {b}")
             for f in shared:
-                print(f"      {f}")
+                d = driver_for(f)
+                note = f"   (= merges by key, driver '{d}')" if d else ""
+                print(f"      {f}{note}")
+        print()
+
+    if scoped:
+        print("=== SCOPED constraints: both cards write this file, and each limits itself ===")
+        for n, a, b, shared in sorted(scoped, reverse=True):
+            print(f"\n  {a} vs {b}")
+            for f in shared:
+                d = driver_for(f)
+                note = f"   (= merges by key, driver '{d}')" if d else ""
+                print(f"      {f}{note}")
         print()
 
     if args.plan:
