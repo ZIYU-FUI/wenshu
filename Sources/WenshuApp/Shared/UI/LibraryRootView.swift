@@ -62,6 +62,10 @@ struct LibraryRootView: View {
     @State private var activeLibrarySelection: String?
     @State private var commandPaletteModel = CommandPaletteModel()
     @State private var commandPaletteVisible: Bool = false
+    /// Whether the trailing inspector column is visible. The column
+    /// owns its own toggle, so the shell holds the visibility flag
+    /// and hands the column a binding.
+    @State private var inspectorVisible: Bool = true
     @Environment(\.openSettings) private var openSettings
     @Environment(\.openWindow) private var openWindow
 
@@ -145,6 +149,13 @@ struct LibraryRootView: View {
                     library: library
                 )
                 .environment(appState)
+                .inspector(isPresented: $inspectorVisible) {
+                    InspectorView(
+                        appState: appState,
+                        workspaceUI: workspaceUI,
+                        inspectorVisibleBinding: $inspectorVisible
+                    )
+                }
             }
             // Apple HIG canonical toolbar placement for the
             // … (= 11 rationale lines collapsed; = A112 docblock collapse per §1.8)

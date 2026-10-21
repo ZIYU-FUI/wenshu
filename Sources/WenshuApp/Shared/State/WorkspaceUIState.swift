@@ -44,9 +44,9 @@ import Foundation
 /// 'should disappear on restart' expectation for ephemeral UI
 /// state.
 ///
-/// chatVisible was previously on `ShellState`
+/// chatVisible + inspectorPage were previously on `ShellState`
 /// (= a separate 4-property @Observable class). Apple HIG
-/// treats all 4 fields here as the same shape (= view-local UI
+/// treats all 5 fields here as the same shape (= view-local UI
 /// state shared across column descendants; = the Pages /
 /// Numbers / Keynote pattern is to keep them in one
 /// environment-injected class, not split across multiple
@@ -92,6 +92,15 @@ final class WorkspaceUIState {
     /// column-local state; = single source of truth lives here).
     var chatVisible: Bool = true
 
+    /// The active page of the trailing inspector column (= 4
+    /// pages). The column's toolbar picker writes here, so the
+    /// selection survives the column being hidden and shown.
+    ///
+    /// Lives here (= not as `@State` inside the inspector column)
+    /// because the toolbar picker binds to
+    /// `$workspaceUI.inspectorPage` (= cross-view state).
+    var inspectorPage: InspectorPage = .authoringFiction
+
     /// Sidebar tree selection (= 5 cases: .book(UUID) / .folder /
     /// .shelf / .referenceCategory / .referenceLibraryRoot,
     /// nil = nothing selected). Drives Preview pane scope (= see
@@ -132,6 +141,39 @@ final class WorkspaceUIState {
         if let data = UserDefaultsStore.shared.data(forKey: .sidebarSelection),
            let decoded = try? JSONDecoder().decode(SidebarItem.self, from: data) {
             self.sidebarSelection = decoded
+        }
+    }
+}
+
+// MARK: - InspectorPage
+
+/// The pages of the trailing inspector column: Authoring /
+/// Style / Characters / Project Management.
+///
+/// The page owns the column's content. A page without content
+/// renders the shared empty state (= the column body has no tool
+/// to show until a page owns one).
+enum InspectorPage: Hashable, CaseIterable {
+    case authoringFiction
+    case authoringStyle
+    case authoringCharacters
+    case projectManagement
+
+    var localizedTitle: String {
+        switch self {
+        case .authoringFiction:     return String(localized: "inspector.page.authoringFiction")
+        case .authoringStyle:       return String(localized: "inspector.page.authoringStyle")
+        case .authoringCharacters:  return String(localized: "inspector.page.authoringCharacters")
+        case .projectManagement:    return String(localized: "inspector.page.projectManagement")
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .authoringFiction:     return "book.pages"
+        case .authoringStyle:       return "paintpalette"
+        case .authoringCharacters:  return "person.2"
+        case .projectManagement:    return "folder.badge.gearshape"
         }
     }
 }
