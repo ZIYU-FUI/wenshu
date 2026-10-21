@@ -272,9 +272,24 @@ actor ToolExecutor {
             // post-dispatch hook.
             await dispatchHookChain.firePostDispatch(toolName: toolName, input: validatedInput, output: formatted)
 
+            // The MODEL's copy of the result. A high-risk tool's output
+            // (= `web`, `web_search` = content fetched from outside this
+            // machine) is wrapped in the untrusted-data boundary so the
+            // model reads it as data, not as instructions from the user
+            // (= the promptware defense; = the wrapper only frames the
+            // string, the content itself is unchanged).
+            //
+            // The USER's copy (= the stream callback below) is NOT
+            // wrapped: the user asked for the page's text and should see
+            // the page's text.
+            let modelFacingOutput = UntrustedToolResult.maybeWrapUntrusted(
+                toolName: toolName,
+                content: formatted
+            )
+
             let toolMessage = LLMMessage(
                 role: .tool,
-                blocks: [.toolResult(toolUseID: toolUseID, output: formatted)]
+                blocks: [.toolResult(toolUseID: toolUseID, output: modelFacingOutput)]
             )
             messages.append(toolMessage)
             // T2-TOOL-UI: emit matching .toolResult so ChatToolResultPartView
@@ -307,7 +322,16 @@ actor ToolExecutor {
         struct IndexedOutput {
             let index: Int
             let toolUseID: String
+            /// The tool's name (= needed to decide whether its output is
+            /// high-risk, = the wrapper's decision is by name).
+            let toolName: String
+            /// The output as the USER sees it (= the tool's real output;
+            /// = never wrapped).
             let output: String
+            /// The output as the MODEL sees it (= the same string, except
+            /// for a high-risk tool, whose output is framed in the
+            /// untrusted-data boundary; = the promptware defense).
+            let modelOutput: String
         }
 
         let outputs: [IndexedOutput] = await withTaskGroup(of: IndexedOutput.self) { group in
@@ -317,7 +341,12 @@ actor ToolExecutor {
 
                     // step 1: permission gate (sequential-style).
                     if let denial = self.permissionGate(toolName, input) {
-                        return IndexedOutput(index: index, toolUseID: toolUseID, output: denial)
+                        // The permission gate's own message (= the app's
+                        // text, not the tool's output) is NOT wrapped.
+                        return IndexedOutput(
+                            index: index, toolUseID: toolUseID, toolName: toolName,
+                            output: denial, modelOutput: denial
+                        )
                     }
 
                     // pre-tool-call hook.
@@ -325,7 +354,10 @@ actor ToolExecutor {
                         try await self.hookChain.firePreToolCall(call)
                     } catch {
                         let rejectionOutput = "Error: pre-tool-call hook rejected: \(error.localizedDescription)"
-                        return IndexedOutput(index: index, toolUseID: toolUseID, output: rejectionOutput)
+                        return IndexedOutput(
+                            index: index, toolUseID: toolUseID, toolName: toolName,
+                            output: rejectionOutput, modelOutput: rejectionOutput
+                        )
                     }
 
                     // + wenshu port step 4: pre-dispatch validator + preDispatch hook.
@@ -335,7 +367,10 @@ actor ToolExecutor {
                         validatedInput = try await self.preDispatchValidator(toolName, dispatchInput)
                     } catch {
                         let rejectionOutput = "Error: pre-dispatch validator rejected: \(error.localizedDescription)"
-                        return IndexedOutput(index: index, toolUseID: toolUseID, output: rejectionOutput)
+                        return IndexedOutput(
+                            index: index, toolUseID: toolUseID, toolName: toolName,
+                            output: rejectionOutput, modelOutput: rejectionOutput
+                        )
                     }
                     let serializedInput = ToolDispatchInputParser.serialize(validatedInput)
 
@@ -343,7 +378,10 @@ actor ToolExecutor {
                         try await self.dispatchHookChain.firePreDispatch(toolName: toolName, input: validatedInput)
                     } catch {
                         let rejectionOutput = "Error: pre-dispatch hook rejected: \(error.localizedDescription)"
-                        return IndexedOutput(index: index, toolUseID: toolUseID, output: rejectionOutput)
+                        return IndexedOutput(
+                            index: index, toolUseID: toolUseID, toolName: toolName,
+                            output: rejectionOutput, modelOutput: rejectionOutput
+                        )
                     }
 
                     // steps 5+6: invoke tool + classify on error.
@@ -387,7 +425,17 @@ actor ToolExecutor {
 
                     // post-dispatch hook.
                     await self.dispatchHookChain.firePostDispatch(toolName: toolName, input: validatedInput, output: formatted)
-                    return IndexedOutput(index: index, toolUseID: toolUseID, output: formatted)
+                    // The MODEL's copy is wrapped for a high-risk tool
+                    // (= the promptware defense); the USER's copy is not
+                    // (= the user asked for the page's text).
+                    return IndexedOutput(
+                        index: index, toolUseID: toolUseID, toolName: toolName,
+                        output: formatted,
+                        modelOutput: UntrustedToolResult.maybeWrapUntrusted(
+                            toolName: toolName,
+                            content: formatted
+                        )
+                    )
                 }
             }
 
@@ -401,7 +449,7 @@ actor ToolExecutor {
         for result in outputs {
             let toolMessage = LLMMessage(
                 role: .tool,
-                blocks: [.toolResult(toolUseID: result.toolUseID, output: result.output)]
+                blocks: [.toolResult(toolUseID: result.toolUseID, output: result.modelOutput)]
             )
             messages.append(toolMessage)
             // T2-TOOL-UI (2026-09-18): emit the .toolResult block to ChatView.
