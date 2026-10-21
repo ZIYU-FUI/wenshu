@@ -139,18 +139,45 @@ Verified on this repo: the SAME two branches, each adding one distinct key, conf
 without the driver (`merge-tree` rc=1) and merge cleanly with it (rc=0). The driver's
 test suite is `Tools/wenshu-devtool/tests/test_merge_xcstrings.sh`.
 
+## The nervous file index merges by key, in its own file
+
+`AGENTS.md` is the wave's second magnet (4 cards write it), and its nervous file index
+table is APPEND-ONLY (= a new row lands at the END). Two cards that each add a row
+therefore collide textually, because both insertions write the same last line.
+
+Measured, before choosing a fix:
+- both cards APPEND a row = CONFLICT
+- both cards INSERT a sorted row = STILL a conflict (= sorting does NOT help, the hunks
+  end up adjacent)
+- `merge=union` = merges, but it keeps BOTH versions of a disagreeing row as two rows
+  with the same key, silently (= measured: one extracted file appeared twice, with LOC
+  777 and LOC 888)
+
+So the table moved to `docs/agents/nfi.md` with its own key-level driver
+(`Scripts/merge-nfi-registry.py`, the same shape as the catalog's). Two cards' rows both
+survive, and a genuine disagreement still conflicts with the key named. `AGENTS.md` keeps
+the rule and points there; its PROSE keeps the normal merge (= a union merge there would
+keep both versions of a rewritten paragraph instead of reporting the disagreement).
+
+All 30 rows were carried over verbatim, in order.
+`python3 Tools/wenshu-devtool/nfi-split.py --check` verifies the split against the
+table's last home in git history. The driver's test suite is
+`Tools/wenshu-devtool/tests/test_nfi_registry.sh`.
+
 The driver needs two local settings, and `Scripts/setup-dev-env.sh` installs both:
 
 ```bash
 git config merge.xcstrings.driver "python3 Scripts/merge-xcstrings.py %O %A %B"
+git config merge.nfi-registry.driver "python3 Scripts/merge-nfi-registry.py %O %A %B"
 git config rerere.enabled true
 ```
 
-`.gitattributes` (tracked) carries the `*.xcstrings merge=xcstrings` rule; the two
-`git config` values are LOCAL (= `.git/config`, not committed), so a fresh clone
-installs them via `setup-dev-env.sh`. `rerere` records how a conflict was resolved once
-and replays it the next time the same conflict appears on the same file: the recurring
-magnets then cost one resolution per wave instead of one per card.
+`.gitattributes` (tracked) carries the `*.xcstrings merge=xcstrings` and
+`docs/agents/nfi.md merge=nfi-registry` rules; the `git config` values are LOCAL (= `.git/config`,
+not committed), so a fresh clone installs them via `setup-dev-env.sh`. `rerere` records how a
+conflict was resolved once and replays it the next time the same conflict appears on the
+same file: the recurring magnets then cost one resolution per wave instead of one per
+card.
 
 ## The wave's file ownership, checked before dispatch
 
@@ -171,6 +198,22 @@ serializes the collisions.
 Read the SECTIONS, not the raw body: a naive scan that counts every path mentioned
 over-reports 5x (90 of 153 card pairs, against 16 real ones), because a body mentions a
 file it will only READ and a rule it cites ("AGENTS.md §7.3").
+
+### The gate reports; it does not block
+
+The gate is a report, not an interceptor, and that is a measured decision. Of the 26 card
+pairs that share a file, only 7 were ever in flight at the same time (= the board's own
+`task_runs` windows); the other 19 ran in sequence and could never collide. Of those 7,
+3 were the string catalog (now solved by its driver), 2 were `AGENTS.md` (now solved by
+the registry's own file and driver), and 2 were real code conflicts in
+`ChatMessageView.swift` (= a genuine disagreement, which SHOULD conflict). Interception
+would gate ~2 pairs by changing the Hermes dispatcher (a different repo) or hooking
+`hermes kanban create` (a step that can fail).
+
+The serialization primitive already exists and needs no new code:
+`hermes kanban link <parent> <child>` makes the board hold the child until the parent is
+done (the dispatcher's `claim_task` refuses a `ready` card whose parents are open). The
+gate prints the plan; the boss applies it.
 
 ## Fan-out
 
