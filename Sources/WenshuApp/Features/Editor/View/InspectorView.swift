@@ -54,7 +54,45 @@ struct InspectorView: View {
             // Apple HIG inspector tab strip; = Keynote / Pages /
             // Numbers put the right-panel page switcher there).
             ToolbarItem(placement: .primaryAction) {
-                Picker("Inspector Page", selection: $workspaceUI.inspectorPage) {
+                // The selection binding is a CUSTOM binding, not the
+                // plain `$workspaceUI.inspectorPage`.
+                //
+                // Why: selecting a page must also bring the column
+                // back when it is hidden. In the Apple apps the
+                // inspector's tab strip sits in the window toolbar,
+                // OUTSIDE the panel, and tapping a tab re-opens a
+                // hidden panel (measured on Pages: hiding the
+                // inspector from the menu, then pressing the
+                // trailing toolbar segmented control, brings the
+                // right column back).
+                //
+                // That behavior is NOT a platform guarantee. A stock
+                // SwiftUI `Picker` in a toolbar does not re-open a
+                // collapsed `.inspector(isPresented:)` on its own
+                // (= verified against a minimal SwiftUI app with
+                // both the stock segmented style and the macOS 27
+                // `TabsPickerStyle` = neither re-opened it). The
+                // app has to write the visibility itself, which is
+                // what this binding does.
+                //
+                // One source of truth: the toggle button, this
+                // picker, and any future menu command all write the
+                // same `isPresented` binding, so any of them can
+                // bring the column back.
+                Picker(
+                    "Inspector Page",
+                    selection: Binding(
+                        get: { workspaceUI.inspectorPage },
+                        set: { newPage in
+                            // 1. Show the column when it is hidden.
+                            if !inspectorVisibleBinding {
+                                inspectorVisibleBinding = true
+                            }
+                            // 2. Then switch the page.
+                            workspaceUI.inspectorPage = newPage
+                        }
+                    )
+                ) {
                     ForEach(InspectorPage.allCases, id: \.self) { page in
                         Label {
                             Text(page.localizedTitle)

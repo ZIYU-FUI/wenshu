@@ -63,7 +63,13 @@ struct InspectorViewShellTests {
     @Test("the column mounts the page picker and the visibility toggle")
     func theColumnMountsItsToolbarControls() throws {
         let source = try String(contentsOfFile: inspectorPath, encoding: .utf8)
-        #expect(source.contains("Picker(\"Inspector Page\", selection: $workspaceUI.inspectorPage)"),
+        // The picker binds through a custom Binding, so its selection
+        // setter can also write the column's visibility (= a hidden
+        // column comes back when a page tab is pressed). The shared
+        // page state is still what the picker writes.
+        #expect(source.contains("Picker(") && source.contains("\"Inspector Page\""),
+                "the page picker selects the column's page")
+        #expect(source.contains("workspaceUI.inspectorPage = newPage"),
                 "the page picker writes the shared page state")
         #expect(source.contains("ToolbarItem(placement: .primaryAction)"),
                 "the page picker sits in the trailing toolbar slot")
