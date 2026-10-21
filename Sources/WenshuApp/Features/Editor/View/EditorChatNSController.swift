@@ -377,6 +377,17 @@ final class EditorChatNSController: NSSplitViewController {
     var isChatZoneVisible: Bool {
         chatItem.map { !$0.isCollapsed } ?? true
     }
+
+    /// The width the hosted content currently occupies. Used as the
+    /// fallback when the parent proposes no width of its own.
+    var hostedContentWidth: CGFloat {
+        splitView.bounds.width
+    }
+
+    /// The height counterpart of `hostedContentWidth`.
+    var hostedContentHeight: CGFloat {
+        splitView.bounds.height
+    }
 }
 
 /// SwiftUI wrapper that hosts `EditorChatNSController` inside the
@@ -413,6 +424,32 @@ struct EditorChatSplitHost: NSViewControllerRepresentable {
     func updateNSViewController(_ nsViewController: EditorChatNSController, context: Context) {
         // No-op for now (= editor + chat content is static; = the
         // chat zone's internal state lives in ChatZoneView itself).
+    }
+
+    /// Report a size that does NOT depend on the inner split's own layout.
+    ///
+    /// Why: the default implementation reports the inner
+    /// `NSSplitViewController`'s size to the SwiftUI layout engine. The
+    /// detail column of the outer `NavigationSplitView` then negotiates
+    /// its width against a number the nested split keeps recomputing, and
+    /// each negotiation re-arms the window's "Update Constraints in
+    /// Window" pass. That pass count is what AppKit's runaway-layout
+    /// guard counts, and it is what aborts the app when the window is
+    /// dragged narrow (= measured: 10 of 10 trials crashed with
+    /// `limit: 342, count: 348`; with this override, 0 of 10 crashed and
+    /// the window narrowed past the width the crashing build reached).
+    ///
+    /// Returning the PROPOSAL (= the size the parent is asking for) makes
+    /// the reported size a function of the parent's own layout, so the
+    /// nested split stops feeding a second, competing number back up.
+    func sizeThatFits(
+        _ proposal: ProposedViewSize,
+        nsViewController: EditorChatNSController,
+        context: Context
+    ) -> CGSize? {
+        let width = proposal.width ?? nsViewController.hostedContentWidth
+        let height = proposal.height ?? nsViewController.hostedContentHeight
+        return CGSize(width: width, height: height)
     }
 }
 
