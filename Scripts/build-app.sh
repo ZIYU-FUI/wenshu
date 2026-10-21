@@ -195,4 +195,23 @@ if [ -x "$LSREGISTER" ]; then
     "$LSREGISTER" -f "$APP_DIR" >/dev/null 2>&1 || true
 fi
 
+# Launch the built app with a PLAIN `open`, never `open -n`.
+#
+# `open -n` forces a SECOND process of the same bundle id. Wenshu's
+# SwiftUI WindowGroup then has two instances restoring the same saved
+# window geometry, AppKit's update-constraints guard fires, and BOTH
+# processes abort with SIGABRT a few seconds in:
+#
+#     The window has been marked as needing another Update Constraints in
+#     Window pass, but it has already had more Update Constraints in
+#     Window passes than there are views in the window.
+#
+# Measured 2026-10-21: `open -n` -> dead in ~5 s, every build, every
+# time. Plain `open` -> alive indefinitely. This looked like a code
+# regression for hours because a harness built on `open -n` reports a
+# crash for the unmodified build too.
+#
+# Pass the ABSOLUTE path: a relative path can resolve to another tree's
+# registered bundle, because every build ships the same bundle id.
 echo ">>> done. open with: open $APP_DIR"
+echo ">>> (plain 'open' — NOT 'open -n'; a second instance aborts both)"
