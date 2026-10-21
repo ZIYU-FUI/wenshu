@@ -126,15 +126,26 @@ struct ChatUserBubbleReadabilityTests {
         #expect(source.contains("if isOutgoing {"))
     }
 
-    /// The bubble's internal padding and the surface are unchanged in
-    /// shape: the 12 PT / 6 PT internal padding stays.
+    /// The bubble's internal padding is unchanged in shape: the 12 PT
+    /// horizontal padding stays.
+    ///
+    /// The 6 PT VERTICAL padding is deliberately gone: the band's
+    /// resting height comes from the shared 36 PT floor (= the composer
+    /// field's height) instead of from padding stacked on top of it, so
+    /// a one-line message reads as the same surface the person typed
+    /// into. The horizontal padding is what carries the bubble's
+    /// internal inset, and it is unchanged.
     @Test func bubble_internal_padding_unchanged() throws {
         let source = try String(
             contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift",
             encoding: .utf8
         )
         #expect(source.contains(".padding(.horizontal, DesignTokens.spacingModerate)"))
-        #expect(source.contains(".padding(.vertical, DesignTokens.spacingTight)"))
+        // The vertical padding is replaced by the height floor, not
+        // stacked on top of it.
+        #expect(source.contains("minHeight: DesignTokens.controlHeightLarge"))
+        #expect(!source.contains(".padding(.vertical, DesignTokens.spacingTight)"),
+                "The bubble must not stack vertical padding on top of the height floor")
     }
 
     /// The turn spacing is uniform: every transcript row carries the same
