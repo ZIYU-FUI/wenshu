@@ -113,9 +113,23 @@ struct UnsignedKeychainPromptTests {
         //
         // The flag is read from UserDefaults, so this test drives the same
         // path the app drives.
-        let previous = UserDefaults.standard.bool(forKey: "wenshu.debugNoKeychain")
-        UserDefaults.standard.set(true, forKey: "wenshu.debugNoKeychain")
-        defer { UserDefaults.standard.set(previous, forKey: "wenshu.debugNoKeychain") }
+        // The flag lives in a process-wide UserDefaults domain
+        // (= `swiftpm-testing-helper`), and that domain persists on
+        // disk between runs. Restoring it with `set(false)` would
+        // leave the key PRESENT (= "the debug override is on" for
+        // every later test), so the prior state is captured as
+        // "was the key there at all" and restored exactly.
+        let flagKey = "wenshu.debugNoKeychain"
+        let hadFlag = UserDefaults.standard.object(forKey: flagKey) != nil
+        let previousFlag = UserDefaults.standard.bool(forKey: flagKey)
+        UserDefaults.standard.set(true, forKey: flagKey)
+        defer {
+            if hadFlag {
+                UserDefaults.standard.set(previousFlag, forKey: flagKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: flagKey)
+            }
+        }
 
         // The signed-build branch is asked for directly: a test run
         // resolves to the in-memory store, which is a different gate.
@@ -162,6 +176,21 @@ struct UnsignedKeychainPromptTests {
         let previous = MirroredKeychainStore.stableSigningOverride
         defer { MirroredKeychainStore.stableSigningOverride = previous }
         MirroredKeychainStore.stableSigningOverride = true
+
+        // The debug override is checked BEFORE the signature, so a
+        // flag left on by another test (= it lives in a persistent,
+        // process-wide UserDefaults domain) would send this
+        // resolution down the file-store branch. Clear it for the
+        // duration so the assertion is about the signature alone.
+        let flagKey = "wenshu.debugNoKeychain"
+        let hadFlag = UserDefaults.standard.object(forKey: flagKey) != nil
+        let previousFlag = UserDefaults.standard.object(forKey: flagKey)
+        UserDefaults.standard.removeObject(forKey: flagKey)
+        defer {
+            if let previousFlag {
+                UserDefaults.standard.set(previousFlag, forKey: flagKey)
+            }
+        }
 
         let backend = ProviderKeychain.resolveBackend(isTestProcess: false)
         #expect(backend is MirroredKeychainStore)

@@ -105,10 +105,20 @@ struct WenshuReplicatedKanbanEndToEndTests {
 
         // Round-trip through a real list action (= not the same actor
         // call; the actor was already mutated by the previous execute).
-        let listJSON = json(["action": "list", "limit": 10])
+        // The limit is generous because the in-memory store is
+        // process-wide (= sibling suites write into the same
+        // container), so foreign rows must not push the row this
+        // test created out of the list.
+        let listJSON = json(["action": "list", "limit": 200])
         let listOutput = try await tool.execute(input: listJSON)
         #expect(listOutput.contains("Write chapter 1 outline"), "list must include the freshly created row")
-        #expect(listOutput.contains("[done]") == false, "list must not show completed rows for a .new task (= T1 just creates, = status = new)")
+        // The output is a JSON envelope whose "summary" holds one row
+        // per line ("<id>: <title> [<status>]"). The assertion is
+        // about the row THIS test created (= its status is new); an
+        // unrelated row's status is not this test's business.
+        let createdRow = listOutput.components(separatedBy: "\\n")
+            .first { $0.contains("Write chapter 1 outline") } ?? ""
+        #expect(!createdRow.contains("[done]"), "the freshly created task must be listed as new, not done")
     }
 
     // MARK: - T2: block / unblock cycles status + reason is preserved
