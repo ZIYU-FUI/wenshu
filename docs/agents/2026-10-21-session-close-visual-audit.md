@@ -134,6 +134,12 @@ than the floor leaves room for, so the two contracts cannot both hold as the cod
 today. The next session to touch the card should start from that matrix; the probe and the
 numbers are in the `wenshu-visual-audit` skill (Pitfalls 65 to 69).
 
+**Handed over, not abandoned.** The boss reported that another session has already
+verified the bubble against screenshots, so this session stopped there rather than
+changing the card. The measurements above and the variant matrix are the handover: they
+say exactly which modifier is missing and what the trade-off is, so the next session does
+not have to rediscover it.
+
 ## 6. What the next session should know
 
 - The three fixes are on `main` and need no further work. The builds are per-tree: each
