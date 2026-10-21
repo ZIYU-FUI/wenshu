@@ -317,9 +317,10 @@ raw translation key, and the inspector's empty state.
    - `ToolRegistry` (3 names) fails in three of the four runs and passes
      in one; `TodoStoreTool` is the known 5-second wall-clock budget;
      the conductor test is a ~30-second timeout at the edge of the
-     machine's capacity; `network fail 返 curated fallback` asserts that
-     an HTTP call FAILS, so it passes or fails with the network's
-     reachability (it passes 4/4 in isolation on both branches).
+     machine's capacity; the provider test whose name means "network fail
+     returns curated fallback" asserts that an HTTP call FAILS, so it passes
+     or fails with the network's reachability (it passes 4/4 in isolation
+     on both branches).
 
    The rule: **compare the failing set only across runs that share the
    same worktree LOCATION, the same load, and the same protocol.** A
