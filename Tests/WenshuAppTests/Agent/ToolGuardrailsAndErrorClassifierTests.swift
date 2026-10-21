@@ -119,52 +119,10 @@ struct ErrorClassifierDeepTests {
         }
     }
 
-    // MARK: - ClassifiedLLMError
-
-    @Test("ClassifiedLLMError: construction with all fields")
-    func classifiedLLMErrorConstruction() {
-        let error = ClassifiedLLMError(
-            category: .rateLimit,
-            underlying: "Rate limit exceeded",
-            userMessage: "Too many requests, please slow down",
-            isRetryable: true,
-            retryAfterSeconds: 60
-        )
-        #expect(error.category == .rateLimit)
-        #expect(error.underlying == "Rate limit exceeded")
-        #expect(error.userMessage == "Too many requests, please slow down")
-        #expect(error.isRetryable)
-        #expect(error.retryAfterSeconds == 60)
-    }
-
-    @Test("ClassifiedLLMError: retryAfterSeconds default = nil")
-    func classifiedLLMErrorRetryAfterDefault() {
-        let error = ClassifiedLLMError(
-            category: .badRequest,
-            underlying: "Invalid input",
-            userMessage: "Bad request",
-            isRetryable: false
-        )
-        #expect(error.retryAfterSeconds == nil)
-    }
-
-    @Test("ClassifiedLLMError: Equatable")
-    func classifiedLLMErrorEquatable() {
-        let a = ClassifiedLLMError(
-            category: .unauthorized,
-            underlying: "Invalid key",
-            userMessage: "Bad API key",
-            isRetryable: false
-        )
-        let b = ClassifiedLLMError(
-            category: .unauthorized,
-            underlying: "Invalid key",
-            userMessage: "Bad API key",
-            isRetryable: false
-        )
-        #expect(a == b)
-    }
-
-    // MARK: - ErrorClassifier.classify(error:httpResponse:)
+    // MARK: - ErrorClassifier.classify(error:httpResponse:) (= NOT PORTED)
+    //
+    // `ErrorClassifier.classify(error:httpResponse:)` never landed, so there is
+    // nothing to verify here. The gap is named so it stays visible; the port
+    // needs its own ticket and its own design.
 
 }

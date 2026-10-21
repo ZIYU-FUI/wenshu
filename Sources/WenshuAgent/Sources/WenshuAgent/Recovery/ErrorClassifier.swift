@@ -34,29 +34,6 @@ public enum LLMErrorCategory: String, Sendable, Equatable, Codable, CaseIterable
     case unknown
 }
 
-/// Classified error (= category + raw underlying + optional user message).
-public struct ClassifiedLLMError: Error, Sendable, Equatable {
-    public let category: LLMErrorCategory
-    public let underlying: String
-    public let userMessage: String
-    public let isRetryable: Bool
-    public let retryAfterSeconds: Int?
-
-    public init(
-        category: LLMErrorCategory,
-        underlying: String,
-        userMessage: String,
-        isRetryable: Bool,
-        retryAfterSeconds: Int? = nil
-    ) {
-        self.category = category
-        self.underlying = underlying
-        self.userMessage = userMessage
-        self.isRetryable = isRetryable
-        self.retryAfterSeconds = retryAfterSeconds
-    }
-}
-
 // MARK: - LLMConnectorError classifier (wenshu port wire-up)
 
 /// Classify an `LLMConnectorError` as transient (= retryable) or
@@ -71,8 +48,8 @@ public struct ClassifiedLLMError: Error, Sendable, Equatable {
 public enum LLMConnectorErrorClassifier {
 
     /// True when the error is classified as transient (= retryable).
-    /// The mapping matches `ErrorClassifier.classify(...)`'s
-    /// `isRetryable` flag for the underlying categories.
+    /// The mapping follows the same categories the rest of the retry ladder
+    /// uses (= rate limit + server error + transport blips).
     public static func isTransient(_ error: LLMConnectorError) -> Bool {
         switch error {
         case .transport(let provider, let statusCode, _):

@@ -273,7 +273,7 @@ actor AuthPool {
         try await mutate(keyId: keyId) { key in
             key.status = .networkError
             key.lastError = error
-            // 10-second cooldown matches ErrorClassifier.retryAfterSeconds for
+            // 10-second cooldown matches the retry ladder's default for the
             // networkUnreachable category (= hermes' default for transport
             // blips). Caller can override via a future explicit cooldown setter.
             key.cooldownUntil = Date().addingTimeInterval(10)

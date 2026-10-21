@@ -2,8 +2,7 @@
 //
 // Tests for RetryUtils (= exponential backoff + retry helper).
 // Covers the 7 acceptance criteria from ticket GAP-007 plus the
-// classifier-aware `withClassifierRetry` overload + RateLimitTracker
-// integration smoke test.
+// `shouldRetry` predicate + RateLimitTracker integration smoke test.
 //
 // Pure unit tests; uses the `swift-testing` framework per the rest of the
 // WenshuAppTests tree (= see Agent/*ConnectorTests.swift for the pattern).
@@ -159,71 +158,6 @@ struct RetryUtilsTests {
             #expect(count == 1)
         } catch {
             Issue.record("Wrong error type thrown: \(error)")
-        }
-    }
-}
-
-@Suite("RetryUtils classifier-aware overload (ticket GAP-007)")
-struct RetryUtilsClassifierRetryTests {
-
-    @Test("withClassifierRetry retries when error is retryable")
-    func testClassifierRetry_retriesOnRetryable() async throws {
-        actor CallCounter {
-            private(set) var count = 0
-            func bump() -> Int {
-                count += 1
-                return count
-            }
-        }
-        let counter = CallCounter()
-        // First 2 attempts throw a retryable classified error; third wins.
-        let result: Int = try await RetryUtils.withClassifierRetry(
-            maxAttempts: 3,
-            base: 0.001,
-            cap: 0.01
-        ) {
-            let n = await counter.bump()
-            if n < 3 {
-                throw ClassifiedLLMError(
-                    category: .rateLimit,
-                    underlying: "429",
-                    userMessage: "rate limit",
-                    isRetryable: true,
-                    retryAfterSeconds: 1
-                )
-            }
-            return n
-        }
-        #expect(result == 3)
-        let count = await counter.count
-        #expect(count == 3)
-    }
-
-    @Test("withClassifierRetry bails on non-retryable classified error")
-    func testClassifierRetry_bailsOnNonRetryable() async {
-        actor CallCounter {
-            private(set) var count = 0
-            func bump() { count += 1 }
-        }
-        let counter = CallCounter()
-        do {
-            _ = try await RetryUtils.withClassifierRetry(
-                maxAttempts: 5,
-                base: 0.001,
-                cap: 0.01
-            ) {
-                await counter.bump()
-                throw ClassifiedLLMError(
-                    category: .badRequest,
-                    underlying: "400",
-                    userMessage: "bad request",
-                    isRetryable: false
-                )
-            }
-            Issue.record("withClassifierRetry should have thrown on non-retryable error")
-        } catch {
-            let count = await counter.count
-            #expect(count == 1)
         }
     }
 }

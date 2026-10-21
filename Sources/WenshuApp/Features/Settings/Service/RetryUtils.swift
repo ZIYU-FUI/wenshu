@@ -61,8 +61,9 @@ enum RetryUtils {
     ///   - base: base delay in seconds for the first retry.
     ///   - cap: hard ceiling for the delay.
     ///   - shouldRetry: predicate on the error; default = always retry.
-    ///     Use this to honor `ClassifiedLLMError.isRetryable` from
-    ///     `ErrorClassifier` so callers don't retry 4xx/400 contexts.
+    ///     Use this to honor the connector's own transient check
+    ///     (`LLMConnectorErrorClassifier.isTransient`) so callers don't retry
+    ///     4xx/400 contexts.
     ///   - operation: the async operation to run.
     /// - Returns: the operation's result on first success.
     /// - Throws: the last error after exhausting retries.
@@ -88,36 +89,6 @@ enum RetryUtils {
                 try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
             }
         }
-    }
-
-    /// Convenience: run `operation` with backoff, but skip retries when
-    /// `error` is a `ClassifiedLLMError` with `isRetryable == false`.
-    ///
-    /// This is the bridge that ticket GAP-007 promised — callers using this
-    /// overload get the same semantics as `withRetry` PLUS classifier-aware
-    /// retry gating, without having to write the predicate at every call site.
-    ///
-    /// - Note: callers that need provider-specific policy (e.g. honoring
-    ///   `retryAfterSeconds` directly instead of the exponential schedule)
-    ///   should compose their own `withRetry` invocation.
-    static func withClassifierRetry<T: Sendable>(
-        maxAttempts: Int = 3,
-        base: TimeInterval = 1.0,
-        cap: TimeInterval = 60.0,
-        operation: @Sendable @escaping () async throws -> T
-    ) async throws -> T {
-        try await withRetry(
-            maxAttempts: maxAttempts,
-            base: base,
-            cap: cap,
-            shouldRetry: { error in
-                if let classified = error as? ClassifiedLLMError {
-                    return classified.isRetryable
-                }
-                return true
-            },
-            operation: operation
-        )
     }
 
     // MARK: - H2 Hermes-Python gap port (= 1:1 port of hermes

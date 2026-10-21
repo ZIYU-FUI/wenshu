@@ -60,9 +60,9 @@ struct AutoRotationSendContext: Sendable {
 // MARK: - Error classification shim
 
 /// Bridges `LLMConnectorError` (+ arbitrary errors) into the policy's
-/// rotation decisions. Mirrors `LLMConnectorErrorClassifier.isTransient` +
-/// `ErrorClassifier.classify` so the wrapper can decide whether to rotate
-/// without duplicating the HTTP-status-code-to-category mapping.
+/// rotation decisions. Mirrors `LLMConnectorErrorClassifier.isTransient` so the
+/// wrapper can decide whether to rotate without duplicating the
+/// HTTP-status-code-to-category mapping.
 enum ClassifiedLLMErrorPolicy {
     struct Snapshot: Sendable, Equatable {
         let statusCode: Int?
@@ -91,16 +91,8 @@ enum ClassifiedLLMErrorPolicy {
                 )
             }
         }
-        // ClassifiedLLMError already produced upstream.
-        if let classified = error as? ClassifiedLLMError {
-            return Snapshot(
-                statusCode: classified.category == .rateLimit ? 429 :
-                    classified.category == .serverError ? 500 : nil,
-                category: classified.category,
-                userMessage: classified.userMessage
-            )
-        }
-        // Fall back to string-based classification (matches ErrorClassifier).
+        // Fall back to string-based classification (matches the retry ladder's
+        // own transient check).
         let msg = error.localizedDescription.lowercased()
         if msg.contains("network") || msg.contains("dns") ||
            msg.contains("tls") || msg.contains("unreachable") {
