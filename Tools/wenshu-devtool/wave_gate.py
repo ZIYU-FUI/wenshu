@@ -187,12 +187,22 @@ def main() -> int:
                 print(f"      {f}")
         print()
 
-    if args.plan and collisions:
+    if args.plan:
+        # The plan is only actionable for cards that have not landed yet: a
+        # done card cannot be linked, and its collision is already history.
+        live = [cid for cid in ids if cards[cid]["status"] != "done"]
+        live_collisions = [
+            (n, a, b) for n, a, b, _ in collisions if a in live and b in live
+        ]
+        if not live_collisions:
+            print("=== serialization plan: no live card collides with another live card ===")
+            return 0
         print("=== serialization plan (land the first, then the second) ===")
-        for n, a, b, _ in sorted(collisions, reverse=True):
+        for n, a, b in sorted(live_collisions, reverse=True):
             print(f"  {a} -> {b}   (= link {a} as the PARENT of {b})")
         print()
         print("  hermes kanban link <parent> <child>")
+        return 0
 
     return 1 if collisions else 0
 
