@@ -114,6 +114,16 @@ copy_to_app_bundle() {
     # .bundle dependencies)
     if [ -d "$PROJECT_ROOT/.build/debug/Wenshu_WenshuApp.bundle" ]; then
         cp -R "$PROJECT_ROOT/.build/debug/Wenshu_WenshuApp.bundle" "$APP/Contents/Resources/"
+        # The app-level .lproj must carry the SAME compiled catalog as
+        # the module bundle (= the app's own Resources win the lookup
+        # for Bundle.main; = a stale copy there shadows every string
+        # added to the catalog after that copy was made).
+        for locale in en.lproj zh-Hans.lproj; do
+            src="$PROJECT_ROOT/.build/debug/Wenshu_WenshuApp.bundle/Contents/Resources/$locale/Localizable.strings"
+            if [ -f "$src" ]; then
+                cp "$src" "$APP/Contents/Resources/$locale/Localizable.strings"
+            fi
+        done
     fi
 
     echo "==> App bundle ready at $APP"
