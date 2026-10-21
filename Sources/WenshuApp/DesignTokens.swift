@@ -278,6 +278,24 @@ enum DesignTokens {
     /// = 5-row display). Used in `.frame(maxHeight: 360)` for KanbanView.
     static let kanbanBoardMaxHeight: CGFloat = 360
 
+    /// Kanban board column width (= 256 PT, the Hermes board's lane width).
+    /// A column holds a card's title plus a body preview, so it is wider
+    /// than the sidebar (= the sidebar token keeps its own meaning).
+    static let kanbanColumnWidth: CGFloat = 256
+
+    /// Kanban card status edge width (= 2 PT, the Hermes board's card
+    /// left edge). The edge carries the column's status color.
+    static let kanbanCardStatusEdgeWidth: CGFloat = 2
+
+    /// Kanban column dot diameter (= 6 PT, the status dot in a column
+    /// header). Matches the Hermes board's column dot.
+    static let kanbanColumnDotSize: CGFloat = 6
+
+    /// Kanban board search field width (= 160 PT, the narrow filter field
+    /// in the board header). Wide enough for a title, narrow enough to
+    /// leave the pickers room.
+    static let kanbanSearchFieldWidth: CGFloat = 160
+
     // / Button shadow vertical offset (= 2 PT, Apple HIG macOS button shadow
     // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / pattern).

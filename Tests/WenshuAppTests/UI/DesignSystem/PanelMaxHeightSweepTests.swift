@@ -9,7 +9,7 @@
 //
 //  Swept sites (= 16):
 //  - CommandPaletteView.swift L167: .frame(maxHeight: 320)
-//  - KanbanView.swift L379: .frame(maxHeight: 360)
+//  - ImportSheetHelpers.swift: .frame(maxHeight: 360)
 //  - SidebarSheets.swift L393: .frame(maxHeight: 220)
 //
 //  New DesignTokens (= 5):
@@ -44,7 +44,7 @@ struct PanelMaxHeightSweepTests {
 
         let sweptFiles: [(String, String)] = [
             ("Shared/UI/CommandPaletteView.swift", "DesignTokens.commandPaletteMaxHeight"),
-            ("Features/Kanban/View/KanbanView.swift", "DesignTokens.kanbanBoardMaxHeight"),
+            ("Features/Agent/View/ImportSheetHelpers.swift", "DesignTokens.kanbanBoardMaxHeight"),
             ("Features/Library/View/SidebarSheets.swift", "DesignTokens.panelLargeMaxHeight"),
         ]
 

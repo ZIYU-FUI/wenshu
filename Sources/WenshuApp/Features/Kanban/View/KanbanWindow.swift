@@ -27,6 +27,12 @@
 //  - Toolbar mirrors the main window style (.unified 52 PT) for
 //    visual consistency.
 //
+//  The board needs a book to show tickets for. The window reads the
+//  app's live sidebar selection (= `workspaceUI.sidebarSelection`)
+//  for that, because that is the one selection the main window
+//  actually writes when the user clicks a row. The board also
+//  carries its own book picker, so it is usable on its own.
+//
 
 import SwiftUI
 import WenshuData
@@ -47,10 +53,17 @@ private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "kanbanwind
 struct KanbanWindow: View {
     let library: WenshuLibrary
 
+    /// The app's shared workspace UI state (= the live sidebar
+    /// selection). Passed in by `AppRootScene` because the kanban
+    /// scene is a sibling of the main window and does NOT inherit
+    /// the main window's environment.
+    let workspaceUI: WorkspaceUIState
+
     @State private var bookStore: BookStore?
 
-    init(library: WenshuLibrary) {
+    init(library: WenshuLibrary, workspaceUI: WorkspaceUIState) {
         self.library = library
+        self.workspaceUI = workspaceUI
     }
 
     var body: some View {
@@ -112,7 +125,10 @@ struct KanbanWindow: View {
                 let wsRoot = try KanbanWindow.resolveLibraryPath()
                 let hook = LibraryLifecycleHook(wsRoot: wsRoot)
                 let result = try hook.runLaunch()
-                self.bookStore = result.makeBookStore()
+                let store = result.makeBookStore()
+                // The book list backs the window's own book picker.
+                store.reloadAllBooks()
+                self.bookStore = store
             } catch {
                 // -m1-shell (see OOB.md #2026-09-11) OOB: if the
                 // kanban window can't construct its store
@@ -122,6 +138,41 @@ struct KanbanWindow: View {
                 // modal dialog for unhandled errors).
                 wenshuLogger.info("[wenshu.window] kanban store construct failed: \(String(describing: error))")
             }
+        }
+        // The board follows the main window's book selection. The
+        // sidebar selection is the one field the main window
+        // writes when the user clicks a row (= `WenshuLibrary.
+        // selectedBookId` and `BookStore.reload(bookId:)` both
+        // exist but have no production writer).
+        .onChange(of: workspaceUI.sidebarSelection) { _, _ in
+            applySidebarSelection()
+        }
+        .onAppear {
+            applySidebarSelection()
+        }
+    }
+
+    /// Hand the store the book the main window has selected.
+    ///
+    /// A book row and a folder row both name a book (= a folder is
+    /// a sub-row of one). Every other selection (= a shelf, a
+    /// reference category, a tag, nothing) names no book, and the
+    /// board then shows its own picker instead.
+    private func applySidebarSelection() {
+        guard let bookStore else { return }
+        guard let bookId = KanbanWindow.bookId(for: workspaceUI.sidebarSelection) else { return }
+        bookStore.selectedBookId = bookId
+    }
+
+    /// The book a sidebar selection names, if any.
+    static func bookId(for selection: SidebarItem?) -> UUID? {
+        switch selection {
+        case .book(let bookId):
+            return bookId
+        case .folder(let bookId, _):
+            return bookId
+        case .shelf, .referenceCategory, .referenceLibraryRoot, .tag, nil:
+            return nil
         }
     }
 
