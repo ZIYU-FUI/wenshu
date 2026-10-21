@@ -155,6 +155,26 @@ parents, so the reconciler receives both diffs and both intents.
    `git branch -D <branch>`. `hermes worktree prune` reclaims safe ones.
 7. **A dirty tree is not proof of a live sibling.** The boss's own unpushed work looks
    identical. Check the session store before concluding.
+8. **Keep a ticket's worktree OUT of the shared repo's `.worktrees/`.** That directory is the
+   prune target: a parallel session's cleanup removes worktrees from it mid-run, and a
+   `git worktree add <path> <branch>` on a branch that is already checked out fails outright
+   (= `fatal: 'main' is already used by worktree at ...`). Keep long-lived worktrees under the
+   session's own scratch directory and use `git worktree move` to relocate one.
+   The branch and its commits survive the move.
+9. **The saved layout defaults must be cleared before each verification run.** The app persists
+   its `NSSplitView Subview Frames ...` and `NSWindow Frame ...` values, and a stale set whose
+   columns total more than the next run's window width changes how the window lays out.
+   It reproduces on the pre-removal commit too, so it is not a restore artifact.
+10. **Do NOT read a window death as a failure of the code under test.** AppKit's "Update
+    Constraints in Window pass" guard kills the window when a drag delivers enough resize
+    events, and it fires on the commit WITHOUT the right rail exactly as it fires with it.
+    The cause is two split systems in one window (the SwiftUI `NavigationSplitView` whose
+    detail column hosts the AppKit `NSSplitViewController`), not the inspector.
+    Triage it with the `macos-narrow-window-layout-crash-triage` skill.
+11. **Run the baseline and the branch in the SAME conditions, alternating, several rounds.** One
+    run each is not enough: a parallel session's `pkill` (its own build's full executable path
+    can match yours if the paths share a prefix) kills an instance mid-measurement and reads as
+    a failure of the code under test.
 
 ## Live sibling detection
 
@@ -165,6 +185,34 @@ sqlite3 ~/.hermes/profiles/<profile>/state.db \
 
 A row with a recent `last_activity_at` is live. A row that exists but is old is a
 finished session, not a conflict.
+
+## Launching the app for verification
+
+Never launch the Wenshu app by exec'ing its binary (`.../Wenshu.app/Contents/MacOS/WenshuApp &`).
+The app calls `NSApp.activate` and jumps to the frontmost position, so the user loses focus
+mid-work. Launch with `open -g` (= no activation).
+
+`~/.hermes/profiles/pocock/skills/wenshu-visual-audit/scripts/wenshu-shot.sh` implements the
+whole no-focus contract: `launchctl setenv` + `open -g` + an in-process render (so no screen
+recording permission) + `axwin` for the resize (the System Events bridge activates the app, so
+never use it). Set `WENSHU_APP` to choose which build it launches.
+
+Two traps when a session has its own build:
+
+- Address the instance by its FULL executable path. A loose `build/Wenshu.app` pkill pattern
+  matches every session's bundle, so it kills a parallel session's app and then kills yours
+  mid-run.
+- A readiness check must not have side effects. Running the full AX probe (which presses
+  buttons) as the "is the app up yet" check toggles the inspector during startup and leaves
+  the app in an unexpected state before the real run. Use `axwin probe` for readiness.
+- The app can own more than one window. The welcome / onboarding page is a different window
+  from the main workspace window, so taking the first window of the instance can drive the
+  welcome page and measure nothing. Select the main window by CONTENT (= it shows the shelf
+  column and the assets column and has at least 3 AXSplitters) and abort when it is absent.
+
+The rules that govern a verification run itself (which worktree to use, which saved layout to
+clear, how to read a window death, how to alternate the baseline and the branch) are numbered
+items 8 to 11 of the Pitfalls list above.
 
 ## Why `delegate_task` is not used for code here
 
