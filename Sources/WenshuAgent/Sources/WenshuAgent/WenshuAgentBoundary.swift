@@ -1,49 +1,76 @@
 //
-//  WenshuAgentBoundary.swift · Wenshu · v3.1 governance ticket: extract WenshuAgent
+//  WenshuAgentBoundary.swift · Wenshu · agent runtime boundary marker
 //
 //  Boundary marker file for the `WenshuAgent` subsystem.
 //
-//  Layout (post-2026-10-16 refactor):
+//  LAYOUT:
+//
+//  The agent runtime is its own SwiftPM package at `Sources/WenshuAgent/`.
+//  The target sources live under `Sources/WenshuAgent/Sources/WenshuAgent/`.
+//  The package owns its own manifest and its own test target.
+//  The app package depends on the runtime product, so the compiler
+//  enforces that edge.
+//
+//      Sources/WenshuAgent/Sources/WenshuAgent/
+//      ├── WenshuAgentBoundary.swift   (this file = intent + access policy)
+//      ├── Agent/                      (LLM block / usage / response types)
+//      ├── Connector/                  (provider connectors + registry)
+//      ├── Context/                    (context engine + compression)
+//      ├── Discovery/                  (model discovery + credentials)
+//      ├── Keychain/                   (provider keychain + mirrored store)
+//      ├── Logging/                    (WALogger + categories)
+//      ├── Memory/                     (memory manager + write gate)
+//      ├── Prompt/                     (system prompt + prompt assembly)
+//      ├── Public/                     (public surface for outside callers)
+//      ├── Recovery/                   (error classification + response guards)
+//      ├── Settings/                   (agent settings)
+//      ├── Streaming/                  (SSE + chunk converters + watchdog + fence)
+//      ├── Tool/                       (tool schema + tool exposure)
+//      └── Turn/                       (turn context + finalizer + notes)
+//
+//  Eight source files stay inside the app target at
+//  `Sources/WenshuApp/WenshuAgent/`.
+//  They stay because they reference the app's tool registry, the tool
+//  executor, the auth pool, the provider catalogue and the app delegate,
+//  all of which live in the app target.
+//  Moving them into the runtime package is separate work that needs the
+//  dependency-inversion decision first.
 //
 //      Sources/WenshuApp/WenshuAgent/
-//      ├── WenshuAgentBoundary.swift   (this file = intent + access policy)
-//      ├── API.md                       (P2 design — public API reference)
-//      ├── AUDIT.md                     (P1 audit — file inventory + refactor scope)
-//      ├── Public/                      (intended surface for UI / App callers)
-//      │   ├── WABaseProvider.swift
-//      │   ├── LLMMessage.swift
-//      │   ├── LLMResponse.swift
-//      │   └── WALogger.swift
-//      ├── Logging/                     (WALogger + categories)
-//      ├── Streaming/                   (SSE + diagnostic + watchdog + fence)
-//      ├── Connector/                   (8 provider connectors + registry + built-ins)
-//      ├── Keychain/                    (provider keychain + mirrored store)
-//      ├── Discovery/                   (model discovery + wire format helpers)
-//      ├── Context/                     (context compression + prompt caching)
-//      ├── Agent/                       (WenshuConductor + chat + import router)
-//      └── App/                         (WenshuAppDelegateLLM bridge)
+//      ├── Agent/
+//      │   ├── ConversationLoop.swift
+//      │   ├── WenshuConductor.swift
+//      │   ├── WenshuConductorImportRouter.swift
+//      │   ├── WenshuConductorImportRouterHelpers.swift
+//      │   └── WenshuVerifier.swift
+//      ├── App/
+//      │   └── WenshuAppDelegateLLM.swift
+//      ├── Keychain/
+//      │   └── KeychainSelector.swift
+//      └── Public/
+//          └── WenshuAgent.swift
 //
-//  ACCESS POLICY (2026-10-16):
+//  ACCESS POLICY:
 //
-//  WenshuApp is a single SPM target. = the public / internal distinction
-//  between files in the same target is purely organizational. The Swift
-//  `public` keyword has no effect on visibility inside the WenshuApp
-//  executable target (= it is the default `internal` access that matters).
+//  The runtime is a separate module, so the access level is enforced by
+//  the compiler at the module boundary rather than by convention.
 //
 //  The boundary is enforced by:
-//    1. Folder location (= `WenshuAgent/Public/` is the documented surface;
-//       `WenshuAgent/<other>/` is internal by convention).
-//    2. `WenshuAgent.shared` (forthcoming) = the only public entry point
-//       that chat / settings / import layers are expected to use.
+//    1. The module edge (= a runtime file is invisible to the app target
+//       unless it declares `public`).
+//    2. `Sources/WenshuAgent/Sources/WenshuAgent/Public/` (= the documented
+//       surface; = start here to call the runtime from the app).
 //    3. This file (= the intent marker; = if you are reading it you are
-//       inside the boundary, = if you want to call into WenshuAgent from
-//       outside, = start with `WenshuAgent/Public/`).
+//       inside the boundary).
 //
-//  RATIONALE (hermes style):
-//  Wenshu already extracted WenshuData (= a separate SPM target via
-//  ADR-0016). = the data layer is genuinely a separate package (= it
-//  hosts @Model + SwiftData + cross-platform concerns). WenshuAgent
-//  does NOT need that level of separation (= it is wenshu-internal; =
-//  MCP / plugin support is a future ticket, not a present concern).
-//  = a folder boundary (= this file) is sufficient for now.
+//  The app-side facade (= `WenshuAgent.shared`) lives at
+//  `Sources/WenshuApp/WenshuAgent/Public/WenshuAgent.swift`.
+//
+//  RATIONALE:
+//
+//  A separate package gives the runtime an independent version boundary.
+//  It gives the runtime its own test target, so the runtime can be checked
+//  without a full app build.
+//  It gives the runtime a dependency edge the compiler enforces, so a
+//  writing tool reaches this package's public surface and nothing else.
 //
