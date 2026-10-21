@@ -51,6 +51,7 @@ Single source of truth for every wenshu contributor and every AI agent acting on
 | 1.9 | Auto-load wenshu-pocock-workflow on every wenshu turn (forced via .hermes.md at repo root). | Path-enforced. |
 | 1.10 | One ticket = one commit + one atomic verification + one 4-section business-language spec + one dual-axis dispatch + one P0 fix + one verify round + merge gate. | universal-pocock-workflow. |
 | 1.11 | NFI (nervous file index) = this section's table. Lists every file split from a god-class or extracted to its own file via A55+ arcs. Each row: parent file, current LOC, content tag. The next reader finds the file by concern in < 5s. | Manual. |
+| 1.12 | Parallel worktree isolation: every code-changing ticket runs in its own git worktree, never in the shared checkout. Create it as a kanban board card (`--assignee wenshu-dev --workspace worktree --project project`, board `wenshu-par`). `delegate_task` is read-only fan-out here: its children inherit the parent shell cwd, so a relative write lands in the shared checkout. | wenshu-parallel-dev. |
 
 ### §1.11 Nervous file index (NFI)
 
@@ -180,7 +181,7 @@ Single source of truth for every wenshu contributor and every AI agent acting on
 | #   | Step | Skill |
 | --- | ---- | ----- |
 | 8.1 | 4-section business-language spec (business / current state / Apple canonical / after-fix). | wenshu-pocock-workflow + universal-pocock-workflow. |
-| 8.2 | Code + smoke test + reproduce. | diagnosing-bugs. |
+| 8.2 | Code + smoke test + reproduce, in a worktree (board card, rule 1.12). | diagnosing-bugs. |
 | 8.3 | Real violation inventory. | q99-dual-axis-wenshu-toolchain.md. |
 | 8.4 | Dual-axis dispatch (Standards + Spec, 2 parallel sub-agents, read-only). | q99-dual-axis-audit.md. |
 | 8.5 | Fix P0. | universal-pocock-workflow step 5. |
@@ -198,6 +199,7 @@ Single source of truth for every wenshu contributor and every AI agent acting on
 | Apple HIG canonical | ~/.hermes/profiles/pocock/skills/wenshu-apple-api-first/SKILL.md |
 | Design system rule (SFIcon, DesignTokens, 9-grep sweep) | ~/.hermes/profiles/pocock/skills/wenshu-pocock-workflow/references/v3.0-design-system-rule.md |
 | Iron rules audit (41 Apple HIG + Swift rules) | ~/.hermes/profiles/pocock/skills/wenshu-iron-rules-audit/SKILL.md |
+| Parallel dev convention (worktree board cards) | ~/.hermes/profiles/pocock/skills/wenshu-parallel-dev/SKILL.md |
 | OOB index (boss directives, dev-time only) | /Volumes/ANAN/Engineering/wenshu/OOB.md |
 | Domain glossary | /Volumes/ANAN/Engineering/wenshu/docs/agents/domain.md |
 | ADRs (architecture decision records) | /Volumes/ANAN/Engineering/wenshu/docs/adr/0000-0015 |
