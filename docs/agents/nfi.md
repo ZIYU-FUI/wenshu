@@ -47,6 +47,7 @@ reference, LOC, and content tag.
 | `Sources/.../LibraryRootView.swift` (434 LOC, under the 600 cap, the 4 sibling dirs are at the 4 features) | `Sources/.../Library/View/AppleSidebarView.swift` | 454 | god-class TODO (split candidate for A150+). |
 | `Sources/.../Chat/View/ChatInputBarView.swift` (475 LOC, under cap) | `Sources/.../Chat/View/ChatSurfaceShape.swift` | 35 | `struct ChatSurfaceShape: Shape` = the shared chat-surface outline (= the composer field + the outgoing message band wear the same shape; = the radius tracks half the surface height up to a cap). |
 | `Sources/.../Features/Kanban/View/KanbanView.swift` (560 LOC, under cap) | `Sources/.../Features/Kanban/Model/KanbanBoardStyle.swift` | 66 | `extension KanbanStatus { boardLabel + boardTone + boardOrder }` = the board's status presentation (= one column label + one tone per status; = the mapping is total so no status hides its cards). |
+| `Sources/.../Chat/View/ChatMessageView.swift` (583 LOC, under cap) | `Sources/.../Chat/View/ChatUserBubblePalette.swift` | 33 | `enum ChatUserBubblePalette { surface + border + text }` = the user bubble's colour relationship (= the Apple semantic surface the user's words sit on, the hairline around it, and the text tier on top). |
 
 <!-- Append new rows at the END of the table above. The key-level merge
      driver keeps both rows when two cards add one each. -->
