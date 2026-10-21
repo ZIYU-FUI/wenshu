@@ -367,6 +367,62 @@ this repository's `AGENTS.md` and `.hermes.md` from the worktree.
 `delegate_task` remains the right tool for read-only fan-out here: audits, inventories,
 research, and spec-axis review.
 
+## Wrap-up: leave no residue
+
+A session's own residue is the session's job. Not the dispatcher's, not the next
+session's, not the boss's. This is a hard requirement at the end of every session
+that created anything, and it is the last thing done, after the last commit and the
+last push.
+
+Measured on 2026-10-21/22, one session that landed six tickets left behind: 7
+worktrees (4 of them scratch worktrees outside `.worktrees/`), 2 merged branches
+whose work was already on main, 7 orphaned app instances (the oldest had been
+running 11 h 53 m), 2 hung test processes, 1 CPU burner, and 4.4 GB of scratch
+directories (one `--scratch-path` build dir alone was 561 MB). Every item was free
+to delete, and every item was still there at the end.
+
+Account for all seven kinds before answering the boss:
+
+| # | Residue | Check |
+| - | ------- | ----- |
+| 1 | Worktrees (repo, scratch, `/private/tmp`) | `git worktree list` + `ls -d .../scratch/wt-*` |
+| 2 | Branches (a card's branch outlives its worktree) | `git branch -vv` |
+| 3 | App instances (a harness launches and never reaps) | `ps -axo pid,etime,%cpu,command \| grep -E "WenshuArm\|<your-build>"` |
+| 4 | Test processes (a killed `swift test` leaves its child) | `ps -axo pid,etime,command \| grep -E "xctest\|swift-test"` |
+| 5 | Load (a runaway loop of your own making) | `ps -axo pid,command \| grep -E "^\s*[0-9]+\s+yes$"` |
+| 6 | Build dirs (the biggest consumers, outside the worktree) | `du -sh .../scratch/* \| sort -rh` |
+| 7 | Harness bundles and reports | `find .../scratch -maxdepth 2 -name "*.app"` |
+
+Delete only what is proven dead, and prove it four ways (0 unstaged, 0 staged, 0
+branch commits, no process with its cwd there), plus `git merge-base --is-ancestor`
+for a detached worktree whose commit may be on main under a different sha.
+
+```bash
+git worktree remove --force <path>     # git must unregister it; `rm -rf` alone does not
+git worktree prune                    # reclaim the ones git already knows are gone
+git branch -d project/<id>-<slug>     # -d, NOT -D: -d refuses an unmerged branch
+```
+
+`git branch -d` is the proof: a successful `-d` means the branch's work is already
+on main, and `-D` would happily discard a commit nobody merged. The `--scratch-path`
+build dir goes with it, because it lives OUTSIDE the worktree and removing the
+worktree does not touch it.
+
+Keep: the app the boss is looking at, a live card's worktree (it holds the
+evidence and the next worker picks it up there), and anything another session owns.
+Another profile's scratch directory is not yours to sweep, even when you can see
+its leftovers; leave them and say so.
+
+Close with the residue named. "Scratch is 183 MB, two card worktrees kept (one holds
+a compiling seam, one holds a sibling's 34 staged paths), the boss's app running" is
+a handoff. "Cleaned up" is not. A residue you could not clear is still residue:
+name the path and what it holds.
+
+A WORKER is bound by the same requirement, before it calls `kanban_complete`: the
+app instances it launched, the test processes it killed, the build dir it created,
+and the harness bundles and reports it made. Its completion metadata says what it
+cleared and what it left, and why.
+
 ## References
 
 - `AGENTS.md` rule 1.12 = the rule. Section 8.2 = where it enters the pipeline.
