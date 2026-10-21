@@ -141,7 +141,15 @@ of the two contracts:
 (Every height is the hosting view's `fittingSize`, measured in its own cold worktree =
 one variant per worktree, so no run inherited another's binary. An earlier version of
 this table said 42 PT: that number came from the PAINTED bubble in a capture, which is a
-different quantity.)
+different quantity. The 36 PT row was confirmed a second time in a separate worktree, and
+the 44 PT row matches a run taken on the working tree at the time, so two of the three
+numbers have two independent sources.)
+
+One warning for whoever measures this next: a script that edits the production file and
+runs one probe per variant in a SINGLE shared `.build` reports each variant's PREVIOUS
+build. Measured 2026-10-21, that run reported 44 / 48 / 48 PT for the three chains above
+(= the correct table shifted by one). Rebuild before measuring, or give each variant its
+own worktree.)
 
 So the two contracts are mutually exclusive on the production card (= its content is
 taller than the 36 PT floor leaves room for), and the order of the padding is NOT the
