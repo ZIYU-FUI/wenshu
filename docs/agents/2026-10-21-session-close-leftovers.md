@@ -330,8 +330,80 @@ raw translation key, and the inspector's empty state.
    isolation on BOTH branches: if it passes on both, it is the
    environment.
 
+## 9. The state at the end of the follow-up session
 
+Section 6 is the first session's record and is left as it was written.
+This section is the current handoff, and it supersedes section 6.2's
+"two cards are blocked" (= both of them are done now).
 
+### 9.1 Landed on main, each one commit, both remotes in sync
 
+| Card | What landed | Commit |
+| ---- | ----------- | ------ |
+| `t_0c4aa820` | The inspector's page strip wakes a hidden column | `4012a75f1` + `e3c2f118d` |
+| `t_c50a2cdf` | The editor's tab title, the user chat bubble's surface, the status bar | `5824726c7` + `0503303a5` + `a0720c5e3` |
+| `t_937280a6` | The promptware defense | `0bea8cac6` |
+| `t_22e72dc5` | The tool mechanism moved into the `WenshuAgent` runtime package | (carried the promptware with it) |
+| `t_575a8577` | **The narrow-window crash is fixed** | `0b871acb0` (= merge `8350ddbe7`) |
+| `t_4bd0e18b` | The kanban window shows the board for the selected book | `a6fb46ab7` |
+| `t_ff446c5d` | The chat bubble's palette moved to its own file | `4012a75f1` |
 
+The narrow-window fix: `EditorChatSplitHost.sizeThatFits` reports the
+size the PARENT proposed, instead of letting the default implementation
+report the inner `NSSplitViewController`'s own size. The outer
+`NavigationSplitView` was negotiating its detail column's width against a
+number the nested split kept recomputing; each negotiation re-armed the
+window's "Update Constraints in Window" pass, and AppKit's runaway-layout
+guard aborted the app once the count passed the window's view count.
 
+Measured over 10+ trials per arm, each arm with its own worktree, build
+directory, binary uuid and bundle id, and a crash counted only when a
+crash report carried that arm's uuid AND the expected AppKit frame:
+parent commit 0/10, the commit that adds the inspector 10/10, HEAD
+10/10, HEAD + the value-guarded thickness write 10/10, HEAD + the fix
+0/10, and the fix on top of current main 0/12. The fixed build narrowed
+the window to 711 px, narrower than the 897 px the crashing build
+reached (= it really resized rather than being refused at its floor).
+
+### 9.2 Open, and what it needs
+
+1. **`t_c8c53697` (= the provider fallback test) is blocked, with the
+   seam written and compiling.** Two worker runs spent their budget in the
+   build and the XCTest discovery phase. The work is PARTIAL and it is on
+   disk: `ProviderFetcher.swift` carries a `ProviderLiveModelFetching`
+   protocol plus a `CachedLiveModelFetcher` production implementation
+   (+27 lines, unstaged, in the card's worktree), and it compiles. What
+   remains: wire the fetcher through `loadModelIds`, rewrite the two
+   tests against the seam, and gate with `swift test --filter
+   ProviderFetcherTests` rather than the full suite. The exact handoff is
+   in the card's comment.
+
+2. **`t_c8f6aaec` (= moving the agent runtime into the `WenshuAgent`
+   package) is blocked**, with three file renames staged and uncommitted
+   in its worktree. It belongs to a sibling session.
+
+3. **The narrow-window harness is durable, but it is NOT in the repo.** It
+   lives in the `macos-narrow-window-layout-crash-triage` skill's
+   `scripts/` (= `arm2.sh`, `drag3.swift`, `commit_test.sh`,
+   `assemble.sh`, `reset-trial.sh`). The original lived in the card
+   worktree's gitignored `.scratch/` and died with the worktree when the
+   dispatcher removed it on completion. Keep the harness OUTSIDE a
+   ticket's worktree, or the evidence dies with the tool that produced it.
+
+### 9.3 The environment, measured and recorded
+
+- The XCTest phase of a FULL `swift test` deadlocks in class enumeration
+  on this machine (= `allSubclasses` -> `ABAddressBook` ->
+  `CFPrefsSearchListSource`), before any test runs, and it reproduces on
+  unmodified main. The XCTest half is still measurable: the hang is in
+  the enumeration, so a NAMED filter skips it. The recipe is in the
+  `wenshu-visual-audit` skill's `references/measuring-the-xctest-half.md`.
+- The failing SET moves between runs of the SAME code (lesson 9 above).
+  Compare sets only across runs sharing the same worktree LOCATION, the
+  same load and the same protocol.
+- A background process's exit code can belong to a LATER command in the
+  chain: `grep -c` exits 1 when it matches nothing, so a clean build can
+  report exit 1 (pitfall 34 in `wenshu-pocock-workflow`).
+- Both git remotes sit behind the local proxy. GitHub needs port 443
+  (`ssh -p 443 -o Hostname=ssh.github.com`); gitcode needs port 22 to
+  the RESOLVED IP. The exact commands are in `wenshu-parallel-dev`.
