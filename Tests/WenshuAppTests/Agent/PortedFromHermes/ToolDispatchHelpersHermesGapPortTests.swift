@@ -1,22 +1,18 @@
 //
 //  ToolDispatchHelpersHermesGapPortTests.swift · Wenshu · H4-TOOL-DISPATCH-HELPERS-HERMES-PORT (2026-09-19)
 //
-//  Verifies the 5 new hermes port additions to
+//  Verifies the 2 hermes port additions to
 //  `Core/Agent/Tool/ToolDispatchHelpers.swift` (= hermes
-//  `agent/tool_dispatch_helpers.py` multimodal + untrusted-wrap
-//  helpers):
+//  `agent/tool_dispatch_helpers.py` multimodal envelope helpers):
 //    - isMultimodalToolResult (= hermes L177-L185)
 //    - multimodalTextSummary (= hermes L188-L208)
-//    - isUntrustedTool (= hermes L414-L418)
-//    - neutralizeDelimiters (= hermes L420-L424)
-//    - maybeWrapUntrusted (= hermes L427-L463)
-//    - makeToolResultMessage (= hermes L342-L386)
 //
-//  Per AGENTS.md §11.3 decision 1 (= wenshu-side wins): the high-risk
-//  tool set (= hermes's web_extract / web_search / browser_* / mcp_*)
-//  is replaced with wenshu-flavored names (= read_file / search_files
-//  / search_web / extract_web / vision_analyze / terminal /
-//  process / execute_code / ha_* / browser_* / mcp_*).
+//  NOT VERIFIED HERE (= the untrusted-tool-result wrapper was never
+//  ported): `isUntrustedTool` (= hermes L414-L418),
+//  `neutralizeDelimiters` (= hermes L420-L424),
+//  `maybeWrapUntrusted` (= hermes L427-L463) and
+//  `makeToolResultMessage` (= hermes L342-L386). The hermes source is not
+//  on this machine, so the port needs its own ticket and its own design.
 //
 
 import Testing
@@ -115,6 +111,12 @@ struct ToolDispatchHelpersHermesGapPortTests {
         #expect(result == "plain text")
     }
 
-    // MARK: - H4.2 Untrusted-tool-result wrapper
+    // MARK: - H4.2 Untrusted-tool-result wrapper (= NOT PORTED)
+    //
+    // `isUntrustedTool` (= hermes L414-L418), `neutralizeDelimiters`
+    // (= hermes L420-L424), `maybeWrapUntrusted` (= hermes L427-L463) and
+    // `makeToolResultMessage` (= hermes L342-L386) were never ported, so
+    // there is nothing to verify here. The gap is named so it stays
+    // visible; the port needs its own ticket and its own design.
 
 }

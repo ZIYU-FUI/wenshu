@@ -207,8 +207,7 @@ enum ToolDispatchInputParser {
     }
 }
 
-// MARK: - H4 Hermes-Python gap port (= 1:1 port of hermes
-//         `agent/tool_dispatch_helpers.py` multimodal + untrusted-wrap).
+// MARK: - H4 Hermes-Python gap port (= the multimodal envelope helpers).
 //
 // Wenshu-side wins (= per AGENTS.md §11.3):
 //
@@ -216,9 +215,20 @@ enum ToolDispatchInputParser {
 // (= TICKET-HERMES-GAP-008 follow-up). The target file already existed at
 // 207 LOC (= ⚠️ partial per gap audit 2026-09-04 = wenshu-s
 // partial port = the hook-chain + input-parser layer).
-// This H4 ticket adds the 5 hermes multimodal + untrusted-wrap helpers
-// (= the highest-value gap-port = promptware defense for wenshu's tool
-// results).
+// This H4 ticket added the 2 hermes multimodal envelope helpers
+// (= `isMultimodalToolResult` = hermes L177-L185; =
+// `multimodalTextSummary` = hermes L188-L208).
+//
+// NOT PORTED (= the untrusted-tool-result wrapper):
+//   - `isUntrustedTool` (= hermes L414-L418)
+//   - `neutralizeDelimiters` (= hermes L420-L424)
+//   - `maybeWrapUntrusted` (= hermes L427-L463)
+//   - `makeToolResultMessage` (= hermes L342-L386)
+// The wrapper is the promptware defense = it marks a tool's output as
+// untrusted data before the model reads it. It is not in this app, and the
+// hermes source it would be ported from is not on this machine, so the port
+// needs its own ticket and its own design. Until then, a tool result reaches
+// the model unwrapped.
 //
 // Hermes Python line ranges cited in doc-comments below (= for traceability
 // back to `/Volumes/ANAN/.hermes/agent/tool_dispatch_helpers.py`).
@@ -227,12 +237,6 @@ enum ToolDispatchInputParser {
 //   - Pre-existing ToolDispatchHookChain + ToolDispatchInputParser
 //     preserved (= wenshu chose hook-chain pattern over hermes's
 //     batch-parallelism-gate pattern).
-//   - Hermes's high-risk tool names (= web_extract / web_search /
-//     browser_* / mcp_*) replaced with wenshu's high-risk tool
-//     names (= wenshu has FileTools.read / WebTools.search / etc;
-//     = see `wenshuHighRiskToolNames` + `wenshuHighRiskToolPrefixes`).
-//   - `_maybe_wrap_untrusted` returns content unchanged for short
-//     output (< 32 chars) per hermes `_UNTRUSTED_WRAP_MIN_CHARS`.
 //   - The `_NEVER_PARALLEL_TOOLS` / `_PARALLEL_SAFE_TOOLS` /
 //     `_PATH_SCOPED_TOOLS` hermes tool classifications (= specific to
 //     hermes's tool ecosystem) are NOT ported = wenshu's tools

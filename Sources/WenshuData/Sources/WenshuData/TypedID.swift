@@ -106,8 +106,7 @@ public struct BookID: TypedID, Equatable, Hashable, Codable, Sendable {
 /// This commit only INTRODUCES the type (= zero call-site migration).
 /// Future commits per P2-03 ( typed-ID rollout) will swap
 /// `String` for `ToolCallID` at the call sites that hold a tool-call
-/// identifier (ToolUsePart.id, ToolResultPart.toolUseID,
-/// ToolDispatchHelpers.makeToolResultMessage). Splitting this work
+/// identifier (ToolUsePart.id, ToolResultPart.toolUseID). Splitting this work
 /// into one-type-per-commit keeps the the per-commit 1-source-1-test invariant
 /// intact (= the actual type swap is a per-umbrella atomic-coupled
 /// sweep that crosses multiple files; = each sweep is its own ticket).
