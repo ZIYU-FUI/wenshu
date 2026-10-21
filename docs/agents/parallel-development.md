@@ -96,11 +96,46 @@ is done. Follow-up work on a finished card is a new child card, never a reopened
 The worker commits on its own branch inside its own worktree. The boss merges:
 
 ```bash
-git -C /Volumes/ANAN/Engineering/wenshu merge project/<task-id>-<slug>
+REPO=/Volumes/ANAN/Engineering/wenshu
+
+# 1. Preflight: will this card conflict with main?  (read-only; exit 1 = conflict,
+#    and the conflicting paths are printed)
+git -C "$REPO" merge-tree --write-tree --name-only --messages main <card-branch>
+
+# 2. Rebase the card branch onto main INSIDE ITS WORKTREE (= where a conflict is
+#    resolved in isolation, where it cannot destroy a sibling's staged work)
+git -C "$REPO/.worktrees/<task-id>" rebase main
+
+# 3. Fast-forward main into the branch (= one commit per ticket, rule 7.8)
+git -C "$REPO" merge --ff-only <card-branch>
 ```
 
 Merge one branch at a time, rebuild, then the next. Two branches touching the same file
 conflict for real, and the same file touched by two tickets is a collision hotspot.
+
+Never resolve a conflict in the shared checkout, and never `git reset --hard` `main`
+there: a reset is the one operation that destroys a live sibling's staged work.
+
+Two kinds of collision exist, and they need different fixes. **Text conflict** = two
+branches edited the same lines (measured: 1 real conflicted merge in the last 30 days).
+**Base drift** = the card branch is behind `main`, so the merge builds a merge commit
+instead of a fast-forward (measured: 76 `ort` landings vs 14 fast-forwards). Drift is
+not a conflict, and the rebase in step 2 is its fix.
+
+Two tools answer both questions before the wave starts:
+
+```bash
+~/.hermes/profiles/pocock/skills/wenshu/wenshu-parallel-dev/scripts/merge-preflight.sh --all
+~/.hermes/profiles/pocock/skills/wenshu/wenshu-parallel-dev/scripts/board-overlap.py
+```
+
+`merge-preflight.sh` is the read-only conflict check per branch. `board-overlap.py`
+lists the magnet files and the card pairs that share one, so those cards are
+serialized rather than landed in an arbitrary order.
+
+`git rerere` is enabled for this repo (shared `.git/config`, so every worktree inherits
+it): a conflict resolved once is replayed automatically the next time the same conflict
+appears on the same file.
 
 ## Fan-out
 
