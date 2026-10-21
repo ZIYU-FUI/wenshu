@@ -100,7 +100,7 @@ REPO=/Volumes/ANAN/Engineering/wenshu
 
 # 1. Preflight: will this card conflict with main?  (read-only; exit 1 = conflict,
 #    and the conflicting paths are printed)
-git -C "$REPO" merge-tree --write-tree --name-only --messages main <card-branch>
+"$REPO/Scripts/merge-preflight.sh" <card-branch>
 
 # 2. Rebase the card branch onto main INSIDE ITS WORKTREE (= where a conflict is
 #    resolved in isolation, where it cannot destroy a sibling's staged work)
@@ -122,20 +122,55 @@ branches edited the same lines (measured: 1 real conflicted merge in the last 30
 instead of a fast-forward (measured: 76 `ort` landings vs 14 fast-forwards). Drift is
 not a conflict, and the rebase in step 2 is its fix.
 
-Two tools answer both questions before the wave starts:
+## The string catalog merges by key
+
+`Localizable.xcstrings` is the most-touched file in a wave, and its keys are NOT
+sorted (= a new key lands in the MIDDLE of the file). Two cards that each add a
+DIFFERENT key therefore collide textually, because both insertions land in the same
+neighbourhood. Measured: `git merge-tree` on two branches adding one distinct key each
+= CONFLICT.
+
+`Scripts/merge-xcstrings.py` is a merge driver that merges the catalog at the KEY level,
+so that class of collision does not happen. A genuine disagreement (= the same key, two
+different values) still conflicts, and the driver NAMES the key, so the resolution is
+about a string rather than a marker in a 6400-line file.
+
+Verified on this repo: the SAME two branches, each adding one distinct key, conflict
+without the driver (`merge-tree` rc=1) and merge cleanly with it (rc=0). The driver's
+test suite is `Tools/wenshu-devtool/tests/test_merge_xcstrings.sh`.
+
+The driver needs two local settings, and `Scripts/setup-dev-env.sh` installs both:
 
 ```bash
-~/.hermes/profiles/pocock/skills/wenshu/wenshu-parallel-dev/scripts/merge-preflight.sh --all
-~/.hermes/profiles/pocock/skills/wenshu/wenshu-parallel-dev/scripts/board-overlap.py
+git config merge.xcstrings.driver "python3 Scripts/merge-xcstrings.py %O %A %B"
+git config rerere.enabled true
 ```
 
-`merge-preflight.sh` is the read-only conflict check per branch. `board-overlap.py`
-lists the magnet files and the card pairs that share one, so those cards are
-serialized rather than landed in an arbitrary order.
+`.gitattributes` (tracked) carries the `*.xcstrings merge=xcstrings` rule; the two
+`git config` values are LOCAL (= `.git/config`, not committed), so a fresh clone
+installs them via `setup-dev-env.sh`. `rerere` records how a conflict was resolved once
+and replays it the next time the same conflict appears on the same file: the recurring
+magnets then cost one resolution per wave instead of one per card.
 
-`git rerere` is enabled for this repo (shared `.git/config`, so every worktree inherits
-it): a conflict resolved once is replayed automatically the next time the same conflict
-appears on the same file.
+## The wave's file ownership, checked before dispatch
+
+Two cards that write the same file cannot land in any order without a text conflict.
+The card body names every file the worker will touch, in SECTIONS (= WHAT TO BUILD vs
+MUST NOT CHANGE), so the collision is knowable before the wave starts:
+
+```bash
+python3 Tools/wenshu-devtool/wave_gate.py --plan
+python3 Tools/wenshu-devtool/wave_gate.py --live
+```
+
+It prints the magnet files, the colliding pairs, and the STALE must-not-change lists
+(= one card writes a file another card was told to leave, so the second card's list is
+already out of date when it lands). `--plan` prints the `hermes kanban link` order that
+serializes the collisions.
+
+Read the SECTIONS, not the raw body: a naive scan that counts every path mentioned
+over-reports 5x (90 of 153 card pairs, against 16 real ones), because a body mentions a
+file it will only READ and a rule it cites ("AGENTS.md §7.3").
 
 ## Fan-out
 
