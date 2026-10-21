@@ -132,7 +132,7 @@ that the padding has to sit INSIDE the height floor (`content -> frame(minHeight
 padding -> paint`) for the card to stay at 36 PT. The production card's content is taller
 than the floor leaves room for, so the two contracts cannot both hold as the code stands
 today. The next session to touch the card should start from that matrix; the probe and the
-numbers are in the `wenshu-visual-audit` skill (Pitfalls 51 to 55).
+numbers are in the `wenshu-visual-audit` skill (Pitfalls 65 to 69).
 
 ## 6. What the next session should know
 
@@ -150,6 +150,6 @@ numbers are in the `wenshu-visual-audit` skill (Pitfalls 51 to 55).
 ## 7. Skill updates
 
 `wenshu-visual-audit` gained the findings that were expensive to learn: the `open -n`
-launch trap (Pitfall 14), the `NSSegmentedControl` role table (24), the source-text
-assertion trap (18 and 49), the two-contradicting-contracts trap (51), the pinned-header
-overlap and its variant matrix (52, 54), and the key-window capture trap (53).
+launch trap (Pitfall 14), the `NSSegmentedControl` role table (30), the source-text
+assertion trap (59 and 60), the two-contradicting-contracts trap (65), the pinned-header
+overlap and its variant matrix (66, 68), and the key-window capture trap (67).
