@@ -165,6 +165,6 @@ not have to rediscover it.
 ## 7. Skill updates
 
 `wenshu-visual-audit` gained the findings that were expensive to learn: the `open -n`
-launch trap (Pitfall 14), the `NSSegmentedControl` role table (30), the source-text
+launch trap (Pitfall 71), the `NSSegmentedControl` role table (30), the source-text
 assertion trap (59 and 60), the two-contradicting-contracts trap (65), the pinned-header
 overlap and its variant matrix (66, 68), and the key-window capture trap (67).
