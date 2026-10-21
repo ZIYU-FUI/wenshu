@@ -60,8 +60,17 @@ if [[ "$KILL" -eq 1 ]]; then
     else
         echo "no pidfile at $PIDFILE"
     fi
-    # Belt + suspenders: kill anything bound to port /tmp/wenshu-selfshot
-    pkill -f "WS_SCREENSHOT" 2>/dev/null || true
+    # Belt + suspenders: stop a loop that is still capturing.
+    #
+    # The pattern is this tree's own executable, not the bare
+    # "WS_SCREENSHOT" environment-variable name. A bare name matches any
+    # process whose command line happens to contain it — including another
+    # session's wenshu that is mid-capture in its own tree. Several agents
+    # share this repo, so killing their capture is as damaging as killing
+    # their app.
+    pkill -f "$PROJECT_ROOT/build/Wenshu.app/Contents/MacOS/WenshuApp" 2>/dev/null || true
+    pkill -f "$PROJECT_ROOT/.build/release/WenshuApp" 2>/dev/null || true
+    pkill -f "$PROJECT_ROOT/.build/debug/WenshuApp" 2>/dev/null || true
     exit 0
 fi
 
@@ -73,8 +82,16 @@ if ! swift build 2>&1 | tail -5; then
 fi
 
 # Kill any prior wenshu process so the new binary actually launches.
-pkill -f "Wenshu.app/Contents/MacOS/Wenshu" 2>/dev/null || true
-pkill -f "swift run WenshuApp" 2>/dev/null || true
+#
+# The pattern is anchored to THIS tree's absolute path on purpose. A
+# loose pattern like "Wenshu.app/Contents/MacOS/Wenshu" matches every
+# build in the repo, because every tree's path ends that way — it would
+# kill the shared checkout's instance, every worktree's instance, and
+# other sessions' scratch builds. The repo runs several agents at once,
+# so a cross-tree kill destroys someone else's running app.
+pkill -f "$PROJECT_ROOT/build/Wenshu.app/Contents/MacOS/WenshuApp" 2>/dev/null || true
+pkill -f "$PROJECT_ROOT/.build/release/WenshuApp" 2>/dev/null || true
+pkill -f "$PROJECT_ROOT/.build/debug/WenshuApp" 2>/dev/null || true
 sleep 0.3
 
 # Build env

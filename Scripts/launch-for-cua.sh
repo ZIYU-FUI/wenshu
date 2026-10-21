@@ -17,8 +17,18 @@ if [ ! -x .build/release/WenshuApp ]; then
     swift build -c release
 fi
 
-echo "[launch] killing any existing wenshu instances..."
-pkill -f WenshuApp 2>/dev/null || true
+# Kill any prior wenshu instance belonging to THIS tree.
+#
+# The pattern is anchored to this tree's absolute path on purpose. A loose
+# pattern like "WenshuApp" matches every build in the repo, because every
+# tree's path ends that way — it would kill the shared checkout's instance,
+# every worktree's instance, and other sessions' scratch builds. The repo
+# runs several agents at once, so a cross-tree kill destroys someone
+# else's running app.
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+echo "[launch] killing this tree's existing wenshu instances..."
+pkill -f "$REPO_ROOT/build/Wenshu.app/Contents/MacOS/WenshuApp" 2>/dev/null || true
+pkill -f "$REPO_ROOT/.build/release/WenshuApp" 2>/dev/null || true
 sleep 1
 
 echo "[launch] starting wenshu release build in background..."

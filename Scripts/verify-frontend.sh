@@ -15,6 +15,14 @@
 set -u  # Fail on undefined variable. Do NOT use -e (= individual item
          # failures must not abort the script).
 
+# This tree's absolute path. Every "stop"/"activate" step in this script
+# targets a process by its FULL executable path under this root, so that
+# it touches this tree's wenshu and no other. The repo runs several agents
+# at once and every build in it has a path ending in
+# `build/Wenshu.app/Contents/MacOS/WenshuApp` — a pattern without this
+# prefix would match all of them.
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
 # --- Configuration -----------------------------------------------------------
 
 WENSHU_REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -96,12 +104,31 @@ if ! osascript -e 'tell application "System Events" to (exists process "Wenshu")
     name="${item%%|*}"
     echo "verify failed; boss must check manually" > "${SCREENSHOT_DIR}/${name}.FAILED.txt"
   done
-  osascript -e 'tell application "Wenshu" to quit' 2>/dev/null || true
+  # Quit this tree's wenshu only. An Apple Event (`tell application
+  # "Wenshu" to quit`) routes by bundle identifier, and every build in
+  # the repo ships the same one, so it would quit the shared checkout's
+  # instance, every worktree's instance, and other sessions' scratch
+  # builds as well. Signal the process instead.
+  pkill -f "$REPO_ROOT/build/Wenshu.app/Contents/MacOS/WenshuApp" 2>/dev/null || true
   exit 1
 fi
 
-# Bring wenshu.app to front.
-osascript -e 'tell application "Wenshu" to activate' 2>/dev/null || true
+# Bring THIS tree's wenshu to the front.
+#
+# `tell application "Wenshu" to activate` addresses the app by NAME, and
+# every build in the repo ships the same CFBundleIdentifier, so it
+# activates whichever instance macOS picks — possibly another tree's.
+# Address the process by its pid instead, which touches exactly one
+# instance and leaves the others running.
+log "Activating this tree's wenshu..."
+WENSHU_PID=$(pgrep -f "$REPO_ROOT/build/Wenshu.app/Contents/MacOS/WenshuApp" | head -1)
+if [ -n "$WENSHU_PID" ]; then
+  osascript -e "tell application \"System Events\" to set frontmost of (first application process whose unix id is $WENSHU_PID) to true" 2>/dev/null || true
+else
+  # No process matched — fall back to the path-qualified open, which at
+  # least launches the right bundle.
+  open -a "$REPO_ROOT/build/Wenshu.app" 2>/dev/null || true
+fi
 sleep 2
 
 # --- Verify items ------------------------------------------------------------
@@ -144,14 +171,22 @@ done
 
 # --- Cleanup ------------------------------------------------------------------
 
-log "Killing wenshu.app..."
-osascript -e 'tell application "Wenshu" to quit' 2>/dev/null || true
+# Quit THIS tree's wenshu, not every wenshu.
+#
+# `tell application "Wenshu" to quit` quits by APPLE EVENT, and Apple
+# Events route by bundle identifier — every build in the repo ships the
+# same CFBundleIdentifier (com.wenshu.app), so that one line quits the
+# shared checkout's instance, every worktree's instance, and other
+# sessions' scratch builds at the same time. Several agents share this
+# repo, so that destroys their running app.
+#
+# Signal the process directly instead, and only the one whose executable
+# path lives in this tree.
+log "Killing this tree's wenshu..."
+pkill -f "$REPO_ROOT/build/Wenshu.app/Contents/MacOS/WenshuApp" 2>/dev/null || true
+pkill -f "$REPO_ROOT/.build/release/WenshuApp" 2>/dev/null || true
+pkill -f "$REPO_ROOT/.build/debug/WenshuApp" 2>/dev/null || true
 sleep 1
-# Fallback: kill the process if AppleScript quit did not take.
-if osascript -e 'tell application "System Events" to (exists process "Wenshu")' 2>/dev/null | grep -q true; then
-  pkill -x "Wenshu" 2>/dev/null || true
-  sleep 1
-fi
 
 # --- Summary ------------------------------------------------------------------
 
