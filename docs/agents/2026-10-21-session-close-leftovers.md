@@ -231,4 +231,18 @@ raw translation key, and the inspector's empty state.
    Swift Testing set, 0 new in the XCTest set), and the recipe is in
    `wenshu-visual-audit/references/measuring-the-xctest-half.md`.
 
+5. *One name in the gate is a wall-clock flake, and it fails on the
+   baseline too.* `TodoStoreTool.execute() returns in under 5 seconds`
+   asserts that two concurrent tool calls finish inside a 5 second budget.
+   On this machine that budget is a coin flip under load: the BASELINE
+   passed it in 12.8 seconds, the loaded promptware run failed it in 8.6
+   seconds, and in isolation it passes in 0.042 seconds. The same name
+   appears in the baseline log, the main-without-the-change log, and both
+   promptware logs, so it is a property of the box, not of any change. The
+   rule that falls out of it: a wall-clock budget in a test is a flake
+   generator on a loaded machine, so a name that appears in the BASELINE
+   log is not evidence against a branch. Compare the failing SET, and
+   exclude a name that the baseline also produces.
+
+
 
