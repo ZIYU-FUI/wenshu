@@ -199,6 +199,29 @@ Read the SECTIONS, not the raw body: a naive scan that counts every path mention
 over-reports 5x (90 of 153 card pairs, against 16 real ones), because a body mentions a
 file it will only READ and a rule it cites ("AGENTS.md §7.3").
 
+The gate reads the card the way the card is written, which took four fixes:
+
+- `hermes kanban show` prints the body AND the comments AND the event log under the
+  same stream. Taking everything after `Body:` swept the comments in, so a comment that
+  named a file made the gate report that card as writing it. The body ends at
+  `Comments (N):`.
+- A path under `MUST NOT CHANGE` is not always forbidden. A card can list a file there
+  and still be told to add a row to it (= the nervous file index, which every card
+  appends to), so the classification is per BULLET and a bullet that grants a write
+  wins.
+- A path and the sentence that grants the write are two sentences of ONE bullet, so
+  the section is split into bullets, not sentences.
+- A cited rule is not a write. The pattern allows a closing backtick and a space
+  between the filename and the marker, and a decimal section number
+  ("`AGENTS.md` §7.3").
+
+The gate also reads `.gitattributes`, so a file with a merge driver is reported as
+"handled by a merge driver" instead of a collision to serialize: the driver merges it at
+the key level, so both cards keep their row. On the current board that moved 7 pairs
+(every xcstrings pair) out of the collision list.
+
+The gate's test suite is `Tools/wenshu-devtool/tests/test_wave_gate.py`.
+
 ### The gate reports; it does not block
 
 The gate is a report, not an interceptor, and that is a measured decision. Of the 26 card
