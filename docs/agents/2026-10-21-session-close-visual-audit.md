@@ -127,11 +127,20 @@ It is left open because it collides with a contract another card committed to `m
 meantime: `ChatSurfaceGeometryTests` requires the outgoing band to rest at the composer
 field's 36 PT, and the 36 PT floor cannot hold the card's own content AND a vertical
 padding. A variant matrix (one card chain per row, rendered through `ImageRenderer`) found
-that the reply is visible only when the card has BOTH a vertical padding and a paint, and
-that the padding has to sit INSIDE the height floor (`content -> frame(minHeight: 36) ->
-padding -> paint`) for the card to stay at 36 PT. The production card's content is taller
-than the floor leaves room for, so the two contracts cannot both hold as the code stands
-today. The next session to touch the card should start from that matrix; the probe and the
+that the reply is visible only when the card has BOTH a vertical padding and a paint.
+
+Both orders of the padding were then tried against the PRODUCTION card, and both fail one
+of the two contracts:
+
+| production chain | the card's height | the crop test | the 36 PT contract |
+| ----------------- | ----------------- | ------------- | ------------------ |
+| `padding -> frame(minHeight: 36) -> paint` | 42 PT | passes | FAILS (= 42, not 36) |
+| `frame(minHeight: 36) -> padding -> paint` | 48 PT | passes | FAILS (= 48, not 36) |
+| no vertical padding | 36 PT | FAILS | passes |
+
+So the two contracts are mutually exclusive on the production card (= its content is
+taller than the 36 PT floor leaves room for), and the order of the padding is NOT the
+lever. The next session to touch the card should start from that matrix; the probe and the
 numbers are in the `wenshu-visual-audit` skill (Pitfalls 65 to 69).
 
 **Handed over, not abandoned.** The boss reported that another session has already
