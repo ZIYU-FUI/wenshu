@@ -136,6 +136,51 @@ def last_version_with_the_table() -> str | None:
     return None
 
 
+RULE_1_7 = (
+    "| 1.7 | Nervous file index (NFI) registration: every extracted/added file "
+    "(god-class split, scope views, helper namespace) MUST be registered in "
+    "`docs/agents/nfi.md` with parent ref + LOC + content tag. Discoverability "
+    "< 5s by name. | Manual. |"
+)
+RULE_1_11 = (
+    "| 1.11 | NFI (nervous file index) = `docs/agents/nfi.md`. Lists every file "
+    "split from a god-class or extracted to its own file via A55+ arcs. Each row: "
+    "parent file, current LOC, content tag. The next reader finds the file by "
+    "concern in < 5s. | Manual. |"
+)
+INDEX_ROW = (
+    "| Nervous file index (NFI) | "
+    "/Volumes/ANAN/Engineering/wenshu/docs/agents/nfi.md |"
+)
+
+
+def update_rules(text: str) -> str:
+    """Point the rules that named the table at its new home.
+
+    A split that moves the table but leaves rule 1.7 saying "in this section"
+    sends the next worker to the wrong file, so the rules move with it.
+    """
+    out = []
+    for line in text.split("\n"):
+        if line.startswith("| 1.7 |"):
+            out.append(RULE_1_7)
+            continue
+        if line.startswith("| 1.11 |"):
+            out.append(RULE_1_11)
+            continue
+        out.append(line)
+    joined = "\n".join(out)
+    if "docs/agents/nfi.md |" not in joined:
+        # Add the reference-index row after the parallel-dev row.
+        lines = joined.split("\n")
+        for i, line in enumerate(lines):
+            if line.startswith("| Parallel dev convention"):
+                lines.insert(i + 1, INDEX_ROW)
+                break
+        joined = "\n".join(lines)
+    return joined
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--check", action="store_true", help="verify the split, change nothing")
@@ -177,6 +222,18 @@ def main() -> int:
             ok = False
         else:
             print("      AGENTS.md carries the pointer, not the table")
+        for rule in ("1.7", "1.11"):
+            line = next((l for l in text.split("\n") if l.startswith(f"| {rule} |")), "")
+            if "docs/agents/nfi.md" not in line:
+                print(f"FAIL  rule {rule} still points at the old home")
+                ok = False
+            else:
+                print(f"      rule {rule} points at the registry")
+        if "| Nervous file index (NFI) |" not in text:
+            print("FAIL  the §9 reference index has no NFI row")
+            ok = False
+        else:
+            print("      the §9 reference index lists the registry")
         if "docs/agents/nfi.md merge=nfi-registry" not in (REPO / ".gitattributes").read_text(encoding="utf-8"):
             print("FAIL  .gitattributes has no key-level rule for the registry")
             ok = False
@@ -197,12 +254,13 @@ def main() -> int:
 
     nfi_text = HEADER + rows + "\n" + FOOTER
     new_agents = before + pointer_section() + after
+    new_agents = update_rules(new_agents)
 
     NFI.parent.mkdir(parents=True, exist_ok=True)
     NFI.write_text(nfi_text, encoding="utf-8")
     AGENTS.write_text(new_agents, encoding="utf-8")
     print(f"wrote {NFI.relative_to(REPO)} ({len(rows.split(chr(10)))} rows)")
-    print(f"wrote {AGENTS.relative_to(REPO)} (pointer)")
+    print(f"wrote {AGENTS.relative_to(REPO)} (pointer + rules)")
     return 0
 
 

@@ -46,11 +46,11 @@ Single source of truth for every wenshu contributor and every AI agent acting on
 | 1.4 | Forbidden xianxia vocabulary (replace with 修 / 改 / fix / 替换 / 调整): 修真 / 渡劫 / 筑基 / 返虚 / 结丹 / 金丹 / 元婴 / 飞升 / 天劫 / 雷劫 / 心魔 / 魔障. | wenshu-pollution-defense. |
 | 1.5 | Comment policy: engineering intent only. Forbidden: boss directive text, ticket IDs, Q-numbers, version narratives, phase numbering, refactor history, follow-up chains, ticket lineage. | wenshu-comment-policy. |
 | 1.6 | OOB references in code: only (see OOB.md #YYYY-MM-DD). Never directive text inline. | Manual. |
-| 1.7 | Nervous file index (NFI) registration: every extracted/added file (god-class split, scope views, helper namespace) MUST be registered in this section with parent ref + LOC + content tag. Discoverability < 5s by name. | Manual. |
+| 1.7 | Nervous file index (NFI) registration: every extracted/added file (god-class split, scope views, helper namespace) MUST be registered in `docs/agents/nfi.md` with parent ref + LOC + content tag. Discoverability < 5s by name. | Manual. |
 | 1.8 | High information density. One line per argument. No narrative paragraphs. | wenshu-humanizer-voice. |
 | 1.9 | Auto-load wenshu-pocock-workflow on every wenshu turn (forced via .hermes.md at repo root). | Path-enforced. |
 | 1.10 | One ticket = one commit + one atomic verification + one 4-section business-language spec + one dual-axis dispatch + one P0 fix + one verify round + merge gate. | universal-pocock-workflow. |
-| 1.11 | NFI (nervous file index) = this section's table. Lists every file split from a god-class or extracted to its own file via A55+ arcs. Each row: parent file, current LOC, content tag. The next reader finds the file by concern in < 5s. | Manual. |
+| 1.11 | NFI (nervous file index) = `docs/agents/nfi.md`. Lists every file split from a god-class or extracted to its own file via A55+ arcs. Each row: parent file, current LOC, content tag. The next reader finds the file by concern in < 5s. | Manual. |
 | 1.12 | Parallel worktree isolation: every code-changing ticket runs in its own git worktree, never in the shared checkout. Create it as a kanban board card (`--assignee wenshu-dev --workspace worktree --project project`, board `wenshu-par`). `delegate_task` is read-only fan-out here: its children inherit the parent shell cwd, so a relative write lands in the shared checkout. | wenshu-parallel-dev. |
 
 ### §1.11 Nervous file index (NFI)
@@ -179,6 +179,7 @@ Register a new row there, not here. The rule is unchanged.
 | Design system rule (SFIcon, DesignTokens, 9-grep sweep) | ~/.hermes/profiles/pocock/skills/wenshu-pocock-workflow/references/v3.0-design-system-rule.md |
 | Iron rules audit (41 Apple HIG + Swift rules) | ~/.hermes/profiles/pocock/skills/wenshu-iron-rules-audit/SKILL.md |
 | Parallel dev convention (worktree board cards) | ~/.hermes/profiles/pocock/skills/wenshu-parallel-dev/SKILL.md |
+| Nervous file index (NFI) | /Volumes/ANAN/Engineering/wenshu/docs/agents/nfi.md |
 | OOB index (boss directives, dev-time only) | /Volumes/ANAN/Engineering/wenshu/OOB.md |
 | Domain glossary | /Volumes/ANAN/Engineering/wenshu/docs/agents/domain.md |
 | ADRs (architecture decision records) | /Volumes/ANAN/Engineering/wenshu/docs/adr/0000-0015 |
