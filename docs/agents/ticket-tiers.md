@@ -11,7 +11,7 @@ a gate the card gets.
 | Tier | Means | Runtime cap | Retry budget | Body budget | Gate |
 | ---- | ----- | ----------- | ------------ | ----------- | ---- |
 | T1 | trivial | 15m | 2 | 4000 chars | `swift build` + ONE filtered suite that owns the touched file |
-| T2 | standard | 25m | 3 | 10000 chars | `swift build` + a filtered suite per touched area; a baseline compare only where the baseline is red |
+| T2 | standard | 30m | 3 | 10000 chars | `swift build` + a filtered suite per touched area; a baseline compare only where the baseline is red |
 | T3 | deep | 45m | 4 | 32000 chars | the full gate set, incl. a red-baseline comparison and a visual proof |
 
 Read the contract with the tool:
@@ -63,24 +63,25 @@ Measured on board `wenshu-par` over 41 done cards, 2026-10-22.
 
 **The time went into repeated attempts, not into verification.**
 
-- 34.4 h of worker time. 6.9 h (20%) sat in a run that finished. The other
-  27.5 h (80%) sat in runs that timed out, were reclaimed, or crashed.
+- 35.7 h of worker time across 43 cards. 6.5 h (18%) sat in a run that
+  finished. The other 29.2 h (82%) sat in runs that timed out, were
+  reclaimed, or crashed, and the cards averaged 2.93 runs each.
 - The gates are cheap. An incremental `swift build` is 0.73 s, the full suite
   is 66 s, `Tools/devtool/double-axis.sh` is 0.36 s. None of them explains
-  27.5 h.
-- 46 runs hit the 30-minute cap and were killed. A card that times out is not
-  slow, it is mis-sized: the cap did not match the work, so the worker spent
-  the whole budget and the card was re-dispatched to spend it again.
+  29.2 h.
+- 37 runs hit the 30-minute cap and were killed, with a median of 30.3 m. A
+  card that times out is not slow, it is mis-sized: the cap did not match the
+  work, so the worker spent the whole budget and the card was re-dispatched
+  to spend it again.
 - The worst card burned 11 runs and 153.7 m. It had a 45m cap, and it used it
   five times over.
 
-**Two signals separate the work from the prose.**
-
-- A body demanding a red-baseline comparison averaged 83.1 m over 4.00 runs
-  against 52.4 m over 2.97 runs for a body that does not. This is measured
-  WITHIN one tier, so it is not a proxy for the work size.
-- A body naming a runtime surface is a card that cannot be proven by a build
-  alone, and it belongs in T3 whatever its file count.
+**The gate width separates the work from the prose, and it is measurable
+inside one tier.** A T3 card whose body asks for a red-baseline comparison
+averaged 65.7 m over 3.44 runs; a T3 card whose body names a narrow gate
+averaged 46.4 m over 2.60 runs, and one that names no gate at all averaged
+17.6 m over 2.00 runs. Same tier, same cap, same reviewer: the difference is
+the gate the body asked for.
 
 **A body that names its gate narrowly is a card that lands.** The cards on the
 board already written to the tier spec (a short body, one filtered suite)
@@ -98,7 +99,7 @@ tier, so a card doing the work never loses to its own cap:
 | Tier | Longest successful run measured | Cap | Headroom |
 | ---- | ------------------------------ | --- | -------- |
 | T1 | 10.5 m | 15m | 1.43x |
-| T2 | 16.0 m | 25m | 1.56x |
+| T2 | 26.2 m | 30m | 1.15x |
 | T3 | 39.2 m | 45m | 1.15x |
 
 A cap that is too small does not save time, it moves the work to a human.
@@ -121,13 +122,15 @@ Note the breaker counts only `timed_out`, `crashed` and `spawn_failed`. A
 ## What the tier is worth
 
 Replayed against every historical card, the tier contract (cap + retry budget)
-alone accounts for about 6% of the 42.7 h the board has spent, and blocks no
-real work.
+alone accounts for about 3% of the 43.0 h the board has spent, and blocks no
+card that used to land.
 
 The larger saving is the one the tier enables rather than enforces: a card
-authored to its tier's spec carries a narrow gate, and a narrow gate is what
-the 83.1 m-vs-52.4 m gap measures. The tool reports the gate width a card
-brought, so the parent agent can see the expensive shape before dispatching.
+authored to its tier's spec carries a narrow gate, and the narrow-vs-wide gap
+inside one tier (46.4 m over 2.60 runs against 65.7 m over 3.44 runs in T3) is
+what the tier is for. The tool reports the gate width a card brought, so the
+parent agent can see the expensive shape before dispatching, and it rejects a
+T1 card that asks for the whole suite.
 
 ## Dispatching a card
 

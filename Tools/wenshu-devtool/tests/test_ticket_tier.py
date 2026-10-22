@@ -332,6 +332,58 @@ Fix the one source file.
 
 """ + ("The worker should keep the existing behaviour in every other file.\n" * 200)
 
+# A card that FORBIDS a file is not doing that file's work. Measured on board
+# wenshu-par: 15 of 47 cards name Package.swift and 13 of them do it to
+# forbid it, and 20 more name the string catalog. A tier that reads the whole
+# body called 24 cards package-boundary work, so the tier reads the SECTIONS.
+FORBIDDEN_PACKAGE = """## GOAL
+
+Show the stored cover picture on the card.
+
+## WHAT TO BUILD
+
+- `Sources/WenshuApp/Features/Cover/View/CoverView.swift`
+
+## MUST NOT CHANGE
+
+- `Package.swift` — no new dependency.
+
+## GATES
+
+`swift test --filter CoverViewTests` exits 0.
+"""
+
+FORBIDDEN_CATALOG = """## GOAL
+
+Delete the keys no screen asks for.
+
+## WHAT TO BUILD
+
+- `Sources/WenshuApp/Features/Cover/Service/CoverImageGenerator.swift`
+
+## MUST NOT CHANGE
+
+- `Sources/WenshuApp/Resources/Localizable.xcstrings` — no new strings.
+
+## GATES
+
+`swift test --filter CoverImageGeneratorTests` exits 0.
+"""
+
+WRITES_PACKAGE = """## GOAL
+
+Move the tool contract into the agent package.
+
+## WHAT TO BUILD
+
+- `Sources/WenshuAgent/Sources/WenshuAgent/Public/WenshuAgent.swift`
+- `Package.swift` — the target list changes with it.
+
+## GATES
+
+`swift test --filter WenshuAgentTests` exits 0.
+"""
+
 
 def main() -> int:
     tool = load_tool()
@@ -354,7 +406,7 @@ def main() -> int:
     # 5. A cited rule is not a file the card writes.
     check(
         "cited rule is not a written file",
-        tool.written_files(CITED_ONLY),
+        sorted(tool.work_scope(CITED_ONLY)[0]),
         ["Sources/WenshuApp/Features/Editor/View/EditorView.swift"],
     )
 
@@ -450,7 +502,7 @@ def main() -> int:
 
     # 12. Every tier's cap must cover the longest successful run measured in
     #     that tier, or the cap kills work that would have finished.
-    measured_max = {"T1": 10.5, "T2": 16.0, "T3": 39.2}
+    measured_max = {"T1": 10.5, "T2": 26.2, "T3": 39.2}
     for tier, longest in measured_max.items():
         check(
             f"{tier} cap covers its measured longest successful run",
@@ -489,7 +541,7 @@ def main() -> int:
         "`swift test` shows no NEW failing test versus the baseline.",
     )
     t2_wide["title"] = "[T2] two files"
-    t2_wide["max_runtime_seconds"] = 1500
+    t2_wide["max_runtime_seconds"] = 1800
     check(
         "a T2 wide gate is noted, not rejected",
         any("red-baseline" in f for f in tool.find_errors(t2_wide)),
@@ -499,6 +551,37 @@ def main() -> int:
         "a T2 wide gate is not an error",
         any(f.startswith("title") or f.startswith("runtime") for f in tool.find_errors(t2_wide)),
         False,
+    )
+
+    # 16. A card that FORBIDS a file is not doing that file's work. This is
+    #     the measured false positive: 13 of the 15 cards that name
+    #     Package.swift do it to forbid it, and a tier that read the whole
+    #     body called 24 cards package-boundary work.
+    check(
+        "a forbidden Package.swift is not a package boundary",
+        tool.signals(FORBIDDEN_PACKAGE)["package_boundary"],
+        False,
+    )
+    check(
+        "a forbidden Package.swift is a forbidden file",
+        "Package.swift" in tool.work_scope(FORBIDDEN_PACKAGE)[1],
+        True,
+    )
+    check(
+        "a forbidden catalog is not a catalog rewrite",
+        tool.signals(FORBIDDEN_CATALOG)["catalog"],
+        False,
+    )
+    check(
+        "a card that WRITES Package.swift is a package boundary",
+        tool.signals(WRITES_PACKAGE)["package_boundary"],
+        True,
+    )
+    check("a card that writes Package.swift = T3", tier_of_body(tool, WRITES_PACKAGE), "T3")
+    check(
+        "a forbidden Package.swift does not force T3",
+        tool.tier_of(FORBIDDEN_PACKAGE)[0],
+        "T1",
     )
 
     print()

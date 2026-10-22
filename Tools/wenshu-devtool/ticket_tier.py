@@ -17,9 +17,9 @@ The tier sets four things and nothing else:
 
 WHY THIS EXISTS (measured on board wenshu-par, 41 done cards, 2026-10-22):
 
-  34.4 h of worker time, of which 6.9 h (20%) sat in a run that FINISHED. The
-  other 27.5 h (80%) sat in runs that timed out, were reclaimed, or crashed, and
-  the cards averaged 2.6 runs each. The gates themselves are cheap: an
+  35.7 h of worker time, of which 6.5 h (18%) sat in a run that FINISHED. The
+  other 29.2 h (82%) sat in runs that timed out, were reclaimed, or crashed, and
+  the cards averaged 2.93 runs each. The gates themselves are cheap: an
   incremental `swift build` is 0.73 s, the full suite is 66 s, double-axis.sh
   is 0.36 s. The hours went into REPEATED attempts, not into verification.
 
@@ -30,9 +30,9 @@ WHY THIS EXISTS (measured on board wenshu-par, 41 done cards, 2026-10-22):
   it again.
 
   Two measured signals separate the work from the prose:
-    - a body demanding a red-baseline comparison averages 83.1 m over 4.00
-      runs, against 52.4 m over 2.97 runs for a body that does not, WITHIN the
-      same tier;
+    - inside one tier, a body demanding a red-baseline comparison averages
+      65.7 m over 3.44 runs, against 46.4 m over 2.60 runs for a body
+      naming a narrow gate;
     - a body naming a runtime surface (= AppKit, AX census, a screenshot, a
       launch) is a card that cannot be proven by a build alone.
 
@@ -74,7 +74,7 @@ REPO = "/Volumes/ANAN/Engineering/wenshu"
 #
 #   tier  successful runs (m)          cap    headroom
 #   T1    max 10.5                      15m    1.43x
-#   T2    max 16.0                      25m    1.56x
+#   T2    max 26.2                      30m    1.15x
 #   T3    p50 20.3, p75 26.2, max 39.2  45m    1.15x on the max
 #
 # The retry budget is the board's --max-retries, which trips the breaker when
@@ -87,7 +87,9 @@ REPO = "/Volumes/ANAN/Engineering/wenshu"
 # A cap that is too small does not save time, it moves the work to a human:
 # replayed, a 25m T3 cap blocked 7 cards that used to land, and a 30m T3 cap
 # blocked 2. So T3's cap stays above its measured maximum, and the fast lane
-# takes its time out of the GATE, not out of the cap.
+# takes its time out of the GATE, not out of the cap. The same rule set T2's
+# cap at 30m: a 25m T2 cap blocked the one card whose successful run took
+# 26.2 m.
 TIERS = {
     "T1": {
         "label": "trivial",
@@ -99,8 +101,8 @@ TIERS = {
     },
     "T2": {
         "label": "standard",
-        "runtime": 1500,
-        "runtime_text": "25m",
+        "runtime": 1800,
+        "runtime_text": "30m",
         "retries": 3,
         "body_max": 10000,
         "gate": "swift build + a filtered suite per touched area; baseline compare only where the baseline is red",
@@ -160,8 +162,9 @@ CATALOG_RE = re.compile(r"\.xcstrings$|\.lproj/|Info\.plist$", re.I)
 MANIFEST_RE = re.compile(r"^Package\.swift$")
 
 # The expensive gate form. A card that DEMANDS a red-baseline comparison, or
-# the whole suite, pays for it: measured, such a card averages 83.1 m over
-# 4.00 runs against 52.4 m over 2.97 for one that does not, inside one tier.
+# the whole suite, pays for it: measured, inside one tier, such a card
+# averages 65.7 m over 3.44 runs against 46.4 m over 2.60 for one naming a
+# narrow gate.
 BASELINE_DEMAND_RE = re.compile(
     r"versus the baseline|against the baseline|compared to the baseline"
     r"|no NEW failing test",
@@ -169,11 +172,66 @@ BASELINE_DEMAND_RE = re.compile(
 )
 FULL_SUITE_RE = re.compile(r"\bswift test\b(?![^\n]*--filter)")
 
-# Sections whose paths are files the card must NOT touch.
-EXCLUSION_SECTIONS = wave_gate.EXCLUSION_SECTIONS | {
-    "DO NOT CHANGE",
-    "OUT OF SCOPE",
+# Sections whose paths are files the card must NOT touch. Matched on the
+# NORMALIZED heading, so "MUST NOT CHANGE" and "Must not change" are one
+# section.
+EXCLUSION_SECTIONS = {
+    "must not change",
+    "do not touch the app",
+    "do not touch",
+    "must not reintroduce",
+    "files to leave alone",
+    "do not change",
+    "out of scope",
 }
+
+
+def _heading(line: str) -> str | None:
+    """The section heading a line opens, or None if the line is content."""
+    stripped = line.strip()
+    if not stripped:
+        return None
+    match = re.match(r"^#{1,3}\s+(.+?)\s*$", stripped)
+    if match:
+        text = match.group(1).strip()
+        return text if 2 <= len(text) <= 45 else None
+    # A bare ALL-CAPS line is a header too ("GOAL", "GATES:").
+    if re.match(r"^[A-Z][A-Z0-9 /()\-]{2,45}$", stripped):
+        return stripped.rstrip(":").strip()
+    return None
+
+
+def sections(body: str) -> list[tuple[str, str]]:
+    """Split a card body into (heading, text), keeping the preamble.
+
+    wave_gate.sections() drops everything before the first ALL-CAPS header,
+    and that text is where a card that writes its headings in Title Case puts
+    its whole specification. Measured: the board's headings come in both
+    cases (= "GATES" 9 times, "Acceptance" 9 times, "Must not change" twice),
+    and one card that MOVES a file across the app boundary opens with
+    "## What changes"; wave_gate's splitter read that card as a card with no
+    files at all, and a tier built on it rated a file move T1.
+    """
+    out: list[tuple[str, str]] = []
+    name = ""
+    lines: list[str] = []
+    for line in body.split("\n"):
+        heading = _heading(line)
+        if heading is None:
+            lines.append(line)
+            continue
+        if lines:
+            out.append((name, "\n".join(lines)))
+        name = heading
+        lines = [line]
+    if lines:
+        out.append((name, "\n".join(lines)))
+    return out
+
+
+def _is_exclusion(name: str) -> bool:
+    """Whether a section's paths are files the card must NOT touch."""
+    return name.strip().rstrip(":").lower() in EXCLUSION_SECTIONS
 
 
 def work_scope(body: str) -> tuple[set[str], set[str]]:
@@ -189,9 +247,9 @@ def work_scope(body: str) -> tuple[set[str], set[str]]:
     """
     written: set[str] = set()
     forbidden: set[str] = set()
-    for name, text in wave_gate.sections(body):
+    for name, text in sections(body):
         stripped = wave_gate.CITATION_RE.sub("", text)
-        if name not in EXCLUSION_SECTIONS:
+        if not _is_exclusion(name):
             written |= set(wave_gate.PATH_RE.findall(stripped))
             continue
         for bullet in wave_gate._bullets(stripped):
@@ -212,9 +270,7 @@ def work_text(body: str) -> str:
     saying "no persistence change here" in its MUST NOT CHANGE list does
     not read as a persistence card.
     """
-    return "\n".join(
-        text for name, text in wave_gate.sections(body) if name not in EXCLUSION_SECTIONS
-    )
+    return "\n".join(text for name, text in sections(body) if not _is_exclusion(name))
 
 
 def code_volume(body: str) -> int:
@@ -300,9 +356,9 @@ def tier_of(body: str) -> tuple[str, list[str]]:
 def gate_width(body: str) -> str:
     """The gate the body asks for: "narrow", "wide", or "unstated".
 
-    This is the lever that carries the time, not the cap. Measured: a body
-    asking for a red-baseline comparison averaged 83.1 m over 4.00 runs
-    against 52.4 m over 2.97 runs for a body that does not, INSIDE one tier.
+    This is the lever that carries the time, not the cap. Measured, INSIDE
+    one tier: a body asking for a red-baseline comparison averaged 65.7 m
+    over 3.44 runs against 46.4 m over 2.60 for one naming a narrow gate.
     A narrow body carries a narrow gate, so the tier's gate is the body's
     gate, and this reads which one the card brought.
     """
@@ -356,7 +412,8 @@ def find_errors(card: dict) -> list[str]:
     elif tier == "T2" and BASELINE_DEMAND_RE.search(body):
         notes.append(
             "T2 demands a red-baseline comparison; the measured cost of that "
-            "demand is 83.1 m over 4.00 runs against 52.4 m over 2.97"
+            "demand, inside one tier, is 65.7 m over 3.44 runs against "
+            "46.4 m over 2.60 for a narrow gate"
         )
 
     return errors + notes

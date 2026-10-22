@@ -64,7 +64,7 @@ hermes kanban create "[<tier>] <ticket title>" \
 | Tier | Cap | Retries | Body budget | Gate |
 | ---- | --- | ------- | ----------- | ---- |
 | T1 | 15m | 2 | 4000 chars | build + ONE filtered suite |
-| T2 | 25m | 3 | 10000 chars | build + a filtered suite per touched area |
+| T2 | 30m | 3 | 10000 chars | build + a filtered suite per touched area |
 | T3 | 45m | 4 | 32000 chars | the full gate set |
 
 `--workspace worktree` is what makes the task isolated. `--project project` anchors the
