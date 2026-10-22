@@ -21,7 +21,63 @@ struct AssetsPane: View {
     // fallback in `openCardInEditor`).
     @Environment(BookStore.self) private var envBookStore
 
+    /// The batch that makes covers for the documents that lack one.
+    @State private var coverBatchService = CoverBatchService.live()
+
+    /// Whether a batch is running right now.
+    @State private var isBatchRunning = false
+
     private var bookStore: BookStore? { envBookStore }
+
+    /// Starts the cover batch.
+    ///
+    /// The batch covers every document in the library that lacks a
+    /// cover. It runs ONE document at a time (= the image allowance
+    /// is large but not unlimited, and a burst would spend it on
+    /// documents the user may not care about), and it can be stopped.
+    private func startCoverBatch() {
+        let service = coverBatchService
+        isBatchRunning = true
+        Task { @MainActor in
+            await service.run(for: coverBatchItems())
+            isBatchRunning = false
+        }
+    }
+
+    /// The documents the batch covers.
+    ///
+    /// Every reference and every book doc in the library. The batch
+    /// itself skips the ones that already have a cover, so this is
+    /// the whole set.
+    private func coverBatchItems() -> [CoverBatchItem] {
+        guard let bookStore else { return [] }
+        let references = (try? bookStore.loadAllReferences()) ?? []
+        let referenceItems = references.map { reference in
+            CoverBatchItem(
+                target: .reference(reference.id),
+                subject: "\(reference.title). \(reference.summary)",
+                createdAt: reference.createdAt
+            )
+        }
+        // The book docs come from the shelves walk, the same way the
+        // grid gets them.
+        var bookItems: [CoverBatchItem] = []
+        for book in bookStore.books {
+            let docs = PreviewPaneOps.loadBookDocs(
+                bookStore: bookStore,
+                bookId: book.id,
+                folderName: nil
+            ).docs
+            bookItems += docs.map { doc in
+                CoverBatchItem(
+                    target: .bookDoc(doc.id),
+                    subject: "\(doc.title). \(doc.summary)",
+                    createdAt: doc.createdAt
+                )
+            }
+        }
+        return referenceItems + bookItems
+    }
 
     // `previewSortOrder` lives in `envAppState.previewSortOrder`
     // … (= 16 rationale lines collapsed; = A112 docblock collapse per §1.8)
@@ -229,6 +285,30 @@ struct AssetsPane: View {
                         .font(.callout)
                         .foregroundStyle(.secondary)
                         .monospacedDigit()
+                        Spacer()
+                        // The batch action (= the STOCK half of the
+                        // user's rule: = the documents that are already
+                        // in the library get their covers when the
+                        // user asks, in one action, here).
+                        //
+                        // It covers every document that lacks a cover,
+                        // rather than a selection: the pane has no
+                        // multi-select, and adding one for this would
+                        // change the pane's selection model for a
+                        // feature the user did not ask for.
+                        //
+                        // The documents that arrive LATER get their
+                        // covers on their own (= the automatic pass,
+                        // = a settings switch).
+                        if isBatchRunning {
+                            Button(String(localized: "cover.action.stop")) {
+                                coverBatchService.stop()
+                            }
+                        } else {
+                            Button(String(localized: "cover.action.makeAll")) {
+                                startCoverBatch()
+                            }
+                        }
                     }
                 }
             }

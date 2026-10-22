@@ -39,6 +39,12 @@ struct CoverSettingsView: View {
     /// The video route.
     @State private var videoRoute = CoverServiceRoute.auto(for: .video)
 
+    /// Whether new documents get a cover on their own.
+    @State private var isAutoCoverEnabled = false
+
+    /// Where the automatic-cover switch lives.
+    private let autoStore = CoverAutoCoverStore()
+
     /// The provider slugs the user can pick from.
     private var providerSlugs: [String] {
         Provider.all.map(\.slug)
@@ -46,6 +52,22 @@ struct CoverSettingsView: View {
 
     var body: some View {
         Form {
+            Section {
+                Toggle(
+                    String(localized: "settings.covers.autoGenerate"),
+                    isOn: $isAutoCoverEnabled
+                )
+            } footer: {
+                // The switch is a MOMENT, not a flag: turning it on
+                // stamps the time, and the documents that are already
+                // in the library stay with the batch.
+                Text(String(localized: "settings.covers.autoGenerateCaption"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
             Section {
                 CoverRouteRow(
                     kind: .image,
@@ -85,12 +107,22 @@ struct CoverSettingsView: View {
         .onAppear(perform: load)
         .onChange(of: imageRoute) { _, _ in store.imageRoute = imageRoute }
         .onChange(of: videoRoute) { _, _ in store.videoRoute = videoRoute }
+        .onChange(of: isAutoCoverEnabled) { _, isOn in
+            // Turning the switch ON stamps the moment, so the
+            // documents already in the library stay with the batch.
+            if isOn {
+                autoStore.enable()
+            } else {
+                autoStore.disable()
+            }
+        }
     }
 
-    /// Reads both routes back.
+    /// Reads both routes and the switch back.
     private func load() {
         imageRoute = store.imageRoute
         videoRoute = store.videoRoute
+        isAutoCoverEnabled = autoStore.policy.isEnabled
     }
 }
 

@@ -1,0 +1,124 @@
+//
+//  Features/Cover/Service/CoverBatchService.swift
+//
+//   : CoverBatchService.
+//  Makes covers for many documents, one at a time.
+//
+//  The batch is a DELIBERATE act. The user has a library with
+//  hundreds of documents and does not want to click each one, so they
+//  start a run and stop it when they want.
+//
+//  Three rules:
+//
+//  - ONE document at a time, never a burst. A burst of twenty
+//    parallel requests would burn the image allowance and hit rate
+//    limits, and the user could not stop it.
+//  - A document that already has a cover is SKIPPED, and a document
+//    whose last attempt failed is RETRIED on the next run, so a
+//    failure does not skip a document forever.
+//  - The batch makes NO VIDEOS. It covers documents with still
+//    pictures only. The video allowance is a handful of clips a day
+//    and only the user may spend it.
+//
+
+import Foundation
+import SwiftData
+import WenshuData
+import os
+
+private let coverBatchLogger = Logger(subsystem: "com.wenshu", category: "coverbatch")
+
+/// A document in a batch run.
+struct CoverBatchItem: Equatable, Sendable {
+    /// The card the cover belongs to.
+    let target: CardCoverTarget
+    /// What the picture should show.
+    let subject: String
+    /// When the document was created (= the policy's input).
+    let createdAt: Date
+}
+
+/// How far a batch run has got.
+struct CoverBatchProgress: Equatable, Sendable {
+    /// How many documents the run was given.
+    var total: Int = 0
+    /// How many have a cover now.
+    var completed: Int = 0
+    /// How many were skipped (= they already had a cover).
+    var skipped: Int = 0
+    /// How many failed.
+    var failed: Int = 0
+    /// Whether the user asked to stop.
+    var isStopped: Bool = false
+}
+
+/// Makes covers for many documents, one at a time.
+@MainActor
+final class CoverBatchService {
+
+    /// The service that draws one cover.
+    private let generationService: CoverGenerationService
+
+    /// The cover store.
+    private let coverService: CardCoverService
+
+    /// Whether the user asked to stop.
+    private var isStopped = false
+
+    /// The progress, for the UI to show.
+    private(set) var progress = CoverBatchProgress()
+
+    init(modelContext: ModelContext, generationService: CoverGenerationService? = nil) {
+        self.coverService = CardCoverService(modelContext: modelContext)
+        self.generationService = generationService ?? CoverGenerationService(modelContext: modelContext)
+    }
+
+    /// The service over the library the app is running on.
+    static func live() -> CoverBatchService {
+        CoverBatchService(modelContext: WSPersistenceContainer.current.mainContext)
+    }
+
+    /// Asks the run to stop.
+    ///
+    /// The stop takes effect at the next DOCUMENT boundary, never
+    /// mid-generation: a half-made cover is worse than a slow stop.
+    func stop() {
+        isStopped = true
+        progress.isStopped = true
+    }
+
+    /// Runs the batch.
+    ///
+    /// - Parameter items: the documents to cover.
+    func run(for items: [CoverBatchItem]) async {
+        isStopped = false
+        progress = CoverBatchProgress(total: items.count)
+
+        for item in items {
+            if isStopped { break }
+
+            // A document that already has a cover is skipped, so the
+            // run does not spend the allowance on work already done.
+            if coverService.row(forKey: item.target.coverKey) != nil {
+                progress.skipped += 1
+                continue
+            }
+
+            await generationService.generateCover(
+                for: item.target,
+                subject: item.subject
+            )
+
+            // The generation either stored a cover or it did not.
+            if coverService.row(forKey: item.target.coverKey) != nil {
+                progress.completed += 1
+            } else {
+                progress.failed += 1
+            }
+        }
+
+        coverBatchLogger.info(
+            "[wenshu.cover] batch finished completed=\(self.progress.completed) skipped=\(self.progress.skipped) failed=\(self.progress.failed)"
+        )
+    }
+}

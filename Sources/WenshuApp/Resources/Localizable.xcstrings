@@ -5782,6 +5782,74 @@
         }
       }
     },
+    "settings.covers.autoGenerate": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Generate card covers automatically"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自动生成卡片封面"
+          }
+        }
+      }
+    },
+    "settings.covers.autoGenerateCaption": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A document that appears after this is turned on gets a cover on its own. The documents that are already here use the batch action in the material zone."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开启后新出现的文档会自动获得封面。已经存在的文档请使用素材区的批量生成功能。"
+          }
+        }
+      }
+    },
+    "cover.action.makeAll": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Make covers for the documents without one"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "为没有封面的文档生成封面"
+          }
+        }
+      }
+    },
+    "cover.action.stop": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止"
+          }
+        }
+      }
+    },
     "settings.covers.imageService": {
       "extractionState": "manual",
       "localizations": {
