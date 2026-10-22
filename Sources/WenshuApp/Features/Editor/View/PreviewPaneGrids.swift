@@ -83,7 +83,7 @@ extension PreviewPane {
     /// PARENT view (= PreviewPane) rather than here, because an
     /// extension cannot hold a stored property.
     private var coverGenerationService: CoverGenerationService {
-        coverGenerationServiceHolder
+        coverServicesHolder.generation
     }
 
     /// The service that makes a card's cover move.

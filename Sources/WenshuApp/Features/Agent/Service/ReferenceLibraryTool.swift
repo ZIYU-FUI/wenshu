@@ -172,6 +172,11 @@ final class ReferenceLibraryActor {
         } catch {
             throw ReferenceLibraryError.underlying(String(describing: error))
         }
+        // The library changed, so the app says so: the sidebar reloads
+        // the tree and the material zone re-reads the documents. A
+        // reference the agent wrote is otherwise invisible until the
+        // user clicks something else.
+        LibraryChangeNotifier.notifyLibraryChanged(source: .agentReference)
         return ReferenceDescriptor(reference)
     }
 
@@ -225,6 +230,7 @@ final class ReferenceLibraryActor {
         } catch {
             throw ReferenceLibraryError.underlying(String(describing: error))
         }
+        LibraryChangeNotifier.notifyLibraryChanged(source: .agentReference)
         return ReferenceDescriptor(updated)
     }
 
@@ -234,6 +240,7 @@ final class ReferenceLibraryActor {
         } catch {
             throw ReferenceLibraryError.underlying(String(describing: error))
         }
+        LibraryChangeNotifier.notifyLibraryChanged(source: .agentReference)
     }
 
     // / Append a new section to an existing reference's body (= the
@@ -283,6 +290,7 @@ final class ReferenceLibraryActor {
                 entityType: existing.entityType,
                 summary: summary ?? existing.summary
             )
+            LibraryChangeNotifier.notifyLibraryChanged(source: .agentReference)
             return ReferenceDescriptor(updated)
         } catch {
             throw ReferenceLibraryError.underlying(String(describing: error))
@@ -432,6 +440,7 @@ final class ReferenceLibraryActor {
                 entityType: parsedType,
                 summary: summary
             )
+            LibraryChangeNotifier.notifyLibraryChanged(source: .agentReference)
             return ReferenceDescriptor(result)
         } catch {
             throw ReferenceLibraryError.underlying(String(describing: error))

@@ -25,12 +25,13 @@ struct PreviewPane: View {
     // / reference; = the closures capture it for the card's `.contextMenu`).
     @State var cardService: SidebarService?
 
-    // / The service that draws a card's cover (= one for the whole
+    // / The cover services the pane shares (= one set for the whole
     // / pane, so the per-card lock is shared: = two clicks on the same
-    // / card make ONE call, = not two). = It lives here rather than in
+    // / card make ONE call, = not two, = and a batch run and a manual
+    // / click make one call between them). = It lives here rather than in
     // / the grid extension because an extension cannot hold a stored
     // / property.
-    @State var coverGenerationServiceHolder: CoverGenerationService = CoverGenerationService.live()
+    @State var coverServicesHolder: CoverPaneServices = CoverPaneServices.live()
 
     // / The service that makes a card's cover move (= one for the whole
     // / pane, so the per-card lock is shared: = two clicks on the same
@@ -106,7 +107,8 @@ struct PreviewPane: View {
         previewSortOrder: Binding<EntitySortOrder>,
         searchQuery: Binding<String?> = .constant(nil),
         customLeadingSearch: AnyView? = nil,
-        activeTag: Binding<String?> = .constant(nil)
+        activeTag: Binding<String?> = .constant(nil),
+        coverServices: CoverPaneServices = CoverPaneServices.live()
     ) {
         self.scope = scope
         self.onDoubleClick = onDoubleClick
@@ -114,6 +116,7 @@ struct PreviewPane: View {
         self._searchQuery = searchQuery
         self._activeTag = activeTag
         self.customLeadingSearch = customLeadingSearch
+        self._coverServicesHolder = State(initialValue: coverServices)
     }
 // / : 'cards display in multiple columns, default two columns, if the zone is dragged narrower,
 // … (= 24 rationale lines collapsed; = A112 docblock collapse per §1.8)

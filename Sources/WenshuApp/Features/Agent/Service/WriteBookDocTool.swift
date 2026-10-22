@@ -122,6 +122,11 @@ struct WriteBookDocTool: Tool, Sendable {
             )
         }
         let bytes = body.utf8.count
+        // The book gained a document, so the library says so: the
+        // sidebar reloads the tree and the material zone re-reads the
+        // documents. A book doc the agent wrote is otherwise invisible
+        // until the user clicks something else.
+        LibraryChangeNotifier.notifyLibraryChanged(source: .agentBookDoc)
         let result = WriteResult(
             path: canonicalFull,
             bytes: bytes,
