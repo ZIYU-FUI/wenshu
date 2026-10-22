@@ -97,25 +97,15 @@ struct ChatMessageBodyView: View {
                 ForEach(message.parts) { part in
                     ChatPartRow(
                         part: part,
+                        message: message,
                         isOutgoing: isOutgoing,
                         isStreaming: isStreaming,
-                        activity: activity,
                         onApprovePlan: onApprovePlan
                     )
                 }
             }
         }
         .foregroundStyle(roleForeground)
-    }
-
-    /// The steps the assistant performed during this reply.
-    ///
-    /// Derived from the tool calls the reply recorded. A tool call is a
-    /// fact the program observed, so it is a better source for "what did
-    /// the assistant just do" than the model's own account of itself in
-    /// its reasoning prose.
-    private var activity: [ToolActivity] {
-        ToolActivity.activity(from: message.parts)
     }
 }
 
@@ -127,12 +117,11 @@ private struct ChatPartRow: View {
     let part: ChatMessagePart
     let isOutgoing: Bool
     let isStreaming: Bool
-    /// The steps the assistant performed during this reply.
-    ///
-    /// The reasoning view needs the whole reply's tool calls to describe
-    /// the work, and a single part cannot see the rest of the message, so
-    /// the body view computes the list once and hands it down.
-    let activity: [ToolActivity]
+    /// The reply this row belongs to. The reasoning view needs the whole
+    /// reply's tool calls to describe the work, and a single part cannot
+    /// see the rest of the message, so the row holds the message and
+    /// derives the steps from it.
+    let message: ChatMessage
     /// T22: optional approval closure for plan parts (= the user
     /// clicks Approve & Run = the parent = ChatMessageView = decides
     /// how to re-invoke the conductor with the approved plan). Nil
@@ -142,16 +131,21 @@ private struct ChatPartRow: View {
 
     init(
         part: ChatMessagePart,
+        message: ChatMessage,
         isOutgoing: Bool,
         isStreaming: Bool,
-        activity: [ToolActivity] = [],
         onApprovePlan: ((Plan) -> Void)? = nil
     ) {
         self.part = part
+        self.message = message
         self.isOutgoing = isOutgoing
         self.isStreaming = isStreaming
-        self.activity = activity
         self.onApprovePlan = onApprovePlan
+    }
+
+    /// The steps the assistant performed during this reply.
+    private var activity: [ToolActivity] {
+        ToolActivity.activity(from: message.parts)
     }
 
     var body: some View {
