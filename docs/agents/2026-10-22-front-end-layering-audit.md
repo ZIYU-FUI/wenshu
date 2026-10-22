@@ -397,7 +397,12 @@ autosave name, its collapse animation and its `sizeThatFits` override, so
 the chat pane is still the Keynote speaker-notes pattern.
 
 **The gate.** `swift build` exits 0. The chat, editor, split-view and
-shell suites pass: 164 tests in 28 suites. The repository has a red
+shell suites pass: 164 tests in 28 suites. After the second wave, the
+editor, chat and export suites run 312 tests in 49 suites with 7
+issues, and all 7 are the same failures that fail on `main` (= the
+status bar's height, the tab-close icon style, the preferences
+forwarding and the 3 `displayTitle` cases; = none of them is an
+editor-surface assertion). The repository has a red
 baseline of 24 failing suites, measured at the base commit
 `b8060a084643e2d5dd72c759750e4c5bf5672575`; a source-text failure
 inside a worktree is a path failure until proven otherwise, so the
@@ -410,6 +415,28 @@ that IS read is read in the right place, whether a callback closure
 outlives its owner, or whether a parameter would be better as an
 environment value. Those are judgement calls, and this audit's method
 does not make them.
+
+### 7.1 The second wave
+
+The second wave ran two more cards, on the same rules: one commit each,
+its own worktree, and no change to what the app looks like.
+
+| # | Commit | Change | Size |
+| - | ------ | ------ | ---- |
+| 7 | `43aed9321` | The export modifier split by export kind | 135 insertions, 74 deletions |
+| 8 | `5834123d4` | The editor surface built once and shared | 186 insertions, 183 deletions |
+
+The measurement is the gate, and it is the tool's own output:
+
+    $ python3 Tools/wenshu-devtool/measure-drill.py --root Sources/WenshuApp --top 6
+    DEAD PARAMETERS
+    (none)
+
+    HEAVIEST INITIALIZERS
+    ChatInputBarView  6 args  Features/Chat/View/ChatView.swift:222
+    BookFileExporter  6 args  Features/Library/View/ExportSheet.swift:148
+
+The heaviest call site in the app was 13 arguments. It is 6 now.
 
 **The two dead parameters the tool found after the first five were
 removed** were `WizardStepNavBar.currentStep`
@@ -482,3 +509,60 @@ Choosing wrongly is worse than not choosing: an `EnvironmentKey` with
 no reader is dead code by rule 7.6 (= how `7baf6cb8a` died), and a
 value type that groups nothing is a wrapper with a name. Both of the
 cards in this wave are the second kind, and neither introduces a key.
+
+### 8.1 What the second wave actually changed
+
+**The export modifier was nine parameters pretending to be thirteen.**
+`ExportFileExporters` carried three parallel sets, one per export kind:
+each set held an engine, a format, a selected id and a remembered-URL
+binding. The three sets were never used together, and the `kind`
+parameter existed only to pick one of them. The kind is now the type:
+`LibraryFileExporter` (5), `BookFileExporter` (6) and
+`ChapterFileExporter` (5) each own one set, and the switch disappears
+because each modifier knows what it is. The heaviest call site in the
+app went from 13 arguments to 6.
+
+**The editor surface was built twice.** The preview branch and the
+edit branch each spelled out eight arguments, six of them the same
+expression, and `WenshuEditorServicesFactory.make(bookStore:bus:)` was
+called in both branches for two surfaces that differ by two flags.
+`EditorSurface` is that set of values, as a value: the host builds it
+once and both modes read it. `EditorEditContent` went from 11
+parameters to 5, `WenshuMarkdownEditor` from 8 to 2.
+
+**A parameter that would have become dead moved into the surface.**
+`isChapterLockedByLLM` had exactly one reader: the `isEditable`
+computation in the editor's body. Once that computation moved to the
+host, the parameter had no reader left (= a parameter nobody reads, the
+exact defect the first wave removed). It moved into the surface, and
+the chapter-focus-lock predicate lives in one place, in the host's
+editable surface. The measurement tool confirmed this: the dead
+parameter section was empty before the move and empty after.
+
+**The preview surface carries no caret-rect callback**, because the old
+preview call passed none either. Adding one would have been a
+behaviour change, and the status bar's line number is not driven by the
+read-only surface.
+
+**The source-content gates were updated, not weakened.** Six assertions
+named the old declarations. They now name the surface's declarations
+and the forwarding lines that read them out of it, so the chrome slots
+and the caret-rect callback are still asserted, on the structure that
+now carries them.
+
+### 8.2 The two wave results side by side
+
+| | before | after |
+|---|---|---|
+| heaviest call site in the app | 13 arguments | 6 arguments |
+| `EditorEditContent` | 11 parameters | 5 |
+| `WenshuMarkdownEditor` | 8 parameters | 2 |
+| `ExportFileExporters` | 13 parameters | gone (= 3 modifiers of 5, 6, 5) |
+| dead parameters | 5 | 0 |
+
+The gate is the measurement tool, and it is now in the repository: a
+view that nobody reads a parameter of shows up in its dead-parameter
+section, and a view with more than a handful of arguments shows up in
+its heaviest-initializers table. The tool found the app's heaviest call
+site only after it was taught to recognize `ViewModifier`, so the
+number it reports now is the real one.
