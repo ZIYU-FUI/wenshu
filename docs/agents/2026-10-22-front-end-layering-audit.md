@@ -446,6 +446,15 @@ nothing here should go into the environment either: these are private
 types in one or two files, and the environment would reach further than
 the data does. The defect is that one value is expressed many times.
 
+**The measurement had a blind spot, and it hid the worst case.** The
+tool recognized `struct X: View` and nothing else, so every SwiftUI
+`ViewModifier` was invisible to it. The app's single heaviest call site
+was exactly that, and the tool never listed it. A measurement that
+reports the code as flatter than it is, is wrong in the one direction
+that matters. The recognition now covers both, and the test suite gained
+the case that would have caught it: a `ViewModifier` with 13 parameters
+is measured like a `View`.
+
 **`ExportFileExporters` (13 parameters) is nine parameters pretending to
 be thirteen.** It holds, for each of the three export kinds, one engine,
 one format, one selected id and one remembered-URL binding. The three
