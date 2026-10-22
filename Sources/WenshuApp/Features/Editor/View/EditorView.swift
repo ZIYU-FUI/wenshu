@@ -271,23 +271,7 @@ struct EditorView: View {
                                 get: { self.draft },
                                 set: { self.draft = $0 }
                             ),
-                            draftId: activeTabIdString,
-                            configuration: WenshuEditorServicesFactory.make(
-                                bookStore: bookStore,
-                                bus: MarkdownEditorBus.buildWenshu()
-                            ),
-                            onLinkClick: { linkId in
-                                handleEditorWikiLink(linkId: linkId)
-                            },
-                            // (see OOB.md #2026-09-07) — 'editor, yes ,
-                            // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)
-                            // between modes).
-                            isEditable: false,
-                            // ed-smc-defaults T-01 (= Apple HIG
-                            // … (= 21 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)
-                            // H1)).
-                            header: nil,
-                            placeholder: editorEmptyDocumentPlaceholder
+                            surface: editorSurface
                         )
                     } else {
                         // edit mode uses Apple SwiftUI TextEditor (= HIG
@@ -299,12 +283,6 @@ struct EditorView: View {
                                 set: { self.draft = $0 }
                             ),
                             originalBody: originalBody,
-                            // chapter-focus-lock 2026-09-28: compute the
-                            // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)
-                            // holds the cursor.
-                            isChapterLockedByLLM: appState.focusedChapterPath != nil
-                                && !workspaceUI.chatVisible
-                                && appState.focusedChapterPath == currentTabDocumentPath,
                             // route live word count into shared
                             // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)
                             // keystroke; = Foundation-only = microseconds.
@@ -319,36 +297,10 @@ struct EditorView: View {
                                     EditorPersistence.handleDirtyTransition(newDirty, tab: tab, bookStore: bookStore)
                                 }
                             },
-                            // pre-built markdown engine configuration. Built
+                            // the editor surface (= the engine configuration, the
                             // … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)
                             // BookStore yet on early zone activation).
-                            configuration: WenshuEditorServicesFactory.make(
-                                bookStore: bookStore,
-                                // per-active-tab bus so engine format / find /
-                                // replace events stay scoped to this document.
-                                bus: MarkdownEditorBus.buildWenshu()
-                            ),
-                            // stable per-tab id, passed to engine as
-                            // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)
-                            // scoped to this tab.
-                            draftId: activeTabIdString,
-                            // forward engine wiki-link click to the navigation flow.
-                            onLinkClick: { linkId in
-                                handleEditorWikiLink(linkId: linkId)
-                            },
-                            // ed-smc-defaults T-02: forward the chrome band +
-                            // … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)
-                            // H1 is the canonical title).
-                            editorHeader: nil,
-                            editorPlaceholder: editorEmptyDocumentPlaceholder,
-                            // T-03: wire caret-rect callback so the status bar
-                            // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)
-                            // `EditorView.cursorRect`).
-                            editorCaretRectChange: { rect in
-                                if let idx = self.activeTabIndex {
-                                    self.appState.openTabs[idx].cursorRect = rect
-                                }
-                            }
+                            surface: editableEditorSurface
                         )
                             }
                         }
@@ -436,6 +388,47 @@ struct EditorView: View {
     // / hasn't focused the editor).
     private var cursorRect: CGRect? {
         activeTab?.cursorRect
+    }
+    /// The editor surface for preview mode.
+    ///
+    /// Built once: the engine configuration, the document id, the
+    /// wiki-link callback and the chrome slots are the same for preview
+    /// and edit. Only the editability differs, and that is the
+    /// `isEditable` flag on the surface.
+    ///
+    /// The preview surface carries NO caret-rect callback (= the old
+    /// preview call passed none either; = the engine's default
+    /// applies, = the status bar's line number is not driven by the
+    /// read-only surface).
+    private var editorSurface: EditorSurface {
+        EditorSurface(
+            draftId: activeTabIdString,
+            configuration: WenshuEditorServicesFactory.make(
+                bookStore: bookStore,
+                bus: MarkdownEditorBus.buildWenshu()
+            ),
+            onLinkClick: { linkId in
+                handleEditorWikiLink(linkId: linkId)
+            },
+            header: nil,
+            placeholder: editorEmptyDocumentPlaceholder,
+            onCaretRectChange: nil,
+            isEditable: false
+        )
+    }
+    /// The editor surface for edit mode (= the same surface, editable,
+    /// and reporting the caret rect).
+    private var editableEditorSurface: EditorSurface {
+        var surface = editorSurface
+        surface.onCaretRectChange = { rect in
+            if let idx = self.activeTabIndex {
+                self.appState.openTabs[idx].cursorRect = rect
+            }
+        }
+        surface.isEditable = !(appState.focusedChapterPath != nil
+            && !workspaceUI.chatVisible
+            && appState.focusedChapterPath == currentTabDocumentPath)
+        return surface
     }
     // / T-03: autosave-in-progress accessor (= true while a save task is in
     // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)

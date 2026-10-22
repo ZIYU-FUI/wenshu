@@ -8,49 +8,7 @@ import MarkdownEngine
 
 struct WenshuMarkdownEditor: View {
     @Binding var text: String
-    let draftId: String
-    let configuration: MarkdownEditorConfiguration
-
-    // Engine-side link-click callback forwarded to
-    // NativeTextViewWrapper.
-    var onLinkClick: ((String) -> Void)? = nil
-
-    // Preview and edit modes share the same component (= no separate
-    // SwiftUI renderer). Previously preview used EditorPreviewContent
-    // (= SwiftUI AttributedString renderer) and edit used
-    // WenshuMarkdownEditor (= swift-markdown-engine NSTextView). Two
-    // different renderers meant different visual scaling.
-    //
-    // Both modes now use WenshuMarkdownEditor. The engine's
-    // NativeTextViewWrapper has an `isEditable: Bool` parameter
-    // which toggles between edit + preview with the SAME NSTextView
-    // (= zero visual scaling between modes; = Apple HIG canonical
-    // for WYSIWYG / preview-vs-edit surfaces).
-    //
-    // Caller (= EditorView / EditorEditContent) passes
-    // `isEditable: (mode == .edit)`. Preview = read-only NSTextView,
-    // edit = editable NSTextView, same component, same font scale,
-    // same line height, same textContainerInset, same NSTextLayoutManager.
-    var isEditable: Bool = true
-
-    // SMC `header:` slot (= a SwiftUI view hosted inside the engine's
-    // scrolled container, sibling of the NSTextView). Lets the embedder
-    // (= wenshu) sit the EditorHeaderView chrome band above the typing
-    // surface. Default nil = no header (= the engine draws no chrome
-    // and the NSTextView fills the full container height).
-    var header: AnyView? = nil
-
-    // SMC `placeholder:` slot (= first-line ghost text shown while the
-    // document is empty; the first typed character hides it). Native
-    // attribute-string surface (= supports tinted / styled placeholders
-    // = the wenshu "在此处撰写章节内容..." line). Default nil = no
-    // placeholder text.
-    var placeholder: NSAttributedString? = nil
-    /// T-03: caret-rect callback (= the engine posts the live caret
-    /// rect on every cursor move via `onCaretRectChange`; = the
-    /// host forwards it to `EditorTab.cursorRect` so the status
-    /// bar can show the current line number).
-    var onCaretRectChange: ((CGRect) -> Void)? = nil
+    let surface: EditorSurface
     /// The engine's NativeTextView has an internal `baseFont` field
     // (= NSFont.systemFont(ofSize: NSFont.systemFontSize) by default,
     // = Apple canonical system default font size).
@@ -68,7 +26,7 @@ struct WenshuMarkdownEditor: View {
     // layout (= NSTextView.font would only affect text outside the
     // engine's layout pipeline).
     private var adjustedConfiguration: MarkdownEditorConfiguration {
-        var config = configuration
+        var config = surface.configuration
         // Apple HIG 1:1 editor font scale (= the canonical
         // macOS 27 typography table per
         // developer.apple.com/design/human-interface-guidelines/
@@ -157,16 +115,16 @@ struct WenshuMarkdownEditor: View {
             // H1 size.
             fontName: "SF Pro",
             fontSize: bodyBaseFontSize,
-            documentId: draftId,
-            isEditable: isEditable,
-            onLinkClick: onLinkClick,
+            documentId: surface.draftId,
+            isEditable: surface.isEditable,
+            onLinkClick: surface.onLinkClick,
             // T-03: forward caret-rect callback to the engine (= the
             // engine posts the live caret rect on every cursor move;
             // = the host writes it to `EditorTab.cursorRect` so the
             // status bar can read it back via `EditorView.cursorRect`).
-            onCaretRectChange: onCaretRectChange,
-            placeholder: placeholder,
-            header: header,
+            onCaretRectChange: surface.onCaretRectChange,
+            placeholder: surface.placeholder,
+            header: surface.header,
             // T-13: scroll-memory persistence (= the engine posts
             // (docId, offsetY) on every scroll via
             // `onPersistScrollOffset`; = the host writes the JSON

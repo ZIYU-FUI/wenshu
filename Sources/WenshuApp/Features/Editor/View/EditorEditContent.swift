@@ -6,9 +6,8 @@
 // engine-side wiki-link clicks back to the host.
 //
 // One view per file (Apple HIG). `EditorEditContent` has 1 `@Binding`
-// (draft: `String`) + 8 `let` parameters (`originalBody`,
-//  onWordCountChange, onDirtyChange, configuration, draftId,
-//  onLinkClick, editorHeader, editorPlaceholder) + 1 computed
+// (draft: `String`) + 4 `let` parameters (`originalBody`,
+//  onWordCountChange, onDirtyChange, surface) + 1 computed
 // property (isDirty). No @State / @Environment / @Observable =
 // pure rendering surface.
 //
@@ -20,9 +19,7 @@
 //
 //  Only call site = WorkspaceView's editor pane edit mode;
 //  invoked as `EditorEditContent(draft:..., originalBody:...,
-//  onWordCountChange:..., onDirtyChange:...,
-//  configuration:..., draftId:..., onLinkClick:...,
-//  editorHeader:..., editorPlaceholder:...)`.
+//  onWordCountChange:..., onDirtyChange:..., surface:...)`.
 //  Extracting it does not change any caller signature.
 //
 //  ed-smc-defaults T-02 (= the chrome band wiring for edit mode):
@@ -39,14 +36,6 @@ import MarkdownEngine
 struct EditorEditContent: View {
     @Binding var draft: String
     let originalBody: String
-    // chapter-focus-lock 2026-09-28: caller (= EditorView)
-    // computes this from AppState.focusedChapterPath vs the tab's
-    // documentPath. When true, the LLM holds the cursor for this
-    // chapter path (= the user has the editor focused); = the
-    // editor flips to read-only so the user can't type. Pure
-    // rendering surface (= no AppState coupling) is preserved by
-    // keeping the predicate decision at the caller boundary.
-    let isChapterLockedByLLM: Bool
     // word count callback (= char count → host writes to
     // AppState.editorWordCount, which chrome reads for the bottom-bar
     // left field). Decoupled from AppState so EditorEditContent
@@ -60,35 +49,7 @@ struct EditorEditContent: View {
     // 9/2 OOB flagged as inefficient). Decoupled from Task internals
     // (= EditorEditContent doesn't know about Task).
     let onDirtyChange: (Bool) -> Void
-    // Pre-built markdown engine configuration. Host
-    // (WorkspaceView) builds this once per active-tab switch via
-    // WenshuEditorServicesFactory.make(referenceLibraryRoot:activeBookRoot:).
-    // The configuration owns the 4 service protocols (= wenshu implements
-    // 2: WikiLinkResolver + EmbeddedImageProvider; the engine's
-    // HighlighterSwiftBridge is transitive via MarkdownEngineCodeBlocks;
-    // LaTeX is rendered by SwiftMathBridge (see OOB.md #2026-10-11).
-    let configuration: MarkdownEditorConfiguration
-    // Stable per-tab id, passed to engine as `documentId`
-    let draftId: String
-    // Forwarded engine-side link-click callback.
-    // The engine fires this when the user clicks a `[[Name]]`
-    // token in the live editor surface.
-    var onLinkClick: ((String) -> Void)? = nil
-    // SMC `header:` slot — forwarded to the engine's own scrolled
-    // container so the chrome band (= EditorHeaderView, see
-    // Sources/WenshuApp/UI/Editor/) sits above the typing surface
-    // without ever scrolling away. nil = engine draws no chrome.
-    // The host (= EditorView) supplies this once per active-tab
-    // switch (= the header is decoupled from draft text edits).
-    var editorHeader: AnyView? = nil
-    // SMC `placeholder:` slot — first-line ghost text shown while
-    // the document is empty. nil = engine draws no placeholder.
-    var editorPlaceholder: NSAttributedString? = nil
-    // T-03: caret-rect callback forwarded from EditorView (= the
-    // engine posts the live caret rect on every cursor move; =
-    // the host writes it to `EditorTab.cursorRect` so the status
-    // bar can read it back via `EditorView.cursorRect`).
-    var editorCaretRectChange: ((CGRect) -> Void)? = nil
+    let surface: EditorSurface
 
     /// Read-only dirty flag (= computed from the binding's current value).
     private var isDirty: Bool { draft != originalBody }
@@ -108,32 +69,7 @@ struct EditorEditContent: View {
         // editor surface reach the navigation flow.
         WenshuMarkdownEditor(
             text: $draft,
-            draftId: draftId,
-            configuration: configuration,
-            onLinkClick: onLinkClick,
-            // : edit mode = editable NSTextView
-            // (= same engine wrapper as preview, = no scaling
-            // between modes).
-            //
-            // chapter-focus-lock 2026-09-28: when the user has this
-            // chapter's editor tab active (= AppState.focusedChapterPath
-            // matches the tab's documentPath), flip isEditable to
-            // so the user can't type while the LLM holds the
-            // cursor (= single-focus model; = the canonical edit
-            // lockout for chapter edits by the LLM). Other chapters
-            // (= the LLM is editing a different chapter) keep
-            // `isEditable: true`.
-            isEditable: !isChapterLockedByLLM,
-            // ed-smc-defaults T-02: forward the same chrome slots
-            // (= header + placeholder) that preview-mode forwards,
-            // so the 28 PT chrome band stays visible while editing.
-            // The engine reserves the header in its scrolled
-            // container (= doesn't scroll with text); the placeholder
-            // hides on first keystroke (= engine-internal).
-            header: editorHeader,
-            placeholder: editorPlaceholder,
-            // T-03: forward caret-rect callback to the engine.
-            onCaretRectChange: editorCaretRectChange
+            surface: surface
         )
             // (= per-keystroke; = Foundation-only recompute). Host
             // (EditorView) routes the value into
