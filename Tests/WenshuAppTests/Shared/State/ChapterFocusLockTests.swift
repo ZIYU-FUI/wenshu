@@ -1,15 +1,17 @@
 //
 //  ChapterFocusLockTests.swift · wenshu · chapter-focus-lock 2026-09-28 T1
 //
-//  the single-focus chapter lock (= boss 2026-09-28 OOB
-//  '互锁编辑权限'). The lock's source of truth is
+//  the single-focus chapter lock. The lock's source of truth is
 //  `AppState.focusedChapterPath` (= derived from active tab +
 //  chatVisible). The editor view renders read-only when this path
 //  matches the tab's documentPath (= LLM holds the cursor).
 //
-//  Source-content anchors (= Q112 1 source + 1 test per commit; the
-//  test verifies the AppState + EditorChatNSController source
-//  carries the canonical lock surfaces).
+//  Source-content anchors: the gate asserts that the lock predicate
+//  is APPLIED to the editor's editability, in the file that owns the
+//  decision. The host (= EditorView) computes the predicate and
+//  writes it onto the editor surface; the surface carries it; the
+//  engine receives the surface.
+//
 //
 
 import Foundation
@@ -19,35 +21,41 @@ import Testing
 @Suite("ChapterFocusLock (chapter-focus-lock 2026-09-28 T1)")
 struct ChapterFocusLockTests {
 
+    private static let appStatePath = "Sources/WenshuApp/Shared/State/AppState.swift"
+    private static let editorViewPath = "Sources/WenshuApp/Features/Editor/View/EditorView.swift"
+    private static let editorSurfacePath = "Sources/WenshuApp/Features/Editor/Model/EditorSurface.swift"
+    private static let editorEditContentPath = "Sources/WenshuApp/Features/Editor/View/EditorEditContent.swift"
+
     @Test("AppState exposes `focusedChapterPath` as the single-focus source of truth")
     func sourceHasFocusedChapterPath() throws {
-        let path = Self.repoSourcePath("Sources/WenshuApp/Shared/State/AppState.swift")
-        let source = try String(contentsOfFile: path, encoding: .utf8)
+        let source = try SourceLocator.read(Self.appStatePath)
         #expect(source.contains("var focusedChapterPath: String?"))
         // The lock predicate derives from chatVisible (= in ShellState)
         // + activeTabId's tab.documentPath.
         #expect(source.contains("chatVisible"))
     }
 
-    @Test("EditorEditContent gates isEditable on the focused-chapter lock")
-    func editorReadOnlyWhenFocusedPathMatches() throws {
-        // The edit-mode surface passes `isEditable` into
-        // WenshuMarkdownEditor (= the swift-markdown-engine
-        // NSTextView wrapper). The chapter-focus-lock arc 2026-09-28
-        // adds a guard so when AppState.focusedChapterPath matches
-        // the tab's documentPath (= the LLM holds the cursor),
-        // isEditable flips to false.
-        let path = Self.repoSourcePath("Sources/WenshuApp/Features/Editor/View/EditorEditContent.swift")
-        let source = try String(contentsOfFile: path, encoding: .utf8)
-        let hasLockedEditable = source.contains("focusedChapterPath") ||
-            source.contains("isEditable") && source.contains("focusedChapterPath")
-        #expect(hasLockedEditable,
-                "EditorEditContent must consult focusedChapterPath to decide isEditable")
-    }
+    @Test("EditorView applies the chapter-focus lock to the editor surface")
+    func editorAppliesChapterFocusLockToSurface() throws {
+        // The predicate = the chapter is focused AND the chat is hidden
+        // AND the focused path is the tab's document path. All three
+        // clauses must be present, and the host must negate the whole
+        // predicate onto the surface's editability.
+        let editorView = try SourceLocator.read(Self.editorViewPath)
+        #expect(editorView.contains("focusedChapterPath != nil"))
+        #expect(editorView.contains("!workspaceUI.chatVisible"))
+        #expect(editorView.contains("focusedChapterPath == currentTabDocumentPath"))
+        #expect(editorView.contains("surface.isEditable = !("),
+                "EditorView must negate the lock predicate onto the surface's editability")
 
-    // MARK: - Repo-root path helper
-    private static func repoSourcePath(_ relativeFromRepoRoot: String) -> String {
-        let path = "/Volumes/ANAN/Engineering/wenshu/\(relativeFromRepoRoot)"
-        return path
+        // The surface carries the decision (= the host writes it, the
+        // engine reads it).
+        let editorSurface = try SourceLocator.read(Self.editorSurfacePath)
+        #expect(editorSurface.contains("var isEditable: Bool"))
+
+        // The edit-mode surface hands the surface to the engine.
+        let editorEditContent = try SourceLocator.read(Self.editorEditContentPath)
+        #expect(editorEditContent.contains("surface: surface"),
+                "EditorEditContent must hand the surface to the engine")
     }
 }
