@@ -63,10 +63,22 @@ struct EditorEditContentTests {
                 "must declare word count callback (= v0.34 B-18)")
         #expect(codeRegion.contains("let onDirtyChange: (Bool) -> Void"),
                 "must declare dirty-state callback (= v0.34 B-22)")
-        #expect(codeRegion.contains("let configuration: MarkdownEditorConfiguration"),
-                "must declare MarkdownEditorConfiguration (= v0.39 ticket 001)")
-        #expect(codeRegion.contains("let draftId: String"),
-                "must declare draftId (= per-tab scoping)")
+        #expect(codeRegion.contains("let surface: EditorSurface"),
+                "must declare the editor surface (= the engine configuration, the per-tab id and the chrome slots travel as one value)")
+    }
+
+    @Test("the surface declares the engine configuration and the per-tab id")
+    func surfaceDeclaresEngineInputs() throws {
+        let surfacePath = SourceLocator.path("Sources/WenshuApp/Features/Editor/Model/EditorSurface.swift")
+        let surfaceSource = try String(contentsOfFile: surfacePath, encoding: .utf8)
+        let surfaceCode = surfaceSource.components(separatedBy: "\n").filter {
+            !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//")
+        }.joined(separator: "\n")
+
+        #expect(surfaceCode.contains("let configuration: MarkdownEditorConfiguration"),
+                "the surface must declare the engine configuration (= v0.39 ticket 001)")
+        #expect(surfaceCode.contains("let draftId: String"),
+                "the surface must declare draftId (= per-tab scoping)")
     }
 
     @Test("body uses WenshuMarkdownEditor (= the NSViewRepresentable wrapper)")
