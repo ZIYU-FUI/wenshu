@@ -154,16 +154,32 @@ struct CardCoverService {
 
     /// Removes a card's cover row and its files.
     ///
-    /// The whole DIRECTORY is removed rather than the two recorded
-    /// files, so a partial file from a failed generation cannot
-    /// survive. The document itself is never touched: the cover is a
-    /// child of the document, and this removes the child.
+    /// Two things are removed, and both matter:
+    ///
+    /// - the FILES the row records, because the row is where the
+    ///   paths live, and a file the row points at must not survive
+    ///   the row;
+    /// - the cover's own DIRECTORY, so a partial file from a failed
+    ///   generation cannot survive either.
+    ///
+    /// The document itself is never touched: the cover is a child of
+    /// the document, and this removes the child.
     ///
     /// Safe to call when there is no cover, and safe to call twice.
     func removeCover(forKey key: String) throws {
         if let existing = row(forKey: key) {
+            // Read the paths BEFORE the row goes, because the row is
+            // where they live.
+            let recordedPaths = [existing.imagePath, existing.videoPath].compactMap { $0 }
             modelContext.delete(existing)
             try modelContext.save()
+
+            for path in recordedPaths {
+                let url = URL(fileURLWithPath: path)
+                if FileManager.default.fileExists(atPath: url.path) {
+                    try? FileManager.default.removeItem(at: url)
+                }
+            }
         }
         guard let directory = Self.directory(forKey: key),
               FileManager.default.fileExists(atPath: directory.path) else {
