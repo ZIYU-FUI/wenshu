@@ -249,27 +249,19 @@ struct EditorPaperCanvas<Content: View>: View {
         // introduce an `EditorChatNSController` host-side debounce that delays
         // the engine's `frameDidChangeNotification` observer to coalesce
         // multiple NSV resize events into a single engine relayout pass).
-        // The engine's own `NSScrollView` fills the frame it is given,
-        // and SwiftUI's `.safeAreaInset(edge: .bottom)` does NOT shrink
-        // it: the inset adds the footer's height to the RECEIVER's bottom
-        // safe area, but the scroll view's own frame still reaches the
-        // column's bottom edge, which is UNDER the footer. Measured on a
-        // rendered probe, the scroll view's frame was the full column
-        // height while the footer's top edge sat 32 PT above it, so the
-        // last line of a document scrolled to the very bottom landed
-        // under the status bar and was sliced through.
+        // The engine's own `NSScrollView` lives inside an
+        // `NSViewRepresentable` (= not a SwiftUI `ScrollView`), and
+        // SwiftUI's `.safeAreaInset(edge: .bottom)` shrinks the
+        // representable's frame to the space the inset leaves over:
+        // measured on the rendered arrangement, the engine's frame
+        // bottom edge sits exactly at the footer's divider.
         //
-        // The chat zone solves the same problem with
-        // `.contentMargins(.bottom, DesignTokens.chatInputBarHeight, for:
-        // .scrollContent)` and the preview grids with
-        // `.contentMargins(.bottom, 33, for: .scrollContent)`. The
-        // editor's scroll view is the engine's own `NSScrollView` (= not
-        // a SwiftUI `ScrollView`), so `contentMargins` does not apply;
-        // reserving the same space as a bottom padding on the engine
-        // view shrinks its frame instead, and the document then ends
-        // above the status bar.
+        // The footer's height is therefore reserved ONCE, by the
+        // `.safeAreaInset(edge: .bottom)` in `EditorView.swift`. A
+        // second reserve on this canvas (= a bottom padding) took the
+        // same space away a second time and left an empty band between
+        // the document's last line and the status bar.
         content
-            .padding(.bottom, DesignTokens.chromeBottomFooterHeight)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

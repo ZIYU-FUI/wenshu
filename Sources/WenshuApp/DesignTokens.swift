@@ -13,27 +13,6 @@ enum DesignTokens {
     // / TabContentDispatcher.aiChat (= no separate wrapper).
     static let chromeHeight: CGFloat = 30
 
-    /// Height of `ChromeBottomFooter` (= the 1 PT divider + the
-    /// content's own padding + the content's intrinsic height).
-    ///
-    /// MEASURED, not estimated: rendered the footer offscreen and read
-    /// its fitting height = 32 PT (= 1 divider + 8 + 8 padding + 15
-    /// content).
-    ///
-    /// A zone that hosts this footer has to reserve this much space for
-    /// it. SwiftUI's `.safeAreaInset(edge: .bottom)` adds the footer's
-    /// height to the RECEIVER's bottom safe area, but it does not
-    /// shrink the inner scroll view's own frame — the content can still
-    /// scroll to the very bottom of the column, which is UNDER the
-    /// footer. The chat zone solves this with
-    /// `.contentMargins(.bottom, DesignTokens.chatInputBarHeight, for:
-    /// .scrollContent)`, and the preview grids with
-    /// `.contentMargins(.bottom, 33, for: .scrollContent)`. The editor's
-    /// scroll view is the engine's own `NSScrollView` (= not a SwiftUI
-    /// `ScrollView`), so it takes the same reserve as a padding on the
-    /// engine view instead.
-    static let chromeBottomFooterHeight: CGFloat = 32
-
     // / Apple HIG sidebar list-row height (= 22 PT). Distinct from
     // … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / row surface. They are different.
