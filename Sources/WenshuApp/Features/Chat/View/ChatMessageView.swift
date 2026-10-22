@@ -435,24 +435,25 @@ struct ChatMessageView: View {
 /// assistant-ui/thread/user-message.tsx:67-69` `USER_BUBBLE_BASE_CLASS`.
 ///
 /// In Tailwind the source is `rounded-xl border bg-(--dt-user-bubble)
-/// px-3 py-2`. In SwiftUI on macOS 27 the equivalent is
-/// `.regularMaterial` for the bg (= Apple's canonical translucent
-/// surface; = the `.bg-(--dt-user-bubble)` token tracks the user's
-/// appearance automatically, same as `.regularMaterial` does). The
-/// border uses `.accentColor.opacity(0.18)` (= the same family of
-/// subtle accent borders Apple HIG adopts for floating surfaces on
-/// macOS 27; = tracks the user's accent in subtle mode).
+/// px-3 py-2`. In SwiftUI on macOS 27 the bg is an Apple semantic
+/// solid fill that tracks the user's appearance automatically (= the
+/// `.bg-(--dt-user-bubble)` token's job). The bubble draws NO stroke:
+/// on macOS a filled surface's own colour IS its edge (= the
+/// composer field's Liquid Glass capsule is fill-only, so the two
+/// surfaces agree by construction).
 ///
 /// Activates only on outgoing (= user) messages; on assistant rows the
 /// modifier is a pass-through (= no visual change from MC1's flat
 /// self-start text).
-/// Drop the wenshu-side chrome: the user bubble surface now uses
-/// hermes `bg-DT-USER-BUBBLE` semantics (= Apple semantic
-/// `Color(nsColor: .controlBackgroundColor)`) instead of the
-/// previous Liquid Glass `.regularMaterial` (= too heavy vs
-/// hermes's subtle bg token). The border keeps Apple HIG
-/// semantic `Color(nsColor: .separatorColor).opacity(0.5)` (= 0.5
-/// PT; = matches hermes border-UI-STROKE-TERTIARY token in spirit).
+/// Drop the wenshu-side chrome: the user bubble surface now uses an
+/// Apple semantic solid fill
+/// (`Color(nsColor: .unemphasizedSelectedTextBackgroundColor)`)
+/// instead of the previous Liquid Glass `.regularMaterial` (= too
+/// heavy vs hermes's subtle bg token). The bubble wears NO border:
+/// its own solid fill is its edge (= the fill is a real step away
+/// from the chat panel behind it, so a hairline on top of it would
+/// read as a rim drawn over the shape rather than as the shape's
+/// own boundary).
 ///
 /// Card internal padding = 12 PT horizontal (= was 16 in MC6; = tighter,
 /// matches hermes `px-3 py-2` from USER_BUBBLE_BASE_CLASS). Vertical
@@ -508,10 +509,6 @@ private struct UserGlassCardModifier: ViewModifier {
                 .background(
                     ChatSurfaceShape()
                         .fill(Color(nsColor: ChatUserBubblePalette.surface))
-                )
-                .overlay(
-                    ChatSurfaceShape()
-                        .stroke(Color(nsColor: ChatUserBubblePalette.border), lineWidth: 1)
                 )
                 .foregroundStyle(ChatUserBubblePalette.text)
         } else {

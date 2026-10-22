@@ -162,4 +162,57 @@ struct ChatUserBubbleReadabilityTests {
         let rawVerticalPadding = source.contains(".padding(.vertical, 10)")
         #expect(!rawVerticalPadding)
     }
+
+    /// The outgoing bubble wears no hairline: on macOS the filled
+    /// surface's own colour IS its edge.
+    ///
+    /// The bubble's fill is a solid, appearance-aware colour that steps
+    /// away from the chat panel behind it, so a stroke drawn on top of
+    /// it reads as a rim over the shape rather than as the shape's own
+    /// boundary. The composer field, which wears the same
+    /// `ChatSurfaceShape`, is borderless, so the two surfaces agree by
+    /// construction only while both are fill-only.
+    @Test func outgoing_bubble_draws_no_stroke() throws {
+        let source = try String(
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift",
+            encoding: .utf8
+        )
+        // The bubble's own modifier is where a stroke would live, so the
+        // assertion is scoped to it (= the rest of the file is free to
+        // stroke something that is not the bubble).
+        let modifierStart = try #require(
+            source.range(of: "private struct UserGlassCardModifier"),
+            "ChatMessageView.swift no longer declares UserGlassCardModifier"
+        )
+        let modifierEnd = try #require(
+            source.range(of: "private struct StatusPulse"),
+            "ChatMessageView.swift no longer declares StatusPulse after the bubble modifier"
+        )
+        let bubbleModifier = String(source[modifierStart.lowerBound ..< modifierEnd.lowerBound])
+        #expect(
+            !bubbleModifier.contains(".stroke("),
+            "The outgoing bubble must draw no stroke: its solid fill is its edge"
+        )
+        #expect(
+            !bubbleModifier.contains("ChatUserBubblePalette.border"),
+            "The outgoing bubble must not read a border colour from the palette"
+        )
+        // The palette no longer offers a border colour at all, so no
+        // other call site can put one back.
+        #expect(
+            !source.contains("ChatUserBubblePalette.border"),
+            "No call site may reference the bubble's border colour"
+        )
+        let palette = try String(
+            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatUserBubblePalette.swift",
+            encoding: .utf8
+        )
+        #expect(
+            !palette.contains("static let border"),
+            "The bubble palette must not offer a border colour"
+        )
+        // The fill itself is untouched: it is the edge now.
+        #expect(bubbleModifier.contains("ChatUserBubblePalette.surface"))
+        #expect(palette.contains("static let surface: NSColor = .unemphasizedSelectedTextBackgroundColor"))
+    }
 }

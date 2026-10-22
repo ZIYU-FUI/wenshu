@@ -1,10 +1,9 @@
 //
 //  ChatUserBubblePalette.swift
 //
-//  The three colours the user's own message bubble wears (= the
-//  surface the words sit on, the hairline around it, the text tier
-//  on top). One place, so the bubble and the text on it cannot drift
-//  apart.
+//  The two colours the user's own message bubble wears (= the
+//  surface the words sit on, the text tier on top). One place, so
+//  the bubble and the text on it cannot drift apart.
 //
 
 import AppKit
@@ -19,6 +18,8 @@ import SwiftUI
 /// of it stays readable in both. (= the panel background is
 /// `DesignTokens.sidebarBackground`; = the bubble must not collapse into
 /// it in either appearance.)
+///
+/// The surface wears no hairline: its own solid colour is its edge.
 @MainActor
 enum ChatUserBubblePalette {
     /// Bubble fill (= the macOS inactive-selection surface: = the
@@ -26,8 +27,6 @@ enum ChatUserBubblePalette {
     /// item; = lighter than the panel in the dark appearance and
     /// darker in the light one).
     static let surface: NSColor = .unemphasizedSelectedTextBackgroundColor
-    /// Bubble hairline (= the macOS separator).
-    static let border: NSColor = .separatorColor
     /// Text tier on the bubble (= the four-tier ladder's body tier).
     static let text: HierarchicalShapeStyle = DesignTokens.textBody
 }
