@@ -348,13 +348,63 @@ requires the short edge to be **greater than 300 px** and the aspect ratio to be
 | Candidate | Short edge | Aspect | i2v accepts? |
 | --- | --- | --- | --- |
 | 640x224 (PT-matched 2x ceiling) | 224 | 2.86 | **NO** — short edge too low AND aspect too wide |
-| 752x304 | 304 | 2.47 | yes |
+| 768x320 (chosen) | 320 | 2.40 | yes |
 | 1024x448 | 448 | 2.29 | yes |
 
-So the stored static image must be **752x304**, not the 640x224 the display alone would
-need. That one file then serves three jobs: it is the rendered cover, it is the i2v
-first frame, and it is the hover poster. Storing a separate downscaled copy for display
-would double the library footprint for no visible gain.
+**The whole i2v flow was exercised against the live endpoint on 2026-10-22**, with a
+real 768x320 banner:
+
+```
+POST /v1/video_generation  {model: MiniMax-Hailuo-02, first_frame_image: data:image/jpeg;base64,...,
+                            duration: 6, resolution: 768P}
+  -> {"task_id": "455060879892746", "base_resp": {"status_code": 0, "status_msg": "success"}}
+
+GET /v1/query/video_generation?task_id=...
+  -> status Processing x5, then: status=Success file_id=455060523807035 video_width=1728 video_height=720
+
+GET /v1/files/retrieve?file_id=...
+  -> {"file": {"download_url": "..."}}   (9-hour expiry: download immediately)
+  -> 670.7 KB mp4
+```
+
+The delivered clip is **1728x720 (2.4:1) at 24 fps, 5.88 s** — the aspect follows the
+first frame, so the 2.4:1 banner survives the round trip.
+
+**The clip does not loop seamlessly, and that is measured, not assumed.** Sampling six
+frames across the clip and comparing them on a 32x32 grayscale grid:
+
+| Comparison | Mean abs difference |
+| --- | --- |
+| consecutive frames (0 -> 1) | 3.80 |
+| consecutive frames (2 -> 3) | 4.61 |
+| **first frame vs last frame** | **13.73** (16.57 on a 64-grid) |
+
+So there IS real motion (consecutive frames differ), but the first and last frames
+differ by about 5% of full scale, which reads as a visible jump when the clip loops.
+The provider was asked for a seamless loop and did not deliver one. **The stored
+artifact must therefore be played forward-then-backward** (ping-pong), which doubles
+the apparent duration and is guaranteed seamless, OR the clip is cross-faded at the
+seam. The cheapest correct choice is ping-pong playback of a single stored file.
+
+**The stored video size.** The provider delivers 670.7 KB. `AVAssetExportSession` with
+a custom `AVMutableVideoComposition` (the standard scaling path) produced:
+
+| Output | Size |
+| --- | --- |
+| provider original 1728x720 | 670.7 KB |
+| export 768x320 (MediumQuality) | 500.5 KB |
+| export 632x264 (MediumQuality) | 506.3 KB |
+| `AVAssetExportPresetLowQuality` (192x80) | 99.9 KB |
+| `AVAssetExportPreset640x480` (640x268) | 893.1 KB — LARGER than the original |
+
+The presets are unusable as a size control (the 640x480 preset produced a bigger file
+than the source), so a custom composition plus an explicit bitrate is the path.
+`AVVideoAverageBitRateKey` on `AVAssetWriterInput` is the lever, and
+`AVAssetWriterInput.requestMediaDataWhenReady` is required (appending without that
+backpressure throws `A pixel buffer cannot be appended when readyForMoreMediaData is
+NO`). At the display size of 768x320 a few hundred KB per dynamic cover is acceptable,
+because dynamic covers are per-card and manual (decision 5), so a library accumulates
+a handful of them rather than hundreds.
 
 ### 3.4 Settings pane
 
@@ -431,38 +481,40 @@ WebP ENCODE via ImageIO: DESTINATION UNSUPPORTED (no encoder on this macOS)
 
 `NSBitmapImageRep.FileType` has no `.webP` case either, so there is no AppKit fallback.
 **Wenshu must store HEIC** (Apple-native, and the project is Apple-stack exclusive per
-AGENTS §5.1). Measured on a painterly synthetic image at quality 0.82:
+AGENTS §5.1). Measured on the real generated lighthouse cover at quality 0.82:
 
-| Format | 640x224 | 752x304 | 1024x448 |
-| --- | --- | --- | --- |
-| WebP | unsupported | unsupported | unsupported |
-| **HEIC** | **16.8 KB** | **26.4 KB** | 52.0 KB |
-| JPEG | 29.0 KB | 47.0 KB | 93.3 KB |
+| Format | 768x320 |
+| --- | --- |
+| WebP | unsupported |
+| **HEIC** | **58.9 KB** |
+| JPEG | 112.7 KB |
 
-HEIC at 752x304 is **26.4 KB per cover** — 100 covers cost 2.6 MB. That is the same
+HEIC at 768x320 is **58.9 KB per cover** — 100 covers cost 5.8 MB. That is the same
 order as the existing `cache/chat-uploads` directory (3.5 MB today), so library space is
 not a constraint at this size.
 
 **(b) The i2v payload must be JPEG, not HEIC.** MiniMax's `first_frame_image` accepts
 JPG / JPEG / PNG / WebP — HEIC is not in the list. The conversion is a decode-reencode
-in memory, verified end to end:
+in memory, verified end to end on the real cover:
 
 ```
-stored HEIC bytes: 27455 (26.8 KB)
-decoded back: 752 x 304
-i2v JPEG payload bytes: 53615 (52.4 KB)
-data URL chars: 72627
+stored HEIC bytes: 58900 (58.9 KB)
+decoded back: 768 x 320
+i2v JPEG payload bytes: 112742 (112.7 KB)
+data URL chars: 150200 (150.2 KB)
 ```
 
 So the pipeline is: **generate -> crop -> HEIC (stored) -> decode -> JPEG q0.92 ->
 base64 data URL -> i2v**. The HEIC file stays the single stored artifact; the JPEG
 exists only in memory during the call.
 
-**(c) The stored size must be 752x304, not the display size.** The i2v input gate
-requires short edge > 300 px and aspect within 2:5..5:2 (see §3.3). The PT-matched
-2x display ceiling (640x224) fails both. 752x304 passes both and renders correctly at
-every card width in the measured range, so one file serves display, i2v input, and
-hover poster.
+**(c) The stored size must be 768x320, not the display size.** Two independent gates
+force it, and both were measured against the live endpoints. The provider requires
+512 px on both sides (`invalid params, height must be between [512,2048]`), and the
+i2v input gate requires a short edge over 300 px with the aspect within 2:5..5:2
+(see §3.3). The PT-matched 2x display ceiling (640x224) fails both. 768x320 passes
+both and renders correctly at every card width in the measured range, so one file
+serves display, i2v input, and hover poster.
 
 ---
 
@@ -488,32 +540,51 @@ So the cover area is **216x100 to 316x100 PT = a 2.16:1 to 3.16:1 banner**. Card
 
 ### 3A.2 Output size: PT-matched, not oversized
 
-Retina needs 2x the PT size. The widest cover is 316 PT, so the display ceiling is
-**632 x 200 px**. MiniMax `image-01` supports `width`/`height` directly (the API
-reference lists 512-2048 px per side, multiples of 8, `image-01` only), so the request
-can be sized to the target rather than to a preset aspect ratio.
+**Everything in this section was measured against the live MiniMax endpoint on
+2026-10-22, not read off a doc.** The provider minimum is 512 px on BOTH sides, so the
+stored banner is 768x320 — chosen as the smallest shape that (a) clears the provider
+minimum, (b) clears the i2v input gate, and (c) covers the widest card at 2x.
 
-**The stored size is 752x304, not 640x224.** The display alone would take 640x224, but
-the i2v input gate (§3.3) rejects anything with a short edge of 300 px or less, and
-752x304 also lands inside the 2:5..5:2 aspect window. One file, three uses: display,
-i2v first frame, hover poster.
+Measured request/response matrix (real calls, `image-01`):
 
-| Option | Pixels | HEIC per cover | 100 cards |
-| --- | --- | --- | --- |
-| 640x224 (display-only; rejected by i2v) | 143k | 16.8 KB | 1.7 MB |
-| **752x304 (chosen)** | 229k | **26.4 KB** | **2.6 MB** |
-| 1024x448 | 459k | 52.0 KB | 5.2 MB |
-| 1344x576 (MiniMax 21:9 preset) | 774k | ~90 KB | 9.0 MB |
+| Request | Result |
+| --- | --- |
+| 752x304 | **REJECTED** — `status_code 2013, invalid params, height must be between [512,2048]` |
+| 512x512 | accepted, 141.2 KB |
+| **1024x512** | **accepted, 233.9 KB** (the shape actually used) |
+| 1280x512 | accepted, 261.8 KB |
+| 1536x512 | accepted, 351.4 KB |
+| 1024x576 | accepted, 298.3 KB |
 
-**Library-space context, measured:** the whole `.ws` library is 4.4 MB today
-(26 cards), of which 420 MB is `WenshuStore.store` and 3.5 MB is `cache/chat-uploads`.
-The reference and book markdown are 0.2 MB combined. At 26.4 KB per cover, 100 covers
-add 2.6 MB — less than the chat-upload cache already in the library, so space is not a
-binding constraint at this size.
+The response is always JPEG regardless of the requested format, and `width`/`height`
+must both be >= 512. `image-01-live` cannot be used at all: it returns
+`image-01-live model does not support width or height parameters`, so the size cannot
+be controlled with that model. **The model is `image-01`.**
+
+So the request is 1024x512 (2.0:1) and the crop to 768x320 (2.4:1) happens locally.
+The crop is a centre crop, and it was verified visually: the generated lighthouse stayed
+fully visible with sky above it, and the composition stayed balanced.
+
+**Stored size, measured on the real generated image** (not a synthetic):
+
+| Artifact | Bytes |
+| --- | --- |
+| provider 1024x512 JPEG (transient) | 269.2 KB |
+| **stored HEIC 768x320 q0.82** | **58.9 KB** |
+| i2v payload JPEG 768x320 q0.92 | 112.7 KB |
+| i2v payload as a base64 data URL | 150.2 KB |
+
+100 covers cost **5.8 MB**. The whole `.ws` library is 4.4 MB today (26 cards), of
+which 420 MB is `WenshuStore.store` and 3.5 MB is `cache/chat-uploads`. So library
+space is not a binding constraint at this size.
 
 **Format: HEIC, not WebP.** macOS 27 has no WebP encoder (verified, §3A.0). HEIC is
-Apple-native and 40% smaller than JPEG at the same quality on painterly content
-(26.4 KB vs 47.0 KB at 752x304).
+Apple-native and roughly half of JPEG at the same quality on painterly content.
+
+**Why 768x320 and not 640x224:** the display ceiling for the widest card (316 PT) at 2x
+is 632x200, so 640x224 would fit the screen — but the i2v input gate rejects it (short
+edge must exceed 300 px, and 224 fails). One stored file serves display, i2v first
+frame, and hover poster, so there is no second copy and no extra library cost.
 
 ### 3A.3 Unified style: one art-direction prompt for every cover
 
@@ -644,7 +715,7 @@ Each ticket runs in its own git worktree created as a board card on `wenshu-par`
 | --- | --- | --- |
 | 1 | Cover data model + storage | `WSCardCover` (or `WSAttachment` reuse) + `<.ws>/assets/covers/<cardID>/` read/write + additive schema append to `ModelsSchemaV1.models` |
 | 2 | Auxiliary route config | `WSCoverServiceConfig` (@Model, Hermes-shaped fields) + the resolver that honours `"auto"` = inherit the active provider |
-| 3 | Image generation service | MiniMax `image_generation` client (Bearer auth) + **752x304** output + HEIC encode + the unified art-direction prompt constant |
+| 3 | Image generation service | MiniMax `image_generation` client (Bearer auth) + 1024x512 request + 768x320 crop + HEIC encode + the unified art-direction prompt constant |
 | 4 | Static cover rendering | replace the `Card` thumbnail + HEIC load + the "regenerate cover" / "remove cover" context-menu items, wired at all 3 `Card(` call sites |
 | 5 | Settings pane | `SettingsPane.covers` + switches + the Hermes-shaped auxiliary route rows (one per service, with "Change" and "Reset all to auto") + `Localizable.xcstrings` entries |
 | 6 | Dynamic cover + hover playback | i2v client (HEIC -> JPEG -> data URL, async task + poll + 9-hour URL download) + compact re-encode + `AVPlayer` loop playback on hover + the "make dynamic" context-menu item |
