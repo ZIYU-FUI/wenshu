@@ -20,6 +20,7 @@
 //
 
 import Foundation
+import WenshuAgent
 
 extension WenshuVerifier {
     /// static documentation comment for single-key contract.

@@ -5,6 +5,7 @@
 import Testing
 import SwiftData
 import Foundation
+import WenshuAgent
 import WenshuData
 @testable import WenshuApp
 
@@ -26,9 +27,8 @@ struct WenshuConductorTests {
     @MainActor
     func testHandle() async throws {
         let kanban = try Self.makeKanbanRepository()
-                let runtime = AgentRuntime()
         let verifier = WenshuVerifier()  // key, LLM, verify graceful degradation (S4)
-        let conductor = WenshuConductor(runtime: runtime)
+        let conductor = WenshuConductor()
 
         // S4 graceful degradation: handle (LLM fail), fallback reply (yes throw)
         // 

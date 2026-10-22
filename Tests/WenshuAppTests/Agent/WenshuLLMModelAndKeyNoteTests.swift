@@ -12,8 +12,9 @@
 //  WenshuVerifierKeyNote.swift is v0.23, the model-fetch layer
 // 
 
-import Testing
 import Foundation
+import Testing
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("WenshuLLMModel deep (= v0.21 ticket 04)")

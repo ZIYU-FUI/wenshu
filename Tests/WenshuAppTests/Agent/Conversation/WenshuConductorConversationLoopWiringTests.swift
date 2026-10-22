@@ -70,7 +70,6 @@ struct WenshuConductorConversationLoopWiringTests {
         let connector = MockLLMConnector(scriptedResponses: scripts)
         let kanban = try Self.makeKanbanRepository()
                 let conductor = WenshuConductor(
-            runtime: AgentRuntime(),
                         connector: connector
         )
 
@@ -126,7 +125,6 @@ struct WenshuConductorConversationLoopWiringTests {
         let connector = MockLLMConnector(scriptedResponses: scripts)
         let kanban = try Self.makeKanbanRepository()
                 let conductor = WenshuConductor(
-            runtime: AgentRuntime(),
                         connector: connector
         )
 
@@ -204,7 +202,6 @@ struct WenshuConductorConversationLoopWiringTests {
         // compression wired (= no regression in handle()).
         let kanban = try Self.makeKanbanRepository()
                 let conductor = WenshuConductor(
-            runtime: AgentRuntime(),
                         connector: connector
         )
         let conductorResult = await conductor.handle(
@@ -223,7 +220,6 @@ struct WenshuConductorConversationLoopWiringTests {
         let connector = ThrowingMockConnector()
         let kanban = try Self.makeKanbanRepository()
                 let conductor = WenshuConductor(
-            runtime: AgentRuntime(),
                         connector: connector
         )
 

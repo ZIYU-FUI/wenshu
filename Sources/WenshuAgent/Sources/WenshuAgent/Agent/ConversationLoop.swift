@@ -2,19 +2,17 @@
 // … (= 49 rationale lines collapsed; = A112 docblock collapse per §1.8)
 // unit tests + callers that don't care about progress emission).
 import Foundation
-import WenshuAgent
 import os.log
-import WenshuData
 
 // / Result of a single ConversationLoop.runConversation call.
 // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
 // / full message history + taskId for tracing + telemetry).
-struct ConversationResult: Sendable {
-    let response: LLMResponse
-    var messages: [LLMMessage]
-    let taskId: String
+public struct ConversationResult: Sendable {
+    public let response: LLMResponse
+    public var messages: [LLMMessage]
+    public let taskId: String
 
-    init(response: LLMResponse, messages: [LLMMessage], taskId: String) {
+    public init(response: LLMResponse, messages: [LLMMessage], taskId: String) {
         self.response = response
         self.messages = messages
         self.taskId = taskId
@@ -24,7 +22,7 @@ struct ConversationResult: Sendable {
 // / Agent main loop engine. One ConversationLoop per session (= per
 // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
 // / profile per Settings → LLM Connector pane) and returns the result.
-actor ConversationLoop {
+public actor ConversationLoop {
 
     private let connector: any LLMConnector
     private let systemPrompt: String?
@@ -37,7 +35,7 @@ actor ConversationLoop {
     // / Build a ConversationLoop bound to an active LLMConnector.
     // … (= 21 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // /     by-step feedback in the OpenBox panel during a turn.
-    init(
+    public init(
         connection: any LLMConnector,
         systemPrompt: String? = nil,
         runtime: RuntimeHelpers? = nil,
@@ -61,7 +59,7 @@ actor ConversationLoop {
     // / Legacy initializer (= preserved for backward compat with callers
     // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / wenshu port init with default hook chain + compression actor.
-    init(
+    public init(
         connector: any LLMConnector,
         systemPrompt: String? = nil,
         runtime: RuntimeHelpers? = nil
@@ -98,13 +96,13 @@ actor ConversationLoop {
     // / Resolve the current time via the runtime (= hermes-port Z-contract
     // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / can call the loop's clock instead of touching `Date()` directly.
-    func now() async -> Date {
+    public func now() async -> Date {
         await runtime.now()
     }
     // / Run a complete conversation turn (= hermes run_conversation L523-L546).
     // … (= 27 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / - Throws: LLMConnectorError on transport / auth / provider failure.
-    func runConversation(
+    public func runConversation(
         userMessage: String,
         systemMessage: String? = nil,
         conversationHistory: [LLMMessage]? = nil,
@@ -195,7 +193,7 @@ actor ConversationLoop {
     // MARK: - wenshu port wire-up: runTurn (full turn orchestrator)
     // … (= 33 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // /   history + taskId.
-    func runTurn(
+    public func runTurn(
         userMessage: String,
         systemMessage: String? = nil,
         conversationHistory: [LLMMessage] = [],
@@ -977,11 +975,11 @@ actor ConversationLoop {
 // / Mixture-of-Agents config (= hermes `moa_config` param).
 // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
 // / 9-param signature is hermes-compatible from day 1.
-struct MOAConfig: Sendable {
-    let advisorCount: Int
-    let aggregatorModel: String
+public struct MOAConfig: Sendable {
+    public let advisorCount: Int
+    public let aggregatorModel: String
 
-    init(advisorCount: Int, aggregatorModel: String) {
+    public init(advisorCount: Int, aggregatorModel: String) {
         self.advisorCount = advisorCount
         self.aggregatorModel = aggregatorModel
     }

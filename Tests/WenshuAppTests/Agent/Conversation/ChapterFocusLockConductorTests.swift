@@ -14,6 +14,7 @@
 
 import Foundation
 import Testing
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("ChapterFocusLockConductor (chapter-focus-lock 2026-09-28 T3)")
@@ -21,7 +22,7 @@ struct ChapterFocusLockConductorTests {
 
     @Test("WenshuConductor catches ChapterFocusLockedError and retries")
     func conductorCatchesAndRetries() throws {
-        let path = Self.repoSourcePath("Sources/WenshuApp/WenshuAgent/Agent/WenshuConductor.swift")
+        let path = Self.repoSourcePath("Sources/WenshuApp/Features/Agent/Store/WenshuConductorToolBuilder.swift")
         let source = try String(contentsOfFile: path, encoding: .utf8)
         #expect(source.contains("ChapterFocusLockedError"))
         #expect(source.contains("focusedChapterPath"))
@@ -29,7 +30,7 @@ struct ChapterFocusLockConductorTests {
 
     @Test("ChapterFocusLockConductor retries with a temporary lock release")
     func conductorReleasesLockDuringRetry() throws {
-        let path = Self.repoSourcePath("Sources/WenshuApp/WenshuAgent/Agent/WenshuConductor.swift")
+        let path = Self.repoSourcePath("Sources/WenshuApp/Features/Agent/Store/WenshuConductorToolBuilder.swift")
         let source = try String(contentsOfFile: path, encoding: .utf8)
         // The retry path must set focusedChapterPath to nil (= or
         // whatever the prior value was; = restored on exit) so the
@@ -39,7 +40,8 @@ struct ChapterFocusLockConductorTests {
 
     // MARK: - Repo-root path helper
     private static func repoSourcePath(_ relativeFromRepoRoot: String) -> String {
-        let path = "/Volumes/ANAN/Engineering/wenshu/\(relativeFromRepoRoot)"
-        return path
+        var url = SourceLocator.repoRoot
+        url.appendPathComponent(relativeFromRepoRoot)
+        return url.path
     }
 }

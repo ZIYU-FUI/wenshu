@@ -101,7 +101,6 @@ struct ChatView: View {
         // was deleted; = the conductor no longer takes a
         // verifier argument; = WenshuAgent.shared is the
         // canonical LLM call entry point.
-        let runtime = AgentRuntime()
         let tools = WenshuConductor.buildToolsSync(from: ToolRegistry.shared)
         // the conductor's injected `WSRepositoryContainer` (= falls back
         // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
@@ -114,7 +113,6 @@ struct ChatView: View {
         // conductor routes through the ReAct loop (= same fix as
         // WenshuAppDelegate).
         return WenshuConductor(
-            runtime: runtime,
             connector: WenshuAgent.shared.activeLLMConnector(),
             tools: tools
         )

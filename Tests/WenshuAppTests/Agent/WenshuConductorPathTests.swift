@@ -14,10 +14,11 @@
 //
 //
 
-import Testing
 import Combine
-import WenshuData
+import Testing
+import WenshuAgent
 @testable import WenshuApp
+import WenshuData
 
 @Suite("WenshuConductor path logging (T0-PATH-VISIBLE)")
 struct WenshuConductorPathTests {
@@ -36,8 +37,7 @@ struct WenshuConductorPathTests {
     @Test @MainActor
     func no_connector_path_returns_legacy_tuple() async throws {
         _ = try Self.makeKanbanRepository()
-        let runtime = AgentRuntime()
-        let conductor = WenshuConductor(runtime: runtime)
+        let conductor = WenshuConductor()
         let result = await conductor.handle(
             userMessage: "hello",
             sessionId: "test-session",
@@ -55,8 +55,7 @@ struct WenshuConductorPathTests {
     @Test @MainActor
     func handle_never_throws() async throws {
         _ = try Self.makeKanbanRepository()
-        let runtime = AgentRuntime()
-        let conductor = WenshuConductor(runtime: runtime)
+        let conductor = WenshuConductor()
         // The contract is "never throws". Just verify the await
         // completes (= no hang, no propagation).
         let result = await conductor.handle(

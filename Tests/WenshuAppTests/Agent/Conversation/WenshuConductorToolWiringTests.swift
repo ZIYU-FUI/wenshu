@@ -290,7 +290,6 @@ struct WenshuConductorToolWiringTests {
         let kanban = try Self.makeKanbanRepository()
 
                 return WenshuConductor(
-            runtime: AgentRuntime(),
                         connector: connector,
             tools: tools
         )

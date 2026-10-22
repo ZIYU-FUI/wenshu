@@ -131,6 +131,9 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // The agent runtime owns the tool registry; the app owns the
         // tools. Hand the runtime the app's registration points and the
         // library-root accessor before any window or tool call.
+        // The runtime's verifier probes the agent through the app's
+        // canonical chat entry point (= the installed conductor).
+        AgentChatProviders.current = WenshuAgentChatProvider()
         ToolRegistryBootstrap.install()
     }
 
@@ -263,7 +266,6 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // canonical owner; = the AppDelegate no longer holds
         // the canonical reference).
         let conductorInstance = WenshuConductor(
-            runtime: Self.sharedRuntime,
             // P0-AGENT-LOOP (2026-10-16 boss OOB "agent 没有达到 agent 的标准"):
             // the conductor used to be constructed without a connector,
             // which forced every call through `runLegacyConductorPipeline`

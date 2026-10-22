@@ -19,6 +19,7 @@
 //  Per AGENTS.md §11.4 + §6.4 (Apple Backyard Birds target structure).
 
 import Foundation
+import WenshuAgent
 import WenshuData
 
 /// Business-logic ops for chat (= LLM call + chat persistence =

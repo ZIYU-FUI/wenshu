@@ -20,6 +20,7 @@
 
 import Foundation
 import Testing
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("ChapterFocusLockDialogWrapper (chapter-dialog 2026-09-28 T2)")
@@ -27,7 +28,7 @@ struct ChapterFocusLockDialogWrapperTests {
 
     @Test("Conductor wrapper calls into ChapterFocusLockDialogPresenter")
     func wrapperUsesPresenter() throws {
-        let path = Self.repoSourcePath("Sources/WenshuApp/WenshuAgent/Agent/WenshuConductor.swift")
+        let path = Self.repoSourcePath("Sources/WenshuApp/Features/Agent/Store/WenshuConductorToolBuilder.swift")
         let source = try String(contentsOfFile: path, encoding: .utf8)
         #expect(source.contains("ChapterFocusLockDialogPresenter"))
         #expect(source.contains("present("))
@@ -42,7 +43,7 @@ struct ChapterFocusLockDialogWrapperTests {
 
     @Test("Wrapper snapshots + restores focusedChapterPath around the inner call")
     func wrapperSnapshotsAndRestores() throws {
-        let path = Self.repoSourcePath("Sources/WenshuApp/WenshuAgent/Agent/WenshuConductor.swift")
+        let path = Self.repoSourcePath("Sources/WenshuApp/Features/Agent/Store/WenshuConductorToolBuilder.swift")
         let source = try String(contentsOfFile: path, encoding: .utf8)
         // The snapshot must happen BEFORE the dialog is presented
         // (= so restore can put the prior value back even if the
@@ -52,7 +53,8 @@ struct ChapterFocusLockDialogWrapperTests {
 
     // MARK: - Repo-root path helper
     private static func repoSourcePath(_ relativeFromRepoRoot: String) -> String {
-        let path = "/Volumes/ANAN/Engineering/wenshu/\(relativeFromRepoRoot)"
-        return path
+        var url = SourceLocator.repoRoot
+        url.appendPathComponent(relativeFromRepoRoot)
+        return url.path
     }
 }

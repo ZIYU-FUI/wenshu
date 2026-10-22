@@ -2,7 +2,6 @@
 // … (= 33 rationale lines collapsed; = A112 docblock collapse per §1.8)
 // 
 import Foundation
-import WenshuAgent
 import WenshuData
 import os.log
 
@@ -10,9 +9,8 @@ private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "wenshucond
 
 // See commit 49 (= ContextEngine deferred) for the full rationale.
 // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
-// / Wenshu orchestrator (actor thread-safe, consistent with AgentRuntime / WSKanbanRepository / WSMemoryRepository).
-actor WenshuConductor {
-    private let runtime: AgentRuntime
+// / Wenshu orchestrator (actor thread-safe, consistent with the data-layer repositories).
+public actor WenshuConductor {
     // AUDIT.md §2.2 partial (2026-10-16 boss "把切换包的事
     // 清干净" arc): the `verifier: WenshuVerifier` field was
     // deleted; = the conductor routes every LLM call through
@@ -22,14 +20,6 @@ actor WenshuConductor {
     // … (= 11 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / ChatView call site keeps working.
     let repositories: WSRepositoryContainer
-    /// See .scratch/2026-08-22-frontend-integration/issues/h10-tools-frontend.md.
-    private let fileTools: FileTools = FileTools()
-    private let webTools: WebTools = WebTools()
-    private let visionTools: VisionTools = VisionTools()
-    // / h14: AVMediaTools — agent toolkit dispatch + chat UI read-aloud button.
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / .scratch/2026-08-22-frontend-integration/issues/h14-avmedia-tools-frontend.md.
-    private let avMediaTools: AVMediaTools = AVMediaTools()
     // / P0 #1 (WIRE-AGENT-001): optional active connector profile. When non-nil,
     // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / App.swift follow-up.
@@ -41,7 +31,7 @@ actor WenshuConductor {
     // / P0 #2 (WIRE-AGENT-002): tool registry forwarded to
     // … (= 13 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / `registeredToolNames` accessor + the `wireBookScopeGuard` writer.
-    var tools: [String: any Tool]
+    public var tools: [String: any Tool]
     // AUDIT.md §2.9 partial (2026-10-16): the stream single-
     // writer fence (= hermes `stream_single_writer.py` port).
     // One per conductor instance (= the conductor is the
@@ -50,39 +40,16 @@ actor WenshuConductor {
     // `WenshuAppDelegate.sharedConductor` per session).
     private let streamWriterFence = WAStreamWriterFence()
 
-    init(
-        runtime: AgentRuntime,
-        tools: [String: any Tool] = [:],
-        repositories: WSRepositoryContainer? = nil
-    ) {
-        // AUDIT.md §2.2 partial (2026-10-16 boss "把切换包的事
-        // 清干净" arc): the `verifier` parameter was deleted;
-        // = the conductor no longer holds a `WenshuVerifier`
-        // instance (= the verifier actor is now a thin bridge
-        // to WenshuAgent.shared; = the conductor routes
-        // every LLM call through the WenshuAgent.shared.chat()
-        // entry point; = the verifier field is no longer
-        // needed for any call site).
-        self.init(
-            runtime: runtime,
-                connector: nil,
-            loopRuntime: nil,
-            tools: tools,
-            repositories: repositories
-        )
-    }
 
     // / P0 #1 (WIRE-AGENT-001): new init that wires WenshuConductor.handle()
     // … (= 13 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / nil, `ConversationLoop` falls back to a fresh `RuntimeHelpers()` actor.
-    init(
-        runtime: AgentRuntime,
+    public init(
         connector: (any LLMConnector)? = nil,
         loopRuntime: RuntimeHelpers? = nil,
         tools: [String: any Tool] = [:],
         repositories: WSRepositoryContainer? = nil
     ) {
-        self.runtime = runtime
         self.connector = connector
         self.loopRuntime = loopRuntime
         // P0 #2 (WIRE-AGENT-002): store the tool registry so the loop
@@ -101,75 +68,10 @@ actor WenshuConductor {
     }
 
 
-    // / h10: dispatch an agent tool call. Returns "" on unknown tool / failure.
-    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / input = text → speaks aloud (fire-and-forget)
-    func invokeTool(name: String, input: String, caller: AgentCaller = .main) async -> String {
-        // hermes DELEGATE_BLOCKED_TOOLS parity ((see OOB.md #2026-08-23)).
-        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
-        // Sub-agents can call memory but only for read ops (no add/delete).
-        if caller.isSubAgent {
-            let parts = input.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
-            let op = parts.first.map(String.init) ?? ""
-            if let reason = SubAgentPermissions.checkPermission(tool: name, op: op) {
-                return reason
-            }
-        }
-        // .003: tool-level allowlist ((see OOB.md #2026-08-23) — user cannot change system via chat).
-        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
-        // Unknown op = blocked (per-tool allowlist below).
-        let parts = input.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
-        let op = parts.first.map(String.init) ?? ""
-        let arg = parts.count > 1 ? String(parts[1]) : ""
-
-        switch name {
-        case "file":
-            // Allowlist: read / list / search only (NOT write / patch).
-            guard ["read", "list", "search"].contains(op) else {
-                return "(tool blocked: file.\(op) is in deny-list — (see OOB.md #2026-08-23): user cannot change code / config via chat)"
-            }
-            switch op {
-            case "read": return (try? fileTools.read(path: arg)) ?? ""
-            case "list": return (try? fileTools.list(path: arg).map { $0.path }.joined(separator: "\n")) ?? ""
-            case "search": return (try? fileTools.search(rootDir: arg, pattern: "").joined(separator: "\n")) ?? ""
-            default: return ""
-            }
-        case "process":
-            // Deny all (chat-triggered shell = arbitrary code execution).
-            return "(tool blocked: process is deny-all — (see OOB.md #2026-08-23): user cannot change system via chat. Use wenshu-devtool CLI.)"
-        case "web":
-            // Per 12 standard P1-02 try?  (= wenshu tries to surface
-            // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
-            // failure via Console.app.
-            do {
-                return try await webTools.extract(url: input)
-            } catch {
-                WenshuConductor.toolLogger.error("[wenshu.conductor.tool] web.extract url=\(input, privacy: .public) silently dropped error: \(String(describing: error), privacy: .public)")
-                return ""
-            }
-        case "vision":
-            // Same pattern (= silent fallback on the bottom-rung of
-            // the multi-tool pipeline).
-            var recognizedResults: [VisionTextResult] = []
-            do {
-                recognizedResults = try await visionTools.recognizeText(imagePath: input)
-            } catch {
-                WenshuConductor.toolLogger.error("[wenshu.conductor.tool] vision.recognizeText imagePath=\(input, privacy: .public) silently dropped error: \(String(describing: error), privacy: .public)")
-                return ""
-            }
-            return recognizedResults.map(\.text).joined(separator: "\n")
-        case "av":
-            avMediaTools.speak(text: input)
-            return "[spoken]"
-        default:
-            return "(tool blocked: unknown tool '\(name)')"
-        }
-    }
-
     // / handle: receive user message, dispatch sub-agents, synthesize final
     // … (= 24 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / `(reply, tokens, thinking)` tuple without the streaming side-effect.
-    func handle(
+    public func handle(
         userMessage: String,
         sessionId: String,
         model: String,
@@ -377,61 +279,6 @@ actor WenshuConductor {
         return prompt
     }
 
-    // MARK: - ToolRegistry wiring (WIRE-TOOLREGISTRY-003)
-    // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / and the ChatView wiring agree on the set (= deterministic diff).
-    /// Tool names the conductor asks the registry for.
-    ///
-    /// Delegates to ToolCatalogue so the list carries a category per tool and
-    /// the settings presets can be derived from it. An empty selection means
-    /// every tool, so an existing installation changes nothing until someone
-    /// opens settings and chooses.
-    @MainActor
-    static var defaultToolNames: [String] {
-        ToolCatalogue.exposedNames(settings: agentSettings.prompt)
-    }
-
-    /// Behaviour knobs for the turn runtime, as the user configured them.
-    ///
-    /// MainActor because the store is: settings are written from the settings
-    /// screen and read from here, and a turn already hops there for the
-    /// libraries.
-    @MainActor
-    static var agentSettings: AgentSettings { AgentSettingsStore.shared.load() }
-
-    // / Maximum time `buildToolsSync(from:)` will wait for the detached async
-    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / covers the scheduling jitter.
-    static let toolRegistryWaitTimeoutMs: UInt64 = 250
-
-    // / Build the conductor's tool registry from `ToolRegistry.shared` (= hermes
-    // … (= 15 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / deterministic.
-    static func buildTools(from registry: ToolRegistry) async -> [String: any Tool] {
-        // Step 1: brief warmup window. Registrations are fire-and-forget
-        // … (= 15 rationale lines collapsed; = A112 docblock collapse per §1.8)
-        // always time out and waste 250 ms.
-        try? await Task.sleep(nanoseconds: toolRegistryWarmupMs * 1_000_000)
-
-        // Step 2: assemble the dict via `getHandler`. Unknown names are
-        // silently dropped (= spec: `testBuildTools_excludesUnknownNames`).
-        var tools: [String: any Tool] = [:]
-        // The configured selection is read on the main actor because the
-        // settings store is; everything else below is actor-local.
-        let wanted = await defaultToolNames
-        for name in wanted {
-            if let handler = await registry.getHandler(name: name) {
-                tools[name] = handler
-            }
-        }
-        return tools
-    }
-
-    // / Brief settle window for `buildTools(from:)` (= 50 ms). Registrations are
-    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / which would time out in tests where not all 12 tool files are linked).
-    static let toolRegistryWarmupMs: UInt64 = 50
-
     // / Synchronous bridge to `buildTools(from:)` for callers that cannot await
     // … (= 15 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / ChatView.init fires.
@@ -445,7 +292,7 @@ actor WenshuConductor {
     // (= the Swift type-checker chokes on long multi-closure
     // expressions in actor methods; = per the previous
     // compile-time diagnostic).
-    static func makeFencedCallback(
+    public static func makeFencedCallback(
         userCallback: (@Sendable (LLMBlock) async -> Void)?,
         fence: WAStreamWriterFence,
         token: Int

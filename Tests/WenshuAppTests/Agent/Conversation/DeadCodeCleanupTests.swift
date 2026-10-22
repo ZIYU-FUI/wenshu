@@ -41,6 +41,7 @@
 
 import Testing
 import Foundation
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("Dead code + dangling cleanup (v2.9a — boss 2026-09-28 OOB B2 + B3)")
@@ -54,7 +55,7 @@ struct DeadCodeCleanupTests {
 
     @Test("WenshuConductor.defaultToolNames has no 'skill_bundles' string (= boss B2 dangling removed)")
     func testWenshuConductorDefaultToolNamesHasNoSkillBundles() throws {
-        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/WenshuAgent/Agent/WenshuConductor.swift"), encoding: .utf8)
+        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Features/Agent/Store/WenshuConductorToolBuilder.swift"), encoding: .utf8)
         // defaultToolNames contains a string literal "skill_bundles"
         // OR a "toolNames" array element. The fix removes it.
         let hasDangling = source.contains("\"skill_bundles\"")

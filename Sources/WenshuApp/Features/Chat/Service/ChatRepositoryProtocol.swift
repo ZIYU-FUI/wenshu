@@ -39,6 +39,7 @@
 //
 
 import Foundation
+import WenshuAgent
 import WenshuData
 
 /// Data-layer seam for chat persistence. Implementers handle the

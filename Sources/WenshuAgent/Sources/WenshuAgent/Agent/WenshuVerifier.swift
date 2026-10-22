@@ -12,7 +12,6 @@
 //     integrates with the minimax-cn API.
 
 import Foundation
-import WenshuAgent
 import os
 
 // AUDIT.md §2.6 partial (2026-10-16 boss 2026-10-16 OOB
@@ -29,7 +28,7 @@ private let wenshuLogger = Logger(subsystem: "com.wenshu.agent", category: "agen
 
 /// minimax-cn ground-truth probe (Anthropic-compatible protocol)
 /// WenshuVerifier: ground-truth probe for wenshu AgentProtocol against the minimax-cn API
-actor WenshuVerifier {
+public actor WenshuVerifier {
     // AUDIT.md §2.6 partial (2026-10-16 boss "清老代码必须做完" arc):
     // the actor's chat/ping/send methods (= the legacy LLM probe) have been
     // deleted; = the WenshuLLM* types now live in WenshuLLMTypes.swift. The
@@ -39,24 +38,30 @@ actor WenshuVerifier {
     // `WenshuAgent.shared.chat()` entry point and translates the
     // WenshuLLMResponse back (= the legacy reply type) so the callers'
     // downstream code does not need to migrate in this arc.
-    init() {}
+    public init() {}
 
     /// Bridge: delegates to WenshuAgent.shared.chat() (= the canonical
     /// LLM call entry point) and translates the (reply, tokens, thinking)
     /// tuple back into the legacy WenshuLLMResponse shape (= so
     /// ConversationOps.summarizeIfNeeded + AgentProtocol.handleMessageSend
     /// keep working unchanged).
-    func chat(_ text: String) async throws -> WenshuLLMResponse {
+    public func chat(_ text: String) async throws -> WenshuLLMResponse {
+        // The app owns the chat entry point (= the installed
+        // conductor, the provider key, the model choice), so the
+        // runtime asks the installed provider instead of naming an
+        // app type.
+        guard let provider = AgentChatProviders.current else {
+            throw LLMConnectorError.streamingFailed(provider: "wenshu-verifier-bridge")
+        }
         // Use the resolved model from the active keychain (= the same
         // logic the deleted method used; = the WenshuLLMModel.allCases
         // .first is the historical default).
-        let model = WenshuLLMModel.m3.rawValue
-        let result = await WenshuAgent.shared.chat(
+        let model = provider.modelIdentifier
+        guard let r = await provider.chat(
             userMessage: text,
             sessionId: "wenshu-verifier-bridge",
             model: model
-        )
-        guard let r = result else {
+        ) else {
             throw LLMConnectorError.streamingFailed(provider: "wenshu-verifier-bridge")
         }
         // Translate the canonical (reply, tokens, thinking) tuple into

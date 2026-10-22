@@ -59,6 +59,7 @@
 
 import AppKit
 import SwiftUI
+import WenshuAgent
 import WenshuData
 import os
 

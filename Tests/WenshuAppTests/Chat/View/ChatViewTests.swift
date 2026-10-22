@@ -5,8 +5,9 @@
 // UI (sandbox), ChatViewModel ok.
 //
 
-import Testing
 import Foundation
+import Testing
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("ChatView (wenshu 左下 zone)")

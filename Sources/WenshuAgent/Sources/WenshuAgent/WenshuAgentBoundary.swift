@@ -13,7 +13,10 @@
 //
 //      Sources/WenshuAgent/Sources/WenshuAgent/
 //      ├── WenshuAgentBoundary.swift   (this file = intent + access policy)
-//      ├── Agent/                      (LLM block / usage / response types)
+//      ├── Agent/                      (the runtime: conductor +
+//      │                               conversation loop + verifier +
+//      │                               chat provider seam + LLM block
+//      │                               / usage / response types)
 //      ├── Connector/                  (provider connectors + registry)
 //      ├── Context/                    (context engine + compression)
 //      ├── Discovery/                  (model discovery + credentials)
@@ -30,24 +33,18 @@
 //      │                               + exposure)
 //      └── Turn/                       (turn context + finalizer + notes)
 //
-//  Eight source files stay inside the app target at
+//  The agent runtime itself lives here now: the conductor, the
+//  conversation loop and the verifier all moved into the package.
+//  Five source files stay inside the app target at
 //  `Sources/WenshuApp/WenshuAgent/`.
 //  They stay because they reference the app's auth pool, the app's
 //  provider catalogue, the app's import layer and the app delegate,
 //  all of which live in the app target.
-//  The tool registry and the tool executor no longer count against
-//  them: both moved into the runtime package, so the conductor's
-//  tool plumbing already reaches the runtime's public surface.
-//  Moving the remaining eight files into the runtime package is
-//  separate work that needs the dependency-inversion decision first.
 //
 //      Sources/WenshuApp/WenshuAgent/
 //      ├── Agent/
-//      │   ├── ConversationLoop.swift
-//      │   ├── WenshuConductor.swift
 //      │   ├── WenshuConductorImportRouter.swift
-//      │   ├── WenshuConductorImportRouterHelpers.swift
-//      │   └── WenshuVerifier.swift
+//      │   └── WenshuConductorImportRouterHelpers.swift
 //      ├── App/
 //      │   └── WenshuAppDelegateLLM.swift
 //      ├── Keychain/
@@ -78,6 +75,14 @@
 //    2. `PathGuard.libraryRootProvider` = the app installs the accessor
 //       for the active library root; the runtime reads it when a path
 //       is checked.
+//    3. `AgentChatProviders.current` = the app installs the chat entry
+//       point the verifier probes; the runtime reads it when it checks
+//       that the agent answers.
+//    4. `ToolRegistry.ProductionToolRegistryBootstrap.start` and
+//       `PathGuard.libraryRootProvider` cover the tool side; the
+//       conductor's own app half (= the tool catalogue, the settings
+//       store, the concrete tools) lives in the app as an extension on
+//       the package's `WenshuConductor`.
 //
 //  The path guard's test override (`PathGuard.$libraryRootOverride`)
 //  lives in the runtime package, next to the guard that reads it. A

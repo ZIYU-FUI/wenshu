@@ -18,8 +18,9 @@
 
 import Foundation
 import Testing
-import WenshuData
+import WenshuAgent
 @testable import WenshuApp
+import WenshuData
 
 /// Minimal ChatRepositoryProtocol fake. Records every call's bookID
 /// (= the contract under test) and returns canned messages.

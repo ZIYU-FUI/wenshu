@@ -29,6 +29,7 @@
 //   ChatHelpTextOverlay }.
 
 import SwiftUI
+import WenshuAgent
 import WenshuData
 
 struct ChatZoneView: View {

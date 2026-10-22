@@ -38,9 +38,7 @@ struct WenshuConductorBookScopeGuardTests {
     /// (= Swift 6 strict-concurrency requirement).
     @MainActor
     private static func makeConductor() -> WenshuConductor {
-        let runtime = AgentRuntime()
         return WenshuConductor(
-            runtime: runtime,
             tools: [:]
         )
     }

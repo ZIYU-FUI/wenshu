@@ -120,7 +120,7 @@ struct EditChapterToolWireTests {
         // declarations and tools dict both contain book_edit_chapter.
         // (= mirrors the v1.85 hermes 0.21.5 wire-up; = same shape
         // as BookChapterTool / BookEntityTool.)
-        let conductorPath = Self.repoSourcePath("Sources/WenshuApp/WenshuAgent/Agent/WenshuConductor.swift")
+        let conductorPath = Self.repoSourcePath("Sources/WenshuApp/Features/Agent/Store/WenshuConductorToolBuilder.swift")
         let source = try String(contentsOfFile: conductorPath, encoding: .utf8)
         #expect(source.contains("\"book_edit_chapter\""), "conductor must declare the new tool name")
         #expect(source.contains("EditChapterTool("), "conductor must wire EditChapterTool into tools dict")
@@ -128,13 +128,15 @@ struct EditChapterToolWireTests {
 
     // MARK: - Repo-root path helper (= Q112 source-content anchor)
     //
-    // Tests live at Tests/WenshuAppTests/Core/Agent/Librarian/,
-    // which is 4 dirs deep under Tests/, plus the worktree
-    // (= Tests/WenshuAppTests/Core/Agent/Librarian/<file>.swift
-    //  => /Volumes/ANAN/Engineering/wenshu/wt/<wt-name>/Sources/...).
+    // The tool wiring for the conductor lives in the app-side extension
+    // on WenshuConductor (= WenshuConductorToolBuilder.swift), because
+    // the concrete tools are app types. The anchor therefore reads that
+    // file, and it resolves against the repo root of the checkout under
+    // test so a worktree branch is checked rather than the main tree.
     private static func repoSourcePath(_ relativeFromRepoRoot: String) -> String {
-        let path = "/Volumes/ANAN/Engineering/wenshu/\(relativeFromRepoRoot)"
-        return path
+        var url = SourceLocator.repoRoot
+        url.appendPathComponent(relativeFromRepoRoot)
+        return url.path
     }
 }
 

@@ -33,8 +33,9 @@
 //  tests following the v1.44 specialized-tools P1 hermes-port
 //  batch precedent.
 
-import Testing
 import Foundation
+import Testing
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("LLM Wiki pipeline wire-up (v2.8d — boss 2026-09-28 OOB B10)")
@@ -42,7 +43,7 @@ struct LLMWikiPipelineWireTests {
 
     private var wenshuConductorPath: String {
         var url = SourceLocator.repoRoot
-        url.appendPathComponent("Sources/WenshuApp/WenshuAgent/Agent/WenshuConductor.swift")
+        url.appendPathComponent("Sources/WenshuApp/Features/Agent/Store/WenshuConductorAppExtensions.swift")
         return url.path
     }
 
@@ -79,10 +80,10 @@ struct LLMWikiPipelineWireTests {
         // The conductor's tool list delegates to ToolCatalogue (= the flat name
         // list moved there when each tool grew a category), so the file that
         // actually holds the name is the one to read.
-        let cataloguePath = URL(fileURLWithPath: wenshuConductorPath)
-            .deletingLastPathComponent()
-            .appendingPathComponent("../../Features/Agent/Service/ToolCatalogue.swift")
-            .standardizedFileURL
+        // The catalogue lives in the app (= the tool roster is app state).
+        var catalogueURL = SourceLocator.repoRoot
+        catalogueURL.appendPathComponent("Sources/WenshuApp/Features/Agent/Service/ToolCatalogue.swift")
+        let cataloguePath = catalogueURL.standardizedFileURL
         let catalogue = try String(contentsOf: cataloguePath, encoding: .utf8)
         #expect(catalogue.contains("\"llm_wiki\""),
                 "WenshuConductor.defaultToolNames must contain \"llm_wiki\"")

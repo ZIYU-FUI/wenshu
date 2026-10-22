@@ -27,6 +27,7 @@
 
 import Foundation
 import SwiftData
+import WenshuAgent
 import WenshuData
 
 /// SwiftData-backed ChatRepositoryProtocol implementation. Thin

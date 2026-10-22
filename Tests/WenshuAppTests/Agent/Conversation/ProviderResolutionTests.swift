@@ -16,6 +16,7 @@
 
 import Foundation
 import Testing
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("ProviderResolution (动态 key + baseURL routing)", .serialized)
