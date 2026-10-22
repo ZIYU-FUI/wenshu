@@ -297,9 +297,10 @@ MiniMax Token Plan tiers (cross-checked across public sources):
 | Ultra | 800 | **5** |
 
 Images are plentiful; videos are 2–5 per day. A material zone with dozens of cards can
-therefore never have all its dynamic covers filled in one pass. **This is the reason the
-refresh button must exist**, and it must be a *continue-the-queue* action, not a
-*regenerate-one* action.
+therefore never have all its dynamic covers filled in one pass. This is why the boss
+chose a **manual, per-card** dynamic action rather than an automatic sweep: the user
+spends the scarce quota on the cards they actually want animated, one at a time
+(decision 5, §5).
 
 ---
 
@@ -311,8 +312,7 @@ Each card carries a cover record with two independent states:
 
 ```
 staticImagePath?     <- static cover    (image quota is ample; fill in one pass)
-dynamicVideoPath?    <- dynamic cover   (video quota is scarce; fill in over days)
-staticPosterPath?    <- first frame, shown while the video is not playing
+dynamicVideoPath?    <- dynamic cover   (video quota is scarce; manual per card)
 accentHex?
 status: .pending | .staticReady | .dynamicReady | .failed
 lastAttemptAt / lastError?
@@ -324,20 +324,37 @@ cover once the static pass completes; the dynamic pass only upgrades it.
 ### 3.2 Degradation chain
 
 ```
-video quota exhausted / generation failed
-   -> card keeps its static cover + poster frame
-   -> hover plays the poster if a video exists, otherwise nothing changes
+no dynamic cover (not requested / quota spent / generation failed)
+   -> the card shows its static image, which is always present
+   -> hover does nothing special
 ```
 
-Dynamic covers are progressive enhancement, never a hard dependency. If tomorrow's
-quota is spent, today's static covers all still work.
+The static image is the floor. There is never a card without a picture once the static
+pass has run, so "no video" is a normal state, not an error state.
 
-### 3.3 Image-to-video consistency
+### 3.3 Image-to-video consistency, and the input-size gate
 
-Generate the static image first, then feed it as `first_frame` to the video endpoint
-(MiniMax `i2v`: `content: [{type:"text"}, {type:"image_url", role:"first_frame"}]`).
-The video then matches the static frame, so the hover transition has no jump, and one
-text description covers both passes.
+The dynamic cover is **derived from the static image**, not generated independently.
+That is the boss's requirement and it also removes a whole class of problems: the video
+cannot disagree with the picture the user already approved.
+
+The mechanism is MiniMax image-to-video: the stored static image becomes the first
+frame, so the motion starts from exactly the frame the user saw.
+
+**The input-size gate (measured against the MiniMax i2v spec):** `first_frame_image`
+requires the short edge to be **greater than 300 px** and the aspect ratio to be
+**between 2:5 and 5:2**. This is why the image size cannot simply be the display size:
+
+| Candidate | Short edge | Aspect | i2v accepts? |
+| --- | --- | --- | --- |
+| 640x224 (PT-matched 2x ceiling) | 224 | 2.86 | **NO** — short edge too low AND aspect too wide |
+| 752x304 | 304 | 2.47 | yes |
+| 1024x448 | 448 | 2.29 | yes |
+
+So the stored static image must be **752x304**, not the 640x224 the display alone would
+need. That one file then serves three jobs: it is the rendered cover, it is the i2v
+first frame, and it is the hover poster. Storing a separate downscaled copy for display
+would double the library footprint for no visible gain.
 
 ### 3.4 Settings pane
 
@@ -398,6 +415,55 @@ category preset already exists (`ToolExposure.swift:165-170`).
 **Path guard.** Any path the tool writes must live under `ActiveLibrary.path`, or
 `ToolExecutor.defaultPathGuardValidator` (`ToolExecutor.swift:162-168`) rejects the call.
 
+### 3A.0 Two platform facts that override the reference implementation
+
+Both were verified by compiling and running a probe on this machine, not by reading
+docs.
+
+**(a) macOS has no WebP encoder.** Card Master's cover pipeline ends in
+`canvas.convertToBlob({type: 'image/webp'})` (`card-cover.ts:100-103`) because the
+browser can encode WebP. The probe result on macOS 27:
+
+```
+UTType.webP.identifier = org.webmproject.webp
+WebP ENCODE via ImageIO: DESTINATION UNSUPPORTED (no encoder on this macOS)
+```
+
+`NSBitmapImageRep.FileType` has no `.webP` case either, so there is no AppKit fallback.
+**Wenshu must store HEIC** (Apple-native, and the project is Apple-stack exclusive per
+AGENTS §5.1). Measured on a painterly synthetic image at quality 0.82:
+
+| Format | 640x224 | 752x304 | 1024x448 |
+| --- | --- | --- | --- |
+| WebP | unsupported | unsupported | unsupported |
+| **HEIC** | **16.8 KB** | **26.4 KB** | 52.0 KB |
+| JPEG | 29.0 KB | 47.0 KB | 93.3 KB |
+
+HEIC at 752x304 is **26.4 KB per cover** — 100 covers cost 2.6 MB. That is the same
+order as the existing `cache/chat-uploads` directory (3.5 MB today), so library space is
+not a constraint at this size.
+
+**(b) The i2v payload must be JPEG, not HEIC.** MiniMax's `first_frame_image` accepts
+JPG / JPEG / PNG / WebP — HEIC is not in the list. The conversion is a decode-reencode
+in memory, verified end to end:
+
+```
+stored HEIC bytes: 27455 (26.8 KB)
+decoded back: 752 x 304
+i2v JPEG payload bytes: 53615 (52.4 KB)
+data URL chars: 72627
+```
+
+So the pipeline is: **generate -> crop -> HEIC (stored) -> decode -> JPEG q0.92 ->
+base64 data URL -> i2v**. The HEIC file stays the single stored artifact; the JPEG
+exists only in memory during the call.
+
+**(c) The stored size must be 752x304, not the display size.** The i2v input gate
+requires short edge > 300 px and aspect within 2:5..5:2 (see §3.3). The PT-matched
+2x display ceiling (640x224) fails both. 752x304 passes both and renders correctly at
+every card width in the measured range, so one file serves display, i2v input, and
+hover poster.
+
 ---
 
 ## 3A. Boss directives: unified style, PT-sized output, library space, auxiliary-model config
@@ -422,27 +488,32 @@ So the cover area is **216x100 to 316x100 PT = a 2.16:1 to 3.16:1 banner**. Card
 
 ### 3A.2 Output size: PT-matched, not oversized
 
-Retina needs 2x the PT size. The widest cover is 316 PT, so the ceiling is
-**632 x 200 px**. MiniMax `image-01` supports `width`/`height` directly (the API reference
-lists 512-2048 px per side, multiples of 8, `image-01` only), so the request can be sized
-to the target rather than to a preset aspect ratio.
+Retina needs 2x the PT size. The widest cover is 316 PT, so the display ceiling is
+**632 x 200 px**. MiniMax `image-01` supports `width`/`height` directly (the API
+reference lists 512-2048 px per side, multiples of 8, `image-01` only), so the request
+can be sized to the target rather than to a preset aspect ratio.
 
-| Option | Pixels | Bytes/cover (webp q0.82) | 100 cards |
+**The stored size is 752x304, not 640x224.** The display alone would take 640x224, but
+the i2v input gate (§3.3) rejects anything with a short edge of 300 px or less, and
+752x304 also lands inside the 2:5..5:2 aspect window. One file, three uses: display,
+i2v first frame, hover poster.
+
+| Option | Pixels | HEIC per cover | 100 cards |
 | --- | --- | --- | --- |
-| MiniMax 21:9 preset (1344x576) | 774k | ~416 KB | ~40.6 MB |
-| **PT-matched (640x224)** | 143k | **~68 KB** | **~6.6 MB** |
-| Conservative (448x160) | 72k | ~35 KB | ~3.5 MB |
-
-**Decision: request 640x224** (the 2x ceiling for the widest card, rounded to MiniMax's
-multiple-of-8 rule: 640 and 224 are both multiples of 8). That is ~6x smaller than the
-21:9 preset for the same visual result at the rendered size. The renderer scales with
-`.aspectRatio(contentMode: .fill)` inside the fixed 100 PT band, so a 2.86:1 source
-covers the 2.16:1-3.16:1 range without distortion.
+| 640x224 (display-only; rejected by i2v) | 143k | 16.8 KB | 1.7 MB |
+| **752x304 (chosen)** | 229k | **26.4 KB** | **2.6 MB** |
+| 1024x448 | 459k | 52.0 KB | 5.2 MB |
+| 1344x576 (MiniMax 21:9 preset) | 774k | ~90 KB | 9.0 MB |
 
 **Library-space context, measured:** the whole `.ws` library is 4.4 MB today
 (26 cards), of which 420 MB is `WenshuStore.store` and 3.5 MB is `cache/chat-uploads`.
-The reference and book markdown are 0.2 MB combined. At 68 KB per cover, 100 covers add
-6.6 MB — comparable to the existing chat-upload cache, not a different order of magnitude.
+The reference and book markdown are 0.2 MB combined. At 26.4 KB per cover, 100 covers
+add 2.6 MB — less than the chat-upload cache already in the library, so space is not a
+binding constraint at this size.
+
+**Format: HEIC, not WebP.** macOS 27 has no WebP encoder (verified, §3A.0). HEIC is
+Apple-native and 40% smaller than JPEG at the same quality on painterly content
+(26.4 KB vs 47.0 KB at 752x304).
 
 ### 3A.3 Unified style: one art-direction prompt for every cover
 
@@ -571,20 +642,18 @@ Each ticket runs in its own git worktree created as a board card on `wenshu-par`
 
 | # | Ticket | Deliverable |
 | --- | --- | --- |
-| 1 | Cover data model + storage | `WSCardCover` (or `WSAttachment` reuse) + `<.ws>/assets/covers/` read/write + additive schema append to `ModelsSchemaV1.models` |
+| 1 | Cover data model + storage | `WSCardCover` (or `WSAttachment` reuse) + `<.ws>/assets/covers/<cardID>/` read/write + additive schema append to `ModelsSchemaV1.models` |
 | 2 | Auxiliary route config | `WSCoverServiceConfig` (@Model, Hermes-shaped fields) + the resolver that honours `"auto"` = inherit the active provider |
-| 3 | Image generation service | MiniMax `image_generation` client (Bearer auth) + PT-matched sizing (640x224) + crop/WebP encoding + the unified art-direction prompt constant + queue scheduler |
-| 4 | Static cover rendering | replace the `Card` thumbnail + image load + per-card regenerate menu item wired at all 3 `Card(` call sites |
+| 3 | Image generation service | MiniMax `image_generation` client (Bearer auth) + **752x304** output + HEIC encode + the unified art-direction prompt constant |
+| 4 | Static cover rendering | replace the `Card` thumbnail + HEIC load + the "regenerate cover" / "remove cover" context-menu items, wired at all 3 `Card(` call sites |
 | 5 | Settings pane | `SettingsPane.covers` + switches + the Hermes-shaped auxiliary route rows (one per service, with "Change" and "Reset all to auto") + `Localizable.xcstrings` entries |
-| 6 | Video generation + hover playback | MiniMax video client (async task + poll + 9-hour URL download) + `AVPlayer` hover playback |
-| 7 | Refresh button + queue progress | queue top-up logic + footer button + settings progress panel |
+| 6 | Dynamic cover + hover playback | i2v client (HEIC -> JPEG -> data URL, async task + poll + 9-hour URL download) + compact re-encode + `AVPlayer` loop playback on hover + the "make dynamic" context-menu item |
+| 7 | Batch static generation | generate covers for the cards that lack one, with the per-card progress the boss sees in the assets zone |
 
-**Do 1-5 first (static closure), then 6-7 (dynamic).** Static quota is ample and the
-value is immediate; the dynamic path is a long chain (async task, polling, video encode,
-hover playback) with no upstream implementation to copy.
+**Do 1-5 first, then 6-7.** The static path is what every card needs; the dynamic path
+is a per-card manual upgrade that depends on the static image already existing.
 
-Ticket 2 lands before ticket 3 because the generator needs a route to call, and ticket 5
-after ticket 2 because the settings rows edit what ticket 2 persists.
+There is no video queue ticket: decision 5 (manual, per card) removed it.
 
 Every new file must be registered in `docs/agents/nfi.md` (AGENTS §1.7 / §1.11), and the
 §7.3 nine-grep sweep must return 0 on modified files.
@@ -595,23 +664,74 @@ Every new file must be registered in `docs/agents/nfi.md` (AGENTS §1.7 / §1.11
 
 **Settled by the boss on 2026-10-22:**
 
-- One unified art-direction prompt for every cover (§3A.3).
-- Output sized to the material-zone cover area in PT, not oversized; library space
-  respected (§3A.2 — 640x224, ~68 KB per cover).
-- The image-service key gets its own configuration item; the generation model defaults to
-  the default model; the user can configure it separately (§3A.4 — Hermes-shaped
-  auxiliary route with `"auto"` = inherit).
+1. One unified art-direction prompt for every cover (§3A.3).
+2. Output sized to the material-zone cover area in PT, not oversized; library space
+   respected (§3A.2, §3A.0).
+3. The image-service key gets its own configuration item; the generation model defaults to
+   the default model; the user can configure it separately (§3A.4 — Hermes-shaped
+   auxiliary route with `"auto"` = inherit).
+4. **Quota source:** development uses the `minimax-cn` quota; the shipped build exposes
+   the route as a user-configurable item, because the user's own provider is unknown.
+   So `"auto"` resolves to the active provider's key during development, and a pinned
+   route (provider + model + base URL + its own key) is what a user sets for their own
+   account.
+5. **The dynamic cover is manually triggered.** The user looks at the static image, and
+   if they like it, clicks "make this dynamic". No automatic video generation, no
+   background video queue.
+6. **The dynamic cover is derived from the static image**, not generated from scratch.
+   When there is no video, the static image is what shows. If the user dislikes the
+   static image, they regenerate it (refresh / re-run) rather than editing a prompt.
+   The target is a gently looping animation, not a cinematic video.
 
-**Still open:**
+### 5.1 What decision 6 changes in the design
 
-1. **Which key supplies the quota?** Reuse the existing `minimax-cn` keychain entry
-   (the `"auto"` default), or a separate image/video credential? A separate entry bills
-   and degrades independently; reuse needs no new key.
-2. **When does a dynamic cover get queued?** On every new card (burns the scarce quota),
-   or only for cards the user marks (conserves it)? The second matches a 2-5/day reality.
-3. **What does the degraded state look like?** Silent, with a progress number in the
-   footer; or a visible "pending" badge on the card? Recommendation: silent + footer
-   progress, so the card grid stays calm.
+- **No video queue.** The earlier "continue-the-queue" refresh design is dropped. The
+  refresh action on a card regenerates the **static image**; a separate "make dynamic"
+  action on a card requests the video for that one card.
+- **The dynamic cover is a short loop, not a short film.** The boss asked for
+  "a looping dynamic picture", explicitly not something elaborate. So the video spec
+  is minimal: 6 s, 512P (the cheapest tier MiniMax-Hailuo-02 offers), and the prompt
+  asks for a gentle continuous motion so the loop reads as intentional.
+- **The clip must actually loop.** A 6 s clip that cuts back to its first frame will
+  visibly jump. Two options: (a) ask the model for a seamless loop and accept the
+  attempt, or (b) store the clip and play it forward-then-backward, which doubles the
+  duration but is guaranteed seamless. The cheap default is (a) with a `loop`
+  playback; (b) is the fallback if the first clips look jumpy.
+- **The video is stored next to the image**, `<.ws>/assets/covers/<cardID>/`, as a
+  compressed file. AVFoundation on this machine offers `AVAssetExportPresetLowQuality`
+  and `AVAssetWriter` with `AVVideoCodecType.h264`, so the clip can be re-encoded small
+  rather than stored at the provider's delivery bitrate.
+
+### 5.2 The refreshed card actions
+
+Three per-card actions, each with a distinct job:
+
+| Action | What it does | Quota |
+| --- | --- | --- |
+| **Regenerate cover** | re-runs the static image generation for this card, replacing the stored HEIC | 1 image |
+| **Make dynamic** | derives a looping video from the current static image | 1 video (scarce, so it is manual and per card) |
+| **Remove cover** | deletes both, returning the card to the icon-on-gradient state | none |
+
+The card context menu already has the right shape for this
+(`PreviewPaneCard.swift:395-440`): the "complete" item sits first, then rename, then
+delete. The three cover actions join that menu.
+
+### 5.3 Still open
+
+1. **Which key supplies the quota?** Settled for development (`minimax-cn`), still open
+   for shipping: reuse the `minimax-cn` keychain slot (the `"auto"` default), or give
+   the image service its own credential so it bills and degrades independently? The
+   settings pane must offer the key either way.
+2. **How is the "make dynamic" prompt authored?** The i2v call needs a text prompt
+   describing the motion. Options: (a) a fixed house motion prompt for every card
+   (one constant, matching the unified-style decision), or (b) an LLM-written motion
+   prompt per card, derived from the card's content the same way the image concept is.
+   (b) gives a better result and costs one cheap LLM call; (a) is simpler and free.
+   Recommendation: (b), because the static concept is already computed and the motion
+   can reuse it.
+3. **What does the degraded state look like?** A card with a static image and no video
+   simply shows the image on hover (no special state). Recommendation: no badge, no
+   pending indicator — the absence of a video is invisible, matching decision 6.
 
 ---
 
