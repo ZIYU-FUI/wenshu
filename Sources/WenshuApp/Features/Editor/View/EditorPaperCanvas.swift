@@ -262,6 +262,14 @@ struct EditorPaperCanvas<Content: View>: View {
         // same space away a second time and left an empty band between
         // the document's last line and the status bar.
         content
+            // The document surface the text sits on. The engine's
+            // NSTextView is transparent (= `backgroundColor = .clear`,
+            // `drawsBackground = false`), so the body would otherwise
+            // show the window's root material (= the desktop wallpaper)
+            // straight through the text. This fill keeps the document
+            // body a comfortable, near-opaque reading surface while the
+            // window's chrome stays translucent.
+            .background(DesignTokens.editorReadingSurface)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

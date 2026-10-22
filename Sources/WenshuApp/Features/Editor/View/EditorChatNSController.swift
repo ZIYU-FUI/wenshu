@@ -173,8 +173,8 @@ final class EditorChatNSController: NSSplitViewController {
         // = matches Pages / Numbers / Keynote).
         self.splitView.dividerStyle = .thin
         // Pure Apple HIG approach (= let NSSplitView + NSSplitViewItem
-        // be transparent; = ChatZoneView provides its own background
-        // via SwiftUI's `.background(DesignTokens.sidebarBackground)`).
+        // be transparent; = the chat column shows the window's single
+        // root material).
         // Without this, NSVisualEffectView bleeds through (= the
         // gradient observed in the previous attempts).
         //

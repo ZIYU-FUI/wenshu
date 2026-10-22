@@ -157,18 +157,17 @@ struct ChatView: View {
             // assistant's turn does. A taller band on the first turn made
             // it read as detached from the conversation.
             .padding(.vertical, DesignTokens.spacingStandard)
-            // section header needs `.background()` to mask
-            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-            // seamlessly with the scroll viewport background.
-            // Background applied AFTER padding (= the canonical
-            // Apple shape: the background extends into the 10 PT
-            // padding zone above + below the bubble glyph, so the
-            // 10 PT gaps between the chrome band and the sticky
-            // bubble AND between the sticky bubble and the AI
-            // reply directly underneath both render as visible
-            // sidebarBackground-tinted empty space, not as
-            // padding-only transparent slivers).
-            .background(DesignTokens.sidebarBackground)
+            // The section header is a pinned view (= the transcript's
+            // sticky band), so the replies scroll behind it: the header
+            // needs a background to mask them. The mask is a material
+            // (= the same kind of surface the window's root carries),
+            // not an opaque colour, so the chat column keeps one
+            // continuous surface. Background applied AFTER padding (=
+            // the canonical Apple shape: the background extends into
+            // the 10 PT padding zone above + below the bubble glyph, so
+            // the gaps render as empty surface, not as transparent
+            // slivers).
+            .background(.regularMaterial)
         }
     }
 
@@ -183,17 +182,11 @@ struct ChatView: View {
             ScrollViewReader { proxy in
                 // Inner ScrollView content extracted to `transcript` computed property (= the chat transcript viewport; = ~129 LOC moved out of body; = A99 god-class split)
                 transcript
-                // ScrollView background. SwiftUI on macOS 27 wraps the
-                // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-                // = inspector/content tier; = controlBackgroundColor).
+                // The transcript viewport is transparent: the window's
+                // single behind-window material shows through it, so the
+                // chat column is one continuous surface instead of a
+                // flat fill painted under the scrolling content.
                 .scrollContentBackground(.hidden)
-                // 2026-09-23: 'the chat zone, the text echo layer, whether
-                // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-                // design system)).
-                .background(DesignTokens.sidebarBackground)
-                // -cleanup E3 (see OOB.md #2026-09-21) '，'
-                // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-                // other row in the transcript).
                 .defaultScrollAnchor(.bottom)
                 // onChange of lastContent, not just count
                 // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)

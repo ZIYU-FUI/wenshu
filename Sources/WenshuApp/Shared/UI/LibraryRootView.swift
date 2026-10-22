@@ -79,7 +79,7 @@ struct LibraryRootView: View {
             // macOS 27 doc-alignment (see OOB.md #2026-09-18) OOB '',
             // … (= 20 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // `pane-chrome-canonic-pattern.md`).
-            .containerBackground(.windowBackground, for: .window)
+            .containerBackground(.regularMaterial, for: .window)
             // s filename shouldn't be shown either':
             // … (= 55 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // 'where is the title bar / toolbar?' = open ChromeMainToolbar.swift.

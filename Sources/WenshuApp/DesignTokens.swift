@@ -141,22 +141,12 @@ enum DesignTokens {
     // / Replaces `.foregroundStyle(.tertiary)` in 16 files.
     static let statusForeground: HierarchicalShapeStyle = .tertiary
 
-    // / The chat transcript layer should use the left sidebar's color
-    // … (= 20 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // so light/dark mode follow the user's appearance setting.
-    static let sidebarBackground: Color = {
-        // Match macOS sidebar RGB exactly (= the same RGB the
-        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
-        // - Light: RGB(245,245,245) (= matches sidebar material)
-        let dynamic = NSColor(name: "wenshu.sidebar.bg") { appearance in
-            if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
-                return NSColor(red: 36.0/255.0, green: 36.0/255.0, blue: 36.0/255.0, alpha: 1.0)
-            } else {
-                return NSColor(red: 245.0/255.0, green: 245.0/255.0, blue: 245.0/255.0, alpha: 1.0)
-            }
-        }
-        return Color(nsColor: dynamic)
-    }()
+    // / The document surface the editor's text sits on (= Apple's
+    // / `textBackgroundColor`, = the opaque reading surface an editor
+    // / keeps: = the window's root material is translucent, = so the
+    // / document body carries its own near-opaque fill to stay
+    // / readable. Light/dark mode follow the user's appearance setting.
+    static let editorReadingSurface: Color = Color(nsColor: .textBackgroundColor)
 
     // MARK: - Surface metrics (Apple HIG)
     // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)

@@ -15,9 +15,9 @@ import SwiftUI
 /// The surface is an Apple semantic colour: it resolves to a different
 /// value in the light and the dark appearance, so the bubble separates
 /// from the chat panel background in both, and the body text tier on top
-/// of it stays readable in both. (= the panel background is
-/// `DesignTokens.sidebarBackground`; = the bubble must not collapse into
-/// it in either appearance.)
+/// of it stays readable in both. (= the panel background is the window's
+/// translucent root material; = the bubble must not collapse into it in
+/// either appearance.)
 ///
 /// The surface wears no hairline: its own solid colour is its edge.
 @MainActor

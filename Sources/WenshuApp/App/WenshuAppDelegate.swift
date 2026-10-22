@@ -415,6 +415,30 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
             // directive).
             _ = window
         }
+        // The window must not be opaque for a behind-window material to
+        // read what is BEHIND it (= the desktop wallpaper). `isOpaque =
+        // false` alone is not enough: AppKit still paints the window's
+        // background colour, = so it must be cleared too.
+        for window in NSApp.windows {
+            window.isOpaque = false
+            window.backgroundColor = .clear
+        }
+        // Windows created after this point (= the scenes opened later, =
+        // the kanban window, = the library-migration window) need the
+        // same treatment, = so the rule is applied whenever AppKit
+        // reports a change to the window list.
+        _ = NotificationCenter.default.addObserver(
+            forName: Notification.Name("NSApplicationDidUpdateWindowsNotification"),
+            object: nil,
+            queue: .main
+        ) { _ in
+            MainActor.assumeIsolated {
+                for window in NSApp.windows {
+                    window.isOpaque = false
+                    window.backgroundColor = .clear
+                }
+            }
+        }
         // 2026-10-14 v2: hard-disable macOS Window Tabs at the AppKit framework level (=
         // the canonical AppKit "this app does not support window tabbing"
         // switch; = set once at app launch; = affects every NSWindow the app

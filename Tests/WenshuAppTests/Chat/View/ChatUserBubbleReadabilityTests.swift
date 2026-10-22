@@ -49,8 +49,10 @@ struct ChatUserBubbleReadabilityTests {
         return (max(l1, l2) + 0.05) / (min(l1, l2) + 0.05)
     }
 
-    /// The chat panel background (= DesignTokens.sidebarBackground), mirrored
-    /// here so the test can resolve it per appearance.
+    /// The chat panel background, mirrored here so the test can resolve it
+    /// per appearance. The panel is now the window's translucent root
+    /// material; the flat opaque colour it replaced is the value the
+    /// bubble surface must still not collapse into.
     private func panelBackground(_ appearance: NSAppearance) -> (r: Int, g: Int, b: Int) {
         let color = NSColor(name: "wenshu.chat.test.panel") { ap in
             if ap.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {

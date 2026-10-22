@@ -220,71 +220,19 @@ struct ChatZoneView: View {
             // notification.
             Task { await WenshuAgent.shared.providersWithKeys() }
         }
-        // 2026-09-23: ' UI ，windows ，
-        // NVS，，， NVS ，
-        // 。 NVS 。。
-        // ， windows\NVS ，，
-        // ，。，
-        // '.
+        // The chat column's background comes from the window's single
+        // behind-window material. The NSWindow is non-opaque (= its
+        // background colour cleared), the window's root carries one
+        // `.regularMaterial` container background, and every container
+        // inside the window stays transparent, so that one layer shows
+        // through instead of a stack of opaque fills.
         //
-        // Apple HIG multi-layer background analysis:
-        //   Layer 1: NSWindow (= opaque by default = .windowBackgroundColor)
-        //   Layer 2: NSSplitViewItem (= opaque AppKit default)
-        //   Layer 3: SwiftUI ChatZoneView (= our code)
-        //   Layer 4: SwiftUI ChatView ScrollView (= our code)
-        // Each layer paints a color; = stacking N colored layers
-        // darkens the result (= user's '').
-        //
-        // Apple HIG fix: make Layer 1 + Layer 2 TRANSPARENT;
-        // let Layer 3/4 specify the visible chat column bg.
-        //
-        // Implementation:
-        //   1. VisualEffectBlur with material=.sidebar AND blendingMode=underWindow:
-        //      'underWindow' (= Apple HIG sidebar primitive; = same as
-        //      List(.listStyle(.sidebar)) paints) reads the content
-        //      BEHIND the window for vibrancy. But this requires
-        //      NSWindow.isOpaque = false (= transparent); = wenshu
-        //      uses opaque windows for chrome stability.
-        //   2. So use blendingMode = .withinWindow instead:
-        //      reads content WITHIN the window as the vibrancy
-        //      source; = works with opaque windows; = still produces
-        //      the canonical Apple HIG sidebar tint + slight blur
-        //      (= identical surface to List(.listStyle(.sidebar))).
-        //   3. The ChatView ScrollView's existing
-        //      .background(DesignTokens.sidebarBackground) (= a
-        //      solid Color that approximates the sidebar tint in
-        //      case the visual effect view degrades) ensures the
-        //      bg never goes to true black.
-        //   4. NSWindow + NSSplitView remain AppKit default opaque
-        //      (= they paint NOTHING visible — the chat column
-        //      VisualEffectBlur overlays them entirely; = no
-        //      multi-layer color stacking; = the chat column
-        //      = single sidebar surface layer, identical to the
-        //      left sidebar).
-        //
-        // keeps the frame(...) wrap (= NSViewRepresentable
-        // in .background() requires explicit frame; = same SwiftUI/AppKit
-        // bridging quirk documented).
-        // (2026-09-23): the directive '' OOB follow-up.
-// Replace the VisualEffectBlur(.sidebar, .withinWindow) with
-// the explicit `DesignTokens.sidebarBackground` Color (= the
-// .controlBackgroundColor Apple HIG sidebar tint).
-//
-// Why drop VisualEffectBlur:
-//   - the previous version used NSVisualEffectView via NSViewRepresentable.
-//   - In opaque NSWindow (= wenshu's default) .withinWindow
-//     blending mode produced a sub-perceptual gradient (= ~14
-//     RGB diff between top + bottom).
-//   - the directive '' = visual difference vs. sidebar
-//     was still there.
-//
-// Why DesignTokens.sidebarBackground works (= previously approved):
-//   - Single Color source (= same .controlBackgroundColor the
-//     macOS sidebar uses). Both sidebars share the SAME bg token.
-//   - Layer order = Network/Apple HIG transparent NSSplitView
-//     (set in EditorChatNSController.viewDidLoad) + this Color
-//     overlay. No more visual effect view gradient under us.
-        .background(DesignTokens.sidebarBackground)
+        // The flat opaque sidebar fill that used to sit here was a
+        // retreat from the behind-window material (= an
+        // `NSVisualEffectView` with `.behindWindow` blending, = Apple's
+        // sidebar primitive): it was taken while the window was opaque,
+        // because a behind-window material cannot read the desktop
+        // behind an opaque window.
         .environment(appState)
         // chat-by-book (after wire-up audit 2026-09-24):
         // the canonical source for the user's active book is
