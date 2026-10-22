@@ -91,6 +91,15 @@ extension WenshuConductor {
         }
     }
 
+    /// The settings a turn runs with, read from the settings store.
+    ///
+    /// The store is @MainActor, so the read hops there; the closure is
+    /// called once per turn, so a change in the settings screen takes
+    /// effect on the next turn.
+    static func productionSettingsProvider() -> @Sendable () async -> AgentSettings {
+        { await MainActor.run { agentSettings } }
+    }
+
     // MARK: - Legacy typed tool dispatch (= the app's concrete tools)
 
     // / h10: dispatch an agent tool call. Returns "" on unknown tool / failure.

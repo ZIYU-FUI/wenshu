@@ -62,14 +62,26 @@ public final class MemoryAdapter {
     private let defaults: UserDefaults
     private let defaultUserId: String = "default"
 
+    /// The memory provider this adapter reads from and writes to.
+    ///
+    /// Injected so the turn can honour the backend the user picked
+    /// (= the resolver decides; = the default is the local one, which
+    /// is what a caller that does not care about backends gets).
+    private let provider: any MemoryProvider
+
     /// P1-01 (audit 2026-09-24): inject WSMemoryRepository via init;
     /// fall back to .shared. Same pattern as WenshuConductor +
     /// MemoryManager + WSMemoryProvider.
     private let memory: WSMemoryRepository
 
-    public init(defaults: UserDefaults = .standard, memory: WSMemoryRepository? = nil) {
+    public init(
+        defaults: UserDefaults = .standard,
+        memory: WSMemoryRepository? = nil,
+        provider: (any MemoryProvider)? = nil
+    ) {
         self.defaults = defaults
         self.memory = memory ?? .shared
+        self.provider = provider ?? WSMemoryProvider.shared
     }
 
     public var isEnabled: Bool {
@@ -126,7 +138,7 @@ public final class MemoryAdapter {
         // = no SwiftData hop). Falls back to WSMemoryRepository when
         // the mirror is empty (initial-launch case before the first
         // refresh completes).
-        let raw = await WSMemoryProvider.shared.prefetch(forUserMessage: userMessage)
+        let raw = await provider.prefetch(forUserMessage: userMessage)
         guard !raw.isEmpty else { return [] }
         // Split on the newlines the provider emits between entries.
         let lines = raw.split(separator: "\n", omittingEmptySubsequences: true).map(String.init)
@@ -147,7 +159,26 @@ public final class MemoryAdapter {
         guard isEnabled else { return }
         // Persist via WSMemoryProvider (= SwiftData-backed; = same
         // userId canonicalization as the recentEntries path).
-        await WSMemoryProvider.shared.sync(userMessage: snippet, assistantResponse: source)
+        await provider.sync(userMessage: snippet, assistantResponse: source)
+    }
+
+    /// The provider the user's memory backend resolves to.
+    ///
+    /// The user's choice goes through the resolver, so a backend that
+    /// cannot run falls back to the local one and the reason travels with
+    /// the result (= the settings screen can explain it). Without a remote
+    /// provider registered, a cloud choice resolves to local with
+    /// `.remoteNotConfigured`, which is the resolver's designed behaviour.
+    @MainActor
+    public static func resolveProvider(
+        for settings: MemorySettings,
+        additionalProviders: [any MemoryProvider] = []
+    ) -> any MemoryProvider {
+        let resolver = ContextEngine.makeBackendResolver(
+            settings: settings,
+            additionalProviders: additionalProviders
+        )
+        return resolver.resolve(settings: settings)?.provider ?? WSMemoryProvider.shared
     }
 
     /// A1 boundary bridge (Sendable-safe).

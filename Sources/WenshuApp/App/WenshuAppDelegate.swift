@@ -279,7 +279,12 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
             // The tools are resolved at turn time (= the app registers
             // them after launch, so a launch-time snapshot is empty for
             // the first turns).
-            toolProvider: WenshuConductor.productionToolProvider()
+            toolProvider: WenshuConductor.productionToolProvider(),
+            // The settings the user chose (= the recovery policy and the
+            // memory backend). Without this the turn runs on the struct
+            // defaults and every settings-screen control is a promise
+            // nothing keeps.
+            settingsProvider: WenshuConductor.productionSettingsProvider()
         )
         // AUDIT.md §2.2 partial (2026-10-16 boss "把切换包的事
         // 清干净" arc): the bridge setter is deleted; = the

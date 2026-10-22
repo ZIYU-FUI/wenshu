@@ -28,13 +28,31 @@ public actor WenshuConductor {
     // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / ConversationLoop creates a fresh actor instance.
     private let loopRuntime: RuntimeHelpers?
+    /// The settings the last turn ran with.
+    ///
+    /// The seam between the settings screen and the turn is the
+    /// `settingsProvider`; this records what that seam delivered, so a test
+    /// can prove the user's value crossed it (= the screen writes a value
+    /// and the turn receives THAT value, not the struct defaults).
+    public private(set) var lastTurnSettings: AgentSettings?
+
+    /// The settings the last turn ran with. For tests.
+    public func turnSettingsForTesting() async -> AgentSettings {
+        lastTurnSettings ?? AgentSettings()
+    }
+
     // / P0 #2 (WIRE-AGENT-002): tool registry forwarded to
-    // … (= 13 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // … (= 13 rationale lines collapsed, = A112 docblock collapse per §1.8)
     // / `registeredToolNames` accessor + the `wireBookScopeGuard` writer.
     public var tools: [String: any Tool]
     // / Turn-time tool source: the registry's live registrations, so a
     // / turn sees what the app registered after launch.
     private let toolProvider: (@Sendable () async -> [String: any Tool])?
+    // / Turn-time settings source: the values the user chose in the
+    // / settings screen, so a turn runs with the user's recovery policy
+    // / and memory backend instead of the struct defaults.
+    // / Nil = the defaults (= the behaviour before this was wired).
+    private let settingsProvider: (@Sendable () async -> AgentSettings)?
     // AUDIT.md §2.9 partial (2026-10-16): the stream single-
     // writer fence (= hermes `stream_single_writer.py` port).
     // One per conductor instance (= the conductor is the
@@ -52,6 +70,7 @@ public actor WenshuConductor {
         loopRuntime: RuntimeHelpers? = nil,
         tools: [String: any Tool] = [:],
         toolProvider: (@Sendable () async -> [String: any Tool])? = nil,
+        settingsProvider: (@Sendable () async -> AgentSettings)? = nil,
         repositories: WSRepositoryContainer? = nil
     ) {
         self.connector = connector
@@ -61,6 +80,7 @@ public actor WenshuConductor {
         // every existing call site compiles unchanged.
         self.tools = tools
         self.toolProvider = toolProvider
+        self.settingsProvider = settingsProvider
         // P1-01 fix: prefer the injected WSRepositoryContainer; fall
         // … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // boundaries at runtime.
@@ -95,6 +115,12 @@ public actor WenshuConductor {
         // translated to Swift).
         let fenceToken = streamWriterFence.claim()
 
+        // The settings for this turn (= the recovery policy and the memory
+        // backend the user chose). Resolved once per turn, so a change in
+        // the settings screen takes effect on the next turn.
+        let turnSettings = await settingsProvider?() ?? AgentSettings()
+        lastTurnSettings = turnSettings
+
         // P0-AGENT-LOOP (boss 2026-10-16 OOB "agent 没有达到 agent
         // 的标准" + commit 7de86fc08): the conductor is now ALWAYS
         // wired with the active connector (= `WenshuAppDelegate`
@@ -122,7 +148,8 @@ public actor WenshuConductor {
             sessionId: sessionId,
             model: model,
             connector: connector,
-            streamCallback: fencedCallback
+            streamCallback: fencedCallback,
+            settings: turnSettings
         ) else {
             // The ReAct loop threw (= it catches its own errors and
             // returns nil per the loop's contract; = see
@@ -146,7 +173,11 @@ public actor WenshuConductor {
         // Forward streamCallback to ConversationLoop
         // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // triggers), no callback fires.
-        streamCallback: (@Sendable (LLMBlock) async -> Void)?
+        streamCallback: (@Sendable (LLMBlock) async -> Void)?,
+        // The settings for this turn (= the recovery policy and the memory
+        // backend the user chose). Resolved by the caller, so a change in
+        // the settings screen takes effect on the next turn.
+        settings: AgentSettings
     ) async -> (reply: String, totalTokens: Int, thinking: String?)? {
         // Step 1: write 1 conductor parent task to WSKanbanRepository (= legacy
         // parity: same Kanban behaviour as the legacy path).
@@ -205,8 +236,13 @@ public actor WenshuConductor {
                 // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
                 // registered wenshu tools.
                 tools: effectiveTools,
+                // The user's settings for this turn (= the recovery policy
+                // and the memory backend they chose). Without this the
+                // loop runs on AgentSettings() defaults, and every
+                // settings-screen control is a promise nothing keeps.
+                settings: settings,
                 // Forward streamCallback (= Hermes
-                // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+                // … (= 4 rationale lines collapsed, = A112 docblock collapse per §1.8)
                 // token-by-token). Legacy callers (= tests) pass nil.
                 streamCallback: streamCallback,
                 // P5-AGENT-STREAMING-VISIBILITY (2026-09-25): forward

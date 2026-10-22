@@ -240,7 +240,8 @@ public actor ConversationLoop {
                     incomingMessage: userMessage,
                     systemMessage: await composeSystemPrompt(
                         override: systemMessage,
-                        persistent: systemPrompt
+                        persistent: systemPrompt,
+                        settings: settings
                     ) ?? ""
                 ) ?? conversationHistory
 
@@ -319,7 +320,8 @@ public actor ConversationLoop {
                             maxTokens: 4096,
                             systemPrompt: await composeSystemPrompt(
                                 override: systemMessage,
-                                persistent: systemPrompt
+                                persistent: systemPrompt,
+                                settings: settings
                             ),
                             temperature: nil,
                             reasoningEffort: UserDefaults.standard.string(
@@ -406,7 +408,8 @@ public actor ConversationLoop {
                         maxTokens: 4096,
                         systemPrompt: await composeSystemPrompt(
                             override: systemMessage,
-                            persistent: systemPrompt
+                            persistent: systemPrompt,
+                            settings: settings
                         ),
                         temperature: nil,
                         reasoningEffort: reasoningEffort,
@@ -439,7 +442,8 @@ public actor ConversationLoop {
                     messages: result.messages,
                     systemMessage: await composeSystemPrompt(
                         override: systemMessage,
-                        persistent: systemPrompt
+                        persistent: systemPrompt,
+                        settings: settings
                     ) ?? ""
                 )
 
@@ -452,7 +456,9 @@ public actor ConversationLoop {
                     label: "Persisting memory",
                     etaSeconds: nil
                 )
-                await MemoryAdapter().write(
+                await MemoryAdapter(
+                    provider: await MemoryAdapter.resolveProvider(for: settings.memory)
+                ).write(
                     snippet: userMessage,
                     source: result.response.blocks.first(where: { if case .text = $0 { return true } else { return false } })
                         .map { block -> String in
@@ -817,7 +823,8 @@ public actor ConversationLoop {
     // / this method to read live data from those adapters.
     private func composeSystemPrompt(
         override: String?,
-        persistent: String?
+        persistent: String?,
+        settings: AgentSettings = .init()
     ) async -> String? {
         // Determine the ephemeral hint source (= which string flows into
         // the dynamic tier's "Context: ..." section).
@@ -830,7 +837,9 @@ public actor ConversationLoop {
         // Dynamic tier: composed via PromptBuilder (= the GAP-001 path).
         // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // so the LLM sees relevant context on the first token.
-        let prefetched = await MemoryAdapter().retrieve(
+        let prefetched = await MemoryAdapter(
+            provider: await MemoryAdapter.resolveProvider(for: settings.memory)
+        ).retrieve(
             forUserMessage: ephemeralHint,
             bookId: nil
         )
