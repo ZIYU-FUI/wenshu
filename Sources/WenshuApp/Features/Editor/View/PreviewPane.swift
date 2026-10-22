@@ -32,6 +32,13 @@ struct PreviewPane: View {
     // / property.
     @State var coverGenerationServiceHolder: CoverGenerationService = CoverGenerationService.live()
 
+    // / The service that makes a card's cover move (= one for the whole
+    // / pane, so the per-card lock is shared: = two clicks on the same
+    // / card make ONE clip, = not two). = It lives here rather than in
+    // / the grid extension because an extension cannot hold a stored
+    // / property.
+    @State var coverVideoServiceHolder: CoverVideoService = CoverVideoService.live()
+
     // / cached snapshot of `(shelfId → books)` so the shelf subtree can be
     // … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / cycle).

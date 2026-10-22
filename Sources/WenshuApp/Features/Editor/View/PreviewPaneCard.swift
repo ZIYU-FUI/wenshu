@@ -145,6 +145,14 @@ struct Card: View {
     /// another card.
     var coverImageURL: URL? = nil
 
+    /// The stored cover CLIP for this card, or nil when the card has
+    /// no moving cover.
+    ///
+    /// A moving cover is never made automatically: the user looks at
+    /// the still cover, decides they like it, and then asks for it to
+    /// move.
+    var coverVideoURL: URL? = nil
+
     /// The "generate a cover" callback. Nil when the call site does
     /// not wire it, and the menu item then does not appear.
     var onGenerateCover: (() -> Void)? = nil
@@ -169,6 +177,9 @@ struct Card: View {
     /// The item is disabled while the work is in flight, so a second
     /// click cannot start a second call.
     var isGeneratingCover: Bool = false
+
+    /// Whether this card's clip is being made right now.
+    var isMakingVideo: Bool = false
 
     @State private var isHovered: Bool = false
 
@@ -256,7 +267,19 @@ struct Card: View {
                 // banner (100pt tall, 216-316pt wide depending on the
                 // pane), and the stored picture is 768x320 (= 2.40:1),
                 // which fills it and trims only the sides.
-                CardCoverView(imageURL: coverImageURL)
+                // A card with a moving cover shows the STILL picture
+                // until the pointer arrives, and the clip while it is
+                // there. The grid of stills is what the user sees
+                // normally; a grid of moving clips would be noise.
+                if coverVideoURL != nil {
+                    LoopingCoverView(
+                        videoURL: coverVideoURL,
+                        isHovered: isHovered,
+                        stillImageURL: coverImageURL
+                    )
+                } else {
+                    CardCoverView(imageURL: coverImageURL)
+                }
             }
             .frame(height: DesignTokens.panelMinHeight)
             .frame(maxWidth: .infinity)
@@ -472,6 +495,15 @@ struct Card: View {
                         Button(String(localized: "cover_context_menu_remove")) {
                             onRemoveCover()
                         }
+                    }
+                    // "Make it move" shows only when the card HAS a
+                    // still cover (= a clip is made FROM the still) and
+                    // does not already have a clip.
+                    if hasCover, onMakeDynamicCover != nil {
+                        Button(String(localized: "cover_context_menu_make_dynamic")) {
+                            onMakeDynamicCover?()
+                        }
+                        .disabled(isMakingVideo)
                     }
                     Divider()
                 }

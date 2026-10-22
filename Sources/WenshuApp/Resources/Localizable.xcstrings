@@ -5765,6 +5765,23 @@
         }
       }
     },
+    "cover_context_menu_make_dynamic": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Make it move"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "生成动态封面"
+          }
+        }
+      }
+    },
     "settings.covers.imageService": {
       "extractionState": "manual",
       "localizations": {

@@ -26,6 +26,29 @@ import WenshuData
 
 extension PreviewPane {
 
+    /// The stored cover CLIP for a reference card, or nil when it has
+    /// no moving cover.
+    func coverVideoURL(forReference id: UUID) -> URL? {
+        coverVideoURL(forKey: CardCoverService.key(forReference: id))
+    }
+
+    /// The stored cover CLIP for a book-doc card, or nil.
+    func coverVideoURL(forBookDoc id: UUID) -> URL? {
+        coverVideoURL(forKey: CardCoverService.key(forBookDoc: id))
+    }
+
+    /// The stored cover clip under a key, or nil.
+    private func coverVideoURL(forKey key: String) -> URL? {
+        let service = CardCoverService(modelContext: WSPersistenceContainer.current.mainContext)
+        guard let row = service.row(forKey: key),
+              let path = row.videoPath else {
+            return nil
+        }
+        let url = URL(fileURLWithPath: path)
+        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+        return url
+    }
+
     /// The stored cover picture for a reference card, or nil when it
     /// has no cover.
     ///
@@ -69,6 +92,19 @@ extension PreviewPane {
         coverGenerationServiceHolder
     }
 
+    /// The service that makes a card's cover move.
+    private var coverVideoService: CoverVideoService {
+        coverVideoServiceHolder
+    }
+
+    /// Starts a clip for a card.
+    private func makeVideo(for target: CardCoverTarget) {
+        let service = coverVideoService
+        Task { @MainActor in
+            try? await service.makeVideo(for: target)
+        }
+    }
+
     /// The cover target for a reference card.
     private func coverTarget(forReference id: UUID) -> CardCoverTarget {
         .reference(id)
@@ -105,14 +141,23 @@ extension PreviewPane {
             onRename: { beginReferenceRename(entity) },
             onDelete: { beginReferenceDelete(entity) },
             coverImageURL: coverImageURL(forReference: entity.id),
+            coverVideoURL: coverVideoURL(forReference: entity.id),
             onGenerateCover: {
                 generateCover(
                     for: coverTarget(forReference: entity.id),
                     subject: "\(entity.title). \(entity.summary)"
                 )
             },
+            onMakeDynamicCover: {
+
+                makeVideo(for: coverTarget(forReference: entity.id))
+
+            },
+
             onRemoveCover: {
+
                 removeCover(for: coverTarget(forReference: entity.id))
+
             },
             hasCover: coverImageURL(forReference: entity.id) != nil
         )
@@ -357,14 +402,23 @@ extension PreviewPane {
                                 onRename: { beginReferenceRename(entity) },
                                 onDelete: { beginReferenceDelete(entity) },
                                 coverImageURL: coverImageURL(forReference: entity.id),
+                                coverVideoURL: coverVideoURL(forReference: entity.id),
                                 onGenerateCover: {
                                     generateCover(
                                         for: coverTarget(forReference: entity.id),
                                         subject: "\(entity.title). \(entity.summary)"
                                     )
                                 },
+                                onMakeDynamicCover: {
+
+                                    makeVideo(for: coverTarget(forReference: entity.id))
+
+                                },
+
                                 onRemoveCover: {
+
                                     removeCover(for: coverTarget(forReference: entity.id))
+
                                 },
                                 hasCover: coverImageURL(forReference: entity.id) != nil
                             )
@@ -427,14 +481,23 @@ extension PreviewPane {
                             onRename: { beginBookDocRename(doc) },
                             onDelete: { beginBookDocDelete(doc) },
                             coverImageURL: coverImageURL(forBookDoc: doc.id),
+                            coverVideoURL: coverVideoURL(forBookDoc: doc.id),
                             onGenerateCover: {
                                 generateCover(
                                     for: coverTarget(forBookDoc: doc.id),
                                     subject: "\(doc.title). \(doc.summary)"
                                 )
                             },
+                            onMakeDynamicCover: {
+
+                                makeVideo(for: coverTarget(forBookDoc: doc.id))
+
+                            },
+
                             onRemoveCover: {
+
                                 removeCover(for: coverTarget(forBookDoc: doc.id))
+
                             },
                             hasCover: coverImageURL(forBookDoc: doc.id) != nil
                         )
