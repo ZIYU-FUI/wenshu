@@ -135,17 +135,30 @@ struct ExportSheet: View {
         }
         .padding(DesignTokens.spacingSection)
         .frame(minWidth: 480, minHeight: 360)
-        .modifier(ExportFileExporters(
-            kind: kind,
+        .modifier(LibraryFileExporter(
             libraryFormat: libraryFormat,
-            bookFormat: bookFormat,
-            selectedBookID: selectedBookID,
-            selectedChapterID: selectedChapterID,
             libraryEngine: libraryEngine,
-            bookEngine: bookEngine,
-            chapterEngine: chapterEngine,
             lastLibraryURLString: $lastLibraryURLString,
+            isExporting: $isExporting,
+            onComplete: { _ in
+                isExporting = false
+                isPresented = false
+            }
+        ))
+        .modifier(BookFileExporter(
+            bookFormat: bookFormat,
+            bookEngine: bookEngine,
+            selectedBookID: selectedBookID,
             lastBookURLString: $lastBookURLString,
+            isExporting: $isExporting,
+            onComplete: { _ in
+                isExporting = false
+                isPresented = false
+            }
+        ))
+        .modifier(ChapterFileExporter(
+            chapterEngine: chapterEngine,
+            selectedChapterID: selectedChapterID,
             lastChapterURLString: $lastChapterURLString,
             isExporting: $isExporting,
             onComplete: { _ in
@@ -288,29 +301,36 @@ enum BookExportFormat: String, CaseIterable, Identifiable, Sendable {
     var id: String { rawValue }
 }
 
-/// `ViewModifier` that wires the three `.fileExporter` modifiers
-/// (= library / book / chapter). Apple HIG canonical pattern: one
-/// modifier per FileDocument type (= each declares its own
-/// `writableContentTypes`).
+/// Build the default destination URL for the system save dialog.
+/// Reads the last-used URL from @AppStorage (= Apple HIG canonical
+/// "remember last folder" pattern); = falls back to the temp
+/// directory with a timestamped filename.
+private func lastURL(_ stored: String, suffix: String, ext: String = "") -> URL {
+    if !stored.isEmpty {
+        let url = URL(fileURLWithPath: stored)
+        let base = url.deletingLastPathComponent()
+        let baseName = url.lastPathComponent
+        let stripped = baseName.hasSuffix(ext)
+            ? String(baseName.dropLast(ext.count))
+            : baseName
+        return base.appendingPathComponent("\(stripped)-\(Int(Date.now.timeIntervalSince1970))\(ext)")
+    }
+    return FileManager.default.temporaryDirectory
+        .appendingPathComponent("\(suffix)-\(Int(Date.now.timeIntervalSince1970))\(ext)")
+}
+
+/// `ViewModifier` that wires the library `.fileExporter` modifier.
+/// Apple HIG canonical pattern: one modifier per FileDocument type
+/// (= each declares its own `writableContentTypes`).
 ///
-/// The onCompletion handler dispatches to the appropriate engine:
-/// library → libraryEngine.exportLibrary(to:as:); book → bookEngine.
-/// exportBook(id:to:format:); chapter → chapterEngine.exportChapter
-/// (id:to:). The destination URL the user picks via the system
-/// save dialog is the engine's `to:` argument (= the engine reads
-/// it + writes the result to that path).
-private struct ExportFileExporters: ViewModifier {
-    let kind: ExportKind
+/// The onCompletion handler dispatches to the library engine
+/// (libraryEngine.exportLibrary(to:as:)). The destination URL the
+/// user picks via the system save dialog is the engine's `to:`
+/// argument (= the engine reads it + writes the result to that path).
+private struct LibraryFileExporter: ViewModifier {
     let libraryFormat: LibraryExportFormat
-    let bookFormat: BookExportFormat
-    let selectedBookID: UUID?
-    let selectedChapterID: UUID?
     let libraryEngine: LibraryExportEngine
-    let bookEngine: BookExportEngine
-    let chapterEngine: ChapterExportEngine
     @Binding var lastLibraryURLString: String
-    @Binding var lastBookURLString: String
-    @Binding var lastChapterURLString: String
     @Binding var isExporting: Bool
     let onComplete: (URL) -> Void
 
@@ -325,11 +345,50 @@ private struct ExportFileExporters: ViewModifier {
                 document: LibraryExportDocument.package(
                     lastURL(lastLibraryURLString, suffix: "wenshu-export")
                 ),
-                contentType: kind == .library ? .folder : .folder,
+                contentType: .folder,
                 onCompletion: { result in
-                    handle(result: result, kind: .library, lastURLBinding: $lastLibraryURLString)
+                    handle(result: result)
                 }
             )
+    }
+
+    /// Dispatch the user's chosen destination URL to the library
+    /// engine. The picker tap is what flipped isExporting.
+    private func handle(result: Result<URL, Error>) {
+        defer { isExporting = false }
+        guard case .success(let url) = result else { return }
+
+        // Persist the destination path (= next time the user opens
+        // the sheet for this kind, the system save dialog starts
+        // there).
+        lastLibraryURLString = url.path
+
+        let format: LibraryExportFormat = (self.libraryFormat == .zip) ? .zip : .copy
+        Task {
+            _ = try? await libraryEngine.exportLibrary(to: url, as: format)
+        }
+        onComplete(url)
+    }
+}
+
+/// `ViewModifier` that wires the book `.fileExporter` modifier.
+/// Apple HIG canonical pattern: one modifier per FileDocument type
+/// (= each declares its own `writableContentTypes`).
+///
+/// The onCompletion handler dispatches to the book engine
+/// (bookEngine.exportBook(id:to:format:)). The destination URL the
+/// user picks via the system save dialog is the engine's `to:`
+/// argument (= the engine reads it + writes the result to that path).
+private struct BookFileExporter: ViewModifier {
+    let bookFormat: BookExportFormat
+    let bookEngine: BookExportEngine
+    let selectedBookID: UUID?
+    @Binding var lastBookURLString: String
+    @Binding var isExporting: Bool
+    let onComplete: (URL) -> Void
+
+    func body(content: Content) -> some View {
+        content
             // Book → EPUB / PDF / combined MD (= one modifier per
             // FileDocument type because each declares its own
             // writableContentTypes; = Apple's canonical pattern for
@@ -341,71 +400,73 @@ private struct ExportFileExporters: ViewModifier {
                 ),
                 contentType: .epub,
                 onCompletion: { result in
-                    handle(result: result, kind: .book, lastURLBinding: $lastBookURLString)
-                }
-            )
-            // Chapter → single Markdown file.
-            .fileExporter(
-                isPresented: $isExporting,
-                document: MarkdownDocument(text: ""),
-                contentType: .plainText,
-                onCompletion: { result in
-                    handle(result: result, kind: .chapter, lastURLBinding: $lastChapterURLString)
+                    handle(result: result)
                 }
             )
     }
 
-    /// Build the default destination URL for the system save dialog.
-    /// Reads the last-used URL from @AppStorage (= Apple HIG
-    /// canonical "remember last folder" pattern); = falls back to
-    /// the temp directory with a timestamped filename.
-    private func lastURL(_ stored: String, suffix: String, ext: String = "") -> URL {
-        if !stored.isEmpty {
-            let url = URL(fileURLWithPath: stored)
-            let base = url.deletingLastPathComponent()
-            let baseName = url.lastPathComponent
-            let stripped = baseName.hasSuffix(ext)
-                ? String(baseName.dropLast(ext.count))
-                : baseName
-            return base.appendingPathComponent("\(stripped)-\(Int(Date.now.timeIntervalSince1970))\(ext)")
-        }
-        return FileManager.default.temporaryDirectory
-            .appendingPathComponent("\(suffix)-\(Int(Date.now.timeIntervalSince1970))\(ext)")
-    }
-
-    /// Dispatch the user's chosen destination URL to the matching
-    /// engine. The kind matches the kind the user picked when they
-    /// clicked 导出; = the picker tap is what flipped isExporting.
-    private func handle(
-        result: Result<URL, Error>,
-        kind: ExportKind,
-        lastURLBinding: Binding<String>
-    ) {
+    /// Dispatch the user's chosen destination URL to the book
+    /// engine. The picker tap is what flipped isExporting.
+    private func handle(result: Result<URL, Error>) {
         defer { isExporting = false }
         guard case .success(let url) = result else { return }
 
         // Persist the destination path (= next time the user opens
         // the sheet for this kind, the system save dialog starts
         // there).
-        lastURLBinding.wrappedValue = url.path
+        lastBookURLString = url.path
 
-        switch kind {
-        case .library:
-            let format: LibraryExportFormat = (self.libraryFormat == .zip) ? .zip : .copy
-            Task {
-                _ = try? await libraryEngine.exportLibrary(to: url, as: format)
-            }
-        case .book:
-            guard let bookID = self.selectedBookID else { return }
-            let fmt: BookExportFormat = self.bookFormat
-            Task {
-                _ = try? await bookEngine.exportBook(id: bookID, to: url, format: fmt)
-            }
-        case .chapter:
-            guard let chapterID = self.selectedChapterID else { return }
-            Task {
-                _ = try? await chapterEngine.exportChapter(id: chapterID, to: url)
-            }
+        guard let bookID = self.selectedBookID else { return }
+        let fmt: BookExportFormat = self.bookFormat
+        Task {
+            _ = try? await bookEngine.exportBook(id: bookID, to: url, format: fmt)
+        }
+        onComplete(url)
+    }
+}
+
+/// `ViewModifier` that wires the chapter `.fileExporter` modifier.
+/// Apple HIG canonical pattern: one modifier per FileDocument type
+/// (= each declares its own `writableContentTypes`).
+///
+/// The onCompletion handler dispatches to the chapter engine
+/// (chapterEngine.exportChapter(id:to:)). The destination URL the
+/// user picks via the system save dialog is the engine's `to:`
+/// argument (= the engine reads it + writes the result to that path).
+private struct ChapterFileExporter: ViewModifier {
+    let chapterEngine: ChapterExportEngine
+    let selectedChapterID: UUID?
+    @Binding var lastChapterURLString: String
+    @Binding var isExporting: Bool
+    let onComplete: (URL) -> Void
+
+    func body(content: Content) -> some View {
+        content
+            // Chapter → single Markdown file.
+            .fileExporter(
+                isPresented: $isExporting,
+                document: MarkdownDocument(text: ""),
+                contentType: .plainText,
+                onCompletion: { result in
+                    handle(result: result)
+                }
+            )
+    }
+
+    /// Dispatch the user's chosen destination URL to the chapter
+    /// engine. The picker tap is what flipped isExporting.
+    private func handle(result: Result<URL, Error>) {
+        defer { isExporting = false }
+        guard case .success(let url) = result else { return }
+
+        // Persist the destination path (= next time the user opens
+        // the sheet for this kind, the system save dialog starts
+        // there).
+        lastChapterURLString = url.path
+
+        guard let chapterID = self.selectedChapterID else { return }
+        Task {
+            _ = try? await chapterEngine.exportChapter(id: chapterID, to: url)
         }
         onComplete(url)
     }
