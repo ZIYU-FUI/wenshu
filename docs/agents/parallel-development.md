@@ -41,15 +41,31 @@ tasks and spawns workers.
 
 ## Creating a ticket
 
+Write the body first, then rate it:
+
 ```bash
 cd /Volumes/ANAN/Engineering/wenshu
-hermes kanban create "<ticket title>" \
+python3 Tools/wenshu-devtool/ticket_tier.py --body card.md
+```
+
+The tier is derived from the work the body describes, never hand-set. It
+decides the cap, the retry budget, the gate width and the body budget.
+
+```bash
+hermes kanban create "[<tier>] <ticket title>" \
   --assignee wenshu-dev \
   --workspace worktree \
   --project project \
-  --body "<spec: what to build, acceptance criteria, what NOT to touch>" \
-  --max-runtime 30m
+  --body-file card.md \
+  --max-runtime <tier cap> \
+  --max-retries <tier budget>
 ```
+
+| Tier | Cap | Retries | Body budget | Gate |
+| ---- | --- | ------- | ----------- | ---- |
+| T1 | 15m | 2 | 4000 chars | build + ONE filtered suite |
+| T2 | 25m | 3 | 10000 chars | build + a filtered suite per touched area |
+| T3 | 45m | 4 | 32000 chars | the full gate set |
 
 `--workspace worktree` is what makes the task isolated. `--project project` anchors the
 worktree under this repo's `.worktrees/` with a deterministic branch name. Both flags
@@ -57,6 +73,10 @@ matter; see the pitfalls below.
 
 The body is the worker's entire spec. An empty body means the worker improvises. Always
 state what to build, how it is accepted, and which files are out of scope.
+
+The tier never skips the dual-axis review and never marks a test skipped. It sizes the
+clock and the gate, nothing else. `docs/agents/ticket-tiers.md` carries the derivation
+and the measurements behind the numbers.
 
 ## Watching and dispatching
 

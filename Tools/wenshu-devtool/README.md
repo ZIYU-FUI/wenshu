@@ -55,6 +55,33 @@ their call sites, and never read. Its own test suite runs on fixtures:
 python3 Tools/wenshu-devtool/tests/test_measure_drill.py
 ```
 
+## Ticket difficulty tier
+
+Another separate tool, because it measures a card body instead of the
+source tree. It derives a card's difficulty tier (T1 trivial / T2 standard /
+T3 deep) from the work the body describes, and prints the runtime cap, the
+retry budget and the gate that tier buys.
+
+```bash
+# 9. The tier contract (= the caps, the budgets, the gates)
+python3 Tools/wenshu-devtool/ticket_tier.py --plan
+
+# 9b. Rate a card body before dispatching it
+python3 Tools/wenshu-devtool/ticket_tier.py --body card.md
+
+# 9c. Check every card on the board against the tier it earns
+python3 Tools/wenshu-devtool/ticket_tier.py --board wenshu-par --check
+```
+
+Its test suite runs on fixture bodies:
+
+```bash
+python3 Tools/wenshu-devtool/tests/test_ticket_tier.py
+```
+
+The tier's contract and the measurements behind its numbers are in
+`docs/agents/ticket-tiers.md`.
+
 ## Requirements
 
 - macOS (uses `osascript`, `screencapture`, `defaults`, `security`)
