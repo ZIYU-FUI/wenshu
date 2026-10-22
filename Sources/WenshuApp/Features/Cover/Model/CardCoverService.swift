@@ -101,6 +101,27 @@ struct CardCoverService {
         (try? modelContext.fetch(FetchDescriptor<WSCardCover>())) ?? []
     }
 
+    /// The stored banner for a card, or nil when the card has no
+    /// cover.
+    ///
+    /// The argument is the card key, the same key the row is stored
+    /// under, so a caller never builds a path of its own.
+    ///
+    /// The row is the source of truth: a card with no row has no
+    /// cover, and a row whose file is gone has no cover either (= the
+    /// cover was deleted outside the app, so the card falls back to
+    /// its gradient and symbol).
+    ///
+    /// The URL comes from the row rather than from the directory
+    /// layout, because the row is where the path lives, and the
+    /// directory layout is an assumption the row can contradict.
+    func coverImageURL(for key: String) -> URL? {
+        guard let path = row(forKey: key)?.imagePath else { return nil }
+        let url = URL(fileURLWithPath: path)
+        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+        return url
+    }
+
     // MARK: - Writing
 
     /// Stores a card's banner and upserts its row.

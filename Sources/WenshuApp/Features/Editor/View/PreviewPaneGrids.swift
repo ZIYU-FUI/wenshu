@@ -67,19 +67,13 @@ extension PreviewPane {
 
     /// The stored cover picture under a key, or nil.
     ///
-    /// The lookup goes through the row, because the row is where the
+    /// The service owns the lookup, because the row is where the
     /// path lives. A row that is not there means the card has no
     /// cover, and a file that is not there means the cover is gone
     /// and the card falls back to its gradient and symbol.
     private func coverImageURL(forKey key: String) -> URL? {
         let service = CardCoverService(modelContext: WSPersistenceContainer.current.mainContext)
-        guard let row = service.row(forKey: key),
-              let path = row.imagePath else {
-            return nil
-        }
-        let url = URL(fileURLWithPath: path)
-        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
-        return url
+        return service.coverImageURL(for: key)
     }
 
     /// The service that draws a card's cover.

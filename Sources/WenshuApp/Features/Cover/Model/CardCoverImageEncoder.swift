@@ -108,22 +108,24 @@ enum CardCoverImageEncoder {
 
     /// Scales an image to COVER the target size, then centre-crops it
     /// to exactly that size. Never stretches.
+    ///
+    /// The scale is the LARGER of the two axis ratios, so the scaled
+    /// picture is at least as large as the target on both axes and
+    /// overflows on one of them. The overflow is what the crop
+    /// removes, and it is removed evenly from both sides, so the
+    /// subject stays whole and centred.
+    ///
+    /// A 1024x512 source cropped to 768x320 scales by 0.75 (= 768x384),
+    /// so the scaled picture overflows by 64 px of height and loses 32
+    /// px off its top and 32 px off its bottom. That keeps a subject
+    /// with headroom above it.
     static func centerCrop(_ image: CGImage, toWidth width: Int, toHeight height: Int) -> CGImage {
-        let targetAspect = Double(width) / Double(height)
-        let sourceAspect = Double(image.width) / Double(image.height)
-
-        var scaledWidth: Double
-        var scaledHeight: Double
-        if sourceAspect > targetAspect {
-            // The source is wider: match the height, crop the sides.
-            scaledHeight = Double(image.height)
-            scaledWidth = scaledHeight * targetAspect
-        } else {
-            // The source is taller: match the width, crop the top and
-            // bottom.
-            scaledWidth = Double(image.width)
-            scaledHeight = scaledWidth / targetAspect
-        }
+        let scale = max(
+            Double(width) / Double(image.width),
+            Double(height) / Double(image.height)
+        )
+        let scaledWidth = Double(image.width) * scale
+        let scaledHeight = Double(image.height) * scale
 
         let context = CGContext(
             data: nil,
@@ -138,9 +140,17 @@ enum CardCoverImageEncoder {
             return image
         }
         context.interpolationQuality = .high
+        // The clip is what makes the overflow disappear: without it
+        // the scaled picture would spill past the target edges.
+        context.clip(to: CGRect(x: 0, y: 0, width: width, height: height))
         context.draw(
             image,
-            in: CGRect(x: 0, y: 0, width: width, height: height)
+            in: CGRect(
+                x: (Double(width) - scaledWidth) / 2,
+                y: (Double(height) - scaledHeight) / 2,
+                width: scaledWidth,
+                height: scaledHeight
+            )
         )
         return context.makeImage() ?? image
     }
