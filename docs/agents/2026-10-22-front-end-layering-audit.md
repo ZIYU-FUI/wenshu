@@ -427,3 +427,49 @@ whole literal hid the read inside it, and a live parameter came out dead.
 The tool now keeps the interpolation's contents. The naive version of
 this detector is what produced the two false positives in section 3.1, and
 it is the same class of mistake.
+
+---
+
+## 8. The second wave: responsibility, not dead parameters
+
+The first wave deleted parameters that no view read. The two heaviest
+call sites that REMAIN are a different problem, and the tool reports
+them at the top of the list:
+
+    EditorEditContent  11 args  Features/Editor/View/EditorView.swift:296
+    WenshuMarkdownEditor  8 args  Features/Editor/View/EditorEditContent.swift:109
+    WenshuMarkdownEditor  7 args  Features/Editor/View/EditorView.swift:269
+    ExportFileExporters  13 args  Features/Library/View/ExportSheet.swift:302
+
+Every one of those parameters IS read. Nothing here can be deleted, and
+nothing here should go into the environment either: these are private
+types in one or two files, and the environment would reach further than
+the data does. The defect is that one value is expressed many times.
+
+**`ExportFileExporters` (13 parameters) is nine parameters pretending to
+be thirteen.** It holds, for each of the three export kinds, one engine,
+one format, one selected id and one remembered-URL binding. The three
+sets are never used together: the library exporter reads the library
+engine, the library format and the library binding, and nothing else.
+Split into three modifiers, one per kind, each parameter has exactly one
+owner, and the `kind` switch disappears (= each modifier knows its kind).
+
+**The editor pane builds the same surface twice.** The preview branch and
+the edit branch each spell out eight arguments, six of them the same
+expression, and `WenshuEditorServicesFactory.make(bookStore:bus:)` is
+called in both branches for two surfaces that differ by two flags
+(`isEditable` and whether the caret rect is reported). The fix is the
+one Apple uses when the same set of values reaches several consumers:
+build the set ONCE, as a value, and hand the value over. `EditorSurface`
+is that value, and the two modes read it.
+
+**The rule this wave follows**, which is different from the first wave's:
+
+- A parameter that no view reads is **deleted**.
+- A value that many views need is **built once, as a value, and passed**.
+- A value that a whole hierarchy needs is **put in the environment**.
+
+Choosing wrongly is worse than not choosing: an `EnvironmentKey` with
+no reader is dead code by rule 7.6 (= how `7baf6cb8a` died), and a
+value type that groups nothing is a wrapper with a name. Both of the
+cards in this wave are the second kind, and neither introduces a key.
