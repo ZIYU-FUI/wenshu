@@ -130,7 +130,6 @@ struct LibraryRootView: View {
             } content: {
                 AssetsPane(
                     envAppState: appState,
-                    appState: appState,
                     workspaceUI: workspaceUI
                 )
                 .navigationSplitViewColumnWidth(

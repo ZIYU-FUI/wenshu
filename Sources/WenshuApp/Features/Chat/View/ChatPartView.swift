@@ -91,7 +91,6 @@ struct ChatMessageBodyView: View {
                 // the single content string as before.
                 ChatTextPartView(
                     text: message.content,
-                    isOutgoing: isOutgoing,
                     isStreaming: isStreaming
                 )
             } else {
@@ -221,9 +220,9 @@ private struct ChatPartRow: View {
     @ViewBuilder
     private func textRow(for text: String) -> some View {
         if !isStreaming, ReasoningMarkupParser.hasMarkup(text) {
-            ChatTraceTextView(text: text, isOutgoing: isOutgoing)
+            ChatTraceTextView(text: text)
         } else {
-            ChatTextPartView(text: text, isOutgoing: isOutgoing, isStreaming: isStreaming)
+            ChatTextPartView(text: text, isStreaming: isStreaming)
         }
     }
 

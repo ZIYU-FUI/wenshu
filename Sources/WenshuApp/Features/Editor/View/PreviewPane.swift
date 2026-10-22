@@ -177,7 +177,6 @@ struct PreviewPane: View {
             // `otherReferenceTitles` for the duplicate check).
             .sheet(item: $cardRenaming) { target in
                 RenameItemSheet(
-                    kind: target.kind,
                     originalName: target.originalName,
                     otherNames: target.kind == .reference
                         ? (ensureCardService().otherReferenceTitles(excluding: target.itemId))

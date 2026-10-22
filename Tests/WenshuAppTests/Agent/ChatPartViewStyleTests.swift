@@ -32,7 +32,7 @@ struct ChatPartViewStyleTests {
         // a bad init signature (= e.g. it became internal), this
         // fails to compile (= type-level consistency guarantee).
         let stack = VStack(alignment: .leading) {
-            ChatTextPartView(text: "text", isOutgoing: false, isStreaming: false)
+            ChatTextPartView(text: "text", isStreaming: false)
             ChatReasoningPartView(text: "reasoning", isRunning: false)
             ChatToolUsePartView(toolUse: ChatMessagePart.ToolUsePart(
                 id: ToolCallID(rawValue: "t1"), name: "read_file", args: "{}",

@@ -12,7 +12,6 @@ struct AssetsPane: View {
     // … (= 20 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // observation tracking inside body.
     @Bindable var envAppState: AppState
-    let appState: AppState
     // previewSortOrder / sidebarSelection / activeTag live in
     // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // tracking on every body render).

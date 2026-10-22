@@ -267,7 +267,6 @@ struct NewBookSheet: View {
     let onSave: (NewBookInput) -> Void
     let onCancel: () -> Void
     let targetShelfId: UUID
-    let targetShelfName: String
     let availableShelves: [(id: UUID, name: String)]
 
     @State private var title: String = ""
@@ -279,13 +278,11 @@ struct NewBookSheet: View {
         onSave: @escaping (NewBookInput) -> Void,
         onCancel: @escaping () -> Void,
         targetShelfId: UUID,
-        targetShelfName: String,
         availableShelves: [(id: UUID, name: String)]
     ) {
         self.onSave = onSave
         self.onCancel = onCancel
         self.targetShelfId = targetShelfId
-        self.targetShelfName = targetShelfName
         self.availableShelves = availableShelves
         _shelfId = State(initialValue: targetShelfId)
     }
@@ -428,7 +425,6 @@ struct NewBookSheet: View {
 /// reserved-name check (= same reservedNames set as
 /// NewShelfSheet).
 struct RenameItemSheet: View {
-    let kind: SidebarRenamingTarget.Kind
     let originalName: String
     let otherNames: [String]
     let onSave: (String) -> Void
@@ -437,13 +433,11 @@ struct RenameItemSheet: View {
     @State private var name: String = ""
 
     init(
-        kind: SidebarRenamingTarget.Kind,
         originalName: String,
         otherNames: [String],
         onSave: @escaping (String) -> Void,
         onCancel: @escaping () -> Void
     ) {
-        self.kind = kind
         self.originalName = originalName
         self.otherNames = otherNames
         self.onSave = onSave

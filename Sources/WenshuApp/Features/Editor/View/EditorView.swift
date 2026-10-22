@@ -299,7 +299,6 @@ struct EditorView: View {
                                 set: { self.draft = $0 }
                             ),
                             originalBody: originalBody,
-                            onSave: { saveDraft() },
                             // chapter-focus-lock 2026-09-28: compute the
                             // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)
                             // holds the cursor.

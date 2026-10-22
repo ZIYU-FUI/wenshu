@@ -21,7 +21,6 @@ import SwiftUI
 
 struct ChatTraceTextView: View {
     let text: String
-    let isOutgoing: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
@@ -33,7 +32,6 @@ struct ChatTraceTextView: View {
                     // use).
                     ChatTextPartView(
                         text: body,
-                        isOutgoing: isOutgoing,
                         isStreaming: false
                     )
                 case .action(let body), .result(let body):

@@ -6,7 +6,7 @@
 // engine-side wiki-link clicks back to the host.
 //
 // One view per file (Apple HIG). `EditorEditContent` has 1 `@Binding`
-// (draft: `String`) + 9 `let` parameters (`originalBody`, `onSave`,
+// (draft: `String`) + 8 `let` parameters (`originalBody`,
 //  onWordCountChange, onDirtyChange, configuration, draftId,
 //  onLinkClick, editorHeader, editorPlaceholder) + 1 computed
 // property (isDirty). No @State / @Environment / @Observable =
@@ -20,7 +20,7 @@
 //
 //  Only call site = WorkspaceView's editor pane edit mode;
 //  invoked as `EditorEditContent(draft:..., originalBody:...,
-//  onSave:..., onWordCountChange:..., onDirtyChange:...,
+//  onWordCountChange:..., onDirtyChange:...,
 //  configuration:..., draftId:..., onLinkClick:...,
 //  editorHeader:..., editorPlaceholder:...)`.
 //  Extracting it does not change any caller signature.
@@ -39,7 +39,6 @@ import MarkdownEngine
 struct EditorEditContent: View {
     @Binding var draft: String
     let originalBody: String
-    let onSave: () -> Void
     // chapter-focus-lock 2026-09-28: caller (= EditorView)
     // computes this from AppState.focusedChapterPath vs the tab's
     // documentPath. When true, the LLM holds the cursor for this
@@ -164,11 +163,5 @@ struct EditorEditContent: View {
             .onChange(of: isDirty) { _, newDirty in
                 onDirtyChange(newDirty)
             }
-            // Dirty status surfaced to the host via the `onSave` closure
-            // (= not strictly needed by the editor itself; the host reads
-            // `draft` and `originalBody` to decide dirty highlighting
-            // on the Save button). Kept here so future
-            // status-bar additions (= line count, dirty indicator)
-            // have a clear anchor.
     }
 }

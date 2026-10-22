@@ -57,8 +57,8 @@ struct EditorEditContentTests {
                 "must declare @Binding var draft: String (= per the v0.34 spec)")
         #expect(codeRegion.contains("let originalBody: String"),
                 "must declare let originalBody: String (= saved-state baseline)")
-        #expect(codeRegion.contains("let onSave: () -> Void"),
-                "must declare let onSave callback")
+        #expect(!codeRegion.contains("let onSave: () -> Void"),
+                "must NOT declare the onSave callback (= nothing read it; = the editor's save path is the auto-save onDirtyChange callback)")
         #expect(codeRegion.contains("let onWordCountChange: (Int) -> Void"),
                 "must declare word count callback (= v0.34 B-18)")
         #expect(codeRegion.contains("let onDirtyChange: (Bool) -> Void"),

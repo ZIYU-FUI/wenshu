@@ -292,7 +292,6 @@ struct AppleSidebarView: View {
                 },
                 onCancel: { showNewBookSheet = false },
                 targetShelfId: target.id,
-                targetShelfName: target.name,
                 availableShelves: service?.availableShelvesForPicker() ?? []
             )
         }
@@ -308,7 +307,6 @@ struct AppleSidebarView: View {
         }
         .sheet(item: $renaming) { target in
             RenameItemSheet(
-                kind: target.kind,
                 originalName: target.originalName,
                 // the
                 // … (= 11 rationale lines collapsed; = A112 docblock collapse per §1.8)

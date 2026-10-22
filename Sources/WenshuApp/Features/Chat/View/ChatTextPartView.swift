@@ -33,12 +33,10 @@ import SwiftUI
 
 struct ChatTextPartView: View {
     let text: String
-    let isOutgoing: Bool
     let isStreaming: Bool
 
-    init(text: String, isOutgoing: Bool, isStreaming: Bool = false) {
+    init(text: String, isStreaming: Bool = false) {
         self.text = text
-        self.isOutgoing = isOutgoing
         self.isStreaming = isStreaming
     }
 
