@@ -10,8 +10,11 @@
 //  - the batch makes one call per document, SEQUENTIALLY (= at most
 //    one in flight at any moment), never a burst,
 //  - a document that already has a cover is skipped,
-//  - a failure on one document does not stop the batch,
-//  - the stop takes effect at the next document boundary.
+//  - a failure on one document does not stop the batch, and the
+//    document is tried again on the next run,
+//  - the stop takes effect at the next document boundary,
+//  - the batch and the card menu share ONE per-card lock,
+//  - the batch stops when the run is cancelled.
 //
 
 import AppKit
@@ -96,9 +99,9 @@ struct CoverBatchServiceTests {
     }
 
     /// Five documents with no covers.
-    private func makeItems(count: Int) -> [CoverBatchItem] {
+    private func makeItems(count: Int) -> [CoverCandidate] {
         (0..<count).map { index in
-            CoverBatchItem(
+            CoverCandidate(
                 target: .reference(UUID()),
                 subject: "Document \(index)",
                 createdAt: Date(timeIntervalSince1970: 1_700_000_000)
@@ -230,5 +233,107 @@ struct CoverBatchServiceTests {
         #expect(client.callCount == 1)
         #expect(service.progress.isStopped)
         #expect(service.progress.completed == 1)
+    }
+
+    @Test("A document that failed is tried again on the next run")
+    func aFailedDocumentIsRetriedOnTheNextRun() async throws {
+        try await PathGuard.$libraryRootOverride.withValue(Self.libraryRoot) {
+            try await self.runRetryCheck()
+        }
+    }
+
+    /// The body of the retry test, inside the library root scope.
+    private func runRetryCheck() async throws {
+        let container = try makeContainer()
+        let client = CountingImageClient()
+        client.shouldFail = true
+        let generation = CoverGenerationService(
+            modelContext: container.mainContext,
+            imageClient: client
+        )
+        let service = CoverBatchService(
+            modelContext: container.mainContext,
+            generationService: generation
+        )
+
+        let items = makeItems(count: 1)
+        await service.run(for: items)
+        #expect(service.progress.failed == 1)
+
+        // The second run tries the same document again: a failure
+        // does not skip a document forever.
+        client.shouldFail = false
+        await service.run(for: items)
+        #expect(client.callCount == 2)
+        #expect(service.progress.completed == 1)
+    }
+
+    @Test("The run stops when it is cancelled")
+    func cancellationStopsTheRun() async throws {
+        try await PathGuard.$libraryRootOverride.withValue(Self.libraryRoot) {
+            try await self.runCancellationCheck()
+        }
+    }
+
+    /// The body of the cancellation test, inside the library root
+    /// scope.
+    private func runCancellationCheck() async throws {
+        let container = try makeContainer()
+        let client = CountingImageClient()
+        let generation = CoverGenerationService(
+            modelContext: container.mainContext,
+            imageClient: client
+        )
+        let service = CoverBatchService(
+            modelContext: container.mainContext,
+            generationService: generation
+        )
+
+        // Cancel AFTER the first request: the run must finish the
+        // document it is on and then stop, because the cancellation is
+        // checked BETWEEN documents.
+        client.afterRequest = { service.cancel() }
+
+        await service.run(for: makeItems(count: 3))
+
+        #expect(client.callCount == 1)
+        #expect(service.progress.completed == 1)
+        #expect(service.progress.isStopped)
+    }
+
+    @Test("The batch and the card menu share ONE per-card lock")
+    func theBatchAndTheCardMenuShareOneLock() async throws {
+        try await PathGuard.$libraryRootOverride.withValue(Self.libraryRoot) {
+            try await self.runSharedLockCheck()
+        }
+    }
+
+    /// The body of the shared-lock test, inside the library root
+    /// scope.
+    private func runSharedLockCheck() async throws {
+        let container = try makeContainer()
+        let client = CountingImageClient()
+        // ONE holder, so the batch and the card menu share the same
+        // generation service and therefore the same per-card lock.
+        let services = CoverPaneServices(
+            modelContext: container.mainContext,
+            imageClient: client
+        )
+
+        let items = makeItems(count: 1)
+        let target = items[0].target
+
+        // The batch starts on the card, and the card menu asks for the
+        // same card while it is in flight.
+        client.afterRequest = {
+            Task { @MainActor in
+                await services.generation.generateCover(for: target, subject: "Document 0")
+            }
+        }
+        await services.batch.run(for: items)
+
+        // The second request found the card in flight, so ONE image
+        // call was made for the two of them.
+        #expect(client.callCount == 1)
     }
 }

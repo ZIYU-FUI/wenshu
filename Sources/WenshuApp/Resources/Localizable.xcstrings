@@ -5816,6 +5816,23 @@
         }
       }
     },
+    "cover.batch.progress": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d done, %d skipped, %d failed"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%d 完成，%d 跳过，%d 失败"
+          }
+        }
+      }
+    },
     "cover.action.makeAll": {
       "extractionState": "manual",
       "localizations": {

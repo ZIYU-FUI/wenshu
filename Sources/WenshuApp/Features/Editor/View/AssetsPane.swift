@@ -21,8 +21,12 @@ struct AssetsPane: View {
     // fallback in `openCardInEditor`).
     @Environment(BookStore.self) private var envBookStore
 
-    /// The batch that makes covers for the documents that lack one.
-    @State private var coverBatchService = CoverBatchService.live()
+    /// The cover services this pane shares.
+    ///
+    /// ONE holder, so the batch and the card menu hold ONE per-card
+    /// lock. Two services would be two locks, and a batch run and a
+    /// manual click on the same card would each spend an image call.
+    @State private var coverServices = CoverPaneServices.live()
 
     /// Whether a batch is running right now.
     @State private var isBatchRunning = false
@@ -36,24 +40,26 @@ struct AssetsPane: View {
     /// is large but not unlimited, and a burst would spend it on
     /// documents the user may not care about), and it can be stopped.
     private func startCoverBatch() {
-        let service = coverBatchService
+        let service = coverServices.batch
         isBatchRunning = true
         Task { @MainActor in
-            await service.run(for: coverBatchItems())
+            await service.run(for: coverCandidates())
             isBatchRunning = false
         }
     }
 
-    /// The documents the batch covers.
+    /// The documents the cover paths consider.
     ///
     /// Every reference and every book doc in the library. The batch
-    /// itself skips the ones that already have a cover, so this is
-    /// the whole set.
-    private func coverBatchItems() -> [CoverBatchItem] {
+    /// skips the ones that already have a cover, and the automatic
+    /// pass skips the ones the policy says belong to the batch (= the
+    /// documents that were already here when the switch was turned
+    /// on), so this is the whole set for both paths.
+    private func coverCandidates() -> [CoverCandidate] {
         guard let bookStore else { return [] }
         let references = (try? bookStore.loadAllReferences()) ?? []
         let referenceItems = references.map { reference in
-            CoverBatchItem(
+            CoverCandidate(
                 target: .reference(reference.id),
                 subject: "\(reference.title). \(reference.summary)",
                 createdAt: reference.createdAt
@@ -61,7 +67,7 @@ struct AssetsPane: View {
         }
         // The book docs come from the shelves walk, the same way the
         // grid gets them.
-        var bookItems: [CoverBatchItem] = []
+        var bookItems: [CoverCandidate] = []
         for book in bookStore.books {
             let docs = PreviewPaneOps.loadBookDocs(
                 bookStore: bookStore,
@@ -69,7 +75,7 @@ struct AssetsPane: View {
                 folderName: nil
             ).docs
             bookItems += docs.map { doc in
-                CoverBatchItem(
+                CoverCandidate(
                     target: .bookDoc(doc.id),
                     subject: "\(doc.title). \(doc.summary)",
                     createdAt: doc.createdAt
@@ -77,6 +83,16 @@ struct AssetsPane: View {
             }
         }
         return referenceItems + bookItems
+    }
+
+    /// Gives the documents that arrived later their own covers.
+    ///
+    /// The trigger asks the policy, and the policy is what knows the
+    /// difference between "already here" and "comes later". This
+    /// method only hands the trigger the documents and lets it
+    /// decide.
+    private func coverNewDocuments() async {
+        await coverServices.autoTrigger.coverNewDocuments(coverCandidates())
     }
 
     // `previewSortOrder` lives in `envAppState.previewSortOrder`
@@ -261,7 +277,12 @@ struct AssetsPane: View {
                             )
                         )
                     }
-                )
+                ),
+                // The SAME cover services the batch uses, so the card
+                // menu and the batch hold ONE per-card lock between
+                // them (= a batch run and a manual click on the same
+                // card make one image call, not two).
+                coverServices: coverServices
             )
             // 2026-10-12 boss directive "在素材栏也加一个底栏,
             // … (= 45 rationale lines collapsed; = A112 docblock collapse per §1.8)
@@ -301,8 +322,23 @@ struct AssetsPane: View {
                         // covers on their own (= the automatic pass,
                         // = a settings switch).
                         if isBatchRunning {
+                            // The progress, so a long run is not a
+                            // frozen pane. The counts come from the
+                            // runner, so they are the truth rather
+                            // than an estimate.
+                            ProgressView()
+                                .controlSize(.small)
+                            Text(String.localizedStringWithFormat(
+                                NSLocalizedString("cover.batch.progress", comment: ""),
+                                coverServices.batch.progress.completed,
+                                coverServices.batch.progress.skipped,
+                                coverServices.batch.progress.failed
+                            ))
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
                             Button(String(localized: "cover.action.stop")) {
-                                coverBatchService.stop()
+                                coverServices.batch.stop()
                             }
                         } else {
                             Button(String(localized: "cover.action.makeAll")) {
@@ -311,6 +347,28 @@ struct AssetsPane: View {
                         }
                     }
                 }
+            }
+            // The automatic pass for the documents that arrive LATER.
+            //
+            // The material zone is where a new document becomes
+            // visible, and this is the point where that happens: the
+            // pane reloads when the library changes, and the trigger
+            // is asked about the documents it now sees. The trigger
+            // decides, using the policy, whether each one is
+            // automatic (= created after the switch was turned on)
+            // or belongs to the batch.
+            //
+            // Every path that brings a document in announces that the
+            // library changed: the import, the sidebar's own writes,
+            // and the agent's writes. So a document the agent wrote
+            // reaches this pass as soon as it lands.
+            .onReceive(NotificationCenter.default.publisher(for: .wenshuLibraryDidChange)) { _ in
+                Task { @MainActor in
+                    await coverNewDocuments()
+                }
+            }
+            .task {
+                await coverNewDocuments()
             }
             // Header (= assets + divider
             // … (= 15 rationale lines collapsed; = A112 docblock collapse per §1.8)

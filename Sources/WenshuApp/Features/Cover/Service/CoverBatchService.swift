@@ -8,7 +8,7 @@
 //  hundreds of documents and does not want to click each one, so they
 //  start a run and stop it when they want.
 //
-//  Three rules:
+//  Four rules:
 //
 //  - ONE document at a time, never a burst. A burst of twenty
 //    parallel requests would burn the image allowance and hit rate
@@ -16,12 +16,20 @@
 //  - A document that already has a cover is SKIPPED, and a document
 //    whose last attempt failed is RETRIED on the next run, so a
 //    failure does not skip a document forever.
+//  - The stop takes effect at the next DOCUMENT boundary, never
+//    mid-generation: a half-made cover is worse than a slow stop.
 //  - The batch makes NO VIDEOS. It covers documents with still
 //    pictures only. The video allowance is a handful of clips a day
 //    and only the user may spend it.
 //
+//  The service is @Observable, so the progress the runner writes is
+//  a change the material zone can draw. A progress value nobody can
+//  see is a progress value that does not exist.
+//
+//
 
 import Foundation
+import Observation
 import SwiftData
 import WenshuData
 import os
@@ -29,14 +37,7 @@ import os
 private let coverBatchLogger = Logger(subsystem: "com.wenshu", category: "coverbatch")
 
 /// A document in a batch run.
-struct CoverBatchItem: Equatable, Sendable {
-    /// The card the cover belongs to.
-    let target: CardCoverTarget
-    /// What the picture should show.
-    let subject: String
-    /// When the document was created (= the policy's input).
-    let createdAt: Date
-}
+typealias CoverBatchItem = CoverCandidate
 
 /// How far a batch run has got.
 struct CoverBatchProgress: Equatable, Sendable {
@@ -54,6 +55,7 @@ struct CoverBatchProgress: Equatable, Sendable {
 
 /// Makes covers for many documents, one at a time.
 @MainActor
+@Observable
 final class CoverBatchService {
 
     /// The service that draws one cover.
@@ -87,7 +89,23 @@ final class CoverBatchService {
         progress.isStopped = true
     }
 
+    /// Cancels the run.
+    ///
+    /// This is the cancellation HANDLE: the runner does not outlive
+    /// the work that asked for it. A batch whose owning view went
+    /// away must not keep spending the image allowance, so the
+    /// cancellation is checked BETWEEN documents, exactly like the
+    /// manual stop.
+    func cancel() {
+        isStopped = true
+        progress.isStopped = true
+    }
+
     /// Runs the batch.
+    ///
+    /// The run stops when the user asks it to, and when the task
+    /// running it is cancelled. A batch whose owning view went away
+    /// must not keep spending the image allowance.
     ///
     /// - Parameter items: the documents to cover.
     func run(for items: [CoverBatchItem]) async {
@@ -95,7 +113,9 @@ final class CoverBatchService {
         progress = CoverBatchProgress(total: items.count)
 
         for item in items {
-            if isStopped { break }
+            // The stop check is BETWEEN documents, so a generation
+            // already under way is never cut off.
+            if isStopped || Task.isCancelled { break }
 
             // A document that already has a cover is skipped, so the
             // run does not spend the allowance on work already done.
@@ -109,7 +129,9 @@ final class CoverBatchService {
                 subject: item.subject
             )
 
-            // The generation either stored a cover or it did not.
+            // The generation either stored a cover or it did not. A
+            // failure leaves the document without one, so the NEXT
+            // run tries it again.
             if coverService.row(forKey: item.target.coverKey) != nil {
                 progress.completed += 1
             } else {
