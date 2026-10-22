@@ -58,6 +58,7 @@ reference, LOC, and content tag.
 | `Sources/WenshuApp/WenshuAgent/Agent/WenshuConductorImportRouterHelpers.swift` | `Sources/WenshuApp/Features/Agent/Service/WenshuConductorImportRouterHelpers.swift` | 521 | `enum WCIRHelpers` = the router's helper namespace (= the prompt builders, the tool schema, the same-content check). |
 | `Sources/WenshuApp/WenshuAgent/App/WenshuAppDelegateLLM.swift` | `Sources/WenshuApp/App/WenshuAppDelegateLLM.swift` | 165 | `enum WenshuAppDelegateLLMHelpers` = the app's connector + model resolution (= the active connector, the active model slug, the provider catalogue lookup). |
 | `Sources/WenshuApp/WenshuAgent/Keychain/KeychainSelector.swift` | `Sources/WenshuApp/Features/Settings/Service/KeychainSelector.swift` | 155 | `enum KeychainSelector` = the pure-function picker over the auth pool's keys (= it scores, picks, and transitions the key status). |
+| `Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift` | `Sources/WenshuApp/Shared/UI/EditorChatEnvironment.swift` | 23 | `struct EditorChatEnvironment { appState, bookStore, library }` = the three objects the AppKit-hosted SwiftUI views read, bundled so the boundary carries one value. |
 
 <!-- Append new rows at the END of the table above. The key-level merge
      driver keeps both rows when two cards add one each. -->

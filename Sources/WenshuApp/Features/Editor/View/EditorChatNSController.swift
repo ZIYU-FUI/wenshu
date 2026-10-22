@@ -117,19 +117,15 @@ final class EditorChatNSController: NSSplitViewController {
     // in appState.openTabs; = without this injection, the
     // editor pane is just a placeholder regardless of double-
     // click on a card).
-    private let appState: AppState?
-    private let bookStore: BookStore?
-    // WenshuLibrary is the canonical source for selectedBookId
-    // (= see WenshuLibrary.swift = the only places selectedBookId
-    // is mutated). Threaded through so ChatZoneView can observe
-    // it via @Environment(WenshuLibrary.self).
-    private let library: WenshuLibrary?
+    private let environment: EditorChatEnvironment
 
     init(
         conductor: WenshuConductor? = nil,
-        appState: AppState? = nil,
-        bookStore: BookStore? = nil,
-        library: WenshuLibrary? = nil
+        environment: EditorChatEnvironment = EditorChatEnvironment(
+            appState: nil,
+            bookStore: nil,
+            library: nil
+        )
     ) {
         // AUDIT.md §2.2 partial (2026-10-16): the public
         // facade is the canonical source of truth for
@@ -141,9 +137,7 @@ final class EditorChatNSController: NSSplitViewController {
         // `WenshuAppDelegate.sharedConductor` continue
         // to work unchanged).
         self.conductor = conductor ?? WenshuAgent.shared.currentConductorSync()
-        self.appState = appState
-        self.bookStore = bookStore
-        self.library = library
+        self.environment = environment
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -225,7 +219,7 @@ final class EditorChatNSController: NSSplitViewController {
 
         // Top pane (= editor).
         let editorRoot = EditorView()
-            .applyOptionalEnvironment(appState: appState, bookStore: bookStore)
+            .applyOptionalEnvironment(appState: environment.appState, bookStore: environment.bookStore)
         let editorItem = NSSplitViewItem(viewController: NSHostingController(
             rootView: editorRoot
         ))
@@ -253,9 +247,9 @@ final class EditorChatNSController: NSSplitViewController {
             // view construction time (= SwiftUI's @Environment(T.self)
             // is a hard fatalError when T is absent from the env chain).
             .applyOptionalEnvironment(
-                appState: appState,
-                bookStore: bookStore,
-                library: library
+                appState: environment.appState,
+                bookStore: environment.bookStore,
+                library: environment.library
             )
         )
         let chatItemLocal = NSSplitViewItem(viewController: chatViewController)
@@ -398,26 +392,26 @@ final class EditorChatNSController: NSSplitViewController {
 /// into NSHostingController via `.environment(...)` if/when needed).
 struct EditorChatSplitHost: NSViewControllerRepresentable {
     let conductor: WenshuConductor?
+    // The SwiftUI environment does not cross into the
+    // `NSHostingController`s this wrapper creates, so the three
+    // objects the hosted views read are resolved HERE (= the
+    // SwiftUI side of the boundary) and handed over as one
+    // bundled value.
+    //
     // Chat persistence lives in WSChatRepository.shared
     // (= @MainActor SwiftData wrapper).
-    // Thread appState + bookStore through the SwiftUI →
-    // AppKit boundary so the editor pane's @Environment
-    // lookups (= AppState + BookStore) actually resolve.
-    let appState: AppState?
-    let bookStore: BookStore?
-    // Thread WenshuLibrary through the SwiftUI → AppKit
-    // boundary so ChatZoneView can observe library (= the
-    // canonical book-selection source mutated by
-    // BookshelfListView taps; = future per-book chat features may
-    // also read this).
-    let library: WenshuLibrary?
+    @Environment(AppState.self) private var appState
+    @Environment(BookStore.self) private var bookStore
+    @Environment(WenshuLibrary.self) private var library
 
     func makeNSViewController(context: Context) -> EditorChatNSController {
         let controller = EditorChatNSController(
             conductor: conductor,
-            appState: appState,
-            bookStore: bookStore,
-            library: library
+            environment: EditorChatEnvironment(
+                appState: appState,
+                bookStore: bookStore,
+                library: library
+            )
         )
         return controller
     }
