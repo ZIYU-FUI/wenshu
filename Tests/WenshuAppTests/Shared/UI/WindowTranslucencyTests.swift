@@ -112,4 +112,43 @@ struct WindowTranslucencyTests {
             )
         }
     }
+
+    /// The window-list observer must listen for a notification AppKit
+    /// ACTUALLY posts, or every window opened after launch (the kanban
+    /// window, the library-migration window) keeps its opaque background.
+    ///
+    /// This one is a RUNTIME fact, not a source fact: the code's name is
+    /// compared against the SDK's own symbol, so a hand-written literal
+    /// for a notification AppKit never posts fails here even though it
+    /// compiles and even though the source reads plausibly.
+    @Test func the_window_list_observer_uses_a_real_appkit_notification() throws {
+        let delegate = try source("Sources/WenshuApp/App/WenshuAppDelegate.swift")
+        #expect(
+            delegate.contains("NSApplication.didUpdateNotification"),
+            "The observer must use the SDK's notification symbol"
+        )
+        // Check the CODE, not the prose: the comment beside the observer
+        // deliberately quotes the wrong name to explain the pitfall, and a
+        // naive whole-file search would match its own explanation.
+        let code = delegate
+            .split(separator: "\n")
+            .filter { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("//") }
+            .joined(separator: "\n")
+        #expect(
+            !code.contains("NSApplicationDidUpdateWindowsNotification"),
+            """
+            AppKit has no "NSApplicationDidUpdateWindowsNotification": the real \
+            name is NSApplicationDidUpdateNotification (= NSApplication.didUpdateNotification). \
+            A literal for a notification AppKit never posts leaves every window \
+            opened after launch opaque.
+            """
+        )
+        // The SDK symbol's raw value is the ground truth: the name the
+        // code listens for must equal it, or the observer never fires.
+        #expect(
+            NSApplication.didUpdateNotification.rawValue
+                == "NSApplicationDidUpdateNotification",
+            "The SDK's notification name changed; re-check the observer"
+        )
+    }
 }

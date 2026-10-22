@@ -427,8 +427,16 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // the kanban window, = the library-migration window) need the
         // same treatment, = so the rule is applied whenever AppKit
         // reports a change to the window list.
+        //
+        // The notification is `NSApplication.didUpdateNotification` (= the
+        // SDK's `NSApplicationDidUpdateNotification`). There is NO
+        // "Windows" variant of it: a hand-written
+        // `Notification.Name("NSApplicationDidUpdateWindowsNotification")`
+        // names a notification AppKit never posts, so the observer would
+        // never fire and every later window would keep its opaque
+        // background. Always use the SDK's symbol, never a literal.
         _ = NotificationCenter.default.addObserver(
-            forName: Notification.Name("NSApplicationDidUpdateWindowsNotification"),
+            forName: NSApplication.didUpdateNotification,
             object: nil,
             queue: .main
         ) { _ in
