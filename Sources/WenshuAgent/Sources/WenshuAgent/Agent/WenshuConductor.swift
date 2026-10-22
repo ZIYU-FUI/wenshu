@@ -32,6 +32,9 @@ public actor WenshuConductor {
     // … (= 13 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / `registeredToolNames` accessor + the `wireBookScopeGuard` writer.
     public var tools: [String: any Tool]
+    // / Turn-time tool source: the registry's live registrations, so a
+    // / turn sees what the app registered after launch.
+    private let toolProvider: (@Sendable () async -> [String: any Tool])?
     // AUDIT.md §2.9 partial (2026-10-16): the stream single-
     // writer fence (= hermes `stream_single_writer.py` port).
     // One per conductor instance (= the conductor is the
@@ -48,6 +51,7 @@ public actor WenshuConductor {
         connector: (any LLMConnector)? = nil,
         loopRuntime: RuntimeHelpers? = nil,
         tools: [String: any Tool] = [:],
+        toolProvider: (@Sendable () async -> [String: any Tool])? = nil,
         repositories: WSRepositoryContainer? = nil
     ) {
         self.connector = connector
@@ -56,6 +60,7 @@ public actor WenshuConductor {
         // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // every existing call site compiles unchanged.
         self.tools = tools
+        self.toolProvider = toolProvider
         // P1-01 fix: prefer the injected WSRepositoryContainer; fall
         // … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // boundaries at runtime.
@@ -182,6 +187,13 @@ public actor WenshuConductor {
         say so plainly — do NOT fabricate.
         """
         do {
+            // Resolve the registry's tools at turn time (= the app
+            // registers them after launch, so a launch-time snapshot is
+            // empty for the first turns). The book-scoped set wins: it
+            // is bound to the currently selected book, while the
+            // registry's instance is the generic one.
+            let providerTools = await toolProvider?() ?? [:]
+            let effectiveTools = tools.merging(providerTools) { scoped, _ in scoped }
             let result = try await loop.runTurn(
                 userMessage: userMessage,
                 // Pass the agent-driver reminder as the systemMessage
@@ -192,7 +204,7 @@ public actor WenshuConductor {
                 // P0 #2 (WIRE-AGENT-002): forward the conductor's
                 // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
                 // registered wenshu tools.
-                tools: tools,
+                tools: effectiveTools,
                 // Forward streamCallback (= Hermes
                 // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
                 // token-by-token). Legacy callers (= tests) pass nil.
@@ -201,7 +213,7 @@ public actor WenshuConductor {
                 // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
                 // did not register (= hermes get_definitions parity).
                 toolSchemas: await ToolRegistry.shared.getDefinitions(
-                    toolNames: Set(tools.keys)
+                    toolNames: Set(effectiveTools.keys)
                 )
             )
             // Step 4: shape the ConversationResult into the canonical

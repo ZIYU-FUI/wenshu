@@ -275,7 +275,11 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
             // conductor the active connector so it routes through
             // `runConversationLoopPath` (= the ReAct loop with
             // `maxAgentTurns = 10`).
-            connector: WenshuAppDelegateLLMHelpers.activeLLMConnector()
+            connector: WenshuAppDelegateLLMHelpers.activeLLMConnector(),
+            // The tools are resolved at turn time (= the app registers
+            // them after launch, so a launch-time snapshot is empty for
+            // the first turns).
+            toolProvider: WenshuConductor.productionToolProvider()
         )
         // AUDIT.md §2.2 partial (2026-10-16 boss "把切换包的事
         // 清干净" arc): the bridge setter is deleted; = the

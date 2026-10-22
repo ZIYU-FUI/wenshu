@@ -17,7 +17,7 @@ public actor ToolRegistry {
     /// files does not execute their registration initializers.
     public nonisolated static var shared: ToolRegistry {
         let registry = sharedStorage
-        _ = ProductionToolRegistryBootstrap.start
+        ProductionToolRegistryBootstrap.start()
         return registry
     }
 

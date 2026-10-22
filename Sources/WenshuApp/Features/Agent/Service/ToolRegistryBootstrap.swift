@@ -42,6 +42,14 @@ enum ToolRegistryBootstrap {
         _ = HermesTodoTool._registryBootstrap
         _ = VisionTools._registryBootstrap
         _ = WebTools._registryBootstrap
+        _ = BookChapterTool._registryBootstrap
+        _ = BookEntityTool._registryBootstrap
+        _ = BookOutlineTool._registryBootstrap
+        _ = EditChapterTool._registryBootstrap
+        _ = ReferenceLibraryTool._registryBootstrap
+        _ = LLMWikiTool._registryBootstrap
+        _ = DelegateResearchTool._registryBootstrap
+        _ = WebSearchTool._registryBootstrap
     }
 
     /// Install the app's tool registrations and the library-root accessor.

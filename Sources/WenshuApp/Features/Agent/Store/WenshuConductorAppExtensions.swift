@@ -72,6 +72,25 @@ extension WenshuConductor {
     // / which would time out in tests where not all 12 tool files are linked).
     static let toolRegistryWarmupMs: UInt64 = 50
 
+    /// Resolve the user's selected tools from the registry, for a turn.
+    ///
+    /// The set is resolved when a turn runs, not when the conductor is
+    /// built: the app installs the conductor at launch and the
+    /// registrations land on a background task after that, so a
+    /// launch-time snapshot is empty for the first turns.
+    static func productionToolProvider() -> @Sendable () async -> [String: any Tool] {
+        { [registry = ToolRegistry.shared] in
+            var resolved: [String: any Tool] = [:]
+            let wanted = await WenshuConductor.defaultToolNames
+            for name in wanted {
+                if let handler = await registry.getHandler(name: name) {
+                    resolved[name] = handler
+                }
+            }
+            return resolved
+        }
+    }
+
     // MARK: - Legacy typed tool dispatch (= the app's concrete tools)
 
     // / h10: dispatch an agent tool call. Returns "" on unknown tool / failure.
