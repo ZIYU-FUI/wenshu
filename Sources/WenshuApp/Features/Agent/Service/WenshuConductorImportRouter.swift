@@ -49,9 +49,17 @@ actor WenshuConductorImportRouter: ImportRouter {
         )
     }()
 
+    /// The shelves root (= the active library's `shelves` folder).
+    ///
+    /// Injected (= the app installs it) so the router does not reach
+    /// for the app delegate's static accessor. Returns nil when no
+    /// library is active (= first launch, before onboarding).
+    private let shelvesRootProvider: (@Sendable () -> URL?)?
+
     init(
         connector: (any LLMConnector)? = nil,
-        modelSlug: String? = nil
+        modelSlug: String? = nil,
+        shelvesRootProvider: (@Sendable () -> URL?)? = nil
     ) {
         // The connector resolution is intentionally synchronous (=
         // WenshuAppDelegateLLMHelpers.activeLLMConnector() is `nonisolated`; = the cost
@@ -68,6 +76,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         // without a wenshu-side hardcoded model list (= AGENTS.md §11.2 P0
         // profile list is the canonical cross-check).
         self.modelSlug = modelSlug ?? WenshuAppDelegateLLMHelpers.activeModelSlug() ?? "default-model"
+        self.shelvesRootProvider = shelvesRootProvider
     }
 
     /// Classify one file via the LLM (= the prompt asks the LLM to return a
@@ -309,7 +318,7 @@ actor WenshuConductorImportRouter: ImportRouter {
     private func resolveBookPath(input: ImportFileInput) -> (String?, String) {
         guard let bookId = input.targetBookId,
               let shelfId = input.targetShelfId,
-              let shelvesRoot = WenshuAppDelegate.activeShelvesRoot() else {
+              let shelvesRoot = shelvesRootProvider?() else {
             return (nil, "参考库")
         }
         let booksRoot = shelvesRoot

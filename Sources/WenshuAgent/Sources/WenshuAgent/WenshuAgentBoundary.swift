@@ -35,26 +35,21 @@
 //
 //  The agent runtime itself lives here now: the conductor, the
 //  conversation loop and the verifier all moved into the package.
-//  Five source files stay inside the app target at
-//  `Sources/WenshuApp/WenshuAgent/`.
-//  They stay because they reference the app's auth pool, the app's
-//  provider catalogue, the app's import layer and the app delegate,
-//  all of which live in the app target.
+//  The app keeps one file under `Sources/WenshuApp/WenshuAgent/`: the
+//  app's own public facade (= `WenshuAgent.shared`). It stays there
+//  because the app calls it by that name, and the name collides with
+//  the package module on purpose.
 //
 //      Sources/WenshuApp/WenshuAgent/
-//      ├── Agent/
-//      │   ├── WenshuConductorImportRouter.swift
-//      │   └── WenshuConductorImportRouterHelpers.swift
-//      ├── App/
-//      │   └── WenshuAppDelegateLLM.swift
-//      ├── Keychain/
-//      │   └── KeychainSelector.swift
 //      └── Public/
 //          └── WenshuAgent.swift
 //
-//  The app's tool implementations also stay in the app target, in
-//  `Sources/WenshuApp/Features/Agent/Service/`. They bind the app's
-//  storage, and they satisfy the runtime's `Tool` protocol.
+//  Everything else the app owns lives in the app's own tree: the import
+//  router and its helpers in `Features/Agent/Service/`, the app
+//  delegate's LLM helper in `App/`, the keychain selector in
+//  `Features/Settings/Service/`, and the tool implementations in
+//  `Features/Agent/Service/`. The tools bind the app's storage, and
+//  they satisfy the runtime's `Tool` protocol.
 //
 //  TOOL MECHANISM:
 //
@@ -78,11 +73,11 @@
 //    3. `AgentChatProviders.current` = the app installs the chat entry
 //       point the verifier probes; the runtime reads it when it checks
 //       that the agent answers.
-//    4. `ToolRegistry.ProductionToolRegistryBootstrap.start` and
-//       `PathGuard.libraryRootProvider` cover the tool side; the
-//       conductor's own app half (= the tool catalogue, the settings
-//       store, the concrete tools) lives in the app as an extension on
-//       the package's `WenshuConductor`.
+//
+//  The conductor's own app half (= the tool catalogue, the settings
+//  store, the concrete tools) lives in the app as an extension on the
+//  package's `WenshuConductor`, and the import router's shelves root
+//  is injected by the app where the router is constructed.
 //
 //  The path guard's test override (`PathGuard.$libraryRootOverride`)
 //  lives in the runtime package, next to the guard that reads it. A

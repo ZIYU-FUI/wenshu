@@ -166,7 +166,9 @@ struct ImportSheet: View {
     // / The production router. T4 wires the LLM-backed
     // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / "用文枢正常机制来推出" per boss 2026-10-09 (see OOB.md #2026-10-09)
-    let router: any ImportRouter = WenshuConductorImportRouter()
+    let router: any ImportRouter = WenshuConductorImportRouter(
+        shelvesRootProvider: { WenshuAppDelegate.activeShelvesRoot() }
+    )
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingModerate) {
