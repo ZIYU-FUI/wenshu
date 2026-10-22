@@ -50,7 +50,6 @@ import SwiftUI
 /// canonical SwiftUI streaming text pattern).
 struct ChatMessageBodyView: View {
     let message: ChatMessage
-    let isOutgoing: Bool
     let isStreaming: Bool
     /// T22: optional closure for plan part approval (= flows down
     /// through ChatPartRow to ChatPlanPartView). Nil = no approve
@@ -60,15 +59,16 @@ struct ChatMessageBodyView: View {
 
     init(
         message: ChatMessage,
-        isOutgoing: Bool,
         isStreaming: Bool = false,
         onApprovePlan: ((Plan) -> Void)? = nil
     ) {
         self.message = message
-        self.isOutgoing = isOutgoing
         self.isStreaming = isStreaming
         self.onApprovePlan = onApprovePlan
     }
+
+    /// Outgoing = the message came from the user, not the assistant.
+    private var isOutgoing: Bool { message.source == .user }
 
     var body: some View {
         // Apple HIG: writing body text uses `.primary` foreground,

@@ -346,7 +346,6 @@ struct ChatMessageView: View {
                     // user's own messages only).
                     ChatMessageBodyView(
                         message: message,
-                        isOutgoing: isOutgoing,
                         // MC2.1 streaming fix: `isStreaming` stays true
                         // for the full streaming lifecycle (= .streaming
                         // state) AND the initial placeholder. The

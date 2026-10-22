@@ -124,7 +124,7 @@ struct ChatPartViewTests {
             parts: []   
         )
         // The body view can be constructed without crashing.
-        let body = ChatMessageBodyView(message: msg, isOutgoing: false)
+        let body = ChatMessageBodyView(message: msg)
         // (= no #expect needed for view body = the test passes if
         // the init succeeds; = we verify the data-flow contract
         // indirectly via the other tests below.)
@@ -140,7 +140,7 @@ struct ChatPartViewTests {
             content: "ignored because parts is non-empty",
             parts: [.text("real text from streaming")]
         )
-        let body = ChatMessageBodyView(message: msg, isOutgoing: false, isStreaming: true)
+        let body = ChatMessageBodyView(message: msg, isStreaming: true)
         _ = body
     }
 
@@ -154,7 +154,7 @@ struct ChatPartViewTests {
             content: "",
             parts: [.reasoning("the model is thinking...")]
         )
-        let body = ChatMessageBodyView(message: msg, isOutgoing: false, isStreaming: true)
+        let body = ChatMessageBodyView(message: msg, isStreaming: true)
         _ = body
     }
 
@@ -185,7 +185,7 @@ struct ChatPartViewTests {
             content: "",
             parts: [ChatMessagePart.toolUse(id: toolPart.id, name: toolPart.name, args: toolPart.args)]
         )
-        let body = ChatMessageBodyView(message: msg, isOutgoing: false)
+        let body = ChatMessageBodyView(message: msg)
         _ = body
     }
 
@@ -210,7 +210,7 @@ struct ChatPartViewTests {
                 isError: resultPart.isError
             )]
         )
-        let body = ChatMessageBodyView(message: msg, isOutgoing: false)
+        let body = ChatMessageBodyView(message: msg)
         _ = body
     }
 
@@ -271,7 +271,7 @@ struct ChatPartViewTests {
             }
         }
         #expect(kinds.count == 5, "All 5 part kinds must be represented (= Hermes 1:1 parity + T22 plan)")
-        let body = ChatMessageBodyView(message: msg, isOutgoing: false, isStreaming: false)
+        let body = ChatMessageBodyView(message: msg, isStreaming: false)
         _ = body
     }
 
