@@ -324,3 +324,49 @@ and string literals before parsing, so a docblock that mentions a type name
 does not count as a dependency. Every finding in section 3 was then
 re-verified by hand with `grep` before it was written down; two of the
 script's own findings were killed by that check.
+
+---
+
+## 7. Outcome
+
+All five cards landed on `main`. Each is one commit, each in its own
+worktree, none of them changing what the app looks like.
+
+| # | Commit | Change | Size |
+| - | ------ | ------ | ---- |
+| 1 | `1a96646a0` | The five dead initializer parameters deleted | 32 deletions, 8 insertions |
+| 2 | `c23a70ea6` | The bubble body derives `isOutgoing` from the message | 10 deletions, 9 insertions |
+| 3 | `d2a9a48e8` | The AppKit boundary carries one bundled value | 35 deletions, 50 insertions |
+| 4 | `e89362efe` | The part row derives the tool activity from the message | 19 deletions, 13 insertions |
+| 5 | `0f468c7e8` | The measurement is a command in the repository | 1004 insertions, 3 files |
+
+**What did not change.** No colour, spacing, font, icon, transition or
+animation line appears in any of the four refactor commits. The two tool
+part views, whose `isOutgoing` picks the bubble fill, are byte-identical to
+their base. The `applyOptionalEnvironment` helper, which is the actual
+re-injection mechanism, is byte-identical. The `NSSplitViewController`
+container keeps its divider style, its top-to-bottom orientation, its
+autosave name, its collapse animation and its `sizeThatFits` override, so
+the chat pane is still the Keynote speaker-notes pattern.
+
+**The gate.** `swift build` exits 0. The chat, editor, split-view and
+shell suites pass: 164 tests in 28 suites. The repository has a red
+baseline of 24 failing suites, measured at the base commit
+`b8060a084643e2d5dd72c759750e4c5bf5672575`; a source-text failure
+inside a worktree is a path failure until proven otherwise, so the
+failing SET was compared against that baseline rather than a count.
+
+**Two dead parameters remain**, both found by the card 5 tool after the
+refactor landed, and both left alone because each is pinned by a test
+assertion on the exact call-site text:
+
+- `WizardStepNavBar.currentStep`
+  (`Features/Agent/View/ImportSheetViewPieces.swift:414`)
+- `KanbanWindow.library` (`Features/Kanban/View/KanbanWindow.swift:54`)
+
+**One real bug the measurement tool's own test suite found.** A Swift
+string interpolation is an expression, not literal text, so stripping the
+whole literal hid the read inside it, and a live parameter came out dead.
+The tool now keeps the interpolation's contents. The naive version of
+this detector is what produced the two false positives in section 3.1, and
+it is the same class of mistake.
