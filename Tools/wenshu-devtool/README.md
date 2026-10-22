@@ -34,6 +34,27 @@ python3 Tools/wenshu-devtool/wenshu_devtool.py keychain_list
 python3 Tools/wenshu-devtool/wenshu_devtool.py keychain_get openrouter
 ```
 
+## Front-end measurement
+
+A separate tool, because it measures the app's own source tree instead of
+the running app.
+
+```bash
+# 8. Measure the front end's parameter drilling (= dead parameters + heaviest initializers)
+python3 Tools/wenshu-devtool/measure-drill.py --root Sources/WenshuApp
+
+# 8b. Only the heaviest N call sites
+python3 Tools/wenshu-devtool/measure-drill.py --root Sources/WenshuApp --top 10
+```
+
+It reads the Swift source, strips comments and string literals, and
+reports the initializer parameters that are declared, passed down through
+their call sites, and never read. Its own test suite runs on fixtures:
+
+```bash
+python3 Tools/wenshu-devtool/tests/test_measure_drill.py
+```
+
 ## Requirements
 
 - macOS (uses `osascript`, `screencapture`, `defaults`, `security`)
