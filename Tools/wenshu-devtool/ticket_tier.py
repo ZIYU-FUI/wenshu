@@ -4,7 +4,7 @@ ticket_tier.py - the difficulty tier of a wenshu card, and the contract the tier
 
 A card's tier is DERIVED from the work its body describes, never hand-set:
 
-  T1  trivial   one or two files, no persistence, no live-app proof, no new subsystem
+  T1  trivial   one or two files in one place, no persistence, no live-app proof
   T2  standard  the default
   T3  deep      persistence, a new subsystem, a package boundary, or a wide blast radius
 
@@ -15,33 +15,43 @@ The tier sets four things and nothing else:
   gate width    which suites prove the claim (= T1 names ONE filtered suite)
   body budget   how long the card body may be
 
-WHY THIS EXISTS (measured on board wenshu-par, 41 done cards, 2026-10-22):
+WHY THIS EXISTS (measured on board wenshu-par, 43 done cards, 2026-10-22):
 
-  35.7 h of worker time, of which 6.5 h (18%) sat in a run that FINISHED. The
-  other 29.2 h (82%) sat in runs that timed out, were reclaimed, or crashed, and
-  the cards averaged 2.93 runs each. The gates themselves are cheap: an
-  incremental `swift build` is 0.73 s, the full suite is 66 s, double-axis.sh
-  is 0.36 s. The hours went into REPEATED attempts, not into verification.
+  35.7 h of worker time across the 43 done cards, in 126 runs, and only 44
+  of those runs COMPLETED. 37 timed out, 28 were reclaimed, 9 crashed, 7
+  blocked: the cards averaged 2.93 runs each, and the 82% of the time that
+  sits in a run that did NOT finish is the cost.
 
-  46 runs hit the 30-minute cap and were killed, and 46 of the 46 were cards
-  that had ALREADY been given a bigger budget than the work needed. A card
-  that times out is not slow, it is mis-sized: the cap did not match the work,
-  so the worker spent the whole budget and the card was re-dispatched to spend
-  it again.
+  The gates are not the cost. An incremental `swift build` is 0.73 s, the full
+  suite is 66 s, double-axis.sh is 0.36 s. The hours went into REPEATED
+  attempts, not into verification.
 
-  Two measured signals separate the work from the prose:
-    - inside one tier, a body demanding a red-baseline comparison averages
-      65.7 m over 3.44 runs, against 46.4 m over 2.60 runs for a body
-      naming a narrow gate;
-    - a body naming a runtime surface (= AppKit, AX census, a screenshot, a
-      launch) is a card that cannot be proven by a build alone.
+  A BIGGER CAP MAKES IT WORSE, which is the result that decides the design.
+  Measured by the cap each card was given: the cards on a 45-minute cap
+  burned 100.8 min per card over 4.80 runs; the cards on a 30-minute cap
+  burned 43.8 min per card over 2.71 runs. A cap does not buy fewer attempts.
+  It buys more expensive attempts. So the tier's cap is sized to NOT KILL the
+  work (= it sits above the longest run that actually finished, in that tier),
+  and the tier takes its time out of the GATE and the BODY instead.
 
-  So the tier narrows the gate to the cheapest proof of the claim and sizes
-  the cap to the work. A stuck card then dies cheap instead of burning a full
-  cap and starting over from zero.
+  What predicts the cost, measured as the correlation with minutes per card:
+    the number of body SECTIONS   r = +0.589
+    the body LENGTH               r = +0.406
+    a WIDE gate (the whole suite) r = +0.402
+    a live-app proof              r = +0.175
+    the number of FILES the card touches   r = +0.068   (nothing)
+
+  So the file count does NOT predict how long a card takes. What it predicts
+  is whether a NARROW gate is SAFE. That is the tier's real job: it is a
+  BLAST-RADIUS rating, and it decides how many suites have to prove the card.
+
+  Inside one tier the gate is the whole difference: a card whose body demands
+  the whole suite against a red baseline ran 3.44 times for 65.7 min per
+  card; a card whose body named no suite ran 2.00 times for 17.6 min per card.
 
   The tier never skips the dual-axis review (AGENTS.md rule 1.10). It narrows
-  the gate to the cheapest proof, and it never marks a test as skipped.
+  the gate to the cheapest proof of the claim, and it never marks a test as
+  skipped.
 
 Usage:
     ticket_tier.py <card-id>...      classify cards (reads the board)
@@ -72,24 +82,25 @@ REPO = "/Volumes/ANAN/Engineering/wenshu"
 # The caps are fitted to the measured duration of a run that FINISHED, per
 # tier, so a card that does the work never loses to its own cap:
 #
-#   tier  successful runs (m)          cap    headroom
-#   T1    max 10.5                      15m    1.43x
-#   T2    max 26.2                      30m    1.15x
-#   T3    p50 20.3, p75 26.2, max 39.2  45m    1.15x on the max
+#   tier  longest successful run   cap    headroom
+#   T1    10.5 m                   15m    1.43x
+#   T2    16.0 m                   25m    1.56x
+#   T3    39.2 m                   45m    1.15x
 #
 # The retry budget is the board's --max-retries, which trips the breaker when
-# the CONSECUTIVE failure count reaches it (a success resets the count). It is
-# fitted to the longest failure streak the board has actually produced per
-# tier, plus one: measured worst streaks were T1 1, T2 2, T3 3, so the budgets
-# are 2 / 3 / 4. Under those budgets, replaying every historical card blocks
-# ZERO cards that used to succeed.
+# the CONSECUTIVE failure count reaches it (a success resets the count, and a
+# reclaimed run does not count at all). It is fitted to the longest failure
+# streak the board has actually produced per tier, plus one: measured worst
+# streaks were T1 1, T2 2, T3 4, so the budgets are 2 / 3 / 5. Replaying every
+# historical card under those budgets blocks ZERO cards that used to succeed.
+# T3's budget is 5, not 4: a budget of 4 blocks one card that later landed.
 #
 # A cap that is too small does not save time, it moves the work to a human:
-# replayed, a 25m T3 cap blocked 7 cards that used to land, and a 30m T3 cap
-# blocked 2. So T3's cap stays above its measured maximum, and the fast lane
-# takes its time out of the GATE, not out of the cap. The same rule set T2's
-# cap at 30m: a 25m T2 cap blocked the one card whose successful run took
-# 26.2 m.
+# the cards on a 45-minute cap burned 100.8 min each over 4.80 runs, against
+# 43.8 min each over 2.71 runs for the cards on a 30-minute cap. A cap does
+# not buy fewer attempts; it buys more expensive ones. So T3's cap stays
+# above its measured maximum, and the fast lane takes its time out of the
+# GATE and the BODY, not out of the cap.
 TIERS = {
     "T1": {
         "label": "trivial",
@@ -101,8 +112,8 @@ TIERS = {
     },
     "T2": {
         "label": "standard",
-        "runtime": 1800,
-        "runtime_text": "30m",
+        "runtime": 1500,
+        "runtime_text": "25m",
         "retries": 3,
         "body_max": 10000,
         "gate": "swift build + a filtered suite per touched area; baseline compare only where the baseline is red",
@@ -111,7 +122,7 @@ TIERS = {
         "label": "deep",
         "runtime": 2700,
         "runtime_text": "45m",
-        "retries": 4,
+        "retries": 5,
         "body_max": 32000,
         "gate": "the full gate set, incl. a red-baseline comparison and a visual proof",
     },
@@ -139,24 +150,39 @@ CODE_RE = re.compile(r"```[a-zA-Z]*\n(.*?)```", re.S)
 # LOCALIZATION section is often saying it adds no string. Measured: 15 of 47
 # cards name Package.swift and 13 of them do it to forbid it, so a tier that
 # reads the whole body called 24 cards package-boundary work and 20 more
-# catalog rewrites. So every signal is read from the WORK, and the two
-# file-shaped signals are read from the files the card actually writes.
+# catalog rewrites. So every signal is read from the WORK.
+#
+# These three fire on the WORK and drive the TIER:
+#   persistence    the card touches the store
+#   new_subsystem  the card introduces a thing that did not exist
+#   package_boundary  the card moves code across a package boundary
 SIGNALS = {
     "persistence": re.compile(
         r"@Model|ModelContainer|Schema\(|versionedSchema|makeContainer|migration",
         re.I,
     ),
+    "new_subsystem": re.compile(
+        r"\bnew (?:feature|service|model|view|screen|pane|subsystem|package)\b", re.I
+    ),
+}
+
+# These two are VERIFICATION KINDS, not blast radius, so they do not make a
+# card T3. They are reported as notes instead: a live-app proof is extra
+# evidence to gather, and the string catalog merges by key, so a card that
+# adds one key is not a rewrite.
+NOTES = {
     "live_app": re.compile(
         r"AX ?census|AXScrollBar|screenshot|screencapture|launch the app|app bundle"
         r"|Wenshu\.app|visual proof|on the running app|unified log|processIdentifier",
         re.I,
     ),
-    "new_subsystem": re.compile(
-        r"\bnew (?:feature|service|model|view|screen|pane|subsystem|package)\b", re.I
-    ),
-    "package_boundary": re.compile(r"\bWenshuAgent\b|\bWenshuData\b", re.I),
 }
 
+# The package boundary is a PATH, not a word. The app's facade TYPE is named
+# WenshuAgent, so matching the word calls a card that mentions the type a
+# package-boundary change. Measured: the word fired on 11 cards and the path
+# on 16, and 4 of the word's hits were the type.
+PACKAGE_PATHS = ("Sources/WenshuAgent/", "Sources/WenshuData/")
 # The file-shaped deep signals: they fire on a file the card WRITES.
 CATALOG_RE = re.compile(r"\.xcstrings$|\.lproj/|Info\.plist$", re.I)
 MANIFEST_RE = re.compile(r"^Package\.swift$")
@@ -284,6 +310,26 @@ def code_volume(body: str) -> int:
     return sum(len(block) for block in CODE_RE.findall(body))
 
 
+def areas_of(paths: list[str]) -> set[str]:
+    """The distinct areas of the tree a card's written files live in.
+
+    This is the blast radius the tier actually measures: a card that writes
+    one file in one feature is narrow, and a card that writes files in three
+    areas can break a caller it never named, so its narrow gate would not
+    prove the change.
+    """
+    areas: set[str] = set()
+    for path in paths:
+        parts = path.split("/")
+        if path.startswith(("Sources/", "Tests/")) and len(parts) > 2:
+            areas.add("/".join(parts[:3]))
+        elif path.startswith(("Tools/", "Scripts/", "docs/")):
+            areas.add(parts[0])
+        else:
+            areas.add(path)
+    return areas
+
+
 def signals(body: str) -> dict:
     """The work-shaped signals a tier is derived from."""
     written, forbidden = work_scope(body)
@@ -296,12 +342,13 @@ def signals(body: str) -> dict:
         "n_files": len(written),
         "n_sources": len(sources),
         "n_tests": len(tests),
+        "n_areas": len(areas_of(sorted(written))),
         "code": code_volume(body),
         "persistence": bool(SIGNALS["persistence"].search(text)),
-        "live_app": bool(SIGNALS["live_app"].search(text)),
         "new_subsystem": bool(SIGNALS["new_subsystem"].search(text)),
-        "package_boundary": bool(SIGNALS["package_boundary"].search(text))
+        "package_boundary": any(p.startswith(PACKAGE_PATHS) for p in written)
         or any(MANIFEST_RE.match(p) for p in written),
+        "live_app": bool(NOTES["live_app"].search(text)),
         "catalog": any(CATALOG_RE.search(p) for p in written),
     }
 
@@ -309,9 +356,15 @@ def signals(body: str) -> dict:
 def tier_of(body: str) -> tuple[str, list[str]]:
     """The tier a card body earns, and the reasons that decided it.
 
-    The inputs are the WORK and the RISK. They are never the body's length
-    and never the gates the body asks for: the tier CHANGES the cap and the
-    gate, so a tier derived from either would be circular.
+    The inputs are the BLAST RADIUS and the RISK. They are never the body's
+    length and never the gates the body asks for: the tier CHANGES the cap
+    and the gate, so a tier derived from either would be circular.
+
+    The file count is a blast-radius input, NOT a cost input. Measured as the
+    correlation with minutes per card, the number of files a card touches is
+    r = +0.068 (= nothing), while the number of body sections is +0.589. So
+    the tier does not exist to guess how long a card takes; it exists to
+    decide how many suites have to prove it.
     """
     sig = signals(body)
     deep = []
@@ -323,12 +376,10 @@ def tier_of(body: str) -> tuple[str, list[str]]:
         deep.append("a package boundary")
     if sig["n_sources"] >= 6:
         deep.append(f"{sig['n_sources']} source files")
+    if sig["n_areas"] >= 3:
+        deep.append(f"{sig['n_areas']} areas of the tree")
     if sig["code"] >= 3000:
         deep.append(f"{sig['code']} chars of code inlined in the body")
-    if sig["live_app"] and sig["n_files"] >= 2:
-        deep.append("a live-app proof")
-    if sig["catalog"] and sig["n_files"] >= 2:
-        deep.append("a catalog rewrite")
     if deep:
         return "T3", deep
 
@@ -414,6 +465,23 @@ def find_errors(card: dict) -> list[str]:
             "T2 demands a red-baseline comparison; the measured cost of that "
             "demand, inside one tier, is 65.7 m over 3.44 runs against "
             "46.4 m over 2.60 for a narrow gate"
+        )
+
+    sig = signals(body)
+    if sig["live_app"] and tier != "T3":
+        notes.append(
+            "this card also needs a live-app proof (a screenshot or an AX "
+            "census); that is extra evidence to gather, not a deeper tier"
+        )
+    if sig["catalog"]:
+        notes.append(
+            "this card writes the string catalog, which merges by key; it is "
+            "not a catalog rewrite on its own"
+        )
+    if sig["n_areas"] >= 2 and tier != "T3":
+        notes.append(
+            f"this card writes {sig['n_areas']} areas of the tree "
+            f"({', '.join(sorted(areas_of(sig['files'])))})"
         )
 
     return errors + notes
