@@ -59,6 +59,43 @@ extension PreviewPane {
         return url
     }
 
+    /// The service that draws a card's cover.
+    ///
+    /// One service for the whole pane, so the per-card lock is shared:
+    /// two clicks on the same card make one call. It is held by the
+    /// PARENT view (= PreviewPane) rather than here, because an
+    /// extension cannot hold a stored property.
+    private var coverGenerationService: CoverGenerationService {
+        coverGenerationServiceHolder
+    }
+
+    /// The cover target for a reference card.
+    private func coverTarget(forReference id: UUID) -> CardCoverTarget {
+        .reference(id)
+    }
+
+    /// The cover target for a book-doc card.
+    private func coverTarget(forBookDoc id: UUID) -> CardCoverTarget {
+        .bookDoc(id)
+    }
+
+    /// Starts a cover generation for a card.
+    ///
+    /// The subject is the card's own title and summary: a short
+    /// description of what the card already says. There is no chat
+    /// completion here, because the subject does not need one.
+    private func generateCover(for target: CardCoverTarget, subject: String) {
+        let service = coverGenerationService
+        Task { @MainActor in
+            await service.generateCover(for: target, subject: subject)
+        }
+    }
+
+    /// Removes a card's cover.
+    private func removeCover(for target: CardCoverTarget) {
+        coverGenerationService.removeCover(for: target)
+    }
+
     func referenceCategoryCard(_ entity: Reference) -> some View {
         Card(
             source: .reference(entity),
@@ -67,7 +104,17 @@ extension PreviewPane {
             },
             onRename: { beginReferenceRename(entity) },
             onDelete: { beginReferenceDelete(entity) },
-            coverImageURL: coverImageURL(forReference: entity.id)
+            coverImageURL: coverImageURL(forReference: entity.id),
+            onGenerateCover: {
+                generateCover(
+                    for: coverTarget(forReference: entity.id),
+                    subject: "\(entity.title). \(entity.summary)"
+                )
+            },
+            onRemoveCover: {
+                removeCover(for: coverTarget(forReference: entity.id))
+            },
+            hasCover: coverImageURL(forReference: entity.id) != nil
         )
     }
 
@@ -309,7 +356,17 @@ extension PreviewPane {
                                 },
                                 onRename: { beginReferenceRename(entity) },
                                 onDelete: { beginReferenceDelete(entity) },
-                                coverImageURL: coverImageURL(forReference: entity.id)
+                                coverImageURL: coverImageURL(forReference: entity.id),
+                                onGenerateCover: {
+                                    generateCover(
+                                        for: coverTarget(forReference: entity.id),
+                                        subject: "\(entity.title). \(entity.summary)"
+                                    )
+                                },
+                                onRemoveCover: {
+                                    removeCover(for: coverTarget(forReference: entity.id))
+                                },
+                                hasCover: coverImageURL(forReference: entity.id) != nil
                             )
                             // per-card transition (= see categoryGrid comment for
                             // rationale).
@@ -369,7 +426,17 @@ extension PreviewPane {
                             },
                             onRename: { beginBookDocRename(doc) },
                             onDelete: { beginBookDocDelete(doc) },
-                            coverImageURL: coverImageURL(forBookDoc: doc.id)
+                            coverImageURL: coverImageURL(forBookDoc: doc.id),
+                            onGenerateCover: {
+                                generateCover(
+                                    for: coverTarget(forBookDoc: doc.id),
+                                    subject: "\(doc.title). \(doc.summary)"
+                                )
+                            },
+                            onRemoveCover: {
+                                removeCover(for: coverTarget(forBookDoc: doc.id))
+                            },
+                            hasCover: coverImageURL(forBookDoc: doc.id) != nil
                         )
                         // per-card transition (= see categoryGrid comment for rationale).
                         .transition(.opacity.combined(with: .scale(scale: 0.96)))

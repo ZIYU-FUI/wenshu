@@ -34,8 +34,19 @@
 import Foundation
 import WenshuAgent
 
+/// The image call, behind a protocol.
+///
+/// The protocol exists so the generation service can be tested
+/// WITHOUT a network call: a stub replaces the real client, and the
+/// service's rules (= one call per card, a failed generation keeps
+/// the old picture) are then testable in isolation.
+protocol CoverImageClient: Sendable {
+    /// Draws one cover and returns the raw image bytes.
+    func generateCover(subject: String) async throws -> Data
+}
+
 /// Draws a cover with an image model.
-struct CoverImageGenerator {
+struct CoverImageGenerator: CoverImageClient {
 
     /// The image endpoint. Absolute, because the provider profile's
     /// base URL is the chat host.
@@ -65,21 +76,21 @@ struct CoverImageGenerator {
     /// - Parameter subject: what the picture should show. The art
     ///   direction is prepended by the caller.
     /// - Returns: the raw JPEG bytes the model returned.
-    static func generateCover(subject: String) async throws -> Data {
-        guard let key = ProviderKeychain.loadKeySync(for: provider), !key.isEmpty else {
-            throw CoverImageError.missingKey(provider.slug)
+    func generateCover(subject: String) async throws -> Data {
+        guard let key = ProviderKeychain.loadKeySync(for: Self.provider), !key.isEmpty else {
+            throw CoverImageError.missingKey(Self.provider.slug)
         }
 
-        var request = URLRequest(url: URL(string: endpoint)!)
+        var request = URLRequest(url: URL(string: Self.endpoint)!)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
 
         let body: [String: Any] = [
-            "model": model,
+            "model": Self.model,
             "prompt": subject,
-            "width": requestWidth,
-            "height": requestHeight,
+            "width": Self.requestWidth,
+            "height": Self.requestHeight,
             "n": 1,
             "response_format": "base64",
             "prompt_optimizer": false,

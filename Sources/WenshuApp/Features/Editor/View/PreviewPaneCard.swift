@@ -145,6 +145,31 @@ struct Card: View {
     /// another card.
     var coverImageURL: URL? = nil
 
+    /// The "generate a cover" callback. Nil when the call site does
+    /// not wire it, and the menu item then does not appear.
+    var onGenerateCover: (() -> Void)? = nil
+
+    /// The "make it move" callback (= a moving cover). Nil when the
+    /// call site does not wire it.
+    var onMakeDynamicCover: (() -> Void)? = nil
+
+    /// The "remove the cover" callback. Nil when the call site does
+    /// not wire it.
+    var onRemoveCover: (() -> Void)? = nil
+
+    /// Whether this card already has a cover.
+    ///
+    /// The menu labels depend on it: a card with no cover gets
+    /// "generate", and a card with one gets "regenerate" and
+    /// "remove".
+    var hasCover: Bool = false
+
+    /// Whether this card is being generated right now.
+    ///
+    /// The item is disabled while the work is in flight, so a second
+    /// click cannot start a second call.
+    var isGeneratingCover: Bool = false
+
     @State private var isHovered: Bool = false
 
     /// (see OOB.md #2026-09-03) — 'directory double-click': Apple's
@@ -430,6 +455,26 @@ struct Card: View {
                     }
                     Divider()
                 }
+                // The cover items (= the same in both card kinds).
+                if onGenerateCover != nil || onRemoveCover != nil {
+                    if hasCover {
+                        Button(String(localized: "cover_context_menu_regenerate")) {
+                            onGenerateCover?()
+                        }
+                        .disabled(isGeneratingCover)
+                    } else {
+                        Button(String(localized: "cover_context_menu_generate")) {
+                            onGenerateCover?()
+                        }
+                        .disabled(isGeneratingCover)
+                    }
+                    if let onRemoveCover {
+                        Button(String(localized: "cover_context_menu_remove")) {
+                            onRemoveCover()
+                        }
+                    }
+                    Divider()
+                }
                 Button(String(localized: "sidebar_context_menu_rename")) {
                     onRename()
                 }
@@ -447,6 +492,26 @@ struct Card: View {
                 if needsCompletion, let onComplete {
                     Button(String(localized: "card_completion_context_menu_complete")) {
                         onComplete()
+                    }
+                    Divider()
+                }
+                // The cover items (= the same in both card kinds).
+                if onGenerateCover != nil || onRemoveCover != nil {
+                    if hasCover {
+                        Button(String(localized: "cover_context_menu_regenerate")) {
+                            onGenerateCover?()
+                        }
+                        .disabled(isGeneratingCover)
+                    } else {
+                        Button(String(localized: "cover_context_menu_generate")) {
+                            onGenerateCover?()
+                        }
+                        .disabled(isGeneratingCover)
+                    }
+                    if let onRemoveCover {
+                        Button(String(localized: "cover_context_menu_remove")) {
+                            onRemoveCover()
+                        }
                     }
                     Divider()
                 }

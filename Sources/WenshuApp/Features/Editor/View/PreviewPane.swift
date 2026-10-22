@@ -25,6 +25,13 @@ struct PreviewPane: View {
     // / reference; = the closures capture it for the card's `.contextMenu`).
     @State var cardService: SidebarService?
 
+    // / The service that draws a card's cover (= one for the whole
+    // / pane, so the per-card lock is shared: = two clicks on the same
+    // / card make ONE call, = not two). = It lives here rather than in
+    // / the grid extension because an extension cannot hold a stored
+    // / property.
+    @State var coverGenerationServiceHolder: CoverGenerationService = CoverGenerationService.live()
+
     // / cached snapshot of `(shelfId → books)` so the shelf subtree can be
     // … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / cycle).
