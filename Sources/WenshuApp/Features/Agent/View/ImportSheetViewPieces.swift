@@ -411,7 +411,6 @@ struct PickerRow<Leading: View, Trailing: View>: View {
 /// entirely on the
 /// first step).
 struct WizardStepNavBar: View {
-    @Binding var currentStep: ImportSheet.WizardStep
     let canGoPrev: Bool
     let canGoNext: Bool
     let primaryActionLabel: String

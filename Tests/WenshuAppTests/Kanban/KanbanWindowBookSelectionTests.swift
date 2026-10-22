@@ -65,7 +65,7 @@ struct KanbanWindowBookSelectionTests {
             .appendingPathComponent("Sources/WenshuApp/App/AppRootScene.swift")
             .path
         let source = try String(contentsOfFile: sourcePath, encoding: .utf8)
-        #expect(source.contains("KanbanWindow(library: library, workspaceUI: workspaceUI)"),
+        #expect(source.contains("KanbanWindow(workspaceUI: workspaceUI)"),
                 "The kanban scene must hand the kanban window the shared workspace state")
     }
 }

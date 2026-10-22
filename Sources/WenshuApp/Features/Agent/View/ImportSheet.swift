@@ -203,7 +203,6 @@ struct ImportSheet: View {
             // from [archived-round]).
             WizardActionDivider()
             WizardStepNavBar(
-                currentStep: $currentStep,
                 canGoPrev: canGoPrev,
                 canGoNext: canGoNext,
                 primaryActionLabel: primaryActionLabel,

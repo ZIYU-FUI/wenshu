@@ -140,7 +140,7 @@ struct AppRootScene: Scene {
         // … (= 64 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // by default (= no `.defaultSize` modifier needed).
         Window("看板", id: WindowID.kanban) {
-            KanbanWindow(library: library, workspaceUI: workspaceUI)
+            KanbanWindow(workspaceUI: workspaceUI)
         }
         .windowResizability(.contentSize)
         // macOS 27 doc-alignment: kanban + todo secondary windows

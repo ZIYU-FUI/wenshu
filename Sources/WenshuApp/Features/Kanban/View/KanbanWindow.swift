@@ -51,8 +51,6 @@ private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "kanbanwind
 /// WSKanbanRepository.shared (= @MainActor SwiftData wrapper;
 /// =  deleted the KanbanStore actor).
 struct KanbanWindow: View {
-    let library: WenshuLibrary
-
     /// The app's shared workspace UI state (= the live sidebar
     /// selection). Passed in by `AppRootScene` because the kanban
     /// scene is a sibling of the main window and does NOT inherit
@@ -61,8 +59,7 @@ struct KanbanWindow: View {
 
     @State private var bookStore: BookStore?
 
-    init(library: WenshuLibrary, workspaceUI: WorkspaceUIState) {
-        self.library = library
+    init(workspaceUI: WorkspaceUIState) {
         self.workspaceUI = workspaceUI
     }
 
