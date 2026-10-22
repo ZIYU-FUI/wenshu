@@ -708,8 +708,8 @@ is the `"auto"` default and needs no new key.
 
 ## 3C. What has landed
 
-ALL EIGHT tickets are on `main`. The whole cover test suite passes
-there: **64 tests across 16 suites**, and `swift build` exits 0.
+ALL NINE tickets are on `main`. The whole cover test suite passes
+there: **75 tests across 18 suites**, and `swift build` exits 0.
 
 | Ticket | What it added |
 | --- | --- |
@@ -721,8 +721,9 @@ there: **64 tests across 16 suites**, and `swift build` exits 0.
 | 6 | the image-to-video client + the clip playing forward-then-backward on hover |
 | 7 | the batch for the stock + the automatic pass for the new + the policy that separates them |
 | 8 | the delete cascade at both chokepoints + the reconciler for the documents deleted outside the app |
+| 9 | the automatic pass WIRED + one shared per-card lock + the batch progress + the agent's writes announcing that the library changed |
 
-Three findings came out of the implementation rather than the
+Five findings came out of the implementation rather than the
 research, and each one changed a design:
 
 - **The cover service has its own model namespace.** A route inherits
@@ -735,8 +736,22 @@ research, and each one changed a design:
 - **The card key function is `nonisolated`.** It is a pure function of
   the card's identity, and the view layer needs it while building a
   card.
+- **The automatic pass was DEAD CODE, and the gates could not see it.**
+  `CoverAutoTrigger.coverIfNeeded` had no caller anywhere: the switch
+  wrote its flag and its timestamp into `UserDefaults`, the settings
+  pane read the flag back to draw the toggle, and nothing ever read
+  it to MAKE a cover. Both suites passed on a feature that never ran,
+  because the policy is a pure function and the batch skips covered
+  documents. A control that appears in a UI is not evidence that it
+  works; count the runtime consumers, not the controls.
+- **The batch and the card menu must share ONE service instance.** The
+  per-card lock is a per-instance property, and `live()` returns a
+  new instance on every call, so two paths held two lock sets and a
+  batch run plus a manual click on the same card each spent an image
+  call. One holder (`CoverPaneServices`) now owns the generation
+  service every path uses.
 
-A fourth came out of a PEER review: the centre crop was SQUEEZING
+A sixth came out of a PEER review: the centre crop was SQUEEZING
 the picture rather than cropping it, because it computed the scaled
 size and then drew the source straight into the target rectangle. The
 crop now scales by the LARGER of the two axis ratios, draws the
@@ -757,8 +772,9 @@ Each ticket runs in its own git worktree created as a board card on `wenshu-par`
 | 6 | Dynamic cover + hover playback | i2v client (HEIC -> JPEG -> data URL, async task + poll + 9-hour URL download) + `AVPlayer` FORWARD-THEN-BACKWARD playback on hover + the "make dynamic" context-menu item |
 | 7 | Batch + automatic | a batch for the documents that already lack a cover, and an automatic path for the documents that appear after the switch was turned on |
 | 8 | Cover lifecycle | the cover is a child of its document: deleting the document deletes the cover, plus a reconciler for the covers whose document vanished outside the app |
+| 9 | Close the runtime gaps | the automatic pass wired to a real caller + ONE shared per-card lock across the batch and the card menu + the batch progress + the agent's writes announcing that the library changed |
 
-**Do 1-5 first, then 6-8.** The static path is what every card needs; the dynamic path
+**Do 1-5 first, then 6-9.** The static path is what every card needs; the dynamic path
 is a per-card manual upgrade that depends on the static image already existing.
 
 There is no video queue ticket: decision 5 (manual, per card) removed it.
