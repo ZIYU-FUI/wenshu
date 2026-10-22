@@ -45,12 +45,16 @@ struct CardCoverService {
     // MARK: - Keys
 
     /// The cover key for a reference card.
-    static func key(forReference id: UUID) -> String {
+    ///
+    /// `nonisolated` because the key is a PURE function of the card's
+    /// identity: it does not touch the store, the disk or the main
+    /// actor, and the view layer needs it while building a card.
+    nonisolated static func key(forReference id: UUID) -> String {
         "\(WSCardCoverKind.reference)-\(id.uuidString)"
     }
 
     /// The cover key for a book-doc card.
-    static func key(forBookDoc id: UUID) -> String {
+    nonisolated static func key(forBookDoc id: UUID) -> String {
         "\(WSCardCoverKind.bookDoc)-\(id.uuidString)"
     }
 

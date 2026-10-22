@@ -132,6 +132,19 @@ struct Card: View {
     let onRename: () -> Void
     let onDelete: () -> Void
 
+    /// The stored cover picture for this card, or nil when the card
+    /// has no cover.
+    ///
+    /// The URL is resolved by the CALLER, not looked up here: the
+    /// card view has no store, and the caller knows which card it is
+    /// rendering and which kind it is (= a reference card and a book
+    /// card are different cards with different covers).
+    ///
+    /// The key comes from `CardCoverService`, which namespaces the two
+    /// card kinds apart, so one card's picture can never land on
+    /// another card.
+    var coverImageURL: URL? = nil
+
     @State private var isHovered: Bool = false
 
     /// (see OOB.md #2026-09-03) — 'directory double-click': Apple's
@@ -208,6 +221,17 @@ struct Card: View {
                     .frame(width: 64, height: 64)
                     .symbolRenderingMode(.monochrome)
                     .foregroundStyle(.tint.opacity(0.85))
+                // A card with a generated cover shows the picture in
+                // the SAME slot, over the gradient and the symbol. The
+                // gradient and the symbol stay underneath, so a card
+                // whose picture is still loading, or whose file has
+                // gone missing, degrades to what it showed before.
+                //
+                // The slot's size does not change: the cover is a wide
+                // banner (100pt tall, 216-316pt wide depending on the
+                // pane), and the stored picture is 768x320 (= 2.40:1),
+                // which fills it and trims only the sides.
+                CardCoverView(imageURL: coverImageURL)
             }
             .frame(height: DesignTokens.panelMinHeight)
             .frame(maxWidth: .infinity)

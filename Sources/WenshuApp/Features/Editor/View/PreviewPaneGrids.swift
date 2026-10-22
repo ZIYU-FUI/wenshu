@@ -20,9 +20,45 @@
 //  required for the cross-file `referenceCategoryCard` to call them).
 //
 
+import SwiftData
 import SwiftUI
+import WenshuData
 
 extension PreviewPane {
+
+    /// The stored cover picture for a reference card, or nil when it
+    /// has no cover.
+    ///
+    /// The key comes from `CardCoverService`, which namespaces the two
+    /// card kinds apart, so a reference card and a book card can
+    /// never land on one cover.
+    func coverImageURL(forReference id: UUID) -> URL? {
+        coverImageURL(forKey: CardCoverService.key(forReference: id))
+    }
+
+    /// The stored cover picture for a book-doc card, or nil when it
+    /// has no cover.
+    func coverImageURL(forBookDoc id: UUID) -> URL? {
+        coverImageURL(forKey: CardCoverService.key(forBookDoc: id))
+    }
+
+    /// The stored cover picture under a key, or nil.
+    ///
+    /// The lookup goes through the row, because the row is where the
+    /// path lives. A row that is not there means the card has no
+    /// cover, and a file that is not there means the cover is gone
+    /// and the card falls back to its gradient and symbol.
+    private func coverImageURL(forKey key: String) -> URL? {
+        let service = CardCoverService(modelContext: WSPersistenceContainer.current.mainContext)
+        guard let row = service.row(forKey: key),
+              let path = row.imagePath else {
+            return nil
+        }
+        let url = URL(fileURLWithPath: path)
+        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+        return url
+    }
+
     func referenceCategoryCard(_ entity: Reference) -> some View {
         Card(
             source: .reference(entity),
@@ -30,7 +66,8 @@ extension PreviewPane {
                 onDoubleClick(source)
             },
             onRename: { beginReferenceRename(entity) },
-            onDelete: { beginReferenceDelete(entity) }
+            onDelete: { beginReferenceDelete(entity) },
+            coverImageURL: coverImageURL(forReference: entity.id)
         )
     }
 
@@ -271,7 +308,8 @@ extension PreviewPane {
                                     onDoubleClick(source)
                                 },
                                 onRename: { beginReferenceRename(entity) },
-                                onDelete: { beginReferenceDelete(entity) }
+                                onDelete: { beginReferenceDelete(entity) },
+                                coverImageURL: coverImageURL(forReference: entity.id)
                             )
                             // per-card transition (= see categoryGrid comment for
                             // rationale).
@@ -330,7 +368,8 @@ extension PreviewPane {
                                 onDoubleClick(source)
                             },
                             onRename: { beginBookDocRename(doc) },
-                            onDelete: { beginBookDocDelete(doc) }
+                            onDelete: { beginBookDocDelete(doc) },
+                            coverImageURL: coverImageURL(forBookDoc: doc.id)
                         )
                         // per-card transition (= see categoryGrid comment for rationale).
                         .transition(.opacity.combined(with: .scale(scale: 0.96)))
