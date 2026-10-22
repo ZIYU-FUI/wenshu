@@ -152,7 +152,7 @@ flattens the *navigation*, not the model. That one level is the thing to beat.
 
 ## 3. Measured violations in this repo
 
-### 3.1 Six init parameters are threaded but never read
+### 3.1 Eight init parameters were checked; six are threaded but never read
 
 Verified by parsing every stored property in every view struct, then reading
 the whole type INCLUDING its extensions in the same file, then checking each
@@ -166,11 +166,29 @@ candidate by hand with `grep`.
 | `EditorFormatToolbar.onClose` | `Features/Editor/View/EditorFormatToolbar.swift:164` | 1 | **live** — read at `:257` inside an extension. Not a violation. |
 | `NewBookSheet.targetShelfName` | `Features/Library/View/SidebarSheets.swift:270` | 0 | |
 | `RenameItemSheet.kind` | `Features/Library/View/SidebarSheets.swift:431` | 0 | |
-| `KanbanWindow.library` | `Features/Kanban/View/KanbanWindow.swift:54` | 0 | the view reads the library path from `AppState` instead |
+| `KanbanWindow.library` | `Features/Kanban/View/KanbanWindow.swift:54` | 0 | the view needs the library PATH, and reads it from the `wenshu.libraryPath` UserDefaults key via `resolveLibraryPath()`; the handle itself is unused |
 | `PreviewPane.onDoubleClick` | `Features/Editor/View/PreviewPane.swift:45` | 0 in-file | **live** — read from `PreviewPaneGrids.swift`, an extension in another file. Not a violation. |
 
-**Net: 5 genuinely dead parameters**, plus 2 false positives the detector
+**Net: 6 genuinely dead parameters**, plus 2 false positives the detector
 produced and hand-verification killed.
+
+A seventh was found LATER, by the tool this wave added
+(`Tools/wenshu-devtool/measure-drill.py`), and the first detector MISSED
+it: `WizardStepNavBar.currentStep`
+(`Features/Agent/View/ImportSheetViewPieces.swift:414`). It is a
+`@Binding var`, and a property wrapper's storage is not a plain stored
+property, so the first parser did not classify it as a parameter at all.
+The tool reads the whole type INCLUDING its extensions, and reports it
+with 0 reads. The struct spans lines 413 to 449 and the identifier
+appears exactly once in it: the declaration. The nav bar draws a Back
+button, a Next button and the primary action; none depends on which step
+is current.
+
+**That is the lesson this section earns.** A detector that only knows
+about plain stored properties finds the easy cases and misses the ones
+that need a wrapper. The measurement had to become a command, with its
+own test suite, before it could be trusted on the cases it had never
+been shown.
 
 ### 3.2 The view layer has zero custom environment values
 
@@ -226,7 +244,7 @@ properties) and are **not** — they hold their state in `@Environment` /
 
 ## 4. The plan
 
-Five cards, ordered by the ratio of measured harm to blast radius. Each is
+Six cards, ordered by the ratio of measured harm to blast radius. Each is
 one commit, one worktree, one mergeable change. **None of them changes what
 the app looks like** — that constraint is in every card body.
 
@@ -237,6 +255,22 @@ the app looks like** — that constraint is in every card body.
 | 3 | Introduce one environment value for the chat bubble context | The Apple `EnvironmentKey` pattern, WITH readers in the same commit. | Chat zone |
 | 4 | Stop hand-carrying state across the AppKit boundary | Bundle the 3 re-injected objects so the boundary carries 1 value instead of 3. | Editor chat host, 2 files |
 | 5 | Add the measurement script to the repo | Makes the next audit a command, not a project. | 1 new script + 1 registry row |
+| 6 | Remove the 2 dead parameters the tool then found | `KanbanWindow.library` and `WizardStepNavBar.currentStep`, the second of which the first detector had missed because it is a `@Binding`. | 4 files |
+
+**Card 3 was executed as two cards, not one, and it introduced no key.**
+The plan assumed the chat bubble would need ONE environment value to
+carry what survives the collapse. It does not: `isOutgoing` and the
+`activity` list are both DERIVABLE from the message, so deriving them at
+the point of use removed the need for a key entirely. An
+`EnvironmentKey` with no reader is dead code by rule 7.6 — which is
+exactly how `7baf6cb8a` died, the key this repo built and then deleted
+because nothing read it. So the chat zone took TWO commits (one per
+derivation) and no key.
+
+The environment pattern landed where it was actually needed: at the
+AppKit boundary, where the SwiftUI environment genuinely does not reach.
+That boundary now carries one bundled value instead of three objects
+threaded through three levels.
 
 ### Why card 2 comes before card 3
 

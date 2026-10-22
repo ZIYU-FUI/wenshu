@@ -112,12 +112,10 @@ struct KanbanWindow: View {
             // Resolve the .ws URL from the UserDefaults key the
             // main window wrote (= wenshu.libraryPath) at first
             // launch; = falls back to the user's onboarding path
-            // if not set. (= KanbanWindow's `library: WenshuLibrary`
-            // parameter is the main window's library handle, but
-            // the path is the only thing LibraryLifecycleHook
-            // needs; = we read it directly from UserDefaults to
-            // avoid an indirection through the WenshuLibrary
-            // type.)
+            // if not set. (= the path is the only thing
+            // LibraryLifecycleHook needs; = we read it directly
+            // from UserDefaults to avoid an indirection through
+            // the WenshuLibrary type.)
             do {
                 let wsRoot = try KanbanWindow.resolveLibraryPath()
                 let hook = LibraryLifecycleHook(wsRoot: wsRoot)
