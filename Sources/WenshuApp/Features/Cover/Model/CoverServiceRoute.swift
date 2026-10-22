@@ -21,6 +21,11 @@
 //  is the state a user is in before they have configured anything, and
 //  it is why the route is nil-shaped rather than a flag.
 //
+//  The four fields are immutable, so `replacing(...)` is the ONLY way
+//  to change one. A settable field would let a caller name a new
+//  provider and leave the old endpoint behind, which is exactly the
+//  broken route this type exists to make unconstructible.
+//
 
 import Foundation
 
@@ -28,13 +33,13 @@ import Foundation
 struct CoverServiceRoute: Codable, Equatable, Sendable {
 
     /// The provider slug (= "minimax-cn"), or nil for auto.
-    var providerSlug: String?
+    let providerSlug: String?
     /// The model id, or nil for auto.
-    var model: String?
+    let model: String?
     /// The service's base URL, or nil for auto.
-    var baseURL: String?
+    let baseURL: String?
     /// The service's API key, or nil for auto.
-    var apiKey: String?
+    let apiKey: String?
 
     /// The route that inherits whatever the app is currently using.
     static func auto(for kind: CoverServiceKind) -> CoverServiceRoute {

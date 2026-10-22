@@ -36,6 +36,18 @@ enum CoverServiceKind: String, Codable, CaseIterable, Sendable, Identifiable {
 
     var id: String { rawValue }
 
+    /// The title for the settings row.
+    ///
+    /// A plain English constant: the settings pane replaces it with a
+    /// localized key, because a title the user reads is a string the
+    /// app ships in two languages.
+    var displayTitle: String {
+        switch self {
+        case .image: return "Image service"
+        case .video: return "Video service"
+        }
+    }
+
     /// The default model for this kind, when there is one.
     ///
     /// The image kind defaults to the model that was verified against

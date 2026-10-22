@@ -35,7 +35,7 @@ struct CoverServiceRouteStoreTests {
             providerSlug: "openai",
             model: "gpt-image-1",
             baseURL: "https://example.test/v1",
-            apiKey: "secret"
+            apiKey: "route-key"
         )
 
         store.imageRoute = route

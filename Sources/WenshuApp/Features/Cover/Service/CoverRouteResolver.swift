@@ -27,6 +27,12 @@
 //  So a route inherits the provider and takes the model from the
 //  service it is routing to.
 //
+//  The KEY comes from the route when the route names one (a provider
+//  the app does not know about carries its own key), and from the
+//  app's current provider otherwise. It is passed IN rather than read
+//  from the keychain here, because the resolver is a PURE function
+//  of its inputs: no network, no clock, no disk, no keychain.
+//
 //  The resolver is a PURE function of its inputs: no network, no
 //  clock, no disk. The "current provider" is passed IN, so the ladder
 //  is testable without an app.
@@ -56,11 +62,14 @@ enum CoverRouteResolver {
     ///   - route: the route to resolve.
     ///   - currentProviderSlug: the app's active provider slug, or nil
     ///     when the app has no provider configured.
+    ///   - currentProviderKey: the key for that provider, or nil when
+    ///     the app has no key for it.
     /// - Throws: `CoverRouteError.notConfigured` when the VIDEO kind
     ///   has nothing to resolve to.
     static func resolve(
         _ route: CoverServiceRoute,
-        currentProviderSlug: String?
+        currentProviderSlug: String?,
+        currentProviderKey: String? = nil
     ) throws -> ResolvedCoverService {
         // 1. An explicit route wins: its provider, and its model if
         //    it names one.
@@ -87,7 +96,7 @@ enum CoverRouteResolver {
                 providerSlug: currentProviderSlug,
                 model: model,
                 baseURL: route.kind.defaultEndpoint,
-                apiKey: route.apiKey
+                apiKey: currentProviderKey
             )
         }
 
@@ -97,10 +106,10 @@ enum CoverRouteResolver {
             throw CoverRouteError.notConfigured(kind: route.kind)
         }
         return ResolvedCoverService(
-            providerSlug: CoverImageGenerator.providerSlug,
+            providerSlug: Provider.minimaxCn.slug,
             model: model,
             baseURL: route.kind.defaultEndpoint,
-            apiKey: route.apiKey
+            apiKey: currentProviderKey
         )
     }
 }

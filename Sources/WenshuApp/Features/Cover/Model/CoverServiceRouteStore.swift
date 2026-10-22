@@ -8,9 +8,11 @@
 //  its settings in one place and the settings pane has a single
 //  thing to read.
 //
-//  The routes are stored as JSON in UserDefaults, behind the
-//  project's `UserDefaultsStore` (= the house rule from
-//  docs/adr/0014 Rule G-2: never raw UserDefaults.standard).
+//  The routes are stored as JSON in UserDefaults, the same store and
+//  the same shape the neighbouring agent settings use
+//  (= Features/Settings/Service/AgentSettingsStore.swift): a
+//  defaults suite passed in, so a test never touches the real user
+//  defaults, and one JSON payload per key.
 //
 //  The API key is stored here rather than in the shared provider
 //  keychain, because a cover route can name a provider the app does

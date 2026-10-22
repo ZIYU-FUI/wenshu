@@ -31,6 +31,23 @@ struct CoverRouteResolverTests {
         #expect(resolved.model == "image-01")
     }
 
+    @Test("An auto route inherits the current provider's key")
+    func autoInheritsTheCurrentProvidersKey() throws {
+        let route = CoverServiceRoute(kind: .image)
+
+        let resolved = try CoverRouteResolver.resolve(
+            route,
+            currentProviderSlug: "minimax-cn",
+            currentProviderKey: "provider-key"
+        )
+
+        // An auto route names no key of its own, so the key has to
+        // come from the provider it inherits. A route that resolved
+        // the provider and then dropped the key would send an
+        // unauthenticated request.
+        #expect(resolved.apiKey == "provider-key")
+    }
+
     @Test("An explicit route uses its own four fields")
     func explicitRouteWins() throws {
         let route = CoverServiceRoute(
@@ -38,18 +55,21 @@ struct CoverRouteResolverTests {
             providerSlug: "openai",
             model: "gpt-image-1",
             baseURL: "https://example.test/v1",
-            apiKey: "secret"
+            apiKey: "route-key"
         )
 
         let resolved = try CoverRouteResolver.resolve(
             route,
-            currentProviderSlug: "minimax-cn"
+            currentProviderSlug: "minimax-cn",
+            currentProviderKey: "provider-key"
         )
 
         #expect(resolved.providerSlug == "openai")
         #expect(resolved.model == "gpt-image-1")
         #expect(resolved.baseURL == "https://example.test/v1")
-        #expect(resolved.apiKey == "secret")
+        // The route's own key wins: the route named a provider, and
+        // that provider's key is the one the route carries.
+        #expect(resolved.apiKey == "route-key")
     }
 
     @Test("A route that names a provider does NOT borrow a chat model")
@@ -108,7 +128,7 @@ struct CoverRouteResolverTests {
             providerSlug: "openai",
             model: "gpt-image-1",
             baseURL: "https://example.test/v1",
-            apiKey: "secret"
+            apiKey: "route-key"
         )
 
         let changed = route.replacing(
@@ -135,5 +155,24 @@ struct CoverRouteResolverTests {
         #expect(route.isAuto == false)
         #expect(route.resetting().isAuto)
         #expect(route.resetting().kind == .image)
+    }
+
+    @Test("The route's fields cannot be changed one at a time")
+    func routeFieldsAreImmutable() throws {
+        // The route's whole point is that its four fields travel
+        // together, so the fields are `let` and `replacing(...)` is the
+        // only way to change one. A setter would let a caller name a
+        // new provider and keep the old endpoint.
+        let source = try String(
+            contentsOfFile: SourceLocator.path(
+                "Sources/WenshuApp/Features/Cover/Model/CoverServiceRoute.swift"
+            ),
+            encoding: .utf8
+        )
+
+        for field in ["providerSlug", "model", "baseURL", "apiKey"] {
+            #expect(!source.contains("var \(field): String?"))
+            #expect(source.contains("let \(field): String?"))
+        }
     }
 }
