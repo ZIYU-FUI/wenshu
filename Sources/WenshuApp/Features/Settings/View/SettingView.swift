@@ -45,6 +45,7 @@ struct SettingView: View {
         case models
         case memory
         case agent
+        case covers
         var id: String { rawValue }
 
         // / SF Symbols 7 identifier per Apple HIG sidebar row leading icon.
@@ -59,6 +60,7 @@ struct SettingView: View {
             case .models:      return "sparkles"
             case .memory:      return "bonjour"
             case .agent:       return "wand.and.stars"
+            case .covers:      return "photo.on.rectangle.angled"
             }
         }
     }
@@ -222,6 +224,7 @@ struct SettingView: View {
         case .models:      modelsPane
         case .memory:      MemorySettingsView()
         case .agent:       AgentSettingsPane()
+        case .covers:      CoverSettingsView()
         }
     }
 
@@ -236,6 +239,7 @@ struct SettingView: View {
         case .models:      return String(localized: "settings.pane.models")
         case .memory:      return String(localized: "settings.pane.memory")
         case .agent:       return String(localized: "settings.pane.agent")
+        case .covers:      return String(localized: "settings.pane.covers")
         }
     }
 
