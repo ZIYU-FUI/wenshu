@@ -761,6 +761,36 @@ land on another card. Ticket eight calls that function rather than
 re-deriving it: two key functions produce two different keys, and the
 symptom is a cover that survives every delete.
 
+### 4.3 The cover service has its OWN model namespace
+
+The route inherits the PROVIDER and takes the MODEL from the service it
+routes to. That is not a stylistic choice, and the reason is a
+measured failure: the provider profiles in this app describe CHAT
+models (`MiniMax-M3`, `MiniMax-M2.7`, ...), and the image endpoint
+answers "model not available" for a chat model. So a route that fell
+back to the provider's default model list would draw every cover with
+a model that cannot draw.
+
+The rule, therefore:
+
+| Route state | Provider | Model |
+| --- | --- | --- |
+| explicit, model named | the route's | the route's |
+| explicit, no model | the route's | the KIND's default |
+| auto | the app's current | the KIND's default |
+| nothing configured | the default | the KIND's default |
+
+The KIND's default is `image-01` for the image service and NONE for
+the video service. The video kind having no default is deliberate: the
+video allowance is a handful of clips a day, so a silent default
+would spend a scarce quota the user never asked to spend. The video
+route fails loudly until it is configured.
+
+This is why the image endpoint's URL is also a per-kind constant
+rather than the provider's `defaultBaseURL`: the profile's base URL is
+the Anthropic-compatible chat host, and the cover services are
+different services on the same domain.
+
 ### 4.2 Stock versus incremental (ticket 7)
 
 The boss's rule: a batch action for the documents that are ALREADY in
