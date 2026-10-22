@@ -290,10 +290,16 @@ def line_of(text: str, offset: int) -> int:
 
 
 def parse_views(src: str) -> list:
-    """Every view struct in a source file."""
+    """Every view struct in a source file.
+
+    A SwiftUI view is either a `View` or a `ViewModifier`. Both carry
+    initializer parameters, and a `ViewModifier` can carry the most of
+    them (= the export modifier held 13), so a measurement that only
+    recognizes `View` misses the heaviest call sites in the app.
+    """
     out = []
     for m in VIEW_RE.finditer(src):
-        if not re.search(r"\bView\b", m.group(2)):
+        if not re.search(r"\b(View|ViewModifier)\b", m.group(2)):
             continue
         brace = src.index("{", m.start())
         end = match_brace(src, brace)

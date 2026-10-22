@@ -231,12 +231,65 @@ def case_5_explicit_init_wins_over_stored_properties(tool):
     )
 
 
+VIEW_MODIFIER = """
+import SwiftUI
+
+private struct HeavyModifier: ViewModifier {
+    let first: String
+    let second: String
+    let third: String
+    let fourth: String
+    let fifth: String
+    let sixth: String
+    let seventh: String
+    let eighth: String
+    let ninth: String
+    let tenth: String
+    let eleventh: String
+    let twelfth: String
+    let thirteenth: String
+
+    func body(content: Content) -> some View {
+        content
+    }
+}
+
+struct ModifierCaller: View {
+    var body: some View {
+        Text("x").modifier(HeavyModifier(
+            first: "a", second: "b", third: "c", fourth: "d", fifth: "e",
+            sixth: "f", seventh: "g", eighth: "h", ninth: "i", tenth: "j",
+            eleventh: "k", twelfth: "l", thirteenth: "m"
+        ))
+    }
+}
+"""
+
+
+def case_6_view_modifier_is_measured(tool):
+    """A ViewModifier is measured like a View.
+
+    A SwiftUI view is either a View or a ViewModifier, and the heaviest
+    call site in the app was a ViewModifier with 13 parameters. A
+    measurement that only recognizes `View` misses it entirely, so the
+    tool would report the app as flatter than it is.
+    """
+    sites = heaviest(tool, {"HeavyModifier.swift": VIEW_MODIFIER})
+    count = sites.get("HeavyModifier")
+    ok = count == 13
+    return (
+        ok,
+        f"expected HeavyModifier to take 13 arguments, got {count}",
+    )
+
+
 CASES = [
     ("unread parameter is dead", case_1_unread_parameter_is_dead),
     ("parameter read in body is alive", case_2_parameter_read_in_body_is_alive),
     ("parameter read in an extension is alive", case_3_parameter_read_in_extension_is_alive),
     ("name in a comment or string is not a use", case_4_name_in_comment_or_string_is_not_a_use),
     ("explicit init wins over stored properties", case_5_explicit_init_wins_over_stored_properties),
+    ("a ViewModifier is measured like a View", case_6_view_modifier_is_measured),
 ]
 
 
