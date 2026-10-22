@@ -52,6 +52,7 @@ Single source of truth for every wenshu contributor and every AI agent acting on
 | 1.10 | One ticket = one commit + one atomic verification + one 4-section business-language spec + one dual-axis dispatch + one P0 fix + one verify round + merge gate. | universal-pocock-workflow. |
 | 1.11 | NFI (nervous file index) = `docs/agents/nfi.md`. Lists every file split from a god-class or extracted to its own file via A55+ arcs. Each row: parent file, current LOC, content tag. The next reader finds the file by concern in < 5s. | Manual. |
 | 1.12 | Parallel worktree isolation: every code-changing ticket runs in its own git worktree, never in the shared checkout. Create it as a kanban board card (`--assignee wenshu-dev --workspace worktree --project project`, board `wenshu-par`). `delegate_task` is read-only fan-out here: its children inherit the parent shell cwd, so a relative write lands in the shared checkout. | wenshu-parallel-dev. |
+| 1.13 | Difficulty tier: every card carries a tier (`[T1]` / `[T2]` / `[T3]`), DERIVED from the work its body describes by `Tools/wenshu-devtool/ticket_tier.py`, never hand-set. The tier sets the runtime cap, the retry budget, the gate width and the body budget. It changes the cost of a card, never the quality bar: it never skips the dual-axis review and never marks a test skipped. | docs/agents/ticket-tiers.md. |
 
 ### §1.11 Nervous file index (NFI)
 
@@ -183,6 +184,7 @@ Register a new row there, not here. The rule is unchanged.
 | OOB index (boss directives, dev-time only) | /Volumes/ANAN/Engineering/wenshu/OOB.md |
 | Domain glossary | /Volumes/ANAN/Engineering/wenshu/docs/agents/domain.md |
 | ADRs (architecture decision records) | /Volumes/ANAN/Engineering/wenshu/docs/adr/0000-0015 |
+| Ticket difficulty tiers | /Volumes/ANAN/Engineering/wenshu/docs/agents/ticket-tiers.md |
 
 ## §10 Change protocol for THIS file
 
