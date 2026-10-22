@@ -144,6 +144,11 @@ struct EditorTabStrip: View {
                 control
             }
             .scrollClipDisabled(false)
+            // Apple's own tab bars scroll the overflow without an
+            // indicator, and a floating scroll bar is the one part of
+            // this strip that is not a document name. Only the drawing
+            // goes: the container still scrolls and still clips.
+            .scrollIndicators(.hidden, axes: .horizontal)
             .scrollPosition($scrollPosition)
             // Keep the selected tab on screen. Without this a tab that has
             // scrolled past the column's edge can still be selected but
