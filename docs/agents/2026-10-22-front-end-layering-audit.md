@@ -402,7 +402,26 @@ editor, chat and export suites run 312 tests in 49 suites with 7
 issues, and all 7 are the same failures that fail on `main` (= the
 status bar's height, the tab-close icon style, the preferences
 forwarding and the 3 `displayTitle` cases; = none of them is an
-editor-surface assertion). The repository has a red
+editor-surface assertion).
+
+The full suite on `main` runs 2761 tests in 447 suites with 54 issues
+across 26 failing suites, against a red baseline of 24 failing suites
+measured at `b8060a084643e2d5dd72c759750e4c5bf5672575`. The failing
+SET is the comparison, never the count, and two of the 26 need their
+own explanation because the set alone does not show it:
+
+- `ProviderFetcher` is a LIVE network test. It asserts that a failed
+  fetch returns the curated fallback, so it fails whenever the network
+  works. It passes on a re-run. It is flaky by construction, and it is
+  not a source-content test, so no refactor can have moved it.
+- `ToolRegistry production trigger` is a suite that did not exist when
+  the baseline was measured. Another session added it at 15:58
+  (`21e66a50b7`), so it cannot be in a baseline taken before it
+  existed. It is a timing-sensitive test that polls for asynchronous
+  registrations, and it races under load.
+
+Neither touches a file this work changed, and the failing suites
+remain a subset of the baseline apart from those two. The repository has a red
 baseline of 24 failing suites, measured at the base commit
 `b8060a084643e2d5dd72c759750e4c5bf5672575`; a source-text failure
 inside a worktree is a path failure until proven otherwise, so the
@@ -437,6 +456,16 @@ The measurement is the gate, and it is the tool's own output:
     BookFileExporter  6 args  Features/Library/View/ExportSheet.swift:148
 
 The heaviest call site in the app was 13 arguments. It is 6 now.
+
+**One gate the second wave broke, and why.** The chapter-focus-lock
+gate asserted that `EditorEditContent.swift` contains the string
+`focusedChapterPath`. In the base code that string appeared only in a
+COMMENT, so the gate was satisfied by a comment and by nothing else.
+The wave moved the comment, and the gate failed. The behaviour had not
+changed: the predicate is the same expression, negated the same way.
+The new gate is stronger than the old one, and it was proved to be a
+gate rather than a rubber stamp: the OLD gate fails against the new
+structure and the NEW gate passes.
 
 **The two dead parameters the tool found after the first five were
 removed** were `WizardStepNavBar.currentStep`
