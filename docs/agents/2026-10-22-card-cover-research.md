@@ -713,18 +713,73 @@ Each ticket runs in its own git worktree created as a board card on `wenshu-par`
 
 | # | Ticket | Deliverable |
 | --- | --- | --- |
-| 1 | Cover data model + storage | `WSCardCover` (or `WSAttachment` reuse) + `<.ws>/assets/covers/<cardID>/` read/write + additive schema append to `ModelsSchemaV1.models` |
-| 2 | Auxiliary route config | `WSCoverServiceConfig` (@Model, Hermes-shaped fields) + the resolver that honours `"auto"` = inherit the active provider |
-| 3 | Image generation service | MiniMax `image_generation` client (Bearer auth) + 1024x512 request + 768x320 crop + HEIC encode + the unified art-direction prompt constant |
-| 4 | Static cover rendering | replace the `Card` thumbnail + HEIC load + the "regenerate cover" / "remove cover" context-menu items, wired at all 3 `Card(` call sites |
-| 5 | Settings pane | `SettingsPane.covers` + switches + the Hermes-shaped auxiliary route rows (one per service, with "Change" and "Reset all to auto") + `Localizable.xcstrings` entries |
-| 6 | Dynamic cover + hover playback | i2v client (HEIC -> JPEG -> data URL, async task + poll + 9-hour URL download) + compact re-encode + `AVPlayer` loop playback on hover + the "make dynamic" context-menu item |
-| 7 | Batch static generation | generate covers for the cards that lack one, with the per-card progress the boss sees in the assets zone |
+| 1 | Cover data model + storage | `WSCardCover` (@Model) + `<.ws>/assets/covers/<cardID>/` read/write + the unified art-direction constant + the MiniMax `image_generation` client (Bearer auth, 1024x512 request, 768x320 crop, HEIC encode) |
+| 2 | Auxiliary route config | `CoverServiceRoute` (provider / model / base URL / key as ONE unit, Hermes-shaped) + the resolver that honours `"auto"` = inherit the active provider, and that never silently defaults the VIDEO route |
+| 3 | Single-card generation | the generate / regenerate / remove actions in the card's context menu + the per-card lock + the "a failed regeneration keeps the old picture" rule |
+| 4 | Static cover rendering | the `Card` thumbnail draws the stored HEIC in the 100pt banner slot, asynchronously, falling back to the gradient + symbol |
+| 5 | Settings pane | `SettingsPane.covers` + the Hermes-shaped route rows (one per service, with "Change" and "Reset all to auto") + `Localizable.xcstrings` entries |
+| 6 | Dynamic cover + hover playback | i2v client (HEIC -> JPEG -> data URL, async task + poll + 9-hour URL download) + `AVPlayer` FORWARD-THEN-BACKWARD playback on hover + the "make dynamic" context-menu item |
+| 7 | Batch + automatic | a batch for the documents that already lack a cover, and an automatic path for the documents that appear after the switch was turned on |
+| 8 | Cover lifecycle | the cover is a child of its document: deleting the document deletes the cover, plus a reconciler for the covers whose document vanished outside the app |
 
-**Do 1-5 first, then 6-7.** The static path is what every card needs; the dynamic path
+**Do 1-5 first, then 6-8.** The static path is what every card needs; the dynamic path
 is a per-card manual upgrade that depends on the static image already existing.
 
 There is no video queue ticket: decision 5 (manual, per card) removed it.
+
+### 4.1 The cover is a child of its document (ticket 8)
+
+The boss's rule: when the user right-clicks a document and deletes it, the
+cover goes with it. A cover with no document can never be shown again, so
+an orphaned cover is dead weight in the library forever.
+
+The delete cascade has to reach two card kinds, deleted by different code:
+
+- A REFERENCE card is deleted by
+  `FileSystemReferenceStore.deleteReference(id:)`
+  (`Sources/WenshuApp/Features/Library/Service/FileSystemReferenceStore.swift:284`).
+  Every path funnels through it: the sidebar delete
+  (`SidebarServiceMutation.swift:303`), the material-zone right-click
+  delete (`PreviewPane.swift:225`), the agent's reference-library tool
+  (`ReferenceLibraryTool.swift:231`), and the LLM-wiki layer deriver
+  (`Sources/WenshuApp/Features/Library/Service/LLMWikiLayerDeriver.swift:90`). The last one matters most: the wiki
+  pipeline deletes references with nobody asking, so a cascade hooked
+  only into the UI would leak a cover on every wiki rebuild.
+- A BOOK-DOC card is deleted by
+  `SidebarServiceMutation.deleteBookDoc(id:)`
+  (`SidebarServiceMutation.swift:477`), which removes the `.md` file.
+  There is no store chokepoint for a book doc.
+
+A reconciler covers what the cascade cannot: a document deleted in
+Finder, by a script, or by a git checkout. It compares the cover rows
+against the live card set and removes the ones whose card is gone, and
+it runs on the library reload that already exists.
+
+The cover KEY is defined once, in ticket one, and it keeps a reference
+card and a book card on different keys so one card's picture can never
+land on another card. Ticket eight calls that function rather than
+re-deriving it: two key functions produce two different keys, and the
+symptom is a cover that survives every delete.
+
+### 4.2 Stock versus incremental (ticket 7)
+
+The boss's rule: a batch action for the documents that are ALREADY in
+the library, and automatic for the documents that come later, gated on
+one switch.
+
+The boundary between the two is the moment the switch was turned ON.
+The policy stores that timestamp, and a document is automatic only if
+its creation time is AFTER it. Both card kinds carry a real creation
+time: a reference has `let createdAt: Date`
+(`Sources/WenshuApp/Features/Library/Model/Reference.swift:241`) and a
+book doc has `let createdAt: Date`
+(`Sources/WenshuApp/Features/Editor/View/PreviewPaneModels.swift:198`).
+The file MODIFICATION time is the wrong signal, because editing an old
+document changes it and would make that document look new.
+
+The batch is one card at a time, never a burst, and it can be stopped.
+The automatic path never makes a video: the video allowance is a
+handful of clips a day, and only the user may spend it.
 
 Every new file must be registered in `docs/agents/nfi.md` (AGENTS §1.7 / §1.11), and the
 §7.3 nine-grep sweep must return 0 on modified files.
