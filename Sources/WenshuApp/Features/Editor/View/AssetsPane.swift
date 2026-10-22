@@ -219,7 +219,7 @@ struct AssetsPane: View {
                     // (= same shape as the editor zone's top bar; = 28 PT
                     // height + Divider + 8 PT horizontal padding; = the
                     // single source of truth for "column-top chrome row in
-                    // wenshu" lives in EditorHeaderView; = no duplicate
+                    // wenshu" lives in ChromeTopBar; = no duplicate
                     // chrome geometry per the 41-rule audit + AGENTS §6.2).
                     // RATIONALE: boss 2026-10-16 OOB "给素材区顶部的搜索框, 套上
                     // 一个和编辑器区一样的顶栏" — editor's chrome band is
@@ -255,6 +255,7 @@ struct AssetsPane: View {
                             .controlSize(.regular)
                             .textFieldStyle(.plain)
                         }
+                        .frame(height: DesignTokens.paneTabHotArea)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .frame(height: DesignTokens.paneTabHotArea)
