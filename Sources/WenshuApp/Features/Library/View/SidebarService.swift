@@ -97,7 +97,20 @@ final class SidebarService {
         do {
             let shelves = try loadShelves()
             let allBooks = (try? loadAllBooks()) ?? []
-            let references = (try? loadReferences()) ?? []
+            // A failed load is an UNKNOWN set, not an empty one: the
+            // cover reconciler must not treat a failed read as "no
+            // references exist".
+            let loadedReferences = try? loadReferences()
+            let references = loadedReferences ?? []
+
+            // A cover is a CHILD of its document: remove the covers
+            // whose document is gone (= deleted in Finder, by a
+            // script, by a git checkout). The reconciler is the
+            // second line of defence, after the delete cascade.
+            CoverReconciler.live().sweep(
+                liveReferenceIds: loadedReferences?.map(\.id),
+                shelvesRoot: bookStore?.stores.shelvesRoot
+            )
 
             // y: cache the latest shelves + books (= the create / rename / delete
             // business methods read these for duplicate-name validation; =

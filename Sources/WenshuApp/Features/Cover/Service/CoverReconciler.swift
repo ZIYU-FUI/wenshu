@@ -18,10 +18,14 @@
 //  thing that accumulates silently until a user wonders where the
 //  space went.
 //
-//  The DECISION is a pure function of (the live card keys, the cover
-//  keys), so it can be tested without a library, a store or a disk.
-//  The sweep that acts on the decision needs all three, and runs on
+//  The DECISION is a pure function of the live card keys and the
+//  cover keys, so it can be tested without a library, a store or a
+//  disk. The sweep that acts on the decision needs both, and runs on
 //  the library reload that already happens.
+//
+//  A kind whose live cards could not be listed is LEFT ALONE. An
+//  unknown set is not an empty set: a cover whose card is alive must
+//  never be deleted because the listing failed.
 //
 
 import Foundation
@@ -47,6 +51,63 @@ struct CoverReconciler {
         CoverReconciler(modelContext: WSPersistenceContainer.current.mainContext)
     }
 
+    // MARK: - The live cards
+
+    /// The ids of the book docs that are still on disk.
+    ///
+    /// A book doc's id comes from its path (= book + folder + file
+    /// name), so the ids come from walking the shelves root the way
+    /// the sidebar walks it.
+    ///
+    /// Nil when the shelves root could not be read: an unknown set
+    /// is not an empty set.
+    static func bookDocIds(shelvesRoot: URL) -> [UUID]? {
+        guard FileManager.default.fileExists(atPath: shelvesRoot.path) else { return nil }
+        guard let shelves = try? FileManager.default.contentsOfDirectory(
+            at: shelvesRoot,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        ) else { return nil }
+
+        var ids: [UUID] = []
+        for shelf in shelves {
+            let booksRoot = shelf.appendingPathComponent("books", isDirectory: true)
+            guard let books = try? FileManager.default.contentsOfDirectory(
+                at: booksRoot,
+                includingPropertiesForKeys: nil,
+                options: [.skipsHiddenFiles]
+            ) else { continue }
+            for book in books {
+                // A directory whose name is not a book id holds no
+                // cover, so it is skipped rather than given a made-up
+                // id (= a made-up id matches no cover, and the walk
+                // would keep looking).
+                guard let bookId = UUID(uuidString: book.lastPathComponent) else { continue }
+                guard let folders = try? FileManager.default.contentsOfDirectory(
+                    at: book,
+                    includingPropertiesForKeys: nil,
+                    options: [.skipsHiddenFiles]
+                ) else { continue }
+                for folder in folders {
+                    let folderName = folder.lastPathComponent
+                    guard let files = try? FileManager.default.contentsOfDirectory(
+                        at: folder,
+                        includingPropertiesForKeys: nil,
+                        options: [.skipsHiddenFiles]
+                    ) else { continue }
+                    for file in files where file.pathExtension == "md" {
+                        ids.append(BookDocIDFactory.make(
+                            bookId: bookId,
+                            folderName: folderName,
+                            fileName: file.lastPathComponent
+                        ))
+                    }
+                }
+            }
+        }
+        return ids
+    }
+
     // MARK: - The decision
 
     /// The cover keys whose card is no longer alive.
@@ -61,15 +122,62 @@ struct CoverReconciler {
 
     /// Removes every cover whose card is not in the live set.
     ///
-    /// - Parameter liveCardKeys: the cover keys of the cards that
-    ///   still exist.
+    /// - Parameters:
+    ///   - liveReferenceIds: the ids of the references that still
+    ///     exist. Nil when the reference library could not be read.
+    ///   - shelvesRoot: the shelves root, where the book docs live.
+    ///     Nil when the library is not known.
     /// - Returns: how many covers were removed.
     @discardableResult
-    func sweep(liveCardKeys: Set<String>) -> Int {
+    func sweep(liveReferenceIds: [UUID]?, shelvesRoot: URL?) -> Int {
         let service = CardCoverService(modelContext: modelContext)
-        let coverKeys = Set(service.allRows().map(\.id))
-        let orphans = Self.orphanKeys(liveCardKeys: liveCardKeys, coverKeys: coverKeys)
+        let rows = service.allRows()
+        // Nothing to reconcile: the cheap check first, because the
+        // walk over the library is the expensive part.
+        guard !rows.isEmpty else { return 0 }
 
+        var removed = 0
+
+        // Each kind is walked only when it has a cover to check, so
+        // a library with only reference covers never walks the book
+        // folders.
+        if let liveReferenceIds,
+           !rows.filter({ $0.cardKind == WSCardCoverKind.reference }).isEmpty {
+            let liveKeys = Set(liveReferenceIds.map { CardCoverService.key(forReference: $0) })
+            removed += remove(
+                service: service,
+                rows: rows.filter { $0.cardKind == WSCardCoverKind.reference },
+                liveKeys: liveKeys
+            )
+        }
+
+        if let shelvesRoot,
+           !rows.filter({ $0.cardKind == WSCardCoverKind.bookDoc }).isEmpty,
+           let liveBookDocIds = Self.bookDocIds(shelvesRoot: shelvesRoot) {
+            let liveKeys = Set(liveBookDocIds.map { CardCoverService.key(forBookDoc: $0) })
+            removed += remove(
+                service: service,
+                rows: rows.filter { $0.cardKind == WSCardCoverKind.bookDoc },
+                liveKeys: liveKeys
+            )
+        }
+
+        if removed > 0 {
+            coverReconcilerLogger.info("[wenshu.cover] removed \(removed) orphan cover(s)")
+        }
+        return removed
+    }
+
+    /// Removes the covers of one card kind whose card is gone.
+    private func remove(
+        service: CardCoverService,
+        rows: [WSCardCover],
+        liveKeys: Set<String>
+    ) -> Int {
+        let orphans = Self.orphanKeys(
+            liveCardKeys: liveKeys,
+            coverKeys: Set(rows.map(\.id))
+        )
         for key in orphans {
             do {
                 try service.removeCover(forKey: key)
@@ -80,9 +188,6 @@ struct CoverReconciler {
                     "[wenshu.cover] orphan cover removal failed key=\(key, privacy: .public): \(String(describing: error), privacy: .public)"
                 )
             }
-        }
-        if !orphans.isEmpty {
-            coverReconcilerLogger.info("[wenshu.cover] removed \(orphans.count) orphan cover(s)")
         }
         return orphans.count
     }

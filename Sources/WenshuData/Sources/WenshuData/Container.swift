@@ -91,6 +91,10 @@ public enum WSPersistenceContainer {
         WSBody.self,
         WSOutlineEntry.self,
         WSReference.self,
+        // Generated cover art for a material-zone card (= additive:
+        // SwiftData migrates a new model class without a
+        // SchemaMigrationPlan, per Container.swift).
+        WSCardCover.self,
         // Tier 4: workspace layout tree (= 2026-10-05 #9 commit 1)
         // Replaces the hand-rolled JSON persistence in
         // State/LayoutTreeStore.swift. See

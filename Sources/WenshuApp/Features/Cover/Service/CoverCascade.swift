@@ -41,7 +41,8 @@ struct CoverCascade {
     /// The cascade over the library the app is running on.
     ///
     /// The cover rows live in the app's active SwiftData container,
-    /// the same container every other model lives in.
+    /// the same container every other model lives in, so the cascade
+    /// and the reconciler always look at the same rows.
     static func live() -> CoverCascade {
         CoverCascade(modelContext: WSPersistenceContainer.current.mainContext)
     }
@@ -94,13 +95,6 @@ struct CoverCascade {
     /// caller's delete.
     func removeCoverTolerantly(forBookDoc id: UUID) {
         removeCoverTolerantly(forKey: CardCoverService.key(forBookDoc: id))
-    }
-
-    // MARK: - Reading
-
-    /// The cover rows, one per card that has a cover.
-    func allRows() -> [WSCardCover] {
-        service.allRows()
     }
 
     // MARK: - Service

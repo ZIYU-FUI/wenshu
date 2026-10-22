@@ -475,21 +475,20 @@ extension SidebarService {
     /// doc; = no separate index entry to remove; = the file deletion is the
     /// complete delete). Throws if the file is not found.
     func deleteBookDoc(id: UUID) throws {
-        // A cover is a CHILD of its document: the picture and the
-        // clip exist to depict this .md file, so a file that is gone
-        // leaves a cover that can never be shown again. The cover
-        // goes with it.
-        //
-        // The removal is TOLERANT: the document delete is the
-        // important operation, and a cover that cannot be removed
-        // must not stop it.
-        CoverCascade.live().removeCoverTolerantly(forBookDoc: id)
-
         guard let url = findBookDocFile(id: id) else {
             throw MutationError.bookNotFound
         }
         try FileManager.default.removeItem(at: url)
         sidebarLogger.info("[wenshu.bookdoc] deleted: \(url.lastPathComponent)")
+        // A cover is a CHILD of its document: the picture and the clip
+        // exist to depict this .md file, so a file that is gone leaves
+        // a cover that can never be shown again. The cover goes with
+        // it.
+        //
+        // The removal is TOLERANT: the document delete is the
+        // important operation, and a cover that cannot be removed
+        // must not stop it.
+        CoverCascade.live().removeCoverTolerantly(forBookDoc: id)
     }
 
     /// List of other book doc titles in the SAME folder (= the duplicate-name

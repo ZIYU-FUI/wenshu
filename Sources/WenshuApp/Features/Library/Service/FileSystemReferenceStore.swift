@@ -282,38 +282,12 @@ struct FileSystemReferenceStore: ReferenceStoring {
     }
 
     func deleteReference(id: UUID) throws {
-        // A cover is a CHILD of its document: the picture and the
-        // clip exist to depict this reference, so a reference that is
-        // gone leaves a cover that can never be shown again. The cover
-        // goes with it.
-        //
-        // The removal is TOLERANT on purpose. The document delete is
-        // the important operation; a cover that cannot be removed
-        // must not stop it. The reconciler collects the leftovers.
-        //
-        // This is the one chokepoint every reference delete passes
-        // through: the sidebar, the material zone's right-click
-        // delete, the agent's reference-library tool and the LLM-wiki
-        // layer deriver all land here. A cascade hooked only into
-        // the UI would leak a cover every time the wiki rebuilt a
-        // layer.
-        //
-        // The store's own ModelContext is nil when the store runs
-        // WITHOUT a container (= the file-truth fallback), and the
-        // cover rows live in the app's container, so the cascade
-        // falls back to the app's live container in that case.
-        if let context = modelContext {
-            CoverCascade(modelContext: context)
-                .removeCoverTolerantly(forReference: id)
-        } else {
-            CoverCascade.live().removeCoverTolerantly(forReference: id)
-        }
-
         guard modelContainer != nil else {
             try Self.deleteReferenceFromFileSystem(
                 id: id,
                 referenceLibraryRoot: referenceLibraryRoot
             )
+            Self.removeCoverOfDeletedReference(id)
             return
         }
         guard let context = modelContext else {
@@ -327,6 +301,31 @@ struct FileSystemReferenceStore: ReferenceStoring {
         }
         context.delete(existing)
         try context.save()
+        Self.removeCoverOfDeletedReference(id)
+    }
+
+    /// Remove the cover of a reference that has just been deleted.
+    ///
+    /// A cover is a CHILD of its document: the picture and the clip
+    /// exist to depict this reference, so a reference that is gone
+    /// leaves a cover that can never be shown again. The cover goes
+    /// with it.
+    ///
+    /// The removal is TOLERANT on purpose. The document delete is the
+    /// important operation; a cover that cannot be removed must not
+    /// stop it. The reconciler collects the leftovers.
+    ///
+    /// This is the one chokepoint every reference delete passes
+    /// through: the sidebar, the material zone's right-click delete,
+    /// the agent's reference-library tool and the LLM-wiki layer
+    /// deriver all land here. A cascade hooked only into the UI would
+    /// leak a cover every time the wiki rebuilt a layer.
+    ///
+    /// The cascade reads the app's ACTIVE container, because that is
+    /// where the cover rows live (= the store's own container can be
+    /// the file-truth fallback, which holds no cover row).
+    private static func removeCoverOfDeletedReference(_ id: UUID) {
+        CoverCascade.live().removeCoverTolerantly(forReference: id)
     }
 
     func loadReferenceBody(id: UUID) -> String? {
