@@ -407,3 +407,169 @@ reached (= it really resized rather than being refused at its floor).
 - Both git remotes sit behind the local proxy. GitHub needs port 443
   (`ssh -p 443 -o Hostname=ssh.github.com`); gitcode needs port 22 to
   the RESOLVED IP. The exact commands are in `wenshu-parallel-dev`.
+## 10. The state at the end of the second follow-up session
+
+This session RE-OPENED the narrow-window question, because the first
+follow-up's conclusion and this session's own first reading of it
+disagreed. Both were wrong in a way that only a rebuild settles.
+
+### 10.1 The root cause was the size report, not the nested split
+
+The first follow-up landed `0b871acb0`, which overrides
+`EditorChatSplitHost.sizeThatFits` to report the PARENT's
+`ProposedViewSize` instead of the wrapped `NSSplitViewController`'s own
+size. THIS session's first reading was that the crash was caused by the
+nested split itself, and that the fix should be to remove it (a pure
+SwiftUI `VSplitView`, or moving the nested split out of the
+`NavigationSplitView`).
+
+**That reading was wrong**, and the reason it was wrong is worth
+recording: the A/B that produced it moved TWO variables at once (the
+nested split AND the commit), so a difference in crash rate could not be
+attributed to either. The skill had already warned about this - "the two
+arms must differ in ONE thing" - and the warning was ignored.
+
+The real mechanism: `NSViewControllerRepresentable.sizeThatFits(_:nsViewController:context:)`
+(macOS 13+) DEFAULTS to reporting the WRAPPED AppKit controller's own size
+to the SwiftUI layout engine. The outer `NavigationSplitView` therefore
+negotiates its detail column's width against a number the nested split
+keeps recomputing; each negotiation re-arms the window's "Update
+Constraints in Window" pass; the count passes the window's view count and
+AppKit aborts the app. Reporting the parent's PROPOSAL makes the reported
+size a function of the parent's own layout, so the feedback loop has
+nowhere to close.
+
+The fix KEEPS the nested split and keeps the chat pane. Removing the
+nested split is not required, and would have cost the Keynote-style
+collapse behaviour.
+
+### 10.2 The binary under test was PRE-FIX, and that nearly repeated the mistake
+
+The shared `build/Wenshu.app` is rebuilt by other sessions and by every
+ticket, so it can easily predate a fix by hours. This session measured
+"the fix does not work: 2/6 still crash" against a binary built at 00:16,
+while the fix was committed at 01:58. The timeline, not the crash rate,
+was the answer.
+
+After rebuilding from the current HEAD:
+
+| build | crashes | valid | resizes landed | narrowest |
+| --- | --- | --- | --- | --- |
+| pre-fix (00:16, uuid `1D2FC41E`) | 2 | 2 | 5 | 1250 |
+| **fixed (07:00, uuid `7A55E7AC`)** | **0** | 6 | **73** | **711** |
+
+The fixed window reaches 711 px where the crashing one stopped at 897 px.
+Reaching NEW, NARROWER widths is the pattern that proves a fix; a window
+that merely refuses to shrink has not been fixed, it has been stuck.
+
+So a "the fix does not work" report is exactly as wrong as an "it is
+fixed" report. Both need the binary's identity AND its build time.
+
+### 10.3 A trial with NO WINDOW can still be a CRASH
+
+The pre-fix run reported "2 crashes, 4 VACUOUS" - but the crash-report
+corpus held SIX reports carrying that arm's binary uuid. The four
+"vacuous" trials were crashes too: the app had already died, so the AX
+window check found no window and filed the trial as "never reached the
+editor".
+
+"No window" is AMBIGUOUS: onboarding, an app that already died, or a
+window that is still opening (~20 s). Classify by the crash report FIRST
+(a report carrying this arm's uuid = a crash, whatever the window count),
+and only call a trial vacuous when there is NO report AND no window.
+Otherwise a crash-heavy arm is silently filed under "vacuous" and its
+rate is understated - the failure always runs in the direction that loses
+the result.
+
+### 10.4 A staircase where BOTH arms clamp at the same floor is a fixture bug
+
+The first width-staircase measurement had both arms clamp at exactly
+1815, contradicting a three-arm run where the nosplit arm landed 13
+distinct widths. The FIXTURE was the cause, not the arms: the staircase
+ran against the harness's COPY of the library, and the copy (made without
+the sqlite WAL) held different content, so the columns negotiated
+differently. Re-run against the ORIGINAL library, both arms back to back,
+one variable:
+
+| arm | opened at | floor reached | distinct widths landed | outcome |
+| --- | --- | --- | --- | --- |
+| ctrl (nested split present) | 2177 | **1815** | 0/18 | **DIED** at target 800 |
+| nosplit (plain SwiftUI stack) | 1452 | **1118** | 8/18 | survived, no crash |
+
+A measurement where EVERY arm lands on the identical number is a broken
+fixture until proven otherwise. It reads exactly like a real effect (a
+shared floor IS plausible), so it is worth a fixture check before it is
+worth a theory.
+
+### 10.5 The suspect that was NOT the cause
+
+`NSSplitViewController.viewDidLayout()` writing `item.minimumThickness`
+/ `item.maximumThickness` on every layout pass IS a real self-feeding
+loop, and writing each value only when it differs is correct in its own
+right. Measured on its own it does NOT fix this crash: **10/10 still
+crashed**. It had only ever been tested bundled with a second change, so
+it was never isolated. A suspect named by a skill (or by a previous
+attempt) is a HYPOTHESIS, not a measurement.
+
+### 10.6 The measurement record is durable, in the skill
+
+`references/measurements-2026-10-21.md` in the
+`macos-narrow-window-layout-crash-triage` skill holds the numbers behind
+the fix: the 748 "Marking window" events of which **582 had `count` above
+`limit`** (by up to +9), the 1815 floor arithmetic (200 + 240 + 1374),
+the per-arm crash table, and the UserDefaults audit of every arm.
+
+The harness also moved into the skill's `scripts/`: `verify_fix.sh`
+(verifies a SHIPPING binary - own bundle id, own bookmark, own library
+copy, polls for the window, reads every resize back), `set_lib2.py`
+(writes a plain, NOT `.withSecurityScope`, bookmark into a test domain),
+`verify_uuid.py` and `final_verdict.py` (match a report corpus against
+one binary's uuid), and `domain_audit.py` (did the arm reach the editor?).
+
+### 10.7 The residue this session cleared, and what it kept
+
+The skill's wrap-up rule is "leave no residue of your own, and account for
+all seven kinds before answering". This session's inventory found and
+cleared:
+
+| Kind | Found | Action |
+| --- | --- | --- |
+| App instances | 4 orphans from MY harness bundles (up to 8 h 24 m) | killed |
+| Stale shells | 6 shells whose cwd had been deleted (up to 8 h 50 m) | killed |
+| Scratch entries | 678 of 709 entries, 183 MB | deleted |
+| Crash reports | 74 reports from MY invalidated early batches | deleted |
+| Test domains | 2 (`com.wenshu.verify.test`, `com.wenshu.harness.test`) | KEPT - the delete was not approved |
+
+KEPT, deliberately:
+
+- **The boss's 30 `WenshuApp-*.ips`** = the real crash corpus. Never
+  touched.
+- **41 `WenshuArm2*` / `WenshuFix` reports** = the shipped fix's A/B
+  corroboration.
+- **Three worktrees**: `t_c8c53697` (1 unstaged file, a compiling seam)
+  and `t_c8f6aaec` (34 staged paths) hold REAL work for two BLOCKED
+  cards, and both cards carry a handoff comment naming the exact state.
+  `subagent-sa-0-0a8132df` has a LIVE process with its cwd inside it.
+- **A sibling session's live work**: at 07:43 another session started
+  writing into this profile's scratch (`hig/`, `docs/`, `keynote_*`,
+  the `*.py` probes) and had a `swift-build --scratch-path .../wenshu-build`
+  RUNNING against it. All of it is left alone, and its 559 MB build dir
+  is why the scratch area still reads 564 MB.
+- **The production domain** `com.wenshu.app` and the ORIGINAL library
+  `~/Documents/anbaiqiang.ws`.
+
+Two deletions were not approved and are still on disk:
+`~/Library/Preferences/com.wenshu.verify.test.plist` and
+`~/Library/Preferences/com.wenshu.harness.test.plist` (3191 and 90756
+bytes). Both are test-only domains; they affect nothing that runs.
+
+### 10.8 The state at the end of the second follow-up session
+
+| Item | Value |
+| ---- | ----- |
+| `main` | `bdec990f6` (= in sync with `origin/main` and `old-origin/main`) |
+| The working tree | clean |
+| The narrow-window fix | `0b871acb0`, on main, verified 0/6 crashes on a fresh build of HEAD |
+| The app bundle | rebuilt 07:00 from HEAD (= contains the fix); the boss must rebuild if he runs a copy from elsewhere |
+| The harness | in the `macos-narrow-window-layout-crash-triage` skill's `scripts/`, plus `references/measurements-2026-10-21.md` |
+| Open cards | `t_c8c53697` and `t_c8f6aaec`, both BLOCKED, both with work on disk and a handoff comment |
