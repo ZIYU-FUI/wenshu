@@ -95,6 +95,20 @@ REPO = "/Volumes/ANAN/Engineering/wenshu"
 # historical card under those budgets blocks ZERO cards that used to succeed.
 # T3's budget is 5, not 4: a budget of 4 blocks one card that later landed.
 #
+# The body budget is the tier's real speed lever, and it is measured, not
+# guessed. The board's cards split cleanly on the number of body SECTIONS:
+# the cards with fewer than 9 sections ran 2.12 times for 25.3 min per card
+# with 0.25 timeouts per card, the cards with 9-11 ran 3.05 times for 59.5
+# min with 1.10 timeouts, and the cards with 11+ ran 4.50 times for 93.3 min
+# with 1.25 timeouts. The same split holds INSIDE one tier, so it is not the
+# tier talking. Measured as timeouts per card, a 9+ section body runs 1.21
+# against 0.20 for a shorter one, while the number of FILES the card touches
+# runs 0.96 against 0.75 (= nothing). So the body shape decides whether the
+# worker finishes inside its budget, and the file count does not.
+#
+# A body over its tier's budget is a body that should be TWO cards, not a
+# body the worker should be given more clock.
+#
 # A cap that is too small does not save time, it moves the work to a human:
 # the cards on a 45-minute cap burned 100.8 min each over 4.80 runs, against
 # 43.8 min each over 2.71 runs for the cards on a 30-minute cap. A cap does
@@ -108,6 +122,7 @@ TIERS = {
         "runtime_text": "15m",
         "retries": 2,
         "body_max": 4000,
+        "sections_max": 7,
         "gate": "swift build + ONE filtered suite that owns the touched file",
     },
     "T2": {
@@ -115,7 +130,8 @@ TIERS = {
         "runtime": 1500,
         "runtime_text": "25m",
         "retries": 3,
-        "body_max": 10000,
+        "body_max": 8000,
+        "sections_max": 9,
         "gate": "swift build + a filtered suite per touched area; baseline compare only where the baseline is red",
     },
     "T3": {
@@ -124,6 +140,7 @@ TIERS = {
         "runtime_text": "45m",
         "retries": 5,
         "body_max": 32000,
+        "sections_max": 12,
         "gate": "the full gate set, incl. a red-baseline comparison and a visual proof",
     },
 }
@@ -455,6 +472,14 @@ def find_errors(card: dict) -> list[str]:
     if len(body) > contract["body_max"]:
         errors.append(f"body is {len(body)} chars, tier {tier} buys {contract['body_max']}")
 
+    body_sections = len(sections(body))
+    if body_sections > contract["sections_max"]:
+        errors.append(
+            f"body has {body_sections} sections, tier {tier} buys "
+            f"{contract['sections_max']}; a body over its budget is a body "
+            f"that should be two cards"
+        )
+
     if tier == "T1":
         if BASELINE_DEMAND_RE.search(body):
             errors.append("T1 must not demand a red-baseline comparison")
@@ -530,6 +555,8 @@ def report(card: dict) -> dict:
         "retries": contract["retries"],
         "body_max": contract["body_max"],
         "body_len": len(body),
+        "body_sections": len(sections(body)),
+        "sections_max": contract["sections_max"],
         "gate": contract["gate"],
         "gate_width": gate_width(body),
         "findings": find_errors(card),
@@ -567,7 +594,7 @@ def main() -> int:
             print(f"\n{tier} ({contract['label']})")
             print(f"  runtime cap   --max-runtime {contract['runtime_text']}")
             print(f"  retry budget  --max-retries {contract['retries']}")
-            print(f"  body budget   {contract['body_max']} chars")
+            print(f"  body budget   {contract['body_max']} chars, {contract['sections_max']} sections")
             print(f"  gate          {contract['gate']}")
         print("\nThe tier is derived from the card body by this script. The title")
         print("carries it as [T1] / [T2] / [T3] so `kanban list` shows the rating.")

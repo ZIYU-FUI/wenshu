@@ -384,6 +384,24 @@ Move the tool contract into the agent package.
 `swift test --filter WenshuAgentTests` exits 0.
 """
 
+# The body's SHAPE is what predicts the timeout loop, more than the work
+# does. Measured on board wenshu-par: a body with fewer than 9 sections ran
+# 2.12 times for 25.3 min per card with 0.25 timeouts, a body with 9-11 ran
+# 3.05 times for 59.5 min with 1.10 timeouts, and 11+ ran 4.50 times for
+# 93.3 min with 1.25 timeouts. A T1 body over its section budget is a body
+# that should be two cards.
+def body_with_sections(count: int) -> str:
+    """A T2 card body carrying exactly `count` sections."""
+    head = [
+        "## GOAL\n\nDo the thing.\n",
+        "## WHAT TO BUILD\n\n"
+        "- `Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift`\n"
+        "- `Sources/WenshuApp/Features/Chat/View/ChatToolUsePartView.swift`\n",
+    ]
+    tail = ["## GATES\n\n`swift test --filter ChatMessageViewTests` exits 0.\n"]
+    filler = [f"## SECTION {i}\n\nThe card needs this section.\n" for i in range(count)]
+    return "\n".join(head + filler[: count - len(head) - len(tail)] + tail)
+
 
 def main() -> int:
     tool = load_tool()
@@ -593,6 +611,30 @@ def main() -> int:
         "a forbidden Package.swift does not force T3",
         tool.tier_of(FORBIDDEN_PACKAGE)[0],
         "T1",
+    )
+
+    # 17. The body's section count is the tier's speed lever, and a body over
+    #     its tier's section budget is reported.
+    check(
+        "a body over its section budget is an error",
+        any("sections" in f for f in tool.find_errors(
+            {"id": "t", "title": "[T2] ten sections", "body": body_with_sections(10),
+             "max_runtime_seconds": 1500}
+        )),
+        True,
+    )
+    check(
+        "a body inside its section budget is not an error",
+        any("sections" in f for f in tool.find_errors(
+            {"id": "t", "title": "[T2] nine sections", "body": body_with_sections(9),
+             "max_runtime_seconds": 1500}
+        )),
+        False,
+    )
+    check(
+        "T1 buys 7 sections, T2 buys 9, T3 buys 12",
+        [tool.TIERS[t]["sections_max"] for t in ("T1", "T2", "T3")],
+        [7, 9, 12],
     )
 
     print()

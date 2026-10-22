@@ -10,9 +10,9 @@ a gate the card gets.
 
 | Tier | Means | Runtime cap | Retry budget | Body budget | Gate |
 | ---- | ----- | ----------- | ------------ | ----------- | ---- |
-| T1 | trivial | 15m | 2 | 4000 chars | `swift build` + ONE filtered suite that owns the touched file |
-| T2 | standard | 25m | 3 | 10000 chars | `swift build` + a filtered suite per touched area; a baseline compare only where the baseline is red |
-| T3 | deep | 45m | 5 | 32000 chars | the full gate set, incl. a red-baseline comparison and a visual proof |
+| T1 | trivial | 15m | 2 | 4000 chars, 7 sections | `swift build` + ONE filtered suite that owns the touched file |
+| T2 | standard | 25m | 3 | 8000 chars, 9 sections | `swift build` + a filtered suite per touched area; a baseline compare only where the baseline is red |
+| T3 | deep | 45m | 5 | 32000 chars, 12 sections | the full gate set, incl. a red-baseline comparison and a visual proof |
 
 Read the contract with the tool:
 
@@ -71,16 +71,16 @@ Measured on board `wenshu-par` over the 43 done cards, 2026-10-22.
 
 **The time went into repeated attempts, not into verification.**
 
-- 35.7 h of worker time in 126 runs, and only 44 of those runs COMPLETED. 37
+- 35.7 h of worker time in 126 runs, and only 43 of those runs COMPLETED. 37
   timed out, 28 were reclaimed, 9 crashed, 7 blocked. The cards averaged 2.93
-  runs each, and 82% of the time sits in a run that did NOT finish.
+  runs each, and **83.5% of the time sits in a run that did NOT finish**. Of
+  that, 57.6% sits in timed-out runs alone, at a median of 30.3 min each.
 - The gates are not the cost. An incremental `swift build` is 0.73 s, the full
   suite is 66 s, `Tools/devtool/double-axis.sh` is 0.36 s. None of them
   explains 29.2 h.
-- 37 runs hit the 30-minute cap and were killed, with a median of 30.3 m. A
-  card that times out is not slow, it is mis-sized: the cap did not match the
-  work, so the worker spent the whole budget and the card was re-dispatched
-  to spend it again.
+- 22 of the 43 cards had at least one timeout. A card that times out is not
+  slow, it is mis-sized: the cap did not match the work, so the worker spent
+  the whole budget and the card was re-dispatched to spend it again.
 - The worst card burned 11 runs and 153.7 m. It had a 45m cap, and it used it
   five times over.
 
@@ -101,10 +101,26 @@ tier), and the tier takes its time out of the GATE and the BODY instead.
 | a wide gate (the whole suite, or a baseline comparison) | +0.402 |
 | a live-app proof | +0.175 |
 | the number of files the card touches | +0.068 |
+| the number of areas the card touches | +0.021 |
 
 **The file count does NOT predict how long a card takes.** What it predicts is
 whether a NARROW gate is SAFE. That is the tier's real job: it is a
 blast-radius rating, and it decides how many suites have to prove the card.
+
+**The body's SHAPE is the timeout loop.** Grouped by the number of sections
+the body carries, inside one tier:
+
+| Sections | Cards | Runs per card | Timeouts per card | Minutes per card |
+| -------- | ----- | ------------- | ------------------ | ---------------- |
+| < 9 | 8 | 2.12 | 0.25 | 25.3 |
+| 9-11 | 20 | 3.05 | 1.10 | 59.5 |
+| 11+ | 4 | 4.50 | 1.25 | 93.3 |
+
+The same split holds across tiers, and it is not the tier talking: measured
+as timeouts per card, a 9+ section body runs 1.21 against 0.20 for a shorter
+one, while the number of files the card touches runs 0.96 against 0.75. A
+body that also carries the rationale, the alternatives, the architecture and
+the edge cases makes the worker re-derive all of it, and the run times out.
 
 **Inside one tier the gate is the whole difference.** A card whose body demands
 the whole suite against a red baseline ran 3.44 times for 65.7 min per card; a
@@ -113,7 +129,9 @@ tier, same cap, same reviewer: the difference is the gate the body asked for.
 
 **A body that names its gate narrowly is a card that lands.** The cards on the
 board already written to the tier spec (a short body, one filtered suite)
-averaged 1.8 m over 1.23 runs.
+averaged 1.8 m over 1.23 runs. And the fast lane is worth having: T1 and T2
+cards cost 34.3 min per card today, T3 cards cost 55.2, and a body under 4000
+characters costs 8.9 min per card with 0.2 timeouts.
 
 ## The numbers, and where they come from
 
@@ -141,20 +159,62 @@ succeed.
 Note the breaker counts only `timed_out`, `crashed` and `spawn_failed`. A
 `reclaimed` run does not consume the budget.
 
-**The body budgets** are the measured body length per tier plus headroom.
+**The body budgets** are measured, not guessed. The body SHAPE is what
+predicts the timeout loop: the cards whose bodies carry fewer than 9 sections
+ran 2.12 times for 25.3 min per card with 0.25 timeouts, the 9-11 section
+cards ran 3.05 times for 59.5 min with 1.10 timeouts, and the 11+ section
+cards ran 4.50 times for 93.3 min with 1.25 timeouts. So the tier bounds the
+body in both characters and sections, and the tool reports a body over either
+budget.
+
+A body over its tier's budget is a body that should be TWO cards, not a body
+the worker should be given more clock.
+
+## How to write a body that lands in the fast lane
+
+The tier does not ask for less precision. It asks for the RECIPE instead of
+the ANALYSIS. A precise body can be short:
+
+```
+GOAL            one line, business language
+WHAT TO BUILD   the exact files, the exact edits
+MUST NOT CHANGE the exact list
+TESTS           the exact suite
+GATES           the exact command
+ACCEPTANCE      observable facts
+```
+
+Seven sections, under 4000 characters, and the worker writes in its first
+minute. What costs the time is a body that also carries the rationale, the
+alternatives, the architecture and the edge cases: the worker re-derives all
+of it, and the run times out. Measured, a body under 4000 characters costs
+8.9 min per card with 0.2 timeouts; a body of 9000+ costs 59.7 min per card
+with 1.04.
 
 ## What the tier is worth
 
-Replayed against every historical card, the tier contract (cap + retry budget)
-alone accounts for about 5% of the 43.0 h the board has spent, and blocks no
-card that used to land.
+Be precise about this, because the honest number is smaller than the story
+the tier tells.
 
-The larger saving is the one the tier enables rather than enforces: a card
-authored to its tier's spec carries a narrow gate, and the narrow-vs-wide gap
-inside one tier (46.4 m over 2.60 runs against 65.7 m over 3.44 runs in T3) is
-what the tier is for. The tool reports the gate width a card brought, so the
-parent agent can see the expensive shape before dispatching, and it rejects a
-T1 card that asks for the whole suite.
+Replayed against every historical card, the tier contract (cap + retry budget)
+alone accounts for about 5% of the 35.7 h the board has spent, and blocks no
+card that used to land. The cap is not where the money is; that is the
+measured result.
+
+The saving comes from the two things the tier DOES enforce on the body:
+
+1. **The gate.** A card authored to its tier's spec carries a narrow gate, and
+   the narrow-vs-wide gap inside one tier (17.6 m over 2.00 runs against
+   65.7 m over 3.44 runs) is what the tier is for. The tool reports the gate
+   width a card brought, so the parent agent can see the expensive shape
+   before dispatching, and it rejects a T1 card that asks for the whole suite.
+2. **The body's shape.** A body under 4000 characters costs 8.9 min per card
+   with 0.2 timeouts; a body of 9000+ costs 59.7 min per card with 1.04. The
+   tier bounds the body, so the fast lane is reachable rather than aspirational.
+
+On this board the tier re-rates 11 of the 43 cards into the fast lane. The
+cards already written to the tier spec (a short body, one filtered suite)
+averaged 1.8 m over 1.23 runs.
 
 ## Dispatching a card
 
