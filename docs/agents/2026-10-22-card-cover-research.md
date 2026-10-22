@@ -706,6 +706,33 @@ is the `"auto"` default and needs no new key.
 
 ---
 
+## 3C. What has landed
+
+Five of the eight tickets are on `main` and the whole cover test suite
+passes there (38 tests, 11 suites).
+
+| Ticket | Landed | What it added |
+| --- | --- | --- |
+| 1 | `c3a6493a3` | `WSCardCover` (@Model) + the cover directory and the one card-key function + the HEIC/JPEG codec + the single art-direction constant + the Bearer-auth image call |
+| 2 | `6388b36438` | the atomic four-field route + the route store + the resolver ladder + the two kinds |
+| 4 | `21e86de084` | `CardCoverView` + the picture drawn in the card's cover slot + all three `Card(` call sites wired |
+| 5 | `74c0cfeb80` | the Covers settings pane + the ten catalog keys |
+| 8 | `df685823fb` | the delete cascade at both chokepoints + the reconciler for the documents deleted outside the app |
+
+Three findings came out of the implementation rather than the
+research, and each one changed a design:
+
+- **The cover service has its own model namespace.** A route inherits
+  the provider and takes the model from the service it routes to. The
+  provider profiles describe chat models, and the image endpoint
+  answers "model not available" for one.
+- **Removing a cover has to take the files the row records**, not just
+  the cover's own directory. The row is where the paths live, so a
+  file the row points at must not survive the row.
+- **The card key function is `nonisolated`.** It is a pure function of
+  the card's identity, and the view layer needs it while building a
+  card.
+
 ## 4. Ticket split
 
 Each ticket runs in its own git worktree created as a board card on `wenshu-par`
