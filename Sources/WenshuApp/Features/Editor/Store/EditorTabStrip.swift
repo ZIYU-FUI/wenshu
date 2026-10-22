@@ -43,6 +43,34 @@ struct EditorTabStrip: View {
     // / behavior).
     @State private var columnWidth: CGFloat = 0
 
+    /// Horizontal scroll offset of the strip, in points (= the left edge
+    /// of the first visible segment).
+    @State private var scrollPosition = ScrollPosition(idType: CGFloat.self, x: 0)
+
+    /// Per-segment width derived from the measured column width.
+    ///
+    /// `NSSegmentedControl` with `.fillEqually` takes an equal share of
+    /// its whole track, so the track's width is a floor: N open documents
+    /// ask for N segments' worth of width no matter how narrow the
+    /// writer drags the column. Dividing the measured column width by the
+    /// tab count and handing that to the control keeps the strip inside
+    /// the column the writer chose.
+    ///
+    /// The width never falls below `minimumSegmentWidth`, because below
+    /// that a document title truncates to nothing and the tab can no
+    /// longer be told apart from its neighbours. Past that floor the
+    /// overflow is handed to the scroll container instead.
+    private var segmentWidth: CGFloat {
+        guard columnWidth > 0, !tabs.isEmpty else { return 0 }
+        return max(columnWidth / CGFloat(tabs.count), Self.minimumSegmentWidth)
+    }
+
+    /// Narrowest segment that still shows a document name.
+    ///
+    /// Measured against the control's own fitting width: a short title
+    /// needs roughly a third more than this before the text runs out.
+    static let minimumSegmentWidth: CGFloat = 88
+
     /// Stable value standing for "no tab is active". It never matches a
     /// tab id, so the segmented control keeps whatever segment it had,
     /// and it does not change between reads.
@@ -91,10 +119,13 @@ struct EditorTabStrip: View {
                     guard segmentIndex >= 0 && segmentIndex < displayOrder.count else { return }
                     onClose(displayOrder[segmentIndex])
                 },
-                //
-                // … (= 20 rationale lines collapsed; = A112 docblock collapse per §1.8
-                // column).
-                fixedSegmentWidth: 0,
+                // Each segment takes one share of the measured column
+                // width, so the strip's total width tracks the column the
+                // writer dragged instead of the number of open documents.
+                // A non-zero value switches the control to per-segment
+                // widths; zero keeps the equal-share default the other
+                // call site relies on.
+                fixedSegmentWidth: segmentWidth,
                 // The segments carry the open documents' TITLES, so the
                 // role must be `.valueSelection`. The `.tabs` role draws
                 // the selected segment as a dark inset and leaves its
@@ -102,10 +133,24 @@ struct EditorTabStrip: View {
                 // behind a blank dark capsule.
                 role: .valueSelection
             )
-            // 2026-10-14 v3: wrap the
-            // … (= 84 rationale lines collapsed; = A112 docblock collapse per §1.8)
-            // layout.
-            control
+            // A horizontal scroll container clips the strip to the
+            // column and makes the overflow reachable by scrolling, which
+            // is the canonical macOS tab-bar overflow behaviour. Without
+            // it the control draws straight across the neighbouring
+            // tools panel. A zero segment width means the column has not
+            // been measured yet, so the strip takes its own fitting width
+            // until the first measurement lands.
+            ScrollView(.horizontal) {
+                control
+            }
+            .scrollClipDisabled(false)
+            .scrollPosition($scrollPosition)
+            // Keep the selected tab on screen. Without this a tab that has
+            // scrolled past the column's edge can still be selected but
+            // never seen.
+            .onChange(of: selectedTabId) { _, _ in
+                revealSelectedTab()
+            }
             // RATIONALE: the tab strip's
             // … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // top inset).
@@ -156,6 +201,31 @@ struct EditorTabStrip: View {
                 lastSeenTabIds = incomingIds
             }
         }
+    }
+
+    /// Scroll the strip so the selected tab is inside the column.
+    ///
+    /// The offset is derived from the same segment width the control is
+    /// configured with, so the scroll lands on the tab rather than near
+    /// it. Scrolling by the smallest amount that brings the tab into view
+    /// keeps the neighbouring tabs where the writer left them.
+    private func revealSelectedTab() {
+        guard let selectedTabId,
+              let index = displayOrder.firstIndex(of: selectedTabId),
+              segmentWidth > 0
+        else { return }
+
+        let tabLeft = CGFloat(index) * segmentWidth
+        let tabRight = tabLeft + segmentWidth
+        let visibleWidth = columnWidth
+        guard tabRight > columnWidth || tabLeft < 0 else { return }
+
+        let offset = tabRight > columnWidth ? tabRight - visibleWidth : tabLeft
+        let maxOffset = max(0, segmentWidth * CGFloat(displayOrder.count) - visibleWidth)
+        scrollPosition = ScrollPosition(
+            idType: CGFloat.self,
+            x: max(0, min(offset, maxOffset))
+        )
     }
 
     // / Render a single tab (= title label + close X). RATIONALE: the close X is

@@ -60,6 +60,7 @@ reference, LOC, and content tag.
 | `Sources/WenshuApp/WenshuAgent/Keychain/KeychainSelector.swift` | `Sources/WenshuApp/Features/Settings/Service/KeychainSelector.swift` | 155 | `enum KeychainSelector` = the pure-function picker over the auth pool's keys (= it scores, picks, and transitions the key status). |
 | `Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift` | `Sources/WenshuApp/Shared/UI/EditorChatEnvironment.swift` | 23 | `struct EditorChatEnvironment { appState, bookStore, library }` = the three objects the AppKit-hosted SwiftUI views read, bundled so the boundary carries one value. |
 | `Sources/WenshuApp/WenshuAgent/Public/WenshuAgent.swift` | `Sources/WenshuApp/Shared/Agent/WenshuAgent.swift` | 369 | `actor WenshuAgent` = the app's public facade (= the one entry point chat, settings and import call for the conductor, the providers and the chat call). |
+| `Sources/WenshuApp/Features/Editor/Store/EditorTabStrip.swift` | `Tests/WenshuAppTests/Editor/View/EditorTabStripOverflowTests.swift` | 352 | `EditorTabStripOverflowTests` = the strip's layout measured against its column (= the claimed width, the scroll viewport, the per-segment width), so the strip can never paint past the column again. |
 
 <!-- Append new rows at the END of the table above. The key-level merge
      driver keeps both rows when two cards add one each. -->

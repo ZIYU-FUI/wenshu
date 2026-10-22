@@ -326,70 +326,21 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         // behavior; = matches SwiftUI Picker(.segmented)).
         control.trackingMode = .selectOne
 
-        // Distribute segments to fill the available width equally
-        // (= `segmentDistribution = .fillEqually`; = each segment
-        // takes 1/N of the column width when N pages;
-        // = NSSegmentedControl auto-stretches with the column drag).
-        // back to
-        // `.fillEqually`
-        // (= the
-        // canonical
-        // equal-width
-        // distribution
-        // that
-        // matches
-        // Safari
-        // tab-strip
-        // visuals).
-        // The
-        // previous
-        // .frame(maxWidth: .infinity))
-        // was the
-        // only
-        // stable
-        // layout
-        // the
-        // boss
-        // signed
-        // off
-        // on).
-        // The
-        // `.frame(maxWidth: .infinity,
-        // alignment: .leading)`
-        // proposal;
-        // = no
-        // position
-        // jump
-        // = no
-        // "飘"
-        // symptom).
-        // The
-        // boss
-        // already
-        // signed
-        // off
-        // on
-        // the
-        // `.frame(maxWidth: .infinity)`
-        // grows
-        // the
-        // window
-        // to
-        // fit
-        // all
-        // segments
-        // when
-        // N
-        // is
-        // large;
-        // = the
-        // boss
-        // accepted
-        // that
-        // trade-off
-        // before;
-        // = the
-        control.segmentDistribution = .fillEqually
+        // Segment width: an explicit per-segment width when the caller
+        // supplied one, otherwise an equal share of the whole track.
+        //
+        // `NSSegmentDistributionFit` honours `setWidth(_:forSegment:)`
+        // per segment; `NSSegmentDistributionFill` divides the track
+        // equally and ignores it. A strip that carries its own widths
+        // therefore has to be told which mode it is in.
+        if fixedSegmentWidth > 0 {
+            control.segmentDistribution = .fit
+            for index in 0..<control.segmentCount {
+                control.setWidth(fixedSegmentWidth, forSegment: index)
+            }
+        } else {
+            control.segmentDistribution = .fillEqually
+        }
         // `controlSize = .small`
         // (= the macOS
         // 27 canonical
