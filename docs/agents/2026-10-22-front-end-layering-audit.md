@@ -363,7 +363,7 @@ script's own findings were killed by that check.
 
 ## 7. Outcome
 
-All five cards landed on `main`. Each is one commit, each in its own
+All six cards landed on `main`. Each is one commit, each in its own
 worktree, none of them changing what the app looks like.
 
 | # | Commit | Change | Size |
@@ -373,9 +373,22 @@ worktree, none of them changing what the app looks like.
 | 3 | `d2a9a48e8` | The AppKit boundary carries one bundled value | 35 deletions, 50 insertions |
 | 4 | `e89362efe` | The part row derives the tool activity from the message | 19 deletions, 13 insertions |
 | 5 | `0f468c7e8` | The measurement is a command in the repository | 1004 insertions, 3 files |
+| 6 | `cae87caf3` | The two dead parameters the tool then found deleted | 8 deletions, 3 insertions |
+
+**The measurement now reports zero dead parameters** across
+`Sources/WenshuApp/`. That is the tool's own output, not a claim:
+
+    $ python3 Tools/wenshu-devtool/measure-drill.py --root Sources/WenshuApp
+    DEAD PARAMETERS
+    (none)
+
+Seven dead parameters were removed in total. Six were found by the first
+detector; the seventh (`WizardStepNavBar.currentStep`) was found by the
+tool this wave added, because the first detector did not classify a
+`@Binding var` as a parameter.
 
 **What did not change.** No colour, spacing, font, icon, transition or
-animation line appears in any of the four refactor commits. The two tool
+animation line appears in any of the five refactor commits. The two tool
 part views, whose `isOutgoing` picks the bubble fill, are byte-identical to
 their base. The `applyOptionalEnvironment` helper, which is the actual
 re-injection mechanism, is byte-identical. The `NSSplitViewController`
@@ -390,13 +403,23 @@ baseline of 24 failing suites, measured at the base commit
 inside a worktree is a path failure until proven otherwise, so the
 failing SET was compared against that baseline rather than a count.
 
-**Two dead parameters remain**, both found by the card 5 tool after the
-refactor landed, and both left alone because each is pinned by a test
-assertion on the exact call-site text:
+**One thing this wave did NOT do**, and it is the honest limit of the
+measurement: the tool reports the parameters that no view reads, and
+the arguments a call site costs. It does NOT report whether a value
+that IS read is read in the right place, whether a callback closure
+outlives its owner, or whether a parameter would be better as an
+environment value. Those are judgement calls, and this audit's method
+does not make them.
 
-- `WizardStepNavBar.currentStep`
-  (`Features/Agent/View/ImportSheetViewPieces.swift:414`)
-- `KanbanWindow.library` (`Features/Kanban/View/KanbanWindow.swift:54`)
+**The two dead parameters the tool found after the first five were
+removed** were `WizardStepNavBar.currentStep`
+(`Features/Agent/View/ImportSheetViewPieces.swift:414`) and
+`KanbanWindow.library` (`Features/Kanban/View/KanbanWindow.swift:54`).
+Card 6 removed both. Each was pinned by a test assertion on the exact
+call-site text, and each assertion was updated to the new literal
+rather than deleted: the kanban test still proves the scene hands the
+window the shared workspace state, and the `WizardStepNavBar` binding
+stays live in `ImportSheet`, where the state itself is read and written.
 
 **One real bug the measurement tool's own test suite found.** A Swift
 string interpolation is an expression, not literal text, so stripping the
