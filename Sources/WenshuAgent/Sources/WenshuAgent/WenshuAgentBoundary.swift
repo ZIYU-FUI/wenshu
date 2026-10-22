@@ -35,14 +35,13 @@
 //
 //  The agent runtime itself lives here now: the conductor, the
 //  conversation loop and the verifier all moved into the package.
-//  The app keeps one file under `Sources/WenshuApp/WenshuAgent/`: the
-//  app's own public facade (= `WenshuAgent.shared`). It stays there
-//  because the app calls it by that name, and the name collides with
-//  the package module on purpose.
+//  The app keeps no copy of the runtime under its own tree. The app's
+//  public facade (= `WenshuAgent.shared`) lives in the app's shared
+//  layer, because it is a cross-feature entry point, and it keeps the
+//  runtime's module name as its type name (= the app calls it by that
+//  name).
 //
-//      Sources/WenshuApp/WenshuAgent/
-//      └── Public/
-//          └── WenshuAgent.swift
+//      Sources/WenshuApp/Shared/Agent/WenshuAgent.swift
 //
 //  Everything else the app owns lives in the app's own tree: the import
 //  router and its helpers in `Features/Agent/Service/`, the app
@@ -99,7 +98,7 @@
 //       inside the boundary).
 //
 //  The app-side facade (= `WenshuAgent.shared`) lives at
-//  `Sources/WenshuApp/WenshuAgent/Public/WenshuAgent.swift`.
+//  `Sources/WenshuApp/Shared/Agent/WenshuAgent.swift`.
 //
 //  RATIONALE:
 //
