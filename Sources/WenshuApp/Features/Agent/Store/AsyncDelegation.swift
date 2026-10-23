@@ -45,6 +45,14 @@ struct BackgroundDelegationHandle: Sendable, Equatable {
     /// never be recovered later.
     var scope: AgentScope?
 
+    /// The text the sub-agent has produced so far.
+    ///
+    /// Empty until the runner streams its first `.text` block. Only the
+    /// tail is kept (= the last `maxOutputTailCharacters`), so a long
+    /// run cannot grow the record without bound. The finished answer
+    /// still arrives through `markCompleted` (= `result`).
+    var outputTail: String
+
     init(
         id: String = UUID().uuidString,
         agentName: String,
@@ -54,7 +62,8 @@ struct BackgroundDelegationHandle: Sendable, Equatable {
         completedAt: Date? = nil,
         result: String? = nil,
         trackerSpawnID: UUID? = nil,
-        scope: AgentScope? = nil
+        scope: AgentScope? = nil,
+        outputTail: String = ""
     ) {
         self.id = id
         self.agentName = agentName
@@ -65,6 +74,7 @@ struct BackgroundDelegationHandle: Sendable, Equatable {
         self.result = result
         self.trackerSpawnID = trackerSpawnID
         self.scope = scope
+        self.outputTail = outputTail
     }
 }
 
@@ -163,6 +173,25 @@ actor AsyncDelegationRegistry {
     func attachTrackerSpawnID(handleID: String, spawnID: UUID) {
         guard var handle = records[handleID] else { return }
         handle.trackerSpawnID = spawnID
+        records[handleID] = handle
+    }
+
+    /// How many characters of a running sub-agent's output the
+    /// registry keeps. Older text falls off the front, so the tail
+    /// always shows the newest words and the record stays bounded.
+    static let maxOutputTailCharacters = 16384
+
+    /// Append streamed text to a running delegation's output tail.
+    ///
+    /// Only the last `maxOutputTailCharacters` survive. An unknown
+    /// handle id is a no-op (= the sub-agent finished, or the record
+    /// was evicted, before its last block arrived).
+    func appendOutput(handleID: String, text: String) {
+        guard var handle = records[handleID] else { return }
+        handle.outputTail += text
+        if handle.outputTail.count > Self.maxOutputTailCharacters {
+            handle.outputTail = String(handle.outputTail.suffix(Self.maxOutputTailCharacters))
+        }
         records[handleID] = handle
     }
 

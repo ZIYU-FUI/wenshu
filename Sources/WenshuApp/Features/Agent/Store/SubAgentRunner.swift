@@ -294,6 +294,15 @@ final class SubAgentRunner {
         // Run the sub-agent's turn. `maxAttempts = 1` because the
         // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // cap is the binding constraint).
+        //
+        // The stream callback carries the sub-agent's text into the
+        // registry, so a running delegation shows what it has produced
+        // so far instead of only its goal and its elapsed time.
+        //
+        // The registry is captured in a local first: the callback runs
+        // outside the runner's isolation, so it may not reach back
+        // into the runner's own state.
+        let outputRegistry = registry
         let result: ConversationResult
         do {
             result = try await loop.runTurn(
@@ -302,7 +311,10 @@ final class SubAgentRunner {
                 tools: tools,
                 taskId: handleID,
                 maxAttempts: 1,
-                streamCallback: nil,
+                streamCallback: { block in
+                    guard case .text(let text) = block else { return }
+                    await outputRegistry.appendOutput(handleID: handleID, text: text)
+                },
                 toolSchemas: toolSchemas
             )
         } catch {
