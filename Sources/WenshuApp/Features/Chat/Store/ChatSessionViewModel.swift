@@ -389,11 +389,6 @@ final class ChatViewModel {
     // / (= production path); tests inject a fake.
     private let repository: ChatRepositoryProtocol
 
-    // (2026-09-04): shared AsyncDelegationRegistry used by
-    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-    // methods require `await`.
-    nonisolated static let delegationRegistry: AsyncDelegationRegistry = AsyncDelegationRegistry()
-
     func switchModel(_ id: String) {
         // write to the canonical owner (= AppState.llmModel),
         // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
@@ -496,7 +491,7 @@ final class ChatViewModel {
                         subagentProfile: mention.subagentSlug,
                         task: mention.task,
                         context: [:],
-                        registry: ChatViewModel.delegationRegistry
+                        registry: AsyncDelegationRegistry.shared
                     )
                     let shortId = String(result.handle.id.prefix(8))
                     messages.append(ChatMessage(
