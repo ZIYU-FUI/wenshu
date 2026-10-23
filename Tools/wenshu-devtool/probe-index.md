@@ -16,26 +16,26 @@ card's commit does not touch the app source.
 
 | Probe | Subject measured | Numbers printed | Commit measured against |
 | --- | --- | --- | --- |
-| `chat_bubble_metrics.swift` | The user's own chat bubble (the outgoing message surface in the chat column), painted width and corner radius read from rendered pixels at a stated host width. | `painted_width_pt`, `painted_height_pt`, `corner_radius_pt`, `shape_rule_radius_pt`, `subject_ink_width_pt`, `host_width_pt`, `calibration_radius_pt`, `calibration_measured_pt` | `78536bc945dc` |
+| `chat_bubble_metrics.swift` | The user's own chat bubble (the outgoing message surface in the chat column), painted width and corner radius read from rendered pixels at a stated host width. | `painted_width_pt`, `painted_height_pt`, `corner_radius_pt`, `shape_rule_radius_pt`, `subject_ink_width_pt`, `host_width_pt`, `calibration_radius_pt`, `calibration_measured_pt` | `3ee82bf48b18` |
 
 ## Recorded measurement
 
 The run below is the proof that the row above carries a real number. It is
-the probe's own output, taken against commit `78536bc945dc`, with the
+the probe's own output, taken against commit `3ee82bf48b18`, with the
 subject `Hi` at the reference host width.
 
 ```
 probe: chat_bubble_metrics
 subject: Hi
 host_width_pt: 723.0
-painted_width_pt: 722.5
-painted_height_pt: 36.0
-corner_radius_pt: 16.8
+painted_width_pt: 36.9
+painted_height_pt: 35.9
+corner_radius_pt: 16.9
 shape_rule_radius_pt: 18.0
 subject_ink_width_pt: 11.0
 calibration_radius_pt: 10.0
 calibration_measured_pt: 9.8
-source_commit: 78536bc945dc
+source_commit: 3ee82bf48b18
 ```
 
 Two numbers in that run are worth reading together:
@@ -47,9 +47,10 @@ Two numbers in that run are worth reading together:
   10 PT radius) reads 9.8, so the reader can see the fit's own bias on the
   machine that took the measurement.
 - `painted_width_pt` is the width the fill covers, not the width of the
-  subject's ink. The production bubble paints its background after
-  `.frame(maxWidth: .infinity)`, so the fill covers the whole chat column
-  and `subject_ink_width_pt` is the subject's own width.
+  subject's ink. The production bubble paints its background BEFORE the
+  width cap, so the fill hugs the words (= 36.9 PT for a two-character
+  subject at a 723 PT host) and the cap only bounds the result.
+  `subject_ink_width_pt` is the subject's own width.
 
 ## Re-measuring
 
