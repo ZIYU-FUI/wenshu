@@ -109,9 +109,29 @@ public enum LLMBlock: Sendable, Equatable {
                 if let signature { dict["signature"] = signature }
                 return dict
             case let .toolUse(id, name, input):
-                return ["type": "tool_use", "id": id, "name": name, "input": input]
+                // Anthropic's `tool_use.input` is a JSON OBJECT on the
+                // wire, not the raw JSON string the model streamed. The
+                // string form is rejected by the provider ("Input
+                // should be a valid dictionary" = MiniMax 2013, measured
+                // 2026-10-24), which failed every tool-using turn.
+                //
+                // The fallback keeps the raw text rather than dropping
+                // it: an empty object would silently call the tool with
+                // no arguments (= the same convention the other
+                // serializer in this package uses).
+                var parsedInput: [String: Any] = [:]
+                if let data = input.data(using: .utf8),
+                   let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    parsedInput = object
+                } else {
+                    parsedInput = ["_raw": input]
+                }
+                return ["type": "tool_use", "id": id, "name": name, "input": parsedInput]
             case let .toolResult(toolUseID, output):
-                return ["type": "tool_result", "tool_use_id": toolUseID, "output": output]
+                // The Anthropic key is `content` (= `output` is not part
+                // of the Messages API and the provider ignores it, so
+                // the tool result never reached the model).
+                return ["type": "tool_result", "tool_use_id": toolUseID, "content": output]
         }
     }
 
