@@ -144,7 +144,14 @@ public enum HermesGapPortTestHelpers {
         }
 
         // Fallback: walk the Sources tree for the filename.
-        return locateByFilename(in: wenshuRoot + "/Sources/WenshuApp", filename: sourceFileName)
+        //
+        // It walks the repo's whole `Sources/` root, not only
+        // `Sources/WenshuApp/`: the agent runtime was moved into its
+        // own `WenshuAgent` package (= `Sources/WenshuAgent/Sources/
+        // WenshuAgent/`), so a ported file that lives there is in the
+        // tree and must be found here. Each module name is unique
+        // within the tree, so the first match is the right one.
+        return locateByFilename(in: wenshuRoot + "/Sources", filename: sourceFileName)
     }
 
     /// Walk up from the test file's absolute path until we find a directory
