@@ -3,9 +3,29 @@
 //
 //  The window reads what is behind it: one behind-window material at the
 //  window's root, transparent containers inside it, and no flat opaque
-//  fill painted under the chat column.
+//  fill painted under any column.
 //
-//  These assertions read the source of the named files, because the
+//  The editor's document body is one of those transparent containers. It
+//  paints no fill of its own, so the root material shows through it and
+//  the editor column and the chat column read as ONE surface.
+//
+//  The editor's assertions are MEASURED, not read out of the source: the
+//  editor body is rendered over a known backdrop and the rendered pixels
+//  are sampled. Two properties are checked that way:
+//
+//  1. The body paints no flat opaque fill. The ground under it is
+//     sampled from two renders over two different known backdrops; an
+//     opaque fill would make the ground identical in both, a
+//     transparent body makes it track the backdrop.
+//
+//  2. The document text stays readable on the material it lands on. The
+//     production arrangement is reproduced (= a material ground over a
+//     known backdrop, the editor body transparent on top of it, the
+//     document text on top of that), the text pixel and the ground pixel
+//     are sampled from the rendered bitmap, and their WCAG contrast is
+//     computed.
+//
+//  The other assertions read the source of the named files, because the
 //  property under test is which layer paints what (= a source-level
 //  fact, not a runtime colour).
 //
@@ -88,29 +108,20 @@ struct WindowTranslucencyTests {
         }
     }
 
-    /// The document body keeps its own near-opaque reading surface: the
-    /// engine's text view is transparent (= `backgroundColor = .clear`,
-    /// `drawsBackground = false`), so without this fill the wallpaper
-    /// would show straight through the text.
-    @Test func editor_body_keeps_an_opaque_reading_surface() throws {
+    /// The flat opaque colour is gone from the editor's document body
+    /// too: the token that carried it no longer exists, so no container
+    /// can paint it any more.
+    @Test func the_flat_opaque_editor_reading_surface_is_gone() throws {
+        let tokens = try source("Sources/WenshuApp/DesignTokens.swift")
+        #expect(
+            !tokens.contains("editorReadingSurface"),
+            "The flat opaque editor reading surface must be deleted"
+        )
         let canvas = try source("Sources/WenshuApp/Features/Editor/View/EditorPaperCanvas.swift")
-        #expect(canvas.contains("DesignTokens.editorReadingSurface"))
-
-        let appearances: [(String, NSAppearance)] = [
-            ("light", NSAppearance(named: .aqua)!),
-            ("dark", NSAppearance(named: .darkAqua)!)
-        ]
-        let surface = NSColor(DesignTokens.editorReadingSurface)
-        for (name, appearance) in appearances {
-            var alpha: CGFloat = 0
-            appearance.performAsCurrentDrawingAppearance {
-                alpha = surface.usingColorSpace(.sRGB)?.alphaComponent ?? 0
-            }
-            #expect(
-                alpha >= 0.85,
-                "\(name) appearance: the editor's reading surface is \(alpha), so the wallpaper would show through the text"
-            )
-        }
+        #expect(
+            !canvas.contains("editorReadingSurface"),
+            "The editor's document body must not paint the flat opaque reading surface"
+        )
     }
 
     /// The window-list observer must listen for a notification AppKit
@@ -150,5 +161,216 @@ struct WindowTranslucencyTests {
                 == "NSApplicationDidUpdateNotification",
             "The SDK's notification name changed; re-check the observer"
         )
+    }
+
+    // MARK: - The editor's document body (measured)
+
+    /// WCAG AA minimum for body text.
+    private static let minimumBodyContrast: Double = 4.5
+
+    private func luminance(_ c: (r: Int, g: Int, b: Int)) -> Double {
+        func channel(_ v: Int) -> Double {
+            let x = Double(v) / 255.0
+            return x <= 0.03928 ? x / 12.92 : pow((x + 0.055) / 1.055, 2.4)
+        }
+        return 0.2126 * channel(c.r) + 0.7152 * channel(c.g) + 0.0722 * channel(c.b)
+    }
+
+    private func contrast(_ a: (r: Int, g: Int, b: Int), _ b: (r: Int, g: Int, b: Int)) -> Double {
+        let l1 = luminance(a), l2 = luminance(b)
+        return (max(l1, l2) + 0.05) / (min(l1, l2) + 0.05)
+    }
+
+    /// The document body, rendered over a known backdrop.
+    ///
+    /// The structure is the production one: a material ground (the
+    /// window's root material) over the backdrop, the editor's document
+    /// body transparent on top of it, and the document text on top of
+    /// that. The text colour is the engine's own (= `labelColor`, the
+    /// body tier of the semantic ladder).
+    ///
+    /// The document body FILLS the frame, exactly as the engine's
+    /// `NSTextView` fills it in the app. That detail is load-bearing: a
+    /// body that only covered the text's own bounds would let a fill
+    /// hide in the empty margin, and the measurement would report a
+    /// transparent body for a body that paints one.
+    private func renderEditorBody(
+        over backdrop: Color,
+        appearance: NSAppearance,
+        text: String = "Readable body text"
+    ) -> NSBitmapImageRep? {
+        let root = ZStack {
+            backdrop
+            Rectangle().fill(.regularMaterial)
+            EditorPaperCanvas {
+                Text(text)
+                    .font(.body)
+                    .foregroundStyle(Color(nsColor: .labelColor))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            }
+        }
+
+        let host = NSHostingView(rootView: root)
+        host.frame = NSRect(x: 0, y: 0, width: 320, height: 120)
+        let window = NSWindow(
+            contentRect: host.frame,
+            styleMask: [.titled],
+            backing: .buffered,
+            defer: false
+        )
+        window.isOpaque = false
+        window.backgroundColor = .clear
+        window.appearance = appearance
+        window.contentView = host
+        window.orderFront(nil)
+        host.layoutSubtreeIfNeeded()
+        RunLoop.current.run(until: Date().addingTimeInterval(0.35))
+        host.layoutSubtreeIfNeeded()
+
+        guard let bitmap = host.bitmapImageRepForCachingDisplay(in: host.bounds) else {
+            window.orderOut(nil)
+            return nil
+        }
+        bitmap.size = host.bounds.size
+        host.cacheDisplay(in: host.bounds, to: bitmap)
+        window.orderOut(nil)
+        return bitmap
+    }
+
+    private func pixel(_ bitmap: NSBitmapImageRep, _ x: Int, _ y: Int) -> (r: Int, g: Int, b: Int) {
+        guard let color = bitmap.colorAt(x: x, y: y) else { return (0, 0, 0) }
+        return (
+            Int(color.redComponent * 255),
+            Int(color.greenComponent * 255),
+            Int(color.blueComponent * 255)
+        )
+    }
+
+    /// The ground = the colour most of a TEXT-FREE band of the render
+    /// carries (= the surface the document sits on). The text = the
+    /// pixel furthest from that ground in luminance (= a glyph's core,
+    /// not an antialiased edge).
+    ///
+    /// The band is the lower half of the render, where the top-aligned
+    /// document text does not reach. Sampling the ground from a band
+    /// the text does not touch is what makes the two numbers
+    /// independent: the ground is the surface, and the text is a glyph.
+    private func sampleGroundAndText(
+        _ bitmap: NSBitmapImageRep
+    ) -> (ground: (r: Int, g: Int, b: Int), text: (r: Int, g: Int, b: Int))? {
+        let width = bitmap.pixelsWide
+        let height = bitmap.pixelsHigh
+        guard width > 0, height > 0 else { return nil }
+
+        let textBand = 0..<(height / 2)
+        let groundBand = (height / 2)..<height
+
+        var counts: [String: Int] = [:]
+        var colors: [String: (r: Int, g: Int, b: Int)] = [:]
+        for y in groundBand {
+            for x in 0..<width {
+                let p = pixel(bitmap, x, y)
+                let key = "\(p.r),\(p.g),\(p.b)"
+                counts[key, default: 0] += 1
+                colors[key] = p
+            }
+        }
+        guard let modalKey = counts.max(by: { $0.value < $1.value })?.key,
+              let ground = colors[modalKey]
+        else { return nil }
+
+        let groundLuminance = luminance(ground)
+        var text = ground
+        var largest = 0.0
+        for y in textBand {
+            for x in 0..<width {
+                let p = pixel(bitmap, x, y)
+                let delta = abs(luminance(p) - groundLuminance)
+                if delta > largest {
+                    largest = delta
+                    text = p
+                }
+            }
+        }
+        return (ground, text)
+    }
+
+    /// The editor's document body paints NO flat opaque fill: the ground
+    /// under it tracks the backdrop it is rendered over.
+    ///
+    /// The measurement is a differential one (= the same view, the same
+    /// machine, the same render path, over two different known
+    /// backdrops). A flat opaque fill would cover the backdrop and make
+    /// the ground identical in both renders; a transparent body lets the
+    /// ground change with it.
+    @Test func editor_body_paints_no_flat_opaque_fill() throws {
+        let appearances: [(String, NSAppearance)] = [
+            ("light", NSAppearance(named: .aqua)!),
+            ("dark", NSAppearance(named: .darkAqua)!)
+        ]
+        for (name, appearance) in appearances {
+            let overDark = try #require(
+                renderEditorBody(over: .black, appearance: appearance),
+                "\(name) appearance: the editor body did not render"
+            )
+            let overLight = try #require(
+                renderEditorBody(over: .white, appearance: appearance),
+                "\(name) appearance: the editor body did not render"
+            )
+            let dark = try #require(
+                sampleGroundAndText(overDark),
+                "\(name) appearance: the editor body's ground could not be sampled"
+            )
+            let light = try #require(
+                sampleGroundAndText(overLight),
+                "\(name) appearance: the editor body's ground could not be sampled"
+            )
+
+            #expect(
+                dark.ground != light.ground,
+                """
+                \(name) appearance: the editor body's ground reads \(dark.ground) over a \
+                black backdrop and \(light.ground) over a white backdrop. The ground does \
+                not follow the backdrop, so the body paints a fill of its own.
+                """
+            )
+        }
+    }
+
+    /// The document text stays readable on the material it lands on, in
+    /// both appearances.
+    ///
+    /// The text pixel and the ground pixel are sampled from the rendered
+    /// production arrangement, and their WCAG contrast is compared
+    /// against the body-text minimum.
+    @Test func document_text_is_readable_on_the_material() throws {
+        let appearances: [(String, NSAppearance)] = [
+            ("light", NSAppearance(named: .aqua)!),
+            ("dark", NSAppearance(named: .darkAqua)!)
+        ]
+        // The backdrop the material is measured over: the neutral mid
+        // grey a desktop sits behind a window. The material's own tint
+        // dominates the ground, so the measurement is the material's
+        // ground and not the backdrop's.
+        let backdrop = Color(white: 0.5)
+        for (name, appearance) in appearances {
+            let bitmap = try #require(
+                renderEditorBody(over: backdrop, appearance: appearance),
+                "\(name) appearance: the editor body did not render"
+            )
+            let sample = try #require(
+                sampleGroundAndText(bitmap),
+                "\(name) appearance: the document's ground could not be sampled"
+            )
+            let ratio = contrast(sample.text, sample.ground)
+            #expect(
+                ratio >= Self.minimumBodyContrast,
+                """
+                \(name) appearance: the document text reads \(sample.text) on a ground of \
+                \(sample.ground), a contrast of \(ratio), below the body minimum of \
+                \(Self.minimumBodyContrast).
+                """
+            )
+        }
     }
 }
