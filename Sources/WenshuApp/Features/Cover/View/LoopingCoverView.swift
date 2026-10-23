@@ -4,24 +4,17 @@
 //   : LoopingCoverView.
 //  Plays a card's cover clip, on a click.
 //
-//  The clip is STILL by default, and a PLAY BUTTON sits in the middle
-//  of the picture. The button is the App Store's shape (= a filled
-//  circle with a triangle in it), which is an SF Symbol: `play.circle
-//  .fill` and `pause.circle.fill`.
+//  The clip is STILL by default, and it starts when the POINTER
+//  arrives. That is how it has always worked and it is how the card
+//  says what it can do.
 //
-//  macOS has no control for that shape: `AVPlayerView` was measured
-//  in every one of its styles at the size of a cover slot (= 240 x
-//  100) and none of them shows a centred play button. `.none` shows
-//  nothing, `.floating` and `.inline` show a transport bar on hover,
-//  and `.default` shows no centred button either. So the button is the
-//  system's own symbol over the app's own surface, which is what
-//  Apple's own media apps do.
-//
-//  The clip used to start when the POINTER arrived. That made the
-//  card's cover depend on where the pointer was: the user had to keep
-//  it on one exact spot, and the cover came and went with it. A
-//  button says what the card can do, and it says it the same way
-//  every time.
+//  The card carries a small mark in its corner (= the one the Photos
+//  app puts on a picture that moves) so the user can see which cards
+//  move. The mark is a HINT and not a control: a big button on top of
+//  the picture would cover the picture, and macOS has no small
+//  centred play control to borrow either (= `AVPlayerView` was
+//  measured in every one of its styles at the size of a cover slot
+//  and none of them shows a centred play button).
 //
 //  THE LOOP IS FORWARD, and the loop is the framework's own
 //  (`AVPlayerLooper`). The app used to play the clip BACKWARD at its
@@ -52,43 +45,19 @@ import SwiftUI
 /// and what it does when it is pressed.
 enum CoverClipControl {
 
-    /// The size of the control, in points.
+    /// The size of the badge, in points.
     ///
-    /// The cover slot is 100 PT tall, and the control is a third of
-    /// it: big enough to see in a grid of thumbnails, small enough to
-    /// leave the picture readable. It is also Apple's smallest hit
-    /// target (28 PT), so the control can be pressed without aiming.
-    static let controlSize: CGFloat = 30
+    /// It is a HINT and not a control, so it is small: a corner mark
+    /// that says the card moves, the way the Photos app marks a Live
+    /// Photo. It must not compete with the picture.
+    static let badgeSize: CGFloat = 14
 
-    /// The symbol the control shows.
+    /// The symbol the badge shows.
     ///
-    /// `play.circle.fill` is a filled circle with a triangle knocked
-    /// out of it, which is the App Store's own shape, and it is the
-    /// system's symbol rather than a picture of one.
-    static func symbol(isPlaying: Bool) -> String {
-        isPlaying ? "pause.circle.fill" : "play.circle.fill"
-    }
-
-    /// What the control does when it is pressed.
-    static func action(isPlaying: Bool) -> CoverClipAction {
-        isPlaying ? .stop : .start
-    }
-
-    /// The label the control is read out with.
-    ///
-    /// It is a `LocalizedStringKey` and NOT a string, so the compiler
-    /// can still find the key in the string catalog.
-    static func label(isPlaying: Bool) -> LocalizedStringKey {
-        isPlaying ? "cover.pause_clip" : "cover.play_clip"
-    }
-}
-
-/// What a press on the cover's control does.
-enum CoverClipAction: Equatable {
-    /// The clip starts.
-    case start
-    /// The clip stops.
-    case stop
+    /// `livephoto` is the mark the Photos app puts on a picture that
+    /// moves, so the card says the same thing with the system's own
+    /// symbol.
+    static let symbol = "livephoto"
 }
 
 /// A card's cover clip, playing on a click.
@@ -117,15 +86,13 @@ struct LoopingCoverView: View {
         isHovered: Bool,
         stillImageURL: URL?,
         stillImage: NSImage? = nil,
-        preparedPlayer: AVPlayer? = nil,
-        isPlaying: Bool? = nil
+        preparedPlayer: AVPlayer? = nil
     ) {
         self.videoURL = videoURL
         self.isHovered = isHovered
         self.stillImageURL = stillImageURL
         self.stillImage = stillImage
         self.preparedPlayer = preparedPlayer
-        _isPlaying = State(initialValue: isPlaying ?? false)
     }
 
     /// The player, created when the clip is.
@@ -145,11 +112,7 @@ struct LoopingCoverView: View {
     /// the clip alive only while something holds it.
     @State private var looper: AVPlayerLooper?
 
-    /// Whether the clip is running.
-    ///
-    /// The value can be handed in, so the slot can be seen in the
-    /// playing state without pressing anything.
-    @State private var isPlaying: Bool
+
 
     var body: some View {
         ZStack {
@@ -169,28 +132,8 @@ struct LoopingCoverView: View {
             // and the clip is what moves.
             CardCoverView(imageURL: stillImageURL, image: stillImage)
 
-            if isPlaying || isHovered, let player = player ?? preparedPlayer {
+            if isHovered, let player = player ?? preparedPlayer {
                 PlayerLayerView(player: player)
-            }
-
-            // The control that starts and stops the clip.
-            //
-            // It sits in the middle of the picture, the way the App
-            // Store's own card does, and it is the system's symbol.
-            if videoURL != nil {
-                Button {
-                    togglePlayback()
-                } label: {
-                    SFIcon(
-                        CoverClipControl.symbol(isPlaying: isPlaying),
-                        style: .inlineSmall,
-                        color: .white,
-                        rendering: .monochrome,
-                        pointSizeOverride: CoverClipControl.controlSize
-                    )
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(Text(CoverClipControl.label(isPlaying: isPlaying)))
             }
         }
         .onAppear(perform: prepare)
@@ -198,27 +141,9 @@ struct LoopingCoverView: View {
         .onChange(of: isHovered) { _, hovering in
             if hovering {
                 play()
-            } else if !isPlaying {
+            } else {
                 stop()
             }
-        }
-    }
-
-    // MARK: - The control
-
-    /// Starts the clip, or stops it.
-    ///
-    /// The pointer plays the clip (= the way it has always worked),
-    /// and this is the way to keep it playing: the card is the user's
-    /// to watch, and a clip that stops the moment the pointer moves
-    /// away is a clip nobody can look at.
-    private func togglePlayback() {
-        if isPlaying {
-            isPlaying = false
-            stop()
-        } else {
-            isPlaying = true
-            play()
         }
     }
 

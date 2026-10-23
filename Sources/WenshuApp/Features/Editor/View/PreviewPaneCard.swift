@@ -260,14 +260,25 @@ struct Card: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // THUMBNAIL: icon as a large prominent header (= cards need thumbnails).
-            ZStack {
-                LinearGradient(
-                    colors: [Color.accentColor.opacity(DesignTokens.accentTintOpacityHero), Color(nsColor: .quaternaryLabelColor)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
+        // THE CARD IS THE PICTURE.
+        //
+        // It used to be a banner with the text under it on the panel.
+        // The App Store's own card is the other way round: the artwork
+        // IS the card, and the words sit on the artwork over a wash,
+        // so the picture is what the eye reads first. That is also
+        // what macOS does with a media tile (= Photos' grid: the
+        // picture, the title on it, and the badges in the corner).
+        //
+        // So the picture fills the card, the title and the tags sit on
+        // it at the bottom left over a scrim, and the play badge sits
+        // in the middle (= the App Store's shape, and macOS's own
+        // paused-player glyph).
+        ZStack(alignment: .bottomLeading) {
+            LinearGradient(
+                colors: [Color.accentColor.opacity(DesignTokens.accentTintOpacityHero), Color(nsColor: .quaternaryLabelColor)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
                 // Per wenshu-icon-policy v1.5: 64 PT (= empty-state threshold >=38 PT)
                 // MUST pin .symbolRenderingMode(.monochrome). SF
                 // Symbols 6 on macOS 27 silently falls back to the
@@ -315,6 +326,27 @@ struct Card: View {
                             .controlSize(.small)
                     }
                 }
+                // A card that MOVES says so in the corner.
+                //
+                // The mark is the one the Photos app puts on a picture
+                // that moves (= the Live Photo mark), and it is a HINT
+                // and not a control: the clip plays when the pointer
+                // arrives, and the mark says the card can do that. It
+                // is small, because a card whose picture is the card
+                // must not have a button on top of it.
+                if coverVideoURL != nil {
+                    SFIcon(
+                        CoverClipControl.symbol,
+                        style: .inlineSmall,
+                        color: .white,
+                        rendering: .monochrome,
+                        pointSizeOverride: CoverClipControl.badgeSize
+                    )
+                    .shadow(color: .black.opacity(0.45), radius: 2, y: 1)
+                    .padding(DesignTokens.spacingStandard)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .allowsHitTesting(false)
+                }
                 // The last attempt failed: the card carries the mark
                 // (= the Apple HIG "needs attention" pattern, in the
                 // corner the completion badge does not use).
@@ -325,72 +357,60 @@ struct Card: View {
                         color: Color.orange
                     )
                     .padding(DesignTokens.spacingCaption)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
                     .allowsHitTesting(false)
                 }
-            }
-            .frame(height: DesignTokens.panelMinHeight)
-            .frame(maxWidth: .infinity)
-            .clipShape(
-                UnevenRoundedRectangle(
-                    topLeadingRadius: DesignTokens.surfaceCornerRadiusWindow,
-                    bottomLeadingRadius: 0,
-                    bottomTrailingRadius: 0,
-                    topTrailingRadius: DesignTokens.surfaceCornerRadiusWindow
-                )
+            // The scrim the words sit on.
+            //
+            // The App Store washes the bottom of its artwork so the
+            // white copy can be read over it, and macOS does the same
+            // in Photos. It is a gradient and NOT a solid panel, so
+            // the picture is still the card.
+            LinearGradient(
+                colors: [.clear, .black.opacity(0.25), .black.opacity(0.62)],
+                startPoint: .top,
+                endPoint: .bottom
             )
-            // TEXT content below the thumbnail reference-library card standard = title +
-            // tag chips + one-line summary, no [type] badge, no timestamp
-            // chip, no iconSize split.
-            VStack(alignment: .leading, spacing: 6) {
+            .allowsHitTesting(false)
+
+            // The words, on the picture.
+            VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
                 Text(source.title)
                     .font(.headline)
+                    .foregroundStyle(.white)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
-                // boss 2026-10-09 (see OOB.md #2026-10-09) spacing (= 6 PT = spacingTight
-                // inside the VStack) and the secondary-tint foreground
-                // so the tags read as metadata not as primary content.
                 if !source.tags.isEmpty {
                     HStack(spacing: DesignTokens.spacingCaption) {
                         ForEach(source.tags, id: \.self) { tag in
                             Text(tag)
                                 .font(.caption2)
-                                .foregroundStyle(.secondary)
-                                // boss 2026-10-09 (see OOB.md #2026-10-09) (= 2 PT) was
-                                // too tight; = tag
-                                // text was visually
-                                // flush against the
-                                // chip border; =
-                                // spacingStandard (= 8
-                                // PT horizontal + 2 PT
-                                // vertical) gives the
-                                // chip a proper pill-
-                                // shape with breathing
-                                // room around the
-                                // text; = the vertical
-                                // stays tight (= 2 PT
-                                // = the chip is one
-                                // line tall).
+                                .foregroundStyle(.white.opacity(0.9))
                                 .padding(.horizontal, DesignTokens.spacingStandard)
                                 .padding(.vertical, DesignTokens.spacingCaption)
                                 .background(
                                     Capsule()
-                                        .fill(.tertiary)
+                                        .fill(.white.opacity(0.18))
                                 )
                         }
                     }
                     .lineLimit(1)
                 }
-                if !source.summary.isEmpty {
-                    Text(source.summary)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(3)
-                        .multilineTextAlignment(.leading)
-                }
             }
             .padding(DesignTokens.spacingModerate)
+            .allowsHitTesting(false)
         }
+        // The picture keeps the card's shape: 4:3, which is the shape
+        // the picture is generated in, so it fills the tile and
+        // nothing is trimmed.
+        .aspectRatio(DesignTokens.coverTileRatio, contentMode: .fit)
+        .frame(maxWidth: .infinity)
+        .clipShape(
+            RoundedRectangle(
+                cornerRadius: DesignTokens.surfaceCornerRadiusWindow,
+                style: .continuous
+            )
+        )
         .frame(maxWidth: .infinity, alignment: .topLeading)
         // parent component owns style, child component only does function. Hover tint (=
         // matches the pane tab hover pattern).

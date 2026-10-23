@@ -127,10 +127,10 @@ struct LoopingCoverViewStillTests {
         let hosting = aHosted(
             LoopingCoverView(
                 videoURL: clip,
+                isHovered: false,
                 stillImageURL: nil,
                 stillImage: aTealPicture(),
-                preparedPlayer: aPlayer(for: clip),
-                isPlaying: false
+                preparedPlayer: aPlayer(for: clip)
             )
             .frame(width: 240, height: 100),
             size: CGSize(width: 240, height: 100)
@@ -146,10 +146,10 @@ struct LoopingCoverViewStillTests {
         let hosting = aHosted(
             LoopingCoverView(
                 videoURL: clip,
+                isHovered: false,
                 stillImageURL: nil,
                 stillImage: aTealPicture(),
-                preparedPlayer: aPlayer(for: clip),
-                isPlaying: false
+                preparedPlayer: aPlayer(for: clip)
             )
             .frame(width: 240, height: 100),
             size: CGSize(width: 240, height: 100)
@@ -165,10 +165,10 @@ struct LoopingCoverViewStillTests {
         let hosting = aHosted(
             LoopingCoverView(
                 videoURL: clip,
+                isHovered: false,
                 stillImageURL: nil,
                 stillImage: aTealPicture(),
-                preparedPlayer: aPlayer(for: clip),
-                isPlaying: false
+                preparedPlayer: aPlayer(for: clip)
             )
             .frame(width: 240, height: 100),
             size: CGSize(width: 240, height: 100)

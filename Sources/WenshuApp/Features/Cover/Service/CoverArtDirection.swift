@@ -13,16 +13,23 @@
 //  The text below is the one that was verified against the live
 //  image endpoint on 2026-10-22: a generated cover came back painterly
 //  and hand-painted, with saturated warm colour and a readable
-//  subject, and the banner crop kept the subject whole.
+//  subject, and the crop kept the subject whole. The framing sentence
+//  was changed with the tile's shape (= 4:3) and has to be checked
+//  against the live endpoint again.
 //
 //  It also carries the negative constraints, because the failure mode
 //  of an image model is to imitate a franchise. The instruction is
 //  explicit that the result must be original.
 //
 //  The framing instruction at the end matters mechanically: the
-//  provider generates 1024x512 and the crop to 768x320 happens
-//  locally, so the subject is asked to sit centred with headroom on
-//  both sides, and the crop takes the sides rather than the top.
+//  provider generates 1024x768 and the crop to 768x576 happens
+//  locally, so the subject is asked to sit centred with headroom
+//  above it, and the crop takes the sides rather than the top.
+//
+//  The tile's shape is the card's shape (= 4:3, and the card's
+//  picture fills the card with the title on it), so the picture is
+//  asked for in the shape it is finally shown in, and the lower left
+//  is asked to be calm, because that is where the title sits.
 //
 
 import Foundation
@@ -37,9 +44,10 @@ enum CoverArtDirection {
         franchise, character, card frame, logo or official illustration. Use \
         broad painterly brushwork, saturated warm color masses, rich \
         midtones, tactile painted materials, lively fantasy worldbuilding \
-        and a confident illustrative finish. Wide cinematic banner framing, \
-        the subject centered with generous headroom on both sides, designed \
-        to be cropped to a wide strip without losing the subject.
+        and a confident illustrative finish. Poster tile framing in a 4:3 \
+        picture, the subject centered and full height with headroom above it, \
+        the lower left of the picture calm and open so a title can be read \
+        over it, and no important detail near the edges.
         """
 
     /// Joins the art direction and the subject into the prompt that

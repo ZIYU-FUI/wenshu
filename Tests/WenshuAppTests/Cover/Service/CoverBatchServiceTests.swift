@@ -134,6 +134,43 @@ struct CoverBatchServiceTests {
         #expect(client.maxConcurrent == 1)
     }
 
+    @Test("A cover in the old shape is drawn again")
+    func anOldShapedCoverIsDrawnAgain() async throws {
+        try await PathGuard.$libraryRootOverride.withValue(Self.libraryRoot) {
+            try await self.runOldShapeCheck()
+        }
+    }
+
+    /// The batch's rule for a picture in the old shape.
+    private func runOldShapeCheck() async throws {
+        let container = try makeContainer()
+        let client = CountingImageClient()
+        let generation = CoverGenerationService(
+            imageClient: client
+        )
+        let service = CoverBatchService(
+            generationService: generation
+        )
+
+        let items = makeItems(count: 2)
+        // The first one has a cover, but in the shape the card used to
+        // draw (= 768 x 320), so the new tile trims it.
+        let coverService = CardCoverService()
+        try coverService.saveImage(
+            try aCoverPicture(width: 768, height: 320),
+            forKey: items[0].target.coverKey,
+            kind: items[0].target.kind
+        )
+
+        await service.run(for: items)
+
+        // Both documents are drawn: the old picture is not good enough
+        // for the new card.
+        #expect(client.callCount == 2)
+        #expect(service.progress.skipped == 0)
+        #expect(service.progress.completed == 2)
+    }
+
     @Test("A document that already has a cover is skipped")
     func aCoveredDocumentIsSkipped() async throws {
         try await PathGuard.$libraryRootOverride.withValue(Self.libraryRoot) {
@@ -142,6 +179,40 @@ struct CoverBatchServiceTests {
     }
 
     /// The body of the skip test, inside the library root scope.
+    /// A real cover picture of the given size.
+    ///
+    /// The batch reads the stored picture's shape (= the card's shape
+    /// changed, so a picture in the old shape is drawn again), so the
+    /// test needs a real picture and not a file with some bytes in it.
+    private func aCoverPicture(width: Int, height: Int) throws -> Data {
+        // A bitmap of EXACTLY this many pixels. `NSImage.lockFocus`
+        // draws on the screen's scale (= 2 on a Retina display), so
+        // the picture would come out twice the size.
+        let rep = try #require(NSBitmapImageRep(
+            bitmapDataPlanes: nil,
+            pixelsWide: width,
+            pixelsHigh: height,
+            bitsPerSample: 8,
+            samplesPerPixel: 4,
+            hasAlpha: true,
+            isPlanar: false,
+            colorSpaceName: .deviceRGB,
+            bytesPerRow: 0,
+            bitsPerPixel: 0
+        ))
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: rep)
+        NSColor.systemTeal.setFill()
+        NSRect(x: 0, y: 0, width: width, height: height).fill()
+        NSGraphicsContext.current = nil
+        NSGraphicsContext.restoreGraphicsState()
+        let cg = try #require(rep.cgImage)
+        // The raw encoder, and NOT the banner one: the banner encoder
+        // crops to the shape the card draws in now, and this test needs
+        // a picture in an OLD shape.
+        return try CardCoverImageEncoder.encode(cg, as: .heic, quality: 0.9)
+    }
+
     private func runSkipCheck() async throws {
         let container = try makeContainer()
         let client = CountingImageClient()
@@ -153,10 +224,14 @@ struct CoverBatchServiceTests {
         )
 
         let items = makeItems(count: 3)
-        // The middle one already has a cover.
+        // The middle one already has a cover, in the shape the card
+        // draws in now.
         let coverService = CardCoverService()
         try coverService.saveImage(
-            Data([0x01]),
+            try aCoverPicture(
+                width: CardCoverImageEncoder.bannerWidth,
+                height: CardCoverImageEncoder.bannerHeight
+            ),
             forKey: items[1].target.coverKey,
             kind: items[1].target.kind
         )

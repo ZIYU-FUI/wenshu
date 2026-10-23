@@ -40,6 +40,7 @@
 //
 
 import Foundation
+import ImageIO
 import WenshuData
 
 /// The cover directory and the cover record.
@@ -126,6 +127,31 @@ struct CardCoverService {
     /// cover.
     func coverVideoURL(for key: String) -> URL? {
         entry(forKey: key).videoURL
+    }
+
+    /// Whether the stored picture is the shape the app draws in.
+    ///
+    /// The picture's shape changed when the card became the App
+    /// Store's shape (= a 4:3 tile with the words on it). A picture
+    /// from before that is the wrong shape, and the new tile trims a
+    /// third of it, so it has to be drawn again.
+    ///
+    /// The rule is self-limiting: the new picture has the new shape,
+    /// so a document is never asked for a third one.
+    ///
+    /// The picture's own size is read from the file's header, so the
+    /// check costs a few bytes and not a decode.
+    func coverPictureIsCurrent(forKey key: String) -> Bool {
+        guard let file = Self.imageURL(forKey: key),
+              FileManager.default.fileExists(atPath: file.path),
+              let source = CGImageSourceCreateWithURL(file as CFURL, nil),
+              let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [String: Any],
+              let width = properties[kCGImagePropertyPixelWidth as String] as? Int,
+              let height = properties[kCGImagePropertyPixelHeight as String] as? Int else {
+            return false
+        }
+        return width == CardCoverImageEncoder.bannerWidth
+            && height == CardCoverImageEncoder.bannerHeight
     }
 
     /// The record that describes a card's cover, or nil when the card

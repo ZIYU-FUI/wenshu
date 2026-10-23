@@ -69,12 +69,15 @@ struct CoverAutoCoverPolicy: Equatable, Sendable {
         createdAt: Date,
         hasCover: Bool,
         kind: String,
-        now: Date
+        now: Date,
+        coverIsCurrent: Bool = true
     ) -> Bool {
         // The switch off means nothing is automatic.
         guard isEnabled else { return false }
-        // A document that already has a cover never gets another one.
-        guard !hasCover else { return false }
+        // A document that already has a cover never gets another one,
+        // UNLESS the cover is in the old shape: the card is a
+        // different shape now, and the old picture is trimmed by it.
+        guard !hasCover || !coverIsCurrent else { return false }
         // A document created before the switch was turned on is
         // "stock": it belongs to the batch, not to the automatic path.
         guard let enabledAt else { return false }

@@ -45,7 +45,7 @@ enum CardCoverImageEncoder {
 
     /// The stored banner's pixel size (= 2.40:1).
     static let bannerWidth = 768
-    static let bannerHeight = 320
+    static let bannerHeight = 576
 
     /// The HEIC quality for the stored banner.
     static let heicQuality = 0.82

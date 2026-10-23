@@ -85,7 +85,7 @@ struct CardCoverImageEncoderTests {
         return context.makeImage()!
     }
 
-    @Test("A 1024x512 image encodes to a banner that decodes to 768x320")
+    @Test("A 1024x768 image encodes to a tile that decodes to 768x576")
     func encodesToTheStoredBannerSize() throws {
         let source = makeImage(width: 1024, height: 512, red: 0.8, green: 0.4, blue: 0.2)
 
@@ -95,7 +95,7 @@ struct CardCoverImageEncoderTests {
         #expect(decoded.width == CardCoverImageEncoder.bannerWidth)
         #expect(decoded.height == CardCoverImageEncoder.bannerHeight)
         #expect(CardCoverImageEncoder.bannerWidth == 768)
-        #expect(CardCoverImageEncoder.bannerHeight == 320)
+        #expect(CardCoverImageEncoder.bannerHeight == 576)
     }
 
     @Test("The stored payload is HEIC, not JPEG")

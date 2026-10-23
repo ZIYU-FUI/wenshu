@@ -417,6 +417,14 @@ enum DesignTokens {
     /// standard). Replaces `.frame(height: DesignTokens.panelMinHeight)`.
     static let panelMinHeight: CGFloat = 100
 
+    /// The shape of a card's picture tile.
+    ///
+    /// 4:3, which is the shape the picture is generated in
+    /// (= 768 x 576), so the picture fills the tile and nothing is
+    /// trimmed. The tile's width is the material column's width
+    /// (= 216-316 PT), so its height follows.
+    static let coverTileRatio: CGFloat = 4.0 / 3.0
+
     /// Card preview height (= 180 PT, Apple HIG card preview standard).
     /// Replaces `.frame(height: DesignTokens.cardPreviewHeight)`.
     static let cardPreviewHeight: CGFloat = 180

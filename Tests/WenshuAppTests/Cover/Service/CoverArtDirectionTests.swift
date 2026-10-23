@@ -37,7 +37,7 @@ struct CoverArtDirectionTests {
         #expect(prompt == CoverArtDirection.style)
     }
 
-    @Test("The style text is byte-identical to the verified one")
+    @Test("The style text is byte-identical to the one that was checked")
     func styleIsTheVerifiedText() {
         let expected = """
             Create original bright whimsical hand-painted fantasy trading-card key \
@@ -45,9 +45,10 @@ struct CoverArtDirectionTests {
             franchise, character, card frame, logo or official illustration. Use \
             broad painterly brushwork, saturated warm color masses, rich \
             midtones, tactile painted materials, lively fantasy worldbuilding \
-            and a confident illustrative finish. Wide cinematic banner framing, \
-            the subject centered with generous headroom on both sides, designed \
-            to be cropped to a wide strip without losing the subject.
+            and a confident illustrative finish. Poster tile framing in a 4:3 \
+            picture, the subject centered and full height with headroom above it, \
+            the lower left of the picture calm and open so a title can be read \
+            over it, and no important detail near the edges.
             """
 
         #expect(CoverArtDirection.style == expected)
