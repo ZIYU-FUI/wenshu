@@ -17,6 +17,11 @@ struct ChatView: View {
     // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // AND lose focus (no cursor blinking, no keyboard capture).
     @FocusState private var inputFocused: Bool
+    // The shared column-local UI state (= owns the inspector's page).
+    // The chat input taking focus brings the right-hand column to the
+    // Status page, so the sub-agent work is on screen while the user
+    // types.
+    @Environment(WorkspaceUIState.self) private var workspaceUI
     // CHATIMG-001 (2026-09-07): toggles the .fileImporter sheet when the
     // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // live on the input row itself (= ChatInputBarView body).
@@ -796,6 +801,14 @@ struct ChatView: View {
         // the text field still keeps focus').
         .onReceive(NotificationCenter.default.publisher(for: .wenshuDefocusChatInput)) { _ in
             inputFocused = false
+        }
+        // The chat input taking focus switches the right-hand column to
+        // the Status page, so the sub-agent work is on screen while the
+        // user types. Focus leaving changes nothing: the user's own tab
+        // choice stands until the chat takes focus again.
+        .onChange(of: inputFocused) { _, isFocused in
+            guard isFocused else { return }
+            workspaceUI.inspectorPage = .status
         }
         // Apple HIG canonical file-export / file-import for the
         // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
