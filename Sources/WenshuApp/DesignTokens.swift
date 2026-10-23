@@ -417,14 +417,6 @@ enum DesignTokens {
     /// standard). Replaces `.frame(height: DesignTokens.panelMinHeight)`.
     static let panelMinHeight: CGFloat = 100
 
-    /// The colour of the words on a picture.
-    ///
-    /// A generated cover is a Chinese scroll painting on pale paper,
-    /// so the words on it are ink: a warm near-black, and NOT the
-    /// system label colour (= which is white in dark mode, and the
-    /// paper is pale in both modes).
-    static let coverInk = Color(red: 0.17, green: 0.13, blue: 0.11)
-
     /// The shape of a card's picture tile.
     ///
     /// 4:3, which is the shape the picture is generated in

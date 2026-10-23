@@ -273,7 +273,7 @@ struct Card: View {
         // it at the bottom left over a scrim, and the play badge sits
         // in the middle (= the App Store's shape, and macOS's own
         // paused-player glyph).
-        ZStack(alignment: .center) {
+        ZStack(alignment: .bottomLeading) {
             LinearGradient(
                 colors: [Color.accentColor.opacity(DesignTokens.accentTintOpacityHero), Color(nsColor: .quaternaryLabelColor)],
                 startPoint: .topLeading,
@@ -362,52 +362,61 @@ struct Card: View {
                 }
             // The scrim the words sit on.
             //
-            // A picture is a Chinese scroll painting on pale paper, and
-            // its open area is where the words belong (= 留白, the
-            // deliberate emptiness that the painting is built
-            // around). So the words sit in the middle of the paper,
-            // in ink, and NO scrim is drawn over it (= a scrim would
-            // cut the painting in half, and the paper is already pale
-            // enough to read dark ink on).
-            //
-            // A card with no picture has the gradient instead, and
-            // that one is dark, so its words are light and they get
-            // the wash.
+            // A card with no picture has the gradient behind it, and
+            // that one is light, so the words need a wash under them.
+            // A card with a picture does not: the picture IS the card,
+            // and a wash across the whole thing would dim the
+            // painting.
             if !hasCover {
                 LinearGradient(
-                    colors: [.clear, .black.opacity(0.18), .black.opacity(0.55)],
+                    colors: [.clear, .black.opacity(0.25), .black.opacity(0.62)],
                     startPoint: .top,
                     endPoint: .bottom
                 )
                 .allowsHitTesting(false)
             }
 
-            // The words, on the paper.
-            VStack(alignment: .center, spacing: DesignTokens.spacingTight) {
+            // The words, on the picture.
+            //
+            // They sit low, and they sit on a translucent panel: a
+            // generated cover is a pale painting (= pale paper with a
+            // subject on it), and white words on pale paper cannot be
+            // read. The panel is the backing that makes them legible
+            // on ANY cover, and it is small, so the picture is still
+            // the card.
+            VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
                 Text(source.title)
                     .font(.headline)
-                    .foregroundStyle(hasCover ? DesignTokens.coverInk : .white)
+                    .foregroundStyle(.white)
                     .lineLimit(2)
-                    .multilineTextAlignment(.center)
+                    .multilineTextAlignment(.leading)
                 if !source.tags.isEmpty {
                     HStack(spacing: DesignTokens.spacingCaption) {
                         ForEach(source.tags, id: \.self) { tag in
                             Text(tag)
                                 .font(.caption2)
-                                .foregroundStyle(hasCover ? DesignTokens.coverInk.opacity(0.75) : .white.opacity(0.9))
+                                .foregroundStyle(.white.opacity(0.9))
                                 .padding(.horizontal, DesignTokens.spacingStandard)
                                 .padding(.vertical, DesignTokens.spacingCaption)
                                 .background(
                                     Capsule()
-                                        .fill(hasCover ? DesignTokens.coverInk.opacity(0.08) : Color.white.opacity(0.18))
+                                        .fill(.white.opacity(0.18))
                                 )
                         }
                     }
                     .lineLimit(1)
                 }
             }
+            .padding(.horizontal, DesignTokens.spacingStandard)
+            .padding(.vertical, DesignTokens.spacingTight)
+            .background(
+                RoundedRectangle(
+                    cornerRadius: DesignTokens.surfaceCornerRadiusSmallButton,
+                    style: .continuous
+                )
+                .fill(.black.opacity(0.45))
+            )
             .padding(DesignTokens.spacingModerate)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .allowsHitTesting(false)
         }
         // The picture keeps the card's shape: 4:3, which is the shape
