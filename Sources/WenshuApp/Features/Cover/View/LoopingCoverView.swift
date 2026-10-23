@@ -66,8 +66,39 @@ struct LoopingCoverView: View {
     /// The still picture, shown when the clip is not playing.
     let stillImageURL: URL?
 
+    /// The still picture itself, when the caller already holds it.
+    ///
+    /// The URL is the normal way in. This is the seam that lets the
+    /// slot be measured with a real picture and no asynchronous load,
+    /// which is the only way to prove that a card with a clip still
+    /// still shows its picture.
+    let stillImage: NSImage?
+
+    /// The view's values, with the picture as an optional extra.
+    init(
+        videoURL: URL?,
+        isHovered: Bool,
+        stillImageURL: URL?,
+        stillImage: NSImage? = nil,
+        preparedPlayer: AVPlayer? = nil
+    ) {
+        self.videoURL = videoURL
+        self.isHovered = isHovered
+        self.stillImageURL = stillImageURL
+        self.stillImage = stillImage
+        self.preparedPlayer = preparedPlayer
+    }
+
     /// The player, created when the clip is.
     @State private var player: AVPlayer?
+
+    /// A player the caller already made.
+    ///
+    /// The view makes its own player when it appears, and a view can
+    /// only appear in a window. A test cannot put a window on screen,
+    /// so this is the way to hand the view a player and see what it
+    /// does with one.
+    let preparedPlayer: AVPlayer?
 
     /// The observer that watches the clip's position.
     @State private var timeObserver: Any?
@@ -77,10 +108,24 @@ struct LoopingCoverView: View {
 
     var body: some View {
         ZStack {
-            if isHovered, let player {
+            // The picture is ALWAYS mounted.
+            //
+            // It used to be swapped for the clip: one branch or the
+            // other. That tears the picture down and builds it again
+            // on every move of the pointer, and the picture is loaded
+            // off the main actor, so in the window between the two the
+            // card shows what is underneath (= the gradient and the
+            // symbol). The user saw a card whose cover came and went
+            // with the pointer, and a card that looked like it had no
+            // cover at all.
+            //
+            // So the picture stays where it is, and the clip plays ON
+            // TOP of it. The card's cover is then always the picture,
+            // and the clip is what moves.
+            CardCoverView(imageURL: stillImageURL, image: stillImage)
+
+            if isHovered, let player = player ?? preparedPlayer {
                 PlayerLayerView(player: player)
-            } else {
-                CardCoverView(imageURL: stillImageURL)
             }
         }
         .onAppear(perform: prepare)
