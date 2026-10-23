@@ -196,6 +196,14 @@ struct CardCoverService {
         try Self.atomicWrite(data, to: imageURL)
         CoverImageCache.shared.evict(for: imageURL)
 
+        // A clip belongs to the still it was made from. A new still
+        // makes the old clip wrong (= the card would play a clip of
+        // another picture), so it goes.
+        if let videoURL = Self.videoURL(forKey: key),
+           FileManager.default.fileExists(atPath: videoURL.path) {
+            try? FileManager.default.removeItem(at: videoURL)
+        }
+
         var record = record(forKey: key) ?? CoverRecord(cardKind: kind)
         record.cardKind = kind
         record.status = WSCardCoverStatus.staticReady
