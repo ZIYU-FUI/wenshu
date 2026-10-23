@@ -418,16 +418,7 @@ struct Card: View {
                 if !source.tags.isEmpty {
                     HStack(spacing: DesignTokens.spacingCaption) {
                         ForEach(source.tags, id: \.self) { tag in
-                            Text(tag)
-                                .font(.caption2)
-                                .foregroundStyle(hasCover ? .white.opacity(0.92) : DesignTokens.coverInk.opacity(0.75))
-                                .shadow(color: hasCover ? .black.opacity(0.5) : .white.opacity(0.6), radius: 2, x: 0, y: 1)
-                                .padding(.horizontal, DesignTokens.spacingStandard)
-                                .padding(.vertical, DesignTokens.spacingCaption)
-                                .background(
-                                    Capsule()
-                                        .fill(hasCover ? Color.white.opacity(0.16) : DesignTokens.coverInk.opacity(0.08))
-                                )
+                            CardTagChip(tag: tag, hasCover: hasCover)
                         }
                     }
                     .lineLimit(1)
@@ -696,6 +687,66 @@ struct Card: View {
                 }
             }
         }
+    }
+}
+
+/// One tag on a material card, drawn as a quiet metadata pill.
+///
+/// THE RULE: the label and the fill it sits on must be DIFFERENT tiers,
+/// and the fill must be PINNED (= the same tone whatever is behind it),
+/// so the chip reads the same on every artwork.
+///
+/// The old recipe was a translucent WHITE pill (0.16) under a WHITE
+/// label (0.92): two washes of the same colour. Over a PALE cover (= every
+/// generated cover in the library is a pale Chinese landscape painting)
+/// the pill LIGHTENED the ground and resolved to nearly the label's own
+/// tone, so the tag read as one flat smudge. Measured on the palest
+/// cover in the library (the 清明 card, a cream-and-gold painting), in
+/// the light appearance:
+///
+///     label rgb(246,245,244)   pill rgb(147,135,118)   ground rgb(126,112,92)
+///     contrast(label vs pill) = 3.23:1   <- the label cannot separate
+///     contrast(pill vs ground) = 1.37:1  <- the pill is barely a surface
+///
+/// So on a cover the pill is a DARK scrim (= the words sit on a darker
+/// ground, = what the App Store card does) and the label is white at
+/// full strength, which holds over ANY artwork, pale or dark.
+///
+/// A card with no picture is paper, and there the words are INK
+/// (`DesignTokens.coverInk`), so the pill is a light wash and the label
+/// is ink at full strength: a dark label on a light pill, which is the
+/// canonical Apple metadata chip.
+///
+/// The horizontal padding is the caption token (= 2 PT), so the pill hugs
+/// its label instead of being twice as wide as the word in it.
+struct CardTagChip: View {
+    /// The tag text, drawn as it comes.
+    let tag: String
+
+    /// Whether the card wears a picture (= the words sit on the artwork)
+    /// or is bare paper (= the words sit on the card's own ground).
+    let hasCover: Bool
+
+    var body: some View {
+        Text(tag)
+            .font(.caption2)
+            .foregroundStyle(hasCover ? .white : DesignTokens.coverInk)
+            .shadow(
+                color: hasCover ? .black.opacity(0.55) : .white.opacity(0.6),
+                radius: 2,
+                x: 0,
+                y: 1
+            )
+            .padding(.horizontal, DesignTokens.spacingCaption)
+            .padding(.vertical, DesignTokens.spacingCaption)
+            .background(
+                Capsule()
+                    .fill(
+                        hasCover
+                            ? Color.black.opacity(0.34)
+                            : Color.white.opacity(0.85)
+                    )
+            )
     }
 }
 
