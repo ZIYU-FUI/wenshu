@@ -139,3 +139,52 @@ document tab label's ink midpoint sits (= (15.5 + 26.5) / 2 = 21.0).
 The test fails when the fix is removed (the title's ink lands 3.5 PT
 low) and passes with it in place. That 3.5 PT is the HARNESS's delta;
 the app's sag is the 3.00 PT / 3.50 PT of section 1.
+
+## 7. The verification of the merged result
+
+Measured on the app built from `main` AFTER this card's commit was
+merged, with the SAME strict glyph-ink analyzer that produced the
+numbers of sections 1 and 4 (= the same code, the same thresholds, so
+the two numbers are comparable):
+
+| capture | column titles' ink | document tab label's ink | delta |
+| --- | --- | --- | --- |
+| BEFORE the fix | 70.50 .. 82.00 pt | 67.50 .. 78.50 pt | top 3.00 PT, bottom 3.50 PT |
+| AFTER the fix | 67.50 .. 79.00 pt | 67.50 .. 78.50 pt | top 0.00 PT, bottom 0.50 PT |
+
+So the 3.00 PT sag at the top of the ink is 0.00 PT, and the 0.50 PT
+that remains at the bottom is the two labels' different ink heights (the
+title carries 11.5 PT of ink, the tab label 11.0 PT), not a baseline
+difference: their ink TOPS land on the same row.
+
+The three column titles (the sidebar's, the materials column's and the
+status panel's) sit equal to each other in both captures, so the fix
+moves them together.
+
+A second, independent measurement of the SAME merged result (= the app
+built from `main`, captured with the app's own in-process capture) read
+the same thing with a coarser ink rule (= every row holding a pixel
+darker than 120, which also counts a label's anti-aliased edge row):
+the column titles' ink 67.50 .. 79.00 pt and the document tab label's
+ink 67.50 .. 79.00 pt, so 0.00 PT at the top and 0.00 PT at the bottom.
+The two analyzers agree on the number that matters (= the top of the
+ink) and differ only on the anti-aliased edge row.
+
+The row-2 chrome band did not move. The strict analyzer reads the same
+numbers in both captures: the materials search band's darkest row at
+97.00 PT and the editor's format toolbar's at 97.50 PT, and the
+hairline under the materials band and the hairline under the editor's
+band at 116.50 PT in both. The divider under the column title is the
+thing the search band keys off, and it is where it was.
+
+A separate AX census of the running app agrees: the column titles' frames
+sit at y = 65 (they sat at y = 68 before the fix) and the editor's tab
+band still sits at y = 59 with a height of 28 PT.
+
+The app's own in-process capture (`WS_SCREENSHOT=1`) was used for the
+after measurement, because the app's window is on another Space in the
+running session and an external screen grab would have captured the
+wrong window. The AX census's window identity (a 1280 x 984 workspace
+with a split group, the radio buttons of the tab strip and the column
+titles' static texts) was checked against the capture before the pixels
+were read.
