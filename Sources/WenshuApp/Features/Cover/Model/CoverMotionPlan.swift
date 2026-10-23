@@ -29,6 +29,39 @@ import Foundation
 /// What a breeze may move in one picture.
 struct CoverMotionPlan: Codable, Equatable, Sendable {
 
+    /// What kind of thing an item is, by physics.
+    ///
+    /// The class decides what moves when the picture offers more than
+    /// one candidate. The user asked for it directly (= "prefer the
+    /// plant, and when there is no plant, let something else move"),
+    /// because a plant is what the model renders well: the measured
+    /// good clip moved a branch (a corner/whole motion ratio of
+    /// 0.06) and the measured bad one drifted the camera (0.94) on a
+    /// picture where the model had nothing living to move.
+    enum Movability: String, Codable, Equatable, Sendable {
+
+        /// Something that grows: leaves, branches, grass, vines,
+        /// flowers, moss, bamboo, pine needles, reeds, a tendril.
+        case plant
+
+        /// Something that is only in the air: smoke, steam, mist,
+        /// dust in the light.
+        case air
+
+        /// Something light and loose: paper, cloth, cord, ribbon,
+        /// tassel, hair, a hanging edge, a thread.
+        case light
+
+        /// Something solid that stands on a surface: vessels,
+        /// pottery, bronze, books, stone, tools, heavy fruit.
+        case solid
+
+        /// Whether a breeze may move this kind of thing.
+        var moves: Bool {
+            self != .solid
+        }
+    }
+
     /// One motif, and what the breeze may do with it.
     struct Item: Codable, Equatable, Sendable {
 
@@ -48,10 +81,23 @@ struct CoverMotionPlan: Codable, Equatable, Sendable {
         /// Whether a light breeze may move it.
         var moves: Bool
 
-        init(motif: String, thing: String, moves: Bool) {
+        /// What kind of thing it is, by physics.
+        ///
+        /// It is the safe default that a plan written before the
+        /// classification existed reads as (= `solid`), so an old
+        /// plan never invents a mover.
+        var movability: Movability
+
+        init(
+            motif: String,
+            thing: String,
+            moves: Bool,
+            movability: Movability = .solid
+        ) {
             self.motif = motif
             self.thing = thing
             self.moves = moves
+            self.movability = movability
         }
     }
 
@@ -81,4 +127,34 @@ struct CoverMotionPlan: Codable, Equatable, Sendable {
 
     /// The things that must hold still.
     var holding: [Item] { items.filter { !$0.moves } }
+
+    /// Which item moves, and where it sits in the plan.
+    ///
+    /// The clip gets ONE mover, and the picture decides which one:
+    ///
+    ///  - a PLANT, when the picture has one (= the user asked for a
+    ///    plant-growth animation whenever there is a plant to grow);
+    ///  - otherwise the lightest thing that can move (= smoke, dust,
+    ///    paper, cloth, a cord);
+    ///  - otherwise nothing moves (= the wind falls on the light,
+    ///    which the plan's wind sentence already says).
+    ///
+    /// One mover, not a list: a list of movers is what let the model
+    /// decide what to animate, and the measured bad clip drifted the
+    /// camera because the model had nothing living to move.
+    var moverIndex: Int? {
+        let candidates = items.enumerated().filter { $0.element.moves }
+        if let plant = candidates.first(where: { $0.element.movability == .plant }) {
+            return plant.offset
+        }
+        if let light = candidates.first(where: {
+            $0.element.movability == .air || $0.element.movability == .light
+        }) {
+            return light.offset
+        }
+        return nil
+    }
+
+    /// The one thing that moves.
+    var mover: Item? { moverIndex.map { items[$0] } }
 }

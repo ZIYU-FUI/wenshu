@@ -70,8 +70,27 @@ enum CoverMotionPrompt {
     /// size. The forbidden words are there for the same reason: the
     /// model matches "sweep" to a sweep.
     static let tail = """
-        The movement is slight and minimal. Every moving thing shifts by a few millimetres at most: a slight, barely perceptible sway, never a sweep, never a swing, never a change of pose. The movement is slow and continuous.
         The light does not change: no new light, no shadow moves, no beam of sunlight appears, and the white of the paper stays the same white. The colour temperature does not change: nothing warms up, nothing cools down, no hue shifts. Nothing appears, nothing disappears, nothing is added or removed. The ground stays exactly as it is in the first frame.
+        """
+
+    /// The magnitude of a movement that is not a growth.
+    ///
+    /// It carries a MAGNITUDE, not a mood. "Slow subtle movement" is a
+    /// hint; "a few millimetres at most, a barely perceptible sway" is
+    /// a size, and a model reads a size as a size. The forbidden words
+    /// are there for the same reason: the model matches "sweep" to a
+    /// sweep.
+    static let swayMagnitude = """
+        The movement is slight and minimal. Every moving thing shifts by a few millimetres at most: a slight, barely perceptible sway, never a sweep, never a swing, never a change of pose. The movement is slow and continuous.
+        """
+
+    /// The magnitude of a GROWTH.
+    ///
+    /// It says the same thing in the growth's own words, because the
+    /// sway wording would contradict it (= a growth does not shift and
+    /// does not sway, it lengthens and opens).
+    static let growthMagnitude = """
+        The growth is slight and minimal: it lengthens by a few millimetres at most, a barely perceptible unfurling, never a sweep, never a swing, never a change of pose, and it never becomes a different shape or a different thing. The growth is slow and continuous.
         """
 
     /// The sentence that names what moves, and by how much.
@@ -88,6 +107,28 @@ enum CoverMotionPrompt {
         """
     }
 
+    /// The sentence for a PLANT, which GROWS.
+    ///
+    /// The user asked for this directly: a picture with a plant gets a
+    /// plant-GROWTH animation, not a plant that sways. A growth is the
+    /// motion a plant actually has, and it is what a person watches a
+    /// plant for; a sway reads as a gust over anything.
+    ///
+    /// It stays a CYCLE (= it settles back to where it started),
+    /// because the clip ends on the picture it started from: the
+    /// endpoint is given the same still as the first and the last
+    /// frame, so the model has to come back. A growth that unwound
+    /// would be a rewind, and a rewind is worse than a seam.
+    static func growingLine(_ things: [String]) -> String {
+        """
+        These move, and only these move: \(things.joined(separator: "; ")). It GROWS: it \
+        lengthens and opens by a fraction, a tender part unfurling a little, and then it \
+        settles back to where it started. The growth is slow and continuous, and it never \
+        becomes a sway, a swing or a sweep.
+        """
+    }
+
+
     /// Builds the prompt.
     ///
     /// - Parameter plan: what the breeze may move, what must hold
@@ -100,14 +141,25 @@ enum CoverMotionPrompt {
         lines.append(head)
         lines.append(plan.wind)
 
-        let moving = plan.moving.map(\.thing)
-        if !moving.isEmpty {
-            lines.append(movingLine(moving))
+        let moverIndex = plan.moverIndex
+        let mover = moverIndex.map { plan.items[$0] }
+        if let mover {
+            if mover.movability == .plant {
+                lines.append(growingLine([mover.thing]))
+            } else {
+                lines.append(movingLine([mover.thing]))
+            }
         }
-        let holding = plan.holding.map(\.thing)
+        // Everything that is not the mover holds still, INCLUDING the
+        // other plants and the other light things: one mover is the
+        // whole animation.
+        let holding = plan.items.enumerated()
+            .filter { $0.offset != moverIndex }
+            .map(\.element.thing)
         if !holding.isEmpty {
             lines.append("These do not move at all: \(holding.joined(separator: "; ")).")
         }
+        lines.append(mover?.movability == .plant ? growthMagnitude : swayMagnitude)
         lines.append(tail)
 
         return lines.joined(separator: "\n")
