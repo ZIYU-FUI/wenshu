@@ -160,6 +160,19 @@ struct CoverRouteRow: View {
                 .buttonStyle(.link)
             }
 
+            // The mode note. The endpoint serves the
+            // first-and-last-frame mode for one video model only, and a
+            // route that names another one loses the seamless loop
+            // silently, so the row says what the user would otherwise
+            // only find out by watching the seam jump.
+            if kind == .video && !CoverVideoGenerator.servesFirstAndLastFrame(route) {
+                Text(String(localized: "settings.covers.videoNoSeamlessLoop"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
             if isEditing {
                 Picker(String(localized: "settings.covers.provider"), selection: providerBinding) {
                     Text(String(localized: "settings.covers.useMainProvider")).tag("")
