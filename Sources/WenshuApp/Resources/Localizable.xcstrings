@@ -7396,6 +7396,40 @@
           }
         }
       }
+    },
+    "settings.covers.protocolNote": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Covers are drawn with the MiniMax cover protocol (the image and video endpoints of api.minimaxi.com). A service of your own is called as it is."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "封面使用 MiniMax 封面协议绘制（api.minimaxi.com 的图像与视频接口）。你自己的服务会按原样调用。"
+          }
+        }
+      }
+    },
+    "settings.covers.foreignEndpointNote": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This endpoint does not look like a MiniMax cover endpoint, so the app's cover request may not be understood by it."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这个端点看起来不是 MiniMax 封面接口，app 的封面请求它可能读不懂。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

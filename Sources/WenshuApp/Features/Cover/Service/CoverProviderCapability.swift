@@ -103,6 +103,36 @@ enum CoverProviderCapability {
             """
     }
 
+    /// The hosts that serve the cover protocol.
+    ///
+    /// The cover endpoints are MiniMax's own (= the international
+    /// account and the mainland one). A route that names an endpoint
+    /// of its own is the user's own service and is called as it is,
+    /// but the app still sends it a cover-protocol request, so the
+    /// settings say so when the endpoint does not look like a cover
+    /// endpoint.
+    static let coverProtocolHosts: Set<String> = [
+        "api.minimaxi.com",
+        "api.minimax.io",
+    ]
+
+    /// Whether an endpoint of the user's own looks like a cover
+    /// endpoint.
+    ///
+    /// It is a HOST check and not a block: a proxy of the user's own
+    /// can perfectly well speak the cover protocol on another host.
+    /// So this answers "is this worth mentioning", not "may we call
+    /// it".
+    ///
+    /// - Parameter baseURL: the endpoint the route names, if any.
+    /// - Returns: true when the endpoint is a cover endpoint, or when
+    ///   the route names none (= the app's own endpoint is a cover
+    ///   one).
+    static func speaksCoverProtocol(baseURL: String?) -> Bool {
+        guard let baseURL, let host = URL(string: baseURL)?.host else { return true }
+        return coverProtocolHosts.contains(host.lowercased())
+    }
+
     /// The message the user gets when no service is configured at all.
     static let noServiceMessage = """
         A cover needs a service that generates pictures. Add an image service in Settings, \
