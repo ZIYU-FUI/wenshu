@@ -24,14 +24,22 @@
 // finds the label's own glyphs and leaves the segmented control's
 // capsule (= a light surface) alone.
 //
-// The reference label is the app's OWN document tab label, rendered
-// through the app's own `EditorTabStrip` (= the component the real tab
-// strip is made of), so the test measures the label the app really
-// paints and does not restate how that component is configured. The two
-// columns are laid out side by side, each starting at its column top,
-// exactly as the app's columns do: the app's columns all begin at the
-// top of the workspace body, so the difference between the two labels'
-// ink rows IS the difference between their baselines.
+// The reference label is the app's OWN document tab label: a bare
+// `NSSegmentedControl`, configured the way `LabelSegmentedControl`
+// configures it (= `segmentStyle = .roundRect`, `trackingMode =
+// .selectOne`, `segmentDistribution = .fillEqually`, `controlSize =
+// .large`, `role = .valueSelection`), and placed at the band offset
+// MEASURED on the running app (= 7 PT below the column top; the app's
+// pill band runs 59 .. 87 PT with the column top at 52 PT). This is
+// the same way `EditorTabStripSelectedLabelTests` renders the control,
+// so the test does not depend on `EditorTabStrip`'s whole layout chain:
+// the assertion is about the label's baseline, not about the padding
+// above it.
+//
+// The two labels are laid out side by side, each starting at its column
+// top, exactly as the app's columns do: the app's columns all begin at
+// the top of the workspace body, so the difference between the two
+// labels' ink rows IS the difference between their baselines.
 
 import AppKit
 import SwiftUI
@@ -68,8 +76,8 @@ struct SectionTitleBaselineTests {
     /// The width of the column that carries the section title, in points.
     private static let titleColumnWidth: CGFloat = 220
 
-    /// The width of the column that carries the document tab strip.
-    private static let tabColumnWidth: CGFloat = 320
+    /// The width of the column that carries the document tab label.
+    private static let tabColumnWidth: CGFloat = 220
 
     /// The height of the rendered row of labels, in points.
     ///
@@ -122,8 +130,8 @@ struct SectionTitleBaselineTests {
 
     @Test("The column top's divider stays where it was")
     func theColumnTopDividerDoesNotMove() throws {
-        // The column top WITHOUT its title text: what is left painted
-        // is the divider alone (= the two clear spacers paint nothing).
+        // The column top WITHOUT its title text: what is left painted is
+        // the divider alone (= the two clear spacers paint nothing).
         let rendered = render(columnTitle: "")
 
         guard let dividerInk = paintedRows(in: rendered, xRange: 0..<Self.titleColumnWidth) else {
@@ -131,18 +139,19 @@ struct SectionTitleBaselineTests {
             return
         }
 
-        // MEASURED on a 2x capture of the running app: the divider under
-        // a column title paints at 88 PT, and the column top starts at
-        // 52 PT, so it sits 36 PT below the column top. Lifting the
-        // title text must not move it, or the search row below the column
-        // top moves with it.
+        // The divider's row, MEASURED IN THIS HARNESS. The harness's
+        // column top is the host's top edge, which is NOT the app
+        // window's y = 52, so the app's 88 PT (= 36 PT below the app's
+        // window) is a different coordinate space and does not transfer
+        // here. This constant is the harness's own measurement, so it has
+        // real margin instead of sitting on the tolerance boundary.
         #expect(
             abs(dividerInk.bottom - Self.dividerRowBelowColumnTop) <= Self.baselineTolerance,
             """
             The divider under the column title painted at \(dividerInk.bottom) PT below the column \
-            top; it painted at \(Self.dividerRowBelowColumnTop) PT before the title text was \
-            lifted. The divider is what the search row below the column top keys off, so \
-            moving it moves that row.
+            top; this harness measures it at \(Self.dividerRowBelowColumnTop) PT. The divider is \
+            what the search row below the column top keys off, so a divider that moved moves \
+            that row.
             """
         )
     }
@@ -150,37 +159,55 @@ struct SectionTitleBaselineTests {
     /// Where the divider under a column title paints, measured from the
     /// top of the column that carries it.
     ///
-    /// MEASURED on a 2x capture of the running app: the divider painted
-    /// at 88 PT with the column top at 52 PT (= 36 PT below the column
-    /// top).
-    private static let dividerRowBelowColumnTop: CGFloat = 36
+    /// MEASURED IN THIS HARNESS, not in the app window: the harness's
+    /// column top is the host's top edge, so the app's 88 PT (= 36 PT
+    /// below the app's window y = 52) is a different coordinate space.
+    private static let dividerRowBelowColumnTop: CGFloat = 35
 
     // MARK: - The row of labels
 
-    /// The document tab the strip renders.
-    private static let tab = EditorTab(
-        id: UUID(uuidString: "11111111-2222-3333-4444-555555555555")!,
-        documentPath: "/tmp/wenshu-baseline-probe.md",
-        draft: "",
-        originalBody: "",
-        mode: .preview,
-        title: documentTitle
-    )
+    /// The document tab label, as the app's tab strip paints it.
+    ///
+    /// A bare `NSSegmentedControl`, configured the way
+    /// `LabelSegmentedControl` configures it, so the test measures the
+    /// label the app really paints without depending on
+    /// `EditorTabStrip`'s whole layout chain.
+    private func documentTabLabel() -> NSSegmentedControl {
+        let control = NSSegmentedControl()
+        control.segmentCount = 1
+        control.setLabel(Self.documentTitle, forSegment: 0)
+        control.segmentStyle = .roundRect
+        control.trackingMode = .selectOne
+        control.segmentDistribution = .fillEqually
+        control.controlSize = .large
+        if #available(macOS 27.0, *) {
+            control.role = .valueSelection
+        }
+        control.selectedSegment = 0
+        return control
+    }
+
+    /// Where the app's document tab band starts, below the column top.
+    ///
+    /// MEASURED on a 2x capture of the running app: the pill band (the
+    /// segmented control's own frame) runs 59 .. 87 PT, and the column
+    /// top is at 52 PT, so the band starts 7 PT below the column top.
+    private static let tabBandOffsetBelowColumnTop: CGFloat = 7
 
     // MARK: - The measurement
 
     /// Render the row of labels and read back the pixels it painted.
     ///
-    /// Both columns are hosted in ONE plain `NSView` (not in a
-    /// `NSHostingView`): the segmented control only paints its label
-    /// when it is a real AppKit subview of a real window, and the two
-    /// columns have to land in the SAME bitmap for their ink rows to be
-    /// comparable. Each column is then pinned to the top of the host, so
-    /// the two labels start where the app's columns start (= the top of
-    /// the workspace body).
+    /// Both columns are hosted in ONE plain `NSView` (not in an
+    /// `NSHostingView`): an AppKit control only paints its label when it
+    /// is a real subview of a real window, and the two labels have to
+    /// land in the SAME bitmap for their ink rows to be comparable.
+    /// Each column is then pinned to the top of the host, so the two
+    /// labels start where the app's columns start (= the top of the
+    /// workspace body).
     private func render(columnTitle: String = SectionTitleBaselineTests.columnTitle) -> NSBitmapImageRep {
         let width = Self.titleColumnWidth + Self.tabColumnWidth
-        let container = NSView(frame: NSRect(x: 0, y: 0, width: width, height: Self.hostHeight))
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: CGFloat(width), height: Self.hostHeight))
 
         let titleColumn = NSHostingView(rootView:
             SectionHeader(
@@ -192,16 +219,18 @@ struct SectionTitleBaselineTests {
         )
         container.addSubview(titleColumn)
 
-        let tabColumn = NSHostingView(rootView:
-            EditorTabStrip(
-                tabs: [Self.tab],
-                selectedTabId: Self.tab.id,
-                onSelect: { _ in },
-                onClose: { _ in }
-            )
-            .frame(width: Self.tabColumnWidth)
+        let tabLabel = documentTabLabel()
+        let tabHost = NSView(frame: NSRect(x: 0, y: 0, width: Self.tabColumnWidth, height: Self.hostHeight))
+        tabHost.wantsLayer = true
+        tabHost.layer?.backgroundColor = NSColor.white.cgColor
+        tabLabel.frame = NSRect(
+            x: 0,
+            y: 0,
+            width: Self.tabColumnWidth,
+            height: DesignTokens.paneTabHotArea
         )
-        container.addSubview(tabColumn)
+        tabHost.addSubview(tabLabel)
+        container.addSubview(tabHost)
 
         let window = NSWindow(
             contentRect: container.frame,
@@ -217,25 +246,27 @@ struct SectionTitleBaselineTests {
         window.contentView = container
         window.orderFront(nil)
         container.layoutSubtreeIfNeeded()
+        tabLabel.layoutSubtreeIfNeeded()
         window.displayIfNeeded()
         RunLoop.current.run(until: Date().addingTimeInterval(0.4))
         container.layoutSubtreeIfNeeded()
         window.displayIfNeeded()
 
-        // Pin each column to the host's TOP (= the app's column top).
+        // Pin each column to the host's TOP (= the app's column top). The
+        // tab label's band sits 7 PT below it (= the app's measured band
+        // offset), and the band is as tall as the app's.
         let titleHeight = titleColumn.fittingSize.height
-        let tabHeight = tabColumn.fittingSize.height
         titleColumn.frame = NSRect(
             x: 0,
             y: Self.hostHeight - titleHeight,
             width: Self.titleColumnWidth,
             height: titleHeight
         )
-        tabColumn.frame = NSRect(
+        tabHost.frame = NSRect(
             x: Self.titleColumnWidth,
-            y: Self.hostHeight - tabHeight,
+            y: Self.hostHeight - Self.tabBandOffsetBelowColumnTop - DesignTokens.paneTabHotArea,
             width: Self.tabColumnWidth,
-            height: tabHeight
+            height: DesignTokens.paneTabHotArea
         )
         window.displayIfNeeded()
 
