@@ -52,10 +52,11 @@ struct CoverArtDirectionTests {
             plants along the bottom edge, and nothing at all in the lower left corner, \
             because a title is read over that space. Use soft ink-wash mountains and \
             mist in the far distance, broad painterly brushwork, saturated warm color, \
-            rich midtones, tactile materials, a little gold. A small artist's seal in \
-            one corner is the only writing allowed. This is a painted picture, never a \
-            document, a slide, a poster, a diagram, a screenshot or an interface, and \
-            it contains no written words at all.
+            rich midtones, tactile materials, a little gold, a confident illustrative \
+            finish. A small artist's seal in one corner is the only writing allowed. \
+            The subject is centered and complete with air on every side. This is a \
+            painted picture, never a document, a slide, a poster, a diagram, a \
+            screenshot or an interface, and it contains no written words at all.
             """
 
         #expect(CoverArtDirection.style == expected)

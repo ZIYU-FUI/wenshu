@@ -36,6 +36,11 @@
 //    painted as a DOCUMENT, with English headings and columns. So the
 //    picture is ruled out by name (= never a document, a slide, a
 //    poster, a diagram, a screenshot or an interface),
+//  - the sentence that says the subject is CENTERED and COMPLETE with
+//    air on every side is load-bearing, and so is "a confident
+//    illustrative finish". Cutting them (to save characters for the
+//    subject) made the model paint a photorealistic close-up portrait
+//    that filled the frame. A prompt can fail on a word.
 //  - the provider takes a prompt shorter than 1500 characters, and
 //    the art direction is already long, so the subject is the part
 //    that gets cut. The art direction is never cut: the art is the
@@ -80,10 +85,11 @@ enum CoverArtDirection {
         plants along the bottom edge, and nothing at all in the lower left corner, \
         because a title is read over that space. Use soft ink-wash mountains and \
         mist in the far distance, broad painterly brushwork, saturated warm color, \
-        rich midtones, tactile materials, a little gold. A small artist's seal in \
-        one corner is the only writing allowed. This is a painted picture, never a \
-        document, a slide, a poster, a diagram, a screenshot or an interface, and \
-        it contains no written words at all.
+        rich midtones, tactile materials, a little gold, a confident illustrative \
+        finish. A small artist's seal in one corner is the only writing allowed. \
+        The subject is centered and complete with air on every side. This is a \
+        painted picture, never a document, a slide, a poster, a diagram, a \
+        screenshot or an interface, and it contains no written words at all.
         """
 
     /// Joins the art direction and the subject into the prompt that
