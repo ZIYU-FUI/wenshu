@@ -123,7 +123,7 @@ struct InspectorView: View {
                     Label {
                         Text(String(localized: "inspector.toggle.button"))
                     } icon: {
-                        SFIcon(inspectorVisibleBinding ? "sidebar-right" : "sidebar.left", style: .paneTab, color: IconColor.tint)
+                        SFIcon(inspectorVisibleBinding ? "sidebar.right" : "sidebar.left", style: .paneTab, color: IconColor.tint)
                     }
                 }
                 .help(String(localized: "inspector.toggle.help"))
