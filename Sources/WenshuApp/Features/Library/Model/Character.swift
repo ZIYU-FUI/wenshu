@@ -53,10 +53,16 @@ enum CharacterRole: String, CaseIterable, Codable, Sendable {
     /// SF Symbol name for the card icon. Outline icons everywhere
     /// (= the canonical Apple HIG form for the Liquid Glass 3rd-
     /// generation design language).
+    ///
+    /// The antagonist carries a magnifying glass (= the role under
+    /// scrutiny). The name is the system symbol's own name: the
+    /// system has no "person.viewfinder", so a name that does not
+    /// exist renders as an empty image and AppKit logs "No symbol
+    /// named ..." on every render.
     var icon: String {
         switch self {
         case .protagonist: return "person"
-        case .antagonist:  return "person.viewfinder"
+        case .antagonist:  return "person.crop.circle.badge.magnifyingglass"
         case .supporting:  return "person.2"
         case .narrator:    return "text.bubble"
         case .other:       return "person.crop.circle.badge.questionmark"
