@@ -139,13 +139,10 @@ final class CoverVideoService {
         record.cardKind = kind
         record.clipStatus = WSCardCoverStatus.clipFailed
         // The MESSAGE, not the case's debug description. The card
-        // shows this as the failure's help text, and
-        // String(describing:) on a LocalizedError prints the case's
-        // fields (= "providerFailure(CoverProviderFailure(kind:
-        // .quotaExhausted, ...))"), which is the one thing a user
-        // cannot read.
-        record.clipError = (error as? LocalizedError)?.errorDescription
-            ?? String(describing: error)
+        // shows this as the failure's help text, so it has to be
+        // something a user can read (= the provider's sentence, or
+        // the system's, and never a dump of an error's fields).
+        record.clipError = CoverFailureMessage.describe(error)
         record.clipAttemptAt = .now
         record.updatedAt = .now
         try? coverService.writeRecord(record, forKey: key)

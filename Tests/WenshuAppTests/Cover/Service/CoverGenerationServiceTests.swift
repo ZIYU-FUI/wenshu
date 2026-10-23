@@ -136,6 +136,13 @@ struct CoverGenerationServiceTests {
         // The picture the user liked is still there.
         #expect(CardCoverService().coverImageURL(for: target.coverKey)?.path == goodPath)
         #expect(record?.lastError != nil)
+        // And it is a SENTENCE, not a dump of an error's fields: the
+        // card shows this to the user, and "Error Domain=..." reads
+        // like a program error (= measured 2026-10-24, a transport
+        // failure wrote exactly that into the card).
+        let message = record?.lastError ?? ""
+        #expect(!message.hasPrefix("Error Domain="))
+        #expect(!message.contains("UserInfo="))
     }
 
     @Test("Two concurrent generations for one card make ONE call")
