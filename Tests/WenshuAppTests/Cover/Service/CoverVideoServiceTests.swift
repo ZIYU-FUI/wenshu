@@ -36,7 +36,12 @@ private final class StubVideoClient: CoverVideoClient, @unchecked Sendable {
     ) async throws -> Data {
         callCount += 1
         if shouldFail {
-            throw CoverVideoError.noStillCover
+            // The real shape of a failure the user has to act on: the
+            // account has no quota left. That is the case the card
+            // has to read.
+            throw CoverVideoError.providerFailure(
+                CoverProviderFailure(kind: .quotaExhausted, providerSlug: "minimax-cn")
+            )
         }
         return Data([0x00, 0x00, 0x00, 0x18])
     }
@@ -176,6 +181,18 @@ struct CoverVideoServiceTests {
         }
 
         // The still is still there: a failed clip must not take it away.
+        let stillAfter = coverService.coverImageURL(for: target.coverKey)?.path
+        #expect(stillAfter != nil)
+
+        // The card shows the failure's message, so it has to be a
+        // MESSAGE. String(describing:) on a LocalizedError prints the
+        // case's fields, and the card would show the user
+        // "providerFailure(CoverProviderFailure(kind: .quotaExhausted,
+        // ...))", which is the one thing a user cannot read.
+        let failureRecord = service.coverRecord(for: target)
+        let message = failureRecord?.lastError ?? ""
+        #expect(message.contains("quota") || message.contains("API key") || message.contains("rate limit") || message.contains("plan"))
+        #expect(!message.contains("CoverProviderFailure("))
         #expect(coverService.coverImageURL(for: target.coverKey)?.path == stillPath)
 
         // And the card can say what happened: the failure is in the

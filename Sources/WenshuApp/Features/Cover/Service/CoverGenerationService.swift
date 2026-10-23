@@ -182,7 +182,14 @@ final class CoverGenerationService {
         record.cardKind = kind
         record.status = WSCardCoverStatus.failed
         record.lastAttemptAt = .now
-        record.lastError = String(describing: error)
+        // The MESSAGE, not the case's debug description. The card
+        // shows this as the failure's help text, and
+        // String(describing:) on a LocalizedError prints the case's
+        // fields (= "providerFailure(CoverProviderFailure(kind:
+        // .quotaExhausted, ...))"), which is the one thing a user
+        // cannot read.
+        record.lastError = (error as? LocalizedError)?.errorDescription
+            ?? String(describing: error)
         record.updatedAt = .now
         try? coverService.writeRecord(record, forKey: key)
     }
