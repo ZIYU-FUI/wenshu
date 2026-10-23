@@ -28,6 +28,20 @@ the string catalog's driver:
     the driver NAMES the key
   - a key deleted on one side, changed on the other -> CONFLICT, named
 
+THE FILE'S TAIL
+
+The registry is a table PLUS a tail: everything after the LAST table row. The
+tail is not decoration (= it is the marker that says where a new row goes),
+so the driver merges it like a row:
+
+  - a tail on one side only        -> that side's tail
+  - DIFFERENT tails on both sides -> CONFLICT, named "<the file's tail>"
+
+A tail is present when the text after the last table row is not only
+whitespace. Taking the tail from one side alone dropped the tail whenever
+that side had none, so a rebase onto a base without the tail silently
+deleted it.
+
 The output preserves the base file's row order and appends the new keys, so a
 row that only one card added lands at the end (= the append-only convention
 the registry's own footer states).
@@ -94,6 +108,15 @@ def key_of(row: str) -> str | None:
     return m.group(1) if m else None
 
 
+def has_tail(tail: list[str]) -> bool:
+    """True when the text after the last table row is not only whitespace.
+
+    An empty tail and a whitespace-only tail are the same thing here: a side
+    with neither has no tail to keep.
+    """
+    return any(line.strip() for line in tail)
+
+
 def merge_docs(base: str, ours: str, theirs: str) -> tuple[str, list[str]]:
     """Merge two registry files at the key level. Returns (merged, conflicted)."""
     _, base_rows, _ = split_rows(base)
@@ -141,9 +164,24 @@ def merge_docs(base: str, ours: str, theirs: str) -> tuple[str, list[str]]:
         # Deleted on both sides: nothing to keep.
         continue
 
-    before, _, after = split_rows(ours)
+    before, _, our_after = split_rows(ours)
     if not before:
-        before, _, after = split_rows(base)
+        before, _, our_after = split_rows(base)
+    _, _, their_after = split_rows(theirs)
+
+    # The tail (= everything after the last table row) belongs to the file,
+    # not to one side: the side that has one keeps it, and two sides with
+    # DIFFERENT tails disagree the way two rows disagree.
+    if has_tail(our_after) and has_tail(their_after) and our_after != their_after:
+        conflicted.append("<the file's tail>")
+        after = our_after
+    elif has_tail(our_after):
+        after = our_after
+    elif has_tail(their_after):
+        after = their_after
+    else:
+        after = our_after
+
     merged = "\n".join(before + merged_rows + after)
     return merged, conflicted
 
