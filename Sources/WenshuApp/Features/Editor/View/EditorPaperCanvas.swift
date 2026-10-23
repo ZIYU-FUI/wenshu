@@ -49,8 +49,7 @@
 // bottom via the `Spacer(minLength: 0)` in `EditorView`; = long documents grow to fit
 // the text and the body's NSScrollView scrolls naturally = no more "842 PT A4 sheet
 // with a big transparent gap below it" visual bug). 4. `.background(Color.white)`.
-// Drop the explicit white background = the editor column's own background (= system
-// `textBackgroundColor` in light mode, `windowBackgroundColor` in dark mode) shows
+// Drop the explicit white background = the editor column's own background shows
 // through. The visible surface becomes "the editor column with the document text
 // rendered on it", which is the Apple HIG canonical editor surface (= Pages / Numbers
 // / Xcode source editor = no paper rectangle around the text; = the text sits on the
@@ -64,11 +63,13 @@
 // engine's NSScrollView already remembers the user's scroll position per-document (=
 // `EditorScrollMemory` + `restoreScrollOffset`; = no need for an outer ScrollView
 // scroll-anchor policy; = the engine handles its own scroll memory). Net visual:
-// editor body = `Color.textBackgroundColor` (= matches the editor column's own
-// background in light + dark mode) + the engine's `NativeTextViewWrapper` renders the
-// markdown text directly on that surface + the engine's NSTextView owns the horizontal
-// + vertical scroll. No A4 paper rectangle, no forced light mode, no paper card
-// shadow, no 842 PT minimum height, no 595 PT A4 width, no 1 inch outer margin. Net
+// editor body = the window's own root material (= the same behind-window
+// material the chat column shows; = the editor column and the chat column read
+// as ONE continuous translucent surface) + the engine's `NativeTextViewWrapper`
+// renders the markdown text directly on that surface + the engine's NSTextView
+// owns the horizontal + vertical scroll. No A4 paper rectangle, no forced light
+// mode, no paper card shadow, no 842 PT minimum height, no 595 PT A4 width, no
+// 1 inch outer margin. Net
 // functional: identical to the pre-fix state (= the user types into the same
 // NSTextView, edits the same draft, sees the same text formatting, opens the same wiki
 // links) with the only difference being the visible chrome around the NSTextView (= no
@@ -262,14 +263,13 @@ struct EditorPaperCanvas<Content: View>: View {
         // same space away a second time and left an empty band between
         // the document's last line and the status bar.
         content
-            // The document surface the text sits on. The engine's
-            // NSTextView is transparent (= `backgroundColor = .clear`,
-            // `drawsBackground = false`), so the body would otherwise
-            // show the window's root material (= the desktop wallpaper)
-            // straight through the text. This fill keeps the document
-            // body a comfortable, near-opaque reading surface while the
-            // window's chrome stays translucent.
-            .background(DesignTokens.editorReadingSurface)
+            // The document surface is the window's own material: the
+            // editor body paints no fill of its own, so the root
+            // behind-window material shows through and the editor
+            // column reads as ONE surface with the chat column beside
+            // it. The engine's NSTextView is transparent (= its
+            // `backgroundColor = .clear`, `drawsBackground = false`),
+            // so the document text lands directly on that material.
             .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }

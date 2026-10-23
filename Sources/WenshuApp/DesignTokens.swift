@@ -148,13 +148,6 @@ enum DesignTokens {
     // / Replaces `.foregroundStyle(.tertiary)` in 16 files.
     static let statusForeground: HierarchicalShapeStyle = .tertiary
 
-    // / The document surface the editor's text sits on (= Apple's
-    // / `textBackgroundColor`, = the opaque reading surface an editor
-    // / keeps: = the window's root material is translucent, = so the
-    // / document body carries its own near-opaque fill to stay
-    // / readable. Light/dark mode follow the user's appearance setting.
-    static let editorReadingSurface: Color = Color(nsColor: .textBackgroundColor)
-
     // MARK: - Surface metrics (Apple HIG)
     // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / readability).
