@@ -136,7 +136,8 @@ final class DelegateResearchTool: Tool, @unchecked Sendable {
                     "layer": "entities",
                     "section_title": "概要"
                 ],
-                registry: registry
+                registry: registry,
+                scope: currentScope
             )
             let handleID = result.handle.id
             let spawnID = result.handle.trackerSpawnID?.uuidString ?? ""
@@ -173,6 +174,22 @@ final class DelegateResearchTool: Tool, @unchecked Sendable {
             // directly without re-parsing the JSON.
             "summary": "已发起 \(delegations.count) 项调研任务（researcher 子代理），调研结果将异步写入 reference_library。"
         ])
+    }
+
+    /// The scope the delegation belongs to (= the chat session that
+    /// asked for it, and the book it was reading).
+    ///
+    /// The session comes from the turn the tool was called in: the
+    /// conductor binds it around the turn, so the tool reads it here
+    /// rather than being handed it (= the tool protocol carries only
+    /// its input string).
+    ///
+    /// The book is nil until the store-side card supplies it: the
+    /// delegation is still scoped to its session, and a scope without a
+    /// book never matches a book-scoped read.
+    private var currentScope: AgentScope? {
+        guard let sessionID = TurnScope.currentSessionID else { return nil }
+        return AgentScope(sessionID: SessionID(rawValue: sessionID), bookID: nil)
     }
 
     // Add a kanban task for the in-flight research (= best-effort;

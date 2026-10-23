@@ -1,5 +1,5 @@
 //
-//  AgentScope.swift · Wenshu · the chat scope a delegation belongs to
+//  AgentScope.swift · WenshuData · the chat scope a delegation belongs to
 //
 //  WHY the scope is one value: the delegation registry is ONE instance
 //  for the whole app, so a delegation that does not say which chat asked
@@ -13,23 +13,22 @@
 //  chat's id is `s_<uuid>` (= the book is NOT). Scoping by the session
 //  id alone would therefore lose the book boundary for a new chat.
 //
-//  WHY it lives here: the scope is read across features (= the agent
-//  store and the chat store), so it is one value type in the shared
-//  home rather than a loose parameter repeated per feature.
+//  WHY it lives here: the scope crosses the package boundary. The agent
+//  runtime package builds it from the turn's session, and the app stamps
+//  it onto the delegation handle, so it lives beside the typed ids it
+//  is made of (= SessionID / BookID) in the shared data package.
 //
 
-import WenshuData
-
 /// The chat session and the book a delegation was created in.
-struct AgentScope: Hashable, Sendable {
+public struct AgentScope: Hashable, Sendable {
 
     /// The chat session that asked for the delegation.
-    var sessionID: SessionID
+    public var sessionID: SessionID
 
     /// The book that session was reading. Nil = the session names no book.
-    var bookID: BookID?
+    public var bookID: BookID?
 
-    init(sessionID: SessionID, bookID: BookID? = nil) {
+    public init(sessionID: SessionID, bookID: BookID? = nil) {
         self.sessionID = sessionID
         self.bookID = bookID
     }

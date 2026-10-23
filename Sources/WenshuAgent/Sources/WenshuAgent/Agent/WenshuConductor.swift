@@ -225,33 +225,38 @@ public actor WenshuConductor {
             // registry's instance is the generic one.
             let providerTools = await toolProvider?() ?? [:]
             let effectiveTools = tools.merging(providerTools) { scoped, _ in scoped }
-            let result = try await loop.runTurn(
-                userMessage: userMessage,
-                // Pass the agent-driver reminder as the systemMessage
-                // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
-                // most attention to imperative instructions).
-                systemMessage: agentDriverReminder,
-                conversationHistory: [],
-                // P0 #2 (WIRE-AGENT-002): forward the conductor's
-                // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
-                // registered wenshu tools.
-                tools: effectiveTools,
-                // The user's settings for this turn (= the recovery policy
-                // and the memory backend they chose). Without this the
-                // loop runs on AgentSettings() defaults, and every
-                // settings-screen control is a promise nothing keeps.
-                settings: settings,
-                // Forward streamCallback (= Hermes
-                // … (= 4 rationale lines collapsed, = A112 docblock collapse per §1.8)
-                // token-by-token). Legacy callers (= tests) pass nil.
-                streamCallback: streamCallback,
-                // P5-AGENT-STREAMING-VISIBILITY (2026-09-25): forward
-                // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
-                // did not register (= hermes get_definitions parity).
-                toolSchemas: await ToolRegistry.shared.getDefinitions(
-                    toolNames: Set(effectiveTools.keys)
+            // The turn's session is bound around the turn, so a tool the
+            // model calls learns which chat asked for it (= the tool
+            // protocol carries only its input string).
+            let result = try await TurnScope.withScope(sessionID: sessionId) {
+                try await loop.runTurn(
+                    userMessage: userMessage,
+                    // Pass the agent-driver reminder as the systemMessage
+                    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
+                    // most attention to imperative instructions).
+                    systemMessage: agentDriverReminder,
+                    conversationHistory: [],
+                    // P0 #2 (WIRE-AGENT-002): forward the conductor's
+                    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
+                    // registered wenshu tools.
+                    tools: effectiveTools,
+                    // The user's settings for this turn (= the recovery policy
+                    // and the memory backend they chose). Without this the
+                    // loop runs on AgentSettings() defaults, and every
+                    // settings-screen control is a promise nothing keeps.
+                    settings: settings,
+                    // Forward streamCallback (= Hermes
+                    // … (= 4 rationale lines collapsed, = A112 docblock collapse per §1.8)
+                    // token-by-token). Legacy callers (= tests) pass nil.
+                    streamCallback: streamCallback,
+                    // P5-AGENT-STREAMING-VISIBILITY (2026-09-25): forward
+                    // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
+                    // did not register (= hermes get_definitions parity).
+                    toolSchemas: await ToolRegistry.shared.getDefinitions(
+                        toolNames: Set(effectiveTools.keys)
+                    )
                 )
-            )
+            }
             // Step 4: shape the ConversationResult into the canonical
             // (reply, totalTokens, thinking) tuple expected by ChatView.
             let reply = result.response.blocks
@@ -268,9 +273,6 @@ public actor WenshuConductor {
                 return nil
             }
             let totalTokens = result.response.usage.totalTokens
-            // sessionId is the parameter retained for future per-session
-            // hook injection (= parity with legacy handle signature).
-            _ = sessionId
             // model parameter is used by the legacy path; the loop reads
             // its model from the connector's default-model resolution.
             _ = model
