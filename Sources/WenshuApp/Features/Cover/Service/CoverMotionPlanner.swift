@@ -113,7 +113,7 @@ struct CoverMotionPlanner: CoverMotionPlanning {
 
         If no object can move, the wind falls on the light instead: the light drifts slowly across the ground and the soft shadows shift gently. Never on the camera.
 
-        "wind" is one English sentence of at most 30 words: where the breeze comes from, and how it passes through the picture. It stands on its own.
+        "wind" is one English sentence of at most 30 words: where the breeze comes from, and how it passes through the picture. It stands on its own. Write it in the SMALL words (= "a light breeze", "barely", "a hint of movement", "a few millimetres") and never in the grand ones (= "sweep", "billow", "sway violently", "rustle", "reveal", "pan across", "travel across"). The wind sentence must NOT mention the light, the shadows or the colours: those are locked elsewhere, and a sentence that mentions them asks for them to change.
 
         Output only this one line of JSON, no explanation, no extra text:
         {"picture":"the English phrase for the whole picture","items":[{"motif":"the object's own name, copied exactly","thing":"the English phrase","moves":true}],"wind":"one English sentence"}

@@ -41,8 +41,20 @@ enum CoverMotionPrompt {
     static let fixedCameraInstruction = "[固定]"
 
     /// The head of the prompt.
+    ///
+    /// Everything here is a BAN, not a description. The measured
+    /// failure was a draw that turned the pale paper of the still
+    /// into a wall and a table with a hard beam of window light, so
+    /// the light changed and the colour warmed. "The light stays soft
+    /// and even" is a description of the light and did not stop
+    /// either: a model reads a description as something it may
+    /// arrange. It reads a ban as a rule.
+    ///
+    /// The camera list names "no roll" and "no zoom" because the
+    /// measured move was a sideways pan and a push, and neither word
+    /// was in the list.
     static let head = """
-        The camera is completely locked: no push, no pull, no pan, no tilt, no shake, no cut, no change of framing. The composition, the objects and the background stay exactly as they are in the first frame.
+        The camera is completely locked: no push, no pull, no pan, no tilt, no roll, no zoom, no shake, no cut, no change of framing. The composition, the objects, the background, the light and the colour stay exactly as they are in the first frame.
         """
 
     /// The tail of the prompt.
@@ -51,9 +63,30 @@ enum CoverMotionPrompt {
     /// table: the picture's ground is decided by the art direction
     /// (a plain light ground), and a prompt that names the wrong one
     /// asks the model to redraw the picture.
+    ///
+    /// The movement carries a MAGNITUDE, not a mood. "Slow subtle
+    /// movement" is a hint; "a few millimetres at most, a barely
+    /// perceptible sway" is a size, and a model reads a size as a
+    /// size. The forbidden words are there for the same reason: the
+    /// model matches "sweep" to a sweep.
     static let tail = """
-        The movement is small, slow and continuous, like watching a real breeze from a seat at the table. Nothing appears, nothing disappears, nothing is added or removed. The light stays soft and even, and the ground stays exactly as it is in the first frame: no new scenery appears (no wall, no window, no furniture, no hard beam of sunlight).
+        The movement is slight and minimal. Every moving thing shifts by a few millimetres at most: a slight, barely perceptible sway, never a sweep, never a swing, never a change of pose. The movement is slow and continuous.
+        The light does not change: no new light, no shadow moves, no beam of sunlight appears, and the white of the paper stays the same white. The colour temperature does not change: nothing warms up, nothing cools down, no hue shifts. Nothing appears, nothing disappears, nothing is added or removed. The ground stays exactly as it is in the first frame.
         """
+
+    /// The sentence that names what moves, and by how much.
+    ///
+    /// The movement is a CYCLE, because the clip ends on the picture
+    /// it started from: the endpoint is given the same still as the
+    /// first and the last frame, so the model has to come back. Saying
+    /// so in the motion sentence gives it the arc to plan.
+    static func movingLine(_ things: [String]) -> String {
+        """
+        These move, and only these move: \(things.joined(separator: "; ")). Each of them \
+        moves by a few millimetres at most, a slight, barely perceptible sway that drifts \
+        and returns to where it started.
+        """
+    }
 
     /// Builds the prompt.
     ///
@@ -69,7 +102,7 @@ enum CoverMotionPrompt {
 
         let moving = plan.moving.map(\.thing)
         if !moving.isEmpty {
-            lines.append("These move, and only these move: \(moving.joined(separator: "; ")).")
+            lines.append(movingLine(moving))
         }
         let holding = plan.holding.map(\.thing)
         if !holding.isEmpty {

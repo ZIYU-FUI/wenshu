@@ -263,4 +263,79 @@ struct CoverMotionPlannerTests {
 
         #expect(CoverMotionPrompt.make(plan: plan) == CoverMotionPrompt.make(plan: plan))
     }
+
+    // MARK: - The strict constraints
+
+    @Test("The light cannot change")
+    func theLightCannotChange() throws {
+        let plan = try CoverMotionPlanner.parse(rainWaterAnswer)
+
+        let prompt = CoverMotionPrompt.make(plan: plan).lowercased()
+
+        // A measured draw turned the pale paper into a wall and a
+        // table with a hard beam of window light, so the light
+        // changed and the prompt did not stop it.
+        #expect(prompt.contains("the light does not change"))
+        #expect(prompt.contains("no new light"))
+        #expect(prompt.contains("no shadow moves"))
+        #expect(prompt.contains("no beam of sunlight"))
+    }
+
+    @Test("The colour temperature cannot change")
+    func theColourTemperatureCannotChange() throws {
+        let plan = try CoverMotionPlanner.parse(rainWaterAnswer)
+
+        let prompt = CoverMotionPrompt.make(plan: plan).lowercased()
+
+        #expect(prompt.contains("the colour temperature does not change"))
+        #expect(prompt.contains("nothing warms up"))
+        #expect(prompt.contains("no hue shifts"))
+    }
+
+    @Test("The camera cannot roll or zoom either")
+    func theCameraCannotRollOrZoom() throws {
+        let plan = try CoverMotionPlanner.parse(rainWaterAnswer)
+
+        let prompt = CoverMotionPrompt.make(plan: plan).lowercased()
+
+        // The measured move was a sideways pan and a push, and
+        // neither word was in the list.
+        #expect(prompt.contains("no roll"))
+        #expect(prompt.contains("no zoom"))
+    }
+
+    @Test("The movement carries a magnitude, not a mood")
+    func theMovementCarriesAMagnitude() throws {
+        let plan = try CoverMotionPlanner.parse(rainWaterAnswer)
+
+        let prompt = CoverMotionPrompt.make(plan: plan).lowercased()
+
+        #expect(prompt.contains("a few millimetres at most"))
+        #expect(prompt.contains("barely perceptible"))
+        #expect(prompt.contains("never a sweep"))
+        #expect(prompt.contains("never a swing"))
+    }
+
+    @Test("Only the named things move")
+    func onlyTheNamedThingsMove() throws {
+        let plan = try CoverMotionPlanner.parse(rainWaterAnswer)
+
+        let prompt = CoverMotionPrompt.make(plan: plan)
+
+        #expect(prompt.contains("These move, and only these move:"))
+        #expect(prompt.contains("These do not move at all:"))
+    }
+
+    @Test("The planner is told to use the small words and to leave the light alone")
+    func thePlannerIsToldToUseTheSmallWords() {
+        let prompt = CoverMotionPlanner.prompt.lowercased()
+
+        // The wind sentence is the ACTION as far as the endpoint is
+        // concerned, so a grand word in it asks for the camera move
+        // the fixed part forbids.
+        #expect(prompt.contains("small words"))
+        #expect(prompt.contains("a few millimetres"))
+        #expect(prompt.contains("never in the grand ones"))
+        #expect(prompt.contains("must not mention the light"))
+    }
 }
