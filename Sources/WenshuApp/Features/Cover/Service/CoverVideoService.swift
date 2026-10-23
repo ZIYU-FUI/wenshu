@@ -129,9 +129,42 @@ final class CoverVideoService {
     /// scene and move within it. The measured behaviour is that the
     /// provider does NOT deliver a seamless loop, which is why the
     /// playback runs forward and then backward.
+    ///
+    /// The wording is measured, not guessed. Measured 2026-10-23
+    /// against the live endpoint on the Rain Water cover (a still
+    /// life: a ceramic pot, a paper bird, a cloth doll, a sprout),
+    /// with the endpoint's prompt optimizer off:
+    ///
+    ///  - the first wording ("be gentle", no camera instruction)
+    ///    produced a clip the camera drifted across, and the model
+    ///    invented a table, a wall and a hard beam of sunlight that
+    ///    were not in the still. So the still and the clip were two
+    ///    different pictures.
+    ///  - this wording produced a LOCKED camera (no push, no pull,
+    ///    no pan, no tilt), a background that stayed the pale paper
+    ///    of the still, and motion only in the branches and the small
+    ///    objects swaying. Measured as frame-to-frame difference, the
+    ///    corners moved 0.67 against the centre's 2.37: the movement
+    ///    is in the subject, not across the frame.
+    ///
+    /// Four things carry it:
+    ///
+    ///  - `[固定]` is the endpoint's own fixed-camera instruction.
+    ///    The endpoint names fifteen camera instructions in this
+    ///    bracketed form, and this is the one that says "do not
+    ///    move the camera".
+    ///  - the plain-language restatement of it, because the endpoint
+    ///    also reads natural language, and the two together are
+    ///    stronger than either alone.
+    ///  - the second paragraph NAMES what moves (branches, petals,
+    ///    silk, the daylight). A model told only "be gentle" invents
+    ///    motion; a model told exactly which things move does not
+    ///    have to.
+    ///  - the last sentence pins the background, because the model
+    ///    will otherwise re-stage a still life on a lit table.
     static let motionPrompt = """
-        A gentle, continuous motion in this exact scene. The subject and \
-        the composition stay the same as the first frame. Slow subtle \
-        movement only, no cuts, no new objects, no camera change.
+        [固定] A Chinese ink-and-colour still life on plain pale paper. The camera is completely locked: no push, no pull, no pan, no tilt, no shake, no cut, no change of framing. The composition, the objects and the background stay exactly as they are in the first frame.
+        The only movement is a light breeze passing through the scene: the leafy branches sway a little, a few petals and a hanging silk cord stir gently. The movement is small, slow and continuous, like watching a real breeze from a seat at the table.
+        Nothing else moves. The vessels, the fan, the brush and the inkstone do not move. Nothing appears, nothing disappears, nothing is added or removed. The light stays soft and even and the background stays the same pale paper: no window, no wall, no table edge, no hard beam of sunlight.
         """
 }

@@ -70,6 +70,43 @@ struct CoverVideoGenerator: CoverVideoClient {
     /// How many times to poll before giving up.
     static let maxPolls = 40
 
+    /// The endpoint's limit on the prompt, in characters.
+    ///
+    /// From the endpoint's own documentation of the i2v body: the
+    /// prompt is "the text description of the video, max 2000
+    /// characters". A longer one is refused, so the body carries a
+    /// capped prompt rather than one the endpoint will reject.
+    static let promptCharacterLimit = 2000
+
+    /// The body of a task-creation request.
+    ///
+    /// Pure and static so the test can read it without a network
+    /// call. It is a function of its own because the prompt has to
+    /// be IN the body, and a prompt that a function accepts and then
+    /// drops is exactly the bug this fixes: the endpoint was given
+    /// a picture and no instruction at all, and it invented whatever
+    /// motion it liked.
+    static func requestBody(firstFrameDataURL: String, prompt: String) -> [String: Any] {
+        [
+            "model": model,
+            "first_frame_image": firstFrameDataURL,
+            "prompt": cappedPrompt(prompt),
+            "duration": duration,
+            "resolution": resolution,
+            // The endpoint's own note: false is what gives precise
+            // control. Left at its default (true) the endpoint
+            // REWRITES the prompt, and what it adds is camera
+            // movement of its own.
+            "prompt_optimizer": false,
+        ]
+    }
+
+    /// The prompt, within the endpoint's limit.
+    static func cappedPrompt(_ prompt: String) -> String {
+        guard prompt.count > promptCharacterLimit else { return prompt }
+        return String(prompt.prefix(promptCharacterLimit))
+    }
+
     /// Makes a clip from a first frame.
     func makeVideo(firstFrameJPEG: Data, prompt: String) async throws -> Data {
         guard let key = ProviderKeychain.loadKeySync(for: Self.provider), !key.isEmpty else {
@@ -77,13 +114,7 @@ struct CoverVideoGenerator: CoverVideoClient {
         }
 
         let dataURL = "data:image/jpeg;base64,\(firstFrameJPEG.base64EncodedString())"
-        let body: [String: Any] = [
-            "model": Self.model,
-            "first_frame_image": dataURL,
-            "duration": Self.duration,
-            "resolution": Self.resolution,
-            "prompt_optimizer": false,
-        ]
+        let body = Self.requestBody(firstFrameDataURL: dataURL, prompt: prompt)
         let created = try await post(
             endpoint: Self.createEndpoint,
             key: key,
