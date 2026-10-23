@@ -63,6 +63,13 @@ struct SectionHeader: View {
                     .font(.body)
                     .foregroundStyle(.secondary)
                     .textCase(nil)
+                    // Lift the title TEXT onto the baseline the editor's
+                    // document tab labels use, so the window's top row
+                    // reads as one straight line of labels. The offset
+                    // paints the text 3 PT higher and leaves every box
+                    // the same size, so the divider below the title (=
+                    // the row the search band keys off) stays put.
+                    .offset(y: DesignTokens.sectionTitleBaselineOffset)
                 Spacer()
             }
 

@@ -100,6 +100,20 @@ enum DesignTokens {
     // / EmptyStateView icon-to-text gap.
     static let spacingSection: CGFloat = 24
 
+    /// Baseline offset for a column-top section title (= -3 PT).
+    ///
+    /// MEASURED, not guessed: on a 2x capture of the running app the
+    /// editor's document tab label painted its ink at 67.5 .. 78.5 PT
+    /// while the column titles painted theirs at 70.5 .. 82.0 PT. The
+    /// column titles therefore sat 3.00 PT BELOW the tab label beside
+    /// them, and the window's top row read as a sagging line of labels
+    /// instead of one run.
+    ///
+    /// The offset lifts the title TEXT only. It does not move the
+    /// divider under the title, so the row below the column top keeps
+    /// its place.
+    static let sectionTitleBaselineOffset: CGFloat = -3
+
     // MARK: - Tab metrics
     // … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / naming, now generic for ALL pane tabs).
