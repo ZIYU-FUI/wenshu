@@ -163,13 +163,24 @@ struct UserDefaultsStoreTests {
 
     // MARK: - Key namespace coverage (= G-2 cluster key registry)
 
-    @Test("WenshuDefaultsKey.allCases covers 12 typed settings keys")
+    @Test("WenshuDefaultsKey.allCases covers 13 typed settings keys")
     func keyEnumCompleteness() {
         // Wenshu's G-2 cluster (= the keys written/read by @Observable
         // models) maps 1:1 to WenshuDefaultsKey cases. Adding a new
         // case here is the canonical way to onboard a new persisted
         // setting (= typo-proof).
-        #expect(WenshuDefaultsKey.allCases.count == 12)
+        #expect(WenshuDefaultsKey.allCases.count == 13)
+    }
+
+    @Test("The editor layout mode key round-trips through the typed store")
+    func editorLayoutModeKeyRoundTrip() {
+        resetDefaults()
+        UserDefaultsStore.shared.remove(.editorLayoutMode)
+        #expect(UserDefaultsStore.shared.string(forKey: .editorLayoutMode) == "")
+        UserDefaultsStore.shared.setString("sideBySide", forKey: .editorLayoutMode)
+        #expect(UserDefaultsStore.shared.string(forKey: .editorLayoutMode) == "sideBySide")
+        UserDefaultsStore.shared.remove(.editorLayoutMode)
+        #expect(UserDefaultsStore.shared.string(forKey: .editorLayoutMode) == "")
     }
 
     @Test("All WenshuDefaultsKey raw values use the wenshu. namespace prefix")

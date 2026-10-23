@@ -65,6 +65,20 @@ import os
 
 private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "editorchatnscontroller")
 
+/// The physical arrangement of the editor + chat split.
+/// Stacked = the editor above the chat zone; side by side = the
+/// editor left of the chat zone.
+enum EditorArrangement: Equatable, Sendable {
+    case stacked
+    case sideBySide
+
+    /// The NSSplitView orientation that draws this arrangement.
+    /// Apple HIG (developer.apple.com/documentation/appkit/nssplitview):
+    /// 'If false, the split view is oriented horizontally (= items
+    /// are arranged top to bottom).'
+    var isVertical: Bool { self == .sideBySide }
+}
+
 /// Native AppKit split container (= editor on top, chat zone on bottom).
 /// Hosts SwiftUI views via `NSHostingController`.
 @MainActor
@@ -82,6 +96,22 @@ final class EditorChatNSController: NSSplitViewController {
     /// 'When you set this property, the system automatically
     /// preserves the user's split-view configuration.'
     private static let autosaveName = "wenshu.editor.split.autosave"
+
+    /// The autosave name that holds the side-by-side
+    /// arrangement's divider position. One name per arrangement
+    /// (= each arrangement keeps its own dragged position; = the
+    /// stacked name above is the historical one).
+    private static let sideAutosaveName = "wenshu.editor.split.autosave.side"
+
+    /// The split width at which the two columns can both hold a
+    /// usable pane. Measured: 1209 PT of split width gives each
+    /// column ~604 PT (= the editor's comfortable prose measure
+    /// is 595-680 PT).
+    static let sideBySideMinimumWidth: CGFloat = 1000
+
+    /// The split width below which the two columns cannot both
+    /// hold a usable pane, so the split stays stacked.
+    static let stackedMaximumWidth: CGFloat = 920
 
     /// Previously used a one-shot UserDefaults flag
     /// (= wenshu.editor.split.didSetFirstLaunchPosition) to force
@@ -101,6 +131,19 @@ final class EditorChatNSController: NSSplitViewController {
     /// Stored so the menu action can call `isCollapsed.toggle()`
     /// on it (= the canonical Apple Keynote speaker-notes API).
     private var chatItem: NSSplitViewItem?
+
+    /// The arrangement the split is drawn in right now.
+    private(set) var arrangement: EditorArrangement = .stacked
+
+    /// The mode the SwiftUI side last asked for (= automatic, or
+    /// one of the two pinned arrangements).
+    private var layoutMode: EditorLayoutMode = .automatic
+
+    /// The arrangement whose 50:50 reset is owed on the next
+    /// layout pass. Set when an arrangement change finds no stored
+    /// payload for the arrangement being entered; nil when the
+    /// entered arrangement keeps a position of its own.
+    private var pendingResetArrangement: EditorArrangement?
 
     /// External dependencies the SwiftUI views need (passed through
     /// `NSHostingController(rootView:).environment(...)`).
@@ -295,8 +338,7 @@ final class EditorChatNSController: NSSplitViewController {
     override func viewDidAppear() {
         super.viewDidAppear()
         let defaults = UserDefaults.standard
-        let autosaveKey = "NSSplitView Subview Frames \(Self.autosaveName)"
-        let hasAutosave = defaults.data(forKey: autosaveKey) != nil
+        let hasAutosave = hasStoredPayload(for: Self.storedAutosaveName(for: arrangement))
         // First-launch path: no autosave value exists + flag not
         // set for this run. Apply the 50:50 reset (= the canonical
         // first-launch layout; = writes to autosave via setPosition).
@@ -319,9 +361,12 @@ final class EditorChatNSController: NSSplitViewController {
     override func viewDidLayout() {
         super.viewDidLayout()
         updateAutomaticThicknessBounds()
+        if layoutMode == .automatic {
+            applyAutomaticArrangement()
+        }
+        runPendingReset()
         let defaults = UserDefaults.standard
-        let autosaveKey = "NSSplitView Subview Frames \(Self.autosaveName)"
-        let hasAutosave = defaults.data(forKey: autosaveKey) != nil
+        let hasAutosave = hasStoredPayload(for: Self.storedAutosaveName(for: arrangement))
         if !hasAutosave && defaults.bool(forKey: Self.firstLaunchSetKey) {
             // We already tried to set 50:50 in viewDidAppear (=
             // the flag is set) but it didn't take (= bounds were
@@ -330,12 +375,110 @@ final class EditorChatNSController: NSSplitViewController {
         }
     }
 
+    /// The SwiftUI side's entry point: the mode the user picked
+    /// in the View menu. The two manual cases pin the
+    /// arrangement; the automatic case hands the decision to the
+    /// width rule.
+    func applyLayoutMode(_ mode: EditorLayoutMode) {
+        layoutMode = mode
+        switch mode {
+        case .stacked:
+            transition(to: .stacked)
+        case .sideBySide:
+            transition(to: .sideBySide)
+        case .automatic:
+            applyAutomaticArrangement()
+        }
+    }
+
+    /// The arrangement a split width asks for. Pure (= no window
+    /// and no split view): the automatic case follows the width,
+    /// the two manual cases pin the arrangement, and the band
+    /// between the two widths keeps the current arrangement.
+    static func arrangement(
+        forSplitWidth width: CGFloat,
+        mode: EditorLayoutMode,
+        current: EditorArrangement
+    ) -> EditorArrangement {
+        switch mode {
+        case .stacked:
+            return .stacked
+        case .sideBySide:
+            return .sideBySide
+        case .automatic:
+            if width >= sideBySideMinimumWidth { return .sideBySide }
+            if width < stackedMaximumWidth { return .stacked }
+            return current
+        }
+    }
+
+    /// The automatic rule: the arrangement follows the split
+    /// width (= side by side when the split is wide enough for
+    /// two columns; = stacked when it is not; = the band between
+    /// the two keeps the current arrangement).
+    private func applyAutomaticArrangement() {
+        let width = splitView.bounds.width
+        guard width > 0 else { return }
+        transition(to: Self.arrangement(forSplitWidth: width, mode: layoutMode, current: arrangement))
+    }
+
+    /// Move the split to an arrangement. The autosave name
+    /// follows the arrangement (= each arrangement keeps its own
+    /// divider position), and the 50:50 reset is owed on the next
+    /// layout pass when the arrangement being entered has no
+    /// stored payload of its own.
+    private func transition(to target: EditorArrangement) {
+        guard target != arrangement else { return }
+        let enteringName = Self.storedAutosaveName(for: target)
+        let keepsOwnPosition = hasStoredPayload(for: enteringName)
+        arrangement = target
+        splitView.isVertical = target.isVertical
+        splitView.autosaveName = enteringName
+        pendingResetArrangement = keepsOwnPosition ? nil : target
+    }
+
+    /// Apply the 50:50 reset owed by an arrangement change. It
+    /// runs on the next layout pass (= the bounds are final by
+    /// then) and only for an arrangement that had no stored
+    /// payload of its own.
+    private func runPendingReset() {
+        guard let pending = pendingResetArrangement else { return }
+        pendingResetArrangement = nil
+        applyFiftyFiftyReset(for: pending)
+    }
+
+    /// The autosave name that holds an arrangement's divider
+    /// position. One name per arrangement.
+    private static func storedAutosaveName(for arrangement: EditorArrangement) -> String {
+        switch arrangement {
+        case .stacked:    return autosaveName
+        case .sideBySide: return sideAutosaveName
+        }
+    }
+
+    /// Whether an arrangement has a stored divider position.
+    /// AppKit stores it under "NSSplitView Subview Frames
+    /// <name>" as an ARRAY of strings, so the read that sees the
+    /// array is `object(forKey:)`; `data(forKey:)` is always nil
+    /// for an array (= the first-launch check used it, = so the
+    /// 50:50 reset re-applied on every layout pass and wiped the
+    /// user's dragged position).
+    private func hasStoredPayload(for name: String) -> Bool {
+        UserDefaults.standard.object(forKey: "NSSplitView Subview Frames \(name)") != nil
+    }
+
     /// Re-assert Apple automatic bounds after the split view has a
     /// window-backed size. `automaticMaximumThickness` is meaningful only
     /// after attachment; reading it during `viewDidLoad` produced an invalid
     /// hard maximum and let the hosting column collapse.
+    ///
+    /// The clamp follows the arrangement's own axis: the height
+    /// carries the split when stacked, the width carries it when
+    /// side by side (= a height clamp in the side-by-side
+    /// arrangement pinned both columns to the height and left a
+    /// dead gap beside the column).
     private func updateAutomaticThicknessBounds() {
-        let available = splitView.bounds.height
+        let available = arrangement.isVertical ? splitView.bounds.width : splitView.bounds.height
         guard available > 0 else { return }
         for item in splitViewItems {
             item.minimumThickness = 0
@@ -346,8 +489,22 @@ final class EditorChatNSController: NSSplitViewController {
     /// Do the actual 50:50 setPosition (split out so both
     /// viewDidAppear and viewDidLayout can call it).
     private func applyFiftyFiftyFirstLaunch() {
-        let dividerY = self.splitView.bounds.height / 2
-        self.splitView.setPosition(dividerY, ofDividerAt: 0)
+        applyFiftyFiftyReset(for: arrangement)
+    }
+
+    /// The 50:50 reset along the arrangement's own axis: the
+    /// divider is horizontal when stacked (= the height carries
+    /// the split) and vertical when side by side (= the width
+    /// carries it).
+    private func applyFiftyFiftyReset(for arrangement: EditorArrangement) {
+        switch arrangement {
+        case .stacked:
+            let dividerY = self.splitView.bounds.height / 2
+            self.splitView.setPosition(dividerY, ofDividerAt: 0)
+        case .sideBySide:
+            let dividerX = self.splitView.bounds.width / 2
+            self.splitView.setPosition(dividerX, ofDividerAt: 0)
+        }
     }
 
     /// Programmatic toggle (= called from the menu bar View >
@@ -392,6 +549,10 @@ final class EditorChatNSController: NSSplitViewController {
 /// into NSHostingController via `.environment(...)` if/when needed).
 struct EditorChatSplitHost: NSViewControllerRepresentable {
     let conductor: WenshuConductor?
+    /// The arrangement the user asked for in the View menu. The
+    /// controller applies it (= automatic follows the window
+    /// width; = the two manual cases pin the arrangement).
+    let layoutMode: EditorLayoutMode
     // The SwiftUI environment does not cross into the
     // `NSHostingController`s this wrapper creates, so the three
     // objects the hosted views read are resolved HERE (= the
@@ -417,8 +578,10 @@ struct EditorChatSplitHost: NSViewControllerRepresentable {
     }
 
     func updateNSViewController(_ nsViewController: EditorChatNSController, context: Context) {
-        // No-op for now (= editor + chat content is static; = the
-        // chat zone's internal state lives in ChatZoneView itself).
+        // The layout mode is the one thing the SwiftUI side owns
+        // (= the View menu writes it; = the editor + chat content
+        // itself is static).
+        nsViewController.applyLayoutMode(layoutMode)
     }
 
     /// Report a size that does NOT depend on the inner split's own layout.

@@ -129,6 +129,26 @@ final class WorkspaceUIState {
         }
     }
 
+    /// How the editor column and the chat zone sit next to each
+    /// other. `.automatic` lets the split follow the window
+    /// width (= side by side when the window gives both panes
+    /// room; = stacked when it does not); the two manual cases
+    /// pin the arrangement and win over the width rule.
+    ///
+    /// Persisted to the `wenshu.editor.layoutMode` UserDefaults
+    /// key (= the raw value; = the same shape as
+    /// `sidebarSelection`: write on change, read back in init).
+    var editorLayoutMode: EditorLayoutMode = .automatic {
+        didSet {
+            // didSet is NOT called during init (= Swift property
+            // wrapper semantics), so this does NOT trigger a write
+            // back to UserDefaults on launch (= pure read-side
+            // restoration).
+            guard oldValue != editorLayoutMode else { return }
+            UserDefaultsStore.shared.setString(editorLayoutMode.rawValue, forKey: .editorLayoutMode)
+        }
+    }
+
     init() {
         // In-memory only (= no UserDefaults read).
         //
@@ -141,6 +161,31 @@ final class WorkspaceUIState {
         if let data = UserDefaultsStore.shared.data(forKey: .sidebarSelection),
            let decoded = try? JSONDecoder().decode(SidebarItem.self, from: data) {
             self.sidebarSelection = decoded
+        }
+        // The layout mode persists the same way (= the raw value
+        // of the enum; = an unknown or absent value falls back to
+        // `.automatic`, which is the default).
+        if let mode = EditorLayoutMode(rawValue: UserDefaultsStore.shared.string(forKey: .editorLayoutMode)) {
+            self.editorLayoutMode = mode
+        }
+    }
+}
+
+// MARK: - EditorLayoutMode
+
+/// The arrangement the user asked for between the editor column
+/// and the chat zone. The automatic case follows the window
+/// width; the two manual cases pin the arrangement.
+enum EditorLayoutMode: String, CaseIterable, Sendable {
+    case automatic
+    case stacked
+    case sideBySide
+
+    var localizedTitle: String {
+        switch self {
+        case .automatic:   return String(localized: "menu.view.editor_layout.automatic")
+        case .stacked:     return String(localized: "menu.view.editor_layout.stacked")
+        case .sideBySide:  return String(localized: "menu.view.editor_layout.side_by_side")
         }
     }
 }

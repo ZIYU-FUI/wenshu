@@ -38,6 +38,10 @@ struct AppRootScene: Scene {
     // … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // the shared on-disk JSON files).
     var body: some Scene {
+        // Read the layout mode here (= the scene re-evaluates when
+        // it changes; = the View menu's radio group shows the
+        // current choice).
+        let editorLayoutMode = workspaceUI.editorLayoutMode
         // title set to empty string (= no NSWindow title shown). Combined
         // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // canonical Apple HIG API to hide title slot in unified chrome.
@@ -118,6 +122,21 @@ struct AppRootScene: Scene {
                     }
                 ))
                 .keyboardShortcut("k", modifiers: [.command, .option])
+                // The editor + chat arrangement: automatic (= the
+                // split follows the window width) or one of the two
+                // pinned arrangements (= the manual choice wins
+                // over the width rule).
+                Picker(String(localized: "menu.view.editor_layout"), selection: Binding(
+                    get: { editorLayoutMode },
+                    set: { newValue in
+                        workspaceUI.editorLayoutMode = newValue
+                    }
+                )) {
+                    ForEach(EditorLayoutMode.allCases, id: \.self) { mode in
+                        Text(mode.localizedTitle).tag(mode)
+                    }
+                }
+                .pickerStyle(.radioGroup)
             }
         }
         Settings {

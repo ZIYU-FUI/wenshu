@@ -69,6 +69,7 @@ public enum WenshuDefaultsKey: String, CaseIterable, Sendable {
     case sidebarSelection    = "wenshu.sidebarSelection"
     case cwdOverride         = "wenshu.runtimeCWD"
     case creditsMonthly      = "wenshu.credits.monthly"
+    case editorLayoutMode    = "wenshu.editor.layoutMode"
 }
 
 /// Typed wrapper over `UserDefaults.standard`.
