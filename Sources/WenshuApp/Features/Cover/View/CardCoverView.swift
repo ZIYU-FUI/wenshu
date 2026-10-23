@@ -28,15 +28,43 @@ struct CardCoverView: View {
     /// The stored picture's URL, or nil when the card has no cover.
     let imageURL: URL?
 
+    /// The picture itself, when the caller already holds it.
+    ///
+    /// The URL is the normal way in. This is the seam that lets the
+    /// slot's LAYOUT be measured with a real picture and no
+    /// asynchronous load, which is the only way to prove that the
+    /// picture does not decide how wide the card is.
+    let image: NSImage?
+
     /// The loaded image, once it has arrived.
-    @State private var image: NSImage?
+    @State private var loaded: NSImage?
+
+    init(imageURL: URL?, image: NSImage? = nil) {
+        self.imageURL = imageURL
+        self.image = image
+    }
 
     var body: some View {
         Group {
-            if let image {
-                Image(nsImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
+            if let picture = image ?? loaded {
+                // The picture must NOT decide how wide the card is.
+                //
+                // A resizable image with an aspect ratio asks for the
+                // width its own ratio implies (= 100 PT tall x 2.40 =
+                // 240 PT wide), so the card would demand 240 PT even
+                // when the material column is narrower, and the column
+                // would cut the card's right side off. The slot takes
+                // the width the column gives it, and the picture is
+                // cropped to fill it (= the slot is a wide banner, and
+                // the picture is 2.40:1, so the crop trims the sides
+                // and never the subject).
+                Color.clear
+                    .overlay {
+                        Image(nsImage: picture)
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                    }
+                    .clipped()
             } else {
                 // Nothing yet (= the file is still loading) or nothing
                 // at all (= the card has no cover). The card view
@@ -57,23 +85,26 @@ struct CardCoverView: View {
     /// and decoding the same picture again for every one of them is
     /// work the app has already done.
     private func load() async {
+        // An injected picture is the whole answer: there is nothing to
+        // load, and nothing to clear.
+        guard image == nil else { return }
         guard let imageURL else {
-            image = nil
+            loaded = nil
             return
         }
         if let cached = CoverImageCache.shared.image(for: imageURL) {
-            image = cached
+            loaded = cached
             return
         }
-        let loaded = await Task.detached(priority: .userInitiated) { () -> NSImage? in
+        let loadedImage = await Task.detached(priority: .userInitiated) { () -> NSImage? in
             NSImage(contentsOfFile: imageURL.path)
         }.value
-        if let loaded {
-            CoverImageCache.shared.store(loaded, for: imageURL)
+        if let loadedImage {
+            CoverImageCache.shared.store(loadedImage, for: imageURL)
         }
         // A file that was deleted between the lookup and the load must
         // degrade to the empty state, not crash and not show a broken
         // image.
-        image = loaded
+        loaded = loadedImage
     }
 }
