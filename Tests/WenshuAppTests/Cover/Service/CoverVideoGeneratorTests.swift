@@ -69,10 +69,10 @@ struct CoverVideoGeneratorTests {
         #expect(sent["prompt"] as? String == "a light breeze through the branches")
     }
 
-    @Test("The motion prompt asks for a breeze and locks the camera")
+    @Test("The fallback prompt asks for a breeze and locks the camera")
     @MainActor
-    func theMotionPromptIsABreezeAndNotACameraMove() {
-        let prompt = CoverVideoService.motionPrompt
+    func theFallbackPromptIsABreezeAndNotACameraMove() {
+        let prompt = CoverVideoService.fallbackMotionPrompt
         let lower = prompt.lowercased()
 
         // The subject is a still life. The instruction has to say

@@ -36,6 +36,9 @@ final class CoverVideoService {
     /// network call.
     private let videoClient: CoverVideoClient
 
+    /// The planning call, injected for the same reason.
+    private let motionPlanner: CoverMotionPlanning
+
     /// The cards whose clip is being made, so a second request does
     /// not start a second one.
     ///
@@ -45,10 +48,12 @@ final class CoverVideoService {
     private(set) var inFlight: Set<String> = []
 
     init(
-        videoClient: CoverVideoClient = CoverVideoGenerator()
+        videoClient: CoverVideoClient = CoverVideoGenerator(),
+        motionPlanner: CoverMotionPlanning = CoverMotionPlanner()
     ) {
         self.coverService = CardCoverService()
         self.videoClient = videoClient
+        self.motionPlanner = motionPlanner
     }
 
     /// The service over the library the app is running on.
@@ -91,9 +96,10 @@ final class CoverVideoService {
             // JPEG is never written to disk.
             let heic = try Data(contentsOf: heicURL)
             let jpeg = try CardCoverImageEncoder.decodeToJPEG(heic)
+            let prompt = try await motionPrompt(for: key)
             let clip = try await videoClient.makeVideo(
                 firstFrameJPEG: jpeg,
-                prompt: Self.motionPrompt
+                prompt: prompt
             )
             try coverService.saveVideo(clip, forKey: key)
         } catch {
@@ -123,7 +129,26 @@ final class CoverVideoService {
         try? coverService.writeRecord(record, forKey: key)
     }
 
-    /// The motion instruction.
+    /// The prompt the clip is made with.
+    ///
+    /// The plan comes from the card's own motifs (= the description
+    /// the picture was drawn from), so the clip names the same objects
+    /// the picture has, and says which of them a breeze may move.
+    ///
+    /// A card whose cover carries no motifs (= a cover made before
+    /// the picture's description was stored) falls back to the
+    /// measured generic prompt. The fallback stays because it is the
+    /// only prompt known to work end to end, and a card must never be
+    /// left with no way to move.
+    private func motionPrompt(for key: String) async throws -> String {
+        guard let motifs = coverService.record(forKey: key)?.motifs else {
+            return Self.fallbackMotionPrompt
+        }
+        let plan = try await motionPlanner.plan(motifs: motifs)
+        return CoverMotionPrompt.make(plan: plan)
+    }
+
+    /// The generic motion instruction, for a card with no motifs.
     ///
     /// The clip is made from a still, so the model is told to keep the
     /// scene and move within it. The measured behaviour is that the
@@ -143,26 +168,12 @@ final class CoverVideoService {
     ///  - this wording produced a LOCKED camera (no push, no pull,
     ///    no pan, no tilt), a background that stayed the pale paper
     ///    of the still, and motion only in the branches and the small
-    ///    objects swaying. Measured as frame-to-frame difference, the
-    ///    corners moved 0.67 against the centre's 2.37: the movement
-    ///    is in the subject, not across the frame.
+    ///    objects swaying.
     ///
-    /// Four things carry it:
-    ///
-    ///  - `[固定]` is the endpoint's own fixed-camera instruction.
-    ///    The endpoint names fifteen camera instructions in this
-    ///    bracketed form, and this is the one that says "do not
-    ///    move the camera".
-    ///  - the plain-language restatement of it, because the endpoint
-    ///    also reads natural language, and the two together are
-    ///    stronger than either alone.
-    ///  - the second paragraph NAMES what moves (branches, petals,
-    ///    silk, the daylight). A model told only "be gentle" invents
-    ///    motion; a model told exactly which things move does not
-    ///    have to.
-    ///  - the last sentence pins the background, because the model
-    ///    will otherwise re-stage a still life on a lit table.
-    static let motionPrompt = """
+    /// It is the fallback, not the rule: a card whose motifs are
+    /// known gets a plan, and the plan names what moves. This stays
+    /// for the cards that carry no motifs.
+    static let fallbackMotionPrompt = """
         [固定] A Chinese ink-and-colour still life on plain pale paper. The camera is completely locked: no push, no pull, no pan, no tilt, no shake, no cut, no change of framing. The composition, the objects and the background stay exactly as they are in the first frame.
         The only movement is a light breeze passing through the scene: the leafy branches sway a little, a few petals and a hanging silk cord stir gently. The movement is small, slow and continuous, like watching a real breeze from a seat at the table.
         Nothing else moves. The vessels, the fan, the brush and the inkstone do not move. Nothing appears, nothing disappears, nothing is added or removed. The light stays soft and even and the background stays the same pale paper: no window, no wall, no table edge, no hard beam of sunlight.
