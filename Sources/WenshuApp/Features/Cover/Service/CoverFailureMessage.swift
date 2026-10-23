@@ -7,7 +7,7 @@
 //  is what the user sees. Measured 2026-10-24: a transport failure
 //  wrote the raw dump of a Foundation error into the card
 //
-//      Error Domain=NSURLErrorDomain Code=-1001 "请求超时。"
+//      Error Domain=NSURLErrorDomain Code=-1001 "timed out"
 //      UserInfo={_kCFStreamErrorCodeKey=-2102, ...}
 //
 //  which reads like a program error (= the standing requirement is the
@@ -30,7 +30,7 @@ enum CoverFailureMessage {
     ///     quota left ...");
     ///  2. the localized description, when it does not (= a
     ///     Foundation transport error has one, and it is in the user's
-    ///     language: "请求超时。");
+    ///     language);
     ///  3. the raw description, only as the last resort.
     ///
     /// - Parameter error: what went wrong.
