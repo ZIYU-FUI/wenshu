@@ -6,6 +6,7 @@
 
 import Foundation
 import WenshuAgent
+import WenshuData
 
 /// State of a background delegation.
 enum BackgroundDelegationState: String, Codable, Sendable {
