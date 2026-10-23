@@ -1022,3 +1022,27 @@ delete. The three cover actions join that menu.
   it is not on any cover code path (= the only AVFoundation users are
   the agent's media tool and the clip player, and no clip exists on
   disk). If it comes back, look at CoreMedia, not at the cover.
+
+## The clip: two defects found on 2026-10-23 (after the first acceptance)
+
+1. **A card with a clip lost its cover.** The cover slot held one
+   view or the other: the picture, or the clip. The picture is loaded
+   off the main actor, so every move of the pointer tore it down and
+   started the load again, and in the window between the two the card
+   showed the gradient and the symbol underneath. The picture is now
+   always mounted and the clip plays on top of it.
+2. **Hovering a card with a clip took the app down.** A bus error
+   inside CoreMedia's frame scheduler (`figSchedIOFRS_Callback`). The
+   clip was played BACKWARD at its ends (a negative rate) so the loop
+   would have no seam, and a negative rate is what a decoder hates.
+   Bisected with the real clip and a real `AVPlayerLayer`:
+   - forward with the picture on the screen: fine
+   - backward without the picture: fine
+   - backward with the picture: **bus error**
+   The loop is the framework's own now (`AVPlayerLooper`, forward
+   only), and the app survives.
+
+The reproduction is a standalone probe: an `NSWindow` with an
+`AVPlayerLayer`, the clip, and the app's playback logic. It is the
+only way to test a crash that needs a real decoder and a real
+rendering surface.
