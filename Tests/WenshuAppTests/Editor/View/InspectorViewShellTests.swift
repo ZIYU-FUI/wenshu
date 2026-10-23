@@ -34,11 +34,18 @@ struct InspectorViewShellTests {
     @Test("the column has exactly the 4 pages")
     func theColumnHasFourPages() {
         #expect(InspectorPage.allCases.count == 4,
-                "the column keeps 4 pages (= Authoring / Style / Characters / Project Management)")
-        #expect(InspectorPage.allCases.contains(.authoringFiction))
+                "the column keeps 4 pages (= Status / Style / Characters / Project Management)")
+        #expect(InspectorPage.allCases.contains(.status))
         #expect(InspectorPage.allCases.contains(.authoringStyle))
         #expect(InspectorPage.allCases.contains(.authoringCharacters))
         #expect(InspectorPage.allCases.contains(.projectManagement))
+    }
+
+    @Test("the fiction page is gone")
+    func theFictionPageIsGone() throws {
+        let source = try String(contentsOfFile: workspaceUIStatePath, encoding: .utf8)
+        #expect(!source.contains("case authoringFiction"),
+                "the fiction page was replaced by the status page and must not come back")
     }
 
     @Test("every page carries a localized title and an icon")

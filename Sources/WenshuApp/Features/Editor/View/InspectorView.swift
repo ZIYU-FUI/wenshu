@@ -38,16 +38,23 @@ struct InspectorView: View {
             // renders it in this slot; a page without one renders the
             // shared empty state (= centered, = the Apple HIG
             // "nothing to show" pattern).
-            VStack(spacing: 0) {
-                Spacer(minLength: 0)
-                EmptyStateView(
-                    icon: workspaceUI.inspectorPage.icon,
-                    title: String(localized: "inspector.empty.title"),
-                    body: String(localized: "inspector.empty.body")
-                )
-                Spacer(minLength: 0)
+            switch workspaceUI.inspectorPage {
+            case .status:
+                // The status page owns the column's content: it lists
+                // the focused chat session's sub-agent tasks.
+                InspectorStatusView(appState: appState)
+            case .authoringStyle, .authoringCharacters, .projectManagement:
+                VStack(spacing: 0) {
+                    Spacer(minLength: 0)
+                    EmptyStateView(
+                        icon: workspaceUI.inspectorPage.icon,
+                        title: String(localized: "inspector.empty.title"),
+                        body: String(localized: "inspector.empty.body")
+                    )
+                    Spacer(minLength: 0)
+                }
+                .frame(maxWidth: .infinity)
             }
-            .frame(maxWidth: .infinity)
         }
         .toolbar {
             // The page picker sits in the trailing area (= the

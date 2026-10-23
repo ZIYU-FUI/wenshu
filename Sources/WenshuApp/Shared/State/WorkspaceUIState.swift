@@ -99,7 +99,7 @@ final class WorkspaceUIState {
     /// Lives here (= not as `@State` inside the inspector column)
     /// because the toolbar picker binds to
     /// `$workspaceUI.inspectorPage` (= cross-view state).
-    var inspectorPage: InspectorPage = .authoringFiction
+    var inspectorPage: InspectorPage = .status
 
     /// Sidebar tree selection (= 5 cases: .book(UUID) / .folder /
     /// .shelf / .referenceCategory / .referenceLibraryRoot,
@@ -147,21 +147,24 @@ final class WorkspaceUIState {
 
 // MARK: - InspectorPage
 
-/// The pages of the trailing inspector column: Authoring /
+/// The pages of the trailing inspector column: Status /
 /// Style / Characters / Project Management.
 ///
 /// The page owns the column's content. A page without content
 /// renders the shared empty state (= the column body has no tool
 /// to show until a page owns one).
+///
+/// The case order IS the tab order (= the toolbar picker reads
+/// `InspectorPage.allCases`).
 enum InspectorPage: Hashable, CaseIterable {
-    case authoringFiction
+    case status
     case authoringStyle
     case authoringCharacters
     case projectManagement
 
     var localizedTitle: String {
         switch self {
-        case .authoringFiction:     return String(localized: "inspector.page.authoringFiction")
+        case .status:               return String(localized: "inspector.page.status")
         case .authoringStyle:       return String(localized: "inspector.page.authoringStyle")
         case .authoringCharacters:  return String(localized: "inspector.page.authoringCharacters")
         case .projectManagement:    return String(localized: "inspector.page.projectManagement")
@@ -170,7 +173,7 @@ enum InspectorPage: Hashable, CaseIterable {
 
     var icon: String {
         switch self {
-        case .authoringFiction:     return "book.pages"
+        case .status:               return "waveform.path.ecg"
         case .authoringStyle:       return "paintpalette"
         case .authoringCharacters:  return "person.2"
         case .projectManagement:    return "folder.badge.gearshape"
