@@ -35,6 +35,15 @@ struct BackgroundDelegationHandle: Sendable, Equatable {
     /// exercise the tracker path).
     var trackerSpawnID: UUID?
 
+    /// The chat session and book that asked for this delegation.
+    ///
+    /// Nil = a delegation whose scope is unknown (= it did not come from
+    /// a chat turn). The scope is written AT CREATION because the
+    /// registry is one instance for the whole app, so a delegation that
+    /// never carried its scope belongs to every session at once and can
+    /// never be recovered later.
+    var scope: AgentScope?
+
     init(
         id: String = UUID().uuidString,
         agentName: String,
@@ -43,7 +52,8 @@ struct BackgroundDelegationHandle: Sendable, Equatable {
         startedAt: Date = Date(),
         completedAt: Date? = nil,
         result: String? = nil,
-        trackerSpawnID: UUID? = nil
+        trackerSpawnID: UUID? = nil,
+        scope: AgentScope? = nil
     ) {
         self.id = id
         self.agentName = agentName
@@ -53,6 +63,7 @@ struct BackgroundDelegationHandle: Sendable, Equatable {
         self.completedAt = completedAt
         self.result = result
         self.trackerSpawnID = trackerSpawnID
+        self.scope = scope
     }
 }
 
@@ -174,6 +185,19 @@ actor AsyncDelegationRegistry {
         return completionQueue
             .compactMap { records[$0] }
             .filter { $0.state == .completed || $0.state == .failed }
+    }
+
+    /// List the handles that belong to one scope, newest first.
+    ///
+    /// The registry is one instance for the whole app, so a caller that
+    /// shows "this chat's sub-agents" must ask for exactly one scope.
+    /// A handle matches only when BOTH halves match (= the session AND
+    /// the book), so a delegation in another book of the same session is
+    /// never returned, and a handle with no scope belongs to no scope.
+    func handles(scope: AgentScope) -> [BackgroundDelegationHandle] {
+        return records.values
+            .filter { $0.scope == scope }
+            .sorted { $0.startedAt > $1.startedAt }
     }
 
     /// Mark a delegation as completed (called when sub-agent finishes).
@@ -308,6 +332,10 @@ actor AsyncDelegationRegistry {
 ///   - context: Optional metadata dict the parent wants the sub-agent to
 ///     see. Keys matching `SubAgentPermissions.writeOnlyBlocked` are
 ///     rejected (= the gate).
+///   - scope: The chat session and book that asked for the delegation.
+///     Nil = the caller does not know the scope (= the handle is created
+///     without one). The scope is stamped onto the handle here, because
+///     it is the one moment the caller still knows it.
 /// - Returns: AsyncDelegationResult wrapping the registered handle plus
 ///   an empty summary (= the parent fills the summary after invoking
 ///   the sub-agent and reports back via `markCompleted`).
@@ -315,7 +343,8 @@ func delegate(
     subagentProfile: String,
     task: String,
     context: [String: String] = [:],
-    registry: AsyncDelegationRegistry
+    registry: AsyncDelegationRegistry,
+    scope: AgentScope? = nil
 ) async throws -> AsyncDelegationResult {
     // 1. Sub-agent identity resolution (= hermes `_normalize_role` + name check).
     guard SubAgentIdentity.Name(rawValue: subagentProfile) != nil else {
@@ -341,7 +370,8 @@ func delegate(
     let handle = BackgroundDelegationHandle(
         agentName: subagentProfile,
         userMessage: task,
-        state: .pending
+        state: .pending,
+        scope: scope
     )
     await registry.register(handle: handle)
 
