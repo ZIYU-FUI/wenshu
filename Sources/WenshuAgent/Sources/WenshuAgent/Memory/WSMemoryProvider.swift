@@ -114,7 +114,7 @@ public final class WSMemoryProvider: MemoryProvider, @unchecked Sendable {
         // extract Sendable scalars inside MainActor.run
         // (WSMemory is non-Sendable, = can't cross the boundary).
         let contentLines: [String] = await MainActor.run {
-            ((try? memory.search(userId: "default", query: message, limit: 5)) ?? [])
+            ((try? memory.search(userId: "default", query: message, limit: ContextOverrides.memoryCap)) ?? [])
                 .map { $0.content }
         }
         let mapped = contentLines.joined(separator: "\n")

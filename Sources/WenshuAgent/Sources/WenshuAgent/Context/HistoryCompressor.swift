@@ -54,8 +54,11 @@ public struct CompressionBudget: Sendable, Equatable {
     public var protectTailTokens: Int
     /// Fraction of the context window above which compression runs.
     public var threshold: Double
-    /// Fraction of the window compression aims to leave free.
-    public var targetFreeFraction: Double
+    /// Fraction of the transcript that survives the compression.
+    ///
+    /// The tail grows toward this share of the transcript's tokens, so the
+    /// user decides how much of the conversation stays verbatim.
+    public var keepFraction: Double
     /// Whether a stale tool-result body may be dropped.
     public var pruneToolResults: Bool
 
@@ -63,15 +66,15 @@ public struct CompressionBudget: Sendable, Equatable {
         protectHead: Int = 4,
         protectTail: Int = 8,
         protectTailTokens: Int = 4_000,
-        threshold: Double = 0.85,
-        targetFreeFraction: Double = 0.30,
+        threshold: Double = ContextOverrides.compressionThreshold,
+        keepFraction: Double = ContextOverrides.keepFraction,
         pruneToolResults: Bool = true
     ) {
         self.protectHead = protectHead
         self.protectTail = protectTail
         self.protectTailTokens = protectTailTokens
         self.threshold = threshold
-        self.targetFreeFraction = targetFreeFraction
+        self.keepFraction = keepFraction
         self.pruneToolResults = pruneToolResults
     }
 }
@@ -156,19 +159,21 @@ public struct HistoryCompressor: Sendable {
     /// Phase 2: choose the window to summarise. Returns the index just past
     /// the head and the index where the tail starts.
     public func compressionWindow(_ messages: [LLMMessage]) -> (start: Int, end: Int)? {
+        // The head is protected by message count and always survives, whole:
+        // the keep fraction is a target for the tail, never a cap on the
+        // head. A head that alone exceeds the fraction keeps every message.
         let head = min(budget.protectHead, messages.count)
         let maxTail = max(0, (messages.count - head) / 2)
-        // Clamp the configured tail to the midpoint. A tail that reaches past
-        // half the transcript leaves no window, and a caller who set a large
-        // protectTail would otherwise silently get "no compression" rather
-        // than compression over a smaller middle.
+        // The tail is protected by message count first (= tool pairs must
+        // survive here), then grown into the token budget below.
         var tail = min(budget.protectTail, messages.count - head, maxTail)
-        // Grow the tail to its token budget, never past the midpoint.
-        var tailTokens = 0
+        let tailBudget = tailTokenBudget(for: messages)
+        var tailTokens = tokenCost(of: messages[(messages.count - tail)...])
+        // Grow the tail into its budget, never past the midpoint.
         while tail < maxTail {
             let next = messages.count - tail - 1
             let cost = estimate(messages[next])
-            if tailTokens + cost > budget.protectTailTokens, tail > 0 { break }
+            if tailTokens + cost > tailBudget, tail > 0 { break }
             tailTokens += cost
             tail += 1
         }
@@ -179,6 +184,27 @@ public struct HistoryCompressor: Sendable {
         // compression, it is a deletion.
         guard start < end, end - start >= 2 else { return nil }
         return (start, end)
+    }
+
+    /// The tokens the tail may spend.
+    ///
+    /// The keep fraction is the user's number: the tail grows toward that
+    /// share of the transcript's tokens. The budget's own ceiling
+    /// (`protectTailTokens`) keeps the tail from eating the window, and the
+    /// smaller of the two wins.
+    ///
+    /// The fraction is a target, not a cap: the head and the tail's message
+    /// count survive even when they exceed it, because a head that alone
+    /// exceeds the fraction keeps every message and a tail that carries a
+    /// tool pair keeps both halves of it.
+    private func tailTokenBudget(for messages: [LLMMessage]) -> Int {
+        let keepTarget = Int((Double(totalTokens(messages)) * budget.keepFraction).rounded())
+        return max(0, min(keepTarget, budget.protectTailTokens))
+    }
+
+    /// The tokens a slice of messages costs.
+    private func tokenCost(of messages: ArraySlice<LLMMessage>) -> Int {
+        messages.reduce(0) { $0 + estimate($1) }
     }
 
     /// Phases 1, 2 and 4 without a summarisation call.

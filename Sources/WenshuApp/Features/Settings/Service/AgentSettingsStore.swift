@@ -62,7 +62,6 @@ public final class AgentSettingsStore {
     /// a later version reads as its default rather than as a decode failure.
     public func load() -> AgentSettings {
         var settings = AgentSettings()
-
         var prompt = settings.prompt
         prompt.visibleTools = decodeStringSet(defaults, Key.visibleTools) ?? prompt.visibleTools
         prompt.identityEnabled = decodeBool(defaults, Key.promptIdentityEnabled) ?? prompt.identityEnabled
@@ -94,7 +93,28 @@ public final class AgentSettingsStore {
         settings.context = decode(ContextSettings.self, defaults, Key.contextSettings) ?? settings.context
         settings.tools = decode(ToolSettings.self, defaults, Key.toolsSettings) ?? settings.tools
         settings.providers = decodeProviderSettings(defaults) ?? settings.providers
+        publishContextNumbers(settings)
         return settings
+    }
+
+    /// Install the saved context numbers where the runtime reads them.
+    ///
+    /// The package owns the values, the app owns where they are stored, so
+    /// the app hands them over at the edge (= the same pattern as
+    /// `ProviderEndpointOverrides`).
+    ///
+    /// Published on every load and every save, so the numbers the runtime
+    /// reads are the ones the user last chose: the settings screen writes
+    /// them and the next turn reads them.
+    ///
+    /// The holder is one process-wide value, so a store over a private
+    /// defaults suite publishes too (= the tests restore what they found).
+    private func publishContextNumbers(_ settings: AgentSettings) {
+        ContextOverrides.install(
+            compressionThreshold: settings.context.compressionThreshold,
+            keepFraction: settings.context.compressionKeepRatio,
+            memoryCap: settings.memory.maxEntries
+        )
     }
 
     /// The custom endpoints, keyed by provider slug.
@@ -164,6 +184,7 @@ public final class AgentSettingsStore {
         encode(settings.context, defaults, Key.contextSettings)
         encode(settings.tools, defaults, Key.toolsSettings)
         defaults.set(settings.providers.baseURLs, forKey: Key.providerBaseURLs)
+        publishContextNumbers(settings)
     }
 
     public func saveEnabledPresetIDs(_ ids: [String]) {

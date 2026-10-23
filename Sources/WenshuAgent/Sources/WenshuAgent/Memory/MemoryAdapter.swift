@@ -132,7 +132,23 @@ public final class MemoryAdapter {
         }
     }
 
-    public func retrieve(forUserMessage userMessage: String, bookId: String? = nil) async -> [MemoryEntry] {
+    /// The memories one recall brings back.
+    ///
+    /// The count cap is the user's number (= how many memories may reach the
+    /// prompt) and it is applied here, where the entries become prompt
+    /// content: a provider that returns more than the cap still cannot put
+    /// more than the cap into the conversation.
+    ///
+    /// The character budget is the second bound, and it is what keeps a
+    /// large count from becoming a large prompt. Hermes bounds the same
+    /// thing (= `memory_char_limit` = 2200 chars), and the package's own
+    /// `MemoryManager` carries the same number; without it, a cap of 500
+    /// would put 500 rows of recall into every prompt.
+    public func retrieve(
+        forUserMessage userMessage: String,
+        bookId: String? = nil,
+        limit: Int = ContextOverrides.memoryCap
+    ) async -> [MemoryEntry] {
         guard isEnabled else { return [] }
         // Sync read from WSMemoryProvider mirror cache (= thread-safe;
         // = no SwiftData hop). Falls back to WSMemoryRepository when
@@ -140,17 +156,36 @@ public final class MemoryAdapter {
         // refresh completes).
         let raw = await provider.prefetch(forUserMessage: userMessage)
         guard !raw.isEmpty else { return [] }
+        // A cap below one is not a cap (= the memory subsystem's own switch
+        // is how recall is turned off), so it falls back to the default.
+        let cap = limit >= 1 ? limit : ContextOverrides.memoryCap
         // Split on the newlines the provider emits between entries.
         let lines = raw.split(separator: "\n", omittingEmptySubsequences: true).map(String.init)
-        return lines.enumerated().map { idx, line in
-            MemoryEntry(
+        var entries: [MemoryEntry] = []
+        var characters = 0
+        for (idx, line) in lines.enumerated() {
+            if entries.count >= cap { break }
+            let next = characters + line.count
+            if next > Self.characterBudget { break }
+            characters = next
+            entries.append(MemoryEntry(
                 id: "mem:\(idx):\(bookId ?? "global")",
                 source: "memory:recall",
                 snippet: String(line.prefix(120)),
                 relevanceScore: 1.0 - Double(idx) * 0.05
-            )
+            ))
         }
+        return entries
     }
+
+    /// The characters one recall may carry into the prompt.
+    ///
+    /// Hermes bounds the same thing (= `memory_char_limit` = 2200), and the
+    /// package's own `MemoryManager` carries the same number (= hermes
+    /// parity). The count cap alone cannot do this job: the user picks
+    /// how many memories may come back, and 500 memories of a few hundred
+    /// characters each is more prompt than the conversation it serves.
+    public static let characterBudget = 2200
 
     public func write(snippet: String, source: String, bookId: String? = nil) async {
         _ = bookId
