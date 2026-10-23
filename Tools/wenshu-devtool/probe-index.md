@@ -17,12 +17,17 @@ card's commit does not touch the app source.
 | Probe | Subject measured | Numbers printed | Commit measured against |
 | --- | --- | --- | --- |
 | `chat_bubble_metrics.swift` | The user's own chat bubble (the outgoing message surface in the chat column), painted width and corner radius read from rendered pixels at a stated host width. | `painted_width_pt`, `painted_height_pt`, `corner_radius_pt`, `shape_rule_radius_pt`, `subject_ink_width_pt`, `host_width_pt`, `calibration_radius_pt`, `calibration_measured_pt` | `3ee82bf48b18` |
+| `column_chrome_band.py` | The column-top chrome band of two neighbouring columns of the running app (= the materials column's search band and the editor column's format-toolbar band), read from a 2x capture: the content ink band, the MATERIAL surface the band paints, and the closing hairline. | `content_centre_delta_pt`, `band_surface_top_delta_pt`, `band_surface_bottom_delta_pt`, plus each column's content centre and band surface top/bottom | `ab0de05659` |
 
 ## Recorded measurement
 
-The run below is the proof that the row above carries a real number. It is
-the probe's own output, taken against commit `3ee82bf48b18`, with the
-subject `Hi` at the reference host width.
+The runs below are the proof that the rows above carry real numbers. They
+are the probes' own output.
+
+### `chat_bubble_metrics.swift`
+
+Taken against commit `3ee82bf48b18`, with the subject `Hi` at the
+reference host width.
 
 ```
 probe: chat_bubble_metrics
@@ -52,13 +57,66 @@ Two numbers in that run are worth reading together:
   subject at a 723 PT host) and the cap only bounds the result.
   `subject_ink_width_pt` is the subject's own width.
 
+### `column_chrome_band.py`
+
+Taken against commit `ab0de05659`, on a 2x capture of the running app with
+the window maximized. That commit is the one that put the materials
+column's search row on the shared `ChromeTopBar` and gave it the editor
+column's full 28 PT band, so its band geometry is the one the numbers
+describe. The chrome-band rows of `AssetsPane.swift`, `ChromeTopBar.swift`
+and `EditorFormatToolbar.swift` are byte-identical from that commit to
+`main` today, so the numbers still describe a later tree.
+
+```
+probe: column_chrome_band
+capture: recorded-capture.png
+capture 3840x1968  scale=2.0
+  CONTENT band = 96.0 .. 108.5 pt   centre 102.25
+  BAND SURFACE = 88.5 .. 116.0 pt (28.5 pt tall, anchor 250.0)
+  CONTENT band = 96.5 .. 108.5 pt   centre 102.50
+  BAND SURFACE = 88.5 .. 116.0 pt (28.5 pt tall, anchor 250.0)
+content centre : assets 102.25 pt   editor 102.50 pt   DELTA 0.25 pt (tolerance 1.0 pt)
+band surface   : assets 88.5..116.0   editor 88.5..116.0   DELTA top 0.00 pt, bottom 0.00 pt (tolerance 1.0 pt)
+GATE: PASSED
+```
+
+Two things in that run are worth reading together:
+
+- The band SURFACE is measured separately from the content centre, because
+  a short band centred in its slot has the RIGHT centre. Measured
+  2026-10-23, before the fix: the assets surface was `94.5..110.0` (16.5
+  PT) against the editor's `88.5..116.0` (28.5 PT) — a 6.00 PT inset on
+  both edges — while the two content centres already agreed to 0.25 PT. A
+  centre-only gate calls that a PASS.
+- The closing hairline is printed for information and is NOT compared
+  across the columns. The surface under a band differs per column (the
+  editor's is the white canvas, the assets' is the sidebar background), so
+  "the first darker row below the band" is a different thing in each.
+
 ## Re-measuring
 
 ```
 swift Tools/wenshu-devtool/probes/chat_bubble_metrics.swift "Hi"
+python3 Tools/wenshu-devtool/probes/column_chrome_band.py <capture.png>
+python3 Tools/wenshu-devtool/probes/column_chrome_band.py --selftest
 ```
 
-The probe exits 0 when the measurement is sound, 2 when the production
-source no longer matches what the probe reproduces (no number is reported),
-and 3 when the fill was not found in the rendered pixels. A number that
-cannot be tied to the source is worse than no number.
+The bubble probe exits 0 when the measurement is sound, 2 when the
+production source no longer matches what the probe reproduces (no number
+is reported), and 3 when the fill was not found in the rendered pixels. A
+number that cannot be tied to the source is worse than no number.
+
+The chrome-band probe exits 0 when the two columns' bands agree within the
+tolerances, and 1 when they disagree or the capture is unusable. Its
+`--selftest` builds three synthetic captures and asserts the gate REJECTS a
+short band whose centre agrees — a gate that has only ever passed has no
+discriminating power.
+
+## The index's own test
+
+```
+python3 Tools/wenshu-devtool/tests/test_probe_index.py
+```
+
+The index and the probes directory must agree in both directions: a probe
+with no row, and a row with no probe behind it, are both reported.

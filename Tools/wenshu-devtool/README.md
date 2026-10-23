@@ -55,6 +55,34 @@ their call sites, and never read. Its own test suite runs on fixtures:
 python3 Tools/wenshu-devtool/tests/test_measure_drill.py
 ```
 
+## Visual probes
+
+`Tools/wenshu-devtool/probes/` holds the measurements that outlive their
+session: one file per measurement, named after what it measures, so a
+worker told to "measure the bubble" finds the last worker's measurement
+instead of writing its own. `Tools/wenshu-devtool/probe-index.md` lists
+every probe with the commit its numbers came from, because a number
+measured against one commit does not describe a later commit.
+
+```bash
+# 10. The chat bubble's painted width and corner radius, from rendered pixels
+swift Tools/wenshu-devtool/probes/chat_bubble_metrics.swift "Hi"
+
+# 11. Whether two neighbouring columns share one chrome band, from a 2x capture
+python3 Tools/wenshu-devtool/probes/column_chrome_band.py <capture.png>
+
+# 12. Prove that gate has teeth (it must REJECT a short band whose centre agrees)
+python3 Tools/wenshu-devtool/probes/column_chrome_band.py --selftest
+```
+
+The index's own test proves the index and the probes directory agree in
+both directions (= a probe with no row, and a row with no probe behind it,
+are both reported):
+
+```bash
+python3 Tools/wenshu-devtool/tests/test_probe_index.py
+```
+
 ## Ticket difficulty tier
 
 Another separate tool, because it measures a card body instead of the
