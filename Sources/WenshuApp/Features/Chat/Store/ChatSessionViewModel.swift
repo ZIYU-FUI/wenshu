@@ -645,6 +645,7 @@ final class ChatViewModel {
                     userMessage: text,
                     sessionId: sessionId.rawValue,
                     model: currentModel,
+                    bookID: currentBookID?.rawValue,
                     streamCallback: { [weak self] block in
                         // T1-THINKING-VISIBLE (2026-09-18): log each
                         // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
