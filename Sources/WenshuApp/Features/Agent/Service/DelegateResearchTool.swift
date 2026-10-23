@@ -179,17 +179,19 @@ final class DelegateResearchTool: Tool, @unchecked Sendable {
     /// The scope the delegation belongs to (= the chat session that
     /// asked for it, and the book it was reading).
     ///
-    /// The session comes from the turn the tool was called in: the
-    /// conductor binds it around the turn, so the tool reads it here
-    /// rather than being handed it (= the tool protocol carries only
+    /// Both halves come from the turn the tool was called in: the
+    /// conductor binds them around the turn, so the tool reads them here
+    /// rather than being handed them (= the tool protocol carries only
     /// its input string).
     ///
-    /// The book is nil until the store-side card supplies it: the
-    /// delegation is still scoped to its session, and a scope without a
-    /// book never matches a book-scoped read.
+    /// The book is nil for a turn that names no book (= the A2A path).
+    /// A scope without a book never matches a book-scoped read, so an
+    /// unscoped delegation stays out of every book's list rather than
+    /// appearing in the wrong one.
     private var currentScope: AgentScope? {
         guard let sessionID = TurnScope.currentSessionID else { return nil }
-        return AgentScope(sessionID: SessionID(rawValue: sessionID), bookID: nil)
+        let bookID = TurnScope.currentBookID.map { BookID(rawValue: $0) }
+        return AgentScope(sessionID: SessionID(rawValue: sessionID), bookID: bookID)
     }
 
     // Add a kanban task for the in-flight research (= best-effort;

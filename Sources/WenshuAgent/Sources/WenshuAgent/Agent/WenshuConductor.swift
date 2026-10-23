@@ -100,6 +100,7 @@ public actor WenshuConductor {
         userMessage: String,
         sessionId: String,
         model: String,
+        bookID: String? = nil,
         streamCallback: (@Sendable (LLMBlock) async -> Void)? = nil
     ) async -> (reply: String, totalTokens: Int, thinking: String?) {
         // AUDIT.md §2.9 partial (2026-10-16 boss "中途别停" arc):
@@ -147,6 +148,7 @@ public actor WenshuConductor {
             userMessage: userMessage,
             sessionId: sessionId,
             model: model,
+            bookID: bookID,
             connector: connector,
             streamCallback: fencedCallback,
             settings: turnSettings
@@ -169,6 +171,9 @@ public actor WenshuConductor {
         userMessage: String,
         sessionId: String,
         model: String,
+        // The book the turn belongs to. Nil = the turn names no book
+        // (= the A2A path, where no chat session asked for the work).
+        bookID: String?,
         connector: any LLMConnector,
         // Forward streamCallback to ConversationLoop
         // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
@@ -225,10 +230,14 @@ public actor WenshuConductor {
             // registry's instance is the generic one.
             let providerTools = await toolProvider?() ?? [:]
             let effectiveTools = tools.merging(providerTools) { scoped, _ in scoped }
-            // The turn's session is bound around the turn, so a tool the
-            // model calls learns which chat asked for it (= the tool
-            // protocol carries only its input string).
-            let result = try await TurnScope.withScope(sessionID: sessionId) {
+            // The turn's session and book are bound around the turn, so a
+            // tool the model calls learns which chat asked for it and
+            // which book that chat was reading (= the tool protocol
+            // carries only its input string).
+            let result = try await TurnScope.withScope(
+                sessionID: sessionId,
+                bookID: bookID
+            ) {
                 try await loop.runTurn(
                     userMessage: userMessage,
                     // Pass the agent-driver reminder as the systemMessage
