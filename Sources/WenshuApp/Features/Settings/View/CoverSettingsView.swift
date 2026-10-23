@@ -147,6 +147,10 @@ struct CoverRouteRow: View {
     /// replaced when the user commits.
     @State private var keyDraft = ""
 
+    /// The model the user typed, held the same way (= the route is
+    /// replaced as one unit, and the model belongs to the provider).
+    @State private var modelDraft = ""
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack {
@@ -156,6 +160,9 @@ struct CoverRouteRow: View {
                 Spacer()
                 Button(String(localized: "settings.covers.change")) {
                     isEditing.toggle()
+                    if isEditing {
+                        modelDraft = route.model ?? ""
+                    }
                 }
                 .buttonStyle(.link)
             }
@@ -182,17 +189,50 @@ struct CoverRouteRow: View {
                 }
                 .pickerStyle(.menu)
 
+                TextField(String(localized: "settings.covers.model"), text: $modelDraft)
+                    .textFieldStyle(.roundedBorder)
+                    .autocorrectionDisabled()
+
                 SecureField(String(localized: "settings.covers.apiKey"), text: $keyDraft)
                     .textFieldStyle(.roundedBorder)
+
+                Button(String(localized: "settings.covers.save")) {
+                    commit()
+                }
+                .buttonStyle(.link)
 
                 Button(String(localized: "settings.covers.resetToAutomatic")) {
                     route = route.resetting()
                     keyDraft = ""
+                    modelDraft = ""
                     isEditing = false
                 }
                 .buttonStyle(.link)
             }
         }
+    }
+
+    /// Writes the route the user typed.
+    ///
+    /// The route is replaced as ONE unit: the provider, the model and
+    /// the key belong together, and a route whose provider changed
+    /// while its model did not is a broken route. So the commit
+    /// writes all three at once.
+    ///
+    /// The MODEL is what makes a video route resolve at all (= the
+    /// video kind has no default model, on purpose), and the KEY was
+    /// typed but never written before this, so a user who set a key
+    /// for a service got the provider's own key instead.
+    private func commit() {
+        let provider = route.providerSlug
+        let model = modelDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        let key = keyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        route = route.replacing(
+            providerSlug: provider,
+            model: model.isEmpty ? nil : model,
+            baseURL: route.baseURL,
+            apiKey: key.isEmpty ? nil : key
+        )
     }
 
     /// What the row shows: the current target, in one line.
@@ -229,6 +269,7 @@ struct CoverRouteRow: View {
                     apiKey: nil
                 )
                 keyDraft = ""
+                modelDraft = ""
             }
         )
     }
