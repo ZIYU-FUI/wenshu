@@ -273,7 +273,7 @@ struct Card: View {
         // it at the bottom left over a scrim, and the play badge sits
         // in the middle (= the App Store's shape, and macOS's own
         // paused-player glyph).
-        ZStack(alignment: .bottomLeading) {
+        ZStack(alignment: .center) {
             LinearGradient(
                 colors: [Color.accentColor.opacity(DesignTokens.accentTintOpacityHero), Color(nsColor: .quaternaryLabelColor)],
                 startPoint: .topLeading,
@@ -362,35 +362,44 @@ struct Card: View {
                 }
             // The scrim the words sit on.
             //
-            // The App Store washes the bottom of its artwork so the
-            // white copy can be read over it, and macOS does the same
-            // in Photos. It is a gradient and NOT a solid panel, so
-            // the picture is still the card.
-            LinearGradient(
-                colors: [.clear, .black.opacity(0.25), .black.opacity(0.62)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .allowsHitTesting(false)
+            // A picture is a Chinese scroll painting on pale paper, and
+            // its open area is where the words belong (= 留白, the
+            // deliberate emptiness that the painting is built
+            // around). So the words sit in the middle of the paper,
+            // in ink, and NO scrim is drawn over it (= a scrim would
+            // cut the painting in half, and the paper is already pale
+            // enough to read dark ink on).
+            //
+            // A card with no picture has the gradient instead, and
+            // that one is dark, so its words are light and they get
+            // the wash.
+            if !hasCover {
+                LinearGradient(
+                    colors: [.clear, .black.opacity(0.18), .black.opacity(0.55)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .allowsHitTesting(false)
+            }
 
-            // The words, on the picture.
-            VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
+            // The words, on the paper.
+            VStack(alignment: .center, spacing: DesignTokens.spacingTight) {
                 Text(source.title)
                     .font(.headline)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(hasCover ? DesignTokens.coverInk : .white)
                     .lineLimit(2)
-                    .multilineTextAlignment(.leading)
+                    .multilineTextAlignment(.center)
                 if !source.tags.isEmpty {
                     HStack(spacing: DesignTokens.spacingCaption) {
                         ForEach(source.tags, id: \.self) { tag in
                             Text(tag)
                                 .font(.caption2)
-                                .foregroundStyle(.white.opacity(0.9))
+                                .foregroundStyle(hasCover ? DesignTokens.coverInk.opacity(0.75) : .white.opacity(0.9))
                                 .padding(.horizontal, DesignTokens.spacingStandard)
                                 .padding(.vertical, DesignTokens.spacingCaption)
                                 .background(
                                     Capsule()
-                                        .fill(.white.opacity(0.18))
+                                        .fill(hasCover ? DesignTokens.coverInk.opacity(0.08) : Color.white.opacity(0.18))
                                 )
                         }
                     }
@@ -398,6 +407,7 @@ struct Card: View {
                 }
             }
             .padding(DesignTokens.spacingModerate)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .allowsHitTesting(false)
         }
         // The picture keeps the card's shape: 4:3, which is the shape

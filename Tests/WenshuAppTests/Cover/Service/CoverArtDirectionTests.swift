@@ -40,15 +40,24 @@ struct CoverArtDirectionTests {
     @Test("The style text is byte-identical to the one that was checked")
     func styleIsTheVerifiedText() {
         let expected = """
-            Create original bright whimsical hand-painted fantasy trading-card key \
-            art with playful tavern-card-game energy; never imitate an existing \
-            franchise, character, card frame, logo or official illustration. Use \
-            broad painterly brushwork, saturated warm color masses, rich \
-            midtones, tactile painted materials, lively fantasy worldbuilding \
-            and a confident illustrative finish. Poster tile framing in a 4:3 \
-            picture, the subject centered and full height with headroom above it, \
-            the lower left of the picture calm and open so a title can be read \
-            over it, and no important detail near the edges.
+            Create original bright whimsical hand-painted Chinese-style fantasy \
+            scroll paintings with playful tavern-card-game energy; never imitate \
+            an existing franchise, character, card frame, logo or official \
+            illustration. Render the subject as one dimensional layered scroll \
+            painting, softly embossed and built from a few clear planes of depth, \
+            floating on a clean pale cream ground with generous empty space on \
+            every side, so the picture breathes instead of filling the frame. \
+            Place the subject in the middle of the picture, and leave the whole \
+            lower third of the picture as bare empty paper, with no water, no \
+            clouds, no rocks and no plants along the bottom edge, and nothing at \
+            all in the lower left corner, because a title is read over that \
+            space. Use soft ink-wash mountains and mist in the far distance, broad \
+            painterly brushwork, saturated warm color masses, rich midtones, \
+            tactile painted materials, a little gold, and a confident \
+            illustrative finish. Poster tile framing in a 4:3 picture, the subject \
+            centered and complete with air on every side. A small artist's \
+            signature in one corner is welcome, but no other writing anywhere in \
+            the picture.
             """
 
         #expect(CoverArtDirection.style == expected)
