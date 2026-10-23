@@ -1046,3 +1046,30 @@ The reproduction is a standalone probe: an `NSWindow` with an
 `AVPlayerLayer`, the clip, and the app's playback logic. It is the
 only way to test a crash that needs a real decoder and a real
 rendering surface.
+
+## The card's shape (2026-10-23)
+
+The boss pointed at the App Store's own editorial card: the artwork IS
+the card, the words sit on the artwork over a wash, and a small mark
+says the item is a video. The same direction, in macOS's idiom (= a
+Photos media tile), is what the material card is now:
+
+- the picture fills the card, and the title and the tags sit on it at
+  the bottom left over a scrim,
+- the card is a 4:3 tile, which is the shape the picture is generated
+  in, so the picture fills the tile and nothing is trimmed,
+- a card that moves carries the Photos mark (`livephoto`) in the top
+  left corner, small, and the clip still plays on hover.
+
+**Measured on macOS:** `AVPlayerView` was rendered in every one of its
+styles at the size of a cover slot (240 x 100). `.none` shows nothing,
+`.floating` and `.inline` show a transport bar on hover, and `.default`
+shows no centred play button either. macOS has no small centred play
+control to borrow, so the mark is a corner glyph (= a hint) and the
+pointer does the playing.
+
+The pictures that were already stored are in the old 2.4:1 shape, and
+the new tile trims a third of them. The batch and the automatic path
+both treat a cover in the old shape as a cover to be drawn again, once
+(= the rule is self-limiting, because the new picture has the new
+shape).
