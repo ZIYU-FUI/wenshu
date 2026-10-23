@@ -178,21 +178,39 @@ struct Card: View {
     /// click cannot start a second call.
     var isGeneratingCover: Bool = false
 
-    /// The failure of the last cover attempt, or nil when the last
+    /// The failure of the last COVER attempt, or nil when the last
     /// attempt worked.
     ///
     /// The card shows the failure on its own, so a cover that could
     /// not be drawn does not look like a card that was never asked
     /// for.
+    ///
+    /// This is the PICTURE's failure. A clip that failed does not
+    /// come here: the picture is fine, and a good picture must not
+    /// carry a failure mark (measured 2026-10-23: the orange mark sat
+    /// on a card with a good still cover, because the clip's failure
+    /// had overwritten the one error field).
     var coverErrorMessage: String? = nil
 
-    /// Whether the failure was the moving cover rather than the
-    /// picture.
+    /// The failure of the last CLIP attempt, or nil when the clip is
+    /// fine.
     ///
-    /// The two steps fail for different reasons (= the picture needs
-    /// an image service, the clip needs a video service and a still),
-    /// so the menu says which one gave up.
-    var coverErrorIsVideo: Bool = false
+    /// It is reported in the MENU, next to the action that makes a
+    /// clip, because that is where the user asks for one. The picture
+    /// carries no mark for it.
+    var coverClipErrorMessage: String? = nil
+
+    /// Whether the PICTURE carries the failure mark.
+    ///
+    /// A clip that failed does NOT mark the picture: the picture is
+    /// there and it is fine, and the menu says that the clip is the
+    /// part that gave up. Measured 2026-10-23: the orange mark sat on
+    /// a card with a good still cover, because the clip's failure had
+    /// overwritten the one error field.
+    ///
+    /// It is a rule and not an `if` in the view, so it can be tested
+    /// without a render.
+    var showsFailureMark: Bool { coverErrorMessage != nil }
 
     /// Whether this card's clip is being made right now.
     var isMakingVideo: Bool = false
@@ -369,7 +387,7 @@ struct Card: View {
                 // The last attempt failed: the card carries the mark
                 // (= the Apple HIG "needs attention" pattern, in the
                 // corner the completion badge does not use).
-                if coverErrorMessage != nil {
+                if showsFailureMark {
                     SFIcon(
                         "exclamationmark.triangle.fill",
                         style: .inlineSmall,
@@ -601,16 +619,26 @@ struct Card: View {
                         .disabled(isMakingVideo)
                     }
                     // The last attempt failed: the menu reports it, so
-                    // the user can read why the card has no cover.
+                    // the user can read why. The PICTURE's failure and
+                    // the CLIP's failure are two different things and
+                    // each is reported with its own words: a good
+                    // picture with a failed clip is not a card without
+                    // a cover.
                     if let coverErrorMessage {
                         Divider()
-                        Button(String(localized: coverErrorIsVideo
-                            ? "cover_context_menu_video_failed"
-                            : "cover_context_menu_failed")) {
+                        Button(String(localized: "cover_context_menu_failed")) {
                             // A failure is a report, not an action.
                         }
                         .disabled(true)
                         .help(coverErrorMessage)
+                    }
+                    if let coverClipErrorMessage {
+                        if coverErrorMessage == nil { Divider() }
+                        Button(String(localized: "cover_context_menu_video_failed")) {
+                            // A failure is a report, not an action.
+                        }
+                        .disabled(true)
+                        .help(coverClipErrorMessage)
                     }
                     Divider()
                 }
@@ -662,16 +690,26 @@ struct Card: View {
                         .disabled(isMakingVideo)
                     }
                     // The last attempt failed: the menu reports it, so
-                    // the user can read why the card has no cover.
+                    // the user can read why. The PICTURE's failure and
+                    // the CLIP's failure are two different things and
+                    // each is reported with its own words: a good
+                    // picture with a failed clip is not a card without
+                    // a cover.
                     if let coverErrorMessage {
                         Divider()
-                        Button(String(localized: coverErrorIsVideo
-                            ? "cover_context_menu_video_failed"
-                            : "cover_context_menu_failed")) {
+                        Button(String(localized: "cover_context_menu_failed")) {
                             // A failure is a report, not an action.
                         }
                         .disabled(true)
                         .help(coverErrorMessage)
+                    }
+                    if let coverClipErrorMessage {
+                        if coverErrorMessage == nil { Divider() }
+                        Button(String(localized: "cover_context_menu_video_failed")) {
+                            // A failure is a report, not an action.
+                        }
+                        .disabled(true)
+                        .help(coverClipErrorMessage)
                     }
                     Divider()
                 }

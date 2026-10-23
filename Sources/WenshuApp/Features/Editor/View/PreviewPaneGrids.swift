@@ -162,7 +162,7 @@ extension PreviewPane {
             hasCover: cover.hasCover,
             isGeneratingCover: coverGenerationService.isGenerating(target),
             coverErrorMessage: cover.record?.lastError,
-            coverErrorIsVideo: cover.record?.status == WSCardCoverStatus.videoFailed,
+            coverClipErrorMessage: cover.record?.clipError,
             isMakingVideo: coverVideoService.isMakingVideo(target)
         )
     }
@@ -431,7 +431,7 @@ extension PreviewPane {
                                 hasCover: cover.hasCover,
                                 isGeneratingCover: coverGenerationService.isGenerating(target),
                                 coverErrorMessage: cover.record?.lastError,
-                                coverErrorIsVideo: cover.record?.status == WSCardCoverStatus.videoFailed,
+                                coverClipErrorMessage: cover.record?.clipError,
                                 isMakingVideo: coverVideoService.isMakingVideo(target)
                             )
                             // per-card transition (= see categoryGrid comment for
@@ -518,7 +518,7 @@ extension PreviewPane {
                             hasCover: cover.hasCover,
                             isGeneratingCover: coverGenerationService.isGenerating(target),
                             coverErrorMessage: cover.record?.lastError,
-                            coverErrorIsVideo: cover.record?.status == WSCardCoverStatus.videoFailed,
+                            coverClipErrorMessage: cover.record?.clipError,
                             isMakingVideo: coverVideoService.isMakingVideo(target)
                         )
                         // per-card transition (= see categoryGrid comment for rationale).

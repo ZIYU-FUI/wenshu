@@ -80,20 +80,41 @@ public final class WSCardCover {
 }
 
 /// The generation states a cover row can be in.
+///
+/// The STILL and the CLIP are two steps, they fail for different
+/// reasons, and they have separate states. Before the split, ONE
+/// field carried both, and a clip that failed marked a card whose
+/// PICTURE was perfect as broken (measured 2026-10-23: the orange
+/// failure mark sat on a card with a good still cover, because the
+/// clip's failure had overwritten the record's state and its error).
 public enum WSCardCoverStatus {
     /// A generation is in flight.
     public static let pending = "pending"
     /// The static banner exists and is stored.
     public static let staticReady = "staticReady"
-    /// The static banner AND the moving clip exist.
-    public static let dynamicReady = "dynamicReady"
     /// The last attempt failed. The row survives so the error and the
     /// attempt time are visible.
     public static let failed = "failed"
-    /// The MOVING cover failed while the still cover is fine. The
-    /// two steps fail for different reasons (= the picture needs an
-    /// image service, the clip needs a video service and a still), so
-    /// the card says which one gave up.
+
+    /// There is no clip, and none was asked for.
+    public static let clipNone = "clipNone"
+    /// The clip exists and is stored.
+    public static let clipReady = "clipReady"
+    /// The clip could not be made, while the still cover is fine.
+    public static let clipFailed = "clipFailed"
+
+    /// The OLD single state, kept so a record written before the
+    /// split can be read.
+    ///
+    /// It said "the picture AND the clip exist", and the record
+    /// decoder turns it into still = staticReady, clip = ready.
+    public static let dynamicReady = "dynamicReady"
+    /// The OLD single state, kept so a record written before the
+    /// split can be read.
+    ///
+    /// It said "the clip gave up and the picture is fine", and the
+    /// record decoder turns it into still = staticReady, clip =
+    /// failed, with the one error it carries being the clip's.
     public static let videoFailed = "videoFailed"
 }
 
