@@ -101,7 +101,12 @@ enum CoverRouteResolver {
                     kind: route.kind
                 )
             }
-            let baseURL = route.baseURL ?? route.kind.defaultEndpoint
+            // The endpoint belongs to the service (= to the
+            // dialect), not to the kind: two services have two
+            // different video endpoints, and a route that names a
+            // provider must reach that provider's own endpoint.
+            let baseURL = route.baseURL
+                ?? CoverVideoDialectRegistry.dialect(for: route).defaultEndpoint
             let key = route.apiKey ?? keyForProvider(providerSlug)
             return ResolvedCoverService(
                 providerSlug: providerSlug,
@@ -136,7 +141,7 @@ enum CoverRouteResolver {
         return ResolvedCoverService(
             providerSlug: providerSlug,
             model: model,
-            baseURL: route.kind.defaultEndpoint,
+            baseURL: CoverVideoDialectRegistry.dialect(for: route).defaultEndpoint,
             apiKey: key
         )
     }

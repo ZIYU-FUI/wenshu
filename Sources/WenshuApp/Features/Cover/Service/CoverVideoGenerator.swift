@@ -63,9 +63,9 @@ struct CoverVideoGenerator: CoverVideoClient {
     static let model = "MiniMax-Hailuo-02"
 
     /// The clip length in seconds.
-    static let duration = 6
+    static let duration = CoverMiniMaxVideoDialect.duration
     /// The clip resolution.
-    static let resolution = "768P"
+    static let resolution = CoverMiniMaxVideoDialect.resolution
 
     /// The provider whose key and quota pay for a clip.
     static let providerSlug = "minimax-cn"
@@ -112,6 +112,23 @@ struct CoverVideoGenerator: CoverVideoClient {
         prompt: String,
         model: String = model
     ) -> [String: Any] {
+        CoverMiniMaxVideoDialect.requestBody(
+            firstFrameDataURL: firstFrameDataURL,
+            prompt: prompt,
+            model: model
+        )
+    }
+
+    /// The body of a task-creation request, as MiniMax wants it.
+    ///
+    /// The implementation lives in the dialect (= the protocol the
+    /// app speaks for this service), and the name above stays for the
+    /// tests and the older call sites.
+    private static func miniMaxRequestBody(
+        firstFrameDataURL: String,
+        prompt: String,
+        model: String
+    ) -> [String: Any] {
         var body: [String: Any] = [
             "model": model,
             "first_frame_image": firstFrameDataURL,
@@ -150,7 +167,7 @@ struct CoverVideoGenerator: CoverVideoClient {
     /// (`MiniMax-Hailuo-02`), and it does not serve the mode at
     /// 512P.
     static func supportsFirstAndLastFrame(model: String) -> Bool {
-        model == "MiniMax-Hailuo-02"
+        CoverMiniMaxVideoDialect.supportsFirstAndLastFrame(model: model)
     }
 
     /// Whether a route's video model serves the first-and-last-frame
@@ -169,13 +186,13 @@ struct CoverVideoGenerator: CoverVideoClient {
     /// nothing to say.
     static func servesFirstAndLastFrame(_ route: CoverServiceRoute) -> Bool {
         guard let model = route.model ?? route.kind.defaultModel else { return true }
-        return supportsFirstAndLastFrame(model: model)
+        return CoverVideoDialectRegistry.dialect(for: route)
+            .servesSeamlessLoop(model: model)
     }
 
     /// The prompt, within the endpoint's limit.
     static func cappedPrompt(_ prompt: String) -> String {
-        guard prompt.count > promptCharacterLimit else { return prompt }
-        return String(prompt.prefix(promptCharacterLimit))
+        CoverMiniMaxVideoDialect.cappedPrompt(prompt)
     }
 
     /// Makes a clip from a first frame.
@@ -194,234 +211,105 @@ struct CoverVideoGenerator: CoverVideoClient {
             throw CoverVideoError.missingKey(service.providerSlug)
         }
 
+        // The dialect is the service's own protocol: the endpoint,
+        // the body, the answer, the poll and the failure are all its
+        // shape, and the generator drives it without knowing any of
+        // them.
+        let dialect = CoverVideoDialectRegistry.dialect(for: service)
         let dataURL = "data:image/jpeg;base64,\(firstFrameJPEG.base64EncodedString())"
-        let body = Self.requestBody(
-            firstFrameDataURL: dataURL,
+        let request = try dialect.createRequest(
             prompt: prompt,
-            model: service.model
+            firstFrameDataURL: dataURL,
+            lastFrameDataURL: dataURL,
+            service: service
         )
-        let created = try await post(
-            endpoint: service.baseURL,
-            key: key,
-            body: body,
-            as: CoverVideoCreateResponse.self,
-            providerSlug: service.providerSlug,
-            model: service.model
-        )
-        // The provider reports its own failure INSIDE a 200 body, so
-        // the answer is read before the task id is. Without this a
-        // spent account reads as "the video service did not return a
-        // task", which tells the user nothing at all.
-        if let code = created.baseResp?.statusCode, code != 0 {
-            let detail = created.baseResp?.statusMessage
-            if let failure = CoverProviderFailure.classify(
-                providerSlug: service.providerSlug,
-                providerCode: code,
-                detail: detail,
-                model: service.model
-            ) {
-                throw CoverVideoError.providerFailure(failure)
-            }
-            throw CoverVideoError.taskFailed(detail ?? "the service refused the request (\(code))")
-        }
-        guard let taskId = created.taskId, !taskId.isEmpty else {
-            throw CoverVideoError.noTask
-        }
+        let (created, _) = try await send(request, service: service)
+        var job = try dialect.parseCreate(created, status: 200)
 
-        let fileId = try await pollForFile(taskId: taskId, key: key, service: service)
-        let url = try await downloadURL(fileId: fileId, key: key, service: service)
+        let fileHandle = try await pollForFile(job: job, dialect: dialect, service: service)
+        job.fileHandle = fileHandle
+
+        // A service that answers with the bytes ends here.
+        if let bytes = try dialect.videoBytes(from: created) {
+            return bytes
+        }
+        guard let fileRequest = try dialect.fileRequest(job: job, service: service) else {
+            throw CoverVideoError.noFile
+        }
+        let (fileData, _) = try await send(fileRequest, service: service)
+        guard let url = try dialect.parseFile(fileData) else {
+            throw CoverVideoError.noDownloadURL
+        }
         return try await download(url: url, service: service)
     }
 
     // MARK: - The three calls
 
-    /// Creates the task.
-    private func post<Response: Decodable>(
-        endpoint: String,
-        key: String,
-        body: [String: Any],
-        as: Response.Type,
-        providerSlug: String,
-        model: String
-    ) async throws -> Response {
-        var request = URLRequest(url: URL(string: endpoint)!)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-
+    /// Sends one request and reads the answer.
+    ///
+    /// The failure is classified before it is reported, so the
+    /// message says what the user has to do: the body carries the
+    /// service's own words (= "insufficient balance"), and the
+    /// status alone cannot tell an empty account from a rate limit
+    /// (= both are 429).
+    private func send(
+        _ request: URLRequest,
+        service: ResolvedCoverService
+    ) async throws -> (Data, Int) {
         let (data, response) = try await URLSession.shared.data(for: request)
-        try Self.checkStatus(
-            response,
-            body: data,
-            providerSlug: providerSlug,
-            model: model
-        )
-        return try JSONDecoder().decode(Response.self, from: data)
+        let status = (response as? HTTPURLResponse)?.statusCode ?? 200
+        guard (200..<300).contains(status) else {
+            let dialect = CoverVideoDialectRegistry.dialect(for: service)
+            if let failure = dialect.failure(from: data, status: status) {
+                throw CoverVideoError.providerFailure(failure)
+            }
+            throw CoverVideoError.httpStatus(status)
+        }
+        return (data, status)
     }
 
-    /// Polls the task until it succeeds.
+    /// Polls the job until it succeeds.
     private func pollForFile(
-        taskId: String,
-        key: String,
+        job: CoverVideoJob,
+        dialect: any CoverVideoDialect,
         service: ResolvedCoverService
-    ) async throws -> String {
-        var urlComponents = URLComponents(string: Self.queryEndpoint)!
-        urlComponents.queryItems = [URLQueryItem(name: "task_id", value: taskId)]
-        var request = URLRequest(url: urlComponents.url!)
-        request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+    ) async throws -> String? {
+        let request = try dialect.pollRequest(job: job, service: service)
 
         for _ in 0..<Self.maxPolls {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            try Self.checkStatus(
-                response,
-                providerSlug: service.providerSlug,
-                model: service.model
-            )
-
-            // The endpoint intermittently answers with an empty or a
-            // non-JSON body mid-poll. That is not a failure: it means
-            // "not ready yet", so the poll continues.
-            guard let payload = try? JSONDecoder().decode(CoverVideoQueryResponse.self, from: data) else {
+            let (data, _) = try await send(request, service: service)
+            switch try dialect.parsePoll(data) {
+            case .pending:
                 try await Task.sleep(for: Self.pollInterval)
-                continue
-            }
-            switch payload.status {
-            case "Success":
-                guard let fileId = payload.fileId, !fileId.isEmpty else {
-                    throw CoverVideoError.noFile
-                }
-                return fileId
-            case "Failed":
-                throw CoverVideoError.taskFailed(payload.taskStatus ?? "no reason given")
-            default:
-                try await Task.sleep(for: Self.pollInterval)
+            case .succeeded(let handle):
+                return handle
+            case .failed(let message):
+                throw CoverVideoError.taskFailed(message)
             }
         }
         throw CoverVideoError.timedOut
     }
 
-    /// Turns the file id into a download URL.
-    ///
-    /// The URL expires in about nine hours, which is why the caller
-    /// downloads the file immediately and never stores the URL.
-    private func downloadURL(
-        fileId: String,
-        key: String,
-        service: ResolvedCoverService
-    ) async throws -> URL {
-        var urlComponents = URLComponents(string: Self.filesEndpoint)!
-        urlComponents.queryItems = [URLQueryItem(name: "file_id", value: fileId)]
-        var request = URLRequest(url: urlComponents.url!)
-        request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-        try Self.checkStatus(
-            response,
-            providerSlug: service.providerSlug,
-            model: service.model
-        )
-        let payload = try JSONDecoder().decode(CoverVideoFilesResponse.self, from: data)
-        guard let urlString = payload.file?.downloadUrl,
-              let url = URL(string: urlString) else {
-            throw CoverVideoError.noDownloadURL
-        }
-        return url
-    }
-
     /// Downloads the clip.
+    ///
+    /// The address is the service's own and it expires (MiniMax's
+    /// runs about nine hours), which is why the bytes are downloaded
+    /// immediately and the address is never stored.
     private func download(url: URL, service: ResolvedCoverService) async throws -> Data {
         let (data, response) = try await URLSession.shared.data(from: url)
-        try Self.checkStatus(
-            response,
-            providerSlug: service.providerSlug,
-            model: service.model
-        )
+        let status = (response as? HTTPURLResponse)?.statusCode ?? 200
+        guard (200..<300).contains(status) else {
+            let dialect = CoverVideoDialectRegistry.dialect(for: service)
+            if let failure = dialect.failure(from: data, status: status) {
+                throw CoverVideoError.providerFailure(failure)
+            }
+            throw CoverVideoError.httpStatus(status)
+        }
         return data
     }
 
-    /// Checks the HTTP status.
-    ///
-    /// A failed call is classified before it is reported, so the
-    /// message says what the user has to do. The body carries the
-    /// provider's own words (= "insufficient balance"), and the
-    /// status alone cannot tell an empty account from a rate limit:
-    /// both are 429.
-    private static func checkStatus(
-        _ response: URLResponse,
-        body: Data? = nil,
-        providerSlug: String,
-        model: String
-    ) throws {
-        guard let http = response as? HTTPURLResponse else { return }
-        guard (200..<300).contains(http.statusCode) else {
-            let bodyText = body.flatMap { String(data: $0, encoding: .utf8) }
-            if let failure = CoverProviderFailure.classify(
-                providerSlug: providerSlug,
-                httpStatus: http.statusCode,
-                body: bodyText,
-                model: model
-            ) {
-                throw CoverVideoError.providerFailure(failure)
-            }
-            throw CoverVideoError.httpStatus(http.statusCode)
-        }
-    }
 }
 
-// MARK: - Response shapes
-
-/// The task-creation response.
-private struct CoverVideoCreateResponse: Decodable {
-    struct BaseResp: Decodable {
-        let statusCode: Int?
-        let statusMessage: String?
-
-        enum CodingKeys: String, CodingKey {
-            case statusCode = "status_code"
-            case statusMessage = "status_msg"
-        }
-    }
-
-    let taskId: String?
-
-    /// The provider's own report, which carries a refusal inside a
-    /// 200 body (= a spent account, a plan that does not cover the
-    /// model, a key the service will not take).
-    let baseResp: BaseResp?
-
-    enum CodingKeys: String, CodingKey {
-        case taskId = "task_id"
-        case baseResp = "base_resp"
-    }
-}
-
-/// The task-query response.
-private struct CoverVideoQueryResponse: Decodable {
-    let status: String?
-    let fileId: String?
-    let taskStatus: String?
-
-    enum CodingKeys: String, CodingKey {
-        case status
-        case fileId = "file_id"
-        case taskStatus = "task_status"
-    }
-}
-
-/// The file-retrieval response.
-private struct CoverVideoFilesResponse: Decodable {
-    struct FilePayload: Decodable {
-        let downloadUrl: String?
-
-        enum CodingKeys: String, CodingKey {
-            case downloadUrl = "download_url"
-        }
-    }
-    let file: FilePayload?
-}
-
-/// The failures the video call can raise.
 enum CoverVideoError: LocalizedError {
     case missingKey(String)
     case httpStatus(Int)

@@ -111,6 +111,13 @@ enum CoverProviderCapability {
     /// but the app still sends it a cover-protocol request, so the
     /// settings say so when the endpoint does not look like a cover
     /// endpoint.
+    /// The providers whose service speaks the cover protocol.
+    ///
+    /// They are the two MiniMax slugs (= the same service with two
+    /// hosts). A provider outside this list has a service of its own
+    /// that the app cannot speak, so it is not offered for a cover.
+    static let coverProtocolProviders: Set<String> = ["minimax", "minimax-cn"]
+
     static let coverProtocolHosts: Set<String> = [
         "api.minimaxi.com",
         "api.minimax.io",
