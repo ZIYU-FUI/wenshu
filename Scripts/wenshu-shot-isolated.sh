@@ -62,7 +62,10 @@ fi
 
 # Every run gets its own copy of the bundle, under the caller's own scratch
 # area, so two runs never share a bundle on disk.
-WORK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/wenshu-shot-isolated.XXXXXX")"
+# The directory is resolved to its real path: /var is a symlink to
+# /private/var, and the process list reports the resolved path, so an
+# unresolved path never matches the running process.
+WORK_DIR="$(cd "$(mktemp -d "${TMPDIR:-/tmp}/wenshu-shot-isolated.XXXXXX")" && pwd -P)"
 RUN_TAG="$(uuidgen | tr 'A-Z' 'a-z' | cut -c1-12)"
 BUNDLE_ID="com.wenshu.app.shot.$RUN_TAG"
 EXEC_NAME="WenshuShot$RUN_TAG"
@@ -78,11 +81,14 @@ trap cleanup EXIT
 cp -R "$BUNDLE_PATH" "$APP_COPY"
 
 PLIST="$APP_COPY/Contents/Info.plist"
+# The executable name comes from the copy's own Info.plist, so a renamed
+# binary in the source bundle is still renamed correctly.
+ORIGINAL_EXEC="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$PLIST")"
 /usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier $BUNDLE_ID" "$PLIST"
 /usr/libexec/PlistBuddy -c "Set :CFBundleExecutable $EXEC_NAME" "$PLIST"
 
 # The executable name in the plist is the name of the file in Contents/MacOS.
-mv "$APP_COPY/Contents/MacOS/WenshuApp" "$APP_COPY/Contents/MacOS/$EXEC_NAME"
+mv "$APP_COPY/Contents/MacOS/$ORIGINAL_EXEC" "$APP_COPY/Contents/MacOS/$EXEC_NAME"
 
 # The copy is signed again because the plist and the executable name changed.
 codesign --force --deep --sign - "$APP_COPY" >/dev/null 2>&1
@@ -91,9 +97,16 @@ EXEC_PATH="$APP_COPY/Contents/MacOS/$EXEC_NAME"
 
 # The pid of this run's own app. The match is an exact comparison against
 # this run's unique executable path, never a name pattern, so another run's
-# app is never a candidate.
+# app is never a candidate. The path is compared whole, so a scratch path
+# containing a space still matches.
 own_pid() {
-    ps -Ao pid=,comm= | awk -v want="$EXEC_PATH" '$2 == want { print $1; exit }'
+    ps -Ao pid=,comm= | awk -v want="$EXEC_PATH" '
+        {
+            pid = $1
+            path = $0
+            sub(/^[[:space:]]*[0-9]+[[:space:]]+/, "", path)
+            if (path == want) { print pid; exit }
+        }'
 }
 
 # The capture settings travel with the launch, per process. A machine-wide
