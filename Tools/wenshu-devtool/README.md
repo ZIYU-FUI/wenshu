@@ -110,6 +110,36 @@ python3 Tools/wenshu-devtool/tests/test_ticket_tier.py
 The tier's contract and the measurements behind its numbers are in
 `docs/agents/ticket-tiers.md`.
 
+## Dead-code gate
+
+Another separate tool, because it measures the source tree instead of the
+running app. It reports the types no file can reach: a type whose name
+appears in no other file is a candidate only when nothing reads it either
+(= no member read, no value received from a called function, no use in its
+own file).
+
+```bash
+# 13. Scan the view tree for unreachable types
+python3 Tools/wenshu-devtool/verify-dead.py --ui-components
+
+# 13b. Why one type is alive (= the reader that reaches it)
+python3 Tools/wenshu-devtool/verify-dead.py --ui-components --verbose \
+    Sources/WenshuApp/Features/Editor/Service/WordCounter.swift
+```
+
+With no file arguments the scan covers the view tree (= every
+`Features/*/View` directory plus `Shared/UI`), and it names the
+directories it scanned. A directory that does not exist is skipped, so a
+moved directory never breaks the scan. With file arguments it checks
+exactly those files. The exit code is non-zero when it finds a deletion
+candidate.
+
+Its test suite runs on fixture trees:
+
+```bash
+python3 Tools/wenshu-devtool/tests/test_verify_dead.py
+```
+
 ## Requirements
 
 - macOS (uses `osascript`, `screencapture`, `defaults`, `security`)
