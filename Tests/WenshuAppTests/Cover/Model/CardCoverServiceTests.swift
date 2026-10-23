@@ -128,6 +128,34 @@ struct CardCoverServiceTests {
         }
     }
 
+    @Test("A new picture takes the clip's state with it")
+    func aNewPictureTakesTheClipsStateWithIt() async throws {
+        let root = try makeLibraryRoot()
+        let key = CardCoverService.key(forReference: UUID())
+
+        try await PathGuard.$libraryRootOverride.withValue(root.path) {
+            let service = CardCoverService()
+            // A clip, and a picture that was drawn from an older one.
+            try service.saveVideo(
+                Data([0x00, 0x00, 0x00, 0x18]),
+                forKey: key
+            )
+            #expect(service.record(forKey: key)?.clipStatus == WSCardCoverStatus.clipReady)
+
+            // A new picture makes the clip wrong: it was made from the
+            // old picture, and saveImage deletes its file.
+            try service.saveImage(
+                Data([0x01, 0x02, 0x03]),
+                forKey: key,
+                kind: WSCardCoverKind.reference
+            )
+
+            let record = service.record(forKey: key)
+            #expect(record?.status == WSCardCoverStatus.staticReady)
+            #expect(record?.clipStatus == WSCardCoverStatus.clipNone)
+        }
+    }
+
     @Test("A cover resolves the same way on every read")
     func theLookupIsStable() async throws {
         let root = try makeLibraryRoot()

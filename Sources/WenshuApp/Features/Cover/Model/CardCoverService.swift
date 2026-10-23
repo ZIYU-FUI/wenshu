@@ -213,6 +213,11 @@ struct CardCoverService {
         record.cardKind = kind
         record.status = WSCardCoverStatus.staticReady
         record.lastError = nil
+        // The clip belonged to the still that was just replaced, and
+        // its file is gone (= the card would play a clip of another
+        // picture), so the clip's state goes with it.
+        record.clipStatus = WSCardCoverStatus.clipNone
+        record.clipError = nil
         record.motifs = motifs ?? record.motifs
         record.updatedAt = .now
         try writeRecord(record, forKey: key)
@@ -228,8 +233,12 @@ struct CardCoverService {
         try Self.atomicWrite(data, to: videoURL)
 
         var record = record(forKey: key) ?? CoverRecord(cardKind: WSCardCoverKind.reference)
-        record.status = WSCardCoverStatus.dynamicReady
-        record.lastError = nil
+        // The clip's state is its own: the still's state says nothing
+        // about the clip, and the card's failure mark follows the
+        // still.
+        record.clipStatus = WSCardCoverStatus.clipReady
+        record.clipError = nil
+        record.clipAttemptAt = .now
         record.updatedAt = .now
         try writeRecord(record, forKey: key)
     }

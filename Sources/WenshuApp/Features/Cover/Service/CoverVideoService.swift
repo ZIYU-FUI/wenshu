@@ -130,20 +130,23 @@ final class CoverVideoService {
     /// Records that the clip could not be made.
     ///
     /// The still cover stays where it is: the user liked it, and a
-    /// failed clip must not take it away.
+    /// failed clip must not take it away. And the still's STATE stays
+    /// where it is too, because a card with a good picture and a
+    /// failed clip is not a broken card: the failure belongs to the
+    /// clip, and the card's failure mark follows the picture.
     private func markFailed(for key: String, kind: String, error: Error) {
         var record = coverService.record(forKey: key) ?? CoverRecord(cardKind: kind)
         record.cardKind = kind
-        record.status = WSCardCoverStatus.videoFailed
-        record.lastAttemptAt = .now
+        record.clipStatus = WSCardCoverStatus.clipFailed
         // The MESSAGE, not the case's debug description. The card
         // shows this as the failure's help text, and
         // String(describing:) on a LocalizedError prints the case's
         // fields (= "providerFailure(CoverProviderFailure(kind:
         // .quotaExhausted, ...))"), which is the one thing a user
         // cannot read.
-        record.lastError = (error as? LocalizedError)?.errorDescription
+        record.clipError = (error as? LocalizedError)?.errorDescription
             ?? String(describing: error)
+        record.clipAttemptAt = .now
         record.updatedAt = .now
         try? coverService.writeRecord(record, forKey: key)
     }

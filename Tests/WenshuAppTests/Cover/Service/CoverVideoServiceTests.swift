@@ -144,7 +144,10 @@ struct CoverVideoServiceTests {
 
         #expect(client.callCount == 1)
         let record = service.coverRecord(for: target)
-        #expect(record?.status == WSCardCoverStatus.dynamicReady)
+        // The clip's state is its own: the still's state says
+        // nothing about the clip.
+        #expect(record?.clipStatus == WSCardCoverStatus.clipReady)
+        #expect(record?.status == WSCardCoverStatus.staticReady)
         let clip = CardCoverService().coverVideoURL(for: target.coverKey)
         #expect(clip != nil)
         #expect(FileManager.default.fileExists(atPath: clip!.path))
@@ -190,16 +193,20 @@ struct CoverVideoServiceTests {
         // "providerFailure(CoverProviderFailure(kind: .quotaExhausted,
         // ...))", which is the one thing a user cannot read.
         let failureRecord = service.coverRecord(for: target)
-        let message = failureRecord?.lastError ?? ""
+        let message = failureRecord?.clipError ?? ""
         #expect(message.contains("quota") || message.contains("API key") || message.contains("rate limit") || message.contains("plan"))
         #expect(!message.contains("CoverProviderFailure("))
         #expect(coverService.coverImageURL(for: target.coverKey)?.path == stillPath)
 
         // And the card can say what happened: the failure is in the
-        // cover's record, marked as the clip's failure.
+        // cover's record, marked as the CLIP's failure, and the
+        // still's state is untouched (= the picture is fine, so the
+        // picture carries no failure mark).
         let record = service.coverRecord(for: target)
-        #expect(record?.status == WSCardCoverStatus.videoFailed)
-        #expect(record?.lastError != nil)
+        #expect(record?.clipStatus == WSCardCoverStatus.clipFailed)
+        #expect(record?.status == WSCardCoverStatus.staticReady)
+        #expect(record?.clipError != nil)
+        #expect(record?.lastError == nil)
     }
 
 
