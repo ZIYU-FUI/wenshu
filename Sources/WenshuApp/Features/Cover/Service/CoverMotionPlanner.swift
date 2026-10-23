@@ -101,6 +101,14 @@ struct CoverMotionPlanner: CoverMotionPlanning {
         - something that smokes, burns or glows may have its smoke, its flame or its light shift.
         - if an object fits none of these, decide by physics: would a light breeze move this thing?
 
+        Also classify EVERY object by what it is made of, in the "kind" value:
+        - "plant" = something that grows: leaves, branches, grass, vines, flowers, moss, bamboo, pine needles, reeds, a tendril, a bud, a blossom.
+        - "air" = something that is only in the air: smoke, steam, mist, dust in the light.
+        - "light" = something light and loose: paper, cloth, cord, ribbon, tassel, hair, a hanging edge, a thread.
+        - "solid" = everything else: vessels, pottery, bronze, books, stone, tools, heavy fruit, food.
+
+        WHAT MOVES, AND HOW IT MOVES: if the picture has a plant, THE PLANT IS THE ONE THAT MOVES, and it GROWS (= it lengthens and opens a little, like a shoot or a bud unfurling). Only when the picture has NO plant at all does another thing move (= the lightest thing in it: smoke, dust, a paper edge, a cord). And when the plant moves, it grows: it does not sway. The clip is a growth animation when there is a plant to grow.
+
         Give EXACTLY one entry per object, in the same order as the list you were given. Do not add an entry, and do not split one object into two.
 
         The "motif" value must be the object's own name copied EXACTLY as it appears in the list you were given, in its own script. Do not translate it and do not reword it.
@@ -116,7 +124,7 @@ struct CoverMotionPlanner: CoverMotionPlanning {
         "wind" is one English sentence of at most 30 words: where the breeze comes from, and how it passes through the picture. It stands on its own. Write it in the SMALL words (= "a light breeze", "barely", "a hint of movement", "a few millimetres") and never in the grand ones (= "sweep", "billow", "sway violently", "rustle", "reveal", "pan across", "travel across"). The wind sentence must NOT mention the light, the shadows or the colours: those are locked elsewhere, and a sentence that mentions them asks for them to change.
 
         Output only this one line of JSON, no explanation, no extra text:
-        {"picture":"the English phrase for the whole picture","items":[{"motif":"the object's own name, copied exactly","thing":"the English phrase","moves":true}],"wind":"one English sentence"}
+        {"picture":"the English phrase for the whole picture","items":[{"motif":"the object's own name, copied exactly","thing":"the English phrase","moves":true,"kind":"plant"}],"wind":"one English sentence"}
         """
 
     /// The provider the planning talks to (= the user's chat provider).
@@ -208,6 +216,23 @@ struct CoverMotionPlanner: CoverMotionPlanning {
     }
 
     /// Reads the plan out of the model's answer.
+    /// The physical kind of an item, from the wire's word.
+    ///
+    /// A plan that does not say reads as `solid`, which is the safe
+    /// default: a plan written before the classification existed must
+    /// never invent a mover.
+    static func movability(of kind: String?) -> CoverMotionPlan.Movability {
+        guard let kind = kind?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() else {
+            return .solid
+        }
+        switch kind {
+        case "plant": return .plant
+        case "air": return .air
+        case "light": return .light
+        default: return .solid
+        }
+    }
+
     static func parse(_ raw: String) throws -> CoverMotionPlan {
         guard let start = raw.firstIndex(of: "{"),
               let end = raw.lastIndex(of: "}"),
@@ -227,6 +252,7 @@ struct CoverMotionPlanner: CoverMotionPlanning {
                 let motif: String?
                 let thing: String?
                 let moves: Bool?
+                let kind: String?
             }
             let picture: String?
             let items: [WireItem]?
@@ -243,7 +269,8 @@ struct CoverMotionPlanner: CoverMotionPlanning {
             return CoverMotionPlan.Item(
                 motif: item.motif ?? "",
                 thing: thing,
-                moves: item.moves ?? false
+                moves: item.moves ?? false,
+                movability: movability(of: item.kind)
             )
         }
         guard !items.isEmpty else {

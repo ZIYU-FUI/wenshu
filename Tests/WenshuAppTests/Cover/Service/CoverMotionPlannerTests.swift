@@ -70,10 +70,10 @@ struct CoverMotionPlannerTests {
     private let rainWaterAnswer = """
         {"picture":"a Chinese ink-and-colour still life of Rain Water objects on a pale ground",\
         "items":[\
-        {"motif":"closed umbrella","thing":"the closed oil-paper umbrella in the centre","moves":false},\
-        {"motif":"sprout branch","thing":"the budding branch on the left","moves":true},\
-        {"motif":"clay doll","thing":"the coloured clay figurine on the right","moves":false},\
-        {"motif":"silk knot","thing":"the red silk knot on the right","moves":true}],\
+        {"motif":"closed umbrella","thing":"the closed oil-paper umbrella in the centre","moves":false,"kind":"solid"},\
+        {"motif":"sprout branch","thing":"the budding branch on the left","moves":true,"kind":"plant"},\
+        {"motif":"clay doll","thing":"the coloured clay figurine on the right","moves":false,"kind":"solid"},\
+        {"motif":"silk knot","thing":"the red silk knot on the right","moves":true,"kind":"light"}],\
         "wind":"A light breeze comes from the left and passes rightward, stirring the budding branch and red silk knot while the umbrella and clay figurine remain still."}
         """
 
@@ -230,7 +230,7 @@ struct CoverMotionPlannerTests {
         let plan = try CoverMotionPlanner.parse("""
             {"picture":"a Chinese ink-and-colour still life of scholar's objects on a pale ground",\
             "items":[\
-            {"motif":"a","thing":"the dark inkstone on the left","moves":false},\
+            {"motif":"a","thing":"the dark inkstone on the left","moves":false,"kind":"solid"},\
             {"motif":"b","thing":"the celadon brush pot on the right","moves":false}],\
             "wind":"A faint breeze crosses the desk as the light drifts slowly across the paper."}
             """)
@@ -247,7 +247,7 @@ struct CoverMotionPlannerTests {
     func aPlanWhereEverythingMovesDropsTheHoldingList() throws {
         let plan = try CoverMotionPlanner.parse("""
             {"picture":"a still life of leaves",\
-            "items":[{"motif":"a","thing":"the leafy branch on the left","moves":true}],\
+            "items":[{"motif":"a","thing":"the leafy branch on the left","moves":true,"kind":"plant"}],\
             "wind":"A light breeze stirs the leaves."}
             """)
 
