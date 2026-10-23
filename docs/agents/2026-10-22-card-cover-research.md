@@ -1000,3 +1000,25 @@ delete. The three cover actions join that menu.
 
 - `ReferenceLibraryImageProvider` searches `worlds/` (`ReferenceLibraryImageProvider.swift:35`, `:65`) but the real folder is `world/` (`BookFolderCatalog.swift:118-119`). Existing markdown `![[embed]]` resolution therefore misses world-folder images.
 - `Card.needsCompletion` / `onComplete` (`PreviewPaneCard.swift:120`, `:124`) are never passed by any call site, so the "complete" context-menu item never appears.
+
+## Follow-ups after the first acceptance (2026-10-23)
+
+- The cover picture used to decide how wide a card was: a picture
+  with a ratio asks for the width that ratio implies, and the material
+  column is narrower than that, so the column cut the card's right
+  side off. The picture now fills a slot that has no width of its own.
+  Fixed in `0aa53cd66c`.
+- The material zone drew its scroll indicator ON TOP of the cards, so
+  the indicator sat over their right edge. The three card grids no
+  longer draw it (`.scrollIndicators(.hidden, axes: .vertical)`).
+- The clip (= the moving cover) had no status: the card did not say
+  it was being made, and a clip that gave up left no trace. The card
+  now answers one question (= is cover work running on this card), and
+  a failed clip writes down what happened, the same way a failed
+  picture does. Fixed in `ef69c15f87`.
+- **Unrelated crash seen once while poking the app**: `EXC_BAD_ACCESS
+  / SIGBUS` inside `CoreMedia`'s frame scheduler
+  (`figSchedIOFRS_Callback`). It did not reproduce after a relaunch and
+  it is not on any cover code path (= the only AVFoundation users are
+  the agent's media tool and the clip player, and no clip exists on
+  disk). If it comes back, look at CoreMedia, not at the cover.
