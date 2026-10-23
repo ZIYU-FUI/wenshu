@@ -101,6 +101,14 @@ struct CoverSettingsView: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(nil)
                     .fixedSize(horizontal: false, vertical: true)
+                // Which protocol the app speaks. It speaks ONE (= the
+                // MiniMax cover endpoints), and the user chooses the
+                // service here, so the honest thing is to say it.
+                Text(String(localized: "settings.covers.protocolNote"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .formStyle(.grouped)
@@ -165,6 +173,20 @@ struct CoverRouteRow: View {
                     }
                 }
                 .buttonStyle(.link)
+            }
+
+            // The protocol note. The app speaks ONE cover protocol
+            // (= MiniMax's image and video endpoints), and a service
+            // of the user's own is called as it is: so a service that
+            // speaks another protocol says so here, before a cover
+            // is drawn, instead of the service's own error saying it
+            // later.
+            if !CoverProviderCapability.speaksCoverProtocol(baseURL: route.baseURL) {
+                Text(String(localized: "settings.covers.foreignEndpointNote"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(nil)
+                    .fixedSize(horizontal: false, vertical: true)
             }
 
             // The mode note. The endpoint serves the
