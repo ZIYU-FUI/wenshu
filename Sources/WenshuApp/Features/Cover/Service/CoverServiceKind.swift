@@ -73,4 +73,15 @@ enum CoverServiceKind: String, Codable, CaseIterable, Sendable, Identifiable {
         case .video: return "https://api.minimaxi.com/v1/video_generation"
         }
     }
+
+    /// The provider whose service answers for this kind by default.
+    ///
+    /// It is the provider that publishes the cover protocol (= the
+    /// MiniMax image and video endpoints), and NOT the app's chat
+    /// provider: a chat key cannot pay for a picture, and a chat
+    /// provider publishes no picture endpoint for the cover protocol
+    /// to call.
+    var defaultProviderSlug: String {
+        "minimax-cn"
+    }
 }

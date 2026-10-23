@@ -39,6 +39,9 @@ final class CoverVideoService {
     /// The planning call, injected for the same reason.
     private let motionPlanner: CoverMotionPlanning
 
+    /// Where the clip is made (= the user's own video service).
+    private let routeStore: CoverServiceRouteStore
+
     /// The cards whose clip is being made, so a second request does
     /// not start a second one.
     ///
@@ -48,10 +51,12 @@ final class CoverVideoService {
     private(set) var inFlight: Set<String> = []
 
     init(
+        routeStore: CoverServiceRouteStore = CoverServiceRouteStore(),
         videoClient: CoverVideoClient = CoverVideoGenerator(),
         motionPlanner: CoverMotionPlanning = CoverMotionPlanner()
     ) {
         self.coverService = CardCoverService()
+        self.routeStore = routeStore
         self.videoClient = videoClient
         self.motionPlanner = motionPlanner
     }
@@ -91,6 +96,12 @@ final class CoverVideoService {
         }
 
         do {
+            // The clip is made at the user's own video service, which
+            // is a route the user configured: a clip spends a scarce
+            // allowance, so it is never spent on a service the user
+            // did not choose.
+            let route = routeStore.route(for: .video)
+            let service = try CoverRouteResolver.resolve(route)
             // The endpoint takes a JPEG and NOT the HEIC the cover is
             // stored as, so the conversion happens in memory and the
             // JPEG is never written to disk.
@@ -99,7 +110,8 @@ final class CoverVideoService {
             let prompt = try await motionPrompt(for: key)
             let clip = try await videoClient.makeVideo(
                 firstFrameJPEG: jpeg,
-                prompt: prompt
+                prompt: prompt,
+                service: service
             )
             try coverService.saveVideo(clip, forKey: key)
         } catch {

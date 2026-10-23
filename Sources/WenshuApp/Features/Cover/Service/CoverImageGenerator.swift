@@ -42,7 +42,14 @@ import WenshuAgent
 /// the old picture) are then testable in isolation.
 protocol CoverImageClient: Sendable {
     /// Draws one cover and returns the raw image bytes.
-    func generateCover(subject: String) async throws -> Data
+    ///
+    /// - Parameters:
+    ///   - subject: what the picture should show. The art direction
+    ///     is prepended by the caller.
+    ///   - service: where the picture is drawn (= the endpoint, the
+    ///     model and the key). It comes from the route, so the
+    ///     user's own image service is the one that answers.
+    func generateCover(subject: String, service: ResolvedCoverService) async throws -> Data
 }
 
 /// Draws a cover with an image model.
@@ -73,21 +80,25 @@ struct CoverImageGenerator: CoverImageClient {
 
     /// Draws one cover.
     ///
-    /// - Parameter subject: what the picture should show. The art
-    ///   direction is prepended by the caller.
+    /// - Parameters:
+    ///   - subject: what the picture should show. The art direction
+    ///     is prepended by the caller.
+    ///   - service: where the picture is drawn. The endpoint, the
+    ///     model and the key all come from the route, so the user's
+    ///     own image service is the one that answers.
     /// - Returns: the raw JPEG bytes the model returned.
-    func generateCover(subject: String) async throws -> Data {
-        guard let key = ProviderKeychain.loadKeySync(for: Self.provider), !key.isEmpty else {
-            throw CoverImageError.missingKey(Self.provider.slug)
+    func generateCover(subject: String, service: ResolvedCoverService) async throws -> Data {
+        guard let key = service.apiKey, !key.isEmpty else {
+            throw CoverImageError.missingKey(service.providerSlug)
         }
 
-        var request = URLRequest(url: URL(string: Self.endpoint)!)
+        var request = URLRequest(url: URL(string: service.baseURL)!)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
 
         let body: [String: Any] = [
-            "model": Self.model,
+            "model": service.model,
             "prompt": subject,
             "width": Self.requestWidth,
             "height": Self.requestHeight,
@@ -99,12 +110,35 @@ struct CoverImageGenerator: CoverImageClient {
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
+        // A failed call is read before it is reported. The status
+        // alone does not say what happened (= 429 is a rate limit at
+        // one provider and an empty account at another), so the body
+        // is classified too.
         if let http = response as? HTTPURLResponse, !(200..<300).contains(http.statusCode) {
+            let bodyText = String(data: data, encoding: .utf8)
+            if let failure = CoverProviderFailure.classify(
+                providerSlug: service.providerSlug,
+                httpStatus: http.statusCode,
+                body: bodyText,
+                model: service.model
+            ) {
+                throw CoverImageError.providerFailure(failure)
+            }
             throw CoverImageError.httpStatus(http.statusCode)
         }
 
         let payload = try JSONDecoder().decode(CoverImageResponse.self, from: data)
         guard payload.baseResp.statusCode == 0 else {
+            let bodyText = String(data: data, encoding: .utf8)
+            if let failure = CoverProviderFailure.classify(
+                providerSlug: service.providerSlug,
+                providerCode: payload.baseResp.statusCode,
+                body: bodyText,
+                detail: payload.baseResp.statusMessage,
+                model: service.model
+            ) {
+                throw CoverImageError.providerFailure(failure)
+            }
             throw CoverImageError.providerRejected(
                 statusCode: payload.baseResp.statusCode,
                 message: payload.baseResp.statusMessage
@@ -153,6 +187,16 @@ enum CoverImageError: LocalizedError {
     case providerRejected(statusCode: Int, message: String?)
     case noImage
 
+    /// The provider refused the call for a reason the user has to act
+    /// on (= the account has no quota, the plan does not cover the
+    /// model, the key is wrong, the service is rate limiting).
+    ///
+    /// This case exists so the failure says WHAT to do. The generic
+    /// "the image service answered with HTTP 429" reads like a
+    /// broken program, and a user who cannot tell a spent account
+    /// from a crash does not know what to do next.
+    case providerFailure(CoverProviderFailure)
+
     var errorDescription: String? {
         switch self {
         case .missingKey(let slug):
@@ -163,6 +207,8 @@ enum CoverImageError: LocalizedError {
             return "The image service refused the request (\(statusCode)): \(message ?? "no reason given")."
         case .noImage:
             return "The image service answered without a picture."
+        case .providerFailure(let failure):
+            return failure.userMessage
         }
     }
 }

@@ -28,7 +28,7 @@ private final class StubImageClient: CoverImageClient, @unchecked Sendable {
     var shouldFail = false
     var lastPrompt: String?
 
-    func generateCover(subject: String) async throws -> Data {
+    func generateCover(subject: String, service: ResolvedCoverService) async throws -> Data {
         callCount += 1
         lastPrompt = subject
         if shouldFail {
@@ -86,7 +86,8 @@ struct CoverGenerationServiceTests {
         let client = StubImageClient()
         let service = CoverGenerationService(
             imageClient: client,
-            motifExtractor: StubMotifExtractor()
+            motifExtractor: StubMotifExtractor(),
+            keyForProvider: { _ in "test-key" }
         )
         let target = CardCoverTarget.reference(UUID())
 
@@ -116,7 +117,8 @@ struct CoverGenerationServiceTests {
         let client = StubImageClient()
         let service = CoverGenerationService(
             imageClient: client,
-            motifExtractor: StubMotifExtractor()
+            motifExtractor: StubMotifExtractor(),
+            keyForProvider: { _ in "test-key" }
         )
         let target = CardCoverTarget.reference(UUID())
 
@@ -150,7 +152,8 @@ struct CoverGenerationServiceTests {
         let client = StubImageClient()
         let service = CoverGenerationService(
             imageClient: client,
-            motifExtractor: StubMotifExtractor()
+            motifExtractor: StubMotifExtractor(),
+            keyForProvider: { _ in "test-key" }
         )
         let target = CardCoverTarget.reference(UUID())
 
@@ -178,7 +181,8 @@ struct CoverGenerationServiceTests {
         let client = StubImageClient()
         let service = CoverGenerationService(
             imageClient: client,
-            motifExtractor: StubMotifExtractor()
+            motifExtractor: StubMotifExtractor(),
+            keyForProvider: { _ in "test-key" }
         )
         let target = CardCoverTarget.reference(UUID())
 

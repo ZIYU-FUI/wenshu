@@ -26,6 +26,7 @@
 
 import Foundation
 import Observation
+import WenshuAgent
 import WenshuData
 import os
 
@@ -65,12 +66,20 @@ final class CoverGenerationService {
     /// the provider the user picked for the app.
     private let currentProviderSlug: () -> String?
 
+    /// Reads the key of any provider, so the route can be resolved
+    /// without reaching into the keychain here.
+    private let keyForProvider: @Sendable (String) -> String?
+
     init(
         routeStore: CoverServiceRouteStore = CoverServiceRouteStore(),
         imageClient: CoverImageClient = CoverImageGenerator(),
         motifExtractor: CoverMotifExtracting = CoverMotifExtractor(),
         currentProviderSlug: @escaping () -> String? = {
             UserDefaults.standard.string(forKey: "wenshu.llm.provider")
+        },
+        keyForProvider: @escaping @Sendable (String) -> String? = { slug in
+            guard let provider = Provider.by(slug: slug) else { return nil }
+            return ProviderKeychain.loadKeySync(for: provider)
         }
     ) {
         self.coverService = CardCoverService()
@@ -78,6 +87,7 @@ final class CoverGenerationService {
         self.imageClient = imageClient
         self.motifExtractor = motifExtractor
         self.currentProviderSlug = currentProviderSlug
+        self.keyForProvider = keyForProvider
     }
 
     /// The service over the library the app is running on.
@@ -122,11 +132,12 @@ final class CoverGenerationService {
             let route = routeStore.route(for: .image)
             let resolved = try CoverRouteResolver.resolve(
                 route,
-                currentProviderSlug: currentProviderSlug()
+                currentProviderSlug: currentProviderSlug(),
+                keyForProvider: keyForProvider
             )
             let motifs = try await motifExtractor.extract(title: title, summary: summary)
             let prompt = CoverArtDirection.prompt(title: title, motifs: motifs)
-            let jpeg = try await imageClient.generateCover(subject: prompt)
+            let jpeg = try await imageClient.generateCover(subject: prompt, service: resolved)
             let banner = try CardCoverImageEncoder.decode(jpeg)
             let heic = try CardCoverImageEncoder.encode(bannerImage: banner)
             try coverService.saveImage(heic, forKey: key, kind: target.kind, motifs: motifs)

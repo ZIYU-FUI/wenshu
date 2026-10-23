@@ -22,6 +22,7 @@
 //
 
 import Foundation
+import WenshuAgent
 import Observation
 import SwiftData
 import WenshuData
@@ -45,11 +46,16 @@ final class CoverPaneServices {
 
     init(
         imageClient: CoverImageClient = CoverImageGenerator(),
-        motifExtractor: CoverMotifExtracting = CoverMotifExtractor()
+        motifExtractor: CoverMotifExtracting = CoverMotifExtractor(),
+        keyForProvider: @escaping @Sendable (String) -> String? = { slug in
+            guard let provider = Provider.by(slug: slug) else { return nil }
+            return ProviderKeychain.loadKeySync(for: provider)
+        }
     ) {
         let generation = CoverGenerationService(
             imageClient: imageClient,
-            motifExtractor: motifExtractor
+            motifExtractor: motifExtractor,
+            keyForProvider: keyForProvider
         )
         self.generation = generation
         self.batch = CoverBatchService(generationService: generation)

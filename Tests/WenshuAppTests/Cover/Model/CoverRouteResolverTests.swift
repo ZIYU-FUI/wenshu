@@ -7,6 +7,12 @@
 //  The resolver is a pure function, so every case here runs with no
 //  app, no network, no clock and no disk.
 //
+//  The ladder changed on 2026-10-23 and the change matters: an auto
+//  route names the BUILT-IN image service, not the app's chat
+//  provider. A chat key cannot pay for a picture, so the old ladder
+//  pointed the chat provider's key at the picture endpoint, which
+//  cannot work.
+//
 
 import Foundation
 import Testing
@@ -15,13 +21,24 @@ import Testing
 @Suite("Cover route resolver")
 struct CoverRouteResolverTests {
 
-    @Test("An auto route inherits the app's current provider")
-    func autoInheritsTheCurrentProvider() throws {
+    /// A key reader that answers from a map.
+    private func keys(_ map: [String: String]) -> @Sendable (String) -> String? {
+        { slug in map[slug] }
+    }
+
+    /// A key reader that has a key for the built-in image service.
+    private var imageServiceKeys: @Sendable (String) -> String? {
+        keys(["minimax-cn": "image-service-key"])
+    }
+
+    @Test("An auto route names the built-in image service")
+    func autoNamesTheBuiltInImageService() throws {
         let route = CoverServiceRoute(kind: .image)
 
         let resolved = try CoverRouteResolver.resolve(
             route,
-            currentProviderSlug: "minimax-cn"
+            currentProviderSlug: "minimax-cn",
+            keyForProvider: imageServiceKeys
         )
 
         #expect(resolved.providerSlug == "minimax-cn")
@@ -31,21 +48,35 @@ struct CoverRouteResolverTests {
         #expect(resolved.model == "image-01")
     }
 
-    @Test("An auto route inherits the current provider's key")
-    func autoInheritsTheCurrentProvidersKey() throws {
+    @Test("An auto route ignores the app's chat provider")
+    func autoIgnoresTheChatProvider() throws {
+        // The chat provider cannot make a picture, so its key is not
+        // the key that pays for one. The auto route names the service
+        // that does the work.
         let route = CoverServiceRoute(kind: .image)
 
         let resolved = try CoverRouteResolver.resolve(
             route,
-            currentProviderSlug: "minimax-cn",
-            currentProviderKey: "provider-key"
+            currentProviderSlug: "anthropic",
+            currentProviderKey: "chat-key",
+            keyForProvider: imageServiceKeys
         )
 
-        // An auto route names no key of its own, so the key has to
-        // come from the provider it inherits. A route that resolved
-        // the provider and then dropped the key would send an
-        // unauthenticated request.
-        #expect(resolved.apiKey == "provider-key")
+        #expect(resolved.providerSlug == "minimax-cn")
+        #expect(resolved.apiKey == "image-service-key")
+    }
+
+    @Test("An auto route with no key for the image service fails loudly")
+    func autoWithNoKeyFailsLoudly() {
+        let route = CoverServiceRoute(kind: .image)
+
+        #expect(throws: CoverRouteError.self) {
+            try CoverRouteResolver.resolve(
+                route,
+                currentProviderSlug: "anthropic",
+                keyForProvider: keys([:])
+            )
+        }
     }
 
     @Test("An explicit route uses its own four fields")
@@ -82,13 +113,58 @@ struct CoverRouteResolverTests {
 
         let resolved = try CoverRouteResolver.resolve(
             route,
-            currentProviderSlug: "minimax-cn"
+            currentProviderSlug: "minimax-cn",
+            keyForProvider: imageServiceKeys
         )
 
         #expect(resolved.providerSlug == "minimax-cn")
         #expect(resolved.model == "image-01")
         #expect(resolved.model != "MiniMax-M3")
         #expect(resolved.model != "MiniMax-M2")
+    }
+
+    @Test("A route naming a chat provider cannot make covers")
+    func aRouteNamingAChatProviderCannotMakeCovers() {
+        // The chat provider publishes no picture endpoint in the cover
+        // protocol, so a route that points at it and names no service
+        // of its own would be sent to the built-in endpoint, which it
+        // does not serve. The switch stops here and says what to
+        // configure.
+        let route = CoverServiceRoute(
+            kind: .image,
+            providerSlug: "anthropic",
+            model: "claude-sonnet-4"
+        )
+
+        #expect(throws: CoverRouteError.self) {
+            try CoverRouteResolver.resolve(
+                route,
+                currentProviderSlug: "anthropic",
+                keyForProvider: imageServiceKeys
+            )
+        }
+    }
+
+    @Test("A route naming a chat provider WITH its own service is used as it is")
+    func aRouteWithItsOwnServiceIsUsedAsItIs() {
+        // The user pointed the cover at a service of their own. The
+        // app calls it and reports what it says.
+        let route = CoverServiceRoute(
+            kind: .image,
+            providerSlug: "custom",
+            model: "some-image-model",
+            baseURL: "https://example.test/v1/images/generations",
+            apiKey: "route-key"
+        )
+
+        let resolved = try? CoverRouteResolver.resolve(
+            route,
+            currentProviderSlug: "anthropic",
+            keyForProvider: imageServiceKeys
+        )
+
+        #expect(resolved?.baseURL == "https://example.test/v1/images/generations")
+        #expect(resolved?.apiKey == "route-key")
     }
 
     @Test("The video kind with a provider but no model still fails")
@@ -99,7 +175,11 @@ struct CoverRouteResolverTests {
         let route = CoverServiceRoute(kind: .video, providerSlug: "minimax-cn")
 
         #expect(throws: CoverRouteError.self) {
-            try CoverRouteResolver.resolve(route, currentProviderSlug: "minimax-cn")
+            try CoverRouteResolver.resolve(
+                route,
+                currentProviderSlug: "minimax-cn",
+                keyForProvider: imageServiceKeys
+            )
         }
     }
 
@@ -108,7 +188,11 @@ struct CoverRouteResolverTests {
         let route = CoverServiceRoute(kind: .video)
 
         #expect(throws: CoverRouteError.self) {
-            try CoverRouteResolver.resolve(route, currentProviderSlug: nil)
+            try CoverRouteResolver.resolve(
+                route,
+                currentProviderSlug: nil,
+                keyForProvider: imageServiceKeys
+            )
         }
     }
 
@@ -116,7 +200,11 @@ struct CoverRouteResolverTests {
     func imageWithNothingConfiguredFallsBack() throws {
         let route = CoverServiceRoute(kind: .image)
 
-        let resolved = try CoverRouteResolver.resolve(route, currentProviderSlug: nil)
+        let resolved = try CoverRouteResolver.resolve(
+            route,
+            currentProviderSlug: nil,
+            keyForProvider: imageServiceKeys
+        )
 
         #expect(resolved.model == "image-01")
     }

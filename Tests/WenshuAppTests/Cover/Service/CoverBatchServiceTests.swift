@@ -45,7 +45,7 @@ private final class CountingImageClient: CoverImageClient, @unchecked Sendable {
     /// middle.
     var afterRequest: (() -> Void)?
 
-    func generateCover(subject: String) async throws -> Data {
+    func generateCover(subject: String, service: ResolvedCoverService) async throws -> Data {
         lock.withLock {
             _callCount += 1
             _concurrent += 1
@@ -123,7 +123,8 @@ struct CoverBatchServiceTests {
         let client = CountingImageClient()
         let generation = CoverGenerationService(
             imageClient: client,
-            motifExtractor: StubMotifExtractor()
+            motifExtractor: StubMotifExtractor(),
+            keyForProvider: { _ in "test-key" }
         )
         let service = CoverBatchService(
             generationService: generation
@@ -149,7 +150,8 @@ struct CoverBatchServiceTests {
         let client = CountingImageClient()
         let generation = CoverGenerationService(
             imageClient: client,
-            motifExtractor: StubMotifExtractor()
+            motifExtractor: StubMotifExtractor(),
+            keyForProvider: { _ in "test-key" }
         )
         let service = CoverBatchService(
             generationService: generation
@@ -221,7 +223,8 @@ struct CoverBatchServiceTests {
         let client = CountingImageClient()
         let generation = CoverGenerationService(
             imageClient: client,
-            motifExtractor: StubMotifExtractor()
+            motifExtractor: StubMotifExtractor(),
+            keyForProvider: { _ in "test-key" }
         )
         let service = CoverBatchService(
             generationService: generation
@@ -261,7 +264,8 @@ struct CoverBatchServiceTests {
         client.shouldFail = true
         let generation = CoverGenerationService(
             imageClient: client,
-            motifExtractor: StubMotifExtractor()
+            motifExtractor: StubMotifExtractor(),
+            keyForProvider: { _ in "test-key" }
         )
         let service = CoverBatchService(
             generationService: generation
@@ -288,7 +292,8 @@ struct CoverBatchServiceTests {
         let client = CountingImageClient()
         let generation = CoverGenerationService(
             imageClient: client,
-            motifExtractor: StubMotifExtractor()
+            motifExtractor: StubMotifExtractor(),
+            keyForProvider: { _ in "test-key" }
         )
         let service = CoverBatchService(
             generationService: generation
@@ -322,7 +327,8 @@ struct CoverBatchServiceTests {
         client.shouldFail = true
         let generation = CoverGenerationService(
             imageClient: client,
-            motifExtractor: StubMotifExtractor()
+            motifExtractor: StubMotifExtractor(),
+            keyForProvider: { _ in "test-key" }
         )
         let service = CoverBatchService(
             generationService: generation
@@ -354,7 +360,8 @@ struct CoverBatchServiceTests {
         let client = CountingImageClient()
         let generation = CoverGenerationService(
             imageClient: client,
-            motifExtractor: StubMotifExtractor()
+            motifExtractor: StubMotifExtractor(),
+            keyForProvider: { _ in "test-key" }
         )
         let service = CoverBatchService(
             generationService: generation
@@ -388,7 +395,8 @@ struct CoverBatchServiceTests {
         // generation service and therefore the same per-card lock.
         let services = CoverPaneServices(
             imageClient: client,
-            motifExtractor: StubMotifExtractor()
+            motifExtractor: StubMotifExtractor(),
+            keyForProvider: { _ in "test-key" }
         )
 
         let items = makeItems(count: 1)

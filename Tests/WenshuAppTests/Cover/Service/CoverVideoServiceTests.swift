@@ -29,7 +29,11 @@ private final class StubVideoClient: CoverVideoClient, @unchecked Sendable {
     var callCount = 0
     var shouldFail = false
 
-    func makeVideo(firstFrameJPEG: Data, prompt: String) async throws -> Data {
+    func makeVideo(
+        firstFrameJPEG: Data,
+        prompt: String,
+        service: ResolvedCoverService
+    ) async throws -> Data {
         callCount += 1
         if shouldFail {
             throw CoverVideoError.noStillCover
@@ -46,6 +50,25 @@ struct CoverVideoServiceTests {
     /// the test never touches the developer's own library.
     private static let libraryRoot = URL(fileURLWithPath: "/tmp")
         .resolvingSymlinksInPath().path
+
+    /// A route store with a video route the user configured.
+    ///
+    /// A clip is always the user's own route: the video allowance is a
+    /// handful of clips a day, so there is no default to fall back
+    /// to, and the service resolves the route before it spends
+    /// anything.
+    private func makeRouteStore() -> CoverServiceRouteStore {
+        let suite = "wenshu.cover.videotests.\(UUID().uuidString)"
+        let store = CoverServiceRouteStore(defaults: UserDefaults(suiteName: suite)!)
+        store.set(CoverServiceRoute(
+            kind: .video,
+            providerSlug: "minimax-cn",
+            model: "MiniMax-Hailuo-02",
+            baseURL: "https://api.minimaxi.com/v1/video_generation",
+            apiKey: "test-key"
+        ))
+        return store
+    }
 
     /// An in-memory container.
     private func makeContainer() throws -> ModelContainer {
@@ -67,6 +90,7 @@ struct CoverVideoServiceTests {
         let container = try makeContainer()
         let client = StubVideoClient()
         let service = CoverVideoService(
+            routeStore: makeRouteStore(),
             videoClient: client
         )
         let target = CardCoverTarget.reference(UUID())
@@ -94,6 +118,7 @@ struct CoverVideoServiceTests {
         let container = try makeContainer()
         let client = StubVideoClient()
         let service = CoverVideoService(
+            routeStore: makeRouteStore(),
             videoClient: client
         )
         let target = CardCoverTarget.reference(UUID())
@@ -131,7 +156,7 @@ struct CoverVideoServiceTests {
     private func runAFailedClip() async throws {
         let client = StubVideoClient()
         client.shouldFail = true
-        let service = CoverVideoService(videoClient: client)
+        let service = CoverVideoService(routeStore: makeRouteStore(), videoClient: client)
         let target = CardCoverTarget.reference(UUID())
 
         // A real still, so the clip is attempted and fails.

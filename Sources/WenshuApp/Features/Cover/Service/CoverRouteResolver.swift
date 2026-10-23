@@ -64,52 +64,80 @@ enum CoverRouteResolver {
     ///     when the app has no provider configured.
     ///   - currentProviderKey: the key for that provider, or nil when
     ///     the app has no key for it.
+    ///   - keyForProvider: reads the key of any provider. It is
+    ///     injected so the resolver stays a pure function of its
+    ///     inputs: no keychain, no network, no clock, no disk.
     /// - Throws: `CoverRouteError.notConfigured` when the VIDEO kind
-    ///   has nothing to resolve to.
+    ///   has nothing to resolve to, `CoverRouteError
+    ///   .providerCannotMakeCovers` when the route names a provider
+    ///   that cannot make covers, and `CoverRouteError.noService`
+    ///   when no service can be reached at all.
     static func resolve(
         _ route: CoverServiceRoute,
-        currentProviderSlug: String?,
-        currentProviderKey: String? = nil
+        currentProviderSlug: String? = nil,
+        currentProviderKey: String? = nil,
+        keyForProvider: @Sendable (String) -> String? = { slug in
+            guard let provider = Provider.by(slug: slug) else { return nil }
+            return ProviderKeychain.loadKeySync(for: provider)
+        }
     ) throws -> ResolvedCoverService {
-        // 1. An explicit route wins: its provider, and its model if
-        //    it names one.
+        // 1. An explicit route wins: it is the user's own service.
+        //
+        //    A route that names a provider the app cannot ask for
+        //    covers, and does not name a service of its own, would be
+        //    sent to the built-in endpoint, which that provider does
+        //    not serve. That is refused HERE, with the message that
+        //    says what to configure, so the switch does not pretend
+        //    to work. A route that names its own base URL is the
+        //    user's own service and is called as it is.
         if let providerSlug = route.providerSlug, !providerSlug.isEmpty {
             guard let model = route.model ?? route.kind.defaultModel else {
                 throw CoverRouteError.notConfigured(kind: route.kind)
             }
+            if route.baseURL == nil,
+               !CoverProviderCapability.supports(providerSlug: providerSlug, kind: route.kind) {
+                throw CoverRouteError.providerCannotMakeCovers(
+                    providerSlug: providerSlug,
+                    kind: route.kind
+                )
+            }
             let baseURL = route.baseURL ?? route.kind.defaultEndpoint
+            let key = route.apiKey ?? keyForProvider(providerSlug)
             return ResolvedCoverService(
                 providerSlug: providerSlug,
                 model: model,
                 baseURL: baseURL,
-                apiKey: route.apiKey
+                apiKey: key
             )
         }
 
-        // 2. An auto route inherits the app's current provider, and
-        //    takes the model from its kind.
-        if let currentProviderSlug, !currentProviderSlug.isEmpty {
-            guard let model = route.kind.defaultModel else {
-                throw CoverRouteError.notConfigured(kind: route.kind)
-            }
-            return ResolvedCoverService(
-                providerSlug: currentProviderSlug,
-                model: model,
-                baseURL: route.kind.defaultEndpoint,
-                apiKey: currentProviderKey
-            )
-        }
-
-        // 3. Nothing is configured. The image kind has a default; the
-        //    video kind does not, because its quota is scarce.
+        // 2. An auto route means the built-in service for the kind.
+        //
+        //    NOT the app's chat provider. The cover endpoints draw
+        //    pictures and clips; a chat key cannot pay for a picture,
+        //    and a chat provider publishes no picture endpoint in the
+        //    cover protocol. So the auto route names the service that
+        //    can do the work, and the key comes from that service's
+        //    own provider.
+        //
+        //    The video kind has no default model on purpose (its
+        //    allowance is a handful of clips a day), so it never
+        //    reaches here: a clip is always the user's own route.
         guard let model = route.kind.defaultModel else {
             throw CoverRouteError.notConfigured(kind: route.kind)
         }
+        let providerSlug = route.kind.defaultProviderSlug
+        guard let key = keyForProvider(providerSlug), !key.isEmpty else {
+            throw CoverRouteError.noService(
+                providerSlug: providerSlug,
+                kind: route.kind
+            )
+        }
         return ResolvedCoverService(
-            providerSlug: Provider.minimaxCn.slug,
+            providerSlug: providerSlug,
             model: model,
             baseURL: route.kind.defaultEndpoint,
-            apiKey: currentProviderKey
+            apiKey: key
         )
     }
 }
@@ -120,6 +148,13 @@ enum CoverRouteError: LocalizedError {
     /// has no default to fall back to.
     case notConfigured(kind: CoverServiceKind)
 
+    /// The route names a provider that cannot make covers.
+    case providerCannotMakeCovers(providerSlug: String, kind: CoverServiceKind)
+
+    /// No service can be reached at all (= no key for the service
+    /// that would do the work).
+    case noService(providerSlug: String, kind: CoverServiceKind)
+
     var errorDescription: String? {
         switch self {
         case .notConfigured(let kind):
@@ -129,6 +164,13 @@ enum CoverRouteError: LocalizedError {
             case .video:
                 return "The video service is not configured. Choose a video provider and model in Settings before making a moving cover."
             }
+        case .providerCannotMakeCovers(let providerSlug, let kind):
+            return CoverProviderCapability.unsupportedMessage(
+                providerSlug: providerSlug,
+                kind: kind
+            )
+        case .noService:
+            return CoverProviderCapability.noServiceMessage
         }
     }
 }

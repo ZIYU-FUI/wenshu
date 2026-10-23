@@ -30,7 +30,7 @@ private final class TriggerStubImageClient: CoverImageClient, @unchecked Sendabl
 
     var callCount: Int { lock.withLock { _callCount } }
 
-    func generateCover(subject: String) async throws -> Data {
+    func generateCover(subject: String, service: ResolvedCoverService) async throws -> Data {
         lock.withLock { _callCount += 1 }
         await Task.yield()
         return Self.sampleJPEG
@@ -89,8 +89,9 @@ struct CoverAutoTriggerTests {
         let client = TriggerStubImageClient()
         let trigger = CoverAutoTrigger(
             generationService: CoverGenerationService(
-            imageClient: client,
-            motifExtractor: StubMotifExtractor()
+                imageClient: client,
+                motifExtractor: StubMotifExtractor(),
+                keyForProvider: { _ in "test-key" }
             ),
             policyProvider: stubPolicy(policy)
         )
