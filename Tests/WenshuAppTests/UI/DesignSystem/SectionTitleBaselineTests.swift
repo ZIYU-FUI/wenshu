@@ -26,15 +26,16 @@
 //
 // The reference label is the app's OWN document tab label: a bare
 // `NSSegmentedControl`, configured the way `LabelSegmentedControl`
-// configures it (= `segmentStyle = .roundRect`, `trackingMode =
-// .selectOne`, `segmentDistribution = .fillEqually`, `controlSize =
-// .large`, `role = .valueSelection`), and placed at the band offset
-// MEASURED on the running app (= 7 PT below the column top; the app's
-// pill band runs 59 .. 87 PT with the column top at 52 PT). This is
-// the same way `EditorTabStripSelectedLabelTests` renders the control,
-// so the test does not depend on `EditorTabStrip`'s whole layout chain:
-// the assertion is about the label's baseline, not about the padding
-// above it.
+// configures it for the app's tab strip (= `segmentStyle = .roundRect`,
+// `trackingMode = .selectOne`, `segmentDistribution = .fit` with the
+// strip's own segment width, `controlSize = .large`,
+// `role = .valueSelection`), and placed at the band offset MEASURED on
+// the running app (= 7 PT below the column top; the app's pill band runs
+// 59 .. 87 PT with the column top at 52 PT). This is the same way
+// `EditorTabStripSelectedLabelTests` renders the control, so the test
+// does not depend on `EditorTabStrip`'s whole layout chain: the
+// assertion is about the label's baseline, not about the padding above
+// it.
 //
 // The two labels are laid out side by side, each starting at its column
 // top, exactly as the app's columns do: the app's columns all begin at
@@ -54,9 +55,13 @@ struct SectionTitleBaselineTests {
 
     /// The title the column top paints.
     ///
-    /// It is a descender-free string (= the app's column titles are
-    /// CJK, which is also descender-free), so its ink spans exactly the
-    /// cap height (= the ink rows of any column title in the app).
+    /// It is a descender-free Latin string, so its ink spans exactly the
+    /// cap height. The app's own column titles are CJK, whose ink is
+    /// taller (= 11.5 PT against this harness's 9.5 PT), so the harness
+    /// does NOT reproduce the app's ink height: what it measures is the
+    /// BASELINE, which is the same question the app's own measurement
+    /// asks (= the app's 0.50 PT difference at the bottom of the ink is
+    /// covered by the record's measurement, not by this test).
     private static let columnTitle = "Draft"
 
     /// The document title the editor's tab strip paints.
@@ -130,47 +135,73 @@ struct SectionTitleBaselineTests {
 
     @Test("The column top's divider stays where it was")
     func theColumnTopDividerDoesNotMove() throws {
-        // The column top WITHOUT its title text: what is left painted is
-        // the divider alone (= the two clear spacers paint nothing).
-        let rendered = render(columnTitle: "")
+        // The app's REAL configuration: the column top WITH its title.
+        // The divider's row is pinned here, in the configuration the app
+        // always paints.
+        let titled = render(columnTitle: Self.columnTitle)
+        // The SAME column top with a title that paints no ink but keeps
+        // the title's line box (= one space). Its layout is the titled
+        // one, so the divider's row must be the same: the divider's
+        // position does not depend on the text's ink.
+        let blankTitle = render(columnTitle: " ")
 
-        guard let dividerInk = paintedRows(in: rendered, xRange: 0..<Self.titleColumnWidth) else {
+        guard let titledInk = paintedRows(in: titled, xRange: 0..<Self.titleColumnWidth),
+              let blankInk = paintedRows(in: blankTitle, xRange: 0..<Self.titleColumnWidth) else {
             Issue.record("The column top painted no divider at all: the search row below it would have nothing to key off.")
             return
         }
 
-        // The divider's row, MEASURED IN THIS HARNESS. The harness's
+        // The divider's row, MEASURED IN THIS HARNESS on the titled
+        // column top (= the configuration the app paints). The harness's
         // column top is the host's top edge, which is NOT the app
-        // window's y = 52, so the app's 88 PT (= 36 PT below the app's
-        // window) is a different coordinate space and does not transfer
-        // here. This constant is the harness's own measurement, so it has
-        // real margin instead of sitting on the tolerance boundary.
+        // window's y = 52, so the app's own number is a different
+        // coordinate space and does not transfer here.
         #expect(
-            abs(dividerInk.bottom - Self.dividerRowBelowColumnTop) <= Self.baselineTolerance,
+            abs(titledInk.bottom - Self.dividerRowBelowColumnTop) <= Self.baselineTolerance,
             """
-            The divider under the column title painted at \(dividerInk.bottom) PT below the column \
+            The divider under the column title painted at \(titledInk.bottom) PT below the column \
             top; this harness measures it at \(Self.dividerRowBelowColumnTop) PT. The divider is \
             what the search row below the column top keys off, so a divider that moved moves \
             that row.
             """
         )
+
+        // The invariant the offset must hold: it moves the TITLE and
+        // nothing else. The divider's row is the same whether the title
+        // paints its glyphs or not, so lifting the title onto the tab
+        // label's baseline cannot have moved the divider (= and the
+        // search row below the column top, which keys off it).
+        #expect(
+            abs(blankInk.bottom - titledInk.bottom) <= Self.baselineTolerance,
+            """
+            The divider under the column top painted at \(titledInk.bottom) PT below the column \
+            top with a title, and at \(blankInk.bottom) PT with a title that paints no ink. The \
+            divider's position does not depend on the text's ink, so a difference means the \
+            layout moved: the search row below the column top keys off that divider, so it \
+            moves with it.
+            """
+        )
     }
 
     /// Where the divider under a column title paints, measured from the
-    /// top of the column that carries it.
+    /// top of the column that carries it, on the TITLED column top (= the
+    /// configuration the app paints).
     ///
     /// MEASURED IN THIS HARNESS, not in the app window: the harness's
     /// column top is the host's top edge, so the app's 88 PT (= 36 PT
     /// below the app's window y = 52) is a different coordinate space.
-    private static let dividerRowBelowColumnTop: CGFloat = 35
+    private static let dividerRowBelowColumnTop: CGFloat = 37
 
     // MARK: - The row of labels
 
     /// The document tab label, as the app's tab strip paints it.
     ///
     /// A bare `NSSegmentedControl`, configured the way
-    /// `LabelSegmentedControl` configures it, so the test measures the
-    /// label the app really paints without depending on
+    /// `LabelSegmentedControl` configures it for the app's tab strip
+    /// (= `segmentStyle = .roundRect`, `trackingMode = .selectOne`,
+    /// `segmentDistribution = .fit` with the strip's own segment width,
+    /// `controlSize = .large`, `role = .valueSelection`), so the test
+    /// measures the label the app really paints without depending on
     /// `EditorTabStrip`'s whole layout chain.
     private func documentTabLabel() -> NSSegmentedControl {
         let control = NSSegmentedControl()
@@ -178,7 +209,11 @@ struct SectionTitleBaselineTests {
         control.setLabel(Self.documentTitle, forSegment: 0)
         control.segmentStyle = .roundRect
         control.trackingMode = .selectOne
-        control.segmentDistribution = .fillEqually
+        // The app's tab strip carries its own segment widths, so the
+        // control is told which mode it is in: `.fit` honours the width,
+        // `.fillEqually` would ignore it.
+        control.segmentDistribution = .fit
+        control.setWidth(Self.tabSegmentWidth, forSegment: 0)
         control.controlSize = .large
         if #available(macOS 27.0, *) {
             control.role = .valueSelection
@@ -186,6 +221,13 @@ struct SectionTitleBaselineTests {
         control.selectedSegment = 0
         return control
     }
+
+    /// The width of one document tab, in points.
+    ///
+    /// The app's tab strip's own floor (= `EditorTabStrip`'s
+    /// `minimumSegmentWidth`), which is the width a document tab has
+    /// when the strip is narrower than its tabs.
+    private static let tabSegmentWidth: CGFloat = 88
 
     /// Where the app's document tab band starts, below the column top.
     ///

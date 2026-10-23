@@ -39,7 +39,9 @@ amount of clear space before its text:
   `.padding(.top, DesignTokens.spacingHero - 10)` (= 10 PT) ahead of the
   pill row, and the pill row is `DesignTokens.paneTabHotArea` (= 28 PT)
   tall with the label optically centred inside it.
-  => pill band 59 .. 87 PT, label ink 67.5 .. 78.5 PT.
+  => the pill band runs 59 .. 87 PT, which is 7 PT below the column top
+  (MEASURED on the running app; = the offset the test places the
+  reference label at), and the label's ink is 67.5 .. 78.5 PT.
 
 `SectionHeader` is used by three call sites (= `AppleSidebarView.swift:54`,
 `PreviewPane.swift:135`, `InspectorView.swift:36`), and all three titles
@@ -92,10 +94,9 @@ measurement as:
 **Delta = 2.75 PT**, and the AFTER target was all three labels at
 67.5 .. 79.0 with a 0.00 PT delta.
 
-That target was not reachable, and the reason is worth keeping:
-the tab label carries 11.5 PT of ink and the column title carries
-11.0 PT (the app's titles are CJK, which fills more of the em box than
-the Latin cap height). Aligning their TOPS to 67.5 therefore puts the
+That target was not reachable, and the reason is worth keeping: the
+spec's own BEFORE table gives the tab label 11.5 PT of ink and the
+column title 11.0 PT. Aligning their TOPS to 67.5 therefore puts the
 title's bottom at 78.5, not 79.0: no single vertical offset satisfies
 "all three at 67.5 .. 79.0". The original spec was internally
 inconsistent.
@@ -119,6 +120,14 @@ drifted in the first place.
 **The spec of record is this document.** The original issued numbers
 stay above, beside the re-measurement, so the difference is auditable.
 
+**One thing the restore also brought back.** The card's body was
+corrected at 12:54, before the work started, to name the dispatcher's
+base commit (`93eb6a9fae`) instead of the SHA the body was written with
+(`aa4f9a7c89`, = main at 12:01, which was not main when the dispatcher
+picked the card up at 12:52). Restoring the original text also restored
+that stale SHA, because it is part of the original text. The work
+actually ran on `93eb6a9fae`, and the commit it produced is `749e308600`.
+
 ## 6. The test
 
 `Tests/WenshuAppTests/UI/DesignSystem/SectionTitleBaselineTests.swift`
@@ -129,12 +138,22 @@ read back.
 
 The reference label is the app's OWN document tab label: a bare
 `NSSegmentedControl`, configured the way `LabelSegmentedControl`
-configures it (= `segmentStyle = .roundRect`, `trackingMode = .selectOne`,
-`segmentDistribution = .fillEqually`, `controlSize = .large`,
+configures it for the app's tab strip (= `segmentStyle = .roundRect`,
+`trackingMode = .selectOne`, `segmentDistribution = .fit` with the
+strip's own segment width of 88 PT, `controlSize = .large`,
 `role = .valueSelection`), placed at the app's measured band offset
 (= 7 PT below the column top). The reference label's ink midpoint
 measures 21.0 PT below the column top, which is where the app's real
 document tab label's ink midpoint sits (= (15.5 + 26.5) / 2 = 21.0).
+
+The divider assertion pins the divider's row in the app's REAL
+configuration (= the titled column top, which is what the app always
+paints), and compares it with the same column top carrying a title that
+paints no ink but keeps the title's line box (= one space): the
+divider's row must be the same, because it does not depend on the text's
+ink. The test fails if the offset ever becomes a LAYOUT change (= a
+padding instead of a paint-time offset), because then the divider would
+move with the title.
 
 The test fails when the fix is removed (the title's ink lands 3.5 PT
 low) and passes with it in place. That 3.5 PT is the HARNESS's delta;
@@ -158,7 +177,7 @@ title carries 11.5 PT of ink, the tab label 11.0 PT), not a baseline
 difference: their ink TOPS land on the same row.
 
 The three column titles (the sidebar's, the materials column's and the
-status panel's) sit equal to each other in both captures, so the fix
+inspector's) sit equal to each other in both captures, so the fix
 moves them together.
 
 A second, independent measurement of the SAME merged result (= the app
@@ -167,15 +186,22 @@ the same thing with a coarser ink rule (= every row holding a pixel
 darker than 120, which also counts a label's anti-aliased edge row):
 the column titles' ink 67.50 .. 79.00 pt and the document tab label's
 ink 67.50 .. 79.00 pt, so 0.00 PT at the top and 0.00 PT at the bottom.
-The two analyzers agree on the number that matters (= the top of the
-ink) and differ only on the anti-aliased edge row.
+
+Read in isolation, that coarse row would make the ORIGINAL spec's
+literal target (= all three labels at 67.5 .. 79.0 with a 0.00 PT delta)
+look met. Under the strict analyzer of record (= sections 1 and 4) it is
+NOT: the tab label's ink ends at 78.50 PT, so the title's ink is 0.50 PT
+taller at the bottom. The two analyzers agree on the number that
+matters (= the top of the ink) and differ only on the anti-aliased edge
+row.
 
 The row-2 chrome band did not move. The strict analyzer reads the same
-numbers in both captures: the materials search band's darkest row at
-97.00 PT and the editor's format toolbar's at 97.50 PT, and the
-hairline under the materials band and the hairline under the editor's
-band at 116.50 PT in both. The divider under the column title is the
-thing the search band keys off, and it is where it was.
+numbers in both captures, and they are the numbers of section 4:
+the materials search band's ink 97.00 .. 108.00 PT (centre 102.50 PT),
+the editor's format toolbar's ink 97.50 .. 108.00 PT (centre
+102.75 PT), and the bottom hairline at 116.50 .. 117.00 PT on both
+sides. The divider under the column title is the thing the search band
+keys off, and it is where it was.
 
 A separate AX census of the running app agrees: the column titles' frames
 sit at y = 65 (they sat at y = 68 before the fix) and the editor's tab
