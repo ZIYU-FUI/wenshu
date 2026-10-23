@@ -190,7 +190,17 @@ struct ChatZoneView: View {
             }
         )
         .task {
+            Self.publishScope(vm: vm, into: envAppState)
             await wireBookScopeGuardIfPossible()
+        }
+        // The chat's identity (= session + book) is published so the
+        // right-hand column's Status page can list this chat's
+        // sub-agent tasks. Both halves travel as their strong types.
+        .onChange(of: vm.currentBookID) { _, _ in
+            Self.publishScope(vm: vm, into: envAppState)
+        }
+        .onChange(of: vm.valueForSessionId()) { _, _ in
+            Self.publishScope(vm: vm, into: envAppState)
         }
         .onChange(of: library.selectedBookId) { _, _ in
             Task { await wireBookScopeGuardIfPossible() }
@@ -279,6 +289,18 @@ struct ChatZoneView: View {
     //  + wenshu-dead-code-cleanup SKILL.md.)
 
     // MARK: - Book scope guard wiring (see OOB.md #2026-09-25)
+
+    /// Publish the chat's identity (= session id + book id) onto the
+    /// shared app state, so the right-hand column's Status page can
+    /// list this chat's sub-agent tasks.
+    ///
+    /// Both halves travel as their strong types: the status page builds
+    /// its registry scope from them directly, so no string conversion
+    /// happens on the way out.
+    static func publishScope(vm: ChatViewModel, into appState: AppState) {
+        appState.chatSessionID = vm.valueForSessionId()
+        appState.chatBookID = vm.currentBookID
+    }
 
     /// Re-wire the four book_X tools on the conductor with
     /// value snapshots for the chat session's currently-bound book
