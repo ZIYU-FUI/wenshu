@@ -393,8 +393,18 @@ public actor ConversationLoop {
                 // Tool dispatch loop (= hermes _execute_tool_calls_sequential).
                 // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
                 // at maxAgentTurns to prevent runaway loops).
-                let maxAgentTurns = 10
+                //
+                // The round limit is a setting, not a constant (= hermes
+                // agent.max_turns). The safety policy's own caps bound the
+                // specific behaviours; this bounds the worst case, and the
+                // two are not substitutes for each other.
+                let maxAgentTurns = max(1, settings.turn.maxIterations)
                 var turnCount = 1  // first LLM call = turn 1
+                // The turn's ledger of the calls made so far (= the loop
+                // guardrails). It lives HERE, not in the executor: the
+                // executor is built fresh inside every round, so a counter
+                // there would die with the round.
+                let safetyLedger = ToolSafetyLedger(policy: ToolSafetyPolicy.values)
                 while let assistant = result.messages.last,
                       assistant.blocks.contains(where: { if case .toolUse = $0 { return true } else { return false } }),
                       turnCount < maxAgentTurns {
@@ -408,7 +418,7 @@ public actor ConversationLoop {
                         label: "Executing tools (turn \(turnCount))",
                         etaSeconds: nil
                     )
-                    let executor = ToolExecutor()
+                    let executor = ToolExecutor(safetyLedger: safetyLedger)
                     // T2-TOOL-UI (2026-09-18): forward streamCallback so
                     // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
                     // finishes).

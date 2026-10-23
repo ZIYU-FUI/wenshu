@@ -94,6 +94,7 @@ public final class AgentSettingsStore {
         settings.tools = decode(ToolSettings.self, defaults, Key.toolsSettings) ?? settings.tools
         settings.providers = decodeProviderSettings(defaults) ?? settings.providers
         publishContextNumbers(settings)
+        publishToolSafetyPolicy(settings)
         return settings
     }
 
@@ -114,6 +115,34 @@ public final class AgentSettingsStore {
             compressionThreshold: settings.context.compressionThreshold,
             keepFraction: settings.context.compressionKeepRatio,
             memoryCap: settings.memory.maxEntries
+        )
+    }
+
+    /// Install the tool-safety policy where the runtime reads it.
+    ///
+    /// The same edge as the context numbers: the package owns the rule,
+    /// the app owns the facts (= which tools mutate, and whether the user
+    /// approved the hazard class). The catalogue already flags every
+    /// mutating tool, so the fact is read rather than restated.
+    ///
+    /// Published on every load and every save, so the policy the runtime
+    /// enforces is the one the user last chose.
+    private func publishToolSafetyPolicy(_ settings: AgentSettings) {
+        let mutating = Set(
+            ToolCatalogue.all
+                .filter { $0.mutates }
+                .map { $0.name }
+        )
+        // The unbounded tools are the ones a turn may ask for as often as
+        // the round limit allows (= a search, a delegation). The catalogue
+        // does not know that, so the app names them.
+        let unbounded: Set<String> = ["web_search", "delegate_research", "web"]
+        ToolSafetyPolicy.install(
+            ToolSafetyPolicy.Values(
+                mutatingToolNames: mutating,
+                unboundedToolNames: unbounded,
+                autoApprove: settings.tools.autoApprove
+            )
         )
     }
 
@@ -185,6 +214,7 @@ public final class AgentSettingsStore {
         encode(settings.tools, defaults, Key.toolsSettings)
         defaults.set(settings.providers.baseURLs, forKey: Key.providerBaseURLs)
         publishContextNumbers(settings)
+        publishToolSafetyPolicy(settings)
     }
 
     public func saveEnabledPresetIDs(_ ids: [String]) {

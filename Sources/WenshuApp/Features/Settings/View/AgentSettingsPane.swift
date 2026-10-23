@@ -47,6 +47,7 @@ struct AgentSettingsPane: View {
             toolDetailSection
             promptSection
             behaviourSection
+            safetySection
         }
         .formStyle(.grouped)
         .onChange(of: enabledPresets) { _, new in
@@ -247,6 +248,35 @@ struct AgentSettingsPane: View {
         Binding(
             get: { draft.recovery[keyPath: keyPath] },
             set: { draft.recovery[keyPath: keyPath] = $0; AgentSettingsStore.shared.save(draft) }
+        )
+    }
+
+    /// The tool-safety switch.
+    ///
+    /// Off (= the default) refuses the hazard class: the tools that run
+    /// commands on the user's machine, and writes that land outside the
+    /// library. The refusal is a message the agent reads, so the turn
+    /// continues and the agent finds another way.
+    ///
+    /// On lets the hazard class through. It does not turn off the loop
+    /// guardrails: a repeated call is stopped either way.
+    private var safetySection: some View {
+        Section {
+            Toggle(
+                String(localized: "settings.agent.safety.autoApprove"),
+                isOn: autoApproveBinding
+            )
+        } header: {
+            Text(String(localized: "settings.agent.safety.title"))
+        } footer: {
+            Text(String(localized: "settings.agent.safety.footer"))
+        }
+    }
+
+    private var autoApproveBinding: Binding<Bool> {
+        Binding(
+            get: { draft.tools.autoApprove },
+            set: { draft.tools.autoApprove = $0; AgentSettingsStore.shared.save(draft) }
         )
     }
 

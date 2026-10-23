@@ -73,6 +73,14 @@ public actor ToolExecutor {
     /// string becomes the tool result output).
     public let permissionGate: @Sendable (String, String) -> String?
 
+    /// The turn's ledger of the calls made so far (= the loop guardrails).
+    ///
+    /// The turn owns the ledger (= this executor is built fresh inside
+    /// every round, so a counter kept here would die with the round). A
+    /// default ledger carries no history, so a caller that passes none
+    /// behaves as it did before.
+    public let safetyLedger: ToolSafetyLedger
+
     /// Output truncator (= hermes tool_result_storage.enforce_turn_budget).
     /// Invoked AFTER `tool.execute(input:)`, BEFORE post hooks fire.
     /// Return the (possibly truncated) output string.
@@ -122,7 +130,9 @@ public actor ToolExecutor {
         /// `ToolExecutorError.pathGuardViolation` before the tool is
         /// invoked).
         preDispatchValidator: @escaping @Sendable (String, [String: String]) async throws -> [String: String] = ToolExecutor.defaultPathGuardValidator,
-        postDispatchValidator: @escaping @Sendable (String, String) async throws -> String = ToolExecutor.defaultPostDispatchValidator
+        postDispatchValidator: @escaping @Sendable (String, String) async throws -> String = ToolExecutor.defaultPostDispatchValidator,
+        /// The turn's ledger (= see the property).
+        safetyLedger: ToolSafetyLedger = ToolSafetyLedger()
     ) {
         self.hookChain = hookChain
         self.dispatchHookChain = dispatchHookChain
@@ -132,12 +142,17 @@ public actor ToolExecutor {
         self.resultFormatter = resultFormatter
         self.preDispatchValidator = preDispatchValidator
         self.postDispatchValidator = postDispatchValidator
+        self.safetyLedger = safetyLedger
     }
 
     // MARK: - Default helper closures (= hermes-equivalent fallbacks)
 
-    /// Default permission gate: allow all.
-    public static let defaultPermissionGate: @Sendable (String, String) -> String? = { _, _ in nil }
+    /// Default permission gate: the installed tool-safety policy.
+    ///
+    /// A refusal is a message the model reads, not a wait for a user.
+    public static let defaultPermissionGate: @Sendable (String, String) -> String? = { toolName, _ in
+        ToolSafetyPolicy.refusal(toolName: toolName)
+    }
 
     /// Default output truncator: no-op.
     public static let defaultOutputTruncator: @Sendable (String, String) -> String = { output, _ in output }
@@ -208,7 +223,7 @@ public actor ToolExecutor {
             }
 
             // step 1: permission gate.
-            if let denial = permissionGate(toolName, input) {
+            if let denial = permissionGate(toolName, input) ?? safetyLedger.evaluate(toolName: toolName, input: input) {
                 let toolMessage = LLMMessage(
                     role: .tool,
                     blocks: [.toolResult(toolUseID: toolUseID, output: denial)]
@@ -248,6 +263,8 @@ public actor ToolExecutor {
                 let classification = errorClassifier(toolName, error)
                 output = "Error [\(classification)]: \(error.localizedDescription)"
                 didError = true
+                // A failed call is what the failure rule counts.
+                safetyLedger.recordFailure(toolName: toolName, input: input, text: output)
                 _ = error
             }
 
@@ -339,7 +356,7 @@ public actor ToolExecutor {
                     let call = ToolCall(id: toolUseID, name: toolName, input: input)
 
                     // step 1: permission gate (sequential-style).
-                    if let denial = self.permissionGate(toolName, input) {
+                    if let denial = self.permissionGate(toolName, input) ?? self.safetyLedger.evaluate(toolName: toolName, input: input) {
                         // The permission gate's own message (= the app's
                         // text, not the tool's output) is NOT wrapped.
                         return IndexedOutput(
@@ -398,6 +415,12 @@ public actor ToolExecutor {
                         let classification = self.errorClassifier(toolName, error)
                         output = "Error [\(classification)]: \(error.localizedDescription)"
                         didError = true
+                        // A failed call is what the failure rule counts.
+                        self.safetyLedger.recordFailure(
+                            toolName: toolName,
+                            input: input,
+                            text: output
+                        )
                         _ = error
                     }
 

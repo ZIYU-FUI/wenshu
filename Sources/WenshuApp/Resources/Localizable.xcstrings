@@ -6479,6 +6479,57 @@
         }
       }
     },
+    "settings.agent.safety.autoApprove": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow tools that run commands or write outside the library"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "允许运行命令或写到文库之外的工具"
+          }
+        }
+      }
+    },
+    "settings.agent.safety.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tool safety"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "工具安全"
+          }
+        }
+      }
+    },
+    "settings.agent.safety.footer": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Off: the agent is refused the tools that run commands on this Mac or write outside the library, and it finds another way. The guardrails that stop a repeated call stay on either way."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭：运行本机命令或写到文库之外的工具会被拒绝，agent 会另寻他法。阻止重复调用的护栏两种情况下都开着。"
+          }
+        }
+      }
+    },
     "settings.agent.behaviour.checkStopGates": {
       "extractionState": "manual",
       "localizations": {
