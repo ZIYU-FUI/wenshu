@@ -46,8 +46,16 @@ struct CoverSettingsView: View {
     private let autoStore = CoverAutoCoverStore()
 
     /// The provider slugs the user can pick from.
+    ///
+    /// ONLY the services the app can speak: the cover feature talks
+    /// one protocol per service, and a service outside the list would
+    /// be called with a request it does not understand. At 1.0 that
+    /// is MiniMax; each service the app learns to speak joins the
+    /// list on its own card.
     private var providerSlugs: [String] {
-        Provider.all.map(\.slug)
+        Provider.all
+            .map(\.slug)
+            .filter { CoverProviderCapability.coverProtocolProviders.contains($0) }
     }
 
     var body: some View {
