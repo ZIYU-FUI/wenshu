@@ -141,7 +141,12 @@ enum CoverRouteResolver {
         return ResolvedCoverService(
             providerSlug: providerSlug,
             model: model,
-            baseURL: CoverVideoDialectRegistry.dialect(for: route).defaultEndpoint,
+            // The AUTO route is the built-in service FOR THE KIND, and
+            // the image kind has its own endpoint (= the image one).
+            // The dialect's endpoint is the VIDEO dialect's, so it
+            // must not be used here: the image service would be
+            // called at the video endpoint.
+            baseURL: route.kind.defaultEndpoint,
             apiKey: key
         )
     }
