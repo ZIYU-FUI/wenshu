@@ -431,6 +431,14 @@ enum DesignTokens {
     /// standard). Replaces `.frame(height: DesignTokens.panelMinHeight)`.
     static let panelMinHeight: CGFloat = 100
 
+    /// The colour of the words on a card with no picture.
+    ///
+    /// A card with no cover shows a warm paper wash (= the colour the
+    /// pictures are painted on), so its words are ink on that paper
+    /// and there is no wash drawn under them. A card WITH a cover has
+    /// a painting behind it, so its words are white over a wash.
+    static let coverInk = Color(red: 0.17, green: 0.13, blue: 0.11)
+
     /// The shape of a card's picture tile.
     ///
     /// 4:3, which is the shape the picture is generated in

@@ -274,11 +274,29 @@ struct Card: View {
         // in the middle (= the App Store's shape, and macOS's own
         // paused-player glyph).
         ZStack(alignment: .bottomLeading) {
+            // The card with no picture yet.
+            //
+            // It should read as the thing it stands in for: a card
+            // whose cover is a Chinese scroll painting on pale paper
+            // gets a warm paper wash, not a cool grey. The old
+            // gradient (= the accent tint into the quaternary label
+            // colour) was cold and blue, and it fought every picture
+            // that landed in the same slot.
             LinearGradient(
-                colors: [Color.accentColor.opacity(DesignTokens.accentTintOpacityHero), Color(nsColor: .quaternaryLabelColor)],
+                colors: [
+                    Color(red: 0.968, green: 0.949, blue: 0.906),
+                    Color(red: 0.910, green: 0.878, blue: 0.816),
+                    Color(red: 0.780, green: 0.733, blue: 0.659),
+                ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
+                // The symbol is a watermark in the middle of the paper,
+                // in ink, not a badge in the corner: the ZStack
+                // aligns its children to the bottom left (= that is
+                // where the words go), so the symbol carries its own
+                // frame to sit in the middle.
+                //
                 // Per wenshu-icon-policy v1.5: 64 PT (= empty-state threshold >=38 PT)
                 // MUST pin .symbolRenderingMode(.monochrome). SF
                 // Symbols 6 on macOS 27 silently falls back to the
@@ -291,7 +309,8 @@ struct Card: View {
                     .aspectRatio(contentMode: .fit)
                     .frame(width: 64, height: 64)
                     .symbolRenderingMode(.monochrome)
-                    .foregroundStyle(.tint.opacity(0.85))
+                    .foregroundStyle(Color(red: 0.28, green: 0.24, blue: 0.20).opacity(0.32))
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 // A card with a generated cover shows the picture in
                 // the SAME slot, over the gradient and the symbol. The
                 // gradient and the symbol stay underneath, so a card
@@ -367,12 +386,20 @@ struct Card: View {
             // in Photos. It is a gradient and NOT a solid panel: a
             // panel behind the words would be a box pretending to be
             // hierarchy, and the picture is the card.
-            LinearGradient(
-                colors: [.clear, .black.opacity(0.18), .black.opacity(0.55)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .allowsHitTesting(false)
+            //
+            // A card with NO picture is already pale paper, so it
+            // gets no wash: its words are ink (see below) and the
+            // paper stays paper. A wash over a pale ground turned the
+            // whole card into a smoky grey, which is the one thing a
+            // placeholder must not be.
+            if hasCover {
+                LinearGradient(
+                    colors: [.clear, .black.opacity(0.18), .black.opacity(0.55)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .allowsHitTesting(false)
+            }
 
             // The words, on the picture.
             //
@@ -384,8 +411,8 @@ struct Card: View {
             VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
                 Text(source.title)
                     .font(.headline)
-                    .foregroundStyle(.white)
-                    .shadow(color: .black.opacity(0.55), radius: 3, x: 0, y: 1)
+                    .foregroundStyle(hasCover ? .white : DesignTokens.coverInk)
+                    .shadow(color: hasCover ? .black.opacity(0.55) : .white.opacity(0.5), radius: 3, x: 0, y: 1)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
                 if !source.tags.isEmpty {
@@ -393,13 +420,13 @@ struct Card: View {
                         ForEach(source.tags, id: \.self) { tag in
                             Text(tag)
                                 .font(.caption2)
-                                .foregroundStyle(.white.opacity(0.92))
-                                .shadow(color: .black.opacity(0.5), radius: 2, x: 0, y: 1)
+                                .foregroundStyle(hasCover ? .white.opacity(0.92) : DesignTokens.coverInk.opacity(0.75))
+                                .shadow(color: hasCover ? .black.opacity(0.5) : .white.opacity(0.6), radius: 2, x: 0, y: 1)
                                 .padding(.horizontal, DesignTokens.spacingStandard)
                                 .padding(.vertical, DesignTokens.spacingCaption)
                                 .background(
                                     Capsule()
-                                        .fill(.white.opacity(0.16))
+                                        .fill(hasCover ? Color.white.opacity(0.16) : DesignTokens.coverInk.opacity(0.08))
                                 )
                         }
                     }
