@@ -28,8 +28,17 @@ public struct AnthropicStreamingChunk: Sendable {
 
     public let kind: Kind
 
-    public init(kind: Kind) {
+    /// The token counters the provider sent with this event, when it
+    /// sent any.
+    ///
+    /// The provider splits them across events: the input count and the
+    /// cache counts arrive with the first event, the output count with
+    /// the last one. A nil here means the event carried no counters.
+    public let usage: LLMUsage?
+
+    public init(kind: Kind, usage: LLMUsage? = nil) {
         self.kind = kind
+        self.usage = usage
     }
 }
 
@@ -74,52 +83,86 @@ public enum AnthropicSSEDecoder {
         }
 
         switch event {
-            case "content_block_start":
-                guard let index = json["index"] as? Int,
-                      let block = json["content_block"] as? [String: Any],
-                      let blockType = block["type"] as? String else { return nil }
-                if blockType == "tool_use" {
-                    let toolId = block["id"] as? String
-                    let toolName = block["name"] as? String
-                    return AnthropicStreamingChunk(kind: .contentBlockStart(
-                        blockType: blockType,
-                        blockIndex: index,
-                        toolId: toolId,
-                        toolName: toolName
-                    ))
-                }
+        case "message_start":
+            // The provider sends the input count and the cache counts
+            // with its first event, nested under the message object.
+            let usage = (json["message"] as? [String: Any])
+                .flatMap { Self.usage(from: $0) }
+            return AnthropicStreamingChunk(kind: .unknown(event), usage: usage)
+
+        case "content_block_start":
+            guard let index = json["index"] as? Int,
+                  let block = json["content_block"] as? [String: Any],
+                  let blockType = block["type"] as? String else { return nil }
+            if blockType == "tool_use" {
+                let toolId = block["id"] as? String
+                let toolName = block["name"] as? String
                 return AnthropicStreamingChunk(kind: .contentBlockStart(
                     blockType: blockType,
                     blockIndex: index,
-                    toolId: nil,
-                    toolName: nil
+                    toolId: toolId,
+                    toolName: toolName
                 ))
+            }
+            return AnthropicStreamingChunk(kind: .contentBlockStart(
+                blockType: blockType,
+                blockIndex: index,
+                toolId: nil,
+                toolName: nil
+            ))
 
-            case "content_block_delta":
-                guard let index = json["index"] as? Int,
-                      let delta = json["delta"] as? [String: Any] else { return nil }
-                let deltaType = delta["type"] as? String
-                let textDelta = deltaType == "text_delta" ? delta["text"] as? String : nil
-                let inputDelta = deltaType == "input_json_delta" ? delta["partial_json"] as? String : nil
-                let thinkingDelta = deltaType == "thinking_delta" ? delta["thinking"] as? String : nil
-                return AnthropicStreamingChunk(kind: .contentBlockDelta(
-                    blockIndex: index,
-                    textDelta: textDelta,
-                    inputDelta: inputDelta,
-                    thinkingDelta: thinkingDelta
-                ))
+        case "content_block_delta":
+            guard let index = json["index"] as? Int,
+                  let delta = json["delta"] as? [String: Any] else { return nil }
+            let deltaType = delta["type"] as? String
+            let textDelta = deltaType == "text_delta" ? delta["text"] as? String : nil
+            let inputDelta = deltaType == "input_json_delta" ? delta["partial_json"] as? String : nil
+            let thinkingDelta = deltaType == "thinking_delta" ? delta["thinking"] as? String : nil
+            return AnthropicStreamingChunk(kind: .contentBlockDelta(
+                blockIndex: index,
+                textDelta: textDelta,
+                inputDelta: inputDelta,
+                thinkingDelta: thinkingDelta
+            ))
 
-            case "content_block_stop":
-                guard let index = json["index"] as? Int else { return nil }
-                return AnthropicStreamingChunk(kind: .contentBlockStop(blockIndex: index))
+        case "content_block_stop":
+            guard let index = json["index"] as? Int else { return nil }
+            return AnthropicStreamingChunk(kind: .contentBlockStop(blockIndex: index))
 
-            case "message_delta":
-                let stopReason = (json["delta"] as? [String: Any])?["stop_reason"] as? String
-                return AnthropicStreamingChunk(kind: .messageDelta(stopReason: stopReason))
+        case "message_delta":
+            let stopReason = (json["delta"] as? [String: Any])?["stop_reason"] as? String
+            // The provider reports the output count with the last event,
+            // so the counters are read here.
+            let usage = Self.usage(from: json)
+            return AnthropicStreamingChunk(kind: .messageDelta(stopReason: stopReason), usage: usage)
 
-            default:
-                return AnthropicStreamingChunk(kind: .unknown(event))
+        default:
+            return AnthropicStreamingChunk(kind: .unknown(event))
         }
+    }
+
+    /// Read the token counters an event carries.
+    ///
+    /// The provider sends the input count and the cache counts with the
+    /// first event (= `message_start`) and the output count with the
+    /// last one (= `message_delta`), so both shapes are read from the
+    /// event's own `usage` object.
+    ///
+    /// The cached prefix is counted by the provider INSIDE the input
+    /// count, so the cached count is kept in its own field.
+    ///
+    /// The counters are published to the running turn's collector, so
+    /// the turn that owns this stream reports the provider's numbers
+    /// rather than zeros.
+    private static func usage(from json: [String: Any]) -> LLMUsage? {
+        guard let usageDict = json["usage"] as? [String: Any] else { return nil }
+        let usage = RequestHelpers.usage(
+            from: usageDict,
+            inputKey: "input_tokens",
+            outputKey: "output_tokens"
+        )
+        StreamUsageScope.collector?.merge(usage)
+        return usage
     }
 }
 

@@ -84,6 +84,11 @@ public enum OpenAIChunkToLLMBlockConverter {
     public static func convert(_ event: OpenAISSEEvent) -> [LLMBlock] {
         guard let json = event.parsed else { return [] }
 
+        // The provider sends its counters in a final chunk beside an
+        // empty `choices` array, so the chunk is read before the
+        // choices are.
+        publishUsage(from: json)
+
         // choices[0].delta.{content, reasoning, ...}
         let choices = json["choices"] as? [[String: Any]] ?? []
         guard let choice = choices.first else { return [] }
@@ -180,6 +185,27 @@ public enum OpenAIChunkToLLMBlockConverter {
         }
     }
 
+    /// Publish the counters a streamed chunk carries to the running
+    /// turn's collector.
+    ///
+    /// An OpenAI-compatible provider sends its `usage` object in a final
+    /// chunk beside an empty `choices` array, so the chunk is read
+    /// before the choices are. The counts are published to the turn
+    /// that owns the stream, so the turn reports the provider's numbers
+    /// rather than zeros.
+    ///
+    /// A chunk with no `usage` object (= every chunk but the last) is
+    /// simply skipped.
+    static func publishUsage(from json: [String: Any]) {
+        guard let usageDict = json["usage"] as? [String: Any] else { return }
+        let usage = RequestHelpers.usage(
+            from: usageDict,
+            inputKey: "prompt_tokens",
+            outputKey: "completion_tokens"
+        )
+        StreamUsageScope.collector?.merge(usage)
+    }
+
     // MARK: - T12 stateful converter (= aggregates tool_calls across deltas)
 
     /// Per-tool-call state (= one entry per open `delta.tool_calls[i]`
@@ -213,6 +239,12 @@ public enum OpenAIChunkToLLMBlockConverter {
         /// immediately; tool_calls emit on stream-end marker).
         func ingest(_ event: OpenAISSEEvent) -> [LLMBlock] {
             guard let json = event.parsed else { return [] }
+
+            // The provider sends its counters in a final chunk that
+            // carries a `usage` object beside an empty `choices` array.
+            // The chunk is read here so the turn reports the provider's
+            // numbers instead of zeros.
+            OpenAIChunkToLLMBlockConverter.publishUsage(from: json)
 
             let choices = json["choices"] as? [[String: Any]] ?? []
             guard let choice = choices.first else { return [] }

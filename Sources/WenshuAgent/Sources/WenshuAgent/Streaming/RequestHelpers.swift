@@ -181,9 +181,10 @@ public enum RequestHelpers {
 
         var usage = LLMUsage(inputTokens: 0, outputTokens: 0)
         if let usageDict = json["usage"] as? [String: Any] {
-            usage = LLMUsage(
-                inputTokens: usageDict["input_tokens"] as? Int ?? 0,
-                outputTokens: usageDict["output_tokens"] as? Int ?? 0
+            usage = Self.usage(
+                from: usageDict,
+                inputKey: "input_tokens",
+                outputKey: "output_tokens"
             )
         }
 
@@ -311,6 +312,61 @@ public enum RequestHelpers {
         return try JSONSerialization.data(withJSONObject: body)
     }
 
+    /// Read the provider's cache counters out of a usage object.
+    ///
+    /// The providers disagree on the field names, so both shapes are
+    /// read:
+    ///   - The Anthropic shape: the counts sit directly in the usage
+    ///     object, beside the input and output counts
+    ///     (`cache_read_input_tokens` / `cache_creation_input_tokens`).
+    ///   - The OpenAI-compatible shape: the cached count is nested
+    ///     inside the prompt-token details (`prompt_tokens_details` →
+    ///     `cached_tokens`).
+    ///
+    /// The nested shape is walked, not assumed: a provider that sends no
+    /// prompt-token details sends no cached count, and a provider that
+    /// sends only the flat shape still reports its counts.
+    ///
+    /// The counts are returned separately from the input count because a
+    /// provider counts the cached prefix INSIDE the input count. Folding
+    /// them together would bill the same tokens twice.
+    static func cacheCounts(from usage: [String: Any]) -> (read: Int, creation: Int) {
+        var read = usage["cache_read_input_tokens"] as? Int ?? 0
+        var creation = usage["cache_creation_input_tokens"] as? Int ?? 0
+
+        // The OpenAI-compatible shape: the cached count lives inside the
+        // prompt-token details, so the nested dictionary is walked.
+        if let details = usage["prompt_tokens_details"] as? [String: Any] {
+            if read == 0 {
+                read = details["cached_tokens"] as? Int ?? 0
+            }
+            if creation == 0 {
+                creation = details["cache_creation_tokens"] as? Int ?? 0
+            }
+        }
+        return (read, creation)
+    }
+
+    /// Build a usage value from a provider's usage object.
+    ///
+    /// The input and output counts are named by the wire format, so the
+    /// caller passes the keys its provider uses. The cache counts are
+    /// read by `cacheCounts(from:)`, which understands both provider
+    /// shapes.
+    static func usage(
+        from usage: [String: Any],
+        inputKey: String,
+        outputKey: String
+    ) -> LLMUsage {
+        let cache = cacheCounts(from: usage)
+        return LLMUsage(
+            inputTokens: usage[inputKey] as? Int ?? 0,
+            outputTokens: usage[outputKey] as? Int ?? 0,
+            cacheReadTokens: cache.read,
+            cacheCreationTokens: cache.creation
+        )
+    }
+
     // MARK: - OpenAI chat completions
     // … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / - Returns: JSON-encoded request body Data
@@ -326,14 +382,37 @@ public enum RequestHelpers {
         // / Tool schemas to advertise to the model. Empty (= default)
         // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // / function:{name, description, parameters}}` objects.
-        tools: [ToolRegistrySchema] = []
+        tools: [ToolRegistrySchema] = [],
+        // / The route this request goes to. The cache marker rides on
+        // / the message envelope, and only some routes carry it.
+        providerSlug: String? = nil
     ) throws -> Data {
+        // The route and the model decide whether this wire can carry a
+        // cached prefix at all. A provider whose wire has no cache field
+        // gets no marker, so it never pretends to cache.
+        let ttl = PromptCacheSettings.ttl.effectiveTTL
+        let canMark = PromptCachePolicy.carriesEnvelopeMarker(
+            providerSlug: providerSlug ?? "",
+            model: model
+        )
+        // The same stable prefix rule the Anthropic and MiniMax paths
+        // use: the system prompt plus the last three messages.
+        let markedMessages = canMark
+            ? PromptCaching.applyCacheControl(
+                messages: messages,
+                systemPrompt: systemPrompt ?? "",
+                ttl: ttl
+            )
+            : messages
         var body: [String: Any] = [
             "model": model,
             "max_tokens": maxTokens,
             "messages": buildOpenAIMessages(
                 systemPrompt: systemPrompt,
-                userMessages: messages
+                userMessages: markedMessages,
+                providerSlug: providerSlug,
+                model: model,
+                ttl: ttl
             )
         ]
         // wire reasoningEffort → OpenAI reasoning_effort param.
@@ -374,16 +453,35 @@ public enum RequestHelpers {
         return try JSONSerialization.data(withJSONObject: body)
     }
 
-    // / Build the OpenAI messages array (= system prepended + user /
+    /// Build the OpenAI messages array (= system prepended + user /
     // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / Extracted from pre-refactor `OpenAIConnector.swift` `buildOpenAIMessages`.
+    /// Extracted from pre-refactor `OpenAIConnector.swift` `buildOpenAIMessages`.
+    ///
+    /// The cache marker rides on the message envelope (= the same key the
+    /// Anthropic and MiniMax builders write on their message dictionary),
+    /// because the OpenAI-compatible wire carries it there.
     private static func buildOpenAIMessages(
         systemPrompt: String?,
-        userMessages: [LLMMessage]
+        userMessages: [LLMMessage],
+        providerSlug: String?,
+        model: String,
+        ttl: String
     ) -> [[String: Any]] {
         var messages: [[String: Any]] = []
+        // The route and the model decide whether this wire can carry a
+        // cached prefix at all. A provider whose wire has no cache field
+        // gets no marker, so it never pretends to cache.
+        let marker = PromptCachePolicy.marker(
+            providerSlug: providerSlug ?? "",
+            model: model,
+            ttl: ttl
+        )
         if let sys = systemPrompt, !sys.isEmpty {
-            messages.append(["role": "system", "content": sys])
+            var system: [String: Any] = ["role": "system", "content": sys]
+            if let marker {
+                system["cache_control"] = marker
+            }
+            messages.append(system)
         }
         for msg in userMessages {
             // Flatten content blocks to single string (= OpenAI protocol).
@@ -394,7 +492,13 @@ public enum RequestHelpers {
                 default: return nil
                 }
             }.joined(separator: "\n")
-            messages.append(["role": msg.role.rawValue, "content": content])
+            var dict: [String: Any] = ["role": msg.role.rawValue, "content": content]
+            // The per-message marker the cache builder placed on this
+            // message (= the last three of the conversation).
+            if let own = msg.cacheControl {
+                dict["cache_control"] = own
+            }
+            messages.append(dict)
         }
         return messages
     }
@@ -424,9 +528,10 @@ public enum RequestHelpers {
 
         var usage = LLMUsage(inputTokens: 0, outputTokens: 0)
         if let usageDict = json["usage"] as? [String: Any] {
-            usage = LLMUsage(
-                inputTokens: usageDict["prompt_tokens"] as? Int ?? 0,
-                outputTokens: usageDict["completion_tokens"] as? Int ?? 0
+            usage = Self.usage(
+                from: usageDict,
+                inputKey: "prompt_tokens",
+                outputKey: "completion_tokens"
             )
         }
 
@@ -524,9 +629,14 @@ public enum RequestHelpers {
 
         var usage = LLMUsage(inputTokens: 0, outputTokens: 0)
         if let metadata = json["usageMetadata"] as? [String: Any] {
+            // Gemini counts the cached prefix inside its prompt-token
+            // count, so the cached count is read from its own field and
+            // kept beside the input count.
             usage = LLMUsage(
                 inputTokens: metadata["promptTokenCount"] as? Int ?? 0,
-                outputTokens: metadata["candidatesTokenCount"] as? Int ?? 0
+                outputTokens: metadata["candidatesTokenCount"] as? Int ?? 0,
+                cacheReadTokens: metadata["cachedContentTokenCount"] as? Int ?? 0,
+                cacheCreationTokens: metadata["cacheTokens"] as? Int ?? 0
             )
         }
 

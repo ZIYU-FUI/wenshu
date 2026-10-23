@@ -184,7 +184,16 @@ public enum OpenAIStreamingWireupFactory {
             "model": model,
             "max_tokens": maxTokens,
             "stream": true,
-            "messages": buildMessagesArray(systemPrompt: systemPrompt, messages: messages)
+            // The provider only sends its token counters in the stream
+            // when the request asks for them, so the turn's usage is the
+            // provider's number rather than zero.
+            "stream_options": ["include_usage": true],
+            "messages": buildMessagesArray(
+                systemPrompt: systemPrompt,
+                messages: messages,
+                providerSlug: credentials.provider.slug,
+                model: model
+            )
         ]
         // OpenAI chat completions tools shape: top-level `tools` array
         // of `{type: "function", function: {name, description,
@@ -236,14 +245,27 @@ public enum OpenAIStreamingWireupFactory {
     /// without depending on it (= keeps the streaming body self-contained).
     private static func buildMessagesArray(
         systemPrompt: String?,
-        messages: [LLMMessage]
+        messages: [LLMMessage],
+        providerSlug: String,
+        model: String
     ) -> [[String: Any]] {
         var out: [[String: Any]] = []
+        // The route and the model decide whether this wire can carry a
+        // cached prefix at all.
+        let marker = PromptCachePolicy.marker(
+            providerSlug: providerSlug,
+            model: model,
+            ttl: PromptCacheSettings.ttl.effectiveTTL
+        )
         if let sys = systemPrompt, !sys.isEmpty {
-            out.append([
+            var system: [String: Any] = [
                 "role": "system",
                 "content": sys
-            ])
+            ]
+            if let marker {
+                system["cache_control"] = marker
+            }
+            out.append(system)
         }
         for msg in messages {
             let role: String
@@ -277,10 +299,16 @@ public enum OpenAIStreamingWireupFactory {
                     return nil
                 }
             }
-            out.append([
+            var dict: [String: Any] = [
                 "role": role,
                 "content": contentParts
-            ])
+            ]
+            // The per-message marker the cache builder placed on this
+            // message (= the last three of the conversation).
+            if let own = msg.cacheControl {
+                dict["cache_control"] = own
+            }
+            out.append(dict)
         }
         return out
     }

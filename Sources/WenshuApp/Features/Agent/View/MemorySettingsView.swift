@@ -205,6 +205,18 @@ struct MemorySettingsView: View {
                     Text(String.localizedStringWithFormat(NSLocalizedString("settings.memory.purge.count", comment: ""), lastPurgeCount))
                 }
             }
+
+            // The prompt cache's saving, per conversation.
+            //
+            // It lives here because the memory pane is the agent's
+            // running-state surface, and the number is only meaningful
+            // next to the conversation it belongs to (= the running
+            // chat). The agent settings pane is owned by another card,
+            // so the control does not go there.
+            //
+            // No conversation id: the settings pane is not the chat, so
+            // the most recent conversation's total is the one shown.
+            PromptCacheStatusView(conversationId: nil)
         }
         .formStyle(.grouped)
         .navigationTitle(String(localized: "settings.memory.title"))

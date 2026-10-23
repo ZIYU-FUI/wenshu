@@ -60,10 +60,28 @@ public struct LLMResponse: Sendable, Equatable {
 public struct LLMUsage: Sendable, Equatable {
     public let inputTokens: Int
     public let outputTokens: Int
+    /// Tokens the provider served from its prompt cache.
+    ///
+    /// Kept beside the input count and never folded into it: a provider
+    /// counts the cached prefix inside the input count, so adding the two
+    /// together would bill the same tokens twice.
+    public let cacheReadTokens: Int
+    /// Tokens the provider wrote into its prompt cache during the call.
+    ///
+    /// A write costs more than plain input and a read costs less, so the
+    /// pair is what says whether the cache paid for itself.
+    public let cacheCreationTokens: Int
 
-    public init(inputTokens: Int, outputTokens: Int) {
+    public init(
+        inputTokens: Int,
+        outputTokens: Int,
+        cacheReadTokens: Int = 0,
+        cacheCreationTokens: Int = 0
+    ) {
         self.inputTokens = inputTokens
         self.outputTokens = outputTokens
+        self.cacheReadTokens = cacheReadTokens
+        self.cacheCreationTokens = cacheCreationTokens
     }
 
     public var totalTokens: Int { inputTokens + outputTokens }

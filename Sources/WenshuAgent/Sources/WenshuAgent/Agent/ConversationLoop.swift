@@ -173,6 +173,20 @@ public actor ConversationLoop {
             messages: messages, options: options, streamCallback: streamCallback
         )
 
+        // Fold the turn's token counts into the conversation's cache
+        // total, so the saving is readable while the conversation runs.
+        //
+        // The key is the CHAT SESSION, not the turn's task id: the task
+        // id is a fresh UUID per turn when the caller does not supply
+        // one (= the conductor's path), so keying on it would reset the
+        // running total every turn and the total would never grow.
+        // The session id is the thing the user calls a conversation.
+        let cacheConversationId = TurnScope.currentSessionID ?? resolvedTaskId
+        await PromptCacheRecorder.shared.record(
+            conversationId: cacheConversationId,
+            usage: response.usage
+        )
+
         // Append assistant response to message list (= result.messages)
         let assistantMessage = LLMMessage(role: .assistant, blocks: response.blocks)
         messages.append(assistantMessage)
@@ -590,7 +604,13 @@ public actor ConversationLoop {
         options: LLMCallOptions,
         streamCallback: (@Sendable (LLMBlock) async -> Void)?
     ) async throws -> LLMResponse {
-        let stream = connector.stream(messages: messages, options: options)
+        // The provider sends its token counters inside the stream events,
+        // so the turn collects them as they arrive and reports the
+        // provider's numbers rather than zeros.
+        let usageCollector = StreamUsageCollector()
+        let stream = StreamUsageScope.$collector.withValue(usageCollector) {
+            connector.stream(messages: messages, options: options)
+        }
         let streamProgress = StreamProgress()
         // The stream task is held in a box so the cap can await it: the cap
         // waits for the stream once the connection has answered. A box
@@ -802,13 +822,18 @@ public actor ConversationLoop {
         // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // consistent model name regardless of send() vs stream().
         let model = defaultModelForConnector()
+        // The counters the provider sent inside the stream events (= the
+        // input count, the output count, and the cache counts). The
+        // fallback path returns the provider's own usage object, so both
+        // paths report the provider's numbers.
+        let usage = usageCollector.usage
         return LLMResponse(
             id: "\(connector.connectorID)-stream-\(UUID().uuidString)",
             model: model,
             blocks: accumulated,
             stopReason: accumulated.contains(where: { if case .toolUse = $0 { return true } else { return false } })
                 ? .toolUse : .endTurn,
-            usage: LLMUsage(inputTokens: 0, outputTokens: 0)
+            usage: usage
         )
     }
 

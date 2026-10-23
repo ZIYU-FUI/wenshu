@@ -67,7 +67,8 @@ public actor OpenAIConnector: LLMConnector {
             messages: messages,
             maxTokens: options.maxTokens,
             systemPrompt: options.systemPrompt,
-            reasoningEffort: options.reasoningEffort
+            reasoningEffort: options.reasoningEffort,
+            providerSlug: connectorID
         )
 
         var request = URLRequest(url: url)
@@ -167,14 +168,15 @@ public actor OpenAICompatibleConnector: LLMConnector {
             throw LLMConnectorError.unsupportedProvider(slug: connectorID)
         }
 
-        // Build OpenAI-compatible request body via shared helper.
+        // Build OpenAI chat completions request body via shared helper.
         // pass reasoningEffort from user setting.
         let body = try RequestHelpers.buildOpenAIRequest(
             model: options.model,
             messages: messages,
             maxTokens: options.maxTokens,
             systemPrompt: options.systemPrompt,
-            reasoningEffort: options.reasoningEffort
+            reasoningEffort: options.reasoningEffort,
+            providerSlug: provider.slug
         )
 
         var request = URLRequest(url: url)
