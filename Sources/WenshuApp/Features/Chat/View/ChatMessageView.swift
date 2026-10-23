@@ -120,7 +120,11 @@ struct ChatMessageView: View {
         // titlebar.
         messageContents
                     .modifier(UserGlassCardModifier(isOutgoing: isOutgoing))
-                    .frame(maxWidth: .infinity, alignment: isOutgoing ? .center : .leading)
+                    // The row fills the chat column; the outgoing card
+                    // takes the trailing corner (= the side the user's
+                    // own words come from), the assistant row keeps its
+                    // flat leading text.
+                    .frame(maxWidth: .infinity, alignment: isOutgoing ? .trailing : .leading)
                     // AI rows get a 10 PT horizontal padding (= total
                     // 20 PT from chat column edge to AI text after the
                     // inner card padding of 10 PT; = matches the
@@ -415,12 +419,11 @@ struct ChatMessageView: View {
             // the right edge (= the Hermes `ROLE` glyph + flat body
             // pattern; = no right-edge trailing space).
             // L818: extra } removed (= previous HStack wrapper gone).
-            // -cleanup E5: make messageContents fill the full chat column
-            // width (= the VStack previously was intrinsic-width =
-            // text didn't wrap to the chat column edge; = now it
-            // does). User card gets the same treatment via the
-            // UserGlassCardModifier's .frame(maxWidth: .infinity).
-            .frame(maxWidth: .infinity, alignment: .leading)
+            // The assistant row fills the chat column (= its text
+            // wraps at the column's trailing edge). The outgoing row
+            // stays at its content's intrinsic width (= the bubble
+            // takes its width from the words it carries).
+            .frame(maxWidth: isOutgoing ? nil : .infinity, alignment: .leading)
     }
 
     /// Outgoing messages are the ones this person sent, which iMessage puts
@@ -503,13 +506,22 @@ private struct UserGlassCardModifier: ViewModifier {
             // Shape = ChatSurfaceShape (= the shared chat-surface
             // outline; = the composer field wears the same shape, so the
             // two surfaces agree by construction).
+            //
+            // WIDTH: the bubble takes its width from the words it
+            // carries and never grows past the canonical chat-bubble
+            // width (= DesignTokens.chatBubbleMaxWidth). The fill is
+            // painted BEFORE that cap on purpose: a fill painted after
+            // a greedy frame spans the whole frame (= a slab across the
+            // chat column), while a fill painted before it hugs the
+            // words and the frame then only bounds the result.
             content
                 .padding(.horizontal, DesignTokens.spacingModerate)
-                .frame(maxWidth: .infinity, minHeight: DesignTokens.controlHeightLarge, alignment: .leading)
+                .frame(minHeight: DesignTokens.controlHeightLarge, alignment: .leading)
                 .background(
                     ChatSurfaceShape()
                         .fill(Color(nsColor: ChatUserBubblePalette.surface))
                 )
+                .frame(maxWidth: DesignTokens.chatBubbleMaxWidth, alignment: .trailing)
                 .foregroundStyle(ChatUserBubblePalette.text)
         } else {
             content
