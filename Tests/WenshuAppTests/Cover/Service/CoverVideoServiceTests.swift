@@ -24,12 +24,16 @@ import WenshuAgent
 import WenshuData
 @testable import WenshuApp
 
-/// A stub that counts the calls.
+/// A stub that counts the calls, and can be told to fail.
 private final class StubVideoClient: CoverVideoClient, @unchecked Sendable {
     var callCount = 0
+    var shouldFail = false
 
     func makeVideo(firstFrameJPEG: Data, prompt: String) async throws -> Data {
         callCount += 1
+        if shouldFail {
+            throw CoverVideoError.noStillCover
+        }
         return Data([0x00, 0x00, 0x00, 0x18])
     }
 }
@@ -114,6 +118,46 @@ struct CoverVideoServiceTests {
         let clip = CardCoverService().coverVideoURL(for: target.coverKey)
         #expect(clip != nil)
         #expect(FileManager.default.fileExists(atPath: clip!.path))
+    }
+
+    @Test("A failed clip leaves the still cover and says why")
+    func aFailedClipIsRecorded() async throws {
+        try await PathGuard.$libraryRootOverride.withValue(Self.libraryRoot) {
+            try await self.runAFailedClip()
+        }
+    }
+
+    /// The body of the failed-clip test, inside the library root scope.
+    private func runAFailedClip() async throws {
+        let client = StubVideoClient()
+        client.shouldFail = true
+        let service = CoverVideoService(videoClient: client)
+        let target = CardCoverTarget.reference(UUID())
+
+        // A real still, so the clip is attempted and fails.
+        let coverService = CardCoverService()
+        let heic = try CardCoverImageEncoder.encode(
+            bannerImage: CardCoverImageEncoder.centerCrop(
+                Self.testBanner,
+                toWidth: CardCoverImageEncoder.bannerWidth,
+                toHeight: CardCoverImageEncoder.bannerHeight
+            )
+        )
+        try coverService.saveImage(heic, forKey: target.coverKey, kind: target.kind)
+        let stillPath = coverService.coverImageURL(for: target.coverKey)?.path
+
+        await #expect(throws: CoverVideoError.self) {
+            try await service.makeVideo(for: target)
+        }
+
+        // The still is still there: a failed clip must not take it away.
+        #expect(coverService.coverImageURL(for: target.coverKey)?.path == stillPath)
+
+        // And the card can say what happened: the failure is in the
+        // cover's record, marked as the clip's failure.
+        let record = service.coverRecord(for: target)
+        #expect(record?.status == WSCardCoverStatus.videoFailed)
+        #expect(record?.lastError != nil)
     }
 
     @Test("The clip plays forward, then backward")

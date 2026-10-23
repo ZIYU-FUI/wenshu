@@ -97,12 +97,30 @@ final class CoverVideoService {
             )
             try coverService.saveVideo(clip, forKey: key)
         } catch {
-            // A failed clip leaves the still cover working.
+            // A failed clip leaves the still cover working, and the
+            // card says what happened: the failure is written into the
+            // cover's record, so the card can show the mark and the
+            // menu can show the reason.
+            markFailed(for: key, kind: target.kind, error: error)
             coverVideoLogger.error(
                 "[wenshu.cover] video failed key=\(key, privacy: .public): \(String(describing: error), privacy: .public)"
             )
             throw error
         }
+    }
+
+    /// Records that the clip could not be made.
+    ///
+    /// The still cover stays where it is: the user liked it, and a
+    /// failed clip must not take it away.
+    private func markFailed(for key: String, kind: String, error: Error) {
+        var record = coverService.record(forKey: key) ?? CoverRecord(cardKind: kind)
+        record.cardKind = kind
+        record.status = WSCardCoverStatus.videoFailed
+        record.lastAttemptAt = .now
+        record.lastError = String(describing: error)
+        record.updatedAt = .now
+        try? coverService.writeRecord(record, forKey: key)
     }
 
     /// The motion instruction.
