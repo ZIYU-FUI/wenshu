@@ -41,6 +41,7 @@ Run from the repo root:
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import re
 import sys
 from pathlib import Path
@@ -48,6 +49,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[2]
 AGENTS = REPO / "AGENTS.md"
 NFI = REPO / "docs" / "agents" / "nfi.md"
+MERGE_DRIVER = REPO / "Scripts" / "merge-nfi-registry.py"
 
 SECTION_HEADING = "### §1.11 Nervous file index (NFI)"
 NEXT_HEADING = "## §2"
@@ -136,6 +138,27 @@ def last_version_with_the_table() -> str | None:
     return None
 
 
+def load_merge_driver():
+    """The registry's merge driver, which owns the key rule.
+
+    The driver's `key_of` is the authority for what a row's key is (= the
+    extracted file, = the second column), and `split_rows` is the authority
+    for which lines of the registry are rows. Loading the driver here keeps
+    the checker and the merge from drifting apart on what a key is.
+    """
+    if not MERGE_DRIVER.exists():
+        return None
+    try:
+        spec = importlib.util.spec_from_file_location("merge_nfi_registry", MERGE_DRIVER)
+        if spec is None or spec.loader is None:
+            return None
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+    except Exception:
+        return None
+    return module
+
+
 RULE_1_7 = (
     "| 1.7 | Nervous file index (NFI) registration: every extracted/added file "
     "(god-class split, scope views, helper namespace) MUST be registered in "
@@ -210,13 +233,41 @@ def main() -> int:
             ok = False
         else:
             existing = NFI.read_text(encoding="utf-8")
-            missing = [r for r in rows.split("\n") if r and r not in existing]
-            if missing:
-                for r in missing[:5]:
-                    print(f"FAIL  row missing from the registry: {r[:70]}")
+            driver = load_merge_driver()
+            if driver is None:
+                print("FAIL  Scripts/merge-nfi-registry.py could not be loaded (= no key rule to read)")
                 ok = False
             else:
-                print(f"      {len(rows.split(chr(10)))} rows verified in the registry")
+                # The registry's rows, read with the merge driver's own rule.
+                _, registry_rows, _ = driver.split_rows(existing)
+                if not registry_rows:
+                    print("FAIL  the registry has no rows to compare against (= its table header is gone)")
+                    ok = False
+                else:
+                    registry_keys = {driver.key_of(r) for r in registry_rows}
+                    missing = []
+                    unreadable = []
+                    for r in rows.split("\n"):
+                        if not r:
+                            continue
+                        key = driver.key_of(r)
+                        if key is None:
+                            unreadable.append(r)
+                        elif key not in registry_keys:
+                            missing.append(r)
+                    if missing:
+                        print(f"FAIL  {len(missing)} row(s) missing from the registry "
+                              f"(= the key is absent):")
+                        for r in missing[:5]:
+                            print(f"        {driver.key_of(r)}")
+                    if unreadable:
+                        print(f"FAIL  {len(unreadable)} row(s) the key rule cannot read:")
+                        for r in unreadable[:5]:
+                            print(f"        {r[:70]}")
+                    if missing or unreadable:
+                        ok = False
+                    else:
+                        print(f"      {len(rows.split(chr(10)))} rows verified in the registry by key")
         if "| Parent (god-class) |" in text:
             print("FAIL  AGENTS.md still carries the table")
             ok = False
