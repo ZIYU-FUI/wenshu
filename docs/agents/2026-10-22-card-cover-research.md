@@ -1073,3 +1073,42 @@ the new tile trims a third of them. The batch and the automatic path
 both treat a cover in the old shape as a cover to be drawn again, once
 (= the rule is self-limiting, because the new picture has the new
 shape).
+
+## The art direction, as the live endpoint taught it (2026-10-23, after the second acceptance)
+
+The boss showed what the covers were missing (= a Chinese scroll painting
+like 《天府长卷》: a dimensional subject, a lot of empty space, and
+small words on the picture) and said the old direction filled the frame.
+Six rounds against the live endpoint, each one checked on the subject
+that had failed before:
+
+| what changed | what the endpoint did |
+|---|---|
+| the style said "floating on a clean pale cream ground" | the subject landed in the middle, and the ground was a flat backdrop (= a poster) |
+| the subject was placed, not only described | the model obeys a POSITION, and ignores a negative alone |
+| "flowing water" was dropped | the water and the clouds stopped being pushed to the bottom |
+| the light was stated ("in bright daylight") | a night subject (a festival) came back as a dark full-frame scene, whatever the style said |
+| the picture was ruled out by name (= never a document, a slide, a poster, a diagram, a screenshot or an interface) | a subject whose text reads like a plan came back as an English slide with three columns |
+| the emptiness was named as "generous empty space", and paper and cream ground were dropped | the picture stopped being a picture on a backdrop, and became a picture with a big open centre |
+
+Two rules came out of it:
+
+- the art direction is the FIXED part and the model only says what to
+  draw. It is now 1119 characters, and it is never cut.
+- the provider takes a prompt shorter than 1500 characters, and it says
+  so (`invalid params, prompt length must be less than 1500` = status
+  2013). The subject is the part that grows (= a book's summary is a
+  paragraph), so the subject is what gets cut.
+
+**The words on the card.** The boss looked at the card and said the
+words were hard to read, then that a plate behind them looked like a
+patch. The design skill says the same thing (= a rounded rectangle
+behind the words is a box pretending to be hierarchy). So the card is
+the App Store card: the picture fills the 4:3 tile, a soft wash falls
+across the bottom, the words sit low on the left in white with a
+shadow, and there is no box.
+
+**A new still drops the clip it was made from.** The rule is that a
+clip is made FROM a card's still, so a refreshed still has no clip any
+more. The code wrote the still and left the clip on disk, so the card
+played a clip of the PREVIOUS picture.
