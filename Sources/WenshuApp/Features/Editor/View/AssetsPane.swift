@@ -308,8 +308,15 @@ struct AssetsPane: View {
                             // frozen pane. The counts come from the
                             // runner, so they are the truth rather
                             // than an estimate.
+                            //
+                            // The spinner is MINI, so the progress row
+                            // is the height of the text beside it: a
+                            // regular spinner is taller than the
+                            // footer's fixed content row and would
+                            // push the bar's top edge up out of line
+                            // with the other columns' bars.
                             ProgressView()
-                                .controlSize(.small)
+                                .controlSize(.mini)
                             Text(String.localizedStringWithFormat(
                                 NSLocalizedString("cover.batch.progress", comment: ""),
                                 coverServices.batch.progress.completed,
@@ -319,13 +326,37 @@ struct AssetsPane: View {
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .monospacedDigit()
+                            // The stop action reads as one line of
+                            // text with an action in it, for the same
+                            // reason the make-all action does.
                             Button(String(localized: "cover.action.stop")) {
                                 coverServices.batch.stop()
                             }
+                            .buttonStyle(.plain)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                         } else {
+                            // The action is PLAIN (= no border) and in
+                            // the SAME text tier as the count beside
+                            // it (= `.callout`).
+                            //
+                            // WHY: the shared footer's content row is
+                            // a fixed height (= the height of one
+                            // `.callout` line), so a default-size
+                            // bordered button would not fit inside it.
+                            // It inflated the materials column's bar
+                            // past the sidebar's and the chat's, and
+                            // the three bars' top edges stopped
+                            // lining up. The action stays a button
+                            // with the same label and the same
+                            // behaviour; only its size and its border
+                            // changed.
                             Button(String(localized: "cover.action.makeAll")) {
                                 startCoverBatch()
                             }
+                            .buttonStyle(.plain)
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
                         }
                     }
                 }

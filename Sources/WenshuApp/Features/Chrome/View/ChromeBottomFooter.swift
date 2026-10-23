@@ -52,11 +52,32 @@ struct ChromeBottomFooter<Content: View>: View {
         VStack(spacing: 0) {
             Divider()
             content
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(
+                    maxWidth: .infinity,
+                    minHeight: Self.contentRowHeight,
+                    maxHeight: Self.contentRowHeight,
+                    alignment: .leading
+                )
+                .clipped()
                 .padding(.vertical, DesignTokens.spacingStandard)
                 .padding(.horizontal, DesignTokens.spacingStandard)
         }
         .background(.bar)
         .help(help ?? "")
+    }
+
+    /// The content row's height inside the bar.
+    ///
+    /// The bar's total height is `DesignTokens.chromeBottomFooterHeight`
+    /// (= 32 PT). The divider and the 8 PT padding above and below the
+    /// row take 17 of those points, so the row gets the rest.
+    ///
+    /// MEASURED, not estimated: the row is the height of a `.callout`
+    /// text line, so a bar that carries a text row and a bar that
+    /// carries a button are the same size.
+    private static var contentRowHeight: CGFloat {
+        DesignTokens.chromeBottomFooterHeight
+            - DesignTokens.dividerHeight
+            - (2 * DesignTokens.spacingStandard)
     }
 }
