@@ -102,7 +102,7 @@ struct CoverVideoGenerator: CoverVideoClient {
         prompt: String,
         model: String = model
     ) -> [String: Any] {
-        [
+        var body: [String: Any] = [
             "model": model,
             "first_frame_image": firstFrameDataURL,
             "prompt": cappedPrompt(prompt),
@@ -114,6 +114,33 @@ struct CoverVideoGenerator: CoverVideoClient {
             // movement of its own.
             "prompt_optimizer": false,
         ]
+
+        // The FIRST-AND-LAST-FRAME mode, which is the same endpoint
+        // with one more field: the clip ends on the picture it
+        // started from, so the loop has no seam. The app's
+        // convention is that the two frames are the SAME picture, so
+        // the clip is one small movement that comes back to where it
+        // began.
+        //
+        // The endpoint's spec for this mode names one model, and it
+        // is the model the cover's video route uses. A model that is
+        // not on the list must not get the field: the endpoint
+        // answers "model not available" for a mode it does not
+        // serve.
+        if supportsFirstAndLastFrame(model: model) {
+            body["last_frame_image"] = firstFrameDataURL
+        }
+
+        return body
+    }
+
+    /// Whether a model serves the first-and-last-frame mode.
+    ///
+    /// The endpoint's own specification of that mode lists one model
+    /// (`MiniMax-Hailuo-02`), and it does not serve the mode at
+    /// 512P.
+    static func supportsFirstAndLastFrame(model: String) -> Bool {
+        model == "MiniMax-Hailuo-02"
     }
 
     /// The prompt, within the endpoint's limit.

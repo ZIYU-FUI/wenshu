@@ -69,6 +69,33 @@ struct CoverVideoGeneratorTests {
         #expect(sent["prompt"] as? String == "a light breeze through the branches")
     }
 
+    @Test("The clip ends on the picture it started from")
+    func theClipEndsOnThePictureItStartedFrom() {
+        // The first-and-last-frame mode is the same endpoint with one
+        // more field, and the app's convention is that the two frames
+        // are the SAME picture, so the loop has no seam.
+        let sent = body(prompt: "a light breeze")
+
+        #expect(sent["last_frame_image"] as? String == "data:image/jpeg;base64,AAAA")
+        #expect(sent["last_frame_image"] as? String == sent["first_frame_image"] as? String)
+    }
+
+    @Test("A model that does not serve the mode does not get the field")
+    func aModelWithoutTheModeDoesNotGetTheField() {
+        // The endpoint's spec for the mode names one model, and it
+        // answers "model not available" for a mode it does not serve.
+        #expect(CoverVideoGenerator.supportsFirstAndLastFrame(model: "MiniMax-Hailuo-02"))
+        #expect(!CoverVideoGenerator.supportsFirstAndLastFrame(model: "MiniMax-Hailuo-2.3"))
+
+        let sent = CoverVideoGenerator.requestBody(
+            firstFrameDataURL: "data:image/jpeg;base64,AAAA",
+            prompt: "a light breeze",
+            model: "MiniMax-Hailuo-2.3"
+        )
+
+        #expect(sent["last_frame_image"] == nil)
+    }
+
     @Test("The fallback prompt asks for a breeze and locks the camera")
     @MainActor
     func theFallbackPromptIsABreezeAndNotACameraMove() {
