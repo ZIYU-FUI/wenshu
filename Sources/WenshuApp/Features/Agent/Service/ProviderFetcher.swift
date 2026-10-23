@@ -23,9 +23,30 @@ actor ProviderModelCache {
     }
 }
 
-enum ProviderFetcher {
-    static func fetchLiveModelIds(provider: Provider, apiKey: String) async -> [String]? {
-        guard !apiKey.isEmpty, provider.slug != "custom" else { return nil }
+/// A provider's live model ids. nil = there is no live list (= the
+/// caller falls back to the curated list).
+protocol ProviderModelIdsSource: Sendable {
+    func fetchLiveModelIds(provider: Provider, apiKey: String) async -> [String]?
+}
+
+/// The production source: the provider's models endpoint behind the
+/// shared TTL cache. Called only when a live list is possible.
+struct LiveModelIdsSource: ProviderModelIdsSource {
+    func fetchLiveModelIds(provider: Provider, apiKey: String) async -> [String]? {
+        let cacheKey = "\(provider.slug)|\(apiKey.prefix(8))"
+        if let cached = await ProviderModelCache.shared.get(cacheKey) {
+            wenshuLogger.info("[wenshu.provider] \(provider.slug) cache hit: \(cached.count) models")
+            return cached
+        }
+        guard let live = await Self.requestModelIds(provider: provider, apiKey: apiKey) else { return nil }
+        wenshuLogger.info("[wenshu.provider] \(provider.slug) live: \(live.count) models: \(live.joined(separator: ", "))")
+        await ProviderModelCache.shared.set(live, for: cacheKey)
+        return live
+    }
+
+    /// The models endpoint of the provider. nil when the request fails
+    /// or the payload carries no usable model id.
+    private static func requestModelIds(provider: Provider, apiKey: String) async -> [String]? {
         let base = provider.defaultBaseURL.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         let candidates = provider.apiMode == "anthropic_messages"
             ? [base + "/v1", base]
@@ -55,19 +76,35 @@ enum ProviderFetcher {
         }
         return nil
     }
+}
 
-    static func loadModelIds(provider: Provider, apiKey: String) async -> [String] {
-        let cacheKey = "\(provider.slug)|\(apiKey.prefix(8))"
-        if let cached = await ProviderModelCache.shared.get(cacheKey) {
-            wenshuLogger.info("[wenshu.provider] \(provider.slug) cache hit: \(cached.count) models")
-            return cached
+enum ProviderFetcher {
+    /// The model ids to offer for a provider: the live list when the
+    /// source has one, the curated list otherwise.
+    ///
+    /// `source` is the seam. Production asks the provider's endpoint;
+    /// a test substitutes a source that answers on purpose, so both
+    /// branches are reachable without a network.
+    static func loadModelIds(
+        provider: Provider,
+        apiKey: String,
+        source: any ProviderModelIdsSource = LiveModelIdsSource()
+    ) async -> [String] {
+        guard canFetchLiveModelIds(provider: provider, apiKey: apiKey) else {
+            wenshuLogger.info("[wenshu.provider] \(provider.slug) fallback curated")
+            return provider.defaultModels
         }
-        if let live = await fetchLiveModelIds(provider: provider, apiKey: apiKey) {
-            wenshuLogger.info("[wenshu.provider] \(provider.slug) live: \(live.count) models: \(live.joined(separator: ", "))")
-            await ProviderModelCache.shared.set(live, for: cacheKey)
+        if let live = await source.fetchLiveModelIds(provider: provider, apiKey: apiKey) {
             return live
         }
         wenshuLogger.info("[wenshu.provider] \(provider.slug) fallback curated")
         return provider.defaultModels
+    }
+
+    /// A live model list needs a key and a provider that has an
+    /// endpoint of its own (= a custom provider's endpoint is supplied
+    /// by the user, so there is nothing to ask here).
+    private static func canFetchLiveModelIds(provider: Provider, apiKey: String) -> Bool {
+        !apiKey.isEmpty && provider.slug != "custom"
     }
 }
