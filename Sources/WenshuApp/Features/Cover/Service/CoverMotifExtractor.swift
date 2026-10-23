@@ -46,6 +46,15 @@ enum CoverMotifError: Error, LocalizedError {
     case noConnector(String)
     /// The model answered, but not with anything usable.
     case unreadableAnswer(String)
+    /// The model ran out of budget before it answered.
+    ///
+    /// This is not the same as an empty answer. A thinking model
+    /// reasons out of the same budget as the answer, so a budget that
+    /// is too small for the reasoning leaves the response with a
+    /// thinking block and no answer at all. The distinction matters
+    /// because the sidecar's `lastError` is what the next reader of a
+    /// failed cover sees.
+    case answerTruncated(String)
 
     var errorDescription: String? {
         switch self {
@@ -53,6 +62,8 @@ enum CoverMotifError: Error, LocalizedError {
             return "No chat model is available to describe the cover (\(slug))."
         case .unreadableAnswer(let raw):
             return "The cover description could not be read: \(raw.prefix(120))"
+        case .answerTruncated(let detail):
+            return "The cover description was cut off before the model answered: \(detail)"
         }
     }
 }
@@ -112,6 +123,22 @@ struct CoverMotifExtractor: CoverMotifExtracting {
         self.connectorFor = connectorFor
     }
 
+    /// The token budget the extraction asks for.
+    ///
+    /// The chat model is a THINKING model: it reasons before it
+    /// answers, and the reasoning comes out of the same budget as the
+    /// answer. Measured 2026-10-23 against MiniMax-M3.1-Flash on the
+    /// document whose cultural register is hardest to decide (an
+    /// outline template, which is a technical document with no
+    /// customs in it): at 2000 the whole budget went to the thinking
+    /// (thinking_tokens 1999) and the answer never arrived; at 8000
+    /// the same document answered normally (1623 output tokens, 1527
+    /// of them thinking).
+    ///
+    /// So the budget has to hold the reasoning AND the answer. It is
+    /// a cap, not a cost: the model spends what it spends.
+    static let answerTokenBudget = 8000
+
     func extract(title: String, summary: String) async throws -> CoverMotifs {
         let slug = providerSlug() ?? Provider.minimaxCn.slug
         guard let connector = connectorFor(slug) else {
@@ -124,11 +151,22 @@ struct CoverMotifExtractor: CoverMotifExtracting {
             messages: [LLMMessage.user(question)],
             options: LLMCallOptions(
                 model: model,
-                maxTokens: 2000,
+                maxTokens: Self.answerTokenBudget,
                 systemPrompt: Self.prompt,
                 temperature: 0.3
             )
         )
+
+        // A thinking model that ran out of budget leaves a thinking
+        // block and no answer. That is a CUT-OFF answer, not an empty
+        // one, and it has to be said as itself: the empty-answer
+        // error reads like the model wrote nonsense, which sends the
+        // next reader looking in the wrong place.
+        if response.stopReason == .maxTokens {
+            throw CoverMotifError.answerTruncated(
+                "the model used its whole budget of \(response.usage.outputTokens) tokens and did not answer"
+            )
+        }
 
         let text = response.blocks
             .compactMap { block -> String? in

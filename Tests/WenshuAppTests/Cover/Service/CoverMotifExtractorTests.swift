@@ -20,6 +20,7 @@
 
 import Foundation
 import Testing
+import WenshuAgent
 @testable import WenshuApp
 
 @Suite("Cover motif extraction")
@@ -150,5 +151,149 @@ struct CoverMotifExtractorTests {
         #expect(prompt.contains("motifs"))
         #expect(prompt.contains("style"))
         #expect(prompt.contains("brush"))
+    }
+}
+
+/// A connector that answers with whatever the test hands it.
+///
+/// It records the budget it was asked for, because the budget is the
+/// thing under test: a thinking model reasons out of the same budget
+/// as the answer, so a budget that is too small for the reasoning
+/// leaves the response with a thinking block and no answer.
+final class StubMotifConnector: LLMConnector, @unchecked Sendable {
+
+    /// The response it hands back.
+    let response: LLMResponse
+
+    /// The budget it was asked for.
+    private let lock = NSLock()
+    private var _askedMaxTokens: Int?
+
+    var askedMaxTokens: Int? { lock.withLock { _askedMaxTokens } }
+
+    init(response: LLMResponse) {
+        self.response = response
+    }
+
+    /// A response with only a thinking block and the budget exhausted.
+    static func truncated(thinking: String = "reasoning that never ended") -> LLMResponse {
+        LLMResponse(
+            id: "stub",
+            model: "stub",
+            blocks: [.thinking(text: thinking, signature: nil)],
+            stopReason: .maxTokens,
+            usage: LLMUsage(inputTokens: 700, outputTokens: 2000)
+        )
+    }
+
+    /// A response that answered.
+    static func answered(text: String) -> LLMResponse {
+        LLMResponse(
+            id: "stub",
+            model: "stub",
+            blocks: [.thinking(text: "short reasoning", signature: nil), .text(text)],
+            stopReason: .endTurn,
+            usage: LLMUsage(inputTokens: 700, outputTokens: 1600)
+        )
+    }
+
+    var connectorID: String { "stub" }
+    var contextWindow: Int { 200_000 }
+
+    func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
+        lock.withLock { _askedMaxTokens = options.maxTokens }
+        return response
+    }
+
+    nonisolated func stream(messages: [LLMMessage], options: LLMCallOptions) -> AsyncStream<LLMBlock> {
+        AsyncStream { continuation in
+            continuation.finish()
+        }
+    }
+}
+
+@Suite("Cover motif extraction budget")
+struct CoverMotifExtractorBudgetTests {
+
+    /// An extractor over the stub connector.
+    private func extractor(_ connector: StubMotifConnector) -> CoverMotifExtractor {
+        CoverMotifExtractor(
+            providerSlug: { "minimax-cn" },
+            modelSlug: { "MiniMax-M3.1-Flash" },
+            connectorFor: { _ in connector }
+        )
+    }
+
+    /// The description of the error the extraction threw, or nil when
+    /// it did not throw.
+    ///
+    /// The assertions below read the DESCRIPTION and not the error
+    /// case, on purpose: a test that names a new error case cannot
+    /// compile against the code before the change, so it could never
+    /// be red before the change either. A description can, so these
+    /// tests are the gap-1 regression tests: they fail on the old
+    /// code and pass on the new one.
+    private func description(of error: Error) -> String {
+        (error as? CoverMotifError)?.errorDescription ?? "\(error)"
+    }
+
+    @Test("An answer that was cut off is reported as cut off")
+    func aCutOffAnswerIsReportedAsCutOff() async {
+        let connector = StubMotifConnector(response: StubMotifConnector.truncated())
+        let subject = extractor(connector)
+
+        do {
+            _ = try await subject.extract(title: "Outline", summary: "A template")
+            Issue.record("The extraction answered when the model ran out of budget")
+        } catch {
+            let text = description(of: error)
+            #expect(text.contains("cut off"))
+        }
+    }
+
+    @Test("A cut-off answer is not read as an empty answer")
+    func aCutOffAnswerIsNotAnEmptyAnswer() async {
+        let connector = StubMotifConnector(response: StubMotifConnector.truncated())
+        let subject = extractor(connector)
+
+        do {
+            _ = try await subject.extract(title: "Outline", summary: "A template")
+            Issue.record("The extraction answered when the model ran out of budget")
+        } catch {
+            // The old code read this as an answer it could not read,
+            // with an EMPTY string, which reads like the model wrote
+            // nonsense and sends the next reader in the wrong place.
+            let text = description(of: error)
+            #expect(!text.contains("could not be read"))
+        }
+    }
+
+    @Test("The budget holds the thinking and the answer")
+    func theBudgetHoldsTheThinkingAndTheAnswer() async {
+        let connector = StubMotifConnector(response: StubMotifConnector.answered(text: "{}"))
+        let subject = extractor(connector)
+
+        _ = try? await subject.extract(title: "Rain Water", summary: "A document")
+
+        // Measured 2026-10-23: at 2000 the whole budget went to the
+        // thinking and the answer never arrived.
+        #expect((connector.askedMaxTokens ?? 0) >= 8000)
+    }
+
+    @Test("An answer that arrived is still read")
+    func anAnswerThatArrivedIsStillRead() async throws {
+        let answer = """
+        {"register":"中式","style":"卷章文房清供","brush":"工笔淡彩笔触",\
+        "motifs":["湖笔","端砚","朱砂印泥盒"],\
+        "arrangement":"湖笔居左，端砚居中，印泥盒在右",\
+        "palette":["墨黑","宣纸白"],"mood":["清雅"]}
+        """
+        let connector = StubMotifConnector(response: StubMotifConnector.answered(text: answer))
+        let subject = extractor(connector)
+
+        let motifs = try await subject.extract(title: "Outline", summary: "A template")
+
+        #expect(motifs.register == "中式")
+        #expect(motifs.motifs.count == 3)
     }
 }
