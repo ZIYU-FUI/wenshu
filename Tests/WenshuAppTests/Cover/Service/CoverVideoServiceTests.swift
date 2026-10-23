@@ -160,16 +160,6 @@ struct CoverVideoServiceTests {
         #expect(record?.lastError != nil)
     }
 
-    @Test("The clip plays forward, then backward")
-    func theClipPlaysForwardThenBackward() {
-        // The provider does not deliver a seamless loop, so the clip
-        // runs forward and then backward.
-        #expect(CoverPlaybackRule.next(afterForwardEnd: true) == .playingBackward)
-        #expect(CoverPlaybackRule.next(afterBackwardEnd: true) == .playingForward)
-        // Not at an end, the direction does not change.
-        #expect(CoverPlaybackRule.next(afterForwardEnd: false) == .playingForward)
-        #expect(CoverPlaybackRule.next(afterBackwardEnd: false) == .playingBackward)
-    }
 
     /// A simple test banner.
     private static let testBanner: CGImage = {

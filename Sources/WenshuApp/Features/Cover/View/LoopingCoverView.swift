@@ -8,51 +8,27 @@
 //  it costs CPU, so the clip starts when the pointer arrives and
 //  stops when it leaves.
 //
-//  THE LOOP IS FORWARD-THEN-BACKWARD, and that is a measured
-//  decision, not a style choice. Sampling frames across a real
-//  generated clip on 2026-10-22 showed that consecutive frames differ
-//  by about 4/255 (= there IS real motion) but the first frame and
-//  the last frame differ by about 14/255, which reads as a visible
-//  jump when the clip loops directly. The provider was asked for a
-//  seamless loop and did not deliver one.
+//  THE LOOP IS FORWARD, and the loop is the framework's own
+//  (`AVPlayerLooper`). The app used to play the clip BACKWARD at its
+//  ends, so the loop had no seam: sampling frames across a real
+//  generated clip on 2026-10-22 showed that the first frame and the
+//  last frame differ by about 14/255, which reads as a visible jump.
 //
-//  So the clip plays forward and then backward. That is guaranteed
-//  seamless, and it doubles the apparent length, which suits a
-//  six-second clip playing under a pointer.
+//  Playing a clip backward is a negative rate, and a negative rate
+//  with the picture on the screen took the process down: a bus error
+//  inside CoreMedia's frame scheduler, on every card with a clip. It
+//  was bisected with the real clip: forward with a picture was fine,
+//  backward without a picture was fine, backward with a picture was
+//  not.
 //
-//  The playback rule is a small PURE type, so it can be tested
-//  without a player and without a video file.
+//  So the clip loops forward, the way the framework does it, and the
+//  app stays up. The user asked for a clip that loops and nothing
+//  more.
 //
 
 import AVFoundation
 import AppKit
 import SwiftUI
-
-/// Where the playback goes next.
-enum CoverPlaybackState: Equatable {
-    /// Playing forward.
-    case playingForward
-    /// Playing backward (= the clip is running in reverse).
-    case playingBackward
-    /// Not playing.
-    case stopped
-}
-
-/// The forward-then-backward rule, as a pure function.
-enum CoverPlaybackRule {
-
-    /// The state after the clip reaches its end while playing
-    /// forward.
-    static func next(afterForwardEnd: Bool) -> CoverPlaybackState {
-        afterForwardEnd ? .playingBackward : .playingForward
-    }
-
-    /// The state after the clip reaches its start while playing
-    /// backward.
-    static func next(afterBackwardEnd: Bool) -> CoverPlaybackState {
-        afterBackwardEnd ? .playingForward : .playingBackward
-    }
-}
 
 /// A card's cover clip, playing on hover.
 struct LoopingCoverView: View {
@@ -100,11 +76,11 @@ struct LoopingCoverView: View {
     /// does with one.
     let preparedPlayer: AVPlayer?
 
-    /// The observer that watches the clip's position.
-    @State private var timeObserver: Any?
-
-    /// Whether the clip is currently running backward.
-    @State private var isBackward = false
+    /// The loop that repeats the clip.
+    ///
+    /// It is held because the framework's looper keeps the copies of
+    /// the clip alive only while something holds it.
+    @State private var looper: AVPlayerLooper?
 
     var body: some View {
         ZStack {
@@ -141,46 +117,43 @@ struct LoopingCoverView: View {
 
     // MARK: - Player
 
-    /// Creates the player and starts watching the position.
+    /// Creates the player and the loop that repeats the clip.
+    ///
+    /// The clip loops FORWARD, and the loop is the framework's own
+    /// (`AVPlayerLooper`): the app hands the clip over and lets
+    /// AVFoundation repeat it.
+    ///
+    /// It used to be the other way round. The app watched the position
+    /// and played the clip BACKWARD at its ends, so the loop had no
+    /// seam. That is what a negative rate does to a decoder, and with
+    /// the picture on the screen it took the process down: a bus error
+    /// inside CoreMedia's frame scheduler, on every card with a clip.
+    /// A measured crash, reproduced with the real clip and bisected to
+    /// the backward rate: forward with a picture was fine, backward
+    /// without a picture was fine, backward with a picture was not.
+    ///
+    /// So the clip loops forward, the way the framework does it, and
+    /// the app stays up.
     private func prepare() {
         guard let videoURL else { return }
         let item = AVPlayerItem(url: videoURL)
-        let created = AVPlayer(playerItem: item)
+        let queue = AVQueuePlayer()
         // The clip is muted: a cover must never make a sound.
-        created.isMuted = true
-        created.actionAtItemEnd = .pause
-        player = created
-
-        // Watch the position so the clip can be flipped at its ends.
-        let observer = created.addPeriodicTimeObserver(
-            forInterval: CMTime(seconds: 0.05, preferredTimescale: 600),
-            queue: .main
-        ) { [weak created] time in
-            guard let created else { return }
-            let duration = created.currentItem?.duration.seconds ?? 0
-            guard duration > 0 else { return }
-            let position = time.seconds
-            // A small epsilon, so the ends are detected without
-            // flickering between the two states.
-            let epsilon = 0.08
-            if position >= duration - epsilon {
-                // The forward run finished: play it backward.
-                created.seek(to: .zero, toleranceBefore: .zero, toleranceAfter: .zero)
-                created.rate = -1
-            } else if position <= epsilon {
-                // The backward run finished: play it forward.
-                created.seek(to: CMTime(seconds: duration, preferredTimescale: 600),
-                             toleranceBefore: .zero, toleranceAfter: .zero)
-                created.rate = 1
-            }
-        }
-        timeObserver = observer
+        queue.isMuted = true
+        // The looper keeps a copy of the clip ready, so the loop has
+        // no gap.
+        queue.actionAtItemEnd = .advance
+        player = queue
+        looper = AVPlayerLooper(player: queue, templateItem: item)
     }
 
     /// Starts the clip.
     private func play() {
         guard let player else { return }
-        player.rate = isBackward ? -1 : 1
+        // `play()` and not a rate: the player waits for the clip to be
+        // ready, where a rate would ask CoreMedia to work with a time
+        // range it does not have yet.
+        player.play()
     }
 
     /// Stops the clip and rewinds it.
@@ -192,15 +165,12 @@ struct LoopingCoverView: View {
         guard let player else { return }
         player.pause()
         player.seek(to: .zero, toleranceBefore: .zero, toleranceAfter: .zero)
-        isBackward = false
     }
 
     /// Releases the player.
     private func tearDown() {
-        if let timeObserver, let player {
-            player.removeTimeObserver(timeObserver)
-        }
-        timeObserver = nil
+        looper?.disableLooping()
+        looper = nil
         player?.pause()
         player = nil
     }
