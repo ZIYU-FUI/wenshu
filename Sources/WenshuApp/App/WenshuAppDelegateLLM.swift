@@ -69,6 +69,35 @@ enum WenshuAppDelegateLLMHelpers {
         return nil
     }
 
+    /// The session the non-streaming LLM calls use.
+    ///
+    /// `URLSession.shared` has a 60-second request timeout, and the
+    /// calls that go through these connectors are not short: the cover
+    /// feature asks a THINKING model for 8000 tokens (= the reasoning
+    /// comes out of the same budget as the answer), and the measured
+    /// answer took 20-40 seconds. Measured 2026-10-24: a cover whose
+    /// document took the model longer than a minute died with
+    /// `NSURLErrorDomain Code=-1001` (= the request timed out), and
+    /// the card was left marked failed even though the same document
+    /// answered in seconds on a retry.
+    ///
+    /// So the session is configured instead of shared:
+    ///
+    ///  - the request timeout: 180 s (= room for a thinking model with
+    ///    a large budget);
+    ///  - the resource timeout: 600 s (= it bounds the whole call, so
+    ///    it has to be larger than the request timeout).
+    ///
+    /// It is built ONCE (= a session pools its connections), and the
+    /// STREAMING path is untouched (= the chat's stream answers
+    /// continuously and has its own session).
+    static let llmSession: URLSession = {
+        let configuration = URLSessionConfiguration.default
+        configuration.timeoutIntervalForRequest = 180
+        configuration.timeoutIntervalForResource = 600
+        return URLSession(configuration: configuration)
+    }()
+
     nonisolated static func activeLLMConnector() -> any LLMConnector {
         // Hand the user's custom endpoints to the package before the
         // connector is built (= the connector factory reads them when it
@@ -111,16 +140,16 @@ enum WenshuAppDelegateLLMHelpers {
             // provider per AGENTS.md §11.2); AnthropicConnector is the
             // native Anthropic API.
             if provider.slug == "anthropic" {
-                return AnthropicConnector()
+                return AnthropicConnector(session: llmSession)
             }
-            return MinimaxConnector(provider: provider)
+            return MinimaxConnector(provider: provider, session: llmSession)
         case "openai_chat":
-            return OpenAICompatibleConnector(provider: provider)
+            return OpenAICompatibleConnector(provider: provider, session: llmSession)
         default:
             // Gemini + any other apiMode lands here until the matching connector lands (=
             // Gemini native connector is a separate ticket per
             // ConnectorTestButton.runTest).
-            return AnthropicConnector()
+            return AnthropicConnector(session: llmSession)
         }
     }
 
@@ -137,11 +166,11 @@ enum WenshuAppDelegateLLMHelpers {
         switch provider.apiMode {
         case "anthropic_messages":
             if provider.slug == "anthropic" {
-                return AnthropicConnector()
+                return AnthropicConnector(session: llmSession)
             }
-            return MinimaxConnector(provider: provider)
+            return MinimaxConnector(provider: provider, session: llmSession)
         case "openai_chat":
-            return OpenAICompatibleConnector(provider: provider)
+            return OpenAICompatibleConnector(provider: provider, session: llmSession)
         default:
             return nil
         }
