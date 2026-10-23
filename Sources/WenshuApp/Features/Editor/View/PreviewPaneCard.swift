@@ -360,34 +360,32 @@ struct Card: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
                     .allowsHitTesting(false)
                 }
-            // The scrim the words sit on.
+            // The wash the words sit in.
             //
-            // A card with no picture has the gradient behind it, and
-            // that one is light, so the words need a wash under them.
-            // A card with a picture does not: the picture IS the card,
-            // and a wash across the whole thing would dim the
-            // painting.
-            if !hasCover {
-                LinearGradient(
-                    colors: [.clear, .black.opacity(0.25), .black.opacity(0.62)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .allowsHitTesting(false)
-            }
+            // The App Store washes the bottom of its artwork so the
+            // white copy can be read over it, and macOS does the same
+            // in Photos. It is a gradient and NOT a solid panel: a
+            // panel behind the words would be a box pretending to be
+            // hierarchy, and the picture is the card.
+            LinearGradient(
+                colors: [.clear, .black.opacity(0.18), .black.opacity(0.55)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .allowsHitTesting(false)
 
             // The words, on the picture.
             //
-            // They sit low, and they sit on a translucent panel: a
-            // generated cover is a pale painting (= pale paper with a
-            // subject on it), and white words on pale paper cannot be
-            // read. The panel is the backing that makes them legible
-            // on ANY cover, and it is small, so the picture is still
-            // the card.
+            // They sit low, in white, with a shadow: a generated cover
+            // is a pale painting (= pale paper with a subject on it),
+            // and a shadow is what keeps white words readable on a
+            // pale ground. The hierarchy is the type itself (= the
+            // title, then the tags), not a plate behind it.
             VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
                 Text(source.title)
                     .font(.headline)
                     .foregroundStyle(.white)
+                    .shadow(color: .black.opacity(0.55), radius: 3, x: 0, y: 1)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
                 if !source.tags.isEmpty {
@@ -395,27 +393,19 @@ struct Card: View {
                         ForEach(source.tags, id: \.self) { tag in
                             Text(tag)
                                 .font(.caption2)
-                                .foregroundStyle(.white.opacity(0.9))
+                                .foregroundStyle(.white.opacity(0.92))
+                                .shadow(color: .black.opacity(0.5), radius: 2, x: 0, y: 1)
                                 .padding(.horizontal, DesignTokens.spacingStandard)
                                 .padding(.vertical, DesignTokens.spacingCaption)
                                 .background(
                                     Capsule()
-                                        .fill(.white.opacity(0.18))
+                                        .fill(.white.opacity(0.16))
                                 )
                         }
                     }
                     .lineLimit(1)
                 }
             }
-            .padding(.horizontal, DesignTokens.spacingStandard)
-            .padding(.vertical, DesignTokens.spacingTight)
-            .background(
-                RoundedRectangle(
-                    cornerRadius: DesignTokens.surfaceCornerRadiusSmallButton,
-                    style: .continuous
-                )
-                .fill(.black.opacity(0.45))
-            )
             .padding(DesignTokens.spacingModerate)
             .allowsHitTesting(false)
         }
