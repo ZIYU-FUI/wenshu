@@ -100,7 +100,9 @@ One file changed in each card:
 ## 5. The measurement, and the two ways it lied
 
 The gate is
-`~/.hermes/profiles/pocock/skills/wenshu-visual-audit/scripts/measure-column-chrome.py`.
+`Tools/wenshu-devtool/probes/column_chrome_band.py` (= the repository's
+probe registry, so the next card that needs the number reads it instead of
+writing the probe again).
 It measures THREE independent things, because each catches a different
 defect:
 
