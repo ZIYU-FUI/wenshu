@@ -29,7 +29,6 @@
 //
 
 import Foundation
-import SwiftData
 import WenshuData
 import os
 
@@ -39,16 +38,11 @@ private let coverReconcilerLogger = Logger(subsystem: "com.wenshu", category: "c
 @MainActor
 struct CoverReconciler {
 
-    /// The store that holds the cover rows.
-    let modelContext: ModelContext
-
-    init(modelContext: ModelContext) {
-        self.modelContext = modelContext
-    }
+    init() {}
 
     /// The reconciler over the library the app is running on.
     static func live() -> CoverReconciler {
-        CoverReconciler(modelContext: WSPersistenceContainer.current.mainContext)
+        CoverReconciler()
     }
 
     // MARK: - The live cards
@@ -130,34 +124,41 @@ struct CoverReconciler {
     /// - Returns: how many covers were removed.
     @discardableResult
     func sweep(liveReferenceIds: [UUID]?, shelvesRoot: URL?) -> Int {
-        let service = CardCoverService(modelContext: modelContext)
-        let rows = service.allRows()
+        // The library reload means the library may have changed on
+        // disk, so what the app remembers about its covers is dropped
+        // and read again.
+        CoverEntryCache.shared.removeAll()
+
+        let service = CardCoverService()
+        let coverKeys = service.storedKeys()
         // Nothing to reconcile: the cheap check first, because the
         // walk over the library is the expensive part.
-        guard !rows.isEmpty else { return 0 }
+        guard !coverKeys.isEmpty else { return 0 }
 
         var removed = 0
 
         // Each kind is walked only when it has a cover to check, so
         // a library with only reference covers never walks the book
-        // folders.
-        if let liveReferenceIds,
-           !rows.filter({ $0.cardKind == WSCardCoverKind.reference }).isEmpty {
+        // folders. The kind is in the key, so a cover folder says
+        // which card it belongs to without a record to read.
+        let referenceKeys = coverKeys.filter { $0.hasPrefix("\(WSCardCoverKind.reference)-") }
+        if let liveReferenceIds, !referenceKeys.isEmpty {
             let liveKeys = Set(liveReferenceIds.map { CardCoverService.key(forReference: $0) })
             removed += remove(
                 service: service,
-                rows: rows.filter { $0.cardKind == WSCardCoverKind.reference },
+                keys: referenceKeys,
                 liveKeys: liveKeys
             )
         }
 
+        let bookDocKeys = coverKeys.filter { $0.hasPrefix("\(WSCardCoverKind.bookDoc)-") }
         if let shelvesRoot,
-           !rows.filter({ $0.cardKind == WSCardCoverKind.bookDoc }).isEmpty,
+           !bookDocKeys.isEmpty,
            let liveBookDocIds = Self.bookDocIds(shelvesRoot: shelvesRoot) {
             let liveKeys = Set(liveBookDocIds.map { CardCoverService.key(forBookDoc: $0) })
             removed += remove(
                 service: service,
-                rows: rows.filter { $0.cardKind == WSCardCoverKind.bookDoc },
+                keys: bookDocKeys,
                 liveKeys: liveKeys
             )
         }
@@ -171,12 +172,12 @@ struct CoverReconciler {
     /// Removes the covers of one card kind whose card is gone.
     private func remove(
         service: CardCoverService,
-        rows: [WSCardCover],
+        keys: [String],
         liveKeys: Set<String>
     ) -> Int {
         let orphans = Self.orphanKeys(
             liveCardKeys: liveKeys,
-            coverKeys: Set(rows.map(\.id))
+            coverKeys: Set(keys)
         )
         for key in orphans {
             do {

@@ -25,7 +25,7 @@
 //
 
 import Foundation
-import SwiftData
+import Observation
 import WenshuData
 import os
 
@@ -33,6 +33,7 @@ private let coverGenerationLogger = Logger(subsystem: "com.wenshu", category: "c
 
 /// Draws and stores a card's cover.
 @MainActor
+@Observable
 final class CoverGenerationService {
 
     /// The cover store.
@@ -40,7 +41,11 @@ final class CoverGenerationService {
 
     /// The cards currently being generated, so a second request for
     /// the same card does not start a second call.
-    private var inFlight: Set<String> = []
+    ///
+    /// Observable on purpose: the material zone asks every card
+    /// whether it is being drawn, and a card that cannot see the
+    /// answer gives the user no sign that anything is happening.
+    private(set) var inFlight: Set<String> = []
 
     /// The store the routes live in.
     private let routeStore: CoverServiceRouteStore
@@ -57,14 +62,13 @@ final class CoverGenerationService {
     private let currentProviderSlug: () -> String?
 
     init(
-        modelContext: ModelContext,
         routeStore: CoverServiceRouteStore = CoverServiceRouteStore(),
         imageClient: CoverImageClient = CoverImageGenerator(),
         currentProviderSlug: @escaping () -> String? = {
             UserDefaults.standard.string(forKey: "wenshu.llm.provider")
         }
     ) {
-        self.coverService = CardCoverService(modelContext: modelContext)
+        self.coverService = CardCoverService()
         self.routeStore = routeStore
         self.imageClient = imageClient
         self.currentProviderSlug = currentProviderSlug
@@ -72,7 +76,7 @@ final class CoverGenerationService {
 
     /// The service over the library the app is running on.
     static func live() -> CoverGenerationService {
-        CoverGenerationService(modelContext: WSPersistenceContainer.current.mainContext)
+        CoverGenerationService()
     }
 
     /// Whether a card is being generated right now.
@@ -80,9 +84,9 @@ final class CoverGenerationService {
         inFlight.contains(target.coverKey)
     }
 
-    /// The cover row for a card, if it has one.
-    func coverRow(for target: CardCoverTarget) -> WSCardCover? {
-        coverService.row(forKey: target.coverKey)
+    /// The record that describes a card's cover, if it has one.
+    func coverRecord(for target: CardCoverTarget) -> CoverRecord? {
+        coverService.record(forKey: target.coverKey)
     }
 
     /// Draws a card's cover and stores it.
@@ -98,9 +102,9 @@ final class CoverGenerationService {
         inFlight.insert(key)
         defer { inFlight.remove(key) }
 
-        // The row goes to "pending" so the UI can show that the card
+        // The record goes to "pending" so the UI can show that the card
         // is working.
-        markPending(for: key)
+        markPending(for: key, kind: target.kind)
 
         do {
             let route = routeStore.route(for: .image)
@@ -117,7 +121,7 @@ final class CoverGenerationService {
             // A failed generation leaves the previous picture in place.
             // The card keeps what it had; the error is recorded so the
             // UI can say why.
-            markFailed(for: key, error: error)
+            markFailed(for: key, kind: target.kind, error: error)
             coverGenerationLogger.error(
                 "[wenshu.cover] generation failed key=\(key, privacy: .public): \(String(describing: error), privacy: .public)"
             )
@@ -129,22 +133,33 @@ final class CoverGenerationService {
         try? coverService.removeCover(forKey: target.coverKey)
     }
 
-    // MARK: - Row state
+    // MARK: - Record state
 
-    private func markPending(for key: String) {
-        guard let row = coverService.row(forKey: key) else { return }
-        row.status = WSCardCoverStatus.pending
-        row.lastAttemptAt = .now
-        row.updatedAt = .now
-        try? coverService.modelContext.save()
+    /// Records that the cover is being drawn.
+    ///
+    /// A card with no cover yet has no record to update, so one is
+    /// written: the card then has a cover folder, and the folder
+    /// says the work is in flight.
+    private func markPending(for key: String, kind: String) {
+        var record = coverService.record(forKey: key) ?? CoverRecord(cardKind: kind)
+        record.cardKind = kind
+        record.status = WSCardCoverStatus.pending
+        record.lastAttemptAt = .now
+        record.updatedAt = .now
+        try? coverService.writeRecord(record, forKey: key)
     }
 
-    private func markFailed(for key: String, error: Error) {
-        guard let row = coverService.row(forKey: key) else { return }
-        row.status = WSCardCoverStatus.failed
-        row.lastAttemptAt = .now
-        row.lastError = String(describing: error)
-        row.updatedAt = .now
-        try? coverService.modelContext.save()
+    /// Records that the draw failed.
+    ///
+    /// The picture the user liked stays where it is: a failed refresh
+    /// must not take it away.
+    private func markFailed(for key: String, kind: String, error: Error) {
+        var record = coverService.record(forKey: key) ?? CoverRecord(cardKind: kind)
+        record.cardKind = kind
+        record.status = WSCardCoverStatus.failed
+        record.lastAttemptAt = .now
+        record.lastError = String(describing: error)
+        record.updatedAt = .now
+        try? coverService.writeRecord(record, forKey: key)
     }
 }

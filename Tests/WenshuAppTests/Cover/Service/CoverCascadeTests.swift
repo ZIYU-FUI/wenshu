@@ -30,14 +30,6 @@ import WenshuData
 @MainActor
 struct CoverCascadeTests {
 
-    /// An in-memory container holding the cover rows.
-    private func makeContainer() throws -> ModelContainer {
-        try ModelContainer(
-            for: WSCardCover.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-    }
-
     /// A throwaway library root (= the .ws package the cover
     /// service resolves its directory against).
     private func makeLibraryRoot() throws -> URL {
@@ -47,12 +39,12 @@ struct CoverCascadeTests {
         return root
     }
 
-    /// A cover row plus its file, inside the throwaway library root.
+    /// A cover folder with its picture, inside the throwaway library
+    /// root.
     private func makeCover(
-        in container: ModelContainer,
-        root: URL,
+        in root: URL,
         key: String
-    ) throws -> (row: WSCardCover, directory: URL, file: URL) {
+    ) throws -> (directory: URL, file: URL) {
         let directory = root
             .appendingPathComponent("assets", isDirectory: true)
             .appendingPathComponent("covers", isDirectory: true)
@@ -60,42 +52,27 @@ struct CoverCascadeTests {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let file = directory.appendingPathComponent("cover.heic")
         try Data([0x01, 0x02, 0x03]).write(to: file)
-
-        let row = WSCardCover(
-            id: key,
-            cardKind: WSCardCoverKind.reference,
-            imagePath: file.path,
-            status: WSCardCoverStatus.staticReady
-        )
-        let context = container.mainContext
-        context.insert(row)
-        try context.save()
-        return (row, directory, file)
+        return (directory, file)
     }
 
-    @Test("Removing a cover takes the row and the files")
-    func removesRowAndFiles() throws {
-        let container = try makeContainer()
+    @Test("Removing a cover takes the whole cover folder")
+    func removesTheCoverFolder() throws {
         let root = try makeLibraryRoot()
         let key = CardCoverService.key(forReference: UUID())
-        let (_, directory, file) = try makeCover(in: container, root: root, key: key)
-        let context = container.mainContext
+        let (directory, file) = try makeCover(in: root, key: key)
 
         try PathGuard.$libraryRootOverride.withValue(root.path) {
-            try CoverCascade(modelContext: context).removeCover(forKey: key)
+            try CoverCascade().removeCover(forKey: key)
         }
 
-        let remaining = try context.fetch(FetchDescriptor<WSCardCover>())
-        #expect(remaining.isEmpty)
         #expect(FileManager.default.fileExists(atPath: file.path) == false)
         #expect(FileManager.default.fileExists(atPath: directory.path) == false)
     }
 
     @Test("Removing a cover that was never there does not throw")
     func removingAnAbsentCoverDoesNotThrow() throws {
-        let container = try makeContainer()
         let root = try makeLibraryRoot()
-        let cascade = CoverCascade(modelContext: container.mainContext)
+        let cascade = CoverCascade()
 
         // A document delete must never fail because of a cover.
         var threw = false
@@ -111,11 +88,10 @@ struct CoverCascadeTests {
 
     @Test("Removing a cover twice does not throw")
     func removingTwiceDoesNotThrow() throws {
-        let container = try makeContainer()
         let root = try makeLibraryRoot()
         let key = CardCoverService.key(forReference: UUID())
-        _ = try makeCover(in: container, root: root, key: key)
-        let cascade = CoverCascade(modelContext: container.mainContext)
+        _ = try makeCover(in: root, key: key)
+        let cascade = CoverCascade()
 
         var threw = false
         do {
@@ -131,10 +107,9 @@ struct CoverCascadeTests {
 
     @Test("The cascade never deletes the document")
     func neverDeletesTheDocument() throws {
-        let container = try makeContainer()
         let root = try makeLibraryRoot()
         let key = CardCoverService.key(forReference: UUID())
-        _ = try makeCover(in: container, root: root, key: key)
+        _ = try makeCover(in: root, key: key)
 
         // The document of a reference lives beside the library's
         // covers, not inside the cover's own directory.
@@ -143,7 +118,7 @@ struct CoverCascadeTests {
         let document = referencesRoot.appendingPathComponent("doc.md")
         try Data("the document".utf8).write(to: document)
 
-        let cascade = CoverCascade(modelContext: container.mainContext)
+        let cascade = CoverCascade()
         try PathGuard.$libraryRootOverride.withValue(root.path) {
             try cascade.removeCover(forKey: key)
         }
@@ -155,9 +130,8 @@ struct CoverCascadeTests {
 
     @Test("The tolerant removal swallows a failure instead of throwing")
     func tolerantRemovalDoesNotThrow() throws {
-        let container = try makeContainer()
         let root = try makeLibraryRoot()
-        let cascade = CoverCascade(modelContext: container.mainContext)
+        let cascade = CoverCascade()
 
         // No cover, no row, no file: the tolerant path must still be
         // silent.
@@ -186,31 +160,30 @@ struct CoverCascadeTests {
 
     @Test("The sweep removes the orphan cover and keeps the live one")
     func sweepRemovesOnlyTheOrphan() throws {
-        let container = try makeContainer()
         let root = try makeLibraryRoot()
-        let context = container.mainContext
 
         let liveId = UUID()
         let goneId = UUID()
         let liveKey = CardCoverService.key(forReference: liveId)
         let goneKey = CardCoverService.key(forReference: goneId)
-        _ = try makeCover(in: container, root: root, key: liveKey)
-        _ = try makeCover(in: container, root: root, key: goneKey)
+        _ = try makeCover(in: root, key: liveKey)
+        _ = try makeCover(in: root, key: goneKey)
 
-        let reconciler = CoverReconciler(modelContext: context)
+        let reconciler = CoverReconciler()
         try PathGuard.$libraryRootOverride.withValue(root.path) {
             reconciler.sweep(liveReferenceIds: [liveId], shelvesRoot: nil)
         }
 
-        let remaining = try context.fetch(FetchDescriptor<WSCardCover>())
-        #expect(remaining.map(\.id) == [liveKey])
+        // The covers on disk are the covers there are: the live one
+        // stays, the orphan goes.
+        let coversRoot = root
+            .appendingPathComponent("assets", isDirectory: true)
+            .appendingPathComponent("covers", isDirectory: true)
+        let remaining = try FileManager.default.contentsOfDirectory(atPath: coversRoot.path)
+        #expect(remaining.sorted() == [liveKey])
         #expect(
             FileManager.default.fileExists(
-                atPath: root
-                    .appendingPathComponent("assets", isDirectory: true)
-                    .appendingPathComponent("covers", isDirectory: true)
-                    .appendingPathComponent(goneKey, isDirectory: true)
-                    .path
+                atPath: coversRoot.appendingPathComponent(goneKey, isDirectory: true).path
             ) == false
         )
     }

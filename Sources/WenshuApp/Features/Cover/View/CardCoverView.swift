@@ -51,14 +51,26 @@ struct CardCoverView: View {
     }
 
     /// Loads the file off the main actor.
+    ///
+    /// The decoded picture is held in a cache, because a lazy grid
+    /// builds a new view for every card that scrolls back into sight,
+    /// and decoding the same picture again for every one of them is
+    /// work the app has already done.
     private func load() async {
         guard let imageURL else {
             image = nil
             return
         }
+        if let cached = CoverImageCache.shared.image(for: imageURL) {
+            image = cached
+            return
+        }
         let loaded = await Task.detached(priority: .userInitiated) { () -> NSImage? in
             NSImage(contentsOfFile: imageURL.path)
         }.value
+        if let loaded {
+            CoverImageCache.shared.store(loaded, for: imageURL)
+        }
         // A file that was deleted between the lookup and the load must
         // degrade to the empty state, not crash and not show a broken
         // image.

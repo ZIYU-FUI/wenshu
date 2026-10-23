@@ -21,8 +21,6 @@
 //
 
 import Foundation
-import SwiftData
-import WenshuData
 import os
 
 private let coverCascadeLogger = Logger(subsystem: "com.wenshu", category: "covercascade")
@@ -31,20 +29,15 @@ private let coverCascadeLogger = Logger(subsystem: "com.wenshu", category: "cove
 @MainActor
 struct CoverCascade {
 
-    /// The store that holds the cover rows.
-    let modelContext: ModelContext
-
-    init(modelContext: ModelContext) {
-        self.modelContext = modelContext
-    }
+    init() {}
 
     /// The cascade over the library the app is running on.
     ///
-    /// The cover rows live in the app's active SwiftData container,
-    /// the same container every other model lives in, so the cascade
-    /// and the reconciler always look at the same rows.
+    /// A cover belongs to the library its document belongs to, so the
+    /// cascade always looks at the covers of the library the app is
+    /// running on, whatever store the app resolved at launch.
     static func live() -> CoverCascade {
-        CoverCascade(modelContext: WSPersistenceContainer.current.mainContext)
+        CoverCascade()
     }
 
     // MARK: - Removing
@@ -101,6 +94,6 @@ struct CoverCascade {
 
     /// The cover store this cascade removes through.
     private var service: CardCoverService {
-        CardCoverService(modelContext: modelContext)
+        CardCoverService()
     }
 }

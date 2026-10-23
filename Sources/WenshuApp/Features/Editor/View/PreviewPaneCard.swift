@@ -178,6 +178,14 @@ struct Card: View {
     /// click cannot start a second call.
     var isGeneratingCover: Bool = false
 
+    /// The failure of the last cover attempt, or nil when the last
+    /// attempt worked.
+    ///
+    /// The card shows the failure on its own, so a cover that could
+    /// not be drawn does not look like a card that was never asked
+    /// for.
+    var coverErrorMessage: String? = nil
+
     /// Whether this card's clip is being made right now.
     var isMakingVideo: Bool = false
 
@@ -279,6 +287,29 @@ struct Card: View {
                     )
                 } else {
                     CardCoverView(imageURL: coverImageURL)
+                }
+                // A cover is being drawn: the card says so, in place.
+                // The work takes seconds and the user asked for it,
+                // so the card must not sit there looking finished.
+                if isGeneratingCover {
+                    ZStack {
+                        Color.black.opacity(0.15)
+                        ProgressView()
+                            .controlSize(.small)
+                    }
+                }
+                // The last attempt failed: the card carries the mark
+                // (= the Apple HIG "needs attention" pattern, in the
+                // corner the completion badge does not use).
+                if coverErrorMessage != nil {
+                    SFIcon(
+                        "exclamationmark.triangle.fill",
+                        style: .inlineSmall,
+                        color: Color.orange
+                    )
+                    .padding(DesignTokens.spacingCaption)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .allowsHitTesting(false)
                 }
             }
             .frame(height: DesignTokens.panelMinHeight)
@@ -505,6 +536,16 @@ struct Card: View {
                         }
                         .disabled(isMakingVideo)
                     }
+                    // The last attempt failed: the menu reports it, so
+                    // the user can read why the card has no cover.
+                    if let coverErrorMessage {
+                        Divider()
+                        Button(String(localized: "cover_context_menu_failed")) {
+                            // A failure is a report, not an action.
+                        }
+                        .disabled(true)
+                        .help(coverErrorMessage)
+                    }
                     Divider()
                 }
                 Button(String(localized: "sidebar_context_menu_rename")) {
@@ -544,6 +585,25 @@ struct Card: View {
                         Button(String(localized: "cover_context_menu_remove")) {
                             onRemoveCover()
                         }
+                    }
+                    // "Make it move" shows only when the card HAS a
+                    // still cover (= a clip is made FROM the still) and
+                    // does not already have a clip.
+                    if hasCover, onMakeDynamicCover != nil {
+                        Button(String(localized: "cover_context_menu_make_dynamic")) {
+                            onMakeDynamicCover?()
+                        }
+                        .disabled(isMakingVideo)
+                    }
+                    // The last attempt failed: the menu reports it, so
+                    // the user can read why the card has no cover.
+                    if let coverErrorMessage {
+                        Divider()
+                        Button(String(localized: "cover_context_menu_failed")) {
+                            // A failure is a report, not an action.
+                        }
+                        .disabled(true)
+                        .help(coverErrorMessage)
                     }
                     Divider()
                 }

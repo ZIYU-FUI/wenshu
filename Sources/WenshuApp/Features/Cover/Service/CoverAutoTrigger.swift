@@ -58,18 +58,17 @@ final class CoverAutoTrigger {
     private var attemptedKeys: Set<String> = []
 
     init(
-        modelContext: ModelContext,
         generationService: CoverGenerationService? = nil,
         policyProvider: @escaping () -> CoverAutoCoverPolicy = { CoverAutoCoverStore().policy }
     ) {
-        self.coverService = CardCoverService(modelContext: modelContext)
-        self.generationService = generationService ?? CoverGenerationService(modelContext: modelContext)
+        self.coverService = CardCoverService()
+        self.generationService = generationService ?? CoverGenerationService()
         self.policyProvider = policyProvider
     }
 
     /// The service over the library the app is running on.
     static func live() -> CoverAutoTrigger {
-        CoverAutoTrigger(modelContext: WSPersistenceContainer.current.mainContext)
+        CoverAutoTrigger()
     }
 
     /// The stored policy.
@@ -92,7 +91,7 @@ final class CoverAutoTrigger {
         createdAt: Date,
         now: Date = .now
     ) async -> Bool {
-        let hasCover = coverService.row(forKey: target.coverKey) != nil
+        let hasCover = coverService.coverImageURL(for: target.coverKey) != nil
         guard policy.shouldGenerateCover(
             createdAt: createdAt,
             hasCover: hasCover,

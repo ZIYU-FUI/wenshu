@@ -757,6 +757,59 @@ size and then drew the source straight into the target rectangle. The
 crop now scales by the LARGER of the two axis ratios, draws the
 scaled picture centred, and clips it, so the subject keeps its shape.
 
+### 3C.1 The cover record is a FILE in the library, not a store row
+
+A seventh finding came out of the app itself, and it changed the
+storage design.
+
+**The symptom.** A card's cover appeared when the app started and was
+gone after the user switched the directory tree, or scrolled the card
+out of sight and back. Nothing was deleted: the picture was on disk
+and the record was in the store, and both survived.
+
+**The cause.** `WSPersistenceContainer.current` is
+`activeWarehouseContainer ?? shared`, and the app delegate activates
+the warehouse container in `applicationDidFinishLaunching` — about
+650 ms AFTER the first view render. The measured trace:
+
+```
++0.000s  coverImageURL -> path=... exists=true   container=.../Library/Application Support/WenshuStore.store
++0.652s  coverImageURL -> NO ROW                 container=.../Documents/anbaiqiang.ws/WenshuStore.store
+```
+
+The cover's picture was always written to the library
+(`<library>/assets/covers/<key>/cover.heic`), while its record was
+written to whichever container the app had resolved at that moment.
+The two halves of one cover therefore lived in two different places,
+and the card could only find a cover whose two halves happened to be
+in the same store. Every re-render (a tree switch, a scroll that
+recycles the cell) re-read the record, and after the container
+flipped the re-read found nothing.
+
+The grid also ran one store fetch per card per render — 3 622
+lookups in 1.5 s for a handful of cards.
+
+**The change.** The cover's record is now a file in the library,
+beside the picture it describes:
+
+```
+<library>/assets/covers/<cardKey>/cover.heic
+<library>/assets/covers/<cardKey>/cover.mp4
+<library>/assets/covers/<cardKey>/cover.json
+```
+
+- The picture's own file decides whether a card has a cover, so the
+  record can never disagree with it.
+- The record travels with the library, so a copied `.ws` carries its
+  covers with it.
+- No store is involved, so the container that the app resolves at
+  launch cannot matter.
+- The lookup is one cached entry per card, and the decoded picture is
+  cached by path and mtime, so a card that scrolls out of sight and
+  back does not re-read and re-decode.
+- `WSCardCover` stays in the schema so a library that already carries
+  the table keeps opening. Nothing writes it any more.
+
 ## 4. Ticket split
 
 Each ticket runs in its own git worktree created as a board card on `wenshu-par`
