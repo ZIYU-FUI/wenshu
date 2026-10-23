@@ -18,6 +18,7 @@
 // AppState via `@State private var appState = AppState()`.
 
 import SwiftUI
+import WenshuData
 
 /// App-wide observable state for cross-zone UI communication.
 /// All cross-zone UI state (= searchText + openTabs +
@@ -52,6 +53,27 @@ final class AppState {
     /// completion path that flips the AppState flag when the user
     /// presses the "quit" button so the app exits cleanly).
     var migrationInFlight: Bool = false
+
+    /// The chat session the inspector's status page is scoped to.
+    ///
+    /// The delegation registry is ONE instance for the whole app, so a
+    /// sub-agent task that does not say which chat asked for it belongs
+    /// to every chat at once. This field carries the session half of
+    /// that scope; `chatBookID` carries the book half. The status page
+    /// builds the `AgentScope` from the pair and asks the registry for
+    /// exactly that scope's tasks.
+    ///
+    /// Nil = no chat session is in focus (= the status page shows its
+    /// empty state).
+    var chatSessionID: SessionID?
+
+    /// The book the focused chat session is reading. Nil = the session
+    /// names no book (= a brand new chat).
+    ///
+    /// Travels beside the session id because the two id shapes carry
+    /// different information: scoping by the session alone would lose
+    /// the book boundary for a chat that is not book-scoped.
+    var chatBookID: BookID?
 
     // open document tabs in the editor zone. Each tab = one
     // open document (= independent draft, mode, auto-save task,
