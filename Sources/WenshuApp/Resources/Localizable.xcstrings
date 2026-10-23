@@ -5799,6 +5799,23 @@
         }
       }
     },
+    "cover_context_menu_video_failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The clip failed"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "动态封面生成失败"
+          }
+        }
+      }
+    },
     "cover_context_menu_failed": {
       "extractionState": "manual",
       "localizations": {

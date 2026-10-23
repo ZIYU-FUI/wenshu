@@ -186,8 +186,24 @@ struct Card: View {
     /// for.
     var coverErrorMessage: String? = nil
 
+    /// Whether the failure was the moving cover rather than the
+    /// picture.
+    ///
+    /// The two steps fail for different reasons (= the picture needs
+    /// an image service, the clip needs a video service and a still),
+    /// so the menu says which one gave up.
+    var coverErrorIsVideo: Bool = false
+
     /// Whether this card's clip is being made right now.
     var isMakingVideo: Bool = false
+
+    /// Whether cover work is running on this card, so the card can say
+    /// so where the cover is.
+    ///
+    /// The picture and the clip are both work the user waited for: a
+    /// clip takes a minute and a picture takes seconds, and in both
+    /// cases a card that sits there looking finished is lying.
+    var isCoverWorkInFlight: Bool { isGeneratingCover || isMakingVideo }
 
     @State private var isHovered: Bool = false
 
@@ -288,10 +304,11 @@ struct Card: View {
                 } else {
                     CardCoverView(imageURL: coverImageURL)
                 }
-                // A cover is being drawn: the card says so, in place.
-                // The work takes seconds and the user asked for it,
-                // so the card must not sit there looking finished.
-                if isGeneratingCover {
+                // A cover is being drawn, or a clip is being made: the
+                // card says so, in place. The work takes seconds and
+                // the user asked for it, so the card must not sit
+                // there looking finished.
+                if isCoverWorkInFlight {
                     ZStack {
                         Color.black.opacity(0.15)
                         ProgressView()
@@ -540,7 +557,9 @@ struct Card: View {
                     // the user can read why the card has no cover.
                     if let coverErrorMessage {
                         Divider()
-                        Button(String(localized: "cover_context_menu_failed")) {
+                        Button(String(localized: coverErrorIsVideo
+                            ? "cover_context_menu_video_failed"
+                            : "cover_context_menu_failed")) {
                             // A failure is a report, not an action.
                         }
                         .disabled(true)
@@ -599,7 +618,9 @@ struct Card: View {
                     // the user can read why the card has no cover.
                     if let coverErrorMessage {
                         Divider()
-                        Button(String(localized: "cover_context_menu_failed")) {
+                        Button(String(localized: coverErrorIsVideo
+                            ? "cover_context_menu_video_failed"
+                            : "cover_context_menu_failed")) {
                             // A failure is a report, not an action.
                         }
                         .disabled(true)

@@ -161,6 +161,7 @@ extension PreviewPane {
             hasCover: cover.hasCover,
             isGeneratingCover: coverGenerationService.isGenerating(target),
             coverErrorMessage: cover.record?.lastError,
+            coverErrorIsVideo: cover.record?.status == WSCardCoverStatus.videoFailed,
             isMakingVideo: coverVideoService.isMakingVideo(target)
         )
     }
@@ -350,6 +351,7 @@ extension PreviewPane {
                 // footer's total height).
                 .contentMargins(.bottom, 33, for: .scrollContent)
             }
+            .scrollIndicators(.hidden, axes: .vertical)
         }
     }
 
@@ -427,6 +429,7 @@ extension PreviewPane {
                                 hasCover: cover.hasCover,
                                 isGeneratingCover: coverGenerationService.isGenerating(target),
                                 coverErrorMessage: cover.record?.lastError,
+                                coverErrorIsVideo: cover.record?.status == WSCardCoverStatus.videoFailed,
                                 isMakingVideo: coverVideoService.isMakingVideo(target)
                             )
                             // per-card transition (= see categoryGrid comment for
@@ -438,6 +441,7 @@ extension PreviewPane {
                     // overviewGrid).
                     .animation(.smooth(duration: 0.18), value: sorted.map(\.id))
                 }
+                .scrollIndicators(.hidden, axes: .vertical)
                 .padding(.vertical, DesignTokens.spacingStandard)
                 // 2026-10-12 [archived-round] — see the `categoryGridContent` LazyVGrid for the
                 // doc on the `.contentMargins(.bottom, 33, for:
@@ -511,6 +515,7 @@ extension PreviewPane {
                             hasCover: cover.hasCover,
                             isGeneratingCover: coverGenerationService.isGenerating(target),
                             coverErrorMessage: cover.record?.lastError,
+                            coverErrorIsVideo: cover.record?.status == WSCardCoverStatus.videoFailed,
                             isMakingVideo: coverVideoService.isMakingVideo(target)
                         )
                         // per-card transition (= see categoryGrid comment for rationale).
@@ -526,6 +531,7 @@ extension PreviewPane {
                 // .scrollContent)` chrome-footer gap-absorber.
                 .contentMargins(.bottom, 33, for: .scrollContent)
             }
+            .scrollIndicators(.hidden, axes: .vertical)
         }
 }
 

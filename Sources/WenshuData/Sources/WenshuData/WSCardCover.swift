@@ -90,6 +90,11 @@ public enum WSCardCoverStatus {
     /// The last attempt failed. The row survives so the error and the
     /// attempt time are visible.
     public static let failed = "failed"
+    /// The MOVING cover failed while the still cover is fine. The
+    /// two steps fail for different reasons (= the picture needs an
+    /// image service, the clip needs a video service and a still), so
+    /// the card says which one gave up.
+    public static let videoFailed = "videoFailed"
 }
 
 /// The kinds of card a cover can belong to.
