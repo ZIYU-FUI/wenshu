@@ -13,9 +13,9 @@
 // production-code call site into IconStyle (= 11 cases: inlineSmall, small, paneTab,
 // toolbar, nav, hitArea, emptyStateHero, avatar, cover, toolbarButton, surface) and
 // deleted the 5 token definitions that became 0-reference (= iconSmall, iconLargeSize,
-// iconButtonSmall, tabIconSize, iconStandardSize, emptyStateIconSize). The remaining 7
+// iconButtonSmall, tabIconSize, iconStandardSize, emptyStateIconSize). The remaining 6
 // DesignTokens icon-related values (= paneTabHotArea, toolbarButtonCompact,
-// surfaceSizeMedium, avatarSize, coverThumbnailSize, tabCloseFrameSize,
+// surfaceSizeMedium, avatarSize, coverThumbnailSize,
 // tabCloseGlyphFontSize) are layout hit-area / container-frame sizes that SFIcon does
 // not own (= SFIcon owns the icon glyph size; = layout tokens stay in DesignTokens).
 // 1.  (central abstraction) is mandatory — without it the single point of truth is

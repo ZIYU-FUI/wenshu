@@ -1,4 +1,5 @@
-import SwiftUI
+import CoreGraphics
+import Foundation
 import MarkdownEngine
 
 // EditorSurface.swift · Wenshu
@@ -36,20 +37,6 @@ struct EditorSurface {
     /// The engine fires this when the user clicks a `[[Name]]` token in
     /// the live editor surface.
     let onLinkClick: ((String) -> Void)?
-
-    /// The engine's own scrolled-container chrome slot (= a SwiftUI
-    /// view hosted inside the engine, sibling of the NSTextView).
-    ///
-    /// Lets the embedder (= wenshu) sit the EditorHeaderView chrome
-    /// band above the typing surface. Default nil = no header (= the
-    /// engine draws no chrome and the NSTextView fills the full
-    /// container height).
-    ///
-    /// The host (= EditorView) supplies this once per active-tab switch
-    /// (= the header is decoupled from draft text edits), so the chrome
-    /// band (= EditorHeaderView) sits above the typing surface without
-    /// ever scrolling away. nil = engine draws no chrome.
-    let header: AnyView?
 
     /// The engine's first-line ghost-text slot.
     ///

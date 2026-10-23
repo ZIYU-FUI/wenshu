@@ -33,7 +33,7 @@ struct SectionHeader: View {
     /// Whether to render the 10 PT bottom Color.clear inset below the
     /// divider (= the prior default; = balances the 10 PT top inset for
     /// symmetric chrome padding). Some callers (= `PreviewPane`'s assets
-    /// column) render an `EditorHeaderView` chrome band immediately below
+    /// column) render a `ChromeTopBar` chrome band immediately below
     /// the divider; that chrome band already carries its own
     /// row-height / horizontal padding, so the trailing 10 PT inset
     /// would create a redundant gap (= boss 2026-10-16 OOB "我不想要那个

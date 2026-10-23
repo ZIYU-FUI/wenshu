@@ -55,48 +55,6 @@ struct EditorView: View {
             ?? "wenshu-editor-no-tab"
     }
 
-    // MARK: - SMC `header:` chrome band (= T-01) 28 PT Apple HIG
-    // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)
-    // 28+10+10 column-header height).
-    private var editorChromeHeader: EditorHeaderView {
-        EditorHeaderView(
-            title: activeTabDisplayTitle,
-            // Dirty-state marker (= the dot color follows the same state
-            // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)
-            // conflict. nil = clean (= no dot).
-            dirtyState: isDirty ? .unsaved : nil,
-            // Right-side chrome cluster. T-01 ships an autosave pulse (= a tiny
-            // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)
-            // spell-check toggle.
-            chrome: editorChromeTrailingCluster
-        )
-    }
-
-    // / Right-side chrome widget cluster (= the autosave pulse for now).
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)
-    // / just an SFIcon + .frame; = no business logic on the render path).
-    private var editorChromeTrailingCluster: [EditorHeaderChrome] {
-        guard let tab = activeTab, tab.autoSaveTask != nil else {
-            return []
-        }
-        return [
-            EditorHeaderChrome {
-                SFIcon("arrow.triangle.2.circlepath", style: .paneTab, color: IconColor.secondary)
-                    .help(String(localized: "editor.header.autosaving.tooltip"))
-                    .accessibilityLabel(String(localized: "editor.header.autosaving.a11y"))
-            }
-        ]
-    }
-
-    // / Display title for the active editor tab (= shown in the chrome band's
-    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)
-    // / never-empty string so the chrome band never shows a blank cluster.
-    private var activeTabDisplayTitle: String {
-        guard let tab = activeTab else { return String(localized: "editor.header.untitled") }
-        let display = EditorTab.displayTitle(tab)
-        return display.isEmpty ? String(localized: "editor.header.untitled") : display
-    }
-
     // / SMC `placeholder:` slot (= ghost text shown while the document is empty;
     // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)
     // / invocation (= cheap = a single NSAttributedString allocation).
@@ -410,7 +368,6 @@ struct EditorView: View {
             onLinkClick: { linkId in
                 handleEditorWikiLink(linkId: linkId)
             },
-            header: nil,
             placeholder: editorEmptyDocumentPlaceholder,
             onCaretRectChange: nil,
             isEditable: false

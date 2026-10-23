@@ -22,11 +22,11 @@
 //  onWordCountChange:..., onDirtyChange:..., surface:...)`.
 //  Extracting it does not change any caller signature.
 //
-//  ed-smc-defaults T-02 (= the chrome band wiring for edit mode):
-//  the preview-mode site already forwarded `editorChromeHeader` +
-//  `editorEmptyDocumentPlaceholder` in T-01. We mirror them here so
-//  edit mode shows the same 28 PT chrome band (= the chrome stays
-//  present across the mode switch; = the canonical Pages / Numbers
+//  ed-smc-defaults T-02 (= the placeholder wiring for edit mode):
+//  the preview-mode site already forwarded `editorEmptyDocumentPlaceholder`
+//  in T-01. We mirror it here so edit mode shows the same start-writing
+//  ghost text (= the placeholder stays present across the mode switch;
+//  = the canonical Pages / Numbers
 //  document-chrome-survives-WYSIWYG-toggle pattern).
 //
 

@@ -135,7 +135,7 @@ struct PreviewPane: View {
             SectionHeader(
                 title: String(localized: "preview.column.title"),
                 // Per boss 2026-10-16 OOB "我不想要那个间距": the assets
-                // column renders `EditorHeaderView` (= the chrome band
+                // column renders `ChromeTopBar` (= the chrome band
                 // wrapping the search field) directly below the title's
                 // divider. The chrome band already carries its own 28 PT
                 // row height + 8 PT horizontal padding; the section

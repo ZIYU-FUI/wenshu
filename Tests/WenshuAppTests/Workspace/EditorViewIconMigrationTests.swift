@@ -5,9 +5,8 @@
 //  tab-close icon migration: the X icon site on the active tab
 //  `Image(systemName: "xmark").font(...).foregroundStyle(.secondary)`
 //  replaced with `SFIcon("xmark", style: .inlineSmall, color: IconColor.secondary)`.
-//  The surrounding .frame(width: DesignTokens.tabCloseFrameSize,
-//  height: DesignTokens.tabCloseFrameSize) is a layout token and
-//  is preserved (= not an icon glyph; = outside v3.0 sweep scope).
+//  The tab-close hit area is sized by `DesignTokens.paneTabHotArea`
+//  (= a layout token, not an icon glyph; = outside v3.0 sweep scope).
 //
 
 import Foundation

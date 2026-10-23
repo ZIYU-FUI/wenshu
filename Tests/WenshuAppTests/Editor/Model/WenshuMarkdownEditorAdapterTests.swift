@@ -208,35 +208,31 @@ struct WenshuMarkdownEditorAdapterTests {
         )
     }
 
-    // MARK: - ed-smc-defaults T-01: chrome band + placeholder slot wired
+    // MARK: - ed-smc-defaults T-01: placeholder slot wired
 
-    /// SMC exposes `header:` and `placeholder:` slots on
-    /// `NativeTextViewWrapper`. We extended `WenshuMarkdownEditor` (=
-    /// the wenshu-side SwiftUI view that wraps the engine wrapper) to
-    /// forward both slots. This source-content test catches a
-    /// regression where someone removes either forwarding and the
-    /// chrome band silently disappears (= the visible UI failure
-    /// mode the user reports first).
+    /// SMC exposes a `placeholder:` slot on `NativeTextViewWrapper`.
+    /// We extended `WenshuMarkdownEditor` (= the wenshu-side SwiftUI
+    /// view that wraps the engine wrapper) to forward it. This
+    /// source-content test catches a regression where someone removes
+    /// the forwarding and the start-writing ghost text silently
+    /// disappears (= the visible UI failure mode the user reports
+    /// first).
     ///
     /// Why source-content instead of `swift-mock-test`: we don't drive
     /// NSViewRepresentable here (= AppKit NSWindow needed, = outside
     /// the Swift Testing sandbox); = verify the contract literally.
     /// If anyone walks the slot away, the contract disclaims.
-    @Test("WenshuMarkdownEditor forwards SMC `header:` and `placeholder:`")
-    func forwardsSMCHeaderAndPlaceholderSlots() throws {
+    @Test("WenshuMarkdownEditor forwards SMC `placeholder:`")
+    func forwardsSMCPlaceholderSlot() throws {
         let editorPath = resolve("Sources/WenshuApp/Features/Editor/Model/WenshuMarkdownEditor.swift")
         let content = try String(contentsOfFile: editorPath, encoding: .utf8)
 
-        // Header slot forwarded — the wenshu view MUST pass a non-nil
-        // header to NativeTextViewWrapper (= otherwise the chrome band
-        // disappears, = invisible UI regression).
+        // Placeholder slot forwarded — the wenshu view MUST pass the
+        // surface's placeholder to NativeTextViewWrapper (= otherwise
+        // the ghost text disappears, = invisible UI regression).
         #expect(
             content.contains("placeholder: surface.placeholder"),
-            "WenshuMarkdownEditor must forward the new `placeholder: placeholder` argument to NativeTextViewWrapper (= ed-smc-defaults T-01)"
-        )
-        #expect(
-            content.contains("header: surface.header"),
-            "WenshuMarkdownEditor must forward the new `header: header` argument to NativeTextViewWrapper (= ed-smc-defaults T-01)"
+            "WenshuMarkdownEditor must forward the `placeholder: placeholder` argument to NativeTextViewWrapper (= ed-smc-defaults T-01)"
         )
 
         // Padding removal — the previous `.padding(.all,
@@ -250,28 +246,6 @@ struct WenshuMarkdownEditorAdapterTests {
         #expect(
             content.range(of: pattern, options: .regularExpression) == nil,
             "WenshuMarkdownEditor must NOT re-wrap NativeTextViewWrapper in `.padding(.all, DesignTokens.zoneContentInset)` (= T-01: the white-card rectangle is removed)"
-        )
-    }
-
-    /// `EditorHeaderView` (= the 28 PT Apple HIG document-toolbar
-    /// chrome band that the engine hosts above the NSTextView). It
-    /// is the user-visible chrome that the `header:` slot renders.
-    /// Source-content gate: if anyone walks the file, this fails.
-    @Test("EditorHeaderView owns the 28 PT document-toolbar chrome (= T-01)")
-    func editorHeaderViewExists() throws {
-        let headerPath = resolve("Sources/WenshuApp/Features/Editor/View/EditorHeaderView.swift")
-        let content = try String(contentsOfFile: headerPath, encoding: .utf8)
-        #expect(
-            content.contains("struct EditorHeaderView: View"),
-            "EditorHeaderView must be the chrome-band public type"
-        )
-        #expect(
-            content.contains("paneTabHotArea"),
-            "EditorHeaderView height must come from DesignTokens.paneTabHotArea (= Safari tab stop = Apple HIG document toolbar height)"
-        )
-        #expect(
-            content.contains("EditorHeaderDirtyState"),
-            "EditorHeaderView must expose the dirty-state enum so EditorView can drive the dot color"
         )
     }
 
@@ -353,23 +327,19 @@ struct WenshuMarkdownEditorAdapterTests {
     }
 
     /// `EditorEditContent` (= the edit-mode wrapper) must forward the
-    /// `editorHeader` + `editorPlaceholder` slots added in T-02 so the
-    /// chrome band stays visible while editing (= canonical Pages /
+    /// `editorPlaceholder` slot added in T-02 so the start-writing
+    /// ghost text stays visible while editing (= canonical Pages /
     /// Numbers document-chrome-survives-WYSIWYG-toggle pattern).
-    @Test("EditorEditContent forwards SMC `editorHeader:` + `editorPlaceholder:` (= T-02)")
-    func editorEditContentForwardsChromeSlots() throws {
+    @Test("EditorEditContent forwards SMC `editorPlaceholder:` (= T-02)")
+    func editorEditContentForwardsPlaceholderSlot() throws {
         let editPath = resolve("Sources/WenshuApp/Features/Editor/View/EditorEditContent.swift")
         let edit = try String(contentsOfFile: editPath, encoding: .utf8)
         let surfacePath = resolve("Sources/WenshuApp/Features/Editor/Model/EditorSurface.swift")
         let surface = try String(contentsOfFile: surfacePath, encoding: .utf8)
-        // The two chrome slots live on the editor surface (= the set of
+        // The placeholder slot lives on the editor surface (= the set of
         // values the host hands to the engine), and the edit content
         // forwards that one surface. The contract is unchanged: the
-        // slots still reach the engine.
-        #expect(
-            surface.contains("let header: AnyView?"),
-            "the editor surface must expose `header: AnyView?` (= SMC chrome slot)"
-        )
+        // slot still reaches the engine.
         #expect(
             surface.contains("let placeholder: NSAttributedString?"),
             "the editor surface must expose `placeholder: NSAttributedString?` (= SMC chrome slot)"
@@ -381,8 +351,8 @@ struct WenshuMarkdownEditorAdapterTests {
         let editorPath = resolve("Sources/WenshuApp/Features/Editor/Model/WenshuMarkdownEditor.swift")
         let editor = try String(contentsOfFile: editorPath, encoding: .utf8)
         #expect(
-            editor.contains("header: surface.header") && editor.contains("placeholder: surface.placeholder"),
-            "the engine wrapper must forward both chrome slots out of the surface"
+            editor.contains("placeholder: surface.placeholder"),
+            "the engine wrapper must forward the placeholder slot out of the surface"
         )
     }
 

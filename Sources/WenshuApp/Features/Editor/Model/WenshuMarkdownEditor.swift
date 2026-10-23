@@ -73,33 +73,16 @@ struct WenshuMarkdownEditor: View {
         // (= zero visual scaling between modes; = Apple HIG
         // canonical for WYSIWYG surfaces).
         //
-        // Forward the host-supplied `header:` and `placeholder:` so the
-        // engine's own scrolled container hosts the chrome band (= 28 PT
-        // EditorHeaderView, see UI/Editor/EditorHeaderView.swift) and
-        // shows the "在此处撰写章节内容..." placeholder when the document
-        // is empty. The engine reserves its own scroll for these slots;
-        // wenshu does NOT wrap the wrapper in any additional `.padding(.all)`
-        // (= the previous `DesignTokens.zoneContentInset = 8` wrap was
-        // what produced the "paper card" background under the NSTextView
-        // = the visible white rectangle the user reports as superfluous).
-        // Removing it lets the NSTextView sit flush against the editor
-        // zone's own background (matches Pages / Numbers canvas feel).
-        // Pass `isEditable` so the SAME NSTextView renders both
-        // preview (= read-only) and edit (= editable) modes
-        // (= zero visual scaling between modes; = Apple HIG
-        // canonical for WYSIWYG surfaces).
-        //
-        // Forward the host-supplied `header:` and `placeholder:` so the
-        // engine's own scrolled container hosts the chrome band (= 28 PT
-        // EditorHeaderView, see UI/Editor/EditorHeaderView.swift) and
-        // shows the "在此处撰写章节内容..." placeholder when the document
-        // is empty. The engine reserves its own scroll for these slots;
-        // wenshu does NOT wrap the wrapper in any additional `.padding(.all)`
-        // (= the previous `DesignTokens.zoneContentInset = 8` wrap was
-        // what produced the "paper card" background under the NSTextView
-        // = the visible white rectangle the user reports as superfluous).
-        // Removing it lets the NSTextView sit flush against the editor
-        // zone's own background (matches Pages / Numbers canvas feel).
+        // Forward the host-supplied `placeholder:` so the engine's own
+        // scrolled container shows the start-writing ghost text while
+        // the document is empty. The engine reserves its own scroll for
+        // that slot; wenshu does NOT wrap the wrapper in any additional
+        // `.padding(.all)` (= the previous `DesignTokens.zoneContentInset = 8`
+        // wrap was what produced the "paper card" background under the
+        // NSTextView = the visible white rectangle the user reports as
+        // superfluous). Removing it lets the NSTextView sit flush against
+        // the editor zone's own background (matches Pages / Numbers canvas
+        // feel).
         NativeTextViewWrapper(
             text: $text,
             configuration: adjustedConfiguration,
@@ -124,7 +107,6 @@ struct WenshuMarkdownEditor: View {
             // status bar can read it back via `EditorView.cursorRect`).
             onCaretRectChange: surface.onCaretRectChange,
             placeholder: surface.placeholder,
-            header: surface.header,
             // T-13: scroll-memory persistence (= the engine posts
             // (docId, offsetY) on every scroll via
             // `onPersistScrollOffset`; = the host writes the JSON

@@ -105,11 +105,6 @@ enum DesignTokens {
     // / naming, now generic for ALL pane tabs).
     static let paneTabHotArea: CGFloat = 28
 
-    // / Tab close button (= X) hit area (= 18×18 PT). Apple HIG inline-control
-    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / artifacts (= Safari/Chrome/Terminal convention).
-    static let tabCloseFrameSize: CGFloat = 18
-
     // / Per-pane tab close-X icon point size (= 8 PT; = Apple HIG "small" tier
     // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / boss's calibrated visual preference for the close affordance).
