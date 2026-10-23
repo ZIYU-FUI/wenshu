@@ -219,7 +219,20 @@ struct CoverRouteRow: View {
                 }
                 .pickerStyle(.menu)
 
-                TextField(String(localized: "settings.covers.model"), text: $modelDraft)
+                // The video row's placeholder names the model that
+                // serves the seamless loop, because the video kind has
+                // no default model (= the allowance is a handful of
+                // clips a day) and this is the one the endpoint serves
+                // the first-and-last-frame mode with. Without the hint
+                // the field is an empty box and the route does not
+                // resolve.
+                TextField(
+                    String(localized: "settings.covers.model"),
+                    text: $modelDraft,
+                    prompt: kind == .video
+                        ? Text(String(localized: "settings.covers.videoModelPlaceholder"))
+                        : nil
+                )
                     .textFieldStyle(.roundedBorder)
                     .autocorrectionDisabled()
 

@@ -6343,6 +6343,23 @@
         }
       }
     },
+    "settings.covers.videoModelPlaceholder": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MiniMax-Hailuo-02"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MiniMax-Hailuo-02"
+          }
+        }
+      }
+    },
     "settings.covers.apiKey": {
       "extractionState": "manual",
       "localizations": {
