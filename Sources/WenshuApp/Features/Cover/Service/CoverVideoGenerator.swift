@@ -79,7 +79,17 @@ struct CoverVideoGenerator: CoverVideoClient {
     static let pollInterval = Duration.seconds(3)
 
     /// How many times to poll before giving up.
-    static let maxPolls = 40
+    ///
+    /// The task QUEUES before it runs, and the queue can hold a
+    /// request for minutes: measured 2026-10-23, one clip was ready
+    /// in 45 s and the next one was still queued after two minutes.
+    /// A budget of 120 s gave up on a task that was about to succeed
+    /// and threw the day's clip away.
+    ///
+    /// At the poll interval below this is ten minutes, which is long
+    /// enough for a queue and short enough that a task that will
+    /// never arrive does not hang the card for ever.
+    static let maxPolls = 200
 
     /// The endpoint's limit on the prompt, in characters.
     ///
