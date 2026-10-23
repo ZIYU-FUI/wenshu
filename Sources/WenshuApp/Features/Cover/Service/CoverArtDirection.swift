@@ -10,12 +10,25 @@
 //  with the subject, every card would drift into its own visual
 //  language and the material zone would stop reading as one set.
 //
-//  The text below is the one that was verified against the live
-//  image endpoint on 2026-10-22: a generated cover came back painterly
-//  and hand-painted, with saturated warm colour and a readable
-//  subject, and the crop kept the subject whole. The framing sentence
-//  was changed with the tile's shape (= 4:3) and has to be checked
-//  against the live endpoint again.
+//  The text below is the one that was checked against the live image
+//  endpoint on 2026-10-23, in four rounds, after the boss showed what
+//  the covers were missing: the old direction filled the frame with a
+//  busy scene, and the boss wanted the Chinese scroll look (= a
+//  dimensional subject floating on pale paper, with air around it).
+//
+//  What the live endpoint taught, and the reason the text reads the way
+//  it does:
+//  - "flowing water" pulls the water and the clouds to the BOTTOM of
+//    the picture (= the style's own convention), so the bottom is left
+//    alone,
+//  - the subject has to be PLACED (= "in the middle of the picture"),
+//    because a negative instruction alone is ignored,
+//  - the model writes a small signature wherever it likes (= a red
+//    inscription in a corner), so the text allows that one and forbids
+//    the rest,
+//  - the picture's own title must NOT be in the artwork: the card
+//    writes the title over the picture, and an image model cannot
+//    write it legibly.
 //
 //  It also carries the negative constraints, because the failure mode
 //  of an image model is to imitate a franchise. The instruction is
@@ -39,15 +52,24 @@ enum CoverArtDirection {
 
     /// The style every cover is drawn in.
     static let style = """
-        Create original bright whimsical hand-painted fantasy trading-card key \
-        art with playful tavern-card-game energy; never imitate an existing \
-        franchise, character, card frame, logo or official illustration. Use \
-        broad painterly brushwork, saturated warm color masses, rich \
-        midtones, tactile painted materials, lively fantasy worldbuilding \
-        and a confident illustrative finish. Poster tile framing in a 4:3 \
-        picture, the subject centered and full height with headroom above it, \
-        the lower left of the picture calm and open so a title can be read \
-        over it, and no important detail near the edges.
+        Create original bright whimsical hand-painted Chinese-style fantasy \
+        scroll paintings with playful tavern-card-game energy; never imitate \
+        an existing franchise, character, card frame, logo or official \
+        illustration. Render the subject as one dimensional layered scroll \
+        painting, softly embossed and built from a few clear planes of depth, \
+        floating on a clean pale cream ground with generous empty space on \
+        every side, so the picture breathes instead of filling the frame. \
+        Place the subject in the middle of the picture, and leave the whole \
+        lower third of the picture as bare empty paper, with no water, no \
+        clouds, no rocks and no plants along the bottom edge, and nothing at \
+        all in the lower left corner, because a title is read over that \
+        space. Use soft ink-wash mountains and mist in the far distance, broad \
+        painterly brushwork, saturated warm color masses, rich midtones, \
+        tactile painted materials, a little gold, and a confident \
+        illustrative finish. Poster tile framing in a 4:3 picture, the subject \
+        centered and complete with air on every side. A small artist's \
+        signature in one corner is welcome, but no other writing anywhere in \
+        the picture.
         """
 
     /// Joins the art direction and the subject into the prompt that
