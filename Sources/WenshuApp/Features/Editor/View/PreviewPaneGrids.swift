@@ -114,13 +114,13 @@ extension PreviewPane {
 
     /// Starts a cover generation for a card.
     ///
-    /// The subject is the card's own title and summary: a short
-    /// description of what the card already says. There is no chat
-    /// completion here, because the subject does not need one.
-    private func generateCover(for target: CardCoverTarget, subject: String) {
+    /// The card's own title and summary go to the service, which
+    /// reduces them to the picture's motifs (= the objects it is made
+    /// of) before anything is drawn.
+    private func generateCover(for target: CardCoverTarget, title: String, summary: String) {
         let service = coverGenerationService
         Task { @MainActor in
-            await service.generateCover(for: target, subject: subject)
+            await service.generateCover(for: target, title: title, summary: summary)
         }
     }
 
@@ -144,7 +144,8 @@ extension PreviewPane {
             onGenerateCover: {
                 generateCover(
                     for: target,
-                    subject: "\(entity.title). \(entity.summary)"
+                    title: entity.title,
+                    summary: entity.summary
                 )
             },
             onMakeDynamicCover: {
@@ -412,7 +413,8 @@ extension PreviewPane {
                                 onGenerateCover: {
                                     generateCover(
                                         for: target,
-                                        subject: "\(entity.title). \(entity.summary)"
+                                        title: entity.title,
+                                        summary: entity.summary
                                     )
                                 },
                                 onMakeDynamicCover: {
@@ -498,7 +500,8 @@ extension PreviewPane {
                             onGenerateCover: {
                                 generateCover(
                                     for: target,
-                                    subject: "\(doc.title). \(doc.summary)"
+                                    title: doc.title,
+                                    summary: doc.summary
                                 )
                             },
                             onMakeDynamicCover: {

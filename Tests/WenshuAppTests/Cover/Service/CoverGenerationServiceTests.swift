@@ -85,11 +85,12 @@ struct CoverGenerationServiceTests {
         let container = try makeContainer()
         let client = StubImageClient()
         let service = CoverGenerationService(
-            imageClient: client
+            imageClient: client,
+            motifExtractor: StubMotifExtractor()
         )
         let target = CardCoverTarget.reference(UUID())
 
-        await service.generateCover(for: target, subject: "A lighthouse")
+        await service.generateCover(for: target, title: "A lighthouse", summary: "On a cliff")
 
         #expect(client.callCount == 1)
         let record = service.coverRecord(for: target)
@@ -114,18 +115,19 @@ struct CoverGenerationServiceTests {
         let container = try makeContainer()
         let client = StubImageClient()
         let service = CoverGenerationService(
-            imageClient: client
+            imageClient: client,
+            motifExtractor: StubMotifExtractor()
         )
         let target = CardCoverTarget.reference(UUID())
 
         // One good generation, so there IS a picture.
-        await service.generateCover(for: target, subject: "A lighthouse")
+        await service.generateCover(for: target, title: "A lighthouse", summary: "On a cliff")
         let goodPath = CardCoverService().coverImageURL(for: target.coverKey)?.path
         #expect(goodPath != nil)
 
         // Now a failing one.
         client.shouldFail = true
-        await service.generateCover(for: target, subject: "A lighthouse")
+        await service.generateCover(for: target, title: "A lighthouse", summary: "On a cliff")
 
         let record = service.coverRecord(for: target)
         #expect(record?.status == WSCardCoverStatus.failed)
@@ -147,12 +149,17 @@ struct CoverGenerationServiceTests {
         let container = try makeContainer()
         let client = StubImageClient()
         let service = CoverGenerationService(
-            imageClient: client
+            imageClient: client,
+            motifExtractor: StubMotifExtractor()
         )
         let target = CardCoverTarget.reference(UUID())
 
-        async let first: Void = service.generateCover(for: target, subject: "A lighthouse")
-        async let second: Void = service.generateCover(for: target, subject: "A lighthouse")
+        async let first: Void = service.generateCover(
+            for: target, title: "A lighthouse", summary: "On a cliff"
+        )
+        async let second: Void = service.generateCover(
+            for: target, title: "A lighthouse", summary: "On a cliff"
+        )
         _ = await (first, second)
 
         #expect(client.callCount == 1)
@@ -170,13 +177,15 @@ struct CoverGenerationServiceTests {
         let container = try makeContainer()
         let client = StubImageClient()
         let service = CoverGenerationService(
-            imageClient: client
+            imageClient: client,
+            motifExtractor: StubMotifExtractor()
         )
         let target = CardCoverTarget.reference(UUID())
 
-        await service.generateCover(for: target, subject: "A lighthouse")
+        await service.generateCover(for: target, title: "A lighthouse", summary: "On a cliff")
 
-        #expect(client.lastPrompt?.hasPrefix(CoverArtDirection.style) == true)
-        #expect(client.lastPrompt?.hasSuffix("A lighthouse") == true)
+        #expect(client.lastPrompt?.hasPrefix("插画设计，纯白背景上的立体插画") == true)
+        #expect(client.lastPrompt?.contains("A lighthouse") == true)
+        #expect(client.lastPrompt?.contains("礁灯") == true)
     }
 }

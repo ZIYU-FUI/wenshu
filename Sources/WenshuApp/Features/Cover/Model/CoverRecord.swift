@@ -38,6 +38,13 @@ struct CoverRecord: Codable, Equatable, Sendable {
     /// The failure of the last attempt, when the last attempt failed.
     var lastError: String?
 
+    /// What the picture was made of (= the motifs the document was
+    /// reduced to before it was drawn).
+    ///
+    /// It is kept so the card can say what its picture shows, and so
+    /// a failed draw can be read afterwards.
+    var motifs: CoverMotifs?
+
     /// When the last attempt started.
     var lastAttemptAt: Date?
 
@@ -49,6 +56,7 @@ struct CoverRecord: Codable, Equatable, Sendable {
         status: String = WSCardCoverStatus.staticReady,
         accentHex: String? = nil,
         lastError: String? = nil,
+        motifs: CoverMotifs? = nil,
         lastAttemptAt: Date? = nil,
         updatedAt: Date = .now
     ) {
@@ -56,6 +64,7 @@ struct CoverRecord: Codable, Equatable, Sendable {
         self.status = status
         self.accentHex = accentHex
         self.lastError = lastError
+        self.motifs = motifs
         self.lastAttemptAt = lastAttemptAt
         self.updatedAt = updatedAt
     }

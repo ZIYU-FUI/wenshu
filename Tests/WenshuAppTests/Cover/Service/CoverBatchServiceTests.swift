@@ -103,7 +103,8 @@ struct CoverBatchServiceTests {
         (0..<count).map { index in
             CoverCandidate(
                 target: .reference(UUID()),
-                subject: "Document \(index)",
+                title: "Document \(index)",
+                summary: "A summary",
                 createdAt: Date(timeIntervalSince1970: 1_700_000_000)
             )
         }
@@ -121,7 +122,8 @@ struct CoverBatchServiceTests {
         let container = try makeContainer()
         let client = CountingImageClient()
         let generation = CoverGenerationService(
-            imageClient: client
+            imageClient: client,
+            motifExtractor: StubMotifExtractor()
         )
         let service = CoverBatchService(
             generationService: generation
@@ -146,7 +148,8 @@ struct CoverBatchServiceTests {
         let container = try makeContainer()
         let client = CountingImageClient()
         let generation = CoverGenerationService(
-            imageClient: client
+            imageClient: client,
+            motifExtractor: StubMotifExtractor()
         )
         let service = CoverBatchService(
             generationService: generation
@@ -217,7 +220,8 @@ struct CoverBatchServiceTests {
         let container = try makeContainer()
         let client = CountingImageClient()
         let generation = CoverGenerationService(
-            imageClient: client
+            imageClient: client,
+            motifExtractor: StubMotifExtractor()
         )
         let service = CoverBatchService(
             generationService: generation
@@ -256,7 +260,8 @@ struct CoverBatchServiceTests {
         let client = CountingImageClient()
         client.shouldFail = true
         let generation = CoverGenerationService(
-            imageClient: client
+            imageClient: client,
+            motifExtractor: StubMotifExtractor()
         )
         let service = CoverBatchService(
             generationService: generation
@@ -282,7 +287,8 @@ struct CoverBatchServiceTests {
         let container = try makeContainer()
         let client = CountingImageClient()
         let generation = CoverGenerationService(
-            imageClient: client
+            imageClient: client,
+            motifExtractor: StubMotifExtractor()
         )
         let service = CoverBatchService(
             generationService: generation
@@ -315,7 +321,8 @@ struct CoverBatchServiceTests {
         let client = CountingImageClient()
         client.shouldFail = true
         let generation = CoverGenerationService(
-            imageClient: client
+            imageClient: client,
+            motifExtractor: StubMotifExtractor()
         )
         let service = CoverBatchService(
             generationService: generation
@@ -346,7 +353,8 @@ struct CoverBatchServiceTests {
         let container = try makeContainer()
         let client = CountingImageClient()
         let generation = CoverGenerationService(
-            imageClient: client
+            imageClient: client,
+            motifExtractor: StubMotifExtractor()
         )
         let service = CoverBatchService(
             generationService: generation
@@ -379,7 +387,8 @@ struct CoverBatchServiceTests {
         // ONE holder, so the batch and the card menu share the same
         // generation service and therefore the same per-card lock.
         let services = CoverPaneServices(
-            imageClient: client
+            imageClient: client,
+            motifExtractor: StubMotifExtractor()
         )
 
         let items = makeItems(count: 1)
@@ -389,7 +398,9 @@ struct CoverBatchServiceTests {
         // same card while it is in flight.
         client.afterRequest = {
             Task { @MainActor in
-                await services.generation.generateCover(for: target, subject: "Document 0")
+                await services.generation.generateCover(
+                    for: target, title: "Document 0", summary: "A summary"
+                )
             }
         }
         await services.batch.run(for: items)

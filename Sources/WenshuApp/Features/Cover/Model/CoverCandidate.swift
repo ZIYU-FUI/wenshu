@@ -27,9 +27,11 @@ struct CoverCandidate: Equatable, Sendable {
     /// The card the cover belongs to.
     let target: CardCoverTarget
 
-    /// What the picture should show (= the document's own title and
-    /// summary).
-    let subject: String
+    /// The document's own title.
+    let title: String
+
+    /// The document's own short summary.
+    let summary: String
 
     /// When the document was created.
     ///

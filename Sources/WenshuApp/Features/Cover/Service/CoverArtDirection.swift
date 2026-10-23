@@ -72,49 +72,60 @@ import Foundation
 enum CoverArtDirection {
 
     /// The style every cover is drawn in.
-    static let style = """
-        Create original hand-painted Chinese-style fantasy scroll paintings; never \
-        imitate an existing franchise, character, card frame, logo or official \
-        illustration. Render the subject as one dimensional layered scroll \
-        painting, softly embossed and built from a few clear planes of depth. The \
-        whole painting is in bright daylight, and nothing in it is dark or \
-        night-time. The painting sits in the middle of the frame and generous \
-        empty space stays visible on all four sides, so the picture breathes \
-        instead of filling the frame. Place the subject in the middle, and leave \
-        the whole lower third empty, with no water, no clouds, no rocks and no \
-        plants along the bottom edge, and nothing at all in the lower left corner, \
-        because a title is read over that space. Use soft ink-wash mountains and \
-        mist in the far distance, broad painterly brushwork, saturated warm color, \
-        rich midtones, tactile materials, a little gold, a confident illustrative \
-        finish. A small artist's seal in one corner is the only writing allowed. \
-        The subject is centered and complete with air on every side. This is a \
-        painted picture, never a document, a slide, a poster, a diagram, a \
-        screenshot or an interface, and it contains no written words at all.
+    ///
+    /// The slots are filled from the document's motifs (= the
+    /// culture, the words that name that culture's picture, the
+    /// objects, the colours, the mood). Everything else is the same
+    /// for every cover, which is what makes the material zone read
+    /// as one set.
+    static let styleTemplate = """
+        插画设计，纯白背景上的立体插画，{register}风格，立体质感，明亮色彩，高级晕染。\
+        极简插画风格，{style}：一组主体紧凑聚拢在画面正中，像一束插花。\
+        四周留白占据整个画布的一半以上（超过百分之五十），留白处必须完全空白，\
+        画面里再没有别的景物。每一个实体只画一个，不要重复。\
+        {subject}。花草和松枝只贴在主体上，像插花的一部分，不散开到四周。细腻的{brush}，精致细节，清晰的线条结构，\
+        晕染，空灵清透，烟雾流体，明亮的{palette}配色，{mood}的氛围，平衡简洁的布局。\
+        这是一张纯插画，不是中国画、不是手卷、不是挂轴作品：画面上没有题字、印章、落款、\
+        签名、水印，也没有任何一处文字。
         """
 
-    /// Joins the art direction and the subject into the prompt that
-    /// goes to the image model.
+    /// Joins the art direction and a document's motifs into the
+    /// prompt that goes to the image model.
     ///
-    /// The art direction comes FIRST, so the model reads the style
-    /// before it reads what to draw, and the subject LAST, so the
-    /// instruction that names the subject is the most recent thing the
-    /// model has seen.
+    /// The art direction comes FIRST, so the model reads the frame
+    /// and the look before it reads what to draw, and the subject
+    /// inside it, so the instruction that names the subject is the
+    /// most recent thing the model has seen.
+    ///
     /// The most characters the image provider will take.
     ///
     /// It answers "invalid params, prompt length must be less than
     /// 1500" (= status 2013) when the prompt is longer, and the
-    /// subject is the part that grows: a book's summary is a
+    /// motifs are the part that grows: a book's summary is a
     /// paragraph, and the art direction is already long. So the
-    /// subject is cut to whatever fits, and the art direction is
+    /// motifs are cut to whatever fits, and the art direction is
     /// never touched (= the art is the part that must not change).
     static let providerPromptLimit = 1500
 
-    static func prompt(subject: String) -> String {
-        let trimmed = subject.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return style }
-        let room = providerPromptLimit - style.count - 1
-        guard room > 0 else { return style }
-        let subjectPart = trimmed.count > room ? String(trimmed.prefix(room)) : trimmed
-        return style + " " + subjectPart
+    /// - Parameters:
+    ///   - title: the document's title (= the name of the thing the
+    ///     picture is an impression of).
+    ///   - motifs: what the picture is made of.
+    static func prompt(title: String, motifs: CoverMotifs) -> String {
+        let subject = "\(title)印象（\(motifs.motifs.joined(separator: "、"))）：\(motifs.arrangement)"
+        let palette = motifs.palette.isEmpty ? "明亮" : motifs.palette.joined(separator: "、")
+        let mood = motifs.mood.isEmpty ? "清雅" : motifs.mood.joined(separator: "、")
+
+        let filled = styleTemplate
+            .replacingOccurrences(of: "{register}", with: motifs.register)
+            .replacingOccurrences(of: "{style}", with: motifs.style)
+            .replacingOccurrences(of: "{brush}", with: motifs.brush)
+            .replacingOccurrences(of: "{subject}", with: subject)
+            .replacingOccurrences(of: "{palette}", with: palette)
+            .replacingOccurrences(of: "{mood}", with: mood)
+
+        // The provider's cap. The motifs are cut, the art is not.
+        guard filled.count > providerPromptLimit else { return filled }
+        return String(filled.prefix(providerPromptLimit))
     }
 }

@@ -187,7 +187,12 @@ struct CardCoverService {
     /// The file is written atomically, so a crash mid-write cannot
     /// leave a half-written banner where the record claims a picture
     /// exists.
-    func saveImage(_ data: Data, forKey key: String, kind: String) throws {
+    func saveImage(
+        _ data: Data,
+        forKey key: String,
+        kind: String,
+        motifs: CoverMotifs? = nil
+    ) throws {
         guard let directory = Self.directory(forKey: key),
               let imageURL = Self.imageURL(forKey: key) else {
             throw CardCoverError.noLibrary
@@ -208,6 +213,7 @@ struct CardCoverService {
         record.cardKind = kind
         record.status = WSCardCoverStatus.staticReady
         record.lastError = nil
+        record.motifs = motifs ?? record.motifs
         record.updatedAt = .now
         try writeRecord(record, forKey: key)
     }

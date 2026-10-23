@@ -89,7 +89,8 @@ struct CoverAutoTriggerTests {
         let client = TriggerStubImageClient()
         let trigger = CoverAutoTrigger(
             generationService: CoverGenerationService(
-            imageClient: client
+            imageClient: client,
+            motifExtractor: StubMotifExtractor()
             ),
             policyProvider: stubPolicy(policy)
         )
@@ -114,7 +115,8 @@ struct CoverAutoTriggerTests {
 
         let started = await trigger.coverIfNeeded(
             for: .reference(UUID()),
-            subject: "A lighthouse",
+            title: "A lighthouse",
+            summary: "On a cliff",
             createdAt: Self.now.addingTimeInterval(1),
             now: Self.now
         )
@@ -141,7 +143,8 @@ struct CoverAutoTriggerTests {
 
         let started = await trigger.coverIfNeeded(
             for: .reference(UUID()),
-            subject: "A lighthouse",
+            title: "A lighthouse",
+            summary: "On a cliff",
             createdAt: Self.now.addingTimeInterval(-3600),
             now: Self.now
         )
@@ -168,7 +171,8 @@ struct CoverAutoTriggerTests {
 
         let started = await trigger.coverIfNeeded(
             for: .reference(UUID()),
-            subject: "A lighthouse",
+            title: "A lighthouse",
+            summary: "On a cliff",
             createdAt: Self.now.addingTimeInterval(1),
             now: Self.now
         )
@@ -196,13 +200,15 @@ struct CoverAutoTriggerTests {
 
         let first = await trigger.coverIfNeeded(
             for: target,
-            subject: "A lighthouse",
+            title: "A lighthouse",
+            summary: "On a cliff",
             createdAt: Self.now.addingTimeInterval(1),
             now: Self.now
         )
         let second = await trigger.coverIfNeeded(
             for: target,
-            subject: "A lighthouse",
+            title: "A lighthouse",
+            summary: "On a cliff",
             createdAt: Self.now.addingTimeInterval(1),
             now: Self.now
         )
@@ -233,12 +239,14 @@ struct CoverAutoTriggerTests {
         let candidates = [
             CoverCandidate(
                 target: .reference(UUID()),
-                subject: "A new document",
+                title: "A new document",
+                summary: "It just arrived",
                 createdAt: Self.now.addingTimeInterval(1)
             ),
             CoverCandidate(
                 target: .bookDoc(UUID()),
-                subject: "An old document",
+                title: "An old document",
+                summary: "It was here already",
                 createdAt: Self.now.addingTimeInterval(-3600)
             )
         ]

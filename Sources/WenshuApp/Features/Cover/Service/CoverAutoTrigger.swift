@@ -81,13 +81,15 @@ final class CoverAutoTrigger {
     ///
     /// - Parameters:
     ///   - target: the card.
-    ///   - subject: what the picture should show.
+    ///   - title: the document's own title.
+    ///   - summary: the document's own short summary.
     ///   - createdAt: when the document was created.
     /// - Returns: whether a generation was started.
     @discardableResult
     func coverIfNeeded(
         for target: CardCoverTarget,
-        subject: String,
+        title: String,
+        summary: String,
         createdAt: Date,
         now: Date = .now
     ) async -> Bool {
@@ -111,7 +113,7 @@ final class CoverAutoTrigger {
         coverAutoTriggerLogger.info(
             "[wenshu.cover] automatic cover for kind=\(target.kind, privacy: .public)"
         )
-        await generationService.generateCover(for: target, subject: subject)
+        await generationService.generateCover(for: target, title: title, summary: summary)
         return true
     }
 
@@ -135,7 +137,8 @@ final class CoverAutoTrigger {
         for candidate in candidates {
             let didStart = await coverIfNeeded(
                 for: candidate.target,
-                subject: candidate.subject,
+                title: candidate.title,
+                summary: candidate.summary,
                 createdAt: candidate.createdAt,
                 now: now
             )
