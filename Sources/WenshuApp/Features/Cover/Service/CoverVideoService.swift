@@ -17,6 +17,7 @@
 //
 
 import Foundation
+import Observation
 import SwiftData
 import WenshuData
 import os
@@ -25,6 +26,7 @@ private let coverVideoLogger = Logger(subsystem: "com.wenshu", category: "coverv
 
 /// Makes a card's cover move.
 @MainActor
+@Observable
 final class CoverVideoService {
 
     /// The cover store.
@@ -36,19 +38,22 @@ final class CoverVideoService {
 
     /// The cards whose clip is being made, so a second request does
     /// not start a second one.
-    private var inFlight: Set<String> = []
+    ///
+    /// Observable on purpose: the card menu disables the item while
+    /// the work is in flight, and a menu that cannot see the state
+    /// stays clickable.
+    private(set) var inFlight: Set<String> = []
 
     init(
-        modelContext: ModelContext,
         videoClient: CoverVideoClient = CoverVideoGenerator()
     ) {
-        self.coverService = CardCoverService(modelContext: modelContext)
+        self.coverService = CardCoverService()
         self.videoClient = videoClient
     }
 
     /// The service over the library the app is running on.
     static func live() -> CoverVideoService {
-        CoverVideoService(modelContext: WSPersistenceContainer.current.mainContext)
+        CoverVideoService()
     }
 
     /// Whether a card's clip is being made right now.
@@ -56,9 +61,9 @@ final class CoverVideoService {
         inFlight.contains(target.coverKey)
     }
 
-    /// The cover row for a card, if it has one.
-    func coverRow(for target: CardCoverTarget) -> WSCardCover? {
-        coverService.row(forKey: target.coverKey)
+    /// The record that describes a card's cover, if it has one.
+    func coverRecord(for target: CardCoverTarget) -> CoverRecord? {
+        coverService.record(forKey: target.coverKey)
     }
 
     /// Makes a card's cover move.
@@ -76,12 +81,7 @@ final class CoverVideoService {
         // nothing to animate, and asking the video service for a clip
         // without a first frame would spend the scarce video quota for
         // nothing.
-        guard let row = coverService.row(forKey: key),
-              let heicPath = row.imagePath else {
-            throw CoverVideoError.noStillCover
-        }
-        let heicURL = URL(fileURLWithPath: heicPath)
-        guard FileManager.default.fileExists(atPath: heicURL.path) else {
+        guard let heicURL = coverService.coverImageURL(for: key) else {
             throw CoverVideoError.noStillCover
         }
 

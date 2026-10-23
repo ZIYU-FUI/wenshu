@@ -60,6 +60,9 @@ enum ActiveLibrary {
     static func setActiveLibrary(at url: URL) throws {
         let data = try LibraryBookmark.make(for: url)
         LibraryBookmark.save(data)
+        // The covers belong to the library they were read from, so a
+        // library change drops what the app remembers about them.
+        CoverEntryCache.shared.removeAll()
     }
 
     /// Call when the user resets the library (= moves to a different
@@ -67,5 +70,6 @@ enum ActiveLibrary {
     /// onboarding.
     static func clear() {
         LibraryBookmark.clear()
+        CoverEntryCache.shared.removeAll()
     }
 }

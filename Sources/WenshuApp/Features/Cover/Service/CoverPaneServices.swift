@@ -44,26 +44,16 @@ final class CoverPaneServices {
     let autoTrigger: CoverAutoTrigger
 
     init(
-        modelContext: ModelContext,
         imageClient: CoverImageClient = CoverImageGenerator()
     ) {
-        let generation = CoverGenerationService(
-            modelContext: modelContext,
-            imageClient: imageClient
-        )
+        let generation = CoverGenerationService(imageClient: imageClient)
         self.generation = generation
-        self.batch = CoverBatchService(
-            modelContext: modelContext,
-            generationService: generation
-        )
-        self.autoTrigger = CoverAutoTrigger(
-            modelContext: modelContext,
-            generationService: generation
-        )
+        self.batch = CoverBatchService(generationService: generation)
+        self.autoTrigger = CoverAutoTrigger(generationService: generation)
     }
 
     /// The services over the library the app is running on.
     static func live() -> CoverPaneServices {
-        CoverPaneServices(modelContext: WSPersistenceContainer.current.mainContext)
+        CoverPaneServices()
     }
 }

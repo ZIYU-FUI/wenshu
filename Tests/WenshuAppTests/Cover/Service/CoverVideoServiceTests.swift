@@ -63,22 +63,14 @@ struct CoverVideoServiceTests {
         let container = try makeContainer()
         let client = StubVideoClient()
         let service = CoverVideoService(
-            modelContext: container.mainContext,
             videoClient: client
         )
         let target = CardCoverTarget.reference(UUID())
 
-        // The card has a cover ROW but no picture file: the still is
-        // gone, so there is nothing to animate.
-        let context = container.mainContext
-        context.insert(
-            WSCardCover(
-                id: target.coverKey,
-                cardKind: WSCardCoverKind.reference,
-                status: WSCardCoverStatus.staticReady
-            )
-        )
-        try context.save()
+        // The card has a cover FOLDER but no picture file: the still
+        // is gone, so there is nothing to animate.
+        let directory = CardCoverService.directory(forKey: target.coverKey)
+        try FileManager.default.createDirectory(at: directory!, withIntermediateDirectories: true)
 
         await #expect(throws: CoverVideoError.self) {
             try await service.makeVideo(for: target)
@@ -98,14 +90,13 @@ struct CoverVideoServiceTests {
         let container = try makeContainer()
         let client = StubVideoClient()
         let service = CoverVideoService(
-            modelContext: container.mainContext,
             videoClient: client
         )
         let target = CardCoverTarget.reference(UUID())
 
         // Give the card a real still: a stored HEIC and a row that
         // points at it.
-        let coverService = CardCoverService(modelContext: container.mainContext)
+        let coverService = CardCoverService()
         let heic = try CardCoverImageEncoder.encode(
             bannerImage: CardCoverImageEncoder.centerCrop(
                 Self.testBanner,
@@ -118,9 +109,11 @@ struct CoverVideoServiceTests {
         try await service.makeVideo(for: target)
 
         #expect(client.callCount == 1)
-        let row = service.coverRow(for: target)
-        #expect(row?.status == WSCardCoverStatus.dynamicReady)
-        #expect(row?.videoPath != nil)
+        let record = service.coverRecord(for: target)
+        #expect(record?.status == WSCardCoverStatus.dynamicReady)
+        let clip = CardCoverService().coverVideoURL(for: target.coverKey)
+        #expect(clip != nil)
+        #expect(FileManager.default.fileExists(atPath: clip!.path))
     }
 
     @Test("The clip plays forward, then backward")

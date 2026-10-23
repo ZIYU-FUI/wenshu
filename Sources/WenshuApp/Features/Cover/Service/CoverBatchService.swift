@@ -70,14 +70,14 @@ final class CoverBatchService {
     /// The progress, for the UI to show.
     private(set) var progress = CoverBatchProgress()
 
-    init(modelContext: ModelContext, generationService: CoverGenerationService? = nil) {
-        self.coverService = CardCoverService(modelContext: modelContext)
-        self.generationService = generationService ?? CoverGenerationService(modelContext: modelContext)
+    init(generationService: CoverGenerationService? = nil) {
+        self.coverService = CardCoverService()
+        self.generationService = generationService ?? CoverGenerationService()
     }
 
     /// The service over the library the app is running on.
     static func live() -> CoverBatchService {
-        CoverBatchService(modelContext: WSPersistenceContainer.current.mainContext)
+        CoverBatchService()
     }
 
     /// Asks the run to stop.
@@ -119,7 +119,7 @@ final class CoverBatchService {
 
             // A document that already has a cover is skipped, so the
             // run does not spend the allowance on work already done.
-            if coverService.row(forKey: item.target.coverKey) != nil {
+            if coverService.coverImageURL(for: item.target.coverKey) != nil {
                 progress.skipped += 1
                 continue
             }
@@ -132,7 +132,7 @@ final class CoverBatchService {
             // The generation either stored a cover or it did not. A
             // failure leaves the document without one, so the NEXT
             // run tries it again.
-            if coverService.row(forKey: item.target.coverKey) != nil {
+            if coverService.coverImageURL(for: item.target.coverKey) != nil {
                 progress.completed += 1
             } else {
                 progress.failed += 1

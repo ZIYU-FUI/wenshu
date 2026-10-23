@@ -2,29 +2,30 @@
 //  Persistence/WSCardCover.swift
 //
 //   : WSCardCover.
-//  The generated cover art for one material-zone card.
+//  The LEGACY cover row. The cover record lives in the library now.
 //
 //  A card is a REFERENCE (a document in the reference library) or a
 //  BOOK DOC (a .md file inside a book). A cover belongs to ONE card,
-//  and dies with it: when the document is deleted, the cover row and
-//  the cover files are deleted too (= see CoverCascade).
+//  and dies with it: when the document is deleted, the cover files
+//  are deleted too (= see CoverCascade).
 //
-//  Storage strategy (= the reason this is not a field on WSReference):
-//  the cover is a DERIVED artifact, not part of the document. The
-//  document is the source of truth; the cover is a picture of it that
-//  can be regenerated or thrown away without touching the document.
-//  A separate row also means the reference library's own index and the
-//  reference .md files stay exactly as they are.
+//  A cover record is a FILE in the library, beside the picture it
+//  describes:
 //
-//  The binaries live on disk (= the cover directory under the active
-//  library's assets/), not inline in the store: a HEIC banner is tens
-//  of kilobytes and a clip is hundreds, so a library with hundreds of
-//  covers would bloat the store for no benefit. The row keeps the
-//  absolute paths, and the files are the truth for the picture itself.
+//    <library>/assets/covers/<cardKey>/cover.heic
+//    <library>/assets/covers/<cardKey>/cover.mp4
+//    <library>/assets/covers/<cardKey>/cover.json
 //
-//  `cardKind` (= "reference" or "bookDoc") is a discriminator rather
-//  than a hard dependency on the card type, so a future third card
-//  kind does not need a schema migration.
+//  A cover belongs to a document, so its record belongs to the
+//  document's library. A store row cannot make that promise: the
+//  store the app resolves at launch is not always the library the
+//  picture is written to, because the app delegate activates the
+//  warehouse container after the first view render. A record written
+//  before that point and a picture written after it land in two
+//  different stores, and the card then finds one without the other.
+//
+//  The model stays in the schema so a library that already carries
+//  the table keeps opening. Nothing writes it any more.
 //
 
 import Foundation

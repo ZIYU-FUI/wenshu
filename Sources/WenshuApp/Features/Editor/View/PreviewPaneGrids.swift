@@ -39,14 +39,7 @@ extension PreviewPane {
 
     /// The stored cover clip under a key, or nil.
     private func coverVideoURL(forKey key: String) -> URL? {
-        let service = CardCoverService(modelContext: WSPersistenceContainer.current.mainContext)
-        guard let row = service.row(forKey: key),
-              let path = row.videoPath else {
-            return nil
-        }
-        let url = URL(fileURLWithPath: path)
-        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
-        return url
+        CardCoverService().coverVideoURL(for: key)
     }
 
     /// The stored cover picture for a reference card, or nil when it
@@ -67,13 +60,23 @@ extension PreviewPane {
 
     /// The stored cover picture under a key, or nil.
     ///
-    /// The service owns the lookup, because the row is where the
-    /// path lives. A row that is not there means the card has no
-    /// cover, and a file that is not there means the cover is gone
-    /// and the card falls back to its gradient and symbol.
+    /// The service owns the lookup, because the cover files are the
+    /// source of truth. A card whose cover folder is not there has no
+    /// cover, and a card whose picture is gone has no cover either
+    /// (= the cover was deleted outside the app, so the card falls
+    /// back to its gradient and symbol).
     private func coverImageURL(forKey key: String) -> URL? {
-        let service = CardCoverService(modelContext: WSPersistenceContainer.current.mainContext)
-        return service.coverImageURL(for: key)
+        CardCoverService().coverImageURL(for: key)
+    }
+
+    /// Everything one card's cover holds, read once.
+    ///
+    /// The grid asks about a card on every render, and it needs three
+    /// answers (= the picture, the clip and the record). One entry
+    /// answers all three, so the card is read once rather than three
+    /// times.
+    private func coverEntry(for target: CardCoverTarget) -> CoverEntry {
+        CardCoverService().entry(forKey: target.coverKey)
     }
 
     /// The service that draws a card's cover.
@@ -127,33 +130,38 @@ extension PreviewPane {
     }
 
     func referenceCategoryCard(_ entity: Reference) -> some View {
-        Card(
+        let target = coverTarget(forReference: entity.id)
+        let cover = coverEntry(for: target)
+        return Card(
             source: .reference(entity),
             onDoubleClick: { source in
                 onDoubleClick(source)
             },
             onRename: { beginReferenceRename(entity) },
             onDelete: { beginReferenceDelete(entity) },
-            coverImageURL: coverImageURL(forReference: entity.id),
-            coverVideoURL: coverVideoURL(forReference: entity.id),
+            coverImageURL: cover.imageURL,
+            coverVideoURL: cover.videoURL,
             onGenerateCover: {
                 generateCover(
-                    for: coverTarget(forReference: entity.id),
+                    for: target,
                     subject: "\(entity.title). \(entity.summary)"
                 )
             },
             onMakeDynamicCover: {
 
-                makeVideo(for: coverTarget(forReference: entity.id))
+                makeVideo(for: target)
 
             },
 
             onRemoveCover: {
 
-                removeCover(for: coverTarget(forReference: entity.id))
+                removeCover(for: target)
 
             },
-            hasCover: coverImageURL(forReference: entity.id) != nil
+            hasCover: cover.hasCover,
+            isGeneratingCover: coverGenerationService.isGenerating(target),
+            coverErrorMessage: cover.record?.lastError,
+            isMakingVideo: coverVideoService.isMakingVideo(target)
         )
     }
 
@@ -388,6 +396,8 @@ extension PreviewPane {
                 ScrollView {
                     LazyVGrid(columns: adaptiveColumns(width: geometry.size.width), spacing: 16) {
                         ForEach(sorted) { entity in
+                            let target = coverTarget(forReference: entity.id)
+                            let cover = coverEntry(for: target)
                             Card(
                                 source: .reference(entity),
                                 onDoubleClick: { source in
@@ -395,26 +405,29 @@ extension PreviewPane {
                                 },
                                 onRename: { beginReferenceRename(entity) },
                                 onDelete: { beginReferenceDelete(entity) },
-                                coverImageURL: coverImageURL(forReference: entity.id),
-                                coverVideoURL: coverVideoURL(forReference: entity.id),
+                                coverImageURL: cover.imageURL,
+                                coverVideoURL: cover.videoURL,
                                 onGenerateCover: {
                                     generateCover(
-                                        for: coverTarget(forReference: entity.id),
+                                        for: target,
                                         subject: "\(entity.title). \(entity.summary)"
                                     )
                                 },
                                 onMakeDynamicCover: {
 
-                                    makeVideo(for: coverTarget(forReference: entity.id))
+                                    makeVideo(for: target)
 
                                 },
 
                                 onRemoveCover: {
 
-                                    removeCover(for: coverTarget(forReference: entity.id))
+                                    removeCover(for: target)
 
                                 },
-                                hasCover: coverImageURL(forReference: entity.id) != nil
+                                hasCover: cover.hasCover,
+                                isGeneratingCover: coverGenerationService.isGenerating(target),
+                                coverErrorMessage: cover.record?.lastError,
+                                isMakingVideo: coverVideoService.isMakingVideo(target)
                             )
                             // per-card transition (= see categoryGrid comment for
                             // rationale).
@@ -467,6 +480,8 @@ extension PreviewPane {
                     spacing: 16
                 ) {
                     ForEach(sorted) { doc in
+                        let target = coverTarget(forBookDoc: doc.id)
+                        let cover = coverEntry(for: target)
                         Card(
                             source: .bookDoc(doc),
                             onDoubleClick: { source in
@@ -474,26 +489,29 @@ extension PreviewPane {
                             },
                             onRename: { beginBookDocRename(doc) },
                             onDelete: { beginBookDocDelete(doc) },
-                            coverImageURL: coverImageURL(forBookDoc: doc.id),
-                            coverVideoURL: coverVideoURL(forBookDoc: doc.id),
+                            coverImageURL: cover.imageURL,
+                            coverVideoURL: cover.videoURL,
                             onGenerateCover: {
                                 generateCover(
-                                    for: coverTarget(forBookDoc: doc.id),
+                                    for: target,
                                     subject: "\(doc.title). \(doc.summary)"
                                 )
                             },
                             onMakeDynamicCover: {
 
-                                makeVideo(for: coverTarget(forBookDoc: doc.id))
+                                makeVideo(for: target)
 
                             },
 
                             onRemoveCover: {
 
-                                removeCover(for: coverTarget(forBookDoc: doc.id))
+                                removeCover(for: target)
 
                             },
-                            hasCover: coverImageURL(forBookDoc: doc.id) != nil
+                            hasCover: cover.hasCover,
+                            isGeneratingCover: coverGenerationService.isGenerating(target),
+                            coverErrorMessage: cover.record?.lastError,
+                            isMakingVideo: coverVideoService.isMakingVideo(target)
                         )
                         // per-card transition (= see categoryGrid comment for rationale).
                         .transition(.opacity.combined(with: .scale(scale: 0.96)))

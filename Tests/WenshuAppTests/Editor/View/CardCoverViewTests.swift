@@ -18,6 +18,7 @@
 import Foundation
 import SwiftData
 import Testing
+import WenshuAgent
 import WenshuData
 @testable import WenshuApp
 
@@ -54,17 +55,19 @@ struct CardCoverViewTests {
         )
     }
 
-    @Test("A card with no cover row resolves to no picture")
+    @Test("A card with no cover resolves to no picture")
     @MainActor
-    func aCardWithNoCoverResolvesToNil() throws {
-        // The lookup goes through the row, so a card with no row has
-        // no picture. The renderer then keeps its gradient and symbol.
-        let container = try ModelContainer(
-            for: WSCardCover.self,
-            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-        )
-        let service = CardCoverService(modelContext: container.mainContext)
-
-        #expect(service.row(forKey: "reference-nothing-here") == nil)
+    func aCardWithNoCoverResolvesToNil() async throws {
+        // The lookup goes through the cover files, so a card whose
+        // cover folder is not there has no picture. The renderer then
+        // keeps its gradient and symbol.
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("wenshu-cover-view-test-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        try await PathGuard.$libraryRootOverride.withValue(root.path) {
+            let service = CardCoverService()
+            #expect(service.coverImageURL(for: "reference-nothing-here") == nil)
+            #expect(service.entry(forKey: "reference-nothing-here") == .none)
+        }
     }
 }

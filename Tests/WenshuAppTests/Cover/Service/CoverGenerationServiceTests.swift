@@ -85,7 +85,6 @@ struct CoverGenerationServiceTests {
         let container = try makeContainer()
         let client = StubImageClient()
         let service = CoverGenerationService(
-            modelContext: container.mainContext,
             imageClient: client
         )
         let target = CardCoverTarget.reference(UUID())
@@ -93,9 +92,13 @@ struct CoverGenerationServiceTests {
         await service.generateCover(for: target, subject: "A lighthouse")
 
         #expect(client.callCount == 1)
-        let row = service.coverRow(for: target)
-        #expect(row?.status == WSCardCoverStatus.staticReady)
-        #expect(row?.imagePath != nil)
+        let record = service.coverRecord(for: target)
+        #expect(record?.status == WSCardCoverStatus.staticReady)
+        // The picture is the source of truth: a card has a cover when
+        // its file is there.
+        let picture = CardCoverService().coverImageURL(for: target.coverKey)
+        #expect(picture != nil)
+        #expect(FileManager.default.fileExists(atPath: picture!.path))
     }
 
     @Test("A failed generation leaves the previous picture in place")
@@ -111,25 +114,24 @@ struct CoverGenerationServiceTests {
         let container = try makeContainer()
         let client = StubImageClient()
         let service = CoverGenerationService(
-            modelContext: container.mainContext,
             imageClient: client
         )
         let target = CardCoverTarget.reference(UUID())
 
         // One good generation, so there IS a picture.
         await service.generateCover(for: target, subject: "A lighthouse")
-        let goodPath = service.coverRow(for: target)?.imagePath
+        let goodPath = CardCoverService().coverImageURL(for: target.coverKey)?.path
         #expect(goodPath != nil)
 
         // Now a failing one.
         client.shouldFail = true
         await service.generateCover(for: target, subject: "A lighthouse")
 
-        let row = service.coverRow(for: target)
-        #expect(row?.status == WSCardCoverStatus.failed)
+        let record = service.coverRecord(for: target)
+        #expect(record?.status == WSCardCoverStatus.failed)
         // The picture the user liked is still there.
-        #expect(row?.imagePath == goodPath)
-        #expect(row?.lastError != nil)
+        #expect(CardCoverService().coverImageURL(for: target.coverKey)?.path == goodPath)
+        #expect(record?.lastError != nil)
     }
 
     @Test("Two concurrent generations for one card make ONE call")
@@ -145,7 +147,6 @@ struct CoverGenerationServiceTests {
         let container = try makeContainer()
         let client = StubImageClient()
         let service = CoverGenerationService(
-            modelContext: container.mainContext,
             imageClient: client
         )
         let target = CardCoverTarget.reference(UUID())
@@ -169,7 +170,6 @@ struct CoverGenerationServiceTests {
         let container = try makeContainer()
         let client = StubImageClient()
         let service = CoverGenerationService(
-            modelContext: container.mainContext,
             imageClient: client
         )
         let target = CardCoverTarget.reference(UUID())

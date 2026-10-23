@@ -88,10 +88,8 @@ struct CoverAutoTriggerTests {
     ) -> (CoverAutoTrigger, TriggerStubImageClient) {
         let client = TriggerStubImageClient()
         let trigger = CoverAutoTrigger(
-            modelContext: container.mainContext,
             generationService: CoverGenerationService(
-                modelContext: container.mainContext,
-                imageClient: client
+            imageClient: client
             ),
             policyProvider: stubPolicy(policy)
         )

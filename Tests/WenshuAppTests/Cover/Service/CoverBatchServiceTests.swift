@@ -121,11 +121,9 @@ struct CoverBatchServiceTests {
         let container = try makeContainer()
         let client = CountingImageClient()
         let generation = CoverGenerationService(
-            modelContext: container.mainContext,
             imageClient: client
         )
         let service = CoverBatchService(
-            modelContext: container.mainContext,
             generationService: generation
         )
 
@@ -148,17 +146,15 @@ struct CoverBatchServiceTests {
         let container = try makeContainer()
         let client = CountingImageClient()
         let generation = CoverGenerationService(
-            modelContext: container.mainContext,
             imageClient: client
         )
         let service = CoverBatchService(
-            modelContext: container.mainContext,
             generationService: generation
         )
 
         let items = makeItems(count: 3)
         // The middle one already has a cover.
-        let coverService = CardCoverService(modelContext: container.mainContext)
+        let coverService = CardCoverService()
         try coverService.saveImage(
             Data([0x01]),
             forKey: items[1].target.coverKey,
@@ -185,11 +181,9 @@ struct CoverBatchServiceTests {
         let client = CountingImageClient()
         client.shouldFail = true
         let generation = CoverGenerationService(
-            modelContext: container.mainContext,
             imageClient: client
         )
         let service = CoverBatchService(
-            modelContext: container.mainContext,
             generationService: generation
         )
 
@@ -213,11 +207,9 @@ struct CoverBatchServiceTests {
         let container = try makeContainer()
         let client = CountingImageClient()
         let generation = CoverGenerationService(
-            modelContext: container.mainContext,
             imageClient: client
         )
         let service = CoverBatchService(
-            modelContext: container.mainContext,
             generationService: generation
         )
 
@@ -248,11 +240,9 @@ struct CoverBatchServiceTests {
         let client = CountingImageClient()
         client.shouldFail = true
         let generation = CoverGenerationService(
-            modelContext: container.mainContext,
             imageClient: client
         )
         let service = CoverBatchService(
-            modelContext: container.mainContext,
             generationService: generation
         )
 
@@ -281,11 +271,9 @@ struct CoverBatchServiceTests {
         let container = try makeContainer()
         let client = CountingImageClient()
         let generation = CoverGenerationService(
-            modelContext: container.mainContext,
             imageClient: client
         )
         let service = CoverBatchService(
-            modelContext: container.mainContext,
             generationService: generation
         )
 
@@ -316,7 +304,6 @@ struct CoverBatchServiceTests {
         // ONE holder, so the batch and the card menu share the same
         // generation service and therefore the same per-card lock.
         let services = CoverPaneServices(
-            modelContext: container.mainContext,
             imageClient: client
         )
 
