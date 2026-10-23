@@ -7345,6 +7345,23 @@
           }
         }
       }
+    },
+    "settings.covers.videoNoSeamlessLoop": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This model does not serve the first-and-last-frame mode, so the moving cover's loop will have one visible jump. MiniMax-Hailuo-02 serves it."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "该模型不支持首尾帧模式，动态封面的循环会出现一次可见的跳变。MiniMax-Hailuo-02 支持该模式。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

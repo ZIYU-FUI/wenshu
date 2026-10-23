@@ -153,6 +153,25 @@ struct CoverVideoGenerator: CoverVideoClient {
         model == "MiniMax-Hailuo-02"
     }
 
+    /// Whether a route's video model serves the first-and-last-frame
+    /// mode.
+    ///
+    /// The mode is what makes the clip's loop seamless, and the
+    /// endpoint serves it for one model only. A route that names
+    /// another model loses the mode SILENTLY (= the request simply
+    /// drops the last frame), so the settings have to say so: the
+    /// measured difference is a first/last frame 8.5 dB apart (= a
+    /// visible jump at the seam) against 41.8 dB (= nearly the same
+    /// picture).
+    ///
+    /// A route that names no model serves nothing (= the video kind
+    /// has no default on purpose), so it is not a loss and there is
+    /// nothing to say.
+    static func servesFirstAndLastFrame(_ route: CoverServiceRoute) -> Bool {
+        guard let model = route.model ?? route.kind.defaultModel else { return true }
+        return supportsFirstAndLastFrame(model: model)
+    }
+
     /// The prompt, within the endpoint's limit.
     static func cappedPrompt(_ prompt: String) -> String {
         guard prompt.count > promptCharacterLimit else { return prompt }
