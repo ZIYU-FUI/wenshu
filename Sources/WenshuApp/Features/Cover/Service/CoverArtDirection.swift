@@ -35,7 +35,12 @@
 //  - a subject whose text reads like a plan or an outline gets
 //    painted as a DOCUMENT, with English headings and columns. So the
 //    picture is ruled out by name (= never a document, a slide, a
-//    poster, a diagram, a screenshot or an interface).
+//    poster, a diagram, a screenshot or an interface),
+//  - the emptiness is what the boss asked for, and it is NOT a pale
+//    backdrop with a picture on it: the picture IS the emptiness, the
+//    big open space the eye rests in (= 留白). So the text says
+//    "generous empty space", and it says NOTHING about paper or a
+//    cream ground.
 //
 //  It also carries the negative constraints, because the failure mode
 //  of an image model is to imitate a franchise. The instruction is
@@ -63,22 +68,21 @@ enum CoverArtDirection {
         paintings with playful tavern-card-game energy; never imitate an existing \
         franchise, character, card frame, logo or official illustration. Render \
         the subject as one dimensional layered scroll painting, softly embossed \
-        and built from a few clear planes of depth, floating on a clean pale cream \
-        ground. The whole painting is in bright daylight under a clear pale sky, \
-        and nothing in it is dark or night-time. The painting sits in the middle \
-        of the paper and pale empty paper stays visible on all four sides, so the \
-        picture breathes instead of filling the frame. Place the subject in the \
-        middle of the picture, and leave the whole lower third of the picture as \
-        bare empty paper, with no water, no clouds, no rocks and no plants along \
-        the bottom edge, and nothing at all in the lower left corner, because a \
-        title is read over that space. Use soft ink-wash mountains and mist in the \
-        far distance, broad painterly brushwork, saturated warm color masses, rich \
-        midtones, tactile painted materials, a little gold, and a confident \
-        illustrative finish. Poster tile framing in a 4:3 picture, the subject \
-        centered and complete with air on every side. A small artist's seal in one \
-        corner is the only writing allowed. This is a painted picture, never a \
-        document, a slide, a poster, a diagram, a screenshot or an interface, and \
-        it contains no written words at all.
+        and built from a few clear planes of depth. The whole painting is in \
+        bright daylight, and nothing in it is dark or night-time. The painting \
+        sits in the middle of the frame and generous empty space stays visible on \
+        all four sides, so the picture breathes instead of filling the frame. \
+        Place the subject in the middle of the picture, and leave the whole lower \
+        third of the picture empty, with no water, no clouds, no rocks and no \
+        plants along the bottom edge, and nothing at all in the lower left corner, \
+        because a title is read over that space. Use soft ink-wash mountains and \
+        mist in the far distance, broad painterly brushwork, saturated warm color \
+        masses, rich midtones, tactile painted materials, a little gold, and a \
+        confident illustrative finish. Poster tile framing in a 4:3 picture, the \
+        subject centered and complete with air on every side. A small artist's \
+        seal in one corner is the only writing allowed. This is a painted picture, \
+        never a document, a slide, a poster, a diagram, a screenshot or an \
+        interface, and it contains no written words at all.
         """
 
     /// Joins the art direction and the subject into the prompt that

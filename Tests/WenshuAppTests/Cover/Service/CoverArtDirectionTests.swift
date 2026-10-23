@@ -44,22 +44,21 @@ struct CoverArtDirectionTests {
             paintings with playful tavern-card-game energy; never imitate an existing \
             franchise, character, card frame, logo or official illustration. Render \
             the subject as one dimensional layered scroll painting, softly embossed \
-            and built from a few clear planes of depth, floating on a clean pale cream \
-            ground. The whole painting is in bright daylight under a clear pale sky, \
-            and nothing in it is dark or night-time. The painting sits in the middle \
-            of the paper and pale empty paper stays visible on all four sides, so the \
-            picture breathes instead of filling the frame. Place the subject in the \
-            middle of the picture, and leave the whole lower third of the picture as \
-            bare empty paper, with no water, no clouds, no rocks and no plants along \
-            the bottom edge, and nothing at all in the lower left corner, because a \
-            title is read over that space. Use soft ink-wash mountains and mist in the \
-            far distance, broad painterly brushwork, saturated warm color masses, rich \
-            midtones, tactile painted materials, a little gold, and a confident \
-            illustrative finish. Poster tile framing in a 4:3 picture, the subject \
-            centered and complete with air on every side. A small artist's seal in one \
-            corner is the only writing allowed. This is a painted picture, never a \
-            document, a slide, a poster, a diagram, a screenshot or an interface, and \
-            it contains no written words at all.
+            and built from a few clear planes of depth. The whole painting is in \
+            bright daylight, and nothing in it is dark or night-time. The painting \
+            sits in the middle of the frame and generous empty space stays visible on \
+            all four sides, so the picture breathes instead of filling the frame. \
+            Place the subject in the middle of the picture, and leave the whole lower \
+            third of the picture empty, with no water, no clouds, no rocks and no \
+            plants along the bottom edge, and nothing at all in the lower left corner, \
+            because a title is read over that space. Use soft ink-wash mountains and \
+            mist in the far distance, broad painterly brushwork, saturated warm color \
+            masses, rich midtones, tactile painted materials, a little gold, and a \
+            confident illustrative finish. Poster tile framing in a 4:3 picture, the \
+            subject centered and complete with air on every side. A small artist's \
+            seal in one corner is the only writing allowed. This is a painted picture, \
+            never a document, a slide, a poster, a diagram, a screenshot or an \
+            interface, and it contains no written words at all.
             """
 
         #expect(CoverArtDirection.style == expected)
