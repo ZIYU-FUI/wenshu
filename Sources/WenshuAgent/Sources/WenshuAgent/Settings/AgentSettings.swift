@@ -22,6 +22,7 @@ public struct AgentSettings: Sendable, Equatable, Codable {
     public var recovery: RecoverySettings
     public var memory: MemorySettings
     public var tools: ToolSettings
+    public var providers: ProviderSettings
 
     public init(
         prompt: PromptSettings = .init(),
@@ -29,7 +30,8 @@ public struct AgentSettings: Sendable, Equatable, Codable {
         context: ContextSettings = .init(),
         recovery: RecoverySettings = .init(),
         memory: MemorySettings = .init(),
-        tools: ToolSettings = .init()
+        tools: ToolSettings = .init(),
+        providers: ProviderSettings = .init()
     ) {
         self.prompt = prompt
         self.turn = turn
@@ -37,6 +39,19 @@ public struct AgentSettings: Sendable, Equatable, Codable {
         self.recovery = recovery
         self.memory = memory
         self.tools = tools
+        self.providers = providers
+    }
+}
+
+/// Provider-endpoint knobs.
+public struct ProviderSettings: Sendable, Equatable, Codable {
+    /// Custom endpoints, keyed by provider slug.
+    ///
+    /// Absent or empty (= the provider's own default endpoint applies).
+    public var baseURLs: [String: String]
+
+    public init(baseURLs: [String: String] = [:]) {
+        self.baseURLs = baseURLs
     }
 }
 

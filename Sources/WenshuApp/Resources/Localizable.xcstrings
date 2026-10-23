@@ -2908,6 +2908,40 @@
         }
       }
     },
+    "settings.model.custom_endpoint_caption": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Point this provider at your own gateway. Leave empty to use the provider default."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "把这个提供方指向你自己的网关。留空则使用提供方的默认地址。"
+          }
+        }
+      }
+    },
+    "settings.model.custom_endpoint_label": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Custom endpoint"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自定义地址"
+          }
+        }
+      }
+    },
     "settings.model.provider_label": {
       "extractionState": "manual",
       "localizations": {

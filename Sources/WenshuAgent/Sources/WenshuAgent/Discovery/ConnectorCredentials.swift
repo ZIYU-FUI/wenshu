@@ -48,7 +48,8 @@ public struct ConnectorCredentials: Sendable {
     /// - Parameters:
     ///   - provider: The connector profile (= Provider enum from Core/Provider).
     /// - Returns: ConnectorCredentials with apiKey from Keychain (= "" for
-    ///   no-auth providers like Ollama) and baseURL from Provider.defaultBaseURL.
+    ///   no-auth providers like Ollama) and baseURL from the user's
+    ///   custom endpoint when one is installed, else the provider default.
     public static func resolve(for provider: Provider) -> ConnectorCredentials {
         let key: String
         // Ollama = local, no auth (= per AGENTS.md §11.2 P1 row "Ollama | None (local)")
@@ -62,7 +63,7 @@ public struct ConnectorCredentials: Sendable {
         return ConnectorCredentials(
             provider: provider,
             apiKey: key,
-            baseURL: provider.defaultBaseURL,
+            baseURL: ProviderEndpointOverrides.baseURL(for: provider),
             metadata: metadata
         )
     }

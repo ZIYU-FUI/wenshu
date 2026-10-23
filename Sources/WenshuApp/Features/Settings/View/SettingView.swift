@@ -73,6 +73,9 @@ struct SettingView: View {
     @State private var apiExpandedProviders: Set<String> = []
     @State private var apiDraftKey: String = ""
     @State private var apiError: String?
+    /// The custom endpoint the user typed for the selected provider.
+    /// Empty = the provider's own default applies.
+    @State private var customBaseURLDraft: String = ""
     // / Global Settings search query (= lives in the sidebar-top TextField,
     // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / replaces the previous provider-only `.searchable(placement: .toolbar)`).
@@ -688,6 +691,7 @@ struct SettingView: View {
                 .pickerStyle(.menu)
                 .onChange(of: providerSlug) { _, _ in
                     liveModelIds = []
+                    customBaseURLDraft = savedCustomBaseURL(for: currentProvider.slug)
                     Task { await reloadModels() }
                 }
 
@@ -697,11 +701,24 @@ struct SettingView: View {
                     }
                 }
                 .pickerStyle(.menu)
+
+                TextField(
+                    String(localized: "settings.model.custom_endpoint_label"),
+                    text: $customBaseURLDraft
+                )
+                .textFieldStyle(.roundedBorder)
+                .textContentType(.URL)
+                .onSubmit { saveCustomBaseURL() }
             } header: {
                 Text(String(localized: "settings.model.main_model_label"))
             } footer: {
-                Text(String(localized: "settings.model.main_model_caption"))
-                    .font(.caption)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(String(localized: "settings.model.main_model_caption"))
+                    Text(String(localized: "settings.model.custom_endpoint_caption"))
+                    Text(currentProvider.defaultBaseURL)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
             // P0-3 fix (= Spec audit): wenshu.llm.reasoningEffort is still READ by
             // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
@@ -746,11 +763,44 @@ struct SettingView: View {
             }
         }
         .formStyle(.grouped)
-        .onAppear { Task { await reloadModels() } }
+        .onAppear {
+            customBaseURLDraft = savedCustomBaseURL(for: currentProvider.slug)
+            Task { await reloadModels() }
+        }
     }
 
     private var modelIdList: [String] {
         liveModelIds.isEmpty ? currentProvider.defaultModels : liveModelIds
+    }
+
+    /// The custom endpoint the user saved for a provider, if any.
+    private func savedCustomBaseURL(for slug: String) -> String {
+        AgentSettingsStore.shared.load().providers.baseURLs[slug] ?? ""
+    }
+
+    /// Persist the custom endpoint and hand it to the package.
+    ///
+    /// An empty field clears the override (= the provider's own default
+    /// applies again). A value that is not a usable URL is rejected and
+    /// the stored override is left alone, so a typo cannot leave the
+    /// provider pointing at nothing.
+    private func saveCustomBaseURL() {
+        let trimmed = customBaseURLDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.isEmpty || Self.isUsableEndpoint(trimmed) else { return }
+        var settings = AgentSettingsStore.shared.load()
+        if trimmed.isEmpty {
+            settings.providers.baseURLs.removeValue(forKey: currentProvider.slug)
+        } else {
+            settings.providers.baseURLs[currentProvider.slug] = trimmed
+        }
+        AgentSettingsStore.shared.save(settings)
+        AgentSettingsStore.installProviderEndpoints()
+    }
+
+    /// Whether a typed endpoint can actually be called.
+    private static func isUsableEndpoint(_ value: String) -> Bool {
+        guard let url = URL(string: value), let host = url.host, !host.isEmpty else { return false }
+        return url.scheme == "http" || url.scheme == "https"
     }
 
     // MARK: - SettingsOps plumbing (= unchanged)

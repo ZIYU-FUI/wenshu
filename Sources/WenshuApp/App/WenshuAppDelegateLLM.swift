@@ -70,6 +70,10 @@ enum WenshuAppDelegateLLMHelpers {
     }
 
     nonisolated static func activeLLMConnector() -> any LLMConnector {
+        // Hand the user's custom endpoints to the package before the
+        // connector is built (= the connector factory reads them when it
+        // resolves its credentials).
+        AgentSettingsStore.installProviderEndpoints()
         let slug = UserDefaults.standard.string(forKey: "wenshu.llm.activeConnector")
         // ProviderCatalog cannot resolve) must fall back to the first provider that has a
         // key in the keychain (= NOT AnthropicConnector). The previous

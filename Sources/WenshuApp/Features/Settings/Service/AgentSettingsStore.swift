@@ -43,6 +43,7 @@ public final class AgentSettingsStore {
         static let contextSettings = "wenshu.agent.context"
         static let toolsSettings = "wenshu.agent.tools"
         static let enabledPresets = "wenshu.agent.tools.enabledPresets"
+        static let providerBaseURLs = "wenshu.agent.providers.baseURLs"
     }
 
     // MARK: - Read
@@ -72,7 +73,43 @@ public final class AgentSettingsStore {
         settings.recovery = decode(RecoverySettings.self, defaults, Key.recoverySettings) ?? settings.recovery
         settings.context = decode(ContextSettings.self, defaults, Key.contextSettings) ?? settings.context
         settings.tools = decode(ToolSettings.self, defaults, Key.toolsSettings) ?? settings.tools
+        settings.providers = decodeProviderSettings(defaults) ?? settings.providers
         return settings
+    }
+
+    /// The custom endpoints, keyed by provider slug.
+    ///
+    /// `UserDefaults.dictionary(forKey:)` returns `[String: Any]`; a value
+    /// that is not a string dictionary is ignored (= the defaults apply)
+    /// rather than crashing the settings screen.
+    private func decodeProviderSettings(_ defaults: UserDefaults) -> ProviderSettings? {
+        guard let raw = defaults.dictionary(forKey: Key.providerBaseURLs) else { return nil }
+        var baseURLs: [String: String] = [:]
+        for (slug, value) in raw {
+            if let url = value as? String {
+                baseURLs[slug] = url
+            }
+        }
+        return ProviderSettings(baseURLs: baseURLs)
+    }
+
+    /// Install the saved custom endpoints where the connector factory reads them.
+    ///
+    /// The package owns the values, the app owns where they are stored, so
+    /// the app hands them over at the edge (= the same pattern as
+    /// `ProviderKeychain.backend`).
+    ///
+    /// Nonisolated so the connector factory can call it: that function
+    /// already reads UserDefaults for the active provider slug.
+    nonisolated static func installProviderEndpoints() {
+        let raw = UserDefaults.standard.dictionary(forKey: Key.providerBaseURLs) ?? [:]
+        var baseURLs: [String: String] = [:]
+        for (slug, value) in raw {
+            if let url = value as? String {
+                baseURLs[slug] = url
+            }
+        }
+        ProviderEndpointOverrides.baseURLs = baseURLs
     }
 
     /// Preset ids the user turned on. Stored apart from the resolved tool
@@ -96,6 +133,7 @@ public final class AgentSettingsStore {
         encode(settings.recovery, defaults, Key.recoverySettings)
         encode(settings.context, defaults, Key.contextSettings)
         encode(settings.tools, defaults, Key.toolsSettings)
+        defaults.set(settings.providers.baseURLs, forKey: Key.providerBaseURLs)
     }
 
     public func saveEnabledPresetIDs(_ ids: [String]) {
