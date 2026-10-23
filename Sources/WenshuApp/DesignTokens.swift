@@ -13,6 +13,18 @@ enum DesignTokens {
     // / TabContentDispatcher.aiChat (= no separate wrapper).
     static let chromeHeight: CGFloat = 30
 
+    /// Height of `ChromeBottomFooter` (= the shared column-bottom bar).
+    ///
+    /// MEASURED, not estimated: rendered the footer offscreen and read
+    /// its fitting height = 32 PT (= 1 divider + 8 + 8 padding + 15
+    /// content row).
+    ///
+    /// The shared component pins its content row to the height that
+    /// leaves this total, so every column's bottom bar is the same size
+    /// whatever the caller puts in the content slot. A zone that hosts
+    /// this footer reserves this much space for it.
+    static let chromeBottomFooterHeight: CGFloat = 32
+
     // / Apple HIG sidebar list-row height (= 22 PT). Distinct from
     // … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / row surface. They are different.
