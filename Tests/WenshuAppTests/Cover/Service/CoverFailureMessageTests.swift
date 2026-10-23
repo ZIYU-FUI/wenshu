@@ -6,7 +6,7 @@
 //  Measured 2026-10-24: a transport failure wrote the raw dump of a
 //  Foundation error into the card
 //
-//      Error Domain=NSURLErrorDomain Code=-1001 "请求超时。"
+//      Error Domain=NSURLErrorDomain Code=-1001 "timed out"
 //      UserInfo={_kCFStreamErrorCodeKey=-2102, ...}
 //
 //  which reads like a program error. The standing requirement is the
