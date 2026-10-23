@@ -266,7 +266,9 @@ public enum SystemPrompt {
         identityEnabled: Bool = true,
         helpGuidanceEnabled: Bool = true,
         includeContextFiles: Bool = true,
-        includeEnvironmentHints: Bool = true
+        includeEnvironmentHints: Bool = true,
+        providerGuidanceEnabled: Bool = true,
+        contextFileMaxChars: Int = 0
     ) -> String {
         var sections: [String] = []
 
@@ -302,7 +304,9 @@ public enum SystemPrompt {
         }
 
         // Per-provider operational guidance.
-        sections.append(providerGuidance(provider: provider))
+        if providerGuidanceEnabled {
+            sections.append(providerGuidance(provider: provider))
+        }
 
         // Environment hints (= PromptBuilder.buildEnvironmentHints(),
         // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
@@ -321,6 +325,7 @@ public enum SystemPrompt {
             let contextFiles = PromptBuilder.buildContextFilesPrompt(
                 cwdPath: FileManager.default.currentDirectoryPath,
                 contextLength: nil,
+                maxChars: contextFileMaxChars,
             )
             if !contextFiles.isEmpty {
                 sections.append(contextFiles)
@@ -498,29 +503,36 @@ public enum SystemPrompt {
 
     // / Universal guidance block (= hermes TASK_COMPLETION_GUIDANCE +
     // / PARALLEL_TOOL_CALL_GUIDANCE + the per-tool guidance blocks).
+    // /
+    // / The blocks name surfaces that exist. A block that told the model
+    // / to call a tool it was not given would produce a call that fails,
+    // / so the wording follows the tools wenshu actually has: the memory
+    // / the runtime injects, and the knowledge tools the model can call.
     private static func toolGuidance(_ name: String) -> String {
         switch name {
         case "memory":
             return """
             Memory guidance:
-            - Use the memory subsystem to remember user preferences, project
-              facts, and prior decisions. Don't fabricate memories; only persist
-              what the user has explicitly stated or what a tool result made
-              durable.
+            - Relevant memories from earlier sessions are already included in
+              the context below. Use them when they bear on the request.
+            - Don't fabricate memories; treat only what is in the context as
+              something the user actually said or decided.
             """
         case "session_search":
             return """
             Session-search guidance:
-            - Use session_search to surface prior sessions when the user
-              asks 'didn't we do this last week?' or similar cross-session
-              recall questions.
+            - Earlier sessions reach you as injected memories, not as a tool
+              call. When the user refers back to something from before, look
+              for it in that memory context first.
             """
         case "skill_manage":
             return """
-            Skill guidance:
-            - Use the skill subsystem to load domain-specific knowledge
-              packs when the user asks for a specialized workflow (e.g.
-              writing a screenplay, producing a battle scene).
+            Knowledge guidance:
+            - Use reference_library to read and extend the user's own
+              reference material, and llm_wiki to research and derive
+              background material for a book.
+            - Load the relevant knowledge before writing when the request
+              depends on domain detail you do not already have.
             """
         default:
             return ""

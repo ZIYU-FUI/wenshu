@@ -343,6 +343,7 @@ extension PromptBuilder {
     public static func buildContextFilesPrompt(
         cwdPath: String = FileManager.default.currentDirectoryPath,
         contextLength: Int? = nil,
+        maxChars: Int? = nil,
     ) -> String {
         // Wenshu-side wins: scan cwd for AGENTS.md only (= hermes scans for AGENTS.md +
         // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
@@ -365,9 +366,12 @@ extension PromptBuilder {
         let stripped = PromptBuilderCaches.stripYamlFrontmatter(sanitized)
         // Apply context-length truncation (= hermes L1756-L1794 = `_truncate_content` +
         // L1187-L1232 = `_dynamic_context_file_max_chars`).
-        let maxChars = PromptBuilderCaches.dynamicContextFileMaxChars(
+        // An explicit cap wins over the window-derived one; zero and nil
+        // both mean "derive from the window".
+        let derivedMaxChars = PromptBuilderCaches.dynamicContextFileMaxChars(
             contextLength: contextLength,
         )
+        let maxChars = maxChars.flatMap { $0 > 0 ? $0 : nil } ?? derivedMaxChars
         let truncated = PromptBuilderCaches.truncateContent(
             content: stripped,
             maxChars: maxChars,

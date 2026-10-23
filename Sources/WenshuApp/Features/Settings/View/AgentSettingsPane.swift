@@ -45,6 +45,7 @@ struct AgentSettingsPane: View {
         Form {
             presetsSection
             toolDetailSection
+            promptSection
             behaviourSection
         }
         .formStyle(.grouped)
@@ -168,6 +169,57 @@ struct AgentSettingsPane: View {
         case .system:
             return String(localized: "settings.agent.category.system")
         }
+    }
+
+    // MARK: - Prompt guidance
+
+    /// Which parts of the system prompt the agent gets.
+    ///
+    /// Every row here changes the prompt the model sees on the next turn.
+    /// The footers say what each switch costs, because a switch labelled
+    /// only by name teaches nothing about what turning it off gives up.
+    private var promptSection: some View {
+        Section {
+            Toggle(String(localized: "settings.agent.prompt.identity"), isOn: promptBinding(\.identityEnabled))
+            Toggle(String(localized: "settings.agent.prompt.providerGuidance"), isOn: promptBinding(\.providerGuidanceEnabled))
+            Toggle(String(localized: "settings.agent.prompt.memoryGuidance"), isOn: promptBinding(\.memoryGuidanceEnabled))
+            Toggle(String(localized: "settings.agent.prompt.knowledgeGuidance"), isOn: promptBinding(\.skillGuidanceEnabled))
+            Toggle(String(localized: "settings.agent.prompt.toolGuidance"), isOn: promptBinding(\.toolGuidanceEnabled))
+            Toggle(String(localized: "settings.agent.prompt.helpGuidance"), isOn: promptBinding(\.helpGuidanceEnabled))
+            Toggle(String(localized: "settings.agent.prompt.projectContext"), isOn: promptBinding(\.includeProjectContextFiles))
+            Toggle(String(localized: "settings.agent.prompt.bookContext"), isOn: promptBinding(\.includeBookContext))
+            Toggle(String(localized: "settings.agent.prompt.environmentHints"), isOn: promptBinding(\.includeEnvironmentHints))
+            Stepper(
+                value: contextCapBinding,
+                in: 0...200_000,
+                step: 5_000
+            ) {
+                Text(String(localized: "settings.agent.prompt.contextCap"))
+            }
+        } header: {
+            Text(String(localized: "settings.agent.prompt.title"))
+        } footer: {
+            Text(String(localized: "settings.agent.prompt.footer"))
+        }
+    }
+
+    private func promptBinding(_ keyPath: WritableKeyPath<PromptSettings, Bool>) -> Binding<Bool> {
+        Binding(
+            get: { draft.prompt[keyPath: keyPath] },
+            set: { draft.prompt[keyPath: keyPath] = $0; AgentSettingsStore.shared.save(draft) }
+        )
+    }
+
+    /// The cap on a project context file, in characters.
+    ///
+    /// Zero means "derive it from the model's context window", which is
+    /// what the package does when the value is zero, so the stepper's
+    /// zero reads as "no cap of my own".
+    private var contextCapBinding: Binding<Int> {
+        Binding(
+            get: { draft.prompt.projectContextFileMaxChars },
+            set: { draft.prompt.projectContextFileMaxChars = $0; AgentSettingsStore.shared.save(draft) }
+        )
     }
 
     // MARK: - Behaviour

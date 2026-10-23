@@ -32,6 +32,16 @@ public final class AgentSettingsStore {
     /// version can migrate one field without rewriting the rest.
     private enum Key {
         static let visibleTools = "wenshu.agent.prompt.visibleTools"
+        static let promptIdentityEnabled = "wenshu.agent.prompt.identityEnabled"
+        static let promptProviderGuidanceEnabled = "wenshu.agent.prompt.providerGuidanceEnabled"
+        static let promptMemoryGuidanceEnabled = "wenshu.agent.prompt.memoryGuidanceEnabled"
+        static let promptSkillGuidanceEnabled = "wenshu.agent.prompt.skillGuidanceEnabled"
+        static let promptToolGuidanceEnabled = "wenshu.agent.prompt.toolGuidanceEnabled"
+        static let promptHelpGuidanceEnabled = "wenshu.agent.prompt.helpGuidanceEnabled"
+        static let promptIncludeProjectContextFiles = "wenshu.agent.prompt.includeProjectContextFiles"
+        static let promptIncludeBookContext = "wenshu.agent.prompt.includeBookContext"
+        static let promptIncludeEnvironmentHints = "wenshu.agent.prompt.includeEnvironmentHints"
+        static let promptProjectContextFileMaxChars = "wenshu.agent.prompt.projectContextFileMaxChars"
         static let memoryBackend = "wenshu.agent.memory.backend"
         static let memoryRetentionDays = "wenshu.agent.memory.retentionDays"
         static let memoryMaxEntries = "wenshu.agent.memory.maxEntries"
@@ -55,6 +65,16 @@ public final class AgentSettingsStore {
 
         var prompt = settings.prompt
         prompt.visibleTools = decodeStringSet(defaults, Key.visibleTools) ?? prompt.visibleTools
+        prompt.identityEnabled = decodeBool(defaults, Key.promptIdentityEnabled) ?? prompt.identityEnabled
+        prompt.providerGuidanceEnabled = decodeBool(defaults, Key.promptProviderGuidanceEnabled) ?? prompt.providerGuidanceEnabled
+        prompt.memoryGuidanceEnabled = decodeBool(defaults, Key.promptMemoryGuidanceEnabled) ?? prompt.memoryGuidanceEnabled
+        prompt.skillGuidanceEnabled = decodeBool(defaults, Key.promptSkillGuidanceEnabled) ?? prompt.skillGuidanceEnabled
+        prompt.toolGuidanceEnabled = decodeBool(defaults, Key.promptToolGuidanceEnabled) ?? prompt.toolGuidanceEnabled
+        prompt.helpGuidanceEnabled = decodeBool(defaults, Key.promptHelpGuidanceEnabled) ?? prompt.helpGuidanceEnabled
+        prompt.includeProjectContextFiles = decodeBool(defaults, Key.promptIncludeProjectContextFiles) ?? prompt.includeProjectContextFiles
+        prompt.includeBookContext = decodeBool(defaults, Key.promptIncludeBookContext) ?? prompt.includeBookContext
+        prompt.includeEnvironmentHints = decodeBool(defaults, Key.promptIncludeEnvironmentHints) ?? prompt.includeEnvironmentHints
+        prompt.projectContextFileMaxChars = defaults.object(forKey: Key.promptProjectContextFileMaxChars) as? Int ?? prompt.projectContextFileMaxChars
         settings.prompt = prompt
 
         var memory = settings.memory
@@ -123,6 +143,16 @@ public final class AgentSettingsStore {
 
     public func save(_ settings: AgentSettings) {
         defaults.set(Array(settings.prompt.visibleTools).sorted(), forKey: Key.visibleTools)
+        defaults.set(settings.prompt.identityEnabled, forKey: Key.promptIdentityEnabled)
+        defaults.set(settings.prompt.providerGuidanceEnabled, forKey: Key.promptProviderGuidanceEnabled)
+        defaults.set(settings.prompt.memoryGuidanceEnabled, forKey: Key.promptMemoryGuidanceEnabled)
+        defaults.set(settings.prompt.skillGuidanceEnabled, forKey: Key.promptSkillGuidanceEnabled)
+        defaults.set(settings.prompt.toolGuidanceEnabled, forKey: Key.promptToolGuidanceEnabled)
+        defaults.set(settings.prompt.helpGuidanceEnabled, forKey: Key.promptHelpGuidanceEnabled)
+        defaults.set(settings.prompt.includeProjectContextFiles, forKey: Key.promptIncludeProjectContextFiles)
+        defaults.set(settings.prompt.includeBookContext, forKey: Key.promptIncludeBookContext)
+        defaults.set(settings.prompt.includeEnvironmentHints, forKey: Key.promptIncludeEnvironmentHints)
+        defaults.set(settings.prompt.projectContextFileMaxChars, forKey: Key.promptProjectContextFileMaxChars)
         defaults.set(settings.memory.backend.rawValue, forKey: Key.memoryBackend)
         defaults.set(settings.memory.enabled, forKey: Key.memoryEnabled)
         defaults.set(settings.memory.retentionDays, forKey: Key.memoryRetentionDays)
@@ -154,6 +184,14 @@ public final class AgentSettingsStore {
     private func decodeStringSet(_ defaults: UserDefaults, _ key: String) -> Set<String>? {
         guard let values = defaults.stringArray(forKey: key) else { return nil }
         return Set(values)
+    }
+
+    /// A stored switch, or nil when it was never written.
+    ///
+    /// A value that is not a bool is ignored rather than crashing the
+    /// settings screen: a corrupt entry reads as the default.
+    private func decodeBool(_ defaults: UserDefaults, _ key: String) -> Bool? {
+        defaults.object(forKey: key) as? Bool
     }
 
     private func decodeBackend(_ defaults: UserDefaults, _ key: String) -> MemoryBackend? {

@@ -111,7 +111,12 @@ public actor ConversationLoop {
         persistUserMessage: String? = nil,
         persistUserTimestamp: TimeInterval? = nil,
         moaConfig: MOAConfig? = nil,
-        toolSchemas: [ToolRegistrySchema] = []
+        toolSchemas: [ToolRegistrySchema] = [],
+        // The user's settings for this turn. The prompt assembly reads
+        // them (= the guidance switches, the recovery policy, the memory
+        // backend), so a turn that leaves them out runs on the defaults
+        // no matter what the user chose.
+        settings: AgentSettings = .init()
     ) async throws -> ConversationResult {
         let resolvedTaskId = taskId ?? UUID().uuidString
 
@@ -142,7 +147,8 @@ public actor ConversationLoop {
         // anywhere in the source tree.
         let effectiveSystemPrompt = await composeSystemPrompt(
             override: systemMessage,
-            persistent: systemPrompt
+            persistent: systemPrompt,
+            settings: settings
         )
 
         // Build call options (= model defaults to first defaultModel of
@@ -270,7 +276,13 @@ public actor ConversationLoop {
                     conversationHistory: compressed,
                     taskId: resolvedTaskId,
                     streamCallback: streamCallback,
-                    toolSchemas: toolSchemas
+                    toolSchemas: toolSchemas,
+                    // The settings for THIS turn (= the prompt guidance the
+                    // user chose, the recovery policy, the memory backend).
+                    // Without them the base path assembles the prompt from
+                    // the defaults, so a switch the user flipped would do
+                    // nothing until the turn took the tool branch.
+                    settings: settings
                 )
 
                 // step 5: "Parsing response". The LLM
@@ -832,7 +844,14 @@ public actor ConversationLoop {
 
         // Stable tier: always the byte-stable identity (no caller override
         // path for the stable tier — stable tier is byte-stable BY DEFINITION).
-        let stable = SystemPrompt.stableTier()
+        //
+        // The user's prompt settings decide which guidance blocks appear.
+        // Without them the tier is assembled from fixed values, so a switch
+        // the user flipped in the settings screen changes nothing.
+        let stable = PromptTierBuilder.stableTier(
+            settings: settings.prompt,
+            provider: SystemPrompt.ProviderGuidance(providerSlug: connector.connectorID)
+        )
 
         // Dynamic tier: composed via PromptBuilder (= the GAP-001 path).
         // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
