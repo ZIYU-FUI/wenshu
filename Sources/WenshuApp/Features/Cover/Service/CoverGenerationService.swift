@@ -54,6 +54,10 @@ final class CoverGenerationService {
     /// a network call.
     private let imageClient: CoverImageClient
 
+    /// The reduction of a document to the objects its picture is made
+    /// of, injected so the service can be tested without a text call.
+    private let motifExtractor: CoverMotifExtracting
+
     /// The app's current provider slug, read when a route is auto.
     ///
     /// This is the same key the settings pane writes
@@ -64,6 +68,7 @@ final class CoverGenerationService {
     init(
         routeStore: CoverServiceRouteStore = CoverServiceRouteStore(),
         imageClient: CoverImageClient = CoverImageGenerator(),
+        motifExtractor: CoverMotifExtracting = CoverMotifExtractor(),
         currentProviderSlug: @escaping () -> String? = {
             UserDefaults.standard.string(forKey: "wenshu.llm.provider")
         }
@@ -71,6 +76,7 @@ final class CoverGenerationService {
         self.coverService = CardCoverService()
         self.routeStore = routeStore
         self.imageClient = imageClient
+        self.motifExtractor = motifExtractor
         self.currentProviderSlug = currentProviderSlug
     }
 
@@ -93,10 +99,16 @@ final class CoverGenerationService {
     ///
     /// - Parameters:
     ///   - target: the card.
-    ///   - subject: what the picture should show. The art direction
-    ///     is prepended, so the caller supplies the subject and the
-    ///     style comes from the one constant.
-    func generateCover(for target: CardCoverTarget, subject: String) async {
+    ///   - title: the document's own title.
+    ///   - summary: the document's own short summary.
+    ///
+    /// The document is REDUCED to its motifs before it is drawn
+    /// (= CoverMotifExtractor), because the image model draws a small
+    /// arrangement of named objects and not a document: handed the
+    /// whole thing it paints a landscape and drops most of what it
+    /// was asked for. The art direction is the one constant; the
+    /// motifs are what varies.
+    func generateCover(for target: CardCoverTarget, title: String, summary: String) async {
         let key = target.coverKey
         guard !inFlight.contains(key) else { return }
         inFlight.insert(key)
@@ -112,11 +124,12 @@ final class CoverGenerationService {
                 route,
                 currentProviderSlug: currentProviderSlug()
             )
-            let prompt = CoverArtDirection.prompt(subject: subject)
+            let motifs = try await motifExtractor.extract(title: title, summary: summary)
+            let prompt = CoverArtDirection.prompt(title: title, motifs: motifs)
             let jpeg = try await imageClient.generateCover(subject: prompt)
             let banner = try CardCoverImageEncoder.decode(jpeg)
             let heic = try CardCoverImageEncoder.encode(bannerImage: banner)
-            try coverService.saveImage(heic, forKey: key, kind: target.kind)
+            try coverService.saveImage(heic, forKey: key, kind: target.kind, motifs: motifs)
         } catch {
             // A failed generation leaves the previous picture in place.
             // The card keeps what it had; the error is recorded so the

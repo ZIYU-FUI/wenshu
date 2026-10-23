@@ -44,9 +44,13 @@ final class CoverPaneServices {
     let autoTrigger: CoverAutoTrigger
 
     init(
-        imageClient: CoverImageClient = CoverImageGenerator()
+        imageClient: CoverImageClient = CoverImageGenerator(),
+        motifExtractor: CoverMotifExtracting = CoverMotifExtractor()
     ) {
-        let generation = CoverGenerationService(imageClient: imageClient)
+        let generation = CoverGenerationService(
+            imageClient: imageClient,
+            motifExtractor: motifExtractor
+        )
         self.generation = generation
         self.batch = CoverBatchService(generationService: generation)
         self.autoTrigger = CoverAutoTrigger(generationService: generation)

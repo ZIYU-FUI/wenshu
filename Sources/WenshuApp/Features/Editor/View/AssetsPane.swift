@@ -61,7 +61,8 @@ struct AssetsPane: View {
         let referenceItems = references.map { reference in
             CoverCandidate(
                 target: .reference(reference.id),
-                subject: "\(reference.title). \(reference.summary)",
+                title: reference.title,
+                summary: reference.summary,
                 createdAt: reference.createdAt
             )
         }
@@ -77,7 +78,8 @@ struct AssetsPane: View {
             bookItems += docs.map { doc in
                 CoverCandidate(
                     target: .bookDoc(doc.id),
-                    subject: "\(doc.title). \(doc.summary)",
+                    title: doc.title,
+                    summary: doc.summary,
                     createdAt: doc.createdAt
                 )
             }

@@ -132,7 +132,8 @@ final class CoverBatchService {
 
             await generationService.generateCover(
                 for: item.target,
-                subject: item.subject
+                title: item.title,
+                summary: item.summary
             )
 
             // The generation either stored a cover or it did not. A
