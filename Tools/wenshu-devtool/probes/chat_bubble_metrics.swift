@@ -16,10 +16,17 @@
 //    It renders the production chain around the subject text into an
 //    offscreen NSHostingView at the reference host width, then reads the
 //    pixels of the rendered fill. The production tokens (spacingModerate,
-//    controlHeightLarge) are parsed out of DesignTokens.swift and the
-//    production shape rule (radius = min(height / 2, controlHeightLarge / 2))
+//    controlHeightLarge, chatBubbleMaxWidth) are parsed out of
+//    DesignTokens.swift and the production shape rule
+//    (radius = min(height / 2, controlHeightLarge))
 //    is reproduced from ChatSurfaceShape.swift, so a token change moves the
 //    number instead of leaving a stale one behind.
+//
+//    Every fragment the probe reproduces is CHECKED against the live source
+//    before any number is printed. If the production source no longer
+//    matches what the probe reproduces, the probe prints the mismatch and
+//    reports NO number, because a number that cannot be tied to the source
+//    is worse than no number.
 //
 //    The corner radius is fitted, not guessed: the boundary pixels of the
 //    top-left and top-right corners are collected and a circle is fitted to
@@ -39,10 +46,15 @@
 //    therefore paints the production SHAPE in a colour it can recognise and
 //    measures the geometry, which the fill colour does not affect.
 //
-//    The bubble's background is painted after .frame(maxWidth: .infinity),
-//    so the fill covers the whole chat column and not the text's width.
+//    The bubble's background is painted BEFORE the width cap, so the fill
+//    covers the text's width and not the whole chat column.
 //    Reading the text's width answers a different question; the probe
 //    reports both the fill's width and the subject's own inked width.
+//
+//    The ORDER of the modifiers is the subject of the measurement, so the
+//    probe reproduces the production order exactly. A probe that renders a
+//    different order measures a different shape and reports a confident
+//    wrong number.
 //
 //  Read-only: the probe reads the app's source files, renders into memory
 //  and prints to stdout. It creates, moves and deletes no file.
@@ -141,10 +153,12 @@ func sourceChecks(_ source: ProductionSource) -> [(name: String, ok: Bool)] {
     return [
         ("DesignTokens.spacingModerate", tokens.contains("static let spacingModerate: CGFloat =")),
         ("DesignTokens.controlHeightLarge", tokens.contains("static let controlHeightLarge: CGFloat =")),
+        ("DesignTokens.chatBubbleMaxWidth", tokens.contains("static let chatBubbleMaxWidth: CGFloat =")),
         ("ChatSurfaceShape radius rule", shape.contains("let radius = min(rect.height / 2, maxCorner)")),
-        ("ChatSurfaceShape corner cap", shape.contains("maxCorner = DesignTokens.controlHeightLarge / 2")),
+        ("ChatSurfaceShape corner cap", shape.contains("maxCorner = DesignTokens.controlHeightLarge")),
         ("ChatMessageView padding", message.contains(".padding(.horizontal, DesignTokens.spacingModerate)")),
-        ("ChatMessageView frame", message.contains(".frame(maxWidth: .infinity, minHeight: DesignTokens.controlHeightLarge, alignment: .leading)")),
+        ("ChatMessageView frame", message.contains(".frame(minHeight: DesignTokens.controlHeightLarge, alignment: .leading)")),
+        ("ChatMessageView width cap", message.contains(".frame(maxWidth: DesignTokens.chatBubbleMaxWidth, alignment: .trailing)")),
         ("ChatMessageView background", message.contains(".background( ChatSurfaceShape()") && message.contains(".fill(Color(nsColor: ChatUserBubblePalette.surface))")),
     ]
 }
@@ -158,6 +172,7 @@ struct BubbleUnderTest: View {
     let horizontalPadding: CGFloat
     let restingHeight: CGFloat
     let cornerCap: CGFloat
+    let maxWidth: CGFloat
 
     var body: some View {
         Text(subject)
@@ -166,16 +181,23 @@ struct BubbleUnderTest: View {
             // extent does not depend on the colour.
             .foregroundStyle(Color.black)
             .padding(.horizontal, horizontalPadding)
-            .frame(maxWidth: .infinity, minHeight: restingHeight, alignment: .leading)
+            // The ORDER here is the production order, and it is the
+            // subject of the measurement: the fill is painted BEFORE the
+            // width cap, so the fill hugs the words and the cap only
+            // bounds the result. A fill painted after a greedy frame
+            // would span the whole frame instead.
+            .frame(minHeight: restingHeight, alignment: .leading)
             .background(
                 ProductionSurfaceShape(cornerCap: cornerCap)
                     .fill(Color(nsColor: detectorColor))
             )
+            .frame(maxWidth: maxWidth, alignment: .trailing)
     }
 }
 
 /// The production shape of ChatSurfaceShape.swift: the radius tracks half
-/// the height up to the cap, so a resting surface reads as a capsule.
+/// the height up to the cap, so a resting surface reads as a capsule. The
+/// cap is the production cap (= `controlHeightLarge`), NOT half of it.
 struct ProductionSurfaceShape: Shape {
     let cornerCap: CGFloat
 
@@ -458,18 +480,24 @@ func run(subject: String, hostWidth: CGFloat) -> Int {
     }
 
     guard let padding = source.token("spacingModerate"),
-          let restingHeight = source.token("controlHeightLarge")
+          let restingHeight = source.token("controlHeightLarge"),
+          let maxWidth = source.token("chatBubbleMaxWidth")
     else {
         print("source_check: MISMATCH (the production tokens could not be read)")
         return 2
     }
-    let cornerCap = restingHeight / 2
+    // The corner cap is the production cap, NOT half the resting height:
+    // ChatSurfaceShape assigns `maxCorner = controlHeightLarge` and the
+    // radius is `min(height / 2, maxCorner)`, so the cap IS the resting
+    // height. Halving it here would measure a shape the app never draws.
+    let cornerCap = restingHeight
 
     let bubble = BubbleUnderTest(
         subject: subject,
         horizontalPadding: CGFloat(padding),
         restingHeight: CGFloat(restingHeight),
-        cornerCap: CGFloat(cornerCap)
+        cornerCap: CGFloat(cornerCap),
+        maxWidth: CGFloat(maxWidth)
     )
     guard let bitmap = render(bubble, width: hostWidth, height: referenceHostHeight),
           let box = paintedBox(bitmap)
