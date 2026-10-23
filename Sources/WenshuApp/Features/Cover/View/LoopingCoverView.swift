@@ -164,6 +164,10 @@ struct LoopingCoverView: View {
     private func stop() {
         guard let player else { return }
         player.pause()
+        // The clip is only rewound when it is ready: a clip that is
+        // still loading has no time to rewind to, and asking for one
+        // leaves CoreMedia with a NaN where a time should be.
+        guard player.currentItem?.status == .readyToPlay else { return }
         player.seek(to: .zero, toleranceBefore: .zero, toleranceAfter: .zero)
     }
 
