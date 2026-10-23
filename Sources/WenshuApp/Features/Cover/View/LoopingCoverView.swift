@@ -2,11 +2,19 @@
 //  Features/Cover/View/LoopingCoverView.swift
 //
 //   : LoopingCoverView.
-//  Plays a card's cover clip on hover.
+//  Plays a card's cover clip, on a click.
 //
-//  The clip is STILL by default. A grid of moving clips is noise, and
-//  it costs CPU, so the clip starts when the pointer arrives and
-//  stops when it leaves.
+//  The clip is STILL by default, and it starts when the POINTER
+//  arrives. That is how it has always worked and it is how the card
+//  says what it can do.
+//
+//  The card carries a small mark in its corner (= the one the Photos
+//  app puts on a picture that moves) so the user can see which cards
+//  move. The mark is a HINT and not a control: a big button on top of
+//  the picture would cover the picture, and macOS has no small
+//  centred play control to borrow either (= `AVPlayerView` was
+//  measured in every one of its styles at the size of a cover slot
+//  and none of them shows a centred play button).
 //
 //  THE LOOP IS FORWARD, and the loop is the framework's own
 //  (`AVPlayerLooper`). The app used to play the clip BACKWARD at its
@@ -30,7 +38,29 @@ import AVFoundation
 import AppKit
 import SwiftUI
 
-/// A card's cover clip, playing on hover.
+/// The control that starts and stops a card's cover clip.
+///
+/// It is a small PURE type, so the truth table can be tested without a
+/// player and without a video file: which symbol the control shows,
+/// and what it does when it is pressed.
+enum CoverClipControl {
+
+    /// The size of the badge, in points.
+    ///
+    /// It is a HINT and not a control, so it is small: a corner mark
+    /// that says the card moves, the way the Photos app marks a Live
+    /// Photo. It must not compete with the picture.
+    static let badgeSize: CGFloat = 14
+
+    /// The symbol the badge shows.
+    ///
+    /// `livephoto` is the mark the Photos app puts on a picture that
+    /// moves, so the card says the same thing with the system's own
+    /// symbol.
+    static let symbol = "livephoto"
+}
+
+/// A card's cover clip, playing on a click.
 struct LoopingCoverView: View {
 
     /// The clip's URL, or nil when the card has no clip.
@@ -81,6 +111,8 @@ struct LoopingCoverView: View {
     /// It is held because the framework's looper keeps the copies of
     /// the clip alive only while something holds it.
     @State private var looper: AVPlayerLooper?
+
+
 
     var body: some View {
         ZStack {

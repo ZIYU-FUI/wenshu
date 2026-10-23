@@ -96,7 +96,8 @@ final class CoverAutoTrigger {
             createdAt: createdAt,
             hasCover: hasCover,
             kind: target.kind,
-            now: now
+            now: now,
+            coverIsCurrent: !hasCover || coverService.coverPictureIsCurrent(forKey: target.coverKey)
         ) else {
             return false
         }

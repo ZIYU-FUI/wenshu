@@ -58,7 +58,7 @@ struct CoverImageGenerator: CoverImageClient {
     /// The requested size. The endpoint's minimum is 512 on both
     /// sides; the stored banner is cropped to 768x320 locally.
     static let requestWidth = 1024
-    static let requestHeight = 512
+    static let requestHeight = 768
 
     /// The provider whose key and quota pay for a cover. Resolved
     /// through the public `Provider.by(slug:)` accessor, because the

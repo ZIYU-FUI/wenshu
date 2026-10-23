@@ -119,7 +119,13 @@ final class CoverBatchService {
 
             // A document that already has a cover is skipped, so the
             // run does not spend the allowance on work already done.
-            if coverService.coverImageURL(for: item.target.coverKey) != nil {
+            //
+            // A cover in the OLD shape is not skipped: the card is a
+            // different shape now, and the old picture is trimmed by
+            // it. The rule is self-limiting (= the new picture has the
+            // new shape), so it costs one picture per document, once.
+            if coverService.coverImageURL(for: item.target.coverKey) != nil,
+               coverService.coverPictureIsCurrent(forKey: item.target.coverKey) {
                 progress.skipped += 1
                 continue
             }
