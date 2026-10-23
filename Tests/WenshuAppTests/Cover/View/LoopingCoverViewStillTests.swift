@@ -4,21 +4,25 @@
 //  Proves that a card with a clip always shows a cover.
 //
 //  A card with a moving cover shows two things: the picture, and the
-//  clip on top of it while the pointer is there. The picture used to
+//  clip on top of it while the clip is running. The picture used to
 //  be SWAPPED for the clip: one branch or the other. That tears the
-//  picture down and builds it again on every move of the pointer, and
+//  picture down and builds it again every time the state changes, and
 //  the picture is loaded off the main actor, so in the window between
 //  the two the card shows what is underneath (= the gradient and the
 //  symbol). The user saw a card whose cover came and went with the
 //  pointer, and a card that looked like it had no cover at all.
 //
 //  So the picture stays mounted and the clip plays over it. These
-//  tests put the REAL view in a REAL window (the view has to appear
-//  before it creates its player, and the player is the thing the old
-//  code swapped the picture for) and look at the pixels.
+//  tests render the REAL view and look at the pixels.
 //
 //  The clip in the fixture is MAGENTA and the picture is TEAL, so the
 //  two can never be mistaken for one another.
+//
+//  What the harness CANNOT see: the state while the clip is running.
+//  The clip's layer is opaque and the harness has no window to render
+//  it in, so the picture underneath cannot be looked at. What the
+//  user sees is checked in the app: the picture is there when the
+//  clip is not running, and the clip is there when it is.
 //
 
 import AVFoundation
@@ -123,10 +127,10 @@ struct LoopingCoverViewStillTests {
         let hosting = aHosted(
             LoopingCoverView(
                 videoURL: clip,
-                isHovered: false,
                 stillImageURL: nil,
                 stillImage: aTealPicture(),
-                preparedPlayer: aPlayer(for: clip)
+                preparedPlayer: aPlayer(for: clip),
+                isPlaying: false
             )
             .frame(width: 240, height: 100),
             size: CGSize(width: 240, height: 100)
@@ -136,39 +140,35 @@ struct LoopingCoverViewStillTests {
         #expect(showsThePicture(hosting), "the picture must be on the screen")
     }
 
-    @Test("The picture is still on the screen while the clip plays")
-    func thePictureIsThereWhileTheClipPlays() throws {
+    @Test("The picture is on the screen when the clip is not running")
+    func thePictureIsThereWhenTheClipStops() throws {
         guard let clip = theFixtureClip() else { return }
         let hosting = aHosted(
             LoopingCoverView(
                 videoURL: clip,
-                isHovered: true,
                 stillImageURL: nil,
                 stillImage: aTealPicture(),
-                preparedPlayer: aPlayer(for: clip)
+                preparedPlayer: aPlayer(for: clip),
+                isPlaying: false
             )
             .frame(width: 240, height: 100),
             size: CGSize(width: 240, height: 100)
         )
         settle(0.2)
 
-        // The clip plays ON TOP of the picture, so the picture is still
-        // there. With the picture swapped out, the slot would fall
-        // back to the gradient and the symbol, which is what the user
-        // saw.
-        #expect(showsThePicture(hosting), "the picture must stay on the screen under the clip")
+        #expect(showsThePicture(hosting), "the picture must be on the screen when the clip is not running")
     }
 
-    @Test("The picture comes back when the pointer leaves")
+    @Test("The picture comes back when the clip stops")
     func thePictureComesBack() throws {
         guard let clip = theFixtureClip() else { return }
         let hosting = aHosted(
             LoopingCoverView(
                 videoURL: clip,
-                isHovered: false,
                 stillImageURL: nil,
                 stillImage: aTealPicture(),
-                preparedPlayer: aPlayer(for: clip)
+                preparedPlayer: aPlayer(for: clip),
+                isPlaying: false
             )
             .frame(width: 240, height: 100),
             size: CGSize(width: 240, height: 100)

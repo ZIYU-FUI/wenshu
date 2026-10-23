@@ -5697,6 +5697,40 @@
         }
       }
     },
+    "cover.pause_clip": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pause the moving cover"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暂停动态封面"
+          }
+        }
+      }
+    },
+    "cover.play_clip": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Play the moving cover"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "播放动态封面"
+          }
+        }
+      }
+    },
     "cover_context_menu_failed": {
       "extractionState": "manual",
       "localizations": {
