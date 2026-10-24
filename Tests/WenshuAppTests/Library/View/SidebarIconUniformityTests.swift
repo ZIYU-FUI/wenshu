@@ -43,10 +43,14 @@ struct SidebarIconUniformityTests {
         // properties (sidebarWidth / sidebarInset) are scoped to
         // the sidebar surface (= not attached to every case via
         // an extension on IconStyle).
-        #expect(source.contains("case sidebar") || source.contains("case .sidebar"))
+        // The `IconStyle` enum lives in IconStyles.swift (= the
+        // view file holds the views that consume the cases). The case
+        // itself is unchanged: `case sidebar` is still there.
+        let iconStyles = try Self.source("Sources/WenshuApp/Shared/UI/IconStyles.swift")
+        #expect(iconStyles.contains("case sidebar") || iconStyles.contains("case .sidebar"))
         let rowSource = try Self.sourceSlice(
             from: "struct SFLabelRow: View {",
-            to: "// MARK: - SFStatusBadge"
+            in: "Sources/WenshuApp/Shared/UI/IconStylesViews.swift"
         )
         #expect(!rowSource.contains("Image(systemName: systemImage)"))
     }
@@ -62,19 +66,28 @@ struct SidebarIconUniformityTests {
         // they're explicit (= not piggy-backed on every case).
         #expect(source.contains("var sidebarWidth: CGFloat { 16 }"))
         #expect(source.contains("var sidebarInset: CGFloat { 2 }"))
-        // SFLabelRow defaults to .sidebar (not .small) so a
+        // SFLabelRow defaults to .sidebarTree (not .small) so a
         // caller that doesn't pass iconStyle still hits the
-        // canonical sidebar surface.
-        #expect(source.contains("iconStyle: IconStyle = .sidebarTree") || source.contains("iconStyle: IconStyle = .sidebar"))
+        // canonical sidebar surface. The default parameter lives
+        // with the view (= IconStylesViews.swift), not with the
+        // enum.
+        let views = try Self.source("Sources/WenshuApp/Shared/UI/IconStylesViews.swift")
+        #expect(views.contains("iconStyle: IconStyle = .sidebarTree") || views.contains("iconStyle: IconStyle = .sidebar"))
     }
 
-    private static func sourceSlice(from start: String, to end: String) throws -> String {
-        let source = try source("Sources/WenshuApp/Shared/UI/IconStyles.swift")
-        guard let startRange = source.range(of: start),
-              let endRange = source.range(of: end, range: startRange.upperBound..<source.endIndex) else {
+    private static func sourceSlice(
+        from start: String,
+        in relativePath: String
+    ) throws -> String {
+        let source = try source(relativePath)
+        guard let startRange = source.range(of: start) else {
             throw CocoaError(.fileReadCorruptFile)
         }
-        return String(source[startRange.lowerBound..<endRange.lowerBound])
+        // The slice runs to the end of the file: the declaration is
+        // the last one in it, so there is no following MARK to bound
+        // it (the old `// MARK: - SFStatusBadge` bound sat BEFORE it
+        // and could never be found after the start marker).
+        return String(source[startRange.lowerBound...])
     }
 
     private static func source(_ relativePath: String) throws -> String {

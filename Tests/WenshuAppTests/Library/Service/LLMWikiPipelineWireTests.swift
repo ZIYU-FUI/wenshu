@@ -14,6 +14,15 @@
 //    3. UI trigger (= the reference-library inspector's
 //       'Re-derive wiki' button for the operator).
 //
+//  Only (1) is live. The auto-call hook (ed03f21bcd) was removed by
+//  the SwiftData migration (2a08897eba) and is not restored: the
+//  layers it wrote (layerAbstracts / layerIndexes) are filtered out
+//  of the agent's read surface, so a save-time derivation would
+//  write two layers nothing reads. The UI trigger has no caller
+//  either. Per the boss's business goal (= documents become the
+//  constraints for later writing) the summary belongs on
+//  Reference.summary, which the agent already reads.
+//
 //  Three source-level tests pin the canonical shape:
 //
 //    1. testLLMWikiOpsExposesEntryPoints — LLMWikiOps exposes
@@ -24,10 +33,9 @@
 //       WenshuConductor.defaultToolNames contains "llm_wiki"
 //       (= the agent's tool-call entry).
 //
-//    3. testReferenceStoreAutoCallsLLMWikiOpsOnCreate —
-//       FileSystemReferenceStore.create triggers
-//       LLMWikiOps.runDerivation (= the agent's auto-call hook
-//       per boss OOB '需要不完整').
+//    3. testReferenceStoreDoesNotAutoCallLLMWikiOpsOnCreate —
+//       FileSystemReferenceStore does NOT auto-derive (= the
+//       derived layers have no reader, so the auto-call stays off).
 //
 //  Per Q34 5.2 + Q173 ponytail + Q186 + Q57 + Q112: source-level
 //  tests following the v1.44 specialized-tools P1 hermes-port
@@ -89,16 +97,24 @@ struct LLMWikiPipelineWireTests {
                 "WenshuConductor.defaultToolNames must contain \"llm_wiki\"")
     }
 
-    @Test("LLMWikiTool exists + FileSystemReferenceStore.create auto-calls LLMWikiOps (= manual + auto surfaces wired)")
-    func testReferenceStoreAutoCallsLLMWikiOpsOnCreate() throws {
+    @Test("LLMWikiTool exists + the reference store does NOT auto-derive (= the derived layers have no reader)")
+    func testReferenceStoreDoesNotAutoCallLLMWikiOpsOnCreate() throws {
         // LLMWikiTool exists (= manual-call surface for LLM).
         let toolSource = try? String(contentsOfFile: llmWikiToolPath, encoding: .utf8)
         #expect(toolSource != nil,
                 "LLMWikiTool.swift must exist (= the manual-call surface)")
-        // FileSystemReferenceStore auto-calls LLMWikiOps (= the
-        // event-driven auto-call hook per boss OOB B10).
+        // The auto-call hook stays OFF. It was added by ed03f21bcd and
+        // removed by 2a08897eba (the SwiftData migration) without a
+        // stated reason; it was dead weight, not a live feature:
+        // the derived layers (layerAbstracts / layerIndexes) are
+        // filtered out of the agent's read surface
+        // (ReferenceLibraryTool.parseLayerIfUserFacing accepts only
+        // `raw` + `entities`), so a save-time derivation would write
+        // two layers nothing reads. The manual surface (the agent
+        // calls llm_wiki -> LLMWikiOps.runAll / runDerivation) is the
+        // path that exists.
         let storeSource = try String(contentsOfFile: fileSystemReferenceStorePath, encoding: .utf8)
-        #expect(storeSource.contains("LLMWikiOps"),
-                "FileSystemReferenceStore must call LLMWikiOps.runDerivation on create (= the agent's auto-call hook)")
+        #expect(!storeSource.contains("LLMWikiOps"),
+                "FileSystemReferenceStore must not auto-call LLMWikiOps (= the derived layers have no reader, so a save-time derivation writes layers nothing reads)")
     }
 }

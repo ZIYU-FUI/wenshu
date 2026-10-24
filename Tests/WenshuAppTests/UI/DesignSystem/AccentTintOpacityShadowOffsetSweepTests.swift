@@ -45,10 +45,14 @@ struct AccentTintOpacityShadowOffsetSweepTests {
         let root = SourceLocator.repoRoot
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
+        // The swept sites MOVED (= the editor rework moved the accent
+        // tint off the editor surfaces and onto the tree / kanban
+        // surfaces). The invariant is unchanged: wherever an accent
+        // tint is applied, the opacity comes from the token (= never
+        // a magic literal).
         let sweptFiles = [
-            ("Features/Editor/View/EditorView.swift", "accentTintOpacitySubtle"),
-            ("Features/Editor/View/PreviewPane.swift", "accentTintOpacityHero"),
-            ("Features/Editor/View/EditorPaperCanvas.swift", "surfaceShadowOffsetButton"),
+            ("Shared/UI/IconStylesViews.swift", "accentTintOpacitySubtle"),
+            ("Features/Kanban/View/KanbanView.swift", "accentTintOpacityHero"),
         ]
 
         for (relative, expectedToken) in sweptFiles {
