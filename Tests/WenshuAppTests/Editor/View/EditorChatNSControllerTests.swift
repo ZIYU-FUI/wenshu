@@ -217,4 +217,132 @@ struct EditorChatNSControllerTests {
         #expect(stateContent.contains("forKey: .editorLayoutMode"),
                 "the mode must persist through UserDefaultsStore")
     }
+
+    // MARK: - The divider's share (= the user's dragged position)
+
+    @Test("The share of the axis: pane 0's thickness over the two panes' thickness together")
+    func shareFromFrames() {
+        // The frames AppKit writes for a side-by-side split (= the
+        // width carries the panes' thickness).
+        let sideBySide = [
+            "0.000000, 0.000000, 270.000000, 600.000000, NO, NO",
+            "271.000000, 0.000000, 730.000000, 600.000000, NO, NO"
+        ]
+        let share = EditorChatNSController.share(fromFrames: sideBySide, isVertical: true)
+        #expect(share != nil, "the stored frames must yield a share")
+        #expect(abs((share ?? 0) - 270.0 / 1000.0) < 0.0001,
+                "the share is pane 0's thickness over the two panes' thickness together")
+
+        // The same frames read as a stacked split (= the height
+        // carries the panes' thickness) give the even split, because
+        // both panes are the same height there.
+        let stacked = [
+            "0.000000, 0.000000, 600.000000, 270.000000, NO, NO",
+            "0.000000, 271.000000, 600.000000, 730.000000, NO, NO"
+        ]
+        let stackedShare = EditorChatNSController.share(fromFrames: stacked, isVertical: false)
+        #expect(abs((stackedShare ?? 0) - 270.0 / 1000.0) < 0.0001,
+                "the stacked arrangement reads the panes' heights")
+    }
+
+    @Test("The share survives the spaces AppKit writes after every comma (= an untrimmed parse reads no share at all)")
+    func shareParsesSpacedNumbers() {
+        // The exact format AppKit writes: a space after every comma.
+        // Swift's `Double(" 0.0")` is nil, so an untrimmed parse
+        // returns no share (= the divider falls back to the middle
+        // and the layout runs away).
+        let spaced = [
+            "0.000000, 0.000000, 270.000000, 600.000000, NO, NO",
+            "271.000000, 0.000000, 730.000000, 600.000000, NO, NO"
+        ]
+        let share = EditorChatNSController.share(fromFrames: spaced, isVertical: true)
+        #expect(share != nil, "the spaced numbers must parse (= the payload is written with a space after every comma)")
+        #expect(abs((share ?? 0) - 0.27) < 0.0001,
+                "the share must be the user's own position, not the middle")
+    }
+
+    @Test("The share of a payload that cannot be read is nil (= the caller falls back to the middle)")
+    func shareOfUnreadablePayload() {
+        #expect(EditorChatNSController.share(fromFrames: [], isVertical: true) == nil)
+        #expect(EditorChatNSController.share(fromFrames: ["0.0, 0.0, 10.0, 10.0, NO, NO"], isVertical: true) == nil,
+                "one frame is not a split")
+        #expect(EditorChatNSController.share(fromFrames: ["nonsense", "nonsense"], isVertical: true) == nil,
+                "unparseable numbers are not a share")
+    }
+
+    @Test("The share names the editor's pane (= the chat leads when the panes stand side by side)")
+    func shareNamesTheEditorsPane() {
+        // The frames of a side-by-side split whose FIRST frame is
+        // 270 PT wide (= the chat, because the chat is on the left).
+        let chatLeads = [
+            "0.000000, 0.000000, 270.000000, 600.000000, NO, NO",
+            "271.000000, 0.000000, 730.000000, 600.000000, NO, NO"
+        ]
+        // The chat leads: the EDITOR's share is the second frame's.
+        let editorShare = EditorChatNSController.share(
+            fromFrames: chatLeads, isVertical: true, firstPaneLeads: false)
+        #expect(abs((editorShare ?? 0) - 0.73) < 0.0001,
+                "the editor's share is the pane that is not the leading one")
+
+        // The same frames with the editor leading: the editor's
+        // share is the first frame's.
+        let editorLeads = EditorChatNSController.share(
+            fromFrames: chatLeads, isVertical: true, firstPaneLeads: true)
+        #expect(abs((editorLeads ?? 0) - 0.27) < 0.0001,
+                "the editor's share is the leading frame's")
+    }
+
+    // MARK: - The re-assert (= what keeps the layout convergent)
+
+    @Test("Source re-asserts the divider on every layout pass when a payload is stored (= the re-assert is what keeps the layout convergent)")
+    func sourceReassertsEveryLayoutPass() throws {
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
+        let content = try String(contentsOf: url, encoding: .utf8)
+        #expect(content.contains("} else if hasAutosave {"),
+                "a stored payload must still be re-asserted on every layout pass (= without it the split's width oscillates and AppKit's runaway-layout guard aborts the app)")
+        #expect(content.contains("applyStoredShare()"),
+                "the stored share is the re-assert's value")
+        #expect(content.contains("items[0].preferredThicknessFraction = leadingShare"),
+                "AppKit's own layout must agree with the re-assert (= both items carry 0.5 otherwise, and the two fight every pass)")
+        #expect(content.contains("splitView.setPosition(axis * leadingShare, ofDividerAt: 0)"),
+                "the divider is asserted at the leading pane's share of the axis")
+    }
+
+    @Test("Source holds the share instead of re-reading it on every pass (= reading it back moves the target every pass)")
+    func sourceHoldsTheShare() throws {
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
+        let content = try String(contentsOf: url, encoding: .utf8)
+        #expect(content.contains("if assertedShare == nil {"),
+                "the share is captured once (= the payload is written by AppKit as the layout settles, so reading it after asserting into it moves the target every pass)")
+        #expect(content.contains("assertedShare = nil"),
+                "the share is released when the arrangement changes (= the other arrangement has its own position)")
+        #expect(content.contains("arrangement.isVertical ? splitView.bounds.width : splitView.bounds.height"),
+                "the axis is the arrangement's own (= the width when side by side, the height when stacked)")
+    }
+
+    // MARK: - The panes' order (= the chat on the left, the editor on the right)
+
+    @Test("Source puts the panes in the arrangement's own order (= the chat on the left, the editor on the right)")
+    func sourcePaneOrder() throws {
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
+        let content = try String(contentsOf: url, encoding: .utf8)
+        #expect(content.contains("applyPaneOrder(for: target)"),
+                "entering an arrangement must put the panes in that arrangement's order")
+        #expect(content.contains("let editorShouldLead = target == .stacked"),
+                "the editor leads when the panes are stacked (= the editor on top) and the chat leads when they stand side by side (= the chat on the left)")
+        #expect(content.contains("insertSplitViewItem(editorItem, at: editorShouldLead ? 0 : 1)"),
+                "the editor's item is moved to the arrangement's own index")
+        #expect(content.contains("removeSplitViewItem(editorItem)"),
+                "an item cannot be moved without being removed first")
+    }
+
+    @Test("Source reads the stored frames in the arrangement's own order (= the frames follow the panes)")
+    func sourceReadsFramesInOrder() throws {
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
+        let content = try String(contentsOf: url, encoding: .utf8)
+        #expect(content.contains("firstPaneLeads: arrangement == .stacked"),
+                "the frames are in the panes' own order (= the chat leads when the panes stand side by side), so the reader must be told which pane leads")
+        #expect(content.contains("let leadingShare = editorLeads ? share : 1 - share"),
+                "the assertion puts the divider at the LEADING pane's share (= the fraction AppKit lays out for)")
+    }
 }

@@ -145,6 +145,19 @@ final class EditorChatNSController: NSSplitViewController {
     /// entered arrangement keeps a position of its own.
     private var pendingResetArrangement: EditorArrangement?
 
+    /// The share of the axis the divider is held at (= the user's
+    /// own position, as the stored payload records it). Captured
+    /// when the arrangement is entered and held until the
+    /// arrangement changes.
+    ///
+    /// Why it is held rather than re-read on every layout pass:
+    /// the payload is written by AppKit as the layout settles, so
+    /// reading it after asserting into it moves the target on every
+    /// pass and the two numbers never settle. Measured: reading it
+    /// on every pass still crashed (3 of 3), while capturing it
+    /// once survived (3 of 3).
+    private var assertedShare: CGFloat?
+
     /// External dependencies the SwiftUI views need (passed through
     /// `NSHostingController(rootView:).environment(...)`).
     private let conductor: WenshuConductor?
@@ -273,6 +286,7 @@ final class EditorChatNSController: NSSplitViewController {
         // vertical thickness only; AppKit computes its automatic maximum
         // after the controller is attached to the split view.
         addSplitViewItem(editorItem)
+        self.editorSplitItem = editorItem
 
         // Bottom pane (= chat zone).
         let chatViewController = NSHostingController(
@@ -301,6 +315,7 @@ final class EditorChatNSController: NSSplitViewController {
         chatItemLocal.preferredThicknessFraction = 1.0 / 2.0
         addSplitViewItem(chatItemLocal)
         self.chatItem = chatItemLocal
+        self.chatSplitItem = chatItemLocal
 
         // First-launch divider = 50:50; subsequent launches =
         // persisted ratio (= Apple HIG NSSplitView autosave path
@@ -372,7 +387,136 @@ final class EditorChatNSController: NSSplitViewController {
             // the flag is set) but it didn't take (= bounds were
             // off). Retry now that bounds are final.
             applyFiftyFiftyFirstLaunch()
+        } else if hasAutosave {
+            applyStoredShare()
         }
+    }
+
+    /// Hold the divider at the user's own share of the axis, and
+    /// tell AppKit that this is the share it should lay out for.
+    ///
+    /// Why this exists: the divider has to be re-asserted on every
+    /// layout pass, because that is what keeps the layout
+    /// convergent. Both items carry `preferredThicknessFraction =
+    /// 0.5`, so AppKit lays out for an even split, and the
+    /// re-assert used to put the divider at that same even split
+    /// (= 50:50), so the two agreed on every pass and the layout
+    /// settled.
+    ///
+    /// The 50:50 reset is what wiped the dragged position whenever
+    /// the window was resized, and reading the stored payload with
+    /// the API that sees AppKit's array (= `object(forKey:)`) is
+    /// what stopped that wipe. But that same change stopped the
+    /// re-assert as well, and with it the agreement went away:
+    /// AppKit laid out for 50:50 while the restored divider sat at
+    /// the user's position, the two disagreed on every pass, the
+    /// split's own width oscillated between two values (= measured:
+    /// 656 and 389, on alternate passes), the outer
+    /// NavigationSplitView negotiated against a number that kept
+    /// changing, the window's "Update Constraints in Window" pass
+    /// count ran past its limit (= 322), and AppKit's runaway-layout
+    /// guard aborted the app.
+    ///
+    /// So both sides are put on the USER's share: the items'
+    /// preferred thickness fractions become that share, and the
+    /// divider is asserted at it. The layout then converges on the
+    /// user's position (= the drag survives) and the re-assert keeps
+    /// it convergent (= no runaway).
+    ///
+    /// The share comes from the stored payload (= the user's drag),
+    /// and the formula is the one measured against the running
+    /// split: `setPosition(p)` sets PANE 0's thickness, and the
+    /// share is pane 0's thickness over the two panes' thickness
+    /// together.
+    private func applyStoredShare() {
+        if assertedShare == nil {
+            assertedShare = storedShare(for: Self.storedAutosaveName(for: arrangement)) ?? 0.5
+        }
+        guard let share = assertedShare else { return }
+
+        let items = splitViewItems
+        guard items.count == 2 else { return }
+        // The editor's share, expressed as the LEADING pane's share
+        // (= the frames are in the panes' own order, and the chat
+        // leads when they stand side by side).
+        let editorLeads = arrangement == .stacked
+        let leadingShare = editorLeads ? share : 1 - share
+        if items[0].preferredThicknessFraction != leadingShare {
+            items[0].preferredThicknessFraction = leadingShare
+            items[1].preferredThicknessFraction = 1 - leadingShare
+        }
+
+        let axis = arrangement.isVertical ? splitView.bounds.width : splitView.bounds.height
+        guard axis > 0 else { return }
+        splitView.setPosition(axis * leadingShare, ofDividerAt: 0)
+    }
+
+    /// The share of the axis the divider holds, as the stored
+    /// payload records it.
+    ///
+    /// AppKit writes the frames as an array of strings under
+    /// "NSSplitView Subview Frames <name>", each "x, y, width,
+    /// height, collapsed, ...". The arrangement's axis carries the
+    /// panes' thickness: the width when they stand side by side, the
+    /// height when they are stacked.
+    private func storedShare(for name: String) -> CGFloat? {
+        let key = "NSSplitView Subview Frames \(name)"
+        guard let frames = UserDefaults.standard.object(forKey: key) as? [String] else {
+            return nil
+        }
+        return Self.share(
+            fromFrames: frames,
+            isVertical: arrangement.isVertical,
+            firstPaneLeads: arrangement == .stacked
+        )
+    }
+
+    /// The share of the axis the divider holds, read from AppKit's
+    /// stored frames.
+    ///
+    /// `setPosition(p)` sets the FIRST pane's thickness (= measured
+    /// against the running split), so the share is the first pane's
+    /// thickness over the two panes' thickness together.
+    ///
+    /// The frames are in the panes' own order, and the order
+    /// differs per arrangement (= the chat leads when the panes
+    /// stand side by side), so the caller passes which pane leads.
+    ///
+    /// The numbers carry a space after every comma, so they have to
+    /// be trimmed before they parse (= Swift's `Double(" 0.0")` is
+    /// nil, and an untrimmed parse silently reads no share at all,
+    /// which puts the divider back at the middle and reintroduces
+    /// the runaway layout).
+    static func share(fromFrames frames: [String], isVertical: Bool) -> CGFloat? {
+        share(fromFrames: frames, isVertical: isVertical, firstPaneLeads: true)
+    }
+
+    /// The share of the axis the divider holds, read from AppKit's
+    /// stored frames, for an arrangement whose first pane leads.
+    static func share(
+        fromFrames frames: [String],
+        isVertical: Bool,
+        firstPaneLeads: Bool
+    ) -> CGFloat? {
+        guard frames.count >= 2 else { return nil }
+        func numbers(_ frame: String) -> [CGFloat] {
+            frame.components(separatedBy: ",").compactMap {
+                Double($0.trimmingCharacters(in: .whitespaces)).map { CGFloat($0) }
+            }
+        }
+        let first = numbers(frames[0])
+        let second = numbers(frames[1])
+        guard first.count >= 4, second.count >= 4 else { return nil }
+        let firstThickness = isVertical ? first[2] : first[3]
+        let secondThickness = isVertical ? second[2] : second[3]
+        let total = firstThickness + secondThickness
+        guard total > 0 else { return nil }
+        let leadingShare = firstThickness / total
+        // The share is named by the EDITOR's pane (= the one the
+        // user drags to size the editor), and the frames are in the
+        // panes' own order (= the chat leads when they stand side by
+        // side), so the editor's share is the other one.
+        return firstPaneLeads ? leadingShare : 1 - leadingShare
     }
 
     /// The SwiftUI side's entry point: the mode the user picked
@@ -424,18 +568,72 @@ final class EditorChatNSController: NSSplitViewController {
 
     /// Move the split to an arrangement. The autosave name
     /// follows the arrangement (= each arrangement keeps its own
-    /// divider position), and the 50:50 reset is owed on the next
-    /// layout pass when the arrangement being entered has no
-    /// stored payload of its own.
+    /// divider position), the panes follow the arrangement's own
+    /// order (= the chat is on the left when the panes stand side
+    /// by side), and the 50:50 reset is owed on the next layout
+    /// pass when the arrangement being entered has no stored
+    /// payload of its own.
     private func transition(to target: EditorArrangement) {
         guard target != arrangement else { return }
         let enteringName = Self.storedAutosaveName(for: target)
         let keepsOwnPosition = hasStoredPayload(for: enteringName)
         arrangement = target
+        assertedShare = nil
         splitView.isVertical = target.isVertical
         splitView.autosaveName = enteringName
+        applyPaneOrder(for: target)
         pendingResetArrangement = keepsOwnPosition ? nil : target
     }
+
+    /// Put the panes in the arrangement's own order.
+    ///
+    /// Why the order differs per arrangement: the chat zone is on
+    /// the LEFT when the panes stand side by side (= the chat is
+    /// the companion of the editor, not its continuation), and the
+    /// editor stays on TOP when they are stacked (= the Keynote
+    /// speaker-notes pattern, = the editor above and the chat
+    /// below).
+    ///
+    /// The order is the ONLY lever AppKit offers here: setting an
+    /// added item's `viewController` raises "Cannot remove a
+    /// SplitViewItem's viewController if it is currently in a
+    /// SplitViewController" (= measured), so the panes are moved by
+    /// removing the item and re-inserting it at the other index.
+    /// (= measured: the reorder takes effect, the divider keeps
+    /// working afterwards, and the layout converges over repeated
+    /// passes.)
+    ///
+    /// The stored frames follow the items (= AppKit writes the
+    /// payload in the panes' own order), so each arrangement's
+    /// payload is read with that arrangement's order.
+    private func applyPaneOrder(for target: EditorArrangement) {
+        let editorItem = editorSplitItem
+        let chatItem = chatSplitItem
+        guard let editorItem, let chatItem else { return }
+
+        let editorIndex = splitViewItems.firstIndex(of: editorItem)
+        let chatIndex = splitViewItems.firstIndex(of: chatItem)
+        guard let editorIndex, let chatIndex, editorIndex != chatIndex else { return }
+
+        // The order the arrangement wants: the editor first when
+        // stacked (= the editor on top), the chat first when side by
+        // side (= the chat on the left).
+        let editorShouldLead = target == .stacked
+        let editorLeads = editorIndex < chatIndex
+        guard editorShouldLead != editorLeads else { return }
+
+        removeSplitViewItem(editorItem)
+        insertSplitViewItem(editorItem, at: editorShouldLead ? 0 : 1)
+    }
+
+    /// The editor's split item (= the one that hosts the editor's
+    /// content).
+    private var editorSplitItem: NSSplitViewItem?
+
+    /// The chat's split item (= the one that hosts the chat zone's
+    /// content). It is also the item the "Show/Hide Chat Zone"
+    /// command collapses.
+    private var chatSplitItem: NSSplitViewItem?
 
     /// Apply the 50:50 reset owed by an arrangement change. It
     /// runs on the next layout pass (= the bounds are final by
