@@ -25,6 +25,18 @@ second instance of the same bundle id restores the same saved window
 geometry and trips AppKit's own update-constraints guard on its own), and
 it never raises, activates, or focuses the app.
 
+IT OWNS ONLY THE PROCESS IT STARTS. LaunchServices resolves `open -g`
+by BUNDLE ID, so the app that comes up is not necessarily the bundle
+path this script was given, and `pgrep -f <path>` matches any command
+line that merely CONTAINS that path (= a LaunchServices helper, or
+another session's instance built from the same bundle). The script
+therefore identifies the instance it started by PID (the process whose
+executable is exactly this bundle's binary and which was not running
+before the launch) and it NEVER kills anything else: no `pkill` by
+name, no `pkill -f`. It refuses to run at all when the bundle id is
+already taken, because LaunchServices would activate the existing
+instance instead of starting a fresh one.
+
 Usage:
   python3 toolbar_preference_change.py <app-bundle> [rounds]
 
@@ -33,6 +45,7 @@ error.
 """
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -50,10 +63,104 @@ def crash_reports():
             if f.startswith("WenshuApp") and f.endswith(".ips")}
 
 
-def app_pid(executable):
-    out = subprocess.run(["pgrep", "-f", executable],
-                         capture_output=True, text=True).stdout.split()
-    return out[0] if out else None
+def instances(executable):
+    """Every running process whose executable is exactly this path.
+
+    `pgrep -f` matches any command line that CONTAINS the path (= a
+    LaunchServices helper, or a second instance of the same bundle), so
+    it can name a process that is not the app this script launched.
+    `ps -o comm=` gives the executable path, which makes the match
+    exact.
+    """
+    out = subprocess.run(["ps", "-axo", "pid=,comm="],
+                         capture_output=True, text=True).stdout
+    pids = []
+    for line in out.splitlines():
+        parts = line.strip().split(None, 1)
+        if len(parts) == 2 and parts[1] == executable:
+            pids.append(int(parts[0]))
+    return pids
+
+
+def bundle_id(app):
+    """The bundle id of an app bundle (= the key LaunchServices uses)."""
+    plist = os.path.join(app, "Contents", "Info.plist")
+    out = subprocess.run(["/usr/libexec/PlistBuddy", "-c",
+                          "Print :CFBundleIdentifier", plist],
+                         capture_output=True, text=True).stdout.strip()
+    return out or None
+
+
+def instances_of_bundle(bundle_id):
+    """Every running pid that owns this bundle id.
+
+    LaunchServices resolves `open -g` by BUNDLE ID, so an instance built
+    from a different path still owns the id, and `open` then activates
+    that instance instead of starting a fresh one. Matching by executable
+    path (= or `pgrep -f`) cannot see that, which is why the probe used
+    to report "the app did not launch" while an app was plainly running.
+    """
+    text = subprocess.run(["lsappinfo", "list"],
+                          capture_output=True, text=True).stdout
+    pids = []
+    current = None
+    for line in text.splitlines():
+        found = re.search(r'bundleID="([^"]+)"', line)
+        if found:
+            current = found.group(1)
+            continue
+        found = re.search(r"pid = (\d+)", line)
+        if found and current == bundle_id:
+            pids.append(int(found.group(1)))
+    return pids
+
+
+def alive(pid):
+    """Whether this exact pid is still running."""
+    try:
+        os.kill(pid, 0)
+        return True
+    except (ProcessLookupError, PermissionError):
+        return False
+
+
+def stop(pid):
+    """Stop only this pid (= never another session's instance)."""
+    try:
+        os.kill(pid, 15)
+    except ProcessLookupError:
+        return
+    for _ in range(40):
+        if not alive(pid):
+            return
+        time.sleep(0.25)
+    try:
+        os.kill(pid, 9)
+    except ProcessLookupError:
+        pass
+
+
+def launch(app, executable):
+    """Start the app in the background and return OUR pid.
+
+    Returns (pid, None) on success and (None, reason) on failure.
+    """
+    bid = bundle_id(app)
+    owners = instances_of_bundle(bid) if bid else []
+    if owners:
+        return None, ("bundle id %s is already running (pid %s); LaunchServices "
+                      "would activate that instance instead of starting a fresh "
+                      "one, so the probe cannot isolate itself. Stop it first."
+                      % (bid, ", ".join(str(p) for p in sorted(owners))))
+    before = set(instances(executable))
+    subprocess.run(["open", "-g", app], check=False)
+    deadline = time.time() + 30.0
+    while time.time() < deadline:
+        new = [p for p in instances(executable) if p not in before]
+        if new:
+            return new[0], None
+        time.sleep(0.5)
+    return None, "the app did not launch (= no new process with this executable)"
 
 
 def persisted_pane():
@@ -64,7 +171,7 @@ def persisted_pane():
     return r.stdout.strip()
 
 
-def switch_groups(executable, rounds):
+def switch_groups(executable, pid, rounds):
     """Drive the Settings scene's group rows through the accessibility
     tree and switch them N times.
 
@@ -76,7 +183,7 @@ def switch_groups(executable, rounds):
     driver = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                            "toolbar_preference_change.swift")
     return subprocess.run(
-        ["swift", driver, executable, str(rounds)],
+        ["swift", driver, executable, str(pid), str(rounds)],
         capture_output=True, text=True, timeout=1800,
     )
 
@@ -116,20 +223,17 @@ def main():
         print("FAIL: no app bundle at %s" % app)
         return 2
 
-    subprocess.run(["pkill", "-x", "WenshuApp"], check=False)
-    time.sleep(2.0)
     before = crash_reports()
 
-    subprocess.run(["open", "-g", app], check=False)
-    time.sleep(12.0)
-    pid = app_pid(executable)
-    if not pid:
-        print("FAIL: the app did not launch")
+    pid, reason = launch(app, executable)
+    if pid is None:
+        print("FAIL: %s" % reason)
         return 2
+    time.sleep(12.0)
     print("pid: %s" % pid)
     print("pane_before: %s" % persisted_pane())
 
-    result = switch_groups(executable, rounds)
+    result = switch_groups(executable, pid, rounds)
     for line in result.stdout.splitlines():
         print(line.strip())
     if result.returncode not in (0, 1):
@@ -145,12 +249,12 @@ def main():
         return 2
 
     time.sleep(3.0)
-    alive = app_pid(executable) is not None
+    still_alive = alive(pid)
     faults, max_count, loops = read_log(pid, max(3, rounds // 5 + 4))
     new_reports = sorted(crash_reports() - before)
 
     print("-" * 70)
-    print("survived: %s" % ("yes" if alive else "no"))
+    print("survived: %s" % ("yes" if still_alive else "no"))
     print("pane_after: %s" % persisted_pane())
     print("unresolvable_symbol_faults: %d" % faults)
     print("max_update_constraints_count: %d" % max_count)
@@ -167,9 +271,9 @@ def main():
         except Exception:  # noqa: BLE001
             print("  %s (unparsed)" % name)
 
-    subprocess.run(["pkill", "-x", "WenshuApp"], check=False)
+    stop(pid)
 
-    if new_reports or not alive:
+    if new_reports or not still_alive:
         return 1
     if faults:
         print("GATE: FAILED (the app logged %d unresolvable symbol names)"

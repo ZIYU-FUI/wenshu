@@ -20,7 +20,12 @@
 //  persisted "wenshu.settingsTab" key, so a driver that silently did
 //  nothing cannot report a pass.
 //
-//  Usage: swift toolbar_preference_change.swift <full-exe-path> [rounds]
+//  The PID is passed in (= the probe that starts the app knows exactly
+//  which instance it launched). Re-deriving the pid from the executable
+//  path can name a different instance of the same bundle, so the path
+//  is only a fallback.
+//
+//  Usage: swift toolbar_preference_change.swift <full-exe-path> <pid> [rounds]
 //  Exit: 0 = every switch landed, 1 = the app died mid-run.
 
 import AppKit
@@ -28,11 +33,16 @@ import ApplicationServices
 
 let arguments = CommandLine.arguments
 guard arguments.count >= 2 else {
-    print("usage: toolbar_preference_change <full-exe-path> [rounds]")
+    print("usage: toolbar_preference_change <full-exe-path> <pid> [rounds]")
     exit(2)
 }
 let executablePath = arguments[1]
-let rounds = arguments.count >= 3 ? (Int(arguments[2]) ?? 10) : 10
+let givenPID: pid_t? = arguments.count >= 3 ? pid_t(arguments[2]) : nil
+let rounds: Int = {
+    let raw = givenPID != nil ? (arguments.count >= 4 ? arguments[3] : nil)
+                              : (arguments.count >= 3 ? arguments[2] : nil)
+    return raw.flatMap(Int.init) ?? 10
+}()
 let bundleID = "com.wenshu.app"
 
 func findPID(_ path: String) -> pid_t? {
@@ -100,7 +110,7 @@ func persistedPane() -> String {
         .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
 }
 
-guard let pid = findPID(executablePath) else {
+guard let pid = givenPID ?? findPID(executablePath) else {
     print("FAIL: the app is not running")
     exit(2)
 }
