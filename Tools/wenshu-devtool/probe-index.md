@@ -19,8 +19,8 @@ card's commit does not touch the app source.
 | `chat_bubble_metrics.swift` | The user's own chat bubble (the outgoing message surface in the chat column), painted width and corner radius read from rendered pixels at a stated host width. | `painted_width_pt`, `painted_height_pt`, `corner_radius_pt`, `shape_rule_radius_pt`, `subject_ink_width_pt`, `host_width_pt`, `calibration_radius_pt`, `calibration_measured_pt` | `3ee82bf48b18` |
 | `column_chrome_band.py` | The column-top chrome band of two neighbouring columns of the running app (= the materials column's search band and the editor column's format-toolbar band), read from a 2x capture: the content ink band, the MATERIAL surface the band paints, and the closing hairline. | `content_centre_delta_pt`, `band_surface_top_delta_pt`, `band_surface_bottom_delta_pt`, plus each column's content centre and band surface top/bottom | `ab0de05659` |
 | `editor_chat_arrangement.py` | The editor and chat zone's arrangement (= which pane is where), read from the running app's accessibility tree as native coordinates: the chat's composer, the editor's toolbar, and the editor's body. It names the arrangement from those coordinates and checks the production fragments it reproduces before it reports a number. | `composer_x`, `composer_y`, `editor_toolbar_x`, `editor_toolbar_y`, `editor_body_x`, `editor_body_y`, `arrangement`, plus `requested_mode` and `agreement` | `158852c04d38` |
-| `toolbar_preference_change.py` | The main window's toolbar after the app's preferences changed: the app's own Settings scene is driven through the accessibility tree, its group rows are switched N times (= N app-preference changes), and the process is watched for the abort AppKit raises when a window asks for more "Update Constraints in Window" passes than it has views. | `switches_landed`, `survived`, `pane_after`, `unresolvable_symbol_faults`, `max_update_constraints_count`, `layout_loop_warnings`, `new_crash_reports` | `d6b4b42a782b` |
-| `toolbar_preference_change.swift` | The accessibility driver the toolbar probe runs: it opens the app's own Settings scene, selects its group rows through the accessibility tree, and verifies every switch against the persisted group key, so a driver that silently did nothing cannot report a pass. | `group_rows`, `strategy`, `switches_landed`, plus the group and pane of each round | `d6b4b42a782b` |
+| `toolbar_preference_change.py` | The main window's toolbar after the app's preferences changed: the app's own Settings scene is driven through the accessibility tree, its group rows are switched N times (= N app-preference changes), and the process is watched for the abort AppKit raises when a window asks for more "Update Constraints in Window" passes than it has views. | `switches_landed`, `survived`, `pane_after`, `unresolvable_symbol_faults`, `max_update_constraints_count`, `layout_loop_warnings`, `new_crash_reports`, `other_crash_reports`, plus `bundle`, `bundle_id`, `executable`, `pid`, `instance_owned` and `source_commit` | `37e941c604` |
+| `toolbar_preference_change.swift` | The accessibility driver the toolbar probe runs: it opens the app's own Settings scene, selects its group rows through the accessibility tree, and verifies every switch against the persisted group key, so a driver that silently did nothing cannot report a pass. It drives the PID it is given and never re-derives one from a path, because every build of the app ships the same bundle id and a path does not name an instance. It checks that the running instance claims the bundle id it was given, because the preferences it reads live in the domain of that id. | `group_rows`, `strategy`, `switches_landed`, plus the group and pane of each round | `37e941c604` |
 
 ## Recorded measurement
 
@@ -96,12 +96,107 @@ Two things in that run are worth reading together:
   editor's is the white canvas, the assets' is the sidebar background), so
   "the first darker row below the band" is a different thing in each.
 
+### `toolbar_preference_change.py`
+
+Taken against commit `37e941c604`, the commit that gave the inspector's
+toggle a symbol the system has. The app source the numbers describe is
+that commit's: `InspectorView.swift` and `SettingView.swift` are
+byte-identical from it to `main` today, so the numbers still describe a
+later tree. The probe prints the tree it ran in as `source_commit`, so a
+re-run on a later tree prints that later tree.
+
+The run was given a RELATIVE bundle path, with another copy of the same
+bundle id already running at another path. That is the case the probe
+used to answer with "the app did not launch".
+
+```
+bundle: /Volumes/ANAN/Engineering/wenshu/.worktrees/t_58e0967a/build/Wenshu.app
+bundle_id: com.wenshu.app
+executable: /Volumes/ANAN/Engineering/wenshu/.worktrees/t_58e0967a/build/Wenshu.app/Contents/MacOS/WenshuApp
+pid: 7597
+instance_owned: yes
+pane_before: network
+opened_settings: yes
+group_rows: 8
+strategy: AXSelected
+switches_landed: 10/10
+SURVIVED
+survived: yes
+pane_after: network
+unresolvable_symbol_faults: 0
+max_update_constraints_count: 0
+layout_loop_warnings: 0
+new_crash_reports: none
+other_crash_reports: none
+GATE: PASSED
+```
+
+Three things in that run are worth reading together:
+
+- The probe named the instance it drove by the REAL executable path, so
+  the other copy at another path was never a candidate. Before the fix
+  the probe matched a PATTERN over the command line, and the relative
+  path `build/Wenshu.app/Contents/MacOS/WenshuApp` is a suffix of every
+  worktree's build: measured 2026-10-24, that pattern named two
+  processes, one of them another worktree's.
+- `instance_owned: yes` and the other session's instance still running
+  afterwards are the same fact seen from both ends. The probe stopped
+  the PID it started and nothing else, so no `pkill` by name took the
+  other copy with it.
+- `other_crash_reports` counts the crash reports of this app that
+  belong to a different process, and `new_crash_reports` the ones that
+  belong to this run's PID. A crash of another copy of the app is
+  neither.
+
+## The constraint a probe that launches the app must obey
+
+A probe that starts the app owns ONE process: the one it started, and it
+must prove which process that is. On this machine the app ships the same
+bundle id from every build, so a path does not name an instance.
+
+  * The bundle id comes from the bundle's own Info.plist, and the
+    instance is located through LaunchServices' own table
+    (`lsappinfo`). A copy of that id at another path is reported as
+    "another copy", never as a missing app.
+  * The process is found by its REAL executable path (the process
+    table's `comm`, compared whole) and by the PID that owns it. A
+    pattern match over the command line cannot do this: a relative path
+    such as `build/Wenshu.app/Contents/MacOS/WenshuApp` is a SUFFIX of
+    every other worktree's build, so `pgrep -f` names another build's
+    process. Measured 2026-10-24: the relative pattern matched two
+    processes, one of them another worktree's. The path the probe
+    compares against is the RESOLVED one, so a relative bundle path
+    cannot degrade into a suffix match.
+  * The driver takes the PID as its argument and never re-derives one
+    from a path. `NSRunningApplication.executableURL?.path` is
+    ABSOLUTE, so an exact comparison against the path as it was typed
+    never matches a relative path. The bundle id travels with the PID
+    because the preferences the driver reads live in the domain of that
+    id, and the driver checks that the running instance claims it.
+  * A crash report counts as the run's only when the report names the
+    run's PID, so another session's crash is never read as this run's.
+  * The probe stops the PID it started and NOTHING else: no `pkill` by
+    name and no `pkill` by pattern. `pkill -x WenshuApp` kills every
+    copy on the machine, including the instance another session is
+    using. Before the probe signals a PID it checks that the PID still
+    runs this bundle's binary, because a PID the system handed to
+    another process in the meantime is not the probe's to stop.
+
+A probe that reports "the app did not launch" without saying which
+copy the system resolved to is a harness error, not a measurement. So
+a probe that cannot find its instance names the copies the system holds
+for that bundle id: the ones running now, and the ones registered with
+LaunchServices. Measured 2026-10-24: the system held 87 registered
+bundles for this bundle id, 10 of them on disk.
+
 ## Re-measuring
 
 ```
 swift Tools/wenshu-devtool/probes/chat_bubble_metrics.swift "Hi"
 python3 Tools/wenshu-devtool/probes/column_chrome_band.py <capture.png>
 python3 Tools/wenshu-devtool/probes/column_chrome_band.py --selftest
+python3 Tools/wenshu-devtool/probes/toolbar_preference_change.py --selftest
+python3 Tools/wenshu-devtool/probes/toolbar_preference_change.py <app-bundle> [rounds]
 ```
 
 The bubble probe exits 0 when the measurement is sound, 2 when the
@@ -114,6 +209,18 @@ tolerances, and 1 when they disagree or the capture is unusable. Its
 `--selftest` builds three synthetic captures and asserts the gate REJECTS a
 short band whose centre agrees — a gate that has only ever passed has no
 discriminating power.
+
+The toolbar probe exits 0 when the app survived with no crash report of
+its own and no unresolvable symbol name, 1 when it crashed, died, or
+logged an unresolvable symbol name, and 2 when the probe could not put
+the driver in front of a known instance. Its `--selftest` asserts the
+identity rules on fixtures, and every case calls the function the probe
+itself calls: that a pattern match over the command line names both
+builds where the whole-path match names one, that a resolved relative
+path still names one build, that an instance of the same bundle id at
+another path is reported as another copy rather than as ours, that a
+crash report of another process is not this run's crash, and that a PID
+the system handed to another process is not the probe's to stop.
 
 ## The index's own test
 

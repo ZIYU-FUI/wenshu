@@ -20,37 +20,31 @@
 //  persisted "wenshu.settingsTab" key, so a driver that silently did
 //  nothing cannot report a pass.
 //
-//  The PID is passed in (= the probe that starts the app knows exactly
-//  which instance it launched). Re-deriving the pid from the executable
-//  path can name a different instance of the same bundle, so the path
-//  is only a fallback.
+//  THE PID IS THE IDENTITY. The probe that starts the app knows exactly
+//  which instance it launched, and a path cannot name an instance on
+//  this machine: every build of this app ships the same bundle id, so
+//  several copies are registered at once, and a relative path is a
+//  SUFFIX of every other build's path. The driver therefore drives the
+//  pid it is given and never re-derives one from a path.
 //
-//  Usage: swift toolbar_preference_change.swift <full-exe-path> <pid> [rounds]
-//  Exit: 0 = every switch landed, 1 = the app died mid-run.
+//  The bundle id travels with the pid because the preferences live in
+//  the domain of that id, and the driver checks that the RUNNING
+//  instance claims the id it was given. A pid that belongs to another
+//  app would otherwise have its switches read against the wrong domain.
+//
+//  Usage: swift toolbar_preference_change.swift <pid> <bundle-id> [rounds]
+//  Exit: 0 = every switch landed, 1 = the app died mid-run,
+//        2 = the driver was handed a pid that is not the expected app.
 
 import AppKit
-import ApplicationServices
 
 let arguments = CommandLine.arguments
-guard arguments.count >= 2 else {
-    print("usage: toolbar_preference_change <full-exe-path> <pid> [rounds]")
+guard arguments.count >= 3, let pid = pid_t(arguments[1]), pid > 0 else {
+    print("usage: toolbar_preference_change <pid> <bundle-id> [rounds]")
     exit(2)
 }
-let executablePath = arguments[1]
-let givenPID: pid_t? = arguments.count >= 3 ? pid_t(arguments[2]) : nil
-let rounds: Int = {
-    let raw = givenPID != nil ? (arguments.count >= 4 ? arguments[3] : nil)
-                              : (arguments.count >= 3 ? arguments[2] : nil)
-    return raw.flatMap(Int.init) ?? 10
-}()
-let bundleID = "com.wenshu.app"
-
-func findPID(_ path: String) -> pid_t? {
-    for app in NSWorkspace.shared.runningApplications {
-        if (app.executableURL?.path ?? "") == path { return app.processIdentifier }
-    }
-    return nil
-}
+let expectedBundleID = arguments[2]
+let rounds = arguments.count >= 4 ? (Int(arguments[3]) ?? 10) : 10
 
 func axString(_ element: AXUIElement, _ attribute: String) -> String {
     var value: CFTypeRef?
@@ -94,6 +88,27 @@ func setSelected(_ element: AXUIElement, _ value: Bool) -> Bool {
 
 func alive(_ pid: pid_t) -> Bool { kill(pid, 0) == 0 }
 
+guard alive(pid) else {
+    print("FAIL: the app is not running (pid \(pid))")
+    exit(2)
+}
+
+/// The running instance's own bundle id. It must be the id the probe
+/// asked for, because the preferences the driver reads live in the
+/// domain of that id.
+let running = NSRunningApplication(processIdentifier: pid)
+guard let claimedID = running?.bundleIdentifier else {
+    print("FAIL: the running instance (pid \(pid)) claims no bundle id")
+    exit(2)
+}
+guard claimedID == expectedBundleID else {
+    print("FAIL: the running instance (pid \(pid)) claims \(claimedID), not \(expectedBundleID)")
+    exit(2)
+}
+let bundleID = claimedID
+print("pid: \(pid)")
+print("bundle_id: \(bundleID)")
+
 /// The group the Settings scene shows. The scene persists it through
 /// @AppStorage, so the persisted key IS the pane (= the preference the
 /// group switch writes).
@@ -110,11 +125,6 @@ func persistedPane() -> String {
         .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
 }
 
-guard let pid = givenPID ?? findPID(executablePath) else {
-    print("FAIL: the app is not running")
-    exit(2)
-}
-print("pid: \(pid)")
 let app = AXUIElementCreateApplication(pid)
 
 /// The running app's own name (= the title of its app menu).
