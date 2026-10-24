@@ -20,36 +20,47 @@ import Foundation
 
 final class SidebarCreateDeleteRenameTests: XCTestCase {
 
-    /// Concatenated source of all `SidebarService*.swift` files in
-    /// `Features/Library/View/`. The business methods were split from
-    /// `SidebarService.swift` to `SidebarServiceMutation.swift` in A31
-    /// (= §6.6 god-class split; = the public surface survives; = the
-    /// helpers live in a sibling file). Tests use this helper to verify
-    /// the business surface across the split.
-    private func loadSidebarServiceBody() throws -> String {
-        let dir = SourceLocator.path("Sources/WenshuApp/Features/Library/View/")
-        let files = try FileManager.default.contentsOfDirectory(atPath: dir)
-            .filter { $0.hasPrefix("SidebarService") && $0.hasSuffix(".swift") }
+    /// Concatenated source of every `.swift` file in `directory` whose
+    /// file name matches `matches`, sorted by name.
+    ///
+    /// The join goes through `SourceLocator.read` with a
+    /// repo-root-relative path, so it never depends on a directory path
+    /// keeping a trailing separator. A directory path that loses its
+    /// separator concatenates the folder name onto the file name, and
+    /// the read then fails on a path no file has.
+    private func loadSourceBody(
+        inDirectory directory: String,
+        matching matches: (String) -> Bool
+    ) throws -> String {
+        let names = try FileManager.default
+            .contentsOfDirectory(atPath: SourceLocator.path(directory))
+            .filter { matches($0) }
             .sorted()
-        return try files.map { try String(contentsOfFile: dir + $0, encoding: .utf8) }
+        return try names.map { try SourceLocator.read("\(directory)/\($0)") }
             .joined(separator: "\n")
     }
 
-    /// Concatenated source of `AppleSidebar*.swift` + `SidebarContextMenu*.swift`
-    /// + `SidebarSheets*.swift` in `Features/Library/View/`. The AppleSidebarView
-    /// was split by A31 / A95 / A108 (= the god-class arc). Tests use this
-    /// helper to verify the wiring (= showNew*Sheet state, SidebarContextMenu
-    /// Modifier, .sheet(item:) for rename, .alert for delete) survives the split.
+    /// Concatenated source of the `SidebarService*.swift` files in the
+    /// sidebar view directory. The business methods live across a split
+    /// pair, so the suite reads the whole set rather than one file.
+    private func loadSidebarServiceBody() throws -> String {
+        try loadSourceBody(inDirectory: "Sources/WenshuApp/Features/Library/View") { name in
+            name.hasPrefix("SidebarService") && name.hasSuffix(".swift")
+        }
+    }
+
+    /// Concatenated source of the `AppleSidebar*.swift` +
+    /// `SidebarContextMenu*.swift` + `SidebarSheets*.swift` files in the
+    /// sidebar view directory. The suite reads the whole set to verify the
+    /// wiring (= showNew*Sheet state, context-menu modifier, .sheet(item:)
+    /// for rename, .alert for delete) survives the file split.
     private func loadAppleSidebarWiringBody() throws -> String {
-        let dir = SourceLocator.path("Sources/WenshuApp/Features/Library/View/")
-        let files = try FileManager.default.contentsOfDirectory(atPath: dir)
-            .filter {
-                ($0.hasPrefix("AppleSidebar") || $0.hasPrefix("SidebarContextMenu") || $0.hasPrefix("SidebarSheets"))
-                    && $0.hasSuffix(".swift")
-            }
-            .sorted()
-        return try files.map { try String(contentsOfFile: dir + $0, encoding: .utf8) }
-            .joined(separator: "\n")
+        try loadSourceBody(inDirectory: "Sources/WenshuApp/Features/Library/View") { name in
+            (name.hasPrefix("AppleSidebar")
+                || name.hasPrefix("SidebarContextMenu")
+                || name.hasPrefix("SidebarSheets"))
+                && name.hasSuffix(".swift")
+        }
     }
 
     // MARK: - SidebarSheets.swift presence (= 4 sheets + 2 state types)
