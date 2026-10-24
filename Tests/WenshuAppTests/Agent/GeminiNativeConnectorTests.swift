@@ -12,10 +12,14 @@ struct GeminiNativeConnectorTests {
 
     @Test("Gemini native: ?key= query param + generateContent endpoint")
     func testGeminiNativeURL() async throws {
-        let stub = URLProtocolStub()
+        // An isolated stub, not the process-global one: the global keeps
+        // the canned response in a static, so a suite running in parallel
+        // can overwrite it (= this suite then decodes another provider's
+        // JSON and fails with a decode error).
+        let (stub, stubProtocolClass) = URLProtocolStub.makeIsolatedStub()
         stub.response = makeGeminiResponse(content: "ok")
         let config = URLSessionConfiguration.ephemeral
-        config.protocolClasses = [URLProtocolStub.self]
+        config.protocolClasses = [stubProtocolClass]
         let session = URLSession(configuration: config)
 
         let store = InMemoryKeychainStore()
@@ -35,10 +39,14 @@ struct GeminiNativeConnectorTests {
 
     @Test("Gemini native: systemInstruction field separate from contents")
     func testSystemInstructionSeparate() async throws {
-        let stub = URLProtocolStub()
+        // An isolated stub, not the process-global one: the global keeps
+        // the canned response in a static, so a suite running in parallel
+        // can overwrite it (= this suite then decodes another provider's
+        // JSON and fails with a decode error).
+        let (stub, stubProtocolClass) = URLProtocolStub.makeIsolatedStub()
         stub.response = makeGeminiResponse(content: "ok")
         let config = URLSessionConfiguration.ephemeral
-        config.protocolClasses = [URLProtocolStub.self]
+        config.protocolClasses = [stubProtocolClass]
         let session = URLSession(configuration: config)
 
         let store = InMemoryKeychainStore()
