@@ -61,7 +61,7 @@ extension BookChapterTool {
                     ],
                     required: ["action"]
             ),
-            handler: BookChapterTool.shared,
+            handler: LazyTool { BookChapterTool.shared },
             description: "Per-book chapter CRUD.",
             emoji: "📖"
         )

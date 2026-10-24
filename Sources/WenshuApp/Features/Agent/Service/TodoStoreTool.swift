@@ -431,7 +431,7 @@ extension TodoStoreTool {
                     ],
                     required: []
                 ),
-                handler: TodoStoreTool.shared,
+                handler: LazyTool { await TodoStoreTool.shared },
                 description: """
                 Manage the Todo items for the current session. Actions: \
                 create / list / update / complete / remove.

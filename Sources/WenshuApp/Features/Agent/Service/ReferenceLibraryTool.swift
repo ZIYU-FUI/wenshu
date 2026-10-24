@@ -878,7 +878,7 @@ extension ReferenceLibraryTool {
                     ],
                     required: ["action"]
             ),
-            handler: ReferenceLibraryTool.shared,
+            handler: LazyTool { await ReferenceLibraryTool.shared },
             description: "Library-public reference CRUD with dedup-by-title upsert.",
             emoji: "📚"
         )

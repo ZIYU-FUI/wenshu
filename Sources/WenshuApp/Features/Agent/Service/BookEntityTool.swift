@@ -698,7 +698,7 @@ extension BookEntityTool {
                     ],
                     required: ["action"]
             ),
-            handler: BookEntityTool.shared,
+            handler: LazyTool { BookEntityTool.shared },
             description: "Per-book entity CRUD (= 5 kinds: person / location / object / ability / event). Replaces book_world + book_character from previous versions.",
             emoji: "🏷️"
         )

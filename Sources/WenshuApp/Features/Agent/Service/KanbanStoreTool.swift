@@ -354,7 +354,7 @@ extension KanbanStoreTool {
                     ],
                     required: []
                 ),
-                handler: KanbanStoreTool.shared,
+                handler: LazyTool { await KanbanStoreTool.shared },
                 description: """
                 Manage Kanban tickets in the current book. Actions: create / \
                 list / show / complete / block / unblock / transition.

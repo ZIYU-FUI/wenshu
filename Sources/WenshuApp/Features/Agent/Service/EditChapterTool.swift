@@ -74,7 +74,7 @@ extension EditChapterTool {
                     ],
                     required: ["id", "book_id", "old_text", "new_text"]
                 ),
-                handler: EditChapterTool.shared,
+                handler: LazyTool { EditChapterTool.shared },
                 description: "Patch-style chapter edit (= hermes edit_file 1:1).",
                 emoji: "✏️"
             )

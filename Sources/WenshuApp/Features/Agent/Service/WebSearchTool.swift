@@ -174,7 +174,7 @@ extension WebSearchTool {
                     ],
                     required: []
                 ),
-                handler: WebSearchTool.shared,
+                handler: LazyTool { WebSearchTool.shared },
                 description: "Web search via the keyless anonymous free tier ring.",
                 emoji: "🔍"
             )

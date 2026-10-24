@@ -408,7 +408,7 @@ extension HermesTodoTool {
                     ],
                     required: []
                 ),
-                handler: HermesTodoTool.shared,
+                handler: LazyTool { HermesTodoTool.shared },
                 description: "Hermes-side internal todo list (= LLM scratchpad).",
                 emoji: "🧠"
             )

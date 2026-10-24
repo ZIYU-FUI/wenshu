@@ -617,7 +617,7 @@ extension BookOutlineTool {
                     ],
                     required: ["action"]
             ),
-            handler: BookOutlineTool.shared,
+            handler: LazyTool { BookOutlineTool.shared },
             description: "Per-book outline CRUD.",
             emoji: "🗂"
         )

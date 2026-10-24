@@ -188,7 +188,7 @@ extension LLMWikiTool {
                     ],
                     required: ["action"]
                 ),
-                handler: LLMWikiTool.shared,
+                handler: LazyTool { LLMWikiTool.shared },
                 description: """
                 LLM Wiki pipeline (= the canonical 4-layer derivation).
                 """,

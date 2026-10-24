@@ -503,7 +503,7 @@ extension BookManagerTool {
                     ],
                     required: []
                 ),
-                handler: BookManagerTool.shared,
+                handler: LazyTool { await BookManagerTool.shared },
                 description: "Create / rename / delete / list / show books (= canonical wenshu-side library state).",
                 emoji: "📚"
             )

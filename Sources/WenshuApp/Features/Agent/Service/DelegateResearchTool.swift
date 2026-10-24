@@ -303,7 +303,7 @@ extension DelegateResearchTool {
                     ],
                     required: ["action", "nouns"]
                 ),
-                handler: DelegateResearchTool.shared,
+                handler: LazyTool { DelegateResearchTool.shared },
                 description: """
                 Delegate concrete-noun research to the Researcher sub-agent \
                 (= fire-and-forget; = main agent does NOT block on research).
