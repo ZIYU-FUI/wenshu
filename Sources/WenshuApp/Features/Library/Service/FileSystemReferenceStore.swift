@@ -477,9 +477,20 @@ struct FileSystemReferenceStore: ReferenceStoring {
         }
         do {
             let data = try Data(contentsOf: indexURL)
-            let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
-            return try decoder.decode([Reference].self, from: data)
+            // The index has been written by two encoders over the app's
+            // life: the ISO8601 writer and the default JSONEncoder (which
+            // writes a Date as a Double). `createdAt`/`updatedAt` are
+            // non-optional Dates, so ONE wrong date strategy makes the
+            // whole decode throw -- and the catch below turned that into
+            // an empty library, which reads as "the reference metadata was
+            // lost". Try ISO8601 first, then the default strategy.
+            let iso = JSONDecoder()
+            iso.dateDecodingStrategy = .iso8601
+            if let references = try? iso.decode([Reference].self, from: data) {
+                return references
+            }
+            let legacy = JSONDecoder()
+            return (try? legacy.decode([Reference].self, from: data)) ?? []
         } catch {
             return []
         }

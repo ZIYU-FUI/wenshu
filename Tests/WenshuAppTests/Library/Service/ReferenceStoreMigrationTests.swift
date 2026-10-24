@@ -119,6 +119,66 @@ struct ReferenceStoreMigrationTests {
         }
     }
 
+    /// The index on disk was written by TWO encoders over the app's
+    /// life: the current writer uses ISO 8601, but the index files a
+    /// user already has on disk were written by the default encoder
+    /// (= a Date as a Double). A decoder that accepts only one of the
+    /// two throws, and the store's catch arm turns that throw into an
+    /// EMPTY library (= the user's metadata reads as lost).
+    ///
+    /// So the decode must accept BOTH. This test pins the legacy half
+    /// explicitly, so the contract does not depend on which encoder a
+    /// test fixture happens to use.
+    @Test("The index decodes under BOTH date encodings (= the legacy Double timestamps and ISO 8601)")
+    func indexDecodesUnderBothDateEncodings() throws {
+        // The LEGACY shape: the default encoder writes a Date as a Double.
+        let (legacyStore, legacyRoot, _) = try makeStore()
+        let legacyEntities = legacyRoot.appendingPathComponent("entities")
+        try FileManager.default.createDirectory(at: legacyEntities, withIntermediateDirectories: true)
+        let legacyRef = Reference(
+            id: UUID(),
+            title: "Li Bai",
+            layer: .layerEntities,
+            category: .i,
+            tags: ["poet"]
+        )
+        let legacyEncoder = JSONEncoder()
+        legacyEncoder.outputFormatting = [.prettyPrinted]
+        try legacyEncoder.encode([legacyRef])
+            .write(to: legacyEntities.appendingPathComponent("entities.json"), options: .atomic)
+
+        let legacyLoaded = try legacyStore.loadReferences(layer: .layerEntities)
+        #expect(legacyLoaded.count == 1,
+                "the legacy index must decode (= the whole library must not read as empty)")
+        #expect(legacyLoaded.first?.category == .i,
+                "category must survive the legacy decode")
+        #expect(legacyLoaded.first?.tags == ["poet"],
+                "tags must survive the legacy decode")
+
+        // The CURRENT shape: the writer uses ISO 8601.
+        let (currentStore, currentRoot, _) = try makeStore()
+        let currentEntities = currentRoot.appendingPathComponent("entities")
+        try FileManager.default.createDirectory(at: currentEntities, withIntermediateDirectories: true)
+        let currentRef = Reference(
+            id: UUID(),
+            title: "Du Fu",
+            layer: .layerEntities,
+            category: .i,
+            tags: ["poet"]
+        )
+        let currentEncoder = JSONEncoder()
+        currentEncoder.outputFormatting = [.prettyPrinted]
+        currentEncoder.dateEncodingStrategy = .iso8601
+        try currentEncoder.encode([currentRef])
+            .write(to: currentEntities.appendingPathComponent("entities.json"), options: .atomic)
+
+        let currentLoaded = try currentStore.loadReferences(layer: .layerEntities)
+        #expect(currentLoaded.count == 1,
+                "the ISO 8601 index must keep decoding (= the fallback must not shadow it)")
+        #expect(currentLoaded.first?.category == .i,
+                "category must survive the ISO 8601 decode")
+    }
+
     @Test("category metadata survives migration (= preserved in entities.json)")
     func categoryMetadataPreserved() throws {
         let (store, reflibRoot, _) = try makeStore()
