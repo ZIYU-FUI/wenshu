@@ -42,11 +42,31 @@ public struct StreamBatch: Sendable, Equatable {
 /// Collects chunks and publishes them at most once per frame.
 @MainActor
 public final class StreamBuffer {
+    /// The length of one frame.
+    ///
+    /// 16ms is one frame at 60Hz. Shorter and the display cannot keep up,
+    /// so the extra renders buy nothing; longer and the text visibly
+    /// stutters between updates.
+    private static let frameInterval = Duration.milliseconds(16)
+
+    /// The frame of words being collected.
+    ///
+    /// Its identity is what a flush task checks when it wakes: a task that
+    /// was scheduled for a frame the buffer has since moved past publishes
+    /// nothing, so a frame's words are published by the task that owns it.
+    private struct Frame {
+        let id: Int
+        /// When this frame must be published by.
+        let deadline: ContinuousClock.Instant
+    }
+
     private var pending: StreamBatch
-    /// Whether a flush is already scheduled. This flag is the whole throttle:
-    /// a second chunk arriving before the flush sees it and extends the buffer
-    /// instead of scheduling another one.
-    private var flushScheduled = false
+    /// The frame in flight, or nil when no frame is being collected.
+    ///
+    /// A second chunk arriving while a frame is in flight joins that frame
+    /// rather than starting a new one: this is the whole throttle.
+    private var frame: Frame?
+    private var nextFrameID = 0
     private var onFlush: ((StreamBatch) -> Void)?
 
     public init(onFlush: @escaping (StreamBatch) -> Void) {
@@ -71,7 +91,13 @@ public final class StreamBuffer {
         case .toolUse, .toolResult:
             pending.blocks.append(block)
         }
-        scheduleFlush()
+        // A frame is already in flight: this chunk joins it, and the task
+        // that owns the frame publishes both together.
+        guard frame == nil else { return }
+        nextFrameID += 1
+        let frame = Frame(id: nextFrameID, deadline: ContinuousClock.now + Self.frameInterval)
+        self.frame = frame
+        scheduleFlush(frame: frame)
     }
 
     /// Publish everything buffered right now, cancelling the pending flush.
@@ -80,7 +106,7 @@ public final class StreamBuffer {
     /// rather than waiting for the timer, or the tail of the message appears
     /// after the UI has already marked the bubble complete.
     public func flushNow() {
-        flushScheduled = false
+        frame = nil
         guard !pending.isEmpty else { return }
         let batch = pending
         pending = StreamBatch()
@@ -90,10 +116,8 @@ public final class StreamBuffer {
     /// Whether anything is waiting to be published.
     public var hasPending: Bool { !pending.isEmpty }
 
-    private func scheduleFlush() {
-        guard !flushScheduled else { return }
-        flushScheduled = true
-        // A wall-clock interval, not a bare yield.
+    private func scheduleFlush(frame: Frame) {
+        // A wall-clock deadline, not a bare yield.
         //
         // A yield-based flush is not reliable: the flush task needs two
         // scheduler turns to run (one to start, one for its own yield), and
@@ -103,13 +127,25 @@ public final class StreamBuffer {
         // defines nothing measurable, so the coalescing window would depend
         // on how busy the main actor happened to be.
         //
-        // 16ms is one frame at 60Hz. Shorter and the display cannot keep up,
-        // so the extra renders buy nothing; longer and the text visibly
-        // stutters between updates.
+        // The deadline is stamped when the first chunk of the frame arrives,
+        // not when this task starts running. A task's own sleep clock starts
+        // when the task begins, so a window measured from the task's start
+        // would be pushed back by however long the main actor's queue was
+        // deep, and the frame would publish whole frames after the words
+        // arrived. Sleeping until the stamped deadline keeps the window one
+        // frame long however busy the main actor is: a flush that starts late
+        // finds the deadline already past and publishes in the same turn it
+        // starts, rather than after another frame.
         Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .milliseconds(16))
-            guard let self, self.flushScheduled else { return }
-            self.flushScheduled = false
+            let remaining = frame.deadline - ContinuousClock.now
+            if remaining > .zero {
+                try? await Task.sleep(for: remaining)
+            }
+            // The frame is the identity: a task that wakes for a frame the
+            // buffer has moved past (= a terminal flush, or a newer frame)
+            // publishes nothing.
+            guard let self, self.frame?.id == frame.id else { return }
+            self.frame = nil
             guard !self.pending.isEmpty else { return }
             let batch = self.pending
             self.pending = StreamBatch()
