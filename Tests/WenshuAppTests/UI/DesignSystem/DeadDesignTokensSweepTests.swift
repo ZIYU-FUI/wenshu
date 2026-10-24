@@ -19,12 +19,11 @@
 //  9. chipAvatarSize (110x80) — Apple HIG chip avatar standard
 //  10. formColumnWidth (120) — Apple HIG form column minimum
 //
-//  Note: runtimeCwdChipFont, hotkeyComboFont, tabTitleFont are
-//  preserved as historical comment blocks in DesignTokens.swift
-//  (= documentation of the migration rule from v2.x tokens
-//  to SwiftUI built-in .font(.caption2) / .font(.caption)).
-//  They are NOT active tokens (= no `static let` declaration;
-//  = the references survive only in `Token was:` comments).
+//  Note: runtimeCwdChipFont, hotkeyComboFont, tabTitleFont are gone
+//  from DesignTokens.swift completely -- the declaration AND the
+//  `Token was:` history comment (the A112 docblock collapse removed the
+//  history comment too). They are NOT active tokens (= no `static let`
+//  declaration), and the sweep asserts they stay that way.
 //
 //  Other dead tokens deleted in earlier arcs (= total = 13):
 //  - Round 26: tabCloseGlyphFontSize, systemMessageFill,
@@ -131,24 +130,26 @@ struct DeadDesignTokensSweepTests {
         }
     }
 
-    @Test("Historical comment tokens preserved (Token was: ...)")
-    func historicalCommentTokensPreserved() throws {
+    @Test("The three v3.0-migrated tokens stay gone (= no declaration, no history comment)")
+    func migratedFontTokensStayGone() throws {
         let root = SourceLocator.repoRoot
         let tokensPath = root.appendingPathComponent("Sources/WenshuApp/DesignTokens.swift")
         let content = try String(contentsOf: tokensPath, encoding: .utf8)
 
-        // Verify the 3 historical-comment tokens are preserved as documentation
-        #expect(
-            content.contains("Token was: static let runtimeCwdChipFont"),
-            "Historical comment for runtimeCwdChipFont should be preserved"
-        )
-        #expect(
-            content.contains("Token was: static let hotkeyComboFont"),
-            "Historical comment for hotkeyComboFont should be preserved"
-        )
-        #expect(
-            content.contains("Token was: static let tabTitleFont"),
-            "Historical comment for tabTitleFont should be preserved"
-        )
+        // The A112 docblock collapse removed the `Token was:` history
+        // comments with the declarations, so the old assertion ("the
+        // history comment is preserved") no longer describes the source.
+        // What the sweep actually protects is that these three tokens
+        // do not come back as ACTIVE tokens.
+        for token in ["runtimeCwdChipFont", "hotkeyComboFont", "tabTitleFont"] {
+            #expect(
+                !content.contains("static let \(token)"),
+                "\(token) must stay deleted (= no active DesignTokens declaration)"
+            )
+            #expect(
+                !content.contains(token),
+                "\(token) must stay deleted (= the token is not referenced in DesignTokens.swift at all)"
+            )
+        }
     }
 }
