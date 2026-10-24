@@ -71,7 +71,7 @@ and `EditorFormatToolbar.swift` are byte-identical from that commit to
 
 ```
 probe: column_chrome_band
-capture: recorded-capture.png
+capture: recorded-capture.png   (= the skill wenshu-visual-audit, references/recorded-capture.png)
 capture 3840x1968  scale=2.0
   CONTENT band = 96.0 .. 108.5 pt   centre 102.25
   BAND SURFACE = 88.5 .. 116.0 pt (28.5 pt tall, anchor 250.0)
