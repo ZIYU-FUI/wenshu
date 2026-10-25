@@ -9,6 +9,7 @@
 
 import Foundation
 import UniformTypeIdentifiers
+import WenshuData
 
 // MARK: - ImportTask (per-file state)
 
@@ -314,42 +315,18 @@ struct ImportTask: Identifiable, Sendable, Hashable {
     /// strip shows "1 主 + N
     /// 拆出").
     var extraFilesDone: Int = 0
-    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
-        /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
-    /// feedback). Real-time
-    /// LLM activity log
-    /// (= the orchestrator
-    /// appends short human-
-    /// readable messages as
-    /// the LLM pipeline
-    /// progresses; = the
-    /// sheet shows the log
-    /// in the row as a
-    /// scrolling terminal-
-    /// like view; = gives
-    /// the user visible
-    /// feedback for "what
-    /// the LLM is doing
-    /// right now"). Examples
-    /// (= Chinese):
-    /// - "读取源文件 23 KB"
-    /// - "调用 LLM 分类 + 重组"
-    /// - "LLM 返回: title=..., tags=[...]"
-    /// - "LLM 返回: 6 必填 + 3 自定义子文件"
-    /// - "写主文件: world/故事宪法.md (2.1 KB)"
-    /// - "写子文件 1/9: world/核心设定.md (0.3 KB)"
-    /// - "写子文件 2/9: world/地理或位置.md (0.2 KB)"
-    /// - "..." (= 1 line per step)
-    /// Capped at 30 entries
-    /// (= the old entries
-    /// drop off; = prevents
-    /// unbounded memory
-    /// growth; = 30 lines is
-    /// enough to show
-    /// the recent activity
-    /// without scrolling
-    /// forever).
-    var activityLog: [String] = []
+    /// The agent's reply for this file (= the chat zone's part type;
+    /// = the import sheet renders them with the chat zone's own
+    /// message body view, so the sheet and the chat read the same).
+    ///
+    /// The parts carry the agent's text, its reasoning, its tool calls
+    /// and its tool results, and they arrive as the agent produces
+    /// them (= the row shows the reply while it is being written, not
+    /// only at the end).
+    ///
+    /// Capped at 60 parts (= the oldest parts drop off; = a long import
+    /// must not grow the row without bound).
+    var agentParts: [ChatMessagePart] = []
     /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// (= phase 1/2/3) is
     /// currently running).
@@ -376,6 +353,133 @@ struct ImportTask: Identifiable, Sendable, Hashable {
         self.routing = nil
         self.extraFilesTotal = 0
         self.extraFilesDone = 0
-        self.activityLog = []
+        self.agentParts = []
+    }
+}
+
+
+// MARK: - ImportAgentPart
+
+/// One agent part as it travels through the import progress channel.
+///
+/// The import agent's reply reaches the sheet through the progress
+/// channel the orchestrator already has (= a string channel; = the
+/// orchestrator's per-file pipeline is not changed by this). A part
+/// travels as its JSON form behind a marker, so the receiving end can
+/// tell a part from a plain log line.
+///
+/// The tool call's arguments are summarised before they travel (= the
+/// write tool carries the whole document body as one of its arguments;
+/// = showing that verbatim would bury the reply).
+struct ImportAgentPart: Codable, Sendable, Equatable {
+
+    /// The marker that opens the wire form.
+    static let marker = "wenshu.import.part:"
+
+    /// The kind of part.
+    enum Kind: String, Codable, Sendable {
+        case text
+        case reasoning
+        case toolUse
+        case toolResult
+    }
+
+    let kind: Kind
+    /// The part's text (= the text, the reasoning, or the tool
+    /// result's content).
+    var text: String = ""
+    /// The tool's name (= a tool call only).
+    var toolName: String = ""
+    /// The tool's call id (= a tool call and a tool result).
+    var toolCallID: String = ""
+    /// The tool's summarised arguments (= a tool call only).
+    var toolArgs: String = ""
+    /// Whether the tool result is an error.
+    var isError: Bool = false
+
+    /// The wire form (= the marker + the JSON).
+    func encoded() -> String {
+        guard let data = try? JSONEncoder().encode(self) else { return "" }
+        return Self.marker + (String(data: data, encoding: .utf8) ?? "")
+    }
+
+    /// Read a part back off the wire, or nil when the string is not a
+    /// part (= a plain log line).
+    static func decode(_ raw: String) -> ImportAgentPart? {
+        guard raw.hasPrefix(marker) else { return nil }
+        let payload = String(raw.dropFirst(marker.count))
+        guard let data = payload.data(using: .utf8) else { return nil }
+        return try? JSONDecoder().decode(ImportAgentPart.self, from: data)
+    }
+
+    /// Build a part.
+    init(
+        kind: Kind,
+        text: String = "",
+        toolName: String = "",
+        toolCallID: String = "",
+        toolArgs: String = "",
+        isError: Bool = false
+    ) {
+        self.kind = kind
+        self.text = text
+        self.toolName = toolName
+        self.toolCallID = toolCallID
+        self.toolArgs = toolArgs
+        self.isError = isError
+    }
+
+    /// Build a part from the chat zone's part.
+    ///
+    /// The tool call's arguments are already summarised by the emitter,
+    /// so they travel as they are.
+    init(part: ChatMessagePart) {
+        switch part.kind {
+        case .text(let text):
+            self.init(kind: .text, text: text)
+        case .reasoning(let text):
+            self.init(kind: .reasoning, text: text)
+        case .toolUse(let tool):
+            self.init(
+                kind: .toolUse,
+                toolName: tool.name,
+                toolCallID: tool.id.rawValue,
+                toolArgs: tool.args
+            )
+        case .toolResult(let result):
+            self.init(
+                kind: .toolResult,
+                text: result.content,
+                toolCallID: result.toolUseID.rawValue,
+                isError: result.isError
+            )
+        case .plan:
+            self.init(kind: .text, text: "")
+        }
+    }
+
+    /// The chat zone's part for this part.
+    ///
+    /// The chat zone's own part type, so the sheet and the chat render
+    /// the same thing.
+    func chatPart() -> ChatMessagePart {
+        switch kind {
+        case .text:
+            return .text(text)
+        case .reasoning:
+            return .reasoning(text)
+        case .toolUse:
+            return .toolUse(
+                id: ToolCallID(rawValue: toolCallID),
+                name: toolName,
+                args: toolArgs
+            )
+        case .toolResult:
+            return .toolResult(
+                toolUseID: ToolCallID(rawValue: toolCallID),
+                content: text,
+                isError: isError
+            )
+        }
     }
 }

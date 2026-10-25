@@ -78,46 +78,17 @@ struct ImportTaskRow: View {
         // next to the row so the user knows there are empty 占位子文件 (= Apple HIG
         // needs-attention pattern; = SF Symbol exclamationmark.triangle.fill +
         // orange + caption font). (= boss 2026-10-10 (see OOB.md #2026-10-10)
-        // 馈" feedback). Real-time LLM activity log (= scrolling terminal-like
-        // view; = the user sees what the LLM is doing RIGHT NOW; = the last 5
-        // lines are shown; = each line gets a monospaced font + .caption +
-        // .secondary color; = the user can scroll to see older entries).
-        // Hidden when activityLog is empty (= before the orchestrator appends
+        // 馈" feedback). The agent's reply (= the chat zone's own parts;
+        // = the user sees what the agent is doing RIGHT NOW; = the reply
+        // grows as the agent writes it).
+        // Hidden when the row has no parts yet (= before the agent says
         // anything).
-        if !task.activityLog.isEmpty {
-            activityLogView
+        if !task.agentParts.isEmpty {
+            ImportAgentReplyView(
+                parts: task.agentParts,
+                isStreaming: task.state == .writing || task.state == .routing
+            )
         }
-    }
-
-    /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
-    /// 馈" feedback). Real-time
-    /// LLM activity log
-    /// (= a scrolling
-    /// terminal-like view
-    /// showing the last N
-    /// entries of
-    /// `task.activityLog`;
-    /// = the user can see
-    /// what the LLM is doing
-    /// right now). Shown when
-    /// activityLog is non-empty.
-    @ViewBuilder
-    private var activityLogView: some View {
-        // Show last 5 entries (= the most recent = the current LLM action; = older
-        // entries can be inferred from the sequence; = the 30-entry cap is
-        // still enforced in `appendActivity`).
-        let visible = task.activityLog.suffix(5)
-        VStack(alignment: .leading, spacing: 1) {
-            ForEach(Array(visible.enumerated()), id: \.offset) { idx, line in
-                Text(line)
-                    .font(.system(.caption, design: .monospaced))
-                    .foregroundStyle(idx == visible.count - 1 ? .primary : .secondary)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-        .padding(.top, 2)
     }
 
     /// ticket 04: caption for
