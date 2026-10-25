@@ -18,6 +18,11 @@
 //     Fallback loads all indexed docs from a SwiftData-side mirror
 //     and computes token-overlap score in-process. The mirror is
 //     written on every `index(docId:title:body:)` so it stays fresh.
+//   - `search` answers with the union of the two (= the mirror first,
+//     = the system index fills the rest): a document the app indexed
+//     a moment ago is in the mirror but not yet in the system index,
+//     and a document the app indexed in an earlier session is in the
+//     system index but not in the in-memory mirror.
 
 import Foundation
 import CoreSpotlight
@@ -50,6 +55,17 @@ enum CSSearchDomain {
     static func docId(from itemIdentifier: String) -> String? {
         guard itemIdentifier.hasPrefix("wenshu-doc-") else { return nil }
         return String(itemIdentifier.dropFirst("wenshu-doc-".count))
+    }
+
+    /// The docId of a reference document (= its id behind a prefix).
+    ///
+    /// The prefix tells a search hit WHICH kind of document it is: a
+    /// chapter indexes its bare id, so a bare id would leave the caller
+    /// guessing between the two stores. The prefix is part of the
+    /// docId, so it survives the Spotlight round-trip
+    /// (`itemIdentifier` -> `docId`).
+    static func referenceDocId(for id: UUID) -> String {
+        "reference-\(id.uuidString)"
     }
 }
 
@@ -142,20 +158,48 @@ actor CSSearchableIndexSearch {
         mirror[docId]?.displayTitle ?? docId
     }
 
-    /// Search (BM25-equivalent: Apple Spotlight relevance OR token-overlap fallback).
+    /// Search (= Apple Spotlight relevance + the in-process mirror).
+    ///
+    /// Two sources answer, and both are needed:
+    ///   - the in-process mirror (= every document this app indexed in
+    ///     this session; = it is written before the system indexer has
+    ///     caught up, so a document saved a moment ago is findable at
+    ///     once),
+    ///   - the system Spotlight index (= the durable view; = it holds
+    ///     the documents this app indexed in EARLIER sessions, which the
+    ///     in-memory mirror does not survive).
+    ///
+    /// A document can sit in both (= the mirror is the fresh copy of
+    /// something the system index also holds), so the answer is the
+    /// union by docId and the mirror's copy wins (= it is the app's own
+    /// copy). The mirror answers first for the same reason: the mirror
+    /// is the app's live index, and a document the user just saved must
+    /// not be pushed out of the answer by older Spotlight hits.
+    ///
+    /// The rank is the position in the answer (= higher is better);
+    /// each source ranks its own hits first.
     /// - Parameters:
     ///   - query: user query string (= Spotlight handles FTS5-style MATCH syntax).
     ///   - limit: max results (= default 20).
     /// - Returns: array of CSSearchResult sorted by descending rank.
     func search(query: String, limit: Int = 20) throws -> [CSSearchResult] {
-        // Try Spotlight first (= Apple native).
+        let mirrorResults = try queryFallback(query: query, limit: limit)
         let spotlightResults = try querySpotlight(query: query, limit: limit)
-        if !spotlightResults.isEmpty {
-            return spotlightResults
-        }
 
-        // Fallback to SwiftData token-overlap ranking (= when Spotlight returns empty).
-        return try queryFallback(query: query, limit: limit)
+        var seen = Set(mirrorResults.map(\.docId))
+        var merged = mirrorResults
+        for result in spotlightResults where !seen.contains(result.docId) {
+            seen.insert(result.docId)
+            merged.append(result)
+        }
+        return merged.prefix(limit).enumerated().map { idx, result in
+            CSSearchResult(
+                docId: result.docId,
+                snippet: result.snippet,
+                rank: Double(limit - idx),
+                line: result.line
+            )
+        }
     }
 
     /// Query Apple Spotlight via CSSearchQuery.
@@ -193,23 +237,34 @@ actor CSSearchableIndexSearch {
             return []
         }
 
-        return collected.prefix(limit).enumerated().map { idx, item in
-            let docId = CSSearchDomain.docId(from: item.uniqueIdentifier) ?? item.uniqueIdentifier
-            let title = item.attributeSet.title ?? ""
-            let body = item.attributeSet.contentDescription ?? ""
-            let snippet = "<mark>\(title)</mark> \(String(body.prefix(64)))"
-            // CSSearchableItem does not expose relevance directly; = rank by order.
-            return CSSearchResult(
-                docId: docId,
-                snippet: snippet,
-                rank: Double(limit - idx),
-                line: -1
-            )
-        }
+        // Only this app's own domain answers (= the system index holds
+        // every application's documents, and a foreign one carries a
+        // docId no caller of this app can resolve).
+        return collected
+            .filter { $0.domainIdentifier == CSSearchDomain.domainIdentifier }
+            .prefix(limit)
+            .enumerated()
+            .map { idx, item in
+                let docId = CSSearchDomain.docId(from: item.uniqueIdentifier) ?? item.uniqueIdentifier
+                let title = item.attributeSet.title ?? ""
+                let body = item.attributeSet.contentDescription ?? ""
+                let snippet = "<mark>\(title)</mark> \(String(body.prefix(64)))"
+                // CSSearchableItem does not expose relevance directly; = rank by order.
+                return CSSearchResult(
+                    docId: docId,
+                    snippet: snippet,
+                    rank: Double(limit - idx),
+                    line: -1
+                )
+            }
     }
 
-    /// Fallback query via SwiftData token-overlap ranking.
-    /// Used when Spotlight indexer is disabled by user (= CSSearchQuery returns []).
+    /// Token-overlap ranking over the in-process mirror.
+    ///
+    /// The mirror holds every document this app indexed in this
+    /// session, so this path answers even when the system indexer is
+    /// disabled by the user (= CSSearchQuery returns []) and even for
+    /// a document the system indexer has not caught up with yet.
     private func queryFallback(query: String, limit: Int) throws -> [CSSearchResult] {
         guard !mirror.isEmpty else { return [] }
         let queryTokens = TokenOverlapRanking.tokenize(query)

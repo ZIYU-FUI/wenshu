@@ -18,6 +18,17 @@ struct FileSystemReferenceStore: ReferenceStoring {
     // / FileSystem fallback helpers directly.
     let modelContainer: ModelContainer?
 
+    /// The search index the library publishes its documents to (= the
+    /// same index the chapter store writes into; = a reference the
+    /// user imported has to be findable by a word in it, or it cannot
+    /// constrain the writing that follows).
+    let searchIndex: CSSearchableIndexSearch
+
+    /// The index writes this store has scheduled but not yet awaited
+    /// (= a save stays synchronous; = `awaitSearchIndexWrites()` waits
+    /// for the writes).
+    let pendingSearchIndexWrites: PendingSearchIndexWrites
+
     /// Layer-specific subdirectory under reference-library/.
     private func layerDirectory(_ layer: ReferenceLayer) -> URL {
         referenceLibraryRoot.appendingPathComponent(layer.directoryName, isDirectory: true)
@@ -25,10 +36,14 @@ struct FileSystemReferenceStore: ReferenceStoring {
 
     init(
         referenceLibraryRoot: URL,
-        modelContainer: ModelContainer? = nil
+        modelContainer: ModelContainer? = nil,
+        searchIndex: CSSearchableIndexSearch = .shared,
+        pendingSearchIndexWrites: PendingSearchIndexWrites = PendingSearchIndexWrites()
     ) {
         self.referenceLibraryRoot = referenceLibraryRoot
         self.modelContainer = modelContainer
+        self.searchIndex = searchIndex
+        self.pendingSearchIndexWrites = pendingSearchIndexWrites
     }
 
     // / Resolve the ModelContext (= SwiftData's @MainActor contract).
@@ -123,6 +138,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
                 bodyMarkdown: bodyMarkdown,
                 referenceLibraryRoot: referenceLibraryRoot
             )
+            scheduleSearchIndex(reference: reference, bodyMarkdown: bodyMarkdown)
             return
         }
         guard let context = modelContext else {
@@ -147,6 +163,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
             bodyMarkdown: bodyMarkdown,
             referenceLibraryRoot: referenceLibraryRoot
         )
+        scheduleSearchIndex(reference: reference, bodyMarkdown: bodyMarkdown)
     }
 
     func replaceReference(_ reference: Reference, bodyMarkdown: String) throws {
@@ -156,6 +173,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
                 bodyMarkdown: bodyMarkdown,
                 referenceLibraryRoot: referenceLibraryRoot
             )
+            scheduleSearchIndex(reference: reference, bodyMarkdown: bodyMarkdown)
             return
         }
         guard let context = modelContext else {
@@ -191,6 +209,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
             bodyMarkdown: bodyMarkdown,
             referenceLibraryRoot: referenceLibraryRoot
         )
+        scheduleSearchIndex(reference: reference, bodyMarkdown: bodyMarkdown)
     }
 
     func upsertReference(
@@ -228,7 +247,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
         summary: String
     ) throws -> Reference {
         guard modelContainer != nil else {
-            return try Self.upsertReferenceToFileSystem(
+            let upserted = try Self.upsertReferenceToFileSystem(
                 title: title,
                 bodyMarkdown: bodyMarkdown,
                 referenceLibraryRoot: referenceLibraryRoot,
@@ -240,6 +259,8 @@ struct FileSystemReferenceStore: ReferenceStoring {
                 entityType: entityType,
                 summary: summary
             )
+            scheduleSearchIndex(reference: upserted, bodyMarkdown: bodyMarkdown)
+            return upserted
         }
         guard let context = modelContext else {
             throw ReferenceStoreError.referenceLibraryRootMissing(path: referenceLibraryRoot.path)
@@ -261,7 +282,9 @@ struct FileSystemReferenceStore: ReferenceStoring {
             }
             existing.updatedAt = Date()
             try context.save()
-            return Self.toReference(existing)
+            let updated = Self.toReference(existing)
+            scheduleSearchIndex(reference: updated, bodyMarkdown: bodyMarkdown)
+            return updated
         }
         let newReference = Reference(
             id: UUID(),
@@ -278,7 +301,9 @@ struct FileSystemReferenceStore: ReferenceStoring {
         let row = Self.makeRow(reference: newReference, bodyMarkdown: bodyMarkdown)
         context.insert(row)
         try context.save()
-        return Self.toReference(row)
+        let created = Self.toReference(row)
+        scheduleSearchIndex(reference: created, bodyMarkdown: bodyMarkdown)
+        return created
     }
 
     func deleteReference(id: UUID) throws {
@@ -288,6 +313,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
                 referenceLibraryRoot: referenceLibraryRoot
             )
             Self.removeCoverOfDeletedReference(id)
+            scheduleSearchIndexRemoval(id: id)
             return
         }
         guard let context = modelContext else {
@@ -302,6 +328,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
         context.delete(existing)
         try context.save()
         Self.removeCoverOfDeletedReference(id)
+        scheduleSearchIndexRemoval(id: id)
     }
 
     /// Remove the cover of a reference that has just been deleted.
@@ -639,7 +666,15 @@ struct FileSystemReferenceStore: ReferenceStoring {
     // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
     // / updated body.
     func replaceReferenceByID(id: UUID, bodyMarkdown: String) throws {
-        guard let context = modelContext else { return }
+        guard let context = modelContext else {
+            // No SwiftData row (= the file-only library the app runs
+            // on): the title comes from the index file, so the
+            // document can still be re-published with its new body.
+            if let reference = (try? loadAllReferences())?.first(where: { $0.id == id }) {
+                scheduleSearchIndex(reference: reference, bodyMarkdown: bodyMarkdown)
+            }
+            return
+        }
         let descriptor = FetchDescriptor<WSReference>(
             predicate: #Predicate { $0.id == id }
         )
@@ -652,6 +687,9 @@ struct FileSystemReferenceStore: ReferenceStoring {
         existing.body = bodyMarkdown
         existing.updatedAt = Date()
         try context.save()
+        // The body the index holds is the body the user sees, so the
+        // new body is what gets published.
+        scheduleSearchIndex(reference: Self.toReference(existing), bodyMarkdown: bodyMarkdown)
     }
 
     nonisolated static func upsertReferenceToFileSystem(
