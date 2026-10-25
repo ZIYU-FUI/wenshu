@@ -173,8 +173,17 @@ struct WenshuConductorToolRegistryWiringTests {
         let markerName = "book_manager"
         let registry = ToolRegistry.shared
 
-        // Snapshot pre-state for cleanup (= restore on exit).
-        let preExistingEntry = await registry.getEntry(name: markerName)
+        // The production tool must be REGISTERED before the pre-state
+        // is snapshotted. The module-load registration is a Task, so it
+        // lands whenever the cooperative pool gets to it: = if the
+        // snapshot runs first, the pre-state is nil, and the cleanup
+        // below would then DEREGISTER a name the production registry
+        // owns (= the tool is gone for the rest of the process, and
+        // every later test that waits for the full tool set waits
+        // forever).
+        _ = BookManagerTool._registryBootstrap
+        let preExistingEntry = await Self.awaitRegistration(of: markerName, in: registry)
+        let preExistingHandler = await registry.getHandler(name: markerName)
         let markerHandler = MarkerTool(label: "from-shared-marker")
         await registry.register(
             name: markerName,
@@ -188,12 +197,12 @@ struct WenshuConductorToolRegistryWiringTests {
             // deregister the marker so other tests see a clean
             // shared singleton.
             Task { [registry] in
-                if let pre = preExistingEntry {
+                if let pre = preExistingEntry, let handler = preExistingHandler {
                     await registry.register(
                         name: markerName,
                         toolset: pre.toolset,
                         schema: pre.schema,
-                        handler: markerHandler,  // the actual production handler is opaque; close enough for test isolation
+                        handler: handler,  // the real production handler
                         override: true
                     )
                 } else {
@@ -201,6 +210,13 @@ struct WenshuConductorToolRegistryWiringTests {
                 }
             }
         }
+
+        // `buildToolsSync` fills its PROCESS-WIDE cache on a detached
+        // task and returns an EMPTY dict on the cold path. So if this
+        // test is the first caller in the process, the wiring site
+        // captures an empty tool dict and the marker can never appear.
+        // Warm the cache first, and wait for it to land.
+        await Self.warmToolCache(registry)
 
         // Build a ChatView-internal conductor. The wrapping site
         // (= conductorRegisteringParagraphAI) reads from
@@ -283,5 +299,38 @@ struct WenshuConductorToolRegistryWiringTests {
         let kanban = try Self.makeKanbanRepository()
                 return WenshuConductor(
         )
+    }
+
+    /// Wait for a name to land in the registry.
+    ///
+    /// The module-load registration is a `Task`, so it lands whenever the
+    /// cooperative pool gets to it. A test that shadows a production name
+    /// must wait for the production entry first, or its cleanup removes a
+    /// tool the rest of the process depends on.
+    private static func awaitRegistration(
+        of name: String,
+        in registry: ToolRegistry
+    ) async -> ToolEntry? {
+        let deadline = ContinuousClock.now.advanced(by: .seconds(10))
+        while ContinuousClock.now < deadline {
+            if let entry = await registry.getEntry(name: name) { return entry }
+            try? await Task.sleep(nanoseconds: 20_000_000)
+        }
+        return await registry.getEntry(name: name)
+    }
+
+    /// Warm `WenshuConductor`'s process-wide tool cache.
+    ///
+    /// `buildToolsSync` returns an empty dict on the cold path and fills
+    /// the cache on a detached task, so a caller that runs before the
+    /// cache is warm captures an empty tool dict. Polling `buildToolsSync`
+    /// until it returns a non-empty dict is the same wait the production
+    /// caller relies on, without the order dependency.
+    private static func warmToolCache(_ registry: ToolRegistry) async {
+        let deadline = ContinuousClock.now.advanced(by: .seconds(10))
+        while ContinuousClock.now < deadline {
+            if !WenshuConductor.buildToolsSync(from: registry).isEmpty { return }
+            try? await Task.sleep(nanoseconds: 20_000_000)
+        }
     }
 }
