@@ -1,8 +1,7 @@
 //
 //  ImportServiceRollbackTests.swift · wenshu
 //
-//  The cancel rollback (= boss's 2026-10-09 directive: "取消退出时，所有已经导入
-//  的内容回退清掉 ... 不留痕" = cancel = nothing lands on disk).
+//  The cancel rollback: = a cancelled run leaves nothing on disk.
 //
 //  In the reorganize mode the agent is the only writer (= the orchestrator
 //  writes nothing; = see `ImportServiceMainFileWriter`). The agent writes
@@ -102,7 +101,7 @@ final class ImportServiceRollbackTests: XCTestCase {
         let world = bookRoot.appendingPathComponent("world")
         try fm.createDirectory(at: world, withIntermediateDirectories: true)
         // A document the book held before the run.
-        let preExisting = world.appendingPathComponent("既有文档.md")
+        let preExisting = world.appendingPathComponent("existing.md")
         try "# already here".write(
             to: preExisting, atomically: true, encoding: .utf8
         )
@@ -174,7 +173,7 @@ final class ImportServiceRollbackTests: XCTestCase {
     }
 
     /// A directory the run created goes too (= the boss's directive is
-    /// "不留痕" = leave no trace).
+    /// (the rollback leaves no trace).
     func testTheRollbackRemovesTheDirectoryTheRunCreated() async throws {
         let fm = FileManager.default
         let source = fm.temporaryDirectory

@@ -8,9 +8,8 @@
 //  writer (= the orchestrator writes nothing; = see
 //  `ImportServiceMainFileWriter`). The agent writes through
 //  `WriteBookDocTool`, so the orchestrator's own bookkeeping never
-//  learns which files landed. The boss's 2026-10-09 directive is
-//  strict: "取消退出时，所有已经导入的内容回退清掉 ... 不留痕" (= cancel
-//  = nothing lands on disk).
+//  learns which files landed. The cancel contract is strict: = a
+//  cancelled run leaves nothing on disk.
 //
 //  So the rollback looks at the tree instead of at a trail: the tree
 //  before the run, and the tree after it. A file that is new, or that

@@ -68,7 +68,7 @@ private final class CallCounter: @unchecked Sendable {
             return LLMResponse(
                 id: "stub-done",
                 model: "stub",
-                blocks: [.text("完成")],
+                blocks: [.text("done")],
                 stopReason: .endTurn,
                 usage: LLMUsage(inputTokens: 0, outputTokens: 0)
             )
@@ -151,14 +151,14 @@ private final class CallCounter: @unchecked Sendable {
     /// The agent's write lands on disk, inside the folder the user
     /// picked.
     func testTheAgentsWriteLandsInTheUsersFolder() async throws {
-        try await runImport(toolPath: "world/核心设定.md", folder: .world)
+        try await runImport(toolPath: "world/core-setting.md", folder: .world)
         let landed = files(in: "world")
         XCTAssertEqual(
-            landed, ["核心设定.md"],
+            landed, ["core-setting.md"],
             "The agent's file must land in the folder the user picked."
         )
         let content = try String(
-            contentsOf: bookRoot.appendingPathComponent("world/核心设定.md"),
+            contentsOf: bookRoot.appendingPathComponent("world/core-setting.md"),
             encoding: .utf8
         )
         XCTAssertTrue(content.contains("by the agent"))
@@ -167,7 +167,7 @@ private final class CallCounter: @unchecked Sendable {
     /// The other folders of the book stay empty (= the user's folder is
     /// the only destination).
     func testNoOtherFolderReceivedAFile() async throws {
-        try await runImport(toolPath: "world/核心设定.md", folder: .world)
+        try await runImport(toolPath: "world/core-setting.md", folder: .world)
         for folder in ["characters", "outlines", "chapters", "drafts", "ideas"] {
             XCTAssertTrue(
                 files(in: folder).isEmpty,
