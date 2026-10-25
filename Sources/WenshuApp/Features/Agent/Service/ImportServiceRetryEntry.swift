@@ -126,10 +126,16 @@ extension ImportService {
 
 
 
-    /// (= boss 2026-10-10 (see OOB.md #2026-10-10) feedback). Append a single
-    /// line to a task's activityLog (= the per-row scrolling terminal- like
-    /// view in the sheet). Capped at 30 entries (= old entries drop off; = 30
-    /// is enough to show the recent activity without scrolling forever). Also
+    /// Append one line to a task's reply (= the per-row agent reply in
+    /// the sheet).
+    ///
+    /// The message is the agent's reply when it carries a part (= the
+    /// import agent's stream travels through this channel; = a part
+    /// keeps its kind), and a plain line otherwise (= the orchestrator's
+    /// own progress messages; = those read as the agent's text).
+    ///
+    /// Capped at 60 parts (= the oldest parts drop off; = 60 is enough
+    /// to show the recent reply without scrolling forever). Also
     /// triggers onProgress so the sheet UI updates immediately.
     func appendActivity(
         to tasksBox: TasksBox,
@@ -137,11 +143,12 @@ extension ImportService {
         message: String,
         onProgress: (@Sendable ([ImportTask]) async -> Void)?
     ) async {
-        tasksBox.value[i].activityLog.append(message)
-        // Cap at 30 (= the oldest entries drop off; = prevents unbounded growth).
-        if tasksBox.value[i].activityLog.count > 30 {
-            tasksBox.value[i].activityLog.removeFirst(
-                tasksBox.value[i].activityLog.count - 30
+        let part = ImportAgentPart.decode(message)?.chatPart() ?? .text(message)
+        tasksBox.value[i].agentParts.append(part)
+        // Cap at 60 (= the oldest parts drop off; = prevents unbounded growth).
+        if tasksBox.value[i].agentParts.count > 60 {
+            tasksBox.value[i].agentParts.removeFirst(
+                tasksBox.value[i].agentParts.count - 60
             )
         }
         await onProgress?(tasksBox.value)

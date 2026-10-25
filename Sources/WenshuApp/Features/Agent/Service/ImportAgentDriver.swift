@@ -152,13 +152,23 @@ struct ImportAgentDriver: Sendable {
         // The tool declaration travels beside the handler: the handler alone
         // cannot be reached, because the model only emits a tool_use block
         // for a tool the request body advertises.
+        // The agent's reply travels back as it is produced (= the sheet
+        // shows the reply while the agent is still writing, not only at
+        // the end). The blocks are converted with the chat zone's own
+        // accumulator, so the sheet's reply and the chat's reply are the
+        // same shape.
+        let emitter = ImportAgentPartEmitter()
         let result = try await loop.runTurn(
             userMessage: userMessage,
             systemMessage: sop,
             tools: ["writeBookDoc": toolHandler],
             taskId: UUID().uuidString,
             settings: Self.importSettings,
-            streamCallback: nil,
+            streamCallback: { block in
+                for part in emitter.consume(block) {
+                    await progress?(part.encoded())
+                }
+            },
             toolSchemas: [WriteBookDocTool.schema]
         )
 
