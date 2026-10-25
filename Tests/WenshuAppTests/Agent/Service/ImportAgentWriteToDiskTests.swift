@@ -184,8 +184,23 @@ final class ImportAgentWriteToDiskTests: XCTestCase {
     }
 
     /// A write that names another folder is refused, and nothing lands.
+    ///
+    /// The refused write leaves nothing behind, = so the run has no
+    /// document to show: = it fails, = because a run that wrote nothing
+    /// must not report success.
     func testAWriteOutsideTheUsersFolderIsRefused() async throws {
-        try await runImport(toolPath: "chapters/stray.md", folder: .world)
+        do {
+            try await runImport(toolPath: "chapters/stray.md", folder: .world)
+            XCTFail("A refused write must not report success.")
+        } catch let error as ImportAgentDriver.ImportAgentError {
+            switch error {
+            case .nothingWritten:
+                // (= expected: = nothing landed)
+                break
+            default:
+                XCTFail("Expected nothingWritten, got \(error)")
+            }
+        }
         XCTAssertTrue(
             files(in: "chapters").isEmpty,
             "A write outside the user's folder must not land."

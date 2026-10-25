@@ -64,8 +64,14 @@ final class ImportAgentCleanContextTests: XCTestCase {
             connector: stub,
             modelSlug: "the-model-the-user-picked"
         )
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("wenshu-import-test-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(
+            at: root, withIntermediateDirectories: true
+        )
+        defer { try? FileManager.default.removeItem(at: root) }
         let context = ImportAgentBookContext(
-            bookPath: { "/ws/twelve-immortals" }
+            bookPath: { root.path }
         )
         let input = ImportAgentDriver.TaskInput(
             filePath: "/tmp/source.md",
@@ -74,11 +80,13 @@ final class ImportAgentCleanContextTests: XCTestCase {
             bookTitle: "twelve-immortals",
             targetFolder: .world
         )
-        _ = try await driver.run(
-            input: input,
-            bookContext: context,
-            progress: nil
-        )
+        _ = try await PathGuard.$libraryRootOverride.withValue(root.path) {
+            try await driver.run(
+                input: input,
+                bookContext: context,
+                progress: nil
+            )
+        }
         let models = stub.receivedOptions.map(\.model)
         XCTAssertFalse(models.isEmpty, "The stub connector received no call.")
         for model in models {
@@ -100,6 +108,21 @@ private final class ModelRecordingStubConnector: LLMConnector, @unchecked Sendab
 
     func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
         receivedOptions.append(options)
+        // The model writes one document (= a run that writes nothing is
+        // a failure, = not a success).
+        if receivedOptions.count == 1 {
+            return LLMResponse(
+                id: "stub",
+                model: options.model,
+                blocks: [.toolUse(
+                    id: "stub-call-1",
+                    name: "writeBookDoc",
+                    input: "{\"path\":\"world/stub.md\",\"body\":\"# stub\"}"
+                )],
+                stopReason: .toolUse,
+                usage: LLMUsage(inputTokens: 0, outputTokens: 0)
+            )
+        }
         return LLMResponse(
             id: "stub",
             model: options.model,

@@ -41,8 +41,10 @@ final class ImportAgentDriverTests: XCTestCase {
             connector: stub,
             modelSlug: "stub"
         )
+        let root = try makeBookRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
         let context = ImportAgentBookContext(
-            bookPath: { "/ws/十二地仙" }
+            bookPath: { root.path }
         )
         let input = ImportAgentDriver.TaskInput(
             filePath: "/tmp/source.md",
@@ -51,16 +53,17 @@ final class ImportAgentDriverTests: XCTestCase {
             bookTitle: "十二地仙",
             targetFolder: .world
         )
-        let result = try await driver.run(
-            input: input,
-            bookContext: context,
-            progress: nil
-        )
+        let result = try await PathGuard.$libraryRootOverride.withValue(root.path) {
+            try await driver.run(
+                input: input,
+                bookContext: context,
+                progress: nil
+            )
+        }
         // The SOP name is the world SOP.
         XCTAssertEqual(result.sopName, "ImportWorldPrompt")
-        // The stub returned end-turn
-        // immediately (= no tool_use; = 0).
-        XCTAssertEqual(result.toolUseCount, 0)
+        // The stub wrote one document.
+        XCTAssertEqual(result.toolUseCount, 1)
         // The connector should have received
         // at least one call (= the agent's
         // user message).
@@ -94,8 +97,10 @@ final class ImportAgentDriverTests: XCTestCase {
             connector: stub,
             modelSlug: "stub"
         )
+        let root = try makeBookRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
         let context = ImportAgentBookContext(
-            bookPath: { "/ws/twelve-immortals" }
+            bookPath: { root.path }
         )
         let input = ImportAgentDriver.TaskInput(
             filePath: "/tmp/source.md",
@@ -104,11 +109,13 @@ final class ImportAgentDriverTests: XCTestCase {
             bookTitle: "twelve-immortals",
             targetFolder: .world
         )
-        _ = try await driver.run(
-            input: input,
-            bookContext: context,
-            progress: nil
-        )
+        _ = try await PathGuard.$libraryRootOverride.withValue(root.path) {
+            try await driver.run(
+                input: input,
+                bookContext: context,
+                progress: nil
+            )
+        }
         let advertised = stub.receivedOptions.last?.tools ?? []
         XCTAssertFalse(
             advertised.isEmpty,
@@ -127,12 +134,17 @@ final class ImportAgentDriverTests: XCTestCase {
         // = so each one must resolve a procedure (= a folder
         // without a procedure was a dead end).
         let stub = WorldFolderStubConnector()
+        // The run writes into the folder the user picked (= the
+        // characters one).
+        stub.folder = "characters"
         let driver = ImportAgentDriver(
             connector: stub,
             modelSlug: "stub"
         )
+        let root = try makeBookRoot()
+        defer { try? FileManager.default.removeItem(at: root) }
         let context = ImportAgentBookContext(
-            bookPath: { "/ws/twelve-immortals" }
+            bookPath: { root.path }
         )
         let input = ImportAgentDriver.TaskInput(
             filePath: "/tmp/source.md",
@@ -141,11 +153,13 @@ final class ImportAgentDriverTests: XCTestCase {
             bookTitle: "twelve-immortals",
             targetFolder: .characters
         )
-        let result = try await driver.run(
-            input: input,
-            bookContext: context,
-            progress: nil
-        )
+        let result = try await PathGuard.$libraryRootOverride.withValue(root.path) {
+            try await driver.run(
+                input: input,
+                bookContext: context,
+                progress: nil
+            )
+        }
         XCTAssertEqual(result.sopName, "ImportCharactersPrompt")
         // The procedure names its own folder (= not the world one).
         let systemPrompt = stub.receivedOptions.last?.systemPrompt ?? ""
@@ -201,18 +215,32 @@ private final class WorldFolderStubConnector: LLMConnector, @unchecked Sendable 
     nonisolated let connectorID: String = "world-stub"
     var receivedMessages: [[LLMMessage]] = []
     var receivedOptions: [LLMCallOptions] = []
+    /// The folder the stub writes into (= the folder the run owns).
+    var folder: String = "world"
 
     func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
         receivedMessages.append(messages)
         receivedOptions.append(options)
-        // Return end-turn (= no tool_use).
-        // The agent's tool loop will exit
-        // immediately; = we can verify
-        // the SOP was injected correctly.
+        // The model writes one document (= the run must land a file;
+        // = a run that writes nothing is a failure, = not a success).
+        if receivedOptions.count == 1 {
+            return LLMResponse(
+                id: "stub",
+                model: "stub",
+                blocks: [.toolUse(
+                    id: "stub-call-1",
+                    name: "writeBookDoc",
+                    input: "{\"path\":\"\(folder)/stub.md\",\"body\":\"# stub\"}"
+                )],
+                stopReason: .toolUse,
+                usage: LLMUsage(inputTokens: 0, outputTokens: 0)
+            )
+        }
+        // The write is done (= the tool loop ends).
         return LLMResponse(
             id: "stub",
             model: "stub",
-            blocks: [.text("完成")],
+            blocks: [.text("done")],
             stopReason: .endTurn,
             usage: LLMUsage(inputTokens: 0, outputTokens: 0)
         )
@@ -238,4 +266,20 @@ private final class WorldFolderStubConnector: LLMConnector, @unchecked Sendable 
             }
         }
     }
+}
+
+// MARK: - The book root
+
+/// A real directory the write tool can write into.
+///
+/// The context's book path is where the tool writes; = the input's book
+/// path is what the procedure names. = the two are separate, = so a test
+/// can check the procedure's text and still land a real file.
+func makeBookRoot() throws -> URL {
+    let root = FileManager.default.temporaryDirectory
+        .appendingPathComponent("wenshu-import-test-\(UUID().uuidString)")
+    try FileManager.default.createDirectory(
+        at: root, withIntermediateDirectories: true
+    )
+    return root
 }
