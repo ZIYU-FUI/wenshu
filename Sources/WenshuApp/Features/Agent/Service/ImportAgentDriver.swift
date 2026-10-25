@@ -202,7 +202,7 @@ struct ImportAgentDriver: Sendable {
         loop: ConversationLoop,
         userMessage: String,
         systemMessage: String,
-        toolHandler: any Tool,
+        toolHandler: WriteBookDocTool,
         emitter: ImportAgentPartEmitter,
         progress: (@Sendable (String) async -> Void)?,
         attempts: Int = 3
@@ -211,12 +211,16 @@ struct ImportAgentDriver: Sendable {
         var thinkingBudget: Int? = Self.thinkingBudget
         var lastReply = ""
         for attempt in 1...attempts {
+            // The tally belongs to this attempt (= a previous attempt's
+            // writes are not this attempt's).
+            let tally = WriteTally()
+            let countingTool = CountingWriteTool(base: toolHandler, tally: tally)
             let result: ConversationResult
             do {
                 result = try await loop.runTurn(
                     userMessage: userMessage,
                     systemMessage: systemMessage,
-                    tools: ["writeBookDoc": toolHandler],
+                    tools: ["writeBookDoc": countingTool],
                     taskId: UUID().uuidString,
                     settings: Self.importSettings,
                     streamCallback: { block in
@@ -229,9 +233,12 @@ struct ImportAgentDriver: Sendable {
                     thinkingBudget: thinkingBudget
                 )
             } catch {
-                // The provider refused the request (= its own output cap
-                // is below this budget). A smaller budget still fits the
-                // job on that provider, = so the turn runs again.
+                // Only a provider's refusal walks the budget ladder. Any
+                // other failure (= a tool that threw, = a bad request)
+                // is the run's own fault, = and a smaller budget does
+                // not fix it, = so it is not a refusal and must not be
+                // reported as one.
+                guard error is LLMConnectorError else { throw error }
                 guard budget > Self.smallestTurnTokenBudget else { throw error }
                 budget = max(budget / 2, Self.smallestTurnTokenBudget)
                 await progress?(
@@ -239,7 +246,7 @@ struct ImportAgentDriver: Sendable {
                 )
                 continue
             }
-            if Self.writeCallCount(in: result) > 0 { return result }
+            if tally.count > 0 { return result }
             // A provider that refuses the request (= a budget it will
             // not take, = a quota, = a model it does not know) says so in
             // the reply; = the stream carries the refusal instead of
@@ -329,6 +336,49 @@ struct ImportAgentDriver: Sendable {
             for block in message.blocks {
                 if case .toolUse = block { total += 1 }
             }
+        }
+    }
+
+    /// The number of writes that landed on disk.
+    ///
+    /// A call is not a write: = the tool refuses a path, = the folder is
+    /// missing, = the disk is full, = and then the turn ends with calls
+    /// and no files. The tool's own answer says which writes landed, =
+    /// so that answer is what the driver reads (= a run that wrote
+    /// nothing is a failure, = not a success with a long story).
+    ///
+    /// The count comes from the handler, = not from the conversation: =
+    /// the turn's final messages are the compressed history, = and the
+    /// compression drops the tool answers.
+    final class WriteTally: @unchecked Sendable {
+        private let lock = NSLock()
+        private var landed = 0
+
+        /// Records one write's answer.
+        func record(_ output: String) {
+            guard output.contains("\"success\":true") else { return }
+            lock.lock()
+            landed += 1
+            lock.unlock()
+        }
+
+        /// The number of writes that landed.
+        var count: Int {
+            lock.lock()
+            defer { lock.unlock() }
+            return landed
+        }
+    }
+
+    /// The write tool with the tally behind it.
+    struct CountingWriteTool: Tool {
+        let base: WriteBookDocTool
+        let tally: WriteTally
+
+        func execute(input: String) async throws -> String {
+            let output = try await base.execute(input: input)
+            tally.record(output)
+            return output
         }
     }
 
