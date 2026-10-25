@@ -219,7 +219,9 @@ public enum RequestHelpers {
         // / Tool schemas (= wenshu 1:1 ports the Anthropic Messages API
         // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // / (= matches the prior tool-less behavior).
-        tools: [ToolRegistrySchema] = []
+        tools: [ToolRegistrySchema] = [],
+        // The thinking budget (= the Anthropic-compatible shape).
+        thinkingBudget: Int? = nil
     ) throws -> Data {
         // Anthropic-compatible wire shape (= minimax-cn accepts the
         // … (= 9 rationale lines collapsed; = A112 docblock collapse per §1.8)
