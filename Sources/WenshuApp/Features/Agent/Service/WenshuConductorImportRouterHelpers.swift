@@ -326,17 +326,11 @@ enum WCIRHelpers {
         let summary = (parsed["summary"] as? String) ?? ""
         let tags = (parsed["tags"] as? [String]) ?? []
         let destination = (parsed["destination"] as? String) ?? "bookFolder"
-        let bookFolder: BookFolder? = {
-            guard let s = parsed["folder"] as? String else { return nil }
-            switch s {
-            case "world": return .world
-            case "characters": return .characters
-            case "outlines": return .outlines
-            case "chapters": return .chapters
-            case "drafts": return .drafts
-            default: return nil
-        }
-        }()
+        // The model does not name a folder (= the folder is the user's
+        // choice; = the sheet's two-level folder picker owns it; = the
+        // model guessing a folder is what made the write land somewhere
+        // the user did not pick).
+        let bookFolder: BookFolder? = nil
         // (= only set in `searchAndRewrite` mode; = empty string from the LLM = the user
         // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // orchestrator falls back to the original body).
@@ -517,4 +511,55 @@ enum WCIRHelpers {
         return false
 }
 
+}
+
+
+// MARK: - The agent's own reply
+
+/// The metadata the import agent reports back.
+///
+/// The procedure asks for one JSON object at the end of the agent's
+/// reply (= the title, the tags and the one-line summary; = the same
+/// fields the sheet's per-file row shows). The model is asked for these
+/// fields once, in the procedure, so there is no separate classification
+/// call whose answer is thrown away.
+struct WCIRAgentMetadata: Sendable, Equatable {
+    var title: String = ""
+    var summary: String = ""
+    var tags: [String] = []
+    var entityType: String = "other"
+    var category: String?
+    var confidence: Double = 0.0
+}
+
+extension WCIRHelpers {
+
+    /// Read the metadata out of the agent's reply.
+    ///
+    /// A reply that carries no parseable object yields empty metadata
+    /// (= the caller falls back to the file's name for the title).
+    static func parseAgentMetadata(_ reply: String) -> WCIRAgentMetadata {
+        guard let json = extractFirstJSONObject(reply),
+              let data = json.data(using: .utf8),
+              let parsed = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else {
+            return WCIRAgentMetadata()
+        }
+        let title = (parsed["title"] as? String) ?? ""
+        let summary = (parsed["summary"] as? String) ?? ""
+        let tags = (parsed["tags"] as? [String]) ?? []
+        let entityType = (parsed["entityType"] as? String)
+            ?? (parsed["entity_type"] as? String)
+            ?? "other"
+        let category = (parsed["category"] as? String)
+        let confidence = (parsed["confidence"] as? Double) ?? 0.0
+        return WCIRAgentMetadata(
+            title: title.trimmingCharacters(in: .whitespacesAndNewlines),
+            summary: summary.trimmingCharacters(in: .whitespacesAndNewlines),
+            tags: Array(tags.prefix(3)),
+            entityType: entityType,
+            category: category,
+            confidence: confidence
+        )
+    }
 }

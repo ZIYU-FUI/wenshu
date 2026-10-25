@@ -37,6 +37,16 @@ extension ImportService {
         i: Int,
         onProgress: (@Sendable ([ImportTask]) async -> Void)?
     ) async throws {
+        // The agent is the only writer in the reorganize mode. The
+        // agent's procedure writes the documents; = the orchestrator's own
+        // write path would write the same files a second time, from a
+        // body the model produced elsewhere. The mode is checked here so
+        // the rule holds whatever the routing result carries.
+        if target.rewriteMode == .reorganize {
+            tasksBox.value[i].state = .done
+            tasksBox.value[i].destination = routing.destination
+            return
+        }
         let sourceFileName = (tasksBox.value[i].sourcePath as NSString).lastPathComponent
         await appendActivity(
             to: tasksBox, i: i,

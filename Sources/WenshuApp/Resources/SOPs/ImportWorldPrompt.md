@@ -128,7 +128,15 @@
 ## 4. 完成后
 
 - **不要**再调任何 tool
-- **直接**返回文字 `完成` (= 中文, 2 个字)
+- **Return one JSON object and nothing else** (= the orchestrator reads the row's metadata from your reply):
+
+```json
+{"title": "<the index title>", "summary": "<one line, at most 100 characters>", "tags": ["<tag1>", "<tag2>"]}
+```
+
+- `title` = the title of the index file you wrote (= the level-1 heading)
+- `summary` = one line, at most 100 characters, saying what this worldview covers
+- `tags` = one to three short tags (= the ones you took from the source)
 - 然后 wenshu 主循环会看到 `tool_use` 块消失 → 自动结束
 
 ## 5. 规则 (= 老板 2026-10-10 强约束)

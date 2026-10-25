@@ -26,7 +26,7 @@ final class ImportServiceTests: XCTestCase {
         init(_ canned: [String: ImportRoutingResult]) {
             self.canned = canned
         }
-        func route(_ input: ImportFileInput, progress: (@Sendable (String) async -> Void)? = nil) async throws -> ImportRoutingResult {
+        func route(_ input: ImportFileInput, destination: ImportDestination, progress: (@Sendable (String) async -> Void)? = nil) async throws -> ImportRoutingResult {
             let basename = (input.filePath as NSString).lastPathComponent
             if let r = canned[basename] { return r }
             return ImportRoutingResult(
@@ -132,7 +132,7 @@ final class ImportServiceTests: XCTestCase {
         let target = makeTarget(wsRoot: wsRoot, shelfId: shelfId, bookId: bookId, store: store)
         let svc = ImportService()
         struct ThrowRouter: ImportRouter {
-            func route(_ input: ImportFileInput, progress: (@Sendable (String) async -> Void)? = nil) async throws -> ImportRoutingResult {
+            func route(_ input: ImportFileInput, destination: ImportDestination, progress: (@Sendable (String) async -> Void)? = nil) async throws -> ImportRoutingResult {
                 throw NSError(domain: "test", code: 1)
             }
             // v2.7 round-66 commit F:
@@ -338,7 +338,7 @@ final class ImportServiceTests: XCTestCase {
         let target = makeTarget(wsRoot: wsRoot, shelfId: shelfId, bookId: bookId, store: store)
         let svc = ImportService()
         actor SleepingRouter: ImportRouter {
-            func route(_ input: ImportFileInput, progress: (@Sendable (String) async -> Void)? = nil) async throws -> ImportRoutingResult {
+            func route(_ input: ImportFileInput, destination: ImportDestination, progress: (@Sendable (String) async -> Void)? = nil) async throws -> ImportRoutingResult {
                 try await Task.sleep(nanoseconds: 50_000_000)
                 return ImportRoutingResult(
                     destination: .referenceLibrary, title: "t", summary: "s",
@@ -419,5 +419,95 @@ final class ImportServiceTests: XCTestCase {
         let b = ImportServiceHashing.sha256("hello world")
         XCTAssertEqual(a, b)
         XCTAssertNotEqual(a, ImportServiceHashing.sha256("hello world!"))
+    }
+
+    // MARK: - The user's folder decides, and the agent is the only writer
+
+    /// The procedure that runs is the one of the folder the user pinned,
+    /// even when the model's reply names a different folder.
+    func testThePinnedFolderDecidesTheProcedure() {
+        // The model names a folder; = the flow must not read it.
+        let json = """
+        {"title": "A title", "summary": "A summary", "tags": ["a"], "destination": "bookFolder", "folder": "world"}
+        """
+        let decision = WCIRHelpers.parseImportDecision(json)
+        XCTAssertNil(
+            decision.bookFolder,
+            "The model must not name the folder; = the user's choice owns it."
+        )
+    }
+
+    /// The metadata the sheet's row shows comes from the agent's own
+    /// reply.
+    func testTheAgentReplyCarriesTheRowMetadata() {
+        let reply = """
+        here is the reply
+        {"title": "The world of Eryndor", "summary": "The kingdom's foundations.", "tags": ["kingdom", "fantasy"]}
+        """
+        let metadata = WCIRHelpers.parseAgentMetadata(reply)
+        XCTAssertEqual(metadata.title, "The world of Eryndor")
+        XCTAssertEqual(metadata.summary, "The kingdom's foundations.")
+        XCTAssertEqual(metadata.tags, ["kingdom", "fantasy"])
+    }
+
+    /// A reply that carries no parseable object yields no metadata, so the
+    /// caller falls back to the file's name.
+    func testAnUnparseableReplyYieldsNoMetadata() {
+        let metadata = WCIRHelpers.parseAgentMetadata("done")
+        XCTAssertTrue(metadata.title.isEmpty)
+        XCTAssertTrue(metadata.tags.isEmpty)
+    }
+
+    /// The orchestrator writes nothing in the reorganize mode, so the
+    /// agent is the only writer.
+    func testTheOrchestratorDoesNotWriteInTheReorganizeMode() async throws {
+        let body = "The kingdom of Eryndor lies..."
+        let src = try makeSourceDir(["eryndor.md": body])
+        let (wsRoot, shelfId, bookId) = try makeWsRoot()
+        let store = makeStore(root: wsRoot.appendingPathComponent("reference-library"))
+        // The reorganize mode (= the mode the agent runs in).
+        let target = ImportTarget(
+            destination: .book,
+            wsRoot: wsRoot,
+            bookId: bookId,
+            shelfId: shelfId,
+            referenceStore: store,
+            rewriteMode: .reorganize
+        )
+        let svc = ImportService()
+        // The router reports extra files; = the orchestrator must ignore
+        // them in the reorganize mode, because the agent is the writer.
+        let canned: [String: ImportRoutingResult] = [
+            "eryndor.md": ImportRoutingResult(
+                destination: .bookFolder(.world),
+                title: "Eryndor kingdom", summary: "stub",
+                tags: [], entityType: "other",
+                category: nil, confidence: 1.0,
+                rewrittenBody: "a body the orchestrator must not write",
+                extraFiles: [
+                    ExtraFile(
+                        folder: .world,
+                        title: "Extra",
+                        body: "extra body",
+                        required: true
+                    )
+                ],
+            )
+        ]
+        _ = await svc.importFiles(in: src, into: target, router: StubImportRouter(canned))
+        // Nothing landed in the world folder: = the agent owns the write.
+        let worldDir = wsRoot
+            .appendingPathComponent("shelves")
+            .appendingPathComponent(shelfId.uuidString)
+            .appendingPathComponent("books")
+            .appendingPathComponent(bookId.uuidString)
+            .appendingPathComponent("world")
+        let landed = (try? FileManager.default.contentsOfDirectory(atPath: worldDir.path)) ?? []
+        XCTAssertTrue(
+            landed.isEmpty,
+            "The orchestrator must write nothing in the reorganize mode; = the agent is the only writer."
+        )
+        try? FileManager.default.removeItem(at: src)
+        try? FileManager.default.removeItem(at: wsRoot)
     }
 }
