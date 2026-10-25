@@ -7447,6 +7447,23 @@
           }
         }
       }
+    },
+    "sidebar.reference_library.unclassified.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unclassified"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未分类"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

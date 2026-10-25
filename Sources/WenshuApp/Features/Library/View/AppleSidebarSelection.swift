@@ -214,6 +214,13 @@ extension AppleSidebarView {
         // m behaviour) leaves the routing key in the
         // user-visible slot (= the user's ', 
         // ' complaint).
+        // The catch-all row (= the references no category claims) has no
+        // category behind it, so it carries its own selection case instead
+        // of the category route.
+        if node.routingKey == SidebarService.unclassifiedRoutingKey {
+            workspaceUI.sidebarSelection = .referenceUnclassified
+            return
+        }
         workspaceUI.sidebarSelection = .referenceCategory(node.routingKey ?? node.title)
     case .tag:
         // tag row (= SidebarNode.Kind.tag,

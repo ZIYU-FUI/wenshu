@@ -115,6 +115,10 @@ struct AssetsPane: View {
         switch workspaceUI.sidebarSelection {
         case .referenceLibraryRoot:
             return .referenceScope(nil)
+        case .referenceUnclassified:
+            // The catch-all row (= the references no category claims). It
+            // resolves to the same scope the library root row uses.
+            return .referenceScope(nil)
         case .referenceCategory(let dirName):
             // SidebarItem.referenceCategory(directoryName) carries
             // … (= 11 rationale lines collapsed; = A112 docblock collapse per §1.8)

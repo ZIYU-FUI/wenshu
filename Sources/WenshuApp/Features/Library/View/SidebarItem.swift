@@ -42,6 +42,14 @@ enum SidebarItem: Hashable, Codable {
     case folder(bookId: UUID, folderName: String)
     case referenceCategory(String)  // = EntityCategory.directoryName
 
+    // The catch-all category row (= the row that collects the references
+    // no category claims). It has no category behind it, so it cannot use
+    // the category route (= that route carries a directory name that
+    // resolves back to a category). Its own case value keeps it
+    // distinguishable from a real category, and the preview pane
+    // resolves it to the same "no category" scope the root row uses.
+    case referenceUnclassified
+
     // tag selection. Selecting a tag filters the
     // preview pane / card grid to references carrying that tag.
     // Cross-cutting (= orthogonal to category + entityType).
@@ -63,10 +71,10 @@ enum SidebarItem: Hashable, Codable {
         //   {"kind": "referenceCategory", "referenceCategory": "Literature"}
         //   {"kind": "tag", "tag": "<tag-string>"}
         private enum CodingKeys: String, CodingKey {
-            case kind, book, shelf, folder, referenceCategory, tag
+            case kind, book, shelf, folder, referenceCategory, referenceUnclassified, tag
         }
         private enum Kind: String, Codable {
-            case book, shelf, folder, referenceCategory, tag
+            case book, shelf, folder, referenceCategory, referenceUnclassified, tag
         }
 
         func encode(to encoder: Encoder) throws {
@@ -85,6 +93,8 @@ enum SidebarItem: Hashable, Codable {
             case .referenceCategory(let dirName):
                 try c.encode(Kind.referenceCategory, forKey: .kind)
                 try c.encode(dirName, forKey: .referenceCategory)
+            case .referenceUnclassified:
+                try c.encode(Kind.referenceUnclassified, forKey: .kind)
             case .tag(let tagString):
                 try c.encode(Kind.tag, forKey: .kind)
                 try c.encode(tagString, forKey: .tag)
@@ -116,6 +126,8 @@ enum SidebarItem: Hashable, Codable {
             case .referenceCategory:
                 let d = try c.decode(String.self, forKey: .referenceCategory)
                 self = .referenceCategory(d)
+            case .referenceUnclassified:
+                self = .referenceUnclassified
             case .tag:
                 let t = try c.decode(String.self, forKey: .tag)
                 self = .tag(t)

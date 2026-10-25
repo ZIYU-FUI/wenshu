@@ -188,54 +188,18 @@ final class SidebarService {
             // break (= stable order; = Swift Set has no inherent order so
             // this sort is required for consistent rendering across
             // launches).
-            let tagCounts = references
-                .flatMap { $0.tags }
-                .reduce(into: [String: Int]()) { acc, tag in
-                    acc[tag, default: 0] += 1
-                }
-            let tagRows: [SidebarNode] = tagCounts
-                .sorted { lhs, rhs in
-                    if lhs.value != rhs.value { return lhs.value > rhs.value }
-                    return lhs.key < rhs.key
-                }
-                .map { (tag, count) -> SidebarNode in
-                    SidebarNode(
-                        id: Self.stableReferenceTagId(tag),
-                        // tag is a separate SidebarNode.Kind (= NOT a referenceCategory).
-                        // This is the fix for the preview-pane
-                        // routing bug (= the old code used
-                        // .referenceCategory here; =
-                        // forwardSelection mis-routed the
-                        // selection to
-                        // SidebarItem.referenceCategory; =
-                        // AssetsPane.previewScope() took the
-                        // referenceCategory branch (= no
-                        // activeTag set = no tag filter
-                        // applied)). The new .tag kind = a
-                        // dedicated kind (= Apple canonical =
-                        // distinguish cross-cutting facets by
-                        // type) that forwardSelection maps to
-                        // SidebarItem.tag(<tagString>) (=
-                        // AssetsPane sets activeTag and
-                        // PreviewPane filters its card grid by
-                        // tags.contains(activeTag)).
-                        kind: .tag,
-                        title: tag,
-                        subtitle: "\(count) 项",
-                        // Boss 2026-10-09: tag row icon is now the line / outline variant
-                        // (= 'tag' = SF Symbols 6 outline)
-                        // rather than the filled variant
-                        // 'tag.fill'. The line variant matches
-                        // the Apple HIG section-row visual
-                        // weight (= thinner stroke = less
-                        // heavy in the sidebar = a list-of-
-                        // tags reads as a set of labels, not a
-                        // set of buttons).
-                        systemImage: "tag",
-                        children: nil,
-                        routingKey: tag
-                    )
-                }
+            // The reference library root holds one row per library category,
+            // and each of those holds the tags that belong to it (= a
+            // two-level tree; = the flat tag list became too long to
+            // scan).
+            //
+            // A tag belongs to exactly one category. Where two references
+            // carry the same tag but disagree about the category, the
+            // category more of them give wins; a tie goes to the category
+            // that comes first in the library's own category order. The
+            // result depends only on the loaded references, so it is the
+            // same on every launch.
+            let tagRows = Self.groupedTagRows(for: references)
             // bb (see OOB.md #2026-09-23) OOB ' ': insert a non-interactive divider row
             // between the user shelves (= `roots` collected from
             // bookStore.sidebarLoadShelves) and the reference library root
@@ -347,7 +311,10 @@ final class SidebarService {
                 id: UUID(uuidString: Self.stableFolderId(bookId: book.id, folderName: folder.name)) ?? UUID(),
                 kind: .book,
                 title: folder.displayName,
-                subtitle: "\(count) 项",
+                subtitle: String(
+                    localized: "assets.count.label",
+                    defaultValue: "\(count) items"
+                ),
                 systemImage: folder.icon,
                 children: nil
             )
@@ -386,6 +353,162 @@ final class SidebarService {
     // reference library's display). Bucket key = the EntityCategory.directoryName
     // (= "a" / "b" / ... / "" for official categories; "" for legacy references
     // whose category is nil).
+
+    // MARK: - The two-level tag tree
+
+    /// Build the reference library's rows: one row per library category
+    /// that has at least one tag, and under each, the tags that belong to
+    /// it.
+    ///
+    /// The entity documents are NOT drawn (= only the categories and the
+    /// tags are; = the tree stays a browse surface).
+    ///
+    /// A tag belongs to exactly one category. Where the references that
+    /// carry a tag disagree about the category, the category more of them
+    /// give wins; a tie goes to the category that comes first in the
+    /// library's own category order. The catch-all category comes last.
+    static func groupedTagRows(for references: [Reference]) -> [SidebarNode] {
+        // The tag's count = how many references carry it.
+        var tagCounts: [String: Int] = [:]
+        // How many references put each tag under each category.
+        var votes: [String: [String: Int]] = [:]
+        for reference in references {
+            let bucket = bucketKey(for: reference)
+            for tag in reference.tags {
+                tagCounts[tag, default: 0] += 1
+                votes[tag, default: [:]][bucket, default: 0] += 1
+            }
+        }
+        guard !tagCounts.isEmpty else { return [] }
+
+        // The tag's category = the one the most references give; a tie
+        // goes to the category that comes first in the library's own
+        // order. The catch-all counts as the last one.
+        var tagBucket: [String: String] = [:]
+        for (tag, byBucket) in votes {
+            let winner = byBucket.max { lhs, rhs in
+                let lhsCount = lhs.value
+                let rhsCount = rhs.value
+                if lhsCount != rhsCount { return lhsCount < rhsCount }
+                return bucketOrder(lhs.key) > bucketOrder(rhs.key)
+            }?.key
+            if let winner { tagBucket[tag] = winner }
+        }
+
+        // The tags of each bucket, in the order the flat list used: the
+        // most carried tag first, then the tag string.
+        var tagsByBucket: [String: [String]] = [:]
+        for tag in tagBucket.keys.sorted() {
+            guard let bucket = tagBucket[tag] else { continue }
+            tagsByBucket[bucket, default: []].append(tag)
+        }
+        for bucket in tagsByBucket.keys {
+            tagsByBucket[bucket]?.sort { lhs, rhs in
+                let lhsCount = tagCounts[lhs] ?? 0
+                let rhsCount = tagCounts[rhs] ?? 0
+                if lhsCount != rhsCount { return lhsCount > rhsCount }
+                return lhs < rhs
+            }
+        }
+
+        // The categories in the library's own order, the catch-all last.
+        // The sort key comes from the existing helper (= the library's own
+        // category order; = the catch-all's key sorts after every letter).
+        let buckets = tagsByBucket.keys.sorted { categorySortKey($0) < categorySortKey($1) }
+        return buckets.compactMap { bucket -> SidebarNode? in
+            guard let tags = tagsByBucket[bucket], !tags.isEmpty else { return nil }
+            let tagNodes = tags.map { tag in
+                SidebarNode(
+                    id: stableReferenceTagId(tag),
+                    kind: .tag,
+                    title: tag,
+                    subtitle: String(
+                        localized: "assets.count.label",
+                        defaultValue: "\(tagCounts[tag] ?? 0) items"
+                    ),
+                    systemImage: "tag",
+                    children: nil,
+                    routingKey: tag
+                )
+            }
+            if let category = EntityCategoryFromDirectoryName(bucket) {
+                return SidebarNode(
+                    id: stableReferenceCategoryId(bucket),
+                    kind: .referenceCategory,
+                    title: category.displayName,
+                    subtitle: nil,
+                    systemImage: category.icon,
+                    children: tagNodes,
+                    routingKey: bucket
+                )
+            }
+            // The catch-all row (= the references no category claims). It
+            // has no category behind it, so it carries its own routing
+            // key instead of a directory name.
+            return SidebarNode(
+                id: stableReferenceCategoryId(bucket),
+                kind: .referenceCategory,
+                title: String(localized: "sidebar.reference_library.unclassified.title"),
+                subtitle: nil,
+                systemImage: "tray.full",
+                children: tagNodes,
+                routingKey: Self.unclassifiedRoutingKey
+            )
+        }
+    }
+
+    /// The routing key of the catch-all category row.
+    ///
+    /// The catch-all row has no category behind it, so the category route
+    /// (= a directory name that resolves back to a category) cannot carry
+    /// it. Its own key keeps the preview pane from resolving it to a
+    /// category it does not have.
+    static let unclassifiedRoutingKey = "__unclassified__"
+
+    /// The bucket a reference belongs to.
+    ///
+    /// A reference that carries a category uses it. A reference that
+    /// carries none falls back to the classifier's keyword pass, so its
+    /// tags land under a real category rather than under the catch-all.
+    /// A reference the keyword pass cannot place either lands under the
+    /// catch-all, so it stays browsable.
+    private static func bucketKey(for reference: Reference) -> String {
+        if let category = reference.category {
+            return category.directoryName
+        }
+        let keyword = EntityClassifier().keywordClassify(
+            title: reference.title,
+            summary: reference.summary ?? "",
+            body: ""
+        )
+        if keyword.confidence > 0 {
+            return keyword.category.directoryName
+        }
+        // The reference no category claims. The existing helper maps it to
+        // the same catch-all key this card uses.
+        return referenceCategoryKey(for: reference)
+    }
+
+    /// The catch-all bucket's key (= the references no category claims).
+    ///
+    /// The key is a CJK literal in the source; = the row's TITLE comes
+    /// from the catalog instead (= the key is the routing key, not
+    /// something the user reads).
+    private static let unclassifiedBucketKey = "\u{672A}\u{5206}\u{7C7B}"
+
+    /// The order a bucket's rows appear in (= the library's own category
+    /// order, the catch-all last).
+    private static func bucketOrder(_ key: String) -> Int {
+        if key == unclassifiedBucketKey { return Int.max }
+        guard let category = EntityCategoryFromDirectoryName(key) else { return Int.max - 1 }
+        return categoryOrderIndex(category)
+    }
+
+
+    /// The position of a category in the library's own category order.
+    private static func categoryOrderIndex(_ category: EntityCategory) -> Int {
+        EntityCategory.allCases.firstIndex(of: category) ?? Int.max - 1
+    }
 
     /// Map a Reference to its sidebar-bucket key.
     /// references always have a category (= assigned by
