@@ -114,6 +114,17 @@ actor WenshuConductorImportRouter: ImportRouter {
         // real time via the [archived-round] `activityLog`). Other modes (=
         // .consolidate / .searchAndRewrite) still use 1 LLM call (= backward
         // compat).
+        // The reference library is its own branch: = one call that
+        // produces the whole entity, with the search tool to check the
+        // content.
+        if case .referenceLibrary = destination {
+            return try await routeReferenceLibrary(
+                input: input,
+                body: body,
+                fallbackTitle: fallbackTitle,
+                progress: progress
+            )
+        }
         switch input.rewriteMode {
         case .reorganize:
             return try await routeReorganizeMultiTurn(
@@ -277,6 +288,49 @@ actor WenshuConductorImportRouter: ImportRouter {
             rewrittenBody: nil,
             extraFiles: [],
         )
+    }
+
+    /// The reference library branch.
+    ///
+    /// One call produces the whole entity: the title, the summary, the
+    /// tags, the library category, the entity type and the body. The
+    /// search tool is advertised, so the model checks the content
+    /// against the web before it writes the body.
+    private func routeReferenceLibrary(
+        input: ImportFileInput,
+        body: String,
+        fallbackTitle: String,
+        progress: (@Sendable (String) async -> Void)?
+    ) async throws -> ImportRoutingResult {
+        await progress?("  the library agent starts ...")
+        let libraryRouter = ImportReferenceLibraryRouter(
+            connector: connector,
+            modelSlug: modelSlug,
+            dispatchWebSearch: { searchInput in
+                await Self.dispatchWebSearch(input: searchInput)
+            }
+        )
+        let result = try await libraryRouter.route(
+            input: input,
+            body: body,
+            fallbackTitle: fallbackTitle
+        )
+        await progress?("  the library agent is done")
+        return result
+    }
+
+    /// Dispatch a `web_search` tool call.
+    ///
+    /// The LLM passes the tool's `input` field as a JSON string (= the
+    /// Anthropic shape); = we hand that string straight to
+    /// `WebSearchTool.shared.execute` which understands the same JSON
+    /// shape (= the canonical wenshu tool dispatcher).
+    private static func dispatchWebSearch(input: String) async -> String {
+        do {
+            return try await WebSearchTool.shared.execute(input: input)
+        } catch {
+            return "{\"ok\":false,\"error\":\"web_search dispatch failed: \(error.localizedDescription)\"}"
+        }
     }
 
     /// Resolve the book-bound file path + display title for the agent's
