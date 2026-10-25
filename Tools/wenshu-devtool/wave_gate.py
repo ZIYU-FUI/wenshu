@@ -21,6 +21,49 @@ cites ("AGENTS.md §7.3"). This gate reads the body's SECTIONS, so:
   - a path followed by a section marker ("AGENTS.md §7.3") = a citation, not
     an edit
 
+THREE THINGS THIS GATE NOW GETS RIGHT (each one measured on this board,
+2026-10-25; the first one made the gate report a false clean bill of
+health on 122 cards):
+
+  1. A CHINESE HEADER IS A HEADER. The old section regex only matched an
+     ALL-CAPS ENGLISH line, and every card on this board writes its
+     headings in Chinese (= a numbered Chinese line: "## 1. the top bar:
+     3 buttons -> 2"). The gate then parsed NOTHING in those bodies,
+     gave every card an empty written set and an empty forbidden set, and
+     reported "file collisions: 0" while a real conflict was live. Measured
+     before the fix: the four Chinese cards on the board parsed 0 sections,
+     the one English card parsed 4.
+
+  2. A PROHIBITION IS NOT A PERMISSION. The old gate compared a heading
+     with `in` against an exact set, so "WHAT THIS CARD MUST NOT CHANGE"
+     was a WRITE section to the gate (its paths counted as edits) and a
+     prohibition to ticket_tier.py (its paths counted as untouchable). The
+     gate then reported the two cards that both PROHIBIT a file as the two
+     cards that both EDIT it. The vocabulary is now normalized, shared
+     with ticket_tier.py, and a heading that ENDS WITH a prohibition phrase
+     is one.
+
+  3. A RULE CITATION IS A CITATION. The old citation pattern only
+     recognised a citation that carried a marker ("§", "section", "rule",
+     "clause"), so it stripped "AGENTS.md §7.3" and left the project's own
+     house style ("AGENTS.md 1.1", 61 occurrences on this board) standing
+     as a write of AGENTS.md. A marker-less section number is a citation
+     too; a path with NO number after it is still a file reference, so a
+     card that says "make `AGENTS.md` say which" still writes AGENTS.md.
+
+The gate also prints what it parsed, per card, because "0 collisions" is
+only meaningful next to "how many sections did you actually read":
+
+  cards checked: 122
+  sections parsed per card:
+    t_10607e80  53 sections
+    ...
+  cards with 0 sections parsed: 0
+  file collisions (two cards write the same file): 0
+
+A card whose body parses to 0 sections is LISTED BY NAME: a body the gate
+cannot read must never earn a clean bill of health.
+
 Usage:
     wave-gate.py                    # every card on the board
     wave-gate.py t_123 t_456        # only these cards
@@ -41,28 +84,92 @@ from pathlib import Path
 
 REPO = "/Volumes/ANAN/Engineering/wenshu"
 
-# Sections whose paths are files the card must NOT touch.
+# ===========================================================================
+# THE CARD-BODY VOCABULARY
+#
+# wave_gate.py and ticket_tier.py read the same board and must answer the
+# same question about the same body: which files does this card write, and
+# which files must it leave alone? They used to keep TWO COPIES of the same
+# idea, and the copies drifted: wave_gate.py matched a heading exactly
+# against a five-phrase set, ticket_tier.py normalized the heading and
+# carried a seven-phrase set, so the same body was a prohibition to one
+# tool and a write to the other, on the same board, at the same moment.
+#
+# Everything that decides what a body means lives HERE, and ticket_tier.py
+# imports it, so the next phrase added to the vocabulary cannot land in one
+# tool and not the other.
+# ===========================================================================
+
+# The headings whose paths are files the card must NOT touch, NORMALIZED
+# (stripped, trailing colon dropped, lower-cased).
+#
+# The set is the UNION of what each tool used to carry, so no heading that
+# was a prohibition to one of them stops being one:
+#
+#   wave_gate.py:   MUST NOT CHANGE, DO NOT TOUCH THE APP, DO NOT TOUCH,
+#                   MUST NOT REINTRODUCE, FILES TO LEAVE ALONE
+#   ticket_tier.py: the same five, plus "do not change" and "out of scope"
+#
+# "constraints" and its Chinese name are here because the board writes its
+# prohibitions under them: measured on the live Chinese cards, every
+# Chinese constraint heading (the word for "constraints") opens a list of
+# "do not touch this" bullets, and an English "CONSTRAINTS" section is the
+# same list. A vocabulary that knew the Chinese one and not the English one
+# would rate a card by its language.
+#
+# The Chinese entries are written as escapes on purpose: this file carries
+# no CJK characters (AGENTS.md 1.1), and a reader who wants to see the
+# phrase can decode it.
 EXCLUSION_SECTIONS = {
-    "MUST NOT CHANGE",
-    "DO NOT TOUCH THE APP",
-    "DO NOT TOUCH",
-    "MUST NOT REINTRODUCE",
-    "FILES TO LEAVE ALONE",
+    # the ASCII phrases both tools already used
+    "must not change",
+    "do not touch the app",
+    "do not touch",
+    "must not reintroduce",
+    "files to leave alone",
+    "do not change",
+    "out of scope",
+    # the constraint section, in both languages
+    "constraints",
+    "\u7ea6\u675f",
+    # the Chinese ways of writing "must not change" (= the direct
+    # translation of the first phrase above)
+    "\u4e0d\u5f97\u4fee\u6539",
+    "\u7981\u6b62\u4fee\u6539",
+    "\u4e0d\u53ef\u4fee\u6539",
+    "\u4e0d\u8981\u4fee\u6539",
+    # the Chinese ways of writing "do not touch" (= the board's own idiom:
+    # every Chinese card on this board writes its prohibitions as a
+    # "do not touch this" bullet)
+    "\u4e0d\u5f97\u52a8",
+    "\u7981\u6b62\u52a8",
+    "\u4e0d\u8981\u52a8",
 }
 
-# A path followed by a section marker (= a citation of a rule, not an edit).
+
+# A path followed by a section number = a citation of that path's rule, not
+# an edit of the path.
 #
-# The marker can be a section number with a subsection (= "AGENTS.md §7.3"),
-# so the number part takes decimals. And the path and the marker are often
-# separated by a closing backtick (= "Follow `AGENTS.md` §7.3"), so the
-# pattern allows quotes and spaces between them.
+# The number may carry a marker ("§7.3", "section 7.3", "rule 7.3") or
+# stand on its own ("AGENTS.md 7.3", "AGENTS.md 1.1"): the bare form is the
+# project's own citation style, measured at 61 occurrences on this board,
+# and the marked form is rare. The path and the number are often separated
+# by a closing backtick ("Follow `AGENTS.md` §7.3"), so the pattern allows
+# quotes and spaces between them.
 #
-# Measured: the pattern without the decimals and the quotes matched neither
-# "§7.3" nor "`AGENTS.md` §7.3", and the gate counted "Follow AGENTS.md §7.3"
-# as a write of AGENTS.md.
+# A marker-less citation must be a DOTTED section number (= "N.M"), because
+# that is how this project numbers its rules (AGENTS.md §1.1 .. §10.4), and
+# a bare integer after a path is a COUNT, not a rule: measured on
+# t_50223946, "ChromeMainToolbar.swift` 3 buttons" is the
+# number of buttons, and reading it as a citation would drop a real write.
+#
+# The number is REQUIRED: a path with no number after it is a file
+# reference, and a card that says "make `AGENTS.md` say which" IS asking to
+# edit that file, and that grant must survive.
 CITATION_RE = re.compile(
     r"[A-Za-z0-9_./-]+\.(?:swift|md|sh|xcstrings|py|yml|yaml|plist)"
-    r"[\"'`\s]*(?:§|section|rule|clause)\s*[0-9]+(?:\.[0-9]+)*"
+    r"(?:[\"'`\s]*(?:§|section|rule|clause)\s*[0-9]+(?:\.[0-9]+)*"
+    r"|[\"'`\s]+[0-9]+\.[0-9]+(?:\.[0-9]+)*)"
 )
 
 # A sentence that GRANTS an edit to the path it names, even when the
@@ -96,8 +203,221 @@ PATH_RE = re.compile(
     r"|\.(?:swiftlint\.yml|swift-format)"
 )
 
-# A section header: "WHAT TO BUILD", "## MUST NOT CHANGE", "MUST NOT CHANGE:".
-SECTION_RE = re.compile(r"^(?:#{1,3}\s*)?([A-Z][A-Z0-9 /()\-]{2,45})\s*:?\s*$", re.M)
+# --- what a heading looks like -------------------------------------------
+#
+# A heading is a SHORT line that opens a section, and this board writes
+# them in two shapes: markdown hashes ("## GATES", "## acceptance"), a bare
+# ALL-CAPS ENGLISH line ("GATES:"), and a bare CHINESE line
+# (a numbered Chinese line: "## 1. the top bar: 3 buttons -> 2").
+#
+# The Chinese shape needs a guard, or every prose line in a Chinese body
+# becomes a section boundary and the whole body becomes one exclusion
+# section (= the gate would classify everything as forbidden = the other
+# false verdict). A Chinese heading is short, carries no sentence
+# punctuation, and is not a list item.
+HASH_HEADING_RE = re.compile(r"^#{1,3}\s+(.+?)\s*$")
+ALLCAPS_HEADING_RE = re.compile(r"^([A-Z][A-Z0-9 /()\-]{2,45})\s*:?$")
+# CJK ideographs (U+3400..U+9FFF, U+F900..U+FAFF), written as escapes so
+# this file carries no CJK characters.
+CJK_IDEOGRAPH_RE = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]")
+# The sentence punctuation of a Chinese line: U+3002, U+FF01, U+FF1F, U+FF1B.
+CJK_SENTENCE_RE = re.compile(r"[\u3002\uff01\uff1f\uff1b]")
+# A list item opens with a bullet, a pipe, or a number (= "1." or a
+# number followed by the Chinese comma).
+LIST_ITEM_RE = re.compile(r"^(?:[-*+|>]|[\u2022]|\d+[.\u3001)\uff09])\s")
+
+
+def heading_of(line: str) -> str | None:
+    """The heading a line opens, or None if the line is content.
+
+    The three shapes, in the order they are tried:
+
+      - a markdown heading: "## GATES", "## acceptance", "## What changes"
+      - a bare ALL-CAPS ENGLISH line: "GATES:", "MUST NOT CHANGE"
+      - a bare CHINESE line (a short numbered Chinese line)
+
+    A markdown heading may carry any text (the project writes "## What
+    changes"), so the length bound is the only limit on it. A bare line
+    must be short, and a Chinese one must not look like a sentence or a
+    list item.
+    """
+    stripped = line.strip()
+    if not stripped:
+        return None
+    match = HASH_HEADING_RE.match(stripped)
+    if match:
+        text = match.group(1).strip()
+        return text if 2 <= len(text) <= 45 else None
+    match = ALLCAPS_HEADING_RE.match(stripped)
+    if match:
+        return match.group(1).strip()
+    if (
+        CJK_IDEOGRAPH_RE.search(stripped)
+        and not LIST_ITEM_RE.match(stripped)
+        and not CJK_SENTENCE_RE.search(stripped)
+        and 2 <= len(stripped) <= 45
+    ):
+        return stripped
+    return None
+
+
+def normalize_heading(name: str) -> str:
+    """The heading as the vocabulary compares it."""
+    return name.strip().rstrip(":").strip().lower()
+
+
+def is_exclusion(name: str) -> bool:
+    """Whether a heading's paths are files the card must NOT touch.
+
+    A heading IS one of the exclusion phrases, or it ENDS WITH one ("WHAT
+    THIS CARD MUST NOT CHANGE" ends with "must not change"), or it STARTS
+    WITH one (a Chinese heading puts the prohibition at the head, an English
+    one at the tail: a Chinese heading that STARTS with "must not
+    change").
+
+    The match is deliberately narrow. Widening it would turn a heading that
+    is NOT a prohibition into one, and that direction UNDER-reports a
+    collision: two cards edit one file and the gate calls the board clean,
+    which is the failure this gate exists to prevent. A heading that
+    cannot be classified with confidence is a WRITE section.
+    """
+    normalized = normalize_heading(name)
+    if normalized in EXCLUSION_SECTIONS:
+        return True
+    return any(
+        normalized.endswith(phrase) or normalized.startswith(phrase)
+        for phrase in EXCLUSION_SECTIONS
+    )
+
+
+def sections(body: str) -> list[tuple[str, str]]:
+    """Split a card body into (heading, text) pairs.
+
+    The text before the first heading is kept as a section of its own, named
+    "", because that is where a card that states its work in a preamble puts
+    it. Measured: one card that MOVES a file across the app boundary opens
+    with "## What changes", and a splitter that only knew ALL-CAPS English
+    read that card as a card with no files at all, and a tier built on it
+    rated a file move T1.
+
+    A body with NO heading at all returns []. The caller then has to treat
+    the whole body as one unknown section, instead of pretending it read a
+    structure that is not there.
+    """
+    out: list[tuple[str, str]] = []
+    name = ""
+    lines: list[str] = []
+    found = False
+    for line in body.split("\n"):
+        heading = heading_of(line)
+        if heading is None:
+            lines.append(line)
+            continue
+        found = True
+        if lines:
+            out.append((name, "\n".join(lines)))
+        name = heading
+        lines = [line]
+    if not found:
+        return []
+    if lines:
+        out.append((name, "\n".join(lines)))
+    return out
+
+
+def headings_parsed(body: str) -> int:
+    """How many headings the reader found in a body (= the sections it named).
+
+    This is the number that makes a verdict self-describing: "0 collisions"
+    means something only next to "0 sections parsed" (= the gate read
+    nothing, so it saw nothing to collide). Measured before the fix: the
+    four Chinese cards on this board parsed 0 sections each, and the gate
+    printed "file collisions: 0" as if it had checked them.
+    """
+    return len([name for name, _ in sections(body) if name])
+
+
+def files_of(body: str) -> tuple[set[str], set[str]]:
+    """The (written, forbidden) file sets of a card body.
+
+    A path in an exclusion section is forbidden only when the sentence that
+    names it does NOT also grant an edit to it. A card can list a file under
+    "MUST NOT CHANGE" and still be told to add a row to it (= the nervous
+    file index, which every card appends to), and classifying that as
+    forbidden hides the real collision.
+
+    A path named in BOTH a write section and an exclusion section is
+    contradictory in the body; it counts as written, because the card does
+    reach that file, and because counting it as forbidden would UNDER-report
+    a collision (= the dangerous direction).
+
+    A body the reader could not split at all (= no heading) counts every
+    path in it as WRITTEN. A card the gate cannot parse must never earn a
+    clean bill of health, and over-reporting a collision only blocks a card
+    that need not be blocked.
+    """
+    written: set[str] = set()
+    forbidden: set[str] = set()
+    parsed = sections(body)
+    if not parsed:
+        return set(PATH_RE.findall(CITATION_RE.sub("", body))), set()
+    for name, text in parsed:
+        stripped = CITATION_RE.sub("", text)
+        if not is_exclusion(name):
+            written |= set(PATH_RE.findall(stripped))
+            continue
+        for bullet in _bullets(stripped):
+            paths = set(PATH_RE.findall(bullet))
+            if not paths:
+                continue
+            if GRANT_RE.search(bullet):
+                written |= paths
+            else:
+                forbidden |= paths
+    return written, forbidden - written
+
+
+def work_text(body: str) -> str:
+    """The body text outside the exclusion sections.
+
+    This is where a signal about the WORK is read from, so that a card
+    saying "no persistence change here" in its MUST NOT CHANGE list does
+    not read as a persistence card.
+    """
+    parsed = sections(body)
+    if not parsed:
+        return body
+    return "\n".join(text for name, text in parsed if not is_exclusion(name))
+
+
+def _bullets(text: str) -> list[str]:
+    """Split a section into BULLETS.
+
+    A bullet is the unit of meaning here, not a sentence: the card writes
+    "docs/agents/nfi.md. The nervous file index must gain a row for each of
+    the four moved files", where the path and the sentence that grants the
+    write are two sentences of ONE bullet. Splitting on sentence ends would
+    separate the path from its own permission.
+
+    A line that starts with "-" opens a bullet; the lines that follow belong
+    to it until the next "-" or a blank line.
+    """
+    bullets: list[str] = []
+    current: list[str] = []
+    for line in text.split("\n"):
+        stripped = line.strip()
+        if not stripped:
+            if current:
+                bullets.append(" ".join(current))
+                current = []
+            continue
+        if re.match(r"^[-*]\s+", stripped) and current:
+            bullets.append(" ".join(current))
+            current = []
+        current.append(stripped)
+    if current:
+        bullets.append(" ".join(current))
+    return [b for b in bullets if b.strip()]
 
 
 def kanban(*args: str) -> str:
@@ -175,73 +495,6 @@ def card_body(card_id: str) -> str:
     return body
 
 
-def sections(body: str) -> list[tuple[str, str]]:
-    """Split a card body into (section name, section text)."""
-    marks = [(m.start(), m.group(1).strip()) for m in SECTION_RE.finditer(body)]
-    out = []
-    for k, (pos, name) in enumerate(marks):
-        end = marks[k + 1][0] if k + 1 < len(marks) else len(body)
-        out.append((name, body[pos:end]))
-    return out
-
-
-def files_of(body: str) -> tuple[set[str], set[str]]:
-    """The (written, forbidden) file sets of a card body.
-
-    A path in an exclusion section is forbidden only when the sentence that
-    names it does NOT also grant an edit to it. A card can list a file under
-    "MUST NOT CHANGE" and still be told to add a row to it (= the nervous
-    file index, which every card appends to), and classifying that as
-    forbidden hides the real collision.
-    """
-    written: set[str] = set()
-    forbidden: set[str] = set()
-    for name, text in sections(body):
-        stripped = CITATION_RE.sub("", text)
-        if name not in EXCLUSION_SECTIONS:
-            written |= set(PATH_RE.findall(stripped))
-            continue
-        for bullet in _bullets(stripped):
-            paths = set(PATH_RE.findall(bullet))
-            if not paths:
-                continue
-            if GRANT_RE.search(bullet):
-                written |= paths
-            else:
-                forbidden |= paths
-    return written - forbidden, forbidden
-
-
-def _bullets(text: str) -> list[str]:
-    """Split a section into BULLETS.
-
-    A bullet is the unit of meaning here, not a sentence: the card writes
-    "docs/agents/nfi.md. The nervous file index must gain a row for each of
-    the four moved files", where the path and the sentence that grants the
-    write are two sentences of ONE bullet. Splitting on sentence ends would
-    separate the path from its own permission.
-
-    A line that starts with "-" opens a bullet; the lines that follow belong
-    to it until the next "-" or a blank line.
-    """
-    bullets: list[str] = []
-    current: list[str] = []
-    for line in text.split("\n"):
-        stripped = line.strip()
-        if not stripped:
-            if current:
-                bullets.append(" ".join(current))
-                current = []
-            continue
-        if re.match(r"^[-*]\s+", stripped) and current:
-            bullets.append(" ".join(current))
-            current = []
-        current.append(stripped)
-    if current:
-        bullets.append(" ".join(current))
-    return [b for b in bullets if b.strip()]
-
-
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("cards", nargs="*", help="card ids; default = every card")
@@ -251,13 +504,16 @@ def main() -> int:
 
     wanted = set(args.cards)
     cards: dict[str, dict] = {}
+    parsed: dict[str, int] = {}
     for cid, status in card_ids():
         if wanted and cid not in wanted:
             continue
         if args.live and status == "done":
             continue
-        written, forbidden = files_of(card_body(cid))
+        body = card_body(cid)
+        written, forbidden = files_of(body)
         cards[cid] = {"status": status, "written": written, "forbidden": forbidden}
+        parsed[cid] = headings_parsed(body)
 
     if not cards:
         print("no cards to check")
@@ -315,6 +571,16 @@ def main() -> int:
     magnets = [(f, n) for f, n in magnets.most_common() if n > 1]
 
     print(f"cards checked: {len(cards)}")
+    print("sections parsed per card:")
+    for cid in ids:
+        print(f"  {cid}  {parsed[cid]} sections")
+    unread = [cid for cid in ids if parsed[cid] == 0]
+    print(f"cards with 0 sections parsed: {len(unread)}")
+    for cid in unread:
+        print(
+            f"  {cid}  (= the body has no heading the gate could read; "
+            f"every path in it counts as a write)"
+        )
     print(f"file collisions (two cards write the same file): {len(collisions)}")
     print(f"stale must-not-change lists (one card writes what another must leave): {len(stale)}\n")
 
