@@ -302,6 +302,22 @@ def work_sections(body: str) -> list[tuple[str, str]]:
     return [(name, text) for name, text in sections(body) if not _is_routing(name)]
 
 
+def work_length(body: str) -> int:
+    """The body's length, minus its routing sections.
+
+    A routing section is a fixed declaration (the reviewer's address), the
+    same length on every card, so charging it against the body budget would
+    push every card toward the cap for a cost the card's work does not carry.
+    The budget measures the RECIPE the worker has to absorb.
+    """
+    routing = sum(
+        len(text)
+        for name, text in sections(body)
+        if _is_routing(name)
+    )
+    return len(body) - routing
+
+
 # --------------------------------------------------------------------------
 # The review contract. It lives here because it is a contract on the CARD
 # BODY, and this module is where the body is parsed.
@@ -597,8 +613,10 @@ def find_errors(card: dict) -> list[str]:
             f"({contract['runtime_text']})"
         )
 
-    if len(body) > contract["body_max"]:
-        errors.append(f"body is {len(body)} chars, tier {tier} buys {contract['body_max']}")
+    if work_length(body) > contract["body_max"]:
+        errors.append(
+            f"body is {work_length(body)} chars, tier {tier} buys {contract['body_max']}"
+        )
 
     body_sections = len(work_sections(body))
     if body_sections > contract["sections_max"]:
@@ -682,7 +700,7 @@ def report(card: dict) -> dict:
         "runtime_text": contract["runtime_text"],
         "retries": contract["retries"],
         "body_max": contract["body_max"],
-        "body_len": len(body),
+        "body_len": work_length(body),
         "body_sections": len(sections(body)),
         "sections_max": contract["sections_max"],
         "gate": contract["gate"],
