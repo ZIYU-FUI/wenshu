@@ -31,6 +31,35 @@ struct ImportAgentDriver: Sendable {
     let modelSlug: String
     let sopLoader: ImportSOPLoader
 
+    /// The settings the import turn runs under.
+    ///
+    /// An import is a mechanical transformation with a fixed procedure, not a
+    /// conversation, so the turn reads nothing but its procedure and writes
+    /// nothing back. Every guidance switch is off (= no identity, no provider
+    /// pointer, no memory pointer, no session recall, no skills, no tool
+    /// pointer, no help pointer) and the three include switches are off (= no
+    /// project context files, no book context, no environment hints). The
+    /// memory subsystem is off, so the turn leaves no trace in the memory
+    /// store.
+    ///
+    /// `visibleTools` stays empty on purpose: an empty set means every
+    /// registered tool, so the write tool stays reachable.
+    static let importSettings = AgentSettings(
+        prompt: PromptSettings(
+            identityEnabled: false,
+            providerGuidanceEnabled: false,
+            memoryGuidanceEnabled: false,
+            skillGuidanceEnabled: false,
+            toolGuidanceEnabled: false,
+            helpGuidanceEnabled: false,
+            includeProjectContextFiles: false,
+            includeBookContext: false,
+            includeEnvironmentHints: false,
+            visibleTools: []
+        ),
+        memory: MemorySettings(enabled: false)
+    )
+
     init(
         connector: any LLMConnector,
         modelSlug: String,
@@ -103,9 +132,16 @@ struct ImportAgentDriver: Sendable {
             }
         )
 
-        // ── Step 6: build the conversation loop.
+        // ── Step 6: build the conversation loop. The connector is wrapped so
+        // the turn goes out on the model the user picked: the turn loop
+        // resolves the model from the connector (= the provider's first
+        // default), so without the wrapper the import would run on a model
+        // the user never chose.
         let loop = ConversationLoop(
-            connection: connector
+            connection: ImportModelPinnedConnector(
+                base: connector,
+                model: modelSlug
+            )
         )
 
         // ── Step 7: run the agent. The tool dispatch loop is inside runTurn (= the
@@ -121,6 +157,7 @@ struct ImportAgentDriver: Sendable {
             systemMessage: sop,
             tools: ["writeBookDoc": toolHandler],
             taskId: UUID().uuidString,
+            settings: Self.importSettings,
             streamCallback: nil,
             toolSchemas: [WriteBookDocTool.schema]
         )
