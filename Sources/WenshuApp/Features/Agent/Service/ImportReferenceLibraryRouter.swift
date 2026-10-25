@@ -224,7 +224,7 @@ struct ImportReferenceLibraryRouter: Sendable {
         )
         let maxTurns = 5
         for _ in 0..<maxTurns {
-            let response = try await connector.send(messages: messages, options: options)
+            let response = try await send(messages: messages, options: options)
             switch response.stopReason {
             case .endTurn, .maxTokens, .stopSequence, .unknown:
                 return response.blocks.map(\.textValue).joined()
@@ -251,7 +251,29 @@ struct ImportReferenceLibraryRouter: Sendable {
                 messages.append(.toolResult(toolUseID: tool.id, output: output))
             }
         }
-        let response = try await connector.send(messages: messages, options: options)
+        let response = try await send(messages: messages, options: options)
         return response.blocks.map(\.textValue).joined()
+    }
+
+    /// Send the request, and send it again when the provider refuses it.
+    ///
+    /// A provider with an input filter (= the ones that serve the China
+    /// region) rejects some requests on a borderline input, = and the
+    /// same request goes through the next time. The request is idempotent
+    /// (= a refused request wrote nothing), = so the retry is safe.
+    private func send(
+        messages: [LLMMessage],
+        options: LLMCallOptions
+    ) async throws -> LLMResponse {
+        var attempt = 0
+        while true {
+            do {
+                return try await connector.send(messages: messages, options: options)
+            } catch {
+                attempt += 1
+                guard attempt < 2 else { throw error }
+                try? await Task.sleep(nanoseconds: 800_000_000)
+            }
+        }
     }
 }
