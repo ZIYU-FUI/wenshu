@@ -166,7 +166,7 @@ struct KanbanWindow: View {
             return bookId
         case .folder(let bookId, _):
             return bookId
-        case .shelf, .referenceCategory, .referenceLibraryRoot, .tag, nil:
+        case .shelf, .referenceCategory, .referenceUnclassified, .referenceLibraryRoot, .tag, nil:
             return nil
         }
     }

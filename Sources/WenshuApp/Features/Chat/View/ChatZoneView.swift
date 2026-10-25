@@ -268,7 +268,7 @@ struct ChatZoneView: View {
                 bookID = id
             case .folder(let id, _):
                 bookID = id
-            case .shelf, .referenceCategory, .referenceLibraryRoot, .tag, nil:
+            case .shelf, .referenceCategory, .referenceUnclassified, .referenceLibraryRoot, .tag, nil:
                 // tag selection maps to no specific book
                 // (= the chat panel scopes to the global un-attached
                 // bucket). All non-book selections clear the per-book
