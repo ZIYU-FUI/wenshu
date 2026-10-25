@@ -54,6 +54,42 @@ struct WriteBookDocTool: Tool, Sendable {
         let success: Bool
     }
 
+    /// The declaration the model reads.
+    /// The agent can only emit a tool_use block
+    /// for a tool the request body advertises, so
+    /// a turn without this schema never reaches
+    /// the write handler.
+    ///
+    /// The name is the handler key the import
+    /// driver passes to the turn (= the model
+    /// calls the tool by this name). The tool is
+    /// bound to one import run, so it stays out
+    /// of the global tool registry.
+    static let schema = ToolRegistrySchema(
+        name: "writeBookDoc",
+        description: """
+        Write one document into the active book (= the book the \
+        import run is bound to). Call it once per document: \
+        each call writes exactly one file. The path is relative \
+        to the book root; an absolute path or a path escaping \
+        the book root is refused.
+        """,
+        inputSchema: [
+            "path": ToolRegistrySchemaProperty(
+                type: "string",
+                description: """
+                Path of the document relative to the active book \
+                root (e.g. 'world/overview.md'). No leading slash.
+                """
+            ),
+            "body": ToolRegistrySchemaProperty(
+                type: "string",
+                description: "The full UTF-8 content of the document to write."
+            )
+        ],
+        required: ["path", "body"]
+    )
+
     func execute(input: String) async throws -> String {
         let dict = try ToolInputParser.parseDictionary(input: input)
         // Relative path (= within the current book). MUST NOT start with `/` (= absolute

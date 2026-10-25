@@ -78,6 +78,44 @@ final class ImportAgentDriverTests: XCTestCase {
                        "Substituted SOP should contain the body content")
     }
 
+    // MARK: - The request advertises the write tool
+
+    func testRunAdvertisesTheWriteToolToTheProvider() async throws {
+        // The model can only emit a tool_use block for a tool the
+        // request body names, so the request the connector receives
+        // must carry the write tool's declaration (= without it the
+        // import ends as a plain-text reply and nothing is written).
+        let stub = WorldFolderStubConnector()
+        let driver = ImportAgentDriver(
+            connector: stub,
+            modelSlug: "stub"
+        )
+        let context = ImportAgentBookContext(
+            bookPath: { "/ws/twelve-immortals" }
+        )
+        let input = ImportAgentDriver.TaskInput(
+            filePath: "/tmp/source.md",
+            body: "# source content",
+            bookPath: "/ws/twelve-immortals",
+            bookTitle: "twelve-immortals",
+            targetFolder: .world
+        )
+        _ = try await driver.run(
+            input: input,
+            bookContext: context,
+            progress: nil
+        )
+        let advertised = stub.receivedOptions.last?.tools ?? []
+        XCTAssertFalse(
+            advertised.isEmpty,
+            "The turn must advertise a tool declaration to the provider."
+        )
+        XCTAssertTrue(
+            advertised.contains { $0.name == "writeBookDoc" },
+            "The advertised tool must be the write tool the turn dispatches."
+        )
+    }
+
     // MARK: - No SOP for non-world folder
 
     func testRunWithNonWorldFolderThrowsNoSOPError() async throws {

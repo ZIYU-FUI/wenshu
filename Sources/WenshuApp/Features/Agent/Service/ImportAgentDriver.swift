@@ -108,13 +108,16 @@ struct ImportAgentDriver: Sendable {
         // runTurn dispatches the tool (= our writeBookDoc here) and re-prompts
         // the LLM with the tool result; = this loops until the LLM no longer
         // returns tool_use (= "agent finished").
+        // The tool declaration travels beside the handler: the handler alone
+        // cannot be reached, because the model only emits a tool_use block
+        // for a tool the request body advertises.
         let result = try await loop.runTurn(
             userMessage: userMessage,
             systemMessage: sop,
             tools: ["writeBookDoc": toolHandler],
             taskId: UUID().uuidString,
             streamCallback: nil,
-            toolSchemas: []
+            toolSchemas: [WriteBookDocTool.schema]
         )
 
         // ── Step 8: return the outcome.
