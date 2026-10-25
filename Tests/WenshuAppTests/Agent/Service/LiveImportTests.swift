@@ -202,21 +202,40 @@ final class LiveImportTests: XCTestCase {
                 }
             }
         )
-        let result = try await router.route(
-            input: ImportFileInput(
-                filePath: "/tmp/dufu.md",
-                targetBookId: nil,
-                targetShelfId: nil,
-                rewriteMode: .searchAndRewrite,
-                body: nil
-            ),
-            body: """
-            杜甫，字子美，自号少陵野老，唐代伟大的现实主义诗人。
-            他饱经丧乱，晚年漂泊于夔州、武陵一带，诗风沉郁顿挫，
-            代表作有三吏（《石壕吏》《新安吏》《潼关吏》）与三别。
-            """,
-            fallbackTitle: "dufu"
-        )
+        // The app retries a refused request (= the orchestrator's own
+        // retry ladder); = the harness does the same, = so it measures
+        // what the app does and not what one call does.
+        var result: ImportRoutingResult?
+        var lastError: Error?
+        for attempt in 1...3 {
+            do {
+                result = try await router.route(
+                    input: ImportFileInput(
+                        filePath: "/tmp/dufu.md",
+                        targetBookId: nil,
+                        targetShelfId: nil,
+                        rewriteMode: .searchAndRewrite,
+                        body: nil
+                    ),
+                    body: """
+                    杜甫，字子美，自号少陵野老，唐代伟大的现实主义诗人。
+                    他饱经丧乱，晚年漂泊于夔州、武陵一带，诗风沉郁顿挫，
+                    代表作有三吏（《石壕吏》《新安吏》《潼关吏》）与三别。
+                    """,
+                    fallbackTitle: "dufu"
+                )
+                break
+            } catch {
+                lastError = error
+                print("LIVE-LIBRARY attempt \(attempt)/3 refused")
+            }
+        }
+        guard let result else {
+            throw lastError ?? NSError(
+                domain: "LiveImportTests", code: 1,
+                userInfo: [NSLocalizedDescriptionKey: "The library import never got an answer."]
+            )
+        }
         let searches = await searchCounter.count
         print("LIVE-LIBRARY title=\(result.title) tags=\(result.tags.sorted()) category=\(result.category ?? "nil") entityType=\(result.entityType) searches=\(searches)")
         XCTAssertFalse(result.title.isEmpty, "The real model must produce a title.")

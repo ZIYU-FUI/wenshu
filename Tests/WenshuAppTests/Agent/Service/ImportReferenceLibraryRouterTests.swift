@@ -127,6 +127,43 @@ final class ImportReferenceLibraryRouterTests: XCTestCase {
         )
     }
 
+    /// The search result the model reads back is trimmed.
+    ///
+    /// The raw envelope carries every hit with its full snippet, and the
+    /// web is not a place wenshu controls. The model needs enough to
+    /// check the content, so the result is trimmed: the first few
+    /// entries, each snippet short.
+    func testTheSearchResultTheModelReadsIsTrimmed() {
+        let raw = """
+        {"query": "a king", "results": [
+        {"title": "One", "url": "https://one.example", "snippet": "\(String(repeating: "x", count: 900))"},
+        {"title": "Two", "url": "https://two.example", "snippet": "short"},
+        {"title": "Three", "url": "https://three.example", "snippet": "short"},
+        {"title": "Four", "url": "https://four.example", "snippet": "short"},
+        {"title": "Five", "url": "https://five.example", "snippet": "short"},
+        {"title": "Six", "url": "https://six.example", "snippet": "short"}
+        ], "count": 6}
+        """
+        let trimmed = ImportReferenceLibraryRouter.compactedSearchOutput(raw)
+        let object = (try? JSONSerialization.jsonObject(
+            with: Data(trimmed.utf8)
+        )) as? [String: Any]
+        let results = object?["results"] as? [[String: Any]] ?? []
+        XCTAssertEqual(results.count, 5, "Only the first few entries travel back.")
+        let longest = results.compactMap { $0["snippet"] as? String }
+            .map { $0.count }.max() ?? 0
+        XCTAssertLessThanOrEqual(longest, 200, "A snippet must be short.")
+    }
+
+    /// A result that is not the search envelope travels back untouched.
+    func testANonSearchOutputIsNotTouched() {
+        let raw = "{\"ok\":false,\"error\":\"web_search dispatch failed\"}"
+        XCTAssertEqual(
+            ImportReferenceLibraryRouter.compactedSearchOutput(raw), raw,
+            "An envelope that is not a search result must travel back as it was."
+        )
+    }
+
     // MARK: - The fixtures
 
     static let input = ImportFileInput(
@@ -209,4 +246,5 @@ private final class ReferenceLibraryStubConnector: LLMConnector, @unchecked Send
 private actor SearchRecorder {
     private(set) var wasCalled = false
     func mark() { wasCalled = true }
+
 }

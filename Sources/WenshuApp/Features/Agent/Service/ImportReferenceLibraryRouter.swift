@@ -244,7 +244,9 @@ struct ImportReferenceLibraryRouter: Sendable {
             for tool in toolUses {
                 let output: String
                 if tool.name == "web_search" {
-                    output = await dispatchWebSearch(tool.input)
+                    output = Self.compactedSearchOutput(
+                        await dispatchWebSearch(tool.input)
+                    )
                 } else {
                     output = "{\"ok\":false,\"error\":\"unknown tool: \(tool.name)\"}"
                 }
@@ -253,6 +255,36 @@ struct ImportReferenceLibraryRouter: Sendable {
         }
         let response = try await send(messages: messages, options: options)
         return response.blocks.map(\.textValue).joined()
+    }
+
+    /// The search result the model reads back.
+    ///
+    /// The raw envelope carries every hit with its full snippet, and the
+    /// web is not a place wenshu controls (= a snippet can say anything,
+    /// = and a long one is a long way for a provider's input filter to
+    /// trip over). The model needs enough to check the content against,
+    /// so the result is trimmed: = the first few entries, = each snippet
+    /// short, = the rest of the envelope as it was.
+    static func compactedSearchOutput(_ raw: String) -> String {
+        guard let data = raw.data(using: .utf8),
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let results = object["results"] as? [[String: Any]],
+              results.count > 2
+        else { return raw }
+        let kept = results.prefix(5).map { entry -> [String: Any] in
+            var copy = entry
+            if let snippet = entry["snippet"] as? String, snippet.count > 200 {
+                copy["snippet"] = String(snippet.prefix(200))
+            }
+            return copy
+        }
+        var compacted = object
+        compacted["results"] = kept
+        compacted["count"] = kept.count
+        guard let out = try? JSONSerialization.data(withJSONObject: compacted),
+              let text = String(data: out, encoding: .utf8)
+        else { return raw }
+        return text
     }
 
     /// Send the request, and send it again when the provider refuses it.
