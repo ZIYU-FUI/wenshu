@@ -127,7 +127,13 @@ extension ImportService {
             do {
                 // Pass the activityLog appender as the progress callback so the
                 // router's per-phase log lines land in the per-row activityLog.
-                let result = try await router.route(input) { message in
+                // The user's pinned destination rides along (= the router
+                // never picks the folder; = the procedure that runs is
+                // the one of the folder the user chose).
+                let result = try await router.route(
+                    input,
+                    destination: Self.pinnedDestination(target: target)
+                ) { message in
                     await self.appendActivity(
                         to: tasksBox, i: i,
                         message: message,
@@ -222,4 +228,22 @@ extension ImportService {
     }
 
 
+}
+
+
+extension ImportService {
+    /// The destination the user pinned in the sheet.
+    ///
+    /// The user's choice is the only thing that decides where an import
+    /// lands. A book import without a folder picked falls back to the
+    /// drafts folder (= the safe default; = the model never names a
+    /// folder).
+    static func pinnedDestination(target: ImportTarget) -> ImportDestination {
+        switch target.destination {
+        case .referenceLibrary:
+            return .referenceLibrary
+        case .book:
+            return .bookFolder(target.bookFolder ?? .drafts)
+        }
+    }
 }

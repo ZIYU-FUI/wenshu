@@ -85,6 +85,7 @@ actor WenshuConductorImportRouter: ImportRouter {
     /// orchestrator wires this into the per-row `activityLog`).
     func route(
         _ input: ImportFileInput,
+        destination: ImportDestination,
         progress: (@Sendable (String) async -> Void)? = nil
     ) async throws -> ImportRoutingResult {
         // (= boss 2026-10-09 (see OOB.md #2026-10-09) 就是基于标题重新调研" directive). Body
@@ -119,6 +120,7 @@ actor WenshuConductorImportRouter: ImportRouter {
                 input: input,
                 body: body,
                 fallbackTitle: fallbackTitle,
+                destination: destination,
                 progress: progress
             )
         case .consolidate, .searchAndRewrite:
@@ -215,35 +217,6 @@ actor WenshuConductorImportRouter: ImportRouter {
     /// + tags - returns rewrittenBody (= the main INDEX file body; = metadata
     /// header + 6 必填子文件路径引用 + 1 段简短概述) - decides the destination folder - does
     /// NOT return extraFiles
-    private func runClassificationPhase(
-        input: ImportFileInput,
-        body: String,
-        fallbackTitle: String,
-        progress: (@Sendable (String) async -> Void)?
-    ) async throws -> ImportRoutingResult {
-        // Phase-1 LLM call (= the `.reorganize` equivalent of what
-        // `routeSingleTurn` does for `.consolidate`). Inlined here so
-        // the call bypasses the `routeSingleTurn` switch-exhaustive
-        // sentinel that fires for `.reorganize` (= see the RATIONALE
-        // block above the call site in `routeReorganizeMultiTurn`).
-        let userPrompt = WCIRPromptHelpers.userPrompt(
-            filePath: input.filePath,
-            body: body,
-            rewriteMode: input.rewriteMode
-        )
-        let options = buildLLMCallOptions(input: input, userPrompt: userPrompt)
-        let response = try await connector.send(
-            messages: [.user(userPrompt)],
-            options: options
-        )
-        let raw = response.blocks.map(\.textValue).joined()
-        return WCIRHelpers.parseAndMap(
-            raw: raw,
-            body: body,
-            fallbackTitle: fallbackTitle,
-            filePath: input.filePath
-        )
-    }
     /// Phase 2/3 = `splitRequired`: - LLM reads A again - returns 6 必填
     /// extraFiles (= 核心设定 / 地理或位置 / 体系或规则 / 历史脉络 / 与其他元素的关系 / 关键场景种子)
     /// Phase 3/3 = `splitCustom`: - LLM reads A again - returns 0-5 自定义
@@ -252,6 +225,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         input: ImportFileInput,
         body: String,
         fallbackTitle: String,
+        destination: ImportDestination,
         progress: (@Sendable (String) async -> Void)?
     ) async throws -> ImportRoutingResult {
         // The wenshu 文档管理员 runs the import via `ConversationLoop.runTurn`;
@@ -260,52 +234,46 @@ actor WenshuConductorImportRouter: ImportRouter {
         // thin adapter (= no LLM calls happen here; = delegates to
         // `ImportAgentDriver`).
         await progress?("  🔵 文档管理员 agent 启动 ...")
-        // Phase 1: classify the source via a single LLM call (= the SOP
-        // lookup is keyed on the folder; = we need this before launching).
+        // The folder comes from the user's choice (= the sheet's
+        // two-level folder picker; = the model never picks it).
         //
-        // RATIONALE for the inline `connector.send` (= not via
-        // `routeSingleTurn`): `routeSingleTurn` carries a switch-exhaustive
-        // `case .reorganize:` that throws NSError(code: 0, "unreachable");
-        // = that branch is a sentinel for "no one should dispatch
-        // .reorganize into the single-turn path", which is true at the
-        // outer `route(_:)` call (= rewrites dispatch to
-        // `routeReorganizeMultiTurn` first). Calling `routeSingleTurn`
-        // from inside `routeReorganizeMultiTurn` (= the previous shape)
-        // immediately fell into the sentinel and surfaced as the
-        // user-visible "智能重组 (provider: minimax-cn) ... 失败
-        // unreachable code=0" error = the LLM was NEVER called for
-        // `智能重组` imports. By inlining the connector.send here we
-        // bypass the sentinel while staying on the same Minimax-cn
-        // endpoint (= sandbox curl against this exact URL with the
-        // user's same key returns 200 OK = no network or auth issue).
-        let classification = try await runClassificationPhase(
-            input: input,
-            body: body,
-            fallbackTitle: fallbackTitle,
-            progress: progress
-        )
-        // Phase 2: resolve the book-bound file path + title (= the agent's
+        // There is no separate classification call here. The agent's own
+        // procedure asks for the title, the tags and the one-line summary
+        // and reports them back, so the model is asked for those fields
+        // once, in the procedure, instead of being asked for them in a
+        // call whose answer is thrown away.
+        let folder: BookFolder?
+        switch destination {
+        case .bookFolder(let pinned):
+            folder = pinned
+        case .referenceLibrary:
+            folder = nil
+        }
+        // Resolve the book-bound file path + title (= the agent's
         // `writeBookDoc` tool needs the on-disk root, not a bare UUID).
         let (bookPath, bookTitle) = resolveBookPath(input: input)
-        // Phase 3: launch the agent against the per-folder SOP (= if no
-        // folder = reference library = no SOP = clear failure).
-        try await runAgentAgainstFolder(
+        // Launch the agent against the folder's procedure (= no folder =
+        // reference library = no procedure = a clear failure).
+        let reply = try await runAgentAgainstFolder(
             input: input,
             body: body,
-            classification: classification,
+            folder: folder,
             bookPath: bookPath,
             bookTitle: bookTitle,
             progress: progress
         )
         await progress?("  ✅ 文档管理员 完成")
+        // The metadata comes from the agent's own reply (= the procedure
+        // asks for it in one JSON object at the end).
+        let metadata = WCIRHelpers.parseAgentMetadata(reply)
         return ImportRoutingResult(
-            destination: classification.destination,
-            title: classification.title,
-            summary: classification.summary,
-            tags: Set(classification.tags),
-            entityType: classification.entityType,
-            category: classification.category,
-            confidence: classification.confidence,
+            destination: destination,
+            title: metadata.title.isEmpty ? fallbackTitle : metadata.title,
+            summary: metadata.summary,
+            tags: Set(metadata.tags),
+            entityType: metadata.entityType,
+            category: metadata.category,
+            confidence: metadata.confidence,
             rewrittenBody: nil,
             extraFiles: [],
         )
@@ -343,12 +311,12 @@ actor WenshuConductorImportRouter: ImportRouter {
     private func runAgentAgainstFolder(
         input: ImportFileInput,
         body: String,
-        classification: ImportRoutingResult,
+        folder: BookFolder?,
         bookPath: String?,
         bookTitle: String,
         progress: (@Sendable (String) async -> Void)?
-    ) async throws {
-        guard let folder = Self.folder(from: classification.destination) else {
+    ) async throws -> String {
+        guard let folder else {
             await progress?("  ⚠️ 参考库没有 SOP (= 路由到失败 task)")
             throw NSError(
                 domain: "wenshu.import",
@@ -365,11 +333,12 @@ actor WenshuConductorImportRouter: ImportRouter {
             bookTitle: bookTitle,
             targetFolder: folder
         )
-        _ = try await driver.run(
+        let result = try await driver.run(
             input: agentInput,
             bookContext: context,
             progress: progress
         )
+        return result.finalResponse
     }
 
     /// Extract the BookFolder from the routing result's destination (= the

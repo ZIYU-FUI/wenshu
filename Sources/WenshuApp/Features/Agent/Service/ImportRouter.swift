@@ -34,15 +34,22 @@ protocol ImportRouter: Sendable {
     /// Returns the ImportRoutingResult (= destination +
     /// metadata); = the orchestrator dispatches on the
     /// destination to decide the write path.
-    /// optional `progress` callback (= the
-    /// router emits human-readable Chinese activity lines;
-    /// = the orchestrator's `appendActivity` appends them
-    /// to the per-row `activityLog`; = the sheet shows
-    /// them in a scrolling terminal-like view in real
-    /// time). nil = no logging (= the default; = tests
-    /// don't need it).
+    /// - Parameters:
+    ///   - input: the file to route.
+    ///   - destination: where the file must land (= the user's
+    ///     choice from the import sheet; = the router never
+    ///     picks the folder; = the reorganize mode loads the
+    ///     procedure of that folder and writes there).
+    ///   - progress: optional `progress` callback (= the
+    ///     router emits human-readable Chinese activity lines;
+    ///     = the orchestrator's `appendActivity` appends them
+    ///     to the per-row `activityLog`; = the sheet shows
+    ///     them in a scrolling terminal-like view in real
+    ///     time). nil = no logging (= the default; = tests
+    ///     don't need it).
     func route(
         _ input: ImportFileInput,
+        destination: ImportDestination,
         progress: (@Sendable (String) async -> Void)?
     ) async throws -> ImportRoutingResult
     /// (= boss
