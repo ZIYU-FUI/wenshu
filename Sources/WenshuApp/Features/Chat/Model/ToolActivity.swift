@@ -118,8 +118,6 @@ enum ToolActivityNarrator {
             return "Running a command"
         case "todo", "todo_hermes":
             return "Updating the task list"
-        case "llm_wiki":
-            return "Consulting the knowledge base"
         case "reference_library":
             return "Checking the reference library"
         case "delegate_research":

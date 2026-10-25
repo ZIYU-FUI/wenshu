@@ -7,25 +7,23 @@
 //
 // Each reference is stored as a `.md` file under
 // `<.ws>/reference-library/<layer>/<ref-uuid>.md` where <layer> is one of
-// the 4 LLM Wiki layers (raw / entities / abstracts / indexes).
+// the 2 ReferenceLibrary layers (raw / entities).
 //
 // ships only `raw/` (user imports) + `entities/` (user-facing, the
-// only visible layer). `abstracts/` + `indexes/` are LLM-derived layers
-// (= LLM-driven entity extraction from chat).
+// only visible layer). The derived layers that once sat beside them
+// (= the LLM-written abstracts + indexes) are gone with the tool that
+// wrote them.
 //
 // ReferenceStore protocol handles the read / write of the `.md` body +
 // JSON sidecar per layer.
 
 import Foundation
 
-/// LLM Wiki layer (= where in the 4-layer ReferenceLibrary hierarchy this
-/// reference lives). Supports raw + entities; abstracts + indexes
-/// are LLM-derived.
+/// ReferenceLibrary layer (= where in the 2-layer ReferenceLibrary
+/// hierarchy this reference lives). Supports raw + entities.
 enum ReferenceLayer: String, CaseIterable, Codable, Sendable {
     case layerRaw
     case layerEntities
-    case layerAbstracts
-    case layerIndexes
 
     /// Filesystem directory name (= the layer's subdirectory under
     /// `reference-library/`).
@@ -33,8 +31,6 @@ enum ReferenceLayer: String, CaseIterable, Codable, Sendable {
         switch self {
         case .layerRaw:       return "raw"
         case .layerEntities:  return "entities"
-        case .layerAbstracts: return "abstracts"
-        case .layerIndexes:   return "indexes"
         }
     }
 
@@ -43,8 +39,6 @@ enum ReferenceLayer: String, CaseIterable, Codable, Sendable {
         switch self {
         case .layerRaw:       return "原始资料"
         case .layerEntities:  return "实体"
-        case .layerAbstracts: return "抽象"
-        case .layerIndexes:   return "索引"
         }
     }
 
@@ -53,12 +47,10 @@ enum ReferenceLayer: String, CaseIterable, Codable, Sendable {
     /// `.layerRaw` (= original source files = user doesn't need to
     /// browse these directly = they're for LLM ingestion) is NOT
     /// user-facing. `.layerEntities` remains user-facing.
-    /// `.layerAbstracts` + `.layerIndexes` are LLM-derived (= hidden
-    /// per their semantic nature).
     var isUserFacing: Bool {
         switch self {
         case .layerEntities: return true
-        case .layerRaw, .layerAbstracts, .layerIndexes: return false
+        case .layerRaw: return false
         }
     }
 
@@ -67,10 +59,8 @@ enum ReferenceLayer: String, CaseIterable, Codable, Sendable {
     /// icons.
     var icon: String {
         switch self {
-        case .layerRaw:       return "tray.and.arrow.down"   // = raw inbox
-        case .layerEntities:  return "person.crop.circle"    // = entities (= people)
-        case .layerAbstracts: return "sparkles"              // = LLM-extracted abstractions
-        case .layerIndexes:   return "magnifyingglass"       // = searchable indexes
+        case .layerRaw:      return "tray.and.arrow.down"   // = raw inbox
+        case .layerEntities: return "person.crop.circle"    // = entities (= people)
         }
     }
 }
@@ -176,7 +166,19 @@ struct Reference: Identifiable, Hashable, Codable, Sendable {
         displayTitle = try c.decodeIfPresent(String.self, forKey: .displayTitle)
         source = try c.decodeIfPresent(String.self, forKey: .source)
         url = try c.decodeIfPresent(String.self, forKey: .url)
-        layer = try c.decode(ReferenceLayer.self, forKey: .layer)
+        // Layer decodes leniently (= graceful migration path, same as
+        // entityType below): a row persisted under a layer the app no
+        // longer has must not throw, because one unknown value would
+        // fail the whole `[Reference]` decode and the index file would
+        // read as empty (= "the reference metadata was lost"). Unknown
+        // values fall back to `.layerRaw`, the same fallback the
+        // SwiftData row bridge uses.
+        if let rawLayer = try? c.decode(String.self, forKey: .layer),
+           let parsedLayer = ReferenceLayer(rawValue: rawLayer) {
+            layer = parsedLayer
+        } else {
+            layer = .layerRaw
+        }
         category = try c.decodeIfPresent(EntityCategory.self, forKey: .category)
         // tags is part of the facet model. Legacy entities.json files
         // (= written before this commit) lack the field; = default to

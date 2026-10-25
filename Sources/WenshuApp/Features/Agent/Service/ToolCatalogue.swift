@@ -55,7 +55,6 @@ public enum ToolCatalogue {
         CataloguedTool(name: "book_entity", category: .navigation, mutates: true),
         CataloguedTool(name: "book_edit_chapter", category: .navigation, mutates: true),
         CataloguedTool(name: "reference_library", category: .navigation, mutates: false),
-        CataloguedTool(name: "llm_wiki", category: .navigation, mutates: false),
 
         // Writing aids.
         CataloguedTool(name: "todo", category: .writing, mutates: true),

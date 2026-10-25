@@ -21,7 +21,7 @@ struct ToolCatalogueTests {
     private static let previousNames: Set<String> = [
         "ReadFile", "WriteFile", "av",
         "book_chapter", "book_edit_chapter", "book_entity", "book_manager",
-        "book_outline", "file", "delegate_research", "kanban", "llm_wiki",
+        "book_outline", "file", "delegate_research", "kanban",
         "process", "reference_library", "todo", "todo_hermes", "vision",
         "web", "web_search"
     ]
@@ -118,6 +118,6 @@ struct ToolCatalogueTests {
         let mutations = Set(ToolCatalogue.all.filter(\.mutates).map(\.name))
         #expect(mutations.contains("book_edit_chapter"))
         #expect(!mutations.contains("web_search"), "searching does not change the library")
-        #expect(!mutations.contains("llm_wiki"))
+        #expect(!mutations.contains("reference_library"))
     }
 }

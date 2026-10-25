@@ -33,8 +33,8 @@ struct LibraryBootstrapper: Sendable {
                 try fm.createDirectory(at: url, withIntermediateDirectories: true)
             }
         }
-        // 2. Create reference-library subdirs (= LLM Wiki 4-layer).
-        for layer in ["raw", "entities", "abstracts", "indexes"] {
+        // 2. Create reference-library subdirs (= the 2 library layers).
+        for layer in ["raw", "entities"] {
             let url = wsRoot
                 .appendingPathComponent("reference-library", isDirectory: true)
                 .appendingPathComponent(layer, isDirectory: true)
@@ -42,20 +42,12 @@ struct LibraryBootstrapper: Sendable {
                 try fm.createDirectory(at: url, withIntermediateDirectories: true)
             }
         }
-        // 3. Create reference-library/indexes/saved-searches/.
-        let savedSearches = wsRoot
-            .appendingPathComponent("reference-library", isDirectory: true)
-            .appendingPathComponent("indexes", isDirectory: true)
-            .appendingPathComponent("saved-searches", isDirectory: true)
-        if !fm.fileExists(atPath: savedSearches.path) {
-            try fm.createDirectory(at: savedSearches, withIntermediateDirectories: true)
-        }
-        // 4. Info.plist defensive creation (= if missing).
+        // 3. Info.plist defensive creation (= if missing).
         let infoPlist = wsRoot.appendingPathComponent("Info.plist")
         if !fm.fileExists(atPath: infoPlist.path) {
             try writeDefaultInfoPlist(to: infoPlist)
         }
-        // 5. Remove empty chapters/ + books/ at .ws root IF they exist
+        // 4. Remove empty chapters/ + books/ at .ws root IF they exist
         // and are empty (= orphan from early onboarding; safe to remove).
         // NOTE: do NOT touch shelves/ at .ws root here (= canonical
         // book container; bootstrapper CREATES it, not deletes).
@@ -65,7 +57,7 @@ struct LibraryBootstrapper: Sendable {
                 try fm.removeItem(at: url)
             }
         }
-        // 6. For each book, verify 8 standard folders + 2 data files.
+        // 5. For each book, verify 8 standard folders + 2 data files.
         try ensurePerBookStructure()
     }
 

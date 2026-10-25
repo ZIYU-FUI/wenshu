@@ -108,8 +108,8 @@ actor CSSearchableIndexSearch {
 
     /// Shared singleton so `Task.detached` auto-call hooks (= chapter /
     /// reference / bookmark save) can index documents without owning
-    /// the actor instance. Mirrors the `BackgroundReview.shared` +
-    /// `LLMWikiLayerDeriver` pattern.
+    /// the actor instance. Mirrors the `BackgroundReview.shared`
+    /// pattern.
     static let shared = CSSearchableIndexSearch()
 
     /// Bootstrap the search index (= call once at app launch).

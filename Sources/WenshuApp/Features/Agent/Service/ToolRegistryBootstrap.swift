@@ -47,7 +47,6 @@ enum ToolRegistryBootstrap {
         _ = BookOutlineTool._registryBootstrap
         _ = EditChapterTool._registryBootstrap
         _ = ReferenceLibraryTool._registryBootstrap
-        _ = LLMWikiTool._registryBootstrap
         _ = DelegateResearchTool._registryBootstrap
         _ = WebSearchTool._registryBootstrap
     }

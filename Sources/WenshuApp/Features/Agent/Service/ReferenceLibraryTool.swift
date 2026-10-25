@@ -72,10 +72,8 @@ struct ReferenceDescriptor: Sendable, Codable, Equatable, Identifiable {
     // / LLM-friendly wire string used in tool input / output.
     static func wireLayer(_ layer: ReferenceLayer) -> String {
         switch layer {
-        case .layerRaw:       return "raw"
-        case .layerEntities:  return "entities"
-        case .layerAbstracts: return "abstracts"
-        case .layerIndexes:   return "indexes"
+        case .layerRaw:      return "raw"
+        case .layerEntities: return "entities"
         }
     }
 }
@@ -418,8 +416,8 @@ final class ReferenceLibraryActor {
         let all = (try? referenceStore.loadAllReferences()) ?? []
         let candidates: [Reference]
         if let layer {
-            // Explicit layer requested. Reject LLM-derived layers
-            // (= .layerAbstracts / .layerIndexes) by returning nil.
+            // Explicit layer requested. Reject the layers the agent
+            // may not read (= the derived ones) by returning nil.
             guard let parsedLayer = parseLayerIfUserFacing(layer) else {
                 return nil
             }
@@ -499,20 +497,13 @@ final class ReferenceLibraryActor {
 
     // MARK: - Layer parsing
     // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-    // / .layerIndexes) are explicitly rejected.
+    // / the derived layers) are explicitly rejected.
     private func parseLayer(_ raw: String) -> ReferenceLayer {
         switch raw.lowercased() {
         case "raw", "sourcematerial":
             return .layerRaw
         case "entities", "entity":
             return .layerEntities
-        case "abstracts":
-            // LLM-derived: silently fall back to raw (= the LLM should
-            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-            // by routing to .layerRaw and the user can re-classify).
-            return .layerRaw
-        case "indexes":
-            return .layerRaw
         default:
             return .layerRaw
         }
