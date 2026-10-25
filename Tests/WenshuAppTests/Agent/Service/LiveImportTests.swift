@@ -89,12 +89,28 @@ final class LiveImportTests: XCTestCase {
             )
         }
         try Self.installProviderKey(provider)
-        guard let connector = WenshuAppDelegateLLMHelpers.connectorForSlug(slug) else {
-            throw NSError(
-                domain: "LiveImportTests", code: 3,
-                userInfo: [NSLocalizedDescriptionKey: "No connector for '\(slug)'."]
-            )
+        // The session may go out through a proxy (= the harness has to
+        // reach the provider on a machine whose own resolver is down;
+        // = the proxy resolves the name). The setting is read from the
+        // environment, = so the harness never hardcodes one.
+        let configuration = URLSessionConfiguration.default
+        if let proxy = ProcessInfo.processInfo.environment["WENSHU_LIVE_PROXY"],
+           let separator = proxy.lastIndex(of: ":"),
+           let port = Int(proxy[proxy.index(after: separator)...]) {
+            let host = String(proxy[..<separator])
+            configuration.connectionProxyDictionary = [
+                "HTTPEnable": true,
+                "HTTPProxy": host,
+                "HTTPPort": port,
+                "HTTPSEnable": true,
+                "HTTPSProxy": host,
+                "HTTPSPort": port
+            ]
         }
+        configuration.timeoutIntervalForRequest = 180
+        configuration.timeoutIntervalForResource = 600
+        let session = URLSession(configuration: configuration)
+        let connector = MinimaxConnector(provider: provider, session: session)
         let model = Self.activeModelSlug() ?? provider.defaultModels.first ?? "default-model"
         return (connector, model)
     }
@@ -146,11 +162,23 @@ final class LiveImportTests: XCTestCase {
                 bookTitle: "玄苍界",
                 targetFolder: .world
             )
+            // The streamed reply (= what the sheet shows; = it also
+            // says what the model actually produced). The parts are
+            // printed as they arrive, = so a run that fails still shows
+            // what the model sent.
+            let streamed = StreamRecorder()
             let result = try await driver.run(
                 input: input,
                 bookContext: context,
-                progress: nil
+                progress: { part in
+                    let count = await streamed.add(part)
+                    if count <= 3 {
+                        print("LIVE-PART #\(count) >>> \(String(part.prefix(300)))")
+                    }
+                }
             )
+            let parts = await streamed.parts
+            print("LIVE-STREAM parts=\(parts.count)")
             print("LIVE-RESULT sop=\(result.sopName) toolUses=\(result.toolUseCount)")
             print("LIVE-REPLY >>>\n\(result.finalResponse.prefix(1200))\n<<< END REPLY")
             // The world's folder holds the documents.
@@ -179,6 +207,102 @@ final class LiveImportTests: XCTestCase {
                     "The document '\(name)' must carry content."
                 )
             }
+            // The procedure's contract (= the world's own skeleton):
+            // = the six required documents, = and one index that
+            // names them.
+            let required = Self.requiredWorldDocuments
+            for name in required {
+                XCTAssertTrue(
+                    landed.contains(name),
+                    "The procedure asks for '\(name)'; = it must land in the world's folder. Got: \(landed)"
+                )
+            }
+            let indexName = landed.first { !required.contains($0) }
+            let indexText = indexName.map {
+                (try? String(
+                    contentsOf: world.appendingPathComponent($0),
+                    encoding: .utf8
+                )) ?? ""
+            } ?? ""
+            XCTAssertFalse(
+                indexText.isEmpty,
+                "The procedure asks for one index document beside the six."
+            )
+            // The index names the six (= its own skeleton says so).
+            for name in required {
+                XCTAssertTrue(
+                    indexText.contains(name),
+                    "The index must reference '\(name)'; = the six documents hang off it."
+                )
+            }
+            // The index carries its metadata lines.
+            for line in ["实体类型:", "标签:", "摘要:"] {
+                XCTAssertTrue(
+                    indexText.contains(line),
+                    "The index must carry the '\(line)' line; = the skeleton says so."
+                )
+            }
+            // Each required document opens with its own title.
+            for name in required {
+                let title = String(name.dropLast(".md".count))
+                let text = (try? String(
+                    contentsOf: world.appendingPathComponent(name),
+                    encoding: .utf8
+                )) ?? ""
+                XCTAssertTrue(
+                    text.contains("# \(title)"),
+                    "The document '\(name)' must open with its own title heading."
+                )
+            }
+            // No document carries a placeholder.
+            for name in landed {
+                let text = (try? String(
+                    contentsOf: world.appendingPathComponent(name),
+                    encoding: .utf8
+                )) ?? ""
+                for placeholder in ["<", "TODO", "待补充", "占位"] {
+                    XCTAssertFalse(
+                        text.contains(placeholder),
+                        "The document '\(name)' must not carry the placeholder '\(placeholder)'."
+                    )
+                }
+            }
+            // Keep the artifacts (= the quality of the result is the
+            // user's call, = so the documents have to be readable).
+            if let dump = ProcessInfo.processInfo.environment["WENSHU_LIVE_DUMP"] {
+                let target = URL(fileURLWithPath: dump)
+                try? FileManager.default.createDirectory(
+                    at: target, withIntermediateDirectories: true
+                )
+                for name in landed {
+                    let source = world.appendingPathComponent(name)
+                    let destination = target.appendingPathComponent(name)
+                    try? FileManager.default.copyItem(at: source, to: destination)
+                }
+                print("LIVE-DUMPED to \(dump)")
+            }
+            print("LIVE-INDEX >>>\n\(String(indexText.prefix(900)))\n<<< END INDEX")
+        }
+    }
+
+    /// The world's six required documents (= the folder's own skeleton
+    /// names them; = the procedure asks for all six).
+    private static let requiredWorldDocuments = [
+        "核心设定.md",
+        "地理或位置.md",
+        "体系或规则.md",
+        "历史脉络.md",
+        "与其他元素的关系.md",
+        "关键场景种子.md"
+    ]
+
+    /// The streamed reply (= the parts the sheet shows).
+    private actor StreamRecorder {
+        private(set) var parts: [String] = []
+        @discardableResult
+        func add(_ part: String) -> Int {
+            parts.append(part)
+            return parts.count
         }
     }
 
