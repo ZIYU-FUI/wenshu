@@ -27,6 +27,16 @@ final class SidebarService {
     /// List's row content closure (= one node per row).
     private(set) var nodes: [SidebarNode] = []
 
+    /// The shelf hierarchy (= the user's shelves and their books).
+    ///
+    /// The sidebar shows one hierarchy per part, so the shelf hierarchy
+    /// and the reference library hierarchy live in separate collections
+    /// instead of one joined list.
+    private(set) var shelfNodes: [SidebarNode] = []
+
+    /// The reference library hierarchy (= the grouped tag surface).
+    private(set) var libraryNodes: [SidebarNode] = []
+
     /// Last reload error (= surfaced in the sidebar's error footer
     /// = the loadError semantics the legacy LazySidebarView
     /// preserved before the MVVM split).
@@ -200,31 +210,23 @@ final class SidebarService {
             // result depends only on the loaded references, so it is the
             // same on every launch.
             let tagRows = Self.groupedTagRows(for: references)
-            // bb (see OOB.md #2026-09-23) OOB ' ': insert a non-interactive divider row
-            // between the user shelves (= `roots` collected from
-            // bookStore.sidebarLoadShelves) and the reference library root
-            // (= synthetic `reference` kind). The Divider is rendered by
-            // SidebarRowView when `node.kind == .divider` (= it has no row
-            // chrome; = just a horizontal line; = Apple HIG section
-            // separator).
-            roots.append(SidebarNode(
-                id: Self.dividerSentinelId,
-                kind: .divider,
-                title: "",
-                subtitle: nil,
-                systemImage: "",
-                children: nil
-            ))
-            roots.append(SidebarNode(
+            // The reference library is its own hierarchy (= the sidebar
+            // shows one hierarchy per part, so the two no longer share a
+            // list and need no divider between them).
+            let libraryRoot = SidebarNode(
                 id: Self.referenceLibraryRootId,
                 kind: .reference,
                 title: String(localized: "sidebar.reference_library.title"),
                 subtitle: nil,
                 systemImage: "books.vertical",
                 children: tagRows.isEmpty ? nil : tagRows
-            ))
+            )
 
-            nodes = roots
+            shelfNodes = roots
+            libraryNodes = [libraryRoot]
+            // The joined list stays for the callers that still read it
+            // (= the preview pane's scope resolution walks it).
+            nodes = roots + [libraryRoot]
             loadError = nil
         } catch {
             nodes = []

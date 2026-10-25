@@ -67,6 +67,8 @@ public enum WenshuDefaultsKey: String, CaseIterable, Sendable {
     case openTabs            = "wenshu.openTabs"
     case activeTabId         = "wenshu.editor.activeTabId.v1"
     case sidebarSelection    = "wenshu.sidebarSelection"
+    case sidebarPart         = "wenshu.sidebar.part"
+    case sidebarSelections   = "wenshu.sidebar.selections"
     case cwdOverride         = "wenshu.runtimeCWD"
     case creditsMonthly      = "wenshu.credits.monthly"
     case editorLayoutMode    = "wenshu.editor.layoutMode"

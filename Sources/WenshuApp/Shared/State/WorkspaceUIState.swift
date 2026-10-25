@@ -101,10 +101,14 @@ final class WorkspaceUIState {
     /// `$workspaceUI.inspectorPage` (= cross-view state).
     var inspectorPage: InspectorPage = .status
 
-    /// Sidebar tree selection (= 5 cases: .book(UUID) / .folder /
-    /// .shelf / .referenceCategory / .referenceLibraryRoot,
-    /// nil = nothing selected). Drives Preview pane scope (= see
+    /// Sidebar tree selection (= the row the user picked; = nil = nothing
+    /// selected). Drives Preview pane scope (= see
     /// WorkspaceView.previewScope).
+    ///
+    /// The value IS the current part's remembered selection: setting it
+    /// records it under the current part, and reading it gives the
+    /// current part's row. The property stays the one every other part
+    /// of the app reads, so no other call site changes.
     ///
     /// Persisted to `wenshu.sidebarSelection` UserDefaults key
     /// (= JSON via Codable; = set by didSet = write back on every
@@ -119,14 +123,56 @@ final class WorkspaceUIState {
             // Codable conformance (= SidebarItem: Hashable,
             // Codable, declared at `Views/Library/SidebarItem.swift`
             // post-v1.69c split).
+            guard !isRestoring else { return }
             guard oldValue != sidebarSelection else { return }
+            selections[currentSidebarPart] = sidebarSelection
+            persistSelections()
             if let item = sidebarSelection,
                let data = try? JSONEncoder().encode(item) {
-                UserDefaultsStore.shared.setData(data, forKey: .sidebarSelection)
+                store.setData(data, forKey: .sidebarSelection)
             } else {
-                UserDefaultsStore.shared.remove(.sidebarSelection)
+                store.remove(.sidebarSelection)
             }
         }
+    }
+
+    /// The part of the sidebar that is showing.
+    ///
+    /// The sidebar holds three unrelated hierarchies (= the shelves, the
+    /// reference library, and a reserved part for whole books imported
+    /// as ebooks). Switching parts must not lose what was selected in
+    /// the part being left, so the selection is remembered per part.
+    ///
+    /// Persisted to `wenshu.sidebar.part` UserDefaults key (= the raw
+    /// value; = the same shape as `sidebarSelection`: write on change,
+    /// read back in init).
+    var currentSidebarPart: SidebarPart = .shelves {
+        didSet {
+            guard !isRestoring else { return }
+            guard oldValue != currentSidebarPart else { return }
+            store.setString(currentSidebarPart.rawValue, forKey: .sidebarPart)
+            // The part's own remembered selection becomes the selection.
+            sidebarSelection = selections[currentSidebarPart]
+        }
+    }
+
+    /// The remembered selection of each part.
+    ///
+    /// Encoded as one value (= a dictionary keyed by the part; = the
+    /// selection values use the same coder as `sidebarSelection`).
+    var selections: [SidebarPart: SidebarItem] = [:]
+
+    /// Write the per-part selections to the user's defaults.
+    ///
+    /// The map is encoded with the part's raw value as the key, so the
+    /// stored value is one JSON object (= the same coder the single
+    /// selection uses).
+    private func persistSelections() {
+        let byRawValue = Dictionary(
+            uniqueKeysWithValues: selections.map { ($0.key.rawValue, $0.value) }
+        )
+        guard let data = try? JSONEncoder().encode(byRawValue) else { return }
+        store.setData(data, forKey: .sidebarSelections)
     }
 
     /// How the editor column and the chat zone sit next to each
@@ -145,11 +191,28 @@ final class WorkspaceUIState {
             // back to UserDefaults on launch (= pure read-side
             // restoration).
             guard oldValue != editorLayoutMode else { return }
-            UserDefaultsStore.shared.setString(editorLayoutMode.rawValue, forKey: .editorLayoutMode)
+            store.setString(editorLayoutMode.rawValue, forKey: .editorLayoutMode)
         }
     }
 
-    init() {
+    /// Whether the state is being restored.
+    ///
+    /// The persisted fields are observed properties, and an observed
+    /// property's observer fires when the value is assigned (= the
+    /// assignment in the initialiser counts, because the value is set
+    /// after the property's own initialisation). Without this flag the
+    /// restore would write back what it just read, and the part's
+    /// observer would clear the selection it is restoring.
+    private var isRestoring = true
+
+    /// The store the persisted fields read and write.
+    ///
+    /// Injected so a test can point the state at its own defaults
+    /// (= the production path uses the shared store).
+    private let store: UserDefaultsStore
+
+    init(store: UserDefaultsStore = .shared) {
+        self.store = store
         // In-memory only (= no UserDefaults read).
         //
         // Sidebar selection is the one field that persists across
@@ -158,16 +221,76 @@ final class WorkspaceUIState {
         // `sidebarSelection` writes back, and the explicit read
         // here in init() restores the last value (= didSet is
         // suppressed during init = no write-back triggered).
-        if let data = UserDefaultsStore.shared.data(forKey: .sidebarSelection),
+        if let data = store.data(forKey: .sidebarSelection),
            let decoded = try? JSONDecoder().decode(SidebarItem.self, from: data) {
             self.sidebarSelection = decoded
+        }
+
+        // The per-part selections (= one dictionary; = read back before
+        // the part, so the part's remembered selection wins).
+        if let data = store.data(forKey: .sidebarSelections),
+           let decoded = try? JSONDecoder().decode([String: SidebarItem].self, from: data) {
+            self.selections = decoded.reduce(into: [:]) { acc, pair in
+                guard let part = SidebarPart(rawValue: pair.key) else { return }
+                acc[part] = pair.value
+            }
+        }
+        if let part = SidebarPart(rawValue: store.string(forKey: .sidebarPart)) {
+            self.currentSidebarPart = part
+            // The part's remembered selection is the selection, so the
+            // sidebar and the preview pane agree after a relaunch.
+            if let remembered = selections[part] {
+                self.sidebarSelection = remembered
+            }
         }
         // The layout mode persists the same way (= the raw value
         // of the enum; = an unknown or absent value falls back to
         // `.automatic`, which is the default).
-        if let mode = EditorLayoutMode(rawValue: UserDefaultsStore.shared.string(forKey: .editorLayoutMode)) {
+        if let mode = EditorLayoutMode(rawValue: store.string(forKey: .editorLayoutMode)) {
             self.editorLayoutMode = mode
         }
+        // The restore is over: the observers write from now on.
+        self.isRestoring = false
+    }
+}
+
+// MARK: - SidebarPart
+
+/// The parts of the sidebar.
+///
+/// The sidebar holds three unrelated hierarchies: the user's shelves, the
+/// reference library, and a reserved part for whole books imported as
+/// ebooks. One tree per part, switched by a segmented control.
+///
+/// Each case carries the KEY of its display name, because the user reads
+/// the names in the segmented control and the names come from the string
+/// catalog (= the catalog is the only place a Chinese label may live).
+enum SidebarPart: String, CaseIterable, Codable, Hashable, Sendable, Identifiable {
+    /// The user's shelves (= the shelf and book management).
+    case shelves
+    /// The reference library (= the grouped tag surface).
+    case library
+    /// Reserved for whole books imported as ebooks.
+    case referenceBooks
+
+    var id: String { rawValue }
+
+    /// The key of the display name in the string catalog.
+    var displayNameKey: String {
+        switch self {
+        case .shelves: return "sidebar.part.shelves.title"
+        case .library: return "sidebar.part.library.title"
+        case .referenceBooks: return "sidebar.part.reference_books.title"
+        }
+    }
+
+    /// The name the user reads in the segmented control.
+    ///
+    /// The key is a runtime value, so the catalog is read through
+    /// `NSLocalizedString` (= the form the codebase uses for a key it
+    /// cannot write as a literal).
+    var displayName: String {
+        NSLocalizedString(displayNameKey, comment: "Sidebar part name")
     }
 }
 
