@@ -124,8 +124,17 @@ enum ReferenceLibraryError: Error, LocalizedError, Sendable, Equatable {
 final class ReferenceLibraryActor {
     private let referenceStore: any ReferenceStoring
 
-    init(referenceStore: any ReferenceStoring) {
+    /// The service that writes the semantic summary of a document
+    /// (= nil = no model is wired, = the document keeps whatever
+    /// summary the caller gave it).
+    let summaryService: ReferenceSummaryService?
+
+    init(
+        referenceStore: any ReferenceStoring,
+        summaryService: ReferenceSummaryService? = nil
+    ) {
         self.referenceStore = referenceStore
+        self.summaryService = summaryService
     }
 
     var referenceLibraryRoot: URL {
@@ -157,6 +166,17 @@ final class ReferenceLibraryActor {
         let parsedLayer = parseLayer(layer)
         let parsedCategory = category.flatMap { EntityCategory(rawValue: $0) }
         let parsedType = EntityType(rawValue: entityType) ?? .other
+        // A document without a summary cannot be routed (= the agent
+        // cannot tell whether it constrains the chapter it is
+        // writing), so the model writes one when the caller did not.
+        // The call happens BEFORE the save: a document is never
+        // stored with a blank summary, and a model failure surfaces
+        // instead of passing for a saved document.
+        let resolvedSummary = try await resolveSummary(
+            requested: summary,
+            title: trimmed,
+            bodyMarkdown: bodyMarkdown
+        )
         let reference = Reference(
             title: trimmed,
             source: source,
@@ -165,7 +185,7 @@ final class ReferenceLibraryActor {
             category: parsedLayer == .layerEntities ? parsedCategory : nil,
             tags: tags,
             entityType: parsedType,
-            summary: summary
+            summary: resolvedSummary
         )
         do {
             try referenceStore.saveReference(reference, bodyMarkdown: bodyMarkdown)
@@ -429,6 +449,15 @@ final class ReferenceLibraryActor {
             } else {
                 mergedTags = tags
             }
+            // The summary is written ONCE per document (= one model
+            // call): a document that already carries one keeps it, and
+            // a document without one gets one.
+            let resolvedSummary = try await resolveSummary(
+                requested: summary,
+                title: trimmed,
+                bodyMarkdown: bodyMarkdown,
+                keeping: existingMatch?.summary ?? ""
+            )
             let result = try referenceStore.upsertReference(
                 title: trimmed,
                 bodyMarkdown: bodyMarkdown,
@@ -438,7 +467,7 @@ final class ReferenceLibraryActor {
                 source: source,
                 url: url,
                 entityType: parsedType,
-                summary: summary
+                summary: resolvedSummary
             )
             LibraryChangeNotifier.notifyLibraryChanged(source: .agentReference)
             return ReferenceDescriptor(result)
@@ -890,6 +919,14 @@ extension ReferenceLibraryTool {
         let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-toolregistry-references-\(UUID().uuidString)", isDirectory: true)
         try? FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
         let store = FileSystemReferenceStore(referenceLibraryRoot: tmpRoot)
-        return ReferenceLibraryTool(actor: ReferenceLibraryActor(referenceStore: store))
+        return ReferenceLibraryTool(
+            actor: ReferenceLibraryActor(
+                referenceStore: store,
+                // The app's own chat model writes the summary of a
+                // document that has none (= the routing line the agent
+                // reads before it opens the body).
+                summaryService: ReferenceSummaryService()
+            )
+        )
     }()
 }
