@@ -54,26 +54,37 @@ struct ImportReferenceLibraryRouter: Sendable {
                 body: body
             )
         )
-        // The category and the entity type come from the shared
-        // classifier. The classifier's model callback takes a plain
-        // string and returns a plain string, so the reply the model
-        // already produced is handed back to it: = the model is asked
-        // once, and the classifier's own rules decide the category.
+        // The model's category is the authority. The classifier only
+        // fills in when the model gave none, so the two can never
+        // disagree.
         let parsed = Self.parseReply(reply)
-        let classification = await EntityClassifier().classify(
-            title: parsed.title.isEmpty ? fallbackTitle : parsed.title,
-            summary: parsed.summary,
-            body: parsed.body.isEmpty ? body : parsed.body,
-            useLLMFallback: true,
-            llmCallback: { _ in reply }
-        )
+        let title = parsed.title.isEmpty ? fallbackTitle : parsed.title
+        var category = parsed.categoryLetter.flatMap { EntityCategory(rawValue: $0) }
+        var entityType = parsed.entityTypeNumber.map { EntityType.fromPromptNumber($0) }
+        var tags = parsed.tags
+        if category == nil || entityType == nil || tags.isEmpty {
+            // The model left something out: = the classifier fills it in.
+            // Its model callback takes a plain string and returns a plain
+            // string, so the reply the model already produced is handed
+            // back to it: = the model is asked once.
+            let classification = await EntityClassifier().classify(
+                title: title,
+                summary: parsed.summary,
+                body: parsed.body.isEmpty ? body : parsed.body,
+                useLLMFallback: true,
+                llmCallback: { _ in reply }
+            )
+            if category == nil { category = classification.category }
+            if entityType == nil { entityType = classification.entityType }
+            if tags.isEmpty { tags = classification.tags }
+        }
         return ImportRoutingResult(
             destination: .referenceLibrary,
-            title: parsed.title.isEmpty ? fallbackTitle : parsed.title,
+            title: title,
             summary: parsed.summary,
-            tags: Set(parsed.tags.isEmpty ? classification.tags : parsed.tags),
-            entityType: classification.entityType.rawValue,
-            category: classification.category?.rawValue,
+            tags: Set(tags),
+            entityType: (entityType ?? .other).rawValue,
+            category: category?.rawValue,
             confidence: 1.0,
             rewrittenBody: parsed.body.isEmpty ? nil : parsed.body,
             extraFiles: [],
@@ -89,8 +100,19 @@ struct ImportReferenceLibraryRouter: Sendable {
     /// body. The search tool is advertised beside it, so the model can
     /// check the content before it writes the body.
     static func prompt(filePath: String, body: String) -> String {
+        // The second-level codes are offered as the precise answers, so
+        // the model can place the entity more precisely. The stored
+        // result stays at the top-level category: = the second-level code
+        // is not stored.
         let categories = EntityCategory.allCases
-            .map { "\($0.rawValue) = \($0.displayName)" }
+            .map { category in
+                let codes = category.subcategories
+                    .map { "\($0.code) = \($0.displayName)" }
+                    .joined(separator: ", ")
+                return codes.isEmpty
+                    ? "\(category.rawValue) = \(category.displayName)"
+                    : "\(category.rawValue) = \(category.displayName) (= \(codes))"
+            }
             .joined(separator: "\n")
         let types = EntityType.allCases
             .map { "\($0.promptNumber) = \($0.displayName): \($0.description)" }
@@ -138,7 +160,9 @@ struct ImportReferenceLibraryRouter: Sendable {
         ```
 
         - `category` must be one of the twenty-two letters; = when you
-          cannot tell, use "Z".
+          cannot tell, use "Z". The second-level codes beside each letter
+          are there to place the entity precisely; = answer with the
+          letter, not with the code.
         - `entity_type` must be one of the nine numbers; = when you cannot
           tell, use 9.
         - `tags` is an array of at most 3 short tags.
