@@ -208,6 +208,8 @@ struct ImportAgentDriver: Sendable {
         attempts: Int = 3
     ) async throws -> ConversationResult {
         var budget = Self.turnTokenBudget
+        var thinkingBudget: Int? = Self.thinkingBudget
+        var lastReply = ""
         for attempt in 1...attempts {
             let result: ConversationResult
             do {
@@ -223,7 +225,8 @@ struct ImportAgentDriver: Sendable {
                         }
                     },
                     toolSchemas: [WriteBookDocTool.schema],
-                    maxTokens: budget
+                    maxTokens: budget,
+                    thinkingBudget: thinkingBudget
                 )
             } catch {
                 // The provider refused the request (= its own output cap
@@ -237,6 +240,48 @@ struct ImportAgentDriver: Sendable {
                 continue
             }
             if Self.writeCallCount(in: result) > 0 { return result }
+            // A provider that refuses the request (= a budget it will
+            // not take, = a quota, = a model it does not know) says so in
+            // the reply; = the stream carries the refusal instead of
+            // throwing, = so the reply is where the refusal shows up.
+            let refusal = result.messages
+                .flatMap(\.blocks)
+                .map(\.textValue)
+                .joined(separator: "\n")
+            if refusal.contains("[stream error]") {
+                // The provider refused the request. The exotic knob goes
+                // first (= a provider that does not know the thinking
+                // budget refuses it outright), = then the output budget
+                // halves (= every provider has a cap, = and the cap is
+                // not the same everywhere).
+                if thinkingBudget != nil {
+                    thinkingBudget = nil
+                    await progress?(
+                        "the provider refused the thinking budget (= off now)"
+                    )
+                    continue
+                }
+                if budget > Self.smallestTurnTokenBudget {
+                    budget = max(budget / 2, Self.smallestTurnTokenBudget)
+                    await progress?(
+                        "the provider refused the output budget (= \(budget) now)"
+                    )
+                    continue
+                }
+                throw ImportAgentError.providerRefused(reply: String(refusal.prefix(400)))
+            }
+            // Keep what the model said and how the turn ended (= a
+            // failure that says nothing is = a failure nobody can act
+            // on).
+            let said = result.messages.last
+                .map { message in
+                    message.blocks.map(\.textValue).joined(separator: "\n")
+                } ?? ""
+            lastReply = "stop=" + result.response.stopReason.rawValue
+                + " out=" + String(result.response.usage.outputTokens)
+                + " in=" + String(result.response.usage.inputTokens)
+                + " budget=" + String(budget)
+                + " said: " + String(said.prefix(400))
             // A turn that ran out of room ends in the middle of the
             // model's reasoning (= it planned the documents and never
             // got to writing them).
@@ -250,7 +295,7 @@ struct ImportAgentDriver: Sendable {
                 )
             }
         }
-        throw ImportAgentError.nothingWritten
+        throw ImportAgentError.nothingWritten(reply: String(lastReply.prefix(600)))
     }
 
     /// The import turn's output budget.
@@ -260,11 +305,20 @@ struct ImportAgentDriver: Sendable {
     /// documents with real content. A conversation-sized budget (= 4096)
     /// runs out inside the reasoning, = and the turn ends before a
     /// single document is written.
-    static let turnTokenBudget = 32768
+    static let turnTokenBudget = 16384
 
     /// The smallest budget the import runs with (= the floor for a
     /// provider whose own cap is low).
     static let smallestTurnTokenBudget = 8192
+
+    /// The import turn's thinking budget.
+    ///
+    /// The provider counts the reasoning against the same budget as the
+    /// answer. The world's procedure asks for one index + six documents
+    /// with real content, = and a model that thinks at length spends the
+    /// whole budget on the plan and ends the turn before it writes
+    /// anything. The budget holds the reasoning down so the answer fits.
+    static let thinkingBudget = 8192
 
     /// The number of write calls the turn made.
     ///
@@ -281,7 +335,8 @@ struct ImportAgentDriver: Sendable {
     enum ImportAgentError: Error, LocalizedError {
         case noSOPForFolder(BookFolder)
         case sopLoadFailed(underlying: String)
-        case nothingWritten
+        case nothingWritten(reply: String)
+        case providerRefused(reply: String)
 
         var errorDescription: String? {
             switch self {
@@ -289,8 +344,10 @@ struct ImportAgentDriver: Sendable {
                 return "ImportAgentDriver: no SOP defined for folder '\(f.directoryName)' (= future round will add character/outline/etc. SOPs)."
             case .sopLoadFailed(let u):
                 return "ImportAgentDriver: SOP load failed: \(u)"
-            case .nothingWritten:
-                return "ImportAgentDriver: the agent wrote no document (= the import produced nothing; = run it again)."
+            case .nothingWritten(let reply):
+                return "ImportAgentDriver: the agent wrote no document (= the import produced nothing; = run it again). The agent said: \(reply)"
+            case .providerRefused(let reply):
+                return "ImportAgentDriver: the provider refused the request: \(reply)"
             }
         }
     }
