@@ -19,9 +19,12 @@ struct AppleSidebarView: View {
     /// see it; = the List renders it).
     @State var service: SidebarService?
 
-    /// Selection state (= forwarded to ShellState.sidebarSelection via
-    /// .onChange below).
-    @State private var selectedNode: SidebarNode?
+    /// The row the user picked (= derived from the shared state; = the
+    /// shared state is the single truth, so the sidebar and the preview
+    /// pane always agree, and the row survives a relaunch).
+    private var selectedNode: SidebarNode? {
+        Self.node(for: workspaceUI.sidebarSelection, in: service?.nodes ?? [])
+    }
 
     // y (see OOB.md #2026-09-23) OOB ', ':
     // … (= 7 rationale lines collapsed; = A112 docblock collapse per §1.8)
@@ -44,6 +47,137 @@ struct AppleSidebarView: View {
     // / context menu builder).
     @State private var contextMenuSelection: Set<SidebarItem> = []
 
+    /// What the current part shows.
+    ///
+    /// The reserved ebooks part shows the platform's empty state; = the
+    /// other two parts show their tree.
+    @ViewBuilder
+    private var partContent: some View {
+        if workspaceUI.currentSidebarPart == .referenceBooks {
+            EmptyStateView(
+                icon: "book.closed",
+                title: String(localized: "sidebar.part.reference_books.empty.title"),
+                body: String(localized: "sidebar.part.reference_books.empty.body")
+            )
+        } else {
+            sidebarList
+        }
+    }
+
+    /// The tree the current part shows.
+    ///
+    /// The shelves part shows the shelf hierarchy, the library part shows
+    /// the reference library hierarchy, and the reserved ebooks part has
+    /// no tree.
+    private var currentNodes: [SidebarNode] {
+        switch workspaceUI.currentSidebarPart {
+        case .shelves: return service?.shelfNodes ?? []
+        case .library: return service?.libraryNodes ?? []
+        case .referenceBooks: return []
+        }
+    }
+
+    /// The tree of the current part.
+    ///
+    /// The list is a separate property because a large list expression
+    /// inside a conditional in the body does not type-check in reasonable
+    /// time.
+    private var sidebarList: some View {
+        List(
+            currentNodes,
+            children: \.children,
+            selection: Binding(
+                get: { selectedNode },
+                set: { newValue in forwardSelection(newValue) }
+            )
+        ) { node in
+            // The per-row `SidebarRowView`
+            // … (= 18 rationale lines collapsed; = A112 docblock collapse per §1.8)
+            // multi-select case).
+            SidebarRowView(
+                node: node,
+                callbacks: SidebarRowCallbacks(
+                    onNewBookHere: { shelfId in
+                        workspaceUI.sidebarSelection = .shelf(shelfId)
+                        sheetRequests.newBook += 1
+                    },
+                    onRenameShelf: { shelfId, _ in
+                        if let shelf = service?.shelves.first(where: { $0.id == shelfId }) {
+                            renaming = SidebarRenamingTarget(
+                                kind: .shelf,
+                                itemId: shelfId,
+                                originalName: shelf.name,
+                                shelfId: nil
+                            )
+                        }
+                    },
+                    onRenameBook: { bookId, _ in
+                        if let book = service?.books.first(where: { $0.id == bookId }) {
+                            renaming = SidebarRenamingTarget(
+                                kind: .book,
+                                itemId: bookId,
+                                originalName: book.title,
+                                shelfId: book.shelfId
+                            )
+                        }
+                    },
+                    onDeleteShelf: { shelfId, name in
+                        pendingDelete = SidebarPendingDelete(
+                            kind: .shelf,
+                            itemId: shelfId,
+                            itemName: name
+                        )
+                    },
+                    onDeleteBook: { bookId, _ in
+                        let resolvedName = service?.books.first(where: { $0.id == bookId })?.title ?? ""
+                        pendingDelete = SidebarPendingDelete(
+                            kind: .book,
+                            itemId: bookId,
+                            itemName: resolvedName
+                        )
+                    },
+                    resolveShelf: { id in
+                        service?.shelves.first(where: { $0.id == id })
+                            .map { (id: $0.id, name: $0.name) }
+                    },
+                    resolveBook: { id in
+                        service?.books.first(where: { $0.id == id })
+                            .map { (id: $0.id, name: $0.title) }
+                    },
+                    onImportToReferenceLibrary: {
+                        importPrefillDestination = .referenceLibrary
+                        importPrefillBookID = nil
+                        showImportSheet = true
+                    },
+                    onImportToBook: { bookId in
+                        importPrefillDestination = .book
+                        importPrefillBookID = bookId
+                        showImportSheet = true
+                    },
+                    // The
+                    // … (= 31 rationale lines collapsed; = A112 docblock collapse per §1.8)
+                    // `otherReferenceTitles`).
+                    onRenameReference: { referenceId, _ in
+                        renaming = SidebarRenamingTarget(
+                            kind: .reference,
+                            itemId: referenceId,
+                            originalName: referenceTitle(for: referenceId) ?? "",
+                            shelfId: nil
+                        )
+                    },
+                    onDeleteReference: { referenceId, name in
+                        pendingDelete = SidebarPendingDelete(
+                            kind: .reference,
+                            itemId: referenceId,
+                            itemName: name
+                        )
+                    }
+                )
+            )
+                    }
+        .listStyle(.sidebar)
+    }
+
     var body: some View {
         Group {
             if let service {
@@ -52,110 +186,30 @@ struct AppleSidebarView: View {
                     // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
                     // Mail / Notes / Finder section-header idiom).
                     SectionHeader(title: String(localized: "sidebar.column.title"))
-                    let sidebarList = List(
-                        service.nodes,
-                        children: \.children,
-                        selection: $selectedNode
-                    ) { node in
-                        // The per-row `SidebarRowView`
-                        // … (= 18 rationale lines collapsed; = A112 docblock collapse per §1.8)
-                        // multi-select case).
-                        SidebarRowView(
-                            node: node,
-                            callbacks: SidebarRowCallbacks(
-                                onNewBookHere: { shelfId in
-                                    workspaceUI.sidebarSelection = .shelf(shelfId)
-                                    sheetRequests.newBook += 1
-                                },
-                                onRenameShelf: { shelfId, _ in
-                                    if let shelf = service.shelves.first(where: { $0.id == shelfId }) {
-                                        renaming = SidebarRenamingTarget(
-                                            kind: .shelf,
-                                            itemId: shelfId,
-                                            originalName: shelf.name,
-                                            shelfId: nil
-                                        )
-                                    }
-                                },
-                                onRenameBook: { bookId, _ in
-                                    if let book = service.books.first(where: { $0.id == bookId }) {
-                                        renaming = SidebarRenamingTarget(
-                                            kind: .book,
-                                            itemId: bookId,
-                                            originalName: book.title,
-                                            shelfId: book.shelfId
-                                        )
-                                    }
-                                },
-                                onDeleteShelf: { shelfId, name in
-                                    pendingDelete = SidebarPendingDelete(
-                                        kind: .shelf,
-                                        itemId: shelfId,
-                                        itemName: name
-                                    )
-                                },
-                                onDeleteBook: { bookId, _ in
-                                    let resolvedName = service.books.first(where: { $0.id == bookId })?.title ?? ""
-                                    pendingDelete = SidebarPendingDelete(
-                                        kind: .book,
-                                        itemId: bookId,
-                                        itemName: resolvedName
-                                    )
-                                },
-                                resolveShelf: { id in
-                                    service.shelves.first(where: { $0.id == id })
-                                        .map { (id: $0.id, name: $0.name) }
-                                },
-                                resolveBook: { id in
-                                    service.books.first(where: { $0.id == id })
-                                        .map { (id: $0.id, name: $0.title) }
-                                },
-                                onImportToReferenceLibrary: {
-                                    importPrefillDestination = .referenceLibrary
-                                    importPrefillBookID = nil
-                                    showImportSheet = true
-                                },
-                                onImportToBook: { bookId in
-                                    importPrefillDestination = .book
-                                    importPrefillBookID = bookId
-                                    showImportSheet = true
-                                },
-                                // The
-                                // … (= 31 rationale lines collapsed; = A112 docblock collapse per §1.8)
-                                // `otherReferenceTitles`).
-                                onRenameReference: { referenceId, _ in
-                                    renaming = SidebarRenamingTarget(
-                                        kind: .reference,
-                                        itemId: referenceId,
-                                        originalName: referenceTitle(for: referenceId) ?? "",
-                                        shelfId: nil
-                                    )
-                                },
-                                onDeleteReference: { referenceId, name in
-                                    pendingDelete = SidebarPendingDelete(
-                                        kind: .reference,
-                                        itemId: referenceId,
-                                        itemName: name
-                                    )
-                                }
-                            )
-                        )
-                    }
-                    sidebarList
-                    .listStyle(.sidebar)
+                    // The three parts of the sidebar (= the shelves, the
+                    // reference library, and the reserved ebooks part).
+                    LabelSegmentedControl(
+                        selection: Binding(
+                            get: { workspaceUI.currentSidebarPart },
+                            set: { newValue in workspaceUI.currentSidebarPart = newValue }
+                        ),
+                        labels: SidebarPart.allCases,
+                        displayStrings: SidebarPart.allCases.map(\.displayName),
+                        iconStyle: .paneTab
+                    )
+                    .frame(maxWidth: .infinity)
+                    partContent
+
                 // y (see OOB.md #2026-09-23) OOB ', ':
                 // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
                 // counters; = the sidebar body observes and presents).
                 .modifier(EmptyAreaContextMenu(
                     newLabel: String(localized: "sidebar_context_menu_new"),
-                    action: { sheetRequests.choice += 1 }
+                    action: startNewItem
                 ))
                 // The previous list-level
                 // … (= 86 rationale lines collapsed; = A112 docblock collapse per §1.8)
                 // newValue).
-                .onChange(of: selectedNode) { _, newValue in
-                    forwardSelection(newValue)
-                }
                 }  // end VStack(spacing: 0) { title + Divider + List }
             } else {
                 ProgressView()
@@ -164,7 +218,7 @@ struct AppleSidebarView: View {
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             AppleSidebarBottomNewButton {
-                sheetRequests.choice += 1
+                startNewItem()
             }
         }
         .task {
@@ -215,6 +269,14 @@ struct AppleSidebarView: View {
         }
         .onChange(of: workspaceUI.sidebarSelection) { _, _ in
             Task { await service?.reload() }
+        }
+        // Reveal the first level of the part's tree when the part
+        // changes. The list's own expansion state is not reachable
+        // through the public API, so the first level is revealed by
+        // selecting a row in it. The remembered selection for the part
+        // wins when it has one.
+        .onChange(of: workspaceUI.currentSidebarPart) { _, _ in
+            revealFirstLevel()
         }
         // y (see OOB.md #2026-09-23) OOB ', ':
         // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
@@ -387,6 +449,83 @@ struct AppleSidebarView: View {
     }
 
 
+
+    /// Start a new item in the current part.
+    ///
+    /// The shelves part offers the shelf and book choices. The library
+    /// part offers the reference library import. The reserved ebooks part
+    /// does nothing, because nothing can be created there yet.
+    private func startNewItem() {
+        switch workspaceUI.currentSidebarPart {
+        case .shelves:
+            sheetRequests.choice += 1
+        case .library:
+            importPrefillDestination = .referenceLibrary
+            importPrefillBookID = nil
+            showImportSheet = true
+        case .referenceBooks:
+            break
+        }
+    }
+
+    /// Select a row at the first level of the current part's tree.
+    ///
+    /// The selection goes through the shared state, so the part's
+    /// remembered selection wins when it has one. A part with no
+    /// remembered selection and no first-level row leaves the selection
+    /// empty, and the preview pane falls back to its overview.
+    private func revealFirstLevel() {
+        if workspaceUI.sidebarSelection != nil { return }
+        guard let first = currentNodes.first else { return }
+        forwardSelection(first)
+    }
+
+    // / Find the tree row a shared selection names.
+    // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / a row in the tree (= the sidebar draws the same row as selected).
+    static func node(for selection: SidebarItem?, in nodes: [SidebarNode]) -> SidebarNode? {
+        guard let selection else { return nil }
+        return findNode(for: selection, in: nodes)
+    }
+
+    // / The row search itself (= every selection case the tree can make).
+    // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // / a category row and a tag row carry a string, not an identifier.
+    private static func findNode(for selection: SidebarItem, in nodes: [SidebarNode]) -> SidebarNode? {
+        for node in nodes {
+            switch selection {
+            case .shelf(let id):
+                if node.kind == .shelf && node.id == id { return node }
+            case .book(let id):
+                if node.kind == .book && node.id == id { return node }
+            case .folder(let bookId, let folderName):
+                // The folder row's title is the display name, so the
+                // selection's folder name is compared against the title
+                // the row's own name maps back to (= the same mapping the
+                // parent-book lookup uses).
+                if node.kind == .book, node.id == bookId,
+                   let folder = node.children?.first(where: {
+                       $0.title == folderName || Self.reverseFolderName(title: $0.title) == folderName
+                   }) {
+                    return folder
+                }
+            case .referenceCategory(let key):
+                if node.kind == .referenceCategory, node.routingKey == key { return node }
+                if node.kind == .referenceCategory, node.title == key { return node }
+            case .referenceUnclassified:
+                if node.kind == .referenceCategory,
+                   node.routingKey == SidebarService.unclassifiedRoutingKey {
+                    return node
+                }
+            case .tag(let tag):
+                if node.kind == .tag, node.title == tag { return node }
+            }
+            if let child = findNode(for: selection, in: node.children ?? []) {
+                return child
+            }
+        }
+        return nil
+    }
 
     // / Walk the sidebar tree to find the parent book + folder name for a row id
     // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
