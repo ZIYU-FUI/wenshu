@@ -38,14 +38,25 @@ struct LibraryMigrator: Sendable {
                 try fm.removeItem(at: url)
             }
         }
-        // 4. CREATE: reference-library/4 layers + cache/.
-        for sub in ["reference-library/raw", "reference-library/entities",
-                    "reference-library/abstracts", "reference-library/indexes",
-                    "reference-library/indexes/saved-searches", "cache"] {
-            let url = wsRoot.appendingPathComponent(sub, isDirectory: true)
+        // 4. CREATE: reference-library/ layers + cache/.
+        //
+        // The layer list comes from the enum, not from a literal
+        // array. A literal list is a second copy of the layout, and
+        // the two derived layers that the enum no longer names
+        // survived in it: a fresh library still grew their
+        // directories, so the disk and the enum disagreed and the
+        // directories came back after a manual cleanup.
+        for layer in ReferenceLayer.allCases {
+            let url = wsRoot
+                .appendingPathComponent("reference-library", isDirectory: true)
+                .appendingPathComponent(layer.directoryName, isDirectory: true)
             if !fm.fileExists(atPath: url.path) {
                 try fm.createDirectory(at: url, withIntermediateDirectories: true)
             }
+        }
+        let cache = wsRoot.appendingPathComponent("cache", isDirectory: true)
+        if !fm.fileExists(atPath: cache.path) {
+            try fm.createDirectory(at: cache, withIntermediateDirectories: true)
         }
         // 5. WRITE: WSSchemaVersion = 1 to existing Info.plist (= idempotent
         // via step 1).
