@@ -14,9 +14,9 @@
 //  the toolbar button row by name.
 //
 //  Design (per boss 2026-10-16 OOB):
-//  The row carries the kanban window button, the command palette and
-//  export. The window button wires to a `WindowID` registered in
-//  AppRootScene.swift. The implementation is the canonical Apple HIG
+//  The row carries the kanban window button and export. The window
+//  button wires to a `WindowID` registered in AppRootScene.swift. The
+//  implementation is the canonical Apple HIG
 //  `ToolbarItem(placement: .primaryAction)` + `Button { openWindow(id: ...)}`
 //  + `SFIcon(...)` pattern.
 //  The other secondary windows were removed on 2026-10-21 (= the
@@ -74,22 +74,6 @@ extension ChromeMainToolbar: ToolbarContent {
                 openWindow: openWindow,
                 isEnabled: true
             )
-        }
-        ToolbarItem(placement: .automatic) {
-            // Command palette button (= the ⌘K surface). It lived
-            // in the right-rail column's toolbar group until the
-            // right-rail removal (2026-10-21); the top toolbar is
-            // its new home (= the canonical single source of truth
-            // for the window's toolbar buttons).
-            Button {
-                CommandPaletteController.show()
-            } label: {
-                Label(
-                    String(localized: "command_palette.open"),
-                    systemImage: "command"
-                )
-            }
-            .help(String(localized: "command_palette.open.help"))
         }
         ToolbarItem(placement: .automatic) {
             // Export button (= the 2nd `.toolbar` block that lived

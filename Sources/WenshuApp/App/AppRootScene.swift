@@ -46,7 +46,7 @@ struct AppRootScene: Scene {
         // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // canonical Apple HIG API to hide title slot in unified chrome.
         WindowGroup("") {
-            // dropped CommandPaletteHost + SettingsEnvironmentCapturer
+            // dropped SettingsEnvironmentCapturer
             // … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // view layers total = Apple canonical).
             LibraryRootView(library: library, appearanceMode: appearanceMode)

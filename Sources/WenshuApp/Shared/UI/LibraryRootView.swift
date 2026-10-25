@@ -60,8 +60,6 @@ struct LibraryRootView: View {
     @Environment(SheetRequestState.self) private var sheetRequests
     @State private var bookStore: BookStore?
     @State private var activeLibrarySelection: String?
-    @State private var commandPaletteModel = CommandPaletteModel()
-    @State private var commandPaletteVisible: Bool = false
     /// Whether the trailing inspector column is visible. The column
     /// owns its own toggle, so the shell holds the visibility flag
     /// and hands the column a binding.
@@ -86,10 +84,6 @@ struct LibraryRootView: View {
             .toolbar {
                 ChromeMainToolbar(openWindow: openWindow, sheetRequests: sheetRequests)
             }            .task(id: activeLibraryPath) { await runLaunch() }
-            .sheet(isPresented: $commandPaletteVisible) {
-                CommandPaletteView(model: commandPaletteModel)
-                    .navigationTitle(String(localized: "command_palette.title"))
-            }
             .onAppear {
                 WenshuAppDelegate.openSettings = openSettings
                 // SwiftData library upgrade wiring (= boss OOB
@@ -154,25 +148,6 @@ struct LibraryRootView: View {
                     )
                 }
             }
-            // Apple HIG canonical toolbar placement for the
-            // … (= 11 rationale lines collapsed; = A112 docblock collapse per §1.8)
-            // appear everywhere = synced').
-            .toolbar {
-                    ToolbarItem(
-                        id: "wenshu-export",
-                        placement: .automatic
-                    ) {
-                        Button {
-                            sheetRequests.exportSheet += 1
-                        } label: {
-                            Label(
-                                String(localized: "export.toolbar.label"),
-                                systemImage: "square.and.arrow.up"
-                            )
-                        }
-                        .help(String(localized: "export.toolbar.label"))
-                    }
-                }
                 .environment(bookStore)
         } else {
             // BookStore is built asynchronously by LibraryLifecycleHook.

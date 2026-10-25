@@ -477,57 +477,6 @@
         }
       }
     },
-    "b5.commandpaletteview.l125.h99176598": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Type a command or skill name…"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "输入命令"
-          }
-        }
-      }
-    },
-    "b5.commandpaletteview.l173.h62846186": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "items"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "项数"
-          }
-        }
-      }
-    },
-    "b5.commandpaletteview.l177.h59099234": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "⌘K to toggle · ↵ to invoke · esc to close"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "调用快捷键"
-          }
-        }
-      }
-    },
     "b5.memoryretrievalpanel.l24.h99228791": {
       "extractionState": "manual",
       "localizations": {
@@ -966,57 +915,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "已完成"
-          }
-        }
-      }
-    },
-    "command_palette.open": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Command palette"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "命令面板"
-          }
-        }
-      }
-    },
-    "command_palette.open.help": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Open the command palette (⌃⌘P)"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "打开命令面板 (⌃⌘P)"
-          }
-        }
-      }
-    },
-    "command_palette.title": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Command palette"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "命令面板"
           }
         }
       }
@@ -1748,74 +1646,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "伏笔"
-          }
-        }
-      }
-    },
-    "inspector.page.authoringCharacters": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Characters"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "写作 (人物)"
-          }
-        }
-      }
-    },
-    "inspector.page.authoringStyle": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Style"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "写作 (风格)"
-          }
-        }
-      }
-    },
-    "inspector.page.help": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Switch inspector page"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "切换右栏页面"
-          }
-        }
-      }
-    },
-    "inspector.page.projectManagement": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Project"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "项目管理"
           }
         }
       }
@@ -7036,40 +6866,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "已选择"
-          }
-        }
-      }
-    },
-    "inspector.empty.title": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "No tools yet"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "暂无工具"
-          }
-        }
-      }
-    },
-    "inspector.empty.body": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "This page has no tools to show."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "这一页还没有可显示的工具。"
           }
         }
       }

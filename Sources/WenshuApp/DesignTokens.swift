@@ -252,11 +252,6 @@ enum DesignTokens {
     // / IdeaLibraryView inline panel.
     static let panelInlineMaxHeight: CGFloat = 100
 
-    // / Command palette max-height (= 320 PT, Apple HIG macOS command palette
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / Used in `.frame(maxHeight: 320)` for CommandPaletteView.
-    static let commandPaletteMaxHeight: CGFloat = 320
-
     /// Kanban board max-height (= 360 PT, Apple HIG macOS kanban board standard
     /// = 5-row display). Used in `.frame(maxHeight: 360)` for KanbanView.
     static let kanbanBoardMaxHeight: CGFloat = 360

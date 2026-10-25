@@ -68,7 +68,7 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
     /// List row leading icon at the 16 PT (= Apple HIG ControlSize.mini point
     /// size) tier.
     /// Apple HIG source: `ControlSize.mini` / SwiftUI `.controlSize(.mini)`.
-    /// Used by: command palette leading glyphs, dense list rows.
+    /// Used by: dense list rows.
     case small
 
     /// NSToolbar item default icon (= the actual rendered size of an NSToolbar
@@ -365,7 +365,7 @@ struct SFIcon: View {
     /// canonical Apple HIG color enum; = `.primary / .secondary / .tint /
     /// .red`). This is the form most call sites use; the underlying `Color`
     /// form above is the escape hatch for call sites that compute the color
-    /// from a domain enum (= CommandPaletteView category colors).
+    /// from a domain enum (= a per-row tint).
     init(
         _ name: String,
         style: IconStyle,

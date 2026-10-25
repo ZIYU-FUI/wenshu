@@ -70,8 +70,8 @@ enum EntityStoreError: Error, LocalizedError {
 // MARK: - SwiftData implementation
 // Same isolation pattern as FileSystemChapterStore + FileSystemReferenceStore:
 // @MainActor-isolated (= SwiftData's ModelContext contract). The actor-based callers
-// (= CrossRefInject_v2, EntityIngestion) use the nonisolated static FileSystem
-// fallback helpers directly when they need to avoid the MainActor hop.
+// use the nonisolated static FileSystem fallback helpers directly when they need
+// to avoid the MainActor hop.
 
 @MainActor
 struct FileSystemEntityStore: EntityStoring {

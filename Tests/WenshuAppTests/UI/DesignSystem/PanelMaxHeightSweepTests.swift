@@ -8,20 +8,16 @@
 //  specialized tool views).
 //
 //  Swept sites (= 16):
-//  - CommandPaletteView.swift L167: .frame(maxHeight: 320)
 //  - ImportSheetHelpers.swift: .frame(maxHeight: 360)
 //  - SidebarSheets.swift L393: .frame(maxHeight: 220)
 //
-//  New DesignTokens (= 5):
+//  New DesignTokens (= 4):
 //  - panelMediumMaxHeight (180) — Apple HIG macOS list
 //    panel standard for 4-5 row display
 //  - panelLargeMaxHeight (220) — Apple HIG macOS list
 //    panel standard for 6-7 row display
 //  - panelInlineMaxHeight (100) — Apple HIG macOS
 //    compact inline list standard for 2-row display
-//  - commandPaletteMaxHeight (320) — Apple HIG macOS
-//    command palette standard (= macOS 26+ Spotlight
-//    display height)
 //  - kanbanBoardMaxHeight (360) — Apple HIG macOS
 //    kanban board standard (= 5-row display)
 //
@@ -43,7 +39,6 @@ struct PanelMaxHeightSweepTests {
         let sourcesRoot = root.appendingPathComponent("Sources/WenshuApp")
 
         let sweptFiles: [(String, String)] = [
-            ("Shared/UI/CommandPaletteView.swift", "DesignTokens.commandPaletteMaxHeight"),
             ("Features/Agent/View/ImportSheetHelpers.swift", "DesignTokens.kanbanBoardMaxHeight"),
             ("Features/Library/View/SidebarSheets.swift", "DesignTokens.panelLargeMaxHeight"),
         ]
@@ -58,7 +53,7 @@ struct PanelMaxHeightSweepTests {
         }
     }
 
-    @Test("DesignTokens exposes 5 new panel maxHeight tokens")
+    @Test("DesignTokens exposes 4 new panel maxHeight tokens")
     func designTokensExposesNewTokens() throws {
         let root = SourceLocator.repoRoot
         let tokensPath = root.appendingPathComponent("Sources/WenshuApp/DesignTokens.swift")
@@ -68,7 +63,6 @@ struct PanelMaxHeightSweepTests {
             "panelMediumMaxHeight",
             "panelLargeMaxHeight",
             "panelInlineMaxHeight",
-            "commandPaletteMaxHeight",
             "kanbanBoardMaxHeight",
         ] {
             #expect(content.contains("static let \(token)"), "DesignTokens should define \(token)")

@@ -20,7 +20,7 @@ import Foundation
 ///
 /// `name` = the canonical identifier (= e.g. `review`).
 /// `description` = a one-line summary rendered in the autocomplete
-/// popup and Command Palette.
+/// popup.
 /// `category` = a free-form bucket for grouping in the UI
 /// (= `writing` / `story` / `prose` / `mechanics` / `code` /
 /// `research` / `discovery` / `ops`).

@@ -92,13 +92,12 @@ final class WorkspaceUIState {
     /// column-local state; = single source of truth lives here).
     var chatVisible: Bool = true
 
-    /// The active page of the trailing inspector column (= 4
-    /// pages). The column's toolbar picker writes here, so the
+    /// The active page of the trailing inspector column (= one
+    /// page: status). The column's toolbar toggle writes here, so the
     /// selection survives the column being hidden and shown.
     ///
     /// Lives here (= not as `@State` inside the inspector column)
-    /// because the toolbar picker binds to
-    /// `$workspaceUI.inspectorPage` (= cross-view state).
+    /// because the column reads it across the view boundary.
     var inspectorPage: InspectorPage = .status
 
     /// Sidebar tree selection (= the row the user picked; = nil = nothing
@@ -315,8 +314,7 @@ enum EditorLayoutMode: String, CaseIterable, Sendable {
 
 // MARK: - InspectorPage
 
-/// The pages of the trailing inspector column: Status /
-/// Style / Characters / Project Management.
+/// The pages of the trailing inspector column: Status.
 ///
 /// The page owns the column's content. A page without content
 /// renders the shared empty state (= the column body has no tool
@@ -326,25 +324,16 @@ enum EditorLayoutMode: String, CaseIterable, Sendable {
 /// `InspectorPage.allCases`).
 enum InspectorPage: Hashable, CaseIterable {
     case status
-    case authoringStyle
-    case authoringCharacters
-    case projectManagement
 
     var localizedTitle: String {
         switch self {
-        case .status:               return String(localized: "inspector.page.status")
-        case .authoringStyle:       return String(localized: "inspector.page.authoringStyle")
-        case .authoringCharacters:  return String(localized: "inspector.page.authoringCharacters")
-        case .projectManagement:    return String(localized: "inspector.page.projectManagement")
+        case .status: return String(localized: "inspector.page.status")
         }
     }
 
     var icon: String {
         switch self {
-        case .status:               return "waveform.path.ecg"
-        case .authoringStyle:       return "paintpalette"
-        case .authoringCharacters:  return "person.2"
-        case .projectManagement:    return "folder.badge.gearshape"
+        case .status: return "waveform.path.ecg"
         }
     }
 }
