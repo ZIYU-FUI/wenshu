@@ -42,7 +42,8 @@ public actor ConversationLoop {
         shellHookChain: ShellHookChain = ShellHookChain(),
         conversationCompression: ConversationCompression = ConversationCompression(),
         historyCompressor: HistoryCompressor = HistoryCompressor(),
-        progressTracker: AgentProgressTracker = .noop
+        progressTracker: AgentProgressTracker = .noop,
+        memoryProvider: (any MemoryProvider)? = nil
     ) {
         // Back-compat: the parameter is named `connector` everywhere in
         // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
@@ -54,6 +55,7 @@ public actor ConversationLoop {
         self.conversationCompression = conversationCompression
         self.historyCompressor = historyCompressor
         self.progressTracker = progressTracker
+        self.memoryProvider = memoryProvider
     }
 
     // / Legacy initializer (= preserved for backward compat with callers
@@ -92,6 +94,11 @@ public actor ConversationLoop {
     // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / OpenBox panel during a conversation turn.
     private let progressTracker: AgentProgressTracker
+
+    // / The memory provider the turn writes into.
+    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
+    // (= the resolver decides; = nil = resolve the user's backend).
+    private let memoryProvider: (any MemoryProvider)?
 
     // / Resolve the current time via the runtime (= hermes-port Z-contract
     // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
@@ -486,23 +493,44 @@ public actor ConversationLoop {
                 // step 8: "Persisting memory". Write the turn's
                 // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
                 // off-by-default users see no behavior change.
-                await progressTracker.setStep(
-                    id: progressEntry.id,
-                    stepNumber: 8,
-                    label: "Persisting memory",
-                    etaSeconds: nil
-                )
-                await MemoryAdapter(
-                    provider: await MemoryAdapter.resolveProvider(for: settings.memory)
-                ).write(
-                    snippet: userMessage,
-                    source: result.response.blocks.first(where: { if case .text = $0 { return true } else { return false } })
-                        .map { block -> String in
-                            if case .text(let s) = block { return s }
-                            return ""
-                        } ?? "",
-                    bookId: nil
-                )
+                //
+                // The turn's own settings decide whether this happens. The
+                // memory adapter's write carries its own guard, but that guard
+                // reads a global user-defaults key, so the turn's settings
+                // could not turn the write off (= a caller that asks for no
+                // memory would still leave a trace). The check belongs here,
+                // where the write is: the settings are already in scope (= this
+                // step reads them for the backend), so the switch reaches the
+                // write without a new parameter or a new type.
+                //
+                // With the switch at its default the write happens exactly as
+                // it does today, and a caller that passes no settings keeps
+                // reading the global key through the adapter.
+                if settings.memory.enabled {
+                    await progressTracker.setStep(
+                        id: progressEntry.id,
+                        stepNumber: 8,
+                        label: "Persisting memory",
+                        etaSeconds: nil
+                    )
+                    let provider: any MemoryProvider
+                    if let memoryProvider {
+                        provider = memoryProvider
+                    } else {
+                        provider = await MemoryAdapter.resolveProvider(for: settings.memory)
+                    }
+                    await MemoryAdapter(
+                        provider: provider
+                    ).write(
+                        snippet: userMessage,
+                        source: result.response.blocks.first(where: { if case .text = $0 { return true } else { return false } })
+                            .map { block -> String in
+                                if case .text(let s) = block { return s }
+                                return ""
+                            } ?? "",
+                        bookId: nil
+                    )
+                }
 
                 // step 9: "Submitting background-review proposals".
                 // … (= 9 rationale lines collapsed; = A112 docblock collapse per §1.8)
