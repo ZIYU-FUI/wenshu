@@ -136,7 +136,7 @@ extension ImportService {
     ///
     /// A file that is new, or that changed, was written by this run. A
     /// directory the run created goes too (= the boss's directive is
-    /// "不留痕" = leave no trace).
+    /// (the rollback leaves no trace).
     func removeBookTreeChanges() {
         guard let root = bookRootURL else { return }
         for url in ImportServiceBookTree.changedFiles(
