@@ -96,7 +96,7 @@ public enum SSEReader {
     /// caller sees one consistent failure shape.
     public static func events(
         for request: URLRequest,
-        session: URLSession = .shared
+        session: URLSession = URLSession(configuration: .default)
     ) -> AsyncThrowingStream<WenshuSSEEvent, Error> {
         AsyncThrowingStream(WenshuSSEEvent.self, bufferingPolicy: .unbounded) { continuation in
             let task = Task {

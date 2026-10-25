@@ -43,7 +43,7 @@ public actor AnthropicStreamingWireup {
     ///   the stream by calling onTermination handler).
     public func connect(
         request: URLRequest,
-        session: URLSession = .shared
+        session: URLSession = URLSession(configuration: .default)
     ) -> AsyncStream<AnthropicStreamingChunk> {
         AsyncStream { continuation in
             self.continuation = continuation
@@ -130,7 +130,7 @@ public enum AnthropicStreamingWireupFactory {
         messages: [LLMMessage],
         tools: [ToolRegistrySchema] = [],
         thinkingBudget: Int? = nil,
-        session: URLSession = .shared
+        session: URLSession = URLSession(configuration: .default)
     ) -> AsyncStream<AnthropicStreamingChunk> {
         let request = buildRequest(
             credentials: credentials,
