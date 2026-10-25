@@ -110,6 +110,46 @@ python3 Tools/wenshu-devtool/tests/test_ticket_tier.py
 The tier's contract and the measurements behind its numbers are in
 `docs/agents/ticket-tiers.md`.
 
+## Independent-review gate
+
+Another separate tool, because it reads the BOARD instead of the source tree.
+It answers the two questions the review contract needs:
+
+- **CONTRACT** = what the card owes: does the body write code, and does it
+  name a reviewer profile that is not the implementer?
+- **RECORD** = what the board holds: is there an approving verdict, and which
+  profile gave it?
+
+The obligation to get an independent verdict is DERIVED from the work the body
+describes, never hand-set, and it is independent of the difficulty tier: a
+T1 code card and a T3 code card owe the same verdict, and a prose card owes
+none. That is not a preference. Measured on board `wenshu-par`, 2026-10-26:
+113 of 114 done cards carried ZERO review events, the one review that did run
+was the implementer reviewing itself, and 5 done cards promised files their
+branch does not contain (= a false done) — all 5 wrote code, 0 wrote prose.
+
+```bash
+# 14. What does this body owe (= before dispatching it)
+python3 Tools/wenshu-devtool/review_gate.py --body card.md
+
+# 14b. What does the board hold for this card
+python3 Tools/wenshu-devtool/review_gate.py --card t_xxx
+
+# 14c. Every card on the board
+python3 Tools/wenshu-devtool/review_gate.py --board wenshu-par --check
+```
+
+Its test suite runs on fixture bodies and fixture board records:
+
+```bash
+python3 Tools/wenshu-devtool/tests/test_review_gate.py
+```
+
+Exit code: 0 = the gate is satisfied, 1 = a contract error, 2 = the board could
+not be read, 3 = a card owes a verdict it does not have. The merge gate
+(`Scripts/merge-preflight.sh`) runs the record check for the branch it is
+asked to bless and refuses the merge until the verdict is on the record.
+
 ## Dead-code gate
 
 Another separate tool, because it measures the source tree instead of the

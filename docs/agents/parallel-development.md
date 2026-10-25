@@ -105,6 +105,58 @@ A worker ends its run with exactly one of:
 A worker that exits without one of these counts as crashed and is retried. After two
 consecutive failures the card auto-blocks.
 
+### Which one you call is decided by the card body, not by judgement
+
+**A card whose body writes code ends its run with `kanban_request_review`. A card whose
+body writes only prose ends it with `kanban_complete`.** The rule is derived from the
+work, because the work is what a reviewer has to check.
+
+Measured on this board, 2026-10-26: 113 of 114 done cards carried ZERO review events,
+the one review that did run was the implementer reviewing itself (= the board fell back
+to the assignee because no reviewer was named), and 5 done cards promised files their
+branch does not contain (= a false done). All 5 wrote code; 0 prose card was false
+done. Prose is already read against the spec by the dual-axis audit (AGENTS.md 7.4);
+code is not.
+
+So the card body carries the reviewer's address in a `## REVIEW HANDOFF` section:
+
+```
+## REVIEW HANDOFF
+
+    reviewer="wenshu-review"
+```
+
+**The reviewer must not be the implementer.** A card cannot be reviewed by the profile
+that implemented it, and the board falls back to the implementer when the reviewer is
+left unset (= a self-review, which is not a verdict).
+
+The section is ROUTING, not work: it is not charged against the body's section budget
+(`Tools/wenshu-devtool/ticket_tier.py` excludes it, because 46 of the board's bodies
+carry exactly 9 sections and T2 buys exactly 9), and the paths it names are not files
+the card writes.
+
+### The gate
+
+`Tools/wenshu-devtool/review_gate.py` answers the two questions in one place:
+
+- **CONTRACT** = what the card owes: does the body write code, and does it name a
+  reviewer profile that is not the implementer?
+- **RECORD** = what the board holds: is there an approving verdict, and which profile
+  gave it?
+
+```bash
+python3 Tools/wenshu-devtool/review_gate.py --body card.md   # the contract
+python3 Tools/wenshu-devtool/review_gate.py --card t_xxx     # the record
+python3 Tools/wenshu-devtool/review_gate.py --check           # every card on the board
+```
+
+`Scripts/merge-preflight.sh` runs the record check for the branch it is asked to bless
+and refuses the merge (exit 3) until the approving verdict from a profile that is not
+the implementer is on the record. **A card that lands without one is a card nobody
+checked.** Cards created before the contract started are reported and never blocked: the
+cards already on the board were dispatched under the old contract, and rewriting them is
+not the gate's business.
+
 ## Context handoff between cards
 
 A new card with `--parent <done-task-id>` inherits the parent's completion summary and

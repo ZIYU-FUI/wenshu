@@ -58,12 +58,25 @@ python3 Tools/wenshu-devtool/ticket_tier.py --check          # every card
 
 - It does not skip the dual-axis review (AGENTS.md rule 1.10). Every tier gets
   the two-axis read.
+- It does not decide who reviews a card. The independent verdict (AGENTS.md
+  rule 1.14) is owed by a card that writes CODE, and that is derived from the
+  work the body describes, never from the tier. A T1 code card and a T3 code
+  card owe the same verdict; a prose card owes none. The tier changes the
+  cost of a card, never the quality bar.
 - It does not skip a required gate. A T1 card still proves its change; it
   proves it with the cheapest command that covers the touched file.
 - It does not mark a test as skipped. Rule 7.2 stands.
 - It does not read the body's length as difficulty, and it does not read the
   gate the body asks for. Both would be circular: the tier changes the cap
   and the gate, so a tier derived from either would be self-referential.
+
+The one section the tier does NOT charge against the body's budget is the
+routing section (`## REVIEW HANDOFF`), because it names who reviews the card
+rather than describing work: 46 of the board's bodies carry exactly 9
+sections and T2 buys exactly 9, so charging the handoff section would push 8
+T2 bodies over their own budget and make the tier wrong for cards that did
+nothing wrong. The paths a routing section names are not files the card
+writes either.
 
 ## Why this exists
 

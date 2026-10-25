@@ -53,6 +53,7 @@ Single source of truth for every wenshu contributor and every AI agent acting on
 | 1.11 | NFI (nervous file index) = `docs/agents/nfi.md`. Lists every file split from a god-class or extracted to its own file via A55+ arcs. Each row: parent file, current LOC, content tag. The next reader finds the file by concern in < 5s. | Manual. |
 | 1.12 | Parallel worktree isolation: every code-changing ticket runs in its own git worktree, never in the shared checkout. Create it as a kanban board card (`--assignee wenshu-dev --workspace worktree --project project`, board `wenshu-par`). `delegate_task` is read-only fan-out here: its children inherit the parent shell cwd, so a relative write lands in the shared checkout. | wenshu-parallel-dev. |
 | 1.13 | Difficulty tier: every card carries a tier (`[T1]` / `[T2]` / `[T3]`), DERIVED from the work its body describes by `Tools/wenshu-devtool/ticket_tier.py`, never hand-set. The tier sets the runtime cap, the retry budget, the gate width and the body budget. It changes the cost of a card, never the quality bar: it never skips the dual-axis review and never marks a test skipped. | docs/agents/ticket-tiers.md. |
+| 1.14 | Independent review: a card that writes CODE carries a `## REVIEW HANDOFF` section naming a reviewer profile that is NOT its implementer, and ends its run with `kanban_request_review(reviewer=...)`. The obligation is DERIVED from the work the body describes, never from the tier. A card that writes only prose owes no verdict. | Tools/wenshu-devtool/review_gate.py. |
 
 ### §1.11 Nervous file index (NFI)
 
@@ -141,7 +142,7 @@ Register a new row there, not here. The rule is unchanged.
 
 ## §7 Verification & quality gates
 
-> Each ticket passes §7.1-§7.8 BEFORE merge.
+> Each ticket passes §7.1-§7.9 BEFORE merge.
 
 | #   | Gate | Reference |
 | --- | ---- | --------- |
@@ -153,6 +154,7 @@ Register a new row there, not here. The rule is unchanged.
 | 7.6 | No dead code: wenshu-dead-code-cleanup + verify-dead.py. | wenshu-dead-code-cleanup. |
 | 7.7 | UI-touching ticket: visual proof via screenshot + boss verdict. | wenshu-agent-boss-same-build-protocol. |
 | 7.8 | Commit hygiene: 1 commit per ticket, English subject <=72 chars, body explains WHY. | wenshu-commit-history-hygiene. |
+| 7.9 | Independent review verdict: a card that writes code carries an approving verdict from a profile that is NOT its implementer (rule 1.14). `Scripts/merge-preflight.sh` refuses the merge until it is on the record. | Tools/wenshu-devtool/review_gate.py. |
 
 ## §8 Workflow (universal PO methodology)
 

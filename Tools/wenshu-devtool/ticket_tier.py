@@ -228,6 +228,16 @@ EXCLUSION_SECTIONS = {
     "out of scope",
 }
 
+# Sections that ROUTE the card instead of describing its work. A routing
+# section is not a work section, so it is not charged against the body
+# budget: measured, 46 of the board's bodies carry exactly 9 sections and
+# T2 buys exactly 9, so charging the handoff section would push 8 T2 bodies
+# over their own budget and make the tier wrong for cards that did nothing
+# wrong. The body budget measures the RECIPE the worker has to absorb.
+ROUTING_SECTIONS = {
+    "review handoff",
+}
+
 
 def _heading(line: str) -> str | None:
     """The section heading a line opens, or None if the line is content."""
@@ -277,6 +287,124 @@ def _is_exclusion(name: str) -> bool:
     return name.strip().rstrip(":").lower() in EXCLUSION_SECTIONS
 
 
+def _is_routing(name: str) -> bool:
+    """Whether a section routes the card instead of describing its work."""
+    return name.strip().rstrip(":").lower() in ROUTING_SECTIONS
+
+
+def work_sections(body: str) -> list[tuple[str, str]]:
+    """The sections that describe the WORK (= all of them but the routing ones).
+
+    A routing section names who reviews the card. It is not part of the
+    recipe, so it is not charged against the body budget and its paths are
+    not files the card writes.
+    """
+    return [(name, text) for name, text in sections(body) if not _is_routing(name)]
+
+
+# --------------------------------------------------------------------------
+# The review contract. It lives here because it is a contract on the CARD
+# BODY, and this module is where the body is parsed.
+#
+# The obligation to get an independent verdict is DERIVED from the work the
+# body describes, never hand-set, and it is independent of the difficulty
+# tier: AGENTS.md 1.13 makes the tier the cost of a card and never the
+# quality bar, so the tier cannot decide who reviews a card.
+#
+# A card owes a verdict when it writes CODE. Prose is already read against
+# the spec by the dual-axis audit (AGENTS.md 7.4); code is not. Measured on
+# board wenshu-par, 2026-10-26: of the done cards whose body promised files
+# their branch does not contain, 5 wrote code and 0 wrote prose.
+# --------------------------------------------------------------------------
+
+# A body path that is prose, not code.
+DOC_ROOTS = ("docs/",)
+DOC_FILES = (
+    "AGENTS.md", "OOB.md", "README.md", "CHANGELOG.md", "CONTEXT.md",
+    ".hermes.md",
+)
+
+# The section a card body carries to name its reviewer.
+HANDOFF_HEADING = "review handoff"
+
+# reviewer="wenshu-review" or reviewer: wenshu-review
+REVIEWER_RE = re.compile(r"reviewer\s*[=:]\s*[\"']?([A-Za-z0-9_.-]+)")
+
+
+def is_documentation(path: str) -> bool:
+    """Whether a path is prose (= the dual-axis audit already reads it)."""
+    if path in DOC_FILES:
+        return True
+    return path.startswith(DOC_ROOTS)
+
+
+def code_paths(body: str) -> list[str]:
+    """The code files the body writes (= the work a reviewer must read)."""
+    written, _forbidden = work_scope(body)
+    return sorted(p for p in written if not is_documentation(p))
+
+
+def review_required(body: str) -> tuple[bool, list[str]]:
+    """Whether the body owes an independent verdict, and the code it writes."""
+    code = code_paths(body)
+    return bool(code), code
+
+
+def normalized(name: str) -> str:
+    """A heading reduced to comparable words."""
+    return re.sub(r"[^a-z]+", " ", (name or "").strip().lower()).strip()
+
+
+def handoff_text(body: str) -> str | None:
+    """The text of the card's REVIEW HANDOFF section, or None."""
+    for name, text in sections(body):
+        if normalized(name) == HANDOFF_HEADING:
+            return text
+    return None
+
+
+def named_reviewer(body: str) -> str | None:
+    """The reviewer profile the handoff names, or None."""
+    text = handoff_text(body)
+    if not text:
+        return None
+    match = REVIEWER_RE.search(text)
+    return match.group(1) if match else None
+
+
+def review_contract_errors(body: str, assignee: str | None = None) -> list[str]:
+    """Every way the body breaks the review contract.
+
+    This is the CONTRACT half of the gate: what the card owes. Whether the
+    verdict was actually given is the RECORD half, and that one needs the
+    board (see Tools/wenshu-devtool/review_gate.py).
+    """
+    required, code = review_required(body)
+    errors: list[str] = []
+    text = handoff_text(body)
+    reviewer = named_reviewer(body)
+
+    if text is not None:
+        if reviewer is None:
+            errors.append(
+                "the REVIEW HANDOFF section names no reviewer profile "
+                '(write reviewer="wenshu-review")'
+            )
+        elif assignee and reviewer == assignee:
+            errors.append(
+                f"the REVIEW HANDOFF names the implementer profile ({reviewer}); "
+                "a card cannot be reviewed by the profile that implemented it"
+            )
+
+    if required and text is None:
+        errors.append(
+            "the body writes code ("
+            + ", ".join(code[:3])
+            + ") but carries no REVIEW HANDOFF section"
+        )
+    return errors
+
+
 def work_scope(body: str) -> tuple[set[str], set[str]]:
     """The (written, forbidden) file sets of a card body, for TIERING.
 
@@ -290,7 +418,7 @@ def work_scope(body: str) -> tuple[set[str], set[str]]:
     """
     written: set[str] = set()
     forbidden: set[str] = set()
-    for name, text in sections(body):
+    for name, text in work_sections(body):
         stripped = wave_gate.CITATION_RE.sub("", text)
         if not _is_exclusion(name):
             written |= set(wave_gate.PATH_RE.findall(stripped))
@@ -472,7 +600,7 @@ def find_errors(card: dict) -> list[str]:
     if len(body) > contract["body_max"]:
         errors.append(f"body is {len(body)} chars, tier {tier} buys {contract['body_max']}")
 
-    body_sections = len(sections(body))
+    body_sections = len(work_sections(body))
     if body_sections > contract["sections_max"]:
         errors.append(
             f"body has {body_sections} sections, tier {tier} buys "
