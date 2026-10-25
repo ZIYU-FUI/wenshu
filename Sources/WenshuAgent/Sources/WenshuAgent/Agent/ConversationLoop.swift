@@ -926,12 +926,29 @@ public actor ConversationLoop {
         // Dynamic tier: composed via PromptBuilder (= the GAP-001 path).
         // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // so the LLM sees relevant context on the first token.
-        let prefetched = await MemoryAdapter(
-            provider: await MemoryAdapter.resolveProvider(for: settings.memory)
-        ).retrieve(
-            forUserMessage: ephemeralHint,
-            bookId: nil
-        )
+        // The memory prefetch reads the user's stored memories (= the
+        // turn's memory store, = on the main actor). A turn that turned
+        // the memory off must not read it: = the turn asked for a clean
+        // context, = and the read is a main-actor hop that can block the
+        // turn behind whatever the main actor is doing.
+        let prefetched: [MemoryAdapter.MemoryEntry]
+        if settings.memory.enabled && settings.prompt.memoryGuidanceEnabled {
+            // The loop's own provider comes first (= the same order the
+            // write path uses), = so a caller that injected a provider
+            // gets that one, = and the read and the write agree.
+            let provider: any MemoryProvider
+            if let memoryProvider {
+                provider = memoryProvider
+            } else {
+                provider = await MemoryAdapter.resolveProvider(for: settings.memory)
+            }
+            prefetched = await MemoryAdapter(provider: provider).retrieve(
+                forUserMessage: ephemeralHint,
+                bookId: nil
+            )
+        } else {
+            prefetched = []
+        }
         let dynamic = PromptBuilder.dynamicTier(
             contextBundle: ContextEngine.ContextBundle(
                 memories: prefetched.map { entry in

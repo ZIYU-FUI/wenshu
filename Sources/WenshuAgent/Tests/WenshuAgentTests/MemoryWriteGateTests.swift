@@ -31,12 +31,19 @@ final class MemoryWriteGateTests: XCTestCase {
         var isEnabled: Bool { true }
 
         private let writes = Writes()
+        private let prefetches = Writes()
 
         func writtenTurns() async -> [String] { await writes.values }
 
+        /// The messages the store was asked to recall.
+        func prefetchedMessages() async -> [String] { await prefetches.values }
+
         func getSystemPrompt() -> String { "" }
 
-        func prefetch(forUserMessage message: String) async -> String { "" }
+        func prefetch(forUserMessage message: String) async -> String {
+            await prefetches.append(message)
+            return ""
+        }
 
         func sync(userMessage: String, assistantResponse: String) async {
             await writes.append(userMessage)
@@ -106,6 +113,61 @@ final class MemoryWriteGateTests: XCTestCase {
         XCTAssertTrue(
             written.isEmpty,
             "A turn whose settings say the memory subsystem is off must write nothing."
+        )
+    }
+
+    /// A turn that turned the memory off must not READ the memory either.
+    ///
+    /// The prefetch ran whatever the turn's settings said, = so the
+    /// import turn (= the one that asks for a clean context) still read
+    /// the user's stored memories, = and the read is a main-actor hop
+    /// that can block the turn behind whatever the main actor is doing.
+    func testTheTurnReadsNoMemoryWhenTheMemorySwitchIsOff() async throws {
+        let recorder = RecordingMemoryProvider()
+        let loop = ConversationLoop(
+            connection: PlainTextConnector(),
+            systemPrompt: "system",
+            memoryProvider: recorder
+        )
+        let settings = AgentSettings(
+            prompt: PromptSettings(memoryGuidanceEnabled: false),
+            memory: MemorySettings(enabled: false)
+        )
+        _ = try await loop.runTurn(
+            userMessage: "the message that must not be recalled",
+            systemMessage: "system",
+            taskId: "memory-off-read",
+            settings: settings
+        )
+        let recalled = await recorder.prefetchedMessages()
+        XCTAssertTrue(
+            recalled.isEmpty,
+            "A turn whose settings say the memory subsystem is off must not read the memory."
+        )
+    }
+
+    /// A turn that left the memory on still recalls, = as it always did.
+    func testTheTurnReadsTheMemoryWhenTheMemorySwitchIsOn() async throws {
+        let recorder = RecordingMemoryProvider()
+        let loop = ConversationLoop(
+            connection: PlainTextConnector(),
+            systemPrompt: "system",
+            memoryProvider: recorder
+        )
+        let settings = AgentSettings(
+            prompt: PromptSettings(memoryGuidanceEnabled: true),
+            memory: MemorySettings(enabled: true)
+        )
+        _ = try await loop.runTurn(
+            userMessage: "the message that may be recalled",
+            systemMessage: "system",
+            taskId: "memory-on-read",
+            settings: settings
+        )
+        let recalled = await recorder.prefetchedMessages()
+        XCTAssertFalse(
+            recalled.isEmpty,
+            "A turn whose settings say the memory subsystem is on must read the memory."
         )
     }
 
