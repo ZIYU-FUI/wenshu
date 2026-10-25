@@ -76,14 +76,30 @@ struct ReferenceDuplicateTitleUpsertTests {
         // Invariant 3: entities.json has exactly one entry.
         let entitiesJSON = entitiesDir.appendingPathComponent("entities.json")
         let raw = try String(contentsOf: entitiesJSON, encoding: .utf8)
-        let entries = try JSONDecoder().decode([Reference].self, from: Data(raw.utf8))
+        // The store writes the index with the ISO8601 date strategy
+        // (= `saveReferencesToFileSystem`); = a plain decoder reads a
+        // Date as a Double, = so it cannot read the store's own file.
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let entries = try decoder.decode([Reference].self, from: Data(raw.utf8))
         #expect(entries.count == 1, "entities.json must have exactly one entry after dedup; got \(entries.count)")
 
         // Invariant 4: createdAt preserved; updatedAt bumped.
+        //
+        // The index stores the dates at second resolution (= the
+        // ISO8601 strategy drops the fractions), = so the comparison is
+        // at the resolution the file carries; = the in-memory value
+        // keeps the sub-second part.
         let only = entries[0]
         #expect(only.id == firstID)
-        #expect(only.createdAt == firstCreatedAt, "createdAt must be preserved across upsert")
-        #expect(only.updatedAt >= firstCreatedAt, "updatedAt must advance (= at least createdAt)")
+        #expect(
+            abs(only.createdAt.timeIntervalSince(firstCreatedAt)) < 1.0,
+            "createdAt must be preserved across upsert"
+        )
+        #expect(
+            only.updatedAt.timeIntervalSince(firstCreatedAt) > -1.0,
+            "updatedAt must advance (= at least createdAt)"
+        )
 
         // Invariant 5: body content reflects the SECOND research pass
         // (= the dedup path replaces, not appends).
