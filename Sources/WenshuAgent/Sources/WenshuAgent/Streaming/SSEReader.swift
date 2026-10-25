@@ -94,14 +94,27 @@ public enum SSEReader {
     /// The stream ends when the server closes the connection. An error
     /// before the first event is delivered through the same channel, so a
     /// caller sees one consistent failure shape.
-    public static func events(for request: URLRequest) -> AsyncThrowingStream<WenshuSSEEvent, Error> {
+    public static func events(
+        for request: URLRequest,
+        session: URLSession = .shared
+    ) -> AsyncThrowingStream<WenshuSSEEvent, Error> {
         AsyncThrowingStream(WenshuSSEEvent.self, bufferingPolicy: .unbounded) { continuation in
             let task = Task {
-                let session = URLSession(configuration: .default)
                 do {
                     let (bytes, response) = try await session.bytes(for: request, delegate: nil)
                     if let http = response as? HTTPURLResponse, http.statusCode != 200 {
-                        continuation.finish(throwing: SSEError.httpStatus(http.statusCode))
+                        // Read the provider's message (= the body says why
+                        // it refused; = without it the failure is just a
+                        // number, = and nobody can act on a number).
+                        var errorBytes: [UInt8] = []
+                        for try await byte in bytes {
+                            errorBytes.append(byte)
+                            if errorBytes.count > 4000 { break }
+                        }
+                        let body = String(data: Data(errorBytes), encoding: .utf8) ?? ""
+                        continuation.finish(
+                            throwing: SSEError.httpStatus(http.statusCode, body: body)
+                        )
                         return
                     }
                     var parser = SSEByteParser()
@@ -138,11 +151,17 @@ public enum SSEReader {
 
 /// The failures the reader can report.
 public enum SSEError: Error, LocalizedError {
-    case httpStatus(Int)
-
+    case httpStatus(Int, body: String?)
     public var errorDescription: String? {
         switch self {
-        case .httpStatus(let code): return "The stream request failed with HTTP \(code)."
+        case .httpStatus(let code, let body):
+            // The provider's own message says WHY (= a budget it will
+            // not take, = a quota, = a model it does not know), = so it
+            // travels with the failure.
+            if let body, !body.isEmpty {
+                return "The stream request failed with HTTP \(code): \(body)"
+            }
+            return "The stream request failed with HTTP \(code)."
         }
     }
 }

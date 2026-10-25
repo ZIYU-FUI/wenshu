@@ -164,7 +164,8 @@ public actor AnthropicConnector: LLMConnector {
             maxTokens: options.maxTokens,
             systemPrompt: options.systemPrompt,
             messages: cachedMessages,
-            tools: options.tools
+            tools: options.tools,
+            session: session
         )
         // T11b-WIRE-ANTHROPIC-STATEFUL (2026-09-18): use the stateful
         // converter variant (= accumulates tool_use blocks across 3 SSE

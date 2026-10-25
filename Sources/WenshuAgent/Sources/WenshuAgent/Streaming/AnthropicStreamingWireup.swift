@@ -41,7 +41,10 @@ public actor AnthropicStreamingWireup {
     ///   - request: URLRequest (= AnthropicStreamingRequest.buildRequest output)
     /// - Returns: AsyncStream of AnthropicStreamingChunk (= consumer terminates
     ///   the stream by calling onTermination handler).
-    public func connect(request: URLRequest) -> AsyncStream<AnthropicStreamingChunk> {
+    public func connect(
+        request: URLRequest,
+        session: URLSession = .shared
+    ) -> AsyncStream<AnthropicStreamingChunk> {
         AsyncStream { continuation in
             self.continuation = continuation
 
@@ -53,7 +56,7 @@ public actor AnthropicStreamingWireup {
             // dropped — before the callback exists.
             let task = Task { @Sendable [weak self] in
                 do {
-                    for try await event in SSEReader.events(for: request) {
+                    for try await event in SSEReader.events(for: request, session: session) {
                         if Task.isCancelled { break }
                         let eventType = event.name ?? "message"
                         guard let chunk = AnthropicSSEDecoder.decode(event: eventType,
@@ -125,7 +128,9 @@ public enum AnthropicStreamingWireupFactory {
         maxTokens: Int,
         systemPrompt: String?,
         messages: [LLMMessage],
-        tools: [ToolRegistrySchema] = []
+        tools: [ToolRegistrySchema] = [],
+        thinkingBudget: Int? = nil,
+        session: URLSession = .shared
     ) -> AsyncStream<AnthropicStreamingChunk> {
         let request = buildRequest(
             credentials: credentials,
@@ -133,7 +138,8 @@ public enum AnthropicStreamingWireupFactory {
             maxTokens: maxTokens,
             systemPrompt: systemPrompt,
             messages: messages,
-            tools: tools
+            tools: tools,
+            thinkingBudget: thinkingBudget
         )
         // The stream is built here rather than through the wire-up actor.
         //
@@ -156,7 +162,23 @@ public enum AnthropicStreamingWireupFactory {
                         if case .messageStop = chunk.kind { break }
                     }
                 } catch {
+                    // The failure travels with the stream (= a stream that
+                    // ends without a word looks like a model that said
+                    // nothing; = the provider's own message says why it
+                    // refused, = and the caller has to see it).
                     os_log("[wenshu.streaming] SSE read failed: \(String(describing: error), privacy: .public)")
+                    continuation.yield(
+                        AnthropicStreamingChunk(
+                            kind: .contentBlockDelta(
+                                blockIndex: 0,
+                                textDelta: "[stream error] "
+                                    + ((error as? LocalizedError)?.errorDescription
+                                       ?? String(describing: error)),
+                                inputDelta: nil,
+                                thinkingDelta: nil
+                            )
+                        )
+                    )
                 }
                 continuation.finish()
             }
@@ -173,7 +195,8 @@ public enum AnthropicStreamingWireupFactory {
         maxTokens: Int,
         systemPrompt: String?,
         messages: [LLMMessage],
-        tools: [ToolRegistrySchema] = []
+        tools: [ToolRegistrySchema] = [],
+        thinkingBudget: Int? = nil
     ) -> URLRequest {
         // Inline URLRequest builder (= the AnthropicStreamingRequest helper
         // was scoped to AnthropicStreaming.swift; inlining here keeps
@@ -201,7 +224,7 @@ public enum AnthropicStreamingWireupFactory {
         request.setValue(credentials.apiKey, forHTTPHeaderField: "x-api-key")
         request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
 
-        let body: [String: Any] = [
+        var body: [String: Any] = [
             "model": model,
             "max_tokens": maxTokens,
             "stream": true,
@@ -221,6 +244,17 @@ public enum AnthropicStreamingWireupFactory {
                 ]
             }
         ]
+        // The thinking budget (= the Anthropic-compatible shape). The
+        // provider counts the reasoning against the same budget as the
+        // answer, = so a task that writes several documents needs the
+        // reasoning held down, = or the turn ends inside a plan with
+        // nothing written. Absent = the provider's own default.
+        if let thinkingBudget {
+            body["thinking"] = [
+                "type": "enabled",
+                "budget_tokens": thinkingBudget
+            ] as [String: Any]
+        }
         // Anthropic native tools shape (= array of
         // {name, description, input_schema}). Empty array = omit the key
         // (= the model never sees the field; = behavior parity with the

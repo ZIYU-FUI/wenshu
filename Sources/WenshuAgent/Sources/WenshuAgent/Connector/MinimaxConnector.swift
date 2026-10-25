@@ -207,7 +207,8 @@ public actor MinimaxConnector: LLMConnector {
             maxTokens: options.maxTokens,
             systemPrompt: options.systemPrompt,
             messages: cachedMessages,
-            tools: options.tools
+            tools: options.tools,
+            session: session
         )
         // T11b-WIRE-ANTHROPIC-STATEFUL (parity with AnthropicConnector):
         // use the stateful converter variant (= accumulates
