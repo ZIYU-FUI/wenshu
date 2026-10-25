@@ -19,13 +19,9 @@ import WenshuAgent
 import XCTest
 @testable import WenshuApp
 
-final class ImportAgentWriteToDiskTests: XCTestCase {
-
-    // MARK: - Fixtures
-
 /// A call counter that survives the async hop (= the stub's `send` is
 /// called from the agent runtime's own task).
-private final class CallCounter: @unchecked Sendable {
+final class WriteCallCounter: @unchecked Sendable {
     private var value = 0
     private let lock = NSLock()
 
@@ -35,14 +31,25 @@ private final class CallCounter: @unchecked Sendable {
         value += 1
         return value
     }
+
+    func peek() -> Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return value
+    }
 }
+
+final class ImportAgentWriteToDiskTests: XCTestCase {
+
+    // MARK: - Fixtures
+
 
 
     /// A connector that calls the write tool once, then says it is done.
     private final class WritingConnector: LLMConnector, @unchecked Sendable {
         nonisolated let connectorID: String = "writing-stub"
         let toolPath: String
-        private let counter = CallCounter()
+        private let counter = WriteCallCounter()
 
         init(toolPath: String) {
             self.toolPath = toolPath
@@ -187,5 +194,177 @@ private final class CallCounter: @unchecked Sendable {
             files(in: "world").isEmpty,
             "A refused write must not land in the user's folder either."
         )
+    }
+
+/// Run the import with the library root pinned (= the write goes
+    /// through the library's path guard).
+    private func runImport(
+        connector: any LLMConnector,
+        folder: BookFolder = .world
+    ) async throws {
+        try await PathGuard.$libraryRootOverride.withValue(libraryRoot.path) {
+            let driver = ImportAgentDriver(connector: connector, modelSlug: "stub")
+            let root = bookRoot!.path
+            let context = ImportAgentBookContext(bookPath: { root })
+            let input = ImportAgentDriver.TaskInput(
+                filePath: sourceDir.appendingPathComponent("a.md").path,
+                body: "# source",
+                bookPath: root,
+                bookTitle: "The book",
+                targetFolder: folder
+            )
+            _ = try await driver.run(input: input, bookContext: context, progress: nil)
+        }
+    }
+
+    // MARK: - A turn that plans instead of writing
+
+    /// A model sometimes answers with its plan instead of acting on it
+    /// (= it describes the documents it would write, = and then stops).
+    /// Such a turn writes nothing, = so the driver runs the procedure
+    /// again; = and a run that never writes fails loudly (= the row
+    /// must not say "done" with no file on disk).
+    func testAPlanningOnlyTurnIsRetriedAndThenFailsLoudly() async throws {
+        let connector = PlanningOnlyConnector()
+        do {
+            try await runImport(connector: connector)
+            XCTFail("Expected the driver to fail when nothing was written.")
+        } catch {
+            guard let driverError = error as? ImportAgentDriver.ImportAgentError else {
+                XCTFail("Expected ImportAgentDriver.ImportAgentError, got \(error)")
+                return
+            }
+            if case .nothingWritten = driverError {
+                // expected
+            } else {
+                XCTFail("Expected nothingWritten, got \(driverError)")
+            }
+        }
+        XCTAssertEqual(
+            connector.callCount, 3,
+            "The driver must run the procedure again before it gives up."
+        )
+        XCTAssertTrue(
+            files(in: "world").isEmpty,
+            "A run that never wrote must leave no file behind."
+        )
+    }
+
+    /// A model that plans first and writes on the second try still
+    /// produces the documents (= the retry is the point).
+    func testAPlanningTurnThatWritesOnTheSecondTrySucceeds() async throws {
+        let connector = PlanningThenWritingConnector()
+        try await runImport(connector: connector)
+        XCTAssertEqual(
+            files(in: "world"), ["core-setting.md"],
+            "The document must land once the model acts."
+        )
+        XCTAssertGreaterThanOrEqual(
+            connector.callCount, 2,
+            "The driver must run the procedure again after a planning-only turn."
+        )
+    }
+}
+
+// MARK: - The planning-only stub
+
+/// A model that only ever describes what it would do (= it never
+/// calls the write tool).
+private final class PlanningOnlyConnector: LLMConnector, @unchecked Sendable {
+    nonisolated let connectorID: String = "planning-stub"
+    private let counter = WriteCallCounter()
+    var callCount: Int { counter.peek() }
+
+    func send(
+        messages: [LLMMessage],
+        options: LLMCallOptions
+    ) async throws -> LLMResponse {
+        counter.next()
+        return LLMResponse(
+            id: "planning",
+            model: "stub",
+            blocks: [.text("I would write the index and the six sub-files.")],
+            stopReason: .endTurn,
+            usage: LLMUsage(inputTokens: 0, outputTokens: 0)
+        )
+    }
+
+    func stream(
+        messages: [LLMMessage],
+        options: LLMCallOptions
+    ) -> AsyncStream<LLMBlock> {
+        AsyncStream { continuation in
+            Task {
+                do {
+                    let response = try await send(messages: messages, options: options)
+                    for block in response.blocks { continuation.yield(block) }
+                } catch {
+                    continuation.yield(.text("[stream error] \(error)"))
+                }
+                continuation.finish()
+            }
+        }
+    }
+}
+
+// MARK: - The planning-then-writing stub
+
+/// A model that plans on the first call and writes on the second.
+private final class PlanningThenWritingConnector: LLMConnector, @unchecked Sendable {
+    nonisolated let connectorID: String = "planning-then-writing-stub"
+    private let counter = WriteCallCounter()
+    var callCount: Int { counter.peek() }
+
+    func send(
+        messages: [LLMMessage],
+        options: LLMCallOptions
+    ) async throws -> LLMResponse {
+        let call = counter.next()
+        if call == 1 {
+            return LLMResponse(
+                id: "planning",
+                model: "stub",
+                blocks: [.text("I would write the index and the six sub-files.")],
+                stopReason: .endTurn,
+                usage: LLMUsage(inputTokens: 0, outputTokens: 0)
+            )
+        }
+        if call == 2 {
+            let payload = """
+            {"path": "world/core-setting.md", "body": "# Core setting"}
+            """
+            return LLMResponse(
+                id: "writing",
+                model: "stub",
+                blocks: [.toolUse(id: "call-1", name: "writeBookDoc", input: payload)],
+                stopReason: .toolUse,
+                usage: LLMUsage(inputTokens: 0, outputTokens: 0)
+            )
+        }
+        // The model is done (= it wrote its document).
+        return LLMResponse(
+            id: "done",
+            model: "stub",
+            blocks: [.text("done")],
+            stopReason: .endTurn,
+            usage: LLMUsage(inputTokens: 0, outputTokens: 0)
+        )
+    }
+
+    func stream(
+        messages: [LLMMessage],
+        options: LLMCallOptions
+    ) -> AsyncStream<LLMBlock> {
+        AsyncStream { continuation in
+            Task {
+                do {
+                    let response = try await send(messages: messages, options: options)
+                    for block in response.blocks { continuation.yield(block) }
+                } catch {
+                    continuation.yield(.text("[stream error] \(error)"))
+                }
+                continuation.finish()
+            }
+        }
     }
 }

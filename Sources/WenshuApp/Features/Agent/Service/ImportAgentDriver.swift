@@ -159,18 +159,13 @@ struct ImportAgentDriver: Sendable {
         // accumulator, so the sheet's reply and the chat's reply are the
         // same shape.
         let emitter = ImportAgentPartEmitter()
-        let result = try await loop.runTurn(
+        let result = try await Self.runTurnUntilSomethingLanded(
+            loop: loop,
             userMessage: userMessage,
             systemMessage: sop,
-            tools: ["writeBookDoc": toolHandler],
-            taskId: UUID().uuidString,
-            settings: Self.importSettings,
-            streamCallback: { block in
-                for part in emitter.consume(block) {
-                    await progress?(part.encoded())
-                }
-            },
-            toolSchemas: [WriteBookDocTool.schema]
+            toolHandler: toolHandler,
+            emitter: emitter,
+            progress: progress
         )
 
         // ── Step 8: return the outcome.
@@ -181,11 +176,7 @@ struct ImportAgentDriver: Sendable {
         // 1 task = "wenshu 文档管理员 wrote a book". = the previous double-count
         // was counting the tool_result block of the previous turn as the
         // current turn's tool_use; = the per-row log inflated by N).
-        let toolUseCount = result.messages.filter { msg in
-            msg.blocks.contains { block in
-                if case .toolUse = block { return true } else { return false }
-            }
-        }.count
+        let toolUseCount = Self.writeCallCount(in: result)
         let finalResponse: String = {
         guard let lastAssistant = lastAssistant else { return "" }
         let parts = lastAssistant.blocks.map { $0.textValue }
@@ -198,9 +189,99 @@ struct ImportAgentDriver: Sendable {
         )
     }
 
+    /// Run the turn until the agent has actually written a document.
+    ///
+    /// A model sometimes answers with its plan instead of acting on it
+    /// (= it describes the documents it would write, and then stops).
+    /// Such a turn writes nothing, and the import must not report
+    /// success for it: = the orchestrator's row would say "done" with no
+    /// file on disk. So a turn that produced no write is retried (= a
+    /// fresh turn, = the same clean context), and a run that never
+    /// writes throws (= the row fails, = the user sees it).
+    static func runTurnUntilSomethingLanded(
+        loop: ConversationLoop,
+        userMessage: String,
+        systemMessage: String,
+        toolHandler: any Tool,
+        emitter: ImportAgentPartEmitter,
+        progress: (@Sendable (String) async -> Void)?,
+        attempts: Int = 3
+    ) async throws -> ConversationResult {
+        var budget = Self.turnTokenBudget
+        for attempt in 1...attempts {
+            let result: ConversationResult
+            do {
+                result = try await loop.runTurn(
+                    userMessage: userMessage,
+                    systemMessage: systemMessage,
+                    tools: ["writeBookDoc": toolHandler],
+                    taskId: UUID().uuidString,
+                    settings: Self.importSettings,
+                    streamCallback: { block in
+                        for part in emitter.consume(block) {
+                            await progress?(part.encoded())
+                        }
+                    },
+                    toolSchemas: [WriteBookDocTool.schema],
+                    maxTokens: budget
+                )
+            } catch {
+                // The provider refused the request (= its own output cap
+                // is below this budget). A smaller budget still fits the
+                // job on that provider, = so the turn runs again.
+                guard budget > Self.smallestTurnTokenBudget else { throw error }
+                budget = max(budget / 2, Self.smallestTurnTokenBudget)
+                await progress?(
+                    "the provider refused the output budget (= \(budget) now)"
+                )
+                continue
+            }
+            if Self.writeCallCount(in: result) > 0 { return result }
+            // A turn that ran out of room ends in the middle of the
+            // model's reasoning (= it planned the documents and never
+            // got to writing them).
+            if result.response.stopReason == .maxTokens {
+                await progress?(
+                    "the agent ran out of room before it wrote (attempt \(attempt)/\(attempts)); = running the procedure again"
+                )
+            } else {
+                await progress?(
+                    "the agent planned without writing (attempt \(attempt)/\(attempts)); = running the procedure again"
+                )
+            }
+        }
+        throw ImportAgentError.nothingWritten
+    }
+
+    /// The import turn's output budget.
+    ///
+    /// The provider counts the reasoning against the same budget as the
+    /// answer, and the world's procedure asks for one index + six
+    /// documents with real content. A conversation-sized budget (= 4096)
+    /// runs out inside the reasoning, = and the turn ends before a
+    /// single document is written.
+    static let turnTokenBudget = 32768
+
+    /// The smallest budget the import runs with (= the floor for a
+    /// provider whose own cap is low).
+    static let smallestTurnTokenBudget = 8192
+
+    /// The number of write calls the turn made.
+    ///
+    /// Every tool_use block is one call (= one document written); = the
+    /// tool_result block that follows it is the answer, = not a call.
+    static func writeCallCount(in result: ConversationResult) -> Int {
+        result.messages.reduce(into: 0) { total, message in
+            for block in message.blocks {
+                if case .toolUse = block { total += 1 }
+            }
+        }
+    }
+
     enum ImportAgentError: Error, LocalizedError {
         case noSOPForFolder(BookFolder)
         case sopLoadFailed(underlying: String)
+        case nothingWritten
 
         var errorDescription: String? {
             switch self {
@@ -208,6 +289,8 @@ struct ImportAgentDriver: Sendable {
                 return "ImportAgentDriver: no SOP defined for folder '\(f.directoryName)' (= future round will add character/outline/etc. SOPs)."
             case .sopLoadFailed(let u):
                 return "ImportAgentDriver: SOP load failed: \(u)"
+            case .nothingWritten:
+                return "ImportAgentDriver: the agent wrote no document (= the import produced nothing; = run it again)."
             }
         }
     }

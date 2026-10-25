@@ -123,7 +123,9 @@ public actor ConversationLoop {
         // them (= the guidance switches, the recovery policy, the memory
         // backend), so a turn that leaves them out runs on the defaults
         // no matter what the user chose.
-        settings: AgentSettings = .init()
+        settings: AgentSettings = .init(),
+        // The turn's output budget (= see runTurn).
+        maxTokens: Int = 4096
     ) async throws -> ConversationResult {
         let resolvedTaskId = taskId ?? UUID().uuidString
 
@@ -139,7 +141,7 @@ public actor ConversationLoop {
             systemMessage: systemMessage,
             conversationHistory: conversationHistory ?? [],
             model: defaultModelForConnector(),
-            maxTokens: 4096,
+            maxTokens: maxTokens,
             attemptNumber: retryState.attemptNumber
         )
         try await shellHookChain.firePreTurn(sanitizedUser)
@@ -168,7 +170,7 @@ public actor ConversationLoop {
         let reasoningEffort = UserDefaults.standard.string(forKey: "wenshu.llm.reasoningEffort")
         let options = LLMCallOptions(
             model: defaultModel,
-            maxTokens: 4096,
+            maxTokens: maxTokens,
             systemPrompt: effectiveSystemPrompt,
             temperature: nil,
             reasoningEffort: reasoningEffort,
@@ -233,7 +235,11 @@ public actor ConversationLoop {
         // / Tool schemas advertised to the model. Empty (= default)
         // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // / conductor before invoking runTurn).
-        toolSchemas: [ToolRegistrySchema] = []
+        toolSchemas: [ToolRegistrySchema] = [],
+        // The turn's output budget (= a task that writes several
+        // documents needs more than a conversation; = the provider
+        // counts the reasoning against the same budget).
+        maxTokens: Int = 4096
     ) async throws -> ConversationResult {
         let resolvedTaskId = taskId ?? UUID().uuidString
         var retry = TurnRetryState(maxAttempts: maxAttempts)
@@ -303,7 +309,8 @@ public actor ConversationLoop {
                     // Without them the base path assembles the prompt from
                     // the defaults, so a switch the user flipped would do
                     // nothing until the turn took the tool branch.
-                    settings: settings
+                    settings: settings,
+                    maxTokens: maxTokens
                 )
 
                 // step 5: "Parsing response". The LLM
@@ -448,7 +455,7 @@ public actor ConversationLoop {
                     let reasoningEffort = UserDefaults.standard.string(forKey: "wenshu.llm.reasoningEffort")
                     let options = LLMCallOptions(
                         model: defaultModelForConnector(),
-                        maxTokens: 4096,
+                        maxTokens: maxTokens,
                         systemPrompt: await composeSystemPrompt(
                             override: systemMessage,
                             persistent: systemPrompt,
