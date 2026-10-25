@@ -12,10 +12,14 @@
 //    1. `run()` with a world-folder input
 //       resolves the SOP, invokes the LLM,
 //       and returns an `ImportAgentResult`.
-//    2. A non-world folder throws
-//       `noSOPForFolder` (= no SOP = no
-//       run; = orchestrator falls back to
-//       legacy path in A5).
+//    2. A folder with an import template
+//       resolves its own SOP (= every one
+//       of the six import folders has a
+//       procedure).
+//    3. A folder without an import
+//       template throws `noSOPForFolder`
+//       (= no SOP = no run; = orchestrator
+//       falls back to legacy path in A5).
 //
 
 import WenshuAgent
@@ -116,9 +120,44 @@ final class ImportAgentDriverTests: XCTestCase {
         )
     }
 
-    // MARK: - No SOP for non-world folder
+    // MARK: - Every import folder resolves its own SOP
 
-    func testRunWithNonWorldFolderThrowsNoSOPError() async throws {
+    func testRunWithCharactersFolderLoadsTheCharactersSOP() async throws {
+        // The sheet lets the user pick all six import folders,
+        // = so each one must resolve a procedure (= a folder
+        // without a procedure was a dead end).
+        let stub = WorldFolderStubConnector()
+        let driver = ImportAgentDriver(
+            connector: stub,
+            modelSlug: "stub"
+        )
+        let context = ImportAgentBookContext(
+            bookPath: { "/ws/twelve-immortals" }
+        )
+        let input = ImportAgentDriver.TaskInput(
+            filePath: "/tmp/source.md",
+            body: "x",
+            bookPath: "/ws/twelve-immortals",
+            bookTitle: "twelve-immortals",
+            targetFolder: .characters
+        )
+        let result = try await driver.run(
+            input: input,
+            bookContext: context,
+            progress: nil
+        )
+        XCTAssertEqual(result.sopName, "ImportCharactersPrompt")
+        // The procedure names its own folder (= not the world one).
+        let systemPrompt = stub.receivedOptions.last?.systemPrompt ?? ""
+        XCTAssertTrue(
+            systemPrompt.contains("characters"),
+            "The characters procedure must name the characters folder."
+        )
+    }
+
+    // MARK: - No SOP for a folder without an import template
+
+    func testRunWithFolderWithoutImportTemplateThrowsNoSOPError() async throws {
         let stub = WorldFolderStubConnector()
         let driver = ImportAgentDriver(
             connector: stub,
@@ -127,13 +166,13 @@ final class ImportAgentDriverTests: XCTestCase {
         let context = ImportAgentBookContext(
             bookPath: { "/ws/十二地仙" }
         )
-        // characters folder = no SOP yet
+        // sessions folder = no import template = no SOP
         let input = ImportAgentDriver.TaskInput(
             filePath: "/tmp/source.md",
             body: "x",
             bookPath: "/ws/十二地仙",
             bookTitle: "十二地仙",
-            targetFolder: .characters
+            targetFolder: .sessions
         )
         do {
             _ = try await driver.run(
@@ -148,7 +187,7 @@ final class ImportAgentDriverTests: XCTestCase {
                 return
             }
             if case .noSOPForFolder(let f) = driverError {
-                XCTAssertEqual(f, .characters)
+                XCTAssertEqual(f, .sessions)
             } else {
                 XCTFail("Expected noSOPForFolder, got \(driverError)")
             }

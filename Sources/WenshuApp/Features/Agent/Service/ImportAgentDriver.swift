@@ -74,13 +74,18 @@ struct ImportAgentDriver: Sendable {
             throw ImportAgentError.sopLoadFailed(underlying: String(describing: error))
         }
 
-        // ── Step 3: substitute placeholders (= body, filePath, bookPath, bookTitle).
+        // ── Step 3: substitute placeholders (= body, filePath, bookPath, bookTitle,
+        // = the target folder's own name + its mandatory sections). The folder is
+        // the one the agent writes into (= the one whose procedure was loaded
+        // above; = the procedure names its own folder and its own sections
+        // instead of hardcoding them).
         let sop = ImportSOPLoader.substitute(
             sopRaw,
             filePath: input.filePath,
             body: input.body,
             bookPath: input.bookPath,
-            bookTitle: input.bookTitle
+            bookTitle: input.bookTitle,
+            folder: input.targetFolder
         )
 
         // ── Step 4: build the user message (= short; = the SOP tells the agent how).

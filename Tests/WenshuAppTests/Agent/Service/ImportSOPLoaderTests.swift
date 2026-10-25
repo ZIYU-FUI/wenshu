@@ -31,17 +31,52 @@ final class ImportSOPLoaderTests: XCTestCase {
         )
     }
 
-    func testSopNameForOtherFoldersReturnsNil() {
-        // Per boss 2026-10-10 "我建议你
-        // 导入世界观就单独的一个提示
-        // 词文件, 别和导入其他的通
-        // 用": only world has a SOP
-        // right now.
-        XCTAssertNil(ImportSOPTrigger.sopName(for: .characters))
-        XCTAssertNil(ImportSOPTrigger.sopName(for: .outlines))
-        XCTAssertNil(ImportSOPTrigger.sopName(for: .chapters))
-        XCTAssertNil(ImportSOPTrigger.sopName(for: .drafts))
-        XCTAssertNil(ImportSOPTrigger.sopName(for: .ideas))
+    func testSopNameForEveryFolderWithAnImportTemplateReturnsItsProcedure() {
+        // Every folder that declares an import template owns a
+        // procedure file (= the six import folders; = the sheet
+        // lets the user pick all six).
+        XCTAssertEqual(
+            ImportSOPTrigger.sopName(for: .characters),
+            "ImportCharactersPrompt"
+        )
+        XCTAssertEqual(
+            ImportSOPTrigger.sopName(for: .outlines),
+            "ImportOutlinesPrompt"
+        )
+        XCTAssertEqual(
+            ImportSOPTrigger.sopName(for: .chapters),
+            "ImportChaptersPrompt"
+        )
+        XCTAssertEqual(
+            ImportSOPTrigger.sopName(for: .drafts),
+            "ImportDraftsPrompt"
+        )
+        XCTAssertEqual(
+            ImportSOPTrigger.sopName(for: .ideas),
+            "ImportIdeasPrompt"
+        )
+    }
+
+    func testSopNameResolvesEveryFolderThatDeclaresAnImportTemplate() {
+        // The lookup runs over the folder's own import-template
+        // property (= the declared set of folders that own a
+        // procedure); = so a template without a procedure file
+        // shows up here instead of at runtime.
+        for folder in BookFolder.allCases where folder.importTemplate != nil {
+            XCTAssertNotNil(
+                ImportSOPTrigger.sopName(for: folder),
+                "Folder '\(folder.rawValue)' declares an import template, = so it needs a procedure."
+            )
+        }
+    }
+
+    func testSopNameForFolderWithoutImportTemplateReturnsNil() {
+        // A folder with no import template has no document shape
+        // to write (= sessions / foreshadowing / placeholders), = so
+        // it has no procedure.
+        XCTAssertNil(ImportSOPTrigger.sopName(for: .sessions))
+        XCTAssertNil(ImportSOPTrigger.sopName(for: .foreshadowing))
+        XCTAssertNil(ImportSOPTrigger.sopName(for: .placeholders))
     }
 
     // MARK: - loadRaw(named:) — needs the real bundle
@@ -110,14 +145,15 @@ final class ImportSOPLoaderTests: XCTestCase {
             input,
             filePath: "/tmp/a.md",
             body: "hello world content here",
-            bookPath: "/ws/十二地仙",
-            bookTitle: "十二地仙"
+            bookPath: "/ws/twelve-immortals",
+            bookTitle: "twelve-immortals",
+            folder: .world
         )
 
         XCTAssertTrue(out.contains("/tmp/a.md"))
         XCTAssertTrue(out.contains("hello world content here"))
-        XCTAssertTrue(out.contains("/ws/十二地仙"))
-        XCTAssertTrue(out.contains("十二地仙"))
+        XCTAssertTrue(out.contains("/ws/twelve-immortals"))
+        XCTAssertTrue(out.contains("twelve-immortals"))
         // today should be filled with a
         // non-empty ISO-8601 date string.
         XCTAssertFalse(out.contains("{today}"))
@@ -136,7 +172,8 @@ final class ImportSOPLoaderTests: XCTestCase {
             filePath: "/tmp/a.md",
             body: "x",
             bookPath: "/ws",
-            bookTitle: "T"
+            bookTitle: "T",
+            folder: .world
         )
         XCTAssertTrue(out.contains("known: /tmp/a.md"))
         XCTAssertTrue(
@@ -159,8 +196,136 @@ final class ImportSOPLoaderTests: XCTestCase {
             filePath: "/x",
             body: body,
             bookPath: "/y",
-            bookTitle: "z"
+            bookTitle: "z",
+            folder: .world
         )
         XCTAssertEqual(out, body)
+    }
+
+    // MARK: - substitute(...) — the folder's own name + sections
+
+    func testSubstituteFillsTheTargetFolderNameAndItsMandatorySections() {
+        // The procedure names its own folder and carries the
+        // folder's mandatory sections (= read from the folder's
+        // document template at run time; = the procedure file
+        // itself never spells them out).
+        for folder in BookFolder.allCases where folder.importTemplate != nil {
+            let input = "folder: {folderName}\nsections:\n{sectionHeadings}"
+            let out = ImportSOPLoader.substitute(
+                input,
+                filePath: "/tmp/a.md",
+                body: "body",
+                bookPath: "/ws",
+                bookTitle: "T",
+                folder: folder
+            )
+            XCTAssertTrue(
+                out.contains(folder.directoryName),
+                "The procedure must name the target folder '\(folder.directoryName)'."
+            )
+            let sections = ImportSOPTrigger.mandatorySections(for: folder)
+            XCTAssertFalse(
+                sections.isEmpty,
+                "Folder '\(folder.rawValue)' declares an import template, = so it has mandatory sections."
+            )
+            for section in sections {
+                XCTAssertTrue(
+                    out.contains(section.title),
+                    "The procedure must carry the mandatory section '\(section.title)' of folder '\(folder.rawValue)'."
+                )
+            }
+            XCTAssertFalse(out.contains("{folderName}"))
+            XCTAssertFalse(out.contains("{sectionHeadings}"))
+        }
+    }
+
+    func testMandatorySectionsComeFromTheFolderTemplate() {
+        // The sections are the template's own (= the template owns
+        // the skeleton; = a template change reaches the procedure
+        // without editing the procedure).
+        for folder in BookFolder.allCases where folder.importTemplate != nil {
+            let sections = ImportSOPTrigger.mandatorySections(for: folder)
+            XCTAssertFalse(sections.isEmpty)
+            for section in sections {
+                XCTAssertTrue(
+                    folder.importTemplate?.skeleton.contains(section.title) ?? false,
+                    "Section '\(section.title)' must come from the folder's template."
+                )
+            }
+        }
+    }
+
+    // MARK: - The procedure files themselves
+
+    func testEveryProcedureFileCarriesItsFolderMandatorySections() throws {
+        // One procedure file per folder that has an import
+        // template (= the file ships in the bundle via
+        // `.process("Resources")`); = after substitution the
+        // procedure text carries that folder's own mandatory
+        // sections (= read from the folder's template at run
+        // time; = the procedure file itself never spells them
+        // out).
+        for folder in BookFolder.allCases where folder.importTemplate != nil {
+            guard let sopName = ImportSOPTrigger.sopName(for: folder) else {
+                XCTFail("Folder '\(folder.rawValue)' has an import template but no procedure name.")
+                continue
+            }
+            let raw = try ImportSOPLoader(bundle: Bundle.module)
+                .loadRaw(named: sopName)
+            let out = ImportSOPLoader.substitute(
+                raw,
+                filePath: "/tmp/a.md",
+                body: "body",
+                bookPath: "/ws",
+                bookTitle: "T",
+                folder: folder
+            )
+            for section in ImportSOPTrigger.mandatorySections(for: folder) {
+                XCTAssertTrue(
+                    out.contains(section.title),
+                    "The procedure for '\(folder.rawValue)' must carry the mandatory section '\(section.title)'."
+                )
+            }
+            // The folder-scoped slots are filled in (= no marker
+            // survives the substitution). The world procedure is
+            // frozen and has no such slot, = so it carries none
+            // either.
+            XCTAssertFalse(
+                out.contains("{folderName}"),
+                "The procedure for '\(folder.rawValue)' still carries an unresolved folder slot."
+            )
+            XCTAssertFalse(
+                out.contains("{sectionHeadings}"),
+                "The procedure for '\(folder.rawValue)' still carries an unresolved section slot."
+            )
+        }
+    }
+
+    func testNewProcedureFilesCarryNoChineseCharacters() throws {
+        // The five new procedure files are English-only (= this
+        // project's rule: every tracked file and every prompt
+        // carries no Chinese characters). The world procedure is
+        // the one file of its kind that predates that rule, = so
+        // it is not checked here.
+        let newProcedures = [
+            "ImportCharactersPrompt",
+            "ImportOutlinesPrompt",
+            "ImportChaptersPrompt",
+            "ImportDraftsPrompt",
+            "ImportIdeasPrompt"
+        ]
+        for name in newProcedures {
+            let text = try ImportSOPLoader(bundle: Bundle.module)
+                .loadRaw(named: name)
+            let chinese = text.unicodeScalars.filter { scalar in
+                (0x4E00...0x9FFF).contains(scalar.value)
+                    || (0x3000...0x303F).contains(scalar.value)
+                    || (0xFF00...0xFFEF).contains(scalar.value)
+            }
+            XCTAssertTrue(
+                chinese.isEmpty,
+                "The procedure file '\(name).md' must be English-only, = but it carries \(chinese.count) Chinese characters."
+            )
+        }
     }
 }
