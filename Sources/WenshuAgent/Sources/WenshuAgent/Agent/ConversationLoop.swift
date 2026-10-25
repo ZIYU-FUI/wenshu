@@ -125,7 +125,9 @@ public actor ConversationLoop {
         // no matter what the user chose.
         settings: AgentSettings = .init(),
         // The turn's output budget (= see runTurn).
-        maxTokens: Int = 4096
+        maxTokens: Int = 4096,
+        // The thinking budget (= see runTurn).
+        thinkingBudget: Int? = nil
     ) async throws -> ConversationResult {
         let resolvedTaskId = taskId ?? UUID().uuidString
 
@@ -174,6 +176,7 @@ public actor ConversationLoop {
             systemPrompt: effectiveSystemPrompt,
             temperature: nil,
             reasoningEffort: reasoningEffort,
+            thinkingBudget: thinkingBudget,
             tools: toolSchemas
         )
 
@@ -239,7 +242,10 @@ public actor ConversationLoop {
         // The turn's output budget (= a task that writes several
         // documents needs more than a conversation; = the provider
         // counts the reasoning against the same budget).
-        maxTokens: Int = 4096
+        maxTokens: Int = 4096,
+        // The thinking budget (= the tokens the model may spend on its
+        // reasoning; = nil = the provider's own default).
+        thinkingBudget: Int? = nil
     ) async throws -> ConversationResult {
         let resolvedTaskId = taskId ?? UUID().uuidString
         var retry = TurnRetryState(maxAttempts: maxAttempts)
@@ -310,7 +316,8 @@ public actor ConversationLoop {
                     // the defaults, so a switch the user flipped would do
                     // nothing until the turn took the tool branch.
                     settings: settings,
-                    maxTokens: maxTokens
+                    maxTokens: maxTokens,
+                    thinkingBudget: thinkingBudget
                 )
 
                 // step 5: "Parsing response". The LLM

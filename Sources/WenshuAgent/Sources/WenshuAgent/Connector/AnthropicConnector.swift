@@ -79,7 +79,8 @@ public actor AnthropicConnector: LLMConnector {
             maxTokens: options.maxTokens,
             systemPrompt: options.systemPrompt,
             reasoningEffort: options.reasoningEffort,
-            tools: options.tools
+            tools: options.tools,
+            thinkingBudget: options.thinkingBudget
         )
 
         var request = URLRequest(url: url)
@@ -165,6 +166,7 @@ public actor AnthropicConnector: LLMConnector {
             systemPrompt: options.systemPrompt,
             messages: cachedMessages,
             tools: options.tools,
+            thinkingBudget: options.thinkingBudget,
             session: session
         )
         // T11b-WIRE-ANTHROPIC-STATEFUL (2026-09-18): use the stateful

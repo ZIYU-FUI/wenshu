@@ -119,7 +119,8 @@ public actor MinimaxConnector: LLMConnector {
             // the request body advertises them; = without this
             // field, Minimax-cn LLM defaults to plain text reply
             // even when the system prompt demands tools).
-            tools: options.tools
+            tools: options.tools,
+            thinkingBudget: options.thinkingBudget
         )
 
         var request = URLRequest(url: url)
@@ -208,6 +209,7 @@ public actor MinimaxConnector: LLMConnector {
             systemPrompt: options.systemPrompt,
             messages: cachedMessages,
             tools: options.tools,
+            thinkingBudget: options.thinkingBudget,
             session: session
         )
         // T11b-WIRE-ANTHROPIC-STATEFUL (parity with AnthropicConnector):

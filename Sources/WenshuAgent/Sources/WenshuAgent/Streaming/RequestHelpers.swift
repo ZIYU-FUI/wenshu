@@ -23,12 +23,23 @@ public enum RequestHelpers {
         // / Tool schemas to advertise to the model. Empty (= default)
         // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // / `tools` array of `{name, description, input_schema}` objects.
-        tools: [ToolRegistrySchema] = []
+        tools: [ToolRegistrySchema] = [],
+        // / The thinking budget (= the Anthropic-compatible shape). The
+        // / provider counts the reasoning against the same budget as the
+        // / answer, = so a task that writes several documents needs the
+        // / reasoning held down. nil (= the provider's own default).
+        thinkingBudget: Int? = nil
     ) throws -> Data {
         var body: [String: Any] = [
             "model": model,
             "max_tokens": maxTokens
         ]
+        if let thinkingBudget {
+            body["thinking"] = [
+                "type": "enabled",
+                "budget_tokens": thinkingBudget
+            ] as [String: Any]
+        }
         if let sys = systemPrompt, !sys.isEmpty {
             body["system"] = [
                 "type": "text",
@@ -286,6 +297,15 @@ public enum RequestHelpers {
             "system": systemPrompt ?? "",
             "messages": messagesPayload
         ]
+        if let thinkingBudget {
+            // The same key the Anthropic path uses (= a provider that
+            // does not know it refuses the request, = and the caller
+            // drops the budget and runs again).
+            body["thinking"] = [
+                "type": "enabled",
+                "budget_tokens": thinkingBudget
+            ] as [String: Any]
+        }
         if !tools.isEmpty {
             // Anthropic-compatible wire shape (= minimax-cn speaks the
             // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)

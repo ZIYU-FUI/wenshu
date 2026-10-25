@@ -90,6 +90,16 @@ public struct LLMCallOptions: Sendable {
     /// wired from SettingView picker through to connector adapters
     /// (= Anthropic thinking budget_tokens, OpenAI reasoning_effort, Gemini thinkingBudget).
     public let reasoningEffort: String?
+    /// The thinking budget (= the tokens the model may spend on its
+    /// reasoning; = the provider counts them against the same budget as
+    /// the answer).
+    ///
+    /// A task that writes several documents needs a big answer, and the
+    /// reasoning would eat it: = the turn ends in the middle of a plan
+    /// and nothing is written. A budget keeps the reasoning short so the
+    /// answer fits. nil (= the provider's own default; = the reasoning
+    /// is unbounded).
+    public let thinkingBudget: Int?
     /// Tool schemas made available to the model for this call.
     /// When non-empty, the connector serializes them into the provider's
     /// `tools` parameter so the model can issue `tool_use` blocks.
@@ -103,6 +113,7 @@ public struct LLMCallOptions: Sendable {
         systemPrompt: String? = nil,
         temperature: Double? = nil,
         reasoningEffort: String? = nil,
+        thinkingBudget: Int? = nil,
         tools: [ToolRegistrySchema] = []
     ) {
         self.model = model
@@ -110,6 +121,7 @@ public struct LLMCallOptions: Sendable {
         self.systemPrompt = systemPrompt
         self.temperature = temperature
         self.reasoningEffort = reasoningEffort
+        self.thinkingBudget = thinkingBudget
         self.tools = tools
     }
 }
