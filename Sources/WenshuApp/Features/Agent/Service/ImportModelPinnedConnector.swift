@@ -56,6 +56,11 @@ struct ImportModelPinnedConnector: LLMConnector {
     }
 
     /// The same call options, with the model replaced.
+    ///
+    /// Every setting travels with it (= the token cap, = the thinking
+    /// budget, = the tool declarations): the pin replaces the model and
+    /// nothing else, = so a setting that is dropped here never reaches
+    /// the provider.
     private func pinned(_ options: LLMCallOptions) -> LLMCallOptions {
         LLMCallOptions(
             model: model,
@@ -63,6 +68,7 @@ struct ImportModelPinnedConnector: LLMConnector {
             systemPrompt: options.systemPrompt,
             temperature: options.temperature,
             reasoningEffort: options.reasoningEffort,
+            thinkingBudget: options.thinkingBudget,
             tools: options.tools
         )
     }
