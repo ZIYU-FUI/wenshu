@@ -24,11 +24,17 @@ import WenshuAgent
 private final class SummaryStubConnector: LLMConnector, @unchecked Sendable {
     let answer: String
     let stopReason: LLMResponse.StopReason
+    let failure: Error?
     private(set) var callCount = 0
 
-    init(answer: String, stopReason: LLMResponse.StopReason = .endTurn) {
+    init(
+        answer: String,
+        stopReason: LLMResponse.StopReason = .endTurn,
+        failure: Error? = nil
+    ) {
         self.answer = answer
         self.stopReason = stopReason
+        self.failure = failure
     }
 
     var connectorID: String { "summary-stub" }
@@ -36,6 +42,7 @@ private final class SummaryStubConnector: LLMConnector, @unchecked Sendable {
 
     func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
         callCount += 1
+        if let failure { throw failure }
         return LLMResponse(
             id: "summary-stub",
             model: options.model,
@@ -159,5 +166,28 @@ struct ReferenceSummaryServiceTests {
         #expect(upserted.id == created.id)
         #expect(upserted.summary == "A survey of the harbor tide gauges.")
         #expect(connector.callCount == 1)
+    }
+
+    @Test("a model failure reaches the agent, and the document is not stored")
+    func modelFailureReachesTheAgent() async throws {
+        let store = try Self.makeStore()
+        let connector = SummaryStubConnector(
+            answer: "",
+            failure: ReferenceSummaryError.noConnector("anthropic")
+        )
+        let tool = ReferenceLibraryTool(
+            actor: ReferenceLibraryActor(
+                referenceStore: store,
+                summaryService: Self.makeService(connector)
+            )
+        )
+        let output = try await tool.execute(input: """
+        {"action":"create","title":"Harbor survey","layer":"raw","body":"# Harbor survey"}
+        """)
+        #expect(output.contains("\"ok\":false"))
+        #expect(output.contains("No chat model is available"))
+        // The document is not stored with a blank summary (= the call
+        // happens before the save).
+        #expect(try store.loadAllReferences().isEmpty)
     }
 }

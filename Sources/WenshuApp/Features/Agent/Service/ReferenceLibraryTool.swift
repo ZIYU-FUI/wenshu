@@ -193,7 +193,7 @@ final class ReferenceLibraryActor {
         // The call happens BEFORE the save: a document is never
         // stored with a blank summary, and a model failure surfaces
         // instead of passing for a saved document.
-        let resolvedSummary = try await resolveSummary(
+        let resolvedSummary = try await summaryOrThrow(
             requested: summary,
             title: trimmed,
             bodyMarkdown: bodyMarkdown
@@ -473,7 +473,7 @@ final class ReferenceLibraryActor {
             // The summary is written ONCE per document (= one model
             // call): a document that already carries one keeps it, and
             // a document without one gets one.
-            let resolvedSummary = try await resolveSummary(
+            let resolvedSummary = try await summaryOrThrow(
                 requested: summary,
                 title: trimmed,
                 bodyMarkdown: bodyMarkdown,

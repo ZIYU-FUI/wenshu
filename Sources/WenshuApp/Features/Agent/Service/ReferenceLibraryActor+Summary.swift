@@ -17,6 +17,31 @@ import Foundation
 
 extension ReferenceLibraryActor {
 
+    /// The summary to store, and the failure the caller sees.
+    ///
+    /// A model failure is a `ReferenceLibraryError` (= the tool's own
+    /// error type; = the agent reads the message, not the Swift type
+    /// of the error that crossed the boundary).
+    func summaryOrThrow(
+        requested: String,
+        title: String,
+        bodyMarkdown: String,
+        keeping existing: String = ""
+    ) async throws -> String {
+        do {
+            return try await resolveSummary(
+                requested: requested,
+                title: title,
+                bodyMarkdown: bodyMarkdown,
+                keeping: existing
+            )
+        } catch {
+            let reason = (error as? LocalizedError)?.errorDescription
+                ?? String(describing: error)
+            throw ReferenceLibraryError.underlying(reason)
+        }
+    }
+
     /// The summary to store on the document.
     ///
     /// - A caller that wrote a summary keeps it (= the caller's words
