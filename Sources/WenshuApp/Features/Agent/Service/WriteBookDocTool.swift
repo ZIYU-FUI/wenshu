@@ -40,8 +40,21 @@ struct WriteBookDocTool: Tool, Sendable {
     /// without exposing a public setter.
     let bookPathProvider: @Sendable () async -> String?
 
-    init(bookPathProvider: @escaping @Sendable () async -> String?) {
+    /// The one folder this run may write into (= the folder the user
+    /// picked in the import sheet).
+    ///
+    /// The book root holds six folders, and a run belongs to exactly one
+    /// of them. So the tool refuses a path that leaves that folder: the
+    /// user's choice is the destination, and a model that writes
+    /// elsewhere has not changed it.
+    let targetFolderName: String
+
+    init(
+        bookPathProvider: @escaping @Sendable () async -> String?,
+        targetFolderName: String
+    ) {
         self.bookPathProvider = bookPathProvider
+        self.targetFolderName = targetFolderName
     }
 
     /// Tool output (= the JSON the agent
@@ -123,6 +136,19 @@ struct WriteBookDocTool: Tool, Sendable {
                 underlying: PathGuard.GuardError.invalidPath(
                     reason: "resolved path escapes the book root"
                 )
+            )
+        }
+        // Folder-guard (= the tool refuses to leave the folder the user
+        // picked). The book's root holds six folders; = a run writes into
+        // one of them; = the model's choice of a path never widens that.
+        let firstComponent = relPath
+            .split(separator: "/")
+            .first
+            .map(String.init) ?? ""
+        guard firstComponent == targetFolderName else {
+            throw ToolExecutorError.invalidInput(
+                name: "writeBookDoc",
+                reason: "Path must stay inside the '\(targetFolderName)' folder (= the folder this import writes into): '\(relPath)'"
             )
         }
         // (boss 2026-10-10 (see OOB.md #2026-10-10) PO 双轴 test failure in worker): create

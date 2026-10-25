@@ -87,7 +87,10 @@ struct CoverAutoTriggerDeliveryTests {
         let bookRoot = URL(fileURLWithPath: "/tmp/wenshu-cover-delivery-book-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: bookRoot, withIntermediateDirectories: true)
 
-        let tool = WriteBookDocTool(bookPathProvider: { bookRoot.path })
+        let tool = WriteBookDocTool(
+            bookPathProvider: { bookRoot.path },
+            targetFolderName: "world"
+        )
         _ = try await tool.execute(input: """
         {"path": "world/notes.md", "body": "# Notes\\n\\nA note."}
         """)

@@ -15,6 +15,10 @@
 //       pathGuardViolation).
 //    4. No active book rejected (= must
 //       throw invalidInput).
+//    5. A path outside the folder the
+//       user picked is rejected (= the
+//       user's choice owns the
+//       destination).
 //
 
 import WenshuAgent
@@ -46,7 +50,8 @@ final class WriteBookDocToolTests: XCTestCase {
     func testWriteRelativePathSucceeds() async throws {
         let bookPath = tempDir.path
         let tool = WriteBookDocTool(
-            bookPathProvider: { bookPath }
+            bookPathProvider: { bookPath },
+            targetFolderName: "world"
         )
         let input = """
         {"path": "world/核心设定.md", "body": "# 核心设定\\n\\ncontent here"}
@@ -81,7 +86,8 @@ final class WriteBookDocToolTests: XCTestCase {
     func testAbsolutePathIsRejected() async throws {
         let bookPath = tempDir.path
         let tool = WriteBookDocTool(
-            bookPathProvider: { bookPath }
+            bookPathProvider: { bookPath },
+            targetFolderName: "world"
         )
         let input = """
         {"path": "/etc/passwd", "body": "sneaky"}
@@ -108,7 +114,8 @@ final class WriteBookDocToolTests: XCTestCase {
     func testParentDirectoryEscapeIsRejected() async throws {
         let bookPath = tempDir.path
         let tool = WriteBookDocTool(
-            bookPathProvider: { bookPath }
+            bookPathProvider: { bookPath },
+            targetFolderName: "world"
         )
         let input = """
         {"path": "../escape.md", "body": "escape attempt"}
@@ -133,7 +140,8 @@ final class WriteBookDocToolTests: XCTestCase {
 
     func testNoActiveBookIsRejected() async throws {
         let tool = WriteBookDocTool(
-            bookPathProvider: { nil }
+            bookPathProvider: { nil },
+            targetFolderName: "world"
         )
         let input = """
         {"path": "world/核心设定.md", "body": "x"}
@@ -160,7 +168,8 @@ final class WriteBookDocToolTests: XCTestCase {
     func testMissingBodyFieldIsRejected() async throws {
         let bookPath = tempDir.path
         let tool = WriteBookDocTool(
-            bookPathProvider: { bookPath }
+            bookPathProvider: { bookPath },
+            targetFolderName: "world"
         )
         let input = """
         {"path": "world/x.md"}
@@ -171,6 +180,75 @@ final class WriteBookDocToolTests: XCTestCase {
         } catch {
             // Expected (= parse failure or
             // toolFailed).
+        }
+    }
+
+    // MARK: - The user's folder owns the destination
+
+    /// The book root holds six folders, and a run writes into exactly one
+    /// of them: the one the user picked. So a write that names a
+    /// different folder is refused, and nothing lands outside.
+    func testAPathOutsideTheUsersFolderIsRejected() async throws {
+        let bookPath = tempDir.path
+        let tool = WriteBookDocTool(
+            bookPathProvider: { bookPath },
+            targetFolderName: "world"
+        )
+        let input = """
+        {"path": "chapters/stray.md", "body": "wrong folder"}
+        """
+        do {
+            _ = try await tool.execute(input: input)
+            XCTFail("Expected invalidInput for a path outside the user's folder.")
+        } catch {
+            guard let err = error as? ToolExecutorError else {
+                XCTFail("Expected ToolExecutorError, got \(error)")
+                return
+            }
+            if case let .invalidInput(name, reason) = err {
+                XCTAssertEqual(name, "writeBookDoc")
+                XCTAssertTrue(
+                    reason.contains("world"),
+                    "The reason must name the folder the import writes into. Got: \(reason)"
+                )
+            } else {
+                XCTFail("Expected invalidInput, got \(err)")
+            }
+        }
+        // Nothing landed, neither in the folder the user picked nor in
+        // the one the model named.
+        for folder in ["world", "chapters"] {
+            let landed = (try? FileManager.default.contentsOfDirectory(
+                atPath: tempDir.appendingPathComponent(folder).path
+            )) ?? []
+            XCTAssertTrue(landed.isEmpty, "\(folder) must stay empty.")
+        }
+    }
+
+    /// A file directly in the book root (= no folder) is outside the
+    /// user's folder too.
+    func testAPathWithoutAFolderIsRejected() async throws {
+        let bookPath = tempDir.path
+        let tool = WriteBookDocTool(
+            bookPathProvider: { bookPath },
+            targetFolderName: "world"
+        )
+        let input = """
+        {"path": "stray.md", "body": "no folder"}
+        """
+        do {
+            _ = try await tool.execute(input: input)
+            XCTFail("Expected invalidInput for a path with no folder.")
+        } catch {
+            guard let err = error as? ToolExecutorError else {
+                XCTFail("Expected ToolExecutorError, got \(error)")
+                return
+            }
+            if case .invalidInput = err {
+                // expected
+            } else {
+                XCTFail("Expected invalidInput, got \(err)")
+            }
         }
     }
 }

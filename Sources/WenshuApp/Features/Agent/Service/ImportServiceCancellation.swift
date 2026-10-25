@@ -47,6 +47,11 @@ extension ImportService {
         for url in writtenURLs.reversed() {
             try? FileManager.default.removeItem(at: url)
         }
+        // 1b. Remove what the agent wrote into the book (= in the
+        // reorganize mode the agent is the only writer; = so the
+        // orchestrator's own trail is empty and the tree diff is what
+        // finds the agent's files).
+        removeBookTreeChanges()
         // 2. Restore the prior `entities.json` content (= the orchestrator captured the
         // file's content at `importFiles` start; = a fresh library has an
         // empty snapshot = the file should not exist post-rollback; = a
@@ -106,6 +111,53 @@ extension ImportService {
         isCancelled = false
         writtenURLs = []
         entitiesJSONSnapshot = nil
+        bookTreeSnapshot = .init()
+        bookRootURL = nil
+    }
+
+    /// Snapshot the book tree before the run (= the rollback diffs the
+    /// tree against it; = the agent writes into the book directly, = so
+    /// the orchestrator cannot know the written files from its own
+    /// bookkeeping).
+    func snapshotBookTree(target: ImportTarget) {
+        guard let bookId = target.bookId,
+              let shelfId = target.shelfId else { return }
+        let root = target.shelvesRoot
+            .appendingPathComponent(shelfId.uuidString)
+            .appendingPathComponent("books")
+            .appendingPathComponent(bookId.uuidString)
+        bookRootURL = root
+        bookTreeSnapshot = ImportServiceBookTree.snapshot(root)
+    }
+
+    /// Remove what the run wrote into the book (= the agent's own
+    /// writes; = the orchestrator's own trail covers the files it wrote
+    /// itself).
+    ///
+    /// A file that is new, or that changed, was written by this run. A
+    /// directory the run created goes too (= the boss's directive is
+    /// "不留痕" = leave no trace).
+    func removeBookTreeChanges() {
+        guard let root = bookRootURL else { return }
+        for url in ImportServiceBookTree.changedFiles(
+            since: bookTreeSnapshot,
+            in: root
+        ) {
+            try? FileManager.default.removeItem(at: url)
+        }
+        // The directories the run created (= deepest first; = a directory
+        // can only go after the one inside it is gone).
+        for url in ImportServiceBookTree.createdDirectories(
+            since: bookTreeSnapshot,
+            in: root
+        ) {
+            let contents = (try? FileManager.default.contentsOfDirectory(
+                atPath: url.path
+            )) ?? []
+            if contents.isEmpty {
+                try? FileManager.default.removeItem(at: url)
+            }
+        }
     }
 
     /// Snapshot the reference-library `entities.json` for the cancel handler to

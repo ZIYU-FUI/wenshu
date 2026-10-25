@@ -328,4 +328,42 @@ final class ImportSOPLoaderTests: XCTestCase {
             )
         }
     }
+
+    // MARK: - The procedure tells the agent a relative path
+
+    /// The write tool takes a path relative to the book root, and it
+    /// refuses a path that leaves the folder the user picked. So a
+    /// procedure that hands the model an absolute path sends every
+    /// write into the refusal (= the import lands nothing).
+    func testEveryProcedureHandsTheModelARelativePath() throws {
+        for folder in BookFolder.allCases {
+            guard let name = ImportSOPTrigger.sopName(for: folder) else { continue }
+            let raw = try ImportSOPLoader().loadRaw(named: name)
+            // The path rows are the ones that name a document path.
+            for line in raw.components(separatedBy: "\n") {
+                guard line.contains("`path`") || line.contains("`world/")
+                    || line.contains("`characters/") || line.contains("`outlines/")
+                    || line.contains("`chapters/") || line.contains("`drafts/")
+                    || line.contains("`ideas/") else { continue }
+                XCTAssertFalse(
+                    line.contains("{bookPath}"),
+                    "\(name) must not hand the model a path built from {bookPath}; = the tool takes a path relative to the book root. Line: \(line)"
+                )
+            }
+        }
+    }
+
+    /// The world procedure is the one that was written before the tool
+    /// settled on a relative path, so it gets its own explicit check.
+    func testTheWorldProcedureNamesARelativePath() throws {
+        let raw = try ImportSOPLoader().loadRaw(named: "ImportWorldPrompt")
+        XCTAssertFalse(
+            raw.contains("{bookPath}/"),
+            "The world procedure must not build a document path from {bookPath}; = the tool takes a path relative to the book root."
+        )
+        XCTAssertTrue(
+            raw.contains("`world/<title>.md`"),
+            "The world procedure must name the relative path of the index document."
+        )
+    }
 }

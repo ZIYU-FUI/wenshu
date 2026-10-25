@@ -49,6 +49,20 @@ actor ImportService {
     /// can re-import from a clean state).
     var entitiesJSONSnapshot: (path: URL, content: Data)? = nil
 
+    /// The book's file tree as it was before this run (= one stamp per
+    /// file: = its size + its modification date).
+    ///
+    /// The agent is the only writer in the reorganize mode, so the
+    /// orchestrator cannot know which files it wrote from its own
+    /// bookkeeping. It can know by looking: the tree before the run, and
+    /// the tree after it. A file that is new, or that changed, was
+    /// written by this run; = it belongs in the rollback trail.
+    var bookTreeSnapshot: ImportServiceBookTree.Snapshot = .init()
+
+    /// The book root this run writes into (= nil when the run targets the
+    /// reference library; = there is no book tree to roll back then).
+    var bookRootURL: URL? = nil
+
     /// Per-task mutable state used by the `dispatchLLM` helper (= extensions
     /// can't hold stored properties; = this lives on the actor).
     /// `lastDispatchError` is the final error from the last failed LLM attempt;
@@ -183,6 +197,10 @@ actor ImportService {
         extensions: Set<String> = ["md"]
     ) async -> [ImportTask] {
         resetRollbackTrail()
+        // The book tree before this run (= the rollback diffs against it;
+        // = the agent writes into the book directly, = so the orchestrator
+        // cannot know the written files from its own bookkeeping).
+        snapshotBookTree(target: target)
         // Phase 1: walk.
         let mdFiles = ImportServiceFileSystem.walkSourceDir(sourceDir, extensions: extensions)
         var tasks = mdFiles.map { ImportTask(sourcePath: $0.path) }

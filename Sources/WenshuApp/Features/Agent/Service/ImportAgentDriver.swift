@@ -129,7 +129,8 @@ struct ImportAgentDriver: Sendable {
         let toolHandler = WriteBookDocTool(
             bookPathProvider: { [bookContext] in
                 await bookContext.bookPath()
-            }
+            },
+            targetFolderName: input.targetFolder.directoryName
         )
 
         // ── Step 6: build the conversation loop. The connector is wrapped so
