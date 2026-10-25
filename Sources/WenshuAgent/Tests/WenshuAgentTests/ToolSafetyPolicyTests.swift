@@ -70,7 +70,7 @@ struct ToolSafetyPolicyTests {
     @Test("A tool outside the hazard class is never refused by the policy")
     func ordinaryToolNotRefused() {
         let values = policy()
-        for tool in ["book_chapter", "ReadFile", "web_search", "llm_wiki"] {
+        for tool in ["book_chapter", "ReadFile", "web_search", "reference_library"] {
             #expect(
                 ToolSafetyPolicy.refusal(toolName: tool, values: values) == nil,
                 "\(tool) is not in the hazard class and must not be refused"

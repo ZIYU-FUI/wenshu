@@ -529,8 +529,7 @@ public enum SystemPrompt {
             return """
             Knowledge guidance:
             - Use reference_library to read and extend the user's own
-              reference material, and llm_wiki to research and derive
-              background material for a book.
+              reference material.
             - Load the relevant knowledge before writing when the request
               depends on domain detail you do not already have.
             """
