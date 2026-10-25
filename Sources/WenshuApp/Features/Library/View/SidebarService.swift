@@ -313,10 +313,7 @@ final class SidebarService {
                 id: UUID(uuidString: Self.stableFolderId(bookId: book.id, folderName: folder.name)) ?? UUID(),
                 kind: .book,
                 title: folder.displayName,
-                subtitle: String(
-                    localized: "assets.count.label",
-                    defaultValue: "\(count) items"
-                ),
+                subtitle: "\(count) 项",
                 systemImage: folder.icon,
                 children: nil
             )
