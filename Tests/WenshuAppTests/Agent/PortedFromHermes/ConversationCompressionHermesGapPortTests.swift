@@ -24,22 +24,22 @@ final class ConversationCompressionHermesGapPortTests: XCTestCase {
 
     // MARK: -- P8.1 ensureCompressedHasUserTurn tests (= hermes L394-L432)
 
-    func testEnsureCompressedHasUserTurn_compressedHasUserTurn_earlyReturn() {
+    func testEnsureCompressedHasUserTurn_compressedHasUserTurn_earlyReturn() async {
         let compressor = ConversationCompression()
         let original: [LLMMessage] = []
         var compressed: [LLMMessage] = [
             LLMMessage(role: .user, blocks: [.text("hi")])
         ]
         let initialCount = compressed.count
-        Task {
-            await compressor.ensureCompressedHasUserTurn(
-                originalMessages: original,
-                compressed: &compressed
-            )
-        }
-        // Note: actor isolation means we can't easily await
-        // here. The test verifies the early-return logic via
-        // synchronous fallback (= we'll do that next).
+        // The call is awaited here (= a task that captured the list
+        // would mutate it after the test returned, = which is a data
+        // race and can hang the whole run).
+        await compressor.ensureCompressedHasUserTurn(
+            originalMessages: original,
+            compressed: &compressed
+        )
+        // The early return leaves the compressed list alone.
+        XCTAssertEqual(compressed.count, initialCount)
     }
 
     func testEnsureCompressedHasUserTurn_syncTest_compressedHasUser_earlyReturn() async {
