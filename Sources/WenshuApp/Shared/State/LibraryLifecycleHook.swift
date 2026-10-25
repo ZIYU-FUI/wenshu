@@ -35,6 +35,15 @@ struct LibraryLifecycleHook: Sendable {
         let shelves = wsRoot.appendingPathComponent("shelves", isDirectory: true)
         let referenceLibraryRoot = wsRoot.appendingPathComponent("reference-library", isDirectory: true)
         let referenceStore = FileSystemReferenceStore(referenceLibraryRoot: referenceLibraryRoot)
+        // The agent's reference-library tool reads the library from
+        // here. The tool registry needs an instance of the tool
+        // before the library exists, so the tool used to run against
+        // a throwaway /tmp root: every document the agent wrote landed
+        // there, invisible in the user's library.
+        ReferenceLibraryLocator.shared.bind(
+            referenceStore: referenceStore,
+            referenceLibraryRoot: referenceLibraryRoot
+        )
         return LibraryStores(
             shelvesRoot: shelves,
             referenceLibraryRoot: referenceLibraryRoot,

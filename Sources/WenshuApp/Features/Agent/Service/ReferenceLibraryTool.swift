@@ -122,7 +122,18 @@ enum ReferenceLibraryError: Error, LocalizedError, Sendable, Equatable {
 
 @MainActor
 final class ReferenceLibraryActor {
-    private let referenceStore: any ReferenceStoring
+    /// The store the actor reads and writes.
+    ///
+    /// It is resolved at CALL time, not at construction time: the
+    /// agent's tool is built by the tool registry before the user's
+    /// library exists, and the documents the agent writes have to
+    /// land in the library that is open now (= the locator binds it
+    /// at launch).
+    private let referenceStoreProvider: @MainActor () -> any ReferenceStoring
+
+    /// The store the actor writes to (= the bound library, or the
+    /// store it was built with).
+    private var referenceStore: any ReferenceStoring { referenceStoreProvider() }
 
     /// The service that writes the semantic summary of a document
     /// (= nil = no model is wired, = the document keeps whatever
@@ -133,7 +144,17 @@ final class ReferenceLibraryActor {
         referenceStore: any ReferenceStoring,
         summaryService: ReferenceSummaryService? = nil
     ) {
-        self.referenceStore = referenceStore
+        self.referenceStoreProvider = { referenceStore }
+        self.summaryService = summaryService
+    }
+
+    /// The variant that resolves the store at call time (= the agent's
+    /// tool).
+    init(
+        referenceStoreProvider: @escaping @MainActor () -> any ReferenceStoring,
+        summaryService: ReferenceSummaryService? = nil
+    ) {
+        self.referenceStoreProvider = referenceStoreProvider
         self.summaryService = summaryService
     }
 
@@ -916,12 +937,18 @@ extension ReferenceLibraryTool {
 
     @MainActor
     static let shared: ReferenceLibraryTool = {
-        let tmpRoot = URL(fileURLWithPath: "/tmp/wenshu-toolregistry-references-\(UUID().uuidString)", isDirectory: true)
-        try? FileManager.default.createDirectory(at: tmpRoot, withIntermediateDirectories: true)
-        let store = FileSystemReferenceStore(referenceLibraryRoot: tmpRoot)
+        // The fallback for the window between the tool registry's
+        // registration and the launch sequence (= the library does
+        // not exist yet). Once the launch sequence has bound the
+        // library, the tool writes into it.
+        let fallbackRoot = URL(fileURLWithPath: "/tmp/wenshu-toolregistry-references-\(UUID().uuidString)", isDirectory: true)
+        try? FileManager.default.createDirectory(at: fallbackRoot, withIntermediateDirectories: true)
+        let fallbackStore = FileSystemReferenceStore(referenceLibraryRoot: fallbackRoot)
         return ReferenceLibraryTool(
             actor: ReferenceLibraryActor(
-                referenceStore: store,
+                referenceStoreProvider: {
+                    ReferenceLibraryLocator.shared.referenceStore ?? fallbackStore
+                },
                 // The app's own chat model writes the summary of a
                 // document that has none (= the routing line the agent
                 // reads before it opens the body).
