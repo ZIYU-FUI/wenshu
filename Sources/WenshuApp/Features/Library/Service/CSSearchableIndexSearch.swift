@@ -86,11 +86,14 @@ struct SearchDocMirrorEntry: Equatable, Sendable {
 ///
 /// Actor-isolated (= 1:1 with FullTextSearch actor contract).
 actor CSSearchableIndexSearch {
-    /// In-process mirror of indexed docs (= fallback when Spotlight disabled).
-    /// Persisted to disk via `SearchDocMirrorPersistence` (= see
-    /// Persistence/SearchDocMirrorPersistence.swift; = written every
-    /// `index(docId:title:body:)` call; = loadable on next launch via
-    /// `loadPersistedMirror()`).
+    /// In-process mirror of indexed docs (= the app's own live view of
+    /// what it indexed in this session).
+    ///
+    /// It is NOT persisted: the mirror lives for the process, and the
+    /// system Spotlight index is the durable half. (= the search
+    /// answers from both, because each half knows something the other
+    /// does not: the mirror knows what was indexed a moment ago, the
+    /// system index knows what was indexed in an earlier session.)
     private var mirror: [String: SearchDocMirrorEntry] = [:]
 
     /// Index-ready batch queue (= coalesces rapid `index` calls into 1 CSSearchableIndex call).
@@ -98,7 +101,9 @@ actor CSSearchableIndexSearch {
     private var pendingRemove: [String] = []
 
     init() {
-        // Public init = mirror empty; load from disk on first await via `bootstrap()`.
+        // Public init = the mirror starts empty (= it is the live
+        // view of this session; = the system Spotlight index holds
+        // the documents of the earlier ones).
     }
 
     /// Shared singleton so `Task.detached` auto-call hooks (= chapter /
@@ -111,8 +116,9 @@ actor CSSearchableIndexSearch {
     /// Apple HIG: CSSearchableIndex.default() returns the system Spotlight index
     /// (= created lazily by macOS on first write).
     func bootstrap() throws {
-        // Best-effort load of mirror from disk (= see SearchDocMirrorPersistence).
-        // Failure here is non-fatal (= mirror just starts empty).
+        // The mirror holds what this session indexed (= it is not
+        // persisted; = the system Spotlight index is the durable
+        // half), so there is nothing to load here.
     }
 
     /// Index one document (= upsert: remove then insert).
