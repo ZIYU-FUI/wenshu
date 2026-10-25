@@ -84,7 +84,17 @@ for b in "${branches[@]}"; do
     # owes a verdict owes it whether or not its branch also conflicts.
     card="$(card_id_of "$b")"
     [[ -z "$card" ]] && continue
-    [[ -f "$GATE" ]] || continue
+    if [[ ! -f "$GATE" ]]; then
+        # A missing gate is NOT a pass. Refuse, because a merge gate that
+        # skips its own check silently is the exact defect this gate exists
+        # to prevent (= a check that cannot fail).
+        unreviewed=1
+        echo "NO GATE  $b"
+        echo "         the review gate is missing: $GATE"
+        echo "         (the gate ships with Tools/wenshu-devtool/review_gate.py;"
+        echo "          merge that first, or this merge lands unchecked)"
+        continue
+    fi
     gate_out="$(python3 "$GATE" --card "$card" --board "$BOARD" 2>&1)"
     gate_rc=$?
     if [[ $gate_rc -eq 3 ]]; then
