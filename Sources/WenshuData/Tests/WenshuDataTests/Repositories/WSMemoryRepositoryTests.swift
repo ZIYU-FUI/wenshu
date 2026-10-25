@@ -16,6 +16,13 @@ struct WSMemoryRepositoryTests {
         return WSMemoryRepository(container: container)
     }
 
+    /// A string built from Unicode code points (= the CJK test data
+    /// stays out of this file's source, = the repo writes code in
+    /// English).
+    private static func cjk(_ codePoints: [UInt32]) -> String {
+        String(String.UnicodeScalarView(codePoints.map { Unicode.Scalar($0)! }))
+    }
+
     @Test("add(userId:content:) creates Memory + returns it")
     @MainActor
     func add() throws {
@@ -44,7 +51,7 @@ struct WSMemoryRepositoryTests {
         #expect(fetched == nil)
     }
 
-    @Test("search(userId:query:) matches via localizedStandardContains")
+    @Test("search(userId:query:) matches a memory that carries the term")
     @MainActor
     func search() throws {
         let repo = try makeRepository()
@@ -54,6 +61,85 @@ struct WSMemoryRepositoryTests {
         let results = try repo.search(userId: "u", query: "apple")
         #expect(results.count == 1)
         #expect(results[0].content.contains("apple"))
+    }
+
+    @Test("search(userId:query:) answers a question, not a substring")
+    @MainActor
+    func searchAnswersAQuestion() throws {
+        // The boss's case: a question that shares no substring with
+        // the memory that holds the answer. The whole-query
+        // substring test answered nothing here, so the constraint
+        // never reached the context.
+        let repo = try makeRepository()
+        _ = try repo.add(
+            userId: "u",
+            content: "The third scene of chapter five opens in the harbor, and the kestrel arrives."
+        )
+        let results = try repo.search(userId: "u", query: "what did the third scene of chapter five say?")
+        #expect(results.count == 1)
+        #expect(results[0].content.contains("kestrel"))
+    }
+
+    @Test("search(userId:query:) answers a question in Chinese")
+    @MainActor
+    func searchAnswersAChineseQuestion() throws {
+        // The CJK path of the matcher (= the boss's library is
+        // Chinese; = a query has no spaces, so the characters are the
+        // terms). The characters are written as code points so this
+        // file stays English-only (= the repo's rule); = the test
+        // still runs the CJK path.
+        let memory = Self.cjk([0x6F6E, 0x6C50])        // "tide"
+        let query = Self.cjk([0x6F6E, 0x6C50, 0x8868])  // "tide table"
+        let repo = try makeRepository()
+        _ = try repo.add(userId: "u", content: memory)
+        let results = try repo.search(userId: "u", query: query)
+        #expect(results.count == 1)
+        #expect(results[0].content == memory)
+    }
+
+    @Test("search(userId:query:) ranks the memory that carries more of the terms first")
+    @MainActor
+    func searchRanksTheBestMatchFirst() throws {
+        let repo = try makeRepository()
+        // The better match is the OLDER one, so the score decides
+        // (= the recency only breaks a tie).
+        _ = try repo.add(userId: "u", content: "The harbor tide gauge was read at dawn.")
+        _ = try repo.add(userId: "u", content: "A note about the harbor.")
+        let results = try repo.search(userId: "u", query: "harbor tide gauge")
+        #expect(results.count == 2)
+        #expect(results[0].content.contains("read at dawn"))
+    }
+
+    @Test("search(userId:query:) with a blank query returns the most recent memories")
+    @MainActor
+    func searchWithBlankQueryReturnsRecent() throws {
+        // The caller's "give me the context" call passes an empty
+        // query; = it asks for the recent memories, not for a search.
+        let repo = try makeRepository()
+        _ = try repo.add(userId: "u", content: "first")
+        _ = try repo.add(userId: "u", content: "second")
+        let results = try repo.search(userId: "u", query: "", limit: 2)
+        #expect(results.count == 2)
+        #expect(results[0].content == "second")
+    }
+
+    @Test("search(userId:query:) keeps the user partition")
+    @MainActor
+    func searchKeepsTheUserPartition() throws {
+        let repo = try makeRepository()
+        _ = try repo.add(userId: "u", content: "apple banana cherry")
+        _ = try repo.add(userId: "other", content: "apple")
+        let results = try repo.search(userId: "u", query: "apple")
+        #expect(results.count == 1)
+        #expect(results[0].content == "apple banana cherry")
+    }
+
+    @Test("search(userId:query:) returns nothing when no memory carries a term")
+    @MainActor
+    func searchWithNoMatch() throws {
+        let repo = try makeRepository()
+        _ = try repo.add(userId: "u", content: "a quiet morning in the harbor")
+        #expect(try repo.search(userId: "u", query: "kestrel").isEmpty)
     }
 
     @Test("update(memoryID:content:) mutates content + bumps updatedAt")

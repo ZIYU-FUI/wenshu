@@ -31,6 +31,11 @@ import SwiftData
 
 @MainActor
 public final class WSMemoryRepository {
+    /// How many of the user's memories a search ranks (= the candidate
+    /// pool; = the most recent ones, = the ones a question about the
+    /// current work is about).
+    static let candidatePoolSize = 500
+
     private let container: ModelContainer
     private var context: ModelContext { container.mainContext }
 
@@ -53,14 +58,48 @@ public final class WSMemoryRepository {
         return try context.fetch(descriptor).first
     }
 
+    /// The memories that answer a query.
+    ///
+    /// The query is a SET of terms, not a substring: the retrieval
+    /// used to ask whether the whole query string was a literal
+    /// substring of the memory, so a question ("what did the third
+    /// scene of this chapter say?") answered nothing every time and
+    /// the constraints never reached the context. The memories are
+    /// ranked by how many of the terms they carry, and the recency
+    /// breaks a tie.
+    ///
+    /// A blank query asks for the most recent memories (= the
+    /// caller's "give me the context" call; = not a search).
     public func search(userId: String, query: String, limit: Int = 10) throws -> [WSMemory] {
-        let descriptor = FetchDescriptor<WSMemory>(
-            predicate: #Predicate { mem in
-                mem.userID == userId && mem.content.localizedStandardContains(query)
-            },
+        var descriptor = FetchDescriptor<WSMemory>(
+            predicate: #Predicate { mem in mem.userID == userId },
             sortBy: [SortDescriptor(\.updatedAt, order: .reverse)]
         )
-        return try context.fetch(descriptor).prefix(limit).map { $0 }
+        // The ranking happens in memory (= SwiftData cannot compare
+        // term overlap), so the candidate pool is bounded: the
+        // memories the user wrote most recently.
+        descriptor.fetchLimit = Self.candidatePoolSize
+        let candidates = try context.fetch(descriptor)
+
+        let terms = MemorySearchTerms(query)
+        guard !terms.isEmpty else {
+            return Array(candidates.prefix(limit))
+        }
+
+        var scored: [(memory: WSMemory, score: Double)] = []
+        for memory in candidates {
+            let score = terms.score(content: memory.content)
+            if score > 0 {
+                scored.append((memory, score))
+            }
+        }
+        scored.sort { lhs, rhs in
+            if lhs.score == rhs.score {
+                return lhs.memory.updatedAt > rhs.memory.updatedAt
+            }
+            return lhs.score > rhs.score
+        }
+        return Array(scored.prefix(limit).map(\.memory))
     }
 
     public func update(memoryID: String, content: String) throws {
