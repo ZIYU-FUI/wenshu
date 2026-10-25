@@ -182,7 +182,7 @@ struct LibraryMigrator: Sendable {
         // one book).
         let standardFolders = [
             "world", "characters", "outlines", "chapters",
-            "drafts", "sessions", "foreshadowing", "placeholders"
+            "drafts", "sessions"
         ]
         for folder in standardFolders {
             let dir = bookDir.appendingPathComponent(folder, isDirectory: true)

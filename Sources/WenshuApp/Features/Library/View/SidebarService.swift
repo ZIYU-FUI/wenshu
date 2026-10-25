@@ -130,13 +130,13 @@ final class SidebarService {
 
             var roots: [SidebarNode] = []
 
-            // e (see OOB.md #2026-09-22) OOB '' (= the 5 standard folders under each book
+            // e (see OOB.md #2026-09-22) OOB '' (= the standard folders under each book
             // stay on disk; = LibraryMigrator seeds them). f (see OOB.md
             // #2026-09-22) OOB ' ，' (= the default help-doc book + the
             // test novels seeded with ' ' folders on first launch should
-            // show their 5 standard folders in the sidebar so the user can
-            // navigate to them). The fix re-adds the 5 user-facing folders
-            // (= world / characters / outlines / chapters / drafts) as
+            // show their folders in the sidebar so the user can
+            // navigate to them). The fix re-adds the user-facing folders
+            // (= world / characters / chapters / drafts / ideas) as
             // children of each book, but only for books that have those
             // folders on disk (= default-seeded books).
             for shelf in shelves {
@@ -274,9 +274,9 @@ final class SidebarService {
     /// BookFolderSpec literal in BookFolderCatalog.swift and
     /// the sidebar picks up the new value automatically.
     /// BookFolderCatalog.userFacing = the 5 folders with
-    /// isUserFacing = true (= world / characters / outlines /
-    /// chapters / drafts); = the 3 internal folders (= sessions
-    /// / foreshadowing / placeholders) are filtered here.
+    /// isUserFacing = true (= world / characters / chapters /
+    /// drafts / ideas); = the folders without a sidebar row
+    /// (= outlines / sessions) are filtered here.
     private static let folderCatalog: [(name: String, displayName: String, icon: String)] =
         BookFolderCatalog.userFacing.map { spec in
             // The icon field is non-nil for all 5 user-facing folders (= enforced by
@@ -288,7 +288,7 @@ final class SidebarService {
             (spec.directoryName, spec.sidebarDisplayName, spec.icon ?? "folder")
         }
 
-    /// Build the folder children for a book (= 5 user-facing
+    /// Build the folder children for a book (= the user-facing
     /// folders). Returns nil (= leaf row, no disclosure
     /// indicator) for books that should not show folders.
     ///

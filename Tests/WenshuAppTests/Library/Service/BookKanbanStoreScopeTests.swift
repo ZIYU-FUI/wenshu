@@ -2,7 +2,7 @@
 // BookKanbanStoreScopeTests.swift · Wenshu () · B-13 scope unification
 //
 //  Round-trip persistence tests for BookKanbanStore across every
-//  scope variant (= book root / 8 standard sub-folders / reference
+//  scope variant (= book root / 6 standard sub-folders / reference
 //  library). Mirrors the contract-test style in BookKanbanStoreTests
 //  (= fresh /tmp scratch dir per test, no shared state).
 //

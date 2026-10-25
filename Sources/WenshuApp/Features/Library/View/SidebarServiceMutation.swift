@@ -148,7 +148,7 @@ extension SidebarService {
         try fm.createDirectory(at: bookDir, withIntermediateDirectories: true)
         let standardFolders = [
             "world", "characters", "outlines", "chapters",
-            "drafts", "sessions", "foreshadowing", "placeholders"
+            "drafts", "sessions"
         ]
         for folder in standardFolders {
             try fm.createDirectory(

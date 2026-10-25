@@ -20,8 +20,6 @@ enum BookFolder: String, CaseIterable, Codable, Sendable, Hashable {
     case drafts
     case ideas
     case sessions
-    case foreshadowing
-    case placeholders
 
     /// On-disk directory name (= matches BookFolderCatalog spec;
     /// = SSOT for filesystem → id mapping).
@@ -48,9 +46,7 @@ enum BookFolder: String, CaseIterable, Codable, Sendable, Hashable {
     /// folder. Returns
     /// nil for the
     /// non-import folders
-    /// (= sessions /
-    /// foreshadowing /
-    /// placeholders; =
+    /// (= sessions; =
     /// not in the import
     /// path yet).
     ///
@@ -85,7 +81,7 @@ enum BookFolder: String, CaseIterable, Codable, Sendable, Hashable {
         case .chapters:   return .chapters
         case .drafts:     return .drafts
         case .ideas:      return .ideas
-        case .sessions, .foreshadowing, .placeholders:
+        case .sessions:
             return nil
         }
     }
@@ -185,8 +181,8 @@ struct BookDoc: Identifiable, Hashable {
     // for the same .md file on disk are == across SwiftUI body re-evaluations.
     let id: UUID
     /// Folder directory name (= "world", "characters", "outlines",
-    /// "chapters", "drafts", "sessions", "foreshadowing",
-    /// "placeholders"). Used for the folder badge in the card.
+    /// "chapters", "drafts", "ideas", "sessions"). Used for the
+    /// folder badge in the card.
     let bookId: UUID
     let folderName: String
     /// Full filename including .md extension (= e.g.

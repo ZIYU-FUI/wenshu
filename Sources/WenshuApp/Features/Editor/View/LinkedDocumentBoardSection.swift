@@ -48,7 +48,7 @@ struct LinkedDocumentBoardSection: View {
             documents = []
             return
         }
-        guard let bookId = bookStore.currentBook?.bookId else {
+        guard let bookId = bookStore.selectedBookId else {
             documents = []
             return
         }

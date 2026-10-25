@@ -62,7 +62,7 @@ extension PreviewPane {
 
 
     /// Book scope: scan filesystem for .md files in the book folders.
-    /// folderName nil = union of all 8 standard folders; non-nil = just that
+    /// folderName nil = union of all standard folders; non-nil = just that
     /// folder.
     @ViewBuilder
     func bookScopeView(bookId: UUID, folderName: String?) -> some View {

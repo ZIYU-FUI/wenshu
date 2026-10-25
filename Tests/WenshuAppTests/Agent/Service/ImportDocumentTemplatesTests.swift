@@ -54,14 +54,13 @@ final class ImportDocumentTemplatesTests: XCTestCase {
         }
     }
 
-    /// The 3 non-import folders
-    /// (= sessions / foreshadowing
-    /// / placeholders) have no
-    /// import template (= they're
+    /// The non-import folder
+    /// (= sessions) has no
+    /// import template (= it's
     /// internal; = the import
-    /// path doesn't surface them).
+    /// path doesn't surface it).
     func test_nonImportFoldersReturnNil() {
-        let nonImportFolders: [BookFolder] = [.sessions, .foreshadowing, .placeholders]
+        let nonImportFolders: [BookFolder] = [.sessions]
         for folder in nonImportFolders {
             XCTAssertNil(
                 folder.importTemplate,

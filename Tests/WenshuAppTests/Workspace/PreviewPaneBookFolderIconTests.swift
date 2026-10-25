@@ -13,13 +13,13 @@ import Testing
 @Suite("PreviewPane.BookFolder (derives from BookFolderCatalog SSOT)")
 struct PreviewPaneBookFolderIconTests {
 
-    @Test("5 user-facing folder icons (= sidebar + card share the same glyph)")
-    func userFacingFolderIcons() {
+    @Test("the folder icons that render in the card grid")
+    func folderIcons() {
         // Previously these were hardcoded inside the BookFolder enum
         // (= a parallel source of truth that drifted from
         // SidebarService.folderCatalog until the icon unification pass).
         // Both surfaces now read from BookFolderCatalog;
-        // = the values MUST match BookFolderCatalog.userFacing in
+        // = the values MUST match BookFolderCatalog in
         // display order.
         let expected: [(folder: String, icon: String)] = [
             ("world",      "globe"),
@@ -27,6 +27,7 @@ struct PreviewPaneBookFolderIconTests {
             ("outlines",   "bookmark.circle"),
             ("chapters",   "book.closed.circle"),
             ("drafts",     "book.circle"),
+            ("ideas",      "timelapse"),
         ]
         for (folderRawValue, icon) in expected {
             // Use rawValue init (BookFolder's cases match the id strings).
@@ -55,11 +56,10 @@ struct PreviewPaneBookFolderIconTests {
         #expect(BookFolder.drafts.directoryName == "drafts")
         #expect(BookFolder.world.directoryName == "world")
         #expect(BookFolder.sessions.directoryName == "sessions")
-        #expect(BookFolder.foreshadowing.directoryName == "foreshadowing")
-        #expect(BookFolder.placeholders.directoryName == "placeholders")
+        #expect(BookFolder.ideas.directoryName == "ideas")
     }
 
-    @Test("all 8 BookFolder cases map to a BookFolderSpec (= enum ↔ catalog bijection)")
+    @Test("all 7 BookFolder cases map to a BookFolderSpec (= enum ↔ catalog bijection)")
     func bookFolderCasesAllMap() {
         for folder in BookFolder.allCases {
             #expect(BookFolderCatalog.spec(for: folder.rawValue) != nil,

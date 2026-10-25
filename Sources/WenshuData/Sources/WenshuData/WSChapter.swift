@@ -34,11 +34,6 @@ public final class WSChapter {
     /// Inverse relationship target (= declared on WSBook)
     public var book: WSBook?
 
-    /// 1↔N WSOutlineNode (= chapter's outline tree; = self-referential hierarchy
-    /// handled by WSOutlineNode.parent)
-    @Relationship(deleteRule: .cascade, inverse: \WSOutlineNode.chapter)
-    public var outlineNodes: [WSOutlineNode] = []
-
     public init(
         id: String,
         bookID: String,

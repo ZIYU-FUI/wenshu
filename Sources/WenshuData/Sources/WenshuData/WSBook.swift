@@ -3,8 +3,8 @@
 //
 //   : WSBook.
 //  Mirrors `books` table from WenshuWorkspace.swift.
-//  Central entity of wenshu's data model (= a book holds chapters, outline,
-//  foreshadowing, placeholders, characters, world).
+//  Central entity of wenshu's data model (= a book holds chapters,
+//  characters, world).
 //
 //  Schema (= 1:1 with old sqlite3 `books`):
 //    - id: TEXT PRIMARY KEY
@@ -17,9 +17,6 @@
 //
 //  Children (= all 1↔N; will be added in subsequent commits):
 //    - WSChapter        (= commit 16)
-//    - WSOutlineNode    (= commit 17)
-//    - WSForeshadowing  (= commit 18)
-//    - WSPlaceholder    (= commit 19)
 
 import Foundation
 import SwiftData
@@ -44,18 +41,6 @@ public final class WSBook {
     /// WSEntity.swift for the 5-kind enum).
     @Relationship(deleteRule: .cascade, inverse: \WSEntity.book)
     public var entities: [WSEntity] = []
-
-    /// 1↔N WSOutlineDocument (= per-book outline .md files; = metadata index)
-    @Relationship(deleteRule: .cascade, inverse: \WSOutlineDocument.book)
-    public var outlineDocuments: [WSOutlineDocument] = []
-
-    /// 1↔N WSForeshadowing (= tracked foreshadowing events)
-    @Relationship(deleteRule: .cascade, inverse: \WSForeshadowing.book)
-    public var foreshadowings: [WSForeshadowing] = []
-
-    /// 1↔N WSPlaceholder (= TODO / FIXME markers in draft)
-    @Relationship(deleteRule: .cascade, inverse: \WSPlaceholder.book)
-    public var placeholders: [WSPlaceholder] = []
 
     public init(id: String, title: String, idea: String? = nil, length: Int? = nil, shelfID: String? = nil) {
         self.id = id

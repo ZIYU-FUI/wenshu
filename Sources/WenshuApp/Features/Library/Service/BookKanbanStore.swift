@@ -8,9 +8,8 @@
 //   - .folder(<other>)  → <dir>/kanban-<folder>.json
 //   - .referenceLibrary → <dir>/library-kanban.json
 //
-// 8 standard sub-folders per book: chapters, world, characters, outlines,
-// drafts, sessions, foreshadowing, placeholders. The scope is a view filter,
-// not a data-layer change.
+// 6 standard sub-folders per book: chapters, world, characters, outlines,
+// drafts, sessions. The scope is a view filter, not a data-layer change.
 
 import Foundation
 

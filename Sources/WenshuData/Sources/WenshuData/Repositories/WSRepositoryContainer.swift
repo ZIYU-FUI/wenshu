@@ -11,17 +11,19 @@
 //  via SwiftUI .environment).
 //
 //  All singletons share the same WSPersistenceContainer (= single ModelContainer
-//  shared across all 9 repositories).
+//  shared across all 7 repositories).
 
 import Foundation
 import SwiftData
 
-/// One-stop entry point holding all 8 Repositories.
+/// One-stop entry point holding all 7 Repositories.
 /// Apps inject this via SwiftUI .environment(\.repositoryContainer).
 ///
-/// NOTE: 8 of the 22 SwiftData @Model classes have a Repository (= the 8 listed below).
-/// The remaining 14 (@Model classes for sub-types like WSAttachment, WSForeshadowing,
-/// WSPlaceholder, WSOutlineNode, WSOutlineDocument, etc. + WSBook / WSBookShelf
+/// NOTE: 10 of the 21 SwiftData @Model classes have a Repository
+/// (= the 7 listed below; the chat repository covers four of them:
+/// WSSession / WSChatMessage / WSSummary / WSSubAgentRun).
+/// The remaining 11 (@Model classes for sub-types like WSEntity, WSBody,
+/// WSReference, etc. + WSBook / WSBookShelf
 /// which BookStore handles directly) are accessed directly via
 /// WSPersistenceContainer.shared (= no repository layer needed; = they're either
 /// transient view data or simple CRUD wrappers).

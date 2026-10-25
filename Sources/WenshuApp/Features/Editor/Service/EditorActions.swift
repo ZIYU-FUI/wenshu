@@ -115,7 +115,7 @@ enum WikiLinkNavigation {
             if let result = lookupInActiveBook(
                 name: trimmed,
                 bookDirectory: store.currentBookDirectory,
-                bookId: store.currentBook?.bookId ?? store.selectedBookId
+                bookId: store.selectedBookId
             ) {
                 return result
             }

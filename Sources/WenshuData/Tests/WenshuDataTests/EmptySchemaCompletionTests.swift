@@ -3,31 +3,35 @@
 //
 //  Structural tests confirming the v2.9d empty @Model schema
 //  completion (= boss 2026-09-28 OOB inventory follow-up A3 =
-//  'WSAttachment / WSBody / WSOutlineDocument / WSOutlineNode /
-//  WSBookShelf empty schemas'; = the v0.72 SwiftData migration
-//  authored these 5 @Model declarations but they had no
+//  'WSBody / WSBookShelf empty schemas'; = the v0.72 SwiftData
+//  migration authored these @Model declarations but they had no
 //  production callers / repository wrapper / schema array entry
 //  = effectively dead schema).
 //
-//  Per boss 2026-09-28 OOB: '我没提到的, 表示同意的分析,
-//  需要补'; = v2.9d T38 confirms the 5 schemas are complete
+//  Per boss 2026-09-28 OOB: 'the ones I did not mention count as
+//  agreed; = v2.9d T38 confirms the schemas are complete
 //  (= declare fields + @Relationship + init) AND wired
 //  (= listed in the canonical WSPersistenceContainer.schema
 //  array so SwiftData migrates them).
 //
+//  The 2026-10-25 residue cleanup dropped the empty schemas whose
+//  storage served the already-removed Attachments window, the old
+//  outline model, and the old outline tree. The surviving empty
+//  schemas (= the ones with no repository wrapper) are WSBody and
+//  WSBookShelf, so the contract below is pinned against those 2.
+//
 //  Three source-level tests pin the canonical shape:
 //
-//    1. testFiveSchemasHaveFieldsAndInit —
-//       Each of WSAttachment / WSBody / WSOutlineDocument /
-//       WSOutlineNode / WSBookShelf has both field declarations
+//    1. testEmptySchemasHaveFieldsAndInit —
+//       Each empty schema has both field declarations
 //       AND an init() (= the schema is complete).
 //
-//    2. testFiveSchemasRegisteredInContainer —
-//       WSPersistenceContainer.schema includes all 5
+//    2. testEmptySchemasRegisteredInContainer —
+//       WSPersistenceContainer.schema includes both
 //       (= SwiftData migrates them on first launch).
 //
-//    3. testFiveSchemasConformToPersistentModel —
-//       Each of the 5 declares `@Model` (= the SwiftData
+//    3. testEmptySchemasConformToPersistentModel —
+//       Each declares `@Model` (= the SwiftData
 //       @Model attribute; = the canonical pattern per
 //       AGENTS.md §11.4 phase 1).
 //
@@ -52,15 +56,12 @@ struct EmptySchemaCompletionTests {
     }
 
     private static let schemaNames: [(name: String, file: String)] = [
-        ("WSAttachment",        "WSAttachment.swift"),
         ("WSBody",              "WSBody.swift"),
-        ("WSOutlineDocument",   "WSOutlineDocument.swift"),
-        ("WSOutlineNode",       "WSOutlineNode.swift"),
         ("WSBookShelf",         "WSBookShelf.swift"),
     ]
 
-    @Test("Each of the 5 schemas has fields + @Model + init (= the schema is complete)")
-    func testFiveSchemasHaveFieldsAndInit() throws {
+    @Test("Each empty schema has fields + @Model + init (= the schema is complete)")
+    func testEmptySchemasHaveFieldsAndInit() throws {
         for entry in Self.schemaNames {
             let path = resolve("WenshuData/Sources/WenshuData/\(entry.file)")
             let source = try String(contentsOfFile: path, encoding: .utf8)
@@ -82,8 +83,8 @@ struct EmptySchemaCompletionTests {
         }
     }
 
-    @Test("All 5 schemas are registered in WSPersistenceContainer.schema")
-    func testFiveSchemasRegisteredInContainer() throws {
+    @Test("Every empty schema is registered in WSPersistenceContainer.schema")
+    func testEmptySchemasRegisteredInContainer() throws {
         let source = try String(contentsOfFile: resolve("WenshuData/Sources/WenshuData/Container.swift"), encoding: .utf8)
         for entry in Self.schemaNames {
             let registered = source.contains("\(entry.name).self")
@@ -92,8 +93,8 @@ struct EmptySchemaCompletionTests {
         }
     }
 
-    @Test("All 5 schemas declare @Model (= the canonical SwiftData attribute)")
-    func testFiveSchemasConformToPersistentModel() throws {
+    @Test("Every empty schema declares @Model (= the canonical SwiftData attribute)")
+    func testEmptySchemasConformToPersistentModel() throws {
         for entry in Self.schemaNames {
             let path = resolve("WenshuData/Sources/WenshuData/\(entry.file)")
             let source = try String(contentsOfFile: path, encoding: .utf8)

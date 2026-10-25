@@ -25,8 +25,8 @@ import Foundation
 
 /// Document category (= what kind of MD file this is in the book).
 /// Three cases: chapter / setting / research. Three cases is the
-/// minimum; future can add more (= outline / foreshadowing /
-/// notes / drafts) without breaking the contract (= Codable default
+/// minimum; future can add more (= outline / notes /
+/// drafts) without breaking the contract (= Codable default
 /// value handles unknown strings, and the card UI iterates `allCases`
 /// so new categories appear automatically).
 ///
@@ -78,7 +78,7 @@ enum BookCategory: String, CaseIterable, Codable, Sendable {
     /// Setting + research categories still get hardcoded icons
     /// (= gearshape.2 / books.vertical) because the matching
     /// BookFolderCatalog specs (= 'settings' / 'research' folder ids)
-    /// are not in the 8 standard folders (= settings / research are
+    /// are not in the standard folders (= settings / research are
     /// Document classification dimensions, not on-disk folder types).
     var icon: String {
         switch self {
