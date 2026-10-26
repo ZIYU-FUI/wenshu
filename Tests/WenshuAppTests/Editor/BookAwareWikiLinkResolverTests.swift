@@ -79,6 +79,26 @@ struct BookAwareWikiLinkResolverTests {
         #expect(resolution?.id == "world/core.md")
     }
 
+    @Test("the link id resolves too (= the engine asks twice)")
+    func resolverResolvesTheLinkID() throws {
+        let root = try makeBook()
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let resolver = BookAwareWikiLinkResolver(
+            library: StubLibraryResolver(known: "a-library-entry", id: "lib-1"),
+            bookDirectory: root
+        )
+
+        // The engine asks with the name the user sees, then with the
+        // id it handed back (= so both spellings must answer).
+        let byName = resolver.resolve(displayName: "core", range: NSRange(location: 0, length: 0))
+        let byID = resolver.resolve(displayName: "world/core.md", range: NSRange(location: 0, length: 0))
+
+        #expect(byName?.exists == true)
+        #expect(byID?.exists == true)
+        #expect(byID?.id == "world/core.md")
+    }
+
     @Test("the book's id names the document back")
     func resolverNamesTheBookDocumentBackFromItsID() throws {
         let root = try makeBook()

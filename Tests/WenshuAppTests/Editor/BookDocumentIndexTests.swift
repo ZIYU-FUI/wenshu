@@ -103,6 +103,19 @@ struct BookDocumentIndexTests {
         #expect(index.document(named: "wanderer")?.relativePath == "characters/wanderer.md")
     }
 
+    @Test("the link id names the document too")
+    func indexAnswersToTheLinkID() throws {
+        let root = try makeBook()
+        defer { try? FileManager.default.removeItem(at: root) }
+
+        let index = BookDocumentIndex(bookDirectory: root)
+
+        // The engine asks the resolver twice: with the name the user
+        // sees, and with the id it handed back.
+        #expect(index.document(named: "world/core.md")?.name == "core")
+        #expect(index.document(named: "world/core.md")?.relativePath == "world/core.md")
+    }
+
     @Test("an id resolves back to its document")
     func indexResolvesAnIDBackToItsDocument() throws {
         let root = try makeBook()
