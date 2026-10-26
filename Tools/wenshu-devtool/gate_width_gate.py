@@ -287,7 +287,42 @@ def main() -> int:
     parser.add_argument("--check", action="store_true", help="every card on the board")
     parser.add_argument("--board", default=BOARD, help="board slug")
     parser.add_argument("--json", action="store_true", help="machine-readable output")
+    parser.add_argument(
+        "--plan", action="store_true", help="print the gate contract table"
+    )
     args = parser.parse_args()
+
+    if args.plan:
+        print("=== wenshu gate-width contract ===")
+        print()
+        print("T1 (trivial)")
+        print("  gate       swift build + ONE filtered suite that owns the touched file")
+        print("  may NOT ask for the whole suite, or a red-baseline comparison")
+        print()
+        print("T2 (standard)")
+        print("  gate       swift build + a filtered suite per touched area")
+        print("  may NOT ask for the whole suite")
+        print()
+        print("T3 (deep)")
+        print("  gate       the full gate set, incl. a red-baseline comparison")
+        print("  MAY ask for the whole suite (= T3 owns the full gate set)")
+        print()
+        print("Every tier must NAME its gate, as a command:")
+        print()
+        print("  swift build")
+        print("  swift test --filter <the suite that owns the touched file>")
+        print()
+        print("A card that writes no Swift code names its own gate command")
+        print("(= the devtool's own test script, = a docs link check).")
+        print()
+        print("Measured on this machine, 2026-10-26: one filtered suite is")
+        print("10.5 s; the whole tree (531 test files) is 224 s. 21x, and the")
+        print("baseline is red, so a whole-suite gate also pays a diff.")
+        print()
+        print("Say what the card DOES, not what it avoids: this gate reads")
+        print("every line, so 'the whole suite is NOT this card's gate' reads")
+        print("as a wide-gate DEMAND.")
+        return 0
 
     rows: list[dict] = []
 
