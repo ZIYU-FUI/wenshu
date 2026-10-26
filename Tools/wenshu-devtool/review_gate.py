@@ -176,6 +176,29 @@ def _at(item: dict, *names: str) -> int:
     return 0
 
 
+def implementer_of(doc: dict) -> str | None:
+    """The profile that IMPLEMENTED the card.
+
+    Not the card's current assignee: a handoff reassigns the card to the
+    reviewer, so the assignee is the reviewer for the whole review, and the
+    rework after a change request. The implementer is the profile the
+    handoff recorded, or the profile of the first run that touched the card.
+    """
+    events = [e for e in (doc.get("events") or []) if isinstance(e, dict)]
+    handoffs = [e for e in events if _kind(e) == "review_requested"]
+    if handoffs:
+        handoff = max(handoffs, key=lambda e: _at(e, "created_at"))
+        recorded = _payload(handoff).get("implementer")
+        if recorded:
+            return str(recorded)
+    runs = [r for r in (doc.get("runs") or []) if isinstance(r, dict)]
+    runs = [r for r in runs if r.get("profile")]
+    if runs:
+        first = min(runs, key=lambda r: _at(r, "started_at"))
+        return str(first.get("profile"))
+    return None
+
+
 def verdict_from_doc(doc: dict) -> dict:
     """The verdict the board record carries for one card.
 
@@ -261,7 +284,8 @@ def card_record(card_id: str, board: str = BOARD) -> dict:
     created_at = task.get("created_at")
     created_at = int(created_at) if isinstance(created_at, (int, float)) else None
     verdict = verdict_from_doc(doc)
-    errors = contract_errors(body, task.get("assignee"), created_at)
+    implementer = implementer_of(doc)
+    errors = contract_errors(body, implementer, created_at)
     if not is_subject(created_at):
         gate = "pre_contract"
         reason = (
@@ -281,6 +305,7 @@ def card_record(card_id: str, board: str = BOARD) -> dict:
         "title": task.get("title"),
         "status": task.get("status"),
         "assignee": task.get("assignee"),
+        "implementer": implementer,
         "created_at": created_at,
         "pre_contract": not is_subject(created_at),
         "review_required": review_required(body)[0],

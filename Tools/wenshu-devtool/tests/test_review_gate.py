@@ -215,6 +215,39 @@ def main() -> int:
     }
     check("the implementer reviewing itself reads as self_review", tool.verdict_from_doc(doc)["status"], "self_review")
 
+    # 11. The implementer is NOT the card's current assignee. A handoff
+    # reassigns the card to the reviewer, so the assignee is the reviewer
+    # for the whole review. Reading the implementer from the assignee made
+    # every handed-off card look like it was reviewed by its implementer.
+    handed_off = {
+        "events": [
+            {"kind": "review_requested", "created_at": 100, "payload": {"implementer": "wenshu-dev", "reviewer": "wenshu-review"}},
+        ],
+        "runs": [
+            {"id": 5, "profile": "wenshu-dev", "status": "review", "started_at": 90, "ended_at": 99},
+            {"id": 6, "profile": "wenshu-review", "status": "running", "started_at": 101},
+        ],
+    }
+    check(
+        "the implementer is the profile that implemented, not the current assignee",
+        tool.implementer_of(handed_off),
+        "wenshu-dev",
+    )
+    check(
+        "a card handed off to a different reviewer breaks no contract",
+        tool.contract_errors(
+            body_with("Tools/wenshu-devtool/ticket_tier.py", handoff='    reviewer="wenshu-review"'),
+            tool.implementer_of(handed_off),
+        ),
+        [],
+    )
+    # With no handoff at all, the implementer is the first profile that ran.
+    check(
+        "with no handoff the implementer is the first profile that ran",
+        tool.implementer_of({"events": [], "runs": handed_off["runs"]}),
+        "wenshu-dev",
+    )
+
     print()
     if FAILURES:
         print(f"review_gate: {len(FAILURES)} case(s) FAILED")
