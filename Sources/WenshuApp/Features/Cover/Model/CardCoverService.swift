@@ -65,6 +65,42 @@ struct CardCoverService {
         "\(WSCardCoverKind.bookDoc)-\(id.uuidString)"
     }
 
+    /// The card id of the book doc whose file lives at `fileURL`.
+    ///
+    /// A book doc's card id is DERIVED from where its file lives
+    /// (= the book it belongs to + the folder it sits in + the file
+    /// name), so a delete path that knows the file's location names
+    /// the card without holding the derived id.
+    ///
+    /// Nil when the path does not name a book doc (= the layout is
+    /// not the library's = shelves/<shelf>/books/<book>/<folder>/<file>.md),
+    /// because a card that cannot be named must never be named by
+    /// guesswork. The reconciler reads the live cards from the same
+    /// layout, so ONE rule decides both what a card is and what a
+    /// cover belongs to.
+    nonisolated static func bookDocId(forBookDocFileAt fileURL: URL) -> UUID? {
+        let folder = fileURL.deletingLastPathComponent()
+        let book = folder.deletingLastPathComponent()
+        guard book.deletingLastPathComponent().lastPathComponent == "books",
+              let bookId = UUID(uuidString: book.lastPathComponent),
+              fileURL.pathExtension == "md" else { return nil }
+        return BookDocIDFactory.make(
+            bookId: bookId,
+            folderName: folder.lastPathComponent,
+            fileName: fileURL.lastPathComponent
+        )
+    }
+
+    /// The cover key for the book doc whose file lives at `fileURL`.
+    ///
+    /// Nil when the path does not name a book doc, because a cover
+    /// whose card cannot be named must never be removed by
+    /// guesswork.
+    nonisolated static func key(forBookDocFileAt fileURL: URL) -> String? {
+        guard let id = bookDocId(forBookDocFileAt: fileURL) else { return nil }
+        return key(forBookDoc: id)
+    }
+
     // MARK: - Directory
 
     /// The directory that holds every cover, under the active library.

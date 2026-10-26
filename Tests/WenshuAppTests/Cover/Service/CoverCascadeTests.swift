@@ -187,4 +187,144 @@ struct CoverCascadeTests {
             ) == false
         )
     }
+
+    // MARK: - The delete paths
+
+    /// A book directory in the library's own layout (= shelves /
+    /// shelf / books / book), because a book doc's card id is
+    /// derived from where its file lives.
+    private func makeBookDirectory(in root: URL) throws -> (bookId: UUID, directory: URL) {
+        let bookId = UUID()
+        let directory = root
+            .appendingPathComponent("shelves", isDirectory: true)
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+            .appendingPathComponent("books", isDirectory: true)
+            .appendingPathComponent(bookId.uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        return (bookId, directory)
+    }
+
+    @Test("Deleting a book document removes its cover")
+    func deletingABookDocumentRemovesItsCover() async throws {
+        let root = try makeLibraryRoot()
+        let (bookId, bookDirectory) = try makeBookDirectory(in: root)
+        let actor = BookChapterActor(
+            bookDirectoryProvider: { bookDirectory },
+            currentChatBookIDProvider: { bookId }
+        )
+
+        try await PathGuard.$libraryRootOverride.withValue(root.path) {
+            let created = try await actor.createChapter(
+                bookId: bookId,
+                title: "Chapter One",
+                bodyMarkdown: "# Chapter One\n\nThe body."
+            )
+            // The cover the material zone gave this card (= the id it
+            // derives from where the file lives).
+            let key = CardCoverService.key(forBookDoc: PreviewPane.stableBookDocId(
+                bookId: bookId,
+                folderName: "drafts",
+                fileName: "\(created.id.uuidString).md"
+            ))
+            let (directory, file) = try makeCover(in: root, key: key)
+
+            try await actor.deleteChapter(id: created.id)
+
+            // The document is gone, so the cover that depicted it is
+            // gone with it.
+            #expect(FileManager.default.fileExists(atPath: file.path) == false)
+            #expect(FileManager.default.fileExists(atPath: directory.path) == false)
+        }
+    }
+
+    @Test("Deleting an outline removes its cover")
+    func deletingAnOutlineRemovesItsCover() async throws {
+        let root = try makeLibraryRoot()
+        let (bookId, bookDirectory) = try makeBookDirectory(in: root)
+        let actor = BookOutlineActor(
+            bookDirectoryProvider: { bookDirectory },
+            currentChatBookIDProvider: { bookId }
+        )
+
+        try await PathGuard.$libraryRootOverride.withValue(root.path) {
+            let created = try await actor.createOutline(
+                bookId: bookId,
+                title: "Volume One",
+                bodyMarkdown: "# Volume One"
+            )
+            let key = CardCoverService.key(forBookDoc: PreviewPane.stableBookDocId(
+                bookId: bookId,
+                folderName: "outlines",
+                fileName: "\(created.id.uuidString).md"
+            ))
+            let (directory, file) = try makeCover(in: root, key: key)
+
+            try await actor.deleteOutline(id: created.id)
+
+            #expect(FileManager.default.fileExists(atPath: file.path) == false)
+            #expect(FileManager.default.fileExists(atPath: directory.path) == false)
+        }
+    }
+
+    @Test("Deleting a reference removes its cover")
+    func deletingAReferenceRemovesItsCover() async throws {
+        let root = try makeLibraryRoot()
+        let store = FileSystemReferenceStore(
+            referenceLibraryRoot: root.appendingPathComponent("references", isDirectory: true)
+        )
+        let actor = ReferenceLibraryActor(referenceStore: store)
+
+        try await PathGuard.$libraryRootOverride.withValue(root.path) {
+            let created = try await actor.createReference(
+                title: "Ming tax",
+                bodyMarkdown: "# Ming tax"
+            )
+            let key = CardCoverService.key(forReference: created.id)
+            let (directory, file) = try makeCover(in: root, key: key)
+
+            try await actor.deleteReference(id: created.id)
+
+            #expect(FileManager.default.fileExists(atPath: file.path) == false)
+            #expect(FileManager.default.fileExists(atPath: directory.path) == false)
+        }
+    }
+
+    // MARK: - The housekeeping
+
+    @Test("The sweep removes a cover whose book document is gone")
+    func sweepRemovesTheOrphanBookDocCover() throws {
+        let root = try makeLibraryRoot()
+        let shelvesRoot = root.appendingPathComponent("shelves", isDirectory: true)
+        let (bookId, bookDirectory) = try makeBookDirectory(in: root)
+        let folder = bookDirectory.appendingPathComponent("drafts", isDirectory: true)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        let liveFileName = "live.md"
+        try Data("# live".utf8).write(to: folder.appendingPathComponent(liveFileName))
+
+        let liveKey = CardCoverService.key(forBookDoc: PreviewPane.stableBookDocId(
+            bookId: bookId,
+            folderName: "drafts",
+            fileName: liveFileName
+        ))
+        let goneKey = CardCoverService.key(forBookDoc: PreviewPane.stableBookDocId(
+            bookId: bookId,
+            folderName: "drafts",
+            fileName: "gone.md"
+        ))
+        _ = try makeCover(in: root, key: liveKey)
+        _ = try makeCover(in: root, key: goneKey)
+
+        let reconciler = CoverReconciler()
+        try PathGuard.$libraryRootOverride.withValue(root.path) {
+            reconciler.sweep(liveReferenceIds: [], shelvesRoot: shelvesRoot)
+        }
+
+        // The cover of the document that is still there stays; the
+        // cover of the document that is gone goes.
+        let coversRoot = root
+            .appendingPathComponent("assets", isDirectory: true)
+            .appendingPathComponent("covers", isDirectory: true)
+        let remaining = try FileManager.default.contentsOfDirectory(atPath: coversRoot.path)
+        #expect(remaining.sorted() == [liveKey])
+    }
 }

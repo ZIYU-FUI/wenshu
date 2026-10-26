@@ -90,6 +90,21 @@ struct CoverCascade {
         removeCoverTolerantly(forKey: CardCoverService.key(forBookDoc: id))
     }
 
+    /// Removes the cover of the book doc whose file lived at
+    /// `fileURL`, and never fails the caller's delete.
+    ///
+    /// The card id of a book doc is DERIVED from where its file
+    /// lives, so a delete path that knows the file's location names
+    /// the cover without holding the derived id.
+    ///
+    /// A path that names no book doc names no cover, so nothing is
+    /// removed: a cover whose card cannot be named must never be
+    /// removed by guesswork.
+    func removeCoverTolerantly(forBookDocFileAt fileURL: URL) {
+        guard let key = CardCoverService.key(forBookDocFileAt: fileURL) else { return }
+        removeCoverTolerantly(forKey: key)
+    }
+
     // MARK: - Service
 
     /// The cover store this cascade removes through.
