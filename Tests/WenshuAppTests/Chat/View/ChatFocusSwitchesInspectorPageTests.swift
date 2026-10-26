@@ -31,10 +31,7 @@ struct ChatFocusSwitchesInspectorPageTests {
     /// column to the status page.
     @Test("The chat view sends the column to the status page when the input takes focus")
     func focusWritesTheStatusPage() throws {
-        let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
-            encoding: .utf8
-        )
+        let source = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
         #expect(source.contains(".onChange(of: inputFocused)"),
                 "the chat view must observe its input focus")
         #expect(source.contains("workspaceUI.inspectorPage = .status"),
@@ -47,10 +44,7 @@ struct ChatFocusSwitchesInspectorPageTests {
     /// until the chat takes focus again.
     @Test("The chat view leaves the page alone when the focus leaves")
     func defocusDoesNotChangeThePage() throws {
-        let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
-            encoding: .utf8
-        )
+        let source = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
         let start = try #require(source.range(of: ".onChange(of: inputFocused)"))
         let body = source[start.lowerBound...]
         #expect(body.contains("guard isFocused else { return }"),

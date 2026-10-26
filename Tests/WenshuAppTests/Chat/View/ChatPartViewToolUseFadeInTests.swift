@@ -17,10 +17,7 @@ struct ChatPartViewToolUseFadeInTests {
     /// T41 contract: ChatPartRow's .toolUse case applies
     /// .transition(.wenshuThinkingAppear()).
     @Test func toolUse_case_applies_transition() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatPartView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatPartView.swift")
         // Locate the toolUse case in ChatPartRow.body's switch.
         let toolUseIdx = src.range(of: "case .toolUse(let tu):")!
         // Find the next "case" keyword (= the .toolResult case)
@@ -34,10 +31,7 @@ struct ChatPartViewToolUseFadeInTests {
     /// T41 contract: ChatPartRow's .toolResult case ALSO applies
     /// the transition (= both halves of the tool lifecycle fade in).
     @Test func toolResult_case_applies_transition() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatPartView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatPartView.swift")
         let toolResultIdx = src.range(of: "case .toolResult(let tr):")!
         let nextCaseIdx = src.range(of: "case .plan(let p):",
                                     range: toolResultIdx.upperBound..<src.endIndex)!
@@ -48,10 +42,7 @@ struct ChatPartViewToolUseFadeInTests {
     /// T41 contract: the .reasoning case still applies the
     /// transition (= T40 not regressed).
     @Test func reasoning_case_still_applies_transition() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatPartView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatPartView.swift")
         let reasoningIdx = src.range(of: "case .reasoning(let s):")!
         let nextCaseIdx = src.range(of: "case .toolUse(let tu):",
                                     range: reasoningIdx.upperBound..<src.endIndex)!
@@ -63,10 +54,7 @@ struct ChatPartViewToolUseFadeInTests {
     /// calls in ChatPartRow is 4 (= reasoning + toolUse + toolResult
     /// + text = T49 added text).
     @Test func transition_applied_to_four_cases() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatPartView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatPartView.swift")
         // Count occurrences INSIDE the switch in ChatPartRow.body
         // (skip the AnyTransition definition itself).
         let rowBodyStart = src.range(of: "switch part.kind {")!
@@ -83,10 +71,7 @@ struct ChatPartViewToolUseFadeInTests {
     /// T41 contract: .plan case does NOT apply the transition
     /// (= only streaming-event parts animate; = plan is static).
     @Test func plan_case_doesnt_apply_transition() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatPartView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatPartView.swift")
         let rowBodyStart = src.range(of: "switch part.kind {")!
         let rowBodyEnd = src.range(of: "    }", range: rowBodyStart.upperBound..<src.endIndex)
         guard let rowBodyEnd else { return }

@@ -15,19 +15,13 @@ struct ChatViewAltCShortcutTests {
 
     /// T85 contract: ⌥C shortcut registered.
     @Test func alt_c_shortcut_registered() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
         #expect(src.contains(".keyboardShortcut(\"c\", modifiers: [.option])"))
     }
 
     /// T85 contract: Button body uses NSPasteboard to copy.
     @Test func body_copies_last_sealed_message() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
         let btnPos = src.range(of: "Button(\"Copy last sealed message\")")!
         let endOffset = min(src.distance(from: src.startIndex, to: btnPos.upperBound) + 1500,
                             src.distance(from: src.startIndex, to: src.endIndex))
@@ -44,10 +38,7 @@ struct ChatViewAltCShortcutTests {
 
     /// T85 contract: button is visually hidden.
     @Test func alt_c_button_is_visually_hidden() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
         let altCIdx = src.range(of: ".keyboardShortcut(\"c\", modifiers: [.option])")!
         let after = src[altCIdx.upperBound...]
         #expect(after.contains(".frame(width: 0, height: 0)"))
@@ -57,10 +48,7 @@ struct ChatViewAltCShortcutTests {
 
     /// T85 contract: T66 ⌘⇧D shortcut preserved.
     @Test func t66_cmd_shift_d_preserved() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
         #expect(src.contains(".keyboardShortcut(\"d\", modifiers: [.command, .shift])"))
         #expect(src.contains("Button(\"Copy last assistant\")"))
     }
@@ -68,30 +56,21 @@ struct ChatViewAltCShortcutTests {
     /// T85 contract: T70 ⌘⇧C shortcut preserved (= different
     /// combination than ⌥C = no collision).
     @Test func t70_cmd_shift_c_preserved() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
         #expect(src.contains(".keyboardShortcut(\"c\", modifiers: [.command, .shift])"))
         #expect(src.contains("Button(\"Copy conversation\")"))
     }
 
     /// T85 contract: T82 ⌘? shortcut preserved.
     @Test func t82_cmd_question_preserved() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
         #expect(src.contains(".keyboardShortcut(\"?\", modifiers: [.command])"))
         #expect(src.contains("Button(\"Show shortcuts\")"))
     }
 
     /// T85 contract: T37/T48/T59 prior shortcuts preserved.
     @Test func prior_shortcuts_preserved() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
         #expect(src.contains(".keyboardShortcut(\"k\", modifiers: [.command])"))
         #expect(src.contains(".keyboardShortcut(\"n\", modifiers: [.command])"))
         #expect(src.contains(".keyboardShortcut(\"r\", modifiers: [.command])"))
@@ -109,14 +88,8 @@ struct ChatViewAltCShortcutTests {
         // input row HStack) is now distributed across two files; = this
         // test verifies both halves exist (= .frame(minHeight: 36) is
         // only in ChatInputBarView; = Button("Copy last sealed message") is only in ChatView).
-        let inputBarSrc = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift",
-            encoding: .utf8
-        )
-        let chatViewSrc = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
-            encoding: .utf8
-        )
+        let inputBarSrc = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift")
+        let chatViewSrc = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
         // The input row HStack's minimum height pin (= .frame(minHeight: 36); = boss v1.96/v1.97 spec: input height = 36PT = match button diameter)
         // lives ONLY in the top-layer ChatInputBarView.
         #expect(inputBarSrc.contains("DesignTokens.controlHeightLarge"))

@@ -53,19 +53,13 @@ struct ChatMessageViewTokenFooterTests {
     /// (= SwiftUI requires Self. for static calls from inside struct
     /// instance body).
     @Test func source_uses_self_formatTokenCount() throws {
-        let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
-            encoding: .utf8
-        )
+        let source = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift")
         #expect(source.contains("Text(Self.formatTokenCount(tokens))"))
     }
 
     /// T25 contract: footer is gated on tokens > 0 (= not nil + positive).
     @Test func footer_gated_on_positive_tokens() throws {
-        let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
-            encoding: .utf8
-        )
+        let source = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift")
         #expect(source.contains("if let tokens, tokens > 0"))
     }
 }

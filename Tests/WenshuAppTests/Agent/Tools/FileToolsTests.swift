@@ -11,7 +11,7 @@ import Foundation
 @Suite("FileTools (hermes replica)")
 struct FileToolsTests {
     private static func tempPath(name: String = "test") -> String {
-        URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        SourceLocator.repoRoot
             .appendingPathComponent(".test-\(name)-\(UUID().uuidString.prefix(8)).txt")
             .path
     }
@@ -50,7 +50,7 @@ struct FileToolsTests {
 
     @Test("search 找包含 pattern 的文件")
     func testSearch() throws {
-        let dir = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        let dir = SourceLocator.repoRoot
             .appendingPathComponent(".test-search-\(UUID().uuidString.prefix(8))", isDirectory: true)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let file1 = dir.appendingPathComponent("a.txt").path
@@ -69,7 +69,7 @@ struct FileToolsTests {
 
     @Test("list 列目录")
     func testList() throws {
-        let dir = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        let dir = SourceLocator.repoRoot
             .appendingPathComponent(".test-list-\(UUID().uuidString.prefix(8))", isDirectory: true)
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         try "x".write(to: dir.appendingPathComponent("a.txt"), atomically: true, encoding: .utf8)

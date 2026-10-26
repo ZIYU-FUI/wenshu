@@ -76,7 +76,6 @@ struct E2EMemoryAndLLMFlowTests {
         guard Self.liveEnabled else {
             print("[E2E] skipped (= WENSHU_LIVE_API_TESTS not set)")
             return
-            return
         }
 
         // Step 0: reset WSMemory mirror + SwiftData store so the
@@ -186,7 +185,6 @@ struct E2EMemoryAndLLMFlowTests {
     func autoTriggerResearch() async throws {
         guard Self.liveEnabled else {
             print("[E2E] skipped (= WENSHU_LIVE_API_TESTS not set)")
-            return
             return
         }
 
@@ -466,7 +464,6 @@ struct E2EMemoryAndLLMFlowTests {
         guard Self.liveEnabled else {
             print("[E2E] skipped (= WENSHU_LIVE_API_TESTS not set)")
             return
-            return
         }
 
         // Step 0: prepare the user-bound reference store (= same
@@ -658,8 +655,7 @@ struct E2EMemoryAndLLMFlowTests {
 extension E2EMemoryAndLLMFlowTests {
     /// 测试用的 .ws 仓库根 (=老板的 anbaiqiang.ws 副本 + 测试隔离).
     fileprivate static var anbaiqiangWSRoot: URL {
-        let cwd = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-        return cwd.appendingPathComponent(".scratch/anbaiqiang.ws")
+        return SourceLocator.repoRoot.appendingPathComponent(".scratch/anbaiqiang.ws")
     }
 
     /// 重置 reference-library 4 个 layer (=让本测试能从干净起点开始).

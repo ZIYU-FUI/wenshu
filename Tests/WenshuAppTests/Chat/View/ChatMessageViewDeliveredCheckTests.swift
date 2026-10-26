@@ -17,29 +17,20 @@ struct ChatMessageViewDeliveredCheckTests {
     /// T84 contract: source contains the T84-DELIVERED-CHECK
     /// marker comment.
     @Test func t84_marker_comment_exists() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift")
         #expect(src.contains("T84-DELIVERED-CHECK"))
     }
 
     /// T84 contract: checkmark SF Symbol present.
     @Test func checkmark_icon_present() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift")
         #expect(src.contains("SFIcon(\"checkmark\""))
     }
 
     /// T84 contract: checkmark uses .caption2 + .quaternary
     /// (= matches T65 clock icon style).
     @Test func checkmark_uses_caption2_quaternary() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift")
         let checkPos = src.range(of: "SFIcon(\"checkmark\"")!
         let after = src[checkPos.upperBound...]
         #expect(after.contains(".font(.caption2)"))
@@ -49,10 +40,7 @@ struct ChatMessageViewDeliveredCheckTests {
     /// T84 contract: checkmark appears AFTER the clock icon
     /// (= T84 = after T65 = the visual flow).
     @Test func checkmark_after_clock() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift")
         let clockPos = src.range(of: "SFIcon(\"clock\"")!
         // T88-USER-CHECK (2026-09-18) added a 2nd
         // Image(systemName: "checkmark") in the user
@@ -70,19 +58,13 @@ struct ChatMessageViewDeliveredCheckTests {
 
     /// T84 contract: T65 clock icon preserved.
     @Test func t65_clock_preserved() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift")
         #expect(src.contains("SFIcon(\"clock\""))
     }
 
     /// T84 contract: T72 fresh chip preserved.
     @Test func t72_fresh_chip_preserved() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift")
         #expect(src.contains("· NEW"))
     }
 }

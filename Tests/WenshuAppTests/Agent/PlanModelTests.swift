@@ -19,10 +19,7 @@ struct PlanModelTests {
 
     /// T30 contract: Plan has a `model: String?` field.
     @Test func plan_has_model_field() throws {
-        let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Agent/Store/PlanModeEngine.swift",
-            encoding: .utf8
-        )
+        let source = try SourceLocator.read("Sources/WenshuApp/Features/Agent/Store/PlanModeEngine.swift")
         #expect(source.contains("let model: String?"),
                 "PlanModeEngine must declare public let model: String?")
     }
@@ -30,10 +27,7 @@ struct PlanModelTests {
     /// T30 contract: Plan init accepts `model: String? = nil` (=
     /// backward-compat for older plans without the field).
     @Test func plan_init_accepts_optional_model() throws {
-        let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Agent/Store/PlanModeEngine.swift",
-            encoding: .utf8
-        )
+        let source = try SourceLocator.read("Sources/WenshuApp/Features/Agent/Store/PlanModeEngine.swift")
         #expect(source.contains("model: String? = nil"))
     }
 
@@ -62,10 +56,7 @@ struct PlanModelTests {
     /// T30 contract: run() captures the model id (= the engine's
     /// `model` field) and surfaces it on the returned Plan.
     @Test func engine_run_surfaces_model() throws {
-        let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Agent/Store/PlanModeEngine.swift",
-            encoding: .utf8
-        )
+        let source = try SourceLocator.read("Sources/WenshuApp/Features/Agent/Store/PlanModeEngine.swift")
         // The engine's run() should construct a new Plan with
         // model = `self.model` (= the model id passed to the engine init).
         #expect(source.contains("model: model.isEmpty ? nil : model"))
@@ -74,10 +65,7 @@ struct PlanModelTests {
     /// T30 contract: ChatPlanPartView renders the model id next to
     /// the connector name (gated on plan.model != nil).
     @Test func view_renders_model_id() throws {
-        let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatPlanPartView.swift",
-            encoding: .utf8
-        )
+        let source = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatPlanPartView.swift")
         #expect(source.contains("if let model = plan.model"))
         #expect(source.contains("Text(model)"))
     }

@@ -50,9 +50,7 @@ struct ChatViewModelDefaultModelTests {
 
         // 
         // test reads the worktree-local file (= not the hardcoded main path).
-        let cwd = FileManager.default.currentDirectoryPath
-        let settingViewURL = URL(fileURLWithPath: cwd)
-            .appendingPathComponent("Sources/WenshuApp/Features/Settings/View/SettingView.swift")
+        let settingViewURL = SourceLocator.url("Sources/WenshuApp/Features/Settings/View/SettingView.swift")
         let settingView = try? String(contentsOf: settingViewURL, encoding: .utf8)
         #expect(settingView != nil, "SettingView.swift must be readable at \(settingViewURL.path)")
         // 
@@ -65,9 +63,7 @@ struct ChatViewModelDefaultModelTests {
         clearModelDefaults()
         // 
         // from any worktree = not just main).
-        let cwd = FileManager.default.currentDirectoryPath
-        let chatZoneViewURL = URL(fileURLWithPath: cwd)
-            .appendingPathComponent("Sources/WenshuApp/Features/Chat/View/ChatZoneView.swift")
+        let chatZoneViewURL = SourceLocator.url("Sources/WenshuApp/Features/Chat/View/ChatZoneView.swift")
         let chatZoneView = try? String(contentsOf: chatZoneViewURL, encoding: .utf8)
         #expect(chatZoneView != nil, "ChatZoneView.swift must be readable at \(chatZoneViewURL.path)")
         // 
@@ -75,8 +71,7 @@ struct ChatViewModelDefaultModelTests {
         // 
         //
         // Fix: verify the canonical source-of-truth (= AppState.llmModel) carries the empty-string default. We strip comments to avoid false positives (= the v0.24 comment in SettingView.swift line 57-67 mentions the literal `@AppStorage("wenshu.llm.model")` as historical reference).
-        let appStateURL = URL(fileURLWithPath: cwd)
-            .appendingPathComponent("Sources/WenshuApp/Shared/State/AppState.swift")
+        let appStateURL = SourceLocator.url("Sources/WenshuApp/Shared/State/AppState.swift")
         let appState = try? String(contentsOf: appStateURL, encoding: .utf8)
         #expect(appState != nil, "AppState.swift must be readable at \(appStateURL.path)")
         let codeLines = appState!.components(separatedBy: "\n").filter {
@@ -111,12 +106,10 @@ struct ChatViewModelDefaultModelTests {
         // checkout (= /Volumes/ANAN/Engineering/wenshu/Sources/...) =
         // = the test verified the main repo's KeychainOps.swift even
         // when run from a worktree (= false negative). The fix is to
-        // derive the path from FileManager.currentDirectoryPath (= the
-        // working directory of `swift test`), so the test reads the
-        // worktree-local file (= or the main file when run from main).
-        let cwd = FileManager.default.currentDirectoryPath
-        let keychainOpsURL = URL(fileURLWithPath: cwd)
-            .appendingPathComponent("Sources/WenshuAgent/Sources/WenshuAgent/Keychain/KeychainOps.swift")
+        // derive the path from the repo root of the tree under test
+        // (= SourceLocator), so the test reads the worktree-local file
+        // (= or the main file when run from main).
+        let keychainOpsURL = SourceLocator.url("Sources/WenshuAgent/Sources/WenshuAgent/Keychain/KeychainOps.swift")
         let keychainOps = try? String(contentsOf: keychainOpsURL, encoding: .utf8)
         #expect(keychainOps != nil, "KeychainOps.swift must be readable at \(keychainOpsURL.path)")
         // Strip comments (= historical references in headers must not count).

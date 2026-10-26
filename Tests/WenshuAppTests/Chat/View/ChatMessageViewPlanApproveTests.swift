@@ -15,34 +15,22 @@ import Foundation
 struct ChatMessageViewPlanApproveTests {
 
     @Test func source_contains_onApprovePlan_property() throws {
-        let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift",
-            encoding: .utf8
-        )
+        let source = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift")
         #expect(source.contains("let onApprovePlan: ((Plan) -> Void)?"))
     }
 
     @Test func init_accepts_onApprovePlan() throws {
-        let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift",
-            encoding: .utf8
-        )
+        let source = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift")
         #expect(source.contains("onApprovePlan: ((Plan) -> Void)? = nil"))
     }
 
     @Test func bodyview_call_forwards_onApprovePlan() throws {
-        let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift",
-            encoding: .utf8
-        )
+        let source = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift")
         #expect(source.contains("onApprovePlan: onApprovePlan"))
     }
 
     @Test func chatview_passes_real_closure() throws {
-        let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
-            encoding: .utf8
-        )
+        let source = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
         #expect(source.contains("onApprovePlan: { plan in"))
         #expect(source.contains("vm.inputText = plan.query"))
         #expect(source.contains("Task { await vm.send() }"))

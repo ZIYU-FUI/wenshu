@@ -16,29 +16,20 @@ struct ChatViewKeyboardShortcutsTests {
     /// T37 contract: ChatView source registers ⌘K shortcut
     /// (= the standard Slack / Discord focus-input shortcut).
     @Test func cmd_k_shortcut_registered() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
         #expect(src.contains(".keyboardShortcut(\"k\", modifiers: [.command])"))
     }
 
     /// T37 contract: ChatView source registers ⌘L shortcut
     /// (= the standard ChatGPT / Claude clear-chat shortcut).
     @Test func cmd_l_shortcut_registered() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
         #expect(src.contains(".keyboardShortcut(\"l\", modifiers: [.command])"))
     }
 
     /// T37 contract: ⌘K button action sets inputFocused = true.
     @Test func cmd_k_focuses_input() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
         // Locate the ⌘K button body.
         let cmdKRange = src.range(of: "Button(\"Focus input\")")!
         let cmdKBody = src[cmdKRange.lowerBound..<src.range(of: "}", range: cmdKRange.upperBound..<src.endIndex)!.lowerBound]
@@ -47,10 +38,7 @@ struct ChatViewKeyboardShortcutsTests {
 
     /// T37 contract: ⌘L button clears input + starts new session.
     @Test func cmd_l_clears_and_starts_new_session() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
         // Locate the ⌘L button body.
         let cmdLRange = src.range(of: "Button(\"Clear chat\")")!
         let cmdLBody = src[cmdLRange.lowerBound..<src.range(of: "}", range: cmdLRange.upperBound..<src.endIndex)!.lowerBound]
@@ -63,10 +51,7 @@ struct ChatViewKeyboardShortcutsTests {
     /// (= .frame(width: 0, height: 0) + .opacity(0)) so they
     /// don't take up chat zone space.
     @Test func buttons_are_visually_hidden() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
         let cmdKRange = src.range(of: ".keyboardShortcut(\"k\", modifiers: [.command])")!
         let cmdLRange = src.range(of: ".keyboardShortcut(\"l\", modifiers: [.command])")!
         // Verify .frame(width: 0, height: 0) appears after each
@@ -99,14 +84,8 @@ struct ChatViewKeyboardShortcutsTests {
         // exists in ChatView; = the Focus input Button's source
         // position is after the input row HStack in source order,
         // which means it sits outside the input row visually).
-        let inputBarSrc = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift",
-            encoding: .utf8
-        )
-        let chatViewSrc = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
-            encoding: .utf8
-        )
+        let inputBarSrc = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift")
+        let chatViewSrc = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
         // The hidden Focus input Button lives in ChatView (= the keyboard
         // shortcut block is a sibling of ScrollViewReader).
         #expect(chatViewSrc.contains("Button(\"Focus input\")"))

@@ -17,10 +17,7 @@ struct ChatPartViewThinkingFadeInTests {
     /// AnyTransition.wenshuThinkingAppear() (= the standard
     /// fade-in + downward-slide transition for streamed reasoning).
     @Test func source_defines_wenshuThinkingAppear() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatReasoningPartView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatReasoningPartView.swift")
         #expect(src.contains("wenshuThinkingAppear"))
     }
 
@@ -28,10 +25,7 @@ struct ChatPartViewThinkingFadeInTests {
     /// static function on AnyTransition extension (= not a stored
     /// property; = satisfies Swift 6 strict concurrency).
     @Test func wenshuThinkingAppear_is_static_function() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatReasoningPartView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatReasoningPartView.swift")
         #expect(src.contains("static func wenshuThinkingAppear() -> AnyTransition"),
                 "ChatReasoningPartView must expose public static func wenshuThinkingAppear()")
     }
@@ -39,30 +33,21 @@ struct ChatPartViewThinkingFadeInTests {
     /// T40 contract: the transition is asymmetric (= insertion
     /// = fade-in + slide, removal = opacity only).
     @Test func transition_is_asymmetric() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatReasoningPartView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatReasoningPartView.swift")
         #expect(src.contains(".asymmetric(\n            insertion: .opacity.combined(with: .move(edge: .top)),\n            removal: .opacity"))
     }
 
     /// T40 contract: ChatPartRow (.reasoning case) applies the
     /// transition via .transition(.wenshuThinkingAppear()).
     @Test func reasoning_case_applies_transition() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatPartView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatPartView.swift")
         #expect(src.contains(".transition(.wenshuThinkingAppear())"))
     }
 
     /// T40 contract: @MainActor-isolation on the function
     /// (= Sendable-safe; = matches SwiftUI's actor model).
     @Test func wenshuThinkingAppear_is_MainActor_isolated() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatReasoningPartView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatReasoningPartView.swift")
         // The @MainActor attribute appears on the line BEFORE the
         // function declaration.
         guard let funcRange = src.range(of: "static func wenshuThinkingAppear") else {

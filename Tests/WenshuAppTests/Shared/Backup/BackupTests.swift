@@ -11,8 +11,7 @@ import Foundation
 @Suite("Backup (hermes replica)")
 struct BackupTests {
     private static func tempDir(name: String) -> URL {
-        let cwd = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-        let dir = cwd.appendingPathComponent(".test-backup-\(name)-\(UUID().uuidString.prefix(8))", isDirectory: true)
+        let dir = SourceLocator.repoRoot.appendingPathComponent(".test-backup-\(name)-\(UUID().uuidString.prefix(8))", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir
     }

@@ -24,7 +24,7 @@ struct TodoStoreTests {
     }
 
     private static func tempDBPath() -> String {
-        URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        SourceLocator.repoRoot
             .appendingPathComponent(".test-todo-\(UUID().uuidString.prefix(8)).db")
             .path
     }

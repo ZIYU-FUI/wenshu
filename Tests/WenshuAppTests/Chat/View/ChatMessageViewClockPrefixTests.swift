@@ -15,19 +15,13 @@ struct ChatMessageViewClockPrefixTests {
 
     /// T65 contract: source uses Image(systemName: "clock") in the footer.
     @Test func source_uses_clock_sf_symbol() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift")
         #expect(src.contains("SFIcon(\"clock\""))
     }
 
     /// T65 contract: icon uses .caption2 + .quaternary tone.
     @Test func icon_uses_caption2_quaternary() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift")
         let iconPos = src.range(of: "SFIcon(\"clock\"")!
         // Per §11 = SFIcon central factory applies .foregroundStyle(.quaternary)
         // inside IconStyles.swift (= not in ChatMessageFooter.swift). Verify the
@@ -41,10 +35,7 @@ struct ChatMessageViewClockPrefixTests {
 
     /// T65 contract: icon appears BEFORE the timestamp text.
     @Test func icon_appears_before_timestamp_text() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift")
         let iconPos = src.range(of: "SFIcon(\"clock\"")!
         let textPos = src.range(of: "Text(timestamp, format: timestampDisplayFormat)")!
         #expect(iconPos.lowerBound < textPos.lowerBound)
@@ -52,47 +43,32 @@ struct ChatMessageViewClockPrefixTests {
 
     /// T65 contract: T50 timestamp tooltip preserved.
     @Test func t50_timestamp_tooltip_preserved() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift")
         #expect(src.contains(".help(Self.fullTimestampTooltip(for: timestamp))"))
     }
 
     /// T65 contract: T26 hover timestamp logic preserved.
     @Test func t26_hover_timestamp_preserved() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift")
         #expect(src.contains("private var timestampDisplayFormat: Date.FormatStyle"))
         #expect(src.contains("isTimestampHovered = hovering"))
     }
 
     /// T65 contract: T53 combo tooltip preserved.
     @Test func t53_combo_tooltip_preserved() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift")
         #expect(src.contains(".help(Self.comboFooterTooltip(timestamp: timestamp, tokens: tokens))"))
     }
 
     /// T65 contract: T63 'number' icon preserved (= mirror pattern).
     @Test func t63_number_icon_preserved() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift")
         #expect(src.contains("SFIcon(\"number\""))
     }
 
     /// T65 contract: T64 '$' icon preserved.
     @Test func t64_dollar_icon_preserved() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift")
         #expect(src.contains("SFIcon(\"dollarsign.circle\""))
     }
 }

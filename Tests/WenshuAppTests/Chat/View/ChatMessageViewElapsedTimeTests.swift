@@ -36,10 +36,7 @@ struct ChatMessageViewElapsedTimeTests {
 
 
     @Test func elapsed_text_uses_monospaced_caption2() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessagePlaceholderRow.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessagePlaceholderRow.swift")
         let elapsedBlockStart = src.range(of: "Self.formatElapsed(elapsed)")!
         let elapsedBlockEnd = src.range(of: "}\n        }", range: elapsedBlockStart.upperBound..<src.endIndex)!.lowerBound
         let elapsedBlock = src[elapsedBlockStart.lowerBound..<elapsedBlockEnd]
@@ -48,18 +45,12 @@ struct ChatMessageViewElapsedTimeTests {
     }
 
     @Test func formatElapsed_helper_exists() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessagePlaceholderRow.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessagePlaceholderRow.swift")
         #expect(src.contains("nonisolated static func formatElapsed(_ seconds: TimeInterval) -> String"))
     }
 
     @Test func t53_combo_tooltip_preserved() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift")
         #expect(src.contains(".help(Self.comboFooterTooltip(timestamp: timestamp, tokens: tokens))"))
     }
 }

@@ -63,7 +63,7 @@ struct VisionToolsTests {
     func testRecognizeTextTextFile() async {
         // fileyes → yes imageLoadFailed
         let tools = VisionTools()
-        let textPath = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        let textPath = SourceLocator.repoRoot
             .appendingPathComponent(".test-vision-\(UUID().uuidString.prefix(8)).txt").path
         try? "not an image".write(toFile: textPath, atomically: true, encoding: .utf8)
         defer { try? FileManager.default.removeItem(atPath: textPath) }

@@ -15,19 +15,13 @@ struct ChatMessageViewTokenIconTests {
 
     /// T63 contract: source uses Image(systemName: "number") in the footer.
     @Test func source_uses_number_sf_symbol() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift")
         #expect(src.contains("SFIcon(\"number\""))
     }
 
     /// T63 contract: icon uses .caption2 + .quaternary tone.
     @Test func icon_uses_caption2_quaternary() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift")
         // Per §11 design rule (= SFIcon central factory), the
         // footer renders the number-icon via `SFIcon("number",
         // style: .inlineSmall, color: IconColor.quaternary)`.
@@ -51,10 +45,7 @@ struct ChatMessageViewTokenIconTests {
     /// T63 contract: icon appears BEFORE the token count text (=
     /// Apple HIG metadata icon convention).
     @Test func icon_appears_before_token_count() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift")
         let iconPos = src.range(of: "SFIcon(\"number\"")!
         let tokenPos = src.range(of: "Self.formatTokenCount(tokens)")!
         #expect(iconPos.lowerBound < tokenPos.lowerBound)
@@ -62,28 +53,19 @@ struct ChatMessageViewTokenIconTests {
 
     /// T63 contract: T52 token tooltip preserved.
     @Test func t52_token_tooltip_preserved() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift")
         #expect(src.contains(".help(Self.fullTokenCountTooltip(for: tokens))"))
     }
 
     /// T63 contract: T62 token cost preserved.
     @Test func t62_token_cost_preserved() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift")
         #expect(src.contains("Self.formatTokenCost(tokens)"))
     }
 
     /// T63 contract: T55 footer divider preserved.
     @Test func t55_footer_divider_preserved() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift")
         #expect(src.contains(".overlay(alignment: .top) {"))
     }
 }

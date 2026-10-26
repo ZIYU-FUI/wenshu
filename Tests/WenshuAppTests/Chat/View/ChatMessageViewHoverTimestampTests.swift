@@ -18,20 +18,14 @@ struct ChatMessageViewHoverTimestampTests {
     /// T26 contract: @State isTimestampHovered exists (= SwiftUI
     /// tracks hover state for re-render).
     @Test func source_has_timestamp_hovered_state() throws {
-        let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift",
-            encoding: .utf8
-        )
+        let source = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift")
         #expect(source.contains("@State private var isTimestampHovered: Bool = false"))
     }
 
     /// T26 contract: timestamp Text uses a computed format style
     /// (= not the literal .hour().minute() call from T19).
     @Test func timestamp_uses_computed_format() throws {
-        let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
-            encoding: .utf8
-        )
+        let source = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift")
         #expect(source.contains("format: timestampDisplayFormat"))
         #expect(source.contains("private var timestampDisplayFormat: Date.FormatStyle"))
     }
@@ -39,20 +33,14 @@ struct ChatMessageViewHoverTimestampTests {
     /// T26 contract: format expands on hover (= uses .day().month()
     /// in the hovered branch).
     @Test func format_expands_on_hover() throws {
-        let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
-            encoding: .utf8
-        )
+        let source = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift")
         #expect(source.contains(".dateTime\n                .hour().minute()\n                .day().month()"))
     }
 
     /// T26 contract: .onHover wired to set isTimestampHovered
     /// (= SwiftUI hover affordance is the trigger).
     @Test func on_hover_wired_to_state() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageFooter.swift")
         // T65 wrapped the timestamp Text inside an HStack with
         // the clock icon. The .onHover block is now nested deeper.
         #expect(src.contains(".onHover { hovering in") && src.contains("isTimestampHovered = hovering"))

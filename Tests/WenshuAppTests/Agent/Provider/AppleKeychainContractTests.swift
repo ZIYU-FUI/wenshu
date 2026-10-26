@@ -27,17 +27,14 @@ import WenshuAgent
 struct AppleKeychainContractTests {
 
     private static func source(for relativePath: String) throws -> String {
-        // Walk up from the test file to the wenshu repo root, then
-        // resolve the source file by canonical subpath mapping.
-        let cwd = FileManager.default.currentDirectoryPath
-        // Cwd is /Volumes/ANAN/Engineering/wenshu when run via swift test
-        // from the workdir. Source files are below `Sources/`.
-        let candidate = "\(cwd)/\(relativePath)"
+        // Resolve against the repo root of the tree under test (= not
+        // the working directory the test run happened to start in).
+        let candidate = SourceLocator.path(relativePath)
         guard FileManager.default.fileExists(atPath: candidate) else {
             Issue.record("Source file missing at \(candidate)")
             throw NSError(domain: "Test", code: -1)
         }
-        return try String(contentsOfFile: candidate, encoding: .utf8)
+        return try SourceLocator.read(relativePath)
     }
 
     @Test("KeychainOps uses kSecClassGenericPassword (= Apple canonical for app secrets)")

@@ -83,8 +83,7 @@ struct ObsidianVaultBatchImportTests {
     }()
 
     private static let wsRoot: URL = {
-        let cwd = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-        return cwd.appendingPathComponent(".scratch/anbaiqiang.ws")
+        return SourceLocator.repoRoot.appendingPathComponent(".scratch/anbaiqiang.ws")
     }()
 
     private static var liveEnabled: Bool {

@@ -15,19 +15,13 @@ struct ChatViewFindShortcutTests {
 
     /// T106 contract: ⌥F shortcut registered.
     @Test func alt_f_shortcut_registered() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
         #expect(src.contains(".keyboardShortcut(\"f\", modifiers: [.option])"))
     }
 
     /// T106 contract: Button body NSLogs find-in-conversation.
     @Test func body_logs_find_in_conversation() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
         let btnPos = src.range(of: "Button(\"Find in conversation\")")!
         let startOffset = src.distance(from: src.startIndex, to: btnPos.upperBound)
         let endOffset = min(startOffset + 1500,
@@ -42,10 +36,7 @@ struct ChatViewFindShortcutTests {
 
     /// T106 contract: button is visually hidden.
     @Test func find_button_is_visually_hidden() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
         let altFIdx = src.range(of: ".keyboardShortcut(\"f\", modifiers: [.option])")!
         let after = src[altFIdx.upperBound...]
         #expect(after.contains(".frame(width: 0, height: 0)"))
@@ -55,38 +46,26 @@ struct ChatViewFindShortcutTests {
 
     /// T106 contract: T105 ⌥E expand-reasoning shortcut preserved.
     @Test func t105_expand_reasoning_preserved() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
         #expect(src.contains(".keyboardShortcut(\"e\", modifiers: [.option])"))
         #expect(src.contains("Button(\"Expand all reasoning blocks\")"))
     }
 
     /// T106 contract: T104 ⌥A append shortcut preserved.
     @Test func t104_append_preserved() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
         #expect(src.contains(".keyboardShortcut(\"a\", modifiers: [.option])"))
     }
 
     /// T106 contract: T82 ⌘? shortcut preserved.
     @Test func t82_cmd_question_preserved() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
         #expect(src.contains(".keyboardShortcut(\"?\", modifiers: [.command])"))
     }
 
     /// T106 contract: prior shortcuts preserved.
     @Test func prior_shortcuts_preserved() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
         #expect(src.contains(".keyboardShortcut(\"n\", modifiers: [.command])"))
         #expect(src.contains(".keyboardShortcut(\"r\", modifiers: [.command])"))
         #expect(src.contains(".keyboardShortcut(\"d\", modifiers: [.command, .shift])"))
@@ -104,14 +83,8 @@ struct ChatViewFindShortcutTests {
         // input row HStack) is now distributed across two files; = this
         // test verifies both halves exist (= .frame(minHeight: 36) is
         // only in ChatInputBarView; = Button("Find in conversation") is only in ChatView).
-        let inputBarSrc = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift",
-            encoding: .utf8
-        )
-        let chatViewSrc = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
-            encoding: .utf8
-        )
+        let inputBarSrc = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift")
+        let chatViewSrc = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
         // The input row HStack's minimum height pin (= .frame(minHeight: 36); = boss v1.96/v1.97 spec: input height = 36PT = match button diameter)
         // lives ONLY in the top-layer ChatInputBarView.
         #expect(inputBarSrc.contains("DesignTokens.controlHeightLarge"))

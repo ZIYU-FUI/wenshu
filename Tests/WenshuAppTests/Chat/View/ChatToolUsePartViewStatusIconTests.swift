@@ -40,20 +40,14 @@ struct ChatToolUsePartViewStatusIconTests {
     /// header (= replaces T2's bare Circle status dot with a
     /// visible SF Symbol).
     @Test func source_uses_statusIconName() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatToolUsePartView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatToolUsePartView.swift")
         #expect(src.contains("Image(systemName: Self.statusIconName(for: toolUse.status))"))
     }
 
     /// T44 contract: T43's iconName helper is preserved (= no
     /// regression of T43's tool-kind icon map).
     @Test func t43_icon_helper_preserved() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatToolUsePartView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatToolUsePartView.swift")
         #expect(src.contains("nonisolated static func iconName(for toolName: String) -> String"))
     }
 }

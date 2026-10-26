@@ -16,10 +16,7 @@ struct ChatPartViewTextFadeInTests {
 
     /// T49 contract: .text case applies .transition(.wenshuThinkingAppear()).
     @Test func text_case_applies_transition() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatPartView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatPartView.swift")
         let textCaseIdx = src.range(of: "case .text(let s):")!
         let nextCaseIdx = src.range(of: "case .reasoning(let s):",
                                     range: textCaseIdx.upperBound..<src.endIndex)!
@@ -29,10 +26,7 @@ struct ChatPartViewTextFadeInTests {
 
     /// T49 contract: T40 reasoning case still applies transition.
     @Test func reasoning_case_still_applies_transition() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatPartView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatPartView.swift")
         let reasoningIdx = src.range(of: "case .reasoning(let s):")!
         let nextCaseIdx = src.range(of: "case .toolUse(let tu):",
                                     range: reasoningIdx.upperBound..<src.endIndex)!
@@ -42,10 +36,7 @@ struct ChatPartViewTextFadeInTests {
 
     /// T49 contract: T41 tool cases still apply transitions.
     @Test func tool_cases_still_apply_transitions() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatPartView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatPartView.swift")
         let toolUseIdx = src.range(of: "case .toolUse(let tu):")!
         let nextCaseIdx = src.range(of: "case .toolResult(let tr):",
                                     range: toolUseIdx.upperBound..<src.endIndex)!
@@ -56,10 +47,7 @@ struct ChatPartViewTextFadeInTests {
     /// T49 contract: total transition count in ChatPartRow
     /// switch is now 4 (= reasoning + toolUse + toolResult + text).
     @Test func transition_applied_to_four_cases() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatPartView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatPartView.swift")
         let rowBodyStart = src.range(of: "switch part.kind {")!
         let rowBodyEnd = src.range(of: "    }", range: rowBodyStart.upperBound..<src.endIndex)
         guard let rowBodyEnd else { return }
@@ -72,10 +60,7 @@ struct ChatPartViewTextFadeInTests {
     @Test func t42_stream_cursor_preserved() throws {
         // The streaming cursor TimelineView lives in ChatTextPartView
         // (not in ChatPartView's switch case).
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatTextPartView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatTextPartView.swift")
         #expect(src.contains("TimelineView(.periodic(from: .now, by: 0.5))"))
     }
 }

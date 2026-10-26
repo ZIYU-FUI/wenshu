@@ -15,20 +15,14 @@ struct ChatViewRegenShortcutTests {
 
     /// T77 contract: ⌘⇧G shortcut registered.
     @Test func cmd_shift_g_shortcut_registered() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
         #expect(src.contains(".keyboardShortcut(\"g\", modifiers: [.command, .shift])"))
     }
 
     /// T77 contract: Button body removes the last assistant message
     /// and re-sends the last user prompt.
     @Test func regen_removes_last_assistant_and_resends_user() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
         let btnPos = src.range(of: "Button(\"Regenerate last assistant\")")!
         let endOffset = min(src.distance(from: src.startIndex, to: btnPos.upperBound) + 2000,
                             src.distance(from: src.startIndex, to: src.endIndex))
@@ -45,10 +39,7 @@ struct ChatViewRegenShortcutTests {
 
     /// T77 contract: button is visually hidden.
     @Test func regen_button_is_visually_hidden() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
         let cmdGIdx = src.range(of: ".keyboardShortcut(\"g\", modifiers: [.command, .shift])")!
         let after = src[cmdGIdx.upperBound...]
         #expect(after.contains(".frame(width: 0, height: 0)"))
@@ -59,10 +50,7 @@ struct ChatViewRegenShortcutTests {
     /// T77 contract: T37/T48/T59/T66/T67/T69/T70/T74/T76 prior shortcuts
     /// preserved.
     @Test func prior_shortcuts_preserved() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
         #expect(src.contains(".keyboardShortcut(\"k\", modifiers: [.command])"))
         #expect(src.contains(".keyboardShortcut(\"n\", modifiers: [.command])"))
         #expect(src.contains(".keyboardShortcut(\"r\", modifiers: [.command])"))
@@ -86,14 +74,8 @@ struct ChatViewRegenShortcutTests {
         // input row HStack) is now distributed across two files; = this
         // test verifies both halves exist (= .frame(minHeight: 36) is
         // only in ChatInputBarView; = Button("Regenerate last assistant") is only in ChatView).
-        let inputBarSrc = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift",
-            encoding: .utf8
-        )
-        let chatViewSrc = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
-            encoding: .utf8
-        )
+        let inputBarSrc = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift")
+        let chatViewSrc = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
         // The input row HStack's minimum height pin (= .frame(minHeight: 36); = boss v1.96/v1.97 spec: input height = 36PT = match button diameter)
         // lives ONLY in the top-layer ChatInputBarView.
         #expect(inputBarSrc.contains("DesignTokens.controlHeightLarge"))

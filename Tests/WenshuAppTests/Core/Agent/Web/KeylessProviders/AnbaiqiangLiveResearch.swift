@@ -77,8 +77,7 @@ import Foundation
 struct AnbaiqiangLiveResearch {
 
     private static let wsRoot: URL = {
-        let cwd = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-        return cwd.appendingPathComponent(".scratch/anbaiqiang.ws")
+        return SourceLocator.repoRoot.appendingPathComponent(".scratch/anbaiqiang.ws")
     }()
 
     private static var liveEnabled: Bool {
@@ -89,7 +88,6 @@ struct AnbaiqiangLiveResearch {
     func fullFlow() async throws {
         guard Self.liveEnabled else {
             print("[AnbaiqiangLiveResearch] skipped (= WENSHU_LIVE_API_TESTS not set)")
-            return
             return
         }
 

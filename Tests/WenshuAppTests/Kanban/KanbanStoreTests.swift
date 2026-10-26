@@ -35,7 +35,7 @@ struct KanbanStoreTests {
     }
 
     private static func tempDBPath() -> String {
-        URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        SourceLocator.repoRoot
             .appendingPathComponent(".test-kanban-\(UUID().uuidString.prefix(8)).db")
             .path
     }

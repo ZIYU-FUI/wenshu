@@ -15,19 +15,13 @@ struct ChatViewReloadShortcutTests {
 
     /// T59 contract: ChatView source registers ⌘R shortcut.
     @Test func cmd_r_shortcut_registered() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
         #expect(src.contains(".keyboardShortcut(\"r\", modifiers: [.command])"))
     }
 
     /// T59 contract: Reload button body re-sends the last user message.
     @Test func cmd_r_resends_last_user_message() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
         // Locate the Button declaration. Then the button body extends
         // until the matching closing brace at indent level 12 (= one
         // level less than the Button's body). Use substringAfter to
@@ -48,10 +42,7 @@ struct ChatViewReloadShortcutTests {
     /// T59 contract: ⌘R falls back to focusing the input when
     /// there is no prior user message.
     @Test func cmd_r_falls_back_to_focus_input() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
         let cmdRPos = src.range(of: "Button(\"Reload chat\")")!
         let blockEndOffset = min(src.distance(from: src.startIndex, to: cmdRPos.upperBound) + 1500,
                                 src.distance(from: src.startIndex, to: src.endIndex))
@@ -64,10 +55,7 @@ struct ChatViewReloadShortcutTests {
 
     /// T59 contract: Reload button is visually hidden.
     @Test func cmd_r_button_is_visually_hidden() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
         let cmdRShortcutIdx = src.range(of: ".keyboardShortcut(\"r\", modifiers: [.command])")!
         let after = src[cmdRShortcutIdx.upperBound...]
         #expect(after.contains(".frame(width: 0, height: 0)"))
@@ -77,10 +65,7 @@ struct ChatViewReloadShortcutTests {
 
     /// T59 contract: T37 ⌘K + ⌘L + T48 ⌘N + T49 ⌘G preserved.
     @Test func prior_shortcuts_preserved() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
         #expect(src.contains(".keyboardShortcut(\"k\", modifiers: [.command])"))
         #expect(src.contains(".keyboardShortcut(\"l\", modifiers: [.command])"))
         #expect(src.contains(".keyboardShortcut(\"n\", modifiers: [.command])"))
@@ -100,14 +85,8 @@ struct ChatViewReloadShortcutTests {
         // input row HStack) is now distributed across two files; = this
         // test verifies both halves exist (= .frame(minHeight: 36) is
         // only in ChatInputBarView; = Button("Reload chat") is only in ChatView).
-        let inputBarSrc = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift",
-            encoding: .utf8
-        )
-        let chatViewSrc = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
-            encoding: .utf8
-        )
+        let inputBarSrc = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift")
+        let chatViewSrc = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
         // The input row HStack's minimum height pin (= .frame(minHeight: 36); = boss v1.96/v1.97 spec: input height = 36PT = match button diameter)
         // lives ONLY in the top-layer ChatInputBarView.
         #expect(inputBarSrc.contains("DesignTokens.controlHeightLarge"))

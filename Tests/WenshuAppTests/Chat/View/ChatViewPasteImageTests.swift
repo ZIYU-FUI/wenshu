@@ -24,10 +24,7 @@ struct ChatViewPasteImageTests {
         // layer = chat content) into ChatInputBarView (the top layer
         // = user-interactive input controls). The handler reads
         // ChatInputBarView.swift.
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift")
         #expect(src.contains(".onPasteCommand(of: [.image])"))
     }
 
@@ -35,10 +32,7 @@ struct ChatViewPasteImageTests {
     /// writes to a temp file, then hands the URL to vm.attachImage.
     @Test func handler_writes_temp_png_and_calls_attachImage() throws {
         // same handler relocation (= ChatView → ChatInputBarView).
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift")
         #expect(src.contains("NSImage.self"))
         #expect(src.contains("tiffRepresentation"))
         #expect(src.contains("NSBitmapImageRep"))
@@ -58,10 +52,7 @@ struct ChatViewPasteImageTests {
     /// asserts co-location in ChatInputBarView (= they sit on the
     /// same input row HStack; = within 5,000 chars of source order).
     @Test func paste_handler_is_on_outer_vstack() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift")
         // Find the .fileImporter( call site (= modifier on input row).
         let callPattern = ".fileImporter(\n"
         guard let callSiteRange = src.range(of: callPattern) else {
@@ -89,10 +80,7 @@ struct ChatViewPasteImageTests {
         // .fileImporter + .dropDestination
         // moved from ChatView (= the middle layer) into ChatInputBarView
         // (= the top layer). Both now live on the input row.
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift")
         #expect(src.contains(".fileImporter("))
         #expect(src.contains(".dropDestination(for: URL.self)"))
         #expect(src.contains("vm.attachImage(at: url)"))
@@ -126,14 +114,8 @@ struct ChatViewPasteImageTests {
     ///      competing paste handler; = the paste handler is owned by
     ///      the top layer only.
     @Test func paste_handler_outside_hstack() throws {
-        let inputBarSrc = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift",
-            encoding: .utf8
-        )
-        let chatViewSrc = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
-            encoding: .utf8
-        )
+        let inputBarSrc = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatInputBarView.swift")
+        let chatViewSrc = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
         // The paste handler lives in ChatInputBarView (= on the
         // TextField via ImagePasteModifier; = top layer).
         #expect(inputBarSrc.contains(".onPasteCommand(of: [.image])"))

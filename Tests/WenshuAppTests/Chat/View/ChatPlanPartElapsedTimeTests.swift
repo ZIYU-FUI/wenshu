@@ -18,10 +18,7 @@ struct ChatPlanPartElapsedTimeTests {
     /// T32 contract: ChatPlanPartView source contains the
     /// .relative(presentation: .named) Text view.
     @Test func source_uses_relative_format() throws {
-        let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatPlanPartView.swift",
-            encoding: .utf8
-        )
+        let source = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatPlanPartView.swift")
         #expect(source.contains("Text(plan.createdAt, format: .relative(presentation: .named))"))
     }
 
@@ -29,10 +26,7 @@ struct ChatPlanPartElapsedTimeTests {
     /// (= more muted than the model id = visually subordinate to
     /// the connector + model primary info).
     @Test func chip_uses_quaternary_foreground() throws {
-        let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatPlanPartView.swift",
-            encoding: .utf8
-        )
+        let source = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatPlanPartView.swift")
         #expect(source.contains(".font(.caption2)"))
         #expect(source.contains(".foregroundStyle(.quaternary)"))
     }
@@ -41,10 +35,7 @@ struct ChatPlanPartElapsedTimeTests {
     /// model id (= last in the connector name HStack = visually
     /// grouped as the most secondary info).
     @Test func chip_is_after_model_id() throws {
-        let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatPlanPartView.swift",
-            encoding: .utf8
-        )
+        let source = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatPlanPartView.swift")
         // The relative-time Text comes after the model id block
         // (= "Text(model)" block ends; = then the elapsed chip).
         // Per §11 = production code uses .font(.caption2.monospaced())

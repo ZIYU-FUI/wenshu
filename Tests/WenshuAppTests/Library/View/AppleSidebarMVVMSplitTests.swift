@@ -24,18 +24,6 @@ import Foundation
 @Suite("AppleSidebarView MVVM split + folder→cards chain")
 struct AppleSidebarMVVMSplitTests {
 
-    /// Resolve repo-relative paths against the wenshu project root
-    /// (= the root of the checkout this test was built from).
-    ///
-    /// SourceLocator probes for Package.swift from the test file's
-    /// own compile-time path, so the root never depends on the test
-    /// runner's working directory (= which can be the build
-    /// directory at test runtime) and never lands on another
-    /// checkout's copy of the tree.
-    private static func repoPath(_ relative: String) -> String {
-        SourceLocator.path(relative)
-    }
-
     /// The signature of the book-document loader, matched across the
     /// line breaks the declaration is written on (= the loader is a
     /// static on PreviewPaneOps that takes the store).
@@ -56,8 +44,8 @@ struct AppleSidebarMVVMSplitTests {
 
     @Test("legacy_NewLibraryOutlineView_is_removed")
     func legacy_NewLibraryOutlineView_is_removed() throws {
-        let oldFile = Self.repoPath("Sources/WenshuApp/Features/Library/View/NewLibraryOutlineView.swift")
-        let oldExt = Self.repoPath("Sources/WenshuApp/Features/Library/View/NewLibraryOutlineView+DisclosureState.swift")
+        let oldFile = SourceLocator.path("Sources/WenshuApp/Features/Library/View/NewLibraryOutlineView.swift")
+        let oldExt = SourceLocator.path("Sources/WenshuApp/Features/Library/View/NewLibraryOutlineView+DisclosureState.swift")
         #expect(!FileManager.default.fileExists(atPath: oldFile),
                 "NewLibraryOutlineView.swift MUST be removed in v1.69")
         #expect(!FileManager.default.fileExists(atPath: oldExt),
@@ -76,7 +64,7 @@ struct AppleSidebarMVVMSplitTests {
             "Sources/WenshuApp/Features/Library/View/LazySidebarReferenceSection.swift",
         ]
         for f in deadLazyFiles {
-            #expect(!FileManager.default.fileExists(atPath: Self.repoPath(f)),
+            #expect(!FileManager.default.fileExists(atPath: SourceLocator.path(f)),
                     "\(f) MUST be removed in v1.69")
         }
     }
@@ -91,7 +79,7 @@ struct AppleSidebarMVVMSplitTests {
             "Sources/WenshuApp/Features/Library/View/SidebarItem.swift",  // data: selection enum
         ]
         for f in dataFiles {
-            #expect(FileManager.default.fileExists(atPath: Self.repoPath(f)),
+            #expect(FileManager.default.fileExists(atPath: SourceLocator.path(f)),
                     "\(f) MUST exist")
         }
         // Business layer
@@ -99,7 +87,7 @@ struct AppleSidebarMVVMSplitTests {
             "Sources/WenshuApp/Features/Library/View/SidebarService.swift",  // business: tree loader
         ]
         for f in businessFiles {
-            #expect(FileManager.default.fileExists(atPath: Self.repoPath(f)),
+            #expect(FileManager.default.fileExists(atPath: SourceLocator.path(f)),
                     "\(f) MUST exist")
         }
         // UI layer
@@ -110,7 +98,7 @@ struct AppleSidebarMVVMSplitTests {
             "Sources/WenshuApp/Features/Library/View/SidebarZoneHeaderButtons.swift",  // UI: zone header New/Import
         ]
         for f in uiFiles {
-            #expect(FileManager.default.fileExists(atPath: Self.repoPath(f)),
+            #expect(FileManager.default.fileExists(atPath: SourceLocator.path(f)),
                     "\(f) MUST exist")
         }
     }
@@ -125,17 +113,14 @@ struct AppleSidebarMVVMSplitTests {
             "Sources/WenshuApp/Features/Library/View/SidebarItem.swift",
         ]
         for f in dataFiles {
-            let src = try String(contentsOfFile: Self.repoPath(f), encoding: .utf8)
+            let src = try String(contentsOfFile: SourceLocator.path(f), encoding: .utf8)
             #expect(!src.contains("import SwiftUI"),
                     "\(f) MUST NOT import SwiftUI (= data layer is pure value types)")
         }
 
         // Business layer (= SidebarService) MUST NOT import SwiftUI
         // (= holds the tree; = loads via closures; = no view code).
-        let businessSrc = try String(
-            contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Library/View/SidebarService.swift"),
-            encoding: .utf8
-        )
+        let businessSrc = try SourceLocator.read("Sources/WenshuApp/Features/Library/View/SidebarService.swift")
         #expect(!businessSrc.contains("import SwiftUI"),
                 "SidebarService.swift MUST NOT import SwiftUI (= business layer is plain @Observable + @MainActor actor)")
 
@@ -149,7 +134,7 @@ struct AppleSidebarMVVMSplitTests {
             "Sources/WenshuApp/Features/Library/View/SidebarZoneHeaderButtons.swift",
         ]
         for f in uiFiles {
-            let src = try String(contentsOfFile: Self.repoPath(f), encoding: .utf8)
+            let src = try String(contentsOfFile: SourceLocator.path(f), encoding: .utf8)
             #expect(src.contains("import SwiftUI"),
                     "\(f) MUST import SwiftUI (= UI layer)")
         }
@@ -159,10 +144,7 @@ struct AppleSidebarMVVMSplitTests {
 
     @Test("appleSidebarView_forwards_folder_selection_to_appState")
     func appleSidebarView_forwards_folder_selection_to_appState() throws {
-        let src = try String(
-            contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Library/View/AppleSidebarView.swift"),
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Library/View/AppleSidebarView.swift")
         // AppleSidebarView's forwardSelection MUST write the
         // .folder(bookId:, folderName:) discriminator into
         // workspaceUI.sidebarSelection (= the canonical chain to
@@ -176,10 +158,7 @@ struct AppleSidebarMVVMSplitTests {
 
     @Test("sidebarItem_folder_case_is_defined")
     func sidebarItem_folder_case_is_defined() throws {
-        let src = try String(
-            contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Library/View/SidebarItem.swift"),
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Library/View/SidebarItem.swift")
         // SidebarItem.folder(bookId:, folderName:) is the
         // discriminator WorkspaceView.previewScope /
         // ShellMiddleColumn.previewScope switch on. If missing,
@@ -194,15 +173,9 @@ struct AppleSidebarMVVMSplitTests {
         // delegates folder naming to BookFolderCatalog.
         // The spec acceptance is that the user-facing folders ARE
         // rendered; their canonical literal lives in BookFolderCatalog.
-        let catalog = try String(
-            contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Library/Model/BookFolderCatalog.swift"),
-            encoding: .utf8
-        )
+        let catalog = try SourceLocator.read("Sources/WenshuApp/Features/Library/Model/BookFolderCatalog.swift")
         // SidebarService MUST expose folderChildren (= the standard folders per book)
-        let sidebarSvc = try String(
-            contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Library/View/SidebarService.swift"),
-            encoding: .utf8
-        )
+        let sidebarSvc = try SourceLocator.read("Sources/WenshuApp/Features/Library/View/SidebarService.swift")
         #expect(sidebarSvc.contains("folderChildren"),
                 "SidebarService MUST expose folderChildren (= the standard folders per book)")
         // The folder labels live in BookFolderCatalog (= the canonical spec).
@@ -223,10 +196,7 @@ struct AppleSidebarMVVMSplitTests {
         // outline / draft / idea rows) renders an "X items"
         // subtitle (= the .md file count under that folder),
         // mirroring the reference-library category row shape.
-        let src = try String(
-            contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Library/View/SidebarService.swift"),
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Library/View/SidebarService.swift")
         #expect(src.contains("loadFolderDocCount"),
                 "SidebarService MUST inject a loadFolderDocCount closure (= the count loader)")
         #expect(src.contains("\\(count) 项"),
@@ -241,10 +211,7 @@ struct AppleSidebarMVVMSplitTests {
         // those holds the tags that belong to it (= a two-level
         // tree). Individual references are NOT rendered as leaves
         // in the sidebar.
-        let src = try String(
-            contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Library/View/SidebarService.swift"),
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Library/View/SidebarService.swift")
         #expect(src.contains("referenceCategoryKey"),
                 "SidebarService MUST bucket references by category")
         #expect(src.contains("EntityCategoryFromDirectoryName"),
@@ -263,10 +230,7 @@ struct AppleSidebarMVVMSplitTests {
         // AppleSidebarView.forwardSelection can route category
         // row clicks to .referenceCategory(dirName) selection
         // (= the preview pane narrows to that category).
-        let src = try String(
-            contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Library/View/SidebarNode.swift"),
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Library/View/SidebarNode.swift")
         #expect(src.contains("case referenceCategory"),
                 "SidebarNode.Kind MUST have .referenceCategory (= the category row discriminator)")
     }
@@ -283,10 +247,7 @@ struct AppleSidebarMVVMSplitTests {
         // grid (= the previous case-sensitive lookup fell back
         // to .referenceScope(nil) = the user saw the full overview
         // after clicking a category = the boss's bug).
-        let src = try String(
-            contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Editor/View/AssetsPane.swift"),
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Editor/View/AssetsPane.swift")
         #expect(src.contains(".uppercased()"),
                 "AssetsPane.previewScope (= renamed from ShellMiddleColumn in commit 5723d226c) MUST do a case-insensitive rawValue lookup")
     }
@@ -310,10 +271,7 @@ struct AppleSidebarMVVMSplitTests {
         //   hint. The fix: displayName in
         //   title (user-readable); routingKey in dedicated
         //   field (forwardSelection reads it).
-        let src = try String(
-            contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Library/View/SidebarService.swift"),
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Library/View/SidebarService.swift")
         #expect(src.contains("title: folder.displayName") || src.contains("title: category.displayName"),
                 "category rows MUST use displayName as the title (= the user-facing Chinese label; = current source uses folder.displayName for the folder row)")
         #expect(src.contains("routingKey: tag") || src.contains("routingKey: category.directoryName"),
@@ -327,10 +285,7 @@ struct AppleSidebarMVVMSplitTests {
         // forwardSelection routing key can diverge (= the
         // category row shows Chinese label + routes by
         // EntityCategory directoryName).
-        let src = try String(
-            contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Library/View/SidebarNode.swift"),
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Library/View/SidebarNode.swift")
         #expect(src.contains("var routingKey: String?"),
                 "SidebarNode MUST expose routingKey as an optional String field")
     }
@@ -345,18 +300,12 @@ struct AppleSidebarMVVMSplitTests {
         // for books whose `shelfId` matches).
         // The shelf scope view lives in PreviewPaneScopeViews.swift
         // (= the scope-view helpers were extracted from PreviewPane.swift).
-        let scopeViews = try String(
-            contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Editor/View/PreviewPaneScopeViews.swift"),
-            encoding: .utf8
-        )
+        let scopeViews = try SourceLocator.read("Sources/WenshuApp/Features/Editor/View/PreviewPaneScopeViews.swift")
         #expect(scopeViews.contains("func shelfScopeView(shelfId: UUID)"),
                 "shelfScopeView MUST accept a shelfId parameter (= the scope view lives in PreviewPaneScopeViews, the file that holds it)")
         // The shelf book loader lives in PreviewPaneDataAccess.swift
         // (= the data accessors were extracted from PreviewPane.swift).
-        let dataAccess = try String(
-            contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Editor/View/PreviewPaneDataAccess.swift"),
-            encoding: .utf8
-        )
+        let dataAccess = try SourceLocator.read("Sources/WenshuApp/Features/Editor/View/PreviewPaneDataAccess.swift")
         #expect(dataAccess.contains("func loadBooksInShelf(shelfId: UUID)")
                 && dataAccess.contains("PreviewPaneOps.loadBooksInShelf"),
                 "the shelf book loader MUST live in PreviewPaneDataAccess and delegate to PreviewPaneOps.loadBooksInShelf(= the helper that filters BookStore.sidebarLoadAllBooks by shelfId; = per ADR-0009)")
@@ -372,10 +321,7 @@ struct AppleSidebarMVVMSplitTests {
         // "select a book" hint from the v1.0.0-m1-shell era
         // (= when shelves were a drill-down intermediate
         // rather than a document scope).
-        let src = try String(
-            contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Editor/View/PreviewPaneScopeViews.swift"),
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Editor/View/PreviewPaneScopeViews.swift")
         #expect(src.contains("titleKey: \"preview.empty_state.shelf_empty\""),
                 "shelfScopeView MUST use the shelf-specific empty-state title key (= lives in PreviewPaneScopeViews per SS6.2 split)")
         #expect(src.contains("bodyKey: \"preview.empty.shelf_no_books\""),
@@ -401,17 +347,11 @@ struct AppleSidebarMVVMSplitTests {
         // to PreviewPaneOps.loadBookDocs (= the canonical UI→Business→Data
         // seam per ADR-0009). The spec is met; the assertion target
         // moves from PreviewPane.swift to PreviewPaneOps.swift.
-        let ops = try String(
-            contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Editor/View/PreviewPaneOps.swift"),
-            encoding: .utf8
-        )
+        let ops = try SourceLocator.read("Sources/WenshuApp/Features/Editor/View/PreviewPaneOps.swift")
         // The scope views call the loader directly (= the scope-view
         // helpers were extracted from PreviewPane.swift into
         // PreviewPaneScopeViews.swift).
-        let scopeViews = try String(
-            contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Editor/View/PreviewPaneScopeViews.swift"),
-            encoding: .utf8
-        )
+        let scopeViews = try SourceLocator.read("Sources/WenshuApp/Features/Editor/View/PreviewPaneScopeViews.swift")
         // The loader is a static on PreviewPaneOps now: it takes the
         // store and returns its own result type, so the declaration
         // is matched across the line breaks it is written on.

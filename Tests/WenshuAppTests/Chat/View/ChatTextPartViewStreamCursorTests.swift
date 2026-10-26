@@ -21,20 +21,14 @@ struct ChatTextPartViewStreamCursorTests {
     /// T42 contract: source uses TimelineView(.periodic) for the
     /// cursor (= the canonical SwiftUI blink idiom).
     @Test func source_uses_timeline_view_periodic() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatTextPartView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatTextPartView.swift")
         #expect(src.contains("TimelineView(.periodic(from: .now, by: 0.5))"))
     }
 
     /// T42 contract: the cursor only renders while the reply streams,
     /// and only on the trailing text block (= one cursor per reply).
     @Test func cursor_only_renders_when_streaming() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatTextPartView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatTextPartView.swift")
         // Find the cursor block and verify it's gated on the streaming
         // state and on the trailing block.
         let cursorBlock = src.range(
@@ -47,10 +41,7 @@ struct ChatTextPartViewStreamCursorTests {
     /// (= "▎" = U+258E = "LEFT ONE QUARTER BLOCK" = the canonical
     /// Apple text-cursor glyph).
     @Test func cursor_glyph_is_text_caret() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatTextPartView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatTextPartView.swift")
         #expect(src.contains("Text(\"▎\")"))
     }
 
@@ -58,10 +49,7 @@ struct ChatTextPartViewStreamCursorTests {
     /// TimelineView computes `phase = Int(elapsed / 0.5) % 2 == 0`
     /// and uses .opacity(phase ? 1.0 : 0.0).
     @Test func cursor_opacity_oscillates() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatTextPartView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatTextPartView.swift")
         #expect(src.contains("let phase = Int(elapsed / 0.5) % 2 == 0"))
         #expect(src.contains(".opacity(phase ? 1.0 : 0.0)"))
     }
@@ -70,10 +58,7 @@ struct ChatTextPartViewStreamCursorTests {
     /// the text body (= matches user/wenshu bubble tint; = doesn't
     /// introduce a new color).
     @Test func cursor_uses_same_foregroundStyle() throws {
-        let src = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatTextPartView.swift",
-            encoding: .utf8
-        )
+        let src = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatTextPartView.swift")
         #expect(src.contains(".foregroundStyle(Color.primary)"))
     }
 }

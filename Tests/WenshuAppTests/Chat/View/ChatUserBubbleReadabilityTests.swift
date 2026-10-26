@@ -117,10 +117,7 @@ struct ChatUserBubbleReadabilityTests {
     /// a surface, the assistant reply stays flat text with no surface.
     @Test func role_distinction_survives() throws {
         #expect(ChatUserBubblePalette.surface != .clear)
-        let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift",
-            encoding: .utf8
-        )
+        let source = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift")
         #expect(source.contains("private var isOutgoing: Bool { message.source == .user }"))
         #expect(source.contains(".modifier(UserGlassCardModifier(isOutgoing: isOutgoing))"))
         // The assistant row stays flat text: no bubble surface is applied
@@ -138,10 +135,7 @@ struct ChatUserBubbleReadabilityTests {
     /// into. The horizontal padding is what carries the bubble's
     /// internal inset, and it is unchanged.
     @Test func bubble_internal_padding_unchanged() throws {
-        let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift",
-            encoding: .utf8
-        )
+        let source = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift")
         #expect(source.contains(".padding(.horizontal, DesignTokens.spacingModerate)"))
         // The vertical padding is replaced by the height floor, not
         // stacked on top of it.
@@ -154,10 +148,7 @@ struct ChatUserBubbleReadabilityTests {
     /// vertical band (= the standard spacing token), so the first turn is
     /// not detached from the conversation.
     @Test func transcript_rows_share_one_vertical_band() throws {
-        let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatView.swift",
-            encoding: .utf8
-        )
+        let source = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatView.swift")
         #expect(source.contains("LazyVStack(alignment: .leading, spacing: DesignTokens.spacingStandard"))
         #expect(source.contains(".padding(.vertical, DesignTokens.spacingStandard)"))
         // No raw numeric padding survives in the transcript's vertical rhythm.
@@ -175,10 +166,7 @@ struct ChatUserBubbleReadabilityTests {
     /// `ChatSurfaceShape`, is borderless, so the two surfaces agree by
     /// construction only while both are fill-only.
     @Test func outgoing_bubble_draws_no_stroke() throws {
-        let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift",
-            encoding: .utf8
-        )
+        let source = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift")
         // The bubble's own modifier is where a stroke would live, so the
         // assertion is scoped to it (= the rest of the file is free to
         // stroke something that is not the bubble).
@@ -205,10 +193,7 @@ struct ChatUserBubbleReadabilityTests {
             !source.contains("ChatUserBubblePalette.border"),
             "No call site may reference the bubble's border colour"
         )
-        let palette = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatUserBubblePalette.swift",
-            encoding: .utf8
-        )
+        let palette = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatUserBubblePalette.swift")
         #expect(
             !palette.contains("static let border"),
             "The bubble palette must not offer a border colour"

@@ -128,10 +128,7 @@ struct ChatPublishesScopeTests {
     /// value changes.
     @Test("The chat zone publishes on appearance and on every change")
     func theChatZonePublishesOnAppearanceAndOnChange() throws {
-        let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatZoneView.swift",
-            encoding: .utf8
-        )
+        let source = try SourceLocator.read("Sources/WenshuApp/Features/Chat/View/ChatZoneView.swift")
         #expect(source.contains("Self.publishScope(vm: vm, into: envAppState)"),
                 "the chat zone must publish its scope")
         #expect(source.contains(".onChange(of: vm.currentBookID)"),
