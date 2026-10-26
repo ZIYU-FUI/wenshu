@@ -109,10 +109,7 @@ struct BookLinkNavigationTests {
 
     @Test("the world index writes its links in the form the app opens")
     func theWorldIndexWritesItsLinksInTheFormTheAppOpens() throws {
-        let sop = try String(
-            contentsOfFile: "Sources/WenshuApp/Resources/SOPs/ImportWorldPrompt.md",
-            encoding: .utf8
-        )
+        let sop = try SourceLocator.read("Sources/WenshuApp/Resources/SOPs/ImportWorldPrompt.md")
 
         // The app's own link form (= the engine hands it to the app).
         #expect(sop.contains("[[核心设定.md]]"))
@@ -136,10 +133,7 @@ struct BookLinkNavigationTests {
 
     @Test("the world skeleton writes its links in the form the app opens")
     func theWorldSkeletonWritesItsLinksInTheFormTheAppOpens() throws {
-        let source = try String(
-            contentsOfFile: "Sources/WenshuApp/Features/Agent/Service/ImportDocumentTemplateSkeletons.swift",
-            encoding: .utf8
-        )
+        let source = try SourceLocator.read("Sources/WenshuApp/Features/Agent/Service/ImportDocumentTemplateSkeletons.swift")
 
         #expect(source.contains("[[核心设定.md]]"))
         #expect(!source.contains("](核心设定.md)"))
