@@ -314,6 +314,16 @@ actor BookChapterActor {
                 chaptersDirectory: located.tier.directory,
                 indexURL: located.tier.indexURL
             )
+            // A cover is a CHILD of its document: the .md file is
+            // gone, so the cover that depicted it goes with it.
+            //
+            // The removal is TOLERANT: the document delete is the
+            // important operation, and a cover that cannot be
+            // removed must not stop it.
+            await CoverCascade.live().removeCoverTolerantly(
+                forBookDocFileAt: located.tier.directory
+                    .appendingPathComponent("\(id.uuidString).md")
+            )
         } catch let err as BookChapterError {
             throw err
         } catch {
