@@ -165,6 +165,7 @@ reference, LOC, and content tag.
 | `Sources/WenshuData/Sources/WenshuData/Repositories/WSMemoryRepository.swift` | `Sources/WenshuData/Sources/WenshuData/MemorySearchTerms.swift` | 117 | `struct MemorySearchTerms` = the terms of a memory query and the score of a memory against them (= a word weighs its length; = a CJK character weighs one). |
 | `Sources/WenshuData/Sources/WenshuData/Repositories/WSMemoryRepository.swift` | `Sources/WenshuData/Tests/WenshuDataTests/MemorySearchTermsTests.swift` | 73 | `struct MemorySearchTermsTests` = the terms of a query, the weight of a term, and the score of a memory against them. |
 | `Sources/WenshuAgent/Sources/WenshuAgent/Memory/WSMemoryProvider.swift` | `Sources/WenshuAgent/Tests/WenshuAgentTests/MainActorInitIsolationTests.swift` | 275 | `struct MainActorInitIsolationTests` = the three singletons that read a @MainActor value declare that isolation on their initializer (= the compiler refuses an off-MainActor construction, = the runtime assertion that used to trap there is gone). |
+| `Sources/WenshuApp/Shared/State/AppStateLocator.swift` | `Tests/WenshuAppTests/Shared/State/ChapterFocusLockTripTests.swift` | 255 | `struct ChapterFocusLockTripTests` = the chapter the user is editing is refused (the guard raises the locked error, = the file on disk is left alone) and a chapter the user is not editing is written (= the lock trips, = and it does not trip spuriously). |
 
 <!-- Append new rows at the END of the table above. The key-level merge
      driver keeps both rows when two cards add one each. -->
