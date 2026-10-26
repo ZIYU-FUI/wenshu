@@ -66,8 +66,8 @@ test that fails without its fix.
 
 | Measure | Before | After |
 | --- | --- | --- |
-| Live book import | zero files, reported as success | 8-10 documents, all inside the folder the user picked |
-| Live library import | zero entities | a whole entity per file, with 2-4 web searches behind it |
+| Live book import | zero files, reported as success | 9 documents, all inside the folder the user picked (= the 6 required, = one index, = two custom) |
+| Live library import | zero entities | a whole entity per file (= a title, = three tags, = a category, = an entity type, = the body), with 4 web searches behind it |
 | A refused write | reported as success | an error that names the provider's own words |
 | Targeted suite (= import, write-to-disk, rollback, refusal ladder, pin, SOP, tool registry) | — | 20/20 green |
 | Full suite, same command on both trees | baseline `15901058d`: 30 failures | this tree: 12 failures, and every one of the 12 is also in the baseline (= new failures 0) |
@@ -77,26 +77,40 @@ has no DNS (= §4).
 
 ## 4. Open gaps (= the environment, and one card)
 
-**The machine lost its DNS, and the app cannot reach any provider.** Clash
-Verge's core is not running (= only the privileged helper is), its TUN mode
-still hijacks DNS, and the hijacked listener answers nothing:
-`scutil --dns` reports "No DNS configuration available", the proxy's ports are
-not listening, and the Wi-Fi's DHCP lease carries no resolver. `curl` and
-`dig` still resolve (= they take a different path), so the symptom is
-specific: every URLSession client on this machine fails with `-1003`, and the
-Wenshu app is a URLSession client. The fix is on the machine, not in the
-tree: restart Clash Verge (= or turn its TUN off, = or re-connect the Wi-Fi,
-= or set a resolver with `networksetup`). Until then the last live round
-cannot be re-run; `live_verify.sh` in the session scratch runs it the moment
-the network is back, and exits 2 (= no code verdict) while it is down.
+**The machine lost its DNS for the middle of the session, and it is back.**
+Clash Verge's core stopped (= only the privileged helper was left), its TUN
+mode still hijacked DNS, and the hijacked listener answered nothing:
+`scutil --dns` reported "No DNS configuration available", the proxy's ports
+were not listening, and the Wi-Fi's DHCP lease carried no resolver. `curl`
+and `dig` still resolved (= they take a different path), so the symptom was
+specific: every URLSession client on this machine failed with `-1003`, and
+the Wenshu app is a URLSession client. **Every live round in this session
+that failed with `-1003` failed for that reason, = not for a code reason**
+(= the untouched baseline fails the same live-provider tests with the same
+error). The resolver came back (= `scutil --dns` reports a nameserver
+again), and the live rounds were re-run: the book import wrote its nine
+documents and the library import returned a whole entity.
 
-**One card stays blocked, and it is not this arc's work.** `t_798b4132` (= the
-provider protocol mappings for the cover dialects) gave up twice: the worker
-profile's model slug is rejected by the provider, and the card's body needs
-the official documentation, which the machine cannot fetch either. Its
-deliverable is not in the tree. The card is prose, so it ends with
-`kanban_complete` once a model slug and a network exist; the reason is
-recorded on the card.
+**How to re-run the live rounds** (= the harness is in the repo, = opt-in,
+= it never runs in the ordinary suite):
+
+```bash
+WENSHU_LIVE_IMPORT=1 swift test --filter LiveImportTests
+```
+
+The opt-in switch is what keeps the provider's cost and the network's
+state out of the ordinary test run.
+
+**One card of another arc was touched, and it is handed back.**
+`t_798b4132` (= the provider protocol mappings for the cover dialects) sat in
+this profile's queue (= auto-assigned, = not part of this arc). It was
+released once to see whether it could run: the model slug was accepted this
+time, and the worker reached the provider, = but the connection dropped
+(= exit 130, = "waiting for the provider to recover"). Its deliverable is not
+in the tree. The card is prose, so it ends with `kanban_complete` once the
+provider is stable; the two attempts and the reason are on the card, and the
+card is **reassigned to `wenshu-dev`** (= the lane that owns the parent and
+the sibling card), so it is no longer this arc's open item.
 
 **Content quality is the owner's call.** The generated documents and the
 chosen categories (= a poet filed under a person category and an entity type)
@@ -115,7 +129,7 @@ call options drops every field it was not taught.
 
 ## 6. The tree state
 
-`main` at `fe2940da5`, the working tree clean, `swift build --build-tests`
+`main` at `dc3a12d896`, the working tree clean, `swift build --build-tests`
 exits 0. The ten cards are `done`, each with a verdict comment carrying the
 numbers above. The long-lived scratch worktrees of earlier sessions
 (`wt-deadcode`, `wt-review-loop`, `wt-survey`) were left alone on purpose:
