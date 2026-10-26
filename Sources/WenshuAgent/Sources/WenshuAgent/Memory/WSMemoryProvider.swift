@@ -53,7 +53,7 @@ public final class WSMemoryProvider: MemoryProvider, @unchecked Sendable {
 
     /// Shared singleton (= matches the WSMemoryRepository.shared +
     /// MemoryManager.shared pattern). Created lazily on first access
-    /// from a @MainActor context (= per init's assumeIsolated contract).
+    /// from a @MainActor context (= the init is @MainActor-isolated).
     @MainActor
     public static let shared: WSMemoryProvider = WSMemoryProvider()
 
@@ -70,18 +70,18 @@ public final class WSMemoryProvider: MemoryProvider, @unchecked Sendable {
     /// and `MemoryManager.memory`.
     private let memory: WSMemoryRepository
 
+    /// @MainActor: the fallback reads WSMemoryRepository.shared (= a
+    /// @MainActor static). The isolation is declared here so the
+    /// compiler rejects an off-MainActor construction, instead of the
+    /// runtime trapping on an assumeIsolated assertion.
+    @MainActor
     public init(slug: String = "swiftdata-memory", isEnabled: Bool = true, memory: WSMemoryRepository? = nil) {
         self.slug = slug
         self.isEnabled = isEnabled
         if let memory {
             self.memory = memory
         } else {
-            // WSMemoryProvider is @MainActor (= class annotation); but
-            // the init is nonisolated (= could be called from any
-            // context). .shared is @MainActor; assumeIsolated is safe
-            // because every production caller constructs this from a
-            // MainActor context (= App.swift + tests).
-            self.memory = MainActor.assumeIsolated { WSMemoryRepository.shared }
+            self.memory = WSMemoryRepository.shared
         }
 
         // Initial mirror load (= bridge to @MainActor).

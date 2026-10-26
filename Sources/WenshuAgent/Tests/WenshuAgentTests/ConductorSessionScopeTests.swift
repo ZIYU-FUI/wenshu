@@ -115,6 +115,7 @@ struct ConductorSessionScopeTests {
 
     private static let toolName = "scope_probe"
 
+    @MainActor
     private func conductor(
         probe: ScopeProbeTool,
         connector: LLMConnector

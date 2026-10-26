@@ -65,6 +65,12 @@ public actor WenshuConductor {
     // / P0 #1 (WIRE-AGENT-001): new init that wires WenshuConductor.handle()
     // … (= 13 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / nil, `ConversationLoop` falls back to a fresh `RuntimeHelpers()` actor.
+    /// @MainActor: the fallback reads WSRepositoryContainer.shared (= a
+    /// @MainActor static). An actor's initializer is nonisolated by
+    /// definition, so the isolation is declared here explicitly: the
+    /// compiler then rejects an off-MainActor construction, instead of
+    /// the runtime trapping on an assumeIsolated assertion.
+    @MainActor
     public init(
         connector: (any LLMConnector)? = nil,
         loopRuntime: RuntimeHelpers? = nil,
@@ -87,7 +93,7 @@ public actor WenshuConductor {
         if let repositories {
             self.repositories = repositories
         } else {
-            self.repositories = MainActor.assumeIsolated { WSRepositoryContainer.shared }
+            self.repositories = WSRepositoryContainer.shared
         }
         // Bootstrap deferred to first handle() call (Swift actor init cannot await).
     }

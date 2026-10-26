@@ -41,12 +41,19 @@ public actor MemoryManager {
     /// keeps working without changes).
     private let memory: WSMemoryRepository
 
+    /// @MainActor: the fallback reads WSMemoryRepository.shared (= a
+    /// @MainActor static). An actor's initializer is nonisolated by
+    /// definition, so the isolation is declared here explicitly: the
+    /// compiler then rejects an off-MainActor construction, instead of
+    /// the runtime trapping on an assumeIsolated assertion.
+    @MainActor
     public init(maxCharBudget: Int = 2200, memory: WSMemoryRepository? = nil) {
         self.maxCharBudget = maxCharBudget
-        // .shared is @MainActor-isolated; actor bodies are not. assumeIsolated
-        // (= safe at runtime because every production caller constructs
-        // MemoryManager from a MainActor context).
-        self.memory = memory ?? MainActor.assumeIsolated { WSMemoryRepository.shared }
+        if let memory {
+            self.memory = memory
+        } else {
+            self.memory = WSMemoryRepository.shared
+        }
     }
 
     /// prefetch: pre-turn — load relevant memories based on user message.
