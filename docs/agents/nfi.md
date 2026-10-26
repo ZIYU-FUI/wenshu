@@ -164,6 +164,7 @@ reference, LOC, and content tag.
 | `Sources/WenshuApp/Features/Agent/Service/ReferenceLibraryTool.swift` | `Tests/WenshuAppTests/Agent/Librarian/ReferenceLibraryLocatorTests.swift` | 93 | `struct ReferenceLibraryLocatorTests` = the launch sequence binds the user's library, a document the agent writes lands in that library, and the tool still works when no library is bound. |
 | `Sources/WenshuData/Sources/WenshuData/Repositories/WSMemoryRepository.swift` | `Sources/WenshuData/Sources/WenshuData/MemorySearchTerms.swift` | 117 | `struct MemorySearchTerms` = the terms of a memory query and the score of a memory against them (= a word weighs its length; = a CJK character weighs one). |
 | `Sources/WenshuData/Sources/WenshuData/Repositories/WSMemoryRepository.swift` | `Sources/WenshuData/Tests/WenshuDataTests/MemorySearchTermsTests.swift` | 73 | `struct MemorySearchTermsTests` = the terms of a query, the weight of a term, and the score of a memory against them. |
+| `Sources/WenshuAgent/Sources/WenshuAgent/Memory/WSMemoryProvider.swift` | `Sources/WenshuAgent/Tests/WenshuAgentTests/MainActorInitIsolationTests.swift` | 275 | `struct MainActorInitIsolationTests` = the three singletons that read a @MainActor value declare that isolation on their initializer (= the compiler refuses an off-MainActor construction, = the runtime assertion that used to trap there is gone). |
 
 <!-- Append new rows at the END of the table above. The key-level merge
      driver keeps both rows when two cards add one each. -->
