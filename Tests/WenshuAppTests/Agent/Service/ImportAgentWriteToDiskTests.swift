@@ -49,10 +49,15 @@ final class ImportAgentWriteToDiskTests: XCTestCase {
     private final class WritingConnector: LLMConnector, @unchecked Sendable {
         nonisolated let connectorID: String = "writing-stub"
         let toolPath: String
+        /// The body the agent writes (= the default one is a plain
+        /// document; = the tag rule's test writes a document with a
+        /// tag line).
+        let body: String
         private let counter = WriteCallCounter()
 
-        init(toolPath: String) {
+        init(toolPath: String, body: String = "# written\n\nby the agent") {
             self.toolPath = toolPath
+            self.body = body
         }
 
         func send(
@@ -61,8 +66,11 @@ final class ImportAgentWriteToDiskTests: XCTestCase {
         ) async throws -> LLMResponse {
             let isFirstCall = counter.next() == 1
             if isFirstCall {
+                let escaped = body
+                    .replacingOccurrences(of: "\n", with: "\\n")
+                    .replacingOccurrences(of: "\"", with: "\\\"")
                 let payload = """
-                {"path": "\(toolPath)", "body": "# written\\n\\nby the agent"}
+                {"path": "\(toolPath)", "body": "\(escaped)"}
                 """
                 return LLMResponse(
                     id: "stub-write",
@@ -125,13 +133,17 @@ final class ImportAgentWriteToDiskTests: XCTestCase {
         try? FileManager.default.removeItem(at: sourceDir)
     }
 
-    private func runImport(toolPath: String, folder: BookFolder) async throws {
+    private func runImport(
+        toolPath: String,
+        folder: BookFolder,
+        body: String = "# written\n\nby the agent"
+    ) async throws {
         // The write goes through the library's path guard, = so the
         // guard needs the library root (= the app installs it at launch;
         // = the test pins it with the task-local seam).
         try await PathGuard.$libraryRootOverride.withValue(libraryRoot.path) {
             let driver = ImportAgentDriver(
-                connector: WritingConnector(toolPath: toolPath),
+                connector: WritingConnector(toolPath: toolPath, body: body),
                 modelSlug: "stub"
             )
             let root = bookRoot!.path
@@ -154,6 +166,45 @@ final class ImportAgentWriteToDiskTests: XCTestCase {
     }
 
     // MARK: - The tests
+
+    /// The tag line the agent wrote obeys the library's tag rule
+    /// before the file lands (= the boss 2026-10-26: = the title is
+    /// not a tag, = a tag names no sibling document, = one to three
+    /// tags).
+    func testTheTagLineFollowsTheLibraryRuleOnDisk() async throws {
+        // A sibling document already in the folder (= its name may
+        // not become a tag).
+        let worldFolder = bookRoot.appendingPathComponent("world")
+        try FileManager.default.createDirectory(
+            at: worldFolder,
+            withIntermediateDirectories: true
+        )
+        try "# a sibling".write(
+            to: worldFolder.appendingPathComponent("a sibling.md"),
+            atomically: true,
+            encoding: .utf8
+        )
+        let body = """
+        # the charter
+
+        - **tags**: the charter / a sibling / a field / another one
+        """
+
+        try await runImport(
+            toolPath: "world/the charter.md",
+            folder: .world,
+            body: body
+        )
+
+        let written = try String(
+            contentsOf: worldFolder.appendingPathComponent("the charter.md"),
+            encoding: .utf8
+        )
+        XCTAssertFalse(written.contains("the charter /"))
+        XCTAssertFalse(written.contains("a sibling"))
+        XCTAssertTrue(written.contains("a field"))
+        XCTAssertTrue(written.contains("another one"))
+    }
 
     /// The agent's write lands on disk, inside the folder the user
     /// picked.

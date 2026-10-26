@@ -176,7 +176,10 @@ struct WriteBookDocTool: Tool, Sendable {
         // document's own name is not a tag, = a tag names no sibling
         // document, = there are one to three tags, = and never none.
         // The agent writes the body, = so the app holds the rule.
-        let documentTitle = (relPath as NSString).deletingPathExtension
+        // The document's own name (= the file name without its
+        // extension; = the folder is not part of the title).
+        let documentTitle = ((relPath as NSString).lastPathComponent as NSString)
+            .deletingPathExtension
         let siblingNames = ImportTagPolicy.siblingNames(
             inFolderAt: URL(fileURLWithPath: parentDir)
         )

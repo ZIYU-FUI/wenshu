@@ -79,7 +79,7 @@ enum BookDocumentTagLine {
     private static let tagLinePattern: NSRegularExpression = {
         // swiftlint:disable:next force_try
         try! NSRegularExpression(
-            pattern: "^(\\s*[-*+]\\s*)?(\\*\\*标签\\*\\*|\\*\\*tags\\*\\*|标签|tags)(\\s*[:：])"
+            pattern: #"^(\s*[-*+]\s*)?(\*\*标签\*\*|\*\*tags\*\*|标签|tags)(\s*[:：]\s?)"#
         )
     }()
 }
