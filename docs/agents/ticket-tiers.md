@@ -20,6 +20,56 @@ Read the contract with the tool:
 python3 Tools/wenshu-devtool/ticket_tier.py --plan
 ```
 
+## The gate must be NAMED, and it must be a filter
+
+The gate a card carries is the one its body NAMES. A body that says nothing
+about tests leaves the choice to the worker, and a worker that has to guess
+runs the whole suite. So a card must name the suite that owns each file it
+writes, as a command:
+
+```
+swift test --filter VisionToolsTests
+```
+
+Not `swift test`. Not "the whole app test suite". Not "the suite has no new
+failures against the baseline". Those three are the same gate spelled three
+ways, and they cost the same.
+
+Measured on this machine, 2026-10-26:
+
+| gate | wall time |
+| ---- | --------- |
+| `swift test --filter <suite>` (one suite) | **10.5 s** |
+| `swift test` (the whole tree, 531 test files) | **224 s** (3m44s) |
+
+21x. And the whole-suite form is worse than it looks, because the baseline
+is RED: "no new failures against the baseline" means run the whole suite AND
+diff the result against a recorded baseline.
+
+Measured inside one tier, on the board: a body demanding the whole suite
+against a red baseline ran **3.44 times for 65.7 min per card**; a body
+naming one filtered suite ran **2.00 times for 17.6 min per card**. Same
+tier, same cap, same reviewer. The gate is the whole difference.
+
+**T3 owns the full gate set, so a T3 card MAY ask for the whole suite.** The
+rule above binds T1 and T2, and it binds every card that does not have a
+reason to spend 224 s per attempt.
+
+The gate is checked by a tool, and it can fail:
+
+```bash
+python3 Tools/wenshu-devtool/gate_width_gate.py --body card.md
+python3 Tools/wenshu-devtool/gate_width_gate.py --check    # every card on the board
+```
+
+It reports two ways a body can miss: a gate WIDER than the tier buys, and a
+body that names NO suite at all (= the worker picks, and the worker picks
+wide). The second one is the one that hides: a body can be perfectly short,
+perfectly precise, and still leave the gate unstated.
+
+`gate_width_gate.py` and `ticket_tier.py` read the SAME forms, so a card
+cannot be wide to one tool and narrow to the other. A test asserts that.
+
 ## How a card is rated
 
 The tier is DERIVED, never hand-set. `Tools/wenshu-devtool/ticket_tier.py`
@@ -204,6 +254,33 @@ of it, and the run times out. Measured, a body under 4000 characters costs
 8.9 min per card with 0.2 timeouts; a body of 9000+ costs 59.7 min per card
 with 1.04.
 
+**The GATES section carries the command, not a description of a category.**
+A GATES section that says "run the relevant tests" is an UNSTATED gate, and
+an unstated gate is the one that costs 224 s. It reads:
+
+```
+## GATES
+
+swift build
+swift test --filter VisionToolsTests
+```
+
+One `--filter` per file the card writes. The filter names the TYPE of the
+test suite that covers that file (= `VisionToolsTests` is the struct in
+`Tests/WenshuAppTests/Agent/Tools/VisionToolsTests.swift`), so it is
+findable in one grep:
+
+```bash
+grep -rlE 'struct <SuiteName>' Tests/ Sources/WenshuAgent/Tests/
+```
+
+and it is the only spelling of the gate that the gate-width tool accepts.
+
+The ACCEPTANCE section then states the OBSERVABLE FACT the filtered suite
+proves. It does not restate the gate (= "the suite that owns the touched
+test file passes" IS the acceptance, and the GATES section says which
+suite that is).
+
 ## What the tier is worth
 
 Be precise about this, because the honest number is smaller than the story
@@ -244,7 +321,17 @@ The tier in the title, the cap and the retry budget all come from
 `ticket_tier.py --body card.md`. The worker reads the tier from the card
 title and sizes its verification to it.
 
+**Check the gate before dispatching.** A card that names no suite, or names
+a gate wider than its tier buys, pays for it on every attempt:
+
+```bash
+python3 Tools/wenshu-devtool/gate_width_gate.py --body card.md
+```
+
 ## Files
 
 - `Tools/wenshu-devtool/ticket_tier.py` — the classifier and the contract.
+- `Tools/wenshu-devtool/gate_width_gate.py` — the gate-width gate (a card
+  must name a filtered suite; a T1/T2 card may not ask for the whole suite).
 - `Tools/wenshu-devtool/tests/test_ticket_tier.py` — its test suite.
+- `Tools/wenshu-devtool/tests/test_gate_width_gate.py` — its test suite.
