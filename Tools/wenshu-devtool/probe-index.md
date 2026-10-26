@@ -18,7 +18,7 @@ card's commit does not touch the app source.
 | --- | --- | --- | --- |
 | `chat_bubble_metrics.swift` | The user's own chat bubble (the outgoing message surface in the chat column), painted width and corner radius read from rendered pixels at a stated host width. | `painted_width_pt`, `painted_height_pt`, `corner_radius_pt`, `shape_rule_radius_pt`, `subject_ink_width_pt`, `host_width_pt`, `calibration_radius_pt`, `calibration_measured_pt` | `3ee82bf48b18` |
 | `column_chrome_band.py` | The column-top chrome band of two neighbouring columns of the running app (= the materials column's search band and the editor column's format-toolbar band), read from a 2x capture: the content ink band, the MATERIAL surface the band paints, and the closing hairline. | `content_centre_delta_pt`, `band_surface_top_delta_pt`, `band_surface_bottom_delta_pt`, plus each column's content centre and band surface top/bottom | `ab0de05659` |
-| `editor_chat_arrangement.py` | The editor and chat zone's arrangement (= which pane is where), read from the running app's accessibility tree as native coordinates: the chat's composer, the editor's toolbar, and the editor's body. It names the arrangement from those coordinates and checks the production fragments it reproduces before it reports a number. | `composer_x`, `composer_y`, `editor_toolbar_x`, `editor_toolbar_y`, `editor_body_x`, `editor_body_y`, `arrangement`, plus `requested_mode` and `agreement` | `158852c04d38` |
+| `editor_chat_arrangement.py` | The editor and chat zone's arrangement (= which pane is where), read from the running app's accessibility tree as native coordinates: the chat's composer, the editor's toolbar, and the editor's body. It names the arrangement from those coordinates and checks the production fragments it reproduces before it reports a number. | `composer_x`, `composer_y`, `editor_toolbar_x`, `editor_toolbar_y`, `editor_body_x`, `editor_body_y`, `arrangement`, plus `requested_mode` and `agreement` | `560c70ae51` |
 | `toolbar_preference_change.py` | The main window's toolbar after the app's preferences changed: the app's own Settings scene is driven through the accessibility tree, its group rows are switched N times (= N app-preference changes), and the process is watched for the abort AppKit raises when a window asks for more "Update Constraints in Window" passes than it has views. | `switches_landed`, `survived`, `pane_after`, `unresolvable_symbol_faults`, `max_update_constraints_count`, `layout_loop_warnings`, `new_crash_reports`, `other_crash_reports`, plus `bundle`, `bundle_id`, `executable`, `pid`, `instance_owned` and `source_commit` | `37e941c604` |
 | `toolbar_preference_change.swift` | The accessibility driver the toolbar probe runs: it opens the app's own Settings scene, selects its group rows through the accessibility tree, and verifies every switch against the persisted group key, so a driver that silently did nothing cannot report a pass. It drives the PID it is given and never re-derives one from a path, because every build of the app ships the same bundle id and a path does not name an instance. It checks that the running instance claims the bundle id it was given, because the preferences it reads live in the domain of that id. | `group_rows`, `strategy`, `switches_landed`, plus the group and pane of each round | `37e941c604` |
 
@@ -66,9 +66,12 @@ Taken against commit `ab0de05659`, on a 2x capture of the running app with
 the window maximized. That commit is the one that put the materials
 column's search row on the shared `ChromeTopBar` and gave it the editor
 column's full 28 PT band, so its band geometry is the one the numbers
-describe. The chrome-band rows of `AssetsPane.swift`, `ChromeTopBar.swift`
-and `EditorFormatToolbar.swift` are byte-identical from that commit to
-`main` today, so the numbers still describe a later tree.
+describe. The band itself lives in `ChromeTopBar.swift` and
+`EditorFormatToolbar.swift`, and both are byte-identical from that commit
+to `main` today, so the numbers still describe a later tree.
+`AssetsPane.swift` HAS changed since (= three commits: = the cards, = the
+cover, = the column's bottom bar), = but none of them touches the band or
+the search row, = so the band's geometry is the one the numbers describe.
 
 ```
 probe: column_chrome_band
@@ -95,6 +98,43 @@ Two things in that run are worth reading together:
   across the columns. The surface under a band differs per column (the
   editor's is the white canvas, the assets' is the sidebar background), so
   "the first darker row below the band" is a different thing in each.
+
+### `editor_chat_arrangement.py`
+
+Taken against commit `560c70ae51`, on the running app's own
+accessibility tree (= no screenshot; = the tree's coordinates are the
+measurement).
+
+```
+probe: editor_chat_arrangement
+source_commit: 560c70ae51
+source_fragments: 8/8 match
+pid: 69568
+bundle_id: com.wenshu.app
+requested_mode: automatic
+composer_x: 856
+composer_y: 930
+editor_toolbar_x: 714
+editor_toolbar_y: -30
+editor_body_x: 706
+editor_body_y: -2
+arrangement: stacked
+agreement: the automatic mode follows the width (= no fixed arrangement)
+GATE: PASSED
+```
+
+Two things in that run are worth reading together:
+
+- `source_fragments: 8/8 match` is the probe's own refusal: = it
+  reproduces the production fragments it measures (= the preference key,
+  = the three modes, = the width rule's thresholds, = the autosave
+  names), = and it prints no number when one of them disagrees with the
+  live source. = The numbers below describe the tree the probe read.
+- `arrangement: stacked` with `requested_mode: automatic` and
+  `agreement: the automatic mode follows the width` is not a
+  contradiction: = in the automatic mode the arrangement follows the
+  window's width, = so a narrow window stacks the panes and a wide one
+  puts them side by side, = and the probe reports which one it found.
 
 ### `toolbar_preference_change.py`
 
