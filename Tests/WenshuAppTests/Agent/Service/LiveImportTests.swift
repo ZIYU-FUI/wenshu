@@ -217,7 +217,17 @@ final class LiveImportTests: XCTestCase {
                     "The procedure asks for '\(name)'; = it must land in the world's folder. Got: \(landed)"
                 )
             }
-            let indexName = landed.first { !required.contains($0) }
+            // The index is the document that names the six (= the
+            // procedure writes one index plus zero to five custom
+            // documents, = so the extra files are not only the index).
+            let indexName = landed.first { name in
+                guard !required.contains(name) else { return false }
+                let text = (try? String(
+                    contentsOf: world.appendingPathComponent(name),
+                    encoding: .utf8
+                )) ?? ""
+                return required.allSatisfy { text.contains($0) }
+            }
             let indexText = indexName.map {
                 (try? String(
                     contentsOf: world.appendingPathComponent($0),
@@ -235,11 +245,13 @@ final class LiveImportTests: XCTestCase {
                     "The index must reference '\(name)'; = the six documents hang off it."
                 )
             }
-            // The index carries its metadata lines.
-            for line in ["实体类型:", "标签:", "摘要:"] {
+            // The index carries its metadata lines (= the procedure's own
+            // format; = the label may be written in bold, = so the label
+            // is matched and not the punctuation around it).
+            for label in ["来源", "类型", "标签", "摘要"] {
                 XCTAssertTrue(
-                    indexText.contains(line),
-                    "The index must carry the '\(line)' line; = the skeleton says so."
+                    indexText.contains(label),
+                    "The index must carry the '\(label)' line; = the procedure says so."
                 )
             }
             // Each required document opens with its own title.
