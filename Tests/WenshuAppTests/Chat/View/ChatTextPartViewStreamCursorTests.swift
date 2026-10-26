@@ -28,14 +28,18 @@ struct ChatTextPartViewStreamCursorTests {
         #expect(src.contains("TimelineView(.periodic(from: .now, by: 0.5))"))
     }
 
-    /// T42 contract: cursor only renders when isStreaming = true.
+    /// T42 contract: the cursor only renders while the reply streams,
+    /// and only on the trailing text block (= one cursor per reply).
     @Test func cursor_only_renders_when_streaming() throws {
         let src = try String(
             contentsOfFile: "Sources/WenshuApp/Features/Chat/View/ChatTextPartView.swift",
             encoding: .utf8
         )
-        // Find the cursor block and verify it's gated on isStreaming.
-        let cursorBlock = src.range(of: "if isStreaming {\n                // T42 blinking caret")
+        // Find the cursor block and verify it's gated on the streaming
+        // state and on the trailing block.
+        let cursorBlock = src.range(
+            of: "if isStreaming && showsCursor {\n                // T42 blinking caret"
+        )
         #expect(cursorBlock != nil)
     }
 

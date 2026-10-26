@@ -34,10 +34,17 @@ import SwiftUI
 struct ChatTextPartView: View {
     let text: String
     let isStreaming: Bool
+    /// Whether this block carries the streaming cursor.
+    ///
+    /// The cursor marks where the model is writing, = so there is one
+    /// per reply: = it sits at the end of the trailing text block. (= A
+    /// cursor per block read as several models writing at once.)
+    let showsCursor: Bool
 
-    init(text: String, isStreaming: Bool = false) {
+    init(text: String, isStreaming: Bool = false, showsCursor: Bool = true) {
         self.text = text
         self.isStreaming = isStreaming
+        self.showsCursor = showsCursor
     }
 
     var body: some View {
@@ -80,7 +87,7 @@ struct ChatTextPartView: View {
             // dark background; = matches hermes assistant-message.tsx
             // styling), user text = .primary (= full brightness; =
             // matches hermes user-message.tsx text-foreground/95).
-            if isStreaming {
+            if isStreaming && showsCursor {
                 // T42 blinking caret (= white-on-cursor / vertical bar)
                 TimelineView(.periodic(from: .now, by: 0.5)) { context in
                     // Toggle visibility every 0.5s (= matches Apple's

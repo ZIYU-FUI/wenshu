@@ -70,6 +70,9 @@ struct ChatMessageBodyView: View {
     /// Outgoing = the message came from the user, not the assistant.
     private var isOutgoing: Bool { message.source == .user }
 
+    /// The text part the streaming cursor belongs to.
+    private var trailingTextPartID: UUID? { message.trailingTextPartID }
+
     var body: some View {
         // Apple HIG: writing body text uses `.primary` foreground,
         // uniformly (= Pages / Notes / Mail body). User-vs-assistant
@@ -100,6 +103,7 @@ struct ChatMessageBodyView: View {
                         message: message,
                         isOutgoing: isOutgoing,
                         isStreaming: isStreaming,
+                        showsCursor: part.id == trailingTextPartID,
                         onApprovePlan: onApprovePlan
                     )
                 }
@@ -117,6 +121,9 @@ private struct ChatPartRow: View {
     let part: ChatMessagePart
     let isOutgoing: Bool
     let isStreaming: Bool
+    /// Whether this row carries the streaming cursor (= it is the
+    /// trailing text block).
+    let showsCursor: Bool
     /// The reply this row belongs to. The reasoning view needs the whole
     /// reply's tool calls to describe the work, and a single part cannot
     /// see the rest of the message, so the row holds the message and
@@ -134,12 +141,14 @@ private struct ChatPartRow: View {
         message: ChatMessage,
         isOutgoing: Bool,
         isStreaming: Bool,
+        showsCursor: Bool = false,
         onApprovePlan: ((Plan) -> Void)? = nil
     ) {
         self.part = part
         self.message = message
         self.isOutgoing = isOutgoing
         self.isStreaming = isStreaming
+        self.showsCursor = showsCursor
         self.onApprovePlan = onApprovePlan
     }
 
@@ -216,7 +225,11 @@ private struct ChatPartRow: View {
         if !isStreaming, ReasoningMarkupParser.hasMarkup(text) {
             ChatTraceTextView(text: text)
         } else {
-            ChatTextPartView(text: text, isStreaming: isStreaming)
+            ChatTextPartView(
+                text: text,
+                isStreaming: isStreaming,
+                showsCursor: showsCursor
+            )
         }
     }
 

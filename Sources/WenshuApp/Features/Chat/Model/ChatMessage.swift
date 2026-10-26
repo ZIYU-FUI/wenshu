@@ -40,6 +40,19 @@ struct ChatMessage: Equatable, Identifiable, Sendable {
     var thinking: String?
     var imagePath: String?
 
+    /// The text block the streaming cursor belongs to.
+    ///
+    /// The cursor marks where the model is writing, = so there is one
+    /// per reply: = it sits at the end of the LAST text block. (= hermes
+    /// draws it once, = on the trailing block; = a cursor per text block
+    /// read as several models writing at once.)
+    var trailingTextPartID: UUID? {
+        parts.last { part in
+            if case .text = part.kind { return true }
+            return false
+        }?.id
+    }
+
     /// Streaming state machine. Mirrors Hermes's
     /// `message.pending` boolean + the lifecycle hooks in
     /// `use-message-stream/index.ts` (`mutateStream` decides when
