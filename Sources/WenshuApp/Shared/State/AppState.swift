@@ -285,29 +285,39 @@ final class AppState {
                 // empty state is truly
                 // empty). The previous
                 // round's `openTabs.append(welcome)`
-                // is dropped; = the
-                // active-tab-id stays
-                // `nil` (= the empty
-                // state is the user's
-                // signal that no
-                // document is open).
-                // `ensureWelcomeTabIfEmpty`
-                // call; = this is the second
+                // is dropped; = this is the second
                 // half of the same BUG = the
                 // close-last-tab path was
                 // also re-injecting the
-                // welcome). The
-                // `activeTabId` is left
-                // untouched (= it's a stale
-                // UUID pointing at the
-                // closed tab; = the next
-                // `openTab(...)` call will
-                // overwrite it with the new
-                // tab's id; = if the user
-                // reopens the same document,
-                // the new tab's id will be
-                // assigned and the previous
-                // stale id is harmless).
+                // welcome).
+                //
+                // The active-tab id must name a document that is OPEN,
+                // or nothing at all. It used to be left pointing at the
+                // closed tab (= a stale UUID), and that stale id was
+                // PERSISTED (= `activeTabId.didSet` writes it), so the
+                // next launch restored an id that named a document
+                // which was no longer open.
+                //
+                // Why it matters beyond tidiness: the id decides which
+                // VIEW the editor column renders. A stale id makes
+                // `activeTab` resolve to nil (= the empty-state branch),
+                // and the empty state is a DIFFERENT view with a
+                // DIFFERENT intrinsic size. So the close of the last
+                // document changed the column's size in the same layout
+                // pass that the tab strip's segment count dropped (= the
+                // strip's control collapses to a 0x0 intrinsic size when
+                // its count reaches zero; = measured 2026-10-27). Two
+                // size collapses in one pass is what the narrow-window
+                // crash is made of.
+                //
+                // So the id is REWRITTEN to a fresh UUID (= a value that
+                // names no open document, = the same "no match" idiom the
+                // `focusedChapterPath` setter already uses for exactly
+                // this purpose). The rewrite is durable: the `didSet`
+                // persists it, so the next launch restores an id that
+                // names nothing rather than one that names a closed
+                // document.
+                activeTabId = UUID()
             } else if idx < openTabs.count {
                 // Closed a non-last tab = next tab in the list wins.
                 activeTabId = openTabs[idx].id

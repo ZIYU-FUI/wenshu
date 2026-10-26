@@ -150,10 +150,6 @@ struct AppStateCloseTabTests {
         // empty state is the signal that no document is open, so no
         // welcome tab is put back: an editor that always shows a tab
         // cannot show that nothing is open.
-        //
-        // The active id is left pointing at the closed tab on purpose.
-        // It is a stale value, and the next tab that opens takes it
-        // over.
         let tab = makeTab()
         let state = makeState(tabs: [tab])
         state.activeTabId = tab.id
@@ -162,8 +158,76 @@ struct AppStateCloseTabTests {
 
         #expect(state.openTabs.isEmpty,
                 "after closing the last tab there must be no tab left (= the empty state is the empty state)")
-        #expect(state.activeTabId == tab.id,
-                "the active id is left untouched when the editor becomes empty (= the next open takes it over)")
+    }
+
+    // MARK: - The active-tab id names a document that is OPEN
+
+    @Test("closeTab on the last tab rewrites the active-tab id (= it must not name the closed document)")
+    func closeTabLastTabClearsTheActiveTabId() {
+        // The active-tab id must name a document that is open, or
+        // nothing at all. It used to be left pointing at the closed
+        // tab (= a stale UUID), and that stale id was PERSISTED, so
+        // the next launch restored an id naming a document that was no
+        // longer open.
+        //
+        // It matters beyond tidiness: the id decides which VIEW the
+        // editor column renders, and the empty state is a different
+        // view with a different intrinsic size. A stale id therefore
+        // changed the column's size in the same layout pass that the
+        // tab strip's segment count dropped (= the strip's control
+        // collapses to a 0x0 intrinsic size when its count reaches
+        // zero; = measured 2026-10-27). Two size collapses in one
+        // pass is what the narrow-window crash is made of.
+        let tab = makeTab()
+        let state = makeState(tabs: [tab])
+        state.activeTabId = tab.id
+
+        state.closeTab(id: tab.id, bookStore: nil)
+
+        #expect(state.activeTabId != tab.id,
+                "the active-tab id must not name the document that was just closed")
+        #expect(state.openTabs.first(where: { $0.id == state.activeTabId }) == nil,
+                "the active-tab id must name no open document (= the editor zone is in its empty state)")
+        #expect(state.focusedChapterPath == nil,
+                "the active-tab lookup must resolve to nothing (= the editor zone renders its empty state, and the chapter-focus lock is released)")
+    }
+
+    @Test("closeTab on the last tab persists an id that names no closed document (= the next launch cannot resurrect it)")
+    func closeTabLastTabPersistsNoStaleActiveTabId() {
+        // The rewrite must be DURABLE. The `activeTabId.didSet`
+        // persists the value, so the next launch restores it. If the
+        // persisted value still named the closed document, the relaunch
+        // would carry the stale id forward.
+        let tab = makeTab()
+        let state = makeState(tabs: [tab])
+        state.activeTabId = tab.id
+
+        state.closeTab(id: tab.id, bookStore: nil)
+
+        let persisted = UserDefaultsStore.shared.uuid(forKey: .activeTabId)
+        #expect(persisted != tab.id,
+                "the persisted active-tab id must not name the document that was just closed")
+        #expect(persisted == state.activeTabId,
+                "the persisted active-tab id must be the one the close path wrote (= the rewrite is durable)")
+    }
+
+    @Test("closeTab on the last tab, then reopening a document, selects the new document")
+    func closeTabLastTabThenReopenSelectsTheNewDocument() {
+        // The empty state must not be a dead end: the next document
+        // that opens takes the focus.
+        let tab = makeTab()
+        let state = makeState(tabs: [tab])
+        state.activeTabId = tab.id
+        state.closeTab(id: tab.id, bookStore: nil)
+
+        let reopened = makeTab()
+        state.openTabs = [reopened]
+        state.activeTabId = reopened.id
+
+        #expect(state.openTabs.first(where: { $0.id == state.activeTabId })?.id == reopened.id,
+                "the reopened document must be the active one (= the focus follows the open)")
+        #expect(state.openTabs.count == 1,
+                "the reopened document must be the only open tab")
     }
 
     // MARK: - Auto-save guarantee (= the boss's '确保自动保存有用')

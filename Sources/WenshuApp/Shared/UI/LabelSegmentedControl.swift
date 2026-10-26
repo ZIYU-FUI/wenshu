@@ -384,9 +384,29 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         // Sync selection state (= in case SwiftUI re-evaluates
         // the body and `selection` changed but the control is
         // still mounted).
-        if let index = labels.firstIndex(of: selection.wrappedValue),
-           control.selectedSegment != index {
-            control.selectedSegment = index
+        //
+        // The bound value names a segment (= the common case): the
+        // control selects it.
+        //
+        // The bound value names NO segment (= the segment was closed,
+        // = the caller's "nothing is selected" value): the control
+        // must have NO selection either. It used to keep whatever
+        // segment it had, which was the segment of a DIFFERENT value:
+        // the bound value said one thing and the drawn selection said
+        // another. AppKit clamps the index to -1 when the segment
+        // COUNT shrinks (measured 2026-10-27), so the out-of-range
+        // case never survived the shrink; but the count does not have
+        // to shrink for the bound value to stop naming a segment (= the
+        // caller's value changed to one that is not in the list), and
+        // then the stale segment stayed drawn and selectable.
+        //
+        // -1 is AppKit's own "no segment is selected" value (it is
+        // what the control reports after its count shrinks; = measured
+        // 2026-10-27), so writing it is the canonical way to say
+        // "nothing is selected".
+        let selectedIndex = Self.selectedSegmentIndex(for: selection.wrappedValue, in: labels)
+        if control.selectedSegment != selectedIndex {
+            control.selectedSegment = selectedIndex
         }
 
         // Wire target / action (= SwiftUI's NSViewRepresentable
@@ -396,6 +416,21 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         coordinator.parent = self
         control.target = coordinator
         control.action = #selector(Coordinator.segmentChanged(_:))
+    }
+
+    /// The segment index the control must show as selected for a bound
+    /// value.
+    ///
+    /// -1 (= AppKit's "no segment is selected") when the bound value
+    /// names no segment: the caller's value was closed, or it is the
+    /// caller's own "nothing is selected" sentinel. The control must
+    /// then have NO selection, so the drawn selection can never name a
+    /// DIFFERENT value than the bound one.
+    ///
+    /// Pure (= no control, no window): the caller writes the result
+    /// into the control's `selectedSegment`.
+    static func selectedSegmentIndex(for value: Selection, in labels: [Selection]) -> Int {
+        labels.firstIndex(of: value) ?? -1
     }
 
     func makeCoordinator() -> Coordinator {
