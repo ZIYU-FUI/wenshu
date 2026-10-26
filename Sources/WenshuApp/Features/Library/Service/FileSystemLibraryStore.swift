@@ -179,13 +179,6 @@ final class FileSystemLibraryStore: LibraryStoring, @unchecked Sendable {
         }
     }
 
-    func search(query: String) throws -> [SearchHit] {
-        // implementation: NSMetadataQuery on rootURL. : stub returns [] (= the protocol
-        // signature is locked now so the UI can wire up its search bar without
-        // an API change later).
-        return []
-    }
-
     // MARK: - Book ops
     // Mirrors the shelf ops above: loadBooks reads, saveBook writes atomically (= tmp +
     // replaceItemAt), deleteBook is idempotent. The books/ subdir under each shelf

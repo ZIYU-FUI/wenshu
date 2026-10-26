@@ -476,7 +476,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(metadata)
-        try atomicFileSystemWrite(data, to: referenceLibraryRoot.appendingPathComponent("library.json"))
+        try AtomicFileWrite.write(data, to: referenceLibraryRoot.appendingPathComponent("library.json"))
     }
 
     nonisolated static func loadAllReferencesFromFileSystem(
@@ -564,7 +564,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
             // Content differs; = the user explicitly authorized "edit" in the [archived-round]
             // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
             // `replaceReferenceToFileSystem` path).
-            try atomicFileSystemWrite(
+            try AtomicFileWrite.write(
                 bodyMarkdown.data(using: .utf8) ?? Data(),
                 to: mdURL
             )
@@ -582,7 +582,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
         }
         // original write path (no .md exists at the destination = first time this
         // reference is imported).
-        try atomicFileSystemWrite(bodyMarkdown.data(using: .utf8) ?? Data(), to: mdURL)
+        try AtomicFileWrite.write(bodyMarkdown.data(using: .utf8) ?? Data(), to: mdURL)
 
         var current = (try? loadReferencesFromFileSystem(
             referenceLibraryRoot: referenceLibraryRoot,
@@ -604,7 +604,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
         guard FileManager.default.fileExists(atPath: mdURL.path) else {
             throw ReferenceStoreError.referenceNotFound(id: reference.id)
         }
-        try atomicFileSystemWrite(bodyMarkdown.data(using: .utf8) ?? Data(), to: mdURL)
+        try AtomicFileWrite.write(bodyMarkdown.data(using: .utf8) ?? Data(), to: mdURL)
 
         var current = (try? loadReferencesFromFileSystem(
             referenceLibraryRoot: referenceLibraryRoot,
@@ -641,7 +641,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
         try FileManager.default.createDirectory(
             at: parent, withIntermediateDirectories: true
         )
-        try atomicFileSystemWrite(
+        try AtomicFileWrite.write(
             bodyMarkdown.data(using: .utf8) ?? Data(),
             to: url
         )
@@ -729,7 +729,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
             let mdURL = referenceLibraryRoot
                 .appendingPathComponent(layer.directoryName)
                 .appendingPathComponent("\(updated.id.uuidString).md")
-            try atomicFileSystemWrite(bodyMarkdown.data(using: .utf8) ?? Data(), to: mdURL)
+            try AtomicFileWrite.write(bodyMarkdown.data(using: .utf8) ?? Data(), to: mdURL)
             try writeIndexToFileSystem(existing, at: referenceLibraryRoot, layer: layer)
             return updated
         } else {
@@ -793,7 +793,7 @@ struct FileSystemReferenceStore: ReferenceStoring {
         // save). The fix: keep encoder and decoder on the same strategy.
         encoder.dateEncodingStrategy = .iso8601
         let data = try encoder.encode(references)
-        try atomicFileSystemWrite(data, to: indexURL)
+        try AtomicFileWrite.write(data, to: indexURL)
     }
 
     nonisolated private static func ensureReferenceLibraryRootExists(at url: URL) throws {
@@ -808,17 +808,4 @@ struct FileSystemReferenceStore: ReferenceStoring {
         }
     }
 
-    nonisolated private static func atomicFileSystemWrite(_ data: Data, to url: URL) throws {
-        let tmpURL = url.appendingPathExtension("tmp")
-        try data.write(to: tmpURL, options: .atomic)
-        if FileManager.default.fileExists(atPath: url.path) {
-            try FileManager.default.removeItem(at: url)
-        }
-        try FileManager.default.moveItem(at: tmpURL, to: url)
-        let fd = open(url.path, O_RDONLY)
-        if fd >= 0 {
-            fsync(fd)
-            close(fd)
-        }
-    }
 }

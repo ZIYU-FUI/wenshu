@@ -112,15 +112,7 @@ struct BookKanbanStore: BookDataStoring {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let bytes = try encoder.encode(data)
-        try atomicWrite(bytes)
+        try AtomicFileWrite.write(bytes, to: jsonURL)
     }
 
-    private func atomicWrite(_ data: Data) throws {
-        let tmpURL = jsonURL.appendingPathExtension("tmp")
-        try data.write(to: tmpURL, options: .atomic)
-        if FileManager.default.fileExists(atPath: jsonURL.path) {
-            try FileManager.default.removeItem(at: jsonURL)
-        }
-        try FileManager.default.moveItem(at: tmpURL, to: jsonURL)
-    }
 }

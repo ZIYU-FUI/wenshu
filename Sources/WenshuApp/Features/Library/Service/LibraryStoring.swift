@@ -62,19 +62,6 @@ struct LibraryStoringError: Error, Sendable {
     }
 }
 
-// MARK: - Search hit
-
-struct SearchHit: Sendable, Hashable {
-    /// The shelf that contains the hit. Even when search expands to books
-    /// or chapters, the shelf is always part of the result so the UI can
-    /// route the user to the right container without an extra lookup.
-    let shelfId: UUID
-    let shelfName: String
-    /// Free-form context for the hit (= a short snippet from the
-    /// underlying search engine, e.g. NSMetadataQuery result.snippet).
-    let matchContext: String
-}
-
 // MARK: - Protocol
 
 @MainActor
@@ -102,11 +89,6 @@ protocol LibraryStoring: Sendable {
     /// delete as forgiving — Finder trashed the file from outside the
     /// app and the app should reconcile, not crash.)
     func deleteShelf(id: UUID) throws
-
-    /// Search stub. The contract is locked now so the UI can wire up
-    /// its search bar without an API change when the search engine
-    /// ships (= future: NSMetadataQuery on `~/Documents/wenshu`).
-    func search(query: String) throws -> [SearchHit]
 
     // MARK: - Book operations
     //
@@ -204,5 +186,41 @@ protocol LibraryStoring: Sendable {
 extension LibraryStoring {
     func folderDocumentCount(bookId: UUID, folderDirectoryName: String) -> Int {
         0
+    }
+}
+
+// MARK: - Atomic write
+
+/// The one write path for the storage layer.
+///
+/// The bytes land in a temporary file in the destination's own directory
+/// (= the same volume, = so the last step is a rename and not a copy),
+/// then the temporary file is swapped into place: `replaceItemAt` when
+/// the destination already exists (= one atomic swap, = so an
+/// interrupted write leaves the previous content intact) and `moveItem`
+/// when it does not. A write that fails removes the temporary file and
+/// rethrows.
+enum AtomicFileWrite {
+    static func write(_ data: Data, to url: URL) throws {
+        let fm = FileManager.default
+        let tmpURL = url.appendingPathExtension("tmp")
+        do {
+            try data.write(to: tmpURL, options: .atomic)
+            if fm.fileExists(atPath: url.path) {
+                _ = try fm.replaceItemAt(url, withItemAt: tmpURL)
+            } else {
+                try fm.moveItem(at: tmpURL, to: url)
+            }
+        } catch {
+            try? fm.removeItem(at: tmpURL)
+            throw error
+        }
+        // Durability: the content is on the disk before the caller is
+        // told the write landed.
+        let fd = open(url.path, O_RDONLY)
+        if fd >= 0 {
+            fsync(fd)
+            close(fd)
+        }
     }
 }

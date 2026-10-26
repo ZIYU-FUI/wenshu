@@ -362,7 +362,7 @@ struct FileSystemEntityStore: EntityStoring {
             throw EntityStoreError.entityAlreadyExists(id: entity.id.rawValue)
         }
 
-        try atomicWriteFileSystem(bodyMarkdown.data(using: .utf8) ?? Data(), to: entityURL)
+        try AtomicFileWrite.write(bodyMarkdown.data(using: .utf8) ?? Data(), to: entityURL)
 
         var current = (try? loadEntitiesFromFileSystem(bookDirectory: bookDirectory)) ?? []
         current.append(entity)
@@ -385,7 +385,7 @@ struct FileSystemEntityStore: EntityStoring {
             throw EntityStoreError.entityNotFound(id: entity.id.rawValue)
         }
 
-        try atomicWriteFileSystem(bodyMarkdown.data(using: .utf8) ?? Data(), to: entityURL)
+        try AtomicFileWrite.write(bodyMarkdown.data(using: .utf8) ?? Data(), to: entityURL)
 
         var current = (try? loadEntitiesFromFileSystem(bookDirectory: bookDirectory)) ?? []
         guard let idx = current.firstIndex(where: { $0.id == entity.id }) else {
@@ -422,7 +422,7 @@ struct FileSystemEntityStore: EntityStoring {
         }
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(entities)
-        try atomicWriteFileSystem(data, to: indexURL)
+        try AtomicFileWrite.write(data, to: indexURL)
     }
 
     nonisolated private static func ensureEntitiesDirectoryExists(at url: URL) throws {
@@ -431,17 +431,4 @@ struct FileSystemEntityStore: EntityStoring {
         }
     }
 
-    nonisolated private static func atomicWriteFileSystem(_ data: Data, to url: URL) throws {
-        let tmpURL = url.appendingPathExtension("tmp")
-        try data.write(to: tmpURL, options: .atomic)
-        if FileManager.default.fileExists(atPath: url.path) {
-            try FileManager.default.removeItem(at: url)
-        }
-        try FileManager.default.moveItem(at: tmpURL, to: url)
-        let fd = open(url.path, O_RDONLY)
-        if fd >= 0 {
-            fsync(fd)
-            close(fd)
-        }
-    }
 }

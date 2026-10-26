@@ -410,7 +410,7 @@ struct FileSystemChapterStore: ChapterStoring {
         if FileManager.default.fileExists(atPath: chapterURL.path) {
             throw ChapterStoreError.chapterAlreadyExists(id: chapter.id)
         }
-        try Self.atomicFileSystemWrite(bodyMarkdown.data(using: .utf8) ?? Data(), to: chapterURL)
+        try AtomicFileWrite.write(bodyMarkdown.data(using: .utf8) ?? Data(), to: chapterURL)
 
         var current = (try? Self.loadChaptersFromFileSystem(
             bookDirectory: bookDirectory,
@@ -437,7 +437,7 @@ struct FileSystemChapterStore: ChapterStoring {
         guard FileManager.default.fileExists(atPath: chapterURL.path) else {
             throw ChapterStoreError.chapterNotFound(id: chapter.id)
         }
-        try Self.atomicFileSystemWrite(bodyMarkdown.data(using: .utf8) ?? Data(), to: chapterURL)
+        try AtomicFileWrite.write(bodyMarkdown.data(using: .utf8) ?? Data(), to: chapterURL)
 
         var current = (try? Self.loadChaptersFromFileSystem(
             bookDirectory: bookDirectory,
@@ -480,25 +480,12 @@ struct FileSystemChapterStore: ChapterStoring {
         }
     }
 
-    nonisolated private static func atomicFileSystemWrite(_ data: Data, to url: URL) throws {
-        let tmpURL = url.appendingPathExtension("tmp")
-        try data.write(to: tmpURL, options: .atomic)
-        if FileManager.default.fileExists(atPath: url.path) {
-            try FileManager.default.removeItem(at: url)
-        }
-        try FileManager.default.moveItem(at: tmpURL, to: url)
-        let fd = open(url.path, O_RDONLY)
-        if fd >= 0 {
-            fsync(fd)
-            close(fd)
-        }
-    }
 
     nonisolated private static func writeFileSystemIndex(_ chapters: [Document], to indexURL: URL) throws {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         encoder.dateEncodingStrategy = .iso8601
         let data = try encoder.encode(chapters)
-        try Self.atomicFileSystemWrite(data, to: indexURL)
+        try AtomicFileWrite.write(data, to: indexURL)
     }
 }

@@ -32,7 +32,6 @@ struct WenshuLibraryTests {
         func deleteShelf(id: UUID) throws {
             shelves.removeValue(forKey: id)
         }
-        func search(query: String) throws -> [SearchHit] { [] }
         // 
         func loadBooks(shelfId: UUID) throws -> [Book] {
             books.values.filter { $0.shelfId == shelfId }.sorted { $0.updatedAt > $1.updatedAt }

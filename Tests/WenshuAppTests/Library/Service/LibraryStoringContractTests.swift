@@ -128,14 +128,6 @@ struct LibraryStoringContractTests {
         #expect(loaded.map(\.id) == [a.id, c.id, b.id])
     }
 
-    @Test("search returns [] in v0.02.0 (= stub; v0.03.0 implements)")
-    func searchStubReturnsEmpty() throws {
-        let (store, root) = try makeStore()
-        defer { try? FileManager.default.removeItem(at: root) }
-        try store.saveShelf(Bookshelf(id: UUID(), name: "Anything", createdAt: .now, updatedAt: .now))
-        #expect(try store.search(query: "Anything").isEmpty)
-    }
-
     @Test("rootURL points at the configured directory (= so UI can show it)")
     func rootURLExposed() throws {
         let (store, root) = try makeStore()

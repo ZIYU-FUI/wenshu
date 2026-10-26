@@ -272,7 +272,7 @@ struct FileSystemOutlineStore: OutlineStoring {
         if FileManager.default.fileExists(atPath: url.path) {
             throw OutlineStoreError.outlineAlreadyExists(id: entry.id)
         }
-        try atomicWriteFileSystem(bodyMarkdown.data(using: .utf8) ?? Data(), to: url)
+        try AtomicFileWrite.write(bodyMarkdown.data(using: .utf8) ?? Data(), to: url)
 
         var current = (try? loadOutlinesFromFileSystem(bookDirectory: bookDirectory)) ?? []
         current.append(entry)
@@ -294,7 +294,7 @@ struct FileSystemOutlineStore: OutlineStoring {
         guard FileManager.default.fileExists(atPath: url.path) else {
             throw OutlineStoreError.outlineNotFound(id: entry.id)
         }
-        try atomicWriteFileSystem(bodyMarkdown.data(using: .utf8) ?? Data(), to: url)
+        try AtomicFileWrite.write(bodyMarkdown.data(using: .utf8) ?? Data(), to: url)
 
         var current = (try? loadOutlinesFromFileSystem(bookDirectory: bookDirectory)) ?? []
         guard let idx = current.firstIndex(where: { $0.id == entry.id }) else {
@@ -330,7 +330,7 @@ struct FileSystemOutlineStore: OutlineStoring {
         let outlinesDir = bookDirectory.appendingPathComponent("outlines", isDirectory: true)
         try ensureOutlinesDirectoryExists(at: outlinesDir)
         let url = entry.onDiskPath(under: bookDirectory)
-        try atomicWriteFileSystem(bodyMarkdown.data(using: .utf8) ?? Data(), to: url)
+        try AtomicFileWrite.write(bodyMarkdown.data(using: .utf8) ?? Data(), to: url)
     }
 
     nonisolated private static func writeIndexToFileSystem(
@@ -341,7 +341,7 @@ struct FileSystemOutlineStore: OutlineStoring {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(entries)
-        try atomicWriteFileSystem(data, to: indexURL)
+        try AtomicFileWrite.write(data, to: indexURL)
     }
 
     nonisolated private static func ensureOutlinesDirectoryExists(at url: URL) throws {
@@ -350,17 +350,4 @@ struct FileSystemOutlineStore: OutlineStoring {
         }
     }
 
-    nonisolated private static func atomicWriteFileSystem(_ data: Data, to url: URL) throws {
-        let tmpURL = url.appendingPathExtension("tmp")
-        try data.write(to: tmpURL, options: .atomic)
-        if FileManager.default.fileExists(atPath: url.path) {
-            try FileManager.default.removeItem(at: url)
-        }
-        try FileManager.default.moveItem(at: tmpURL, to: url)
-        let fd = open(url.path, O_RDONLY)
-        if fd >= 0 {
-            fsync(fd)
-            close(fd)
-        }
-    }
 }
