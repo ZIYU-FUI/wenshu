@@ -144,7 +144,23 @@ struct WenshuApp: App {
     /// (selectedEntity / selectedEntityCategory / previewSortOrder)
     /// are tracked in the backlog (= see CONTEXT.md AppState row).
     /// Descendants read it via `@Environment(AppState.self) var appState`.
-    @State private var appState = AppState()
+    ///
+    /// The instance is the process-wide one (= `sharedAppState`):
+    /// a `@State` default value is re-evaluated whenever the App
+    /// struct is re-created, and the background actors that read the
+    /// chapter focus lock must see the same object the view tree
+    /// writes to.
+    @State private var appState = WenshuApp.sharedAppState
+
+    /// The one app state for the process. Created once and bound to
+    /// `AppStateLocator`, so the background actors read the chapter
+    /// the user is editing right now.
+    @MainActor
+    private static let sharedAppState: AppState = {
+        let state = AppState()
+        AppStateLocator.shared.bind(appState: state)
+        return state
+    }()
 
     /// sort order + layout edit mode). Split out from AppState.
     /// Injected via `.environment(workspaceUI)` at the AppRootScene

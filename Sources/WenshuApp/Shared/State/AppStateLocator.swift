@@ -18,15 +18,36 @@
 //
 
 import Foundation
+import os
 
-/// chapter-focus-lock 2026-09-28: bridge between the @MainActor
-/// AppState (= SwiftUI environment) and background actors that
-/// need to read its public state without taking a hard reference.
-/// Set once at AppRootScene boot (= SwiftUI App init); = readers
-/// use the weak `appState` to consult `focusedChapterPath`.
+private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "appstate.locator")
+
+/// Bridge between the @MainActor AppState (= SwiftUI environment)
+/// and background actors that need to read its public state without
+/// taking a hard reference. The app binds the state it creates at
+/// launch (= see WenshuApp); = readers use the weak `appState` to
+/// consult `focusedChapterPath`.
 @MainActor
 final class AppStateLocator {
     static let shared = AppStateLocator()
-    weak var appState: AppState?
+
+    /// The bound app state (= nil before the app binds it).
+    private(set) weak var appState: AppState?
+
     private init() {}
+
+    /// Bind the app state (= called once, where the app creates it).
+    ///
+    /// The last bind wins: the app owns one app state for its
+    /// lifetime, and a test binds its own instance.
+    func bind(appState: AppState) {
+        self.appState = appState
+        wenshuLogger.info("[wenshu.appstate.locator] bound the app state")
+    }
+
+    /// Test-only: forget the bound app state (= the state before the
+    /// app binds it).
+    func unbindForTest() {
+        appState = nil
+    }
 }
