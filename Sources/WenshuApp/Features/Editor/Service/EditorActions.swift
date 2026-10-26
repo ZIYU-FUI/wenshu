@@ -58,6 +58,10 @@ struct WikiLinkNavigationResult: Equatable, Sendable {
         /// The link target matched a book chapter (= the active
         /// book's chapters/<uuid>.md file).
         case bookChapter(bookId: UUID)
+        /// The link target matched a document inside the active book
+        /// (= world/, characters/, …; = the sibling documents an
+        /// import writes). The path is relative to the book root.
+        case bookDocument(bookId: UUID, relativePath: String)
     }
     let title: String
     let body: String
@@ -105,9 +109,14 @@ enum WikiLinkNavigation {
             }
         }
 
-        // 2. Active book chapter lookup.
+        // 2. The open book's own documents (= the index an import
+        // writes points at its sibling documents).
         if let store = bookStore {
-            if let result = lookupInActiveBook(name: trimmed, store: store) {
+            if let result = lookupInActiveBook(
+                name: trimmed,
+                bookDirectory: store.currentBookDirectory,
+                bookId: store.currentBook?.bookId ?? store.selectedBookId
+            ) {
                 return result
             }
         }
@@ -139,20 +148,27 @@ enum WikiLinkNavigation {
         )
     }
 
-    private static func lookupInActiveBook(
+    static func lookupInActiveBook(
         name: String,
-        store: BookStore
+        bookDirectory: URL?,
+        bookId: UUID?
     ) -> WikiLinkNavigationResult? {
-        // The BookStore doesn't yet expose a chapter-document
-        // search helper (= the path was deferred; = SMC
-        // ticket 003 closes the active-book navigation case via
-        // the persisted-draft path; see DraftPersistence below).
-        // For now return nil so the host falls through to a
-        // no-op (= the engine already renders unknown links in
-        // dashed gray). Future ticket = add a chapter search
-        // helper to BookStore (= reuses FileSystemLibraryStore's
-        // loadDocuments(category: .chapter) walker).
-        return nil
+        // A link into the open book (= the index an import writes)
+        // names one of the book's own documents. The BookStore has
+        // no document-search helper, so the book is read through the
+        // same index the wiki-link resolver uses (= one scan, one
+        // naming rule).
+        let index = BookDocumentIndex(bookDirectory: bookDirectory)
+        guard let document = index.document(named: name) else { return nil }
+        let body = (try? String(contentsOf: document.url, encoding: .utf8)) ?? ""
+        return WikiLinkNavigationResult(
+            title: document.name,
+            body: body,
+            source: .bookDocument(
+                bookId: bookId ?? UUID(),
+                relativePath: document.relativePath
+            )
+        )
     }
 }
 

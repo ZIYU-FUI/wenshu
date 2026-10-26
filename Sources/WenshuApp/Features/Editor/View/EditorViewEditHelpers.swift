@@ -52,8 +52,11 @@ extension EditorView {
     /// navigation flow.
     func handleEditorWikiLink(linkId: String) {
         guard !linkId.isEmpty else { return }
-        let resolver = ReferenceLibraryWikiLinkResolver(
-            referenceLibraryRoot: bookStore.stores.referenceLibraryRoot
+        let resolver = BookAwareWikiLinkResolver(
+            library: ReferenceLibraryWikiLinkResolver(
+                referenceLibraryRoot: bookStore.stores.referenceLibraryRoot
+            ),
+            bookDirectory: bookStore.currentBookDirectory
         )
         let displayName = resolver.name(forID: linkId) ?? linkId
         handlePreviewWikiLink(displayName: displayName)

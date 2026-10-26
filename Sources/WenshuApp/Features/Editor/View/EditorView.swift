@@ -363,7 +363,8 @@ struct EditorView: View {
             draftId: activeTabIdString,
             configuration: WenshuEditorServicesFactory.make(
                 bookStore: bookStore,
-                bus: MarkdownEditorBus.buildWenshu()
+                bus: MarkdownEditorBus.buildWenshu(),
+                bookDirectory: bookStore.currentBookDirectory
             ),
             onLinkClick: { linkId in
                 handleEditorWikiLink(linkId: linkId)
@@ -450,6 +451,30 @@ struct EditorView: View {
             referenceStore: bookStore.loadReferenceStore(),
             bookStore: bookStore
         ) else {
+            return
+        }
+        // A document inside the open book opens the real file (= the
+        // editor edits it in place; = a detached preview tab would
+        // drop the edits).
+        if case .bookDocument(_, let relativePath) = result.source,
+           let bookDirectory = bookStore.currentBookDirectory {
+            let path = bookDirectory.appendingPathComponent(relativePath).path
+            if let existingIdx = appState.openTabs.firstIndex(where: {
+                $0.documentPath == path
+            }) {
+                appState.activeTabId = appState.openTabs[existingIdx].id
+                return
+            }
+            let documentTab = EditorTab(
+                id: UUID(),
+                documentPath: path,
+                draft: result.body,
+                originalBody: result.body,
+                mode: .edit,
+                title: result.title.isEmpty ? nil : result.title
+            )
+            appState.openTabs.append(documentTab)
+            appState.activeTabId = documentTab.id
             return
         }
         let fingerprint = String(result.body.prefix(200))

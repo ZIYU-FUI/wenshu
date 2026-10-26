@@ -195,14 +195,23 @@ extension ImportDocumentTemplate {
         return documents.map { .document($0) }
     }
 
-    /// The `.md` files one skeleton line declares (= a
-    /// markdown link whose target ends in `.md`).
+    /// The `.md` files one skeleton line declares.
+    ///
+    /// Two link forms count (= the app's own wiki link and the plain
+    /// markdown link): the index a skeleton declares must survive
+    /// either spelling, because one of them is what the app can
+    /// navigate and the other is what a plain markdown reader
+    /// understands.
     private func documentsDeclared(in line: String) -> [String] {
-        let pattern = #"\]\(([^()\s]+\.md)\)"#
+        let pattern = #"\[\[([^\]\s]+\.md)\]\]|\]\(([^()\s]+\.md)\)"#
         guard let regex = try? NSRegularExpression(pattern: pattern) else { return [] }
         let range = NSRange(line.startIndex..., in: line)
         return regex.matches(in: line, range: range).compactMap { match in
-            guard let targetRange = Range(match.range(at: 1), in: line) else { return nil }
+            // Group 1 = the wiki link's name; group 2 = the markdown
+            // link's target. Only the group that took part in the
+            // match carries the file name.
+            let group = match.range(at: 1).location == NSNotFound ? 2 : 1
+            guard let targetRange = Range(match.range(at: group), in: line) else { return nil }
             return String(line[targetRange])
         }
     }

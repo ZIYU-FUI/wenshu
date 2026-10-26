@@ -14,13 +14,20 @@ enum WenshuEditorServicesFactory {
     static func make(
         bookStore: BookStore?,
         bus: MarkdownEditorBus = .default,
-        preferences: EditorPreferences = .live
+        preferences: EditorPreferences = .live,
+        bookDirectory: URL? = nil
     ) -> MarkdownEditorConfiguration {
         let wikiLinks: any WikiLinkResolver
         let images: any EmbeddedImageProvider
         if let stores = bookStore?.stores {
-            wikiLinks = ReferenceLibraryWikiLinkResolver(
-                referenceLibraryRoot: stores.referenceLibraryRoot
+            // The resolver knows the open book's own documents as well
+            // as the library (= a link into the book has to resolve, or
+            // the engine leaves it grey and the click never arrives).
+            wikiLinks = BookAwareWikiLinkResolver(
+                library: ReferenceLibraryWikiLinkResolver(
+                    referenceLibraryRoot: stores.referenceLibraryRoot
+                ),
+                bookDirectory: bookDirectory
             )
             images = ReferenceLibraryImageProvider(
                 activeBookRoot: stores.shelvesRoot,
