@@ -43,6 +43,15 @@ spec.loader.exec_module(wg)
 FAILURES = 0
 
 
+def load_ticket_tier():
+    """Import ticket_tier.py, the other tool that reads the same board."""
+    path = HERE.parent / "ticket_tier.py"
+    spec = importlib.util.spec_from_file_location("ticket_tier", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def check(label: str, condition: bool, detail: str = "") -> None:
     global FAILURES
     if condition:
@@ -182,6 +191,219 @@ check(
     "5. a cited rule is not a write",
     "AGENTS.md" not in written,
     f"written={sorted(written)}",
+)
+
+# --------------------------------------------------------------------------
+# 6. a Chinese header is a header, and a Chinese prohibition is a prohibition
+#
+# The fixture is built from ESCAPES, so this file carries no CJK characters
+# (AGENTS.md 1.1) and the next reader can still see what the body says.
+#
+# Measured before the fix: the section regex only matched an ALL-CAPS
+# ENGLISH line, every Chinese card on this board parsed 0 sections, and the
+# gate printed "file collisions: 0" as if it had checked them.
+ZH = {
+    "what_to_do": "\u8981\u505a\u7684",  # what to do
+    "constraints": "\u7ea6\u675f",        # constraints
+    "acceptance": "\u9a8c\u6536",         # acceptance
+    "add": "\u65b0\u589e",                # add
+    "do_not_touch": "\u4e0d\u8981\u52a8",  # do not touch
+}
+
+ZH_WRITE_CARD = (
+    f"## {ZH['what_to_do']}\n\n"
+    f"- {ZH['add']} `Sources/App/Fixture/Alpha.swift`\n"
+    f"- {ZH['add']} `Sources/App/Fixture/Beta.swift`\n"
+)
+ZH_FORBID_CARD = (
+    f"## {ZH['constraints']}\n\n"
+    f"- {ZH['do_not_touch']} `Sources/App/Fixture/Alpha.swift`\n"
+    f"- {ZH['do_not_touch']} `Sources/App/Fixture/Beta.swift`\n"
+)
+ZH_ACCEPT_CARD = (
+    f"## {ZH['acceptance']}\n\n"
+    f"- {ZH['add']} `Sources/App/Fixture/Gamma.swift`\n"
+)
+
+check(
+    "6. a Chinese header is a header",
+    wg.headings_parsed(ZH_WRITE_CARD) == 1,
+    f"parsed={wg.headings_parsed(ZH_WRITE_CARD)}",
+)
+written, forbidden = wg.files_of(ZH_WRITE_CARD)
+check(
+    "6b. a path under a Chinese write section is a write",
+    written == {"Sources/App/Fixture/Alpha.swift", "Sources/App/Fixture/Beta.swift"},
+    f"written={sorted(written)}",
+)
+written, forbidden = wg.files_of(ZH_FORBID_CARD)
+check(
+    "6c. a path under a Chinese prohibition section is forbidden",
+    forbidden == {"Sources/App/Fixture/Alpha.swift", "Sources/App/Fixture/Beta.swift"},
+    f"forbidden={sorted(forbidden)}",
+)
+check(
+    "6d. and it is not a write",
+    not written,
+    f"written={sorted(written)}",
+)
+written, forbidden = wg.files_of(ZH_ACCEPT_CARD)
+check(
+    "6e. a Chinese heading that is not a prohibition is a write section",
+    written == {"Sources/App/Fixture/Gamma.swift"} and not forbidden,
+    f"written={sorted(written)} forbidden={sorted(forbidden)}",
+)
+
+# --------------------------------------------------------------------------
+# 7. a heading that ENDS WITH a prohibition phrase is a prohibition
+#
+# Measured before the fix: the gate compared the raw heading with `in`
+# against an exact set, so "WHAT THIS CARD MUST NOT CHANGE" was a WRITE
+# section to the gate (its paths counted as edits) and a prohibition to
+# ticket_tier.py, on the same board, at the same moment.
+ENDS_WITH_CARD = """## WHAT THIS CARD MUST NOT CHANGE
+
+- `Sources/App/Fixture/Delta.swift`. Leave it exactly as it is.
+"""
+written, forbidden = wg.files_of(ENDS_WITH_CARD)
+check(
+    "7. a heading that ends with a prohibition phrase forbids its paths",
+    forbidden == {"Sources/App/Fixture/Delta.swift"},
+    f"forbidden={sorted(forbidden)}",
+)
+check(
+    "7b. and does not write them",
+    "Sources/App/Fixture/Delta.swift" not in written,
+    f"written={sorted(written)}",
+)
+
+# --------------------------------------------------------------------------
+# 8. a bare section number is a citation, and a grant is still a write
+# --------------------------------------------------------------------------
+CITED_BARE = """## WHAT TO BUILD
+
+- No new Chinese in the source (= AGENTS.md 1.1).
+- `Sources/App/Thing.swift`. Build it.
+"""
+written, forbidden = wg.files_of(CITED_BARE)
+check(
+    "8. a bare section number is a citation, not a write",
+    "AGENTS.md" not in written,
+    f"written={sorted(written)}",
+)
+check(
+    "8b. and the rest of the body still reads",
+    written == {"Sources/App/Thing.swift"},
+    f"written={sorted(written)}",
+)
+GRANT_AGENTS = """## WHAT TO BUILD
+
+- Pick one, and make `AGENTS.md` say which.
+"""
+written, forbidden = wg.files_of(GRANT_AGENTS)
+check(
+    "8c. a path with no number after it is a file reference, and a grant to "
+    "edit it is a write",
+    written == {"AGENTS.md"} and not forbidden,
+    f"written={sorted(written)} forbidden={sorted(forbidden)}",
+)
+
+# --------------------------------------------------------------------------
+# 9. a body the gate cannot split at all is never a clean bill of health
+# --------------------------------------------------------------------------
+UNREADABLE = (
+    "A card whose body carries no heading at all, but names a file:\n"
+    "`Sources/App/Fixture/Epsilon.swift`\n"
+)
+written, forbidden = wg.files_of(UNREADABLE)
+check(
+    "9. a body with no heading counts every path in it as a write",
+    written == {"Sources/App/Fixture/Epsilon.swift"} and not forbidden,
+    f"written={sorted(written)} forbidden={sorted(forbidden)}",
+)
+check(
+    "9b. and the gate reads 0 sections in it",
+    wg.headings_parsed(UNREADABLE) == 0,
+    f"parsed={wg.headings_parsed(UNREADABLE)}",
+)
+
+# --------------------------------------------------------------------------
+# 10. the gate REPORTS a Chinese-headered fixture pair
+#
+# The live board must not be the test fixture: live cards change. This
+# pair is written here, and the gate's own reporting path is run over it.
+# --------------------------------------------------------------------------
+import contextlib  # noqa: E402
+import io  # noqa: E402
+
+
+def run_gate(bodies: dict[str, str]) -> str:
+    """Run the gate's own reporting path over a FIXTURE board."""
+    saved_ids, saved_body, saved_argv = wg.card_ids, wg.card_body, sys.argv
+    wg.card_ids = lambda: [(cid, "ready") for cid in bodies]
+    wg.card_body = lambda cid: bodies[cid]
+    sys.argv = ["wave_gate.py"]
+    buffer = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(buffer):
+            wg.main()
+    finally:
+        wg.card_ids, wg.card_body, sys.argv = saved_ids, saved_body, saved_argv
+    return buffer.getvalue()
+
+
+report = run_gate({"t_aaaa0001": ZH_WRITE_CARD, "t_bbbb0002": ZH_FORBID_CARD})
+check(
+    "10. the gate reports a Chinese-headered fixture pair",
+    "t_aaaa0001" in report and "t_bbbb0002" in report,
+    report,
+)
+check(
+    "10b. and names both file paths",
+    "Sources/App/Fixture/Alpha.swift" in report
+    and "Sources/App/Fixture/Beta.swift" in report,
+    report,
+)
+check(
+    "10c. and the card that forbids them does not write them",
+    "t_bbbb0002" in report
+    and report.count("Sources/App/Fixture/Alpha.swift") >= 1,
+    report,
+)
+check(
+    "10d. the report says how many sections it parsed",
+    "cards with 0 sections parsed: 0" in report,
+    report,
+)
+
+report = run_gate({"t_cccc0003": UNREADABLE})
+check(
+    "11. a card the gate cannot read is listed by name",
+    "cards with 0 sections parsed: 1" in report and "t_cccc0003" in report,
+    report,
+)
+
+# --------------------------------------------------------------------------
+# 12. the two tools read one vocabulary
+# --------------------------------------------------------------------------
+tier = load_ticket_tier()
+BODIES_FOR_BOTH_TOOLS = [
+    ZH_WRITE_CARD,
+    ZH_FORBID_CARD,
+    ZH_ACCEPT_CARD,
+    ENDS_WITH_CARD,
+    CITED_BARE,
+    GRANT_AGENTS,
+    UNREADABLE,
+]
+same = all(
+    tier.work_scope(body) == wg.files_of(body) for body in BODIES_FOR_BOTH_TOOLS
+)
+check(
+    "12. wave_gate.py and ticket_tier.py agree about every fixture body",
+    same,
+    f"gate={[wg.files_of(b) for b in BODIES_FOR_BOTH_TOOLS]} "
+    f"tier={[tier.work_scope(b) for b in BODIES_FOR_BOTH_TOOLS]}",
 )
 
 print()

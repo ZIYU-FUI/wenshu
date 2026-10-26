@@ -215,18 +215,35 @@ BASELINE_DEMAND_RE = re.compile(
 )
 FULL_SUITE_RE = re.compile(r"\bswift test\b(?![^\n]*--filter)")
 
-# Sections whose paths are files the card must NOT touch. Matched on the
-# NORMALIZED heading, so "MUST NOT CHANGE" and "Must not change" are one
-# section.
-EXCLUSION_SECTIONS = {
-    "must not change",
-    "do not touch the app",
-    "do not touch",
-    "must not reintroduce",
-    "files to leave alone",
-    "do not change",
-    "out of scope",
-}
+# ---------------------------------------------------------------------------
+# THE CARD-BODY VOCABULARY IS wave_gate.py's
+#
+# Two tools that read the same board must answer the same question about the
+# same body: which files does this card write, and which files must it leave
+# alone? They used to keep TWO COPIES of that vocabulary, and the copies
+# drifted: this file normalized the heading and carried a seven-phrase
+# exclusion set, wave_gate.py compared the raw heading with `in` against a
+# five-phrase set, so "WHAT THIS CARD MUST NOT CHANGE" was a prohibition
+# here and a WRITE there, on the same board, at the same moment. Measured
+# on this board, 2026-10-25: the two tools read the same five cards in five
+# different ways.
+#
+# The vocabulary, the heading reader, the citation pattern and the path
+# pattern all live in wave_gate.py now, and the names below are this file's
+# view of them (= the rest of this file, and its tests, keep reading the
+# same way). One vocabulary, so the next phrase added to it cannot land in
+# one tool and not the other.
+EXCLUSION_SECTIONS = wave_gate.EXCLUSION_SECTIONS
+sections = wave_gate.sections
+# = wave_gate.files_of: the same (written, forbidden) sets, read the same way.
+work_scope = wave_gate.files_of
+work_text = wave_gate.work_text
+
+
+def _is_exclusion(name: str) -> bool:
+    """Whether a section's paths are files the card must NOT touch."""
+    return wave_gate.is_exclusion(name)
+
 
 # Sections that ROUTE the card instead of describing its work. A routing
 # section is not a work section, so it is not charged against the body
@@ -237,54 +254,6 @@ EXCLUSION_SECTIONS = {
 ROUTING_SECTIONS = {
     "review handoff",
 }
-
-
-def _heading(line: str) -> str | None:
-    """The section heading a line opens, or None if the line is content."""
-    stripped = line.strip()
-    if not stripped:
-        return None
-    match = re.match(r"^#{1,3}\s+(.+?)\s*$", stripped)
-    if match:
-        text = match.group(1).strip()
-        return text if 2 <= len(text) <= 45 else None
-    # A bare ALL-CAPS line is a header too ("GOAL", "GATES:").
-    if re.match(r"^[A-Z][A-Z0-9 /()\-]{2,45}$", stripped):
-        return stripped.rstrip(":").strip()
-    return None
-
-
-def sections(body: str) -> list[tuple[str, str]]:
-    """Split a card body into (heading, text), keeping the preamble.
-
-    wave_gate.sections() drops everything before the first ALL-CAPS header,
-    and that text is where a card that writes its headings in Title Case puts
-    its whole specification. Measured: the board's headings come in both
-    cases (= "GATES" 9 times, "Acceptance" 9 times, "Must not change" twice),
-    and one card that MOVES a file across the app boundary opens with
-    "## What changes"; wave_gate's splitter read that card as a card with no
-    files at all, and a tier built on it rated a file move T1.
-    """
-    out: list[tuple[str, str]] = []
-    name = ""
-    lines: list[str] = []
-    for line in body.split("\n"):
-        heading = _heading(line)
-        if heading is None:
-            lines.append(line)
-            continue
-        if lines:
-            out.append((name, "\n".join(lines)))
-        name = heading
-        lines = [line]
-    if lines:
-        out.append((name, "\n".join(lines)))
-    return out
-
-
-def _is_exclusion(name: str) -> bool:
-    """Whether a section's paths are files the card must NOT touch."""
-    return name.strip().rstrip(":").lower() in EXCLUSION_SECTIONS
 
 
 def _is_routing(name: str) -> bool:
@@ -419,45 +388,6 @@ def review_contract_errors(body: str, assignee: str | None = None) -> list[str]:
             + ") but carries no REVIEW HANDOFF section"
         )
     return errors
-
-
-def work_scope(body: str) -> tuple[set[str], set[str]]:
-    """The (written, forbidden) file sets of a card body, for TIERING.
-
-    A path the card names in a MUST NOT CHANGE section is not work. This is
-    the same reading wave_gate uses, and for the same reason: the tier must
-    describe what the card CHANGES, not what it promises not to touch.
-
-    A path named in BOTH a write section and an exclusion section is
-    contradictory in the body; for the tier it counts as written, because
-    the card does reach that file.
-    """
-    written: set[str] = set()
-    forbidden: set[str] = set()
-    for name, text in work_sections(body):
-        stripped = wave_gate.CITATION_RE.sub("", text)
-        if not _is_exclusion(name):
-            written |= set(wave_gate.PATH_RE.findall(stripped))
-            continue
-        for bullet in wave_gate._bullets(stripped):
-            paths = set(wave_gate.PATH_RE.findall(bullet))
-            if not paths:
-                continue
-            if wave_gate.GRANT_RE.search(bullet):
-                written |= paths
-            else:
-                forbidden |= paths
-    return written, forbidden - written
-
-
-def work_text(body: str) -> str:
-    """The body text outside the exclusion sections.
-
-    This is where a signal about the WORK is read from, so that a card
-    saying "no persistence change here" in its MUST NOT CHANGE list does
-    not read as a persistence card.
-    """
-    return "\n".join(text for name, text in sections(body) if not _is_exclusion(name))
 
 
 def code_volume(body: str) -> int:
