@@ -1,9 +1,8 @@
 // VisionTools.swift
 //
 // Local vision tools (= hermes `vision_analyze` parity). Uses
-// Apple `Vision` framework (`VNRecognizeTextRequest` +
-// `VNGenerateImageFeaturePrintRequest` +
-// `VNClassifyImageRequest`).
+// Apple `Vision` framework (`RecognizeTextRequest` +
+// `ClassifyImageRequest`).
 
 import Foundation
 #if canImport(Vision)
@@ -81,69 +80,54 @@ struct VisionTools: Tool, Sendable {
         return ""
     }
 
-    /// recognizeText: (VNRecognizeTextRequest)
+    /// recognizeText: (RecognizeTextRequest)
+    ///
+    /// The handler returns the observations and reports the request's
+    /// own failure, so one request carries one outcome.
     func recognizeText(imagePath: String) async throws -> [VisionTextResult] {
         #if canImport(Vision) && canImport(AppKit)
         guard let image = NSImage(contentsOfFile: imagePath),
               let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
             throw VisionToolsError.imageLoadFailed(path: imagePath)
         }
-        return try await withCheckedThrowingContinuation { continuation in
-            let request = VNRecognizeTextRequest { request, error in
-                if let error = error {
-                    continuation.resume(throwing: error)
-                    return
-                }
-                let observations = (request.results as? [VNRecognizedTextObservation]) ?? []
-                let results = observations.compactMap { obs -> VisionTextResult? in
-                    guard let candidate = obs.topCandidates(1).first else { return nil }
-                    return VisionTextResult(
-                        text: candidate.string,
-                        confidence: candidate.confidence,
-                        boundingBox: obs.boundingBox
-                    )
-                }
-                continuation.resume(returning: results)
-            }
-            request.recognitionLevel = .accurate
-            request.recognitionLanguages = ["zh-Hans", "en-US"]
-            let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-            do {
-                try handler.perform([request])
-            } catch {
-                continuation.resume(throwing: error)
-            }
+        var request = RecognizeTextRequest()
+        request.recognitionLevel = .accurate
+        request.recognitionLanguages = [
+            Locale.Language(identifier: "zh-Hans"),
+            Locale.Language(identifier: "en-US")
+        ]
+        request.usesLanguageCorrection = true
+        request.automaticallyDetectsLanguage = false
+        // 0 = process at full resolution (= the VN request default this
+        // tool used before the modern API).
+        request.minimumTextHeightFraction = 0
+        let observations = try await ImageRequestHandler(cgImage).perform(request)
+        return observations.compactMap { observation -> VisionTextResult? in
+            guard let candidate = observation.topCandidates(1).first else { return nil }
+            return VisionTextResult(
+                text: candidate.string,
+                confidence: candidate.confidence,
+                boundingBox: observation.boundingBox.cgRect
+            )
         }
         #else
         throw VisionToolsError.platformNotSupported
         #endif
     }
 
-    /// classify: (VNClassifyImageRequest)
+    /// classify: (ClassifyImageRequest)
+    ///
+    /// Same handler contract as `recognizeText`: the handler returns
+    /// the observations and reports the request's own failure.
     func classify(imagePath: String, limit: Int = 5) async throws -> [VisionClassification] {
         #if canImport(Vision) && canImport(AppKit)
         guard let image = NSImage(contentsOfFile: imagePath),
               let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
             throw VisionToolsError.imageLoadFailed(path: imagePath)
         }
-        return try await withCheckedThrowingContinuation { continuation in
-            let request = VNClassifyImageRequest { request, error in
-                if let error = error {
-                    continuation.resume(throwing: error)
-                    return
-                }
-                let observations = (request.results as? [VNClassificationObservation]) ?? []
-                let results = observations.prefix(limit).map {
-                    VisionClassification(identifier: $0.identifier, confidence: $0.confidence)
-                }
-                continuation.resume(returning: Array(results))
-            }
-            let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-            do {
-                try handler.perform([request])
-            } catch {
-                continuation.resume(throwing: error)
-            }
+        let observations = try await ImageRequestHandler(cgImage).perform(ClassifyImageRequest())
+        return observations.prefix(limit).map {
+            VisionClassification(identifier: $0.identifier, confidence: $0.confidence)
         }
         #else
         throw VisionToolsError.platformNotSupported
