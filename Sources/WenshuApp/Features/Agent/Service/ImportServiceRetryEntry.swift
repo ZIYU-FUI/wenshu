@@ -22,6 +22,48 @@
 
 import Foundation
 
+/// The import sheet's reply, part by part.
+///
+/// The provider cuts its reasoning into small chunks, = and the sheet
+/// used to append every chunk as its own part, = so each chunk became
+/// its own row (= the boss, 2026-10-26: = "every line holds a few
+/// characters"). The chat zone never had this problem: its accumulator
+/// merges the chunks of the same kind into the trailing part. This is
+/// that merge, = for the sheet.
+enum ImportReplyParts {
+
+    /// The reply after one more part arrives.
+    ///
+    /// A text or reasoning chunk joins the trailing part of its kind
+    /// (= so the reasoning reads as one block, = not as a column of
+    /// fragments). A tool call or a tool result stands on its own
+    /// (= the reader watches for the boundary between one tool
+    /// finishing and the next starting).
+    static func merging(
+        _ part: ChatMessagePart,
+        into parts: [ChatMessagePart]
+    ) -> [ChatMessagePart] {
+        var merged = parts
+        switch part.kind {
+        case .text(let text):
+            if case .text(let last)? = merged.last?.kind {
+                merged[merged.count - 1] = .text(last + text)
+            } else {
+                merged.append(part)
+            }
+        case .reasoning(let reasoning):
+            if case .reasoning(let last)? = merged.last?.kind {
+                merged[merged.count - 1] = .reasoning(last + reasoning)
+            } else {
+                merged.append(part)
+            }
+        default:
+            merged.append(part)
+        }
+        return merged
+    }
+}
+
 extension ImportService {
     // MARK: - title-only retry
 
@@ -144,7 +186,10 @@ extension ImportService {
         onProgress: (@Sendable ([ImportTask]) async -> Void)?
     ) async {
         let part = ImportAgentPart.decode(message)?.chatPart() ?? .text(message)
-        tasksBox.value[i].agentParts.append(part)
+        tasksBox.value[i].agentParts = ImportReplyParts.merging(
+            part,
+            into: tasksBox.value[i].agentParts
+        )
         // Cap at 60 (= the oldest parts drop off; = prevents unbounded growth).
         if tasksBox.value[i].agentParts.count > 60 {
             tasksBox.value[i].agentParts.removeFirst(
