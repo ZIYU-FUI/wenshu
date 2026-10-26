@@ -10,6 +10,9 @@
 //  Safe scope (= NOT v0.34 in-flight) = SystemPrompt + MessageSanitization
 //  are v0.35 ticket 002/001 (= my work).
 //
+//  The system prompt half drives the live builders: the tier builder
+//  for the stable tier, PromptBuilder for the dynamic tier.
+//
 
 import Testing
 import Foundation
@@ -19,50 +22,97 @@ import WenshuAgent
 @Suite("SystemPrompt deep (= v0.35 ticket 002)")
 struct SystemPromptDeepTests {
 
-    @Test("SystemPrompt.build: produces non-empty output")
-    func buildProducesOutput() {
-        let prompt = SystemPrompt.build(ephemeralHint: "today is sunny")
-        #expect(!prompt.isEmpty)
+    // MARK: - The live builders
+
+    /// The stable tier, as the turn loop builds it.
+    private func stableTier(
+        provider: SystemPrompt.ProviderGuidance = .unknown,
+        locale: SystemPrompt.Locale = .english
+    ) -> String {
+        PromptTierBuilder.stableTier(
+            settings: PromptSettings(),
+            provider: provider,
+            locale: locale
+        )
     }
 
-    @Test("SystemPrompt.build: byte-stable across calls (= cache hit invariant)")
+    /// The dynamic tier, as the turn loop builds it.
+    private func dynamicTier(
+        callerExtras: [String: String] = [:],
+        ephemeralHint: String = ""
+    ) -> String {
+        PromptBuilder.dynamicTier(
+            contextBundle: ContextEngine.ContextBundle(
+                memories: [],
+                characterContext: [],
+                worldContext: [],
+                foreshadowContext: []
+            ),
+            memories: [],
+            callerExtras: callerExtras,
+            ephemeralHint: ephemeralHint
+        )
+    }
+
+    /// The prompt the caller sends: the stable tier, then the dynamic tier.
+    private func joinedPrompt(
+        callerExtras: [String: String] = [:],
+        ephemeralHint: String = ""
+    ) -> String {
+        PromptBuilder(
+            stableTier: stableTier(),
+            dynamicTier: dynamicTier(callerExtras: callerExtras, ephemeralHint: ephemeralHint)
+        ).joinedPrompt
+    }
+
+    @Test("the joined system prompt produces non-empty output")
+    func buildProducesOutput() {
+        #expect(!joinedPrompt(ephemeralHint: "today is sunny").isEmpty)
+    }
+
+    @Test("the stable tier is byte-stable across calls (= cache hit invariant)")
     func buildByteStable() {
-        let p1 = SystemPrompt.build(ephemeralHint: "test")
-        let p2 = SystemPrompt.build(ephemeralHint: "test")
+        let p1 = stableTier()
+        let p2 = stableTier()
         #expect(p1 == p2)
     }
 
-    @Test("SystemPrompt.build: empty ephemeralHint still works")
+    @Test("an empty ephemeral hint still yields a usable prompt")
     func buildEmptyHint() {
-        let p1 = SystemPrompt.build(ephemeralHint: "")
-        let p2 = SystemPrompt.build(ephemeralHint: "x")
+        let p1 = joinedPrompt(ephemeralHint: "")
+        let p2 = joinedPrompt(ephemeralHint: "x")
         // Different ephemeralHint produces different output
         #expect(p1 != p2)
         #expect(!p1.isEmpty)
     }
 
-    @Test("SystemPrompt.build: callerMessage appended")
+    @Test("the caller message reaches the dynamic tier")
     func buildCallerMessage() {
-        let p1 = SystemPrompt.build(ephemeralHint: "h", callerMessage: nil)
-        let p2 = SystemPrompt.build(ephemeralHint: "h", callerMessage: "extra")
+        let p1 = dynamicTier(ephemeralHint: "h")
+        let p2 = dynamicTier(
+            callerExtras: ["caller_message": "extra"],
+            ephemeralHint: "h"
+        )
         #expect(p1 != p2)
         #expect(p2.contains("extra"))
     }
 
-    @Test("SystemPrompt.buildParts: stable + dynamic keys")
-    func buildPartsHasBothKeys() {
-        let parts = SystemPrompt.buildParts(ephemeralHint: "today is sunny")
-        #expect(parts["stable"] != nil)
-        #expect(parts["dynamic"] != nil)
+    @Test("the stable tier and the dynamic tier are both present")
+    func bothTiersPresent() {
+        let stable = stableTier()
+        let dynamic = dynamicTier(ephemeralHint: "today is sunny")
+        #expect(!stable.isEmpty)
+        #expect(!dynamic.isEmpty)
         // dynamic contains the ephemeralHint
-        #expect(parts["dynamic"]?.contains("today is sunny") == true)
+        #expect(dynamic.contains("today is sunny"))
     }
 
-    @Test("SystemPrompt.buildParts: no dynamic when empty hint")
-    func buildPartsNoDynamicWhenEmpty() {
-        let parts = SystemPrompt.buildParts(ephemeralHint: "")
-        #expect(parts["stable"] != nil)
-        #expect(parts["dynamic"] == nil)
+    @Test("no dynamic tier when there is no hint and no caller extras")
+    func noDynamicWhenEmpty() {
+        let stable = stableTier()
+        let dynamic = dynamicTier()
+        #expect(!stable.isEmpty)
+        #expect(dynamic.isEmpty)
     }
 }
 

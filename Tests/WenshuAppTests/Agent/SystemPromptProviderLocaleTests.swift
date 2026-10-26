@@ -5,7 +5,7 @@
 //  SystemPrompt extensions (= hermes system_prompt.py = 536 LOC):
 //    1. testProviderGuidance            — ProviderGuidance enum maps slugs
 //    2. testLocaleOverride              — Locale enum maps language codes
-//    3. testBuildPartsStableTier        — stable tier contains provider guidance
+//    3. testStableTierHasProviderGuidance — stable tier carries provider guidance
 //    4. testByteStableInvariant         — same input → byte-identical output
 //    5. testDynamicTierPassesThrough    — dynamic tier flows through
 //
@@ -17,6 +17,38 @@ import WenshuAgent
 
 @Suite("SystemPromptProviderLocale ()")
 struct SystemPromptProviderLocaleTests {
+
+    // MARK: - The live builders
+
+    /// The stable tier, as the turn loop builds it.
+    private func stableTier(
+        provider: SystemPrompt.ProviderGuidance = .unknown,
+        locale: SystemPrompt.Locale = .english,
+        memoryGuidance: Bool = false
+    ) -> String {
+        var settings = PromptSettings()
+        settings.memoryGuidanceEnabled = memoryGuidance
+        return PromptTierBuilder.stableTier(
+            settings: settings,
+            provider: provider,
+            locale: locale
+        )
+    }
+
+    /// The dynamic tier, as the turn loop builds it.
+    private func dynamicTier(ephemeralHint: String = "") -> String {
+        PromptBuilder.dynamicTier(
+            contextBundle: ContextEngine.ContextBundle(
+                memories: [],
+                characterContext: [],
+                worldContext: [],
+                foreshadowContext: []
+            ),
+            memories: [],
+            callerExtras: [:],
+            ephemeralHint: ephemeralHint
+        )
+    }
 
     // MARK: - Test 1: ProviderGuidance enum
 
@@ -58,12 +90,8 @@ struct SystemPromptProviderLocaleTests {
     // MARK: - Test 3: stable tier contains provider guidance
 
     @Test("stableTier contains provider-specific operational guidance")
-    func testBuildPartsStableTier() {
-        let parts = SystemPrompt.buildParts(options: SystemPrompt.BuildOptions(
-            ephemeralHint: "",
-            provider: .anthropic
-        ))
-        let stable = parts["stable"] ?? ""
+    func testStableTierHasProviderGuidance() {
+        let stable = stableTier(provider: .anthropic)
         #expect(stable.contains("Anthropic Claude family"))
         #expect(stable.contains("parallel tool_use"))
         #expect(stable.contains("Wenshu"))  // identity block
@@ -71,26 +99,20 @@ struct SystemPromptProviderLocaleTests {
 
     // MARK: - Test 4: Byte-stable invariant
 
-    @Test("same BuildOptions produce byte-identical stable tier (cache-key invariant)")
+    @Test("same settings produce byte-identical stable tier (cache-key invariant)")
     func testByteStableInvariant() {
-        let opts = SystemPrompt.BuildOptions(
-            ephemeralHint: "today is Tuesday",
-            provider: .openai,
-            memoryGuidance: true
-        )
-        let a = SystemPrompt.buildParts(options: opts)
-        let b = SystemPrompt.buildParts(options: opts)
+        let a = stableTier(provider: .openai, memoryGuidance: true)
+        let b = stableTier(provider: .openai, memoryGuidance: true)
         // Stable tier must be byte-identical (= Anthropic cache prefix stability).
-        #expect(a["stable"] == b["stable"])
-        #expect(a["stable"]?.count ?? 0 > 0)
+        #expect(a == b)
+        #expect(a.count > 0)
     }
 
     // MARK: - Test 5: Dynamic tier passes through
 
     @Test("ephemeralHint flows into the dynamic tier")
     func testDynamicTierPassesThrough() {
-        let parts = SystemPrompt.buildParts(ephemeralHint: "today is Friday")
-        let dynamic = parts["dynamic"] ?? ""
+        let dynamic = dynamicTier(ephemeralHint: "today is Friday")
         #expect(dynamic.contains("today is Friday") || dynamic.contains("Context"))
     }
 
@@ -98,12 +120,7 @@ struct SystemPromptProviderLocaleTests {
 
     @Test("Chinese locale produces a Chinese-language identity block")
     func testLocaleStableTier() {
-        let parts = SystemPrompt.buildParts(options: SystemPrompt.BuildOptions(
-            ephemeralHint: "",
-            provider: .unknown,
-            locale: .chinese
-        ))
-        let stable = parts["stable"] ?? ""
+        let stable = stableTier(provider: .unknown, locale: .chinese)
         #expect(stable.contains("文枢") || stable.contains("写作"))
     }
 }

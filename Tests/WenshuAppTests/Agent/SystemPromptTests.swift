@@ -1,24 +1,23 @@
 //
-//  SystemPromptTests.swift · Wenshu · v0.35 ticket 002 sub-step 2
+//  SystemPromptTests.swift · Wenshu
 //
-//  Unit tests for SystemPrompt (= hermes-core-translation spec §3.3 +
-//  hermes system_prompt.py port).
+//  The system prompt the app sends, built the way the app builds it.
 //
-//  Hermes Python target: system_prompt.build_system_prompt_parts + build_system_prompt
-//  (= L113 + L470 in system_prompt.py, builds the byte-stable system prompt
-//  that becomes the cached prefix in the Anthropic Messages API).
+//  Two builders own the two halves. The tier builder owns the stable
+//  tier (= the byte-stable cache prefix); PromptBuilder owns the
+//  dynamic tier (= the volatile part). The joined prompt is what the
+//  caller sends.
 //
-//  Swift port: SystemPrompt.buildParts(ephemeralHint:callerMessage:) ->
-//  [String: String] and SystemPrompt.build(ephemeralHint:callerMessage:) -> String.
 //  Byte-stable invariant: identical inputs produce byte-identical output
-//  (= AGENTS.md §11.3 cache-stable).
+//  (= the cache-prefix invariant the stable tier exists for).
 //
 //  Test surface:
-//  1. build() returns a String (= caller concatenates into LLMCallOptions.systemPrompt)
-//  2. buildParts() returns Dict with stable tier + dynamic tier
-//  3. Caller message appended LAST (after stable tier, before cache breakpoint)
-//  4. Empty caller message = no extra section (= stable tier unchanged)
+//  1. the joined prompt is a single non-empty string
+//  2. the stable tier and the dynamic tier are both present
+//  3. the caller message reaches the dynamic tier
+//  4. no caller message = no caller section
 //  5. Byte stability: identical inputs across 100 calls = identical outputs
+//  6. Different ephemeral hint produces different output (= dynamic tier)
 //
 
 import Testing
@@ -29,63 +28,108 @@ import WenshuAgent
 @Suite("SystemPrompt (ticket 002 sub-step 2)")
 struct SystemPromptTests {
 
-    // MARK: - Test 1: build() returns String
+    // MARK: - The live builders
 
-    @Test("build() returns a single system prompt string")
-    func testBuildReturnsString() {
-        let prompt = SystemPrompt.build(ephemeralHint: "today is Tuesday", callerMessage: nil)
+    /// The stable tier, as the turn loop builds it.
+    private func stableTier(
+        provider: SystemPrompt.ProviderGuidance = .unknown,
+        locale: SystemPrompt.Locale = .english
+    ) -> String {
+        PromptTierBuilder.stableTier(
+            settings: PromptSettings(),
+            provider: provider,
+            locale: locale
+        )
+    }
+
+    /// The dynamic tier, as the turn loop builds it.
+    private func dynamicTier(
+        callerExtras: [String: String] = [:],
+        ephemeralHint: String = ""
+    ) -> String {
+        PromptBuilder.dynamicTier(
+            contextBundle: ContextEngine.ContextBundle(
+                memories: [],
+                characterContext: [],
+                worldContext: [],
+                foreshadowContext: []
+            ),
+            memories: [],
+            callerExtras: callerExtras,
+            ephemeralHint: ephemeralHint
+        )
+    }
+
+    /// The prompt the caller sends: the stable tier, then the dynamic tier.
+    private func joinedPrompt(
+        callerExtras: [String: String] = [:],
+        ephemeralHint: String = ""
+    ) -> String {
+        PromptBuilder(
+            stableTier: stableTier(),
+            dynamicTier: dynamicTier(callerExtras: callerExtras, ephemeralHint: ephemeralHint)
+        ).joinedPrompt
+    }
+
+    // MARK: - Test 1: the joined prompt
+
+    @Test("the joined system prompt is a single non-empty string")
+    func testJoinedPromptReturnsString() {
+        let prompt = joinedPrompt(ephemeralHint: "today is Tuesday")
         #expect(!prompt.isEmpty)
-        // Stable tier should mention (= wenshu's writing tool identity)
+        // The identity must survive into the prompt.
         #expect(prompt.contains("文枢") || prompt.lowercased().contains("writing"))
     }
 
-    // MARK: - Test 2: buildParts() returns Dict with stable + dynamic tiers
+    // MARK: - Test 2: both tiers are present
 
-    @Test("buildParts() returns stable + dynamic tier dict")
-    func testBuildPartsReturnsDict() {
-        let parts = SystemPrompt.buildParts(
-            ephemeralHint: "Tuesday",
-            callerMessage: "respond in iambic pentameter"
+    @Test("the stable tier and the dynamic tier are both present")
+    func testBothTiersPresent() {
+        let stable = stableTier()
+        let dynamic = dynamicTier(
+            callerExtras: ["caller_message": "respond in iambic pentameter"],
+            ephemeralHint: "Tuesday"
         )
 
         // Stable tier present (= system identity, byte-stable)
-        #expect(parts["stable"] != nil)
-        #expect(!(parts["stable"] ?? "").isEmpty)
+        #expect(!stable.isEmpty)
+        // Dynamic tier present (= the volatile half)
+        #expect(!dynamic.isEmpty)
     }
 
-    // MARK: - Test 3: Caller message appended
+    // MARK: - Test 3: the caller message is carried
 
-    @Test("Caller-supplied message appended to system prompt")
+    @Test("Caller-supplied message reaches the dynamic tier")
     func testCallerMessageAppended() {
-        let prompt = SystemPrompt.build(
-            ephemeralHint: "Tuesday",
-            callerMessage: "respond in iambic pentameter"
+        let dynamic = dynamicTier(
+            callerExtras: ["caller_message": "respond in iambic pentameter"],
+            ephemeralHint: "Tuesday"
         )
-        #expect(prompt.contains("iambic pentameter"))
+        #expect(dynamic.contains("iambic pentameter"))
     }
 
-    // MARK: - Test 4: Empty caller message = no extra section
+    // MARK: - Test 4: no caller message = no caller section
 
-    @Test("Empty caller message = no extra section in prompt")
+    @Test("No caller message = no caller section in the dynamic tier")
     func testEmptyCallerMessage() {
-        let promptWith = SystemPrompt.build(ephemeralHint: "Tuesday", callerMessage: "foo")
-        let promptWithout = SystemPrompt.build(ephemeralHint: "Tuesday", callerMessage: nil)
+        let withMessage = dynamicTier(
+            callerExtras: ["caller_message": "foo"],
+            ephemeralHint: "Tuesday"
+        )
+        let withoutMessage = dynamicTier(ephemeralHint: "Tuesday")
 
-        #expect(promptWith.contains("foo"))
-        #expect(!promptWithout.contains("foo"))
+        #expect(withMessage.contains("foo"))
+        #expect(!withoutMessage.contains("foo"))
     }
 
     // MARK: - Test 5: Byte stability across 100 calls (= cache-stable invariant)
 
     @Test("Byte stability: identical inputs across 100 calls produce identical outputs")
     func testByteStability() {
-        let hint = "Tuesday, 2026-09-03"
-        let message = "follow the user's outline exactly"
-
-        let first = SystemPrompt.build(ephemeralHint: hint, callerMessage: message)
+        let first = stableTier()
         var last = first
         for _ in 0..<100 {
-            last = SystemPrompt.build(ephemeralHint: hint, callerMessage: message)
+            last = stableTier()
         }
 
         // Byte-identical (= cache hit on subsequent calls)
@@ -99,8 +143,8 @@ struct SystemPromptTests {
 
     @Test("Different ephemeral hint produces different output (= dynamic tier)")
     func testDifferentEphemeralHint() {
-        let p1 = SystemPrompt.build(ephemeralHint: "Tuesday", callerMessage: nil)
-        let p2 = SystemPrompt.build(ephemeralHint: "Wednesday", callerMessage: nil)
+        let p1 = dynamicTier(ephemeralHint: "Tuesday")
+        let p2 = dynamicTier(ephemeralHint: "Wednesday")
 
         #expect(p1 != p2)
         #expect(p1.contains("Tuesday"))

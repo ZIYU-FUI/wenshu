@@ -120,8 +120,9 @@ public struct PromptBuilder: Sendable {
         return sections.joined(separator: "\n\n---\n\n")
     }
 
-    /// Byte-stable joined prompt (= back-compat with
-    /// `SystemPrompt.build` callers; same separator as OpenAI/Gemini).
+    /// The two tiers joined into one system prompt
+    /// (= the stable tier, then the dynamic tier; = the same separator
+    /// the OpenAI and Gemini system builders use).
     public var joinedPrompt: String {
         buildGeminiSystemInstruction()
     }
