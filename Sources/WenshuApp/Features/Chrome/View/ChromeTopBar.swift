@@ -26,9 +26,10 @@ import SwiftUI
 /// any new column-top chrome
 /// row MUST go through this component. The outer shell
 /// (= VStack + content + padding + .background) is fixed
-/// here; the only per-call-site decision is the `content:`
+/// here; the per-call-site decisions are the `content:`
 /// closure (= a horizontal HStack of SFIcon + Text chunks,
-/// = Pages / Numbers / Xcode format-toolbar shape).
+/// = Pages / Numbers / Xcode format-toolbar shape) and the
+/// band's horizontal inset (= see `horizontalPadding`).
 struct ChromeTopBar<Content: View>: View {
     /// The column-top content (= a horizontal HStack of
     /// SFIcon + Text + Button chunks). Caller supplies the
@@ -39,12 +40,24 @@ struct ChromeTopBar<Content: View>: View {
     /// modifier; = Apple HIG accessibility surface for
     /// the top-chrome row).
     let help: LocalizedStringKey?
+    /// The band's horizontal inset (= the gap between the
+    /// band's edge and its content).
+    ///
+    /// The shared default is 8 PT (= `DesignTokens.spacingStandard`),
+    /// and the other call sites keep it. A call site whose column
+    /// has a different inner inset passes its own: the sidebar's
+    /// chrome band matches the tree's 10 PT row inset
+    /// (= `DesignTokens.spacingRelaxed`), so the switcher inside it
+    /// lines up with the tree rows below.
+    let horizontalPadding: CGFloat
 
     init(
         help: LocalizedStringKey? = nil,
+        horizontalPadding: CGFloat = DesignTokens.spacingStandard,
         @ViewBuilder content: () -> Content
     ) {
         self.help = help
+        self.horizontalPadding = horizontalPadding
         self.content = content()
     }
 
@@ -52,7 +65,7 @@ struct ChromeTopBar<Content: View>: View {
         VStack(spacing: 0) {
             content
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, DesignTokens.spacingStandard)
+                .padding(.horizontal, horizontalPadding)
             Divider()
         }
         .background(.bar)

@@ -111,4 +111,67 @@ struct SidebarHeaderProminenceTests {
         // DesignTokens.swift (= single source of truth = other
         // columns may still use it = no removal).
     }
+
+    /// The left column's top band: the switcher is the content of the
+    /// shared chrome band, the header above it drops its trailing inset
+    /// (= the band starts at the divider), and the band carries the
+    /// tree's 10 PT inset so the switcher lines up with the tree rows.
+    ///
+    /// The three facts are one shape, so they are one test.
+    @Test("the_sidebar_switcher_is_the_column_chrome_band")
+    func the_sidebar_switcher_is_the_column_chrome_band() throws {
+        let src = try Self.loadSidebarSource()
+        // Strip comments (= the historical notes mention values that
+        // were REMOVED; = they are part of the explanation, = not
+        // active code).
+        let strippedSrc = src.components(separatedBy: "\n").filter { line in
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            return !trimmed.hasPrefix("//") && !trimmed.hasPrefix("/*") && !trimmed.hasPrefix("*")
+        }.joined(separator: "\n")
+
+        // The switcher is the chrome band's content.
+        #expect(
+            strippedSrc.contains("ChromeTopBar("),
+            "The sidebar's switcher must be rendered inside the shared ChromeTopBar band"
+        )
+        #expect(
+            strippedSrc.contains("LabelSegmentedControl("),
+            "The sidebar's switcher must stay the LabelSegmentedControl"
+        )
+        // The band starts at the header's divider.
+        #expect(
+            strippedSrc.contains("trailingInset: false"),
+            "The sidebar's section header must pass trailingInset: false (= the band follows the divider)"
+        )
+        // The band's inset is the tree's 10 PT, not the shared 8 PT.
+        #expect(
+            strippedSrc.contains("horizontalPadding: DesignTokens.spacingRelaxed"),
+            "The sidebar's chrome band must use the tree's 10 PT inset (= DesignTokens.spacingRelaxed)"
+        )
+    }
+
+    /// The switcher is a column-top chrome control, so it takes
+    /// AppKit's `.small` control size (= a 20 PT drawn capsule) and
+    /// the band's 28 PT row keeps its height around it. The control
+    /// size is the shared control's per-call-site knob; the shared
+    /// default stays `.large` for the other two call sites.
+    @Test("the_sidebar_switcher_uses_the_small_control_size")
+    func the_sidebar_switcher_uses_the_small_control_size() throws {
+        let src = try Self.loadSidebarSource()
+        let strippedSrc = src.components(separatedBy: "\n").filter { line in
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            return !trimmed.hasPrefix("//") && !trimmed.hasPrefix("/*") && !trimmed.hasPrefix("*")
+        }.joined(separator: "\n")
+
+        #expect(
+            strippedSrc.contains("controlSize: .small"),
+            "The sidebar's switcher must ask for the .small control size (= a shorter drawn capsule)"
+        )
+        // The band's row height stays the shared 28 PT token, so the
+        // band still matches the assets column's search band.
+        #expect(
+            strippedSrc.contains(".frame(height: DesignTokens.paneTabHotArea)"),
+            "The sidebar's chrome band must keep the 28 PT row height (= DesignTokens.paneTabHotArea)"
+        )
+    }
 }

@@ -185,19 +185,61 @@ struct AppleSidebarView: View {
                     // ', 10 PT /
                     // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
                     // Mail / Notes / Finder section-header idiom).
-                    SectionHeader(title: String(localized: "sidebar.column.title"))
+                    // The chrome band below carries its own row height, so the
+                    // header's trailing inset would leave a gap between the
+                    // divider and the band (= the assets column's header
+                    // passes the same `trailingInset: false`).
+                    SectionHeader(
+                        title: String(localized: "sidebar.column.title"),
+                        trailingInset: false
+                    )
                     // The three parts of the sidebar (= the shelves, the
                     // reference library, and the reserved ebooks part).
-                    LabelSegmentedControl(
-                        selection: Binding(
-                            get: { workspaceUI.currentSidebarPart },
-                            set: { newValue in workspaceUI.currentSidebarPart = newValue }
-                        ),
-                        labels: SidebarPart.allCases,
-                        displayStrings: SidebarPart.allCases.map(\.displayName),
-                        iconStyle: .paneTab
-                    )
-                    .frame(maxWidth: .infinity)
+                    // The band is the column's chrome row: the same height
+                    // and the same slot as the assets column's search band,
+                    // and the same 10 PT inset the tree's rows use, so the
+                    // switcher's ends line up with the tree below it.
+                    ChromeTopBar(
+                        horizontalPadding: DesignTokens.spacingRelaxed
+                    ) {
+                        LabelSegmentedControl(
+                            selection: Binding(
+                                get: { workspaceUI.currentSidebarPart },
+                                set: { newValue in workspaceUI.currentSidebarPart = newValue }
+                            ),
+                            labels: SidebarPart.allCases,
+                            displayStrings: SidebarPart.allCases.map(\.displayName),
+                            iconStyle: .paneTab,
+                            // The switcher is a column-top chrome
+                            // control, not a body tab strip: it takes
+                            // AppKit's `.small` size (= 20 PT; = the
+                            // size Apple ships for a compact
+                            // switcher), so the drawn capsule leaves
+                            // air inside the band row. The band's ROW
+                            // height stays 28 PT (= the assets column's
+                            // band row = `paneTabHotArea`); only the
+                            // control inside it is shorter.
+                            controlSize: .small
+                        )
+                        // `fixedSize` keeps the control at its own
+                        // height (= 20 PT) instead of letting the band
+                        // row's height stretch it (= AppKit draws the
+                        // capsule to fill the control's height; = a
+                        // stretched control = a full-height bar with
+                        // no air). The row below centers it, so the
+                        // band keeps its 28 PT height with air above
+                        // and below the capsule.
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: DesignTokens.paneTabHotArea)
+                    }
+                    // The band's total height (= the content row + its
+                    // hairline) is clamped to the same 28 PT the assets
+                    // column's search band is (= the same clamp the
+                    // assets column's call site applies; = without it
+                    // this band measured 1 PT taller, so the tree's
+                    // first row sat 1 PT below the card grid's).
+                    .frame(height: DesignTokens.paneTabHotArea)
                     partContent
 
                 // y (see OOB.md #2026-09-23) OOB ', ':

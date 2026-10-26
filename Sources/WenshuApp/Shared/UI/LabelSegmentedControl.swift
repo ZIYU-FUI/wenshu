@@ -163,6 +163,19 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
     /// given
     /// value).
     var fixedSegmentWidth: CGFloat = 0
+    /// The AppKit control size (= the segment's own height and hit
+    /// area; = `NSControl.ControlSize`).
+    ///
+    /// The shared default is `.large` (= the macOS 27 Tahoe
+    /// inspector-body tab pill canonical; = 28 PT; = what the
+    /// inspector body and the editor tab strip have always used).
+    /// A call site that wants the smaller control passes `.small`
+    /// (= 20 PT; = the size Apple ships for a compact switcher).
+    /// The control size is the ONLY knob that changes the drawn
+    /// capsule's height: AppKit draws the capsule to fill the
+    /// control's height, so a caller cannot shrink the drawn pill by
+    /// constraining the SwiftUI frame alone.
+    let controlSize: NSControl.ControlSize
     /// Double-click callback (= the user double-clicks a
     /// segment; = the callback receives the
     /// zero-indexed segment position; = the
@@ -194,7 +207,8 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         icon: ((Selection) -> NSImage?)? = nil,
         onDoubleClickSegment: ((Int) -> Void)? = nil,
         fixedSegmentWidth: CGFloat = 0,
-        role: NSSegmentedControl.Role = .valueSelection
+        role: NSSegmentedControl.Role = .valueSelection,
+        controlSize: NSControl.ControlSize = .large
     ) {
         self.selection = selection
         self.labels = labels
@@ -204,6 +218,7 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         self.onDoubleClickSegment = onDoubleClickSegment
         self.fixedSegmentWidth = fixedSegmentWidth
         self.role = role
+        self.controlSize = controlSize
     }
 
     func makeNSView(context: Context) -> NSSegmentedControl {
@@ -341,78 +356,19 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         } else {
             control.segmentDistribution = .fillEqually
         }
-        // `controlSize = .small`
-        // (= the macOS
-        // 27 canonical
-        // "small" control
-        // size; = ~22 PT
-        // segment height
-        // + ~60-80 PT
-        // segment width
-        // for a typical
-        // 2-character
-        // Chinese label;
-        // = the
-        // NSSegmentedControl
-        // reports a
-        // smaller
-        // `intrinsicContentSize`
-        // in the
-        // `.fillEqually`
-        // mode; = the
-        // window still
-        // grows to fit
-        // all segments
-        // when N is
-        // large, but
-        // the per-segment
-        // size is
-        // smaller than
-        // `.large` size;
-        // = the boss
-        // accepts the
-        // window-grow
-        // trade-off for
-        // a more compact
-        // tab strip =
-        // the canonical
-        // macOS 27
-        // Inspector tab
-        // visual).
-        control.controlSize = .small
-        // Spread tracking mode = distribute leftover space
-        // (= when control is wider than the sum of intrinsic
-        // widths; = equivalent to NSSegmentedControl's
-        // 'fillProportionally' default but applies to .fillEqually).
-        // RATIONALE: `controlSize = .large`
-        // (= the wenshu 1:1 macOS 27
-        // Tahoe inspector-body tab pill
-        // canonical; = 32 PT height;
-        // = the inspector body uses
-        // the same control size for
-        // consistency). The segment
-        // distribution is `.fillEqually`
-        // so each segment takes 1/N of
-        // the column width (= NSSegmentedControl
-        // auto-stretches with the column
-        // drag during NSV resize).
-        // `.large` (= 30 PT; = the macOS 27
-        // canonical "large" control size; = the
-        // closest canonical size to the 32 PT
-        // target; = using `.large` is preferable
-        // to a custom `NSSegmentedControl` height
-        // because the size affects Apple's
-        // accessibility math, the standard hit
-        // area, and the system-supplied
-        // Liquid Glass rendering at the OS
-        // level). The two call sites (= the
-        // inspector body and the editor tab
-        // strip) both move up by 10 PT (= the
-        // delta from `.regular` to `.large`; =
-        // a small visual change for the
-        // inspector; = the expected change for
-        // the tab strip).
-        control.controlSize = .large
+        // The control size (= the segment's own height, hit area and
+        // label font) is the per-call-site knob; = the shared default
+        // is `.large` (= the macOS 27 Tahoe inspector-body tab pill
+        // canonical; = the inspector body and the editor tab strip
+        // both use it). RATIONALE: the size affects Apple's
+        // accessibility math, the standard hit area, and the
+        // system-supplied Liquid Glass rendering at the OS level; = a
+        // control size is preferable to a custom `NSSegmentedControl`
+        // height. AppKit draws the capsule to FILL the control's
+        // height, so a caller that wants a shorter drawn pill must ask
+        // for a smaller control size (= constraining the SwiftUI frame
+        // alone leaves the capsule at full height).
+        control.controlSize = controlSize
 
         // Sync selection state (= in case SwiftUI re-evaluates
         // the body and `selection` changed but the control is
