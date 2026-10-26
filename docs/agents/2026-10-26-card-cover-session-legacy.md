@@ -129,6 +129,47 @@ Two more are `Issue.record` bodies that document a deleted behaviour
 (`LLMConnectorStreamTests`, `WenshuConductorE2ETests`): they do not fail the
 suite, but they want deleting or an xfail.
 
+## 4b. The 25 are now on the board (= 8 cards, 2026-10-26)
+
+Each of the 25 was judged first (= "is the behaviour it protects still
+there?"), because turning a real defect into a green test is the failure
+mode this work exists to avoid. The judgement changed two of the three
+kinds, so the cards do not say what the first draft of this document said.
+
+| Card | Kind | What it does |
+|---|---|---|
+| `t_8288f038` | (a) | five tests that read a file that no longer holds the code (= the sidebar's and the library view's code moved) |
+| `t_93e682c3` | (a) + (c) | eight editor-side tests that describe moved or redesigned code, and the one real breach (= four raw `Color(red:green:blue:)` literals in `PreviewPaneCard.swift`) |
+| `t_45937eb2` | (b) | the two load symptoms |
+| `t_04bcd39e` | (d) | the two `Issue.record` bodies |
+
+**Two of the first draft's judgements were wrong, and running the tests
+one at a time is what showed it:**
+
+- `ConversationLoopMultiTurnTests` was called a real defect (= "the loop
+  made zero LLM calls"). It is not. The production path stopped calling
+  `connector.send` in 2026-09-18 (= the streaming change) and calls
+  `connector.stream` now; the test's stub counts only `send`, so the count
+  is always zero. The test measures a call the app stopped making. It
+  fails on its own in 1.9 s, so it is not a load symptom either.
+- `HermesTodoStoreConcurrencyTests` was called a real defect (= "the todo
+  write took more than five seconds"). It is not. Run alone it is 5/5 green
+  in 0.05 s. The five seconds in the full run are the suite's own main
+  actor being busy, not a deadlock. The budget stays; the test must learn
+  to tell the two apart.
+
+The other (a) cases split further once the production code was read: five
+are "the file moved" (= point the assertion at the file that holds the
+code now) and eight are "the behaviour was changed on purpose" (= reverse
+the assertion so it pins that the old design must not come back). Four of
+the eight are the app being redesigned: the tab close icon became a double
+click, the status bar moved to the shared `ChromeBottomFooter` shell, the
+reading width was pinned to fix a text-wrapping bug, the cursor-location
+chunk was dropped, the tab title order changed, the sidebar's directory row
+got its own pinyin letter-circle icon (the file says why: the canonical
+16 PT slot would clip the letter glyph), and the history log line reports
+`contextTokens` instead of a sum.
+
 ## 5. What is NOT this session's legacy
 
 Two cards that look related are not:
