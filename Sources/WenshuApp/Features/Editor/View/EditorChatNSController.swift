@@ -951,30 +951,79 @@ final class EditorChatNSController: NSSplitViewController {
         chatItem.map { !$0.isCollapsed } ?? true
     }
 
-    /// The size the parent proposed last (= the parent's own number).
+    /// The size the parent ALLOCATED last (= the parent's own number).
     ///
     /// Why it is cached: the reported size has to be a function of the
     /// parent's own layout. When the parent proposes nothing (= its
-    /// ideal-size pass), the last number the parent proposed is the
+    /// ideal-size pass), the last number the parent allocated is the
     /// closest parent-owned value; the inner split's own size is
     /// never reported back up (= the outer split would negotiate the
     /// detail column's width against it, = a second, competing
     /// number in the same negotiation).
+    ///
+    /// Why only a REAL allocation is kept (= a finite, positive
+    /// number): SwiftUI's proposal stream is not one number per
+    /// layout. Measured 2026-10-27 with a headless probe of this
+    /// app's own shape (= a NavigationSplitView whose detail hosts the
+    /// representable, with an inspector beside it): every layout pass
+    /// proposes 0 (= the ideal-size pass), then infinity (= the
+    /// unbounded pass), then sometimes nothing, and only then the real
+    /// allocation (= 740 PT at the screenshot's width). The stream
+    /// REPEATS that cycle for the life of the window.
+    ///
+    /// Merging the last proposal of any kind therefore leaves the
+    /// recorder holding INFINITY once the unbounded pass has run, and
+    /// infinity is not a width: every comparison against it passes, so
+    /// the width rule read infinity, judged every width viable, and
+    /// never resolved to stacked. That is the layout this card names
+    /// (= the arrangement never returns to stacked), and it survived
+    /// the first fix because the rule's arithmetic was right and its
+    /// INPUT was degenerate.
     private var lastParentProposal: ProposedViewSize?
 
-    /// The width the parent proposed last.
+    /// The width the parent allocated last.
     fileprivate var lastParentWidth: CGFloat? { lastParentProposal?.width }
 
-    /// The height the parent proposed last.
+    /// The height the parent allocated last.
     fileprivate var lastParentHeight: CGFloat? { lastParentProposal?.height }
+
+    /// A dimension the parent ALLOCATED (= a real, finite, positive
+    /// number).
+    ///
+    /// SwiftUI's proposal stream carries three kinds of number and
+    /// only one of them is an allocation: 0 (= the ideal-size pass,
+    /// the parent asking "how big would you like to be?"), infinity
+    /// (= the unbounded pass), and a real width (= the parent saying
+    /// "this is what I am giving you"). Measured 2026-10-27 with a
+    /// headless probe of this app's own shape: every layout pass
+    /// proposes 0, then infinity, then sometimes nothing, then the
+    /// real allocation (= 740 PT at the screenshot's width), and that
+    /// cycle repeats for the life of the window.
+    ///
+    /// So the degenerate passes are the parent's ASKING, not its
+    /// allocating, and a layout decision must not read them as an
+    /// allocation: infinity compares greater than every number, so a
+    /// rule that read it judged every width viable and never resolved
+    /// to stacked.
+    static func allocatedDimension(_ proposed: CGFloat?) -> CGFloat? {
+        guard let proposed, proposed.isFinite, proposed > 0 else { return nil }
+        return proposed
+    }
 
     /// Record the size the parent proposes, so a later proposal that
     /// omits a dimension can fall back to the parent's own last
     /// number for it.
+    ///
+    /// Only a real allocation is recorded (= a finite, positive
+    /// number); the degenerate passes leave the previous allocation in
+    /// place. Measured 2026-10-27: with the degenerate passes merged
+    /// in, the recorded width ended at infinity and the width rule
+    /// read infinity (= every width looked viable, so the layout
+    /// never returned to stacked).
     func recordParentProposal(_ proposal: ProposedViewSize) {
         var merged = lastParentProposal ?? ProposedViewSize(width: nil, height: nil)
-        if let width = proposal.width { merged.width = width }
-        if let height = proposal.height { merged.height = height }
+        if let width = Self.allocatedDimension(proposal.width) { merged.width = width }
+        if let height = Self.allocatedDimension(proposal.height) { merged.height = height }
         lastParentProposal = merged
     }
 }

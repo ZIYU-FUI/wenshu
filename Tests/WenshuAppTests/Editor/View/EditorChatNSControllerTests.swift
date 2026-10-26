@@ -573,4 +573,69 @@ struct EditorChatNSControllerTests {
         #expect(fitBody.contains("nsViewController.recordParentProposal(proposal)"),
                 "the parent's proposal is recorded (= the fallback is the parent's own number)")
     }
+
+    // MARK: - The parent's allocation (= what the width rule reads)
+
+    @Test("The parent's allocation: the degenerate proposal passes are not allocations")
+    func parentAllocationIgnoresDegenerateProposals() {
+        // SwiftUI's proposal stream is not one number per layout.
+        // Measured 2026-10-27 with a headless probe of this app's own
+        // shape (= a NavigationSplitView whose detail hosts the
+        // representable, with an inspector beside it): every layout
+        // pass proposes 0 (= the ideal-size pass), then infinity (= the
+        // unbounded pass), then sometimes nothing, and only then the
+        // real allocation. At the screenshot's width that real
+        // allocation is 740 PT.
+        //
+        // The degenerate passes are the parent ASKING for a size, not
+        // the parent ALLOCATING one.
+        #expect(EditorChatNSController.allocatedDimension(0) == nil,
+                "zero is the ideal-size pass (= the parent asking how big we would like to be), not an allocation")
+        #expect(EditorChatNSController.allocatedDimension(nil) == nil,
+                "no opinion is not an allocation")
+        #expect(EditorChatNSController.allocatedDimension(.infinity) == nil,
+                "infinity is the unbounded pass, not an allocation (= infinity compares greater than every number, so a rule that read it judged every width viable)")
+        #expect(EditorChatNSController.allocatedDimension(-1) == nil,
+                "a negative size is not an allocation")
+
+        // The real allocation is kept.
+        #expect(EditorChatNSController.allocatedDimension(740) == 740,
+                "the parent's real allocation is kept (= 740 PT at the screenshot's width)")
+        #expect(EditorChatNSController.allocatedDimension(1) == 1,
+                "even a small allocation is a real allocation")
+    }
+
+    @Test("The width rule reads a real allocation: the degenerate passes do not make every width viable")
+    func widthRuleDoesNotReadADegenerateProposal() {
+        // The defect this pins: the recorder used to merge EVERY
+        // proposal (= the last non-nil one), so the unbounded pass
+        // left it holding infinity. The width rule then read infinity,
+        // `holdsChrome` compared infinity against the panes' floors
+        // (= infinity is bigger than every floor), every width looked
+        // viable, and the arrangement NEVER resolved to stacked. That
+        // is the layout this card names, and it survived a first fix
+        // whose arithmetic was right and whose INPUT was degenerate.
+        //
+        // So the rule must resolve to stacked when the width it is
+        // given is the real allocation, and the real allocation must
+        // survive the degenerate passes that follow it.
+        let allocation = EditorChatNSController.allocatedDimension(740)
+        #expect(allocation == 740)
+
+        // The whole proposal cycle, in the order SwiftUI sends it, and
+        // the allocation that survives it.
+        let stream: [CGFloat?] = [0, .infinity, nil, 740, 0, .infinity, nil]
+        var recorded: CGFloat?
+        for proposed in stream {
+            if let real = EditorChatNSController.allocatedDimension(proposed) {
+                recorded = real
+            }
+        }
+        #expect(recorded == 740,
+                "the recorded allocation must be the parent's real number (= 740 PT), not the infinity of the unbounded pass")
+
+        // And the rule, fed that allocation, resolves.
+        #expect(EditorChatNSController.arrangement(forCompetingWidth: recorded ?? 0, editorShare: 0.5, mode: .automatic) == .stacked,
+                "the screenshot's own width (= 740 PT) cannot hold two columns, so it resolves to stacked (= the chrome is never hidden to make room)")
+    }
 }
