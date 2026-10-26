@@ -124,23 +124,84 @@ struct EditorChatNSControllerTests {
 
     // MARK: - The width rule (= pure; = no window and no split view)
 
-    @Test("The width rule: side by side at 1000 PT and above, stacked below 920 PT, the band between keeps the current arrangement")
+    @Test("The width rule: side by side only when BOTH panes can hold their own chrome, and every width resolves")
     func widthRule() {
-        // The two measured numbers.
-        #expect(EditorChatNSController.sideBySideMinimumWidth == 1000)
-        #expect(EditorChatNSController.stackedMaximumWidth == 920)
-        // Side by side when the split gives both columns room.
-        #expect(EditorChatNSController.arrangement(forSplitWidth: 1000, mode: .automatic, current: .stacked) == .sideBySide)
-        #expect(EditorChatNSController.arrangement(forSplitWidth: 1209, mode: .automatic, current: .stacked) == .sideBySide)
-        // Stacked when the split is too narrow for two columns.
-        #expect(EditorChatNSController.arrangement(forSplitWidth: 919, mode: .automatic, current: .sideBySide) == .stacked)
-        #expect(EditorChatNSController.arrangement(forSplitWidth: 689, mode: .automatic, current: .sideBySide) == .stacked)
-        // The band between the two numbers keeps the current arrangement.
-        #expect(EditorChatNSController.arrangement(forSplitWidth: 950, mode: .automatic, current: .stacked) == .stacked)
-        #expect(EditorChatNSController.arrangement(forSplitWidth: 950, mode: .automatic, current: .sideBySide) == .sideBySide)
-        // The two manual cases win over the width rule.
-        #expect(EditorChatNSController.arrangement(forSplitWidth: 1209, mode: .stacked, current: .sideBySide) == .stacked)
-        #expect(EditorChatNSController.arrangement(forSplitWidth: 689, mode: .sideBySide, current: .stacked) == .sideBySide)
+        // The three measured numbers.
+        //
+        // 595 PT = the editor's own comfortable prose measure (the
+        // paper-canvas notes: 595-680 PT). It is ABOVE the editor's
+        // chrome width (448 PT = the format toolbar's 12 buttons of
+        // 28 PT, the trailing close button, the chunk separators, the
+        // spacing and ChromeTopBar's padding), so a pane the rule
+        // accepts always holds its chrome.
+        //
+        // 280 PT = the chat's floor, measured 2026-10-26 from a
+        // running capture (the chat column was 282 PT and read well).
+        //
+        // 1190 PT = an EVEN split of the available width that gives
+        // both panes their floor (= 2 x 595; the editor's floor binds).
+        #expect(EditorChatNSController.editorPaneMinimumWidth == 595)
+        #expect(EditorChatNSController.chatPaneMinimumWidth == 280)
+        #expect(EditorChatNSController.sideBySideMinimumWidth == 1190)
+
+        // Side by side when an even split of the available width
+        // gives both panes their floor.
+        #expect(EditorChatNSController.arrangement(forCompetingWidth: 1190, editorShare: 0.5, mode: .automatic) == .sideBySide)
+        #expect(EditorChatNSController.arrangement(forCompetingWidth: 1600, editorShare: 0.5, mode: .automatic) == .sideBySide)
+
+        // Stacked when the width cannot hold two columns: the
+        // screenshot's own width (= 742 PT: the editor+chat region
+        // measured 855..2338 px at 2x) hands each column 371 PT,
+        // which is below the editor's own floor.
+        #expect(EditorChatNSController.arrangement(forCompetingWidth: 742, editorShare: 0.5, mode: .automatic) == .stacked)
+        #expect(EditorChatNSController.arrangement(forCompetingWidth: 1189, editorShare: 0.5, mode: .automatic) == .stacked)
+
+        // The OLD band (920..1000 PT) kept the current arrangement.
+        // A band that keeps the current value is a band that never
+        // resolves: the window could be dragged narrower and
+        // narrower and the arrangement stayed whatever it had been.
+        // Every width now resolves to a DEFINITE arrangement.
+        #expect(EditorChatNSController.arrangement(forCompetingWidth: 950, editorShare: 0.5, mode: .automatic) == .stacked)
+        #expect(EditorChatNSController.arrangement(forCompetingWidth: 1000, editorShare: 0.5, mode: .automatic) == .stacked)
+
+        // The decision does NOT depend on the incoming arrangement
+        // any more (= the band is gone): the same width and the same
+        // share always give the same answer.
+        #expect(EditorChatNSController.arrangement(forCompetingWidth: 742, editorShare: 0.5, mode: .automatic)
+                == EditorChatNSController.arrangement(forCompetingWidth: 742, editorShare: 0.5, mode: .automatic))
+        #expect(EditorChatNSController.arrangement(forCompetingWidth: 1600, editorShare: 0.5, mode: .automatic)
+                == EditorChatNSController.arrangement(forCompetingWidth: 1600, editorShare: 0.5, mode: .automatic))
+
+        // The two manual cases win over the width rule, at every
+        // width (= a manual choice still wins, and it survives a
+        // relaunch).
+        #expect(EditorChatNSController.arrangement(forCompetingWidth: 1600, editorShare: 0.5, mode: .stacked) == .stacked)
+        #expect(EditorChatNSController.arrangement(forCompetingWidth: 742, editorShare: 0.5, mode: .stacked) == .stacked)
+        #expect(EditorChatNSController.arrangement(forCompetingWidth: 1600, editorShare: 0.5, mode: .sideBySide) == .sideBySide)
+        #expect(EditorChatNSController.arrangement(forCompetingWidth: 742, editorShare: 0.5, mode: .sideBySide) == .sideBySide)
+    }
+
+    @Test("The chrome test: a pane's negotiated thickness must hold that pane's own chrome")
+    func chromeTest() {
+        // The share is the divider's position (= the editor's share
+        // of the available width), and the panes' negotiated
+        // thicknesses are the width times the shares.
+        //
+        // 1209 PT with the editor on half: the editor gets 604 PT
+        // (= its prose measure) and the chat 605 PT (= above its
+        // 280 PT floor). Viable.
+        #expect(EditorChatNSController.holdsChrome(width: 1209, editorShare: 0.5))
+        // The same width with the editor on a tenth: the editor gets
+        // 120 PT, which cannot hold its chrome, so the arrangement is
+        // NOT viable however wide the split is.
+        #expect(!EditorChatNSController.holdsChrome(width: 1209, editorShare: 0.1))
+        // The screenshot's own case: 742 PT at half = 371 PT each,
+        // which is below the editor's 595 PT floor.
+        #expect(!EditorChatNSController.holdsChrome(width: 742, editorShare: 0.5))
+        // The chat's own floor binds when the editor is given nearly
+        // everything: 1000 PT with the editor on 0.75 leaves the chat
+        // 250 PT, which is below its 280 PT floor.
+        #expect(!EditorChatNSController.holdsChrome(width: 1000, editorShare: 0.75))
     }
 
     @Test("The layout mode has exactly the three cases the View menu offers")

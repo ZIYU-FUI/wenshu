@@ -103,15 +103,47 @@ final class EditorChatNSController: NSSplitViewController {
     /// stacked name above is the historical one).
     private static let sideAutosaveName = "wenshu.editor.split.autosave.side"
 
-    /// The split width at which the two columns can both hold a
-    /// usable pane. Measured: 1209 PT of split width gives each
-    /// column ~604 PT (= the editor's comfortable prose measure
-    /// is 595-680 PT).
-    static let sideBySideMinimumWidth: CGFloat = 1000
+    /// The narrowest the EDITOR pane may be while the panes stand
+    /// side by side.
+    ///
+    /// The number is the editor's own comfortable prose measure
+    /// (= 595-680 PT; = the paper-canvas notes). It is above the
+    /// editor's chrome width (= 448 PT: the format toolbar's 12
+    /// buttons of 28 PT, the trailing close button, the two chunk
+    /// separators, the intra-chunk and inter-chunk spacing and the
+    /// ChromeTopBar's horizontal padding), so the chrome always
+    /// fits inside a pane the rule accepts.
+    ///
+    /// Why the prose measure and not the chrome width: the
+    /// 2026-10-26 capture handed the editor 460 PT, which is more
+    /// than the chrome needs and less than the design's prose
+    /// measure, and the result was an editor column that could not
+    /// hold its own top chrome. A rule that hands the editor a
+    /// width the design rejects picks an arrangement the design
+    /// refuses, however legal it is by the rule (= the 460 PT
+    /// editor column in that capture is the measured example).
+    static let editorPaneMinimumWidth: CGFloat = 595
 
-    /// The split width below which the two columns cannot both
-    /// hold a usable pane, so the split stays stacked.
-    static let stackedMaximumWidth: CGFloat = 920
+    /// The narrowest the CHAT pane may be while the panes stand side
+    /// by side.
+    ///
+    /// Measured 2026-10-26 from a running capture: the chat column
+    /// was 282 PT wide and read well (the transcript and the
+    /// composer both fit), so 280 PT is the floor. It is above the
+    /// composer's own minimum (= 5 buttons of 36 PT, 5 gaps of 10 PT
+    /// and the 12 PT horizontal padding = 254 PT), so the chat's
+    /// chrome fits inside a pane the rule accepts.
+    static let chatPaneMinimumWidth: CGFloat = 280
+
+    /// The width at which an EVEN split (= 50:50) can host both
+    /// panes' chrome.
+    ///
+    /// The editor's floor is the binding one (= the chat's floor is
+    /// much lower), so an even split needs twice the editor's floor
+    /// (= 2 x 595 = 1190 PT). A share that is not even needs a
+    /// different width, which is why the rule is asked about the
+    /// share and not about a single number.
+    static let sideBySideMinimumWidth: CGFloat = editorPaneMinimumWidth * 2
 
     /// Previously used a one-shot UserDefaults flag
     /// (= wenshu.editor.split.didSetFirstLaunchPosition) to force
@@ -500,6 +532,58 @@ final class EditorChatNSController: NSSplitViewController {
         )
     }
 
+    /// The share stored for an arrangement, read in that
+    /// arrangement's own order and on that arrangement's own axis.
+    ///
+    /// The width rule asks about the side-by-side arrangement while
+    /// the split may be stacked, so the reader has to be told which
+    /// arrangement's payload and which axis to read (= the frames
+    /// follow the panes, and the chat leads when the panes stand
+    /// side by side).
+    private func storedShare(forArrangement arrangement: EditorArrangement) -> CGFloat? {
+        let key = "NSSplitView Subview Frames \(Self.storedAutosaveName(for: arrangement))"
+        guard let frames = UserDefaults.standard.object(forKey: key) as? [String] else {
+            return nil
+        }
+        return Self.share(
+            fromFrames: frames,
+            isVertical: arrangement.isVertical,
+            firstPaneLeads: arrangement == .stacked
+        )
+    }
+
+    /// The editor's share the side-by-side arrangement would use at a
+    /// width.
+    ///
+    /// The stored position is used when it can host both panes' own
+    /// chrome at that width. When it cannot (= the editor's share is
+    /// so small that the editor's chrome does not fit), it is not a
+    /// position the arrangement can use, and the even split is: that
+    /// is the 50:50 reset the transition owes, so the decision and
+    /// the layout that follows it agree.
+    private func sideBySideEditorShare(forWidth width: CGFloat) -> CGFloat {
+        let evenShare: CGFloat = 0.5
+        guard let stored = storedShare(forArrangement: .sideBySide) else {
+            return evenShare
+        }
+        return Self.holdsChrome(width: width, editorShare: stored) ? stored : evenShare
+    }
+
+    /// Whether an arrangement's stored divider position can be kept
+    /// when the arrangement is entered.
+    ///
+    /// A stored position that cannot host the panes' own chrome is
+    /// not a position the arrangement can use, so the 50:50 reset is
+    /// owed instead of the stored position.
+    private func keepsStoredPosition(for arrangement: EditorArrangement) -> Bool {
+        guard hasStoredPayload(for: Self.storedAutosaveName(for: arrangement)) else {
+            return false
+        }
+        guard let width = lastParentWidth, width > 0 else { return true }
+        guard let stored = storedShare(forArrangement: arrangement) else { return true }
+        return Self.holdsChrome(width: width, editorShare: stored)
+    }
+
     /// The share of the axis the divider holds, read from AppKit's
     /// stored frames.
     ///
@@ -564,14 +648,34 @@ final class EditorChatNSController: NSSplitViewController {
         }
     }
 
-    /// The arrangement a split width asks for. Pure (= no window
-    /// and no split view): the automatic case follows the width,
-    /// the two manual cases pin the arrangement, and the band
-    /// between the two widths keeps the current arrangement.
+    /// The arrangement a width and a share ask for. Pure (= no
+    /// window and no split view): the automatic case follows the
+    /// numbers, and the two manual cases pin the arrangement.
+    ///
+    /// The automatic case resolves to a DEFINITE arrangement at
+    /// every width and every share. The old rule kept the current
+    /// arrangement for the band between its two thresholds, and a
+    /// band that keeps the current value is a band that never
+    /// resolves: the window could be dragged narrower and narrower
+    /// and the arrangement stayed whatever it had been.
+    ///
+    /// The width is the width the two columns really compete for,
+    /// and the share is the editor's share of it (= the divider's
+    /// position). Both are needed, because the panes' negotiated
+    /// thicknesses are the width times the shares: a wide split
+    /// with the editor on a tenth of it gives the editor a tenth of
+    /// the width, and a rule that only looked at the total would
+    /// call that viable.
+    ///
+    /// The rule asks whether each pane's negotiated thickness can
+    /// hold that pane's own chrome. When it cannot, side by side is
+    /// not a viable arrangement at that width and the rule resolves
+    /// to stacked (= the chrome is the point; = it is never hidden
+    /// to make room).
     static func arrangement(
-        forSplitWidth width: CGFloat,
-        mode: EditorLayoutMode,
-        current: EditorArrangement
+        forCompetingWidth width: CGFloat,
+        editorShare: CGFloat,
+        mode: EditorLayoutMode
     ) -> EditorArrangement {
         switch mode {
         case .stacked:
@@ -579,25 +683,53 @@ final class EditorChatNSController: NSSplitViewController {
         case .sideBySide:
             return .sideBySide
         case .automatic:
-            if width >= sideBySideMinimumWidth { return .sideBySide }
-            if width < stackedMaximumWidth { return .stacked }
-            return current
+            return holdsChrome(width: width, editorShare: editorShare)
+                ? .sideBySide
+                : .stacked
         }
     }
 
-    /// The automatic rule: the arrangement follows the split
-    /// width (= side by side when the split is wide enough for
-    /// two columns; = stacked when it is not; = the band between
-    /// the two keeps the current arrangement).
+    /// Whether a width and a share can host BOTH panes' own chrome.
+    ///
+    /// The panes' negotiated thicknesses are the width times their
+    /// shares, so a width alone cannot answer the question: a wide
+    /// split with the editor on a tenth of it gives the editor a
+    /// tenth of the width, and the editor's chrome does not fit
+    /// there. The chrome is the point (= it is never hidden to make
+    /// room), so an arrangement that cannot hold it is not viable.
+    static func holdsChrome(width: CGFloat, editorShare: CGFloat) -> Bool {
+        width * editorShare >= editorPaneMinimumWidth
+            && width * (1 - editorShare) >= chatPaneMinimumWidth
+    }
+
+    /// The automatic rule: the arrangement follows the width the
+    /// two columns compete for and the editor's share of it (= side
+    /// by side when both panes can hold their own chrome; = stacked
+    /// when one of them cannot).
+    ///
+    /// The width is the PARENT's own number (= the width SwiftUI
+    /// proposed for this controller), not the split view's own
+    /// bounds. The split's own width is the number the split
+    /// recomputes as it lays itself out, so it is a
+    /// mid-negotiation number: the layout pass reads it while the
+    /// parent is still negotiating the width the split is given,
+    /// and the value that is read is the one the split would have
+    /// liked. The parent's proposal is the number the parent
+    /// itself allocates to the split, and it is already net of the
+    /// outer NavigationSplitView's columns and of the inspector,
+    /// so it is the space the two columns really compete for.
     ///
     /// It runs inside the layout callback, so it only REQUESTS the
     /// arrangement; the structural change runs on the next runloop
     /// turn.
     private func applyAutomaticArrangement() {
-        let width = splitView.bounds.width
-        guard width > 0 else { return }
+        guard let width = lastParentWidth, width > 0 else { return }
         requestArrangement(
-            Self.arrangement(forSplitWidth: width, mode: layoutMode, current: arrangement)
+            Self.arrangement(
+                forCompetingWidth: width,
+                editorShare: sideBySideEditorShare(forWidth: width),
+                mode: layoutMode
+            )
         )
     }
 
@@ -633,9 +765,17 @@ final class EditorChatNSController: NSSplitViewController {
         case .sideBySide:
             target = .sideBySide
         case .automatic:
-            let width = splitView.bounds.width
-            guard width > 0 else { return }
-            target = Self.arrangement(forSplitWidth: width, mode: .automatic, current: arrangement)
+            // The width is read again here (= the parent's own
+            // number), because the window may have moved while the
+            // request waited for the runloop turn, and a request
+            // the width no longer supports is dropped (= no
+            // structural change at all).
+            guard let width = lastParentWidth, width > 0 else { return }
+            target = Self.arrangement(
+                forCompetingWidth: width,
+                editorShare: sideBySideEditorShare(forWidth: width),
+                mode: .automatic
+            )
         }
         guard target != arrangement else { return }
         transition(to: target)
@@ -652,7 +792,7 @@ final class EditorChatNSController: NSSplitViewController {
     private func transition(to target: EditorArrangement) {
         guard target != arrangement else { return }
         let enteringName = Self.storedAutosaveName(for: target)
-        let keepsOwnPosition = hasStoredPayload(for: enteringName)
+        let keepsOwnPosition = keepsStoredPosition(for: target)
         arrangement = target
         assertedShare = nil
         splitView.isVertical = target.isVertical
