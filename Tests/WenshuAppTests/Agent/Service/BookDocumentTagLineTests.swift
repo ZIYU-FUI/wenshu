@@ -116,6 +116,40 @@ struct BookDocumentTagLineTests {
         ) == source)
     }
 
+    @Test("the rule runs again once the folder is whole")
+    func theRuleRunsAgainOnceTheFolderIsWhole() throws {
+        // The index is written first, = so at write time its siblings
+        // did not exist yet. = The rule runs again after the turn.
+        let folder = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("wenshu-tagline-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: folder) }
+        try "# a sibling".write(
+            to: folder.appendingPathComponent("a sibling.md"),
+            atomically: true,
+            encoding: .utf8
+        )
+        try "# the charter\n\n- **tags**: the charter / a sibling / a field\n".write(
+            to: folder.appendingPathComponent("the charter.md"),
+            atomically: true,
+            encoding: .utf8
+        )
+
+        let changed = BookDocumentTagLine.applyRule(
+            inFolderAt: folder,
+            toFileNames: ["the charter.md"]
+        )
+
+        #expect(changed == ["the charter.md"])
+        let rewritten = try String(
+            contentsOf: folder.appendingPathComponent("the charter.md"),
+            encoding: .utf8
+        )
+        #expect(!rewritten.contains("a sibling"))
+        #expect(!rewritten.contains("the charter /"))
+        #expect(rewritten.contains("a field"))
+    }
+
     @Test("the rest of the body is unchanged")
     func theRestOfTheBodyIsUnchanged() {
         let body = BookDocumentTagLine.normalized(

@@ -168,6 +168,18 @@ struct ImportAgentDriver: Sendable {
             progress: progress
         )
 
+        // ── Step 7b: the tag rule, once the folder holds everything.
+        //
+        // The index is written first, = so at write time its siblings
+        // did not exist yet, = and "a tag names no sibling document"
+        // could not be checked then. = The folder is whole now.
+        BookDocumentTagLine.applyRule(
+            inFolderAt: URL(fileURLWithPath: input.bookPath)
+                .appendingPathComponent(input.targetFolder.directoryName),
+            toFileNames: writtenFiles,
+            fallback: [input.targetFolder.displayName]
+        )
+
         // ── Step 8: return the outcome.
         await progress?("agent finished (= \(result.messages.count) messages)")
         let lastAssistant = result.messages.last

@@ -58,6 +58,40 @@ enum BookDocumentTagLine {
         return rewritten.joined(separator: "\n")
     }
 
+    /// The rule, applied to the documents an import wrote.
+    ///
+    /// The index is written first (= the SOP's order), = so at write
+    /// time its siblings do not exist yet, = and "a tag names no
+    /// sibling document" could not be checked. So the rule runs again
+    /// after the turn, = when the folder holds every document.
+    ///
+    /// Only the files the import wrote are touched (= the user's own
+    /// documents in the same folder are none of the app's business).
+    @discardableResult
+    static func applyRule(
+        inFolderAt folder: URL,
+        toFileNames names: [String],
+        fallback: [String] = []
+    ) -> [String] {
+        let siblings = ImportTagPolicy.siblingNames(inFolderAt: folder)
+        var changed: [String] = []
+        for name in names where name.hasSuffix(".md") {
+            let url = folder.appendingPathComponent(name)
+            guard let body = try? String(contentsOf: url, encoding: .utf8) else { continue }
+            let title = (name as NSString).deletingPathExtension
+            let rewritten = normalized(
+                in: body,
+                title: title,
+                siblingNames: siblings,
+                fallback: fallback
+            )
+            guard rewritten != body else { continue }
+            try? rewritten.write(to: url, atomically: true, encoding: .utf8)
+            changed.append(name)
+        }
+        return changed
+    }
+
     /// The prefix of a tag line (= the marker, the label and the
     /// colon), or nil when the line is not a tag line.
     ///
