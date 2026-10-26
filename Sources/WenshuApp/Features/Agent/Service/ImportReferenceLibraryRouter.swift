@@ -78,6 +78,15 @@ struct ImportReferenceLibraryRouter: Sendable {
             if entityType == nil { entityType = classification.entityType }
             if tags.isEmpty { tags = classification.tags }
         }
+        // The library's tag rule: = the title is not a tag, = one to
+        // three tags, = never none. The model's own tags go through
+        // the same rule (= the model may answer four, = or repeat the
+        // title, = or answer none).
+        tags = ImportTagPolicy.tags(
+            tags,
+            title: title,
+            fallback: category.map { [$0.displayName] } ?? []
+        )
         return ImportRoutingResult(
             destination: .referenceLibrary,
             title: title,

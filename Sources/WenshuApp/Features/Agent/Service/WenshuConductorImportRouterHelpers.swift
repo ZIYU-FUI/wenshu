@@ -336,31 +336,14 @@ enum WCIRHelpers {
         // orchestrator falls back to the original body).
         let rawRewritten = (parsed["rewrittenBody"] as? String) ?? ""
         let rewrittenBody: String? = rawRewritten.isEmpty ? nil : Self.stripObsidianBacklinks(rawRewritten)
-        // (= boss 2026-10-09 (see OOB.md #2026-10-09) (= the LLM may emit 4 or 5 if it
-        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
-        // sidebar tag facet remains navigable).
-        let cappedTags = Array(tags.prefix(3))
-        // (= boss 2026-10-09 (see OOB.md #2026-10-09) redundant (= the title is the
-        // … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8)
-        // 活字印刷 " as a tag).
+        // The library's tag rule (= the boss 2026-10-09): = the title
+        // is not a tag, = at most three tags, = at least one.
         let titleNorm = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        // (= boss 2026-10-09 (see OOB.md #2026-10-09) filter (= the user clicks a tag to
-        // … (= 10 rationale lines collapsed; = A112 docblock collapse per §1.8)
-        // user expectation).
-        let dedupedTags = cappedTags.compactMap { tag -> String? in
-            let trimmedTag = tag.trimmingCharacters(in: .whitespacesAndNewlines)
-            // Drop empties.
-            if trimmedTag.isEmpty { return nil }
-            // Drop title-match (= [archived-round]).
-            if trimmedTag == titleNorm { return nil }
-            // Drop any tag containing punctuation (= the canonical wenshu tag is a short
-            // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
-            // meaningful).
-            if Self.tagContainsPunctuation(trimmedTag) {
-                return nil
-        }
-            return trimmedTag
-    }
+        let dedupedTags = ImportTagPolicy.tags(
+            tags,
+            title: titleNorm,
+            fallback: []
+        )
         // ticket 02: parse `extraFiles` (= LLM's optional array of split-out files).
         // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // import).
@@ -553,10 +536,20 @@ extension WCIRHelpers {
             ?? "other"
         let category = (parsed["category"] as? String)
         let confidence = (parsed["confidence"] as? Double) ?? 0.0
+        let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanCategory = category.flatMap {
+            EntityCategory(rawValue: $0.trimmingCharacters(in: .whitespacesAndNewlines))
+        }
         return WCIRAgentMetadata(
-            title: title.trimmingCharacters(in: .whitespacesAndNewlines),
+            title: cleanTitle,
             summary: summary.trimmingCharacters(in: .whitespacesAndNewlines),
-            tags: Array(tags.prefix(3)),
+            // The library's tag rule (= the title is not a tag, = one
+            // to three tags, = never none).
+            tags: ImportTagPolicy.tags(
+                tags,
+                title: cleanTitle,
+                fallback: cleanCategory.map { [$0.displayName] } ?? []
+            ),
             entityType: entityType,
             category: category,
             confidence: confidence

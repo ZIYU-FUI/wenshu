@@ -172,11 +172,26 @@ struct WriteBookDocTool: Tool, Sendable {
                 underlying: String(describing: error)
             )
         }
+        // The library's tag rule (= the boss 2026-10-26): = the
+        // document's own name is not a tag, = a tag names no sibling
+        // document, = there are one to three tags, = and never none.
+        // The agent writes the body, = so the app holds the rule.
+        let documentTitle = (relPath as NSString).deletingPathExtension
+        let siblingNames = ImportTagPolicy.siblingNames(
+            inFolderAt: URL(fileURLWithPath: parentDir)
+        )
+        let folderFallback = BookFolder(rawValue: targetFolderName)?.displayName
+        let taggedBody = BookDocumentTagLine.normalized(
+            in: body,
+            title: documentTitle,
+            siblingNames: siblingNames,
+            fallback: folderFallback.map { [$0] } ?? []
+        )
         // Write the file (= use FileTools.write for the canonical wenshu file-writing
         // path; = shared with the orchestrator's FileTools.write).
         let tools = FileTools()
         do {
-            try tools.write(path: canonicalFull, content: body)
+            try tools.write(path: canonicalFull, content: taggedBody)
         } catch {
             throw ToolExecutorError.toolFailed(
                 name: "writeBookDoc",
