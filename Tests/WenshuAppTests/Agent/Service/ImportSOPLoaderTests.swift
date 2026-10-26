@@ -72,11 +72,8 @@ final class ImportSOPLoaderTests: XCTestCase {
 
     func testSopNameForFolderWithoutImportTemplateReturnsNil() {
         // A folder with no import template has no document shape
-        // to write (= sessions / foreshadowing / placeholders), = so
-        // it has no procedure.
+        // to write (= sessions), = so it has no procedure.
         XCTAssertNil(ImportSOPTrigger.sopName(for: .sessions))
-        XCTAssertNil(ImportSOPTrigger.sopName(for: .foreshadowing))
-        XCTAssertNil(ImportSOPTrigger.sopName(for: .placeholders))
     }
 
     // MARK: - loadRaw(named:) — needs the real bundle

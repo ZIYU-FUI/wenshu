@@ -241,14 +241,14 @@ final class WenshuLibrary {
 
     /// Count .md files directly by folder directory name. Doesn't
     /// require BookCategory (= which only has 3 cases = chapter/
-    /// setting/research; the 5 user-facing folders use custom
-    /// directory names like 'world' / 'characters' / 'outlines'
+    /// setting/research; the user-facing folders use custom
+    /// directory names like 'world' / 'characters'
     /// that aren't in BookCategory). Returns 0 for missing folders
     /// (= forgiving convention).
     ///
     /// Future migration: replace by a proper BookCategory extension
     /// (= add `world` / `characters` cases) once the Document model
-    /// supports all 5 folder types.
+    /// supports all folder types.
     /// Route through LibraryStoring (= the protocol that owns the
     /// storage contract) instead of casting to BookStore
     /// (= WenshuLibrary's `store` is actually

@@ -10,7 +10,7 @@
 // - Remove empty chapters/ + books/ at .ws root IF they exist and
 //   are empty (= orphan from early onboarding iteration)
 // - For each book discovered under shelves/<shelf>/books/<book-id/>,
-//   verify all 8 standard folders + 2 data files exist; create
+//   verify all 6 standard folders + 2 data files exist; create
 //   missing ones (= defensive for books created by older versions
 //   or by external tools)
 // - Never deletes user data (= .md bodies + chat.sqlite + attachments)
@@ -57,7 +57,7 @@ struct LibraryBootstrapper: Sendable {
                 try fm.removeItem(at: url)
             }
         }
-        // 5. For each book, verify 8 standard folders + 2 data files.
+        // 5. For each book, verify 6 standard folders + 2 data files.
         try ensurePerBookStructure()
     }
 
@@ -75,7 +75,7 @@ struct LibraryBootstrapper: Sendable {
         ) else { return }
         let standardFolders = [
             "world", "characters", "outlines", "chapters",
-            "drafts", "sessions", "foreshadowing", "placeholders"
+            "drafts", "sessions"
         ]
         let dataFiles = ["kanban.json", "todo.json"]
         for case let bookDir as URL in shelfEnumerator {

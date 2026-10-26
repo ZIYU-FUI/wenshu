@@ -10,7 +10,7 @@ import Foundation
 // MARK: - Scope unification (= Kanban / Todo / reference-library data tree)
 //
 // The old `bookDirectory(bookId:)` only resolved the book root.
-// The 8 standard sub-folders (= `chapters/` etc.) and the
+// The standard sub-folders (= `chapters/` etc.) and the
 // `reference-library/` root are now valid scope targets too. The
 // reference library (= `reference-library/` at the workspace root)
 // is added as `TaskScope.referenceLibrary` (= its own kanban / todo
@@ -27,7 +27,7 @@ import Foundation
 //   to resolve the URL that BookKanbanStore should
 //   write to.
 
-/// One of the 8 standard sub-folders every book carries (= `chapters/`,
+/// One of the standard sub-folders every book carries (= `chapters/`,
 /// `world/`, `characters/`, etc., per LibraryBootstrapper). Each case is
 /// also a valid `TaskScope` (= the picker lets the user target one).
 enum StandardBookFolder: String, CaseIterable, Sendable, Codable {
@@ -37,8 +37,6 @@ enum StandardBookFolder: String, CaseIterable, Sendable, Codable {
     case chapters
     case drafts
     case sessions
-    case foreshadowing
-    case placeholders
 
     /// Filesystem directory name (= derives from BookFolderCatalog
     /// = the SSOT for id → directoryName mapping).
@@ -55,7 +53,7 @@ enum StandardBookFolder: String, CaseIterable, Sendable, Codable {
 }
 
 /// A scope variant for Kanban / Todo data. Either the book root, one of
-/// the 8 standard sub-folders inside the active book, or the reference
+/// the standard sub-folders inside the active book, or the reference
 /// library (= library-public, cross-book). Scope is a view filter, not
 /// a data-layer change: BookKanbanStore resolves to
 /// different JSON filenames per scope (see `bookKanbanStoreURL` /
@@ -81,7 +79,7 @@ enum TaskScope: Hashable, Identifiable, Sendable {
         }
     }
 
-    /// All 8 standard sub-folder scopes (= the entries the picker
+    /// All standard sub-folder scopes (= the entries the picker
     /// shows between "" and "" when a book is active).
     static func folderScopes() -> [TaskScope] {
         StandardBookFolder.allCases.map { .folder($0) }
@@ -115,9 +113,9 @@ extension BookStore {
     }
 
     /// Enumerate the scope variants the UI picker should offer for the
-    /// active book (= book root + 8 standard sub-folders + reference
+    /// active book (= book root + the standard sub-folders + reference
     /// library). When no book is selected (= `bookId == nil`), the
-    /// 8 sub-folder options are hidden (= they all live inside a book).
+    /// sub-folder options are hidden (= they all live inside a book).
     func availableScopes(bookId: UUID?) -> [TaskScope] {
         var scopes: [TaskScope] = [.book]
         if bookId != nil {

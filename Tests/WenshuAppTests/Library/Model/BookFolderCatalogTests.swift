@@ -2,32 +2,24 @@
 //  BookFolderCatalogTests.swift
 //  wenshu
 //
-// 
+//  The catalog is the SSOT for the standard book sub-folders
+//  (= the sidebar rows, the card badges, and the Kanban /
+//  Todo scope names all derive from it).
 //
 
 import Testing
 @testable import WenshuApp
 
-@Suite("BookFolderCatalog (v1.81 — sidebar + card + scope SSOT)")
+@Suite("BookFolderCatalog (sidebar + card + scope SSOT)")
 struct BookFolderCatalogTests {
 
-    @Test("9 standard folders registered (= world / characters / outlines / chapters / drafts / ideas / sessions / foreshadowing / placeholders)")
+    @Test("7 standard folders registered (= world / characters / outlines / chapters / drafts / ideas / sessions)")
     func allFoldersRegistered() {
-        // v2.7 round-62: the
-        // catalog now has
-        // 9 specs (= the
-        // round-60 `ideas`
-        // case is now
-        // registered in the
-        // catalog; = the
-        // 6th sidebar-visible
-        // folder for "loose
-        // settings + future
-        // ideas"; = the
-        // standardFolders
-        // array went from 8
-        // to 9).
-        #expect(BookFolderCatalog.allBookFolders.count == 9)
+        // The 2026-10-25 residue cleanup dropped the
+        // foreshadowing and placeholders folders (= their
+        // storage models and their scope entries were
+        // removed with the right-rail feature).
+        #expect(BookFolderCatalog.allBookFolders.count == 7)
         let ids = BookFolderCatalog.allBookFolders.map(\.id)
         #expect(ids.contains("world"))
         #expect(ids.contains("characters"))
@@ -36,40 +28,49 @@ struct BookFolderCatalogTests {
         #expect(ids.contains("drafts"))
         #expect(ids.contains("ideas"))
         #expect(ids.contains("sessions"))
-        #expect(ids.contains("foreshadowing"))
-        #expect(ids.contains("placeholders"))
+        #expect(!ids.contains("foreshadowing"))
+        #expect(!ids.contains("placeholders"))
     }
 
-    @Test("6 user-facing folders (= sidebar-visible; = world / characters / outlines / chapters / drafts / ideas)")
+    @Test("5 user-facing folders (= sidebar-visible; = world / characters / chapters / drafts / ideas)")
     func userFacingFolders() {
-        // v2.7 round-62: `ideas`
-        // is now user-facing
-        // (= 6 total; = the
-        // sidebar shows 6
-        // folder rows under
-        // each book).
-        #expect(BookFolderCatalog.userFacing.count == 6)
+        // The outline folder has no sidebar row (= the boss
+        // 2026-10-24 decision: the outline is a plain markdown
+        // document the user opens in the editor, = it needs no
+        // dedicated UI). The 5 sidebar rows are the folders the
+        // user browses as a tree.
+        #expect(BookFolderCatalog.userFacing.count == 5)
         for folder in BookFolderCatalog.userFacing {
             #expect(folder.isUserFacing == true)
             #expect(folder.icon != nil, "user-facing folder '\(folder.id)' must have an icon")
         }
-        // The 6 user-facing folders, in expected sidebar order
-        // (= v2.7 round-62 added `ideas`; = the 6th sidebar-visible
-        // folder for "loose settings + future ideas").
+        // The 5 user-facing folders, in expected sidebar order
+        // (= the outline folder sits between characters and
+        // chapters in the catalog but is not sidebar-visible).
         #expect(BookFolderCatalog.userFacing.map(\.id) == [
-            "world", "characters", "outlines", "chapters", "drafts", "ideas"
+            "world", "characters", "chapters", "drafts", "ideas"
         ])
     }
 
-    @Test("3 internal folders (= sidebar-hidden; = no icon since the icon would never render)")
-    func internalFolders() {
-        let internalIds: [String] = ["sessions", "foreshadowing", "placeholders"]
-        for id in internalIds {
-            let spec = BookFolderCatalog.spec(for: id)
-            #expect(spec != nil, "missing spec for internal folder '\(id)'")
-            #expect(spec?.isUserFacing == false)
-            #expect(spec?.icon == nil, "internal folder '\(id)' must NOT define an icon (= dead value per boss OOB 2026-09-24 '8 个目录, 不需要都定义 ICON')")
-        }
+    @Test("the outline folder keeps its spec but has no sidebar row")
+    func outlineFolderHasNoSidebarRow() {
+        // The spec stays (= the preview pane's card grid draws
+        // the outline's glyph, and the scope picker names it),
+        // but the folder is not a sidebar row.
+        let spec = BookFolderCatalog.spec(for: "outlines")
+        #expect(spec != nil, "the outline folder must keep its catalog spec")
+        #expect(spec?.isUserFacing == false)
+        #expect(spec?.icon == "bookmark.circle",
+                "the outline folder still renders in the card grid, so it keeps its glyph")
+    }
+
+    @Test("the session folder is internal and carries no glyph (= it never renders)")
+    func sessionFolderIsInternal() {
+        let spec = BookFolderCatalog.spec(for: "sessions")
+        #expect(spec != nil, "missing spec for the session folder")
+        #expect(spec?.isUserFacing == false)
+        #expect(spec?.icon == nil,
+                "the session folder never renders in the UI, so its icon would be a dead value")
     }
 
     @Test("v1.80 icon replacements (= 4 user-facing folder icons migrated to SF Symbols 6 circular glyphs)")
@@ -98,7 +99,7 @@ struct BookFolderCatalogTests {
         }
     }
 
-    @Test("sidebarDisplayName and cardDisplayName populated for all 8 folders")
+    @Test("sidebarDisplayName and cardDisplayName populated for every folder")
     func displayNamesPopulated() {
         for folder in BookFolderCatalog.allBookFolders {
             #expect(!folder.sidebarDisplayName.isEmpty,

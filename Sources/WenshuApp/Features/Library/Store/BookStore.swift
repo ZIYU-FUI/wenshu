@@ -1,6 +1,6 @@
 // BookStore.swift · Wenshu () (FCP library replica) + B-13 scope unification
 //
-// Single BookStore @Observable singleton. Holds the per-book in-memory state (= the 10 standard entries per book + per-book JSON data: kanban + todo + the 8 folder indexes).
+// Single BookStore @Observable singleton. Holds the per-book in-memory state (= per-book JSON data: kanban + todo).
 //
 // Switching books triggers BookStore.reload(bookId:) which reads the
 // per-book JSON files into in-memory state; previous book's state is
@@ -12,27 +12,6 @@
 
 import Foundation
 import Observation
-
-/// In-memory bundle of one book's data (= 10 standard entries: 8 folder
-/// indexes + kanban + todo). Apple standard value type; reloaded by
-/// BookStore.reload(bookId:).
-struct BookBundle: Sendable {
-    let bookId: UUID
-    /// 8 folder indexes (= [WorldEntry], [Character], [Outline], etc.).
-    /// Stored as a single struct = simpler than 8 separate @Observable
-    /// fields (= atomic reload = one drop / one assignment).
-    var worldEntries: [WorldEntry]
-    var characterEntries: [Character]
-    var outlineEntries: [Document]   // (= existing BookCategory.chapter / .setting / .research content)
-    var chapterEntries: [Document]
-    var draftEntries: [Document]
-    var sessionEntries: [Document]
-    var foreshadowingEntries: [Document]
-    var placeholderEntries: [Document]
-    /// 2 per-book JSON data files (= kanban + todo per spec v5).
-    var kanbanData: Data
-    var todoData: Data
-}
 
 /// Single @Observable BookStore (= Apple standard pattern: one
 /// observation-tracked state holder; not per-book instances; per Apple
@@ -80,7 +59,7 @@ final class BookStore {
     /// `folderDocumentCount(bookId:folderDirectoryName:)` which calls it
     /// internally) re-scanned every shelf under `shelvesRoot`
     /// (= N shelf scans per call; = the sidebar render path invoked
-    /// both methods per cell = `shelves × books × 8 folders × 2 scans`
+    /// both methods per cell = `shelves × books × folders × 2 scans`
     /// = ~5000 file stat() calls per render on a 50-book library).
     /// The cache is invalidated whenever `books` mutates (= save /
     /// delete / reload) so the cache stays coherent with on-disk
@@ -90,13 +69,9 @@ final class BookStore {
     /// trigger view diff.
     var bookDirectoryCache: [UUID: URL] = [:]
 
-    /// Currently selected book id (= drives currentBook reload via
+    /// Currently selected book id (= drives the per-book reload via
     /// SwiftUI .onChange observer in App.swift).
     var selectedBookId: UUID?
-
-    /// Currently loaded per-book data (= nil when no book selected or
-    /// reload in progress).
-    var currentBook: BookBundle?
 
     /// Library-level store bundle (= constructed by LibraryLifecycleHook
     /// at app launch; held here for per-book resolution).
@@ -112,10 +87,6 @@ final class BookStore {
 
     /// Current book directory (= swapped by reload(bookId:)).
     var currentBookDirectory: URL?
-
-    /// Reference library (= library-level, NOT per-book; loaded once
-    /// at app launch).
-    var referenceLibrary: ReferenceLibrary = ReferenceLibrary()
 
     /// Init: takes the LibraryStores bundle from the launch result.
     init(stores: LibraryStores) {
@@ -185,9 +156,9 @@ final class BookStore {
         referenceStore
     }
 
-    /// Reload the per-book data for the given book id. Drops the
-    /// previous bundle and reads fresh from the storage layer. Apple
-    /// standard "data source switch" pattern.
+    /// Reload the per-book data for the given book id. Reads fresh
+    /// from the storage layer. Apple standard "data source switch"
+    /// pattern.
     ///
     /// App.swift `.onChange` of selectedBookId observer calls this
     /// method.
@@ -197,19 +168,18 @@ final class BookStore {
             .appendingPathComponent("books", isDirectory: true)
             .appendingPathComponent(bookId.uuidString, isDirectory: true)
         currentBookDirectory = bookDir
-        currentBook = nil
     }
 
     /// Count .md files directly by folder directory name. Doesn't
     /// require BookCategory (= which only has 3 cases = chapter/
-    /// setting/research; the 5 user-facing folders use custom
-    /// directory names like 'world' / 'characters' / 'outlines'
+    /// setting/research; the user-facing folders use custom
+    /// directory names like 'world' / 'characters'
     /// that aren't in BookCategory). Returns 0 for missing folders
     /// (= forgiving convention).
     ///
     /// Future migration: replace by a proper BookCategory extension
     /// (= add `world` / `characters` cases) once the Document
-    /// model supports all 5 folder types.
+    /// model supports all folder types.
     ///
     /// Path layout (= per FCP library replica spec v5):
     ///   <ws>/shelves/<shelf-id>/books/<book-id>/<folder-name>/*.md
@@ -245,15 +215,6 @@ final class BookStore {
         return 0
     }
 }
-
-/// Library-public reference library (= the library's default shelf;
-/// system-managed; user CANNOT delete or rename).
-struct ReferenceLibrary: Sendable {
-    var metadata: ReferenceLibraryMetadata = .empty
-    var rawReferences: [Reference] = []
-    var entityReferences: [Reference] = []
-}
-
 
 // MARK: - Extensions (= sidebar inline-storage + scope unification)
 //

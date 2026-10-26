@@ -12,51 +12,27 @@ import Foundation
 
 final class ImportEnvelopeTests: XCTestCase {
 
-    // MARK: - BookFolder (the SSOT for "5 standard folders")
+    // MARK: - BookFolder (the SSOT for the standard book folders)
 
-    func testBookFolder_hasEightCases() throws {
-        // v2.7 round-60: the enum
-        // now has 9 cases
-        // (= the boss's
-        // "看样需要加一
-        // 个目录，放你
-        // 现在的草稿
-        // ，类似构思"
-        // directive added
-        // `ideas` after
-        // `drafts`; = the
-        // first 5 are still
-        // the sidebar-
-        // visible standard
-        // folders; = the
-        // remaining 4 are
-        // non-sidebar: ideas
-        // / sessions /
-        // foreshadowing /
-        // placeholders).
-        // The first 5 (= user
-        // visible) stay
-        // world / characters
-        // / outlines /
-        // chapters / drafts
-        // (= the boss's
-        // established
-        // sidebar UX). The
-        // 6th case is
-        // `ideas` (= the
-        // 构思 folder for
-        // "loose settings +
-        // future ideas";
-        // = a separate
-        // import folder
-        // per the round-60
-        // directive).
-        XCTAssertEqual(BookFolder.allCases.count, 9)
+    func testBookFolder_hasSevenCases() throws {
+        // The enum has 7 cases (= the 2026-10-25 residue
+        // cleanup dropped `foreshadowing` and `placeholders`,
+        // whose storage models and scope entries went with
+        // the right-rail feature). The first 5 are the
+        // import-path standard folders; = the remaining 2 are
+        // non-import: ideas / sessions).
+        // The first 5 (= import-path standard folders) stay
+        // world / characters / outlines / chapters / drafts
+        // (= the boss's established sidebar UX). The 6th case
+        // is `ideas` (= the loose-settings folder for "loose
+        // settings + future ideas"; = a separate import folder
+        // per the round-60 directive).
+        XCTAssertEqual(BookFolder.allCases.count, 7)
     }
 
     func testBookFolder_firstFiveAreUserVisible() throws {
-        // The first 5 cases are the sidebar-visible standard
-        // folders (= matches `LibraryBootstrapper` seed order
+        // The first 5 cases are the standard import folders
+        // (= matches `LibraryBootstrapper` seed order
         // + the legacy NewLibraryOutlineView's folder catalog).
         let firstFive = Array(BookFolder.allCases.prefix(5))
         XCTAssertEqual(firstFive.map(\.rawValue), [
@@ -66,10 +42,9 @@ final class ImportEnvelopeTests: XCTestCase {
 
     func testBookFolder_directoryNameMatchesRawValue() throws {
         // SSOT assertion: the on-disk directory name equals the
-        // raw value for the 5 sidebar-visible cases (= the
+        // raw value for the 5 standard import cases (= the
         // folder catalog carries the canonical mapping for
-        // the 3 hidden cases = sessions / foreshadowing /
-        // placeholders).
+        // the 2 hidden cases = ideas / sessions).
         for folder in BookFolder.allCases.prefix(5) {
             XCTAssertEqual(folder.directoryName, folder.rawValue)
         }

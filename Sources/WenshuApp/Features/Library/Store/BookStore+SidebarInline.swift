@@ -78,7 +78,7 @@ extension BookStore {
     }
 
     /// Create a new book on disk + run per-book bootstrap (= creates
-    /// the 8 standard folders + 2 JSON data files).
+    /// the 6 standard folders + 2 JSON data files).
     /// Path = `<shelvesRoot>/<shelf-uuid>/books/<book-uuid>/`,
     /// matching the v5 spec layout (= the previous path duplicated
     /// the 'books' segment).

@@ -1,42 +1,37 @@
-// BookFolderCatalog.swift wenshu SSOT (= single source of truth) for the 8 standard book
-// sub-folders (= world / characters / outlines / chapters / drafts / sessions /
-// foreshadowing / placeholders). Prior history: * SidebarService.swift folderCatalog =
-// 5 user-facing (name, displayName, icon) tuples (= the sidebar row). *
-// PreviewPane.swift BookFolder enum = 8 cases with (directoryName, displayName, icon)
-// (= the card row + the per-book folder child nodes). * BookStore.swift
-// StandardBookFolder enum = 8 cases with (folderName, displayName) (= the Kanban /
-// Todo task scope enum). These three (now four after v1.80) parallel sources all
-// describe the same underlying 8 folders with overlapping but inconsistent field sets
-// (= the 'change one folder, edit N sites' footgun). v1.80 caught one such instance (=
-// the 4 icon replacements landed in 3 sites instead of 1 because the caller-side
-// review missed the BookFolder enum). Resolution: this catalog is the canonical
-// source. The other three sites become thin derivations: *
-// SidebarService.folderCatalog → BookFolderCatalog.userFacing mapped to (name,
-// displayName, icon). * PreviewPane.BookFolder.icon / displayName / directoryName →
-// BookFolderCatalog.spec(for: rawValue)?.[icon|displayName| directoryName]. *
-// BookStore.StandardBookFolder.folderName / displayName → BookFolderCatalog.spec(for:
-// rawValue)?.[directoryName| displayName]. Each derived site keeps its own type (=
-// enum vs struct vs tuple) for its caller compatibility (= caller-visible type
-// signature stays unchanged), but the icon + name values flow from this catalog. To
-// add a 9th folder: add one BookFolderSpec literal here (= 1 site edit) + register it
-// in BookFolderCatalog.allBookFolders (= 1 site edit) = done. displays the sidebar
-// name + card name differently on purpose: sidebar uses the full phrasing (e.g. the
-// long form of the chapter title) to tell the user the folder's purpose; the card uses
-// the short label (e.g. 'Chapter') to fit the grid cell width. Both names are stored
-// in this catalog (= sidebarDisplayName / cardDisplayName). If a future ticket
-// collapses the names, change the catalog fields and the two derived sites pick up the
-// new values automatically. '8 folders total, but only 5 are user-visible; the icon
-// field is optional (= nil for the 3 internal folders: sessions / foreshadowing /
-// placeholders, which have no UI row to render into; = the catalog still defines the
-// folder for filesystem / scope purposes, but the icon field is not meaningful). The
-// `isUserFacing` flag is the canonical way to check whether the icon will ever draw. A
-// future ticket could collapse sidebarIcon + cardIcon into a single `icon` (= the
-// current 5 user-facing folders all share the same glyph at both surfaces = the 'one
-// entity = one icon' rule that v1.80 established).
+// BookFolderCatalog.swift wenshu SSOT (= single source of truth) for the
+// standard book sub-folders.
+//
+// The standard folders (= the ones a book directory carries):
+// world / characters / outlines / chapters / drafts / ideas / sessions.
+//
+// Three derived sites read this catalog:
+//   - SidebarService.folderCatalog -> the folder rows under each book.
+//   - PreviewPane.BookFolder -> the card badge and the on-disk folder name.
+//   - BookStore.StandardBookFolder -> the Kanban / Todo scope picker.
+//
+// Each derived site keeps its own type (= enum vs struct vs tuple) so
+// the caller-visible signature stays unchanged, while the icon and
+// the names flow from the literals below. Adding a folder means one
+// BookFolderSpec literal plus one entry in allBookFolders.
+//
+// Two flags say what a folder does on screen:
+//   - isUserFacing = the folder has a sidebar row.
+//   - icon = the glyph the folder draws where it does render; nil
+//     when the folder renders nowhere at all.
+//
+// A folder can be hidden from the sidebar and still carry a glyph:
+// the outline folder has no sidebar row (the outline is a plain
+// markdown document the user opens in the editor) but its
+// documents still show up in the card grid.
+//
+// The sidebar and the card grid name a folder differently on
+// purpose: the sidebar uses the full phrasing (so the user reads
+// what the folder holds) and the card uses the short label (so it
+// fits the grid cell). Both names live here.
 
 import Foundation
 
-/// One row in the 8-folder book layout (= immutable, Sendable,
+/// One row in the standard-folder layout (= immutable, Sendable,
 /// value-type). Read-only after construction (= all fields
 /// `let`); = the catalog is append-only at the source level.
 struct BookFolderSpec: Sendable, Equatable {
@@ -58,15 +53,11 @@ struct BookFolderSpec: Sendable, Equatable {
     /// short phrasing = fits the 2-line grid cell without
     /// truncation).
     let cardDisplayName: String
-    /// SF Symbol 6 outline glyph for the folder icon. Nil for
-    /// internal folders (= sessions / foreshadowing /
-    /// placeholders) that never render in the UI (= no
-    /// sidebar row, no card row; = the icon would be dead
-    /// value). Callers MUST check `isUserFacing` before reading
-    /// `icon` (= the type system doesn't enforce non-nil on
-    /// internal folders because the catalog is a value type
-    /// and the call sites have their own per-folder rendering
-    /// logic).
+    /// SF Symbol 6 outline glyph for the folder. Nil when the
+    /// folder never renders (= the session folder holds chat
+    /// transcripts no surface lists). A folder without a
+    /// sidebar row can still carry a glyph (= the outline
+    /// folder's documents draw one in the card grid).
     let icon: String?
     /// (= boss 2026-10-10 (see OOB.md #2026-10-10)
     /// 做"). The canonical 6 必填
@@ -81,18 +72,15 @@ struct BookFolderSpec: Sendable, Equatable {
     /// 占位子文件 with `[待补充] 需调
     /// 研补齐` body.
     let requiredTitles: [String]
-    /// `true` = the folder appears in the user-visible sidebar
-    /// tree (the 5 user-facing folders). `false` = the folder
-    /// exists on disk but is hidden from the sidebar tree
-    /// (= internal storage like 'sessions' / 'foreshadowing'
-    /// / 'placeholders' = wenshu-internal folders that hold
-    /// AI-assisted artifacts the user can browse via the
-    /// card grid but should not see as a top-level sidebar
-    /// entry).
+    /// `true` = the folder has a sidebar row under its book.
+    /// `false` = the folder exists on disk but the sidebar
+    /// tree does not list it (= the session folder holds
+    /// chat transcripts; = the outline folder's documents
+    /// open in the editor like any other markdown file).
     let isUserFacing: Bool
 }
 
-/// SSOT (= single source of truth) for the 8 standard book
+/// SSOT (= single source of truth) for the standard book
 /// sub-folders. Every folder icon, display name, and filesystem
 /// directory name in the workspace derives from one of these
 /// literals.
@@ -102,16 +90,14 @@ struct BookFolderSpec: Sendable, Equatable {
 ///   systems)
 /// - `characters` = named entities with relationships
 /// - `outlines` = pre-write planning (beat sheets, plot
-///   structure, foreshadowing seeds)
+///   structure)
 /// - `chapters` = the published body of the novel (= chapter
 ///   .md files)
 /// - `drafts` = in-progress / experimental drafts
+/// - `ideas` = loose world-building fragments and future-story
+///   ideas
 /// - `sessions` = LLM chat transcripts that produced the book
-///   (INTERNAL = not sidebar-visible)
-/// - `foreshadowing` = cross-chapter plant / payoff tracking
-///   (INTERNAL = not sidebar-visible)
-/// - `placeholders` = TODO / hint markers the user plants
-///   during drafting (INTERNAL = not sidebar-visible)
+///   (no sidebar row)
 enum BookFolderCatalog {
     /// The book universe
     static let world = BookFolderSpec(
@@ -142,7 +128,11 @@ enum BookFolderCatalog {
         isUserFacing: true,
     )
 
-    /// Pre-write outline (= beat sheets)
+    /// Pre-write outline (= beat sheets). The outline body is a
+    /// markdown file the user opens in the editor, = the folder has
+    /// no sidebar row of its own (= `isUserFacing` = false; = the
+    /// documents still appear in the preview pane, which scans every
+    /// folder).
     static let outlines = BookFolderSpec(
         id: "outlines",
         directoryName: "outlines",
@@ -150,7 +140,7 @@ enum BookFolderCatalog {
         cardDisplayName: "章节大纲",
         icon: "bookmark.circle",
         requiredTitles: [],
-        isUserFacing: true,
+        isUserFacing: false,
     )
 
     /// The published body (= chapter .md files
@@ -271,46 +261,20 @@ enum BookFolderCatalog {
         isUserFacing: false,
     )
 
-    /// Cross-chapter foreshadowing tracker (= internal
-    /// folder; = NOT shown in the sidebar; = no icon (= never
-    /// rendered))
-    static let foreshadowing = BookFolderSpec(
-        id: "foreshadowing",
-        directoryName: "foreshadowing",
-        sidebarDisplayName: "伏笔",
-        cardDisplayName: "伏笔",
-        icon: nil,
-        requiredTitles: [],
-        isUserFacing: false,
-    )
-
-    /// TODO / hint placeholders the user plants
-    /// during drafting; = internal folder; = NOT shown in the
-    /// sidebar; = no icon (= never rendered))
-    static let placeholders = BookFolderSpec(
-        id: "placeholders",
-        directoryName: "placeholders",
-        sidebarDisplayName: "占位符",
-        cardDisplayName: "占位符",
-        icon: nil,
-        requiredTitles: [],
-        isUserFacing: false,
-    )
-
-    /// All 8 standard folders, in sidebar display order (=
+    /// All standard folders, in sidebar display order (=
     /// user-facing folders first, internal folders last).
     /// This order matches the sidebar's natural reading
-    /// flow (world → characters → outlines → chapters →
-    /// drafts at the top; = sessions / foreshadowing /
-    /// placeholders accessible only via the card grid or
-    /// the LibraryMigrator path).
+    /// flow (world → characters → chapters → drafts →
+    /// ideas at the top; = the outline folder carries no
+    /// sidebar row; = sessions accessible only via the
+    /// card grid or the LibraryMigrator path).
     static let allBookFolders: [BookFolderSpec] = [
         world, characters, outlines, chapters, drafts,
         ideas,
-        sessions, foreshadowing, placeholders
+        sessions
     ]
 
-    /// The 5 user-facing folders (= sidebar-visible). Used by
+    /// The user-facing folders (= sidebar-visible). Used by
     /// SidebarService.folderCatalog as the canonical row list.
     static let userFacing: [BookFolderSpec] = allBookFolders.filter(\.isUserFacing)
 

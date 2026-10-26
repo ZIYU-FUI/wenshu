@@ -1,33 +1,15 @@
-// FileSystemOutlineStore.swift Per-book outline storage layer, backed by SwiftData (= the
-// WSOutlineEntry @Model class in Persistence/) with a FileSystem fallback for actor
-// callers. Per boss 2026-10-05 (see OOB.md #2026-10-05) SwiftData migration). This is
-// commit 4 of #8. Apple HIG canonical pattern: WSOutlineEntry holds the indexed
-// metadata (= id, bookID, title, summary, parent, order, createdAt, updatedAt) in one
-// row. The body markdown stays on the filesystem at <bookDir>/outlines/<uuid>.md (=
-// too large + filesystem is the canonical source for body content; matches
-// WSOutlineDocument's split-index pattern). Storage paths (= unchanged at the public
-// API level): <.ws>/shelves/<shelf>/books/<UUID>/outlines/<UUID>.md
-// <.ws>/shelves/<shelf>/books/<UUID>/outlines.json Apple HIG dual-write pattern: when
-// no ModelContainer is wired (= legacy dev-tool path), fall back to the legacy
-// FileSystem path (= per-outline .md body + outlines.json index).
+// FileSystemOutlineStore.swift Per-book outline storage layer, backed by the
+// filesystem. The outline body markdown lives on disk at
+// <bookDir>/outlines/<uuid>.md and the outline index at
+// <bookDir>/outlines.json; both are the canonical source. Storage paths
+// (= unchanged at the public API level):
+// <.ws>/shelves/<shelf>/books/<UUID>/outlines/<UUID>.md
+// <.ws>/shelves/<shelf>/books/<UUID>/outlines.json
+//
+// A namespace (= no stored state): every operation names its book
+// directory, so the type carries no instance state and no container.
 
 import Foundation
-import SwiftData
-import WenshuData
-
-// MARK: - Protocol
-
-@MainActor
-protocol OutlineStoring: Sendable {
-    var bookDirectory: URL { get }
-
-    func loadOutlines() throws -> [OutlineEntry]
-    func saveOutline(_ entry: OutlineEntry, bodyMarkdown: String) throws
-    func replaceOutline(_ entry: OutlineEntry, bodyMarkdown: String) throws
-    func deleteOutline(id: UUID) throws
-    func loadOutlineBody(id: UUID) -> String?
-    func outlineExists(id: UUID) -> Bool
-}
 
 // MARK: - Errors
 
@@ -48,189 +30,9 @@ enum OutlineStoreError: Error, LocalizedError {
     }
 }
 
-// MARK: - SwiftData implementation
+// MARK: - FileSystem implementation
 
-@MainActor
-struct FileSystemOutlineStore: OutlineStoring {
-    let bookDirectory: URL
-
-    let modelContainer: ModelContainer?
-
-    private var outlinesDirectory: URL {
-        bookDirectory.appendingPathComponent("outlines", isDirectory: true)
-    }
-
-    private var indexURL: URL {
-        bookDirectory.appendingPathComponent("outlines.json")
-    }
-
-    init(
-        bookDirectory: URL,
-        modelContainer: ModelContainer? = nil
-    ) {
-        self.bookDirectory = bookDirectory
-        self.modelContainer = modelContainer
-    }
-
-    private var modelContext: ModelContext? {
-        modelContainer?.mainContext
-    }
-
-    // MARK: OutlineStoring
-
-    func loadOutlines() throws -> [OutlineEntry] {
-        guard modelContainer != nil else {
-            return try Self.loadOutlinesFromFileSystem(bookDirectory: bookDirectory)
-        }
-        guard let context = modelContext else { return [] }
-        // Fetch all outlines for this book (= SwiftData FK on bookID).
-        let bookID = bookDirectory.lastPathComponent
-        guard let bookUUID = UUID(uuidString: bookID) else { return [] }
-        let descriptor = FetchDescriptor<WSOutlineEntry>(
-            predicate: #Predicate { $0.bookID == bookUUID }
-        )
-        let rows = (try? context.fetch(descriptor)) ?? []
-        return rows.map(Self.toEntry)
-    }
-
-    func saveOutline(_ entry: OutlineEntry, bodyMarkdown: String) throws {
-        guard modelContainer != nil else {
-            try Self.saveOutlineToFileSystem(
-                entry: entry,
-                bodyMarkdown: bodyMarkdown,
-                bookDirectory: bookDirectory
-            )
-            return
-        }
-        guard let context = modelContext else {
-            throw OutlineStoreError.bookDirectoryMissing(path: bookDirectory.path)
-        }
-        let id = entry.id
-        let descriptor = FetchDescriptor<WSOutlineEntry>(
-            predicate: #Predicate { $0.id == id }
-        )
-        if let _ = try? context.fetch(descriptor).first {
-            throw OutlineStoreError.outlineAlreadyExists(id: entry.id)
-        }
-        let row = Self.makeRow(entry: entry)
-        context.insert(row)
-        try context.save()
-        // Write the body file too (= filesystem is the canonical source for body content
-        // per the WSOutlineDocument split- index pattern).
-        try Self.writeBodyFile(bodyMarkdown: bodyMarkdown, entry: entry, bookDirectory: bookDirectory)
-    }
-
-    func replaceOutline(_ entry: OutlineEntry, bodyMarkdown: String) throws {
-        guard modelContainer != nil else {
-            try Self.replaceOutlineToFileSystem(
-                entry: entry,
-                bodyMarkdown: bodyMarkdown,
-                bookDirectory: bookDirectory
-            )
-            return
-        }
-        guard let context = modelContext else {
-            throw OutlineStoreError.bookDirectoryMissing(path: bookDirectory.path)
-        }
-        let id = entry.id
-        let descriptor = FetchDescriptor<WSOutlineEntry>(
-            predicate: #Predicate { $0.id == id }
-        )
-        guard let existing = try? context.fetch(descriptor).first else {
-            throw OutlineStoreError.outlineNotFound(id: entry.id)
-        }
-        existing.title = entry.title
-        existing.summary = entry.summary
-        existing.parent = entry.parent
-        existing.order_ = entry.order
-        existing.updatedAt = Date()
-        try context.save()
-        try Self.writeBodyFile(bodyMarkdown: bodyMarkdown, entry: entry, bookDirectory: bookDirectory)
-    }
-
-    func deleteOutline(id: UUID) throws {
-        guard modelContainer != nil else {
-            try Self.deleteOutlineFromFileSystem(
-                id: id,
-                bookDirectory: bookDirectory
-            )
-            return
-        }
-        guard let context = modelContext else {
-            throw OutlineStoreError.outlineNotFound(id: id)
-        }
-        let descriptor = FetchDescriptor<WSOutlineEntry>(
-            predicate: #Predicate { $0.id == id }
-        )
-        guard let existing = try? context.fetch(descriptor).first else {
-            return  // Idempotent.
-        }
-        context.delete(existing)
-        try context.save()
-        // Delete the body file too.
-        let url = outlinesDirectory.appendingPathComponent("\(id.uuidString).md")
-        if FileManager.default.fileExists(atPath: url.path) {
-            try FileManager.default.removeItem(at: url)
-        }
-    }
-
-    func loadOutlineBody(id: UUID) -> String? {
-        guard modelContainer != nil else {
-            return Self.loadOutlineBodyFromFileSystem(
-                id: id,
-                bookDirectory: bookDirectory
-            )
-        }
-        // Body lives on disk (= filesystem is canonical for body content); = read
-        // directly even on the SwiftData path.
-        return Self.loadOutlineBodyFromFileSystem(
-            id: id,
-            bookDirectory: bookDirectory
-        )
-    }
-
-    func outlineExists(id: UUID) -> Bool {
-        guard modelContainer != nil else {
-            return FileManager.default.fileExists(
-                atPath: outlinesDirectory.appendingPathComponent("\(id.uuidString).md").path
-            )
-        }
-        guard let context = modelContext else { return false }
-        let descriptor = FetchDescriptor<WSOutlineEntry>(
-            predicate: #Predicate { $0.id == id }
-        )
-        return ((try? context.fetch(descriptor).first) != nil)
-    }
-
-    // MARK: - SwiftData bridging helpers
-
-    private static func makeRow(entry: OutlineEntry) -> WSOutlineEntry {
-        WSOutlineEntry(
-            id: entry.id,
-            bookID: entry.bookId,
-            title: entry.title,
-            summary: entry.summary,
-            parent: entry.parent,
-            order: entry.order,
-            createdAt: entry.createdAt,
-            updatedAt: entry.updatedAt
-        )
-    }
-
-    private static func toEntry(_ row: WSOutlineEntry) -> OutlineEntry {
-        OutlineEntry(
-            id: row.id,
-            bookId: row.bookID,
-            title: row.title,
-            summary: row.summary,
-            parent: row.parent,
-            order: row.order_,
-            createdAt: row.createdAt,
-            updatedAt: row.updatedAt
-        )
-    }
-
-    // MARK: - FileSystem fallback (actor-safe; = nonisolated statics)
+enum FileSystemOutlineStore {
 
     nonisolated static func loadOutlinesFromFileSystem(
         bookDirectory: URL
@@ -322,17 +124,6 @@ struct FileSystemOutlineStore: OutlineStoring {
         }
     }
 
-    nonisolated private static func writeBodyFile(
-        bodyMarkdown: String,
-        entry: OutlineEntry,
-        bookDirectory: URL
-    ) throws {
-        let outlinesDir = bookDirectory.appendingPathComponent("outlines", isDirectory: true)
-        try ensureOutlinesDirectoryExists(at: outlinesDir)
-        let url = entry.onDiskPath(under: bookDirectory)
-        try AtomicFileWrite.write(bodyMarkdown.data(using: .utf8) ?? Data(), to: url)
-    }
-
     nonisolated private static func writeIndexToFileSystem(
         _ entries: [OutlineEntry],
         bookDirectory: URL
@@ -349,5 +140,4 @@ struct FileSystemOutlineStore: OutlineStoring {
             try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
         }
     }
-
 }

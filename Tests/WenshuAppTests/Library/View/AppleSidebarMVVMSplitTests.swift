@@ -207,24 +207,26 @@ struct AppleSidebarMVVMSplitTests {
     func sidebar_service_projects_folder_children_per_book() throws {
         // 
         // delegates folder naming to BookFolderCatalog.
-        // The spec acceptance is that the 5 user-facing folders ARE
+        // The spec acceptance is that the user-facing folders ARE
         // rendered; their canonical literal lives in BookFolderCatalog.
         let catalog = try String(
             contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Library/Model/BookFolderCatalog.swift"),
             encoding: .utf8
         )
-        // SidebarService MUST expose folderChildren (= the 5 standard folders per book)
+        // SidebarService MUST expose folderChildren (= the standard folders per book)
         let sidebarSvc = try String(
             contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Library/View/SidebarService.swift"),
             encoding: .utf8
         )
         #expect(sidebarSvc.contains("folderChildren"),
-                "SidebarService MUST expose folderChildren (= the 5 standard folders per book)")
-        // The 5 user-facing folder labels live in BookFolderCatalog (= the canonical spec).
+                "SidebarService MUST expose folderChildren (= the standard folders per book)")
+        // The folder labels live in BookFolderCatalog (= the canonical spec).
+        // The outline folder keeps its spec (= its documents still draw a
+        // badge in the card grid) but has no sidebar row of its own.
         #expect(catalog.contains("\"世界观\""),
-                "BookFolderCatalog MUST define 世界观 folder (= one of the 5 user-facing sub-folders)")
+                "BookFolderCatalog MUST define the world folder (= one of the user-facing sub-folders)")
         #expect(catalog.contains("\"章节大纲\""),
-                "BookFolderCatalog MUST define 章节大纲 folder")
+                "BookFolderCatalog MUST define the outline folder (= the outline spec stays)")
         #expect(catalog.contains("\"小说正文\""),
                 "BookFolderCatalog MUST define 小说正文 folder")
     }
@@ -232,8 +234,8 @@ struct AppleSidebarMVVMSplitTests {
     @Test("sidebar_service_folder_children_carry_X_items_subtitle")
     func sidebar_service_folder_children_carry_X_items_subtitle() throws {
         // 
-        // each of the 5 standard folders (= 世界观 / 角色 /
-        // 章节大纲 / 小说正文 / 小说草稿) renders an "X 项"
+        // each standard folder row (= the world / character /
+        // outline / draft / idea rows) renders an "X items"
         // subtitle (= the .md file count under that folder),
         // mirroring the reference-library category row shape.
         let src = try String(

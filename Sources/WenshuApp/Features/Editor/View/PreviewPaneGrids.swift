@@ -464,7 +464,7 @@ extension PreviewPane {
 
     /// load .md files from a book folder on the filesystem. Walks all shelves
     /// (= shelves/<shelf>/books/<book>/) to find the matching bookId, then
-    /// scans one or more of the 8 standard folders for .md files. Errors (=
+    /// scans one or more of the standard folders for .md files. Errors (=
     /// missing folders, permission denied, etc.) are silently skipped so a
     /// single bad folder doesn't break the whole view (= partial load is more
     /// useful than nothing). Sort book docs by the current sort order (= same

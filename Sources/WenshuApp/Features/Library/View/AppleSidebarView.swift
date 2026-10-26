@@ -557,7 +557,6 @@ struct AppleSidebarView: View {
         switch title {
         case "世界观":   return "world"
         case "角色":     return "characters"
-        case "章节大纲": return "outlines"
         case "小说正文": return "chapters"
         case "小说草稿": return "drafts"
         default:         return title

@@ -18,7 +18,7 @@
 //   column's status color.
 //
 //  (= (see OOB.md #2026-09-04) OOB "kanbanissue"): the scope
-//  picker (= .menu Picker over the 8 standard sub-folders + book root
+//  picker (= .menu Picker over the 6 standard sub-folders + book root
 //  + reference library) drives which JSON file the view reads from /
 //  writes to. Scope is a view filter, not a data-layer change.
 //
@@ -41,7 +41,7 @@ import SwiftUI
 struct KanbanView: View {
     @Environment(BookStore.self) private var bookStore
 
-    /// The active scope (book root / 8 sub-folders / reference library).
+    /// The active scope (book root / 6 sub-folders / reference library).
     /// changes when the user picks a different scope from the
     /// `.menu` Picker in the header. Reload-from-disk happens in
     /// `.onChange(of: scope)`.

@@ -3,24 +3,20 @@
 //
 //   : ModelContainer setup (= the LAST phase 1 commit;
 //  = introduced Container.swift but no new @Model class).
-//  Schema contains 22 entity types (= all explicit @Model classes from
-//  phase 1 commits 1-10 + 12-20, with commits 15/16/17/19 each introducing
-//  2 classes per commit. Note: commit 11 was non-@Model infra; = the
-//  19 single-class commits + 4 extra classes from the doubled commits,
-//  minus 1 single-class commit that landed as a doc-only change =
-//  22 total). No implicit join tables (= all 22 .self entries in Schema([...])
-//  correspond to explicit @Model class declarations).
+//  Schema contains 21 entity types (= every explicit @Model class
+//  registered below; = no implicit join tables: each .self entry in
+//  Schema([...]) corresponds to an explicit @Model class declaration).
 //  Per AGENTS.md §11.4 SwiftData migration roadmap.
 //
 //  This is the FINAL commit of . It defines the ModelContainer
-//  (= single store) that aggregates all 22 @Model classes.
+//  (= single store) that aggregates all 21 @Model classes.
 //
 //  BEFORE SwiftData migration: 10 raw sqlite3 stores, 20+ tables, hand-rolled
 //  migration (= WenshuWorkspace.swift mega-store + 9 separate stores
 //  with duplicate tables for chat_messages / chat_summaries /
 //  sub_agent_runs / kanban_tasks / bookmarks / memory_entries).
 //
-//  AFTER SwiftData migration: 1 SwiftData ModelContainer holding all 22 @Model
+//  AFTER SwiftData migration: 1 SwiftData ModelContainer holding all 21 @Model
 //  classes. Tables still physically exist (= SwiftData uses Core Data's
 //  SQLite under the hood on macOS) but the API surface is unified:
 //  ModelContext.fetch(FetchDescriptor<WSXxx>()) replaces every per-store
@@ -59,20 +55,18 @@ private let wenshuLogger = Logger(subsystem: "com.wenshu", category: "container"
 /// Singleton ModelContainer (= held by AppState).
 /// Initialization is lazy (= defer until first access).
 public enum WSPersistenceContainer {
-    /// Schema listing all 22 @Model classes (= generated below).
+    /// Schema listing all 21 @Model classes (= generated below).
     /// Kept for backward compatibility (= callers that need a plain
     /// Schema without a plan still reach for this). The plan-aware
     /// ModelContainer init below builds its own Schema from
     /// ModelsSchemaV1.models.
     public static let schema = Schema([
         // Tier 1: leaf entities (= no relationships)
-        WSManifest.self,
         WSMemory.self,
         WSTodo.self,
         WSLink.self,
         WSPreference.self,
         WSProviderKey.self,
-        WSAttachment.self,
         // Tier 2: chat session + children
         WSSession.self,
         WSChatMessage.self,
@@ -82,14 +76,9 @@ public enum WSPersistenceContainer {
         WSBook.self,
         WSBookShelf.self,
         WSChapter.self,
-        WSOutlineNode.self,
-        WSForeshadowing.self,
-        WSPlaceholder.self,
-        WSOutlineDocument.self,
         WSKanbanTask.self,
         WSEntity.self,
         WSBody.self,
-        WSOutlineEntry.self,
         WSReference.self,
         // Generated cover art for a material-zone card (= additive:
         // SwiftData migrates a new model class without a
