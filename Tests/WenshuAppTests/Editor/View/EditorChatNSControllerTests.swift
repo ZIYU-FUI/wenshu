@@ -125,7 +125,7 @@ struct EditorChatNSControllerTests {
     // MARK: - The width rule (= pure; = no window and no split view)
 
     @Test("The width rule: side by side only when BOTH panes can hold their own chrome, and every width resolves")
-    func widthRule() {
+    func widthRule() throws {
         // The three measured numbers.
         //
         // 595 PT = the editor's own comfortable prose measure (the
@@ -165,12 +165,52 @@ struct EditorChatNSControllerTests {
         #expect(EditorChatNSController.arrangement(forCompetingWidth: 1000, editorShare: 0.5, mode: .automatic) == .stacked)
 
         // The decision does NOT depend on the incoming arrangement
-        // any more (= the band is gone): the same width and the same
-        // share always give the same answer.
-        #expect(EditorChatNSController.arrangement(forCompetingWidth: 742, editorShare: 0.5, mode: .automatic)
-                == EditorChatNSController.arrangement(forCompetingWidth: 742, editorShare: 0.5, mode: .automatic))
-        #expect(EditorChatNSController.arrangement(forCompetingWidth: 1600, editorShare: 0.5, mode: .automatic)
-                == EditorChatNSController.arrangement(forCompetingWidth: 1600, editorShare: 0.5, mode: .automatic))
+        // any more (= the band is gone). The rule takes no `current`
+        // at all, so the only way to pin that is to show the answer
+        // is a function of the width and the share ALONE: the same
+        // width and the same share must give the same arrangement
+        // for every arrangement the split could be in. The old band
+        // (920..1000 PT) is the case that breaks this: there the
+        // answer depended on the incoming arrangement, so the same
+        // width gave a different answer depending on where it came
+        // from.
+        //
+        // The widths below are the ones the OLD band covered, plus
+        // the widths on either side of it. Each is asserted against
+        // the arrangement the chrome arithmetic gives, and the
+        // arithmetic is spelled out in the comment: at an even split
+        // the editor needs 595 PT and the chat 280 PT, so the width
+        // must be at least 1190 PT (= 2 x 595) for both to fit.
+        //
+        // 950 PT: an even split gives each 475 PT, which is under
+        // the editor's 595 PT floor => stacked. The OLD rule said
+        // "keep the current arrangement" here, so a 950 PT window
+        // kept whatever it had been.
+        #expect(EditorChatNSController.arrangement(forCompetingWidth: 950, editorShare: 0.5, mode: .automatic) == .stacked)
+        // 1000 PT: an even split gives each 500 PT, still under the
+        // editor's floor => stacked. The OLD rule said "keep the
+        // current arrangement" here too (= the band was 920..1000).
+        #expect(EditorChatNSController.arrangement(forCompetingWidth: 1000, editorShare: 0.5, mode: .automatic) == .stacked)
+        // Just below the even-split width: 1189 PT gives each
+        // 594.5 PT, one half-point under the editor's 595 PT floor.
+        #expect(EditorChatNSController.arrangement(forCompetingWidth: 1189, editorShare: 0.5, mode: .automatic) == .stacked)
+        // At it: 1190 PT gives each 595 PT => both floors met.
+        #expect(EditorChatNSController.arrangement(forCompetingWidth: 1190, editorShare: 0.5, mode: .automatic) == .sideBySide)
+
+        // The rule takes no `current` parameter at all (= the band
+        // is gone by construction, not by a branch that happens to
+        // be unreachable). This is a source-level assertion because
+        // it is a property of the SIGNATURE: a pure call cannot
+        // depend on an argument it was never given.
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
+        let content = try String(contentsOf: url, encoding: .utf8)
+        let ruleBody = try #require(
+            Self.functionBody(named: "arrangement", in: content),
+            "the width rule must exist")
+        #expect(!ruleBody.contains("current"),
+                "the width rule must not take the incoming arrangement (= a rule that keeps the current arrangement is a rule that never resolves)")
+        #expect(!content.contains("return current"),
+                "no branch of the width rule may keep the current arrangement (= that was the band)")
 
         // The two manual cases win over the width rule, at every
         // width (= a manual choice still wins, and it survives a
@@ -179,6 +219,74 @@ struct EditorChatNSControllerTests {
         #expect(EditorChatNSController.arrangement(forCompetingWidth: 742, editorShare: 0.5, mode: .stacked) == .stacked)
         #expect(EditorChatNSController.arrangement(forCompetingWidth: 1600, editorShare: 0.5, mode: .sideBySide) == .sideBySide)
         #expect(EditorChatNSController.arrangement(forCompetingWidth: 742, editorShare: 0.5, mode: .sideBySide) == .sideBySide)
+    }
+
+    @Test("The rule judges the share the LAYOUT asserts (= a stored share that cannot host the chrome must not end up side by side with that share)")
+    func ruleJudgesTheAssertedShare() {
+        // The defect this pins: the rule used to substitute an even
+        // 0.5 for a stored share that could not host the chrome, so
+        // the rule chose side by side on the strength of a 595 PT
+        // editor pane, while the layout went on asserting the
+        // STORED share (= 0.30) and gave the editor 357 PT at a
+        // 1190 PT width (= 238 PT under the floor the rule itself
+        // declares). The chrome was clipped, which is the card's own
+        // bug class.
+        //
+        // The rule now judges the share the layout asserts, so the
+        // two cannot disagree inside one layout pass.
+        // 1190 PT at an even split: both panes meet their floors.
+        #expect(EditorChatNSController.arrangement(forCompetingWidth: 1190, editorShare: 0.5, mode: .automatic) == .sideBySide)
+        // The SAME width with the user's own 0.30 share: the editor
+        // gets 357 PT, which cannot hold its chrome, so side by side
+        // is NOT viable at that share and the rule resolves to
+        // stacked. This is the case the substitution broke.
+        #expect(EditorChatNSController.arrangement(forCompetingWidth: 1190, editorShare: 0.30, mode: .automatic) == .stacked)
+        // 1400 PT with the same 0.30 share: the editor gets 420 PT,
+        // still under its 595 PT floor => stacked.
+        #expect(EditorChatNSController.arrangement(forCompetingWidth: 1400, editorShare: 0.30, mode: .automatic) == .stacked)
+        // The share that WOULD be viable: at 1400 PT the editor
+        // needs 0.425 of the width to reach 595 PT.
+        #expect(EditorChatNSController.arrangement(forCompetingWidth: 1400, editorShare: 0.5, mode: .automatic) == .sideBySide)
+        #expect(!EditorChatNSController.holdsChrome(width: 1400, editorShare: 0.30),
+                "0.30 of 1400 PT gives the editor 420 PT, which cannot hold its own chrome")
+        #expect(EditorChatNSController.holdsChrome(width: 1400, editorShare: 0.5),
+                "an even split of 1400 PT gives the editor 700 PT (= its prose measure) and the chat 700 PT (= above its 280 PT floor)")
+    }
+
+    @Test("The stacked chrome test is the FULL width (= the stored share is a HEIGHT share and cannot clip a horizontal chrome)")
+    func stackedChromeTest() {
+        // Stacked, the divider runs ACROSS the split: the height
+        // carries the arrangement and each pane is as wide as the
+        // whole split. So the chrome test is the width itself.
+        //
+        // The editor's chrome is 448 PT (the format toolbar's 12
+        // buttons of 28 PT, the trailing close button, the two
+        // chunk separators, the intra-/inter-chunk spacing and
+        // ChromeTopBar's horizontal padding) and the chat's is
+        // 254 PT (the composer's 5 buttons of 36 PT, 5 gaps of
+        // 10 PT and the 12 PT horizontal padding).
+        #expect(EditorChatNSController.editorChromeMinimumWidth == 448)
+        #expect(EditorChatNSController.chatChromeMinimumWidth == 254)
+
+        // The screenshot's own width (= 742 PT) and the detail
+        // column with the inspector counted (= 1012 PT) both hold
+        // both panes' chrome when stacked.
+        #expect(EditorChatNSController.holdsStackedChrome(width: 742))
+        #expect(EditorChatNSController.holdsStackedChrome(width: 1012))
+        // Below the editor's chrome width, stacked cannot host the
+        // chrome either.
+        #expect(!EditorChatNSController.holdsStackedChrome(width: 447))
+        #expect(!EditorChatNSController.holdsStackedChrome(width: 253))
+
+        // The bug this pins: the stacked case used to feed a HEIGHT
+        // share into the WIDTH-share test, which asked whether
+        // `width x heightShare` held the chrome. At 742 PT that is
+        // false for EVERY share (it needs h >= 0.802 for the editor
+        // and h <= 0.623 for the chat at the same time), so the
+        // 50:50 reset was owed on every entry into stacked and an
+        // extra setPosition write landed in the layout pass.
+        #expect(EditorChatNSController.holdsStackedChrome(width: 742),
+                "the stacked chrome test is the full width, so it does not depend on the height share at all")
     }
 
     @Test("The chrome test: a pane's negotiated thickness must hold that pane's own chrome")

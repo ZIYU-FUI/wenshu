@@ -135,6 +135,29 @@ final class EditorChatNSController: NSSplitViewController {
     /// chrome fits inside a pane the rule accepts.
     static let chatPaneMinimumWidth: CGFloat = 280
 
+    /// The narrowest the EDITOR pane's own chrome can be: the tab
+    /// strip + the format toolbar.
+    ///
+    /// 448 PT = the format toolbar's 12 buttons of 28 PT, the
+    /// trailing close button, the two chunk separators, the
+    /// intra-chunk and inter-chunk spacing and ChromeTopBar's
+    /// horizontal padding.
+    ///
+    /// Why a SECOND number beside the pane floors: the floors above
+    /// are what a pane must hold when the two panes SHARE the width
+    /// (= the editor's prose measure). The chrome width is what a
+    /// pane must hold when it has the width to ITSELF (= the
+    /// stacked arrangement), where the document's measure is the
+    /// canvas's business and the pane only has to carry its chrome.
+    static let editorChromeMinimumWidth: CGFloat = 448
+
+    /// The narrowest the CHAT pane's own chrome can be: the icon
+    /// row + the composer.
+    ///
+    /// 254 PT = the composer's 5 buttons of 36 PT, 5 gaps of 10 PT
+    /// and the 12 PT horizontal padding.
+    static let chatChromeMinimumWidth: CGFloat = 254
+
     /// The width at which an EVEN split (= 50:50) can host both
     /// panes' chrome.
     ///
@@ -552,21 +575,25 @@ final class EditorChatNSController: NSSplitViewController {
         )
     }
 
-    /// The editor's share the side-by-side arrangement would use at a
-    /// width.
+    /// The editor's share the LAYOUT will assert for the side-by-side
+    /// arrangement (= the number the width rule must judge).
     ///
-    /// The stored position is used when it can host both panes' own
-    /// chrome at that width. When it cannot (= the editor's share is
-    /// so small that the editor's chrome does not fit), it is not a
-    /// position the arrangement can use, and the even split is: that
-    /// is the 50:50 reset the transition owes, so the decision and
-    /// the layout that follows it agree.
-    private func sideBySideEditorShare(forWidth width: CGFloat) -> CGFloat {
-        let evenShare: CGFloat = 0.5
-        guard let stored = storedShare(forArrangement: .sideBySide) else {
-            return evenShare
-        }
-        return Self.holdsChrome(width: width, editorShare: stored) ? stored : evenShare
+    /// Why the rule judges the LAYOUT's number and not its own: the
+    /// rule and the layout have to agree inside one layout pass, or
+    /// the rule chooses an arrangement on the strength of a share
+    /// the layout then does not give, and the editor's chrome is
+    /// clipped (measured: the rule assumed a 595 PT editor pane
+    /// while the layout gave 357 PT, = 238 PT under the floor the
+    /// rule itself declares).
+    ///
+    /// While the panes stand side by side, the layout asserts the
+    /// share it captured when the arrangement was entered, so the
+    /// rule judges that same number. Entering the arrangement, the
+    /// layout captures the stored side-by-side position next, so the
+    /// rule judges that.
+    private func assertedSideBySideEditorShare() -> CGFloat {
+        if arrangement == .sideBySide, let assertedShare { return assertedShare }
+        return storedShare(forArrangement: .sideBySide) ?? 0.5
     }
 
     /// Whether an arrangement's stored divider position can be kept
@@ -575,13 +602,25 @@ final class EditorChatNSController: NSSplitViewController {
     /// A stored position that cannot host the panes' own chrome is
     /// not a position the arrangement can use, so the 50:50 reset is
     /// owed instead of the stored position.
+    ///
+    /// The test follows the arrangement's own axis. Side by side,
+    /// the stored position is a share of the WIDTH, so the panes'
+    /// thicknesses are the width times the shares. Stacked, the
+    /// stored position is a share of the HEIGHT and each pane has
+    /// the FULL width, so the chrome test is the width itself: the
+    /// height share cannot clip a horizontal chrome.
     private func keepsStoredPosition(for arrangement: EditorArrangement) -> Bool {
         guard hasStoredPayload(for: Self.storedAutosaveName(for: arrangement)) else {
             return false
         }
         guard let width = lastParentWidth, width > 0 else { return true }
-        guard let stored = storedShare(forArrangement: arrangement) else { return true }
-        return Self.holdsChrome(width: width, editorShare: stored)
+        switch arrangement {
+        case .stacked:
+            return Self.holdsStackedChrome(width: width)
+        case .sideBySide:
+            guard let stored = storedShare(forArrangement: .sideBySide) else { return true }
+            return Self.holdsChrome(width: width, editorShare: stored)
+        }
     }
 
     /// The share of the axis the divider holds, read from AppKit's
@@ -702,6 +741,22 @@ final class EditorChatNSController: NSSplitViewController {
             && width * (1 - editorShare) >= chatPaneMinimumWidth
     }
 
+    /// Whether a width can host BOTH panes' own chrome when the
+    /// panes are STACKED.
+    ///
+    /// Stacked, the divider runs ACROSS the split, so the height
+    /// carries the arrangement and each pane is as wide as the whole
+    /// split. The chrome test is therefore the width itself: the
+    /// stored height share says nothing about it (feeding that share
+    /// into a width test was the bug: it asked whether
+    /// `width x heightShare` held the chrome, which is a category
+    /// error, and it was false for EVERY stored share at the
+    /// screenshot's width, so the 50:50 reset was owed on every
+    /// entry into stacked).
+    static func holdsStackedChrome(width: CGFloat) -> Bool {
+        width >= editorChromeMinimumWidth && width >= chatChromeMinimumWidth
+    }
+
     /// The automatic rule: the arrangement follows the width the
     /// two columns compete for and the editor's share of it (= side
     /// by side when both panes can hold their own chrome; = stacked
@@ -727,7 +782,7 @@ final class EditorChatNSController: NSSplitViewController {
         requestArrangement(
             Self.arrangement(
                 forCompetingWidth: width,
-                editorShare: sideBySideEditorShare(forWidth: width),
+                editorShare: assertedSideBySideEditorShare(),
                 mode: layoutMode
             )
         )
@@ -773,7 +828,7 @@ final class EditorChatNSController: NSSplitViewController {
             guard let width = lastParentWidth, width > 0 else { return }
             target = Self.arrangement(
                 forCompetingWidth: width,
-                editorShare: sideBySideEditorShare(forWidth: width),
+                editorShare: assertedSideBySideEditorShare(),
                 mode: .automatic
             )
         }
@@ -855,9 +910,18 @@ final class EditorChatNSController: NSSplitViewController {
     /// runs on the next layout pass (= the bounds are final by
     /// then) and only for an arrangement that had no stored
     /// payload of its own.
+    ///
+    /// Why the reset also OWNS the asserted share: the re-assert
+    /// runs after this and writes the divider's position on every
+    /// layout pass, so a reset whose share the re-assert does not
+    /// agree with is overwritten in the same pass (= the reset would
+    /// be a write that nothing can see). Claiming the share here
+    /// makes the two agree: the reset puts the divider at the
+    /// middle and the re-assert holds it there.
     private func runPendingReset() {
         guard let pending = pendingResetArrangement else { return }
         pendingResetArrangement = nil
+        assertedShare = 0.5
         applyFiftyFiftyReset(for: pending)
     }
 
