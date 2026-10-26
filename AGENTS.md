@@ -29,8 +29,8 @@ Single source of truth for every wenshu contributor and every AI agent acting on
 > Order matters. Skip = silent drift.
 
 1. AGENTS.md (this file) — 10 sections of project SSOT.
-2. ~/.hermes/profiles/pocock/skills/wenshu-pocock-workflow/SKILL.md — workflow entry + auto-load chain.
-3. ~/.hermes/profiles/pocock/skills/wenshu-pocock-workflow/references/wenshu-swift-standards.md — Swift standards + AI self-check.
+2. ~/.hermes/shared/wenshu-skills/wenshu-pocock-workflow/SKILL.md — workflow entry + auto-load chain.
+3. ~/.hermes/shared/wenshu-skills/wenshu-pocock-workflow/references/wenshu-swift-standards.md — Swift standards + AI self-check.
 4. .scratch/<date>-<topic>/spec.md if a ticket is open.
 5. OOB.md if any rule references (see OOB.md #YYYY-MM-DD).
 
@@ -176,12 +176,12 @@ Register a new row there, not here. The rule is unchanged.
 
 | Topic | Link |
 | ----- | ---- |
-| Swift standards + AI self-check | ~/.hermes/profiles/pocock/skills/wenshu-pocock-workflow/references/wenshu-swift-standards.md |
+| Swift standards + AI self-check | ~/.hermes/shared/wenshu-skills/wenshu-pocock-workflow/references/wenshu-swift-standards.md |
 | PO methodology | ~/.hermes/profiles/pocock/skills/universal-pocock-workflow/SKILL.md |
 | Apple HIG canonical | ~/.hermes/profiles/pocock/skills/wenshu-apple-api-first/SKILL.md |
-| Design system rule (SFIcon, DesignTokens, 9-grep sweep) | ~/.hermes/profiles/pocock/skills/wenshu-pocock-workflow/references/v3.0-design-system-rule.md |
+| Design system rule (SFIcon, DesignTokens, 9-grep sweep) | ~/.hermes/shared/wenshu-skills/wenshu-pocock-workflow/references/v3.0-design-system-rule.md |
 | Iron rules audit (41 Apple HIG + Swift rules) | ~/.hermes/profiles/pocock/skills/wenshu-iron-rules-audit/SKILL.md |
-| Parallel dev convention (worktree board cards) | ~/.hermes/profiles/pocock/skills/wenshu-parallel-dev/SKILL.md |
+| Parallel dev convention (worktree board cards) | ~/.hermes/shared/wenshu-skills/wenshu-parallel-dev/SKILL.md |
 | Nervous file index (NFI) | /Volumes/ANAN/Engineering/wenshu/docs/agents/nfi.md |
 | OOB index (boss directives, dev-time only) | /Volumes/ANAN/Engineering/wenshu/OOB.md |
 | Domain glossary | /Volumes/ANAN/Engineering/wenshu/docs/agents/domain.md |
