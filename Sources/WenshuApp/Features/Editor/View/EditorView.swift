@@ -224,13 +224,29 @@ struct EditorView: View {
                         // (see OOB.md #2026-09-07) — 'editor, yes,
                         // … (= 13 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)
                         // action).
-                        WenshuMarkdownEditor(
-                            text: Binding(
-                                get: { self.draft },
-                                set: { self.draft = $0 }
-                            ),
-                            surface: editorSurface
-                        )
+                        // The reading view shows the cards of the
+                        // documents this one points at (= the index's
+                        // link list became a board; = boss 2026-10-26),
+                        // so the engine renders the body without those
+                        // link lines.
+                        VStack(spacing: 0) {
+                            WenshuMarkdownEditor(
+                                text: Binding(
+                                    get: { self.previewBody },
+                                    // The reading view never writes
+                                    // (= the draft belongs to the edit
+                                    // view).
+                                    set: { _ in }
+                                ),
+                                surface: editorSurface
+                            )
+                            LinkedDocumentBoardSection(
+                                documentBody: self.draft,
+                                onOpen: { document in
+                                    self.handlePreviewWikiLink(displayName: document.title)
+                                }
+                            )
+                        }
                     } else {
                         // edit mode uses Apple SwiftUI TextEditor (= HIG
                         // … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8 high information density)
@@ -319,6 +335,11 @@ struct EditorView: View {
             guard let idx = activeTabIndex else { return }
             appState.openTabs[idx].draft = newValue
         }
+    }
+    /// The body the reading view renders (= the draft without the
+    /// link sections; = those become the card board).
+    private var previewBody: String {
+        DocumentLinkIndex.bodyWithoutLinkSections(draft)
     }
     var originalBody: String {
         get { activeTab?.originalBody ?? "" }

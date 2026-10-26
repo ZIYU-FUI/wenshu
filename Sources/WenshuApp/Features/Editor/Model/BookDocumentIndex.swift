@@ -69,9 +69,19 @@ struct BookDocumentIndex: Sendable {
     /// `核心设定.md` are the same document), and the match ignores
     /// case (= the file system is case-insensitive on the target
     /// platform, so the link should be too).
+    ///
+    /// The name may also be the path inside the book (= the link id:
+    /// `world/核心设定.md`). The engine asks the resolver twice: once
+    /// with the name the user sees, and once with the id it handed
+    /// back (= so both spellings have to answer).
     func document(named name: String) -> Document? {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
+        if let byPath = documents.first(where: {
+            $0.relativePath.caseInsensitiveCompare(trimmed) == .orderedSame
+        }) {
+            return byPath
+        }
         let wanted = trimmed.hasSuffix(".md")
             ? String(trimmed.dropLast(".md".count))
             : trimmed
