@@ -140,7 +140,7 @@ public final class MirroredKeychainStore: ProviderKeychainStoring, @unchecked Se
     /// skip the mirror write those tests exist to assert.
     /// Resolved once per process: the signature cannot change while the app
     /// runs, and spawning codesign on every key write would be absurd.
-    nonisolated(unsafe) private static let stableSignedOnce: Bool = resolveStableSigning()
+    private static let stableSignedOnce: Bool = resolveStableSigning()
 
     /// The override the test seam sets.
     ///
@@ -178,7 +178,7 @@ public final class MirroredKeychainStore: ProviderKeychainStoring, @unchecked Se
         }
         for index in 0..<_dyld_image_count() {
             guard let raw = _dyld_get_image_name(index) else { continue }
-            let path = String(validatingUTF8: raw) ?? ""
+            let path = String(validatingCString: raw) ?? ""
             if path.hasSuffix("/WenshuApp"), FileManager.default.fileExists(atPath: path) {
                 return URL(fileURLWithPath: path)
             }
@@ -250,7 +250,7 @@ public final class MirroredKeychainStore: ProviderKeychainStoring, @unchecked Se
         } else {
             for index in 0..<_dyld_image_count() {
                 let raw = _dyld_get_image_name(index)
-                if let raw, let cString = String(validatingUTF8: raw) {
+                if let raw, let cString = String(validatingCString: raw) {
                     if cString.hasSuffix("/WenshuApp") {
                         path = cString
                         break

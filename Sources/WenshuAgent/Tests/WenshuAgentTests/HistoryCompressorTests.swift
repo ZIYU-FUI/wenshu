@@ -138,7 +138,7 @@ struct HistoryCompressorTests {
     @Test("the tail token budget caps how far the tail reaches")
     func tailBudgetCapsReach() {
         var messages = [user("head")]
-        for i in 0..<30 { messages.append(assistant(String(repeating: "字", count: 400))) }
+        for _ in 0..<30 { messages.append(assistant(String(repeating: "字", count: 400))) }
         let generous = HistoryCompressor(budget: CompressionBudget(protectHead: 1, protectTail: 30, protectTailTokens: 1_000_000))
         let tight = HistoryCompressor(budget: CompressionBudget(protectHead: 1, protectTail: 30, protectTailTokens: 500))
         guard let wide = generous.compressionWindow(messages),
@@ -311,7 +311,7 @@ struct HistoryCompressorTests {
     @Test("the threshold decides whether compression is due")
     func thresholdDecides() {
         var messages: [LLMMessage] = []
-        for i in 0..<200 { messages.append(assistant(String(repeating: "字", count: 100))) }
+        for _ in 0..<200 { messages.append(assistant(String(repeating: "字", count: 100))) }
         let compressor = HistoryCompressor()
         let tokens = compressor.totalTokens(messages)
         #expect(compressor.needsCompression(messages, contextWindow: tokens) == true)

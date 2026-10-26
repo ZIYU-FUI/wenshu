@@ -87,7 +87,7 @@ public enum WAStreamDiagHeader: String, CaseIterable {
 
 public extension Dictionary where Key == String, Value == String {
     /// Extracts hermes STREAM_DIAG_HEADERS into a flat dict.
-    public func waStreamDiagHeaders() -> [String: String] {
+    func waStreamDiagHeaders() -> [String: String] {
         var out: [String: String] = [:]
         for key in WAStreamDiagHeader.allCases {
             if let value = self[key.rawValue] {

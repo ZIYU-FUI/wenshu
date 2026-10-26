@@ -183,7 +183,6 @@ struct UnsignedKeychainPromptTests {
         // resolution down the file-store branch. Clear it for the
         // duration so the assertion is about the signature alone.
         let flagKey = "wenshu.debugNoKeychain"
-        let hadFlag = UserDefaults.standard.object(forKey: flagKey) != nil
         let previousFlag = UserDefaults.standard.object(forKey: flagKey)
         UserDefaults.standard.removeObject(forKey: flagKey)
         defer {

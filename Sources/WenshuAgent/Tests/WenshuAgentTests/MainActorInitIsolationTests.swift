@@ -32,7 +32,7 @@ struct MainActorInitIsolationTests {
 
     @Test("each initializer that reads a MainActor value declares the isolation")
     func initializerDeclaresTheIsolation() throws {
-        for source in try InitializerSources.all {
+        for source in InitializerSources.all {
             let text = try String(contentsOf: source.url, encoding: .utf8)
             #expect(
                 source.declaresIsolation(in: text),

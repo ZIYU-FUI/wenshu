@@ -14,7 +14,6 @@
 // compression (= `ChatView` manual button).
 
 import Foundation
-import WenshuAgent
 
 public actor ConversationCompression {
 

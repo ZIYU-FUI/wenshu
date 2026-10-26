@@ -78,7 +78,7 @@ struct PromptCacheStreamTests {
           "usage": {"output_tokens": 120}
         }
         """
-        await StreamUsageScope.$collector.withValue(collector) {
+        StreamUsageScope.$collector.withValue(collector) {
             _ = AnthropicSSEDecoder.decode(event: "message_start", data: first)
             _ = AnthropicSSEDecoder.decode(event: "message_delta", data: last)
         }
@@ -93,7 +93,7 @@ struct PromptCacheStreamTests {
     @Test("the assembled turn reports the provider's counters")
     func assembledTurnReportsProviderCounters() async throws {
         let collector = StreamUsageCollector()
-        await StreamUsageScope.$collector.withValue(collector) {
+        StreamUsageScope.$collector.withValue(collector) {
             _ = AnthropicSSEDecoder.decode(
                 event: "message_start",
                 data: """
