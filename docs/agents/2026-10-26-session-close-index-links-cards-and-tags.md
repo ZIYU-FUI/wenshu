@@ -139,3 +139,32 @@ and asserts the rule on the real answer.
   `/Users/anbaiqiang/.hermes/profiles/wenshu-dev/cache/scratch/wt-baseline-main`
   (= HEAD `15901058d5`), = and the comparison is by failure name, = not by
   count alone.
+- **The chrome-band probe measures on a MAXIMIZED window.** = A narrower
+  window wraps the editor's format toolbar into two rows, = the band grows
+  by ten points, = and the gate fails (= a content-centre delta of ~19 PT).
+  = That is the window, = not the app.
+
+## 7. The probe collection
+
+The boss asked whether the probes were all collected. = They were not, = and
+the gap was in the index's own rule (= "a row with no measurement behind it
+is worse than no row at all").
+
+| Probe | Before | After |
+|---|---|---|
+| `chat_bubble_metrics.swift` | measured (`3ee82bf48b18`) | unchanged (= its source did not move) |
+| `column_chrome_band.py` | measured (`ab0de05659`), = but its "the source did not change" claim had expired | the claim now names the two files the band lives in |
+| `editor_chat_arrangement.py` | a row with NO measurement | measured against `560c70ae51`, = `GATE: PASSED` |
+| `toolbar_preference_change.py` | measured (`37e941c604`) | unchanged (= `InspectorView.swift` + `SettingView.swift` are byte-identical) |
+| `toolbar_preference_change.swift` | rides in the `.py`'s run | unchanged |
+
+The index's own test (`Tools/wenshu-devtool/tests/test_probe_index.py`) checks
+that the index and the probes directory agree in both directions. = It does
+NOT check that every row carries a measurement, = so a row can be added
+without one and the test still passes. = The arrangement probe's row was
+added that way (`6ca6d24cea`).
+
+The measurement was taken on the running app's accessibility tree (= no
+screenshot; = the tree's coordinates are the measurement), and the app's own
+`WS_SCREENSHOT` hook wrote the capture the band probe reads (= the screen
+itself was never grabbed).
