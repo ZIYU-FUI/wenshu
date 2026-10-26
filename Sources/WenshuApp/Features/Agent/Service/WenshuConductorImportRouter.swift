@@ -265,7 +265,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         let (bookPath, bookTitle) = resolveBookPath(input: input)
         // Launch the agent against the folder's procedure (= no folder =
         // reference library = no procedure = a clear failure).
-        let reply = try await runAgentAgainstFolder(
+        let (reply, writtenFiles) = try await runAgentAgainstFolder(
             input: input,
             body: body,
             folder: folder,
@@ -279,6 +279,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         let metadata = WCIRHelpers.parseAgentMetadata(reply)
         return ImportRoutingResult(
             destination: destination,
+            writtenFiles: writtenFiles,
             title: metadata.title.isEmpty ? fallbackTitle : metadata.title,
             summary: metadata.summary,
             tags: Set(metadata.tags),
@@ -369,7 +370,7 @@ actor WenshuConductorImportRouter: ImportRouter {
         bookPath: String?,
         bookTitle: String,
         progress: (@Sendable (String) async -> Void)?
-    ) async throws -> String {
+    ) async throws -> (String, [String]) {
         guard let folder else {
             await progress?("  ⚠️ 参考库没有 SOP (= 路由到失败 task)")
             throw NSError(
@@ -392,7 +393,7 @@ actor WenshuConductorImportRouter: ImportRouter {
             bookContext: context,
             progress: progress
         )
-        return result.finalResponse
+        return (result.finalResponse, result.writtenFiles)
     }
 
     /// Extract the BookFolder from the routing result's destination (= the

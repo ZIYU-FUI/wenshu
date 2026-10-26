@@ -64,6 +64,10 @@ final class ImportAgentDriverTests: XCTestCase {
         XCTAssertEqual(result.sopName, "ImportWorldPrompt")
         // The stub wrote one document.
         XCTAssertEqual(result.toolUseCount, 1)
+        // The result names the documents that landed (= the sheet shows
+        // the user what reached the disk, = and the log's "the split did
+        // not happen" warning fires only when nothing landed).
+        XCTAssertEqual(result.writtenFiles, ["stub.md"])
         // The connector should have received
         // at least one call (= the agent's
         // user message).

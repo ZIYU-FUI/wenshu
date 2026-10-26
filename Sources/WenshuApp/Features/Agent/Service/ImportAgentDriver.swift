@@ -159,7 +159,7 @@ struct ImportAgentDriver: Sendable {
         // accumulator, so the sheet's reply and the chat's reply are the
         // same shape.
         let emitter = ImportAgentPartEmitter()
-        let result = try await Self.runTurnUntilSomethingLanded(
+        let (result, writtenFiles) = try await Self.runTurnUntilSomethingLanded(
             loop: loop,
             userMessage: userMessage,
             systemMessage: sop,
@@ -185,7 +185,8 @@ struct ImportAgentDriver: Sendable {
         return ImportAgentResult(
             sopName: sopName,
             toolUseCount: toolUseCount,
-            finalResponse: finalResponse
+            finalResponse: finalResponse,
+            writtenFiles: writtenFiles
         )
     }
 
@@ -206,7 +207,7 @@ struct ImportAgentDriver: Sendable {
         emitter: ImportAgentPartEmitter,
         progress: (@Sendable (String) async -> Void)?,
         attempts: Int = 3
-    ) async throws -> ConversationResult {
+    ) async throws -> (ConversationResult, [String]) {
         var budget = Self.turnTokenBudget
         var thinkingBudget: Int? = Self.thinkingBudget
         var lastReply = ""
@@ -246,7 +247,7 @@ struct ImportAgentDriver: Sendable {
                 )
                 continue
             }
-            if tally.count > 0 { return result }
+            if tally.count > 0 { return (result, tally.files) }
             // A provider that refuses the request (= a budget it will
             // not take, = a quota, = a model it does not know) says so in
             // the reply; = the stream carries the refusal instead of
@@ -352,13 +353,15 @@ struct ImportAgentDriver: Sendable {
     /// compression drops the tool answers.
     final class WriteTally: @unchecked Sendable {
         private let lock = NSLock()
-        private var landed = 0
+        private var landed: [String] = []
 
-        /// Records one write's answer.
+        /// Records one write's answer (= the tool's own JSON, = which
+        /// names the path it wrote).
         func record(_ output: String) {
             guard output.contains("\"success\":true") else { return }
+            let path = Self.path(in: output) ?? ""
             lock.lock()
-            landed += 1
+            landed.append(path)
             lock.unlock()
         }
 
@@ -366,7 +369,23 @@ struct ImportAgentDriver: Sendable {
         var count: Int {
             lock.lock()
             defer { lock.unlock() }
+            return landed.count
+        }
+
+        /// The documents that landed (= the file names).
+        var files: [String] {
+            lock.lock()
+            defer { lock.unlock() }
             return landed
+        }
+
+        /// The path the tool's answer names.
+        private static func path(in output: String) -> String? {
+            guard let data = output.data(using: .utf8),
+                  let object = try? JSONSerialization.jsonObject(with: data)
+                      as? [String: Any],
+                  let path = object["path"] as? String else { return nil }
+            return (path as NSString).lastPathComponent
         }
     }
 
@@ -427,4 +446,11 @@ struct ImportAgentResult: Sendable {
     let sopName: String
     let toolUseCount: Int
     let finalResponse: String
+    /// The documents that landed (= the write tool's own answers).
+    ///
+    /// The count of write CALLS is not the count of documents: = a call
+    /// can be refused, = and then nothing lands. The sheet has to show
+    /// the user what actually reached the disk, = so the paths travel
+    /// with the result.
+    let writtenFiles: [String]
 }

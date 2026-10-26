@@ -147,7 +147,7 @@ extension ImportService {
                 // Log the LLM's response summary (= the user gets to SEE what the
                 // LLM returned: title, tags, # of extraFiles, etc.).
                 let routingSummary = """
-                LLM 返回: title="\(result.title)", tags=\(result.tags.sorted().joined(separator: ", ")), extraFiles=\(result.extraFiles.count) 个
+                LLM 返回: title="\(result.title)", tags=\(result.tags.sorted().joined(separator: ", ")), 写入文件=\(result.writtenFiles.count) 个
                 """
                 await appendActivity(
                     to: tasksBox, i: i,
@@ -162,10 +162,22 @@ extension ImportService {
                         onProgress: onProgress
                     )
                 }
-                if result.extraFiles.isEmpty {
+                // The agent path writes the documents itself, = so its split
+                // arrives as the written files, = not as the legacy
+                // `extraFiles` list (= which is empty there by design). = The
+                // warning therefore fires only when NOTHING landed, = so the
+                // user is never told a split failed that happened.
+                if result.writtenFiles.isEmpty && result.extraFiles.isEmpty {
                     await appendActivity(
                         to: tasksBox, i: i,
                         message: "⚠️ LLM 没返回 extraFiles — 6 必填+N 自定义 没拆",
+                        onProgress: onProgress
+                    )
+                }
+                for (n, name) in result.writtenFiles.enumerated() {
+                    await appendActivity(
+                        to: tasksBox, i: i,
+                        message: "  写入 \(n + 1)/\(result.writtenFiles.count) \(name)",
                         onProgress: onProgress
                     )
                 }

@@ -181,6 +181,15 @@ struct ImportRoutingResult: Codable, Sendable, Hashable {
     /// can replace the LLM's classification
     /// with the user-pinned destination).
     var destination: ImportDestination
+    /// The documents the agent wrote (= the agent path's own answer).
+    ///
+    /// The legacy path reported its split as `extraFiles`; = the agent
+    /// path writes the documents itself, = so the list the caller reads
+    /// is empty there, = and a caller that reads only that list says
+    /// "nothing was written" about a run that wrote nine documents. The
+    /// written documents travel separately, = so the caller can tell the
+    /// two apart.
+    var writtenFiles: [String] = []
     /// Title for the entity / book doc. The agent derives
     /// this from the file's H1 (= or the first non-empty
     /// heading; = the same heuristic `EntityClassifier` and
