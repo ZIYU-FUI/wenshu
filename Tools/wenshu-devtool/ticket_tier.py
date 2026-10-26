@@ -61,7 +61,7 @@ Usage:
     ticket_tier.py --plan            print the tier contract table
     ticket_tier.py --json            machine-readable output
 
-Exit code 0 = pass, 1 = at least one error.
+Exit code 0 = pass, 1 = at least one error, 2 = the board could not be read.
 """
 from __future__ import annotations
 
@@ -658,22 +658,42 @@ def find_errors(card: dict) -> list[str]:
     return errors + notes
 
 
-def kanban_cards(board: str | None = None) -> list[dict]:
-    """Every card on the board, with its body and its runtime cap."""
+def kanban_cards(board: str | None = None) -> list[dict] | None:
+    """Every card on the board, or None when the board could not be read.
+
+    None and [] are DIFFERENT facts. [] is a board that was read and holds
+    no cards; None is a board this tool never read at all. The two used to
+    be the same value, so a board that could not be read looked exactly like
+    a clean board and the sweep reported an agreement it never verified.
+
+    None is returned for every way the read can fail: the CLI refusing (a
+    mistyped board slug, a missing binary), a payload that is not a card
+    list, and a payload that is not JSON. The shape matches the review
+    gate's board reader, so the two gates read a board the same way.
+    """
     args = ["hermes", "kanban"]
     if board:
         args += ["--board", board]
     args += ["list", "--json"]
-    out = subprocess.run(args, cwd=REPO, capture_output=True, text=True)
+    try:
+        out = subprocess.run(args, cwd=REPO, capture_output=True, text=True)
+    except OSError as exc:
+        print(f"the board could not be read: {exc}", file=sys.stderr)
+        return None
     if out.returncode != 0:
-        print(out.stderr.strip(), file=sys.stderr)
-        return []
+        detail = out.stderr.strip() or out.stdout.strip()
+        print(f"the board could not be read: {detail}", file=sys.stderr)
+        return None
     try:
         data = json.loads(out.stdout)
     except json.JSONDecodeError:
-        return []
+        print("the board could not be read: the CLI printed no card list", file=sys.stderr)
+        return None
     if isinstance(data, dict):
         data = data.get("tasks", [])
+    if not isinstance(data, list):
+        print("the board could not be read: the CLI printed no card list", file=sys.stderr)
+        return None
     return list(data)
 
 
@@ -750,6 +770,13 @@ def main() -> int:
         cards = [card_from_file(args.body)]
     else:
         cards = kanban_cards(args.board)
+        if cards is None:
+            # The reader already said why, on stderr. An unreadable board is
+            # not an empty board: the sweep refuses instead of reporting an
+            # agreement over cards it never read.
+            if not args.json:
+                print("=== the board could not be read ===")
+            return 2
         if args.live:
             cards = [c for c in cards if c.get("status") != "done"]
         if args.cards:

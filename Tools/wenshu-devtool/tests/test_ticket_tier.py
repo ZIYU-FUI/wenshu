@@ -19,13 +19,19 @@ board wenshu-par:
      the gate the body asks for (both would be circular).
  10. the tier of a body that changes NOTHING is still decided by the work,
      not by the absence of a signal.
+ 11. the board sweep over a board that cannot be read reports no agreement
+     and exits non-zero.
 
 Run:  python3 Tools/wenshu-devtool/tests/test_ticket_tier.py
 Exit: 0 = every case passed, 1 = at least one case failed.
 """
 from __future__ import annotations
 
+import contextlib
 import importlib.util
+import io
+import json
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -33,6 +39,28 @@ from pathlib import Path
 TOOL = Path(__file__).resolve().parent.parent / "ticket_tier.py"
 
 FAILURES: list[str] = []
+
+
+class _StubCLI:
+    """A stand-in for the `subprocess` module, so no live board is read.
+
+    The board reader shells out to the hermes CLI, so the only way to
+    exercise the unreadable case without touching the live board is to
+    stand in for the CLI. This stands in for it.
+    """
+
+    def __init__(self, returncode: int = 1, stdout: str = "", stderr: str = "") -> None:
+        self.returncode = returncode
+        self.stdout = stdout
+        self.stderr = stderr
+
+    def run(self, args, **kwargs):
+        return subprocess.CompletedProcess(
+            args=args,
+            returncode=self.returncode,
+            stdout=self.stdout,
+            stderr=self.stderr,
+        )
 
 
 def load_tool():
@@ -62,6 +90,28 @@ def tier_of_body(tool, body: str) -> str:
         return tool.tier_of(card["body"])[0]
     finally:
         Path(path).unlink(missing_ok=True)
+
+
+def run_check(tool, cli, argv: list[str]) -> tuple[int, str, str]:
+    """Run the tool's own main() over a stubbed CLI, and capture its streams.
+
+    The board reader shells out to the hermes CLI, so the sweep is exercised
+    through the real main() with the CLI stood in for. The live board is
+    never read, and the tool's own exit code is the thing under test.
+    """
+    saved_argv = sys.argv
+    saved_subprocess = tool.subprocess
+    tool.subprocess = cli
+    sys.argv = ["ticket_tier.py", *argv]
+    out = io.StringIO()
+    err = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            code = tool.main()
+    finally:
+        sys.argv = saved_argv
+        tool.subprocess = saved_subprocess
+    return code, out.getvalue(), err.getvalue()
 
 
 ONE_FILE = """## GOAL
@@ -635,6 +685,64 @@ def main() -> int:
         "T1 buys 7 sections, T2 buys 9, T3 buys 12",
         [tool.TIERS[t]["sections_max"] for t in ("T1", "T2", "T3")],
         [7, 9, 12],
+    )
+
+    # 18. The board sweep must not be able to PASS by reading no cards. A
+    #     board that cannot be read is not an empty board: the old reader
+    #     returned [] for both, so a mistyped slug printed "every card
+    #     agrees with its tier" and exited 0, and the boss read that line as
+    #     evidence the board was checked. It was not.
+    refusing = _StubCLI(
+        returncode=1,
+        stderr="kanban: board 'nosuchboard' does not exist.",
+    )
+    code, out, err = run_check(
+        tool, refusing, ["--check", "--board", "nosuchboard"]
+    )
+    check("an unreadable board does not exit 0", code != 0, True)
+    check(
+        "an unreadable board does not report agreement",
+        "every card agrees" in out,
+        False,
+    )
+    check(
+        "an unreadable board says the board could not be read",
+        "could not be read" in out + err,
+        True,
+    )
+
+    # An EMPTY board is a different fact and stays a pass: the board was
+    # read, and it holds no cards to disagree with their tier.
+    empty = _StubCLI(returncode=0, stdout="[]")
+    code, out, err = run_check(tool, empty, ["--check"])
+    check("an empty board still exits 0", code, 0)
+    check(
+        "an empty board still reports agreement",
+        "every card agrees" in out,
+        True,
+    )
+
+    # A readable board with cards still reports the SAME findings, so the
+    # fix changed what the sweep reports when it reads nothing, and nothing
+    # else.
+    agreeing = _StubCLI(
+        returncode=0,
+        stdout=json.dumps([
+            {
+                "id": "t_ok",
+                "title": "[T1] one file",
+                "body": ONE_FILE,
+                "status": "ready",
+                "max_runtime_seconds": 900,
+            }
+        ]),
+    )
+    code, out, err = run_check(tool, agreeing, ["--check"])
+    check("a readable board still exits 0", code, 0)
+    check(
+        "a readable board still reports agreement",
+        "every card agrees" in out,
+        True,
     )
 
     print()
