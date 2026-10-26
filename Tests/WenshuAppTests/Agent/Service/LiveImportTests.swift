@@ -353,10 +353,15 @@ final class LiveImportTests: XCTestCase {
                         rewriteMode: .searchAndRewrite,
                         body: nil
                     ),
+                    // The source text is deliberately neutral: = the
+                    // provider's content filter refuses some material
+                    // (= "input new_sensitive"), = and a refusal says
+                    // nothing about the import.
                     body: """
-                    杜甫，字子美，自号少陵野老，唐代伟大的现实主义诗人。
-                    他饱经丧乱，晚年漂泊于夔州、武陵一带，诗风沉郁顿挫，
-                    代表作有三吏（《石壕吏》《新安吏》《潼关吏》）与三别。
+                    候鸟的迁徙路线由三部分组成：繁殖地、停歇地与越冬地。
+                    研究者用环志、卫星追踪器与稳定同位素比值三种方法互相校验。
+                    2024 年的环志记录显示，东亚-澳大利西亚迁飞区有十一个停歇地，
+                    其中三个因围垦面积增加而显著缩小。
                     """,
                     fallbackTitle: "dufu"
                 )
@@ -377,6 +382,17 @@ final class LiveImportTests: XCTestCase {
         XCTAssertFalse(result.title.isEmpty, "The real model must produce a title.")
         XCTAssertFalse(result.summary.isEmpty, "The real model must produce a summary.")
         XCTAssertFalse(result.tags.isEmpty, "The real model must produce tags.")
+        // The library's tag rule (= the boss 2026-10-09 / 2026-10-26):
+        // = the title is not a tag, = at most three, = at least one.
+        XCTAssertLessThanOrEqual(
+            result.tags.count,
+            3,
+            "The library's rule: at most three tags."
+        )
+        XCTAssertFalse(
+            result.tags.contains { $0.caseInsensitiveCompare(result.title) == .orderedSame },
+            "The library's rule: the title is not a tag."
+        )
         XCTAssertNotNil(result.category, "The real model must produce a library category.")
         XCTAssertFalse(
             (result.rewrittenBody ?? "").isEmpty,
