@@ -14,7 +14,7 @@ excluded:
   - wenshu-audit-*
   - backup-pre-ws-migration-*
   - Sources/WenshuApp/Core/Agent/WenshuVerifier.swift
-  - Sources/WenshuApp/Core/Agent/WenshuAgentIdentity.swift
+  - Sources/WenshuAgent/Sources/WenshuAgent/Turn/WenshuAgentIdentity.swift
   - Sources/WenshuApp/Core/Agent/WenshuConductorIdentity.swift
   - Tools/wenshu-devtool/commit_filter.py
   - Tests/WenshuAppTests/.+/test_block_pollution
