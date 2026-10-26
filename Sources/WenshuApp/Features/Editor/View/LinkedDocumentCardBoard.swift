@@ -30,6 +30,14 @@ struct LinkedDocumentCardBoard: View {
         [GridItem(.fixed(Self.cardWidth), spacing: DesignTokens.spacingModerate)]
     }
 
+    /// The stored picture of one card (= the same cover the material
+    /// column shows; = the key namespaces the two card kinds apart).
+    private func coverURL(for document: BookDoc) -> URL? {
+        CardCoverService().coverImageURL(
+            for: CardCoverService.key(forBookDoc: document.id)
+        )
+    }
+
     var body: some View {
         LazyVGrid(columns: columns, alignment: .leading, spacing: DesignTokens.spacingModerate) {
             ForEach(documents) { document in
@@ -39,7 +47,10 @@ struct LinkedDocumentCardBoard: View {
                     // The board is a reading view (= the material column
                     // owns the rename and delete menus).
                     onRename: {},
-                    onDelete: {}
+                    onDelete: {},
+                    // The picture is the card (= the boss: only the
+                    // picture, = no moving cover on a board of nine).
+                    coverImageURL: coverURL(for: document)
                 )
                 .frame(
                     width: Self.cardWidth,
