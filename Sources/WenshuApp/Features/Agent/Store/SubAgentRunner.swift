@@ -210,6 +210,15 @@ final class SubAgentRunner {
             )
         }
 
+        // The role's row (= the facts this run dispatches on: = which
+        // run the role gets, = the slug the errors name).
+        guard let role = SubAgentRoleRegistry.role(forSlug: identityName.rawValue)
+        else {
+            throw SubAgentRunnerError.subAgentIdentityMissingPrompt(
+                agentName: liveHandle.agentName
+            )
+        }
+
         // 3. Transition pending → running (= the user sees the
         //    kanban task move from "queued" to "in progress").
         var running = liveHandle
@@ -221,11 +230,17 @@ final class SubAgentRunner {
         // through to the existing real-LLM runTurn path.
         let summary: String
         do {
-            switch identityName {
-            case .archivist:
-                summary = try await runArchivistSubAgent(handle: liveHandle)
-            case .auditor:
-                summary = try await runAuditorSubAgent(handle: liveHandle)
+            switch role.dispatch {
+            case .archiveRun:
+                summary = try await runArchivistSubAgent(
+                    handle: liveHandle,
+                    slug: role.slug
+                )
+            case .auditRun:
+                summary = try await runAuditorSubAgent(
+                    handle: liveHandle,
+                    slug: role.slug
+                )
             default:
                 summary = try await runRealSubAgent(
                     handleID: liveHandle.id,
@@ -357,7 +372,8 @@ final class SubAgentRunner {
     // … (= 14 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / success').
     private func runArchivistSubAgent(
-        handle: BackgroundDelegationHandle
+        handle: BackgroundDelegationHandle,
+        slug: String
     ) async throws -> String {
         guard let storage = archivistStorage else {
             // No storage adapter injected (= misconfigured runner).
@@ -365,7 +381,7 @@ final class SubAgentRunner {
             // summary).
             throw SubAgentRunnerError.subAgentLLMFailed(
                 handleID: handle.id,
-                agentName: SubAgentIdentity.Name.archivist.rawValue,
+                agentName: slug,
                 message: "ArchivistStorage not injected (= runner misconfigured; = production should pass LiveArchivistStorage)"
             )
         }
@@ -399,12 +415,13 @@ final class SubAgentRunner {
     // … (= 15 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // / "skip" = no memory snippet (= nothing to verify against).
     private func runAuditorSubAgent(
-        handle: BackgroundDelegationHandle
+        handle: BackgroundDelegationHandle,
+        slug: String
     ) async throws -> String {
         guard let storage = auditorStorage else {
             throw SubAgentRunnerError.subAgentLLMFailed(
                 handleID: handle.id,
-                agentName: SubAgentIdentity.Name.auditor.rawValue,
+                agentName: slug,
                 message: "AuditorStorage not injected (= runner misconfigured)"
             )
         }

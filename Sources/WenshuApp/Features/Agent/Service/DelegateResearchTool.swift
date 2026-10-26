@@ -129,7 +129,7 @@ final class DelegateResearchTool: Tool, @unchecked Sendable {
             // per call and the runner never saw the handle).
             let registry = AsyncDelegationRegistry.shared
             let result = try await delegate(
-                subagentProfile: SubAgentIdentity.Name.researcher.rawValue,
+                subagentProfile: SubAgentRoleRegistry.researcher.slug,
                 task: taskPrompt,
                 context: [
                     "noun": noun,
@@ -159,7 +159,7 @@ final class DelegateResearchTool: Tool, @unchecked Sendable {
                 "noun": noun,
                 "handle_id": handleID,
                 "spawn_id": spawnID,
-                "agent": SubAgentIdentity.Name.researcher.rawValue,
+                "agent": SubAgentRoleRegistry.researcher.slug,
                 "status": result.handle.state.rawValue
             ])
         }

@@ -10,8 +10,8 @@
 //  Design:
 //    - Pure enum + static functions (= no actor needed; the parser is
 //      sync + stateless).
-//    - Recognized slugs come from SubAgentIdentity.Name.allCases (= 5
-//      wenshu sub-agents: researcher / writer / analyst / archivist /
+//    - Recognized slugs come from the role table (= 5 wenshu
+//      sub-agents: researcher / writer / analyst / archivist /
 //      auditor). The instructions mention "editor" / "reviewer" but
 //      those are hermes-specific and not part of wenshu's
 //      SubAgentIdentity taxonomy per AGENTS.md §11.3 wenshu-side-wins.
@@ -51,12 +51,11 @@ enum SubAgentMentionParser {
     }
 
     /// Available sub-agent slugs (= for autocomplete / palette).
-    /// Mirrors `SubAgentIdentity.Name.allCases` raw values (= hermes
-    /// has "editor" / "reviewer" too, but wenshu does not — per
-    /// AGENTS.md §11.3 wenshu-side-wins, only the 5 wenshu sub-agents
-    /// are recognized).
-    static let availableSlugs: [String] = SubAgentIdentity.Name.allCases
-        .map { $0.rawValue }
+    /// The role table's slugs (= hermes has "editor" / "reviewer" too,
+    /// but wenshu does not — per AGENTS.md §11.3 wenshu-side-wins, only
+    /// the 5 wenshu sub-agents are recognized).
+    static let availableSlugs: [String] = SubAgentRoleRegistry.roles
+        .map { $0.slug }
         .sorted()
 
     /// Parse a single mention from the input (= returns the FIRST valid
