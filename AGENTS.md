@@ -142,7 +142,7 @@ Register a new row there, not here. The rule is unchanged.
 
 ## §7 Verification & quality gates
 
-> Each ticket passes §7.1-§7.9 BEFORE merge.
+> Each ticket passes §7.1-§7.10 BEFORE merge.
 
 | #   | Gate | Reference |
 | --- | ---- | --------- |
@@ -155,6 +155,7 @@ Register a new row there, not here. The rule is unchanged.
 | 7.7 | UI-touching ticket: visual proof via screenshot + boss verdict. | wenshu-agent-boss-same-build-protocol. |
 | 7.8 | Commit hygiene: 1 commit per ticket, English subject <=72 chars, body explains WHY. | wenshu-commit-history-hygiene. |
 | 7.9 | Independent review verdict: a card that writes code carries an approving verdict from a profile that is NOT its implementer (rule 1.14). `Scripts/merge-preflight.sh` refuses the merge until it is on the record. | Tools/wenshu-devtool/review_gate.py. |
+| 7.10 | Named narrow gate: a card's body names the filtered suite that owns each file it writes, as a `swift test --filter <Suite>` command (a card with no Swift code names its own gate command). A T1/T2 card never asks for the whole suite. A card that names no gate is a defect, not a style. | Tools/wenshu-devtool/gate_width_gate.py. |
 
 ## §8 Workflow (universal PO methodology)
 
