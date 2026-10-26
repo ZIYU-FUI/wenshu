@@ -34,7 +34,9 @@ fixes landed. It also listed the remaining failures per file in a comment on
 
 A single-arm `swift test` on a clean worktree of `main`, no other test run
 concurrent: **29 recorded issues**, of which 4 are an artefact of where the
-run happened (see §3) → **25 real failures**.
+run happened (see §3) → **25 real failures**, spread over 16 test files. (The
+counts differ because a few tests assert more than once: three of them fail
+at two or three lines each.)
 
 `swift test --skip-update` is required on this machine: the default
 resolution hangs on the ssh fetch through the local proxy, and every
@@ -87,6 +89,45 @@ of them is now a failure again:
   (`EditorTabTitleTests.swift`, `AppleSidebarMVVMSplitTests.swift`);
 - the `OBSOLETE` e2e test — it is an `Issue.record`, so it does not fail the
   suite, but it is still in the tree and still wants deleting or an xfail.
+
+## 4a. The 25 are NOT one problem (= do not put them on one card)
+
+They fall into three kinds, and the kind decides what the fix is:
+
+**(a) A stale source-text assertion (= the file moved, the literal did not).**
+The assertion names a string in a file that no longer holds it. The fix is to
+point it at the file that does, or to invert it when the behaviour is gone on
+purpose. **19 of the 25** are in this class:
+`AppleSidebarMVVMSplitTests` (3), `EditorTabTitleTests` (3),
+`WenshuMarkdownEditorAdapterTests` (3), `SidebarRowViewIconMigrationTests`
+(2), `FrameMagicSweepTests` (2), `SidebarItemTagPreviewFilterTests` (2),
+`EditorViewIconMigrationTests` (1), `ColorSweepArcClosureTests` (1),
+`EmptyStateViewCallersTests` (1), `ChatViewHistoryShortcutTests` (1).
+`ColorSweepArcClosureTests` is the one that still names a real offender:
+`PreviewPaneCard.swift` holds a raw `Color(red:green:blue:)` literal.
+
+**(b) A load symptom (= the test is right, the machine was busy).**
+`ToolRegistryProductionTriggerTests` reports 19 catalogue tools that "never
+registered through the production trigger". The probe polls for up to 5 s
+because "a fixed sleep tuned for an idle run loses the race under load" (= its
+own header comment). This is the known symptom of a concurrent run, not a
+broken install hook. `TriggerClosureWiringTests` is the same shape: it wants
+at least one default-name handler to be reachable.
+
+**(c) A real defect (= fix the product, not the test).** Two of these, and
+they are the ones worth a card of their own:
+
+- `ConversationLoopMultiTurnTests`: the loop made **zero** LLM calls
+  (`expected 2 LLM calls (= loop must iterate on toolUse); got 0`) and the
+  test took 56 s to fail. The connector is a stub (= no key needed), so this
+  is not the environment: the turn never reached the model.
+- `HermesTodoStoreConcurrencyTests`: `TodoStoreTool.execute()` took more than
+  the 5 s budget. This is the regression test for a real deadlock
+  (`VERIFY-INTEGRATION-001`).
+
+Two more are `Issue.record` bodies that document a deleted behaviour
+(`LLMConnectorStreamTests`, `WenshuConductorE2ETests`): they do not fail the
+suite, but they want deleting or an xfail.
 
 ## 5. What is NOT this session's legacy
 
