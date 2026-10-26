@@ -59,7 +59,10 @@ struct ChatTextPartView: View {
                 if isStreaming {
                     Text(text)
                 } else {
-                    Text(Self.parseMarkdown(text))
+                    // The blocks (= hermes's way: = a paragraph, = a list,
+                    // = a heading, = a code block; = the model's syntax
+                    // never reaches the screen).
+                    MarkdownBlocksView(text: text, isStreaming: false)
                 }
             }
             .textSelection(.enabled)

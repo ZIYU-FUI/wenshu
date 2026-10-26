@@ -22,10 +22,39 @@ struct ImportProgressStrip: View {
     let tasks: [ImportTask]
 
     var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
-                ForEach(tasks) { task in
-                    ImportTaskRow(task: task)
+        // The reply grows while the agent writes, = so the strip follows
+        // the newest line (= the same shape as the chat zone's
+        // transcript: = the scroll view's anchor is the bottom, = and
+        // the last row is scrolled into view when the reply grows).
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
+                    ForEach(tasks) { task in
+                        ImportTaskRow(task: task)
+                            .id(task.id)
+                    }
+                }
+            }
+            .defaultScrollAnchor(.bottom)
+            .onChange(of: replySize) { _, _ in
+                guard let last = tasks.last else { return }
+                proxy.scrollTo(last.id, anchor: .bottom)
+            }
+        }
+    }
+
+    /// How much reply the rows hold (= the signal that the content grew).
+    ///
+    /// The count of the parts is not enough: = the trailing text part
+    /// grows character by character, = so the size is measured in
+    /// characters.
+    private var replySize: Int {
+        tasks.reduce(0) { total, task in
+            total + task.agentParts.reduce(0) { sum, part in
+                switch part.kind {
+                case .text(let text): return sum + text.count
+                case .reasoning(let text): return sum + text.count
+                default: return sum
                 }
             }
         }

@@ -120,12 +120,14 @@ private struct ReasoningSegmentView: View {
     var body: some View {
         switch segment {
         case .prose(let text):
-            // Reasoning content (= same markdown treatment as the
-            // text part = inline bold/italic/code works). Use .caption
-            // (= smaller than the main text) + .secondary tone (= the
-            // standard Apple HIG "supplementary content" tone).
-            Text(ChatTextPartView.parseMarkdown(text))
-                .font(.caption)
+            // The thinking is the model's private scratchpad (= its own
+            // markdown-ish notes, = indented the way it indents its
+            // notes), = so it is read as plain text: = the markers and
+            // the indentation go, = the words stay. (= hermes renders
+            // the same block as a scratchpad, = never as app chrome.)
+            // .caption (= smaller than the main text) + .secondary tone
+            // (= the standard Apple HIG "supplementary content" tone).
+            MarkdownBlocksView(text: text, baseFont: .caption)
                 .foregroundStyle(.secondary)
                 .textSelection(.enabled)
         case .action(let text), .result(let text):
@@ -137,8 +139,7 @@ private struct ReasoningSegmentView: View {
                 Text(label)
                     .font(.caption.monospaced())
                     .foregroundStyle(.tertiary)
-                Text(ChatTextPartView.parseMarkdown(text))
-                    .font(.caption)
+                MarkdownBlocksView(text: text, baseFont: .caption)
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)
             }
