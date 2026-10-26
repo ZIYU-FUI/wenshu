@@ -139,6 +139,10 @@ final class EditorChatNSController: NSSplitViewController {
     /// one of the two pinned arrangements).
     private var layoutMode: EditorLayoutMode = .automatic
 
+    /// Whether a deferred structural change is queued for the next
+    /// runloop turn.
+    private var arrangementApplyScheduled = false
+
     /// The arrangement whose 50:50 reset is owed on the next
     /// layout pass. Set when an arrangement change finds no stored
     /// payload for the arrangement being entered; nil when the
@@ -375,6 +379,12 @@ final class EditorChatNSController: NSSplitViewController {
     /// splitView now has its final height here.
     override func viewDidLayout() {
         super.viewDidLayout()
+        // This callback reaches the split's structure only through the
+        // width rule (= a request). Removing and re-inserting a split
+        // view item here invalidates the split's constraints while
+        // AppKit is laying out, and each invalidation re-arms the
+        // window's "Update Constraints in Window" pass (= the pass
+        // AppKit's runaway-layout guard counts).
         updateAutomaticThicknessBounds()
         if layoutMode == .automatic {
             applyAutomaticArrangement()
@@ -441,13 +451,32 @@ final class EditorChatNSController: NSSplitViewController {
         // leads when they stand side by side).
         let editorLeads = arrangement == .stacked
         let leadingShare = editorLeads ? share : 1 - share
+        // Write only when the value differs: a write into the split
+        // during the layout pass re-arms the window's
+        // update-constraints pass.
         if items[0].preferredThicknessFraction != leadingShare {
             items[0].preferredThicknessFraction = leadingShare
+        }
+        if items[1].preferredThicknessFraction != 1 - leadingShare {
             items[1].preferredThicknessFraction = 1 - leadingShare
         }
 
         let axis = arrangement.isVertical ? splitView.bounds.width : splitView.bounds.height
         guard axis > 0 else { return }
+        // The divider is asserted at the share on every layout pass,
+        // and the assert is what keeps the layout convergent: AppKit
+        // lays out for the items' preferred fractions, so the fraction
+        // and the divider have to agree or the two fight each other
+        // (measured: the split's own width oscillated between 656 and
+        // 389 and AppKit's runaway-layout guard aborted the app).
+        //
+        // The assert is NOT guarded by a "does the divider already
+        // hold this position" test, because NSSplitView exposes no
+        // public reader for a divider's position (= the API is
+        // minPossiblePositionOfDividerAtIndex / maxPossiblePositionOfDividerAtIndex
+        // / setPosition:ofDividerAtIndex, = no getter), so the test
+        // would have to be read out of the pane frames, and those are
+        // the PREVIOUS layout pass's frames while a pass is running.
         splitView.setPosition(axis * leadingShare, ofDividerAt: 0)
     }
 
@@ -527,9 +556,9 @@ final class EditorChatNSController: NSSplitViewController {
         layoutMode = mode
         switch mode {
         case .stacked:
-            transition(to: .stacked)
+            requestArrangement(.stacked)
         case .sideBySide:
-            transition(to: .sideBySide)
+            requestArrangement(.sideBySide)
         case .automatic:
             applyAutomaticArrangement()
         }
@@ -560,10 +589,57 @@ final class EditorChatNSController: NSSplitViewController {
     /// width (= side by side when the split is wide enough for
     /// two columns; = stacked when it is not; = the band between
     /// the two keeps the current arrangement).
+    ///
+    /// It runs inside the layout callback, so it only REQUESTS the
+    /// arrangement; the structural change runs on the next runloop
+    /// turn.
     private func applyAutomaticArrangement() {
         let width = splitView.bounds.width
         guard width > 0 else { return }
-        transition(to: Self.arrangement(forSplitWidth: width, mode: layoutMode, current: arrangement))
+        requestArrangement(
+            Self.arrangement(forSplitWidth: width, mode: layoutMode, current: arrangement)
+        )
+    }
+
+    /// Ask for an arrangement and queue its structural change.
+    ///
+    /// Why the queue: removing a split view item invalidates the
+    /// split's constraints, and doing that while AppKit is laying
+    /// out re-arms the window's "Update Constraints in Window" pass.
+    /// Deferring to the next runloop turn lets the layout pass
+    /// finish before the panes move.
+    private func requestArrangement(_ target: EditorArrangement) {
+        guard target != arrangement else { return }
+        guard !arrangementApplyScheduled else { return }
+        arrangementApplyScheduled = true
+        Task { @MainActor [weak self] in
+            self?.applyRequestedArrangement()
+        }
+    }
+
+    /// Apply the arrangement the width rule asks for, outside the
+    /// layout pass.
+    ///
+    /// The width is read again here: the window may have moved while
+    /// the request waited for the runloop turn, and a request the
+    /// width no longer supports is dropped (= no structural change
+    /// at all).
+    private func applyRequestedArrangement() {
+        arrangementApplyScheduled = false
+        let target: EditorArrangement
+        switch layoutMode {
+        case .stacked:
+            target = .stacked
+        case .sideBySide:
+            target = .sideBySide
+        case .automatic:
+            let width = splitView.bounds.width
+            guard width > 0 else { return }
+            target = Self.arrangement(forSplitWidth: width, mode: .automatic, current: arrangement)
+        }
+        guard target != arrangement else { return }
+        transition(to: target)
+        wenshuLogger.debug("[wenshu.editorChat] arrangement applied: \(String(describing: target))")
     }
 
     /// Move the split to an arrangement. The autosave name
@@ -679,8 +755,15 @@ final class EditorChatNSController: NSSplitViewController {
         let available = arrangement.isVertical ? splitView.bounds.width : splitView.bounds.height
         guard available > 0 else { return }
         for item in splitViewItems {
-            item.minimumThickness = 0
-            item.maximumThickness = available
+            // Write only when the value differs: a write into the
+            // split during the layout pass re-arms the window's
+            // update-constraints pass.
+            if item.minimumThickness != 0 {
+                item.minimumThickness = 0
+            }
+            if item.maximumThickness != available {
+                item.maximumThickness = available
+            }
         }
     }
 
@@ -728,15 +811,31 @@ final class EditorChatNSController: NSSplitViewController {
         chatItem.map { !$0.isCollapsed } ?? true
     }
 
-    /// The width the hosted content currently occupies. Used as the
-    /// fallback when the parent proposes no width of its own.
-    var hostedContentWidth: CGFloat {
-        splitView.bounds.width
-    }
+    /// The size the parent proposed last (= the parent's own number).
+    ///
+    /// Why it is cached: the reported size has to be a function of the
+    /// parent's own layout. When the parent proposes nothing (= its
+    /// ideal-size pass), the last number the parent proposed is the
+    /// closest parent-owned value; the inner split's own size is
+    /// never reported back up (= the outer split would negotiate the
+    /// detail column's width against it, = a second, competing
+    /// number in the same negotiation).
+    private var lastParentProposal: ProposedViewSize?
 
-    /// The height counterpart of `hostedContentWidth`.
-    var hostedContentHeight: CGFloat {
-        splitView.bounds.height
+    /// The width the parent proposed last.
+    fileprivate var lastParentWidth: CGFloat? { lastParentProposal?.width }
+
+    /// The height the parent proposed last.
+    fileprivate var lastParentHeight: CGFloat? { lastParentProposal?.height }
+
+    /// Record the size the parent proposes, so a later proposal that
+    /// omits a dimension can fall back to the parent's own last
+    /// number for it.
+    func recordParentProposal(_ proposal: ProposedViewSize) {
+        var merged = lastParentProposal ?? ProposedViewSize(width: nil, height: nil)
+        if let width = proposal.width { merged.width = width }
+        if let height = proposal.height { merged.height = height }
+        lastParentProposal = merged
     }
 }
 
@@ -803,8 +902,20 @@ struct EditorChatSplitHost: NSViewControllerRepresentable {
         nsViewController: EditorChatNSController,
         context: Context
     ) -> CGSize? {
-        let width = proposal.width ?? nsViewController.hostedContentWidth
-        let height = proposal.height ?? nsViewController.hostedContentHeight
+        // The parent's proposal is the only number reported back up.
+        // The inner split's own width is never reported: the parent
+        // negotiates the detail column's width against what is
+        // reported here, and the inner split keeps recomputing its
+        // own width (= a second number in the same negotiation).
+        //
+        // When the parent proposes nothing, the parent's own last
+        // proposal is used (= the parent's number, not the inner
+        // split's); = with no proposal at all, no size is reported
+        // (= the parent keeps its own layout).
+        nsViewController.recordParentProposal(proposal)
+        guard let width = proposal.width ?? nsViewController.lastParentWidth,
+              let height = proposal.height ?? nsViewController.lastParentHeight
+        else { return nil }
         return CGSize(width: width, height: height)
     }
 }

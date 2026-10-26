@@ -345,4 +345,171 @@ struct EditorChatNSControllerTests {
         #expect(content.contains("let leadingShare = editorLeads ? share : 1 - share"),
                 "the assertion puts the divider at the LEADING pane's share (= the fraction AppKit lays out for)")
     }
+
+    // MARK: - The layout callback's reach (= what it may NOT touch)
+
+    /// Extract the body of one function from a source file.
+    ///
+    /// Why the extraction and not a whole-file search: the assertion
+    /// is about WHAT THE LAYOUT CALLBACK CALLS, and a whole-file
+    /// search cannot tell "the layout callback calls it" from "some
+    /// other method calls it".
+    ///
+    /// The scanner skips line comments, block comments and string
+    /// literals, so a brace inside a comment or a literal cannot end
+    /// the body early.
+    private static func functionBody(named name: String, in source: String) -> String? {
+        guard let signature = source.range(of: "func \(name)(") else { return nil }
+        var index = signature.upperBound
+        var depth = 0
+        var bodyStart: String.Index?
+        var inLineComment = false
+        var inBlockComment = false
+        var inString = false
+        while index < source.endIndex {
+            let character = source[index]
+            let next = source.index(after: index)
+            let nextCharacter: Swift.Character = next < source.endIndex ? source[next] : "\u{0}"
+
+            if inLineComment {
+                if character == "\n" { inLineComment = false }
+                index = next
+                continue
+            }
+            if inBlockComment {
+                if character == "*", nextCharacter == "/" {
+                    inBlockComment = false
+                    index = next < source.endIndex ? source.index(after: next) : next
+                    continue
+                }
+                index = next
+                continue
+            }
+            if inString {
+                if character == "\\" {
+                    index = next < source.endIndex ? source.index(after: next) : next
+                    continue
+                }
+                if character == "\"" { inString = false }
+                index = next
+                continue
+            }
+
+            switch character {
+            case "/":
+                if nextCharacter == "/" {
+                    inLineComment = true
+                    index = next < source.endIndex ? source.index(after: next) : next
+                    continue
+                }
+                if nextCharacter == "*" {
+                    inBlockComment = true
+                    index = next < source.endIndex ? source.index(after: next) : next
+                    continue
+                }
+            case "\"":
+                inString = true
+            case "{":
+                if bodyStart == nil { bodyStart = index }
+                depth += 1
+            case "}":
+                depth -= 1
+                if depth == 0, let bodyStart {
+                    return String(source[bodyStart...index])
+                }
+            default:
+                break
+            }
+            index = next
+        }
+        return nil
+    }
+
+    @Test("Source: the layout callback does NOT reach the arrangement's structural change (= the change is deferred to the next runloop turn)")
+    func sourceStructuralChangeIsNotReachableFromLayoutCallback() throws {
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
+        let content = try String(contentsOf: url, encoding: .utf8)
+
+        // Name the method that does the structural change, and prove
+        // it IS the structural change (= it moves an item).
+        let structuralBody = try #require(
+            Self.functionBody(named: "applyPaneOrder", in: content),
+            "applyPaneOrder must exist (= the method that does the structural change)")
+        #expect(structuralBody.contains("removeSplitViewItem(editorItem)"),
+                "applyPaneOrder removes the editor's item (= the structural change)")
+        #expect(structuralBody.contains("insertSplitViewItem(editorItem, at: editorShouldLead ? 0 : 1)"),
+                "applyPaneOrder re-inserts the editor's item (= the structural change)")
+
+        // The layout callback must not call it, and must not call
+        // the method that calls it either.
+        let layoutBody = try #require(
+            Self.functionBody(named: "viewDidLayout", in: content),
+            "viewDidLayout must exist")
+        #expect(!layoutBody.contains("applyPaneOrder"),
+                "viewDidLayout must not move a split view item (= removing one invalidates the split's constraints while AppKit is laying out, and each invalidation re-arms the window's update-constraints pass)")
+        #expect(!layoutBody.contains("transition(to:"),
+                "viewDidLayout must not run the arrangement change (= it reaches the split's structure)")
+
+        // The width rule only REQUESTS the arrangement, and the
+        // request is deferred.
+        let ruleBody = try #require(
+            Self.functionBody(named: "applyAutomaticArrangement", in: content),
+            "applyAutomaticArrangement must exist")
+        #expect(ruleBody.contains("requestArrangement("),
+                "the width rule requests the arrangement (= it does not move the panes itself)")
+        #expect(!ruleBody.contains("transition(to:"),
+                "the width rule must not move the panes itself")
+
+        let requestBody = try #require(
+            Self.functionBody(named: "requestArrangement", in: content),
+            "requestArrangement must exist")
+        #expect(requestBody.contains("Task { @MainActor"),
+                "the structural change is deferred to the next runloop turn (= the layout pass finishes before the panes move)")
+    }
+
+    @Test("Source: the thickness bounds and the preferred fractions are written only when the value differs")
+    func sourceWritesOnlyWhenTheValueDiffers() throws {
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
+        let content = try String(contentsOf: url, encoding: .utf8)
+
+        let boundsBody = try #require(
+            Self.functionBody(named: "updateAutomaticThicknessBounds", in: content),
+            "updateAutomaticThicknessBounds must exist")
+        #expect(boundsBody.contains("if item.minimumThickness != 0 {"),
+                "the minimum thickness is written only when it differs (= a write into the split during the layout pass re-arms the window's update-constraints pass)")
+        #expect(boundsBody.contains("if item.maximumThickness != available {"),
+                "the maximum thickness is written only when it differs (= a write into the split during the layout pass re-arms the window's update-constraints pass)")
+
+        let shareBody = try #require(
+            Self.functionBody(named: "applyStoredShare", in: content),
+            "applyStoredShare must exist")
+        #expect(shareBody.contains("if items[0].preferredThicknessFraction != leadingShare {"),
+                "the leading pane's preferred fraction is written only when it differs")
+        #expect(shareBody.contains("if items[1].preferredThicknessFraction != 1 - leadingShare {"),
+                "the trailing pane's preferred fraction is written only when it differs")
+    }
+
+    @Test("Source: sizeThatFits never reports the inner split's own width back up")
+    func sourceSizeThatFitsHasNoInnerWidthFallback() throws {
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
+        let content = try String(contentsOf: url, encoding: .utf8)
+
+        let fitBody = try #require(
+            Self.functionBody(named: "sizeThatFits", in: content),
+            "sizeThatFits must exist")
+        #expect(!fitBody.contains("hostedContentWidth"),
+                "sizeThatFits must not fall back to the inner split's own width (= the parent negotiates the detail column's width against what is reported here, so the inner split's own width is a second number in the same negotiation)")
+        #expect(!fitBody.contains("splitView.bounds.width"),
+                "sizeThatFits must not report the inner split's own width back up")
+        #expect(!fitBody.contains("splitView.bounds.height"),
+                "sizeThatFits must not report the inner split's own height back up")
+        #expect(!content.contains("hostedContentWidth"),
+                "the inner split's own width must not be reachable as a fallback at all")
+
+        // What it reports instead: the parent's own numbers.
+        #expect(fitBody.contains("proposal.width ?? nsViewController.lastParentWidth"),
+                "the parent's own last width is the fallback (= a parent-owned number, not the inner split's)")
+        #expect(fitBody.contains("nsViewController.recordParentProposal(proposal)"),
+                "the parent's proposal is recorded (= the fallback is the parent's own number)")
+    }
 }
