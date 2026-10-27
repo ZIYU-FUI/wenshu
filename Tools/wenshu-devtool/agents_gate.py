@@ -37,7 +37,8 @@ WHY THE GATE EXISTS (measured 2026-10-27, before this gate landed):
 WHAT THE GATE CHECKS
 
   1. frontmatter   parses as YAML, and carries name / version / description
-  2. budget       the body (<= 20,000 chars) fits the loader's cap
+  2. budget       the file as the loader loads it (<= 20,000 chars, frontmatter
+                  and the section label included = what gets truncated)
   3. references   every file path the file names exists, and every skill it
                   names is installed
   4. vocabulary   CJK appears only in the rules that enumerate the vocabulary
@@ -393,6 +394,13 @@ def check_file(path: Path) -> dict:
     front, body = split_frontmatter(text)
     body = body.lstrip("\n")
     body_len = len(body)
+    # The loader truncates the WHOLE file, not the body: _context_section
+    # wraps the raw content (frontmatter included = only .hermes.md gets
+    # its frontmatter stripped) in "## <label>\n\n", then applies the cap.
+    # So the number that decides truncation is len(raw) + the label, and
+    # measuring the body alone lets a file through that the loader cuts
+    # in the middle (= the rules in the middle silently vanish).
+    loaded_len = len(text) + len(f"## {path.name}\n\n")
 
     # 1. frontmatter
     meta = None
@@ -416,10 +424,12 @@ def check_file(path: Path) -> dict:
                     errors.append(f"the frontmatter has no {key}")
 
     # 2. budget
-    if body_len > CONTEXT_FILE_MAX_CHARS:
+    if loaded_len > CONTEXT_FILE_MAX_CHARS:
         errors.append(
-            f"the body is {body_len} chars: the context loader truncates above "
-            f"{CONTEXT_FILE_MAX_CHARS}, so the tail of this file is not loaded"
+            f"the file loads as {loaded_len} chars ({len(text)} in the file + "
+            f"{loaded_len - len(text)} for the section label): the context loader "
+            f"truncates above {CONTEXT_FILE_MAX_CHARS}, and it drops the MIDDLE "
+            f"of the file (= the rules in the middle silently vanish)"
         )
 
     # 3. references
@@ -511,8 +521,9 @@ def check_file(path: Path) -> dict:
     return {
         "file": str(path),
         "body_chars": body_len,
+        "loaded_chars": loaded_len,
         "budget": CONTEXT_FILE_MAX_CHARS,
-        "headroom": CONTEXT_FILE_MAX_CHARS - body_len,
+        "headroom": CONTEXT_FILE_MAX_CHARS - loaded_len,
         "frontmatter_checked": how,
         "rule_rows": len(ids),
         "errors": errors,
@@ -532,7 +543,7 @@ def main(argv: list[str] | None = None) -> int:
         print("=== the AGENTS.md contract ===")
         print()
         print("frontmatter   parses as YAML, and carries name / version / description")
-        print("budget       body <= 20,000 chars (= the Hermes context-file cap)")
+        print("budget       the file as the loader loads it <= 20,000 chars (= the cap)")
         print("references   every named path exists; every named skill is installed")
         print("vocabulary   CJK only in rules 1.2 / 1.3 / 1.4, and only as a known token")
         print("ids          the rule ids of a section are contiguous, no id repeats,")
@@ -552,7 +563,7 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, indent=2, ensure_ascii=False))
     else:
         print(f"file       {result['file']}")
-        print(f"body       {result.get('body_chars')} chars (cap {result.get('budget')})")
+        print(f"loaded     {result.get('loaded_chars')} chars (cap {result.get('budget')}, body {result.get('body_chars')})")
         if "headroom" in result:
             print(f"headroom   {result['headroom']} chars")
         for warning in result["warnings"]:

@@ -186,7 +186,10 @@ Another separate tool, because it reads the SSOT instead of the source tree
 or the board. It answers one question: is AGENTS.md still loadable and true?
 
 - **frontmatter** parses as YAML, and carries name / version / description
-- **budget** the body fits the loader's cap (20,000 chars)
+- **budget** the file fits the loader's cap (20,000 chars) AS THE LOADER
+  READS IT: the whole file, frontmatter included, plus the `## AGENTS.md`
+  label. The cap drops the MIDDLE of a file that is too long, so a
+  body-only budget would pass a file whose middle rules silently vanish.
 - **references** every path the file names exists, and every skill it names
   is installed
 - **vocabulary** CJK appears only in the rules that enumerate the vocabulary

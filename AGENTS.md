@@ -9,25 +9,19 @@ metadata:
     tags: [wenshu, ssot, hard-rule]
     default_on: true
     category: policy
-    note: "SSOT. English-only. 1-3 lines per rule. No narrative, no version history, no ticket lineage."
-related_skills:
-  - wenshu-pocock-workflow
-  - wenshu-parallel-dev
-  - wenshu-apple-api-first
-  - wenshu-iron-rules-audit
-  - wenshu-visual-audit
-  - universal-pocock-workflow
+    note: "SSOT. English-only. 1-3 lines per rule. No narrative."
+related_skills: [wenshu-pocock-workflow, wenshu-parallel-dev, wenshu-apple-api-first]
 ---
 
 # AGENTS.md — Wenshu SSOT
 
-SSOT for every contributor and agent acting on /Volumes/ANAN/Engineering/wenshu. English-only, 1-3 lines per rule, no narrative.
+SSOT for every contributor and agent on /Volumes/ANAN/Engineering/wenshu.
 
 ## §0 Load order (read on every wenshu turn)
 
 > Order matters. Skip = silent drift.
 
-1. AGENTS.md (this file) — 10 sections of project SSOT. Read it from the .hermes.md pointer; Hermes injects .hermes.md, not this file.
+1. AGENTS.md (this file) — 10 sections of project SSOT (reached via the .hermes.md pointer; see 1.9).
 2. ~/.hermes/shared/wenshu-skills/wenshu-pocock-workflow/SKILL.md — workflow entry.
 3. ~/.hermes/shared/wenshu-skills/wenshu-pocock-workflow/references/wenshu-swift-standards.md — Swift standards.
 4. .scratch/<date>-<topic>/spec.md if a ticket is open.
@@ -39,7 +33,7 @@ SSOT for every contributor and agent acting on /Volumes/ANAN/Engineering/wenshu.
 
 | #   | Rule | Enforcement |
 | --- | ---- | ----------- |
-| 1.1 | English-only in code, comments, commits, prompts, all .md. No CJK characters. | CI lint-commits job (no CJK in the subject); the xianxia family by commit_filter.py + SwiftLint. Comment-level CJK is manual (751 CJK comment lines still in Sources/, 2026-10-28). |
+| 1.1 | English-only in code, comments, commits, prompts, all .md. No CJK characters. | CI lint-commits job (no CJK in the subject); the xianxia family by commit_filter.py + SwiftLint. Comment-level CJK is manual (750 CJK comment lines still in Sources/ at commit d44c2df39). |
 | 1.2 | Sole address for the user = "老板". No other forms. | Manual. commit_filter.py permits the project literals (老板 / 文枢 / 拍 / 拍板 / ※). |
 | 1.3 | Forbidden hedges (replace with yes/no/yes-yes): 可 / 应当 / 或许 / 可能 / 应该 / 建议 / 考虑 / 试图 / 尽量 / 大概 / 也许 / 或 / 任意 / 大概率 / 通常 / 一般来说. | Manual (= no machine gate). |
 | 1.4 | Forbidden xianxia vocabulary (replace with 修 / 改 / fix / 替换 / 调整): 修真 / 渡劫 / 筑基 / 返虚 / 结丹 / 金丹 / 元婴 / 飞升 / 天劫 / 雷劫 / 心魔 / 魔障. | commit_filter.py (pre-commit + commit-msg + pre-push hooks in .git/hooks/) + .swiftlint.yml xianxia_forbidden_vocab (severity error) + CI Pollution check. |
@@ -50,8 +44,8 @@ SSOT for every contributor and agent acting on /Volumes/ANAN/Engineering/wenshu.
 | 1.9 | Load chain: .hermes.md at the repo root is the file Hermes injects (it wins over AGENTS.md) and points here + at the skill chain. A skill body loads on demand via skill_view; only its description is injected. | .hermes.md. `skills.auto_load` in config.yaml injects a body; a frontmatter `default_on` does not. |
 | 1.10 | One ticket = one commit + one atomic verification + one 4-section spec + one dual-axis dispatch + one P0 fix + one verify round + merge gate. | Tools/wenshu-devtool/ticket_tier.py; Scripts/merge-preflight.sh. |
 | 1.11 | The NFI registry = `docs/agents/nfi.md`: one row per extracted or added file, append-only. `merge=nfi-registry` in .gitattributes merges two cards' rows at the key level. | docs/agents/nfi.md. |
-| 1.12 | Parallel worktree isolation: every code-changing ticket runs in its own git worktree, never the shared checkout (= a kanban card, `--workspace worktree --project project`, board `wenshu-par`). `delegate_task` is read-only fan-out here: its children inherit the parent shell cwd, so a relative write lands in the shared checkout. | wenshu-parallel-dev; docs/agents/parallel-development.md. |
-| 1.13 | Difficulty tier: every card carries a tier (`[T1]` / `[T2]` / `[T3]`), DERIVED by `Tools/wenshu-devtool/ticket_tier.py` from the work its body describes, never hand-set. The tier sets the runtime cap, retry budget, gate width and body budget = cost, not quality: it never skips the dual-axis review, never marks a test skipped. | ticket_tier.py; docs/agents/ticket-tiers.md. |
+| 1.12 | Parallel worktree isolation: every code-changing ticket runs in its own git worktree, never the shared checkout (= a kanban card, `--workspace worktree --project project`, board `wenshu-par`). `delegate_task` is read-only fan-out here: its children inherit the parent cwd, so a relative write lands in the shared checkout. | wenshu-parallel-dev. |
+| 1.13 | Difficulty tier: every card carries a tier (`[T1]` / `[T2]` / `[T3]`), DERIVED by `Tools/wenshu-devtool/ticket_tier.py` from the work its body describes, never hand-set. The tier sets the runtime cap, retry budget, gate width and body budget = cost, not quality: it never skips the dual-axis review, never marks a test skipped. | ticket_tier.py; ticket-tiers.md. |
 | 1.14 | Independent review: a card that writes CODE carries a `## REVIEW HANDOFF` naming a reviewer profile that is NOT its implementer, and ends with `kanban_request_review(reviewer=...)`. The obligation is DERIVED from the work the body describes, never the tier. A prose-only card owes no verdict. | review_gate.py; Scripts/merge-preflight.sh. |
 | 1.15 | Evidence before code: a card that reads names its read list, stop condition, forbidden lookups and deliverable in an `## EVIDENCE BUDGET` section. Reading is a cost like a build, and it burns first. | Tools/wenshu-devtool/effort_budget_gate.py (the gate is 7.11). |
 
@@ -66,7 +60,7 @@ SSOT for every contributor and agent acting on /Volumes/ANAN/Engineering/wenshu.
 | 2.3 | macOS-only. iPad/iPhone code supported but NOT target. | Boss ruling 8/18. |
 | 2.4 | Swift 6 strict concurrency. @MainActor for UI. actor for background. Sendable for cross-isolation. | wenshu-swift-standards.md §4; ADR-0027 (31 @unchecked Sendable, each justified). |
 | 2.5 | LLM connector: 14 slugs = 13 built-in + custom (anthropic / openai-codex / gemini / deepseek / ollama / openrouter / minimax / minimax-cn / nous / copilot / copilot-acp / xai-oauth / stepfun / custom). BYOK, no default. | Sources/WenshuAgent/Sources/WenshuAgent/Connector/BuiltInProviders.swift. |
-| 2.6 | LLM key storage: macOS Keychain via ProviderKeychain, AND a plaintext mirror at `~/Library/Application Support/com.wenshu.app/provider-keys.json` (mode 0600, outside the .ws library). Every write hits BOTH stores; the toggle picks the read primary. NEVER inside the .ws. | Sources/WenshuAgent/Sources/WenshuAgent/Keychain/ProviderKeychain.swift. |
+| 2.6 | LLM key storage: macOS Keychain via ProviderKeychain, AND a plaintext mirror at `~/Library/Application Support/com.wenshu.app/provider-keys.json` (mode 0600, outside the .ws). Every write hits BOTH stores; the toggle picks the read primary. NEVER inside the .ws. | Sources/WenshuAgent/Sources/WenshuAgent/Keychain/ProviderKeychain.swift. |
 | 2.7 | Project format: .ws package (single-process, per-user local). | §3. |
 | 2.8 | Tests: Swift Testing (`import Testing`). Legacy XCTest files stay; add none. | Tests/. |
 | 2.9 | Version: three digits, middle = phase, third = hotfix. | Boss ruling. |
@@ -83,7 +77,7 @@ SSOT for every contributor and agent acting on /Volumes/ANAN/Engineering/wenshu.
 | 3.3 | CFBundlePackageType = WSPC for .ws packages. | Features/Library/Service/LibraryBootstrapper.swift; LibraryMigrator.swift. |
 | 3.4 | The legacy UserDefaults key `wenshu.libraryPath` is dropped once at launch; the bookmark is the sole persistence and `ActiveLibrary.path` is the only accessor. | Sources/WenshuApp/App/WenshuAppDelegate.swift. |
 | 3.5 | Switching library posts `com.wenshu.library.didChange`; the next read resolves the new library. | Sources/WenshuApp/App/AppNotifications.swift. |
-| 3.6 | Per-book structure: shelves/<shelf-uuid>/books/<book-uuid>/ with 7 standard folders (world / characters / outlines / chapters / drafts / ideas / sessions). Per-book JSON at the book-dir root: book.json / chapters.json / entities.json / outlines.json / kanban.json / todo.json / drafts.json. shelf.json per shelf; reference-library/library.json for the reference library. | Features/Library/Model/BookFolderCatalog.swift. |
+| 3.6 | Per-book structure: shelves/<shelf-uuid>/books/<book-uuid>/ with 7 standard folders (world / characters / outlines / chapters / drafts / ideas / sessions). Per-book JSON at the book-dir root: book / chapters / entities / outlines / kanban / todo / drafts (.json). shelf.json per shelf; reference-library/library.json. | BookFolderCatalog.swift. |
 | 3.7 | Reference-library: ONE instance per .ws at reference-library/, with 2 layers (raw / entities) plus library.json metadata. The user CAN rename and delete individual references (the library root is not user-deletable). | Features/Library/Model/Reference.swift; FileSystemReferenceStore.swift; AppleSidebarView.swift. |
 
 ## §4 Persistence (SwiftData canonical)
@@ -118,13 +112,13 @@ SSOT for every contributor and agent acting on /Volumes/ANAN/Engineering/wenshu.
 | #   | Fact | Reference |
 | --- | ---- | --------- |
 | 6.1 | Sources/ = 3 SwiftPM targets: WenshuApp/ (executable: App/ + Features/<Name>/ + Shared/), plus 2 local path packages WenshuData/ (store) and WenshuAgent/ (agent runtime). | Package.swift. |
-| 6.2 | A feature folder uses up to 4 slots: Model/ + Service/ + Store/ + View/. A feature carries only the slots it needs (Kanban = no Store/, Outline = no Service/ or Store/). The 5-slot form in the standards doc is deferred (ADR-0025). | Sources/WenshuApp/Features/. |
+| 6.2 | A feature folder uses up to 4 slots: Model/ + Service/ + Store/ + View/. A feature carries only the slots it needs (Kanban = no Store/, Outline = no Service/ or Store/). The 5-slot form in the standards doc is deferred (ADR-0025). | Sources/WenshuApp/Features. |
 | 6.3 | A migration arc (>=5 tickets) renames top-level dirs feature-by-feature, one feature + one commit per ticket. | universal-pocock-workflow. |
 | 6.4 | Cross-feature code lives in Sources/WenshuApp/Shared/<Name>/ (inside the app package). The package boundary is the 3 local targets, not a Shared package. | Shared/. |
 | 6.5 | File naming suffix by role: <Xxx>View / <Xxx>Ops / <Xxx>Service / <Xxx>State .swift. One concern per file. | wenshu-swift-standards.md §1.2. |
 | 6.6 | File size cap: 600 LOC per .swift file. Exceed = split, and register the split in the NFI (1.7). Currently DEFERRED: 9 files exceed the cap (ADR-0025). | wenshu-swift-standards.md §1.2. |
 | 6.7 | One import block per file. Alphabetical. No unused imports. | wenshu-swift-standards.md §1.1. |
-| 6.8 | Root tree (measured 2026-10-28): 6 visible dirs (Scripts / Sources / Tests / Tools / build / docs), 13 hidden dirs, 10 visible files, 7 hidden files. .worktrees/ = card worktrees. .test-backup-x-*/ (320 dirs) + .test-vision-*.txt (4) = gitignored sandbox copies. | Measured 2026-10-28. |
+| 6.8 | Root tree (measured 2026-10-28): 6 visible dirs (Scripts / Sources / Tests / Tools / build / docs), 13 hidden dirs, 10 visible files, 7 hidden files. .worktrees/ = card worktrees. .test-backup-x-*/ + .test-vision-*.txt = gitignored sandbox copies (their count grows per test run, so it is not asserted). | Measured 2026-10-28. |
 | 6.9 | Single-purpose rule. Any dir with exactly 1 file and 0 dependents = deletion candidate (= .scratch/ specs; = docs/agents/ per-role docs; = docs/adr/ per-decision docs). The 3 hidden tooling dirs (.claude/ .git-hooks/ .hermes/) hold one entry each by design. | Boss OOB 2026-10-16. |
 | 6.10 | Top-level purpose map. Sources/ = Swift targets (canonical). Tests/ = Swift test target. Scripts/ = shell + python helpers. Tools/wenshu-devtool/ = gates + probes. build/ = swift build output (.gitignored). docs/ = adr/ + agents/. | Boss OOB 2026-10-16. |
 
@@ -138,21 +132,21 @@ SSOT for every contributor and agent acting on /Volumes/ANAN/Engineering/wenshu.
 | --- | ---- | --------- |
 | 7.1 | swift build exits 0. | Scripts/build-app.sh; CI. |
 | 7.2 | swift test exits 0. NO skipped tests without // TODO + tracker id. | CI (swift test). |
-| 7.3 | 9-grep design sweep (icon glyph / spacing / cornerRadius / shadow / font long-form / color opacity / frame max-W/H / imageScale / SFIcon color). Each must return 0 on the changed view files. Enforced by 22 sweep suites in Tests/WenshuAppTests/UI/DesignSystem/ (swift test), never by the pre-commit hook. | references/v3.0-design-system-rule.md. |
-| 7.4 | Dual-axis audit: Standards axis (code-review + codebase-design) + Spec axis (.scratch/<date>-<topic>/spec.md). Both read-only, parallel. | docs/agents/parallel-development.md; wenshu-parallel-dev. |
+| 7.3 | 9-grep design sweep (icon glyph / spacing / cornerRadius / shadow / font long-form / color opacity / frame max-W/H / imageScale / SFIcon color). Each must return 0 on the changed view files. Enforced by 22 sweep suites in Tests/WenshuAppTests/UI/DesignSystem (swift test), never by the pre-commit hook. | references/v3.0-design-system-rule.md. |
+| 7.4 | Dual-axis audit: Standards axis (code-review + codebase-design) + Spec axis (.scratch/<date>-<topic>/spec.md). Both read-only, parallel. | parallel-development.md; wenshu-parallel-dev. |
 | 7.5 | CJK comment audit: zero new CJK in the modified file. Manual: CI checks the commit subject only; no comment-level CJK gate ships in the tree. | CI lint-commits job. |
-| 7.6 | No dead code. | Tools/wenshu-devtool/verify-dead.py. |
+| 7.6 | No dead code. | verify-dead.py. |
 | 7.7 | UI-touching ticket: the boss looks at the running build in person. A screenshot is evidence only when asked. | wenshu_devtool.py. |
 | 7.8 | Commit hygiene: 1 commit per ticket, conventional prefix, English subject, body explains WHY. | CI lint-commits job (prefix + no CJK in the subject); commit_filter.py commit-msg hook. |
-| 7.9 | Independent review verdict: a card that writes code carries an approving verdict from a profile that is NOT its implementer (rule 1.14). `Scripts/merge-preflight.sh` refuses the merge without it. | Tools/wenshu-devtool/review_gate.py. |
-| 7.10 | Named narrow gate: a card's body names the filtered suite that owns each file it writes, as a `swift test --filter <Suite>` command (a card with no Swift code names its own gate command). A T1/T2 card never asks for the whole suite. Naming no gate is a defect. | Tools/wenshu-devtool/gate_width_gate.py. |
+| 7.9 | Independent review verdict: a card that writes code carries an approving verdict from a profile that is NOT its implementer (rule 1.14). `Scripts/merge-preflight.sh` refuses the merge without it. | review_gate.py. |
+| 7.10 | Named narrow gate: a card's body names the filtered suite that owns each file it writes, as a `swift test --filter <Suite>` command (a card with no Swift code names its own gate command). A T1/T2 card never asks for the whole suite. Naming no gate is a defect. | gate_width_gate.py. |
 
 ### Intake and dispatch gates (they fire before the code exists)
 
 | #   | Gate | Reference |
 | --- | ---- | --------- |
-| 7.11 | Evidence budget: the four lines (read / stop when / no / deliver) are defined in rule 1.15; this gate checks them when the card enters the board. A card that reads without a budget is a defect. KNOWN GAPS: a bulleted read list counts as 1 file (the 12-file cap is evadable); a mistyped --board audits the default board. | Tools/wenshu-devtool/effort_budget_gate.py. |
-| 7.12 | Fan-out budget: a card that opens sub-agents names disjoint scopes, one writer per file, and the parent's total call ceiling. Duplicate scopes, duplicate goals and cold-cache children are reported. Hermes does not dedupe, does not share a cache across children and has no parent budget, so the card must do it. KNOWN GAPS: the printed counts over-count (the parent's reads, a rejected batch). | Tools/wenshu-devtool/session_effort_audit.py. |
+| 7.11 | Evidence budget: the four lines (read / stop when / no / deliver) are defined in rule 1.15; this gate checks them when the card enters the board. A card that reads without a budget is a defect. KNOWN GAPS: a bulleted read list counts as 1 file (the 12-file cap is evadable); a mistyped --board audits the default board. | effort_budget_gate.py. |
+| 7.12 | Fan-out budget: a card that opens sub-agents names disjoint scopes, one writer per file, and the parent's total call ceiling. Duplicate scopes, duplicate goals and cold-cache children are reported: Hermes does not dedupe, share a cache or set a parent budget, so the card must. KNOWN GAPS: the counts over-count (the parent's reads, a rejected batch). | session_effort_audit.py. |
 
 ## §8 Workflow (universal PO methodology)
 
@@ -173,17 +167,17 @@ SSOT for every contributor and agent acting on /Volumes/ANAN/Engineering/wenshu.
 
 ## §9 Reference index (NOT duplicated here)
 
-> Link, do not restate. SSOT = this-file-row.
+> Link, do not restate. SSOT = this-file-row. A bare tool name = that tool under `Tools/wenshu-devtool/`; a bare skill name = its skill dir; every other path is repo-relative.
 
 | Topic | Link |
 | ----- | ---- |
-| Swift standards + AI self-check | ~/.hermes/shared/wenshu-skills/wenshu-pocock-workflow/references/wenshu-swift-standards.md |
-| PO methodology | ~/.hermes/profiles/pocock/skills/universal-pocock-workflow/SKILL.md |
-| Apple HIG canonical | ~/.hermes/profiles/pocock/skills/wenshu-apple-api-first/SKILL.md |
-| Design system rule (SFIcon, DesignTokens, 9-grep sweep) | ~/.hermes/shared/wenshu-skills/wenshu-pocock-workflow/references/v3.0-design-system-rule.md |
-| Iron rules audit (41 Apple HIG + Swift rules) | ~/.hermes/profiles/pocock/skills/wenshu-iron-rules-audit/SKILL.md |
-| Visual audit | ~/.hermes/profiles/pocock/skills/wenshu-visual-audit/SKILL.md |
-| Parallel dev convention (worktree board cards) | ~/.hermes/shared/wenshu-skills/wenshu-parallel-dev/SKILL.md |
+| Swift standards + AI self-check | wenshu-pocock-workflow/references/wenshu-swift-standards.md |
+| PO methodology | universal-pocock-workflow/SKILL.md |
+| Apple HIG canonical | wenshu-apple-api-first/SKILL.md |
+| Design system rule (SFIcon, DesignTokens, 9-grep sweep) | wenshu-pocock-workflow/references/v3.0-design-system-rule.md |
+| Iron rules audit (41 Apple HIG + Swift rules) | wenshu-iron-rules-audit/SKILL.md |
+| Visual audit | wenshu-visual-audit/SKILL.md |
+| Parallel dev convention (worktree board cards) | wenshu-parallel-dev/SKILL.md |
 | Parallel dev contract (in-repo) | docs/agents/parallel-development.md |
 | Nervous file index (NFI) | docs/agents/nfi.md |
 | Ticket difficulty tiers | docs/agents/ticket-tiers.md |
@@ -191,8 +185,8 @@ SSOT for every contributor and agent acting on /Volumes/ANAN/Engineering/wenshu.
 | OOB index (boss directives, dev-time only) | OOB.md |
 | Domain glossary | docs/agents/domain.md |
 | ADRs (0000-0027) | docs/adr/ |
-| Deferred standards (6.2 + 6.6) | docs/adr/0025-engineering-standards-compliance-deferred.md |
-| Unchecked-Sendable audit | docs/adr/0027-unchecked-sendable-audit.md |
+| Deferred standards (6.2 + 6.6) | docs/adr/0025-*.md |
+| Unchecked-Sendable audit | docs/adr/0027-*.md |
 
 ## §10 Change protocol for THIS file
 
@@ -203,7 +197,7 @@ SSOT for every contributor and agent acting on /Volumes/ANAN/Engineering/wenshu.
 | 10.1 | Edit trigger = boss OOB only. Never edit during a normal ticket. |
 | 10.2 | New rule = add numbered row (§1.X / §2.X / etc.). Never insert between rows. |
 | 10.3 | Remove rule = delete from this file. No history. Outdated = gone. |
-| 10.4 | Pre-flight before committing this file: `python3 Tools/wenshu-devtool/agents_gate.py --file AGENTS.md` exits 0. It checks the frontmatter parses, the body stays <= 20,000 chars (the Hermes loader truncates above it), every named path and skill exists, the rule ids are contiguous, and no CJK hides outside rules 1.2 / 1.3 / 1.4. |
+| 10.4 | Pre-flight before committing this file: `python3 Tools/wenshu-devtool/agents_gate.py --file AGENTS.md` exits 0. It checks the frontmatter parses, the file fits the loader's 20,000-char cap (= the whole file, frontmatter included), every named path and skill exists, the rule ids are contiguous, and no CJK hides outside rules 1.2 / 1.3 / 1.4. |
 
 > First line fact: Wenshu is a Swift / SwiftUI / SwiftData macOS app, single-process, Apple-stack exclusive.
 > Last line fact: This file is SSOT for wenshu; all detail lives in §9 reference index.

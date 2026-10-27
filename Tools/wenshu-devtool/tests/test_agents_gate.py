@@ -129,13 +129,31 @@ def main() -> int:
         )
     )
 
-    # 2. a body above the cap is an error.
+    # 2. a file above the loader's cap is an error.
+    #    The cap applies to the file AS THE LOADER READS IT (= the whole
+    #    file, frontmatter included, plus the "## AGENTS.md" label), not
+    #    to the body alone. A body-only budget passes a file the loader
+    #    cuts in the middle.
     huge = good_body() + ("\n" + ("x" * 500) + "\n") * 60
     r = check(huge)
     results.append(
         case(
-            "a body above the loader cap is an error",
+            "a file above the loader cap is an error",
             has_error(r, "truncates above"),
+            "; ".join(r["errors"][:3]),
+        )
+    )
+
+    # 2b. the budget counts the frontmatter, so a file whose BODY fits but
+    #     whose whole file does not is still an error.
+    #     a frontmatter big enough to push the WHOLE file over the cap
+    #     while its body alone stays under it.
+    long_front = FRONT + ("#" * 200 + "\n") * 110
+    r = check(good_body(), front=long_front)
+    results.append(
+        case(
+            "the budget counts the frontmatter too",
+            has_error(r, "truncates above") or has_error(r, "loads as"),
             "; ".join(r["errors"][:3]),
         )
     )
