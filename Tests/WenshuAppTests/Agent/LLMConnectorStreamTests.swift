@@ -1,8 +1,11 @@
 //
 //  LLMConnectorStreamTests.swift · Wenshu · T7-STREAM-DEFAULT (2026-09-18)
 //
-//  Verifies the default `stream()` implementation on LLMConnector
-//  yields each block from `send(...)` (= one AsyncStream per call).
+//  Verifies how a connector's own `stream(...)` behaves. The default
+//  implementation on LLMConnector was deleted (commit 4a9515bd5c), so
+//  every connector owns its stream: the block sequence a connector
+//  yields, and the failure a connector reports when it cannot serve
+//  the call.
 //
 
 import Testing
@@ -70,24 +73,46 @@ struct LLMConnectorStreamTests {
         }
     }
 
-    /// OBSOLETE (P0-STREAM-NATIVE, commit 791acb497): the default
-    /// `LLMConnector.stream()` extension was deleted (= every
-    /// connector must now implement its own native stream). This
-    /// test asserted the default extension's "swallow send errors
-    /// as a synthetic `[stream error]` text block" behavior; =
-    /// that path no longer exists. Future ticket: redesign this
-    /// test to assert that a connector's `stream()` implementation
-    /// (= the per-connector override) propagates send errors
-    /// instead of swallowing them (= the hermes-style "let the
-    /// caller decide" pattern).
-    @Test func default_stream_emits_error_on_send_failure() async {
-        Issue.record("""
-        This test asserted behavior of the deleted default
-        LLMConnector.stream() extension (= the "fake streaming"
-        path that called send() and emitted a synthetic error
-        block). The default was deleted in commit 791acb497;
-        = every connector must now implement its own stream.
-        Future ticket: redesign to assert per-connector behavior.
-        """)
+    /// A connector owns its stream (= the default `LLMConnector.stream()`
+    /// extension was deleted in commit 4a9515bd5c), so the failure a
+    /// connector cannot serve must reach the caller through that
+    /// connector's own stream.
+    ///
+    /// The provider has no credential here, which is the failure the
+    /// send path raises (`LLMConnectorError.missingAPIKey`). The
+    /// connector's own stream reports that same failure in-band: one
+    /// text block carrying the `[stream error]` marker and the
+    /// provider it belongs to. A stream that ended without a word
+    /// would look like a model that said nothing, so the caller has to
+    /// see the refusal.
+    @Test func connector_own_stream_reports_the_failure_send_would_throw() async throws {
+        // The provider has no key, so the call cannot be served. The
+        // store is injected, so the test never touches a real keychain.
+        let store = InMemoryKeychainStore()
+        try await ProviderKeychain.withBackendForTesting(store) {
+            let connector = DeepSeekConnector()
+            let options = LLMCallOptions(model: "deepseek-chat")
+
+            // The send path raises the failure.
+            await #expect(throws: LLMConnectorError.self) {
+                try await connector.send(messages: [], options: options)
+            }
+
+            // The connector's own stream reports the same failure.
+            var collected: [LLMBlock] = []
+            for await block in connector.stream(messages: [], options: options) {
+                collected.append(block)
+            }
+            let texts = collected.compactMap { block -> String? in
+                if case .text(let s) = block { return s }
+                return nil
+            }
+            #expect(texts.count == 1,
+                    "expected exactly 1 text block, got \(collected.count)")
+            #expect(texts.first?.contains("[stream error]") == true,
+                    "the failure must carry the stream-error marker, got \(texts)")
+            #expect(texts.first?.contains("deepseek") == true,
+                    "the failure must name the provider it belongs to, got \(texts)")
+        }
     }
 }

@@ -3,16 +3,15 @@
 //
 //
 //
-//  This test exercises the FULL conductor pipeline WITHOUT calling real LLM:
-//    1. handle() entry point
-//    2. intent classify → graceful degradation (no API key → empty selectedAgents)
-//    3. sub-agent dispatch loop → no-ops (no agents selected)
-//    4. Auditor pass → no-ops
-//    5. synthesis → graceful degradation (curated fallback reply)
-//    6. WSChatRepository writes 0 sub-agent runs (because none dispatched)
-//    7. WSKanbanRepository writes the conductor parent task
+//  This file exercises the conductor WITHOUT calling a real LLM:
+//    1. a turn with no connector -> the plain "not configured" notice,
+//       and no state written (= the deleted legacy pipeline used to
+//       write a task and answer anyway)
+//    2. the sub-agent identities handle() dispatches to are ready
+//    3. the main agent identity handle() injects is ready
+//    4. the verifier's single-key contract holds
 //
-//  Verifies the WHOLE pipeline state machine without external dependencies.
+//  Verifies the conductor's own surface without external dependencies.
 //  For real LLM verification, see wenshu manual integration test (boss 8/21+).
 //
 
@@ -25,45 +24,79 @@ import WenshuData
 @Suite("WenshuConductor E2E (主 agent 派单, 全流程)")
 struct WenshuConductorE2ETests {
 
-    /// Pipeline test: handle() with no API key → graceful degradation end-to-end.
-    /// Verifies state writes (WSKanbanRepository + WSChatRepository) even when
-    /// LLM calls fail.
+    /// The legacy pipeline was deleted (commit 140b76deb): a turn with
+    /// no connector now returns a plain "not configured" notice and
+    /// writes no state.
     ///
-    /// OBSOLETE (boss 2026-10-16 P0-AGENT-LOOP, commit 140b76deb): this
-    /// test was written when `WenshuConductor.handle` had a no-ReAct
-    /// "legacy pipeline" fallback (= the "small liar" path that
-    /// returned a graceful error reply when no connector was wired).
-    /// The legacy pipeline has been deleted; the conductor now
-    /// returns a plain "agent 未配置" reply when the connector is
-    /// nil (= the test no longer drives the ReAct path because
-    /// no connector is wired). The "graceful degradation" the
-    /// test was asserting was the legacy pipeline's own behavior
-    /// (= it wrote 1 kanban task and returned a non-empty reply
-    /// even on LLM failure; = we no longer want that fallback;
-    /// we want the failure to be visible to the caller).
+    /// The observable shape is what the caller sees: a fixed notice
+    /// (the same text whatever the user asked, and none of the
+    /// prompt in it), no token usage (the model was never consulted),
+    /// and no kanban task (the deleted pipeline used to write one and
+    /// answer anyway).
     ///
-    /// The test body is preserved as an `Issue.record` (= Apple
-    /// Swift Testing pattern for documenting a now-invalid
-    /// assertion) so the deletion is visible in the test
-    /// output without making the suite fail. Future ticket: delete
-    /// this test entirely once the WenshuConductor.handle
-    /// "graceful degradation" path is re-designed (= e.g. with
-    /// real ReAct loop mock + a stub connector that throws on
-    /// every call, = the test then asserts the THROW propagates
-    /// to the caller, not that a "non-empty reply" is returned).
-    @Test("e2e pipeline: handle → graceful degradation → state writes (= OBSOLETE per commit 140b76deb)")
+    /// The control run at the end uses the same in-memory container
+    /// with a mock connector, so the empty task list proves the
+    /// missing connector writes nothing rather than proving the
+    /// repository was never wired to the conductor.
+    @Test("e2e: a turn with no connector returns the plain not-configured notice and writes no task")
     @MainActor
-    func testE2EGracefulDegradation() async throws {
-        Issue.record("""
-        This test asserted behavior of the WenshuConductor.handle
-        'legacy pipeline' (= the no-ReAct no-tool-dispatch path that
-        = per boss 2026-10-16 OOB "agent 没有达到 agent 的标准" =
-        the 'small liar' path). The legacy pipeline has been deleted
-        (= commit 140b76deb). The conductor now returns a plain
-        'agent 未配置' reply when the connector is nil. Future
-        ticket: redesign this test to assert that the throw
-        propagates to the caller when the ReAct loop fails.
-        """)
+    func testE2EMissingConnectorReturnsNoticeAndWritesNoTask() async throws {
+        let container = try WSPersistenceContainer.makeInMemoryContainer()
+        let repositories = WSRepositoryContainer(container: container)
+
+        // A prompt marker the notice must not carry: the reply is a
+        // fixed notice, not an answer built from what the user asked.
+        let marker = "E2E-PROMPT-MARKER-42"
+        let withoutConnector = WenshuConductor(connector: nil, repositories: repositories)
+        let result = await withoutConnector.handle(
+            userMessage: marker,
+            sessionId: "e2e-missing-connector",
+            model: "mock-model"
+        )
+        // The turn answers the caller.
+        #expect(!result.reply.isEmpty, "the turn must answer the caller")
+        // The notice is fixed text, not an answer built from the prompt.
+        #expect(!result.reply.contains(marker),
+                "the reply must not carry the prompt back to the caller")
+        let second = await withoutConnector.handle(
+            userMessage: "a different question",
+            sessionId: "e2e-missing-connector",
+            model: "mock-model"
+        )
+        #expect(second.reply == result.reply,
+                "the reply must be the fixed notice, not an answer to the prompt")
+        // The model was never consulted, so nothing was spent on it.
+        #expect(result.totalTokens == 0)
+        #expect(result.thinking == nil)
+        // And the turn wrote no task: the deleted pipeline used to
+        // write one, so an empty list is the behaviour to keep.
+        let tasksAfterMissingConnector = try repositories.kanban.list()
+        #expect(tasksAfterMissingConnector.isEmpty,
+                "the missing-connector turn must write no task")
+
+        // Control: the same container with a connector does receive a
+        // task, so the empty list above is the missing connector's
+        // doing and not a detached repository.
+        //
+        // The turn's memory is off, so the turn does not reach the
+        // memory store (= the developer's own on-disk store, = not a
+        // thing a test may write to).
+        var settings = AgentSettings()
+        settings.memory.enabled = false
+        let hermeticSettings = settings
+        let withConnector = WenshuConductor(
+            connector: MockLLMConnector(),
+            settingsProvider: { hermeticSettings },
+            repositories: repositories
+        )
+        _ = await withConnector.handle(
+            userMessage: "hello",
+            sessionId: "e2e-with-connector",
+            model: "mock-model"
+        )
+        let tasksAfterConnector = try repositories.kanban.list()
+        #expect(!tasksAfterConnector.isEmpty,
+                "a turn with a connector writes the conductor task")
     }
 
     /// Pipeline test: SubAgentIdentity system prompts are all present and distinct.
