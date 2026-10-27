@@ -110,6 +110,15 @@ python3 Tools/wenshu-devtool/tests/test_ticket_tier.py
 The tier's contract and the measurements behind its numbers are in
 `docs/agents/ticket-tiers.md`.
 
+**A card in the review lane is held to the review lane's own floor, not to
+its tier's cap.** A review run re-reads the diff, re-derives the acceptance
+and re-runs the gates, so it is slower than the implementation it audits:
+measured on this board, the review runs on a 1500 s cap died at 25.1 min
+(seven of them) and a review on a 3600 s cap completed at 27 min. So a card
+whose status is `review` must carry at least 3600 s, and a card carrying more
+is generous rather than wrong. The floor belongs to the lane, so it does not
+move with the card's tier.
+
 ## Dead-code gate
 
 Another separate tool, because it measures the source tree instead of the
@@ -148,7 +157,10 @@ It answers the two questions the review contract needs:
 - **CONTRACT** = what the card owes: does the body write code, and does it
   name a reviewer profile that is not the implementer?
 - **RECORD** = what the board holds: is there an approving verdict, and which
-  profile gave it?
+  profile gave it? The verdict lives in ONE field of the approving run's
+  metadata (`review_outcome: "approved"`), so a verdict written in the run's
+  summary is not a verdict the gate can see, and the field is never
+  backfilled by hand.
 
 The obligation to get an independent verdict is DERIVED from the work the body
 describes, never hand-set, and it is independent of the difficulty tier: a

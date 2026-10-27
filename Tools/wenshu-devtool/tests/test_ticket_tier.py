@@ -590,6 +590,46 @@ def main() -> int:
         True,
     )
 
+    # 11b. The REVIEW lane has its own clock. A card in the review column runs
+    # the review's work (re-read the diff, re-derive the acceptance, re-run the
+    # gates), which is slower than the implementation it audits, so the tier's
+    # implementation cap would kill it before it could hand back a verdict.
+    # Measured on this board: at a 1500 cap the review runs died at 25.1 min
+    # (seven of them), and at 3600 a 27-min review completed. So the lane has
+    # a FLOOR of 3600s, and a card above it is generous rather than wrong.
+    review_card = dict(good, status="review", max_runtime_seconds=3600)
+    check(
+        "a review card at the lane's floor has no cap finding",
+        any("runtime cap" in f for f in tool.find_errors(review_card)),
+        False,
+    )
+    review_under = dict(good, status="review", max_runtime_seconds=1500)
+    check(
+        "a review card under the lane's floor is an error",
+        any("review lane needs at least" in f for f in tool.find_errors(review_under)),
+        True,
+    )
+    review_over = dict(good, status="review", max_runtime_seconds=5400)
+    check(
+        "a review card above the floor is not an error",
+        any("runtime cap" in f for f in tool.find_errors(review_over)),
+        False,
+    )
+    # The floor belongs to the LANE, so it does not move with the tier: a T2
+    # card in review is still held to the review lane's clock, not to T2's.
+    review_t2 = dict(
+        good,
+        status="review",
+        title="[T2] two files",
+        body=TWO_FILES,
+        max_runtime_seconds=2700,
+    )
+    check(
+        "the review floor does not depend on the tier",
+        any("review lane needs at least" in f for f in tool.find_errors(review_t2)),
+        True,
+    )
+
     # 12. Every tier's cap must cover the longest successful run measured in
     #     that tier, or the cap kills work that would have finished.
     measured_max = {"T1": 10.5, "T2": 16.0, "T3": 39.2}

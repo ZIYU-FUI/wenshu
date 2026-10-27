@@ -116,6 +116,24 @@ REPO = "/Volumes/ANAN/Engineering/wenshu"
 # not buy fewer attempts; it buys more expensive ones. So T3's cap stays
 # above its measured maximum, and the fast lane takes its time out of the
 # GATE and the BODY, not out of the cap.
+# The REVIEW lane's cap is the lane's own, not the tier's. A review run
+# re-reads the diff, re-derives the acceptance and re-runs the gates, so it
+# takes longer than the implementation it audits: measured 2026-10-27, the
+# board's completed reviews ran 15.5-73.9 min (p90 43.2 min). The tier's cap
+# is fitted to an IMPLEMENTATION run, so a review card judged against it dies
+# on the clock before it can produce a verdict.
+#
+# Measured on this board: at a 1500 cap the review runs died at 25.1 min
+# (seven of them), and at 3600 a 27-min review completed. So the lane's FLOOR
+# is 3600 s, and a card carrying less will die before it can hand back a
+# verdict. A card carrying more is generous, not wrong, so the floor is what
+# this gate checks.
+#
+# The floor is one number for the lane: the width of a REVIEW is not
+# derivable from the card body, because that body describes the work under
+# review, not the review itself.
+REVIEW_LANE_CAP_FLOOR = 3600
+
 TIERS = {
     "T1": {
         "label": "trivial",
@@ -538,11 +556,23 @@ def find_contract_errors(card: dict) -> list[str]:
         errors.append(f"title says {claimed}, the body earns {tier}")
 
     runtime = card.get("max_runtime_seconds")
-    if runtime is not None and runtime != contract["runtime"]:
-        errors.append(
-            f"runtime cap {runtime}s, tier {tier} buys {contract['runtime']}s "
-            f"({contract['runtime_text']})"
-        )
+    if runtime is not None:
+        # A card in the review lane runs the REVIEW's work, so it is judged
+        # against the review lane's cap (= the lane's own measured
+        # distribution), not against the tier's implementation cap.
+        in_review = str(card.get("status") or "") == "review"
+        if in_review:
+            if runtime < REVIEW_LANE_CAP_FLOOR:
+                errors.append(
+                    f"runtime cap {runtime}s, the review lane needs at least "
+                    f"{REVIEW_LANE_CAP_FLOOR}s (= a review that runs out of "
+                    f"clock hands back no verdict)"
+                )
+        elif runtime != contract["runtime"]:
+            errors.append(
+                f"runtime cap {runtime}s, tier {tier} buys {contract['runtime']}s "
+                f"({contract['runtime_text']})"
+            )
 
     if work_length(body) > contract["body_max"]:
         errors.append(
