@@ -33,7 +33,7 @@ SSOT for every contributor and agent on /Volumes/ANAN/Engineering/wenshu.
 
 | #   | Rule | Enforcement |
 | --- | ---- | ----------- |
-| 1.1 | English-only in code, comments, commits, prompts, all .md. No CJK characters. | CI lint-commits job (no CJK in the subject); the xianxia family by commit_filter.py + SwiftLint. Comment-level CJK is manual (750 CJK comment lines still in Sources/ at commit d44c2df39). |
+| 1.1 | English-only in code, comments, commits, prompts, all .md. No CJK characters. | CI lint-commits job (no CJK in the subject); the xianxia family by commit_filter.py + SwiftLint. Comment-level CJK is manual (770 CJK comment lines in Sources/ at commit d44c2df39, counted with the gate's regex). |
 | 1.2 | Sole address for the user = "老板". No other forms. | Manual. commit_filter.py permits the project literals (老板 / 文枢 / 拍 / 拍板 / ※). |
 | 1.3 | Forbidden hedges (replace with yes/no/yes-yes): 可 / 应当 / 或许 / 可能 / 应该 / 建议 / 考虑 / 试图 / 尽量 / 大概 / 也许 / 或 / 任意 / 大概率 / 通常 / 一般来说. | Manual (= no machine gate). |
 | 1.4 | Forbidden xianxia vocabulary (replace with 修 / 改 / fix / 替换 / 调整): 修真 / 渡劫 / 筑基 / 返虚 / 结丹 / 金丹 / 元婴 / 飞升 / 天劫 / 雷劫 / 心魔 / 魔障. | commit_filter.py (pre-commit + commit-msg + pre-push hooks in .git/hooks/) + .swiftlint.yml xianxia_forbidden_vocab (severity error) + CI Pollution check. |
@@ -58,9 +58,9 @@ SSOT for every contributor and agent on /Volumes/ANAN/Engineering/wenshu.
 | 2.1 | Stack: Swift / SwiftUI / Observation (@Observable) / SwiftData / Swift Concurrency. | Apple stack exclusive. |
 | 2.2 | NO CoreData. NO SQLite (SwiftData only). NO external AI platform SDK. NO monorepo. NO npm. NO Python in the app target. NO Rust. NO Tauri. NO Vue. | Package.swift (tools-version 6.4); Sources/ imports = Apple frameworks + 4 approved upstreams. |
 | 2.3 | macOS-only. iPad/iPhone code supported but NOT target. | Boss ruling 8/18. |
-| 2.4 | Swift 6 strict concurrency. @MainActor for UI. actor for background. Sendable for cross-isolation. | wenshu-swift-standards.md §4; ADR-0027 (31 @unchecked Sendable, each justified). |
+| 2.4 | Swift 6 strict concurrency. @MainActor for UI. actor for background. Sendable for cross-isolation. | wenshu-swift-standards.md §4; ADR-0027 (each @unchecked Sendable justified; its count is its census at its date). |
 | 2.5 | LLM connector: 14 slugs = 13 built-in + custom (anthropic / openai-codex / gemini / deepseek / ollama / openrouter / minimax / minimax-cn / nous / copilot / copilot-acp / xai-oauth / stepfun / custom). BYOK, no default. | Sources/WenshuAgent/Sources/WenshuAgent/Connector/BuiltInProviders.swift. |
-| 2.6 | LLM key storage: macOS Keychain via ProviderKeychain, AND a plaintext mirror at `~/Library/Application Support/com.wenshu.app/provider-keys.json` (mode 0600, outside the .ws). Every write hits BOTH stores; the toggle picks the read primary. NEVER inside the .ws. | Sources/WenshuAgent/Sources/WenshuAgent/Keychain/ProviderKeychain.swift. |
+| 2.6 | LLM key storage: macOS Keychain via ProviderKeychain, AND a plaintext mirror at `~/Library/Application Support/com.wenshu.app/provider-keys.json` (mode 0600, outside the .ws). Normally every write hits BOTH stores and the toggle picks the read primary; the debug no-keychain override writes the file only. NEVER inside the .ws. | Sources/WenshuAgent/Sources/WenshuAgent/Keychain/MirroredKeychainStore.swift. |
 | 2.7 | Project format: .ws package (single-process, per-user local). | §3. |
 | 2.8 | Tests: Swift Testing (`import Testing`). Legacy XCTest files stay; add none. | Tests/. |
 | 2.9 | Version: three digits, middle = phase, third = hotfix. | Boss ruling. |
@@ -111,12 +111,12 @@ SSOT for every contributor and agent on /Volumes/ANAN/Engineering/wenshu.
 
 | #   | Fact | Reference |
 | --- | ---- | --------- |
-| 6.1 | Sources/ = 3 SwiftPM targets: WenshuApp/ (executable: App/ + Features/<Name>/ + Shared/), plus 2 local path packages WenshuData/ (store) and WenshuAgent/ (agent runtime). | Package.swift. |
-| 6.2 | A feature folder uses up to 4 slots: Model/ + Service/ + Store/ + View/. A feature carries only the slots it needs (Kanban = no Store/, Outline = no Service/ or Store/). The 5-slot form in the standards doc is deferred (ADR-0025). | Sources/WenshuApp/Features. |
+| 6.1 | Sources/ = 3 SwiftPM targets: WenshuApp/ (executable: App/ + Features/<Name>/ + Shared/), plus 2 local path packages WenshuData/ (store) and WenshuAgent/ (agent runtime). | Package.swift |
+| 6.2 | A feature folder uses up to 4 slots: Model/ + Service/ + Store/ + View/. A feature carries only the slots it needs (Kanban = no Store/, Outline = no Service/ or Store/). The 5-slot form in the standards doc is deferred (ADR-0025). | Sources/WenshuApp/Features |
 | 6.3 | A migration arc (>=5 tickets) renames top-level dirs feature-by-feature, one feature + one commit per ticket. | universal-pocock-workflow. |
 | 6.4 | Cross-feature code lives in Sources/WenshuApp/Shared/<Name>/ (inside the app package). The package boundary is the 3 local targets, not a Shared package. | Shared/. |
 | 6.5 | File naming suffix by role: <Xxx>View / <Xxx>Ops / <Xxx>Service / <Xxx>State .swift. One concern per file. | wenshu-swift-standards.md §1.2. |
-| 6.6 | File size cap: 600 LOC per .swift file. Exceed = split, and register the split in the NFI (1.7). Currently DEFERRED: 9 files exceed the cap (ADR-0025). | wenshu-swift-standards.md §1.2. |
+| 6.6 | File size cap: 600 LOC per .swift file. Exceed = split, and register the split in the NFI (1.7). DEFERRED (ADR-0025). | wenshu-swift-standards.md §1.2. |
 | 6.7 | One import block per file. Alphabetical. No unused imports. | wenshu-swift-standards.md §1.1. |
 | 6.8 | Root tree (measured 2026-10-28): 6 visible dirs (Scripts / Sources / Tests / Tools / build / docs), 13 hidden dirs, 10 visible files, 7 hidden files. .worktrees/ = card worktrees. .test-backup-x-*/ + .test-vision-*.txt = gitignored sandbox copies (their count grows per test run, so it is not asserted). | Measured 2026-10-28. |
 | 6.9 | Single-purpose rule. Any dir with exactly 1 file and 0 dependents = deletion candidate (= .scratch/ specs; = docs/agents/ per-role docs; = docs/adr/ per-decision docs). The 3 hidden tooling dirs (.claude/ .git-hooks/ .hermes/) hold one entry each by design. | Boss OOB 2026-10-16. |
@@ -130,16 +130,16 @@ SSOT for every contributor and agent on /Volumes/ANAN/Engineering/wenshu.
 
 | #   | Gate | Reference |
 | --- | ---- | --------- |
-| 7.1 | swift build exits 0. | Scripts/build-app.sh; CI. |
-| 7.2 | swift test exits 0. NO skipped tests without // TODO + tracker id. | CI (swift test). |
+| 7.1 | swift build exits 0. | Scripts/build-app.sh; CI |
+| 7.2 | swift test exits 0. No skipped test without // TODO + tracker id. | CI (swift test). |
 | 7.3 | 9-grep design sweep (icon glyph / spacing / cornerRadius / shadow / font long-form / color opacity / frame max-W/H / imageScale / SFIcon color). Each must return 0 on the changed view files. Enforced by 22 sweep suites in Tests/WenshuAppTests/UI/DesignSystem (swift test), never by the pre-commit hook. | references/v3.0-design-system-rule.md. |
 | 7.4 | Dual-axis audit: Standards axis (code-review + codebase-design) + Spec axis (.scratch/<date>-<topic>/spec.md). Both read-only, parallel. | parallel-development.md; wenshu-parallel-dev. |
-| 7.5 | CJK comment audit: zero new CJK in the modified file. Manual: CI checks the commit subject only; no comment-level CJK gate ships in the tree. | CI lint-commits job. |
+| 7.5 | CJK comment audit: zero new CJK in the modified file. Manual: CI checks the commit subject only; no comment-level CJK gate ships in the tree. | CI lint-commits job |
 | 7.6 | No dead code. | verify-dead.py. |
 | 7.7 | UI-touching ticket: the boss looks at the running build in person. A screenshot is evidence only when asked. | wenshu_devtool.py. |
 | 7.8 | Commit hygiene: 1 commit per ticket, conventional prefix, English subject, body explains WHY. | CI lint-commits job (prefix + no CJK in the subject); commit_filter.py commit-msg hook. |
 | 7.9 | Independent review verdict: a card that writes code carries an approving verdict from a profile that is NOT its implementer (rule 1.14). `Scripts/merge-preflight.sh` refuses the merge without it. | review_gate.py. |
-| 7.10 | Named narrow gate: a card's body names the filtered suite that owns each file it writes, as a `swift test --filter <Suite>` command (a card with no Swift code names its own gate command). A T1/T2 card never asks for the whole suite. Naming no gate is a defect. | gate_width_gate.py. |
+| 7.10 | Named narrow gate: a card's body names the filtered suite that owns each file it writes, as a `swift test --filter <Suite>` command (a card with no Swift code names its own gate command). A T1/T2 card never asks for the whole suite. Naming no gate is a defect. | gate_width_gate.py |
 
 ### Intake and dispatch gates (they fire before the code exists)
 
