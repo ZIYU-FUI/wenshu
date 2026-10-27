@@ -180,6 +180,27 @@ def _board_cards(board: str | None = None) -> list[dict] | None:
     return [dict(r) for r in rows]
 
 
+def _body_text(card: dict) -> str:
+    """The card's body as TEXT, whatever the column holds it in.
+
+    A board stores a body as TEXT, but a body written through a path that
+    bound a bytes value is stored as a BLOB, and sqlite3 hands that back as
+    bytes. A bytes body then reached a str pattern and raised TypeError
+    ("cannot use a string pattern on a bytes-like object"), so the
+    board-wide sweep CRASHED on the first BLOB body instead of reporting
+    it: every card on the board read as unjudged.
+
+    Measured 2026-10-27 on wenshu-par: five cards held their body as a
+    BLOB and --check died on the first of them. The reader in
+    gate_width_gate.py already decodes, so this is the same rule applied
+    to the same column.
+    """
+    body = card.get("body") or ""
+    if isinstance(body, bytes):
+        body = body.decode("utf-8", "replace")
+    return body
+
+
 def _card_from_file(path: str) -> dict:
     text = Path(path).read_text(encoding="utf-8")
     # A draft body file may carry a title line; the title is the first
@@ -320,7 +341,7 @@ def in_scope(card: dict) -> tuple[bool, str]:
     GATES section, and it therefore passed a gate that would have told it
     to read seven files instead of 521.
     """
-    body = card.get("body") or ""
+    body = _body_text(card)
     title = card.get("title") or ""
     if card.get("status") in ("done", "review", "archived"):
         return False, f"the card is {card.get('status')}, its evidence is spent"
@@ -367,7 +388,7 @@ def contract_errors(card: dict) -> list[str]:
     if not scoped:
         return errors
 
-    body = card.get("body") or ""
+    body = _body_text(card)
     if not budget_section(body):
         return [
             "the card does research but carries no '## EVIDENCE BUDGET' section"
@@ -422,7 +443,7 @@ def report(card: dict) -> dict:
     except (TypeError, ValueError):
         created = 0
     legacy = bool(created) and created < EVIDENCE_CONTRACT_FROM
-    lines = budget_lines(card.get("body") or "")
+    lines = budget_lines(_body_text(card))
     return {
         "id": card.get("id"),
         "title": card.get("title"),

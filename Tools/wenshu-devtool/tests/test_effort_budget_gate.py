@@ -18,6 +18,11 @@ measured on board wenshu-par, 2026-10-27:
   9. a card WITH a GATES section still owes a budget (orthogonality).
  10. the heading is found as a heading, not as a word.
  11. a read line may name a .py / .sh / .md path, not only a .swift one.
+ 12. the empty read line is unbounded, not a pass.
+ 13. the --body mode returns non-zero on a finding, zero on a clean card.
+ 14. a body stored as a BLOB is read, not crashed on.
+ 15. a BLOB body is scoped by the same rule as a TEXT one.
+ 16. a BLOB body that states no budget still reports the finding.
 
 Run:  python3 Tools/wenshu-devtool/tests/test_effort_budget_gate.py
 Exit: 0 = every case passed, 1 = at least one case failed.
@@ -95,6 +100,20 @@ def case(name: str, ok: bool, detail: str = "") -> bool:
     if not ok and detail:
         print(f"      {detail}")
     return ok
+
+
+def guarded(fn):
+    """Run fn and report a raise as a failure instead of aborting the suite.
+
+    A case that raises would abort the suite before it prints its count,
+    so the suite could never go RED on its own teeth. The failure has to
+    be a failed CASE, not a dead runner: the gate's job is to report, and
+    the suite's job is to report the gate not reporting.
+    """
+    try:
+        return fn(), ""
+    except TypeError as exc:
+        return None, f"raised {type(exc).__name__}: {exc}"
 
 
 def main() -> int:
@@ -275,6 +294,70 @@ def main() -> int:
         good.write_text(body(goal="x", budget=good_budget()), encoding="utf-8")
         rc = ebg.main(["--body", str(good)])
         results.append(case("the --body mode returns zero on a clean card", rc == 0, f"got {rc}"))
+
+    # 14. a body stored as a BLOB is read, not crashed on
+    #
+    # A board holds a body as TEXT, but a body written through a path that
+    # bound a bytes value is stored as a BLOB, and sqlite3 hands that back
+    # as bytes. A str pattern then met a bytes body and raised TypeError,
+    # so the board-wide --check sweep DIED on the first such card instead
+    # of reporting it. Measured 2026-10-27 on wenshu-par: five cards held
+    # their body as a BLOB, and --check crashed on the first of them.
+    blob = card(budget=good_budget())
+    blob["body"] = blob["body"].encode("utf-8")
+    row, raised = guarded(lambda: ebg.report(blob))
+    results.append(
+        case(
+            "a body stored as a BLOB is read, not crashed on",
+            not raised
+            and row is not None
+            and not row["findings"]
+            and row["read_count"] == 1
+            and bool(row["deliver"]),
+            raised or f"got {row}",
+        )
+    )
+
+    # 15. a BLOB body is scoped by the same rule as a TEXT one
+    #
+    # The scope rule reads the body's GATES marker, so it is the first
+    # reader a bytes body met. The scope answer must not depend on how
+    # the board happened to store the body.
+    scoped_card = card(gates="swift build", budget=good_budget())
+    blob_scoped = dict(scoped_card)
+    blob_scoped["body"] = scoped_card["body"].encode("utf-8")
+    text_scope, text_raised = guarded(lambda: ebg.in_scope(scoped_card))
+    blob_scope, blob_raised = guarded(lambda: ebg.in_scope(blob_scoped))
+    results.append(
+        case(
+            "a BLOB body is scoped by the same rule as a TEXT one",
+            not blob_raised
+            and not text_raised
+            and blob_scope == text_scope
+            and blob_scope is not None
+            and blob_scope[0] is True,
+            blob_raised or text_raised or f"got {blob_scope} vs {text_scope}",
+        )
+    )
+
+    # 16. a BLOB body that states no budget still reports the finding
+    #
+    # The crash hid the finding: the cards that genuinely state no budget
+    # were invisible behind the exception. A BLOB body must report the
+    # same finding a TEXT body reports.
+    bare = card()
+    bare["body"] = bare["body"].encode("utf-8")
+    errors, raised = guarded(lambda: ebg.contract_errors(bare))
+    results.append(
+        case(
+            "a BLOB body that states no budget still reports the finding",
+            not raised
+            and errors is not None
+            and bool(errors)
+            and "EVIDENCE BUDGET" in errors[0],
+            raised or f"got {errors}",
+        )
+    )
 
     failed = results.count(False)
     print()
