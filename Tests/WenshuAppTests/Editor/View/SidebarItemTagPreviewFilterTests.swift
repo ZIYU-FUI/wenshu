@@ -15,13 +15,13 @@
 //       WorkspaceUIState exposes `var activeTag: String?`
 //       (= the canonical filter source).
 //
-//    2. testShellMiddleColumnSetsActiveTag —
-//       ShellMiddleColumn.previewScope() sets
-//       workspaceUI.activeTag on `.tag(String)` selection.
+//    2. testSidebarSelectionCarriesTagString —
+//       the sidebar's tag-row selection writes the row's title
+//       (= the tag string) into the workspace selection
 //       (= the canonical producer path).
 //
-//    3. testPreviewPaneFiltersByActiveTag —
-//       PreviewPane.referenceScopeView applies the activeTag
+//    3. testPreviewPaneFiltersByEffectiveTag —
+//       PreviewPane.referenceScopeView applies the effective tag
 //       filter (= only references whose tags set contains
 //       the string pass through).
 //
@@ -49,23 +49,27 @@ struct SidebarItemTagPreviewFilterTests {
                 "WorkspaceUIState must expose activeTag (= boss A7 follow-up = 'tag preview-pane filter')")
     }
 
-    @Test("ShellMiddleColumn (= now AssetsPane) sets workspaceUI.activeTag on .tag(String) selection")
-    func testShellMiddleColumnSetsActiveTag() throws {
-        // ShellMiddleColumn was renamed to AssetsPane and moved to
-        // Views/Workspace/ in 2026-10-03 (= commit 5723d226c). The
-        // production contract = "workspaceUI.activeTag = tagString"
-        // is preserved in AssetsPane.swift L185.
-        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Features/Editor/View/AssetsPane.swift"), encoding: .utf8)
-        #expect(source.contains("workspaceUI.activeTag = tagString"),
-                "AssetsPane.previewScope() must set workspaceUI.activeTag on .tag(String) (= the canonical producer path)")
+    @Test("the sidebar's tag row writes the tag string into the workspace selection")
+    func testSidebarSelectionCarriesTagString() throws {
+        // The producer is the sidebar's selection writer: its .tag
+        // case writes the row's title (= the tag string) into the
+        // workspace selection, and the preview pane reads the tag
+        // back out of it.
+        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Features/Library/View/AppleSidebarSelection.swift"), encoding: .utf8)
+        #expect(source.contains("workspaceUI.sidebarSelection = .tag(node.title)"),
+                "the sidebar's tag-row selection MUST write the tag string into the workspace selection (= the canonical producer path)")
     }
 
-    @Test("PreviewPane.referenceScopeView filters by activeTag (= only references whose tags contains the string)")
-    func testPreviewPaneFiltersByActiveTag() throws {
-        let source = try String(contentsOfFile: resolve("Sources/WenshuApp/Features/Editor/View/PreviewPane.swift"), encoding: .utf8)
-        let hasFilter = source.contains("entity.tags.contains(activeTag)")
-        let hasBinding = source.contains("@Binding var activeTag: String?")
+    @Test("PreviewPane.referenceScopeView filters by the effective tag (= only references whose tags contains the string)")
+    func testPreviewPaneFiltersByEffectiveTag() throws {
+        // The filter applies the scope's tag override, falling back
+        // to the active tag the pane holds.
+        let pane = try String(contentsOfFile: resolve("Sources/WenshuApp/Features/Editor/View/PreviewPane.swift"), encoding: .utf8)
+        let scopeViews = try String(contentsOfFile: resolve("Sources/WenshuApp/Features/Editor/View/PreviewPaneScopeViews.swift"), encoding: .utf8)
+        let hasFilter = scopeViews.contains("let effectiveTag = tagOverride ?? activeTag")
+            && scopeViews.contains("entity.tags.contains(effectiveTag)")
+        let hasBinding = pane.contains("@Binding var activeTag: String?")
         #expect(hasFilter && hasBinding,
-                "PreviewPane.referenceScopeView must filter references by activeTag (= boss A7 follow-up = 'tag chip was dead UI affordance')")
+                "PreviewPane.referenceScopeView must filter references by the effective tag (= the tag override first, = the active tag second)")
     }
 }

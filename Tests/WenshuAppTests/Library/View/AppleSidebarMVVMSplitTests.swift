@@ -25,36 +25,21 @@ import Foundation
 struct AppleSidebarMVVMSplitTests {
 
     /// Resolve repo-relative paths against the wenshu project root
-    /// (= not the Swift Testing worker's CWD which can be the
-    /// build directory at test runtime).
-    private static func wenshuRoot() -> String {
-        // Tests run with the package's source root as CWD when
-        // launched via `swift test` from the wenshu root; = the
-        // canonical repo-relative path matches the source layout.
-        // (No environment-variable lookup because the existing
-        // sidebar source-level tests in this repo use the same
-        // pattern; = consistency over portability.)
-        let cwd = FileManager.default.currentDirectoryPath
-        // If the test runner CWD is somewhere nested (e.g. the
-        // .build/out directory), walk up until we find a directory
-        // containing both Sources/ and Tests/.
-        var dir = cwd
-        for _ in 0..<6 {
-            let hasSources = FileManager.default.fileExists(
-                atPath: dir + "/Sources/WenshuApp/Features/Library/View/AppleSidebarView.swift"
-            )
-            let hasTests = FileManager.default.fileExists(
-                atPath: dir + "/Tests/WenshuAppTests/Views/Library"
-            )
-            if hasSources && hasTests { return dir }
-            dir = (dir as NSString).deletingLastPathComponent
-        }
-        return cwd
+    /// (= the root of the checkout this test was built from).
+    ///
+    /// SourceLocator probes for Package.swift from the test file's
+    /// own compile-time path, so the root never depends on the test
+    /// runner's working directory (= which can be the build
+    /// directory at test runtime) and never lands on another
+    /// checkout's copy of the tree.
+    private static func repoPath(_ relative: String) -> String {
+        SourceLocator.path(relative)
     }
 
-    private static func repoPath(_ relative: String) -> String {
-        wenshuRoot() + "/" + relative
-    }
+    /// The signature of the book-document loader, matched across the
+    /// line breaks the declaration is written on (= the loader is a
+    /// static on PreviewPaneOps that takes the store).
+    private static let loadBookDocsSignature = #"static\s+func\s+loadBookDocs\s*\(\s*bookStore:\s*BookStore\?,\s*bookId:\s*UUID,\s*folderName:\s*String\?\s*\)"#
 
     /// Parse a binary1 Localizable.strings file and return its keys.
     /// 
@@ -250,13 +235,12 @@ struct AppleSidebarMVVMSplitTests {
 
     @Test("sidebar_service_reference_library_expands_to_category_rows")
     func sidebar_service_reference_library_expands_to_category_rows() throws {
-        // 
-        // the Reference-Library root now has children that are
-        // .referenceCategory rows (= one per non-empty CLC bucket).
-        // Individual references are NOT rendered as leaves in the
-        // sidebar : the
-        // category row's children stay nil so the row carries no
-        // disclosure chevron.
+        //
+        // the Reference-Library root expands to the category
+        // rows (= one per non-empty CLC bucket), and each of
+        // those holds the tags that belong to it (= a two-level
+        // tree). Individual references are NOT rendered as leaves
+        // in the sidebar.
         let src = try String(
             contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Library/View/SidebarService.swift"),
             encoding: .utf8
@@ -265,8 +249,9 @@ struct AppleSidebarMVVMSplitTests {
                 "SidebarService MUST bucket references by category")
         #expect(src.contains("EntityCategoryFromDirectoryName"),
                 "SidebarService MUST map directoryName back to EntityCategory (= for icon + displayName)")
-        #expect(src.contains("referenceRootChildren") || src.contains("referenceRoot"),
-                "SidebarService MUST emit category rows as Reference-Library children (= current source uses referenceRoot)")
+        #expect(src.contains("let libraryRoot = SidebarNode(")
+                && src.contains("children: tagRows.isEmpty ? nil : tagRows"),
+                "SidebarService MUST emit the category rows as the Reference-Library root's children (= the root row is the libraryRoot node; = the current source names it libraryRoot)")
         #expect(src.contains("kind: .referenceCategory") || src.contains(".referenceCategory"),
                 "category rows MUST be tagged .referenceCategory (= distinguishes from .reference leaves; = current source uses the .referenceCategory case; = accept either form)")
     }
@@ -358,14 +343,23 @@ struct AppleSidebarMVVMSplitTests {
         // .md card from every book under that shelf (= the
         // union of `loadBookDocs(bookId:, folderName: nil)`
         // for books whose `shelfId` matches).
-        let src = try String(
-            contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Editor/View/PreviewPane.swift"),
+        // The shelf scope view lives in PreviewPaneScopeViews.swift
+        // (= the scope-view helpers were extracted from PreviewPane.swift).
+        let scopeViews = try String(
+            contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Editor/View/PreviewPaneScopeViews.swift"),
             encoding: .utf8
         )
-        #expect(src.contains("shelfScopeView(shelfId: shelfId)") || src.contains("private func shelfScopeView(shelfId: UUID)"),
-                "shelfScopeView MUST accept a shelfId parameter (= current source calls shelfScopeView(shelfId:) inline)")
-        #expect(src.contains("PreviewPaneOps.loadBooksInShelf") || src.contains("func loadBooksInShelf(shelfId: UUID)"),
-                "PreviewPane MUST expose loadBooksInShelf(= helper that filters BookStore.sidebarLoadAllBooks by shelfId; = current source delegates to PreviewPaneOps.loadBooksInShelf per ADR-0009)")
+        #expect(scopeViews.contains("func shelfScopeView(shelfId: UUID)"),
+                "shelfScopeView MUST accept a shelfId parameter (= the scope view lives in PreviewPaneScopeViews, the file that holds it)")
+        // The shelf book loader lives in PreviewPaneDataAccess.swift
+        // (= the data accessors were extracted from PreviewPane.swift).
+        let dataAccess = try String(
+            contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Editor/View/PreviewPaneDataAccess.swift"),
+            encoding: .utf8
+        )
+        #expect(dataAccess.contains("func loadBooksInShelf(shelfId: UUID)")
+                && dataAccess.contains("PreviewPaneOps.loadBooksInShelf"),
+                "the shelf book loader MUST live in PreviewPaneDataAccess and delegate to PreviewPaneOps.loadBooksInShelf(= the helper that filters BookStore.sidebarLoadAllBooks by shelfId; = per ADR-0009)")
     }
 
     @Test("previewPane_shelfScopeView_empty_state_uses_shelf_specific_copy")
@@ -407,16 +401,24 @@ struct AppleSidebarMVVMSplitTests {
         // to PreviewPaneOps.loadBookDocs (= the canonical UI→Business→Data
         // seam per ADR-0009). The spec is met; the assertion target
         // moves from PreviewPane.swift to PreviewPaneOps.swift.
-        let pane = try String(
-            contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Editor/View/PreviewPane.swift"),
-            encoding: .utf8
-        )
         let ops = try String(
             contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Editor/View/PreviewPaneOps.swift"),
             encoding: .utf8
         )
-        #expect(pane.contains("private func loadBookDocs(bookId: UUID, folderName: String?) -> [BookDoc]"),
-                "PreviewPane MUST have loadBookDocs(bookId:, folderName:) (= the card grid loader; delegates to PreviewPaneOps)")
+        // The scope views call the loader directly (= the scope-view
+        // helpers were extracted from PreviewPane.swift into
+        // PreviewPaneScopeViews.swift).
+        let scopeViews = try String(
+            contentsOfFile: Self.repoPath("Sources/WenshuApp/Features/Editor/View/PreviewPaneScopeViews.swift"),
+            encoding: .utf8
+        )
+        // The loader is a static on PreviewPaneOps now: it takes the
+        // store and returns its own result type, so the declaration
+        // is matched across the line breaks it is written on.
+        #expect(ops.range(of: Self.loadBookDocsSignature, options: .regularExpression) != nil,
+                "PreviewPaneOps.loadBookDocs MUST be a static loader taking the store, the book id and the folder name (= the shape that is real now)")
+        #expect(scopeViews.contains("PreviewPaneOps.loadBookDocs(bookStore: bookStore, bookId: bookId, folderName: folderName)"),
+                "the preview pane's book scope MUST load its docs through PreviewPaneOps.loadBookDocs (= the card grid loader)")
         #expect(ops.contains("folders = [folderName]"),
                 "PreviewPaneOps.loadBookDocs MUST scope to the one folder when non-nil")
     }
