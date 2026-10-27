@@ -74,6 +74,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import wave_gate  # noqa: E402  (sibling module, same directory)
+import effort_budget_gate  # noqa: E402  (sibling module, same directory)
 
 REPO = "/Volumes/ANAN/Engineering/wenshu"
 
@@ -584,6 +585,19 @@ def find_errors(card: dict) -> list[str]:
             f"this card writes {sig['n_areas']} areas of the tree "
             f"({', '.join(sorted(areas_of(sig['files'])))})"
         )
+
+    # The evidence budget rides with the tier because the tier already
+    # prices the card: the tier says how long a card may run, the budget
+    # says how much it may READ. Both are contracts the card states before
+    # a worker touches it.
+    #
+    # Only cards created on or after the contract epoch are judged. The
+    # cards already on the board were dispatched under the old contract,
+    # and rewriting them is not this tool's business. The rule is the same
+    # one the review gate uses (REVIEW_CONTRACT_FROM).
+    if effort_budget_gate.is_subject(card.get("created_at")):
+        for finding in effort_budget_gate.contract_errors(card):
+            errors.append(finding)
 
     return errors + notes
 

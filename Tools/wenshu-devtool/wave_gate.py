@@ -120,6 +120,23 @@ REPO = "/Volumes/ANAN/Engineering/wenshu"
 # The Chinese entries are written as escapes on purpose: this file carries
 # no CJK characters (AGENTS.md 1.1), and a reader who wants to see the
 # phrase can decode it.
+# A section that names files the card will READ, not the files it will
+# WRITE. The evidence budget is such a section: its read list is a cap on
+# the worker's reading, and a file named there is not a file the card
+# touches. Without this the budget's own read list would count as the
+# card's written set, and the collision gate would report the card as
+# colliding with every file it planned to read.
+#
+# Read-only sections contribute NOTHING to either set. A path in them is
+# neither written nor forbidden: the card will look at it, and looking at
+# a file is not editing it.
+READ_ONLY_SECTIONS = {
+    "evidence budget",
+    "evidence",
+    "research budget",
+    "read budget",
+}
+
 EXCLUSION_SECTIONS = {
     # the ASCII phrases both tools already used
     "must not change",
@@ -266,6 +283,15 @@ def normalize_heading(name: str) -> str:
     return name.strip().rstrip(":").strip().lower()
 
 
+def is_read_only(name: str) -> bool:
+    """Is this section a list of files to READ rather than to change?
+
+    The heading is normalised the same way the exclusion headings are, so
+    "EVIDENCE BUDGET" and "evidence budget" are the same section.
+    """
+    return normalize_heading(name) in READ_ONLY_SECTIONS
+
+
 def is_exclusion(name: str) -> bool:
     """Whether a heading's paths are files the card must NOT touch.
 
@@ -363,6 +389,8 @@ def files_of(body: str) -> tuple[set[str], set[str]]:
         return set(PATH_RE.findall(CITATION_RE.sub("", body))), set()
     for name, text in parsed:
         stripped = CITATION_RE.sub("", text)
+        if is_read_only(name):
+            continue
         if not is_exclusion(name):
             written |= set(PATH_RE.findall(stripped))
             continue

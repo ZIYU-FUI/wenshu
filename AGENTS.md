@@ -54,6 +54,7 @@ Single source of truth for every wenshu contributor and every AI agent acting on
 | 1.12 | Parallel worktree isolation: every code-changing ticket runs in its own git worktree, never in the shared checkout. Create it as a kanban board card (`--assignee wenshu-dev --workspace worktree --project project`, board `wenshu-par`). `delegate_task` is read-only fan-out here: its children inherit the parent shell cwd, so a relative write lands in the shared checkout. | wenshu-parallel-dev. |
 | 1.13 | Difficulty tier: every card carries a tier (`[T1]` / `[T2]` / `[T3]`), DERIVED from the work its body describes by `Tools/wenshu-devtool/ticket_tier.py`, never hand-set. The tier sets the runtime cap, the retry budget, the gate width and the body budget. It changes the cost of a card, never the quality bar: it never skips the dual-axis review and never marks a test skipped. | docs/agents/ticket-tiers.md. |
 | 1.14 | Independent review: a card that writes CODE carries a `## REVIEW HANDOFF` section naming a reviewer profile that is NOT its implementer, and ends its run with `kanban_request_review(reviewer=...)`. The obligation is DERIVED from the work the body describes, never from the tier. A card that writes only prose owes no verdict. | Tools/wenshu-devtool/review_gate.py. |
+| 1.15 | Evidence before code: a card that reads names its read list, stop condition, forbidden lookups and deliverable in an `## EVIDENCE BUDGET` section, and the cap is enforced by the tool, not by the writer's diligence. Reading is a cost like a build, and it is the cost that burns first. | Tools/wenshu-devtool/effort_budget_gate.py. |
 
 ### §1.11 Nervous file index (NFI)
 
@@ -156,10 +157,16 @@ Register a new row there, not here. The rule is unchanged.
 | 7.8 | Commit hygiene: 1 commit per ticket, English subject <=72 chars, body explains WHY. | wenshu-commit-history-hygiene. |
 | 7.9 | Independent review verdict: a card that writes code carries an approving verdict from a profile that is NOT its implementer (rule 1.14). `Scripts/merge-preflight.sh` refuses the merge until it is on the record. | Tools/wenshu-devtool/review_gate.py. |
 | 7.10 | Named narrow gate: a card's body names the filtered suite that owns each file it writes, as a `swift test --filter <Suite>` command (a card with no Swift code names its own gate command). A T1/T2 card never asks for the whole suite. A card that names no gate is a defect, not a style. | Tools/wenshu-devtool/gate_width_gate.py. |
+| 7.11 | Evidence budget: a card names the files it will read, the condition that ends its research, what it must not go looking for, and the artifact it delivers. §7.1-§7.10 gate the code a card LANDS; this gate caps the evidence it GATHERS. A card that reads without a budget is a defect, not diligence. | Tools/wenshu-devtool/effort_budget_gate.py. |
+| 7.12 | Fan-out budget: a card that opens sub-agents names disjoint scopes, one writer per file, and the parent's total call ceiling. Duplicate scopes, duplicate goals and cold-cache children are reported. Hermes does not dedupe, does not share a cache across children and has no parent budget, so the card must do it. | Tools/wenshu-devtool/session_effort_audit.py. |
 
 ## §8 Workflow (universal PO methodology)
 
-> One ticket = §8.1 -> §8.7 in order. Skip = fail.
+> One ticket = §8.8 -> §8.9 -> §8.1 -> §8.2 -> ... -> §8.7 in order. Skip = fail.
+> §8.8 and §8.9 come FIRST: a card that gathers evidence before it names the
+> evidence it will gather is how a session reads 521 files and lands nothing.
+> §8.10 comes before §8.4, because the fan-out is the moment the budget is
+> actually spent.
 
 | #   | Step | Skill |
 | --- | ---- | ----- |
@@ -170,6 +177,9 @@ Register a new row there, not here. The rule is unchanged.
 | 8.5 | Fix P0. | universal-pocock-workflow step 5. |
 | 8.6 | Verify round on fix-commits-touched files. | universal-pocock-workflow step 6. |
 | 8.7 | Merge gate (boss verdict for UI; swift build for non-UI). | wenshu-pocock-workflow §merge-gate. |
+| 8.8 | Evidence budget (before 8.1). The card's `## EVIDENCE BUDGET` section names the files to read, the stop condition, the forbidden lookups and the deliverable. Gate: `effort_budget_gate.py --body <card>`. | AGENTS.md §7.11. |
+| 8.9 | Design card (before 8.1). A card that changes behaviour names the design first: the Apple canonical API, the target shape, the stop condition. Design before code, and the design is one page. | wenshu-apple-api-first. |
+| 8.10 | Fan-out budget (before 8.4). A card that opens sub-agents names disjoint scopes, one writer per file, and the parent's total call ceiling. Gate: `session_effort_audit.py --fanout <parent-session>`. | AGENTS.md §7.12. |
 
 ## §9 Reference index (NOT duplicated here)
 

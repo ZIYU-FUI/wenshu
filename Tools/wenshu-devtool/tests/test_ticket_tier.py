@@ -114,6 +114,10 @@ def run_check(tool, cli, argv: list[str]) -> tuple[int, str, str]:
     return code, out.getvalue(), err.getvalue()
 
 
+# The evidence budget is part of the contract every card states, so the
+# fixture carries one. The budget names the file the card will READ, and
+# the read list is a cap on reading, not a set of files to change: the
+# wave gate keeps it out of the written set.
 ONE_FILE = """## GOAL
 
 The chat bubble must not wear the error colour.
@@ -126,6 +130,13 @@ bubble keeps its own tint.
 ## GATES
 
 `swift test --filter ChatMessageViewTests` exits 0.
+
+## EVIDENCE BUDGET
+
+read:   Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift
+stop when: the diff is written and the named suite passes
+no:    the board history and the sibling worktrees
+deliver: one commit on the card branch with the diff
 """
 
 TWO_FILES = """## GOAL
