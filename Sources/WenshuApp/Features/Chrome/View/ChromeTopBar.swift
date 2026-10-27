@@ -50,25 +50,47 @@ struct ChromeTopBar<Content: View>: View {
     /// (= `DesignTokens.spacingRelaxed`), so the switcher inside it
     /// lines up with the tree rows below.
     let horizontalPadding: CGFloat
+    /// Whether the band paints the shared chrome material.
+    ///
+    /// The shared default is TRUE (= the band carries the window-chrome
+    /// tint, = a row that belongs to the window rather than to the
+    /// column's body). A band that belongs to the column's body passes
+    /// FALSE: the column's own background then shows through, so the row
+    /// reads as part of the column instead of a separate bar floating
+    /// above it.
+    let usesMaterial: Bool
 
     init(
         help: LocalizedStringKey? = nil,
         horizontalPadding: CGFloat = DesignTokens.spacingStandard,
+        usesMaterial: Bool = true,
         @ViewBuilder content: () -> Content
     ) {
         self.help = help
         self.horizontalPadding = horizontalPadding
+        self.usesMaterial = usesMaterial
         self.content = content()
     }
 
     var body: some View {
+        Group {
+            if usesMaterial {
+                band.background(.bar)
+            } else {
+                band
+            }
+        }
+        .help(help ?? "")
+    }
+
+    /// The band's shape (= the content row + its hairline). The chrome
+    /// material is a separate, per-call-site decision: see `usesMaterial`.
+    private var band: some View {
         VStack(spacing: 0) {
             content
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, horizontalPadding)
             Divider()
         }
-        .background(.bar)
-        .help(help ?? "")
     }
 }

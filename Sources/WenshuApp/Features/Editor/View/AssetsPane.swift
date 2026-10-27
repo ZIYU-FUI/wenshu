@@ -233,7 +233,7 @@ struct AssetsPane: View {
                     // field is the only thing living above the cards grid
                     // (= the assets zone's analog to the editor's title bar
                     // above the NSTextView).
-                    ChromeTopBar {
+                    ChromeTopBar(usesMaterial: false) {
                         // Search field body lives INSIDE the chrome band's
                         // leading slot (= title cluster replaced). Per
                         // Apple HIG macOS toolbar pattern, the icons sit

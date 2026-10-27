@@ -200,7 +200,8 @@ struct AppleSidebarView: View {
                     // and the same 10 PT inset the tree's rows use, so the
                     // switcher's ends line up with the tree below it.
                     ChromeTopBar(
-                        horizontalPadding: DesignTokens.spacingRelaxed
+                        horizontalPadding: DesignTokens.spacingRelaxed,
+                        usesMaterial: false
                     ) {
                         LabelSegmentedControl(
                             selection: Binding(
