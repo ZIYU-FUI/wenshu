@@ -1650,19 +1650,70 @@
         }
       }
     },
+    "inspector.column.title": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inspector"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "右栏"
+          }
+        }
+      }
+    },
     "inspector.page.status": {
       "extractionState": "manual",
       "localizations": {
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Status"
+            "value": "Sub-Agents"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "状态"
+            "value": "子代理"
+          }
+        }
+      }
+    },
+    "inspector.page.task": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tasks"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "任务"
+          }
+        }
+      }
+    },
+    "inspector.page.todo": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todos"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "待办"
           }
         }
       }

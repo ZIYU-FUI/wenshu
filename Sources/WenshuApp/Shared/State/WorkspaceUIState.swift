@@ -92,9 +92,10 @@ final class WorkspaceUIState {
     /// column-local state; = single source of truth lives here).
     var chatVisible: Bool = true
 
-    /// The active page of the trailing inspector column (= one
-    /// page: status). The column's toolbar toggle writes here, so the
-    /// selection survives the column being hidden and shown.
+    /// The active page of the trailing inspector column (= one of the
+    /// three pages the column's segmented control switches between).
+    /// The column's toolbar toggle writes here, so the selection
+    /// survives the column being hidden and shown.
     ///
     /// Lives here (= not as `@State` inside the inspector column)
     /// because the column reads it across the view boundary.
@@ -314,26 +315,37 @@ enum EditorLayoutMode: String, CaseIterable, Sendable {
 
 // MARK: - InspectorPage
 
-/// The pages of the trailing inspector column: Status.
+/// The pages of the trailing inspector column: Todos, Sub-Agents, Tasks.
 ///
-/// The page owns the column's content. A page without content
-/// renders the shared empty state (= the column body has no tool
-/// to show until a page owns one).
+/// The column's chrome band carries a segmented control that switches
+/// between the pages; the selected page owns the column's content.
 ///
-/// The case order IS the tab order (= the toolbar picker reads
-/// `InspectorPage.allCases`).
+/// The case order IS the segment order (= the column's segmented
+/// control reads `InspectorPage.allCases`).
 enum InspectorPage: Hashable, CaseIterable {
+    /// The todo list (= the todos the assistant wrote).
+    case todo
+    /// The sub-agent page (= the focused chat session's sub-agent
+    /// tasks). The case keeps its name because the chat's focus and
+    /// the sub-agent page body both name it; the segment label is the
+    /// sub-agent title.
     case status
+    /// The task board (= the board of long-running work).
+    case task
 
     var localizedTitle: String {
         switch self {
+        case .todo: return String(localized: "inspector.page.todo")
         case .status: return String(localized: "inspector.page.status")
+        case .task: return String(localized: "inspector.page.task")
         }
     }
 
     var icon: String {
         switch self {
+        case .todo: return "checklist"
         case .status: return "waveform.path.ecg"
+        case .task: return "square.grid.2x2"
         }
     }
 }
