@@ -180,6 +180,41 @@ not be read, 3 = a card owes a verdict it does not have. The merge gate
 (`Scripts/merge-preflight.sh`) runs the record check for the branch it is
 asked to bless and refuses the merge until the verdict is on the record.
 
+## AGENTS.md contract gate
+
+Another separate tool, because it reads the SSOT instead of the source tree
+or the board. It answers one question: is AGENTS.md still loadable and true?
+
+- **frontmatter** parses as YAML, and carries name / version / description
+- **budget** the body fits the loader's cap (20,000 chars)
+- **references** every path the file names exists, and every skill it names
+  is installed
+- **vocabulary** CJK appears only in the rules that enumerate the vocabulary
+  (1.2 / 1.3 / 1.4), and only as a token from that vocabulary
+- **ids** the rule ids of each section are contiguous, no row id is
+  duplicated, and every internal section reference resolves
+- **structure** the required sections (§1 / §7 / §8 / §10) are present
+
+```bash
+# 15. Is AGENTS.md still loadable and true?
+python3 Tools/wenshu-devtool/agents_gate.py --file AGENTS.md
+
+# 15b. The same verdict, machine-readable
+python3 Tools/wenshu-devtool/agents_gate.py --file AGENTS.md --json
+
+# 15c. What the gate checks (= the contract it enforces)
+python3 Tools/wenshu-devtool/agents_gate.py --plan
+```
+
+Its test suite runs on fixture files:
+
+```bash
+python3 Tools/wenshu-devtool/tests/test_agents_gate.py
+```
+
+Exit code: 0 = the file is loadable and true, 1 = a contract error, 2 = the
+file could not be read.
+
 ## Requirements
 
 - macOS (uses `osascript`, `screencapture`, `defaults`, `security`)
