@@ -23,11 +23,19 @@ import SwiftData
 
 @MainActor
 public final class WSLinkRepository {
-    private let container: ModelContainer
-    private var context: ModelContext { container.mainContext }
+    /// The store this repository reads and writes.
+    ///
+    /// A named container (= a test, an isolated run) is used as it is.
+    /// Without one the repository reads and writes the app's live store
+    /// (= the warehouse once it is activated), resolved per operation:
+    /// the live store changes when the warehouse is activated, so a
+    /// repository built before that moment must not keep the store it
+    /// saw at construction time.
+    public let store: WSStore
+    private var context: ModelContext { store.context }
 
-    public init(container: ModelContainer = WSPersistenceContainer.shared) {
-        self.container = container
+    public init(container: ModelContainer? = nil) {
+        self.store = WSStore(container: container)
     }
 
     public func add(

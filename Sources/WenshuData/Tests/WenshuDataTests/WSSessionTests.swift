@@ -60,18 +60,22 @@ struct WSSessionTests {
         #expect(s.updatedAt > original)
     }
 
-    @Test("WSSession sessionID uniqueness enforced")
+    @Test("WSSession sessionID is unique per book (= the composite key, not the column)")
     @MainActor
-    func sessionIDUniqueEnforced() throws {
+    func sessionIDUniquePerBook() throws {
         let container = try makeContainer()
         let context = ModelContext(container)
-        let a = WSSession(sessionID: "same", title: "a")
-        let b = WSSession(sessionID: "same", title: "b")
+        // The same sessionID under two books is two rows: the chat-by-book
+        // design lets one sessionID exist under several books, so the
+        // column carries no unique constraint of its own. The composite
+        // key (sessionID + bookID) is enforced by the repository.
+        let a = WSSession(sessionID: "same", title: "a", bookID: "book-A")
+        let b = WSSession(sessionID: "same", title: "b", bookID: "book-B")
         context.insert(a)
         context.insert(b)
-        #expect(throws: Never.self) {
-            try context.save()
-        }
+        try context.save()
+        #expect(try context.fetchCount(FetchDescriptor<WSSession>()) == 2,
+                "the same sessionID under two books is two rows")
     }
 
     @Test("WSSession init with bookID persists; default bookID = nil (= global un-attached)")
