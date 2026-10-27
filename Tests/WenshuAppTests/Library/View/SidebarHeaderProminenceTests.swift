@@ -15,8 +15,8 @@ import Foundation
 @Suite("v0.71 P1 — Sidebar uses Apple HIG defaults (no manual header prominence)")
 struct SidebarHeaderProminenceTests {
 
-    private static let sidebarSourceURL = URL(
-        fileURLWithPath: "Sources/WenshuApp/Features/Library/View/AppleSidebarView.swift"
+    private static let sidebarSourceURL = SourceLocator.url(
+        "Sources/WenshuApp/Features/Library/View/AppleSidebarView.swift"
     )
 
     private static func loadSidebarSource() throws -> String {

@@ -42,7 +42,7 @@ struct ShadowRadiusMagicSweepTests {
             "Sources/WenshuApp/Features/Editor/View/EditorPaperCanvas.swift",
         ]
         for path in sweptFiles {
-            let url = URL(fileURLWithPath: path)
+            let url = SourceLocator.url(path)
             let content = try String(contentsOf: url, encoding: .utf8)
             // Look for: .shadow(... radius: <integer literal> ...)
             // The token form is `radius: DesignTokens.surfaceShadowRadius*`

@@ -26,8 +26,8 @@ import Foundation
 @Suite("v0.71 P1 — EmptyStateView design-token discipline (= no magic numbers)")
 struct EmptyStateViewDesignTokensTests {
 
-    private static let emptyStateSourceURL = URL(
-        fileURLWithPath: "Sources/WenshuApp/Shared/UI/EmptyStateView.swift"
+    private static let emptyStateSourceURL = SourceLocator.url(
+        "Sources/WenshuApp/Shared/UI/EmptyStateView.swift"
     )
 
     private static func loadEmptyStateSource() throws -> String {

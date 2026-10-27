@@ -45,7 +45,7 @@ struct EmptyStateViewCallersTests {
         ]
         var missing: [String] = []
         for file in mainZoneFiles {
-            let url = URL(fileURLWithPath: file)
+            let url = SourceLocator.url(file)
             guard FileManager.default.fileExists(atPath: url.path) else {
                 Issue.record("Main zone file MUST exist: \(file)")
                 continue

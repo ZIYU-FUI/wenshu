@@ -54,7 +54,7 @@ struct LLMConnectorConformanceTests {
         // Find each connector's file (= convention = Core/Agent/Connector/<Name>.swift).
         for name in expectedConnectors {
             let file = "Sources/WenshuAgent/Sources/WenshuAgent/Connector/\(name).swift"
-            let url = URL(fileURLWithPath: file)
+            let url = SourceLocator.url(file)
             #expect(
                 FileManager.default.fileExists(atPath: url.path),
                 "Connector file MUST exist (§11.2): \(file)"
@@ -76,7 +76,7 @@ struct LLMConnectorConformanceTests {
         var nonConforming: [String] = []
         for name in expectedConnectors {
             let file = "Sources/WenshuAgent/Sources/WenshuAgent/Connector/\(name).swift"
-            let url = URL(fileURLWithPath: file)
+            let url = SourceLocator.url(file)
             guard FileManager.default.fileExists(atPath: url.path) else { continue }
             let content = try String(contentsOf: url, encoding: .utf8)
             // Look for `public actor <Name>: LLMConnector { ... }`
@@ -123,7 +123,7 @@ struct LLMConnectorConformanceTests {
         var duplicates: [String] = []
         for name in expectedConnectors {
             let file = "Sources/WenshuAgent/Sources/WenshuAgent/Connector/\(name).swift"
-            let url = URL(fileURLWithPath: file)
+            let url = SourceLocator.url(file)
             guard FileManager.default.fileExists(atPath: url.path) else { continue }
             let content = try String(contentsOf: url, encoding: .utf8)
             // Strip comments (= a literal like "anthropic" inside
@@ -183,7 +183,7 @@ struct LLMConnectorConformanceTests {
         var missing: [String] = []
         for name in expectedConnectors {
             let file = "Sources/WenshuAgent/Sources/WenshuAgent/Connector/\(name).swift"
-            let url = URL(fileURLWithPath: file)
+            let url = SourceLocator.url(file)
             guard FileManager.default.fileExists(atPath: url.path) else { continue }
             let content = try String(contentsOf: url, encoding: .utf8)
             // Look for `func send(messages: [LLMMessage], options: LLMCallOptions)`

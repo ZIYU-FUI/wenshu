@@ -55,7 +55,7 @@ struct FrameMagicSweepTests {
             "Sources/WenshuApp/Features/Library/View/SidebarRowView.swift",
         ]
         for path in sweptFiles {
-            let url = URL(fileURLWithPath: path)
+            let url = SourceLocator.url(path)
             let content = try String(contentsOf: url, encoding: .utf8)
             // Look for: .frame(width: <integer literal>) OR
             //           .frame(width: <integer literal>, height: <integer literal>)

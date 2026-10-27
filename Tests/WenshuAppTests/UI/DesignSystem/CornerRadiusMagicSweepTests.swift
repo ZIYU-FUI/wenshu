@@ -70,7 +70,7 @@ struct CornerRadiusMagicSweepTests {
             "Sources/WenshuApp/Features/Library/View/SidebarSheets.swift",
         ]
         for path in sweptFiles {
-            let url = URL(fileURLWithPath: path)
+            let url = SourceLocator.url(path)
             let content = try String(contentsOf: url, encoding: .utf8)
             // Look for: RoundedRectangle(cornerRadius: <integer literal>)
             // The tokens are DesignTokens.surfaceCornerRadius* (= not integer).

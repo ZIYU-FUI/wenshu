@@ -25,7 +25,7 @@ struct LiquidGlassPolishTests {
 
     @Test("No third-party liquid-glass-clone package in Package.swift")
     func testNoThirdPartyLiquidGlassClone() throws {
-        let packageSwift = try String(contentsOf: URL(fileURLWithPath: "Package.swift"), encoding: .utf8)
+        let packageSwift = try SourceLocator.read("Package.swift")
         // Forbidden: any package named like a Liquid Glass clone (= Apple HIG exclusivity per §11.1).
         let forbiddenTokens = ["LiquidGlass", "liquid-glass", "GlassUI", "Frosted", "AcrylicUI"]
         for token in forbiddenTokens {

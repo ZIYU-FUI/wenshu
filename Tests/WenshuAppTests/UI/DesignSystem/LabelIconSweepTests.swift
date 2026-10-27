@@ -58,7 +58,7 @@ struct LabelIconSlotSweepTests {
     @Test("Label icon slot sweep — 13 view files dropped `Image(systemName: x).imageScale(.small)` in Label icon slot")
     func allFilesDroppedImageScaleSmallInLabelIconSlot() throws {
         for entry in Self.sweptFiles {
-            let url = URL(fileURLWithPath: entry.path)
+            let url = SourceLocator.url(entry.path)
             let content = try String(contentsOf: url, encoding: .utf8)
             // Look for: `icon: { Image(systemName: "<x>").imageScale(.small) }` pattern.
             // The sweep replaced it with `icon: { SFIcon("<x>", style: .inlineSmall, color: IconColor.tint) }`.
@@ -83,7 +83,7 @@ struct LabelIconSlotSweepTests {
     func totalSitesConsistent() throws {
         var totalSFIconInlineSmall = 0
         for entry in Self.sweptFiles {
-            let url = URL(fileURLWithPath: entry.path)
+            let url = SourceLocator.url(entry.path)
             let content = try String(contentsOf: url, encoding: .utf8)
             // Count SFIcon(..., style: .inlineSmall, color: IconColor.tint) inside `icon: { ... }` block.
             let pattern = #"icon: \{ SFIcon\("[^"]+", style: \.inlineSmall, color: IconColor\.tint\) \}"#

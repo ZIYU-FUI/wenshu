@@ -43,7 +43,7 @@ import AppKit
 struct WindowTranslucencyTests {
 
     private func source(_ path: String) throws -> String {
-        try String(contentsOfFile: path, encoding: .utf8)
+        try SourceLocator.read(path)
     }
 
     /// The window must not be opaque, and its background colour must be

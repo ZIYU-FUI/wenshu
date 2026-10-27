@@ -35,7 +35,7 @@ struct EntityTypeEntityCategoryDeadCodeTests {
     ) -> [String] {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/find")
-        process.arguments = ["Sources/WenshuApp", "-type", "f"]
+        process.arguments = [SourceLocator.path("Sources/WenshuApp"), "-type", "f"]
             + fileExtensions.flatMap { ["-name", "*.\($0)"] }
         let pipe = Pipe()
         process.standardOutput = pipe
@@ -99,7 +99,7 @@ struct EntityTypeEntityCategoryDeadCodeTests {
     /// fail loudly via the EntityClassifier LLM prompt caller).
     @Test func active_entity_type_properties_still_present() {
         let path = "Sources/WenshuApp/Features/Library/Model/EntityType.swift"
-        guard let text = try? String(contentsOfFile: path, encoding: .utf8) else {
+        guard let text = try? SourceLocator.read(path) else {
             Issue.record("Cannot read \(path)")
             return
         }
@@ -115,7 +115,7 @@ struct EntityTypeEntityCategoryDeadCodeTests {
 
     @Test func active_entity_category_properties_still_present() {
         let path = "Sources/WenshuApp/Features/Library/Model/EntityCategory.swift"
-        guard let text = try? String(contentsOfFile: path, encoding: .utf8) else {
+        guard let text = try? SourceLocator.read(path) else {
             Issue.record("Cannot read \(path)")
             return
         }

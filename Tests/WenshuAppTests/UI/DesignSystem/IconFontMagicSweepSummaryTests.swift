@@ -62,7 +62,7 @@ struct IconFontMagicSweepSummaryTests {
         // Source tree uses SFIcon central factory (= v3.0 sweep core invariant).
         // Walk the source tree and verify at least N files reference SFIcon.
         let fileManager = FileManager.default
-        let viewsRoot = "Sources/WenshuApp"
+        let viewsRoot = SourceLocator.path("Sources/WenshuApp")
         let enumerator = fileManager.enumerator(atPath: viewsRoot)
         var sfIconUsageCount = 0
         var swiftFileCount = 0
@@ -77,7 +77,7 @@ struct IconFontMagicSweepSummaryTests {
                 "Source tree must use SFIcon central factory in many files (= v3.0 sweep core invariant)")
         #expect(swiftFileCount >= 100,
                 "Source tree must contain many Swift files (= sweep coverage baseline)")
-        #expect(exceptionFiles.allSatisfy { FileManager.default.fileExists(atPath: $0) },
+        #expect(exceptionFiles.allSatisfy { FileManager.default.fileExists(atPath: SourceLocator.path($0)) },
                 "Exception files must exist (= sweep boundary definitions)")
     }
 
