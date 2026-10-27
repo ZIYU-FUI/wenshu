@@ -518,18 +518,18 @@ def declared_tier(title: str) -> str | None:
     return match.group(1) if match else None
 
 
-def find_errors(card: dict) -> list[str]:
-    """Every way the card disagrees with the tier it earns.
+def find_contract_errors(card: dict) -> list[str]:
+    """Every way the card CONTRADICTS the tier it earns.
 
-    An error is a contradiction between the card and the contract. A note is
-    a cost warning that the tier permits.
+    An error is a contradiction between the card and the contract (= the
+    title's tier tag is wrong, = the runtime cap is not the tier's, = the
+    body is over the tier's budget, = the evidence budget is missing).
     """
     body = card.get("body") or ""
     title = card.get("title") or ""
     tier, _reasons = tier_of(body)
     contract = TIERS[tier]
     errors: list[str] = []
-    notes: list[str] = []
 
     claimed = declared_tier(title)
     if claimed is None:
@@ -562,7 +562,37 @@ def find_errors(card: dict) -> list[str]:
             errors.append("T1 must not demand a red-baseline comparison")
         if FULL_SUITE_RE.search(body):
             errors.append("T1 must name a filtered suite, not the whole suite")
-    elif tier == "T2" and BASELINE_DEMAND_RE.search(body):
+
+    # The evidence budget rides with the tier because the tier already
+    # prices the card: the tier says how long a card may run, the budget
+    # says how much it may READ. Both are contracts the card states before
+    # a worker touches it.
+    #
+    # Only cards created on or after the contract epoch are judged. The
+    # cards already on the board were dispatched under the old contract,
+    # and rewriting them is not this tool's business. The rule is the same
+    # one the review gate uses (REVIEW_CONTRACT_FROM).
+    if effort_budget_gate.is_subject(card.get("created_at")):
+        for finding in effort_budget_gate.contract_errors(card):
+            errors.append(finding)
+
+    return errors
+
+
+def find_notes(card: dict) -> list[str]:
+    """The cost warnings the tier PERMITS (= not a disagreement).
+
+    A note is a fact about the work that the tier already pays for: a card
+    that writes the string catalog still merges by key, a card that touches
+    several areas is still priced by its tier. The notes are printed with
+    the findings so the reader sees the whole picture, but they are NOT
+    contradictions and they never fail the check.
+    """
+    body = card.get("body") or ""
+    tier, _reasons = tier_of(body)
+    notes: list[str] = []
+
+    if tier == "T2" and BASELINE_DEMAND_RE.search(body):
         notes.append(
             "T2 demands a red-baseline comparison; the measured cost of that "
             "demand, inside one tier, is 65.7 m over 3.44 runs against "
@@ -586,20 +616,24 @@ def find_errors(card: dict) -> list[str]:
             f"({', '.join(sorted(areas_of(sig['files'])))})"
         )
 
-    # The evidence budget rides with the tier because the tier already
-    # prices the card: the tier says how long a card may run, the budget
-    # says how much it may READ. Both are contracts the card states before
-    # a worker touches it.
-    #
-    # Only cards created on or after the contract epoch are judged. The
-    # cards already on the board were dispatched under the old contract,
-    # and rewriting them is not this tool's business. The rule is the same
-    # one the review gate uses (REVIEW_CONTRACT_FROM).
-    if effort_budget_gate.is_subject(card.get("created_at")):
-        for finding in effort_budget_gate.contract_errors(card):
-            errors.append(finding)
+    return notes
 
-    return errors + notes
+
+def find_errors(card: dict) -> list[str]:
+    """Every way the card disagrees with the tier it earns.
+
+    An error is a contradiction between the card and the contract. A note is
+    a cost warning that the tier permits.
+
+    The two travel in ONE list on purpose (= the reader sees the whole
+    picture), and the two verdicts are separated by FUNCTION: `find_errors`
+    is what the reader prints, `find_contract_errors` is what the check
+    counts. A note that rode in the check's list would be counted as a
+    contradiction, so a card that writes the string catalog (= a note, = the
+    catalog merges by key) would read as a tier mismatch and fail the check
+    it passes.
+    """
+    return find_contract_errors(card) + find_notes(card)
 
 
 def kanban_cards(board: str | None = None) -> list[dict] | None:
@@ -670,6 +704,7 @@ def report(card: dict) -> dict:
         "gate": contract["gate"],
         "gate_width": gate_width(body),
         "findings": find_errors(card),
+        "errors": find_contract_errors(card),
     }
 
 
@@ -685,6 +720,8 @@ def print_card(row: dict) -> None:
         print(f"      because: {reason}")
     for finding in row["findings"]:
         print(f"      ! {finding}")
+    for note in row.get("notes", []):
+        print(f"      - {note}")
 
 
 def main() -> int:
@@ -737,12 +774,16 @@ def main() -> int:
             print()
 
     if args.check:
-        errors = [r for r in rows if r["findings"]]
+        # The check counts CONTRADICTIONS, not notes. A note is a cost the
+        # tier already pays for (= the string catalog merges by key, = a
+        # multi-area card is priced by its tier), so a card whose only
+        # finding is a note agrees with its tier.
+        errors = [r for r in rows if r["errors"]]
         if errors:
             print(f"=== {len(errors)} card(s) disagree with their tier ===")
             for row in errors:
                 print(f"  {row['id']}  {row['title']}")
-                for finding in row["findings"]:
+                for finding in row["errors"]:
                     print(f"      ! {finding}")
             return 1
         print("=== every card agrees with its tier ===")
