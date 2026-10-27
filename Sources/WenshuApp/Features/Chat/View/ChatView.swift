@@ -862,11 +862,23 @@ struct ChatView: View {
                                 }
                             }
                         }
-                        .padding(DesignTokens.spacingStandard)
+                        // The transcript's padding, minus the bottom: the bottom
+                        // padding puts the content's bottom edge BELOW the last
+                        // message's, so the chat's scroll to the last message
+                        // lands short of the maximum offset, and a transcript
+                        // short of the maximum is not anchored (= the bottom
+                        // anchor holds only while the offset IS the maximum).
+                        // … (= 22 rationale lines collapsed; = A115 aggressive docblock collapse)
+                        .padding(.horizontal, DesignTokens.spacingStandard)
+                        .padding(.top, DesignTokens.spacingStandard)
                         // 
                         // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
                         // peeks behind the input bar).
-                        .contentMargins(.bottom, DesignTokens.chatInputBarHeight, for: .scrollContent)
+                        .contentMargins(
+                            .bottom,
+                            DesignTokens.chatInputBarHeight + DesignTokens.spacingStandard,
+                            for: .scrollContent
+                        )
                         // 2026-10-12 [archived-round] — add 10 PT top
                         // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
                         // spec.

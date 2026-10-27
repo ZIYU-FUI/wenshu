@@ -172,6 +172,7 @@ reference, LOC, and content tag.
 | `Sources/WenshuApp/Features/Agent/Store/SubAgentRoleRegistry.swift` | `Tests/WenshuAppTests/Agent/Store/SubAgentRoleRegistryTests.swift` | 213 | `struct SubAgentRoleRegistryTests` = the role table's own tests (= one row per role, the five slugs, and the prompts, labels and task lists the identity file returned before the roles moved into the table). |
 | `Sources/WenshuData/Sources/WenshuData/Container.swift` | `Sources/WenshuData/Sources/WenshuData/WSStore.swift` | 41 | `struct WSStore` = the container a repository reads and writes (= the app's live store, resolved per operation; = a named container is used as it is). |
 | `Sources/WenshuData/Sources/WenshuData/Repositories/WSChatRepository.swift` | `Sources/WenshuData/Tests/WenshuDataTests/Repositories/WSPersistenceContractTests.swift` | 231 | `struct WSPersistenceContractTests` = the three contracts the persistence layer owes the app (= one store, one session key, one timestamp); = each test prints its probe lines and asserts the contract. |
+| `Sources/WenshuApp/Features/Chat/View/ChatView.swift` | `Tests/WenshuAppTests/Chat/ChatTranscriptScrollTests.swift` | 330 | `struct ChatTranscriptScrollTests` = the chat transcript keeps showing its last line when the window width changes (= the width re-wraps the bubbles, the content grows, and the offset must follow it). |
 
 <!-- Append new rows at the END of the table above. The key-level merge
      driver keeps both rows when two cards add one each. -->
