@@ -370,6 +370,17 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         // alone leaves the capsule at full height).
         control.controlSize = controlSize
 
+        // The drawn bezel's shape. `borderShape`'s DEFAULT is not the
+        // same shape at every control size: at `.small` the default is
+        // a rounded rectangle (its corner radius is small, so the bezel's
+        // top row is nearly full width), while at `.large` the default is
+        // already a capsule (the radius IS half the height, so the top
+        // row is inset by about half of it). Asking for the capsule
+        // makes the drawn shape the same at every size; at `.large` it
+        // renders the same bytes as the default, so the editor's tab
+        // strip is unaffected.
+        control.borderShape = .capsule
+
         // Sync selection state (= in case SwiftUI re-evaluates
         // the body and `selection` changed but the control is
         // still mounted).
