@@ -1,10 +1,11 @@
 //
 //  WenshuMarkdownEditorAdapterTests.swift · Wenshu · v0.39 ticket 001
 //
-// 5 Swift Testing tests for the swift-markdown-engine adapter layer
+// Swift Testing suite for the swift-markdown-engine adapter layer
 // (= WenshuMarkdownEditor + 2 service protocols + factory). Verifies:
 // - WikiLinkResolver: hit + miss (resolve(name:range:))
-// - EmbeddedImageProvider: hit (character portrait) + miss
+// - EmbeddedImageProvider: hit (character portrait, world picture,
+//   raw fallback) + miss, and a fingerprint that follows the world folder
 // - WenshuMarkdownEditor: SwiftUI mount produces a view (no crash)
 //
 // Per Q182.4: Swift Testing framework (= wenshu convention since v0.30+);
@@ -44,16 +45,32 @@ struct WenshuMarkdownEditorAdapterTests {
         return root
     }
 
-    /// Build a temp directory shaped like a wenshu book (= `characters/`
-    /// folder with 0+ PNG files). Returns the book root URL.
-    private func makeBook(characterImages: [String]) throws -> URL {
+    /// Build a temp directory shaped like a wenshu book (= a
+    /// `characters/` folder and a `world/` folder, each with 0+ PNG
+    /// files). Returns the book root URL.
+    private func makeBook(characterImages: [String], worldImages: [String] = []) throws -> URL {
         let root = FileManager.default.temporaryDirectory
             .appendingPathComponent("wenshu-test-book-\(UUID().uuidString)", isDirectory: true)
-        let charsDir = root.appendingPathComponent("characters", isDirectory: true)
-        try FileManager.default.createDirectory(at: charsDir, withIntermediateDirectories: true)
-        for name in characterImages {
-            let url = charsDir.appendingPathComponent("\(name).png")
-            // 1x1 transparent PNG (= 67 bytes; = valid minimal PNG)
+        try writePNGs(named: characterImages, in: root.appendingPathComponent("characters"))
+        try writePNGs(named: worldImages, in: root.appendingPathComponent("world"))
+        return root
+    }
+
+    /// Build a temp directory shaped like the reference library's raw
+    /// layer (= a `raw/` folder with 0+ PNG files). Returns the
+    /// reference-library root URL.
+    private func makeRawReferenceLibrary(rawImages: [String] = []) throws -> URL {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("wenshu-test-raw-\(UUID().uuidString)", isDirectory: true)
+        try writePNGs(named: rawImages, in: root.appendingPathComponent("raw"))
+        return root
+    }
+
+    /// Write 0+ 1x1 transparent PNGs (= 67 bytes; = valid minimal PNG)
+    /// named `<name>.png` into `directory`, creating it if needed.
+    private func writePNGs(named names: [String], in directory: URL) throws {
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        for name in names {
             let png: [UInt8] = [
                 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
                 0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
@@ -65,9 +82,8 @@ struct WenshuMarkdownEditorAdapterTests {
                 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE,
                 0x42, 0x60, 0x82
             ]
-            try Data(png).write(to: url)
+            try Data(png).write(to: directory.appendingPathComponent("\(name).png"))
         }
-        return root
     }
 
     // MARK: - WikiLinkResolver tests
@@ -131,6 +147,48 @@ struct WenshuMarkdownEditorAdapterTests {
         )
         let img = provider.image(for: EmbeddedImageRequest(name: "Ghost"))
         #expect(img == nil)
+    }
+
+    // MARK: - EmbeddedImageProvider: the book's world folder
+
+    /// The provider searches the book's `characters/`, the book's
+    /// `world/`, and the library's `reference-library/raw/`. A picture
+    /// in the world folder resolves like any other (= the world's
+    /// on-disk folder name comes from the folder catalogue, so the
+    /// provider and the disk agree).
+    @Test("EmbeddedImageProvider resolves a picture in the book's world folder")
+    func imageProviderResolvesWorldFolderPicture() async throws {
+        let bookRoot = try makeBook(characterImages: ["Anna"], worldImages: ["Map"])
+        let refRoot = try makeRawReferenceLibrary(rawImages: ["Cover"])
+        let provider = ReferenceLibraryImageProvider(
+            activeBookRoot: bookRoot,
+            referenceLibraryRoot: refRoot
+        )
+        #expect(provider.image(for: EmbeddedImageRequest(name: "Map")) != nil)
+        // The other two folders keep resolving (= the world folder is
+        // searched, not swapped for one of them).
+        #expect(provider.image(for: EmbeddedImageRequest(name: "Anna")) != nil)
+        #expect(provider.image(for: EmbeddedImageRequest(name: "Cover")) != nil)
+    }
+
+    /// The fingerprint covers the same three folders the lookup uses,
+    /// so two books that differ only in their world folder carry
+    /// different fingerprints (= the engine's image cache invalidates
+    /// when a world-folder picture changes).
+    @Test("EmbeddedImageProvider fingerprint differs between books differing only in the world folder")
+    func imageProviderFingerprintFollowsWorldFolder() async throws {
+        let refRoot = try makeRawReferenceLibrary()
+        let bookA = try makeBook(characterImages: [], worldImages: ["Map"])
+        let bookB = try makeBook(characterImages: [], worldImages: ["Atlas"])
+        let fingerprintA = ReferenceLibraryImageProvider(
+            activeBookRoot: bookA,
+            referenceLibraryRoot: refRoot
+        ).fingerprint()
+        let fingerprintB = ReferenceLibraryImageProvider(
+            activeBookRoot: bookB,
+            referenceLibraryRoot: refRoot
+        ).fingerprint()
+        #expect(fingerprintA != fingerprintB)
     }
 
     // MARK: - WenshuMarkdownEditor mount test

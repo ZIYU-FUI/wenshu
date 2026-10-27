@@ -1,7 +1,7 @@
-// Sources/WenshuApp/Editor/ReferenceLibraryImageProvider.swift
+// Sources/WenshuApp/Features/Editor/Model/ReferenceLibraryImageProvider.swift
 //
 // EmbeddedImageProvider conformance that resolves Obsidian-style
-// ![[name]] embeds by searching the active book's characters/ + worlds/
+// ![[name]] embeds by searching the active book's characters/ + world/
 // folders first, then the library's reference-library/raw/ as fallback.
 // Engine calls synchronously from the image-embed render path.
 //
@@ -26,18 +26,31 @@ struct ReferenceLibraryImageProvider: EmbeddedImageProvider {
     let activeBookRoot: URL           // = shelves/<shelf>/books/<book>/
     let referenceLibraryRoot: URL     // = library's reference-library/
 
-    func image(for reference: EmbeddedImageRequest) -> NSImage? {
-        // Search order: characters/, worlds/, reference-library/raw/.
-        // If explicit id is provided, match by id (= entity UUID stored
-        // in entity metadata). Otherwise match by file basename.
-        let candidates: [URL] = [
+    /// The folders the provider searches, in order: the active book's
+    /// `characters/` folder, the active book's `world/` folder, then the
+    /// library's `reference-library/raw/` layer. One list, so the image
+    /// lookup and the fingerprint can never cover different folders (= a
+    /// fingerprint over a different folder set never invalidates the
+    /// engine's image cache).
+    private var searchFolders: [URL] {
+        [
             activeBookRoot.appendingPathComponent("characters"),
-            activeBookRoot.appendingPathComponent("worlds"),
+            // The book's world folder takes its on-disk name from the
+            // folder catalogue (= the SSOT for the book folder names); a
+            // name spelled out here is what made world-folder pictures
+            // invisible to the editor.
+            activeBookRoot.appendingPathComponent(BookFolderCatalog.world.directoryName),
             referenceLibraryRoot.appendingPathComponent("raw"),
         ]
+    }
+
+    func image(for reference: EmbeddedImageRequest) -> NSImage? {
+        // Search order: characters/, world/, reference-library/raw/.
+        // If explicit id is provided, match by id (= entity UUID stored
+        // in entity metadata). Otherwise match by file basename.
         let trimmed = reference.name.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        for dir in candidates {
+        for dir in searchFolders {
             guard let entries = try? FileManager.default.contentsOfDirectory(
                 at: dir, includingPropertiesForKeys: nil
             ) else { continue }
@@ -60,11 +73,7 @@ struct ReferenceLibraryImageProvider: EmbeddedImageProvider {
         // Hash of all image file mtimes + paths. Engine invalidates its
         // image cache when this changes (= new image added, or existing
         // one edited).
-        let candidates: [URL] = [
-            activeBookRoot.appendingPathComponent("characters"),
-            activeBookRoot.appendingPathComponent("worlds"),
-            referenceLibraryRoot.appendingPathComponent("raw"),
-        ]
+        let candidates = searchFolders
         var hasher = SHA256()
         for dir in candidates {
             guard let entries = try? FileManager.default.contentsOfDirectory(
