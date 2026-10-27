@@ -76,9 +76,8 @@ import Foundation
 @MainActor
 struct AnbaiqiangLiveResearch {
 
-    private static let wsRoot: URL = {
-        return SourceLocator.repoRoot.appendingPathComponent(".scratch/anbaiqiang.ws")
-    }()
+    private static let wsRoot: URL = SourceLocator.repoRoot
+        .appendingPathComponent(".scratch/anbaiqiang.ws")
 
     private static var liveEnabled: Bool {
         ProcessInfo.processInfo.environment["WENSHU_LIVE_API_TESTS"] == "1"

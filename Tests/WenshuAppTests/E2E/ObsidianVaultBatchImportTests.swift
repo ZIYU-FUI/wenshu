@@ -82,9 +82,8 @@ struct ObsidianVaultBatchImportTests {
         URL(fileURLWithPath: "/Users/anbaiqiang/Library/Mobile Documents/iCloud~md~obsidian/Documents/长篇小说/十二地仙")
     }()
 
-    private static let wsRoot: URL = {
-        return SourceLocator.repoRoot.appendingPathComponent(".scratch/anbaiqiang.ws")
-    }()
+    private static let wsRoot: URL = SourceLocator.repoRoot
+        .appendingPathComponent(".scratch/anbaiqiang.ws")
 
     private static var liveEnabled: Bool {
         ProcessInfo.processInfo.environment["WENSHU_LIVE_API_TESTS"] == "1"
