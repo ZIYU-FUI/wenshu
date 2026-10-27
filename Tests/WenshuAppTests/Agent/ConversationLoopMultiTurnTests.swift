@@ -11,6 +11,31 @@ import Foundation
 import WenshuAgent
 @testable import WenshuApp
 
+/// Counts the calls the stub connector serves.
+///
+/// The production path builds the turn's stream through the
+/// connector's `stream` method, and that method is a synchronous
+/// call, so the count is lock-guarded rather than actor-isolated.
+private final class CallCounter: @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+
+    /// Bumps the counter and returns the ordinal of this call.
+    func next() -> Int {
+        lock.lock()
+        defer { lock.unlock() }
+        count += 1
+        return count
+    }
+
+    /// How many calls the connector has served so far.
+    var snapshot: Int {
+        lock.lock()
+        defer { lock.unlock() }
+        return count
+    }
+}
+
 @Suite("ConversationLoop multi-turn (T3-MULTI-TURN-LOOP)")
 struct ConversationLoopMultiTurnTests {
 
@@ -85,21 +110,20 @@ struct ConversationLoopMultiTurnTests {
     /// The multi-turn loop behavior is still exercised below; =
     /// the test now asserts on the connector's call count (= 2)
     /// rather than on a streamCallback marker.
+    ///
+    /// The count is the number of calls the production path really
+    /// makes: the loop builds the turn's stream through the
+    /// connector's `stream` method, so the stub counts there and
+    /// serves the same two replies the `send` path serves (= a tool
+    /// use first, then the text). A loop that stopped iterating
+    /// after the tool use would count one call instead of two.
     @Test func runTurn_continues_until_no_tool_use() async throws {
-        actor CallCount {
-            var n = 0
-            func next() -> Int {
-                n += 1
-                return n
-            }
-            func snapshot() -> Int { n }
-        }
-        let counter = CallCount()
+        let counter = CallCounter()
         struct TwoTurnConnector: LLMConnector {
             let connectorID = "mock-two-turn"
-            let counter: CallCount
+            let counter: CallCounter
             func send(messages: [LLMMessage], options: LLMCallOptions) async throws -> LLMResponse {
-                let n = await counter.next()
+                let n = counter.next()
                 if n == 1 {
                     return LLMResponse(
                         id: "1",
@@ -122,8 +146,14 @@ struct ConversationLoopMultiTurnTests {
                 messages: [LLMMessage],
                 options: LLMCallOptions
             ) -> AsyncStream<LLMBlock> {
-                AsyncStream { continuation in
-                    continuation.yield(.text("Final answer."))
+                let n = counter.next()
+                let blocks: [LLMBlock] = n == 1
+                    ? [.toolUse(id: "t1", name: "echo_tool", input: "{\"x\":1}")]
+                    : [.text("Final answer.")]
+                return AsyncStream { continuation in
+                    for block in blocks {
+                        continuation.yield(block)
+                    }
                     continuation.finish()
                 }
             }
@@ -147,7 +177,7 @@ struct ConversationLoopMultiTurnTests {
         )
         // The connector was called twice (= 1 initial + 1 follow-up
         // because the first reply had a .toolUse block).
-        let callCount = await counter.snapshot()
+        let callCount = counter.snapshot
         #expect(callCount == 2, "expected 2 LLM calls (= loop must iterate on toolUse); got \(callCount)")
         // And no turn-marker is in the stream (= the dead marker
         // emission is gone).
