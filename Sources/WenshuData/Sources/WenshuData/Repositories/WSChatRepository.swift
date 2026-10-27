@@ -38,17 +38,36 @@ import SwiftData
 
 @MainActor
 public final class WSChatRepository {
-    private let container: ModelContainer
-    private var context: ModelContext { container.mainContext }
+    /// The store this repository reads and writes.
+    ///
+    /// A named container (= a test, an isolated run) is used as it is.
+    /// Without one the repository reads and writes the app's live store
+    /// (= the warehouse once it is activated), resolved per operation:
+    /// the live store changes when the warehouse is activated, so a
+    /// repository built before that moment must not keep the store it
+    /// saw at construction time.
+    public let store: WSStore
+    private var context: ModelContext { store.context }
 
-    public init(container: ModelContainer = WSPersistenceContainer.shared) {
-        self.container = container
+    public init(container: ModelContainer? = nil) {
+        self.store = WSStore(container: container)
     }
 
     // MARK: - Sessions
 
+    /// The session row for (= sessionID + bookID).
+    ///
+    /// That pair is the session's identity: one sessionID may exist
+    /// under several books (= the chat-by-book design), and one book
+    /// holds one row per sessionID. SwiftData has no composite unique
+    /// constraint, so the key is enforced here (= fetch-then-insert): a
+    /// row that already carries the key is returned as it is, and no
+    /// second row is written.
     @discardableResult
     public func createSession(sessionID: String, title: String? = nil, bookID: String? = nil) throws -> WSSession {
+        if let existing = try getSession(sessionID: sessionID, bookID: bookID) {
+            return existing
+        }
         let session = WSSession(sessionID: sessionID, title: title, bookID: bookID)
         context.insert(session)
         try context.save()
@@ -142,32 +161,27 @@ public final class WSChatRepository {
             session = try createSession(sessionID: sessionId, bookID: bookID)
         }
         _ = session  // unused after this line; the predicate below reads the sessionId directly
-        // Determine next position (= count + 1) within the same scope
+        // The row's position = the number of rows the session already
+        // holds when the message is appended (= count, zero-based).
+        //
+        // The count + 1 pattern raced when the user sends a 2nd message
+        // while the agent's 1st reply is still streaming: both appends
+        // read the same count and wrote the same position, so a read
+        // path that ordered by position could not break the tie. The
+        // read path therefore orders by createdAt (= the caller's
+        // timestamp, stored on the row) and keeps position as the
+        // tiebreaker for two rows that carry the same timestamp.
+        //
+        // The count follows the same predicate the read path uses: for
+        // a book-scoped session it counts that book's rows; for the
+        // global bucket the SQL predicate cannot express IS NULL, so it
+        // counts every row of that session across books. Position is a
+        // tiebreaker only, so the wider count does not change the
+        // order.
         let descriptor = FetchDescriptor<WSChatMessage>(
             predicate: Self.chatMessagePredicate(sessionId: sessionId, bookID: bookID)
         )
         let count = try context.fetchCount(descriptor)
-        // "持久化的聊天记录, 重新渲染顺序有问题, 问答先后顺序混乱"
-        // The previous `position: count + 1` (= the count-then-insert
-        // pattern) had a race condition when the user sends a
-        // 2nd message while the AI's 1st reply is still streaming:
-        // both `append(user)` and `append(agent)` call this method
-        // in parallel; both read `count = N`; both write position = N+1;
-        // the second `append` collides on the unique-position
-        // contract (= SwiftData store corruption) OR produces two
-        // rows with the same position (= loadHistory's
-        // `sortBy: [position]` then returns them in undefined
-        // order). The fix: append the row, then use the
-        // CoreData/SwiftData-managed auto-incrementing object id
-        // (= `model.persistentModelID` is the authoritative insert
-        // order). The read path (loadHistory) now sorts by
-        // `timestamp` first (= the wall-clock at append time) so
-        // position is only a tiebreaker for the rare <1 ms
-        // collision. We still set `position` to `count + 1` for
-        // forward-compat with the existing SortDescriptor(\.position)
-        // path (= the SwiftData migration tooling reads it).
-        let position = count + 1
-        _ = position  // (= position is consumed only via SwiftData KeyPath; the local binding is the documented source-of-truth for the migration tooling reader)
         // Denormalize bookID onto the message row (= the message.bookID
         // mirrors session.bookID; = the parent session is the source of truth).
         // Reads (= loadMessages) can then filter by message.bookID without
@@ -205,7 +219,12 @@ public final class WSChatRepository {
             // = the View layer decomposes it back into separate reasoning
             // parts at restore time).
             thinking: thinking,
-            bookID: effectiveBookID
+            bookID: effectiveBookID,
+            // The caller's clock, not the write clock: the caller
+            // observed the message at that instant (= the app's own
+            // transcript order), and a later write must not claim the
+            // message happened later than it did.
+            createdAt: timestamp
         )
         model.tokenCount = tokens ?? -1
         context.insert(model)

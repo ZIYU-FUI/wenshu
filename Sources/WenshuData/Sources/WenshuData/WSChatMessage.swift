@@ -59,7 +59,17 @@ public final class WSChatMessage {
     /// Inverse relationship target (= declared on WSSession via @Relationship(inverse:))
     public var session: WSSession?
 
-    public init(id: String, sessionID: String, role: String, content: String, position: Int, status: String = "ok", thinking: String? = nil, bookID: String? = nil) {
+    public init(
+        id: String,
+        sessionID: String,
+        role: String,
+        content: String,
+        position: Int,
+        status: String = "ok",
+        thinking: String? = nil,
+        bookID: String? = nil,
+        createdAt: Date = Date()
+    ) {
         self.id = id
         self.sessionID = sessionID
         self.role = role
@@ -69,7 +79,11 @@ public final class WSChatMessage {
         self.tokenCount = -1
         self.thinking = thinking
         self.bookID = bookID
-        self.createdAt = Date()
-        self.updatedAt = Date()
+        // The one instant this row carries (= the moment the caller
+        // observed the message). The row is written once and never
+        // edited, so the update stamp is the same instant (= a second
+        // clock on the same row would only disagree with this one).
+        self.createdAt = createdAt
+        self.updatedAt = createdAt
     }
 }

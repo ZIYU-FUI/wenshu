@@ -9,7 +9,15 @@ import SwiftData
 
 @Model
 public final class WSSession {
-    @Attribute(.unique) public var sessionID: String
+    /// The session id, unique per book (= the composite key
+    /// sessionID + bookID).
+    ///
+    /// No single-column unique constraint: one session id may exist
+    /// under several books (= the chat-by-book design), so the
+    /// constraint would drop the row of the book it collided with.
+    /// The composite key is enforced by the repository
+    /// (= WSChatRepository.createSession).
+    public var sessionID: String
     public var title: String?
     public var createdAt: Date
     public var updatedAt: Date
@@ -26,8 +34,8 @@ public final class WSSession {
     // WSBookRepository.deleteBook path leaves chat rows intact
     // (= orphans are intentional; = the user can re-attach).
     //
-    // Optional + no @Attribute(.unique): the same bookID can have
-    // multiple sessions. nil = global, non-nil = scoped to that book.
+    // Optional: nil = global, non-nil = scoped to that book. The same
+    // bookID can have multiple sessions.
     public var bookID: String?
 
     @Relationship(deleteRule: .cascade, inverse: \WSChatMessage.session)
