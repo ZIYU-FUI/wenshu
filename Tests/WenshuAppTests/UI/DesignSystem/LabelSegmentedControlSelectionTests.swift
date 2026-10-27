@@ -30,7 +30,9 @@
 //  segment. The bound value said one thing and the drawn selection
 //  said another.
 
+import AppKit
 import Foundation
+import SwiftUI
 import Testing
 @testable import WenshuApp
 
@@ -100,5 +102,119 @@ struct LabelSegmentedControlSelectionTests {
         index = LabelSegmentedControl<UUID>.selectedSegmentIndex(for: bound, in: labels)
         #expect(index == -1,
                 "with no segments left the control must have NO selection")
+    }
+
+    // MARK: - The control itself (= the production write path)
+
+    // The pure assertions above CANNOT GUARD THE FIX on their own:
+    // the production write could be reverted to its old form (= writing
+    // nothing when the bound value names no segment) and every one of
+    // them would still pass, because they never touch a control. These
+    // tests drive a REAL NSSegmentedControl through `configure` (= the
+    // production path, the same call `makeNSView` and `updateNSView`
+    // make) and assert on `control.selectedSegment` itself.
+
+    /// Build the representable and its coordinator (= the two things
+    /// `configure` needs).
+    @MainActor
+    private func makeConfigured(
+        selection: Binding<UUID>,
+        labels: [UUID]
+    ) -> (LabelSegmentedControl<UUID>, LabelSegmentedControl<UUID>.Coordinator) {
+        let representable = LabelSegmentedControl(selection: selection, labels: labels)
+        let coordinator = LabelSegmentedControl<UUID>.Coordinator(parent: representable)
+        return (representable, coordinator)
+    }
+
+    @Test("The control's own selection: a bound value that names a segment selects it")
+    @MainActor
+    func theControlSelectsTheBoundSegment() {
+        let a = UUID()
+        let b = UUID()
+        let labels = [a, b]
+        let control = NSSegmentedControl()
+        let (representable, coordinator) = makeConfigured(
+            selection: .constant(b), labels: labels
+        )
+
+        representable.configure(control, coordinator: coordinator)
+
+        #expect(control.selectedSegment == 1,
+                "the control must show the segment the bound value names")
+    }
+
+    @Test("The control's own selection: a bound value that names NO segment leaves NO selection")
+    @MainActor
+    func theControlHasNoSelectionForABoundValueThatNamesNoSegment() {
+        // THE DEFECT. The control is showing a segment (the bound
+        // value named it a moment ago), and then the bound value
+        // changes to one that is not in the label list (= the document
+        // was closed). The control must NOT keep drawing the old
+        // segment, because the drawn selection would then name a
+        // DIFFERENT value than the bound one.
+        let open = UUID()
+        let closed = UUID()
+        let labels = [open]
+        let control = NSSegmentedControl()
+        let (representable, coordinator) = makeConfigured(
+            selection: .constant(open), labels: labels
+        )
+
+        // First the control shows the open document.
+        representable.configure(control, coordinator: coordinator)
+        #expect(control.selectedSegment == 0)
+
+        // Then the bound value names a document that is no longer open,
+        // and the control is configured again (= what SwiftUI does on
+        // the next update).
+        let (afterClose, afterCloseCoordinator) = makeConfigured(
+            selection: .constant(closed), labels: labels
+        )
+        afterClose.configure(control, coordinator: afterCloseCoordinator)
+
+        #expect(control.selectedSegment == -1,
+                "a bound value that names no segment must leave the control with NO selection, not a stale one")
+    }
+
+    @Test("The control's own selection: after the segment count shrinks the index is never out of range")
+    @MainActor
+    func theControlNeverReportsAnOutOfRangeSelectedSegment() {
+        // The card's own narrow requirement: "the tab strip never
+        // reports a selected segment that is out of range for its own
+        // segment count".
+        let first = UUID()
+        let second = UUID()
+        let third = UUID()
+        let labels = [first, second, third]
+        let bound = second
+        let control = NSSegmentedControl()
+        let (representable, coordinator) = makeConfigured(
+            selection: .constant(bound), labels: labels
+        )
+
+        representable.configure(control, coordinator: coordinator)
+        #expect(control.selectedSegment == 1)
+
+        // The middle document is closed: the count shrinks to 2 and the
+        // bound value no longer names a segment.
+        let (afterClose, afterCloseCoordinator) = makeConfigured(
+            selection: .constant(bound), labels: [first, third]
+        )
+        afterClose.configure(control, coordinator: afterCloseCoordinator)
+
+        #expect(control.selectedSegment < control.segmentCount,
+                "the selected segment must never be an index past the control's own count")
+        #expect(control.selectedSegment == -1,
+                "the closed document leaves NO selection")
+
+        // The last document is closed too: the count reaches 0.
+        let (lastClosed, lastClosedCoordinator) = makeConfigured(
+            selection: .constant(bound), labels: []
+        )
+        lastClosed.configure(control, coordinator: lastClosedCoordinator)
+
+        #expect(control.selectedSegment < control.segmentCount,
+                "with no segments there is no out-of-range index either")
+        #expect(control.selectedSegment == -1)
     }
 }

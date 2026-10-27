@@ -262,7 +262,14 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
     /// Configure the control to fill its container with
     /// equally-sized segments (= `segmentDistribution =
     /// .fillEqually`).
-    private func configure(_ control: NSSegmentedControl, coordinator: Coordinator) {
+    ///
+    /// Internal (= not private) so a test can drive the PRODUCTION
+    /// write path with a real `NSSegmentedControl`. A test that only
+    /// calls the pure index helper does not guard the fix: the write
+    /// here could be reverted to its old form (= writing nothing when
+    /// the bound value names no segment) and every pure assertion
+    /// would still pass.
+    internal func configure(_ control: NSSegmentedControl, coordinator: Coordinator) {
         // Segment count + per-segment label (= the
         // String-convertible binding of the typed selection).
         // NOTE: NSSegmentedControl segments are 0-indexed;
@@ -404,6 +411,15 @@ struct LabelSegmentedControl<Selection: Hashable>: NSViewRepresentable {
         // what the control reports after its count shrinks; = measured
         // 2026-10-27), so writing it is the canonical way to say
         // "nothing is selected".
+        //
+        // THE WRITE IS GUARDED (= only write when the value differs)
+        // because writing a segment index into a control during a
+        // layout pass re-arms the window's update-constraints pass.
+        //
+        // -1 is AppKit's "no segment is selected" and is accepted by
+        // the control (= measured 2026-10-27). An out-of-range index
+        // THROWS (`NSRangeException`), so the index must always be one
+        // the control has (= the guarantee is load-bearing).
         let selectedIndex = Self.selectedSegmentIndex(for: selection.wrappedValue, in: labels)
         if control.selectedSegment != selectedIndex {
             control.selectedSegment = selectedIndex

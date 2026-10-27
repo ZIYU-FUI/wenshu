@@ -72,8 +72,14 @@ struct EditorTabStrip: View {
     static let minimumSegmentWidth: CGFloat = 88
 
     /// Stable value standing for "no tab is active". It never matches a
-    /// tab id, so the segmented control keeps whatever segment it had,
-    /// and it does not change between reads.
+    /// tab id, and it does not change between reads.
+    ///
+    /// When the bound value names no segment (= this sentinel, or a
+    /// closed document's id), the segmented control shows NO selection:
+    /// `LabelSegmentedControl.selectedSegmentIndex(for:in:)` returns
+    /// -1 (= AppKit's own "no segment is selected") and the control
+    /// writes it, so the drawn selection can never name a DIFFERENT
+    /// value than the bound one.
     static let noSelectionSentinel = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
 
     var body: some View {
