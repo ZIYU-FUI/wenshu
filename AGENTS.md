@@ -33,7 +33,7 @@ SSOT for every contributor and agent on /Volumes/ANAN/Engineering/wenshu.
 
 | #   | Rule | Enforcement |
 | --- | ---- | ----------- |
-| 1.1 | English-only in code, comments, commits, prompts, all .md. No CJK characters. | CI lint-commits job (no CJK in the subject); the xianxia family by commit_filter.py + SwiftLint. Comment-level CJK is manual (770 CJK comment lines in Sources/ at commit d44c2df39, counted with the gate's regex). |
+| 1.1 | English-only in code, comments, commits, prompts, all .md. No CJK characters. | CI lint-commits job (no CJK in the subject); the xianxia family by commit_filter.py + SwiftLint. Comment-level CJK is manual. |
 | 1.2 | Sole address for the user = "老板". No other forms. | Manual. commit_filter.py permits the project literals (老板 / 文枢 / 拍 / 拍板 / ※). |
 | 1.3 | Forbidden hedges (replace with yes/no/yes-yes): 可 / 应当 / 或许 / 可能 / 应该 / 建议 / 考虑 / 试图 / 尽量 / 大概 / 也许 / 或 / 任意 / 大概率 / 通常 / 一般来说. | Manual (= no machine gate). |
 | 1.4 | Forbidden xianxia vocabulary (replace with 修 / 改 / fix / 替换 / 调整): 修真 / 渡劫 / 筑基 / 返虚 / 结丹 / 金丹 / 元婴 / 飞升 / 天劫 / 雷劫 / 心魔 / 魔障. | commit_filter.py (pre-commit + commit-msg + pre-push hooks in .git/hooks/) + .swiftlint.yml xianxia_forbidden_vocab (severity error) + CI Pollution check. |
@@ -43,7 +43,7 @@ SSOT for every contributor and agent on /Volumes/ANAN/Engineering/wenshu.
 | 1.8 | High information density. One line per argument. No narrative paragraphs. | Manual; shape = to-spec. |
 | 1.9 | Load chain: .hermes.md at the repo root is the file Hermes injects (it wins over AGENTS.md) and points here + at the skill chain. A skill body loads on demand via skill_view; only its description is injected. | .hermes.md. `skills.auto_load` in config.yaml injects a body; a frontmatter `default_on` does not. |
 | 1.10 | One ticket = one commit + one atomic verification + one 4-section spec + one dual-axis dispatch + one P0 fix + one verify round + merge gate. | Tools/wenshu-devtool/ticket_tier.py; Scripts/merge-preflight.sh. |
-| 1.11 | The NFI registry = `docs/agents/nfi.md`: one row per extracted or added file, append-only. `merge=nfi-registry` in .gitattributes merges two cards' rows at the key level. | docs/agents/nfi.md. |
+| 1.11 | The NFI registry = `docs/agents/nfi.md`, append-only; `merge=nfi-registry` in .gitattributes merges two cards' rows at the key level. | docs/agents/nfi.md. |
 | 1.12 | Parallel worktree isolation: every code-changing ticket runs in its own git worktree, never the shared checkout (= a kanban card, `--workspace worktree --project project`, board `wenshu-par`). `delegate_task` is read-only fan-out: its children inherit the parent cwd, so a relative write lands in the shared checkout. | wenshu-parallel-dev |
 | 1.13 | Difficulty tier: every card carries a tier (`[T1]` / `[T2]` / `[T3]`), DERIVED by `ticket_tier.py` from the work its body describes, never hand-set. The tier sets the runtime cap, retry budget, gate width and body budget = cost, not quality: it never skips the dual-axis review, never marks a test skipped. A card in the REVIEW lane answers to that lane's floor (3600s), not to its tier's cap. | ticket_tier.py; ticket-tiers.md. |
 | 1.14 | Independent review: a card that writes CODE carries a `## REVIEW HANDOFF` naming a reviewer profile that is NOT its implementer, and ends with `kanban_request_review(reviewer=...)`. The obligation is DERIVED from the work the body describes, never the tier; a prose-only card owes no verdict. | review_gate.py; merge-preflight.sh. |
@@ -57,7 +57,7 @@ SSOT for every contributor and agent on /Volumes/ANAN/Engineering/wenshu.
 | --- | ---- | --------- |
 | 2.1 | Stack: Swift / SwiftUI / Observation (@Observable) / SwiftData / Swift Concurrency. | Apple stack exclusive. |
 | 2.2 | NO CoreData. NO SQLite (SwiftData only). NO external AI platform SDK. NO monorepo. NO npm. NO Python in the app target. NO Rust. NO Tauri. NO Vue. | Package.swift (tools-version 6.4); Sources/ imports = Apple frameworks + 4 approved upstreams. |
-| 2.3 | macOS-only. iPad/iPhone code supported but NOT target. | Boss ruling 8/18. |
+| 2.3 | macOS-only app. iPad/iPhone = the wenshu-mobile repo. | Boss ruling 8/18, 10/28. |
 | 2.4 | Swift 6 strict concurrency. @MainActor for UI. actor for background. Sendable for cross-isolation. | wenshu-swift-standards.md §4; ADR-0027 (each @unchecked Sendable justified; its count is its census at its date). |
 | 2.5 | LLM connector: 14 slugs = 13 built-in + custom (anthropic / openai-codex / gemini / deepseek / ollama / openrouter / minimax / minimax-cn / nous / copilot / copilot-acp / xai-oauth / stepfun / custom). BYOK, no default. | Connector/BuiltInProviders.swift. |
 | 2.6 | LLM key storage: macOS Keychain via ProviderKeychain, AND a plaintext mirror at `~/Library/Application Support/com.wenshu.app/provider-keys.json` (mode 0600, outside the .ws). Normally every write hits BOTH stores and the toggle picks the read primary; the debug no-keychain override writes the file only. NEVER inside the .ws. | MirroredKeychainStore.swift |
@@ -183,8 +183,9 @@ SSOT for every contributor and agent on /Volumes/ANAN/Engineering/wenshu.
 | Ticket difficulty tiers | docs/agents/ticket-tiers.md |
 | Devtool gates + probes | Tools/wenshu-devtool/README.md |
 | OOB index (boss directives, dev-time only) | OOB.md |
+| Mobile product line (sibling repo) | ../wenshu-mobile/ |
 | Domain glossary | docs/agents/domain.md |
-| ADRs (0000-0027) | docs/adr/ |
+| ADRs (0000-0028) | docs/adr/ |
 | Deferred standards (6.2 + 6.6) | docs/adr/0025-*.md |
 | Unchecked-Sendable audit | docs/adr/0027-*.md |
 
