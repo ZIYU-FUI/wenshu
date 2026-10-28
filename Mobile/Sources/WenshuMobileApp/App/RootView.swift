@@ -2,26 +2,19 @@ import SwiftUI
 
 /// The root of the client.
 ///
-/// One layout serves iPhone, iPad and a foldable: the regular width
-/// gets a split view, the compact width gets a stack. The split is
-/// decided by the size class, not by the device, so a foldable that
-/// unfolds into a wide screen gets the same split an iPad gets.
+/// One layout serves iPhone, iPad and a foldable: the width picks the
+/// shape, and the foldable-native arrangement refines how the two columns
+/// are drawn where the system offers it. The container holds that choice,
+/// so the root only names what the client is made of.
 struct RootView: View {
-    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @State private var store = ConnectionStore()
 
     var body: some View {
-        Group {
-            if horizontalSizeClass == .compact {
-                ConnectionView(store: store)
-            } else {
-                NavigationSplitView {
-                    ConnectionSidebar(store: store)
-                } detail: {
-                    ConnectionView(store: store)
-                }
-            }
-        }
+        AdaptiveLayoutContainer(
+            compact: ConnectionView(store: store),
+            sidebar: ConnectionSidebar(store: store),
+            detail: ConnectionView(store: store)
+        )
         .tint(DesignTokens.accentColor)
     }
 }
