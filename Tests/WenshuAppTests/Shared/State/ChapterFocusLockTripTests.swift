@@ -14,22 +14,34 @@
 //  chapter path against nil, and the agent wrote straight into the
 //  chapter the user was editing.
 //
-//  The suite drives both halves of the lock:
+//  The suite drives all three halves of the lock:
 //
 //  - the guard and the actor (= the file on disk), = the focused
 //    chapter raises the locked error and the chapter the user is not
 //    editing is written;
-//  - the wrapped tool the LLM calls (= the Allow / Deny dialog), =
-//    the dialog comes up, the allowed write lands, and the user's
-//    focus comes back.
+//  - the wrapped tool the LLM calls (= the Allow / Deny dialog), = the
+//    dialog comes up, the allowed write lands, and the user's
+//    focus comes back;
+//  - the dialog's own publication (= the chat zone hears about the
+//    request), = the request is enqueued from outside the view, so the
+//    chat zone only learns about it if the presenter's property is
+//    observed.
 //
 //  So the property is proved by what happens, = not by reading the
 //  source of the locator.
 //
+//  The halves that touch the chat share one suite (= one serialized
+//  domain), = because the dialog's request lives in one slot of one
+//  singleton, = and two suites running at once would answer each
+//  other's request.
+//
 //  swift test --filter ChapterFocusLockTripTests
 //
 
+import AppKit
 import Foundation
+import Observation
+import SwiftUI
 import Testing
 import WenshuAgent
 @testable import WenshuApp
@@ -410,7 +422,86 @@ struct ChapterFocusLockTripTests {
         #expect(bound.state.focusedChapterPath == fixture.chapterPath,
                 "a failed allowed write must hand the user's focus back too")
     }
+
+    // MARK: - The dialog reaches the user
+
+    @Test("the presenter publishes its request to an observer")
+    func presenterPublishesTheRequest() async throws {
+        let flag = ObservationFlag()
+        withObservationTracking {
+            _ = ChapterFocusLockDialogPresenter.shared.pendingRequest
+        } onChange: {
+            flag.fire()
+        }
+
+        let call = Task { @MainActor in
+            _ = await ChapterFocusLockDialogPresenter.shared.present(
+                chapterPath: requestedChapterPath,
+                toolName: "book_edit_chapter",
+                summary: "the agent wants to write this chapter"
+            )
+        }
+        defer { ChapterFocusLockDialogPresenter.shared.allowCurrentRequest() }
+
+        _ = try #require(await awaitDialogRequest(),
+                         "the request must reach the presenter")
+
+        #expect(flag.fired)
+
+        ChapterFocusLockDialogPresenter.shared.allowCurrentRequest()
+        _ = await call.value
+    }
+
+    @Test("the chat zone re-evaluates when the request arrives")
+    func chatZoneReEvaluatesWhenTheRequestArrives() async throws {
+        let counter = BodyCounter()
+        let (window, host) = hostHarnessWindow(ChatZoneAlertHost(counter: counter))
+        defer { window.orderOut(nil) }
+
+        let before = counter.evaluations
+
+        let call = Task { @MainActor in
+            _ = await ChapterFocusLockDialogPresenter.shared.present(
+                chapterPath: requestedChapterPath,
+                toolName: "book_edit_chapter",
+                summary: "the agent wants to write this chapter"
+            )
+        }
+        defer { ChapterFocusLockDialogPresenter.shared.allowCurrentRequest() }
+
+        _ = try #require(await awaitDialogRequest(),
+                         "the request must reach the presenter")
+
+        pumpSwiftUI(0.5)
+        host.layoutSubtreeIfNeeded()
+        pumpSwiftUI(0.4)
+
+        #expect(counter.evaluations > before)
+
+        ChapterFocusLockDialogPresenter.shared.allowCurrentRequest()
+        _ = await call.value
+    }
+
+    @Test("CONTROL: the harness observes a value published from outside")
+    func controlObservesAnExternalPublication() async throws {
+        let counter = BodyCounter()
+        let holder = ControlHolder()
+        let (window, host) = hostHarnessWindow(ControlHost(counter: counter, holder: holder))
+        defer { window.orderOut(nil) }
+
+        let before = counter.evaluations
+        holder.chapterPath = requestedChapterPath
+        pumpSwiftUI(0.4)
+        host.layoutSubtreeIfNeeded()
+        pumpSwiftUI(0.4)
+
+        #expect(counter.evaluations > before)
+    }
 }
+
+/// The chapter the dialog tests ask about (= the presenter's request
+/// carries a path, = it never reaches the disk).
+private let requestedChapterPath = "/books/demo/chapters/one.md"
 
 /// The failure the stubbed tool raises (= the wrapper must pass it on
 /// and hand the focus back).

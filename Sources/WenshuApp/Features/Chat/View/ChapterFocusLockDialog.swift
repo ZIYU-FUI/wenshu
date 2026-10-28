@@ -63,7 +63,15 @@ struct ChapterFocusLockDialogRequest: Identifiable, Sendable {
 /// dialog visible). The conductor's `present(...)` enqueues the
 /// request and awaits the continuation; = ChatZoneView's body
 /// reads `pendingRequest` and renders the .alert(item:).
+///
+/// `@Observable` = the observation surface the chat zone needs. The
+/// request is enqueued from outside the view (= the conductor's
+/// actor), so the view learns about it only if reading
+/// `pendingRequest` registers a dependency; = without it the
+/// chat zone's body never re-evaluates, the alert modifier never
+/// re-reads the request, and the user is never asked.
 @MainActor
+@Observable
 final class ChapterFocusLockDialogPresenter {
     static let shared = ChapterFocusLockDialogPresenter()
     /// The current pending dialog request (= nil = no dialog).
