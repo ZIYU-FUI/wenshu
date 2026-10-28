@@ -1,7 +1,11 @@
 # 2026-10-28 Editor close tab — the stale active-tab id and the stale segment index
 
-Status: merged to main (= commits `392f38accc` + `c40fa2f6e8`, rebased onto
-main and landed as `c22676a27c`), pushed to `origin` and `old-origin`.
+Status: merged to main (= commits `392f38accc` (the fix) + `c22676a27c` (its
+suite) = the rebased form of the reviewed `e91b3c424e` + `c40fa2f6e8`),
+pushed to `origin` and `old-origin`. A rebase rewrites every sha, so the
+REVIEWED shas are not on `main` (= `git cat-file -e c40fa2f6e8` finds the
+object; = `git merge-base --is-ancestor c40fa2f6e8 main` says no) and only
+the rebased pair is.
 Worktree: `project/t_3abaf01a-t2-closing-the-open-document-leaves-a-st`
 (= cleaned up post-merge).
 Tests: `swift test --filter AppStateCloseTabTests` = 13, `LabelSegmentedControlSelectionTests`
