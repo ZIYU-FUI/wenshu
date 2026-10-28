@@ -32,9 +32,11 @@ struct SidebarIconUniformityTests {
         // The slot is 16 PT wide; we don't force a square frame
         // (= Apple keeps each symbol's intrinsic height).
         #expect(!source.contains("height: iconStyle.sidebarHeight"))
-        // Hierarchical rendering at .regular weight = Apple HIG
+        // The rendering mode belongs to the central factory: the
+        // row wrapper sets none of its own. The factory applies
+        // hierarchical rendering at .regular weight = Apple HIG
         // canonical sidebar row iconography.
-        #expect(source.contains(".symbolRenderingMode(.hierarchical)"))
+        #expect(!source.contains(".symbolRenderingMode("))
         // Color = .primary (= Apple Tahoe sidebar default =
         // system text color, not app accent). One tier only.
         #expect(source.contains(".foregroundStyle(Color.primary)"))
@@ -48,6 +50,10 @@ struct SidebarIconUniformityTests {
         // itself is unchanged: `case sidebar` is still there.
         let iconStyles = try Self.source("Sources/WenshuApp/Shared/UI/IconStyles.swift")
         #expect(iconStyles.contains("case sidebar") || iconStyles.contains("case .sidebar"))
+        #expect(
+            iconStyles.contains(".symbolRenderingMode(.hierarchical)"),
+            "the central factory must own the icon rendering mode"
+        )
         let rowSource = try Self.sourceSlice(
             from: "struct SFLabelRow: View {",
             in: "Sources/WenshuApp/Shared/UI/IconStylesViews.swift"
@@ -85,8 +91,7 @@ struct SidebarIconUniformityTests {
         }
         // The slice runs to the end of the file: the declaration is
         // the last one in it, so there is no following MARK to bound
-        // it (the old `// MARK: - SFStatusBadge` bound sat BEFORE it
-        // and could never be found after the start marker).
+        // it.
         return String(source[startRange.lowerBound...])
     }
 

@@ -11,8 +11,8 @@ import WenshuAgent
 //  values" (= smallChipCornerRadius = 3 for chip-level rounding;
 //  subtleSurfaceAlpha = 0.05 for subtle surface tint) but the
 //  MemorySettingsView now uses DesignTokens.surfaceCornerRadiusSmallChip
-//  + .accentTintOpacitySubtle (= the canonical Apple HIG-measured
-//  token set; = wenshu-pocock-workflow/references/design-system-rule.md).
+//  (= the canonical Apple HIG-measured token set;
+//  = wenshu-pocock-workflow/references/design-system-rule.md).
 //  See wenshu-dead-code-cleanup SKILL.md.)
 
 

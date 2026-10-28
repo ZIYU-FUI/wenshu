@@ -19,13 +19,7 @@ import Testing
 @MainActor
 struct DesignTokensTests {
 
-    // MARK: - Apple HIG chrome dimensions (= per-pane toolbar height)
-
-    @Test("chromeHeight = 30 PT (= Apple HIG toolbar standard)")
-    func chromeHeight() {
-        #expect(DesignTokens.chromeHeight == 30,
-                "Per-pane chrome height must be 30 PT per Apple HIG (= matches Pages / Mail / Xcode toolbar)")
-    }
+    // MARK: - Apple HIG row dimensions
 
     @Test("sidebarRowHeight = 22 PT (= Apple HIG macOS List(.sidebar) default)")
     func sidebarRowHeight() {

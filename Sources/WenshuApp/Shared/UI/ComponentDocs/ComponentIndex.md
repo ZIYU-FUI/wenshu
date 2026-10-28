@@ -30,7 +30,6 @@ Each component has:
 - **Don't use when**: One-off local measurement (= use inline CGFloat literal)
 - **API**:
   ```swift
-  DesignTokens.chromeHeight           // 30 PT
   DesignTokens.chromePaddingLeading   // 8 PT (= Apple HIG canonical 'Spacing.small')
   DesignTokens.chromePaddingTrailing  // 8 PT (= Apple HIG canonical 'Spacing.small')
   DesignTokens.chromePaddingVertical  // 8 PT

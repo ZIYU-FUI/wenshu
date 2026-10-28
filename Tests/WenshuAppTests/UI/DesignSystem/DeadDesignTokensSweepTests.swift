@@ -19,6 +19,13 @@
 //  9. chipAvatarSize (110x80) — Apple HIG chip avatar standard
 //  10. formColumnWidth (120) — Apple HIG form column minimum
 //
+//  2 more dead DesignTokens deleted with the icon wrappers that
+//  were their last production caller:
+//  11. chromeHeight (30) — deleted with the general-list-row
+//      wrapper (= the row was its only caller)
+//  12. accentTintOpacitySubtle (0.12) — deleted with the
+//      status-badge wrapper (= the badge was its only caller)
+//
 //  Note: runtimeCwdChipFont, hotkeyComboFont, tabTitleFont are gone
 //  from DesignTokens.swift completely -- the declaration AND the
 //  `Token was:` history comment (the A112 docblock collapse removed the
@@ -36,8 +43,8 @@ import Foundation
 @Suite("Sweep round 37 — dead DesignTokens sweep")
 struct DeadDesignTokensSweepTests {
 
-    @Test("7 new dead tokens deleted from DesignTokens")
-    func sevenDeadTokensDeleted() throws {
+    @Test("9 dead tokens deleted from DesignTokens")
+    func nineDeadTokensDeleted() throws {
         let root = SourceLocator.repoRoot
         let tokensPath = root.appendingPathComponent("Sources/WenshuApp/DesignTokens.swift")
         let content = try String(contentsOf: tokensPath, encoding: .utf8)
@@ -50,6 +57,11 @@ struct DeadDesignTokensSweepTests {
             "popoverMaxHeight",
             "chipAvatarSize",
             "formColumnWidth",
+            // Deleted with the icon wrappers that were their last
+            // caller (= the chrome-height list row + the status-badge
+            // pill); = both had 0 production callers afterwards.
+            "chromeHeight",
+            "accentTintOpacitySubtle",
         ] {
             #expect(
                 !content.contains("static let \(token)"),

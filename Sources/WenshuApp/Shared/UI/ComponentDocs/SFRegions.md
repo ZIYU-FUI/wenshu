@@ -12,8 +12,7 @@
   site in that region inherits the change.
 
   Wrapper names walk the SF{Region}{Role} convention (= SFIcon,
-  SFLabelRow, SFStatusBadge, SFCardHero, SFToolbarButton,
-  SFListRow, ...) so they sit alongside Apple's SF Symbols in
+  SFLabelRow, ...) so they sit alongside Apple's SF Symbols in
   autocomplete and code search.
 -->
 
@@ -42,17 +41,6 @@ size）。我按本表找到对应包装器，改 1 处 → 全区域 N 个调�
 | segmented control | `LabelSegmentedControl` | `NSSegmentedControl`（NSViewRepresentable wrapper） | 设置面板 |
 | chip（状态徽章） | `RuntimeCWDDisplayChip` | 自建 = Apple Notes tag chip pattern | runtime cwd display |
 | hover effect | `HoverWash` modifier | 自建 = Apple HIG hover highlight | 多处 |
-| **status badge** | `SFStatusBadge` | `Label + Capsule()` | 新增骨架，待 sweep |
-| **card hero** | `SFCardHero` | `VStack { icon + title + subtitle }` | 新增骨架，待 sweep |
-| **toolbar button** | `SFToolbarButton` | `Button { Image } + hitArea` | 新增骨架，待 sweep |
-| **general list row** | `SFListRow` | `Label { VStack + trailing } icon:` | 新增骨架，待 sweep |
-
-## 骨架包装器采用准则
-
-`SFStatusBadge` / `SFCardHero` / `SFToolbarButton` / `SFListRow`
-是 **2026-10-06 加的骨架**（每个仅 1 处实现），等 boss 提对应区域
-需求时再 sweep 到调用点。新增调用时 = 直接 import 骨架包装器，
-不要 inline 手写 `Label { ... } icon: { ... }` 链。
 
 ## 应用位置规则
 

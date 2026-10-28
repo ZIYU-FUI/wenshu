@@ -9,9 +9,6 @@ import SwiftUI
 @MainActor
 enum DesignTokens {
     // MARK: - Chrome dimensions
-    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / TabContentDispatcher.aiChat (= no separate wrapper).
-    static let chromeHeight: CGFloat = 30
 
     /// Height of `ChromeBottomFooter` (= the shared column-bottom bar).
     ///
@@ -163,9 +160,6 @@ enum DesignTokens {
     static let statusForeground: HierarchicalShapeStyle = .tertiary
 
     // MARK: - Surface metrics (Apple HIG)
-    // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / readability).
-    static let accentTintOpacitySubtle: Double = 0.12
 
     // / Accent tint opacity at 18% (= Apple HIG Liquid Glass hero-card gradient
     // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)

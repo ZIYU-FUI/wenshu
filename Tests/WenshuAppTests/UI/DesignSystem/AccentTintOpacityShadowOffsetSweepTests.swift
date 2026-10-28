@@ -6,31 +6,22 @@
 //  `.opacity(0.12)` / `.opacity(0.18)` accent tints + zero
 //  magic `.shadow(...y: 4)` / `.shadow(...y: 2)` offsets.
 //
-//  Swept sites (= 5):
-//  - Sources/WenshuApp/Workspace/EditorView.swift
-//    L153 .accentColor.opacity(0.12) →
-//    .accentColor.opacity(DesignTokens.accentTintOpacitySubtle)
-//    L379 .accentColor.opacity(0.12) →
-//    .accentColor.opacity(DesignTokens.accentTintOpacitySubtle)
-//  - Sources/WenshuApp/Workspace/PreviewPane.swift
-//    L1554 .accentColor.opacity(0.18) →
-//    .accentColor.opacity(DesignTokens.accentTintOpacityHero)
-//  - Sources/WenshuApp/Workspace/LayoutPicker/LayoutEditBar.swift
-//    L76 .shadow(...y: 4) → .shadow(...y:
-//    DesignTokens.surfaceShadowOffsetWindow)
-//  - Sources/WenshuApp/Workspace/EditorPaperCanvas.swift
-//    L80 .shadow(...y: 2) → .shadow(...y:
-//    DesignTokens.surfaceShadowOffsetButton)
+//  Swept sites (= 1):
+//  - Sources/WenshuApp/Features/Kanban/View/KanbanView.swift
+//    L523 .opacity(0.18) →
+//    .opacity(DesignTokens.accentTintOpacityHero)
 //
-//  New DesignTokens (= 4):
-//  - accentTintOpacitySubtle (0.12) — Apple HIG Liquid Glass
-//    subtle accent overlay
+//  New DesignTokens (= 3):
 //  - accentTintOpacityHero (0.18) — Apple HIG Liquid Glass
 //    hero-card gradient start
 //  - surfaceShadowOffsetWindow (4) — Apple HIG macOS window
 //    chrome shadow offset
 //  - surfaceShadowOffsetButton (2) — Apple HIG macOS button
 //    shadow offset
+//
+//  accentTintOpacitySubtle (0.12) was deleted with its last
+//  caller (= the status-badge wrapper this sweep used to read);
+//  = the subtle accent overlay has no production site left.
 
 import Testing
 import SwiftUI
@@ -51,7 +42,6 @@ struct AccentTintOpacityShadowOffsetSweepTests {
         // tint is applied, the opacity comes from the token (= never
         // a magic literal).
         let sweptFiles = [
-            ("Shared/UI/IconStylesViews.swift", "accentTintOpacitySubtle"),
             ("Features/Kanban/View/KanbanView.swift", "accentTintOpacityHero"),
         ]
 
@@ -65,14 +55,13 @@ struct AccentTintOpacityShadowOffsetSweepTests {
         }
     }
 
-    @Test("DesignTokens exposes 4 new tokens")
+    @Test("DesignTokens exposes 3 new tokens")
     func designTokensExposesNewTokens() throws {
         let root = SourceLocator.repoRoot
         let tokensPath = root.appendingPathComponent("Sources/WenshuApp/DesignTokens.swift")
         let content = try String(contentsOf: tokensPath, encoding: .utf8)
 
         for token in [
-            "accentTintOpacitySubtle",
             "accentTintOpacityHero",
             "surfaceShadowOffsetWindow",
             "surfaceShadowOffsetButton",
