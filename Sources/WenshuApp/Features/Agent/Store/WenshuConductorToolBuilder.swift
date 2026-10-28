@@ -117,66 +117,70 @@ extension WenshuConductor {
             }
     
             func execute(input: String) async throws -> String {
-                // Snapshot the current focus state (= before
-                // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
-                // the chapter path; = we use it as the restore key).
                 do {
                     return try await inner.execute(input: input)
                 } catch let lockError as ChapterFocusLockedError {
-                    // chapter-dialog 2026-09-28 T2: replace the MVP
-                    // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
-                    // continuation bridge.
-                    let allow: Bool = await MainActor.run {
-                        // present(...) is the dialog's blocking await;
-                        // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
-                        // presenter's continuation.
-                        Task { @MainActor in
-                            _ = await ChapterFocusLockDialogPresenter.shared.present(
-                                chapterPath: lockError.chapterPath ?? "",
-                                toolName: self.toolName,
-                                summary: Self.summarizeInput(input)
-                            )
-                        }
-                        return true
-                    }
-                    // Bridge the MainActor.run-presented dialog back to
-                    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
-                    // decision, not a placeholder).
+                    // The dialog owns the decision (= the user's Allow / Deny
+                    // button resumes it), = so the wrapper waits here.
                     let decision: Bool = await Self.awaitPresenterDecision(
                         chapterPath: lockError.chapterPath ?? "",
                         toolName: self.toolName,
                         summary: Self.summarizeInput(input)
                     )
-                    _ = allow
-                    if !decision {
-                        // Deny path: restore the focus state (= no-op
-                        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
-                        // and throw so the LLM receives the error.
+                    guard decision else {
+                        // Deny: the focus was never released, = so the user's
+                        // tab keeps the lock and the LLM receives the error.
                         throw DatasetLockDeniedByBoss(chapterPath: lockError.chapterPath)
                     }
-                    // Allow path: clear the focus lock, run the inner
-                    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
-                    // goes read-only while the LLM writes).
-                    let snapshot: String? = await MainActor.run {
-                        AppStateLocator.shared.appState?.focusedChapterPath
-                    }
-                    await MainActor.run {
-                        if let appState = AppStateLocator.shared.appState {
-                            appState.focusedChapterPath = nil
-                        }
-                    }
+                    // Allow: release the focus for the length of the inner
+                    // call, = then hand it back (= the tab the user was
+                    // editing is active again).
+                    let snapshot = await Self.releaseFocus()
                     do {
-                        return try await inner.execute(input: input)
+                        let result = try await inner.execute(input: input)
+                        await Self.restoreFocus(snapshot)
+                        return result
                     } catch {
-                        await MainActor.run {
-                            if let appState = AppStateLocator.shared.appState,
-                               let snapshot {
-                                appState.focusedChapterPath = snapshot
-                            }
-                        }
+                        await Self.restoreFocus(snapshot)
                         throw error
                     }
                 }
+            }
+
+            /// The tab that owned the focus when the dialog opened, and the
+            /// id the release swapped in (= the restore stands down when the
+            /// user has moved on to another tab).
+            struct FocusSnapshot: Sendable {
+                let tabID: UUID
+                let releasedTabID: UUID
+            }
+
+            /// Release the focus for the length of an allowed write.
+            ///
+            /// The focused path is read through the active tab, = so
+            /// clearing it points the active tab at nothing and the guard
+            /// sees no focused chapter. Nil when nothing was focused.
+            @MainActor
+            static func releaseFocus() -> FocusSnapshot? {
+                guard let appState = AppStateLocator.shared.appState,
+                      appState.focusedChapterPath != nil else { return nil }
+                let tabID = appState.activeTabId
+                appState.focusedChapterPath = nil
+                return FocusSnapshot(tabID: tabID, releasedTabID: appState.activeTabId)
+            }
+
+            /// Hand the focus back after an allowed write.
+            ///
+            /// The focused path is a read of the active tab, = so the tab is
+            /// what has to be restored. A tab the user switched to in the
+            /// meantime wins, = and a closed tab is not resurrected.
+            @MainActor
+            static func restoreFocus(_ snapshot: FocusSnapshot?) {
+                guard let snapshot,
+                      let appState = AppStateLocator.shared.appState else { return }
+                guard appState.activeTabId == snapshot.releasedTabID else { return }
+                guard appState.openTabs.contains(where: { $0.id == snapshot.tabID }) else { return }
+                appState.activeTabId = snapshot.tabID
             }
     
             // / Compact human-readable summary of the LLM's tool input. (= e.g.

@@ -559,6 +559,10 @@ actor BookChapterActor {
             }
         } catch let error as BookChapterError {
             return Self.encodeFailure(action: action, error: error)
+        } catch let error as ChapterFocusLockedError {
+            // The lock is the conductor's business (= it asks the user), = so
+            // the typed error must reach it as a throw, = not as an envelope.
+            throw error
         } catch {
             return Self.encodeFailure(
                 action: action,

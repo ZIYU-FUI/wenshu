@@ -14,10 +14,17 @@
 //  chapter path against nil, and the agent wrote straight into the
 //  chapter the user was editing.
 //
-//  These tests bind the locator and drive the real guard and the
-//  real actor, so the property is proved by what happens: the
-//  focused chapter raises the locked error and the file on disk is
-//  left alone, and an unfocused chapter is written.
+//  The suite drives both halves of the lock:
+//
+//  - the guard and the actor (= the file on disk), = the focused
+//    chapter raises the locked error and the chapter the user is not
+//    editing is written;
+//  - the wrapped tool the LLM calls (= the Allow / Deny dialog), =
+//    the dialog comes up, the allowed write lands, and the user's
+//    focus comes back.
+//
+//  So the property is proved by what happens, = not by reading the
+//  source of the locator.
 //
 //  swift test --filter ChapterFocusLockTripTests
 //
@@ -43,10 +50,14 @@ struct ChapterFocusLockTripTests {
     @MainActor
     private struct BoundState {
         let state: AppState
+        private let storedTabs: Data?
+        private let storedActiveTabID: UUID?
 
         init(focusedDocumentPath: String?) {
             let storedTabs = UserDefaultsStore.shared.data(forKey: .openTabs)
             let storedActiveTabID = UserDefaultsStore.shared.uuid(forKey: .activeTabId)
+            self.storedTabs = storedTabs
+            self.storedActiveTabID = storedActiveTabID
 
             // A snapshot left by another test would decide the focus
             // this suite measures, so the store starts empty.
@@ -73,17 +84,27 @@ struct ChapterFocusLockTripTests {
 
             // Put the store back (= the state above is the only
             // reader of the focus, and the store is nobody's).
+            restoreStore()
+        }
+
+        /// Release the locator.
+        func release() {
+            AppStateLocator.shared.unbindForTest()
+            restoreStore()
+        }
+
+        /// Put the store back to the snapshot the fixture took.
+        ///
+        /// The release + restore of an allowed write writes the
+        /// active tab id back (= so the store is restored again on
+        /// the way out, = after the write).
+        private func restoreStore() {
             if let storedTabs {
                 UserDefaultsStore.shared.setData(storedTabs, forKey: .openTabs)
             } else {
                 UserDefaultsStore.shared.remove(.openTabs)
             }
             UserDefaultsStore.shared.setUUID(storedActiveTabID, forKey: .activeTabId)
-        }
-
-        /// Release the locator.
-        func release() {
-            AppStateLocator.shared.unbindForTest()
         }
     }
 
@@ -251,5 +272,166 @@ struct ChapterFocusLockTripTests {
                 "the chapter the user is not editing must be written")
         #expect(bound.state.focusedChapterPath == "/tmp/wenshu-focus-lock/chapters/other.md",
                 "the write must not move the focus")
+    }
+
+    // MARK: - The LLM-facing path (= the Allow / Deny dialog)
+
+    /// The tool the LLM calls: the chapter tool wrapped in the
+    /// conductor's focus-lock wrapper (= the same pair the conductor
+    /// wires for `book_edit_chapter`).
+    private func makeWrappedTool(fixture: BookFixture) -> any Tool {
+        WenshuConductor.ChapterFocusLockWrappedTool(
+            inner: EditChapterTool(
+                actor: EditChapterActor(bookDirectoryProvider: { fixture.directory })
+            ),
+            toolName: "book_edit_chapter"
+        )
+    }
+
+    /// The LLM's edit call, in the envelope the tool parses.
+    private func editEnvelope(_ fixture: BookFixture) throws -> String {
+        let payload: [String: String] = [
+            "id": fixture.chapterID.uuidString,
+            "book_id": fixture.bookID.uuidString,
+            "old_text": "The old sentence.",
+            "new_text": "The new sentence."
+        ]
+        let data = try JSONSerialization.data(withJSONObject: payload)
+        return try #require(String(data: data, encoding: .utf8))
+    }
+
+    /// Wait for the dialog to reach the presenter.
+    ///
+    /// The presenter holds the request until the user answers, = so
+    /// the test answers it the way the chat surface's button does.
+    private func awaitDialogRequest(
+        timeout: Duration = .seconds(5)
+    ) async -> ChapterFocusLockDialogRequest? {
+        let deadline = ContinuousClock.now + timeout
+        while ContinuousClock.now < deadline {
+            if let request = ChapterFocusLockDialogPresenter.shared.pendingRequest {
+                return request
+            }
+            try? await Task.sleep(for: .milliseconds(1))
+        }
+        return nil
+    }
+
+    @Test("the Allow path completes the write and hands the focus back")
+    func allowPathCompletesTheWriteAndRestoresTheFocus() async throws {
+        let fixture = try makeBookFixture()
+        defer { try? FileManager.default.removeItem(at: fixture.directory) }
+
+        let bound = BoundState(focusedDocumentPath: fixture.chapterPath)
+        defer { bound.release() }
+
+        let tool = makeWrappedTool(fixture: fixture)
+        let envelope = try editEnvelope(fixture)
+        let before = try readChapterBody(fixture)
+
+        let call = Task { try await tool.execute(input: envelope) }
+
+        // The dialog is up (= the presenter holds the request), and the
+        // chapter the user is editing is still untouched.
+        let request = try #require(await awaitDialogRequest(),
+                                   "the wrapper must ask the user before it writes")
+        #expect(request.chapterPath == fixture.chapterPath)
+        #expect(request.toolName == "book_edit_chapter")
+        #expect(try readChapterBody(fixture) == before,
+                "the chapter must stay untouched while the dialog is up")
+
+        // The user allows.
+        ChapterFocusLockDialogPresenter.shared.allowCurrentRequest()
+        let output = try await call.value
+
+        #expect(output.contains("\"ok\":true"))
+        #expect(try readChapterBody(fixture).contains("The new sentence."),
+                "the allowed write must land on disk")
+        #expect(bound.state.focusedChapterPath == fixture.chapterPath,
+                "the Allow path must hand the user's focus back")
+    }
+
+    @Test("the Deny path throws and leaves the chapter alone")
+    func denyPathThrowsAndLeavesTheChapterAlone() async throws {
+        let fixture = try makeBookFixture()
+        defer { try? FileManager.default.removeItem(at: fixture.directory) }
+
+        let bound = BoundState(focusedDocumentPath: fixture.chapterPath)
+        defer { bound.release() }
+
+        let tool = makeWrappedTool(fixture: fixture)
+        let envelope = try editEnvelope(fixture)
+        let before = try readChapterBody(fixture)
+
+        let call = Task { try await tool.execute(input: envelope) }
+
+        // The dialog is up.
+        _ = try #require(await awaitDialogRequest(),
+                         "the wrapper must ask the user before it writes")
+
+        // The user denies.
+        ChapterFocusLockDialogPresenter.shared.denyCurrentRequest()
+        await #expect(throws: DatasetLockDeniedByBoss.self) {
+            _ = try await call.value
+        }
+
+        #expect(try readChapterBody(fixture) == before,
+                "the denied write must not touch the chapter")
+        #expect(bound.state.focusedChapterPath == fixture.chapterPath,
+                "the Deny path must leave the user's focus where it was")
+    }
+
+    @Test("an allowed write that fails still hands the focus back")
+    func allowPathRestoresTheFocusWhenTheWriteFails() async throws {
+        let fixture = try makeBookFixture()
+        defer { try? FileManager.default.removeItem(at: fixture.directory) }
+
+        let bound = BoundState(focusedDocumentPath: fixture.chapterPath)
+        defer { bound.release() }
+
+        // A tool that raises the locked error once (= the guard fires)
+        // and then fails on the retry (= the allowed write does not
+        // land).
+        let tool = WenshuConductor.ChapterFocusLockWrappedTool(
+            inner: FailingAfterAllowTool(chapterPath: fixture.chapterPath),
+            toolName: "book_edit_chapter"
+        )
+
+        let call = Task { try await tool.execute(input: "book_edit_chapter") }
+
+        _ = try #require(await awaitDialogRequest(),
+                         "the wrapper must ask the user before it writes")
+
+        ChapterFocusLockDialogPresenter.shared.allowCurrentRequest()
+        await #expect(throws: WriteDidNotLand.self) {
+            _ = try await call.value
+        }
+
+        #expect(bound.state.focusedChapterPath == fixture.chapterPath,
+                "a failed allowed write must hand the user's focus back too")
+    }
+}
+
+/// The failure the stubbed tool raises (= the wrapper must pass it on
+/// and hand the focus back).
+private struct WriteDidNotLand: Error, Equatable {}
+
+/// A tool that raises the locked error on its first call (= the guard
+/// fires) and fails on the retry (= the write the user allowed does
+/// not land).
+private actor FailingAfterAllowTool: Tool {
+    private let chapterPath: String
+    private var calls = 0
+
+    init(chapterPath: String) {
+        self.chapterPath = chapterPath
+    }
+
+    func execute(input: String) async throws -> String {
+        calls += 1
+        if calls == 1 {
+            throw ChapterFocusLockedError(chapterPath: chapterPath)
+        }
+        throw WriteDidNotLand()
     }
 }

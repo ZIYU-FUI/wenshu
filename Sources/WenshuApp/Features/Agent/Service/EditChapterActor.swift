@@ -255,6 +255,10 @@ actor EditChapterActor {
             case .oldTextNotFound:
                 return Self.encodeFailure(reason: "old_text not found in chapter body", errorKind: "old_text_not_found")
             }
+        } catch let error as ChapterFocusLockedError {
+            // The lock is the conductor's business (= it asks the user), = so
+            // the typed error must reach it as a throw, = not as an envelope.
+            throw error
         } catch {
             return Self.encodeFailure(reason: String(describing: error))
         }
