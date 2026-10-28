@@ -25,8 +25,13 @@ VERDICT is one of:
     working   - an API call within --fresh seconds
     stale     - the worker HAS made API calls, but the last one is older than
                 --fresh seconds (= it may be mid-turn; NOT idle)
-    slot-only - the worker never made an API call AT ALL: the claim is
-                holding a host slot and NOBODY is working on it
+    starting  - the run began within --grace seconds (default 180) and has
+                NOT made its first API call yet (= the worker is booting; NOT
+                idle). A fresh worker needs time to come up, and calling it
+                'slot-only' would invite a reclaim of a healthy worker.
+    slot-only - the worker never made an API call AT ALL, and the run has been
+                alive longer than --grace: the claim is holding a host slot
+                and NOBODY is working on it
     no-agent  - no agent session could be resolved for the card at all
 
 USAGE
@@ -146,6 +151,9 @@ def main() -> int:
     ap.add_argument("--board", default=None, help="board slug (default: every board)")
     ap.add_argument("--fresh", type=int, default=300,
                     help="seconds without an API call that still counts as 'working'")
+    ap.add_argument("--grace", type=int, default=180,
+                    help="seconds after a run starts during which ZERO api calls means "
+                         "'starting', not 'slot-only' (a fresh worker needs time to boot)")
     args = ap.parse_args()
 
     if not BOARDS_DIR.is_dir():
@@ -181,12 +189,23 @@ def main() -> int:
         for task_id, assignee, title, started_at in rows:
             sid = _card_session(conn, task_id)
             rec = api.get(sid) if sid else None
+            run_age_s = now - (started_at or now)
+            # A worker that was dispatched seconds ago has not made its first
+            # api call yet: it is booting, not idling. Measured 2026-10-29: a
+            # card 1 minute old read 'slot-only' and 25 s later read
+            # 'working' with 5 calls. Calling that 'slot-only' would invite a
+            # reclaim of a perfectly good worker -- the exact damage this
+            # tool exists to prevent.
+            starting = run_age_s <= args.grace
             if rec is None:
                 # The session resolved but the agent made NO api call in the
                 # window: the claim holds a host slot and nobody is working.
                 # (A card whose session cannot be resolved at all is a
                 # different problem = no-agent.)
-                verdict = "slot-only" if sid else "no-agent"
+                if starting:
+                    verdict = "starting"
+                else:
+                    verdict = "slot-only" if sid else "no-agent"
                 age = "?"
                 calls = 0
                 last = "(none)"
@@ -195,14 +214,14 @@ def main() -> int:
                 age = f"{now - rec['last_api']:.0f}s"
                 last = time.strftime("%H:%M:%S", time.localtime(rec["last_api"]))
                 if calls == 0:
-                    verdict = "slot-only"
+                    verdict = "starting" if starting else "slot-only"
                 elif now - rec["last_api"] <= args.fresh:
                     verdict = "working"
                 else:
                     verdict = "stale"
             if verdict in ("slot-only", "no-agent"):
                 any_slot_only = True
-            run_age = f"{(now - (started_at or now)) / 60:.0f}m"
+            run_age = f"{run_age_s / 60:.0f}m"
             print(
                 f"  {task_id:<14} {str(assignee):<13} calls={calls:<4} "
                 f"last_api={last:<10} age={age:<7} run_age={run_age:<6} {verdict:<9} {str(title)[:34]}"

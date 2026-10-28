@@ -67,6 +67,10 @@ python3 Tools/wenshu-devtool/board_liveness.py
 
 # A different freshness window (= seconds without an API call)
 python3 Tools/wenshu-devtool/board_liveness.py --fresh 7200
+
+# A different boot window (= seconds after a run starts during which zero API
+# calls means "starting", not "slot-only")
+python3 Tools/wenshu-devtool/board_liveness.py --grace 300
 ```
 
 One line per running card, with the verdict:
@@ -75,7 +79,8 @@ One line per running card, with the verdict:
 | --- | --- |
 | `working` | an API call within `--fresh` seconds |
 | `stale` | the worker HAS made API calls, but the last is older than `--fresh` (= it may be mid-turn; NOT idle) |
-| `slot-only` | the worker made NO API call AT ALL: the claim holds a host slot and nobody is working |
+| `starting` | the run began within `--grace` seconds and has NOT made its first API call yet (= the worker is BOOTING; not idle) |
+| `slot-only` | the worker made NO API call AT ALL, and the run is older than `--grace`: the claim holds a host slot and nobody is working |
 | `no-agent` | no agent session could be resolved for the card |
 
 It exits 2 when a card is `slot-only` / `no-agent`. READ-ONLY: every board is

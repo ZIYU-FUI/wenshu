@@ -20,8 +20,11 @@ Plus the mechanics around them:
   3. a card with a FRESH api call is `working`, one with an OLD api call is
      `stale`, and `calls=1` is not by itself a death signal;
   4. a card whose agent session cannot be resolved is `no-agent`;
-  5. the tool never writes to the board (read-only);
-  6. the tool works when HERMES_HOME points at a PROFILE (the boards live
+  5. a card whose run began seconds ago and has NOT made its first api call
+     is `starting`, NOT `slot-only` (= the worker is booting; calling it idle
+     would invite a reclaim of a healthy worker);
+  6. the tool never writes to the board (read-only);
+  7. the tool works when HERMES_HOME points at a PROFILE (the boards live
      under the global home, not under the profile) — this is the bug the
      first run of the tool hit.
 
@@ -51,7 +54,7 @@ def check(name: str, ok: bool, detail: str = "") -> None:
         FAILURES.append(name)
 
 
-def make_board(root: Path, board: str = "wenshu-par") -> Path:
+def make_board(root: Path, board: str = "wenshu-par", started_at: float | None = None) -> Path:
     """A board dir with a kanban.db holding one running card."""
     bdir = root / "kanban" / "boards" / board
     bdir.mkdir(parents=True, exist_ok=True)
@@ -73,7 +76,7 @@ def make_board(root: Path, board: str = "wenshu-par") -> Path:
         "INSERT INTO tasks VALUES ('t_ok','running','wenshu-dev','a card','body',0,9001)")
     conn.execute(
         "INSERT INTO task_runs VALUES (9001,'t_ok',?,NULL,NULL,NULL)",
-        (__import__("time").time() - 600.0,),
+        (started_at if started_at is not None else __import__("time").time() - 600.0,),
     )
     conn.execute(
         "INSERT INTO task_events VALUES (1,'t_ok','owner_admitted',?)",
@@ -132,6 +135,46 @@ def main() -> int:
         code, out = run_tool(root)
         check("a slot-only card is reported idle", "slot-only" in out, out)
         check("a slot-only card exits non-zero", code == 2, f"exit={code}\n{out}")
+
+    # ---- case 2b: a FRESH worker is 'starting', not 'slot-only' -------
+    # Measured 2026-10-29: a card dispatched 1 minute earlier read
+    # 'slot-only' (0 api calls) and 25 s later read 'working' with 5 calls.
+    # Calling a booting worker 'slot-only' invites a reclaim of a healthy
+    # worker = the exact damage this tool exists to prevent.
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        make_board(root, started_at=now - 30.0)
+        log = root / "profiles" / "wenshu-dev" / "logs" / "agent.log"
+        log.parent.mkdir(parents=True, exist_ok=True)
+        stamp = _t.strftime("%Y-%m-%d %H:%M:%S", _t.localtime(now))
+        log.write_text(f"{stamp} [local-sess-live] heartbeat ok\n")
+        code, out = run_tool(root)
+        check("a booting worker says 'starting'", "starting" in out, out)
+        check("a booting worker is NOT called slot-only", "slot-only" not in out, out)
+        check("a booting card exits zero", code == 0, f"exit={code}\n{out}")
+
+    # the same card, PAST the grace window, IS slot-only
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        make_board(root, started_at=now - 3600.0)
+        log = root / "profiles" / "wenshu-dev" / "logs" / "agent.log"
+        log.parent.mkdir(parents=True, exist_ok=True)
+        stamp = _t.strftime("%Y-%m-%d %H:%M:%S", _t.localtime(now))
+        log.write_text(f"{stamp} [local-sess-live] heartbeat ok\n")
+        code, out = run_tool(root)
+        check("past the grace window it is slot-only again", "slot-only" in out, out)
+        check("past the grace window it exits non-zero", code == 2, f"exit={code}\n{out}")
+
+    # an explicit --grace of 0 makes a booting worker count as slot-only
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        make_board(root, started_at=now - 30.0)
+        log = root / "profiles" / "wenshu-dev" / "logs" / "agent.log"
+        log.parent.mkdir(parents=True, exist_ok=True)
+        stamp = _t.strftime("%Y-%m-%d %H:%M:%S", _t.localtime(now))
+        log.write_text(f"{stamp} [local-sess-live] heartbeat ok\n")
+        code, out = run_tool(root, ["--grace", "0"])
+        check("--grace 0 disables the booting window", "slot-only" in out, out)
 
     # ---- case 3: fresh vs stale ---------------------------------------
     with tempfile.TemporaryDirectory() as td:
