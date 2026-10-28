@@ -105,6 +105,34 @@ A worker ends its run with exactly one of:
 A worker that exits without one of these counts as crashed and is retried. After two
 consecutive failures the card auto-blocks.
 
+### The REVIEWER's verdict needs a machine-readable landing
+
+The reviewer approves with `kanban_complete(metadata={"review_outcome": "approved"})`,
+or sends the card back with `kanban_comment` plus `kanban_request_changes(reason=...)`.
+A verdict written only in the summary is NOT a verdict: `review_gate.py` reads the run
+metadata's `review_outcome` field, so a prose verdict leaves the card `not_approved`.
+
+Measured 2026-10-28: 4 cards on this board finished their review work and narrated the
+finding instead of calling a terminal tool. The dispatcher records that as a
+`protocol_violation` (clean exit, card still `running`), the card is retried, and the
+review is redone from scratch = the 75-attempt churn on `t_f70e2a3b`. The cause was in
+the card body, not in the API: a `## REVIEW HANDOFF` that named only the reviewer
+told the IMPLEMENTER how to end, and never told the REVIEWER. The API was intact
+(`kanban_request_changes` exists and the stop-nudge fires), so the fix belongs in the
+body.
+
+So a card that owes a review names the verdict tool in its own handoff section:
+
+    ## REVIEW HANDOFF
+
+        reviewer="wenshu-review"
+
+        The reviewer ends its run with a terminal board call, never with prose:
+        approve with `kanban_complete(metadata={"review_outcome": "approved", ...})`,
+        reject with `kanban_comment` then `kanban_request_changes(reason=...)`.
+
+The section is ROUTING, so this text is not charged against the body's budget.
+
 ### Which one you call is decided by the card body, not by judgement
 
 **A card whose body writes code ends its run with `kanban_request_review`. A card whose
