@@ -803,6 +803,31 @@ def main() -> int:
         ),
         True,
     )
+    # A card that names a reviewer in its handoff is a card that will be
+    # reviewed, so the reviewer named there identifies the lane even when
+    # the profile is not the board's usual one.
+    named = {
+        "id": "t_named",
+        "title": "[T1] a picture in a picture",
+        "body": (
+            "## GOAL\n\nOne file.\n\n"
+            "## REVIEW HANDOFF\n\n"
+            'reviewer="wenshu-review-alt"\n'
+        ),
+        "status": "running",
+        "assignee": "wenshu-review-alt",
+        "max_runtime_seconds": floor,
+    }
+    check(
+        "the reviewer named in the body identifies the lane",
+        tool.in_review_lane(named),
+        True,
+    )
+    check(
+        "a named reviewer's generous cap is not a tier violation",
+        [e for e in tool.find_contract_errors(named) if "runtime cap" in e],
+        [],
+    )
 
     # 19. The board sweep must not be able to PASS by reading no cards. A
     #     board that cannot be read is not an empty board: the old reader

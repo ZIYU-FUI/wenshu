@@ -376,8 +376,8 @@ def named_reviewer(body: str) -> str | None:
     return match.group(1) if match else None
 
 
-# The profile that reviews. A card assigned to it is a review card, whatever
-# the card's status is at this instant.
+# The profile that reviews on this board. A card assigned to it is a review
+# card, whatever the card's status is at this instant.
 REVIEW_PROFILE = "wenshu-review"
 
 
@@ -394,9 +394,16 @@ def in_review_lane(card: dict) -> bool:
     waits for a reviewer, and goes back to "running" while the reviewer works
     on it -- so a status test sees the review lane only in the queue window
     and mistakes the review itself for implementation work.
+
+    The reviewer named in the body's handoff counts too: a card that names
+    a reviewer is a card that will be reviewed, whatever it is doing now.
     """
     assignee = str(card.get("assignee") or "").strip()
     if assignee == REVIEW_PROFILE:
+        return True
+    body = card.get("body") or ""
+    reviewer = named_reviewer(body)
+    if reviewer and assignee and assignee == reviewer:
         return True
     # A card can also be queued for review before it is reassigned.
     return str(card.get("status") or "") == "review" and not assignee
