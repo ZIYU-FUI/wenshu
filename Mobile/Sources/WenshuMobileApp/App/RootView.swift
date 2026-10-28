@@ -2,19 +2,14 @@ import SwiftUI
 
 /// The root of the client.
 ///
-/// One layout serves iPhone, iPad and a foldable: the width picks the
-/// shape, and the foldable-native arrangement refines how the two columns
-/// are drawn where the system offers it. The container holds that choice,
-/// so the root only names what the client is made of.
+/// The shell holds the shape: a tab bar with a stack in each tab on a
+/// phone, and the split view where the regular width earns it. The
+/// root names what the client is made of and nothing else.
 struct RootView: View {
     @State private var store = ConnectionStore()
 
     var body: some View {
-        AdaptiveLayoutContainer(
-            compact: ConnectionView(store: store),
-            sidebar: ConnectionSidebar(store: store),
-            detail: ConnectionView(store: store)
-        )
-        .tint(DesignTokens.accentColor)
+        ClientShell(store: store)
+            .tint(DesignTokens.accentColor)
     }
 }

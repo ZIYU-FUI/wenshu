@@ -8,6 +8,7 @@ import SwiftUI
 /// what a call site renders.
 enum SFIcon: String, CaseIterable, Sendable, View {
     case link
+    case library = "books.vertical"
     case stateEmpty = "tray"
     case stateOnline = "checkmark.circle"
     case stateOffline = "wifi.slash"
