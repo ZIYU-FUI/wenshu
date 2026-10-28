@@ -10,23 +10,35 @@
 # The restore point is the PARENT of the branch commit that migrated the
 # file, so the restored version is that file's last defective state and
 # nothing else about it changes.
-Tests/WenshuAppTests/Agent/Connector/LLMConnectorConformanceTests.swift	8d44bb7bbeff1fe574e8afb3fe428f16daa7002d
-Tests/WenshuAppTests/Agent/Todo/TodoStoreTests.swift	0e61e21b6b69a911dbb370e1f78d16bc9e56d68c
-Tests/WenshuAppTests/Agent/Tools/FileToolsTests.swift	0e61e21b6b69a911dbb370e1f78d16bc9e56d68c
-Tests/WenshuAppTests/Agent/Tools/VisionToolsTests.swift	0e61e21b6b69a911dbb370e1f78d16bc9e56d68c
-Tests/WenshuAppTests/Core/Agent/Web/KeylessProviders/AnbaiqiangLiveResearch.swift	0e61e21b6b69a911dbb370e1f78d16bc9e56d68c
-Tests/WenshuAppTests/E2E/E2EMemoryAndLLMFlowTests.swift	0e61e21b6b69a911dbb370e1f78d16bc9e56d68c
-Tests/WenshuAppTests/E2E/ObsidianVaultBatchImportTests.swift	0e61e21b6b69a911dbb370e1f78d16bc9e56d68c
-Tests/WenshuAppTests/Kanban/KanbanStoreTests.swift	0e61e21b6b69a911dbb370e1f78d16bc9e56d68c
-Tests/WenshuAppTests/Library/Model/EntityTypeEntityCategoryDeadCodeTests.swift	8d44bb7bbeff1fe574e8afb3fe428f16daa7002d
-Tests/WenshuAppTests/Library/View/SidebarHeaderProminenceTests.swift	8d44bb7bbeff1fe574e8afb3fe428f16daa7002d
-Tests/WenshuAppTests/Shared/Backup/BackupTests.swift	0e61e21b6b69a911dbb370e1f78d16bc9e56d68c
-Tests/WenshuAppTests/Shared/UI/WindowTranslucencyTests.swift	8d44bb7bbeff1fe574e8afb3fe428f16daa7002d
-Tests/WenshuAppTests/UI/DesignSystem/CornerRadiusMagicSweepTests.swift	8d44bb7bbeff1fe574e8afb3fe428f16daa7002d
-Tests/WenshuAppTests/UI/DesignSystem/FrameMagicSweepTests.swift	8d44bb7bbeff1fe574e8afb3fe428f16daa7002d
-Tests/WenshuAppTests/UI/DesignSystem/IconFontMagicSweepSummaryTests.swift	8d44bb7bbeff1fe574e8afb3fe428f16daa7002d
-Tests/WenshuAppTests/UI/DesignSystem/LabelIconSweepTests.swift	8d44bb7bbeff1fe574e8afb3fe428f16daa7002d
-Tests/WenshuAppTests/UI/DesignSystem/ShadowRadiusMagicSweepTests.swift	8d44bb7bbeff1fe574e8afb3fe428f16daa7002d
-Tests/WenshuAppTests/UI/EmptyState/EmptyStateViewCallersTests.swift	8d44bb7bbeff1fe574e8afb3fe428f16daa7002d
-Tests/WenshuAppTests/UI/EmptyState/EmptyStateViewDesignTokensTests.swift	8d44bb7bbeff1fe574e8afb3fe428f16daa7002d
-Tests/WenshuAppTests/UI/Polish/LiquidGlassPolishTests.swift	8d44bb7bbeff1fe574e8afb3fe428f16daa7002d
+#
+# The third column is the SHAPE of the defect, and it is not decoration:
+# the control runs per shape, because a control over the union cannot
+# distinguish "the gate sees both shapes" from "the gate sees one shape
+# and the union hides it". That distinction is exactly the blind spot
+# review round 2 found: the old gate saw the literal shape and was
+# blind to the cwd shape, and the union control could not tell.
+#
+#   literal  = the path is a quoted repo-relative string
+#   cwd      = the path is built from the working directory
+#
+# file	path	parent-Commit	shape
+Tests/WenshuAppTests/Agent/Connector/LLMConnectorConformanceTests.swift	8d44bb7bbeff1fe574e8afb3fe428f16daa7002d	literal
+Tests/WenshuAppTests/Agent/Todo/TodoStoreTests.swift	0e61e21b6b69a911dbb370e1f78d16bc9e56d68c	cwd
+Tests/WenshuAppTests/Agent/Tools/FileToolsTests.swift	0e61e21b6b69a911dbb370e1f78d16bc9e56d68c	cwd
+Tests/WenshuAppTests/Agent/Tools/VisionToolsTests.swift	0e61e21b6b69a911dbb370e1f78d16bc9e56d68c	cwd
+Tests/WenshuAppTests/Core/Agent/Web/KeylessProviders/AnbaiqiangLiveResearch.swift	0e61e21b6b69a911dbb370e1f78d16bc9e56d68c	cwd
+Tests/WenshuAppTests/E2E/E2EMemoryAndLLMFlowTests.swift	0e61e21b6b69a911dbb370e1f78d16bc9e56d68c	cwd
+Tests/WenshuAppTests/E2E/ObsidianVaultBatchImportTests.swift	0e61e21b6b69a911dbb370e1f78d16bc9e56d68c	cwd
+Tests/WenshuAppTests/Kanban/KanbanStoreTests.swift	0e61e21b6b69a911dbb370e1f78d16bc9e56d68c	cwd
+Tests/WenshuAppTests/Library/Model/EntityTypeEntityCategoryDeadCodeTests.swift	8d44bb7bbeff1fe574e8afb3fe428f16daa7002d	literal
+Tests/WenshuAppTests/Library/View/SidebarHeaderProminenceTests.swift	8d44bb7bbeff1fe574e8afb3fe428f16daa7002d	literal
+Tests/WenshuAppTests/Shared/Backup/BackupTests.swift	0e61e21b6b69a911dbb370e1f78d16bc9e56d68c	cwd
+Tests/WenshuAppTests/Shared/UI/WindowTranslucencyTests.swift	8d44bb7bbeff1fe574e8afb3fe428f16daa7002d	literal
+Tests/WenshuAppTests/UI/DesignSystem/CornerRadiusMagicSweepTests.swift	8d44bb7bbeff1fe574e8afb3fe428f16daa7002d	literal
+Tests/WenshuAppTests/UI/DesignSystem/FrameMagicSweepTests.swift	8d44bb7bbeff1fe574e8afb3fe428f16daa7002d	literal
+Tests/WenshuAppTests/UI/DesignSystem/IconFontMagicSweepSummaryTests.swift	8d44bb7bbeff1fe574e8afb3fe428f16daa7002d	literal
+Tests/WenshuAppTests/UI/DesignSystem/LabelIconSweepTests.swift	8d44bb7bbeff1fe574e8afb3fe428f16daa7002d	literal
+Tests/WenshuAppTests/UI/DesignSystem/ShadowRadiusMagicSweepTests.swift	8d44bb7bbeff1fe574e8afb3fe428f16daa7002d	literal
+Tests/WenshuAppTests/UI/EmptyState/EmptyStateViewCallersTests.swift	8d44bb7bbeff1fe574e8afb3fe428f16daa7002d	literal
+Tests/WenshuAppTests/UI/EmptyState/EmptyStateViewDesignTokensTests.swift	8d44bb7bbeff1fe574e8afb3fe428f16daa7002d	literal
+Tests/WenshuAppTests/UI/Polish/LiquidGlassPolishTests.swift	8d44bb7bbeff1fe574e8afb3fe428f16daa7002d	literal

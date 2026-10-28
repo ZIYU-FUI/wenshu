@@ -18,6 +18,19 @@
 #   nothing about the twelve. A gate that sees one shape and is blind
 #   to the other is exactly the failure this script exists to catch.
 #
+#   AND THE UNION ALONE IS NOT ENOUGH, because it cannot distinguish
+#   "the gate sees both shapes" from "the gate sees one shape and the
+#   union hides it". That is the blind spot review round 2 found: the
+#   old gate saw the literal shape and was blind to the cwd shape.
+#   So the control runs PER SHAPE as well:
+#
+#     --shape=union    both shapes (= the default)
+#     --shape=literal  only the twelve quoted-literal files
+#     --shape=cwd      only the eight working-directory files
+#
+#   Every mode must report DIFFERENT and exit non-zero. A mode that
+#   reports PASS is a gate that is blind to that shape.
+#
 #   The control also checks TWO properties that a verdict alone does
 #   not cover:
 #     1. the tree with the defect restored still BUILDS (= the control
@@ -28,7 +41,7 @@
 #        found: a dropped file makes the gate report PASS).
 #
 # Usage:
-#   Scripts/source-read-negative-control.sh
+#   Scripts/source-read-negative-control.sh [--shape=union|literal|cwd]
 #
 # The working tree is restored to the branch state on exit, whatever
 # happens (a trap).
@@ -38,6 +51,18 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT" || exit 2
 
+SHAPE="union"
+for arg in "$@"; do
+  case "$arg" in
+    --shape=*) SHAPE="${arg#--shape=}" ;;
+    *) echo "unknown argument: $arg" >&2; exit 2 ;;
+  esac
+done
+case "$SHAPE" in
+  union|literal|cwd) ;;
+  *) echo "--shape must be union, literal or cwd" >&2; exit 2 ;;
+esac
+
 MANIFEST="$ROOT/Scripts/source-read-negative-control-files.tsv"
 OUT="${TMPDIR:-/tmp}/wenshu-source-read-gate"
 mkdir -p "$OUT"
@@ -45,6 +70,7 @@ mkdir -p "$OUT"
 # The candidate set BEFORE the defect is restored (= the branch state).
 python3 Scripts/source-read-candidates.py "$ROOT" | sort > "$OUT/nc-before.tsv"
 echo "=== the branch state: $(wc -l < "$OUT/nc-before.tsv" | tr -d ' ') candidate groups ==="
+echo "=== negative control, shape: $SHAPE ==="
 
 restore() {
   echo
@@ -56,14 +82,26 @@ trap restore EXIT INT TERM
 
 echo
 echo "=== restoring the DEFECTIVE version of each file in the manifest ==="
-while IFS=$'\t' read -r path parent; do
+restored=0
+while IFS=$'\t' read -r path parent shape; do
   case "$path" in \#*|"") continue ;; esac
+  [ -n "${shape:-}" ] || continue
+  if [ "$SHAPE" != "union" ] && [ "$shape" != "$SHAPE" ]; then
+    continue
+  fi
   if ! git show "$parent:$path" > "$path"; then
     echo "FAILED to restore $path"
     exit 1
   fi
   echo "  restored $path"
+  restored=$((restored + 1))
 done < "$MANIFEST"
+echo "restored: $restored file(s)"
+if [ "$restored" -eq 0 ]; then
+  echo
+  echo "=== NEGATIVE CONTROL INVALID: the manifest has no file for this shape ==="
+  exit 1
+fi
 
 echo
 echo "=== the candidate set WITH the defect restored ==="
@@ -115,8 +153,8 @@ fi
 echo
 echo "=== running the gate on the defective tree ==="
 SOURCE_READ_GATE_BUDGET="${SOURCE_READ_GATE_BUDGET:-420}" \
-  bash Scripts/source-read-gate.sh both 2>&1 | tee "$OUT/nc-gate.txt"
+  bash Scripts/source-read-gate.sh both 2>&1 | tee "$OUT/nc-gate-$SHAPE.txt"
 rc=${PIPESTATUS[0]}
 echo
-echo "=== NEGATIVE CONTROL: gate exit code = $rc (must be non-zero) ==="
+echo "=== NEGATIVE CONTROL (shape=$SHAPE): gate exit code = $rc (must be non-zero) ==="
 exit "$rc"
