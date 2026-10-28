@@ -103,13 +103,12 @@ public final class WSChatRepository {
     // MARK: - Messages
 
     public func loadMessages(sessionId: String, bookID: String? = nil) throws -> [WSChatMessage] {
-        // "持久化的聊天记录, 重新渲染顺序有问题, 问答先后顺序混乱"
         // The previous sortBy: [SortDescriptor(\.position)] was the
         // buggy path. Position is a count-then-insert int (= see
         // append()) and races when the user sends a quick 2nd message
         // before the AI's 1st reply finishes streaming. We now sort
-        // by createdAt (the wall-clock at append time) and keep
-        // position as a tiebreaker (= the same column the
+        // by createdAt (= the caller's timestamp, stored on the row)
+        // and keep position as a tiebreaker (= the same column the
         // existing fetchDescriptor was reading).
         let descriptor = FetchDescriptor<WSChatMessage>(
             predicate: Self.chatMessagePredicate(sessionId: sessionId, bookID: bookID),
