@@ -216,51 +216,16 @@ final class EditorChatNSController: NSSplitViewController {
     /// divider from the payload, and the user's drag moves it).
     private var assertedShare: CGFloat?
 
-    /// Whether the divider still has to be POSITIONED for the current
-    /// arrangement (= the seed has not run yet).
+    /// The divider's latch: the state that spans layout passes.
     ///
-    /// Why the divider is positioned once and not on every layout
-    /// pass: a write into the split during the layout pass re-arms the
-    /// window's "Update Constraints in Window" pass (= the pass
-    /// AppKit's runaway-layout guard counts), and a resize delivers a
-    /// layout pass per frame (= a zoom animation's frames, = a
-    /// widening drag's steps). Measured on the running app: the
-    /// guard's count crossed the window's view count (= 327 against a
-    /// limit of 321) during exactly those frames.
-    ///
-    /// So the divider is positioned once, when the layout has settled,
-    /// and AppKit scales it with the axis from there (= measured: a
-    /// divider positioned once holds its share through a 40-step zoom
-    /// and a 40-step narrowing, = 0.3006 and 0.3002).
-    private var dividerSeedPending = true
-
-    /// The extent of the arrangement's axis (= the split's own extent
-    /// on the axis the arrangement carries) as of the previous layout
-    /// pass. A change means the axis MOVED (= a resize is in flight).
-    private var lastAxisExtent: CGFloat?
-
-    /// The number of consecutive layout passes whose axis extent did
-    /// not change (= the layout has settled).
-    ///
-    /// Why the count and not a flag: the frames a layout pass reads
-    /// are the PREVIOUS pass's frames (= the layout catches up one
-    /// pass later), so the share read on the first pass whose axis has
-    /// not moved is still the position from before the move.
-    private var settledPasses = 0
-
-    /// Whether a resize is waiting to be reconciled (= the axis moved
-    /// and the layout has not settled onto the asserted share yet).
-    private var resizePending = false
-
-    /// The number of layout passes before the last write into the
-    /// split shows up in the frames.
-    ///
-    /// Why it is counted: a write into the split changes the divider
-    /// position, and the frames report it only on the NEXT layout pass
-    /// (= the frames a pass reads are the previous pass's). Reading
-    /// the share before the write has landed reports the position from
-    /// before the write, and adopting it would undo the write.
-    private var framesPending = 0
+    /// Why a value type and not five fields on the controller: the
+    /// latch's LIFECYCLE is where the defect lived (= the resize latch
+    /// was set when the axis moved and was released only by a repair
+    /// write, = so a resize that ended ON the asserted share left it
+    /// set, = and the user's NEXT drag was then answered with a repair
+    /// that overwrote the drag), and a lifecycle can only be tested if
+    /// it can be driven without a window.
+    private var dividerLatch = DividerLatch()
 
     /// The share below which two reads are the same position.
     ///
@@ -601,41 +566,21 @@ final class EditorChatNSController: NSSplitViewController {
         let axis = arrangement.isVertical ? splitView.bounds.width : splitView.bounds.height
         guard axis > 0 else { return }
 
-        // Whether the axis MOVED since the previous layout pass (= a
-        // resize is in flight).
-        //
-        // The frames a layout pass reads are the PREVIOUS pass's
-        // frames (= the layout catches up one pass later), so the
-        // share is read against the extent those frames were laid out
-        // for (= the previous extent). Reading it against the current
-        // extent would report a share the layout has not reached.
-        let previousExtent = lastAxisExtent
-        let axisMoved = previousExtent.map { abs($0 - axis) > Self.extentTolerance } ?? false
-        if axisMoved {
-            settledPasses = 0
-            resizePending = true
-        } else if previousExtent != nil {
-            settledPasses += 1
-        }
-        lastAxisExtent = axis
-
+        // The LEADING pane's thickness in the frames the layout hands
+        // out (= the previous pass's frames). The latch reads it
+        // against the extent those frames were laid out for.
         let observedLeading = arrangement.isVertical
             ? items[0].viewController.view.frame.width
             : items[0].viewController.view.frame.height
-        let observedExtent = previousExtent ?? axis
-        guard observedExtent > 0 else { return }
-        let observedShare = observedLeading / observedExtent
 
-        let action = Self.dividerAction(
-            axisMoved: axisMoved,
-            settledPasses: settledPasses,
-            seedPending: dividerSeedPending,
-            resizePending: resizePending,
-            framesPending: framesPending,
-            observedShare: observedShare,
+        // The latch owns the state that spans passes (= the axis
+        // extent, the settle count, the pending resize, the pending
+        // write) and decides what this pass does with the divider.
+        let action = dividerLatch.pass(
+            axisExtent: axis,
+            observedLeading: observedLeading,
             assertedShare: leadingShare
         )
-        framesPending = 0
 
         switch action {
         case .none:
@@ -647,10 +592,165 @@ final class EditorChatNSController: NSSplitViewController {
             // drag).
             assertedShare = editorLeads ? share : 1 - share
         case .assertAt(let share):
-            dividerSeedPending = false
-            resizePending = false
-            framesPending = 1
             splitView.setPosition(axis * share, ofDividerAt: 0)
+        }
+    }
+
+    /// The divider's latch: the state that spans layout passes.
+    ///
+    /// Why it is a value type and not five fields on the controller:
+    /// the latch's LIFECYCLE is where the defect lived (= the resize
+    /// latch was set when the axis moved and was released only by a
+    /// repair write, = so a resize that ended ON the asserted share
+    /// left the latch set, = and the user's NEXT drag was then
+    /// answered with a repair that overwrote the drag), and a
+    /// lifecycle can only be tested if it can be driven without a
+    /// window.
+    @MainActor
+    struct DividerLatch {
+        /// Whether the divider still has to be POSITIONED for the
+        /// current arrangement (= the seed has not run yet).
+        ///
+        /// Why the divider is positioned once and not on every layout
+        /// pass: a write into the split during the layout pass re-arms
+        /// the window's "Update Constraints in Window" pass (= the pass
+        /// AppKit's runaway-layout guard counts), and a resize delivers
+        /// a layout pass per frame (= a zoom animation's frames, = a
+        /// widening drag's steps). Measured on the running app: the
+        /// guard's count crossed the window's view count (= 327 against
+        /// a limit of 321) during exactly those frames.
+        ///
+        /// So the divider is positioned once, when the layout has
+        /// settled, and AppKit scales it with the axis from there (= a
+        /// divider positioned once holds its share through a 40-step
+        /// zoom and a 40-step narrowing, = 0.3006 and 0.3002).
+        private(set) var seedPending = true
+
+        /// Whether a resize is waiting to be reconciled (= the axis
+        /// moved and the layout has not settled onto the asserted
+        /// share yet).
+        ///
+        /// Why it is released when the resize ends ON the share: the
+        /// release used to happen only inside the repair write, so a
+        /// resize that ended on the share left the latch set, and the
+        /// next drift (= the user's next drag) was answered with a
+        /// repair that overwrote the drag.
+        private(set) var resizePending = false
+
+        /// The number of consecutive layout passes whose axis extent did
+        /// not change (= the layout has settled).
+        ///
+        /// Why the count and not a flag: the frames a layout pass reads
+        /// are the PREVIOUS pass's frames (= the layout catches up one
+        /// pass later), so the share read on the first pass whose axis
+        /// has not moved is still the position from before the move.
+        private(set) var settledPasses = 0
+
+        /// The extent of the arrangement's axis (= the split's own extent
+        /// on the axis the arrangement carries) as of the previous layout
+        /// pass. A change means the axis MOVED (= a resize is in flight).
+        private(set) var lastAxisExtent: CGFloat?
+
+        /// The number of layout passes before the last write into the
+        /// split shows up in the frames.
+        ///
+        /// Why it is counted: a write into the split changes the divider
+        /// position, and the frames report it only on the NEXT layout pass
+        /// (= the frames a pass reads are the previous pass's). Reading
+        /// the share before the write has landed reports the position from
+        /// before the write, and adopting it would undo the write.
+        private(set) var framesPending = 0
+
+        /// Start the latch over (= the arrangement changed: the axis
+        /// is a different one and the divider is positioned again on
+        /// it).
+        mutating func reset() {
+            seedPending = true
+            resizePending = false
+            settledPasses = 0
+            lastAxisExtent = nil
+            framesPending = 0
+        }
+
+        /// What one layout pass does with the divider.
+        ///
+        /// The shares are the LEADING pane's share (= the share the
+        /// divider position and the fractions both express).
+        ///
+        /// - Parameters:
+        ///   - axisExtent: the arrangement's axis extent now.
+        ///   - observedLeading: the leading pane's thickness in the
+        ///     frames the layout hands out (= the previous pass's).
+        ///   - assertedShare: the share the divider is asserted at.
+        mutating func pass(
+            axisExtent: CGFloat,
+            observedLeading: CGFloat,
+            assertedShare: CGFloat
+        ) -> EditorChatNSController.DividerAction {
+            // Whether the axis MOVED since the previous layout pass (= a
+            // resize is in flight).
+            //
+            // The frames a layout pass reads are the PREVIOUS pass's
+            // frames (= the layout catches up one pass later), so the
+            // share is read against the extent those frames were laid
+            // out for (= the previous extent). Reading it against the
+            // current extent would report a share the layout has not
+            // reached.
+            let previousExtent = lastAxisExtent
+            let axisMoved = previousExtent.map {
+                abs($0 - axisExtent) > EditorChatNSController.extentTolerance
+            } ?? false
+            if axisMoved {
+                settledPasses = 0
+                resizePending = true
+            } else if previousExtent != nil {
+                settledPasses += 1
+            }
+            lastAxisExtent = axisExtent
+
+            let observedExtent = previousExtent ?? axisExtent
+            guard observedExtent > 0 else { return .none }
+            let observedShare = observedLeading / observedExtent
+
+            let pendingFrames = framesPending
+            let action = EditorChatNSController.dividerAction(
+                axisMoved: axisMoved,
+                settledPasses: settledPasses,
+                seedPending: seedPending,
+                resizePending: resizePending,
+                framesPending: pendingFrames,
+                observedShare: observedShare,
+                assertedShare: assertedShare
+            )
+            framesPending = 0
+            switch action {
+            case .none:
+                // The resize has ended and the layout still holds the
+                // asserted share: nothing is owed, so the latch is
+                // RELEASED here (= the repair was not needed).
+                //
+                // Why the release matters: the latch used to be
+                // released only by the repair write, so it stayed set
+                // after a resize that ended on the share, and the next
+                // drift (= the user's next drag) was read as "the
+                // resize left the share off" and answered with a
+                // repair that overwrote the drag.
+                //
+                // The guard keeps the release out of the resize itself:
+                // the settle count is reset on every pass whose axis
+                // moved, so during a resize it is 0 and the latch
+                // stays set (= the repair stays reachable).
+                if resizePending && !axisMoved && settledPasses >= 1 && pendingFrames == 0 {
+                    resizePending = false
+                }
+            case .adopt:
+                break
+            case .assertAt:
+                seedPending = false
+                resizePending = false
+                framesPending = 1
+            }
+            return action
         }
     }
 
@@ -1046,11 +1146,7 @@ final class EditorChatNSController: NSSplitViewController {
         // new axis, and the extent the layout is measured against has
         // to be read fresh (= the old extent is in the old axis's
         // units).
-        dividerSeedPending = true
-        lastAxisExtent = nil
-        settledPasses = 0
-        resizePending = false
-        framesPending = 0
+        dividerLatch.reset()
         splitView.isVertical = target.isVertical
         splitView.autosaveName = enteringName
         applyPaneOrder(for: target)
