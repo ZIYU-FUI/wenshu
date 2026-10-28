@@ -376,6 +376,32 @@ def named_reviewer(body: str) -> str | None:
     return match.group(1) if match else None
 
 
+# The profile that reviews. A card assigned to it is a review card, whatever
+# the card's status is at this instant.
+REVIEW_PROFILE = "wenshu-review"
+
+
+def in_review_lane(card: dict) -> bool:
+    """Whether this card is in the review lane.
+
+    A card is a review card when it is ASSIGNED to the reviewer. That holds
+    for the whole review: the handoff reassigns the card to the reviewer, the
+    reviewer runs it, and the card stays with the reviewer until it is
+    approved or sent back for changes.
+
+    The card's status is NOT the lane. A card is handed off while it is
+    "running" (the implementer calls the handoff), sits "review" while it
+    waits for a reviewer, and goes back to "running" while the reviewer works
+    on it -- so a status test sees the review lane only in the queue window
+    and mistakes the review itself for implementation work.
+    """
+    assignee = str(card.get("assignee") or "").strip()
+    if assignee == REVIEW_PROFILE:
+        return True
+    # A card can also be queued for review before it is reassigned.
+    return str(card.get("status") or "") == "review" and not assignee
+
+
 def review_contract_errors(body: str, assignee: str | None = None) -> list[str]:
     """Every way the body breaks the review contract.
 
@@ -560,8 +586,16 @@ def find_contract_errors(card: dict) -> list[str]:
         # A card in the review lane runs the REVIEW's work, so it is judged
         # against the review lane's cap (= the lane's own measured
         # distribution), not against the tier's implementation cap.
-        in_review = str(card.get("status") or "") == "review"
-        if in_review:
+        #
+        # The lane is WHO IS ASSIGNED, not the card's momentary status. A
+        # review card is assigned to the reviewer the moment it is handed off
+        # and stays assigned to it for the whole review, so the reviewer is
+        # the durable signal. Keying on status == "review" only covered the
+        # QUEUED window: a card under review (status "running") was judged as
+        # implementation work, which both flagged a generous review cap as a
+        # tier violation and MISSED a review whose cap was under the floor --
+        # the exact card that dies on the clock and hands back no verdict.
+        if in_review_lane(card):
             if runtime < REVIEW_LANE_CAP_FLOOR:
                 errors.append(
                     f"runtime cap {runtime}s, the review lane needs at least "

@@ -738,7 +738,73 @@ def main() -> int:
         [7, 9, 12],
     )
 
-    # 18. The board sweep must not be able to PASS by reading no cards. A
+    # 18. The review lane is detected by WHO HOLDS THE CARD, not by the card's
+    #     momentary status. A review card is handed off while the implementer is
+    #     still "running", sits "review" in the queue, and goes back to
+    #     "running" while the reviewer works on it -- so a status test sees the
+    #     lane only in the queue window. It then judged the review itself as
+    #     implementation work: a generous review cap was reported as a tier
+    #     violation, and a review whose cap was under the lane's floor was NOT
+    #     flagged, which is exactly the card that dies on the clock and hands
+    #     back no verdict.
+    floor = tool.REVIEW_LANE_CAP_FLOOR
+    review_card = {
+        "id": "t_rev",
+        "title": "[T3] the trailing column gets a switcher",
+        "body": PERSISTENCE,
+        "status": "running",
+        "assignee": tool.REVIEW_PROFILE,
+        "max_runtime_seconds": floor,
+    }
+    check(
+        "a running review is in the review lane",
+        tool.in_review_lane(review_card),
+        True,
+    )
+    check(
+        "a running review with a generous cap is not a tier violation",
+        [e for e in tool.find_contract_errors(review_card) if "runtime cap" in e],
+        [],
+    )
+    review_under_floor = dict(review_card, max_runtime_seconds=2700)
+    check(
+        "a running review under the floor IS flagged",
+        any(
+            "review lane needs at least" in e
+            for e in tool.find_contract_errors(review_under_floor)
+        ),
+        True,
+    )
+    queued_review = dict(review_card, status="review", assignee="")
+    check(
+        "a queued review is in the review lane",
+        tool.in_review_lane(queued_review),
+        True,
+    )
+    implementation = {
+        "id": "t_impl",
+        "title": "[T3] the trailing column gets a switcher",
+        "body": PERSISTENCE,
+        "status": "running",
+        "assignee": "wenshu-dev",
+        # T2's cap on a T3 card: the tier must still catch it.
+        "max_runtime_seconds": 1500,
+    }
+    check(
+        "an implementation card is not in the review lane",
+        tool.in_review_lane(implementation),
+        False,
+    )
+    check(
+        "an implementation card is still judged against its tier",
+        any(
+            "tier T3 buys" in e
+            for e in tool.find_contract_errors(implementation)
+        ),
+        True,
+    )
+
+    # 19. The board sweep must not be able to PASS by reading no cards. A
     #     board that cannot be read is not an empty board: the old reader
     #     returned [] for both, so a mistyped slug printed "every card
     #     agrees with its tier" and exited 0, and the boss read that line as
