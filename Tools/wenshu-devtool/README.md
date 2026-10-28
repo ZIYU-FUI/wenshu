@@ -55,6 +55,44 @@ their call sites, and never read. Its own test suite runs on fixtures:
 python3 Tools/wenshu-devtool/tests/test_measure_drill.py
 ```
 
+## Board liveness
+
+`status='running'` on a card means a CLAIM exists, not that an agent is
+working on it. The board's own liveness signal is a heartbeat, and a
+heartbeating claim looks the same either way.
+
+```bash
+# Is every running card actually WORKING, or is it just holding a slot?
+python3 Tools/wenshu-devtool/board_liveness.py
+
+# A different freshness window (= seconds without an API call)
+python3 Tools/wenshu-devtool/board_liveness.py --fresh 7200
+```
+
+One line per running card, with the verdict:
+
+| verdict | meaning |
+| --- | --- |
+| `working` | an API call within `--fresh` seconds |
+| `stale` | the worker HAS made API calls, but the last is older than `--fresh` (= it may be mid-turn; NOT idle) |
+| `slot-only` | the worker made NO API call AT ALL: the claim holds a host slot and nobody is working |
+| `no-agent` | no agent session could be resolved for the card |
+
+It exits 2 when a card is `slot-only` / `no-agent`. READ-ONLY: every board is
+opened with `mode=ro`.
+
+**Never reclaim a card because it "looks idle".** A reclaim RESTARTS the card
+from scratch: the worktree survives, the conversation does not. Measured
+2026-10-28: a reclaim justified by "the claim is holding a host slot but no
+agent is attached" threw away 32 minutes of work — that worker had made 18
+API calls in the window and was working the whole time.
+
+Its test suite runs on fixture boards and fixture logs:
+
+```bash
+python3 Tools/wenshu-devtool/tests/test_board_liveness.py
+```
+
 ## Visual probes
 
 `Tools/wenshu-devtool/probes/` holds the measurements that outlive their
