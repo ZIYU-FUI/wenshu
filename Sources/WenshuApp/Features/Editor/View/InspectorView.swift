@@ -53,7 +53,15 @@ struct InspectorView: View {
             // PT; = the size Apple ships for a compact switcher), so
             // the two columns' controls read as one pair.
             ChromeTopBar(
-                horizontalPadding: DesignTokens.spacingRelaxed
+                horizontalPadding: DesignTokens.spacingRelaxed,
+                // The band belongs to the column's body (= it sits inside
+                // the column's VStack under the column's own header and
+                // holds the column's own page switcher, = not the window
+                // toolbar), so the column's background shows through it
+                // (= the same opt-out the left column's band and the
+                // assets column's band make, = the two columns' bands
+                // read as one pair).
+                usesMaterial: false
             ) {
                 LabelSegmentedControl(
                     selection: $workspaceUI.inspectorPage,
