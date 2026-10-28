@@ -11,8 +11,10 @@ filesystem:
   2. a repo-relative path LITERAL ("Sources/...", "Package.swift",
      "Tests/...") that reaches a filesystem API (= the shape the card
      banned: the literal is resolved against the working directory);
-  3. a `currentDirectoryPath` read that reaches a filesystem API (= the
-     same dependency, spelled out).
+  3. ANY `currentDirectoryPath` read (= the same dependency, spelled
+     out). This one stands alone: the working directory is itself a
+     cwd dependence, and it must, so that the candidate set stays
+     MONOTONE across the fix (see the note on `reads_by_cwd` below).
 
 The set is DERIVED from the tree, so it cannot go stale: a test file
 that starts reading production source tomorrow is in tomorrow's
