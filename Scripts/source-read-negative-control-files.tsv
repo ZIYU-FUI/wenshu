@@ -1,0 +1,32 @@
+# The files the source-read gate's NEGATIVE CONTROL defects, and the
+# commit that holds each file's DEFECTIVE (pre-migration) version.
+#
+# The set is the UNION of the twelve files review round 1 named (every
+# one of them reads production source by a quoted repo-relative
+# literal) and the eight files review round 2 named (the shape with no
+# quoted literal at all: the path is built from the working
+# directory). A control over one shape proves nothing about the other.
+#
+# The restore point is the PARENT of the branch commit that migrated the
+# file, so the restored version is that file's last defective state and
+# nothing else about it changes.
+Tests/WenshuAppTests/Agent/Connector/LLMConnectorConformanceTests.swift	8d44bb7bbeff1fe574e8afb3fe428f16daa7002d
+Tests/WenshuAppTests/Agent/Todo/TodoStoreTests.swift	0e61e21b6b69a911dbb370e1f78d16bc9e56d68c
+Tests/WenshuAppTests/Agent/Tools/FileToolsTests.swift	0e61e21b6b69a911dbb370e1f78d16bc9e56d68c
+Tests/WenshuAppTests/Agent/Tools/VisionToolsTests.swift	0e61e21b6b69a911dbb370e1f78d16bc9e56d68c
+Tests/WenshuAppTests/Core/Agent/Web/KeylessProviders/AnbaiqiangLiveResearch.swift	0e61e21b6b69a911dbb370e1f78d16bc9e56d68c
+Tests/WenshuAppTests/E2E/E2EMemoryAndLLMFlowTests.swift	0e61e21b6b69a911dbb370e1f78d16bc9e56d68c
+Tests/WenshuAppTests/E2E/ObsidianVaultBatchImportTests.swift	0e61e21b6b69a911dbb370e1f78d16bc9e56d68c
+Tests/WenshuAppTests/Kanban/KanbanStoreTests.swift	0e61e21b6b69a911dbb370e1f78d16bc9e56d68c
+Tests/WenshuAppTests/Library/Model/EntityTypeEntityCategoryDeadCodeTests.swift	8d44bb7bbeff1fe574e8afb3fe428f16daa7002d
+Tests/WenshuAppTests/Library/View/SidebarHeaderProminenceTests.swift	8d44bb7bbeff1fe574e8afb3fe428f16daa7002d
+Tests/WenshuAppTests/Shared/Backup/BackupTests.swift	0e61e21b6b69a911dbb370e1f78d16bc9e56d68c
+Tests/WenshuAppTests/Shared/UI/WindowTranslucencyTests.swift	8d44bb7bbeff1fe574e8afb3fe428f16daa7002d
+Tests/WenshuAppTests/UI/DesignSystem/CornerRadiusMagicSweepTests.swift	8d44bb7bbeff1fe574e8afb3fe428f16daa7002d
+Tests/WenshuAppTests/UI/DesignSystem/FrameMagicSweepTests.swift	8d44bb7bbeff1fe574e8afb3fe428f16daa7002d
+Tests/WenshuAppTests/UI/DesignSystem/IconFontMagicSweepSummaryTests.swift	8d44bb7bbeff1fe574e8afb3fe428f16daa7002d
+Tests/WenshuAppTests/UI/DesignSystem/LabelIconSweepTests.swift	8d44bb7bbeff1fe574e8afb3fe428f16daa7002d
+Tests/WenshuAppTests/UI/DesignSystem/ShadowRadiusMagicSweepTests.swift	8d44bb7bbeff1fe574e8afb3fe428f16daa7002d
+Tests/WenshuAppTests/UI/EmptyState/EmptyStateViewCallersTests.swift	8d44bb7bbeff1fe574e8afb3fe428f16daa7002d
+Tests/WenshuAppTests/UI/EmptyState/EmptyStateViewDesignTokensTests.swift	8d44bb7bbeff1fe574e8afb3fe428f16daa7002d
+Tests/WenshuAppTests/UI/Polish/LiquidGlassPolishTests.swift	8d44bb7bbeff1fe574e8afb3fe428f16daa7002d

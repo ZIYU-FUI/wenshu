@@ -98,10 +98,26 @@ for dirpath, _dirs, names in os.walk(TESTS):
             src = fh.read()
 
         # --- the three alternatives, each evaluated on its own ---------
+        # A SourceLocator use (= it reads production source by
+        # construction, and it resolves against the repo root, so it is
+        # the FIXED shape).
         reads_by_locator = "SourceLocator" in src
+        # A repo-relative path literal reaching a filesystem API (= the
+        # shape the card banned: the literal is resolved against the
+        # working directory).
         reads_by_literal = bool(LITERAL.search(src)) and bool(FS_API.search(src))
-        reads_by_cwd = bool(CWD.search(src)) and bool(
-            LITERAL.search(src) or FS_API.search(src))
+        # ANY use of the working directory. The current directory is
+        # itself a cwd dependence: a path built from it lands in a
+        # different place, and in a different place it may not be
+        # writable, so the verdict can move with the working directory
+        # even when the path never names a source file. This
+        # alternative stands alone (= it does not require a literal
+        # beside it) for a second reason: the candidate set must be
+        # MONOTONE across the fix. A file that mentions the working
+        # directory before the fix must still be a candidate after it,
+        # or restoring the defect would drop the file from the gate
+        # and the gate would report PASS on a defective tree.
+        reads_by_cwd = bool(CWD.search(src))
         if not (reads_by_locator or reads_by_literal or reads_by_cwd):
             continue
 
