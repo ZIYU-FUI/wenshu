@@ -461,20 +461,35 @@ struct EditorChatNSControllerTests {
                 "the editor's share is the leading frame's")
     }
 
-    // MARK: - The re-assert (= what keeps the layout convergent)
+    // MARK: - The divider's position (= what keeps the layout convergent)
 
-    @Test("Source re-asserts the divider on every layout pass when a payload is stored (= the re-assert is what keeps the layout convergent)")
-    func sourceReassertsEveryLayoutPass() throws {
+    @Test("Source positions the divider at the leading pane's share of the axis (= the position AppKit's own layout must agree with)")
+    func sourcePositionsTheDividerAtTheLeadingShare() throws {
         let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("} else if hasAutosave {"),
-                "a stored payload must still be re-asserted on every layout pass (= without it the split's width oscillates and AppKit's runaway-layout guard aborts the app)")
+                "a stored payload must still drive the divider's position (= without it the split's width oscillates and AppKit's runaway-layout guard aborts the app)")
         #expect(content.contains("applyStoredShare()"),
-                "the stored share is the re-assert's value")
+                "the stored share is the position's value")
         #expect(content.contains("items[0].preferredThicknessFraction = leadingShare"),
-                "AppKit's own layout must agree with the re-assert (= both items carry 0.5 otherwise, and the two fight every pass)")
-        #expect(content.contains("splitView.setPosition(axis * leadingShare, ofDividerAt: 0)"),
-                "the divider is asserted at the leading pane's share of the axis")
+                "AppKit's own layout must agree with the position (= both items carry 0.5 otherwise, and the two fight every pass)")
+        #expect(content.contains("splitView.setPosition(axis * share, ofDividerAt: 0)"),
+                "the divider is positioned at the leading pane's share of the axis")
+    }
+
+    @Test("Source does NOT position the divider on every layout pass (= a write per frame re-arms the window's update-constraints pass, which is the quantity AppKit's runaway-layout guard counts)")
+    func sourceDoesNotWriteTheDividerPerFrame() throws {
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
+        let content = try String(contentsOf: url, encoding: .utf8)
+        let body = try #require(Self.functionBody(named: "applyStoredShare", in: content),
+                                "applyStoredShare must exist")
+        let writes = body.components(separatedBy: "splitView.setPosition(").count - 1
+        #expect(writes == 1,
+                "the divider is written on exactly one path (= the decision function's outcome), not unconditionally on every layout pass")
+        #expect(content.contains("case .assertAt(let share):"),
+                "the write happens on the decision's outcome (= the seed, or a repair after a resize left the share off)")
+        #expect(content.contains("case .adopt(let share):"),
+                "a user drag is adopted (= the assert must never write over it, = the drag is eaten otherwise)")
     }
 
     @Test("Source holds the share instead of re-reading it on every pass (= reading it back moves the target every pass)")
@@ -487,6 +502,320 @@ struct EditorChatNSControllerTests {
                 "the share is released when the arrangement changes (= the other arrangement has its own position)")
         #expect(content.contains("arrangement.isVertical ? splitView.bounds.width : splitView.bounds.height"),
                 "the axis is the arrangement's own (= the width when side by side, the height when stacked)")
+    }
+
+    // MARK: - The divider's decision (= what a layout pass writes)
+
+    @Test("The divider's decision: a resize in flight writes nothing (= a write per frame re-arms the window's update-constraints pass)")
+    func dividerDecisionWritesNothingDuringAResize() {
+        let action = EditorChatNSController.dividerAction(
+            axisMoved: true,
+            settledPasses: 0,
+            seedPending: true,
+            resizePending: true,
+            framesPending: 0,
+            observedShare: 0.30,
+            assertedShare: 0.30
+        )
+        #expect(action == .none,
+                "while the axis moves (= a zoom's frames, = a widening drag's steps) the divider is not written")
+    }
+
+    @Test("The divider's decision: the first settled pass positions the divider at the asserted share (= the seed)")
+    func dividerDecisionSeedsOnASettledPass() {
+        let action = EditorChatNSController.dividerAction(
+            axisMoved: false,
+            settledPasses: 1,
+            seedPending: true,
+            resizePending: false,
+            framesPending: 0,
+            observedShare: 0.96,
+            assertedShare: 0.30
+        )
+        #expect(action == .assertAt(0.30),
+                "the seed positions the divider at the asserted share (= AppKit scales it with the axis from there)")
+    }
+
+    @Test("The divider's decision: the pass before the layout settles writes nothing (= the frames a pass reads are the previous pass's)")
+    func dividerDecisionWaitsForTheLayoutToSettle() {
+        let action = EditorChatNSController.dividerAction(
+            axisMoved: false,
+            settledPasses: 0,
+            seedPending: true,
+            resizePending: false,
+            framesPending: 0,
+            observedShare: 0.30,
+            assertedShare: 0.30
+        )
+        #expect(action == .none,
+                "the first pass whose axis has not moved still reads the position from before the move")
+    }
+
+    @Test("The divider's decision: a write that has not reached the frames yet is not read (= reading it would undo the write)")
+    func dividerDecisionWaitsForTheWriteToReachTheFrames() {
+        let action = EditorChatNSController.dividerAction(
+            axisMoved: false,
+            settledPasses: 2,
+            seedPending: false,
+            resizePending: false,
+            framesPending: 1,
+            observedShare: 0.30,
+            assertedShare: 0.60
+        )
+        #expect(action == .none,
+                "the frames report the last write only on the next layout pass (= reading it now would report the position from before the write)")
+    }
+
+    @Test("The divider's decision: a user drag is adopted, not overwritten (= the drag is eaten otherwise)")
+    func dividerDecisionAdoptsAUserDrag() {
+        let action = EditorChatNSController.dividerAction(
+            axisMoved: false,
+            settledPasses: 3,
+            seedPending: false,
+            resizePending: false,
+            framesPending: 0,
+            observedShare: 0.60,
+            assertedShare: 0.30
+        )
+        #expect(action == .adopt(0.60),
+                "the divider is where the user put it (= the drag is their own position and must survive)")
+    }
+
+    @Test("The divider's decision: a layout that agrees with the assert writes nothing (= no write per frame)")
+    func dividerDecisionWritesNothingWhenTheLayoutAgrees() {
+        let action = EditorChatNSController.dividerAction(
+            axisMoved: false,
+            settledPasses: 5,
+            seedPending: false,
+            resizePending: false,
+            framesPending: 0,
+            observedShare: 0.30,
+            assertedShare: 0.30
+        )
+        #expect(action == .none,
+                "a layout that already holds the asserted share needs no write")
+    }
+
+    @Test("The divider's decision: a resize that ended off the share is repaired ONCE (= the trailing pane sank to its floor)")
+    func dividerDecisionRepairsOnceAfterAResize() {
+        let action = EditorChatNSController.dividerAction(
+            axisMoved: false,
+            settledPasses: 2,
+            seedPending: false,
+            resizePending: true,
+            framesPending: 0,
+            observedShare: 0.97,
+            assertedShare: 0.30
+        )
+        #expect(action == .assertAt(0.30),
+                "the share is put back once, when the layout has settled")
+    }
+
+    @Test("The divider's decision: a resize that ended ON the share needs no repair")
+    func dividerDecisionDoesNotRepairAResizeThatHeldTheShare() {
+        let action = EditorChatNSController.dividerAction(
+            axisMoved: false,
+            settledPasses: 2,
+            seedPending: false,
+            resizePending: true,
+            framesPending: 0,
+            observedShare: 0.30,
+            assertedShare: 0.30
+        )
+        #expect(action == .none,
+                "AppKit scaled the divider with the axis (= the share survived the resize), so there is nothing to repair")
+    }
+
+    @Test("The divider's decision: the share tolerance is a fraction of the axis, so a sub-point drift is not a drift")
+    func dividerDecisionToleranceIsAFraction() {
+        let withinTolerance = EditorChatNSController.dividerAction(
+            axisMoved: false,
+            settledPasses: 3,
+            seedPending: false,
+            resizePending: false,
+            framesPending: 0,
+            observedShare: 0.30 + EditorChatNSController.shareTolerance / 2,
+            assertedShare: 0.30
+        )
+        #expect(withinTolerance == .none,
+                "a drift under the tolerance is the same position (= the frames carry a rounding)")
+        let beyondTolerance = EditorChatNSController.dividerAction(
+            axisMoved: false,
+            settledPasses: 3,
+            seedPending: false,
+            resizePending: false,
+            framesPending: 0,
+            observedShare: 0.30 + EditorChatNSController.shareTolerance * 2,
+            assertedShare: 0.30
+        )
+        #expect(beyondTolerance == .adopt(0.30 + EditorChatNSController.shareTolerance * 2),
+                "a drift over the tolerance is a different position (= the user moved it)")
+    }
+
+    // MARK: - The latch's LIFECYCLE (= the defect's home)
+
+    /// Drive the latch through a scripted sequence of layout passes.
+    ///
+    /// The caller reads the split's frames and hands the latch the
+    /// LEADING pane's thickness; the latch reads it against the
+    /// extent those frames were laid out for (= the previous pass's
+    /// extent), so the share a pass observes is always
+    /// `observedLeading / previousExtent`.
+    ///
+    /// - Parameters:
+    ///   - latch: the latch under test.
+    ///   - axisExtent: the axis extent of this pass.
+    ///   - observedLeading: the leading pane's thickness in the frames
+    ///     this pass reads (= the previous pass's frames).
+    ///   - assertedShare: the share the divider is asserted at.
+    /// - Returns: the action the pass took.
+    @discardableResult
+    private func drive(
+        _ latch: inout EditorChatNSController.DividerLatch,
+        axisExtent: CGFloat,
+        observedLeading: CGFloat,
+        assertedShare: CGFloat
+    ) -> EditorChatNSController.DividerAction {
+        latch.pass(
+            axisExtent: axisExtent,
+            observedLeading: observedLeading,
+            assertedShare: assertedShare
+        )
+    }
+
+    @Test("The latch: a resize that settles ON the share releases the latch, so the user's NEXT drag is ADOPTED (= the drag is not eaten)")
+    func latchReleasesTheResizeSoTheNextDragIsAdopted() {
+        // The defect this pins: the resize latch was released ONLY by
+        // a repair write, so a resize that ended ON the asserted share
+        // (= the share held, = nothing owed) left the latch set. The
+        // user's NEXT drag was then read as "the resize left the share
+        // off" and answered with a repair that overwrote the drag.
+        //
+        // Measured in real AppKit by the reviewer: after a zoom or a
+        // widening drag the requested 0.60 came back as 0.7000 (= the
+        // stale asserted share) in BOTH arrangements.
+        var latch = EditorChatNSController.DividerLatch()
+        let asserted: CGFloat = 0.5
+
+        // The seed: the layout settles and the divider is positioned
+        // once.
+        _ = drive(&latch, axisExtent: 1000, observedLeading: 500, assertedShare: asserted)
+        let seed = drive(&latch, axisExtent: 1000, observedLeading: 500, assertedShare: asserted)
+        #expect(seed == .assertAt(0.5),
+                "the seed positions the divider once (= AppKit scales it with the axis from there)")
+
+        // A ZOOM: the axis moves on every frame (= a layout pass per
+        // frame), and AppKit scales the divider with the axis (= the
+        // share holds through the animation).
+        for step in 1...20 {
+            let extent = 1000 + CGFloat(step) * 20
+            let action = drive(&latch, axisExtent: extent, observedLeading: extent / 2, assertedShare: asserted)
+            #expect(action == .none,
+                    "a resize in flight writes nothing (= a write per frame re-arms the window's update-constraints pass)")
+        }
+
+        // The resize ends: the axis stops moving and the layout still
+        // holds the asserted share.
+        let settled = drive(&latch, axisExtent: 1400, observedLeading: 700, assertedShare: asserted)
+        #expect(settled == .none,
+                "the layout holds the asserted share after the resize (= AppKit scaled the divider with the axis)")
+
+        // The user drags the divider: the next drift must be ADOPTED.
+        let dragged = drive(&latch, axisExtent: 1400, observedLeading: 840, assertedShare: asserted)
+        #expect(dragged == .adopt(0.6),
+                "the drag after a resize is the user's own position (= the latch must have been released by the resize that settled on the share)")
+
+        // And the drag is adopted by the LATCH, not by a repair: the
+        // latch's own state is what the caller reads.
+        #expect(latch.resizePending == false,
+                "the resize latch is released when the resize ends on the share (= nothing is owed)")
+    }
+
+    @Test("The latch: a resize that ends OFF the share still repairs it once (= the trailing pane's floor is reachable)")
+    func latchRepairsAFloorAfterAResize() {
+        // The other half of the fix's contract: the repair must stay
+        // reachable after a resize, or the trailing pane stays at its
+        // floor (= the folded-in second symptom).
+        //
+        // The difference between the two cases is the READ at the
+        // settle pass: a resize that holds the share owes nothing
+        // (= the latch is released), a resize that leaves the share
+        // off owes one repair (= the latch stays set until the
+        // repair happens).
+        var latch = EditorChatNSController.DividerLatch()
+        let asserted: CGFloat = 0.5
+
+        _ = drive(&latch, axisExtent: 1000, observedLeading: 500, assertedShare: asserted)
+        _ = drive(&latch, axisExtent: 1000, observedLeading: 500, assertedShare: asserted)
+
+        // A narrowing: the trailing pane sinks to its floor (= the
+        // leading pane takes 0.97 of the axis).
+        for step in 1...20 {
+            let extent = 1000 - CGFloat(step) * 20
+            _ = drive(&latch, axisExtent: extent, observedLeading: extent * 0.97, assertedShare: asserted)
+        }
+
+        // The resize ends and the layout is OFF the share: the share
+        // is put back ONCE.
+        let repaired = drive(&latch, axisExtent: 600, observedLeading: 582, assertedShare: asserted)
+        #expect(repaired == .assertAt(0.5),
+                "the trailing pane sank to its floor during the resize (= the share is put back once, when the layout has settled)")
+        #expect(latch.resizePending == false,
+                "the repair consumed the resize (= the latch is released by the repair itself)")
+    }
+
+    @Test("The latch: the resize latch stays set DURING the resize (= the repair stays reachable)")
+    func latchKeepsTheResizePendingDuringTheResize() {
+        // The guard on the release matters: clearing the latch on
+        // every pass that writes nothing would clear it DURING the
+        // resize (= on every frame of the animation) and the owed
+        // floor repair would become unreachable.
+        var latch = EditorChatNSController.DividerLatch()
+        let asserted: CGFloat = 0.5
+
+        _ = drive(&latch, axisExtent: 1000, observedLeading: 500, assertedShare: asserted)
+        _ = drive(&latch, axisExtent: 1000, observedLeading: 500, assertedShare: asserted)
+
+        for step in 1...20 {
+            let extent = 1000 + CGFloat(step) * 20
+            let action = drive(&latch, axisExtent: extent, observedLeading: extent / 2, assertedShare: asserted)
+            #expect(action == .none)
+        }
+        #expect(latch.resizePending,
+                "the resize latch is still set at the end of the animation (= the repair for a floor is still owed)")
+
+        // The settle pass reads the layout as holding the share: the
+        // latch is released.
+        let settled = drive(&latch, axisExtent: 1400, observedLeading: 700, assertedShare: asserted)
+        #expect(settled == .none)
+        #expect(latch.resizePending == false,
+                "the latch is released once the layout has settled ON the share")
+    }
+
+    @Test("Source: the layout's caller drives the latch (= the latch under test IS the shipped latch)")
+    func sourceTheCallerDrivesTheLatch() throws {
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
+        let content = try String(contentsOf: url, encoding: .utf8)
+        #expect(content.contains("private var dividerLatch = DividerLatch()"),
+                "the controller owns one latch (= the state that spans layout passes)")
+        #expect(content.contains("dividerLatch.pass("),
+                "the layout's caller must drive the latch (= the latch's lifecycle is the defect's home)")
+        #expect(content.contains("dividerLatch.reset()"),
+                "an arrangement change resets the latch (= the divider is positioned again on the new axis)")
+    }
+
+    @Test("Source: the thickness cap is written in quanta (= a write per frame re-arms the window's update-constraints pass)")
+    func sourceWritesTheThicknessCapInQuanta() throws {
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
+        let content = try String(contentsOf: url, encoding: .utf8)
+        let body = try #require(Self.functionBody(named: "updateAutomaticThicknessBounds", in: content),
+                                "updateAutomaticThicknessBounds must exist")
+        #expect(body.contains("Self.thicknessQuantum"),
+                "the cap is written in quanta (= once per quantum of extent, not once per frame of a resize)")
+        #expect(body.contains("rounded(.up)"),
+                "the cap is rounded UP (= it never sits below the extent, so it never clamps a pane the layout legitimately grew)")
+        #expect(body.contains("if item.maximumThickness != available {"),
+                "the cap is written only when the value differs (= a write into the split re-arms the window's update-constraints pass)")
     }
 
     // MARK: - The panes' order (= the chat on the left, the editor on the right)
