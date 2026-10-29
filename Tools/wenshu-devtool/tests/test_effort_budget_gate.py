@@ -430,6 +430,138 @@ def main() -> int:
         )
     )
 
+    # 5. The LOCALIZATION section has to say WHERE the strings go. A card
+    #    that says "add it to the String Catalog" tells the worker WHAT and
+    #    not WHERE, and the hunt for the file is expensive: a board session
+    #    has no prompt cache, so every look-up re-sends the whole history.
+    #    Measured 2026-10-29 on the mobile line: the worker searched for the
+    #    catalog twelve times and the file was not in that repo at all.
+    def with_localization(section: str) -> dict:
+        c = card(budget=good_budget(), created_at=ebg.ORDER_CONTRACT_FROM)
+        c["body"] = c["body"].rstrip("\n") + "\n\n## LOCALIZATION\n\n" + section + "\n"
+        return c
+
+    bare = with_localization(
+        "New user-facing copy IS expected here. Add it to the String Catalog\n"
+        "the other views read (`Localizable.xcstrings`), and name them in the\n"
+        "commit body."
+    )
+    errors = ebg.contract_errors(bare)
+    results.append(
+        case(
+            "a LOCALIZATION section that names a catalog without its path is an error",
+            any("LOCALIZATION section" in e for e in errors),
+            f"got {errors}",
+        )
+    )
+
+    with_path = with_localization(
+        "New copy IS expected here. Add it to\n"
+        "`Sources/WenshuApp/Resources/Localizable.xcstrings`, and name the keys\n"
+        "in the commit body."
+    )
+    results.append(
+        case(
+            "a LOCALIZATION section that names the catalog's path is accepted",
+            not ebg.contract_errors(with_path),
+            f"got {ebg.contract_errors(with_path)}",
+        )
+    )
+
+    no_catalog = with_localization(
+        "New copy IS expected here. This project has no string catalog, so the\n"
+        "new copy is a literal string in the view; adding a catalog is a\n"
+        "separate card."
+    )
+    results.append(
+        case(
+            "a LOCALIZATION section that says there is no catalog is accepted",
+            not ebg.contract_errors(no_catalog),
+            f"got {ebg.contract_errors(no_catalog)}",
+        )
+    )
+
+    # 5b. A section that names a path for a DIFFERENT file is not a path for
+    #     the catalog. This is the second way the check can pass, so it needs
+    #     its own case: a mutation that makes the path test accept any path
+    #     must turn this one red.
+    other_path = with_localization(
+        "New copy IS expected here. The view is\n"
+        "`Sources/WenshuApp/Features/Editor/View/EditorView.swift:120-138`, and\n"
+        "the new copy goes to the String Catalog the other views read\n"
+        "(`Localizable.xcstrings`)."
+    )
+    errors = ebg.contract_errors(other_path)
+    results.append(
+        case(
+            "a LOCALIZATION section that names only another file's path is an error",
+            any("LOCALIZATION section" in e for e in errors),
+            f"got {errors}",
+        )
+    )
+
+    # 5c. The section may name the catalog in WORDS and give neither the
+    #     path nor the file name (= "the String Catalog the other views
+    #     read"). That is the shape 15 of the real cards carry, and it is the
+    #     vaguest of the three.
+    words_only = with_localization(
+        "New copy IS expected here. Add it to the String Catalog the other\n"
+        "views read, and name the keys in the commit body."
+    )
+    errors = ebg.contract_errors(words_only)
+    results.append(
+        case(
+            "a LOCALIZATION section that names the catalog in words only is an error",
+            any("LOCALIZATION section" in e for e in errors),
+            f"got {errors}",
+        )
+    )
+
+    # 5d. A `.strings` file is the same question (= the hand-written file
+    #     that shadows the catalog), so the check reads it too.
+    strings_name = with_localization(
+        "New copy IS expected here. Add it to the hand-written\n"
+        "`Localizable.strings` file, and name the keys in the commit body."
+    )
+    errors = ebg.contract_errors(strings_name)
+    results.append(
+        case(
+            "a LOCALIZATION section that names a .strings file without its path is an error",
+            # The finding must NAME the file, or a check that stopped
+            # recognising `.strings` would still pass this case.
+            any("LOCALIZATION section" in e and "Localizable.strings" in e for e in errors),
+            f"got {errors}",
+        )
+    )
+
+    # 5e. The path check has to look at the EXTENSION, not at the presence
+    #     of a path: a card that names one file's path and then says "the
+    #     catalog" has still not said where the catalog is.
+    path_wrong_ext = with_localization(
+        "New copy IS expected here. The catalog is at\n"
+        "`Sources/WenshuApp/Resources/Localizable.xcstrings`, and the new copy\n"
+        "goes into the same file."
+    )
+    results.append(
+        case(
+            "a LOCALIZATION section that names the catalog's path is accepted",
+            not ebg.contract_errors(path_wrong_ext),
+            f"got {ebg.contract_errors(path_wrong_ext)}",
+        )
+    )
+
+    unrelated = with_localization(
+        "No new user-facing copy is expected: the view draws the Mac's own\n"
+        "strings and the empty state already carries its text."
+    )
+    results.append(
+        case(
+            "a LOCALIZATION section that says nothing about a catalog is accepted",
+            not ebg.contract_errors(unrelated),
+            f"got {ebg.contract_errors(unrelated)}",
+        )
+    )
+
     failed = results.count(False)
     print()
     print(f"{len(results) - failed}/{len(results)} passed")

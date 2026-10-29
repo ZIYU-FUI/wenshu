@@ -444,6 +444,88 @@ def _anchored(section: str, path: str) -> bool:
     return False
 
 
+# The LOCALIZATION section's contract. A card that says "add it to the String
+# Catalog" tells the worker WHAT and not WHERE, and the hunt for the file is
+# expensive: a board session has no prompt cache, so every look-up re-sends
+# the whole history. Measured 2026-10-29 on the mobile line: a card said
+# "the String Catalog the other views read (`Localizable.xcstrings`)", the
+# worker searched for it twelve times (the repo, the git history, the
+# desktop repo, `.lproj`, the CI config), and the file does not exist in
+# that repo at all = so the card named a file that was not there.
+#
+# So the section must name the path, or say that there is no catalog. The
+# check is on the section, not on the whole body: the section is where the
+# string decision is made, and a card that says "no new copy" says nothing
+# about a catalog at all, which is fine.
+#
+# (The example the measurement used is a card that said "the String Catalog
+# the other views read", naming the file but not where it is. The desktop
+# line has such a catalog at Sources/WenshuApp/Resources/Localizable.xcstrings;
+# the mobile line has none at all, so a card there that says "the String
+# Catalog" names a file that does not exist.)
+LOCALIZATION_HEADING_RE = re.compile(r"(?im)^#{1,6}\s*localization\s*$")
+CATALOG_MENTION_RE = re.compile(r"catalog|xcstrings|\.strings\b", re.I)
+CATALOG_FILE_RE = re.compile(r"`([A-Za-z0-9_][A-Za-z0-9_.-]*\.(?:xcstrings|strings))`")
+CATALOG_PATH_RE = re.compile(r"(?:Sources|Tests|Tools|Scripts|docs)/[A-Za-z0-9_./-]+")
+NO_CATALOG_RE = re.compile(
+    r"\bno\s+(?:string\s+)?catalog\b|\bdoes\s+not\s+have\s+a\b[^.\n]{0,30}\bcatalog\b"
+    r"|\bno\s+\.xcstrings\b|\bnot\s+a\s+string\s+catalog\b",
+    re.I,
+)
+
+
+def localization_section(body: str) -> str | None:
+    """The card's LOCALIZATION section, or None when it has none."""
+    m = LOCALIZATION_HEADING_RE.search(body or "")
+    if not m:
+        return None
+    rest = body[m.end():]
+    nxt = re.search(r"(?im)^#{1,6}\s+\S", rest)
+    return rest[: nxt.start()] if nxt else rest
+
+
+def _catalog_finding(body: str) -> str | None:
+    """The finding for a LOCALIZATION section that names a catalog vaguely.
+
+    The section has to answer one question the worker cannot: WHERE the
+    strings go. A path is the answer; a file NAME is not (= the name alone
+    sent the worker hunting for twelve calls); and "there is no catalog" is
+    an answer too (= then the card must say so, because a project without
+    one cannot take a new key).
+
+    **ONE QUESTION, ONE TEST.** The section mentions a catalog and names no
+    catalog FILE by its full path = the worker has to find it. The test is
+    that single thing, so there is no second path through the code that
+    could reach the same verdict (= a rule with two paths is a rule whose
+    two paths can disagree, and a test that breaks one of them while the
+    other still passes is a test that stopped testing).
+    """
+    section = localization_section(body)
+    if section is None:
+        return None
+    if not CATALOG_MENTION_RE.search(section):
+        return None
+    if NO_CATALOG_RE.search(section):
+        return None
+    # The answer: a full path to a catalog file.
+    for m in CATALOG_PATH_RE.finditer(section):
+        if m.group(0).endswith((".xcstrings", ".strings")):
+            return None
+    named = sorted(set(CATALOG_FILE_RE.findall(section)))
+    if named:
+        return (
+            f"the LOCALIZATION section names {', '.join(named)} without its "
+            "path: give the full path, or say that this project has no string "
+            "catalog, because a file NAME sends the worker hunting for it"
+        )
+    return (
+        "the LOCALIZATION section talks about the string catalog without "
+        "saying where it is: give the full path, or say that this project has "
+        "no string catalog, because the worker cannot guess where the strings "
+        "go"
+    )
+
+
 _OPEN_CARDS_CACHE: dict[str, list[dict]] = {}
 
 
@@ -560,6 +642,10 @@ def contract_errors(card: dict) -> list[str]:
                         "worker hunting for the file"
                     )
             errors.extend(_writer_conflicts(card, order))
+            # The LOCALIZATION section has to say WHERE the strings go.
+            finding = _catalog_finding(body)
+            if finding:
+                errors.append(finding)
 
     return errors
 
