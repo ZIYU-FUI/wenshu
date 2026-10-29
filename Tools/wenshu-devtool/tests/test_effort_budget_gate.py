@@ -44,11 +44,18 @@ spec.loader.exec_module(ebg)
 
 def body(
     goal: str = "x",
-    files: tuple[str, ...] = ("Sources/WenshuApp/Foo.swift",),
+    files: tuple[str, ...] = ("Sources/WenshuApp/Foo.swift:120-138",),
     gates: str = "",
     budget: str = "",
 ) -> str:
-    """A card body with the sections the tools read."""
+    """A card body with the sections the tools read.
+
+    The order names a file WITH a line anchor. A card created after
+    ORDER_CONTRACT_FROM carries an order (= the seam it writes), and the
+    gate reads a path with no anchor as a card that sends the worker
+    hunting for the file. So the default order is anchored, and a test
+    that wants the unanchored shape passes its own order.
+    """
     parts = ["## GOAL", goal, "", "## WHAT TO BUILD"]
     parts.extend(files)
     if gates:
@@ -60,7 +67,7 @@ def body(
 
 def card(
     goal: str = "x",
-    files: tuple[str, ...] = ("Sources/WenshuApp/Foo.swift",),
+    files: tuple[str, ...] = ("Sources/WenshuApp/Foo.swift:120-138",),
     gates: str = "",
     budget: str = "",
     status: str = "ready",
@@ -118,6 +125,13 @@ def guarded(fn):
 
 def main() -> int:
     results: list[bool] = []
+
+    # The suite reads NO board. A case that checks the order shape reaches
+    # the one-writer-per-file check, which reads the live board: a live card
+    # that writes the fixture's file would decide the fixture's verdict, and
+    # the suite would then depend on what the board happens to hold.
+    ebg.BOARD_DB = Path(tempfile.gettempdir()) / "wenshu-devtool-no-such-board.db"
+    ebg._OPEN_CARDS_CACHE.clear()
 
     # 1. no budget at all -> an error
     errors = ebg.contract_errors(card())
@@ -356,6 +370,63 @@ def main() -> int:
             and bool(errors)
             and "EVIDENCE BUDGET" in errors[0],
             raised or f"got {errors}",
+        )
+    )
+
+    # 17. the ORDER shape: a card created after the order epoch carries an
+    # order (= the seam it writes), and a path with no line anchor sends the
+    # worker hunting for the file.
+    #
+    # The rule landed with no test at all: the fixture's default order named
+    # a path with no anchor, so the one case that reached the rule (the
+    # --body mode, which stamps the card with NOW) went RED, and the rule
+    # itself was untested. These cases pin both directions.
+    after = card(budget=good_budget(), created_at=ebg.ORDER_CONTRACT_FROM)
+    errors = ebg.contract_errors(after)
+    results.append(
+        case(
+            "an order that names a path with a line anchor passes",
+            not errors,
+            f"got {errors}",
+        )
+    )
+
+    unanchored = card(
+        files=("Sources/WenshuApp/Foo.swift",),
+        budget=good_budget(),
+        created_at=ebg.ORDER_CONTRACT_FROM,
+    )
+    errors = ebg.contract_errors(unanchored)
+    results.append(
+        case(
+            "an order that names a path with no line anchor is an error",
+            any("without a line anchor" in e for e in errors),
+            f"got {errors}",
+        )
+    )
+
+    before = card(
+        files=("Sources/WenshuApp/Foo.swift",),
+        budget=good_budget(),
+        created_at=ebg.ORDER_CONTRACT_FROM - 1,
+    )
+    errors = ebg.contract_errors(before)
+    results.append(
+        case(
+            "a card created before the order epoch is reported, never blocked",
+            not errors,
+            f"got {errors}",
+        )
+    )
+
+    no_order = card(budget=good_budget(), created_at=ebg.ORDER_CONTRACT_FROM)
+    no_order["body"] = no_order["body"].replace("## WHAT TO BUILD", "## CONTEXT")
+    errors = ebg.contract_errors(no_order)
+    results.append(
+        case(
+            "a card with no WHAT TO BUILD section is an error",
+            any("WHAT TO BUILD" in e for e in errors),
+            f"got {errors}",
         )
     )
 

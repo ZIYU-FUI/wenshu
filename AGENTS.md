@@ -44,10 +44,10 @@ SSOT for every contributor and agent on /Volumes/ANAN/Engineering/wenshu.
 | 1.9 | Load chain: .hermes.md at the repo root is the file Hermes injects (it wins over AGENTS.md) and points here + at the skill chain. A skill body loads on demand via skill_view; only its description is injected. | .hermes.md. `skills.auto_load` in config.yaml injects a body; a frontmatter `default_on` does not. |
 | 1.10 | One ticket = one commit + one atomic verification + one 4-section spec + one dual-axis dispatch + one P0 fix + one verify round + merge gate. | Tools/wenshu-devtool/ticket_tier.py; Scripts/merge-preflight.sh. |
 | 1.11 | The NFI registry = `docs/agents/nfi.md`, append-only; `merge=nfi-registry` in .gitattributes merges two cards' rows at the key level. | docs/agents/nfi.md. |
-| 1.12 | Parallel worktree isolation: every code-changing ticket runs in its own git worktree, never the shared checkout (= a kanban card, `--workspace worktree --project project`, board `wenshu-par`). `delegate_task` is read-only fan-out: its children inherit the parent cwd, so a relative write lands in the shared checkout. | wenshu-parallel-dev |
-| 1.13 | Difficulty tier: every card carries a tier (`[T1]` / `[T2]` / `[T3]`), DERIVED by `ticket_tier.py` from the work its body describes, never hand-set. The tier sets the runtime cap, retry budget, gate width and body budget = cost, not quality: it never skips the dual-axis review, never marks a test skipped. A card in the REVIEW lane answers to that lane's floor (3600s), not to its tier's cap. | ticket_tier.py; ticket-tiers.md. |
+| 1.12 | Parallel worktree isolation: every code-changing ticket runs in its own git worktree, never the shared checkout (= a board card, `--workspace worktree --project project`). | wenshu-parallel-dev |
+| 1.13 | Difficulty tier: every card carries a tier (`[T1]` / `[T2]` / `[T3]`), DERIVED by `ticket_tier.py` from the work its body describes, never hand-set. The tier sets the runtime cap, retry budget, gate width and body budget = cost, not quality. A card in the REVIEW lane answers to that lane's floor (3600s), not to its tier's cap. | ticket_tier.py; ticket-tiers.md. |
 | 1.14 | Independent review: a card that writes CODE carries a `## REVIEW HANDOFF` naming a reviewer profile that is NOT its implementer, and ends with `kanban_request_review(reviewer=...)`. The obligation is DERIVED from the work the body describes, never the tier; a prose-only card owes no verdict. | review_gate.py; merge-preflight.sh. |
-| 1.15 | Evidence before code: a card that reads names its read list, stop condition, forbidden lookups and deliverable in an `## EVIDENCE BUDGET` section. Reading is a cost like a build, and it burns first. | Tools/wenshu-devtool/effort_budget_gate.py (the gate is 7.11). |
+| 1.15 | Evidence before code: a card that reads names its read list, stop condition, forbidden lookups and deliverable in an `## EVIDENCE BUDGET` section, and its write order in `## WHAT TO BUILD`. `ready` means executable. Reading is a cost like a build, and it burns first. | Tools/wenshu-devtool/effort_budget_gate.py (the gate is 7.11). |
 
 ## §2 Stack baseline
 
@@ -118,7 +118,7 @@ SSOT for every contributor and agent on /Volumes/ANAN/Engineering/wenshu.
 | 6.5 | File naming suffix by role: <Xxx>View / <Xxx>Ops / <Xxx>Service / <Xxx>State .swift. One concern per file. | wenshu-swift-standards.md §1.2. |
 | 6.6 | File size cap: 600 LOC per .swift file. Exceed = split, and register the split in the NFI (1.7). DEFERRED (ADR-0025). | wenshu-swift-standards.md §1.2. |
 | 6.7 | One import block per file. Alphabetical. No unused imports. | wenshu-swift-standards.md §1.1. |
-| 6.8 | Root tree (measured 2026-10-28): 6 visible dirs (Scripts / Sources / Tests / Tools / build / docs), 13 hidden dirs, 10 visible files, 7 hidden files. .worktrees/ = card worktrees. .test-backup-x-*/ + .test-vision-*.txt = gitignored sandbox copies (their count grows per test run, so it is not asserted). | Measured 2026-10-28. |
+| 6.8 | Root tree: visible dirs (Scripts / Sources / Tests / Tools / build / docs) + visible files (AGENTS.md / OOB.md / Package.swift / ...). .worktrees/ = card worktrees. .test-backup-*/ + .test-vision-*.txt = gitignored sandbox copies (their count grows per test run, so it is not asserted). | Measured 2026-10-29. |
 | 6.9 | Single-purpose rule. Any dir with exactly 1 file and 0 dependents = deletion candidate (= .scratch/ specs; = docs/agents/ per-role docs; = docs/adr/ per-decision docs). The 3 hidden tooling dirs (.claude/ .git-hooks/ .hermes/) hold one entry each. | Boss OOB 2026-10-16. |
 | 6.10 | Top-level purpose map. Sources/ = Swift targets (canonical). Tests/ = Swift test target. Scripts/ = shell + python helpers. Tools/wenshu-devtool/ = gates + probes. build/ = swift build output (.gitignored). docs/ = adr/ + agents/. | Boss OOB 2026-10-16. |
 
@@ -132,21 +132,22 @@ SSOT for every contributor and agent on /Volumes/ANAN/Engineering/wenshu.
 | --- | ---- | --------- |
 | 7.1 | swift build exits 0. | Scripts/build-app.sh; CI |
 | 7.2 | swift test exits 0. No skipped test without // TODO + tracker id. | CI (swift test). |
-| 7.3 | 9-grep design sweep (icon glyph / spacing / cornerRadius / shadow / font long-form / color opacity / frame max-W/H / imageScale / SFIcon color). Each must return 0 on the changed view files. Enforced by 22 sweep suites in Tests/WenshuAppTests/UI/DesignSystem (swift test), never by the pre-commit hook. | references/v3.0-design-system-rule.md. |
+| 7.3 | 9-grep design sweep (the greps are listed in the reference). Each must return 0 on the changed view files. Enforced by 22 sweep suites in Tests/WenshuAppTests/UI/DesignSystem (swift test), never by the pre-commit hook. | wenshu-pocock-workflow/references/v3.0-design-system-rule.md |
 | 7.4 | Dual-axis audit: Standards axis (code-review + codebase-design) + Spec axis (.scratch/<date>-<topic>/spec.md). Both read-only, parallel. | parallel-development.md; wenshu-parallel-dev. |
 | 7.5 | CJK comment audit: zero new CJK in the modified file. Manual: CI checks the commit subject only; no comment-level CJK gate ships in the tree. | CI lint-commits job |
 | 7.6 | No dead code. | verify-dead.py. |
-| 7.7 | UI-touching ticket: the boss looks at the running build in person. A screenshot is evidence only when asked. | wenshu_devtool.py. |
+| 7.7 | UI-touching ticket: the boss looks at the running build in person. A screenshot is evidence only when asked. The worker's GUI drive = the `computer_use` tool (Hermes' built-in front for the cua-driver MCP server) in background delivery: never synthetic mouse/keyboard events, never the user's cursor or foreground. Headless checks are preferred. | wenshu_devtool.py. |
 | 7.8 | Commit hygiene: 1 commit per ticket, conventional prefix, English subject, body explains WHY. | CI lint-commits job (prefix + no CJK in the subject); commit_filter.py commit-msg hook. |
-| 7.9 | Independent review verdict: the REVIEWER ends with `kanban_complete(metadata={"review_outcome": "approved"})` = the field the gate reads, so a verdict in the summary alone is NO verdict, and it is never backfilled by hand. `Scripts/merge-preflight.sh` refuses the merge without one. | review_gate.py. |
+| 7.9 | The verdict field: the REVIEWER ends with `kanban_complete(metadata={"review_outcome": "approved"})` = the field the gate reads, so a verdict in the summary alone is NO verdict, and it is never backfilled by hand. `Scripts/merge-preflight.sh` refuses the merge without one. | review_gate.py. |
 | 7.10 | Named narrow gate: a card's body names the filtered suite that owns each file it writes, as a `swift test --filter <Suite>` command (a card with no Swift code names its own gate command). A T1/T2 card never asks for the whole suite. Naming no gate is a defect. | gate_width_gate.py |
 
 ### Intake and dispatch gates (they fire before the code exists)
 
 | #   | Gate | Reference |
 | --- | ---- | --------- |
-| 7.11 | Evidence budget: the four lines (read / stop when / no / deliver) come from rule 1.15; this gate checks them when the card enters the board. A card that reads without a budget is a defect. KNOWN GAPS: a bulleted read list counts as 1 file (the 12-file cap is evadable); a mistyped --board audits the default board. | effort_budget_gate.py |
-| 7.12 | Fan-out budget: a card that opens sub-agents names disjoint scopes, one writer per file, and the parent's total call ceiling. Duplicate scopes, duplicate goals and cold-cache children are reported: Hermes does not dedupe, share a cache or set a parent budget, so the card must. KNOWN GAPS: the counts over-count (the parent's reads, a rejected batch). | session_effort_audit |
+| 7.11 | Evidence budget: this gate checks rule 1.15's four lines AND the order shape (line-numbered seams, one writer per file) before a worker starts. A card that reads without a budget is a defect. | effort_budget_gate.py |
+| 7.12 | Fan-out budget: a card that opens sub-agents names disjoint scopes, one writer per file, and the parent's total call ceiling. Duplicate scopes, duplicate goals and cold-cache children are reported: Hermes does not dedupe or set a parent budget, so the card must. | session_effort_audit |
+| 7.13 | Host slots: `kanban.max_in_progress` counts running cards across EVERY board, so one busy board starves the others. An undispatched ready card is usually this cap, not a quota wall; a full host drains by itself, so never reclaim a live worker to make room. | hermes-kanban-dispatch-mechanism skill. |
 
 ## §8 Workflow (universal PO methodology)
 
@@ -154,12 +155,12 @@ SSOT for every contributor and agent on /Volumes/ANAN/Engineering/wenshu.
 
 | #   | Step | Skill |
 | --- | ---- | ----- |
-| 8.1 | Evidence budget: name the read list, stop condition, forbidden lookups and deliverable. | rule 1.15; effort_budget_gate.py. |
+| 8.1 | Evidence budget (the four lines + the write order). The research happens BEFORE the card, so the card is an order. | rule 1.15; effort_budget_gate.py. |
 | 8.2 | Design card: the Apple canonical API, the target shape, the stop condition. One page. | wenshu-apple-api-first. |
-| 8.3 | 4-section business-language spec (business / current state / Apple canonical / after-fix). The Apple-canonical section IS the design card from 8.2, never a restatement. | wenshu-pocock-workflow + universal-pocock-workflow. |
+| 8.3 | 4-section business-language spec (business / current state / Apple canonical / after-fix). The Apple-canonical section IS the design card from 8.2. | wenshu-pocock-workflow + universal-pocock-workflow. |
 | 8.4 | Code + smoke test + reproduce, in a worktree (board card, rule 1.12). | diagnosing-bugs; wenshu-parallel-dev. |
 | 8.5 | Real violation inventory (read-only): the grep inventory of the affected area, by rule. | §7.3. |
-| 8.6 | Fan-out budget: disjoint scopes, one writer per file, the parent's call ceiling, one shared evidence pack. | rule 7.12; session_effort_audit.py. |
+| 8.6 | Fan-out budget (disjoint scopes, one writer per file, the call ceiling). | rule 7.12; session_effort_audit.py. |
 | 8.7 | Dual-axis dispatch (Standards + Spec, 2 parallel read-only sub-agents). | code-review; codebase-design. |
 | 8.8 | Fix P0. | universal-pocock-workflow step 5. |
 | 8.9 | Verify round over the files the fix commit touched. | universal-pocock-workflow step 6. |

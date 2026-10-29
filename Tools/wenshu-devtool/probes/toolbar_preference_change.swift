@@ -4,8 +4,14 @@
 //  times (= N app-preference changes), then reports whether the process
 //  survived.
 //
-//  BACKGROUND-ONLY: it reads the accessibility tree and performs
-//  accessibility actions, which never raise, activate, or focus the app.
+//  RETIRED AS A GUI DRIVER (2026-10-29): the operator's rule is that the
+//  flow never takes the human's mouse or keyboard, and an accessibility
+//  PRESS does move the pointer and pull the app forward (= the old
+//  "never raise, activate, or focus" claim below was wrong). The GUI drive
+//  belongs to the CUA tool (`computer_use`, background delivery); this
+//  driver's press path must not run. Keep the READ half (the persisted
+//  preference key, the process watch, the crash reports) = the verification.
+//  See wenshu-parallel-dev/references/ui-proof-without-taking-the-users-input.md
 //
 //  The driver matches no localized text. The Settings menu item is found
 //  by its COMMAND CHARACTER (= the standard Settings shortcut is a comma)

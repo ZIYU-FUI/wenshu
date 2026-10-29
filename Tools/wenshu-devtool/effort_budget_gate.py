@@ -67,6 +67,12 @@ WHAT THE GATE ALLOWS:
   right column", it carried a GATES section, and it therefore passed a
   gate that would have told it to read seven files instead of 521.
 
+KNOWN GAPS (this tool's own limits; they moved here from AGENTS.md 7.11 when
+the SSOT ran out of room):
+
+  - A bulleted read list counts as ONE file (= the 12-file cap is evadable).
+  - A mistyped --board audits the DEFAULT board, not the one you meant.
+
 THE GATE STARTS ON A DATE, NOT ON A FLAG. Cards created before
 EVIDENCE_CONTRACT_FROM are reported, never blocked: rewriting the cards
 already on the board is not this tool's business, and the cards already in
@@ -113,6 +119,14 @@ BUDGET_LINES = ("read", "stop when", "no", "deliver")
 # How many files a card may name. A card that names more has not budgeted
 # anything; the right-column session read 521 distinct Swift files.
 MAX_READ_FILES = 12
+
+# The ORDER contract. The research happens BEFORE the card (rule 8.1), so a
+# card that writes code carries an ORDER: the exact file, the exact lines,
+# what changes there. Cards created before this date are reported, never
+# blocked (= the same shape as EVIDENCE_CONTRACT_FROM above).
+ORDER_CONTRACT_FROM = 1793203200  # 2026-10-29 00:00 CST
+
+ORDER_HEADING_RE = re.compile(r"(?im)^#{1,6}\s*what\s+to\s+build\b.*$")
 
 # What makes a card a research card. A card that matches is in scope.
 RESEARCH_RE = re.compile(
@@ -381,6 +395,95 @@ def is_subject(created_at: int | None) -> bool:
     return int(created_at) >= EVIDENCE_CONTRACT_FROM
 
 
+def order_section(body: str) -> str | None:
+    """The card's WHAT TO BUILD section (= the order it carries)."""
+    m = ORDER_HEADING_RE.search(body or "")
+    if not m:
+        return None
+    rest = body[m.end():]
+    nxt = re.search(r"(?im)^#{1,6}\s+\S", rest)
+    return rest[: nxt.start()] if nxt else rest
+
+
+def order_paths(section: str) -> list[str]:
+    """The code paths the order names, deduplicated, in the order it names them."""
+    out: list[str] = []
+    for m in CODE_PATH_RE.finditer(section or ""):
+        if m.group(0) not in out:
+            out.append(m.group(0))
+    return out
+
+
+# The anchor comes in the shapes a writer actually uses: `path:120-138`,
+# `L258-267`, `line 40`, `lines 29 and 37`. The gate's question is "does the
+# order name the seam", not "which notation did the author pick" (= the
+# first version of this check only knew `path:line` and rejected the
+# orders the other sessions wrote).
+ANCHOR_RE = re.compile(r"(?:\bL\d{1,5}\b|\blines?\s+\d{1,5}\b|:\d{1,5})")
+ORDER_ITEM_RE = re.compile(r"(?m)^\s*\**\s*\d+[\.\)]\s")
+
+
+def order_items(section: str) -> list[str]:
+    """The order's numbered items (each item may name files and their lines)."""
+    text = section or ""
+    marks = list(ORDER_ITEM_RE.finditer(text))
+    if not marks:
+        return [text]
+    out: list[str] = []
+    for i, m in enumerate(marks):
+        end = marks[i + 1].start() if i + 1 < len(marks) else len(text)
+        out.append(text[m.start():end])
+    return out
+
+
+def _anchored(section: str, path: str) -> bool:
+    """Does the order give this path a line anchor (= the seam it names)?"""
+    for item in order_items(section):
+        if path in item and ANCHOR_RE.search(item):
+            return True
+    return False
+
+
+_OPEN_CARDS_CACHE: dict[str, list[dict]] = {}
+
+
+def _open_cards() -> list[dict]:
+    """The board's cards, read once and cached (the sweep calls this per card)."""
+    key = str(BOARD_DB)
+    if key not in _OPEN_CARDS_CACHE:
+        rows = _board_cards()
+        _OPEN_CARDS_CACHE[key] = rows or []
+    return _OPEN_CARDS_CACHE[key]
+
+
+def _writer_conflicts(card: dict, order: str) -> list[str]:
+    """The other open cards that write the same files (= one writer per file).
+
+    A line anchor is a promise about the file's content, and it holds only
+    while this card is the file's sole writer. Two cards that write one file
+    are a collision, not a parallel: the board serializes them (the
+    parent->child link puts the second one behind the first).
+    """
+    mine = order_paths(order)
+    if not mine:
+        return []
+    out: list[str] = []
+    for other in _open_cards():
+        if other.get("id") == card.get("id"):
+            continue
+        if other.get("status") not in ("ready", "running"):
+            continue  # a card that waits behind this one cannot collide
+        theirs = order_paths(order_section(_body_text(other)) or "")
+        clash = sorted({p for p in mine if p in theirs})
+        if clash:
+            out.append(
+                f"{other.get('id')} ({other.get('status')}) also writes "
+                f"{', '.join(clash[:3])}: one writer per file, so link the two "
+                "cards and let one wait, or drop the line anchors"
+            )
+    return out
+
+
 def contract_errors(card: dict) -> list[str]:
     """Return the contract errors of one card."""
     errors: list[str] = []
@@ -429,6 +532,34 @@ def contract_errors(card: dict) -> list[str]:
 
     if "deliver" in lines and len(lines["deliver"]) < 8:
         errors.append("the 'deliver:' line names no artifact")
+
+    # The ORDER shape. The research happens BEFORE the card (rule 8.1), so a
+    # card that writes code carries an ORDER: the exact file, the exact
+    # lines, what changes there. A path without a line sends the worker
+    # hunting for the seam (= measured: 27 searches in a card whose order
+    # named a symbol that had already moved).
+    created = card.get("created_at") or 0
+    try:
+        created = int(created)
+    except (TypeError, ValueError):
+        created = 0
+    if created >= ORDER_CONTRACT_FROM:
+        order = order_section(body)
+        if order is None:
+            errors.append(
+                "the card carries no '## WHAT TO BUILD' section, so it carries "
+                "no order: the research happens BEFORE the card, and the card "
+                "is the order"
+            )
+        else:
+            for path in order_paths(order):
+                if not _anchored(order, path):
+                    errors.append(
+                        f"the order names {path} without a line anchor: name "
+                        "the seam (path:line), because a path alone sends the "
+                        "worker hunting for the file"
+                    )
+            errors.extend(_writer_conflicts(card, order))
 
     return errors
 
