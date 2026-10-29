@@ -182,3 +182,4 @@ reference, LOC, and content tag.
 
 <!-- Append new rows at the END of the table above. The key-level merge
      driver keeps both rows when two cards add one each. -->
+| `docs/agents/2026-10-30-layout-guard-and-quota-closeout.md` | `docs/agents/2026-10-30-layout-guard-and-quota-closeout.md` | 78 | the session closeout of record: the four landed commits (= the resize guard, the chat pane height, the divider drag, and the quota naming on both sides of the package boundary), the suites that prove them (= 104 tests, 0 failures), the durable ancestry fact, and the open item (= the app hangs at launch in a blocking read inside loadShelves, which is why the launch arm measured nothing). |
