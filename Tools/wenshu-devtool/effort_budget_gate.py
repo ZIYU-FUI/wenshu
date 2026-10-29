@@ -539,12 +539,36 @@ def _open_cards() -> list[dict]:
 
 
 def _writer_conflicts(card: dict, order: str) -> list[str]:
-    """The other open cards that write the same files (= one writer per file).
+    """The other open cards that name the same files in their order.
 
     A line anchor is a promise about the file's content, and it holds only
-    while this card is the file's sole writer. Two cards that write one file
+    while this card is the file's sole writer. Two cards that WRITE one file
     are a collision, not a parallel: the board serializes them (the
     parent->child link puts the second one behind the first).
+
+    **WHAT THIS CHECK KNOWS AND WHAT IT DOES NOT.** It knows that the two
+    orders NAME the same file. It does not know that both of them change
+    it, because the order names a file in prose as often as it names one
+    to change (= a card that writes a new view says "the Connect tab
+    already pushes it, so there is no shell change", and that path is a
+    mention, not an edit). Measured 2026-10-29 on the mobile line: a card
+    that says exactly that was reported as colliding with the card that
+    does change the shell.
+
+    So the finding states the FACT (= both orders name the file) and leaves
+    the judgement to the reader, who can see whether each order changes it.
+    Three ways to read a card body were tried for a sharper rule (= the
+    numbered item's first line, the paths in an exclusion section, and the
+    paths the order names at all), and each one misfires on real cards: the
+    first drops files a card really writes, the second drops files a card
+    really writes because the exclusion section names them for another
+    reason, and the third is the rule this check already used (= the order
+    names a file to change AND a file to mention, and it cannot tell them
+    apart).
+
+    The cost of the looser rule is one extra link between two cards, and
+    the cost of a missed collision is two workers editing one file, so the
+    loose direction is the safe one.
     """
     mine = order_paths(order)
     if not mine:
@@ -559,9 +583,12 @@ def _writer_conflicts(card: dict, order: str) -> list[str]:
         clash = sorted({p for p in mine if p in theirs})
         if clash:
             out.append(
-                f"{other.get('id')} ({other.get('status')}) also writes "
-                f"{', '.join(clash[:3])}: one writer per file, so link the two "
-                "cards and let one wait, or drop the line anchors"
+                f"{other.get('id')} ({other.get('status')}) names the same "
+                f"file(s) in its order (= {', '.join(clash[:3])}): if BOTH "
+                "cards change one of them, one writer per file says link the "
+                "two and let one wait; a path an order only MENTIONS (= the "
+                "tab already pushes it, so there is no shell change) is not a "
+                "collision"
             )
     return out
 
