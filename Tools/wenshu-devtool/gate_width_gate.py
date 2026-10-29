@@ -138,13 +138,13 @@ NARROW_SUITE_PHRASE_RE = re.compile(
 # means them together, and separates them when it does not.
 #
 # KNOWN LIMIT: the negation is an ENGLISH one. A card that writes its
-# evidence in Chinese says "收尾跑全量 swift test，…红了" (= the full suite
-# was run at the end and it was red), which is a PAST-TENSE fact about a
-# run that already happened, and no English negation is present to find.
-# Measured over the 173 real cards, four of them are Chinese and are read
-# as wide demands. The template writes card bodies in English (rule 1.1),
-# so this is a limit on the OLD cards, not on the flow: a new card that
-# says "the full suite is NOT this card's gate" is read correctly.
+# evidence in Chinese says that the full suite was run at the end and it
+# was red, which is a PAST-TENSE fact about a run that already happened,
+# and no English negation is present to find. Measured over the 173 real
+# cards, four of them are Chinese and are read as wide demands. The
+# template writes card bodies in English (rule 1.1), so this is a limit on
+# the OLD cards, not on the flow: a new card that says "the full suite is
+# NOT this card's gate" is read correctly.
 #
 # The other known limit is a card whose GATES heading runs into its first
 # sentence, so the heading and the sentence are one string. That one is a
