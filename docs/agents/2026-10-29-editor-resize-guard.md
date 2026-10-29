@@ -2,16 +2,15 @@
 
 Status: merged to `main` (= merge commit `87ba16e2ef`, = the merge of
 `project/t_f02fc603-t2-zooming-the-window-kills-the-app-the` into
-`37866de6bf`), pushed to `origin` and `old-origin` (both at
-`87ba16e2ef96d173b3b162f54c7edad7f83abb29`).
+`37866de6bf`), pushed to `origin` and `old-origin` (= both carry the
+merge commit and this closure record; see "The remotes" below for the
+tips, which move as other lanes land).
 The three reviewed commits keep their SHAs: they are the branch's own
 history, which the merge carries as its second parent (`124e84b8db`), so
 `git merge-base --is-ancestor 124e84b8db main` exits 0.
 Merged tree: `dc3e65cca9615d1cc8d0c9ea02a6bb8068d1e2ff` (= the tree the
 dry merge predicted against the `main` tip, = byte-identical to the
 branch's).
-Both remotes carry the MERGE commit (= the merged tip = `87ba16e2ef`);
-this closure record is a separate commit on `main` above it.
 Branch and worktree: `project/t_f02fc603-t2-zooming-the-window-kills-the-app-the`
 and `.worktrees/t_f02fc603` (= both deleted after the merge = they carried
 nothing the merge does not).
@@ -155,18 +154,23 @@ that the two suites ran on is that tree's.
 
 ## The remotes
 
-Both remotes carry the merged tip = the merge commit `87ba16e2ef`, which
-is what the card's acceptance asks them to return.
+Both remotes carry this card's result: the merge commit `87ba16e2ef` and
+the closure record `36d041c294` are ANCESTORS of each remote's
+`refs/heads/main`, so the three reviewed commits are reachable from each
+remote as well as from `main`.
 
-| remote | `refs/heads/main` |
-| --- | --- |
-| `origin` (= `git@gitcode.com:ZIYU1983/wenshu.git`) | `87ba16e2ef96d173b3b162f54c7edad7f83abb29` (= the merge commit, = the merged tip) |
-| `old-origin` (= `git@github.com:ZIYU-FUI/wenshu.git`) | `87ba16e2ef96d173b3b162f54c7edad7f83abb29` (= the merge commit, = the merged tip) |
+| remote | `refs/heads/main` | carries this card's result |
+| --- | --- | --- |
+| `origin` (= `git@gitcode.com:ZIYU1983/wenshu.git`) | `247e43218f3178514335395d35cf6ff4ae4f241c` | yes (= the merge commit and the closure record are its ancestors) |
+| `old-origin` (= `git@github.com:ZIYU-FUI/wenshu.git`) | `36d041c2949907048835a696fd308d634a3698a1` | yes (= its tip IS the closure record) |
 
-The closure record rides above the merge on local `main` (= it is written
-after the push, because it names the remotes' tips), and the merge
-commit is an ancestor of both remotes' `refs/heads/main`, so the three
-reviewed commits are reachable from each remote as well as from `main`.
+The tips differ, and the difference is not this card's: `old-origin` was
+pushed with this card's closure record as its tip, and `origin` has
+since received TWO MORE COMMITS FROM ANOTHER LANE
+(`b8fcdfd70`, `247e43218`, = a docs commit and an agent-test commit,
+neither of them this card's) on top of the same closure record. So the
+exact tip moves as other lanes land, and the durable fact = the merge
+commit and this record are ancestors of both.
 
 Note on the route to `old-origin`: the host's SSH port 22 is answered by
 the local proxy's fake-IP address (`198.18.0.113`), and the connection
@@ -175,7 +179,7 @@ others, with either route (the repository's configured
 `core.sshcommand = ssh -o ProxyCommand='nc -X connect -x 127.0.0.1:7897
 %h %p'`, or a direct `ssh` with no proxy) able to be the one that drops.
 So the read is worth a retry: it returned
-`87ba16e2ef96d173b3b162f54c7edad7f83abb29` on the attempt that
+`36d041c2949907048835a696fd308d634a3698a1` on the attempt that
 answered. The merge is the same commit on both remotes either way.
 
 ## Why the merge is a merge commit
