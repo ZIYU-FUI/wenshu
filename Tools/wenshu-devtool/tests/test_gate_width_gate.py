@@ -259,11 +259,20 @@ def main() -> int:
         )
     )
 
+    # 5. A card that writes NO Swift code names its own gate command.
+    #    A tool card or a docs card has no Swift suite to filter, so the
+    #    rule cannot be "name a swift test --filter" for it, or the gate
+    #    would block every non-Swift card on the board.
+    b = body(
+        files=("Tools/wenshu-devtool/wave_gate.py",),
+        gates="python3 Tools/wenshu-devtool/tests/test_wave_gate.py",
+    )
+    tool_row = gwg.report_body(b, None)
     results.append(
         case(
             "a card that writes no Swift code names its own gate command",
-            row["gate_width"] == "narrow" and not row["findings"],
-            f"gate={row['gate_width']} findings={row['findings']}",
+            tool_row["gate_width"] == "narrow" and not tool_row["findings"],
+            f"gate={tool_row['gate_width']} findings={tool_row['findings']}",
         )
     )
 
