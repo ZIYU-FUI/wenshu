@@ -182,6 +182,17 @@ struct WenshuMarkdownEditorAdapterTests {
         return url.path
     }
 
+    /// The file's code lines only (= the whole-line comments dropped),
+    /// so a comment that names a symbol neither satisfies nor breaks a
+    /// gate. Block comments are not stripped (= the files these gates
+    /// read carry line comments only).
+    private func codeOnly(_ source: String) -> String {
+        source
+            .split(separator: "\n", omittingEmptySubsequences: false)
+            .filter { !String($0).trimmingCharacters(in: .whitespaces).hasPrefix("//") }
+            .joined(separator: "\n")
+    }
+
     // MARK: - LaTeX rendering enabled (= boss拍 2026-10-11)
 
     @Test("WenshuEditorServicesFactory constructs a LatexRenderer (= NoOpLatexRenderer is NOT the production choice)")
@@ -433,23 +444,39 @@ struct WenshuMarkdownEditorAdapterTests {
     }
 
     /// The factory must forward the EditorPreferences snapshot to
-    /// MarkdownEditorConfiguration (= 5 binding lines; = if any
-    /// disappears the host's settings silently stop flowing into
-    /// the editor).
-    @Test("WenshuEditorServicesFactory forwards EditorPreferences to config (= 5 binding lines)")
+    /// MarkdownEditorConfiguration (= the 4 live settings; = if any
+    /// disappears the host's settings silently stop reaching the
+    /// engine). The reading width is not among them (= it is pinned
+    /// to nil by its own gate below).
+    @Test("WenshuEditorServicesFactory forwards the live EditorPreferences to config (= 4 binding lines)")
     func servicesFactoryForwardsEditorPreferences() throws {
         let factoryPath = resolve("Sources/WenshuApp/Features/Editor/Service/WenshuEditorServicesFactory.swift")
         let factory = try String(contentsOfFile: factoryPath, encoding: .utf8)
-        #expect(factory.contains("config.readingWidth = preferences.readingWidth"),
-                "Factory must bind config.readingWidth from preferences.readingWidth")
-        #expect(factory.contains("config.heightBehavior = preferences.heightBehavior"),
+        let code = codeOnly(factory)
+        #expect(code.contains("config.heightBehavior = preferences.heightBehavior"),
                 "Factory must bind config.heightBehavior from preferences.heightBehavior")
-        #expect(factory.contains("config.rawSourceMode = preferences.rawSourceMode"),
+        #expect(code.contains("config.rawSourceMode = preferences.rawSourceMode"),
                 "Factory must bind config.rawSourceMode from preferences.rawSourceMode")
-        #expect(factory.contains("config.spellChecking = SpellCheckingPolicy("),
+        #expect(code.contains("config.spellChecking = SpellCheckingPolicy("),
                 "Factory must build SpellCheckingPolicy from preferences")
-        #expect(factory.contains("config.lists = ListStyle("),
+        #expect(code.contains("config.lists = ListStyle("),
                 "Factory must build ListStyle from preferences (= listHelpersEnabled + autoClosePairsEnabled)")
+    }
+
+    /// The reading width is NOT a forwarded preference: the
+    /// 2026-10-14 decision pins `config.readingWidth = nil` (= the
+    /// engine resolves the column width from the editor's own scroll
+    /// view), so this gate asks for the pin and keeps the removed
+    /// binding removed.
+    @Test("WenshuEditorServicesFactory pins config.readingWidth to nil (= the 2026-10-14 decision)")
+    func servicesFactoryPinsReadingWidthToNil() throws {
+        let factoryPath = resolve("Sources/WenshuApp/Features/Editor/Service/WenshuEditorServicesFactory.swift")
+        let factory = try String(contentsOfFile: factoryPath, encoding: .utf8)
+        let code = codeOnly(factory)
+        #expect(code.contains("config.readingWidth = nil"),
+                "Factory must pin config.readingWidth to nil (= the engine resolves the column width itself)")
+        #expect(!code.contains("config.readingWidth = preferences.readingWidth"),
+                "Factory must NOT bind config.readingWidth from preferences (= the 2026-10-14 decision removed that binding)")
     }
 
     // MARK: - ed-smc-defaults T-13: scroll-memory persistence
@@ -494,35 +521,64 @@ struct WenshuMarkdownEditorAdapterTests {
 
     // MARK: - ed-smc-defaults T-03: editor status bar (= bottom chrome)
 
-    /// T-03 ships `EditorStatusBarView` (= the 24 PT bottom chrome
-    /// band of the editor zone; = 3 chunks = word count / cursor
-    /// location / autosave state). Source-content gate: if anyone
-    /// removes the View the editor zone silently loses its bottom
-    /// chrome (= the canonical Pages / Numbers inspector status bar).
-    @Test("EditorStatusBarView exists as the 24 PT bottom chrome (= T-03)")
+    /// T-03 ships `EditorStatusBarView` (= the bottom chrome band of
+    /// the editor zone; = word count + autosave state). The band's
+    /// height is not this view's own (= the shared `ChromeBottomFooter`
+    /// shell owns it, = so the editor bar and the chat footer stay one
+    /// canonical bottom chrome).
+    @Test("EditorStatusBarView exists as the editor zone's bottom chrome (= T-03)")
     func editorStatusBarViewExists() throws {
         let barPath = resolve("Sources/WenshuApp/Features/Editor/View/EditorStatusBarView.swift")
         let bar = try String(contentsOfFile: barPath, encoding: .utf8)
-        #expect(bar.contains("struct EditorStatusBarView"),
+        let code = codeOnly(bar)
+        #expect(code.contains("struct EditorStatusBarView"),
                 "EditorStatusBarView must exist (= the bottom chrome band of the editor zone)")
-        #expect(bar.contains(".frame(height: 24)"),
-                "EditorStatusBarView must be 24 PT (= Apple HIG status bar height)")
+        #expect(code.contains("ChromeBottomFooter("),
+                "EditorStatusBarView must render through the shared ChromeBottomFooter shell (= one bottom-chrome component)")
+        #expect(!code.contains(".frame(height:"),
+                "EditorStatusBarView must NOT hardcode its own height (= the shared shell owns the band height)")
+        #expect(!code.contains("cursorRectProvider"),
+                "EditorStatusBarView must NOT take a cursorRectProvider (= the cursor-location chunk was removed on 2026-10-13)")
     }
 
-    /// The status bar mounts inside `EditorView` (= the outer zone
-    /// VStack between the NSTextView and the closing brace). If
-    /// anyone removes the mount, the editor zone silently loses the
-    /// bottom chrome.
-    @Test("EditorView mounts EditorStatusBarView in zone outer VStack (= T-03)")
+    /// The bottom-chrome band's height lives in the shared component
+    /// and its design token (= one height for every column bottom).
+    @Test("The shared ChromeBottomFooter owns the bottom-chrome height (= T-03)")
+    func sharedBottomChromeOwnsItsHeight() throws {
+        let footerPath = resolve("Sources/WenshuApp/Features/Chrome/View/ChromeBottomFooter.swift")
+        let footer = try String(contentsOfFile: footerPath, encoding: .utf8)
+        #expect(codeOnly(footer).contains("DesignTokens.chromeBottomFooterHeight"),
+                "ChromeBottomFooter must derive its content-row height from the shared design token")
+        let tokensPath = resolve("Sources/WenshuApp/DesignTokens.swift")
+        let tokens = try String(contentsOfFile: tokensPath, encoding: .utf8)
+        #expect(tokens.contains("static let chromeBottomFooterHeight"),
+                "DesignTokens must declare the chromeBottomFooterHeight token (= the one bottom-chrome height)")
+    }
+
+    /// The status bar mounts at the bottom edge of the editor zone
+    /// (= the zone's `.safeAreaInset(edge: .bottom)`; = pinned, = it
+    /// does NOT scroll with the text). The cursor-location chunk was
+    /// dropped on 2026-10-13 (= a developer convention wenshu's
+    /// readers do not use), so the `cursorRectProvider` closure is
+    /// gone and this gate keeps it gone. The live caret rect still
+    /// reaches the open tab (= the engine reports the rect through
+    /// `onCaretRectChange`; = the tab stores it), so this gate asks
+    /// for that shape instead of the removed closure spelling.
+    @Test("EditorView mounts EditorStatusBarView at the zone's bottom edge (= T-03)")
     func editorViewMountsStatusBar() throws {
         let editorPath = resolve("Sources/WenshuApp/Features/Editor/View/EditorView.swift")
         let editor = try String(contentsOfFile: editorPath, encoding: .utf8)
-        #expect(editor.contains("EditorStatusBarView("),
+        let code = codeOnly(editor)
+        #expect(code.contains("EditorStatusBarView("),
                 "EditorView must construct EditorStatusBarView (= the bottom chrome band mount)")
-        #expect(editor.contains("textProvider: { self.draft }"),
+        #expect(code.contains(".safeAreaInset(edge: .bottom"),
+                "EditorView must mount the status bar on the zone's bottom edge (= pinned, = it does not scroll with the text)")
+        #expect(code.contains("textProvider: { self.draft }"),
                 "EditorView must wire textProvider to the active tab's draft (= live word count source)")
-        #expect(editor.contains("cursorRectProvider: { self.cursorRect }"),
-                "EditorView must wire cursorRectProvider to its cursorRect computed property (= live cursor location source)")
+        #expect(code.contains("self.appState.openTabs[idx].cursorRect = rect"),
+                "EditorView must write the engine's caret rect into the open tab (= the rect reaches the tab)")
+        #expect(!code.contains("cursorRectProvider"),
+                "EditorView must NOT wire a cursorRectProvider (= the cursor-location chunk was removed on 2026-10-13)")
     }
 
     /// `WenshuMarkdownEditor` must forward the caret-rect callback to
