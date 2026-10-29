@@ -162,7 +162,7 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
     /// .regular; the `sidebarWidth` + `sidebarInset` properties on this case
     /// hold the optical slot so callers do not have to know the difference
     /// between the symbol's intrinsic width and the row slot.
-    /// Used by: the Settings scene's 5-pane sidebar (= its pane list calls
+    /// Used by: the Settings scene's 8-pane sidebar (= its pane list calls
     /// `SFIcon(pane.icon, style: .sidebar, color: IconColor.secondary)`).
     /// `SFLabelRow` is the reference implementation the design-system suites
     /// read (= the factory's own exemplar, not a production caller).
@@ -175,12 +175,12 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
     /// chrome sidebar of the main window, not the System Settings
     /// surface).
     /// Distinct from `.sidebar` (= which is reserved for the Settings scene's
-    /// 5-pane sidebar): the main-window library tree's outline icon is
+    /// 8-pane sidebar): the main-window library tree's outline icon is
     /// monochrome (= only the Settings scene uses multicolor). this tier
     /// renders the SF Symbol in `.monochrome` with the system-primary color (=
     /// no multicolor, no squircle tile, = the Apple HIG canonical "chrome"
     /// sidebar row icon) while `.sidebar` keeps the multicolor + dark squircle
-    /// tile that the Settings scene uses (= the Apple System Settings 5-pane
+    /// tile that the Settings scene uses (= the Apple System Settings
     /// chip look).
     /// Apple HIG source: macOS 27 Tahoe `Sidebars > List > Sidebar row anatomy`
     /// (the chrome side — the library tree is chrome, not an Apple
@@ -505,7 +505,7 @@ struct SFIcon: View {
         // color only; = no hierarchical / multicolor / palette optical depth;
         // = the SFIcon factory stays the single canonical surface; = a future
         // ticket may re-enable per-icon rendering for the sidebar (= the Apple
-        // System Settings 5-pane sidebar canonical look). The switch keeps the
+        // System Settings sidebar canonical look). The switch keeps the
         // `.variableColor` branch (= the in-progress spinner affordance stays;
         // = it's per-frame animation, not static color depth).
         switch rendering {
