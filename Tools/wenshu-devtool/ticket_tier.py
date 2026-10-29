@@ -460,12 +460,22 @@ def areas_of(paths: list[str]) -> set[str]:
     one file in one feature is narrow, and a card that writes files in three
     areas can break a caller it never named, so its narrow gate would not
     prove the change.
+
+    An area is a DIRECTORY, so the file's name never becomes one. A path
+    with fewer directories than the cut (= `Tests/WenshuMobileTests/
+    GlassSurfaceTests.swift`, where the tree is two levels deep, not four)
+    used to fall through to the file path itself, so ONE test file counted
+    as its own area and a five-file card measured five areas = a T3 it did
+    not earn. The cut is on the directory, so the depth of the tree
+    decides how deep the area goes, not how many segments the path has.
     """
     areas: set[str] = set()
     for path in paths:
         parts = path.split("/")
-        if path.startswith(("Sources/", "Tests/")) and len(parts) > 2:
-            areas.add("/".join(parts[:3]))
+        if (path.startswith("Sources/") or "/Tests/" in f"/{path}") and len(parts) > 2:
+            # Drop the file's name, so the deepest segment is a directory.
+            directory = "/".join(parts[:-1])
+            areas.add("/".join(directory.split("/")[:3]))
         elif path.startswith(("Tools/", "Scripts/", "docs/")):
             areas.add(parts[0])
         else:
@@ -473,26 +483,161 @@ def areas_of(paths: list[str]) -> set[str]:
     return areas
 
 
+# The sections that carry the ORDER: the paths in them are the files the
+# card WRITES. Every other section that names a path is naming CONTEXT
+# (= the current state, a sibling's file, a reference). The tier rates the
+# writing set, so this list is what decides the card's file counts.
+#
+# The heading vocabulary is shared with wave_gate.py on purpose: both tools
+# must read the same card the same way, or a card can be narrow to one tool
+# and wide to the other.
+#
+# **THE LIST IS THE CARD TEMPLATE'S OWN VOCABULARY, NOT A GUESS.** The
+# template (= `wenshu-parallel-dev/templates/kanban-card-body.md`) fixes the
+# sections a card has: GOAL, WHY, BASE, WHAT TO BUILD, MUST NOT CHANGE,
+# LOCALIZATION, TESTS, EVIDENCE BUDGET, GATES, ACCEPTANCE, REVIEW HANDOFF.
+# Of those, the writing ones are WHAT TO BUILD (= the code), TESTS (= the
+# tests that prove it), LOCALIZATION (= the string catalog) and BASE (= the
+# files the change starts from), and the list carries them plus the older
+# names cards already in the board use.
+#
+# The list used to MISS `TESTS`, and that was not a rare case: measured over
+# 173 real cards, 43 of them carry their test files under a `TESTS` heading,
+# so the tier rated those cards by their source files alone and the
+# slice gate could not see the test file that proves the work. A whitelist
+# is a guess that has to be re-guessed for every new heading, so the fix is
+# to take the headings from the template, which is a contract.
+WRITE_SECTIONS = {
+    # The template's writing sections.
+    "what to build",
+    "tests",
+    "localization",
+    "base",
+    # The older names the cards already on the board use.
+    "what to change",
+    "the change",
+    "the build",
+    "the order",
+    "write order",
+    "landing order",
+    "plan",
+    "implementation",
+    "files to write",
+    "files to change",
+}
+
+# A file name with NO directory (= `ChatSessionViewModel.swift`). PATH_RE
+# requires the leading `Sources/` / `Tests/`, so a bare name is invisible to
+# it; the order's own files are named that way whenever the card already
+# named the directory for its neighbours.
+_BARE_FILE_RE = re.compile(r"[A-Za-z0-9_-]+\.(?:swift|xcstrings|md|py|sh)")
+
+
+def _is_write_section(name: str) -> bool:
+    """Whether a section carries the card's ORDER (= the files it writes)."""
+    return name.strip().rstrip(":").strip().lower() in WRITE_SECTIONS
+
+
+def order_paths(body: str) -> set[str]:
+    """The files the card's ORDER names (= the paths in its writing sections).
+
+    A card is an order: the paths in its writing sections are the files it
+    writes, and the paths elsewhere in the body are CONTEXT (= what the
+    current state looks like, what a sibling card owns, what a sibling
+    commit touched). Rating a card on every path it MENTIONS charges it for
+    work it never asked for: measured on board wenshu-par, 2026-10-29, card
+    t_6876ec70 wrote two files and was rated T3 because its CURRENT STATE
+    section described seven others, and t_dae9ab0d wrote none and was rated
+    T3 because the body named a package boundary in passing.
+
+    So the tier rates the WRITING SET, and a card whose writing set cannot be
+    read (= no writing section at all) falls back to the whole body, so an
+    unparseable card never earns a cheaper tier by being unreadable.
+    """
+    written, _forbidden = work_scope(body)
+    order: set[str] = set()
+    bare_only: set[str] = set()
+    found = False
+    for name, text in sections(body):
+        if _is_routing(name) or _is_exclusion(name) or wave_gate.is_read_only(name):
+            continue
+        if not _is_write_section(name):
+            continue
+        found = True
+        stripped = wave_gate.CITATION_RE.sub("", text)
+        qualified = set(wave_gate.PATH_RE.findall(stripped))
+        order |= qualified
+        # A bare file name (= `ChatSessionViewModel.swift`, no directory) is
+        # NOT a PATH_RE match, because PATH_RE requires the leading
+        # `Sources/` / `Tests/`. A card's order names its file that way
+        # whenever the file is in the same directory as the ones already
+        # named, so counting only PATH_RE would UNDER-count the order and
+        # rate the card by the files it merely mentions. The bare name is
+        # resolved against the qualified paths (= same basename) so it
+        # counts as the file it is, not as a nameless string.
+        bare = set(_BARE_FILE_RE.findall(stripped))
+        for name_only in bare:
+            resolved = next(
+                (p for p in qualified if p.rsplit("/", 1)[-1] == name_only),
+                None,
+            )
+            if resolved is not None:
+                # The bare name IS a qualified path already in the set: add
+                # it once, so it does not count as a second file.
+                order.add(resolved)
+                continue
+            # An unresolvable bare name (= no qualified path shares its
+            # basename) cannot be placed in the tree, so it counts as a
+            # FILE but not as an AREA: counting it as an area would rate the
+            # card by a directory we do not know. Measured 2026-10-29, card
+            # t_222d0c87 named `SidebarInline.swift` next to three qualified
+            # paths in two areas, and the unresolved name pushed it over the
+            # three-area T3 line.
+            bare_only.add(name_only)
+    if not found:
+        # No writing section: fall back to what the body writes anywhere, so
+        # the tier of an unreadable card is the CONSERVATIVE one.
+        return written
+    return (order | bare_only) or written
+
+
 def signals(body: str) -> dict:
-    """The work-shaped signals a tier is derived from."""
+    """The work-shaped signals a tier is derived from.
+
+    The file counts come from the ORDER (= the writing sections), not from
+    every path the body mentions: a card that describes the current state
+    must not be charged a deeper tier for the files the current state
+    happens to contain. See ``order_paths``.
+    """
     written, forbidden = work_scope(body)
-    sources = sorted(p for p in written if p.startswith("Sources/") and p.endswith(".swift"))
-    tests = sorted(p for p in written if p.startswith("Tests/") and p.endswith(".swift"))
+    order = order_paths(body)
+    # A bare file name (= `SidebarInline.swift`) has no directory, so it is
+    # neither a source file nor an area of the tree: it counts as a FILE the
+    # card touches, but the tier counts sources and areas, so an
+    # unplaceable name cannot inflate either.
+    qualified = {p for p in order if "/" in p}
+    sources = sorted(p for p in qualified if p.startswith("Sources/") and p.endswith(".swift"))
+    # A TEST FILE IS A PATH WITH A `Tests/` SEGMENT, not a path that starts
+    # with `Tests/`: the packages nest their test target inside the package
+    # (= `Sources/WenshuAgent/Tests/WenshuAgentTests/...`), so a rule that
+    # only counted the top-level test target read those files as source.
+    tests = sorted(p for p in qualified if "/Tests/" in f"/{p}" and p.endswith(".swift"))
     text = work_text(body)
     return {
         "files": sorted(written),
+        "order_files": sorted(order),
         "forbidden": sorted(forbidden),
-        "n_files": len(written),
+        "n_files": len(order),
         "n_sources": len(sources),
         "n_tests": len(tests),
-        "n_areas": len(areas_of(sorted(written))),
+        "n_areas": len(areas_of(sorted(qualified))),
         "code": code_volume(body),
         "persistence": bool(SIGNALS["persistence"].search(text)),
         "new_subsystem": bool(SIGNALS["new_subsystem"].search(text)),
-        "package_boundary": any(p.startswith(PACKAGE_PATHS) for p in written)
-        or any(MANIFEST_RE.match(p) for p in written),
+        "package_boundary": any(p.startswith(PACKAGE_PATHS) for p in qualified)
+        or any(MANIFEST_RE.match(p) for p in qualified),
         "live_app": bool(NOTES["live_app"].search(text)),
-        "catalog": any(CATALOG_RE.search(p) for p in written),
+        "catalog": any(CATALOG_RE.search(p) for p in qualified),
     }
 
 

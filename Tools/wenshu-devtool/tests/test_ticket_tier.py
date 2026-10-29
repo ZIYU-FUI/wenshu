@@ -464,6 +464,60 @@ def body_with_sections(count: int) -> str:
     return "\n".join(head + filler[: count - len(head) - len(tail)] + tail)
 
 
+# A card's ORDER names the files it writes; the paths in its CURRENT STATE
+# section are CONTEXT (= what the tree looks like today). Measured on board
+# wenshu-par, 2026-10-29: card t_6876ec70 wrote two files and was rated T3
+# because its CURRENT STATE described seven others, so it carried a 45m cap
+# and a full gate set it never needed; card t_dae9ab0d wrote none and was
+# rated T3 for the same reason.
+CONTEXT_PATHS = """## GOAL
+
+The mention parser must not name a role.
+
+## CURRENT STATE
+
+Today the parser reads the role out of these files:
+
+- `Sources/WenshuApp/Features/Agent/Store/SubAgentIdentity.swift`
+- `Sources/WenshuApp/Features/Agent/Store/SubAgentMentionParser.swift`
+- `Sources/WenshuApp/Features/Chat/Model/ChatMessage.swift`
+- `Sources/WenshuApp/Features/Chat/Store/ChatViewModelLongRunningGoal.swift`
+- `Sources/WenshuApp/Features/Chat/View/ChatView.swift`
+- `Sources/WenshuApp/Resources/Localizable.xcstrings`
+
+## WHAT TO BUILD
+
+- `Sources/WenshuApp/Resources/Localizable.xcstrings`
+- `Tests/WenshuAppTests/Agent/Conversation/SubAgentMentionParserTests.swift`
+
+## GATES
+
+`swift test --filter SubAgentMentionParserTests` exits 0.
+"""
+
+# A bare file name in the order (= no directory) is a file the card writes,
+# so it counts as a file. It cannot be placed in the tree, so it is neither
+# a source file nor an area: an unplaceable name must not inflate either.
+BARE_NAME_ORDER = """## GOAL
+
+The row wrapper has no caller.
+
+## WHAT TO BUILD
+
+- `SidebarInline.swift`
+- `Sources/WenshuApp/Features/Library/View/SidebarServiceMutation.swift`
+
+## GATES
+
+`swift test --filter SidebarServiceMutationTests` exits 0.
+"""
+
+# The tier's file counts come from the ORDER, so the tier is decided by the
+# work the card asks for, not by the files its prose happens to mention.
+# (The measured shape of the tool: the tier rates BLAST RADIUS = how many
+# suites must prove the card, so the set it rates must be the set the card
+# writes.)
+
 def main() -> int:
     tool = load_tool()
 
@@ -885,6 +939,83 @@ def main() -> int:
         "a readable board still reports agreement",
         "every card agrees" in out,
         True,
+    )
+
+    # 12. The tier rates the ORDER (= the files the card writes), not every
+    #     path the body mentions. A CURRENT STATE section describes the tree
+    #     as it is today, so its paths are CONTEXT: a card that writes two
+    #     files and describes six others is a T2 card, not a T3 one that
+    #     carries a 45m cap and the full gate set.
+    check(
+        "the order's files are the tier's files",
+        sorted(tool.order_paths(CONTEXT_PATHS)),
+        [
+            "Sources/WenshuApp/Resources/Localizable.xcstrings",
+            "Tests/WenshuAppTests/Agent/Conversation/SubAgentMentionParserTests.swift",
+        ],
+    )
+    check(
+        "a card is rated on what it writes, not on what it mentions",
+        tier_of_body(tool, CONTEXT_PATHS),
+        "T1",
+    )
+    check(
+        "the context paths are still named by the body (= the gate can see them)",
+        len(tool.work_scope(CONTEXT_PATHS)[0]),
+        7,
+    )
+
+    # 13. A bare file name in the order counts as a file, and it is neither
+    #     a source file nor an area: it cannot be placed in the tree, so it
+    #     must not push the card over the three-area T3 line.
+    check(
+        "a bare file name in the order is a file the card writes",
+        "SidebarInline.swift" in tool.order_paths(BARE_NAME_ORDER),
+        True,
+    )
+    check(
+        "a bare file name is not an area of the tree",
+        tool.signals(BARE_NAME_ORDER)["n_areas"],
+        1,
+    )
+    check(
+        "a bare file name is not a source file",
+        tool.signals(BARE_NAME_ORDER)["n_sources"],
+        1,
+    )
+    check(
+        "a bare file name does not make the card T3",
+        tier_of_body(tool, BARE_NAME_ORDER),
+        "T1",
+    )
+
+    # 13. An area is a DIRECTORY, so the file's name never becomes one. A
+    #     tree that is two levels deep (= `Tests/WenshuMobileTests/
+    #     GlassSurfaceTests.swift`) used to fall through to the file path
+    #     itself, so ONE test file counted as its own area.
+    check(
+        "a shallow test file is an area of its directory, not of itself",
+        sorted(
+            tool.areas_of(
+                [
+                    "Sources/WenshuMobileApp/Features/Connection/View/ConnectionView.swift",
+                    "Tests/WenshuMobileTests/GlassSurfaceTests.swift",
+                ]
+            )
+        ),
+        ["Sources/WenshuMobileApp/Features", "Tests/WenshuMobileTests"],
+    )
+    check(
+        "a deep test file keeps its own area",
+        sorted(
+            tool.areas_of(
+                [
+                    "Sources/WenshuApp/Features/Chat/View/ChatMessageView.swift",
+                    "Tests/WenshuAppTests/Chat/View/ChatMessageViewTests.swift",
+                ]
+            )
+        ),
+        ["Sources/WenshuApp/Features", "Tests/WenshuAppTests/Chat"],
     )
 
     print()
