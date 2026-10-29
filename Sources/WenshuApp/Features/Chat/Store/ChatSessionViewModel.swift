@@ -123,6 +123,30 @@ final class StreamingAccumulator: @unchecked Sendable {
     }
 }
 
+/// The chat-area receipt for a background task (= names the handle,
+/// never the role; = the board and the activity feed keep the role).
+enum ChatSubAgentReceipt {
+    /// Receipt for a started task (= the handle is the user's only
+    /// reference to the background task).
+    static func dispatched(handleID: String, bundle: Bundle = .main) -> String {
+        String.localizedStringWithFormat(
+            String(localized: "chatview.subagent.dispatched", bundle: bundle),
+            handleID
+        )
+    }
+
+    /// Receipt for a failed task (= the cause is the role-free
+    /// user-facing text; = the role stays on the board).
+    static func failed(error: Error, bundle: Bundle = .main) -> String {
+        let cause = UserFacingError.from(error).errorDescription
+            ?? String(localized: "error.unknown", bundle: bundle)
+        return String.localizedStringWithFormat(
+            String(localized: "chatview.subagent.dispatch_failed", bundle: bundle),
+            cause
+        )
+    }
+}
+
 /// ChatViewModel: state management (Apple Observable + WSChatRepository + WenshuConductor)
 @MainActor
 @Observable
@@ -497,13 +521,15 @@ final class ChatViewModel {
                     messages.append(ChatMessage(
                         role: .system,
                         source: .system,
-                        content: "Sub-agent @\(mention.subagentSlug) → handle \(shortId)"
+                        content: ChatSubAgentReceipt.dispatched(handleID: shortId)
                     ))
                 } catch {
+                    Logger(subsystem: "com.wenshu.app", category: "chat.subagent")
+                        .error("[wenshu.chat.subagent] dispatch failed error=\(String(describing: error), privacy: .public)")
                     messages.append(ChatMessage(
                         role: .system,
                         source: .system,
-                        content: "Failed to spawn @\(mention.subagentSlug): \(error)"
+                        content: ChatSubAgentReceipt.failed(error: error)
                     ))
                 }
             }

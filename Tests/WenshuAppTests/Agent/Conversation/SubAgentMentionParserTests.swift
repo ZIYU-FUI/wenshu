@@ -12,6 +12,8 @@
 //    5. testParse_invalidSyntax_returnsNil — @wrongslug / @WRITER (caps)
 //       / @writerly (no boundary) all return nil / unmatched
 //    6. testAvailableSlugs_includesCommonSubAgents — 5 wenshu slugs
+//    7. testDispatchReceipt_namesNoRole — the chat-area receipt names
+//       the handle and no role
 //
 // swift test --filter SubAgentMentionParser
 //
@@ -106,5 +108,57 @@ struct SubAgentMentionParserTests {
         #expect(!slugs.contains("reviewer"))
         // Slugs are sorted alphabetically (= deterministic order).
         #expect(slugs == slugs.sorted())
+    }
+
+    /// The chat area is where the user talks to Wenshu, so the
+    /// receipt for a dispatched background task names the handle and
+    /// never the role. The board and the activity feed keep the role
+    /// identity.
+    @Test("the dispatch receipt names the handle and no role")
+    func testDispatchReceipt_namesNoRole() {
+        let handleID = "ab12cd34"
+        let receipt = ChatSubAgentReceipt.dispatched(handleID: handleID, bundle: .module)
+
+        // The handle is the user's only reference to the background
+        // task (= it survives into the receipt).
+        #expect(receipt.contains(handleID))
+        // The receipt is the localized value, not the raw key (= a
+        // missing catalog entry would render the key itself).
+        #expect(receipt != "chatview.subagent.dispatched")
+        // No role name reaches the chat area (= the five wenshu
+        // sub-agent slugs).
+        for slug in ["researcher", "writer", "analyst", "archivist", "auditor"] {
+            #expect(!receipt.contains(slug))
+        }
+        #expect(!receipt.contains("Sub-agent"))
+
+        // The failure receipt names no role either, even when the
+        // underlying error does (= the role stays on the board).
+        let raw = AsyncDelegationError.unknownSubAgent(name: "writer")
+        // Positive control: the raw error text names the role, so
+        // the receipt below proves the mapping dropped it.
+        #expect(raw.errorDescription?.contains("writer") == true)
+        let failure = ChatSubAgentReceipt.failed(error: raw, bundle: .module)
+        // The cause is the role-free user-facing text.
+        let cause = UserFacingError.from(raw).errorDescription ?? ""
+        #expect(!cause.isEmpty)
+        #expect(failure.contains(cause))
+        for slug in ["researcher", "writer", "analyst", "archivist", "auditor"] {
+            #expect(!failure.contains(slug))
+        }
+        #expect(!failure.contains("Sub-agent"))
+
+        // Both locales carry the receipt, and neither names a role.
+        for language in ["en", "zh-Hans"] {
+            let strings = StringCatalogReader.strings(language: language)
+            for key in ["chatview.subagent.dispatched", "chatview.subagent.dispatch_failed"] {
+                let value = strings[key] ?? ""
+                #expect(!value.isEmpty, "expected \(key) in \(language)")
+                #expect(value.contains("%@"), "expected \(key) in \(language) to keep the %@ placeholder")
+                for slug in ["researcher", "writer", "analyst", "archivist", "auditor"] {
+                    #expect(!value.contains(slug), "expected \(key) in \(language) to name no role")
+                }
+            }
+        }
     }
 }
