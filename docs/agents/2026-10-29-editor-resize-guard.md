@@ -4,13 +4,17 @@ Status: merged to `main` (= merge commit `87ba16e2ef`, = the merge of
 `project/t_f02fc603-t2-zooming-the-window-kills-the-app-the` into
 `37866de6bf`), pushed to `origin` and `old-origin` (both at
 `87ba16e2ef96d173b3b162f54c7edad7f83abb29`).
-The three reviewed commits keep their SHAs: they are the second parent of
-the merge, so `git merge-base --is-ancestor 124e84b8db main` exits 0.
+The three reviewed commits keep their SHAs: they are the branch's own
+history, which the merge carries as its second parent (`124e84b8db`), so
+`git merge-base --is-ancestor 124e84b8db main` exits 0.
 Merged tree: `dc3e65cca9615d1cc8d0c9ea02a6bb8068d1e2ff` (= the tree the
 dry merge predicted against the `main` tip, = byte-identical to the
 branch's).
-Worktree: `project/t_f02fc603-t2-zooming-the-window-kills-the-app-the`
-(= cleaned up post-merge).
+Both remotes carry the MERGE commit (= the merged tip = `87ba16e2ef`);
+this closure record is a separate commit on `main` above it.
+Branch and worktree: `project/t_f02fc603-t2-zooming-the-window-kills-the-app-the`
+and `.worktrees/t_f02fc603` (= both deleted after the merge = they carried
+nothing the merge does not).
 Tests (on the MERGED `main`, not on the branch):
 `swift test --filter EditorChatNSControllerTests` = 46/46,
 `swift test --filter AppleSplitViewAutomaticBoundsTests` = 2/2.
@@ -132,24 +136,47 @@ the fix (= the branch's own arm shows the count at 6-8 against a limit of
 ## The gates, on the MERGED `main`
 
 A branch-only result does not prove the merge, so all three ran on
-`main` after the merge commit `87ba16e2ef`:
+`main` after the merge commit `87ba16e2ef`, and they were re-run once
+more on the merged tree for this landing:
 
 | gate | result |
 | --- | --- |
-| `swift build` | exit 0 (= "Build complete!", = 7.76 s) |
+| `swift build` | exit 0 (= "Build complete!") |
 | `swift test --filter EditorChatNSControllerTests` | 46/46 passed (= 1 suite) |
 | `swift test --filter AppleSplitViewAutomaticBoundsTests` | 2/2 passed (= 1 suite) |
 
 The same numbers the reviewer measured on the branch (run 1977): 46/46
 and 2/2.
 
+The re-run was against the merged tree, not the branch: the merge
+commit's `Sources/` and `Tests/` are byte-identical to `main`'s
+(`git diff 87ba16e2ef main -- Sources Tests` is empty), and the build
+that the two suites ran on is that tree's.
+
 ## The remotes
+
+Both remotes carry the merged tip = the merge commit `87ba16e2ef`, which
+is what the card's acceptance asks them to return.
 
 | remote | `refs/heads/main` |
 | --- | --- |
-| `origin` (= `git@gitcode.com:ZIYU1983/wenshu.git`) | `87ba16e2ef96d173b3b162f54c7edad7f83abb29` |
-| `old-origin` (= `git@github.com:ZIYU-FUI/wenshu.git`) | `87ba16e2ef96d173b3b162f54c7edad7f83abb29` |
-| local `main` | `87ba16e2ef96d173b3b162f54c7edad7f83abb29` |
+| `origin` (= `git@gitcode.com:ZIYU1983/wenshu.git`) | `87ba16e2ef96d173b3b162f54c7edad7f83abb29` (= the merge commit, = the merged tip) |
+| `old-origin` (= `git@github.com:ZIYU-FUI/wenshu.git`) | `87ba16e2ef96d173b3b162f54c7edad7f83abb29` (= the merge commit, = the merged tip) |
+
+The closure record rides above the merge on local `main` (= it is written
+after the push, because it names the remotes' tips), and the merge
+commit is an ancestor of both remotes' `refs/heads/main`, so the three
+reviewed commits are reachable from each remote as well as from `main`.
+
+Note on the route to `old-origin`: the host's SSH port 22 is answered by
+the local proxy's fake-IP address (`198.18.0.113`), and the connection
+is INTERMITTENT — a read succeeds on some attempts and is dropped on
+others, with either route (the repository's configured
+`core.sshcommand = ssh -o ProxyCommand='nc -X connect -x 127.0.0.1:7897
+%h %p'`, or a direct `ssh` with no proxy) able to be the one that drops.
+So the read is worth a retry: it returned
+`87ba16e2ef96d173b3b162f54c7edad7f83abb29` on the attempt that
+answered. The merge is the same commit on both remotes either way.
 
 ## Why the merge is a merge commit
 
