@@ -37,9 +37,11 @@ import SwiftUI
 /// application position gets its own
 /// purpose-built surface (= the
 /// `SFLabelRow` here is the "one icon
-/// + one line of text" surface used
-/// by the library tree's outline rows).
-/// pattern). Apple's official recommended form is the `Label` view with
+/// + one line of text" surface the
+/// icon-factory rule points at, read by
+/// the design-system suites; = it has no
+/// production call site).
+/// Apple's official recommended form is the `Label` view with
 /// the title-and-icon initializer; SFLabelRow delegates to it so the
 /// factory does not duplicate what Apple already gives us.
 ///

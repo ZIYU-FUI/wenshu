@@ -162,13 +162,18 @@ enum IconStyle: Sendable, Equatable, CaseIterable {
     /// .regular; the `sidebarWidth` + `sidebarInset` properties on this case
     /// hold the optical slot so callers do not have to know the difference
     /// between the symbol's intrinsic width and the row slot.
-    /// Used by: SFLabelRow (every sidebar row in the library tree). Weight:
-    /// .regular. Color: `.primary` (= Apple Tahoe sidebar default = black in
-    /// light mode, white in dark mode, NOT app accent color).
+    /// Used by: the Settings scene's 5-pane sidebar (= its pane list calls
+    /// `SFIcon(pane.icon, style: .sidebar, color: IconColor.secondary)`).
+    /// `SFLabelRow` is the reference implementation the design-system suites
+    /// read (= the factory's own exemplar, not a production caller).
+    /// Weight: .regular. Color: `.primary` (= Apple Tahoe sidebar default =
+    /// black in light mode, white in dark mode, NOT app accent color).
     case sidebar
 
-    /// Sidebar row icon tier for the main-window library tree (=
-    /// `Sources/WenshuApp/Views/Library/SidebarRowView.swift`'s `SFLabelRow`).
+    /// Sidebar row icon tier for the main-window library tree (= the
+    /// library tree's monochrome + system-primary iconography, = the
+    /// chrome sidebar of the main window, not the System Settings
+    /// surface).
     /// Distinct from `.sidebar` (= which is reserved for the Settings scene's
     /// 5-pane sidebar): the main-window library tree's outline icon is
     /// monochrome (= only the Settings scene uses multicolor). this tier

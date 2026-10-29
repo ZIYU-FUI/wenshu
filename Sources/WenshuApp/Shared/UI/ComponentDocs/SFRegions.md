@@ -32,7 +32,7 @@ size）。我按本表找到对应包装器，改 1 处 → 全区域 N 个调�
 
 | 区域（老板用语） | 包装器名 | Apple 内部形态 | wenshu 调用点 |
 |---|---|---|---|
-| sidebar row | `SFLabelRow` | `Label { ... } icon: { ... }` | `Sources/WenshuApp/Views/Library/SidebarRowView.swift` |
+| sidebar row | `SFLabelRow` | `Label { ... } icon: { ... }` | no production call site (= the reference implementation the design-system suites read) |
 | single icon（通用图标） | `SFIcon` | `Image(systemName:)` 配 IconStyle | 110 处（v3.0 sweep 全量） |
 | empty state | `EmptyStateView` | `VStack { icon + title + body }`（自建 = Apple HIG `ContentUnavailableView` 模式） | 12 个 specialized tool tabs + editor + PreviewPane |
 | pane tab bar | `PaneTabBar` | 自建 = NSToolbar item pattern | pane tab 系统 |
