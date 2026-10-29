@@ -102,6 +102,27 @@ struct CoverProviderFailureTests {
         #expect(failure?.kind == .quotaExhausted)
     }
 
+    @Test("429 with a MiniMax quota code in the body is a quota failure")
+    func tooManyRequestsWithAMiniMaxQuotaCodeInTheBodyIsAQuotaFailure() {
+        // MiniMax answers a spent Token Plan with a 429 and its own
+        // code in the message text, not in a field of its own, so the
+        // code has to be read out of the body. The body also says
+        // "rate_limit_error", which is what makes this worth a test.
+        let body = """
+            {"type":"error","error":{"type":"rate_limit_error","message":"已达到 Token Plan 用量上限：请升级 Token Plan 套餐或购买积分补充用量。 (2056)"},"http_code":"429"}
+            """
+
+        let failure = CoverProviderFailure.classify(
+            providerSlug: "minimax-cn",
+            httpStatus: 429,
+            body: body
+        )
+
+        #expect(failure?.kind == .quotaExhausted)
+        #expect(failure?.code == 2056)
+        #expect(failure?.kind != .rateLimited)
+    }
+
     @Test("429 with a rate limit body is a rate limit")
     func tooManyRequestsWithARateLimitBodyIsARateLimit() {
         let body = """

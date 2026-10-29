@@ -70,6 +70,15 @@ struct CoverProviderFailure: Equatable, Sendable {
         let plan: Set<Int>
         /// The key is not accepted.
         let key: Set<Int>
+
+        /// A code the provider's own table names.
+        ///
+        /// The table is the authority on what a number means, so a number
+        /// it does not list (= a count, a version, a year) is not a code
+        /// and must not be read as one.
+        func knows(_ code: Int) -> Bool {
+            quota.contains(code) || plan.contains(code) || key.contains(code)
+        }
     }
 
     /// The numeric codes we know, keyed by provider.
@@ -120,6 +129,7 @@ struct CoverProviderFailure: Equatable, Sendable {
         "积分不足",
         "额度已用完",
         "配额不足",
+        "token plan 用量上限",
     ]
 
     /// The words a body carries when the service is rate limiting.
@@ -248,19 +258,31 @@ struct CoverProviderFailure: Equatable, Sendable {
         model: String? = nil
     ) -> CoverProviderFailure? {
         let text = (body ?? "").lowercased()
+
+        // The provider's own code, when the body carries it and the
+        // caller passed none. MiniMax ends its refusal with the code
+        // in parentheses, so the body is the only place the code is.
+        // Only a code the provider's own table names is a code.
+        let bodyCode: Int? = providerCode == nil
+            ? codeTables[providerSlug.lowercased()].flatMap { table in
+                guard let number = trailingCode(in: text), table.knows(number) else { return nil }
+                return number
+            }
+            : nil
+
         let shown = detail ?? body.flatMap { $0.isEmpty ? nil : $0 }
 
         // 1. The provider's own numeric code, from the table we have
         //    for it.
-        if let providerCode, let table = codeTables[providerSlug.lowercased()] {
-            if table.quota.contains(providerCode) {
-                return CoverProviderFailure(kind: .quotaExhausted, providerSlug: providerSlug, model: model, code: providerCode, detail: shown)
+        if let code = providerCode ?? bodyCode, let table = codeTables[providerSlug.lowercased()] {
+            if table.quota.contains(code) {
+                return CoverProviderFailure(kind: .quotaExhausted, providerSlug: providerSlug, model: model, code: code, detail: shown)
             }
-            if table.plan.contains(providerCode) {
-                return CoverProviderFailure(kind: .planDoesNotCoverModel, providerSlug: providerSlug, model: model, code: providerCode, detail: shown)
+            if table.plan.contains(code) {
+                return CoverProviderFailure(kind: .planDoesNotCoverModel, providerSlug: providerSlug, model: model, code: code, detail: shown)
             }
-            if table.key.contains(providerCode) {
-                return CoverProviderFailure(kind: .invalidKey, providerSlug: providerSlug, model: model, code: providerCode, detail: shown)
+            if table.key.contains(code) {
+                return CoverProviderFailure(kind: .invalidKey, providerSlug: providerSlug, model: model, code: code, detail: shown)
             }
         }
 
@@ -295,5 +317,32 @@ struct CoverProviderFailure: Equatable, Sendable {
         if keyWords.contains(where: { text.contains($0) }) { return .invalidKey }
         if rateLimitWords.contains(where: { text.contains($0) }) { return .rateLimited }
         return nil
+    }
+
+    /// The number the body writes in trailing parentheses.
+    ///
+    /// MiniMax ends its refusal with the code in parentheses, so the
+    /// body is the only place the code is. The last such number in the
+    /// body is the code.
+    private static func trailingCode(in text: String) -> Int? {
+        var found: Int?
+        var cursor = text.startIndex
+        while let open = text[cursor...].firstIndex(of: "(") {
+            let afterOpen = text.index(after: open)
+            var digitsEnd = afterOpen
+            while digitsEnd < text.endIndex, text[digitsEnd].isASCII, text[digitsEnd].isNumber {
+                digitsEnd = text.index(after: digitsEnd)
+            }
+            let spaced = open > text.startIndex && text[text.index(before: open)] == " "
+            if digitsEnd > afterOpen,
+               digitsEnd < text.endIndex,
+               text[digitsEnd] == ")",
+               spaced,
+               let value = Int(text[afterOpen..<digitsEnd]) {
+                found = value
+            }
+            cursor = afterOpen
+        }
+        return found
     }
 }
