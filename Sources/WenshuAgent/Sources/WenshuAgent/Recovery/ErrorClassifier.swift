@@ -51,10 +51,18 @@ public enum LLMConnectorErrorClassifier {
     /// uses (= rate limit + server error + transport blips).
     public static func isTransient(_ error: LLMConnectorError) -> Bool {
         switch error {
-        case .transport(let provider, let statusCode, _):
+        case .transport(let provider, let statusCode, let body):
             // 429 (rate limit) + 5xx (server error) = retryable.
             // 4xx other than 429 = non-retryable (= bad request, auth).
-            if statusCode == 429 { return true }
+            if statusCode == 429 {
+                // A spent Token Plan allowance is NOT transient: the
+                // provider names the exhausted allowance in the body, and
+                // no amount of retrying brings the quota back.
+                if body.lowercased().contains("token plan 用量上限") {
+                    return false
+                }
+                return true
+            }
             if (500...599).contains(statusCode) { return true }
             _ = provider
             return false

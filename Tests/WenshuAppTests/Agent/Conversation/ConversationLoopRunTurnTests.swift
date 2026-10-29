@@ -220,6 +220,25 @@ struct ConversationLoopRunTurnTests {
         #expect(!LLMConnectorErrorClassifier.isTransient(nonTransient401))
     }
 
+    // MARK: - Test 7b: A spent Token Plan is not transient
+
+    @Test("LLMConnectorErrorClassifier.isTransient returns false for a 429 with a spent Token Plan")
+    func testSpentTokenPlanIsNotTransient() {
+        // The provider's real body, verbatim: the allowance is exhausted,
+        // so retrying cannot help.
+        let spentPlanBody = #"{"type":"error","error":{"type":"rate_limit_error","message":"已达到 Token Plan 用量上限：请升级 Token Plan 套餐或购买积分补充用量。 (2056)"},"http_code":"429"}"#
+        let spentPlan = LLMConnectorError.transport(
+            provider: "minimax", statusCode: 429, body: spentPlanBody
+        )
+        #expect(!LLMConnectorErrorClassifier.isTransient(spentPlan))
+
+        // A 429 with an unrelated body is still transient.
+        let unrelated429 = LLMConnectorError.transport(
+            provider: "mock", statusCode: 429, body: "rate limit"
+        )
+        #expect(LLMConnectorErrorClassifier.isTransient(unrelated429))
+    }
+
     // MARK: - Test 8: TurnContext restore (fresh each turn)
 
     @Test("Each turn starts with a fresh TurnContext (= retry-counter reset)")
