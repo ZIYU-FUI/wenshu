@@ -115,6 +115,49 @@ NARROW_SUITE_PHRASE_RE = re.compile(
     re.I,
 )
 
+# A sentence that says the whole suite is NOT the gate is not a DEMAND for
+# the whole suite = it is the card naming what it does not ask for, and it
+# is the sentence the template tells the author to write. Measured over the
+# 173 real cards, 37 of them carry that sentence (= the full-suite phrase
+# AND a negation), and the gate read every one of them as a wide-gate
+# demand, because the regex matched the phrase and never asked whether the
+# sentence was asking or refusing.
+#
+# The negation that matters is the one that REFUSES THE DEMAND, so the
+# pattern is a negation in a sentence that is ABOUT the whole suite:
+# "the whole suite is NOT this card's gate", "Do NOT run the whole suite",
+# "the full suite does not fit in the runtime cap", "swift test proves
+# nothing about it". A negation in a sentence about something else (= "no
+# new failures against the baseline", which is a whole-suite demand with
+# its own phrase) does not refuse anything, so the line still counts as a
+# demand.
+#
+# The shape is a negation and the whole-suite phrase in the SAME sentence,
+# whichever comes first, with the suite phrase close enough that the
+# sentence is about the suite. A card's prose puts them together when it
+# means them together, and separates them when it does not.
+#
+# KNOWN LIMIT: the negation is an ENGLISH one. A card that writes its
+# evidence in Chinese says "收尾跑全量 swift test，…红了" (= the full suite
+# was run at the end and it was red), which is a PAST-TENSE fact about a
+# run that already happened, and no English negation is present to find.
+# Measured over the 173 real cards, four of them are Chinese and are read
+# as wide demands. The template writes card bodies in English (rule 1.1),
+# so this is a limit on the OLD cards, not on the flow: a new card that
+# says "the full suite is NOT this card's gate" is read correctly.
+#
+# The other known limit is a card whose GATES heading runs into its first
+# sentence, so the heading and the sentence are one string. That one is a
+# parsing limit and it is cheap to see in the report, because the report
+# prints the demand it found.
+GATE_REFUSAL_RE = re.compile(
+    r"(?:not|n't|never|nor|no)\b[^.\n]{0,80}?"
+    r"(?:\bgates?\b|\b(?:run|execute|invoke|fits?|prove|proves|proven)\b|\bwhole\s+suite\b)"
+    r"|\bgates?\b[^.\n]{0,80}?\b(?:not|isn't|aren't|never)\b"
+    r"|\b(?:whole|entire|full)\b[^.\n]{0,60}?\b(?:not|never|n't)\b",
+    re.I,
+)
+
 # A card that writes NO Swift code has no Swift suite to name: its gate is
 # the command that owns what it writes (= the devtool's own test script, = a
 # docs link check). A gate tool that insists on `swift test --filter` for
@@ -171,20 +214,79 @@ def is_subject(created_at: int | None) -> bool:
     return created_at >= GATE_CONTRACT_FROM
 
 
+def _sentences(body: str) -> list[str]:
+    """The body's sentences, read across its line breaks.
+
+    A card wraps its prose at ~70 columns, so one sentence is several
+    lines, and a sentence split across lines reads as two halves that each
+    say less than they mean. The gate's question is about a DEMAND (= "run
+    the whole suite") or a REFUSAL (= "the whole suite is NOT this card's
+    gate"), and both are properties of a sentence, not of a line.
+
+    So the body is joined into one stream and cut at the sentence ends. A
+    line that ends in a colon or a bullet marker continues the sentence,
+    because that is how a list item introduces its own text.
+
+    **A MARKDOWN HEADING IS ITS OWN BREAK.** A heading is not part of the
+    sentence under it: "## GATE ONE filtered suite, named here so you do
+    not explore: swift test --filter 'MemoryAdapter'" is a heading and
+    then a sentence, and joining them made the filter and the heading one
+    string, which the sentence-level patterns then read as one demand.
+    """
+    text = " ".join(part.strip() for part in body.splitlines())
+    text = re.sub(r"\s+", " ", text)
+    # A heading ends the stream before it: the heading is a label, and the
+    # text after it starts a new sentence.
+    text = re.sub(r"(#{1,6}\s+[^.\n]{0,60}?)\s+(?=[A-Za-z0-9`'\"])", r"\1\n", text)
+    out: list[str] = []
+    current = ""
+    for chunk in re.split(r"(?<=[.!?])\s+|\n", text):
+        if not chunk:
+            continue
+        current = f"{current} {chunk}".strip() if current else chunk
+        # A chunk that ends a sentence ends it, unless it ends in a colon
+        # (= a list item introducing the next chunk) or the chunk itself
+        # ends with a comma (= the sentence is still running).
+        if current.endswith((":", ",")) or not current.endswith((".", "!", "?")):
+            continue
+        out.append(current)
+        current = ""
+    if current:
+        out.append(current)
+    return out
+
+
 def gate_demands(body: str) -> dict:
-    """What gate the body asks for, and the sentences that ask for it."""
+    """What gate the body asks for, and the sentences that ask for it.
+
+    **THE BODY IS READ AS SENTENCES, NOT AS LINES.** A card wraps its
+    prose, so the sentence that refuses the whole suite is split across
+    lines: "The whole suite is NOT this card's" ends a line and "gate."
+    starts the next. A line-by-line read saw the half and never the
+    negation, so the gate called every one of those cards a wide-gate
+    demand: measured over the 173 real cards, 37 of them carry that
+    sentence and 37 of them were misread.
+    """
     demands: list[str] = []
-    for line in body.splitlines():
-        stripped = line.strip()
+    for sentence in _sentences(body):
+        stripped = sentence.strip()
         if not stripped:
             continue
         if FILTERED_SUITE_RE.search(stripped):
             continue
         if FULL_SUITE_PHRASE_RE.search(stripped):
+            # A sentence that REFUSES the whole suite is not a demand for
+            # it: "the whole suite is NOT this card's gate" is the card
+            # naming the narrow gate it does ask for. Only a sentence that
+            # ASKS for the whole suite counts.
+            if GATE_REFUSAL_RE.search(stripped):
+                continue
             demands.append(stripped)
         elif BARE_FULL_SUITE_RE.search(stripped):
             # A bare `swift test` = the whole suite. The tier tool reads
             # this form, so the gate-width gate reads it too.
+            if GATE_REFUSAL_RE.search(stripped):
+                continue
             demands.append(stripped)
     named = FILTERED_SUITE_RE.findall(body)
     named_other = NAMED_OTHER_GATE_RE.findall(body)

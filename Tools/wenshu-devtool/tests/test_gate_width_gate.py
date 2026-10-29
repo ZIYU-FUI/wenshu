@@ -220,6 +220,45 @@ def main() -> int:
         gates="python3 Tools/wenshu-devtool/tests/test_wave_gate.py",
     )
     row = gwg.report_body(b, None)
+    # 4. A sentence that REFUSES the whole suite is not a demand for it,
+    #    and the refusal is often split across the card's line breaks.
+    b = body(
+        files=(
+            "Sources/WenshuApp/Features/Agent/Foo.swift",
+            "Sources/WenshuApp/Features/Agent/Bar.swift",
+            "Tests/WenshuAppTests/Agent/FooTests.swift",
+        ),
+        gates="swift test --filter FooTests exits 0. The whole suite is NOT\nthis card's gate: the baseline is red.",
+    )
+    row = gwg.report_body(b, None)
+    results.append(
+        case(
+            "a card that refuses the whole suite is not a wide gate",
+            row["tier"] == "T2"
+            and not any("wide gate" in f for f in row["findings"]),
+            f"tier={row['tier']} findings={row['findings']}",
+        )
+    )
+
+    # 4b. The same refusal in the imperative: "Do NOT run the whole suite".
+    b = body(
+        files=(
+            "Sources/WenshuApp/Features/Agent/Foo.swift",
+            "Sources/WenshuApp/Features/Agent/Bar.swift",
+            "Tests/WenshuAppTests/Agent/FooTests.swift",
+        ),
+        gates="swift test --filter FooTests exits 0.\nDo NOT run the whole suite. It is red at baseline.",
+    )
+    row = gwg.report_body(b, None)
+    results.append(
+        case(
+            "a card that forbids the whole suite is not a wide gate",
+            row["tier"] == "T2"
+            and not any("wide gate" in f for f in row["findings"]),
+            f"tier={row['tier']} findings={row['findings']}",
+        )
+    )
+
     results.append(
         case(
             "a card that writes no Swift code names its own gate command",
