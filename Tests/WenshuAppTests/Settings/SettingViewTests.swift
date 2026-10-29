@@ -15,7 +15,7 @@
 //   (= macOS 27 System Settings 2-column layout; = boss 2026-10-12
 //   "macOS 默认样式 + Apple HIG canonical").
 // - SettingsTab enum (5 cases = general/agentBehavior/providerApi/model/memory)
-//   reworked as SettingsPane (5 cases = appearance/editor/providers/models/memory)
+//   reworked as SettingsPane (8 cases = appearance/editor/network/providers/models/memory/agent/covers)
 //   (= each pane name matches the concrete action the user is doing;
 //   = boss "左栏分成 4-5 组，让原来的第二层的，比如提供方，放在第一层").
 // - Dead control removed: `wenshu.llm.reasoningEffort` AppStorage +
@@ -216,7 +216,7 @@ struct SettingViewTests {
                 "body must reload models when landing on providers or models pane (= fetch on demand)")
     }
 
-    @Test("body uses NavigationSplitView with List(selection:) + 5 SettingsPane cases (= Apple HIG sidebar)")
+    @Test("body uses NavigationSplitView with List(selection:) + 8 SettingsPane cases (= Apple HIG sidebar)")
     func bodyUsesNavigationSplitViewList() throws {
         let source = try readSettingViewSource()
         let section = settingViewSection(source)
@@ -229,8 +229,10 @@ struct SettingViewTests {
                 "body must render left-column List of SettingsPane.allCases (= sidebar)")
         #expect(codeRegion.contains("navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)"),
                 "body must set sidebar column width 200..260 PT (= Apple HIG sidebar range)")
-        // 5 panes (= appearance / editor / providers / models / memory).
-        for pane in ["appearance", "editor", "providers", "models", "memory"] {
+        // 8 panes (= appearance / editor / network / providers / models /
+        // memory / agent / covers).
+        for pane in ["appearance", "editor", "network", "providers", "models",
+                     "memory", "agent", "covers"] {
             #expect(codeRegion.contains("case .\(pane)"),
                     "SettingsPane enum must declare the .\(pane) case")
         }

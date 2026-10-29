@@ -240,4 +240,38 @@ struct IconStylesTests {
         #expect(content.contains("self.font(style.font)"),
                 "wenshuFont(_:) must forward to SwiftUI Font")
     }
+
+    // MARK: - Settings scene pane count = the icon factory's own comments
+
+    @Test("the settings scene declares 8 SettingsPane cases and the icon factory comments agree (= 8-pane, no stale pane count)")
+    func settingsPaneCountMatchesIconFactoryComments() throws {
+        let settingViewURL = SourceLocator.url("Sources/WenshuApp/Features/Settings/View/SettingView.swift")
+        let settingViewContent = try String(contentsOf: settingViewURL, encoding: .utf8)
+
+        let enumRange = try #require(settingViewContent.range(of: "enum SettingsPane"),
+                                     "the settings scene must declare an enum SettingsPane (= the left-column sidebar source)")
+        let enumBlock = String(settingViewContent[enumRange.lowerBound...])
+        let enumEnd = enumBlock.range(of: "\n    }")?.lowerBound ?? enumBlock.endIndex
+        let enumBody = String(enumBlock[..<enumEnd])
+        let caseDeclarations = enumBody.components(separatedBy: "\n").filter { line in
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            return trimmed.hasPrefix("case ") && !trimmed.contains(":") && !trimmed.contains(".")
+        }
+        #expect(caseDeclarations.count == 8,
+                "the SettingsPane enum must declare exactly 8 cases (= appearance / editor / network / providers / models / memory / agent / covers; = the pane count must never drift again)")
+
+        let iconURL = SourceLocator.url("Sources/WenshuApp/Shared/UI/IconStyles.swift")
+        let iconContent = try String(contentsOf: iconURL, encoding: .utf8)
+        // The stale-count needle is assembled at runtime (= the literal
+        // must not appear in this file either, or the repo-wide grep for
+        // it would keep hitting this very assertion).
+        let staleCountNeedle = "5" + "-pane"
+        #expect(!iconContent.contains(staleCountNeedle),
+                "the icon factory must not describe the settings scene with a stale pane count (= the enum declares 8 cases)")
+        let eightPaneMentions = iconContent.components(separatedBy: "8-pane").count - 1
+        #expect(eightPaneMentions == 2,
+                "the icon factory must call the settings scene 8-pane in both of its comments (= the icon factory's count must match the enum's count)")
+        #expect(!iconContent.contains("Apple System Settings 8-pane"),
+                "the icon factory must not attribute an 8-pane count to Apple's System Settings (= that app's layout is not ours to count)")
+    }
 }
