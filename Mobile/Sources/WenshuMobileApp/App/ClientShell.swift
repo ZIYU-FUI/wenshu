@@ -181,7 +181,7 @@ struct ClientShell: View {
     private func destinationContent(for destination: ClientDestination) -> some View {
         switch destination {
         case .library:
-            LibraryEmptyState()
+            LibraryOutlineView(link: store)
         case .connect:
             ConnectionListView(store: store)
         }
