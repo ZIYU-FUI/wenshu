@@ -121,3 +121,6 @@ wenshu-audit-*/
 .scratch/2026-08-27-bonsplit-probe/.gitignore
 Per v3.1 governance: archive dirs hold outdated single-shot narratives. Never tracked.
 .archive/
+
+# The gate logs (= the evidence a gate produced) live beside the repo.
+.gate-logs/
