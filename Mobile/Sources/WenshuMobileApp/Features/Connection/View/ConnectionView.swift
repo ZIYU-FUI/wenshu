@@ -9,6 +9,14 @@ import SwiftUI
 struct ConnectionView: View {
     let store: ConnectionStore
 
+    /// The pairing flow, held for as long as the screen is open.
+    @State private var session: PairingSession
+
+    init(store: ConnectionStore) {
+        self.store = store
+        _session = State(initialValue: PairingSession(store: store))
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingLarge) {
             header
@@ -56,9 +64,23 @@ struct ConnectionView: View {
                 .foregroundStyle(DesignTokens.secondaryTextColor)
             Text("No Mac is paired yet.")
                 .font(DesignTokens.bodyFont)
+            Button("Pair with this Mac") {
+                session.start()
+            }
+            .buttonStyle(.borderedProminent)
         case let .pairing(code):
-            ProgressView("Pairing with code \(code.value)")
-                .font(DesignTokens.bodyFont)
+            VStack(alignment: .leading, spacing: DesignTokens.spacingMedium) {
+                HStack(spacing: DesignTokens.spacingMedium) {
+                    Text(code.value)
+                        .font(DesignTokens.glyphFont)
+                        .monospacedDigit()
+                        .foregroundStyle(DesignTokens.primaryTextColor)
+                    ProgressView()
+                }
+                Text("Read this code aloud to your Mac")
+                    .font(DesignTokens.bodyFont)
+                    .foregroundStyle(DesignTokens.secondaryTextColor)
+            }
         case let .connected(companion):
             Label(companion.name, systemImage: SFIcon.stateOnline.rawValue)
                 .font(DesignTokens.bodyFont)

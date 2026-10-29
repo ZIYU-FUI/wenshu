@@ -1,0 +1,56 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "Pair with this Mac" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pair with this Mac"
+          }
+        }
+      }
+    },
+    "Read this code aloud to your Mac" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Read this code aloud to your Mac"
+          }
+        }
+      }
+    },
+    "That pairing code is not six plain digits." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "That pairing code is not six plain digits."
+          }
+        }
+      }
+    },
+    "The device token could not be kept." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The device token could not be kept."
+          }
+        }
+      }
+    },
+    "The Mac did not answer." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The Mac did not answer."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}
