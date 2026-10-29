@@ -74,6 +74,28 @@ struct ClientShell: View {
     @State private var selection: ClientDestination? = .library
 
     var body: some View {
+        glassLayer
+    }
+
+    /// The shell inside the container that shares one glass layer.
+    ///
+    /// The glass surfaces of one screen belong to one layer, so the
+    /// container holds them. The system offers the container from iOS 26
+    /// on; below that the shell draws on its own.
+    @ViewBuilder
+    private var glassLayer: some View {
+        if #available(iOS 26.0, macOS 26.0, *) {
+            GlassEffectContainer {
+                shell
+            }
+        } else {
+            shell
+        }
+    }
+
+    /// The shell the current width earns.
+    @ViewBuilder
+    private var shell: some View {
         switch layout {
         case .tabBar:
             tabBar

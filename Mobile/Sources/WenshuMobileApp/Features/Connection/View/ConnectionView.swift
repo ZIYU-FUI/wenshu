@@ -37,14 +37,14 @@ struct ConnectionView: View {
         }
     }
 
-    /// The state of the link, on the system's own material.
+    /// The state of the link, on the system's own surface.
     private var card: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingMedium) {
             state
         }
         .padding(DesignTokens.spacingLarge)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.regularMaterial, in: ContainerRelativeShape())
+        .glassSurface(ContainerRelativeShape())
     }
 
     @ViewBuilder
