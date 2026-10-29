@@ -50,6 +50,9 @@ struct LibraryOutlineView: View {
             }
         }
         .task { await load() }
+        .navigationDestination(for: ChapterID.self) { chapterID in
+            ChapterReaderView(chapterID: chapterID, store: store)
+        }
     }
 
     /// The shelves the Mac reported.
@@ -125,8 +128,10 @@ struct LibraryChaptersView: View {
     var body: some View {
         List {
             ForEach(book.chapters) { chapter in
-                LabeledContent(chapter.title) {
-                    words(chapter)
+                NavigationLink(value: ChapterID(id: chapter.id)) {
+                    LabeledContent(chapter.title) {
+                        words(chapter)
+                    }
                 }
             }
         }

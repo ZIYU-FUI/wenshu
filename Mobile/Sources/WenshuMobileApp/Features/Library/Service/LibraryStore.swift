@@ -24,10 +24,75 @@ enum LibraryState: Equatable, Sendable {
     case loaded([LibraryShelf])
 }
 
+/// The Mac's identifier for one chapter, as the navigation carries it.
+///
+/// The id is a type of its own, so a push onto the stack names one
+/// chapter and nothing else can be mistaken for it.
+struct ChapterID: Hashable, Sendable {
+    /// The identifier the Mac gave the chapter.
+    let id: String
+}
+
+/// One chapter's body, read at a revision.
+///
+/// The revision is the one the Mac read the body at, so the reader can
+/// say which copy it is showing instead of showing it as current.
+struct ChapterRead: Equatable, Sendable {
+    /// The chapter's body, as the Mac sent it.
+    let body: String
+    /// The revision the Mac read the body at.
+    let revision: Int
+}
+
+/// Where a chapter sits in the outline the Mac sent.
+///
+/// The number counts the chapters in the book, so the order on screen is
+/// the order the outline gave.
+struct ChapterPlacement: Equatable, Sendable {
+    /// The chapter's title, as the Mac spells it.
+    let title: String
+    /// The chapter's place in its book, counted from one.
+    let number: Int
+    /// How many chapters the book holds.
+    let total: Int
+}
+
+extension LibraryState {
+    /// The chapter with that id, and where it sits in the outline.
+    ///
+    /// The outline is the Mac's own order, so the place it gives is the
+    /// place the reader shows.
+    func chapter(_ id: ChapterID) -> ChapterPlacement? {
+        guard case .loaded(let shelves) = self else { return nil }
+        for shelf in shelves {
+            for book in shelf.books {
+                guard let index = book.chapters.firstIndex(where: { $0.id == id.id }) else { continue }
+                return ChapterPlacement(
+                    title: book.chapters[index].title,
+                    number: index + 1,
+                    total: book.chapters.count
+                )
+            }
+        }
+        return nil
+    }
+}
+
+/// Why one chapter could not be read.
+///
+/// The library is there; this one chapter is not readable yet. The
+/// reason names the chapter, never the library.
+enum ChapterReadFailure: Error, Equatable, Sendable {
+    /// The device cannot reach the Mac, so no chapter can be read.
+    case macUnreachable
+    /// The Mac answered, and this chapter was not readable.
+    case unreadable
+}
+
 /// The boundary the library views read through.
 ///
-/// The view asks for an outline and gets one. The per-book detail the
-/// chapter reader needs joins this protocol with the reader.
+/// The view asks for an outline and gets one. The per-chapter detail
+/// the chapter reader needs joins this protocol with the reader.
 @MainActor
 protocol LibraryStore {
     /// What the app knows about the library right now.
@@ -35,6 +100,9 @@ protocol LibraryStore {
     /// The outline the Mac reported: the shelves, their books and the
     /// chapters in each book.
     func outline() async throws -> [LibraryShelf]
+    /// Reads one chapter: the body the Mac holds, and the revision it
+    /// read that body at.
+    func read(chapter id: ChapterID) async throws -> ChapterRead
 }
 
 /// The channel the library store sends its commands through.
@@ -45,6 +113,18 @@ protocol LibraryStore {
 protocol LinkTransport: Sendable {
     /// Sends one command to the Mac and returns the outline it answers.
     func send(_ command: LinkCommand) async throws -> [LibraryShelf]
+    /// Sends one command to the Mac and returns the chapter it answers.
+    func read(_ command: LinkCommand) async throws -> ChapterRead
+}
+
+extension LinkTransport {
+    /// The answer of a transport that carries no chapter read yet.
+    ///
+    /// The socket arrives with the link, so until then a chapter read
+    /// has no way back from the Mac.
+    func read(_ command: LinkCommand) async throws -> ChapterRead {
+        throw ChapterReadFailure.unreadable
+    }
 }
 
 /// The library the app reads: the outline comes from the Mac over the link.
@@ -85,6 +165,29 @@ final class LinkLibraryStore: LibraryStore {
         let shelves = try await transport.send(command)
         state = shelves.isEmpty ? .notYet : .loaded(shelves)
         return shelves
+    }
+
+    /// Reads one chapter: the body the Mac holds, and the revision it
+    /// read that body at.
+    ///
+    /// The Mac owns the library, so a chapter that cannot be read is a
+    /// failure of this one chapter, not of the library.
+    func read(chapter id: ChapterID) async throws -> ChapterRead {
+        guard link.state.canReadLibrary, let transport else {
+            throw ChapterReadFailure.macUnreachable
+        }
+        let command = LinkCommand(
+            kind: .readChapter,
+            identifier: id.id,
+            baseRevision: link.state.companion?.revision ?? 0
+        )
+        do {
+            return try await transport.read(command)
+        } catch let failure as ChapterReadFailure {
+            throw failure
+        } catch {
+            throw ChapterReadFailure.unreadable
+        }
     }
 
     /// The identifier the library-wide listing travels under.
@@ -136,7 +239,22 @@ final class FixtureLibraryStore: LibraryStore {
         )
     ]
 
+    /// The fixed body the fixture serves, in Markdown.
+    static let sampleBody = """
+    # The Harbour
+
+    The tide **turns** at dawn, and the boats go out with it.
+    """
+
+    /// The fixed revision the fixture serves.
+    static let sampleRevision = 7
+
     /// The fixed outline.
     func outline() async throws -> [LibraryShelf] { Self.sample }
+
+    /// The fixed chapter the fixture serves.
+    func read(chapter id: ChapterID) async throws -> ChapterRead {
+        ChapterRead(body: Self.sampleBody, revision: Self.sampleRevision)
+    }
 }
 #endif
