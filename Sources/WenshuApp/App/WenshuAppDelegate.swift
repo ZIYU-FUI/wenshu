@@ -373,6 +373,11 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // for the shared-singleton rationale). Idempotent: calling
         // startSubAgentDrainLoop twice is a no-op.
         Self.startSubAgentDrainLoop()
+        // The companion service (= the local API the phone talks to). The listener
+        // binds to the loopback interface only, and it starts after the rest of the
+        // bootstrap so a phone that pairs the moment the window appears finds a
+        // service that is already answering.
+        CompanionService.shared.start()
         // 2026-10-14: enable macOS 27 Window Tabs (= NSWindow tabbingMode = .preferred)
         // for every window the app owns (= the canonical "框架自带" tab mechanism;
         // = the View → Show Tab Bar menu command toggles this state; = the
@@ -467,6 +472,10 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         // start; = the in-flight LLM call, if any, continues to completion via
         // the runner's own cancellation-handling path).
         Self.stopSubAgentDrainLoop()
+        // The companion service (= the local API the phone talks to). The listener is
+        // torn down here so the port does not outlive the process (= the phone's next
+        // request gets a refused connection instead of a service nobody answers).
+        CompanionService.shared.stop()
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
