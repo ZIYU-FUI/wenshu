@@ -9,8 +9,10 @@ The three reviewed commits keep their SHAs: they are the branch's own
 history, which the merge carries as its second parent (`124e84b8db`), so
 `git merge-base --is-ancestor 124e84b8db main` exits 0.
 Merged tree: `dc3e65cca9615d1cc8d0c9ea02a6bb8068d1e2ff` (= the tree the
-dry merge predicted against the `main` tip, = byte-identical to the
-branch's).
+dry merge predicted against the `main` tip; the two editor files it
+carries are byte-identical to the branch's, while the tree as a whole
+also carries `main`'s own commits = the branch tip's own tree is
+`41e3bbdffad42eb6cca45284f999a5f6db99b703`).
 Branch and worktree: `project/t_f02fc603-t2-zooming-the-window-kills-the-app-the`
 and `.worktrees/t_f02fc603` (= both deleted after the merge = they carried
 nothing the merge does not).
@@ -147,30 +149,34 @@ more on the merged tree for this landing:
 The same numbers the reviewer measured on the branch (run 1977): 46/46
 and 2/2.
 
-The re-run was against the merged tree, not the branch: the merge
-commit's `Sources/` and `Tests/` are byte-identical to `main`'s
-(`git diff 87ba16e2ef main -- Sources Tests` is empty), and the build
-that the two suites ran on is that tree's.
+The re-run was against the merged tree, not the branch: the files that
+own the two suites are byte-identical between the merge commit and
+`main` = `EditorChatNSController.swift`,
+`EditorChatNSControllerTests.swift` and
+`AppleSplitViewAutomaticBoundsTests.swift`
+(`git diff --stat 87ba16e2ef main -- <those three paths>` is empty), so
+the build that the two suites ran on is the merged tree's code. The
+whole-tree `Sources/`/`Tests/` diff is NOT empty, and it grows as other
+lanes land, so the per-file diff above is the durable form of the
+claim.
 
 ## The remotes
 
 Both remotes carry this card's result: the merge commit `87ba16e2ef` and
-the closure record `36d041c294` are ANCESTORS of each remote's
-`refs/heads/main`, so the three reviewed commits are reachable from each
-remote as well as from `main`.
+this closure record are ANCESTORS of each remote's `refs/heads/main`,
+so the three reviewed commits are reachable from each remote as well as
+from `main`.
 
-| remote | `refs/heads/main` | carries this card's result |
+| remote | `refs/heads/main` (= as observed) | carries this card's result |
 | --- | --- | --- |
-| `origin` (= `git@gitcode.com:ZIYU1983/wenshu.git`) | `247e43218f3178514335395d35cf6ff4ae4f241c` | yes (= the merge commit and the closure record are its ancestors) |
-| `old-origin` (= `git@github.com:ZIYU-FUI/wenshu.git`) | `36d041c2949907048835a696fd308d634a3698a1` | yes (= its tip IS the closure record) |
+| `origin` (= `git@gitcode.com:ZIYU1983/wenshu.git`) | `3aa733ac952dbb0b715839a20616651c294665ac` | yes (= the merge commit and this closure record are its ancestors) |
+| `old-origin` (= `git@github.com:ZIYU-FUI/wenshu.git`) | `3aa733ac952dbb0b715839a20616651c294665ac` | yes (= the same) |
 
-The tips differ, and the difference is not this card's: `old-origin` was
-pushed with this card's closure record as its tip, and `origin` has
-since received TWO MORE COMMITS FROM ANOTHER LANE
-(`b8fcdfd70`, `247e43218`, = a docs commit and an agent-test commit,
-neither of them this card's) on top of the same closure record. So the
-exact tip moves as other lanes land, and the durable fact = the merge
-commit and this record are ancestors of both.
+The tips move as other lanes land: `origin` has received several commits
+from other lanes on top of this card's result since the merge, and
+`old-origin` has been caught up to the same tip. Neither movement is
+this card's, and neither changes the durable fact = the merge commit and
+this record are ancestors of both.
 
 Note on the route to `old-origin`: the host's SSH port 22 is answered by
 the local proxy's fake-IP address (`198.18.0.113`), and the connection
@@ -179,7 +185,7 @@ others, with either route (the repository's configured
 `core.sshcommand = ssh -o ProxyCommand='nc -X connect -x 127.0.0.1:7897
 %h %p'`, or a direct `ssh` with no proxy) able to be the one that drops.
 So the read is worth a retry: it returned
-`36d041c2949907048835a696fd308d634a3698a1` on the attempt that
+`3aa733ac952dbb0b715839a20616651c294665ac` on the attempt that
 answered. The merge is the same commit on both remotes either way.
 
 ## Why the merge is a merge commit
