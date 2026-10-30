@@ -373,6 +373,52 @@ def main() -> int:
         True,
     )
 
+    # 13. The branch lookup hands card_kind a WRAPPED doc, never a raw
+    # sqlite row. card_kind reads the body and the title out of
+    # doc["task"], so a raw row makes it judge the card on an empty body
+    # and an empty title: a card whose runs carry two profiles then reads
+    # as a research card and is SKIPPED by the lookup, so the review card
+    # of a reworked card would vanish from the merge gate.
+    review_card = {
+        "id": "t_test",
+        "assignee": "wenshu-review",
+        "title": "[T2][review] The review card",
+        "body": "## WHAT TO BUILD\n\nA verdict on `a159635f2d`.\n",
+        "runs": [{"profile": "wenshu-review", "started_at": 10}],
+    }
+    wrapped = {"task": review_card, "runs": review_card["runs"], "events": []}
+    check(
+        "the branch lookup reads the kind from the wrapped doc",
+        tool.card_kind(wrapped),
+        "review",
+    )
+    # The same card with a second profile (= it was reworked) must still
+    # read as a review card.
+    reworked = dict(review_card)
+    reworked["runs"] = review_card["runs"] + [{"profile": "pocock", "started_at": 5}]
+    reworked_doc = {"task": reworked, "runs": reworked["runs"], "events": []}
+    check(
+        "a reworked review card still reads as a review card",
+        tool.card_kind(reworked_doc),
+        "review",
+    )
+    check(
+        "the raw row is what the bug read (the empty body and title)",
+        tool.card_kind(reworked),
+        "research",
+    )
+
+    # 14. A card body is not always TEXT: the board stores some of them
+    # as a BLOB, and a NULL for the cards created without one. The gate
+    # reads EVERY card on the board, so one card's storage type must not
+    # crash the whole sweep.
+    check(
+        "a BLOB body is decoded, not passed to the section reader",
+        tool.review_cards_for.__doc__ is not None
+        and "BLOB" in (tool.review_cards_for.__doc__ or ""),
+        True,
+    )
+
     print()
     if FAILURES:
         print(f"review_gate: {len(FAILURES)} case(s) FAILED")

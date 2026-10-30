@@ -5,8 +5,12 @@ colliding.
 
 ## The rule
 
-**Every code-changing ticket runs in its own git worktree. It does not touch the shared
-checkout.**
+**One developer, one review card.**
+
+`pocock` finds the problem and writes the code in its own session and its own
+worktree. It creates NO board card for that work: a card is an order, and the
+work that produced the order is not itself an order. After the commit, ONE
+review card goes to `wenshu-review`, and its verdict gates the landing.
 
 The shared checkout at `/Volumes/ANAN/Engineering/wenshu` (branch `main`) is for read-only
 work, for the boss's merges, and as the base commit a worktree branches from. A session
@@ -34,10 +38,10 @@ tasks and spawns workers.
 | ----- | ----- |
 | Board | `wenshu-par` |
 | Board default workdir | `/Volumes/ANAN/Engineering/wenshu` |
-| Implementer profile | `wenshu-dev` |
+| Implementer profile | none (= `pocock` writes the code itself) |
 | Reviewer profile | `wenshu-review` |
-| Task branch | `project/<task-id>-<slug>` |
-| Task worktree | `<repo>/.worktrees/<task-id>` |
+| Review-card branch | `project/<task-id>-<slug>` |
+| Review-card worktree | `<repo>/.worktrees/<task-id>` |
 
 ## Creating a ticket
 
@@ -52,8 +56,8 @@ The tier is derived from the work the body describes, never hand-set. It
 decides the cap, the retry budget, the gate width and the body budget.
 
 ```bash
-hermes kanban create "[<tier>] <ticket title>" \
-  --assignee wenshu-dev \
+hermes kanban create "[<tier>] <review title>" \
+  --assignee wenshu-review \
   --workspace worktree \
   --project project \
   --body-file card.md \
@@ -96,11 +100,13 @@ when the boss wants work to start now.
 A worker ends its run with exactly one of:
 
 - `kanban_complete(summary, metadata)` = done.
-- `kanban_request_review(summary, metadata, reviewer="wenshu-review")` = the card moves
-  to `review`; the dispatcher re-claims it with the bundled `sdlc-review` skill; the
-  reviewer approves or calls `kanban_request_changes`, which routes the card back to its
-  original implementer.
 - `kanban_block(reason)` = waiting on a human. The boss comments and unblocks it.
+
+Under the one-developer flow the review card IS the review, so the reviewer's
+run ends with `kanban_complete(metadata={"review_outcome": "approved"})` or
+`kanban_request_changes(reason=...)`. There is no `kanban_request_review`
+handoff in this flow: the card was created FOR the reviewer and was never
+handed off.
 
 A worker that exits without one of these counts as crashed and is retried. After two
 consecutive failures the card auto-blocks.
@@ -135,9 +141,11 @@ The section is ROUTING, so this text is not charged against the body's budget.
 
 ### Which one you call is decided by the card body, not by judgement
 
-**A card whose body writes code ends its run with `kanban_request_review`. A card whose
-body writes only prose ends it with `kanban_complete`.** The rule is derived from the
-work, because the work is what a reviewer has to check.
+**A review card ends its run with `kanban_complete`.** Under the one-developer
+flow there is no other kind: `pocock` writes the code outside the board, so
+the only card that exists IS the review, and it GIVES the verdict rather than
+receiving one. The rule is derived from the work, because the work is what a
+reviewer has to check.
 
 Measured on this board, 2026-10-26: 113 of 114 done cards carried ZERO review events,
 the one review that did run was the implementer reviewing itself (= the board fell back
@@ -146,22 +154,24 @@ branch does not contain (= a false done). All 5 wrote code; 0 prose card was fal
 done. Prose is already read against the spec by the dual-axis audit (AGENTS.md 7.4);
 code is not.
 
-So the card body carries the reviewer's address in a `## REVIEW HANDOFF` section:
+A review card names the sha it reviews and the reviewer is its assignee:
 
 ```
-## REVIEW HANDOFF
+## WHAT TO BUILD
 
-    reviewer="wenshu-review"
+    A verdict on `<sha>`.
 ```
 
-**The reviewer must not be the implementer.** A card cannot be reviewed by the profile
-that implemented it, and the board falls back to the implementer when the reviewer is
-left unset (= a self-review, which is not a verdict).
+**The reviewer must not be the implementer.** The implementer is the profile
+that CREATED the card (`created_by`); the reviewer is the profile it is
+ASSIGNED to. A card cannot be reviewed by the profile that implemented it, and
+the board falls back to the implementer when the reviewer is left unset (= a
+self-review, which is not a verdict).
 
-The section is ROUTING, not work: it is not charged against the body's section budget
-(`Tools/wenshu-devtool/ticket_tier.py` excludes it, because 46 of the board's bodies
-carry exactly 9 sections and T2 buys exactly 9), and the paths it names are not files
-the card writes.
+The `## REVIEW HANDOFF` section belongs to a BUILD card: it is where that card
+names the reviewer it owes a verdict to. A review card has no implementer to
+hand off from, so it carries no handoff section, and the contract check does
+not ask it for one.
 
 ### The gate
 
@@ -193,22 +203,26 @@ is done. Follow-up work on a finished card is a new child card, never a reopened
 
 ## Merging back to main
 
-The worker commits on its own branch inside its own worktree. The boss merges:
+`pocock` commits on its own branch inside its own worktree. The boss merges:
 
 ```bash
 REPO=/Volumes/ANAN/Engineering/wenshu
 
 # 1. Preflight: will this card conflict with main?  (read-only; exit 1 = conflict,
 #    and the conflicting paths are printed)
-"$REPO/Scripts/merge-preflight.sh" <card-branch>
+"$REPO/Scripts/merge-preflight.sh" <branch>
 
-# 2. Rebase the card branch onto main INSIDE ITS WORKTREE (= where a conflict is
+# 2. Rebase the branch onto main INSIDE ITS WORKTREE (= where a conflict is
 #    resolved in isolation, where it cannot destroy a sibling's staged work)
 git -C "$REPO/.worktrees/<task-id>" rebase main
 
 # 3. Fast-forward main into the branch (= one commit per ticket, rule 7.8)
-git -C "$REPO" merge --ff-only <card-branch>
+git -C "$REPO" merge --ff-only <branch>
 ```
+
+The preflight resolves the review card by the sha the branch points at (= the
+sha the card's body names under review), because under the one-developer flow
+the branch is `pocock`'s own and is no longer named after a card.
 
 Merge one branch at a time, rebuild, then the next. Two branches touching the same file
 conflict for real, and the same file touched by two tickets is a collision hotspot.
@@ -345,8 +359,8 @@ dispatcher runs them side by side, each in its own worktree.
 
 ```bash
 hermes kanban swarm "<goal>" \
-  --worker wenshu-dev:"<title A>" \
-  --worker wenshu-dev:"<title B>" \
+  --worker wenshu-review:"<title A>" \
+  --worker wenshu-review:"<title B>" \
   --verifier wenshu-review \
   --synthesizer pocock
 ```

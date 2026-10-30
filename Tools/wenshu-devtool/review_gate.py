@@ -195,7 +195,12 @@ def board_cards(board: str = BOARD) -> list[dict] | None:
 
 
 def review_cards_for(board: str = BOARD) -> list[dict]:
-    """Every card on the board, with its runs, read cheaply (= one query)."""
+    """Every card on the board, with its runs, read cheaply (= one query).
+
+    A card body is not always TEXT: the board stores some of them as a
+    BLOB, and a NULL for the cards created without one. Both are decoded
+    here, so the caller never has to know the storage type.
+    """
     path = _board_db_path(board)
     if path is None:
         return []
@@ -215,6 +220,18 @@ def review_cards_for(board: str = BOARD) -> list[dict]:
         conn.close()
     for c in cards:
         c["runs"] = runs.get(c.get("id") or "", [])
+        # A card body is not always TEXT: the board stores some of them as
+        # a BLOB, and a NULL for the cards created without one. The gate
+        # reads every card on the board, so it must not die on one card's
+        # storage type.
+        body = c.get("body")
+        if isinstance(body, (bytes, bytearray)):
+            c["body"] = body.decode("utf-8", errors="replace")
+        elif body is None:
+            c["body"] = ""
+        title = c.get("title")
+        if isinstance(title, (bytes, bytearray)):
+            c["title"] = title.decode("utf-8", errors="replace")
     return cards
 
 
@@ -655,7 +672,15 @@ def main() -> int:
         cards = review_cards_for(args.board)
         found = []
         for card in cards:
-            if card_kind(card) != "review":
+            # ``review_cards_for`` returns RAW task rows (= no ``task``
+            # key). ``card_kind`` reads the body and the title out of
+            # ``doc["task"]``, so it must be handed the WRAPPED doc. A raw
+            # row makes it judge the card on an empty body and an empty
+            # title, and a card whose runs carry two profiles then reads as
+            # a research card and is skipped here: the review card of a
+            # card that was reworked would vanish from the lookup.
+            doc = {"task": card, "runs": card.get("runs") or [], "events": []}
+            if card_kind(doc) != "review":
                 continue
             body = card.get("body") or ""
             sha = reviewed_sha(body)
@@ -663,7 +688,6 @@ def main() -> int:
                 continue
             if not (sha.startswith(sha_filter) or sha_filter.startswith(sha)):
                 continue
-            doc = {"task": card, "runs": card.get("runs") or [], "events": []}
             verdict = verdict_from_doc(doc)
             found.append((card.get("id"), verdict.get("status"), verdict.get("reviewer")))
         for card_id, status, reviewer in found:
