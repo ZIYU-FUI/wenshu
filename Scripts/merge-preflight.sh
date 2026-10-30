@@ -65,6 +65,20 @@ card_id_of() {
     basename "$1" | grep -oE '^t_[0-9a-f]{8}' || true
 }
 
+# The review card that reviews this branch, or empty when none does.
+#
+# The lookup is by the sha the branch points at: the review card's body
+# names the sha under review in its WHAT TO BUILD claim, and the branch
+# tip is that sha once pocock has committed the work it reviews.
+review_card_for_branch() {
+    local branch="$1"
+    local sha
+    sha=$(git rev-parse --verify -q "$branch" 2>/dev/null) || return 0
+    [[ -z "$sha" ]] && return 0
+    python3 "$GATE" --branch "$branch" --sha "$sha" --board "$BOARD" 2>/dev/null \
+        | sed -n 's/^CARD \([a-z_0-9]*\)$/\1/p' | head -1
+}
+
 conflict=0
 unreviewed=0
 for b in "${branches[@]}"; do
@@ -82,7 +96,15 @@ for b in "${branches[@]}"; do
 
     # The review gate. It runs even on a conflicting branch: a card that
     # owes a verdict owes it whether or not its branch also conflicts.
+    #
+    # Under the one-developer flow (boss ruling 2026-10-30) the branch is
+    # pocock's own, so the card id does not come from the branch name: the
+    # review card that covers it is the one whose body names the sha the
+    # branch points at. So the branch's tip sha is the lookup key.
     card="$(card_id_of "$b")"
+    if [[ -z "$card" ]]; then
+        card="$(review_card_for_branch "$b")"
+    fi
     [[ -z "$card" ]] && continue
     if [[ ! -f "$GATE" ]]; then
         # A missing gate is NOT a pass. Refuse, because a merge gate that

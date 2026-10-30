@@ -64,6 +64,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import product_lines  # noqa: E402  (sibling module, same directory)
 import ticket_tier  # noqa: E402  (sibling module, same directory)
+from ticket_tier import normalized, sections  # noqa: E402  (sibling module, same directory)
 
 # The board this tool reads when the caller names none. Declared in one
 # place (= product_lines), so a tool that sweeps boards reads the same
@@ -193,6 +194,52 @@ def board_cards(board: str = BOARD) -> list[dict] | None:
 
 
 
+def review_cards_for(board: str = BOARD) -> list[dict]:
+    """Every card on the board, with its runs, read cheaply (= one query)."""
+    path = _board_db_path(board)
+    if path is None:
+        return []
+    try:
+        conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+    except sqlite3.Error:
+        return []
+    try:
+        conn.row_factory = sqlite3.Row
+        cards = [dict(r) for r in conn.execute("SELECT * FROM tasks")]
+        runs: dict[str, list[dict]] = {}
+        for r in conn.execute("SELECT * FROM task_runs ORDER BY started_at ASC"):
+            runs.setdefault(r["task_id"], []).append(dict(r))
+    except sqlite3.Error:
+        return []
+    finally:
+        conn.close()
+    for c in cards:
+        c["runs"] = runs.get(c.get("id") or "", [])
+    return cards
+
+
+def reviewed_sha(body: str) -> str | None:
+    """The sha a review card names, read from its WHAT TO BUILD claim."""
+    for name, text in sections(body):
+        if normalized(name) != "what to build":
+            continue
+        lines = text.splitlines()
+        if lines and lines[0].lstrip().startswith("#"):
+            lines = lines[1:]
+        for para in "\n\n".join(lines).split("\n\n"):
+            claim = para.strip()
+            if not claim:
+                continue
+            match = re.search(r"[0-9a-f]{7,40}", claim)
+            return match.group(0) if match else None
+    return None
+
+
+def branch_of(doc: dict) -> str | None:
+    """The branch a card carries, if the board knows one."""
+    return (doc.get("branch_name") or None)
+
+
 def _profiles_of(card_id: str, board: str = BOARD) -> set[str]:
     """The profiles that ran this card, read from the board's run table.
 
@@ -260,6 +307,10 @@ def implementer_of(doc: dict) -> str | None:
         recorded = _payload(handoff).get("implementer")
         if recorded:
             return str(recorded)
+    if card_kind(doc) == "review":
+        created_by = str((doc.get("task") or {}).get("created_by") or "").strip()
+        if created_by and created_by not in ("user", "system"):
+            return created_by
     runs = [r for r in (doc.get("runs") or []) if isinstance(r, dict)]
     runs = [r for r in runs if r.get("profile")]
     if runs:
@@ -340,16 +391,61 @@ def _implementer_of_card(card_id: str, board: str = BOARD) -> str | None:
     return implementer_of(doc)
 
 
+def _approving_runs(runs: list[dict], reviewer: str | None) -> list[dict]:
+    """The completed runs that carry an approving verdict from the reviewer."""
+    out = []
+    for run in runs:
+        if str(run.get("outcome") or "") != "completed":
+            continue
+        metadata = run.get("metadata")
+        metadata = metadata if isinstance(metadata, dict) else {}
+        if metadata.get("review_outcome") != "approved":
+            continue
+        if reviewer and str(run.get("profile") or "") != str(reviewer):
+            continue
+        out.append(run)
+    return out
+
+
 def verdict_from_doc(doc: dict) -> dict:
     """The verdict the board record carries for one card.
 
     A verdict counts only when the handoff named a reviewer, that reviewer
     profile gave it, and no rework was asked for afterwards.
+
+    A REVIEW card is the other shape (boss ruling 2026-10-30): it was
+    created FOR the reviewer and never handed off, so its verdict is the
+    reviewer's own completion, and the implementer is the profile that
+    created it (the one that wrote the code).
     """
     events = [e for e in (doc.get("events") or []) if isinstance(e, dict)]
     runs = [r for r in (doc.get("runs") or []) if isinstance(r, dict)]
     handoffs = [e for e in events if _kind(e) == "review_requested"]
     if not handoffs:
+        if card_kind(doc) == "review":
+            task = doc.get("task") or {}
+            reviewer = str(task.get("assignee") or "") or None
+            implementer = str(task.get("created_by") or "") or None
+            approvals = _approving_runs(runs, reviewer)
+            if approvals and implementer and implementer != reviewer:
+                approval = max(approvals, key=lambda r: _at(r, "ended_at", "started_at"))
+                return {
+                    "status": "approved",
+                    "reviewer": reviewer,
+                    "implementer": implementer,
+                    "run_id": approval.get("id"),
+                }
+            if approvals:
+                return {
+                    "status": "self_review",
+                    "reviewer": reviewer,
+                    "reason": "the reviewer profile is the implementer profile",
+                }
+            return {
+                "status": "not_approved",
+                "reviewer": reviewer,
+                "reason": f"no approving verdict from {reviewer or 'the reviewer'} is on the record",
+            }
         return {
             "status": "no_handoff",
             "reason": "the card never handed off for review (= it was completed by its implementer)",
@@ -464,6 +560,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--body", help="check the contract of one body file")
     parser.add_argument("--card", help="check the record of one card")
+    parser.add_argument("--branch", help="the branch under review")
+    parser.add_argument("--sha", help="the sha the branch points at")
     parser.add_argument("--check", action="store_true", help="check every card")
     parser.add_argument("--assignee", help="the implementer profile, for the body check")
     parser.add_argument("--board", default=BOARD, help="board slug")
@@ -516,6 +614,30 @@ def main() -> int:
         ):
             return 3
         return 0
+
+    if args.branch:
+        # The review card that covers a branch, read by the sha the branch
+        # points at (= the sha the card's body names under review).
+        cards = review_cards_for(args.board)
+        found = []
+        for card in cards:
+            if card_kind(card) != "review":
+                continue
+            body = card.get("body") or ""
+            sha = reviewed_sha(body)
+            if not sha:
+                continue
+            if args.sha and not (sha.startswith(args.sha) or args.sha.startswith(sha)):
+                continue
+            doc = {"task": card, "runs": card.get("runs") or [], "events": []}
+            verdict = verdict_from_doc(doc)
+            found.append((card.get("id"), verdict.get("status"), verdict.get("reviewer")))
+        for card_id, status, reviewer in found:
+            print(f"CARD {card_id}")
+            print(f"  verdict: {status} by {reviewer}")
+        if not found:
+            print(f"NO REVIEW CARD names the sha {args.sha or '?'} on branch {args.branch}")
+        return 0 if found else 3
 
     if args.check:
         cards = board_cards(args.board)

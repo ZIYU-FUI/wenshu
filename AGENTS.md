@@ -44,9 +44,9 @@ SSOT for every contributor and agent on /Volumes/ANAN/Engineering/wenshu.
 | 1.9 | Load chain: .hermes.md at the repo root is the file Hermes injects (it wins over AGENTS.md) and points here + at the skill chain. A skill body loads on demand via skill_view; only its description is injected. | .hermes.md. `skills.auto_load` in config.yaml injects a body; a frontmatter `default_on` does not. |
 | 1.10 | One ticket = one commit + one atomic verification + one 4-section spec + one dual-axis dispatch + one P0 fix + one verify round + merge gate. | Tools/wenshu-devtool/ticket_tier.py; Scripts/merge-preflight.sh. |
 | 1.11 | The NFI registry = `docs/agents/nfi.md`, append-only; `merge=nfi-registry` in .gitattributes merges two cards' rows at the key level. | docs/agents/nfi.md. |
-| 1.12 | Parallel worktree isolation: every code-changing ticket runs in its own git worktree, never the shared checkout (= a board card, `--workspace worktree --project project`). | wenshu-parallel-dev |
-| 1.13 | Difficulty tier: every card carries a tier (`[T1]` / `[T2]` / `[T3]`), DERIVED by `ticket_tier.py` from its body, never hand-set. The tier sets the runtime cap, retry budget, gate width and body budget. A REVIEW-lane card answers to that lane's floor (3600s), not its tier's cap. | ticket_tier.py; ticket-tiers.md. |
-| 1.14 | Independent review: a card that writes CODE carries a `## REVIEW HANDOFF` naming a reviewer profile that is NOT its implementer, and ends with `kanban_request_review(reviewer=...)`. The obligation is DERIVED from the work, never the tier; a prose-only card owes no verdict. | review_gate.py; merge-preflight.sh. |
+| 1.12 | One developer: pocock finds and writes the code in its own session and worktree, and creates NO board card for the work. After the commit, ONE review card goes to `wenshu-review`. | wenshu-parallel-dev |
+| 1.13 | Difficulty tier: the review card carries a tier (`[T1]` / `[T2]` / `[T3]`), DERIVED by `ticket_tier.py`, never hand-set. The tier sets the runtime cap, retry budget, gate width and body budget. A REVIEW-lane card answers to that lane's floor (3600s), not its tier's cap. | ticket_tier.py; ticket-tiers.md. |
+| 1.14 | Independent review: the review card IS the review. Its body names the sha under review and the gates to run; the reviewer ends its run with `kanban_complete(metadata={"review_outcome": "approved"})` (7.9) or `kanban_request_changes(reason=...)`. The reviewer profile is never the implementer. | review_gate.py; merge-preflight.sh. |
 | 1.15 | Evidence before code: a card that reads names its read list, stop condition, forbidden lookups and deliverable in an `## EVIDENCE BUDGET` section, and its write order in `## WHAT TO BUILD`. `ready` means executable. Reading burns first. | Tools/wenshu-devtool/effort_budget_gate.py (the gate is 7.11). |
 
 ## §2 Stack baseline
@@ -158,13 +158,13 @@ SSOT for every contributor and agent on /Volumes/ANAN/Engineering/wenshu.
 | 8.1 | Evidence budget (the four lines + the write order). The research happens BEFORE the card, so the card is an order. | rule 1.15; effort_budget_gate.py. |
 | 8.2 | Design card: the Apple canonical API, the target shape, the stop condition. One page. | wenshu-apple-api-first. |
 | 8.3 | 4-section business-language spec (business / current state / Apple canonical / after-fix). The Apple-canonical section IS the design card from 8.2. | wenshu-pocock-workflow + universal-pocock-workflow. |
-| 8.4 | Code + smoke test + reproduce, in a worktree (board card, rule 1.12). | diagnosing-bugs; wenshu-parallel-dev. |
+| 8.4 | Code + smoke test + reproduce in pocock's own worktree, with NO board card (rule 1.12). Then ONE review card for the commit. | diagnosing-bugs; wenshu-parallel-dev. |
 | 8.5 | Real violation inventory (read-only): the grep inventory of the affected area, by rule. | §7.3. |
 | 8.6 | Fan-out budget (disjoint scopes, one writer per file, the call ceiling). | rule 7.12; session_effort_audit.py. |
 | 8.7 | Dual-axis dispatch (Standards + Spec, 2 parallel read-only sub-agents). | code-review; codebase-design. |
 | 8.8 | Fix P0. | universal-pocock-workflow step 5. |
 | 8.9 | Verify round over the files the fix commit touched. | universal-pocock-workflow step 6. |
-| 8.10 | Merge gate (boss verdict for UI; swift build for non-UI). The card's DISPATCHER verifies, merges and pushes it: the worker finishing and the reviewer approving are automatic, the branch landing is not. A card is LANDED when its branch is on `main` AND `main` is on the remote. | merge-preflight.sh. |
+| 8.10 | Merge gate (boss verdict for UI; swift build for non-UI). The review card's verdict gates the landing: `review_gate.py --card <id>` must read approved, `merge-preflight.sh <branch>` must read CLEAN, then rebase, re-run the named gates, ff-merge, push. | merge-preflight.sh. |
 
 ## §9 Reference index (NOT duplicated here)
 
@@ -179,7 +179,6 @@ SSOT for every contributor and agent on /Volumes/ANAN/Engineering/wenshu.
 | Iron rules audit (41 Apple HIG + Swift rules) | wenshu-iron-rules-audit/SKILL.md |
 | Visual audit | wenshu-visual-audit/SKILL.md |
 | Parallel dev convention (worktree board cards) | wenshu-parallel-dev/SKILL.md |
-| Parallel dev contract (in-repo) | docs/agents/parallel-development.md |
 | Nervous file index (NFI) | docs/agents/nfi.md |
 | Ticket difficulty tiers | docs/agents/ticket-tiers.md |
 | Devtool gates + probes | Tools/wenshu-devtool/README.md |
