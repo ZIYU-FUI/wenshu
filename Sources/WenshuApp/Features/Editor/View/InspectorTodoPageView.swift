@@ -153,7 +153,13 @@ private struct InspectorTodoCard: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: DesignTokens.spacingIconic) {
+            // The marker sits in a column of its own width (= the
+            // inline-small glyph's point size), so every card's words
+            // start at the same place (= a spinner and a symbol have
+            // different intrinsic widths, = without the column the
+            // rows read ragged).
             stateMarker
+                .frame(width: DesignTokens.inspectionMarkerColumnWidth, alignment: .leading)
                 .padding(.top, 1)
             VStack(alignment: .leading, spacing: 0) {
                 Text(todo.title)
@@ -183,15 +189,18 @@ private struct InspectorTodoCard: View {
         }
     }
 
-    /// The state marker (= the plan's four states, the way Hermes draws
-    /// them: an open ring while the item is still to do, a spinner on
-    /// the item being worked on, a checkmark once it is resolved, and a
-    /// slashed ring for a dropped item).
+    /// The state marker (= the plan's four states).
+    ///
+    /// An item waiting its turn wears a TRAY (= it sits in the queue
+    /// with the other items, = a hollow ring would read as a checkbox
+    /// the reader can tick, = and the reader cannot tick it). The item
+    /// being worked on wears a spinner, a resolved item a checkmark, and
+    /// a dropped one a slashed ring.
     @ViewBuilder
     private var stateMarker: some View {
         switch todo.status {
         case HermesTodoStatus.pending:
-            SFIcon("circle", style: .inlineSmall, color: InspectorTodoStateStyle.tone(for: todo.status))
+            SFIcon("tray", style: .inlineSmall, color: InspectorTodoStateStyle.tone(for: todo.status))
                 .symbolRenderingMode(.hierarchical)
         case HermesTodoStatus.inProgress:
             ProgressView()
