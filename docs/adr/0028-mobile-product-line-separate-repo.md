@@ -1,8 +1,43 @@
 # ADR-0028: The mobile product line is a separate repository
 
-> Status: accepted
+> Status: superseded (2026-10-30)
 > Date: 2026-10-28
 > Decision-maker(s): boss
+> Superseded by: the client's move into this repository, at `Mobile/`
+
+## Superseded
+
+The client is in THIS repository, at `Mobile/`, as a second SwiftPM
+package beside the desktop one. This decision is history, and it is kept
+because the reason it was made is the reason the move was hard.
+
+**What was decided here was a PM's inference, not the boss's ruling.** The
+boss said a new project DIRECTORY (OOB.md, 2026-10-28). The separate git
+repository was added on top of that, and this ADR recorded it as if it had
+been ruled. It was not: the decision-maker line above said so at the time,
+and the reasoning was the PM's.
+
+**The cost was counted.** Forty-one files existed under both names,
+twenty-one of them the gate scripts and the method documents, and every
+change to a gate had to land in both. The port rule was the only thing
+keeping them honest, and it cost a card every time: the review-gate fix
+this week was one card on the desktop and another to port it.
+
+**The technical objection here did not hold.** This ADR said the root
+manifest would have to claim a support it does not have. Measured
+2026-10-30: SwiftPM uses the NEAREST manifest, so a package in a
+subdirectory builds with the plain command from inside it, and the root
+manifest keeps declaring macOS only while the client declares ios and
+macos for itself. A package's target path may not escape its package
+root, so the client had to move as ONE package (= app + kit + tests),
+which is what it did.
+
+**What survives from this decision.** The client is still a separate
+PRODUCT with its own release train, its own signing identity, its own CI
+job, and its own rules (its SSOT is `Mobile/AGENTS.md`). What changed is
+where it lives and who owns the method: the gates are one copy at the
+repository root, and the product lines are declared once in
+`Tools/wenshu-devtool/product_lines.py`.
 
 ## Context
 
