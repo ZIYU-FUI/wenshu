@@ -98,6 +98,29 @@ own job now, and the design sweep is called over an explicit file list
 shapes the workflow runs in: a pull-request checkout has no local `main`,
 and a push to `main` has `main...HEAD` empty by definition).
 
+## One thing the migration left behind, found while closing out
+
+`Mobile/docs/product-line-plan.md` was written on 2026-10-28, when the client
+was going to be its own repository, and it says so in eight places (= "Lives
+in: the wenshu-mobile repository", "the macOS repository keeps the desktop
+app", "a second repository wenshu-core holds the code both sides share", the
+remote-URL consumption rule, and the C2.1/C2.2 cards that build it). The
+client moved into this repository on 2026-10-30, so those sentences described
+a layout that no longer existed.
+
+The technical claims survive the move and they were kept: the root package
+still declares macOS only, a shared package still must not BE the root
+package, and section 2.2 still holds for a package consumed over the network.
+What the move changes is the sharing reason. A local path package does not
+drift when there is one checkout, so the shared package does not need its own
+repository, and neither does the client.
+
+**A plan document that names a layout is a gate on that layout.** It was
+written for a decision that was later reversed, and nothing read it between
+those two dates. The read that would have caught it is the same read that
+catches a stale path in any other file: grep for the old name. Eight hits in
+one document is a document whose premise moved, not eight typos.
+
 ## Two defects found while landing, in their own rows
 
 **The SwiftFormat step had never checked anything.** It read `swiftformat
