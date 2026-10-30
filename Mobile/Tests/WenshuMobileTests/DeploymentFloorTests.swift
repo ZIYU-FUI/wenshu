@@ -10,7 +10,7 @@ import Testing
 /// the system it runs on is drawn as a legacy binary and scaled into a
 /// phone-sized window, so the client loses the adaptive layout it is
 /// written for. The linker stamp fixes that without moving the floor
-/// (ADR-0002): the floor stays 18.0, the SDK names the SDK the build used.
+/// (ADR-0030): the floor stays 18.0, the SDK names the SDK the build used.
 ///
 /// The proof reads the BUILT product's load command. A test that asserted on
 /// the text of `Package.swift` would keep passing while the stamp stayed
@@ -29,7 +29,7 @@ struct DeploymentFloorTests {
         for version in versions {
             #expect(
                 version.minimumOS == "18.0",
-                "The deployment floor is iOS 18 (ADR-0002), the product says \(version.minimumOS)"
+                "The deployment floor is iOS 18 (ADR-0030), the product says \(version.minimumOS)"
             )
             #expect(
                 version.sdk != "18.0",

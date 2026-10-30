@@ -20,7 +20,7 @@ purchase, a contract, or a legal answer before they become commitments.
 | --- | --- |
 | Mobile enters the product line and may carry its own `wenshu-XXX` project | This repository (`wenshu-mobile`) holds the native client. The macOS repository keeps the desktop app. A second repository `wenshu-core` holds the code both sides share. |
 | The relay must simplify user configuration, and Wenshu does not pay for it | Wenshu operates no relay. Reachability is bought from a tunnel provider on the user's own account, and the Mac companion drives that provider's client automatically. Every cost lands on the user, the enterprise, or a capped pilot budget. |
-| Native Apple, adapting automatically to iPadOS and the newest foldable phones | One SwiftUI codebase, deployment floor iOS 18 with the foldable-native APIs behind `@available` (ADR-0002). The iPhone 18 family is the primary target; a foldable is the same adaptive code, adapted to fit (ADR-0004). |
+| Native Apple, adapting automatically to iPadOS and the newest foldable phones | One SwiftUI codebase, deployment floor iOS 18 with the foldable-native APIs behind `@available` (ADR-0030). The iPhone 18 family is the primary target; a foldable is the same adaptive code, adapted to fit (ADR-0032). |
 | Computer-authoritative remote control, the way Hermes does it | The Mac holds the only writer. The phone is a thin client plus a local draft buffer. The Mac must be awake with Wenshu running. |
 
 Ruling 4 removes the hardest engineering question from the first release. A
@@ -263,9 +263,9 @@ One app, three postures, one codebase.
 
 - SwiftUI throughout. No AppKit view moves to the phone. The desktop editor's
   `NSTextView` dependency stays on the desktop.
-- Deployment floor iOS 18, which is the iPhone 16 generation (ADR-0002). The foldable-native APIs arrive by `@available` on iOS 27.1, where `ArrangementView` gives the foldable-aware layout and `reservedRegions` reserves the areas a fold or a camera cutout can cover.
-- The primary devices are the iPhone 18 family: the iPhone 18, the iPhone 18 Pro and the iPhone 18 Pro Max. A foldable is the same adaptive code, adapted to fit, not a second product line (ADR-0004).
-- The shell is iOS's own (ADR-0005): a `TabView` with a bottom tab bar on the compact width, a `NavigationStack` inside each tab, and a `NavigationSplitView` only where the regular width earns it (an iPad, or a Duo unfolded into a wide screen). A phone never shows a sidebar. `containerRelativeFrame` sizes the panes against the container rather than a fixed number.
+- Deployment floor iOS 18, which is the iPhone 16 generation (ADR-0030). The foldable-native APIs arrive by `@available` on iOS 27.1, where `ArrangementView` gives the foldable-aware layout and `reservedRegions` reserves the areas a fold or a camera cutout can cover.
+- The primary devices are the iPhone 18 family: the iPhone 18, the iPhone 18 Pro and the iPhone 18 Pro Max. A foldable is the same adaptive code, adapted to fit, not a second product line (ADR-0032).
+- The shell is iOS's own (ADR-0033): a `TabView` with a bottom tab bar on the compact width, a `NavigationStack` inside each tab, and a `NavigationSplitView` only where the regular width earns it (an iPad, or a Duo unfolded into a wide screen). A phone never shows a sidebar. `containerRelativeFrame` sizes the panes against the container rather than a fixed number.
 - Reading and short edits go through the API in the first release. A full
   rich-text editor on the phone is a later phase, because matching the
   desktop's editing behaviour in a native text view is a project of its own.
@@ -285,7 +285,7 @@ section 2.2.
 | --- | --- | --- |
 | `wenshu` (existing) | macOS app, `WenshuData`, `WenshuAgent` | the desktop user |
 | `wenshu-core` (planned) | The shared library. Root package, library product, explicit version, platforms macOS and iOS. Holds the link contract once a second consumer needs it, and later the shared model. Created by card C2.1, not before. | `wenshu` and `wenshu-mobile` |
-| `wenshu-mobile` (this repository) | The native client. An iOS and iPadOS app target. It holds the link contract until a second consumer needs it (ADR-0003), then it depends on `wenshu-core` at a pinned version. | the phone user |
+| `wenshu-mobile` (this repository) | The native client. An iOS and iPadOS app target. It holds the link contract until a second consumer needs it (ADR-0031), then it depends on `wenshu-core` at a pinned version. | the phone user |
 
 Why not put the shared code in the `wenshu` root: the root package would have
 to declare iOS support, and it contains a macOS-only executable target and two
@@ -349,7 +349,7 @@ reviewer in its `## REVIEW HANDOFF` section, per AGENTS.md rule 1.14.
 
 | Card | Tier | Work | Gate |
 | --- | --- | --- | --- |
-| C0.1 | T1 | Record the four rulings: OOB.md one-line entry in both repos, AGENTS.md section 2.3 scope row amended in both repos, section 9 index entry, ADR-0028 in the desktop repo, ADR-0001 here. | `agents_gate.py --file AGENTS.md` exits 0. |
+| C0.1 | T1 | Record the four rulings: OOB.md one-line entry in both repos, AGENTS.md section 2.3 scope row amended in both repos, section 9 index entry, ADR-0028 in the desktop repo, ADR-0029 here. | `agents_gate.py --file AGENTS.md` exits 0. |
 | C0.2 | T2 | Apple Developer Program enrollment, bundle identifiers for the three products, and the China filing decision. | Not a code card. Owner action, recorded as a decision. |
 | C0.3 | T2 | Provider due diligence: which provider, which tier, price confirmed, local API contract confirmed, terms confirmed. | Written findings with no unverified claim left standing. |
 
@@ -369,7 +369,7 @@ reviewer in its `## REVIEW HANDOFF` section, per AGENTS.md rule 1.14.
 | --- | --- | --- |
 | C2.1 | T3 | Create `wenshu-core`: root package, library product, macOS and iOS 27.1 platforms, wire protocol and shared value types, version tag. |
 | C2.2 | T2 | Prove remote consumption: a scratch consumer resolves `wenshu-core` by URL at a pinned version and builds for iOS Simulator. This is the proof of section 2.2. |
-| C2.3 | T3 | The client app target: this repository, iOS 18 floor with the 27.1 APIs behind @available (ADR-0002), device family 1 and 2, no shared code beyond the kit (ADR-0003). |
+| C2.3 | T3 | The client app target: this repository, iOS 18 floor with the 27.1 APIs behind @available (ADR-0030), device family 1 and 2, no shared code beyond the kit (ADR-0031). |
 | C2.4 | T2 | Widen `Sources/WenshuData` platforms to include iOS, and land the real iOS cross-compile that the scratch copy already proved. |
 | C2.5 | T3 | The client shell: QR pairing with VisionKit, token storage in the Keychain, the library outline screen, the chapter reader. |
 | C2.6 | T2 | Foldable and iPad layout: `ArrangementView`, `reservedRegions`, `NavigationSplitView` collapse on compact width. Needs an installed simulator runtime to be a real proof. |

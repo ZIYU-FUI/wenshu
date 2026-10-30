@@ -6,7 +6,7 @@ let package = Package(
     // iOS and iPadOS are the product targets (AGENTS.md 2.3). The floor is
     // iOS 18 so any current toolchain builds it; the foldable-native
     // APIs (iOS 27.1) are reached through @available with a size-class
-    // fallback below them (ADR-0002). The macOS entry exists so the kit
+    // fallback below them (ADR-0030). The macOS entry exists so the kit
     // builds and its tests run on a CI host; no macOS product ships from
     // this repository.
     platforms: [
