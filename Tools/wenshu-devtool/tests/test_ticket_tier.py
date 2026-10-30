@@ -740,13 +740,18 @@ def main() -> int:
     #     twice (908 s and 906 s). It closed only after a human raised
     #     the cap by hand.
     check(
-        "an instrument card's floor is derived from its own wait",
-        tool.instrument_floor(instrument_body),
-        6 * 95 + tool.INSTRUMENT_WAIT_ALLOWANCE,
+        "an instrument card's arm wait is read from its own invocation",
+        tool.instrument_wait(instrument_body),
+        6 * 95,
+    )
+    check(
+        "an instrument card's floor is its tier's runtime plus the arm's wait",
+        tool.instrument_floor(instrument_body, 1500),
+        1500 + 6 * 95,
     )
     check(
         "a card that names no instrument has no floor",
-        tool.instrument_floor(plain_body),
+        tool.instrument_floor(plain_body, 1500),
         0,
     )
     # The floor is what the gate checks: under it, the card dies before
@@ -754,7 +759,7 @@ def main() -> int:
     under_floor = {
         "body": instrument_body,
         "created_at": tool.CAP_CONTRACT_FROM,
-        "max_runtime_seconds": 900,
+        "max_runtime_seconds": 1500,
         "title": "[T2] an instrument card",
     }
     check(
@@ -763,7 +768,7 @@ def main() -> int:
         True,
     )
     # Over the floor is generous, not wrong (= the review lane's rule).
-    over_floor = dict(under_floor, max_runtime_seconds=2700)
+    over_floor = dict(under_floor, max_runtime_seconds=2070)
     check(
         "an instrument card over its floor is not an error",
         not any("instrument needs at least" in f for f in tool.find_errors(over_floor)),

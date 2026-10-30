@@ -808,21 +808,20 @@ def _is_subject(card: dict) -> bool:
 # before its instrument can report. A card carrying more is generous,
 # not wrong, so the floor is what this gate checks.
 #
-# The floor is the arm's wait PLUS the work around it (= the build it
-# runs and the reading it does), because the wait is only the part that
-# is spelled out. The allowance around it is the same for every
-# instrument, so it is one number here.
-INSTRUMENT_WAIT_ALLOWANCE = 900
+# The floor is the arm's wait PLUS the tier's own runtime, because the
+# wait is EXTRA time: the tier's runtime covers the build, the reading
+# and the gate, and an instrument card spends all of that AND THEN waits
+# for the arm to report. So the floor is the tier's runtime with the
+# arm's wait added on, and there is no second magic number here.
 _TRIALS_RE = re.compile(r"--trials\s+(\d+)")
 _WAIT_RE = re.compile(r"--wait\s+(\d+)")
 
 
-def instrument_floor(body: str) -> int:
-    """The wall clock an instrument card cannot avoid, in seconds.
+def instrument_wait(body: str) -> int:
+    """The wall clock the arm itself spends, in seconds.
 
     Zero when the card names no instrument, or names one whose wait the
-    card does not spell out. The floor is a floor, not a cap: it says
-    what the card MUST be given, and a card that asks for more is fine.
+    card does not spell out.
     """
     trials = _TRIALS_RE.search(body)
     wait = _WAIT_RE.search(body)
@@ -832,9 +831,20 @@ def instrument_floor(body: str) -> int:
         arm = int(trials.group(1)) * int(wait.group(1))
     except ValueError:
         return 0
-    if arm <= 0:
+    return arm if arm > 0 else 0
+
+
+def instrument_floor(body: str, tier_runtime: int) -> int:
+    """The wall clock an instrument card cannot avoid, in seconds.
+
+    Zero when the card names no instrument. The floor is a floor, not a
+    cap: it says what the card MUST be given, and a card that asks for
+    more is fine.
+    """
+    arm = instrument_wait(body)
+    if not arm:
         return 0
-    return arm + INSTRUMENT_WAIT_ALLOWANCE
+    return int(tier_runtime) + arm
 
 
 def find_contract_errors(card: dict) -> list[str]:
@@ -900,7 +910,7 @@ def find_contract_errors(card: dict) -> list[str]:
             # own trial count and per-trial wait), so a card that spells
             # out a long arm cannot be priced under it. A card carrying
             # more than the floor is generous, not wrong.
-            floor = instrument_floor(body)
+            floor = instrument_floor(body, contract["runtime"])
             if floor:
                 # An instrument card is judged against its FLOOR, not
                 # against the tier's exact cap: the tier's cap is fitted
