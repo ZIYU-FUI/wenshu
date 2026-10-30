@@ -272,48 +272,53 @@ private struct InspectorStatusTaskCard: View {
 
     var body: some View {
         Button(action: onOpen) {
-            VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
-                HStack(spacing: DesignTokens.spacingIconic) {
+            // The shared card (= the same card the column's other two
+            // pages wear). The agent's name and its tool sit on the
+            // card's first line, = the state and the task's own words
+            // under it, = and the elapsed time at the trailing edge
+            // (= the card's layout is the column's layout, = and the
+            // cards differ in HEIGHT, = never in LAYOUT).
+            InspectorCard(
+                marker: AnyView(
                     SFIcon(
                         InspectorStatusStateStyle.icon(for: task.state),
                         style: .inlineSmall,
                         color: InspectorStatusStateStyle.color(for: task.state)
                     )
-                    Text(task.agentName)
-                        .font(.headline)
-                        .foregroundStyle(InspectorStatusStateStyle.foreground(for: task.state))
-                        .lineLimit(1)
-                    if let tool = task.currentTool {
-                        // The tool the agent is calling right now, in a
-                        // quieter column beside the name (= the agent's
-                        // name stays the primary content of the row).
-                        Text(InspectorStatusToolLabel.text(tool))
-                            .font(.caption2)
-                            .foregroundStyle(DesignTokens.statusForeground)
+                )
+            ) {
+                VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
+                    HStack(spacing: DesignTokens.spacingIconic) {
+                        Text(task.agentName)
+                            .font(.headline)
+                            .foregroundStyle(InspectorStatusStateStyle.foreground(for: task.state))
                             .lineLimit(1)
-                            .truncationMode(.middle)
+                        if let tool = task.currentTool {
+                            // The tool the agent is calling right now, in a
+                            // quieter column beside the name (= the agent's
+                            // name stays the primary content of the row).
+                            Text(InspectorStatusToolLabel.text(tool))
+                                .font(.caption2)
+                                .foregroundStyle(DesignTokens.statusForeground)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                        }
                     }
-                    Spacer(minLength: 0)
-                    if let elapsed = task.elapsedText(at: now) {
-                        Text(elapsed)
-                            .font(.caption.monospacedDigit())
-                            .foregroundStyle(DesignTokens.statusForeground)
-                    }
+                    Text(InspectorStatusStateStyle.label(for: task.state))
+                        .font(.caption)
+                        .foregroundStyle(InspectorStatusStateStyle.foreground(for: task.state))
+                    Text(task.taskText)
+                        .font(.callout)
+                        .foregroundStyle(InspectorStatusStateStyle.foreground(for: task.state))
+                        .lineLimit(3)
                 }
-                Text(InspectorStatusStateStyle.label(for: task.state))
-                    .font(.caption)
-                    .foregroundStyle(InspectorStatusStateStyle.foreground(for: task.state))
-                Text(task.taskText)
-                    .font(.callout)
-                    .foregroundStyle(InspectorStatusStateStyle.foreground(for: task.state))
-                    .lineLimit(3)
+            } trailing: {
+                if let elapsed = task.elapsedText(at: now) {
+                    Text(elapsed)
+                        .font(.caption.monospacedDigit())
+                        .foregroundStyle(DesignTokens.statusForeground)
+                }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(DesignTokens.spacingStandard)
-            // The shared card surface (= the same glass the column's
-            // other two pages wear, = the three pages' cards are one
-            // family).
-            .inspectorCardSurface(isInteractive: task.output != nil)
         }
         .buttonStyle(.plain)
         // A card without output cannot be opened (= there is nothing to

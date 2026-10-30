@@ -18,7 +18,7 @@ import Testing
 @testable import WenshuApp
 
 @Suite("The inspector column's one card surface")
-struct InspectorCardSurfaceTests {
+struct InspectorCardTests {
 
     /// The three pages that draw cards in the trailing column.
     private static let cardPages = [
@@ -27,31 +27,31 @@ struct InspectorCardSurfaceTests {
         "Sources/WenshuApp/Features/Kanban/View/KanbanView.swift",
     ]
 
-    @Test("The shared surface is Apple's Liquid Glass (= the glassEffect modifier)")
-    func sharedSurfaceIsLiquidGlass() throws {
-        let url = SourceLocator.url("Sources/WenshuApp/Shared/UI/InspectorCardSurface.swift")
+    @Test("The shared card is Apple's Liquid Glass (= the glassEffect modifier)")
+    func sharedCardIsLiquidGlass() throws {
+        let url = SourceLocator.url("Sources/WenshuApp/Shared/UI/InspectorCard.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains(".glassEffect("),
-                "the shared card surface must be Apple's Liquid Glass (= .glassEffect)")
+                "the shared card must be Apple's Liquid Glass (= .glassEffect)")
         #expect(content.contains(".regular"),
-                "the shared card surface must use Apple's regular glass variant")
+                "the shared card must use Apple's regular glass variant")
         #expect(!content.contains(".background("),
-                "the shared card surface must not hand-draw a background (= the system draws the glass)")
+                "the shared card must not hand-draw a background (= the system draws the glass)")
         #expect(!content.contains(".stroke("),
-                "the shared card surface must not hand-draw an edge (= the system draws the glass edge)")
+                "the shared card must not hand-draw an edge (= the system draws the glass edge)")
     }
 
     @Test("The glass is tinted white (= the glass scatters white light)")
     func theGlassIsTinted() throws {
-        let url = SourceLocator.url("Sources/WenshuApp/Shared/UI/InspectorCardSurface.swift")
+        let url = SourceLocator.url("Sources/WenshuApp/Shared/UI/InspectorCard.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains(".tint(.white.opacity(0.30))"),
                 "the glass must be tinted white (= an untinted glass over a flat ground leaves the ground showing through and the card disappears into it)")
     }
 
-    @Test("The shared surface is the system's own shape (= Apple's shape factory)")
-    func sharedSurfaceUsesApplesShape() throws {
-        let url = SourceLocator.url("Sources/WenshuApp/Shared/UI/InspectorCardSurface.swift")
+    @Test("The shared card is the system's own shape (= Apple's shape factory)")
+    func sharedCardUsesApplesShape() throws {
+        let url = SourceLocator.url("Sources/WenshuApp/Shared/UI/InspectorCard.swift")
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains(".rect(cornerRadius:"),
                 "the glass must wear Apple's own shape factory (= .rect(cornerRadius:))")
@@ -64,7 +64,7 @@ struct InspectorCardSurfaceTests {
         for page in Self.cardPages {
             let url = SourceLocator.url(page)
             let content = try String(contentsOf: url, encoding: .utf8)
-            #expect(content.contains(".inspectorCardSurface("),
+            #expect(content.contains("InspectorCard("),
                     "\(page) must draw its cards with the shared surface")
         }
     }
@@ -113,7 +113,14 @@ struct InspectorCardSurfaceTests {
         // own comment, = and the comment says why).
         #expect(!markerBody.contains("ProgressView("),
                 "the plan's markers must all be SFIcon (= a ProgressView draws its own spinner at its own size)")
-        #expect(content.contains(".frame(width: DesignTokens.inspectionMarkerColumnWidth, alignment: .leading)"),
+        // The column and its edge live in the shared card (= the page
+        // only hands the card its marker).
+        let card = try #require(
+            SourceLocator.url("Sources/WenshuApp/Shared/UI/InspectorCard.swift"),
+            "the shared card must exist"
+        )
+        let cardSource = try String(contentsOf: card, encoding: .utf8)
+        #expect(cardSource.contains(".frame(width: DesignTokens.inspectionMarkerColumnWidth, alignment: .leading)"),
                 "the markers must sit at the column's leading edge (= so every symbol's ink starts at the same place)")
     }
 
@@ -123,6 +130,50 @@ struct InspectorCardSurfaceTests {
         let content = try String(contentsOf: url, encoding: .utf8)
         #expect(content.contains("static let inspectionMarkerColumnWidth: CGFloat = 16"),
                 "the marker column must be 16 PT (= the widest inline-small symbol's ink is 15 PT at the 14 PT point size, = measured with NSImage)")
+    }
+
+    @Test("The plan's cards do not indent (= one card, one column)")
+    func thePlanDoesNotIndent() throws {
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/InspectorTodoPageView.swift")
+        let content = try String(contentsOf: url, encoding: .utf8)
+        // The plan names each item's parent (= the plan is a tree, =
+        // and the depth is real data), = but the CARD does not indent
+        // by it: = every card in the column is one card in one column,
+        // = and the plan's own words carry the step.
+        let card = try #require(
+            content.range(of: "private struct InspectorTodoCard"),
+            "the plan's card must exist"
+        )
+        let cardSource = String(content[card.lowerBound...])
+        #expect(!cardSource.contains("todo.depth"),
+                "the plan's card must not indent by the depth (= the same control must look the same in every card)")
+    }
+
+    @Test("The board's groups are accordions with their name as the label")
+    func theBoardGroupsAreAccordions() throws {
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Kanban/View/KanbanView.swift")
+        let content = try String(contentsOf: url, encoding: .utf8)
+        // The group's name and its count ARE the disclosure label (= the
+        // system draws the triangle beside the label, = so the group
+        // reads as one accordion row). A group with an empty label
+        // leaves a bare row with a stray triangle beside it.
+        let group = try #require(
+            content.range(of: "private struct KanbanGroup"),
+            "the board's group must exist"
+        )
+        let groupSource = String(content[group.lowerBound...])
+        #expect(groupSource.contains("DisclosureGroup(isExpanded:"),
+                "the board's group must fold (= the accordion the chat's panels use)")
+        #expect(groupSource.contains("} label: {"),
+                "the board's group must carry a label (= the name and the count)")
+        let labelStart = try #require(groupSource.range(of: "} label: {"))
+        let labelSource = String(groupSource[labelStart.upperBound...])
+        #expect(labelSource.contains("status.boardLabel"),
+                "the disclosure's label must be the group's name")
+        // The group wears no shell of its own (= a card inside a card, =
+        // the column's cards are the cards).
+        #expect(!groupSource.contains(".background("),
+                "the board's group must not wear a shell (= the column's cards are the cards)")
     }
 
     @Test("The plan's cards do not fold (= the count says how much is left)")

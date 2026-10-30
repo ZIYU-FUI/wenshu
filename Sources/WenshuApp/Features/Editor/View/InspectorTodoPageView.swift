@@ -154,50 +154,22 @@ private struct InspectorTodoCard: View {
     let todo: InspectorTodo
 
     var body: some View {
-        HStack(alignment: .top, spacing: DesignTokens.spacingIconic) {
-            // The marker sits in a column of its own width (= the
-            // inline-small glyph's point size), so every card's words
-            // start at the same place (= a spinner and a symbol have
-            // different intrinsic widths, = without the column the
-            // rows read ragged).
-            stateMarker
-                // The marker sits in a column of its own width, and it
-                // sits at the column's LEADING edge (= the column
-                // holds the symbols by their left edge, = so every
-                // symbol's ink starts at the same place, = and the
-                // words of every card start at the same place).
-                //
-                // The symbols are chosen to match in ink width (= 14
-                // to 15 PT at the 14 PT point size, = measured with
-                // NSImage), = so a narrower symbol does not float away
-                // from the words beside it.
-                .frame(width: DesignTokens.inspectionMarkerColumnWidth, alignment: .leading)
-                .padding(.top, 1)
-            VStack(alignment: .leading, spacing: 0) {
-                Text(todo.title)
-                    .font(.body.weight(.medium))
-                    .foregroundStyle(InspectorTodoStateStyle.foreground(for: todo.status))
-                    .lineLimit(3)
-                    .textSelection(.enabled)
-            }
-            // An item that belongs to another item reads indented under
-            // it (= the plan is a tree, and the tree shows in the
-            // shape). The indent is on the WORDS, = not on the card:
-            // the markers keep one column (= so the column of markers
-            // reads as one straight line, = and the tree shows in the
-            // words, = which is where a reader reads the tree).
-            .padding(.leading, CGFloat(todo.depth) * DesignTokens.spacingLoose)
-            Spacer(minLength: 0)
-        }
-        .padding(DesignTokens.spacingStandard)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        // The shared card surface (= the same glass the column's other
-        // two pages wear, = the plan's cards and the board's cards and
-        // the sub-agent's cards are one family).
-        .inspectorCardSurface(
-            showsStatusEdge: true,
+        // The shared card (= the same card the column's other two pages
+        // wear). Every plan item is one card in one column (= the plan
+        // is a list of steps, = and a step that belongs to another step
+        // reads as its own step here, = the plan's own words carry the
+        // step, = not an indent in the card).
+        InspectorCard(
+            marker: AnyView(stateMarker),
+            hasStatusEdge: true,
             statusEdgeColor: AnyShapeStyle(InspectorTodoStateStyle.tone(for: todo.status).style)
-        )
+        ) {
+            Text(todo.title)
+                .font(.body.weight(.medium))
+                .foregroundStyle(InspectorTodoStateStyle.foreground(for: todo.status))
+                .lineLimit(3)
+                .textSelection(.enabled)
+        }
     }
 
     /// The state marker (= the plan's four states).
@@ -321,35 +293,6 @@ final class InspectorTodoModel {
     }
 }
 
-// MARK: - Item
-
-/// One plan item as the page draws it (= a snapshot of one stored row).
-struct InspectorTodo: Identifiable, Equatable, Sendable {
-    let id: String
-    /// The item's own words (= the agent wrote them).
-    let title: String
-    /// The item's state (= the plan's own vocabulary).
-    let status: HermesTodoStatus
-    /// The item this one belongs to (= a sub-step's parent).
-    let parent: String?
-    /// How deep the item sits in the plan (= 0 = a top-level step).
-    let depth: Int
-
-    init(id: String, title: String, status: HermesTodoStatus, parent: String? = nil, depth: Int = 0) {
-        self.id = id
-        self.title = title
-        self.status = status
-        self.parent = parent
-        self.depth = depth
-    }
-
-    /// Whether the item is still outstanding (= its state is not a
-    /// resolved one).
-    var isOutstanding: Bool {
-        status == .pending || status == .inProgress
-    }
-}
-
 // MARK: - Depth
 
 /// Where each plan item sits in the plan's tree.
@@ -385,12 +328,45 @@ enum InspectorTodoDepths {
         guard !seen.contains(todo.id) else { return -1 }
         guard let parentID = todo.parent, parentID != todo.id else { return 0 }
         guard let parent = byId[parentID] else { return 0 }
-        // The parent's own depth is the base (= 0 for a top-level item,
-        // = so its child is one step in). A parent whose chain has no
-        // root reports -1, = the chain degrades to the top.
+        // The parent's own depth
         let parentDepth = depth(of: parent, byId: byId, seen: seen + [todo.id])
         guard parentDepth >= 0 else { return -1 }
         return parentDepth + 1
+    }
+}
+
+// MARK: - Item
+
+/// One plan item as the page draws it (= a snapshot of one stored row).
+struct InspectorTodo: Identifiable, Equatable, Sendable {
+    let id: String
+    /// The item's own words (= the agent wrote them).
+    let title: String
+    /// The item's state (= the plan's own vocabulary).
+    let status: HermesTodoStatus
+    /// The item this one belongs to (= a sub-step's parent).
+    let parent: String?
+    /// How deep the item sits in the plan (= 0 = a top-level step).
+    ///
+    /// The depth is the plan's own shape (= the store names each
+    /// item's parent, = and the depth says how many steps from the
+    /// top). The card does NOT indent by it (= every card in the
+    /// column is one card in one column, = and the plan's words carry
+    /// the step, = not an indent in the card).
+    let depth: Int
+
+    init(id: String, title: String, status: HermesTodoStatus, parent: String? = nil, depth: Int = 0) {
+        self.id = id
+        self.title = title
+        self.status = status
+        self.parent = parent
+        self.depth = depth
+    }
+
+    /// Whether the item is still outstanding (= its state is not a
+    /// resolved one).
+    var isOutstanding: Bool {
+        status == .pending || status == .inProgress
     }
 }
 

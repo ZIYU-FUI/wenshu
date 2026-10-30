@@ -335,7 +335,29 @@ private struct KanbanGroup: View {
     @State private var isExpanded = true
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
+        // The fold (= SwiftUI's DisclosureGroup, = the accordion the
+        // chat's reasoning panel and its plan panel use for their
+        // steps). The group's name and its count ARE the label (= the
+        // system draws the disclosure triangle beside the label, = so
+        // the group reads as one accordion row, = not as a bare row
+        // with a stray triangle beside it).
+        //
+        // A group with no cards shows its header and nothing else, so
+        // an empty group takes no room.
+        DisclosureGroup(isExpanded: $isExpanded) {
+            VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
+                ForEach(tasks) { task in
+                    KanbanCard(
+                        task: task,
+                        onDelete: { onDelete(task) },
+                        // kanban-detail-sheet 2026-09-28:
+                        // tapping a card surfaces the body sheet.
+                        onOpen: { onOpen(task) }
+                    )
+                }
+            }
+            .padding(.top, DesignTokens.spacingTight)
+        } label: {
             HStack(spacing: DesignTokens.spacingIconic) {
                 Circle()
                     .fill(status.boardTone)
@@ -348,28 +370,6 @@ private struct KanbanGroup: View {
                 Text(String(tasks.count))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
-            }
-            .padding(.horizontal, DesignTokens.spacingIconic)
-            // The fold (= SwiftUI's DisclosureGroup, = the same control
-            // the chat's reasoning panel and its plan panel use for
-            // their steps). A group with no cards shows its header and
-            // nothing else, so an empty group takes no room.
-            if !tasks.isEmpty {
-                DisclosureGroup(isExpanded: $isExpanded) {
-                    VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
-                        ForEach(tasks) { task in
-                            KanbanCard(
-                                task: task,
-                                onDelete: { onDelete(task) },
-                                // kanban-detail-sheet 2026-09-28:
-                                // tapping a card surfaces the body sheet.
-                                onOpen: { onOpen(task) }
-                            )
-                        }
-                    }
-                } label: {
-                    EmptyView()
-                }
             }
         }
         .padding(DesignTokens.spacingStandard)
@@ -403,36 +403,40 @@ private struct KanbanCard: View {
     let onOpen: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
-            // The title comes FIRST: it is what the user scans the
-            // board for. The body is the preview under it.
-            Text(task.title)
-                .font(.body.weight(.medium))
-                .lineLimit(3)
-                .textSelection(.enabled)
-            // Per iron-rule I-4 (= wenshu-comment-policy): task.body renders
-            // when present, going through the same inline-markdown parser
-            // chat uses (= ChatTextPartView.parseMarkdown). Mirrors
-            // hermes 0.21.5 commit 63f5bc0999: the kanban drawer
-            // reuses MessageTextContent. wenshu's reuse keeps ONE
-            // markdown pipeline across the app — no per-surface parser.
-            if let body = task.body, !body.isEmpty {
-                Text(ChatTextPartView.parseMarkdown(body))
-                    .font(.callout)
-                    .foregroundStyle(DesignTokens.statusForeground)
+        // The shared card (= the same card the column's other two pages
+        // wear). The card carries no status symbol (= the user does not
+        // schedule, = the card's group says the state, = and the group
+        // wears the colour on the card's edge), = but the marker column
+        // still holds its width (= so the board's cards and the plan's
+        // cards and the sub-agent's cards all start their words at the
+        // same place).
+        InspectorCard(
+            marker: AnyView(EmptyView()),
+            hasStatusEdge: true,
+            statusEdgeColor: task.status.boardTone
+        ) {
+            VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
+                // The title comes FIRST: it is what the user scans the
+                // board for. The body is the preview under it.
+                Text(task.title)
+                    .font(.body.weight(.medium))
                     .lineLimit(3)
                     .textSelection(.enabled)
+                // Per iron-rule I-4 (= wenshu-comment-policy): task.body renders
+                // when present, going through the same inline-markdown parser
+                // chat uses (= ChatTextPartView.parseMarkdown). Mirrors
+                // hermes 0.21.5 commit 63f5bc0999: the kanban drawer
+                // reuses MessageTextContent. wenshu's reuse keeps ONE
+                // markdown pipeline across the app — no per-surface parser.
+                if let body = task.body, !body.isEmpty {
+                    Text(ChatTextPartView.parseMarkdown(body))
+                        .font(.callout)
+                        .foregroundStyle(DesignTokens.statusForeground)
+                        .lineLimit(3)
+                        .textSelection(.enabled)
+                }
             }
         }
-        .padding(DesignTokens.spacingStandard)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        // The shared card surface (= the same glass the column's other
-        // two pages wear, = the three pages' cards are one family).
-        .inspectorCardSurface(
-            isInteractive: true,
-            showsStatusEdge: true,
-            statusEdgeColor: task.status.boardTone
-        )
         // The whole card is one tap target (= its padding, its
         // background, and the empty space beside the body preview all
         // belong to the tap, = not just the text).
