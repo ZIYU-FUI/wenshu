@@ -20,6 +20,36 @@ Cards: `t_f73b3afd` (the todo page), `t_e196a5a9` (the board), `t_a6449dd8`
 (the companion service). Each carries an approving independent verdict from
 `wenshu-review`, and the reviewer is never the implementer.
 
+## The landing table
+
+One row per original requirement. The commit that carries it, the
+independent verdict that cleared it, and the SERVER-side proof it is on the
+remote (= a push that reported success on one remote says nothing about the
+other). The two remotes read the same sha, and every commit below is an
+ancestor of both.
+
+| Requirement | Commit | Verdict | Server truth |
+| --- | --- | --- | --- |
+| The todos the assistant wrote reach the trailing column | `9d67957806` | `t_f73b3afd` run 1960, `wenshu-review`, `review_outcome=approved`, round 1 | ancestor of `origin/main` and `old-origin/main` |
+| The task board moves into the trailing column, stacked vertically | `51b5d4641` | `t_e196a5a9` run 2207, `wenshu-review`, `review_outcome=approved` | ancestor of `origin/main` and `old-origin/main` |
+| The Mac companion answers the phone on the loopback | `d48a30770` | `t_a6449dd8` run 2213, `wenshu-review`, `review_outcome=approved`, round 1 | ancestor of `origin/main` and `old-origin/main` |
+| The companion's token read is one task, and a split request is read again | `10214b2ec` | the same run 2213 (both commits are the branch the reviewer cleared) | ancestor of `origin/main` and `old-origin/main` |
+| The board's book-resolution helper is covered again | `55f9fcbe5` | the devtool fix's own suite (four cases, three mutations caught) | ancestor of `origin/main` and `old-origin/main` |
+| The tier tool reads the board's run history | `4b30995b2` | the devtool fix's own suite (four cases, three mutations caught) | ancestor of `origin/main` and `old-origin/main` |
+| The closure record | `da31e0149` | this document | ancestor of `origin/main` and `old-origin/main` |
+
+**Commits that are NOT this scope's, and that the pushes carried along.**
+The branch was rebased onto `main` and fast-forwarded, so the pushes also
+carried the commits that `main` already held. These are other lanes' work,
+named here because the boss reads the landing table and needs to know who
+owns each row: `0c7fe47e3` (the client's own rules), `410621062` (the
+welcome page's wordmark), and the mobile line's `dd3164b77`,
+`a148fcb7d`, `1399e98c6`, `cd3c6caa2`, `45f11fbe7`, `8f9ddd025`,
+`88a1aa647`, `1a8129b48`, `4351d48db` (= the mobile line's own commits, authored by another
+engineer), plus
+`145d70555` (the cap floor rule, = a devtool rule that predates this
+scope).
+
 ## The trailing column
 
 The trailing inspector column carries three pages, switched by the
@@ -73,7 +103,7 @@ the APP-WIDE book selection rather than a private one.
 ### The order card that made the difference
 
 The board card was the second attempt at the same scope. The first body
-named a seam that no longer existed (= the `Window("看板", ...)` block in
+named a seam that no longer existed (= the board's own window block in
 `AppRootScene.swift` had already been deleted by the previous round), and
 the worker spent every run re-deriving facts the body should have carried:
 five runs, 104 / 92 / 82 / 41 / 30 reads against 1 / 0 / 0 / 0 / 0 writes,
