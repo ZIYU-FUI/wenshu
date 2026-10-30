@@ -124,3 +124,6 @@ Per v3.1 governance: archive dirs hold outdated single-shot narratives. Never tr
 
 # The gate logs (= the evidence a gate produced) live beside the repo.
 .gate-logs/
+
+# The gate tools' own backups (= a file saved before an edit).
+*.bak-*

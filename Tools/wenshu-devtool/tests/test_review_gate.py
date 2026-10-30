@@ -248,6 +248,85 @@ def main() -> int:
         "wenshu-dev",
     )
 
+    # 12. The IMPLEMENTER is not the card's current assignee. A handoff
+    #     reassigns the card to the reviewer, so the assignee is the
+    #     reviewer for the whole review, and reading it as the implementer
+    #     reports every finished card as reviewing itself.
+    #
+    #     Measured 2026-10-30: 27 of 166 cards on wenshu-par were reported
+    #     as self-reviews by the board sweep for that reason, and all 27
+    #     are BUILD cards whose implementer was wenshu-dev.
+    # The two sources of the implementer must DISAGREE here, or the check
+    # below cannot tell which one was read: the handoff records the
+    # implementer, and the runs give the same answer only when the first
+    # run is the implementer's. The runs below are ordered so that the
+    # LAST run is the implementer's, so a reader that takes the last run
+    # gives a different answer than a reader that takes the recorded one.
+    # The handoff records the implementer, and the runs give the same
+    # answer only when the FIRST run is the implementer's. So this
+    # fixture's two sources DISAGREE: the handoff says wenshu-dev, and the
+    # earliest run says wenshu-review. A reader that takes the wrong one
+    # gives the wrong answer, and the check below can tell them apart.
+    reviewed = {
+        "task": {"assignee": "wenshu-review"},
+        "events": [{"kind": "review_requested", "created_at": 20, "payload": {"implementer": "wenshu-dev"}}],
+        "runs": [
+            {"profile": "wenshu-review", "started_at": 5},
+            {"profile": "wenshu-dev", "started_at": 10},
+        ],
+    }
+    check(
+        "the implementer is not the card's current assignee",
+        tool.implementer_of(reviewed),
+        "wenshu-dev",
+    )
+    # With no handoff, the implementer is the FIRST profile that ran, so
+    # the two rules give different answers and the check can tell them
+    # apart.
+    check(
+        "with no handoff the implementer is the earliest run, not the latest",
+        tool.implementer_of({"events": [], "runs": reviewed["runs"]}),
+        "wenshu-review",
+    )
+    # And a card with no runs at all has no implementer to report, rather
+    # than borrowing one.
+    check(
+        "a card with no runs has no implementer",
+        tool.implementer_of({"events": [], "runs": []}),
+        None,
+    )
+    check(
+        "a build card handed to the reviewer breaks no contract",
+        tool.contract_errors(
+            body_with(
+                "Sources/WenshuApp/Features/Editor/View/InspectorView.swift",
+                handoff='reviewer="wenshu-review"',
+            ),
+            tool.implementer_of(reviewed),
+        ),
+        [],
+    )
+    # And the exemption is NARROW: a card whose runs are all the reviewer's
+    # has no implementation phase, so it IS the review and it is not
+    # reviewing itself.
+    review_only = {
+        "task": {"assignee": "wenshu-review"},
+        "events": [],
+        "runs": [{"profile": "wenshu-review", "started_at": 20}],
+    }
+    check(
+        "a card with no implementation phase is not reviewing itself",
+        tool.contract_errors(
+            body_with(
+                "Sources/WenshuApp/Features/Editor/View/InspectorView.swift",
+                handoff='reviewer="wenshu-review"',
+            ),
+            tool.implementer_of(review_only),
+            is_review=True,
+        ),
+        [],
+    )
+
     print()
     if FAILURES:
         print(f"review_gate: {len(FAILURES)} case(s) FAILED")

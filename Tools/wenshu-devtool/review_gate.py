@@ -56,6 +56,7 @@ import json
 import os
 import re
 import shutil
+import sqlite3
 import subprocess
 import sys
 from pathlib import Path
@@ -75,6 +76,8 @@ REVIEW_CONTRACT_FROM = 1792953600  # 2026-10-26 02:40 CST
 # half (who actually gave the verdict) needs the board, so it lives here.
 code_paths = ticket_tier.code_paths
 review_required = ticket_tier.review_required
+review_required_for_kind = ticket_tier.review_required_for_kind
+card_type = ticket_tier.card_type
 handoff_text = ticket_tier.handoff_text
 named_reviewer = ticket_tier.named_reviewer
 
@@ -86,13 +89,48 @@ def is_subject(created_at: int | None) -> bool:
     return created_at >= REVIEW_CONTRACT_FROM
 
 
+def is_review_card(doc: dict) -> bool:
+    """Whether this card has NO implementation phase (= it IS a review).
+
+    A card that reviews a commit somebody else already wrote has no
+    implementation phase: every run on it carries the SAME profile, because
+    the only profile that ever touched it is the reviewer. Measured
+    2026-10-29 on board wenshu-mob-par: card t_809184d0 carried exactly ONE
+    run, by wenshu-review, and named wenshu-review as its reviewer. The
+    contract check called that a self-review, which is a false positive that
+    blocks the merge of code the reviewer already approved.
+
+    The shape alone is wide (= 155 of the 206 cards on wenshu-par are
+    single-profile), so it is only ever used together with the card's
+    declared kind: the kind says the card is a review, and the shape says it
+    has no implementation phase to be reviewed against.
+    """
+    runs = [r for r in (doc.get("runs") or []) if isinstance(r, dict)]
+    runs = [r for r in runs if r.get("profile")]
+    if not runs:
+        return False
+    return len({str(r.get("profile")) for r in runs}) == 1
+
+
+def card_kind(doc: dict) -> str:
+    """The kind of work this card is, derived from its body and its runs."""
+    task = doc.get("task") or {}
+    body = task.get("body") or ""
+    runs = [r for r in (doc.get("runs") or []) if isinstance(r, dict)]
+    return ticket_tier.card_type(body, runs, str(task.get("title") or ""))
+
+
 def contract_errors(
     body: str,
     assignee: str | None = None,
     created_at: int | None = None,
+    kind: str | None = None,
+    is_review: bool = False,
 ) -> list[str]:
     """Every way the body breaks the review contract."""
-    errors = ticket_tier.review_contract_errors(body, assignee)
+    errors = ticket_tier.review_contract_errors(
+        body, assignee, kind=kind, is_review_card=is_review
+    )
     if created_at is not None and not is_subject(created_at):
         # A card dispatched under the old contract is reported, never blocked.
         return []
@@ -150,6 +188,33 @@ def board_cards(board: str = BOARD) -> list[dict] | None:
     return list(data) if isinstance(data, list) else None
 
 
+
+def _profiles_of(card_id: str, board: str = BOARD) -> set[str]:
+    """The profiles that ran this card, read from the board's run table.
+
+    A REVIEW card has no implementation phase, so the only profile that
+    touched it is the reviewer, and it is not reviewing itself.
+    """
+    path = _board_db_path(board)
+    if path is None:
+        return set()
+    try:
+        conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+    except sqlite3.Error:
+        return set()
+    try:
+        rows = conn.execute(
+            "SELECT DISTINCT profile FROM task_runs "
+            "WHERE task_id = ? AND profile IS NOT NULL AND profile != ''",
+            (card_id,),
+        ).fetchall()
+    except sqlite3.Error:
+        return set()
+    finally:
+        conn.close()
+    return {str(row[0]) for row in rows}
+
+
 def _kind(event: dict) -> str:
     return str(event.get("kind") or "")
 
@@ -197,6 +262,78 @@ def implementer_of(doc: dict) -> str | None:
         first = min(runs, key=lambda r: _at(r, "started_at"))
         return str(first.get("profile"))
     return None
+
+
+def implementers_from_board(board: str = BOARD) -> dict[str, str | None]:
+    """Every card's implementer, read from the board's own run history.
+
+    A handoff reassigns the card to the reviewer, so the card's CURRENT
+    assignee is the reviewer for the whole review, and reading it as the
+    implementer reports every finished card as reviewing itself.
+
+    Measured 2026-10-30: 27 of 166 cards on wenshu-par were reported as
+    self-reviews for that reason, and all 27 are BUILD cards whose
+    implementer was wenshu-dev.
+
+    The board's LIST view does not carry the run history, so the run table
+    is read directly. That is what makes a sweep of the whole board cheap:
+    one query instead of one CLI call per card.
+    """
+    out: dict[str, str | None] = {}
+    path = _board_db_path(board)
+    if path is None:
+        return out
+    try:
+        conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+    except sqlite3.Error:
+        return out
+    try:
+        rows = conn.execute(
+            "SELECT task_id, profile FROM task_runs "
+            "WHERE profile IS NOT NULL AND profile != '' "
+            "ORDER BY started_at ASC"
+        ).fetchall()
+    except sqlite3.Error:
+        return out
+    finally:
+        conn.close()
+    for task_id, profile in rows:
+        if task_id not in out:
+            out[task_id] = profile
+    return out
+
+
+def _board_db_path(board: str) -> Path | None:
+    """The board's database file, or None when it cannot be found.
+
+    ``HERMES_HOME`` points at the PROFILE's directory, not at the home
+    that holds the boards, so the profile's own copy is tried first and
+    the shared home second. Getting this wrong is not a slow path, it is
+    a WRONG path: the sweep then finds no implementers at all and
+    reports every finished card as reviewing itself.
+    """
+    candidates = []
+    env = os.environ.get("HERMES_HOME")
+    if env:
+        candidates.append(Path(env))
+    candidates.append(Path.home() / ".hermes")
+    for home in candidates:
+        candidate = home / "kanban" / "boards" / board / "kanban.db"
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def _implementer_of_card(card_id: str, board: str = BOARD) -> str | None:
+    """The profile that implemented this card, read from the board.
+
+    The board's LIST view does not carry the run history, so the card's
+    own record is read instead (= the same record ``implementer_of`` reads).
+    """
+    doc = board_doc(card_id, board)
+    if doc is None:
+        return None
+    return implementer_of(doc)
 
 
 def verdict_from_doc(doc: dict) -> dict:
@@ -285,7 +422,9 @@ def card_record(card_id: str, board: str = BOARD) -> dict:
     created_at = int(created_at) if isinstance(created_at, (int, float)) else None
     verdict = verdict_from_doc(doc)
     implementer = implementer_of(doc)
-    errors = contract_errors(body, implementer, created_at)
+    kind = card_kind(doc)
+    is_review = kind == "review" and is_review_card(doc)
+    errors = contract_errors(body, implementer, created_at, kind=kind, is_review=is_review)
     if not is_subject(created_at):
         gate = "pre_contract"
         reason = (
@@ -308,7 +447,8 @@ def card_record(card_id: str, board: str = BOARD) -> dict:
         "implementer": implementer,
         "created_at": created_at,
         "pre_contract": not is_subject(created_at),
-        "review_required": review_required(body)[0],
+        "review_required": review_required_for_kind(body, kind)[0],
+        "kind": kind,
         "reviewer": named_reviewer(body),
         "errors": errors,
         "gate": gate,
@@ -328,10 +468,12 @@ def main() -> int:
 
     if args.body:
         body = Path(args.body).read_text(encoding="utf-8")
-        required, code = review_required(body)
-        errors = contract_errors(body, args.assignee)
+        kind = card_type(body, None, "")
+        required, code = review_required_for_kind(body, kind)
+        errors = contract_errors(body, args.assignee, kind=kind)
         result = {
             "card": args.body,
+            "kind": kind,
             "review_required": required,
             "code_paths": code,
             "reviewer": named_reviewer(body),
@@ -340,6 +482,7 @@ def main() -> int:
         if args.json:
             print(json.dumps(result, indent=2))
         else:
+            print(f"kind: {kind}")
             print(f"review required: {'yes' if required else 'no'}")
             if code:
                 print("  code: " + ", ".join(code))
@@ -375,13 +518,31 @@ def main() -> int:
         if cards is None:
             print("the board could not be read", file=sys.stderr)
             return 2
+        implementers = implementers_from_board(args.board)
         rows = []
         for card in cards:
             body = card.get("body") or ""
             created_at = card.get("created_at")
             created_at = int(created_at) if isinstance(created_at, (int, float)) else None
-            required, code = review_required(body)
-            errors = contract_errors(body, card.get("assignee"), created_at)
+            kind = card_type(body, None, str(card.get("title") or ""))
+            required, code = review_required_for_kind(body, kind)
+            # The implementer is NOT the card's current assignee: a handoff
+            # reassigns the card to the reviewer, so the assignee is the
+            # reviewer for the whole review. Reading the assignee as the
+            # implementer reported every finished card as reviewing itself.
+            # Measured 2026-10-30: 27 of 166 cards on wenshu-par were
+            # reported as self-reviews for that reason, and all 27 are
+            # BUILD cards whose implementer was wenshu-dev.
+            implementer = implementers.get(card.get("id") or "")
+            # A REVIEW card has no implementation phase, so it is not
+            # reviewing itself (= the only profile that touched it is the
+            # reviewer). The sweep reads the runs directly, because the
+            # board's list view does not carry them.
+            profiles = _profiles_of(card.get("id"), args.board)
+            is_review = kind == "review" and len(profiles) == 1
+            errors = contract_errors(
+                body, implementer, created_at, kind=kind, is_review=is_review
+            )
             rows.append({
                 "card": card.get("id"),
                 "title": card.get("title"),
@@ -389,6 +550,7 @@ def main() -> int:
                 "assignee": card.get("assignee"),
                 "created_at": created_at,
                 "pre_contract": not is_subject(created_at),
+                "kind": kind,
                 "review_required": required,
                 "code_paths": code,
                 "reviewer": named_reviewer(body),

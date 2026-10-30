@@ -180,6 +180,39 @@ CAP_CONTRACT_FROM = 1793260800  # 2026-10-30 00:00 CST
 # glance and the worker reads it without hunting for it.
 TITLE_RE = re.compile(r"^\[(T[123])\]\s*")
 
+# A card carries its TYPE in the title too, right after the tier, so the
+# board shows what KIND of work the card is at a glance: `[T2][排查] ...`.
+#
+# The type is DERIVED from the body (= see ``card_type``), and the title
+# only DECLARES it, so the declaration and the derivation can be compared
+# and a card that lies about its kind is reported. The tier is derived the
+# same way, and for the same reason: a hand-set rating is a rating nobody
+# checks.
+#
+# The four tags are the four kinds of work the board has:
+#
+#   [工单]  BUILD     a card that changes the tree. It owes an independent
+#                     verdict, and it lands on main.
+#   [审核]  REVIEW    a card that VERIFIES work somebody else already wrote
+#                     and ends with a verdict. It owes no verdict of its own
+#                     (= giving one IS its work), and it lands nothing.
+#   [排查]  DIAGNOSE  a card that MEASURES the built product: it runs an
+#                     instrument, waits, and reads a verdict out of the run.
+#                     It reports a finding, and it lands nothing.
+#   [调研]  RESEARCH  a card that READS and reports. It lands nothing.
+#
+# The tag is written in the board's own language (the board's cards are
+# written in Chinese as often as in English), and the code carries the
+# English name, so the two never drift apart.
+TYPE_TAGS = {
+    "工单": "build",
+    "审核": "review",
+    "排查": "diagnose",
+    "调研": "research",
+}
+TYPE_TAG_NAMES = {v: k for k, v in TYPE_TAGS.items()}
+TYPE_TAG_RE = re.compile(r"^\[(T[123])\]\s*\[(" + "|".join(TYPE_TAGS) + r")\]\s*")
+
 # A cited rule is not a write. A path followed by a section marker
 # ("AGENTS.md §7.3") is a reference, so it must not count as work scope.
 CITATION_RE = re.compile(
@@ -399,6 +432,26 @@ def review_required(body: str) -> tuple[bool, list[str]]:
     return bool(code), code
 
 
+def review_required_for_kind(body: str, kind: str) -> tuple[bool, list[str]]:
+    """Whether a card of this kind owes an independent verdict.
+
+    Only a BUILD card does. The obligation used to be derived from ONE
+    fact (= "the body writes code"), and that fact does not separate the
+    kinds: a REVIEW card names the files under review (= it writes no
+    code, but it reads a diff), and a DIAGNOSE or RESEARCH card reports a
+    finding, which is not a diff and so has nothing to review.
+
+    Measured 2026-10-30: the false positive this removes is the card
+    `t_809184d0` (= a review of an orphaned commit), which the review
+    contract called a self-review because the reviewer profile was also
+    the only profile that had run it.
+    """
+    if kind == "build":
+        code = code_paths(body)
+        return bool(code), code
+    return False, []
+
+
 def normalized(name: str) -> str:
     """A heading reduced to comparable words."""
     return re.sub(r"[^a-z]+", " ", (name or "").strip().lower()).strip()
@@ -454,14 +507,31 @@ def in_review_lane(card: dict) -> bool:
     return str(card.get("status") or "") == "review" and not assignee
 
 
-def review_contract_errors(body: str, assignee: str | None = None) -> list[str]:
+def review_contract_errors(
+    body: str,
+    assignee: str | None = None,
+    kind: str | None = None,
+    is_review_card: bool = False,
+) -> list[str]:
     """Every way the body breaks the review contract.
 
     This is the CONTRACT half of the gate: what the card owes. Whether the
     verdict was actually given is the RECORD half, and that one needs the
     board (see Tools/wenshu-devtool/review_gate.py).
+
+    ``kind`` is the card's TYPE (= build / review / diagnose / research),
+    when the caller knows it. The obligation follows the TYPE: only a build
+    card owes an independent verdict, because only a build card leaves a
+    diff for a reviewer to read. A review card GIVES the verdict, and a
+    diagnose or research card reports a finding.
+
+    ``is_review_card`` says the card has no implementation phase (= every
+    run on it carries the same profile). It is what keeps a review card from
+    being reported as reviewing itself.
     """
-    required, code = review_required(body)
+    if kind is None:
+        kind = card_type(body, None, "")
+    required, code = review_required_for_kind(body, kind)
     errors: list[str] = []
     text = handoff_text(body)
     reviewer = named_reviewer(body)
@@ -472,7 +542,7 @@ def review_contract_errors(body: str, assignee: str | None = None) -> list[str]:
                 "the REVIEW HANDOFF section names no reviewer profile "
                 '(write reviewer="wenshu-review")'
             )
-        elif assignee and reviewer == assignee:
+        elif assignee and reviewer == assignee and not is_review_card:
             errors.append(
                 f"the REVIEW HANDOFF names the implementer profile ({reviewer}); "
                 "a card cannot be reviewed by the profile that implemented it"
@@ -774,6 +844,19 @@ def declared_tier(title: str) -> str | None:
     return match.group(1) if match else None
 
 
+def declared_type(title: str) -> str | None:
+    """The card type the title claims, or None.
+
+    The title carries the tier first and the type second (= `[T2][排查] ...`),
+    so a title that names only a tier declares no type, and the type is
+    derived from the body alone.
+    """
+    match = TYPE_TAG_RE.match(title or "")
+    if not match:
+        return None
+    return TYPE_TAGS.get(match.group(2))
+
+
 def _is_subject(card: dict) -> bool:
     """Whether this card was created on or after the cap contract's epoch.
 
@@ -847,6 +930,130 @@ def instrument_floor(body: str, tier_runtime: int) -> int:
     return int(tier_runtime) + arm
 
 
+# ===========================================================================
+# THE FOUR CARD TYPES
+# ===========================================================================
+#
+# A card is one of four kinds of work, and the kind decides what the card
+# OWES and what it COSTS. The kinds are not the tier: the tier is the blast
+# radius (= how many suites must prove the claim), and a card can be any
+# kind at any tier. The kinds are what the card is FOR.
+#
+#   BUILD     a card that changes the tree. It owes an independent verdict,
+#             because a reviewer has to read the diff, and it lands on main.
+#   REVIEW    a card that VERIFIES work somebody else already wrote and
+#             ends with a verdict. It owes no verdict of its own (= giving
+#             one IS its work), and it lands nothing.
+#   DIAGNOSE  a card that MEASURES the built product: it runs an
+#             instrument, waits, and reads a verdict out of the run. It owes
+#             no verdict and it lands nothing; it reports a finding.
+#   RESEARCH  a card that READS and reports. It owes no verdict and it
+#             lands nothing.
+#
+# WHY THE KINDS MATTER, MEASURED 2026-10-30: the review obligation used
+# to be derived from ONE fact (= "the body writes code"), and that fact
+# does not separate the kinds. A card that runs an instrument and reports
+# a finding carries no code, so it was correctly not obliged to owe a
+# verdict; but the same rule made a REVIEW card look like a build card,
+# and a review card that names the reviewer profile as its own profile was
+# reported as reviewing itself (= the false positive the merge gate
+# refused, measured on card t_809184d0).
+#
+# The kinds are DERIVED, never hand-set, and each one is derived from a
+# fact that can be checked:
+#
+#   REVIEW    the body says what it is for (= "A verdict on <sha>"), or the
+#             card has no implementation phase (= every run on it carries
+#             the SAME profile). The second half needs the board, so it is
+#             read there; the first half is in the body, so a card that
+#             has not run yet still knows what it is.
+#   DIAGNOSE  the body names an instrument (= it runs the arm, the probe,
+#             the measurement).
+#   BUILD     the body writes code.
+#   RESEARCH  none of the above: the body reads and reports.
+#
+# The order matters: a review card can also run an instrument (a reviewer
+# re-runs the gates), and a review card's body names files (the ones under
+# review), so REVIEW is decided FIRST.
+
+CARD_TYPES = ("build", "review", "diagnose", "research")
+
+# The REVIEW card's own claim. It is not a keyword soup: it is the first
+# sentence of WHAT TO BUILD, and it names the commit under review. Measured
+# on the two boards (176 cards), the two cards that carry it are exactly
+# the two cards the board says have no implementation phase, and no other
+# card carries it (= zero false positives).
+VERDICT_CLAIM_RE = re.compile(r"^\**\s*A verdict on\b", re.I)
+
+
+def declares_verdict(body: str) -> bool:
+    """Whether the body says, in its own first claim, that it gives a verdict.
+
+    The claim is read from WHAT TO BUILD (= the section that says what the
+    card is for), and only its FIRST paragraph, so a later paragraph that
+    mentions a verdict cannot turn a build card into a review card.
+    """
+    for name, text in sections(body):
+        if normalized(name) != "what to build":
+            continue
+        # The section's text carries its own heading line, so the claim is
+        # the first paragraph after it (= a heading cannot be the claim).
+        lines = text.splitlines()
+        if lines and lines[0].lstrip().startswith("#"):
+            lines = lines[1:]
+        body_text = "\n".join(lines)
+        for para in body_text.split("\n\n"):
+            claim = para.strip()
+            if claim:
+                return bool(VERDICT_CLAIM_RE.match(claim))
+    return False
+
+
+def card_type(body: str, runs: list[dict] | None = None, title: str = "") -> str:
+    """The kind of work this card is, derived from what it says and what it did.
+
+    ``runs`` is the card's run history, when the board has it. It is what
+    tells a review card from a build card that is sitting in the review
+    lane right now: a review card has no implementation phase (= every run
+    on it carries the same profile), so the runs all carry the reviewer's
+    profile and nothing else.
+
+    ``title`` is the card's title, when it carries a type tag. A card that
+    declares its kind is taken at its word, because the declaration and the
+    derivation are compared elsewhere (= the conflict is reported), and a
+    declaration is what the board's own readers see.
+
+    Without the board and without a declaration, a card is judged on its
+    body alone, and a card that has not declared a verdict is a build card
+    or a research card.
+    """
+    declared = declared_type(title)
+    if declared:
+        return declared
+    if declares_verdict(body):
+        return "review"
+    if runs:
+        profiles = {str(r.get("profile") or "") for r in runs if r.get("profile")}
+        if len(profiles) == 1 and REVIEW_PROFILE in profiles:
+            # No implementation phase: the card IS the review.
+            return "review"
+    if INSTRUMENT.search(work_text(body)):
+        return "diagnose"
+    if code_paths(body):
+        return "build"
+    return "research"
+
+
+def type_owes_verdict(kind: str) -> bool:
+    """Whether a card of this kind owes an independent verdict.
+
+    Only a build card does. A review card GIVES the verdict (= that is its
+    work), and a diagnose or research card reports a finding, which is not
+    a diff and so has nothing to review.
+    """
+    return kind == "build"
+
+
 def find_contract_errors(card: dict) -> list[str]:
     """Every way the card CONTRADICTS the tier it earns.
 
@@ -865,6 +1072,19 @@ def find_contract_errors(card: dict) -> list[str]:
         errors.append(f"title carries no tier tag (expected [{tier}])")
     elif claimed != tier:
         errors.append(f"title says {claimed}, the body earns {tier}")
+
+    # The card's TYPE is derived from its body (= and from the board, when
+    # the board is available), and the title may DECLARE it. A declaration
+    # that contradicts the derivation is a contradiction, the same way a
+    # wrong cap is: the card says one thing and the body says another.
+    kind = card_type(body, card.get("runs"), str(card.get("title") or ""))
+    declared = declared_type(str(card.get("title") or ""))
+    derived = card_type(body, card.get("runs"), "")
+    if declared and declared != derived:
+        errors.append(
+            f"the title says the card is {TYPE_TAG_NAMES[declared]} (= {declared}), "
+            f"but its body makes it {TYPE_TAG_NAMES[derived]} (= {derived})"
+        )
 
     runtime = card.get("max_runtime_seconds")
     if runtime is None:
@@ -897,7 +1117,14 @@ def find_contract_errors(card: dict) -> list[str]:
         # implementation work, which both flagged a generous review cap as a
         # tier violation and MISSED a review whose cap was under the floor --
         # the exact card that dies on the clock and hands back no verdict.
-        if in_review_lane(card):
+        # A REVIEW card runs the REVIEW's work (= re-read the diff, re-derive
+        # the acceptance, re-run the gates), which is slower than the
+        # implementation it audits, so it is judged against the review
+        # lane's floor. The TYPE decides that, not the card's status at this
+        # instant: a review card that has not been picked up yet still owes
+        # the review's clock, and a build card that happens to be sitting in
+        # the review queue still runs the implementation's clock.
+        if kind == "review" or in_review_lane(card):
             if runtime < REVIEW_LANE_CAP_FLOOR:
                 errors.append(
                     f"runtime cap {runtime}s, the review lane needs at least "

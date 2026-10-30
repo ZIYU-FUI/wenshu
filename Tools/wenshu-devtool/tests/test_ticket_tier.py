@@ -775,6 +775,248 @@ def main() -> int:
         True,
     )
 
+    # 14. THE FOUR CARD TYPES. A card is one of four kinds of work, and
+    #     the kind decides what the card OWES (a verdict, or none) and
+    #     what it COSTS (a cap floor).
+    #
+    #     The kinds are derived, never hand-set, and each one comes from a
+    #     fact that can be checked:
+    #
+    #       review    the body says what it is for (= "A verdict on
+    #                 <sha>"), or the card has no implementation phase
+    #       diagnose  the body names an instrument (= it runs the arm)
+    #       build     the body writes code
+    #       research  none of the above: the body reads and reports
+    #
+    #     Measured 2026-10-30 on the two boards (176 cards): the two cards
+    #     that carry the verdict claim are exactly the two the board says
+    #     have no implementation phase, and no other card carries it.
+
+    # A REVIEW card says what it is for, in its first claim.
+    review_body = (
+        "## WHAT TO BUILD\n"
+        "**A verdict on `c6ccf12`.** Nothing else. The reviewer checks the "
+        "flow, then reads the diff against the rules.\n"
+        "\n"
+        "## GATES\n"
+        "swift build exits 0.\n"
+    )
+    check(
+        "a card that claims a verdict is a review card",
+        tool.card_type(review_body),
+        "review",
+    )
+    check(
+        "a review card owes no verdict of its own",
+        tool.review_required_for_kind(review_body, "review")[0],
+        False,
+    )
+    # The claim is read from the FIRST paragraph only, so a later paragraph
+    # that mentions a verdict cannot turn a build card into a review card.
+    build_with_verdict_later = (
+        "## WHAT TO BUILD\n"
+        "Fix the file:\n"
+        "- `Sources/WenshuApp/Features/Editor/View/InspectorView.swift:1`\n"
+        "\n"
+        "## ACCEPTANCE\n"
+        "The reviewer gives a verdict afterwards.\n"
+    )
+    check(
+        "a card that mentions a verdict later is still a build card",
+        tool.card_type(build_with_verdict_later),
+        "build",
+    )
+    check(
+        "a build card owes a verdict",
+        tool.review_required_for_kind(build_with_verdict_later, "build")[0],
+        True,
+    )
+    # A DIAGNOSE card runs an instrument.
+    check(
+        "a card that runs an instrument is a diagnose card",
+        tool.card_type(instrument_body),
+        "diagnose",
+    )
+    check(
+        "a diagnose card owes no verdict",
+        tool.review_required_for_kind(instrument_body, "diagnose")[0],
+        False,
+    )
+    # A RESEARCH card reads and reports.
+    research_body = (
+        "## WHAT TO BUILD\n"
+        "Perform a design-only audit of the existing implementation. Trace the "
+        "request construction and report what you find. Do not change code.\n"
+    )
+    check(
+        "a card that only reads and reports is a research card",
+        tool.card_type(research_body),
+        "research",
+    )
+    check(
+        "a research card owes no verdict",
+        tool.review_required_for_kind(research_body, "research")[0],
+        False,
+    )
+    # The board's half: a card with no implementation phase is a review
+    # card, whatever its prose says.
+    review_runs = [{"profile": "wenshu-review"}, {"profile": "wenshu-review"}]
+    build_runs = [{"profile": "wenshu-dev"}, {"profile": "wenshu-review"}]
+    check(
+        "a card with no implementation phase is a review card",
+        tool.card_type(build_with_verdict_later, review_runs),
+        "review",
+    )
+    check(
+        "a card with an implementation phase is not a review card",
+        tool.card_type(build_with_verdict_later, build_runs),
+        "build",
+    )
+    # The title may DECLARE the kind, and a declaration that contradicts
+    # the body is a contradiction, the same way a wrong cap is.
+    check(
+        "the title's type tag is read",
+        tool.declared_type("[T2][排查] The app must not block at launch"),
+        "diagnose",
+    )
+    check(
+        "a title with only a tier declares no type",
+        tool.declared_type("[T2] The app must not block at launch"),
+        None,
+    )
+    check(
+        "a declared type wins over the derivation",
+        tool.card_type(research_body, None, "[T1][调研] an audit"),
+        "research",
+    )
+    # A declaration must OVERRIDE a derivation that says something else,
+    # so the check below is a real check and not a coincidence: this body
+    # derives as a build card (= it writes code) and is declared a
+    # research card.
+    check(
+        "a build body derives as a build card",
+        tool.card_type(build_with_verdict_later),
+        "build",
+    )
+    check(
+        "a declared type overrides the derivation",
+        tool.card_type(build_with_verdict_later, None, "[T1][调研] not a build"),
+        "research",
+    )
+    # A declaration that CONTRADICTS the body is a contradiction, the same
+    # way a wrong cap is: the card says one thing and the body says another.
+    # So a build body declared a research card is reported.
+    contradicting = {
+        "body": build_with_verdict_later,
+        "title": "[T1][调研] this body writes code",
+        "created_at": tool.CAP_CONTRACT_FROM,
+        "max_runtime_seconds": 1500,
+    }
+    check(
+        "a title that contradicts the body is an error",
+        any(
+            "but its body makes it" in f for f in tool.find_errors(contradicting)
+        ),
+        True,
+    )
+    # And a declaration that AGREES with the body is not an error, so the
+    # check above is a real check and not a coincidence.
+    agreeing = dict(contradicting, title="[T1][工单] this body writes code")
+    check(
+        "a title that agrees with the body is not an error",
+        any(
+            "but its body makes it" in f for f in tool.find_errors(agreeing)
+        ),
+        False,
+    )
+
+    # The TYPE decides the lane, not the card's status at this instant: a
+    # review card owes the review's clock even before it is picked up, and
+    # a build card keeps the implementation's clock while it waits in the
+    # review queue.
+    review_kind_card = {
+        "body": review_body,
+        "title": "[T1][审核] a verdict",
+        "created_at": tool.CAP_CONTRACT_FROM,
+        "max_runtime_seconds": tool.REVIEW_LANE_CAP_FLOOR,
+        "status": "todo",
+        "assignee": "wenshu-dev",
+    }
+    check(
+        "a review card at the review lane's floor has no cap finding",
+        [f for f in tool.find_errors(review_kind_card) if "runtime cap" in f],
+        [],
+    )
+    review_kind_under = dict(review_kind_card, max_runtime_seconds=1500)
+    check(
+        "a review card under the review lane's floor is an error",
+        any(
+            "review lane needs at least" in f
+            for f in tool.find_errors(review_kind_under)
+        ),
+        True,
+    )
+    # A build card that is WAITING for review keeps the implementation's
+    # clock, so it is not held to the review lane's floor.
+    build_waiting = {
+        "body": build_with_verdict_later,
+        "title": "[T1][工单] a build",
+        "created_at": tool.CAP_CONTRACT_FROM,
+        "max_runtime_seconds": 1500,
+        "status": "review",
+        "assignee": "wenshu-dev",
+    }
+    check(
+        "a build card waiting for review is not held to the review floor",
+        any(
+            "review lane needs at least" in f
+            for f in tool.find_errors(build_waiting)
+        ),
+        False,
+    )
+    # And the review obligation follows the TYPE, not the body: the same
+    # build body, declared a research card, owes no verdict.
+    check(
+        "the review obligation follows the type, not the body",
+        tool.review_required_for_kind(
+            build_with_verdict_later, tool.card_type(
+                build_with_verdict_later, None, "[T1][调研] not a build"
+            )
+        )[0],
+        False,
+    )
+    # A REVIEW card that writes code still owes no verdict: giving one IS
+    # its work. So the obligation is read from the kind alone.
+    review_that_names_files = (
+        "## WHAT TO BUILD\n"
+        "**A verdict on `c6ccf12`.** Nothing else.\n"
+        "- `Sources/WenshuApp/Features/Editor/View/InspectorView.swift:1`\n"
+    )
+    check(
+        "a review card that names files still owes no verdict",
+        tool.review_required_for_kind(review_that_names_files, "review")[0],
+        False,
+    )
+    check(
+        "a build card that names files owes a verdict",
+        tool.review_required_for_kind(review_that_names_files, "build")[0],
+        True,
+    )
+    # The ORDER of the derivation matters: a card that runs an instrument
+    # AND writes code is a diagnose card (= the instrument is what the card
+    # is for), so the instrument is checked BEFORE the code.
+    instrument_and_code = (
+        "## WHAT TO BUILD\n"
+        "Run the arm:\n"
+        "```\npython3 .../launch_arm.py --trials 6 --wait 95\n```\n"
+        "and fix `Sources/WenshuApp/Features/Editor/View/InspectorView.swift:1`\n"
+    )
+    check(
+        "a card that runs an instrument is a diagnose card even if it writes code",
+        tool.card_type(instrument_and_code),
+        "diagnose",
+    )
+
     # 11b. The REVIEW lane has its own clock. A card in the review column runs
     # the review's work (re-read the diff, re-derive the acceptance, re-run the
     # gates), which is slower than the implementation it audits, so the tier's
