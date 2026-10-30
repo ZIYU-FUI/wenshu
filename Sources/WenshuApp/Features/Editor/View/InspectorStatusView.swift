@@ -86,14 +86,22 @@ struct InspectorStatusView: View {
     private var taskList: some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
-                    ForEach(model.tasks) { task in
-                        InspectorStatusTaskCard(task: task, now: context.date) {
-                            model.selection = InspectorStatusSelection(id: task.id)
+                // One glass container for the page's glass surfaces (=
+                // the system's own grouping for glass). The spacing
+                // EQUALS the card spacing (= a larger container spacing
+                // makes neighbouring glass blend at rest, = and the
+                // cards would melt into one sheet while the column
+                // sits still).
+                GlassEffectContainer(spacing: DesignTokens.spacingTight) {
+                    LazyVStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
+                        ForEach(model.tasks) { task in
+                            InspectorStatusTaskCard(task: task, now: context.date) {
+                                model.selection = InspectorStatusSelection(id: task.id)
+                            }
                         }
                     }
+                    .padding(DesignTokens.spacingStandard)
                 }
-                .padding(DesignTokens.spacingStandard)
             }
         }
     }
@@ -302,13 +310,10 @@ private struct InspectorStatusTaskCard: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(DesignTokens.spacingStandard)
-            .background(
-                RoundedRectangle(
-                    cornerRadius: DesignTokens.surfaceCornerRadiusCard,
-                    style: .continuous
-                )
-                .fill(Color(nsColor: .controlBackgroundColor))
-            )
+            // The shared card surface (= the same glass the column's
+            // other two pages wear, = the three pages' cards are one
+            // family).
+            .inspectorCardSurface(isInteractive: task.output != nil)
         }
         .buttonStyle(.plain)
         // A card without output cannot be opened (= there is nothing to

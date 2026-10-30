@@ -203,7 +203,14 @@ struct KanbanView: View {
             // and the stack scrolls down (= the board reads as one
             // surface, not eight independent scrollers).
             ScrollView(.vertical, showsIndicators: false) {
-                VStack(alignment: .leading, spacing: DesignTokens.spacingModerate) {
+                // One glass container for the board's glass surfaces (= 
+                // the system's own grouping for glass). The spacing
+                // EQUALS the card spacing (= a larger container spacing
+                // makes neighbouring glass blend at rest, = and the
+                // cards would melt into one sheet while the board sits
+                // still).
+                GlassEffectContainer(spacing: DesignTokens.spacingTight) {
+                    VStack(alignment: .leading, spacing: DesignTokens.spacingModerate) {
                     ForEach(KanbanStatus.boardOrder, id: \.self) { status in
                         KanbanGroup(
                             status: status,
@@ -217,8 +224,9 @@ struct KanbanView: View {
                             onOpen: { task in onOpenSheet(task) }
                         )
                     }
+                    }
+                    .padding(.vertical, DesignTokens.spacingIconic)
                 }
-                .padding(.vertical, DesignTokens.spacingIconic)
             }
         }
     }
@@ -369,11 +377,6 @@ private struct KanbanGroup: View {
         // trailing column decides the width; = a fixed width would
         // overflow a narrower trailing column).
         .frame(maxWidth: .infinity)
-        .background(.background.secondary, in: RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusProgressCard))
-        .overlay(
-            RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusProgressCard)
-                .stroke(.separator, lineWidth: DesignTokens.separatorThicknessHairline)
-        )
     }
 }
 
@@ -423,17 +426,13 @@ private struct KanbanCard: View {
         }
         .padding(DesignTokens.spacingStandard)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.background, in: RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusSmallButton))
-        .overlay(
-            RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusSmallButton)
-                .stroke(.separator, lineWidth: DesignTokens.separatorThicknessHairline)
+        // The shared card surface (= the same glass the column's other
+        // two pages wear, = the three pages' cards are one family).
+        .inspectorCardSurface(
+            isInteractive: true,
+            showsStatusEdge: true,
+            statusEdgeColor: task.status.boardTone
         )
-        .overlay(alignment: .leading) {
-            // The status edge (= the Hermes board's colored left border).
-            Rectangle()
-                .fill(task.status.boardTone)
-                .frame(width: DesignTokens.kanbanCardStatusEdgeWidth)
-        }
         // The whole card is one tap target (= its padding, its
         // background, and the empty space beside the body preview all
         // belong to the tap, = not just the text).

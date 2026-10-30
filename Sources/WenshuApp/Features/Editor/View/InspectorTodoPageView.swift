@@ -34,9 +34,6 @@ struct InspectorTodoPageView: View {
     /// source of truth; = the view holds a snapshot and re-reads it).
     @State private var model = InspectorTodoModel()
 
-    /// Whether the plan's cards are visible (= the header folds them).
-    @State private var isExpanded = true
-
     var body: some View {
         VStack(spacing: 0) {
             header
@@ -110,23 +107,28 @@ struct InspectorTodoPageView: View {
 
     /// The plan's cards (= one per item).
     ///
-    /// The cards fold under the header: a folded plan shows its count
-    /// and nothing else, so the column stays quiet when the user is
-    /// not reading the plan.
+    /// The cards sit under the count, always visible (= the count says
+    /// how much is left, = so the reader can tell whether the plan is
+    /// worth reading without folding anything open, = and a fold here
+    /// hid the plan behind one more click).
     private var todoList: some View {
         ScrollView {
-            DisclosureGroup(isExpanded: $isExpanded) {
+            // One glass container for the page's glass surfaces (= the
+            // system's own grouping for glass, = so the cards blend
+            // into one another the way the system's grouped surfaces
+            // do). The spacing EQUALS the card spacing (= a larger
+            // container spacing makes neighbouring glass blend at
+            // rest, = and the cards would melt into one sheet while
+            // the column sits still).
+            GlassEffectContainer(spacing: DesignTokens.spacingTight) {
                 VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
                     ForEach(model.todos) { todo in
                         InspectorTodoCard(todo: todo)
                     }
                 }
-                .padding(.top, DesignTokens.spacingTight)
-            } label: {
-                EmptyView()
+                .padding(.horizontal, DesignTokens.spacingStandard)
+                .padding(.bottom, DesignTokens.spacingStandard)
             }
-            .padding(.horizontal, DesignTokens.spacingStandard)
-            .padding(.bottom, DesignTokens.spacingStandard)
         }
     }
 
@@ -175,18 +177,13 @@ private struct InspectorTodoCard: View {
         // An item that belongs to another item reads indented under it
         // (= the plan is a tree, and the tree shows in the shape).
         .padding(.leading, CGFloat(todo.depth) * DesignTokens.spacingLoose)
-        .background(.background, in: RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusSmallButton))
-        .overlay(
-            RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusSmallButton)
-                .stroke(.separator, lineWidth: DesignTokens.separatorThicknessHairline)
+        // The shared card surface (= the same glass the column's other
+        // two pages wear, = the plan's cards and the board's cards and
+        // the sub-agent's cards are one family).
+        .inspectorCardSurface(
+            showsStatusEdge: true,
+            statusEdgeColor: AnyShapeStyle(InspectorTodoStateStyle.tone(for: todo.status).style)
         )
-        .overlay(alignment: .leading) {
-            // The state edge (= the board's card carries one, = the plan's
-            // cards carry the item's state the same way).
-            Rectangle()
-                .fill(InspectorTodoStateStyle.tone(for: todo.status).style)
-                .frame(width: DesignTokens.kanbanCardStatusEdgeWidth)
-        }
     }
 
     /// The state marker (= the plan's four states).
