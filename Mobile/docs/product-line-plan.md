@@ -2,9 +2,9 @@
 
 Date: 2026-10-28
 Status: proposal for project approval and architecture review
-Lives in: the wenshu-mobile repository (= the native client). Paths that name
-the desktop app are marked (desktop repo); everything else is relative to
-this repository.
+Lives in: this repository, at `Mobile/` (= the native client). The desktop
+app is at the repository root; paths that name it are marked (desktop repo);
+everything else is relative to `Mobile/`.
 Scope: the mobile product line, the Mac companion service, the relay and tunnel
 model, the sync boundary, the native client, and the phased rollout.
 
@@ -12,13 +12,21 @@ Every claim below marked VERIFIED was measured on this machine or read from the
 source of truth during this investigation. Claims marked UNVERIFIED need a
 purchase, a contract, or a legal answer before they become commitments.
 
+**Updated 2026-10-30.** The client moved into the wenshu repository at
+`Mobile/` (ADR-0028 is superseded), so this plan's two-repository premise no
+longer holds. The technical claims survive the move: the root package still
+declares macOS only, and a shared package still must not be that root
+package. What the move changes is the SHARING reason. A local path package
+does not drift when there is one checkout, so the shared package does not
+need its own repository, and the client does not need to be one.
+
 ---
 
 ## 1. The four rulings, translated into design consequences
 
 | Ruling | Design consequence |
 | --- | --- |
-| Mobile enters the product line and may carry its own `wenshu-XXX` project | This repository (`wenshu-mobile`) holds the native client. The macOS repository keeps the desktop app. A second repository `wenshu-core` holds the code both sides share. |
+| Mobile enters the product line and may carry its own `wenshu-XXX` project | This repository holds BOTH: the desktop app at the root, the native client at `Mobile/`. They are two SwiftPM packages in one repository, so they share one method, one gate set and one CI. A third package `wenshu-core` would hold the code both sides share. |
 | The relay must simplify user configuration, and Wenshu does not pay for it | Wenshu operates no relay. Reachability is bought from a tunnel provider on the user's own account, and the Mac companion drives that provider's client automatically. Every cost lands on the user, the enterprise, or a capped pilot budget. |
 | Native Apple, adapting automatically to iPadOS and the newest foldable phones | One SwiftUI codebase, deployment floor iOS 18 with the foldable-native APIs behind `@available` (ADR-0030). The iPhone 18 family is the primary target; a foldable is the same adaptive code, adapted to fit (ADR-0032). |
 | Computer-authoritative remote control, the way Hermes does it | The Mac holds the only writer. The phone is a thin client plus a local draft buffer. The Mac must be awake with Wenshu running. |
@@ -62,7 +70,7 @@ These were measured, not assumed.
   plan: a shared package that another repository consumes over the network must
   sit at the root of its own repository and expose a library product with an
   explicit version. The current `wenshu` root package exposes one executable
-  product only, so `wenshu-mobile` cannot yet consume anything from it.
+  product only, so the client cannot yet consume anything from it.
 
 ### 2.3 The tunnel provider sees plaintext unless the app encrypts
 
@@ -132,7 +140,7 @@ These were measured, not assumed.
 Four pieces. The Mac owns everything that matters; the phone is a client.
 
 ```
-  phone (wenshu-mobile, SwiftUI)
+  phone (Mobile/, SwiftUI)
         |  HTTPS, app-layer E2EE payload
         v
   provider edge (TLS terminates here, operator sees ciphertext only)
@@ -281,19 +289,27 @@ One app, three postures, one codebase.
 Three repositories, and the reason for three is the SwiftPM constraint in
 section 2.2.
 
-| Repository | Contents | Consumed by |
+| Package | Contents | Consumed by |
 | --- | --- | --- |
-| `wenshu` (existing) | macOS app, `WenshuData`, `WenshuAgent` | the desktop user |
-| `wenshu-core` (planned) | The shared library. Root package, library product, explicit version, platforms macOS and iOS. Holds the link contract once a second consumer needs it, and later the shared model. Created by card C2.1, not before. | `wenshu` and `wenshu-mobile` |
-| `wenshu-mobile` (this repository) | The native client. An iOS and iPadOS app target. It holds the link contract until a second consumer needs it (ADR-0031), then it depends on `wenshu-core` at a pinned version. | the phone user |
+| the root package (existing) | macOS app, `WenshuData`, `WenshuAgent`. Declares macOS only. | the desktop user |
+| `Mobile/` (existing) | The native client. Its own package, its own manifest, platforms iOS and macOS. It holds the link contract until a second consumer needs it (ADR-0031). | the phone user |
+| `wenshu-core` (planned) | The shared library. Its own package, library product, explicit version, platforms macOS and iOS. Holds the link contract once a second consumer needs it, and later the shared model. Created by card C2.1, not before. | the root package and `Mobile/` |
 
-Why not put the shared code in the `wenshu` root: the root package would have
-to declare iOS support, and it contains a macOS-only executable target and two
-local path packages. That makes the desktop package's platform declaration
-lie about what it supports, and it puts a mobile-supporting manifest in front
-of a repository whose own AGENTS.md section 2.3 declares the product
-macOS-only. A dedicated root package removes that conflict and gives
-`wenshu-mobile` exactly one dependency to pin.
+Why not put the shared code in the root package: the root package declares
+macOS only, and widening it to declare iOS makes the desktop package's
+platform declaration lie about what it supports. A separate package removes
+that conflict, and it does not need its own REPOSITORY to do it.
+
+**This changed on 2026-10-30.** The client moved into this repository at
+`Mobile/` (ADR-0028 is superseded), so the two sides are now two packages in
+one repository rather than two repositories. Measured 2026-10-30: SwiftPM
+resolves the NEAREST manifest, so a package in a subdirectory builds with the
+plain command from inside it, and the root manifest keeps declaring macOS
+only while the client's declares iOS and macOS for itself. A package's target
+path may not escape its package root, so the client moved as ONE package.
+The sharing reason below therefore still holds (the root package must not
+declare iOS), but the REMOTE-URL reason does not: a local path package in
+this repository does not drift, because there is one checkout.
 
 What `wenshu-core` holds in the first release:
 
@@ -310,15 +326,17 @@ What stays in `wenshu` for now, and what moves later:
   purpose, because that widening is what the iOS cross-compile proved is
   needed. When the phone needs the real model for its offline cache, the
   decision is either a move into `wenshu-core` or a parallel model in
-  `wenshu-mobile` that mirrors the schema. The move is cleaner and costs one
-  manifest edit plus a repository split.
+  `Mobile/` that mirrors the schema. The move is cleaner and costs one
+  manifest edit.
 - `WenshuAgent` stays in `wenshu` until the companion's service surface is
   stable enough to publish.
 
-The macOS repository must consume `wenshu-core` by remote URL and a pinned
-version too, so both sides resolve the same bytes. A local path dependency
-between two repositories on one machine is a trap: it works until the two
-checkouts drift apart.
+Both sides consume `wenshu-core` as a local path package in this repository,
+so they resolve the same bytes by construction. The remote-URL-and-pinned-
+version arrangement that this section originally required existed because the
+two sides were two repositories, where a local path dependency IS a trap: it
+works until the two checkouts drift apart. There is now one checkout, so the
+trap is gone with the second repository.
 
 ---
 
@@ -367,9 +385,9 @@ reviewer in its `## REVIEW HANDOFF` section, per AGENTS.md rule 1.14.
 
 | Card | Tier | Work |
 | --- | --- | --- |
-| C2.1 | T3 | Create `wenshu-core`: root package, library product, macOS and iOS 27.1 platforms, wire protocol and shared value types, version tag. |
-| C2.2 | T2 | Prove remote consumption: a scratch consumer resolves `wenshu-core` by URL at a pinned version and builds for iOS Simulator. This is the proof of section 2.2. |
-| C2.3 | T3 | The client app target: this repository, iOS 18 floor with the 27.1 APIs behind @available (ADR-0030), device family 1 and 2, no shared code beyond the kit (ADR-0031). |
+| C2.1 | T3 | Create `wenshu-core`: its own package, library product, macOS and iOS 27.1 platforms, wire protocol and shared value types. |
+| C2.2 | T2 | Prove consumption: a scratch consumer resolves `wenshu-core` and builds for iOS Simulator. This is the proof of section 2.2. |
+| C2.3 | T3 | The client app target: the `Mobile/` package, iOS 18 floor with the 27.1 APIs behind @available (ADR-0030), device family 1 and 2, no shared code beyond the kit (ADR-0031). |
 | C2.4 | T2 | Widen `Sources/WenshuData` platforms to include iOS, and land the real iOS cross-compile that the scratch copy already proved. |
 | C2.5 | T3 | The client shell: QR pairing with VisionKit, token storage in the Keychain, the library outline screen, the chapter reader. |
 | C2.6 | T2 | Foldable and iPad layout: `ArrangementView`, `reservedRegions`, `NavigationSplitView` collapse on compact width. Needs an installed simulator runtime to be a real proof. |
@@ -413,7 +431,7 @@ reviewer in its `## REVIEW HANDOFF` section, per AGENTS.md rule 1.14.
 | Risk | Evidence | Response |
 | --- | --- | --- |
 | No signing identity blocks every device and store step | VERIFIED | Owner decision in Phase 0, card C0.2. Until then the work stops at a generic simulator build. |
-| A shared package cannot be consumed remotely from a subdirectory | VERIFIED | `wenshu-core` as its own root package, card C2.1, proven by card C2.2. |
+| A shared package cannot be consumed remotely from a subdirectory | VERIFIED | `wenshu-core` as its own package at the repository root, card C2.1, proven by card C2.2. |
 | The tunnel provider reads manuscript plaintext | VERIFIED | App-layer end-to-end encryption, card C3.2, before the first remote write. |
 | A diagnostic route leaks paths and identifiers | VERIFIED | Companion security checks, card C1.5. |
 | Two stores and two copies of the same reference | VERIFIED | The Mac is the only writer and regenerates the mirror, cards C1.3 and C4.3. |
