@@ -60,12 +60,7 @@ struct KanbanView: View {
     /// app's task store on appear + whenever the focused session's
     /// book changes).
     @State private var tasks: [KanbanTask] = []
-    @State private var newTaskTitle: String = ""
     @State private var loadError: String? = nil
-
-    /// Whether the inline title field is showing. The new-task button
-    /// reveals it; submitting it creates the task.
-    @State private var isCreating: Bool = false
 
     /// kanban-detail-sheet 2026-09-28: nil means no sheet is open.
     /// The identity is the task itself (= sheet(items:) requires
@@ -79,10 +74,6 @@ struct KanbanView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingStandard) {
-            header
-            if isCreating {
-                inputRow
-            }
             if loadError != nil {
                 Text(String(localized: "auto.kanbanview.l69.h78022707"))
                     .font(.caption)
@@ -124,70 +115,6 @@ struct KanbanView: View {
     }
 
     // MARK: - Subviews
-
-    /// Header: board title + task count + the new-task button on
-    /// the trailing edge.
-    ///
-    /// The board carries NO picker and NO filter field: the board
-    /// follows the focused session (= one board per session), and the
-    /// filter the user means is the left column's directory tree.
-    ///
-    /// The count is the NUMBER of tasks on the board. A label that
-    /// reads "task count" belongs next to a number, not in its place.
-    private var header: some View {
-        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.spacingStandard) {
-            Text(String(localized: "auto.kanbanview.l100.h57246144"))
-                .font(.headline)
-            Text(String(tasks.count))
-                .font(.caption)
-                .foregroundStyle(DesignTokens.statusForeground)
-            Spacer(minLength: DesignTokens.spacingStandard)
-            newTaskButton
-        }
-    }
-
-    /// The new-task button. It reveals the inline title field.
-    private var newTaskButton: some View {
-        Button {
-            isCreating.toggle()
-        } label: {
-            Label {
-                Text(String(localized: "kanban.new_task"))
-            } icon: {
-                SFIcon("plus", style: .inlineSmall, color: IconColor.tint)
-            }
-        }
-        .buttonStyle(.borderedProminent)
-        .help(String(localized: "kanban.new_task.help"))
-    }
-
-    /// Inline-create row (Apple HIG text field + return-to-submit).
-    /// Disabled when the text is empty.
-    ///
-    /// A new task starts in the FIRST status (= the scheduler's queue,
-    /// = the user does not pick a status = the user does not schedule).
-    private var inputRow: some View {
-        HStack(spacing: DesignTokens.spacingTight) {
-            TextField(String(localized: "auto2.kanbanview.l142.h68849992"), text: $newTaskTitle)
-                .textFieldStyle(.roundedBorder)
-                .onSubmit { addTask() }
-            Button(action: addTask) {
-                Label { Text(String(localized: "auto2.kanbanview.l146.h37112406")) } icon: { SFIcon("plus", style: .inlineSmall, color: IconColor.tint) }
-            }
-            .disabled(!canAdd)
-            .buttonStyle(.borderedProminent)
-            .help(addButtonHelp)
-        }
-    }
-
-    /// Tooltip for the add button. Empty when the button is enabled, so
-    /// hovering an enabled button shows no stale "please…" text.
-    private var addButtonHelp: String {
-        if newTaskTitle.trimmingCharacters(in: .whitespaces).isEmpty {
-            return String(localized: "auto.kanbanview.l157.h65127890")
-        }
-        return String(localized: "kanban.new_task.writes")
-    }
 
     @ViewBuilder
     private var content: some View {
@@ -238,10 +165,6 @@ struct KanbanView: View {
         tasks.filter { $0.status == status }
     }
 
-    private var canAdd: Bool {
-        !newTaskTitle.trimmingCharacters(in: .whitespaces).isEmpty
-    }
-
     // MARK: - Mutations
 
     /// The store the board reads and writes.
@@ -277,28 +200,6 @@ struct KanbanView: View {
         }
     }
 
-    /// Add a task to this book's board.
-    ///
-    /// The task starts in the FIRST status (= the scheduler's queue).
-    /// The user does not pick a status (= the user does not schedule),
-    /// so the task waits for the scheduler to move it.
-    private func addTask() {
-        let title = newTaskTitle.trimmingCharacters(in: .whitespaces)
-        guard !title.isEmpty else { return }
-        do {
-            _ = try store.add(
-                title: title,
-                status: KanbanStatus.boardOrder.first?.rawValue ?? "new",
-                bookID: focusedBookID?.rawValue
-            )
-            newTaskTitle = ""
-            isCreating = false
-            loadError = nil
-        } catch {
-            loadError = String(describing: error)
-        }
-        reloadFromStore()
-    }
 
     /// Remove a task from the board.
     private func deleteTask(_ task: KanbanTask) {

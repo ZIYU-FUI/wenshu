@@ -176,6 +176,22 @@ struct InspectorCardTests {
                 "the board's group must not wear a shell (= the column's cards are the cards)")
     }
 
+    @Test("The board carries no title row and no new-task button")
+    func theBoardCarriesNoTitleRow() throws {
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Kanban/View/KanbanView.swift")
+        let content = try String(contentsOf: url, encoding: .utf8)
+        // The column's own header already says which page this is, so
+        // the board carries no title of its own.
+        #expect(!content.contains("private var header"),
+                "the board must not draw a title row (= the column's header says which page this is)")
+        // The scheduler owns the tasks (= the user does not schedule),
+        // so the board carries no way to add one by hand.
+        #expect(!content.contains("newTaskButton"),
+                "the board must not carry a new-task button (= the scheduler owns the tasks)")
+        #expect(!content.contains("private func addTask()"),
+                "the board must not carry the hand-made task path (= the scheduler owns the tasks)")
+    }
+
     @Test("The plan's cards do not fold (= the count says how much is left)")
     func thePlanDoesNotFold() throws {
         let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/InspectorTodoPageView.swift")

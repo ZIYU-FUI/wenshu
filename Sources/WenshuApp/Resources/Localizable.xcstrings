@@ -341,40 +341,6 @@
         }
       }
     },
-    "auto.kanbanview.l100.h57246144": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kanban"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "看板"
-          }
-        }
-      }
-    },
-    "auto.kanbanview.l157.h65127890": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Title is required to create"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "输入标题后才能新建"
-          }
-        }
-      }
-    },
     "auto.kanbanview.l343.h97636928": {
       "extractionState": "manual",
       "localizations": {
@@ -473,40 +439,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "切换看板数据范围 (= 全书 / 8 标准子目录 / 资料库)"
-          }
-        }
-      }
-    },
-    "auto2.kanbanview.l142.h68849992": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "新Kanban标题…"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "新看板标题…"
-          }
-        }
-      }
-    },
-    "auto2.kanbanview.l146.h37112406": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "New"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "新建"
           }
         }
       }
@@ -7155,57 +7087,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "筛选卡片…"
-          }
-        }
-      }
-    },
-    "kanban.new_task": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "New task"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "新建任务"
-          }
-        }
-      }
-    },
-    "kanban.new_task.help": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Add a task to this board"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "在此看板新建一条任务"
-          }
-        }
-      }
-    },
-    "kanban.new_task.writes": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Writes to"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "写入"
           }
         }
       }
