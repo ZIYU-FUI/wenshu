@@ -81,9 +81,15 @@ struct LibraryRootView: View {
             // s filename shouldn't be shown either':
             // … (= 55 rationale lines collapsed; = A112 docblock collapse per §1.8)
             // 'where is the title bar / toolbar?' = open ChromeMainToolbar.swift.
-            .toolbar {
-                ChromeMainToolbar(openWindow: openWindow, sheetRequests: sheetRequests)
-            }            .task(id: activeLibraryPath) { await runLaunch() }
+            // The toolbar rides on the library pages only (= the welcome
+            // page has no library, so the kanban and export buttons have
+            // nothing to act on). The window keeps its traffic lights.
+            .modifier(OnboardingAwareToolbar(
+                isOnboarding: shouldShowOnboarding,
+                openWindow: openWindow,
+                sheetRequests: sheetRequests
+            ))
+            .task(id: activeLibraryPath) { await runLaunch() }
             .onAppear {
                 WenshuAppDelegate.openSettings = openSettings
                 // SwiftData library upgrade wiring (= boss OOB
@@ -187,18 +193,34 @@ struct LibraryRootView: View {
 
 // / ', shouldchat zonedialog.
 // … (= 12 rationale lines collapsed; = A112 docblock collapse per §1.8)
-// / Searches multiple paths in .app bundle for wenshu-original-fanbai.png.
-private func loadWenshuLogo() -> NSImage? {
+// / The wordmark artwork the welcome page shows = the effective color
+// / scheme picks the file. The light theme carries the gold calligraphy
+// / (= a white brush stroke on a cream background reads as a watermark,
+// / not as the product's name); the dark theme keeps the white one.
+enum WenshuWordmark {
+    /// The white calligraphy (= the app icon's own source artwork).
+    static let whiteAssetName = "wenshu-original-fanbai"
+    /// The gold calligraphy (= the light theme's wordmark).
+    static let goldAssetName = "wenshu-gold-v3-warm"
+
+    /// The asset the scheme the page renders in asks for.
+    static func assetName(for colorScheme: ColorScheme) -> String {
+        colorScheme == .dark ? whiteAssetName : goldAssetName
+    }
+}
+
+// / Searches multiple paths in .app bundle for the named wordmark PNG.
+private func loadWenshuLogo(named assetName: String) -> NSImage? {
     // Build process: Package.swift copies AppIcon.icon/ → Wenshu.app/Contents/Resources/AppIcon.icon/
     // AppIcon.icon contains icon.json (Apple Icon Composer format) and Assets/ subdir.
     let paths = [
-        // 1. Subdirectory: Resources/AppIcon.icon/Assets/wenshu-original-fanbai.png
-        Bundle.main.url(forResource: "wenshu-original-fanbai", withExtension: "png",
+        // 1. Subdirectory: Resources/AppIcon.icon/Assets/<assetName>.png
+        Bundle.main.url(forResource: assetName, withExtension: "png",
                         subdirectory: "AppIcon.icon/Assets"),
-        // 2. Root of bundle: Resources/wenshu-original-fanbai.png
-        Bundle.main.url(forResource: "wenshu-original-fanbai", withExtension: "png"),
+        // 2. Root of bundle: Resources/<assetName>.png
+        Bundle.main.url(forResource: assetName, withExtension: "png"),
         // 3. Source path (for swift run debug): Sources/WenshuApp/Resources/AppIcon.icon/Assets/
-        URL(fileURLWithPath: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Resources/AppIcon.icon/Assets/wenshu-original-fanbai.png"),
+        URL(fileURLWithPath: "/Volumes/ANAN/Engineering/wenshu/Sources/WenshuApp/Resources/AppIcon.icon/Assets/\(assetName).png"),
     ]
     for path in paths {
         if let url = path, let nsImage = NSImage(contentsOf: url) {
@@ -206,6 +228,24 @@ private func loadWenshuLogo() -> NSImage? {
         }
     }
     return nil
+}
+
+// / The window toolbar = the library pages only. The welcome page has
+// / no library, so the kanban and export buttons have nothing to act on.
+private struct OnboardingAwareToolbar: ViewModifier {
+    let isOnboarding: Bool
+    let openWindow: OpenWindowAction
+    let sheetRequests: SheetRequestState
+
+    func body(content: Content) -> some View {
+        if isOnboarding {
+            content
+        } else {
+            content.toolbar {
+                ChromeMainToolbar(openWindow: openWindow, sheetRequests: sheetRequests)
+            }
+        }
+    }
 }
 
 // / LibraryOnboardingView: First-launch .ws file picker (NSOpenPanel).
@@ -219,6 +259,10 @@ struct LibraryOnboardingView: View {
     // / standard sheet UX; macOS 14+).
     @State private var isImporterPresented: Bool = false
 
+    /// The scheme the page renders in (= the boss's pick, or the
+    /// system's when he follows the system).
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
         VStack(spacing: DesignTokens.spacingSection) {
             Spacer()
@@ -227,7 +271,7 @@ struct LibraryOnboardingView: View {
 // … (= 9 rationale lines collapsed; = A112 docblock collapse per §1.8)
 // to load PNG from absolute path inside .app bundle.
 Group {
-    if let nsImage = loadWenshuLogo() {
+    if let nsImage = loadWenshuLogo(named: WenshuWordmark.assetName(for: colorScheme)) {
         // wenshu-verification-fix ((see OOB.md #2026-08-24)):
         // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // (consistent across light/dark mode).
