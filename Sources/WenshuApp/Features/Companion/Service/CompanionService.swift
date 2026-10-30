@@ -94,6 +94,12 @@ final class CompanionService {
     /// Whether the persisted token has been read into the session yet.
     private var tokenLoaded = false
 
+    /// The read of the persisted token that is in flight, if any.
+    ///
+    /// A request that arrives while the Keychain is being read waits
+    /// for that read instead of reading a cache that holds nothing yet.
+    private var tokenRead: Task<String?, Never>?
+
     /// The listener.
     private var listener: NWListener?
 
@@ -290,6 +296,13 @@ final class CompanionService {
                 buffers[identity] = buffer
                 if isComplete {
                     close(connection)
+                } else {
+                    // The request has not arrived whole. TCP keeps no
+                    // message boundaries, so the rest of it comes in a
+                    // later segment: the read is armed again, because
+                    // the one that brought this segment has delivered
+                    // it and no read is pending now.
+                    read(connection)
                 }
                 return
             case .complete(let request, let consumed):
@@ -450,16 +463,43 @@ final class CompanionService {
     ///
     /// The first call reads the Keychain off the main actor, because the
     /// read blocks. Later calls use the copy the session holds.
+    ///
+    /// A request that arrives while that read is still running waits for
+    /// it: the cache is published together with the value it holds, so
+    /// no caller ever reads a cache that is empty.
     private func currentToken() async -> String? {
         if tokenLoaded { return token }
-        tokenLoaded = true
+        return await (tokenRead ?? startTokenRead()).value
+    }
+
+    /// Start the read of the persisted token, if it is not running.
+    ///
+    /// The read is one task, so a request that arrives while it runs
+    /// waits for that read instead of reading a cache that holds
+    /// nothing yet. The cache is published by the task itself, so the
+    /// value and the flag that says the cache is filled arrive
+    /// together.
+    private func startTokenRead() -> Task<String?, Never> {
         let store = tokenStore
-        let stored = await withCheckedContinuation { continuation in
-            keychainQueue.async { continuation.resume(returning: store.loadToken()) }
+        let queue = keychainQueue
+        let read = Task { @MainActor [weak self] in
+            let stored = await withCheckedContinuation { (continuation: CheckedContinuation<String?, Never>) in
+                queue.async { continuation.resume(returning: store.loadToken()) }
+            }
+            guard let self else { return stored }
+            if !self.tokenLoaded {
+                // A pairing or a revoke that landed while the read was
+                // running owns the session: this value is older than the
+                // one the session holds, so it is not published.
+                self.token = stored
+                self.tokenLoaded = true
+                self.isPaired = stored != nil
+                self.tokenRead = nil
+            }
+            return self.token
         }
-        token = stored
-        isPaired = stored != nil
-        return stored
+        tokenRead = read
+        return read
     }
 
     /// Write the token to the Keychain, off the main actor.
