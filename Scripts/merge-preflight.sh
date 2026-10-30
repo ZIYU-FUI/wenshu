@@ -143,10 +143,22 @@ for b in "${branches[@]}"; do
             echo "         ($card) this branch names cannot be checked"
             continue
         fi
-        if [[ $claim_rc -ne 0 ]]; then
-            # The card is not on the board (or the gate could not clear
-            # it): the claim does not count, so the sha decides.
+        if [[ $claim_rc -eq 4 ]]; then
+            # The card is not on the board: the claim does not count, so
+            # the sha decides.
             card=""
+        fi
+        if [[ $claim_rc -ne 0 && $claim_rc -ne 4 ]]; then
+            # The gate could not clear the card for any other reason
+            # (= it owes a verdict, or it breaks the contract). The
+            # verdict of the card this branch names is what is asked
+            # for, so the gate's own answer stands.
+            gate_out="$(python3 "$GATE" --card "$card" --board "$BOARD" 2>&1)"
+            gate_rc=$?
+            unreviewed=1
+            echo "UNREVIEWED $b"
+            echo "$gate_out" | sed 's/^/         /'
+            continue
         fi
     fi
     if [[ -z "$card" ]]; then

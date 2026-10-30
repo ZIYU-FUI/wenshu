@@ -165,6 +165,20 @@ def _run_hermes(args: list[str]) -> tuple[int, str]:
     return proc.returncode, proc.stdout
 
 
+def _run_hermes_all(args: list[str]) -> tuple[int, str, str]:
+    """Run the hermes CLI, returning (returncode, stdout, stderr).
+
+    The CLI writes its failure messages to STDERR ("no such task: t_x"),
+    so a caller that has to tell one failure from another needs both
+    streams.
+    """
+    binary = _hermes()
+    if binary is None:
+        return 127, "", ""
+    proc = subprocess.run([binary, *args], capture_output=True, text=True)
+    return proc.returncode, proc.stdout, proc.stderr
+
+
 def board_doc(card_id: str, board: str = BOARD) -> dict | None:
     """The board record of one card, or None when the board cannot be read."""
     code, out = _run_hermes(
@@ -177,6 +191,26 @@ def board_doc(card_id: str, board: str = BOARD) -> dict | None:
     except json.JSONDecodeError:
         return None
     return data if isinstance(data, dict) else None
+
+
+def card_absent(card_id: str, board: str = BOARD) -> bool:
+    """Whether the card is simply NOT on the board.
+
+    A card that does not exist and a board that cannot be read both make
+    the CLI fail, so ``board_doc`` returns None for either. They are
+    different facts: the first means "this card owes nothing", the
+    second means "nobody can tell". The gate reports the first as
+    ``card_absent`` and the second as ``board_unreadable``, so a missing
+    card is never read as a broken board.
+
+    The CLI writes the message to stderr, so both streams are read.
+    """
+    code, out, err = _run_hermes_all(
+        ["kanban", "--board", board, "show", card_id, "--json"]
+    )
+    if code == 0:
+        return False
+    return "no such task" in ((out or "") + (err or "")).lower()
 
 
 def board_cards(board: str = BOARD) -> list[dict] | None:
@@ -605,6 +639,12 @@ def card_record(card_id: str, board: str = BOARD) -> dict:
     """The gate state of one card on the board."""
     doc = board_doc(card_id, board)
     if doc is None:
+        if card_absent(card_id, board):
+            return {
+                "card": card_id,
+                "gate": "card_absent",
+                "reason": "the card is not on the board",
+            }
         return {
             "card": card_id,
             "gate": "board_unreadable",
@@ -697,6 +737,11 @@ def main() -> int:
                 print(f"  ! {error}")
         if record["gate"] == "board_unreadable":
             return 2
+        if record["gate"] == "card_absent":
+            # The card is not on the board. That is not an unreadable
+            # board (= nobody can tell): it is a card that owes nothing,
+            # and a branch naming it has no verdict.
+            return 4
         if record["gate"] == "contract_error":
             return 1
         if record["gate"] in (
