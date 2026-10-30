@@ -140,6 +140,40 @@ client's files, and the client's own Swift files carry none of the
 vocabulary. **Fixing it is its own card**; it is reported in the workflow
 so the state is not mistaken for a green check.
 
+## The gate that was red before this session, and what it was really saying
+
+The devtool's NFI registry test was red: five of its nineteen cases. The
+same five, with the same names, fail at `81c3c3d000` (= before the client
+moved in), so the defect predates this session, and the migration made it
+worse by adding 33 more rows after the buried comment.
+
+**The registry's trailing comment was buried in the MIDDLE of the table.**
+The merge driver splits a file into (before, rows, after), and `after` is
+whatever follows the LAST row. The file carried its "Append new rows at the
+END of the table above" comment with 35 rows after it, so the driver could
+not rebuild the file byte-for-byte: the comment and its blank line fell out
+of the split.
+
+Two things followed, and the second is the one that matters. The driver
+dropped those two lines from every merge it produced, and the test fixture
+asserted a byte-for-byte rebuild, so the fixture exited before it added its
+row and the merge reported that the row had been LOST. Two of the five
+failures were red for the wrong reason: a disagreement that should have
+conflicted did not, because the driver never got as far as the
+disagreement.
+
+**A red case can be red for a reason its own name does not say.** "a row was
+lost in the merge" named a symptom; the cause was a comment in the wrong
+place. Reading the failure list and fixing the row count would have made
+the suite green and left the merge dropping two lines on every run, which
+is the failure nobody would notice.
+
+The fix moves the comment block back to the end of the table. No row is
+added, removed or edited (= the diff is 3 insertions against 3 deletions,
+and the line multiset is unchanged), the rebuild is byte-for-byte again, and
+all nineteen cases pass. The devtool's suites went from 22 of 23 to 23 of
+23.
+
 ## The open item this session left on the table
 
 **One commit has no independent review.** `4005382f89` (= the client's CI
