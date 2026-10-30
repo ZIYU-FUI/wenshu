@@ -104,7 +104,8 @@ A worker ends its run with exactly one of:
 
 Under the one-developer flow the review card IS the review, so the reviewer's
 run ends with `kanban_complete(metadata={"review_outcome": "approved"})` or
-`kanban_request_changes(reason=...)`. There is no `kanban_request_review`
+`kanban_complete(metadata={"review_outcome": "changes_requested"})` (after a
+`kanban_comment` carrying the finding). There is no `kanban_request_review`
 handoff in this flow: the card was created FOR the reviewer and was never
 handed off.
 
