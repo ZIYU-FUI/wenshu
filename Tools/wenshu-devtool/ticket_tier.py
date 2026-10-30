@@ -1308,6 +1308,8 @@ def report(card: dict) -> dict:
         "label": contract["label"],
         "reasons": reasons,
         "declared_tier": declared_tier(card.get("title") or ""),
+        "kind": card_type(body, card.get("runs"), card.get("title") or ""),
+        "declared_kind": declared_type(card.get("title") or ""),
         "runtime_seconds": card.get("max_runtime_seconds"),
         "runtime_text": contract["runtime_text"],
         "retries": contract["retries"],
@@ -1329,6 +1331,12 @@ def print_card(row: dict) -> None:
         f"body {row['body_len']}/{row['body_max']}  "
         f"gate {row['gate_width']}  declared {row['declared_tier'] or '-'}"
     )
+    kind = row.get("kind")
+    if kind:
+        print(
+            f"      kind {kind} ({TYPE_TAG_NAMES.get(kind, kind)})"
+            f"  declared {row.get('declared_kind') or '-'}"
+        )
     print(f"      gate: {row['gate']}")
     for reason in row["reasons"]:
         print(f"      because: {reason}")
