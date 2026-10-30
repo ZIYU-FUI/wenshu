@@ -187,6 +187,9 @@ struct InspectorStatusTask: Identifiable, Equatable, Sendable {
     /// The text the sub-agent has produced. Nil = it has produced none
     /// yet (= the card has no output to open).
     let output: String?
+    /// The tool the sub-agent is calling right now. Nil = it is not
+    /// calling one (= the card shows no tool column).
+    let currentTool: String?
 
     init(handle: BackgroundDelegationHandle) {
         self.id = handle.id
@@ -195,6 +198,9 @@ struct InspectorStatusTask: Identifiable, Equatable, Sendable {
         self.state = handle.state
         self.startedAt = handle.startedAt
         self.completedAt = handle.completedAt
+        // Only a running task is calling a tool (= a finished task's
+        // last tool is history, = the card shows the present).
+        self.currentTool = handle.state == .running ? handle.currentTool : nil
         switch handle.state {
         case .running:
             // A running task streams its text into the tail.
@@ -268,6 +274,16 @@ private struct InspectorStatusTaskCard: View {
                     Text(task.agentName)
                         .font(.headline)
                         .lineLimit(1)
+                    if let tool = task.currentTool {
+                        // The tool the agent is calling right now, in a
+                        // quieter column beside the name (= the agent's
+                        // name stays the primary content of the row).
+                        Text(InspectorStatusToolLabel.text(tool))
+                            .font(.caption2)
+                            .foregroundStyle(DesignTokens.statusForeground)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
                     Spacer(minLength: 0)
                     if let elapsed = task.elapsedText(at: now) {
                         Text(elapsed)
@@ -295,6 +311,23 @@ private struct InspectorStatusTaskCard: View {
         }
         .buttonStyle(.plain)
         .disabled(task.output == nil)
+    }
+}
+
+// MARK: - Tool label
+
+/// How a tool's name reads on a card.
+///
+/// A tool's name is its code name (= "read_file"), and a card is for a
+/// person. The name is split on its underscores and each part opens with
+/// a capital (= "Read File"), so the column reads as words.
+enum InspectorStatusToolLabel {
+    static func text(_ tool: String) -> String {
+        let words = tool
+            .split(separator: "_")
+            .filter { !$0.isEmpty }
+            .map { $0.prefix(1).uppercased() + $0.dropFirst() }
+        return words.isEmpty ? tool : words.joined(separator: " ")
     }
 }
 

@@ -356,6 +356,15 @@ struct HermesTodoTool: Tool, Sendable {
         self.store = store
     }
 
+    /// The plan the agent wrote (= the store's current items).
+    ///
+    /// The trailing column's todo page reads the plan through this, so
+    /// the plan on screen and the plan the agent works from are the same
+    /// list (= the page never shows a copy).
+    func readPlan() -> [HermesTodoItem] {
+        store.read()
+    }
+
     func execute(input: String) async throws -> String {
         // Empty input == read (= mirrors Python "omit todos to read").
         let parsed: [String: Any]

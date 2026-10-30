@@ -4,30 +4,38 @@
 //
 //  The todo page of the trailing inspector column.
 //
-//  The page lists the todos the assistant wrote: the outstanding ones
-//  first, then the finished ones, each row showing the todo's title
-//  and its state. A header line carries the count of the outstanding
-//  ones, so the column answers "how much is queued" without the user
-//  opening anything.
+//  The page shows the plan the ASSISTANT wrote: the rows come from the
+//  agent's own plan store, the assistant writes them, and the user
+//  cannot edit them (= the page is read-only, because the assistant's
+//  next turn owns that list). A header line counts the plan the way a
+//  plan is counted (= done over total, and a dropped item counts on
+//  neither side), so the column answers "how much is left" without the
+//  user opening anything.
 //
-//  The list comes from the todo store through its repository (= the
-//  same store the agent's todo tool writes), so the rows on screen and
-//  the count in the header come from one read and cannot disagree.
+//  The rows are cards, because the column is narrow: a card carries the
+//  item's state marker, the item's own words, and the item's place in
+//  the plan (= an item that belongs to another item reads indented
+//  under it).
+//
+//  The plan store is the one the agent's todo tool writes, so the plan
+//  on screen and the plan the assistant works from are the same list.
 //
 //
 
 import SwiftUI
-import WenshuData
 
 /// The trailing inspector column's todo page.
 ///
-/// Lists the todos the assistant wrote (= the app's todo store), the
-/// outstanding ones first, with a header line counting the outstanding
-/// ones and a way to finish or remove a todo from the list.
+/// Shows the plan the assistant wrote (= the agent's plan store), the
+/// outstanding items first, with a header line counting the plan and a
+/// card per item.
 struct InspectorTodoPageView: View {
-    /// The page's mirror of the todo store (= the store stays the
+    /// The page's own mirror of the plan store (= the store stays the
     /// source of truth; = the view holds a snapshot and re-reads it).
     @State private var model = InspectorTodoModel()
+
+    /// Whether the plan's cards are visible (= the header folds them).
+    @State private var isExpanded = true
 
     var body: some View {
         VStack(spacing: 0) {
@@ -38,7 +46,11 @@ struct InspectorTodoPageView: View {
         .task { await refreshLoop() }
     }
 
-    /// The header line (= the count of the outstanding todos).
+    /// The header line (= the plan's count).
+    ///
+    /// The count reads done over total (= "3/7"), which is how a plan is
+    /// counted. A dropped item (= cancelled) is on neither side of the
+    /// fraction, because it is neither done nor still to do.
     private var header: some View {
         HStack(spacing: DesignTokens.spacingStandard) {
             Text(countText)
@@ -50,12 +62,9 @@ struct InspectorTodoPageView: View {
         .padding(.vertical, DesignTokens.spacingTight)
     }
 
-    /// The count line (= the outstanding count, interpolated).
+    /// The count line (= the done count over the total).
     private var countText: String {
-        String.localizedStringWithFormat(
-            NSLocalizedString("inspector.todo.queue.count", comment: "Outstanding todo count"),
-            model.outstandingCount
-        )
+        "\(model.doneCount)/\(model.totalCount)"
     }
 
     /// The page's body (= the list, or the empty state).
@@ -72,7 +81,7 @@ struct InspectorTodoPageView: View {
     }
 
     /// The read-failure line (= the store could not be read; = the
-    /// rows and the count below are the last good read, so the line
+    /// cards and the count below are the last good read, so the line
     /// says the list may be stale).
     @ViewBuilder
     private var loadFailureLine: some View {
@@ -85,7 +94,7 @@ struct InspectorTodoPageView: View {
         }
     }
 
-    /// The empty state (= the store holds no todo).
+    /// The empty state (= the assistant has no plan).
     private var emptyState: some View {
         VStack(spacing: 0) {
             Spacer(minLength: 0)
@@ -99,25 +108,30 @@ struct InspectorTodoPageView: View {
         .frame(maxWidth: .infinity)
     }
 
-    /// The todo rows (= the outstanding ones first, then the finished
-    /// ones; = the order the snapshot carries).
+    /// The plan's cards (= one per item).
+    ///
+    /// The cards fold under the header: a folded plan shows its count
+    /// and nothing else, so the column stays quiet when the user is
+    /// not reading the plan.
     private var todoList: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
-                ForEach(model.todos) { todo in
-                    InspectorTodoRow(
-                        todo: todo,
-                        onFinish: { model.finish(id: todo.id) },
-                        onRemove: { model.remove(id: todo.id) }
-                    )
+            DisclosureGroup(isExpanded: $isExpanded) {
+                VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
+                    ForEach(model.todos) { todo in
+                        InspectorTodoCard(todo: todo)
+                    }
                 }
+                .padding(.top, DesignTokens.spacingTight)
+            } label: {
+                EmptyView()
             }
-            .padding(DesignTokens.spacingStandard)
+            .padding(.horizontal, DesignTokens.spacingStandard)
+            .padding(.bottom, DesignTokens.spacingStandard)
         }
     }
 
-    /// Re-reads the store, then keeps re-reading it (= the assistant
-    /// writes todos while the user watches the page, = the store
+    /// Re-reads the plan store, then keeps re-reading it (= the assistant
+    /// writes the plan while the user watches the page, = the store
     /// changes outside the view).
     @MainActor
     private func refreshLoop() async {
@@ -128,102 +142,107 @@ struct InspectorTodoPageView: View {
     }
 }
 
-// MARK: - Row
+// MARK: - Card
 
-/// One todo in the page's list (= its title and its state marker).
+/// One plan item as the page draws it (= a card).
 ///
-/// The state rides on a symbol, never on dimming the row, so the
-/// title stays the primary content of the row.
-private struct InspectorTodoRow: View {
+/// The state rides on a symbol beside the item's own words, so the
+/// words stay the primary content of the card.
+private struct InspectorTodoCard: View {
     let todo: InspectorTodo
-    let onFinish: () -> Void
-    let onRemove: () -> Void
 
     var body: some View {
-        HStack(spacing: DesignTokens.spacingStandard) {
+        HStack(alignment: .top, spacing: DesignTokens.spacingIconic) {
             stateMarker
-            Text(todo.title)
-                .font(.body)
-                .foregroundStyle(DesignTokens.textBody)
-                .lineLimit(2)
-            Spacer(minLength: 0)
-            Button(action: onRemove) {
-                SFIcon("trash", style: .inlineSmall, color: IconColor.tint)
+                .padding(.top, 1)
+            VStack(alignment: .leading, spacing: 0) {
+                Text(todo.title)
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(todo.isOutstanding ? DesignTokens.textBody : DesignTokens.statusForeground)
+                    .lineLimit(3)
+                    .textSelection(.enabled)
             }
-            .buttonStyle(.borderless)
-            .foregroundStyle(.secondary)
-            .help(String(localized: "inspector.todo.action.remove"))
-            .accessibilityLabel(String(localized: "inspector.todo.action.remove"))
+            Spacer(minLength: 0)
         }
-        .padding(.vertical, DesignTokens.spacingIconic)
+        .padding(DesignTokens.spacingStandard)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        // An item that belongs to another item reads indented under it
+        // (= the plan is a tree, and the tree shows in the shape).
+        .padding(.leading, CGFloat(todo.depth) * DesignTokens.spacingLoose)
+        .background(.background, in: RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusSmallButton))
+        .overlay(
+            RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusSmallButton)
+                .stroke(.separator, lineWidth: DesignTokens.separatorThicknessHairline)
+        )
+        .overlay(alignment: .leading) {
+            // The state edge (= the board's card carries one, = the plan's
+            // cards carry the item's state the same way).
+            Rectangle()
+                .fill(InspectorTodoStateStyle.tone(for: todo.status).style)
+                .frame(width: DesignTokens.kanbanCardStatusEdgeWidth)
+        }
     }
 
-    /// The state marker (= an outstanding todo's marker is the button
-    /// that finishes it; = a finished todo's marker is a symbol).
+    /// The state marker (= the plan's four states, the way Hermes draws
+    /// them: an open ring while the item is still to do, a spinner on
+    /// the item being worked on, a checkmark once it is resolved, and a
+    /// slashed ring for a dropped item).
     @ViewBuilder
     private var stateMarker: some View {
-        if todo.isOutstanding {
-            Button(action: onFinish) {
-                SFIcon("circle", style: .inlineSmall, color: IconColor.secondary)
-            }
-            .buttonStyle(.borderless)
-            .help(String(localized: "inspector.todo.action.finish"))
-            .accessibilityLabel(String(localized: "inspector.todo.action.finish"))
-        } else {
-            SFIcon("checkmark.circle", style: .inlineSmall, color: IconColor.green)
+        switch todo.status {
+        case HermesTodoStatus.pending:
+            SFIcon("circle", style: .inlineSmall, color: InspectorTodoStateStyle.tone(for: todo.status))
+                .symbolRenderingMode(.hierarchical)
+        case HermesTodoStatus.inProgress:
+            ProgressView()
+                .controlSize(.mini)
+        case HermesTodoStatus.completed:
+            SFIcon("checkmark.circle.fill", style: .inlineSmall, color: InspectorTodoStateStyle.tone(for: todo.status))
+        case HermesTodoStatus.cancelled:
+            SFIcon("circle.slash", style: .inlineSmall, color: InspectorTodoStateStyle.tone(for: todo.status))
         }
     }
 }
 
 // MARK: - Mirror
 
-/// The todo page's mirror of the todo store.
+/// The todo page's mirror of the plan store.
 ///
 /// The store stays the source of truth; this holds the snapshot the
 /// view draws from and re-reads it.
 @MainActor
 @Observable
 final class InspectorTodoModel {
-    /// The todos the page shows (= a snapshot of the store's rows).
+    /// The plan items the page shows (= a snapshot of the store's rows).
     private(set) var todos: [InspectorTodo] = []
 
-    /// The number of outstanding todos (= the count in the header).
-    /// Derived from the same read as the rows, so the two agree.
-    private(set) var outstandingCount = 0
+    /// The number of resolved items (= the left side of the count).
+    private(set) var doneCount = 0
+
+    /// The number of items the plan holds (= the right side of the count).
+    private(set) var totalCount = 0
 
     /// Whether the first read has landed (= the page shows a spinner
     /// until it has).
     private(set) var isLoaded = false
 
-    /// Whether the last read failed (= the page says so, = the rows
+    /// Whether the last read failed (= the page says so, = the cards
     /// and the count are the last good read).
     private(set) var loadFailed = false
 
-    /// The store the page reads and writes.
-    private let repository: WSTodoRepository
+    /// The store the page reads.
+    private let readPlan: () throws -> [HermesTodoItem]
 
-    /// The store's reader (= the repository's own read by default; = a
-    /// seam so the read-failure path can be driven).
-    private let readTodos: () throws -> [WSTodo]
-
-    init(repository: WSTodoRepository = .shared) {
-        self.repository = repository
-        self.readTodos = { try repository.list() }
+    init(readPlan: @escaping () throws -> [HermesTodoItem] = { HermesTodoTool.shared.readPlan() }) {
+        self.readPlan = readPlan
     }
 
-    /// A reader the caller supplies (= the repository still writes; =
-    /// only the read is replaced).
-    init(repository: WSTodoRepository, readTodos: @escaping () throws -> [WSTodo]) {
-        self.repository = repository
-        self.readTodos = readTodos
-    }
-
-    /// One read of the store: the rows and the count come from the same
-    /// read, so the count can never disagree with the rows.
+    /// One read of the store: the cards and the count come from the same
+    /// read, so the count can never disagree with the cards.
     func refresh() {
-        let rows: [WSTodo]
+        let items: [HermesTodoItem]
         do {
-            rows = try readTodos()
+            items = try readPlan()
         } catch {
             // A failed read keeps the last good snapshot, so the count
             // never reads as zero because the store could not be read.
@@ -232,67 +251,122 @@ final class InspectorTodoModel {
             return
         }
         loadFailed = false
-        let snapshot = rows.map {
-            InspectorTodo(id: $0.id, title: $0.title, status: $0.status)
+
+        // The plan's order is the agent's order (= the item being worked
+        // on comes first, = the store hands it over that way), so the
+        // cards keep it.
+        let snapshot = items.map {
+            InspectorTodo(id: $0.id, title: $0.content, status: $0.status, parent: $0.parent)
         }
-        let outstanding = snapshot.filter(\.isOutstanding)
-        todos = outstanding + snapshot.filter { !$0.isOutstanding }
-        outstandingCount = outstanding.count
+        let depths = InspectorTodoDepths.resolve(snapshot)
+
+        var cards: [InspectorTodo] = []
+        cards.reserveCapacity(snapshot.count)
+        for item in snapshot {
+            cards.append(
+                InspectorTodo(
+                    id: item.id,
+                    title: item.title,
+                    status: item.status,
+                    parent: item.parent,
+                    depth: depths[item.id] ?? 0
+                )
+            )
+        }
+        todos = cards
+
+        // The count reads done over total, and a dropped item is on
+        // neither side (= it is neither done nor still to do).
+        doneCount = snapshot.filter { $0.status == .completed }.count
+        totalCount = snapshot.filter { $0.status != .cancelled }.count
         isLoaded = true
     }
-
-    /// Finishes a todo (= the status the agent's todo tool writes when
-    /// it completes one, so both sides read the same state).
-    func finish(id: String) {
-        try? repository.setStatus(id: id, status: InspectorTodoStatus.finished)
-        refresh()
-    }
-
-    /// Removes a todo from the store.
-    func remove(id: String) {
-        try? repository.delete(id: id)
-        refresh()
-    }
 }
 
-/// One todo as the page draws it (= a snapshot of one stored row).
+// MARK: - Item
+
+/// One plan item as the page draws it (= a snapshot of one stored row).
 struct InspectorTodo: Identifiable, Equatable, Sendable {
     let id: String
+    /// The item's own words (= the agent wrote them).
     let title: String
-    /// The stored status (= the spelling the store really holds).
-    let status: String
+    /// The item's state (= the plan's own vocabulary).
+    let status: HermesTodoStatus
+    /// The item this one belongs to (= a sub-step's parent).
+    let parent: String?
+    /// How deep the item sits in the plan (= 0 = a top-level step).
+    let depth: Int
 
-    /// Whether the todo is still outstanding (= its status is not a
-    /// finished one).
+    init(id: String, title: String, status: HermesTodoStatus, parent: String? = nil, depth: Int = 0) {
+        self.id = id
+        self.title = title
+        self.status = status
+        self.parent = parent
+        self.depth = depth
+    }
+
+    /// Whether the item is still outstanding (= its state is not a
+    /// resolved one).
     var isOutstanding: Bool {
-        InspectorTodoStatus.isOutstanding(status)
+        status == .pending || status == .inProgress
     }
 }
 
-// MARK: - Status
+// MARK: - Depth
 
-/// The status vocabulary the todo store really holds.
+/// Where each plan item sits in the plan's tree.
 ///
-/// Measured from the writers: the repository's add writes "pending",
-/// and the agent's todo tool writes "completed" when it completes a
-/// todo. The other two finished spellings are the tool's own removal
-/// sentinel ("cancelled", = the Hermes-side spelling of the same
-/// state) and the todo model's own vocabulary ("done"). Every status
-/// that is not one of those is outstanding work.
-enum InspectorTodoStatus {
-    /// The status a finished todo carries (= the spelling the agent's
-    /// todo tool writes when it completes one).
-    static let finished = TodoStatus.completed.rawValue
+/// The item's parent names the item it belongs to, so the depth is the
+/// number of steps from the top. An item whose parent is missing (= the
+/// parent was never written, or was dropped) reads as a top-level step,
+/// and so does an item that is its own parent (= the plan would
+/// otherwise never reach a root).
+enum InspectorTodoDepths {
+    /// The depth of every item, keyed by its id.
+    static func resolve(_ todos: [InspectorTodo]) -> [String: Int] {
+        let byId = Dictionary(todos.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        var depths: [String: Int] = [:]
+        for todo in todos {
+            let depth = depth(of: todo, byId: byId, seen: [])
+            // A chain with no root (= a cycle) reads as the top level.
+            depths[todo.id] = depth < 0 ? 0 : depth
+        }
+        return depths
+    }
 
-    /// The spellings that mean the todo is finished.
-    static let finishedSpellings: Set<String> = [
-        TodoStatus.completed.rawValue,
-        TodoStatus.cancelled.rawValue,
-        "done",
-    ]
+    /// The depth of one item (= how many steps it is from the top).
+    ///
+    /// An item sits one step below its parent, and a parent that has no
+    /// parent sits at the top. A chain that never reaches the top (= two
+    /// items naming each other) is a cycle, and a cycle degrades to the
+    /// top level (= the same rule the reference implementation uses, =
+    /// a plan with a cycle still shows every item).
+    private static func depth(of todo: InspectorTodo, byId: [String: InspectorTodo], seen: [String]) -> Int {
+        // The chain came back to an item it already visited (= a cycle,
+        // = the chain has no root).
+        guard !seen.contains(todo.id) else { return -1 }
+        guard let parentID = todo.parent, parentID != todo.id else { return 0 }
+        guard let parent = byId[parentID] else { return 0 }
+        // The parent's own depth is the base (= 0 for a top-level item,
+        // = so its child is one step in). A parent whose chain has no
+        // root reports -1, = the chain degrades to the top.
+        let parentDepth = depth(of: parent, byId: byId, seen: seen + [todo.id])
+        guard parentDepth >= 0 else { return -1 }
+        return parentDepth + 1
+    }
+}
 
-    /// Whether a todo in this status is still outstanding.
-    static func isOutstanding(_ status: String) -> Bool {
-        !finishedSpellings.contains(status)
+// MARK: - State presentation
+
+/// How a plan item's state reads on a card.
+enum InspectorTodoStateStyle {
+    /// The state's tint (= the system semantic colour the glyph wears).
+    static func tone(for status: HermesTodoStatus) -> IconColor {
+        switch status {
+        case .pending:      return .secondary
+        case .inProgress:  return .tint
+        case .completed:   return .green
+        case .cancelled:   return .tertiary
+        }
     }
 }

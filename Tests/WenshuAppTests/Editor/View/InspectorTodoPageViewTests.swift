@@ -1,23 +1,22 @@
 //
 //  InspectorTodoPageViewTests.swift · Wenshu
 //
-//  The todo page's own logic: the status rule the page reads, the
-//  order the rows come out in, and the count the header shows.
+//  The todo page's own logic: the plan it reads, the count the header
+//  shows, and the shape the cards take.
 //
 //  The page is a View, so per the wenshu test convention its logic
 //  is exercised through the value types behind it
-//  (= InspectorTodo + InspectorTodoStatus + InspectorTodoModel),
+//  (= InspectorTodo + InspectorTodoModel + InspectorTodoDepths),
 //  not through ViewInspector.
 //
-//  The store is a throwaway in-memory SwiftData container, and the
-//  writes come from the app's OWN todo tool (= TodoStoreTool), so
-//  the suite proves that the todos the agent writes are the ones
-//  the page shows.
+//  The plan comes from the agent's OWN plan store (= HermesTodoStore,
+//  = the store the agent's todo tool writes), so the suite proves that
+//  the plan the agent wrote is the plan the page shows.
+//
 //
 
 import Foundation
 import Testing
-import WenshuData
 @testable import WenshuApp
 
 @Suite("Inspector todo page")
@@ -25,221 +24,240 @@ struct InspectorTodoPageViewTests {
 
     // MARK: - Fixtures
 
-    /// A throwaway store (= no disk, = the app's own todo tool writes
-    /// into it, = the page reads from it).
+    /// The page's mirror of the plan (= the same reader the view draws
+    /// from).
     @MainActor
-    private static func makeStore() throws -> (WSTodoRepository, TodoStoreTool) {
-        let container = try WSPersistenceContainer.makeInMemoryContainer()
-        let repository = WSTodoRepository(container: container)
-        let tool = TodoStoreTool(
-            hermesTodo: HermesTodoTool(store: HermesTodoStore()),
-            todoRepository: repository
-        )
-        return (repository, tool)
-    }
-
-    /// The page's mirror of the store (= the same reader the view
-    /// draws from).
-    @MainActor
-    private static func makePage(_ repository: WSTodoRepository) -> InspectorTodoModel {
-        let model = InspectorTodoModel(repository: repository)
+    private static func makePage(_ items: [HermesTodoItem]) -> InspectorTodoModel {
+        let model = InspectorTodoModel(readPlan: { items })
         model.refresh()
         return model
     }
 
-    // MARK: - The same store the agent writes
-
-    @Test("the page shows the todo the agent's tool wrote")
-    @MainActor
-    func pageShowsTheTodoTheToolWrote() async throws {
-        let (repository, tool) = try Self.makeStore()
-
-        _ = try await tool.execute(
-            input: #"{"action":"create","id":"task-1","content":"Draft chapter one"}"#
+    /// One plan item (= the shape the agent's tool writes).
+    private static func item(
+        _ id: String,
+        _ status: HermesTodoStatus,
+        parent: String? = nil
+    ) -> HermesTodoItem {
+        HermesTodoItem(
+            id: id,
+            content: "Draft chapter \(id)",
+            status: status,
+            parent: parent
         )
-
-        let page = Self.makePage(repository)
-        #expect(page.todos.count == 1, "the todo the tool wrote is on the page")
-        #expect(page.todos.first?.title == "Draft chapter one")
-        #expect(page.outstandingCount == 1, "the todo the tool wrote is counted")
     }
 
-    @Test("the page shows every todo the agent's tool wrote")
+    // MARK: - The same plan the agent wrote
+
+    @Test("the page shows the plan item the agent wrote")
     @MainActor
-    func pageShowsEveryTodoTheToolWrote() async throws {
-        let (repository, tool) = try Self.makeStore()
+    func pageShowsThePlanItemTheAgentWrote() {
+        let page = Self.makePage([Self.item("1", .pending)])
 
-        _ = try await tool.execute(
-            input: #"{"action":"create","id":"task-1","content":"Draft chapter one"}"#
-        )
-        _ = try await tool.execute(
-            input: #"{"action":"create","id":"task-2","content":"Draft chapter two"}"#
-        )
+        #expect(page.todos.count == 1, "the plan item is on the page")
+        #expect(page.todos.first?.title == "Draft chapter 1")
+        #expect(page.totalCount == 1, "the plan item is counted")
+    }
 
-        let page = Self.makePage(repository)
-        #expect(page.todos.count == 2, "both todos are on the page")
-        #expect(Set(page.todos.map(\.title)) == ["Draft chapter one", "Draft chapter two"])
-        #expect(page.outstandingCount == 2)
+    @Test("the page shows every plan item the agent wrote")
+    @MainActor
+    func pageShowsEveryPlanItemTheAgentWrote() {
+        let page = Self.makePage([
+            Self.item("1", .pending),
+            Self.item("2", .pending),
+        ])
+
+        #expect(page.todos.count == 2, "both plan items are on the page")
+        #expect(Set(page.todos.map(\.title)) == ["Draft chapter 1", "Draft chapter 2"])
+        #expect(page.totalCount == 2)
+    }
+
+    @Test("the page reads the agent's own plan store")
+    @MainActor
+    func pageReadsTheAgentsOwnPlanStore() throws {
+        // The page's default reader IS the agent's shared plan store,
+        // so the plan on screen and the plan the agent works from are
+        // one list (= the page never shows a copy).
+        let store = HermesTodoStore()
+        _ = try store.write(todos: [Self.item("1", .pending)], merge: false)
+
+        let model = InspectorTodoModel(readPlan: { store.read() })
+        model.refresh()
+
+        #expect(model.todos.count == 1, "the plan the store holds is on the page")
+        #expect(model.todos.first?.title == "Draft chapter 1")
     }
 
     // MARK: - The count
 
-    @Test("the count is the number of outstanding rows")
+    @Test("the count reads done over total")
     @MainActor
-    func countIsTheNumberOfOutstandingRows() async throws {
-        let (repository, tool) = try Self.makeStore()
+    func countReadsDoneOverTotal() {
+        let page = Self.makePage([
+            Self.item("1", .completed),
+            Self.item("2", .pending),
+            Self.item("3", .pending),
+        ])
 
-        _ = try await tool.execute(
-            input: #"{"action":"create","id":"task-1","content":"Draft chapter one"}"#
-        )
-        _ = try await tool.execute(
-            input: #"{"action":"create","id":"task-2","content":"Draft chapter two"}"#
-        )
-        _ = try await tool.execute(input: #"{"action":"complete","id":"task-2"}"#)
-
-        let page = Self.makePage(repository)
-        #expect(page.outstandingCount == 1, "the finished todo is not counted")
-        #expect(page.todos.filter(\.isOutstanding).count == page.outstandingCount,
-                "the count and the rows come from the same read")
+        #expect(page.doneCount == 1, "the resolved item is the left side")
+        #expect(page.totalCount == 3, "the plan's items are the right side")
     }
 
-    @Test("the count drops when a todo leaves the outstanding set")
+    @Test("a dropped item is on neither side of the count")
     @MainActor
-    func countDropsWhenATodoLeavesTheOutstandingSet() async throws {
-        let (repository, tool) = try Self.makeStore()
+    func aDroppedItemIsOnNeitherSideOfTheCount() {
+        let page = Self.makePage([
+            Self.item("1", .completed),
+            Self.item("2", .cancelled),
+            Self.item("3", .pending),
+        ])
 
-        _ = try await tool.execute(
-            input: #"{"action":"create","id":"task-1","content":"Draft chapter one"}"#
-        )
-        _ = try await tool.execute(
-            input: #"{"action":"create","id":"task-2","content":"Draft chapter two"}"#
-        )
-
-        var page = Self.makePage(repository)
-        #expect(page.outstandingCount == 2)
-
-        page.finish(id: "task-1")
-        #expect(page.outstandingCount == 1, "the finished todo leaves the count")
-        #expect(page.todos.count == 2, "the finished todo is still on the page")
+        #expect(page.doneCount == 1, "a dropped item is not done")
+        #expect(page.totalCount == 2, "a dropped item is neither done nor still to do")
     }
 
-    // MARK: - The order
-
-    @Test("the outstanding rows come before the finished ones")
+    @Test("the count and the cards come from the same read")
     @MainActor
-    func outstandingRowsComeBeforeFinishedOnes() throws {
-        let (repository, _) = try Self.makeStore()
+    func theCountAndTheCardsComeFromTheSameRead() {
+        let page = Self.makePage([
+            Self.item("1", .completed),
+            Self.item("2", .pending),
+            Self.item("3", .inProgress),
+        ])
 
-        // The store hands them back in priority order, with the
-        // finished one first (= the page has to move it).
-        try repository.add(id: "task-1", title: "Draft chapter one", priority: 2)
-        try repository.add(id: "task-2", title: "Draft chapter two", priority: 0)
-        try repository.setStatus(id: "task-2", status: "completed")
-
-        let page = Self.makePage(repository)
-        #expect(page.todos.map(\.title) == ["Draft chapter one", "Draft chapter two"],
-                "the outstanding row is first, = the finished one is behind it")
+        let outstanding = page.todos.filter(\.isOutstanding).count
+        #expect(outstanding == 2, "the pending item and the working item are outstanding")
+        #expect(page.doneCount + outstanding == page.totalCount,
+                "the count and the cards agree")
     }
 
-    // MARK: - Finishing and removing
+    // MARK: - The plan's shape
 
-    @Test("marking a todo done writes the status the agent's tool writes")
+    @Test("an item that belongs to another item reads indented under it")
     @MainActor
-    func markingATodoDoneWritesTheToolsStatus() async throws {
-        let (repository, tool) = try Self.makeStore()
+    func anItemThatBelongsToAnotherItemReadsIndentedUnderIt() {
+        let page = Self.makePage([
+            Self.item("1", .inProgress),
+            Self.item("2", .pending, parent: "1"),
+        ])
 
-        _ = try await tool.execute(
-            input: #"{"action":"create","id":"task-1","content":"Draft chapter one"}"#
-        )
-
-        let page = Self.makePage(repository)
-        page.finish(id: "task-1")
-
-        let stored = try repository.get(id: "task-1")
-        #expect(stored?.status == "completed",
-                "the page writes the same spelling the agent's tool writes")
-        #expect(page.outstandingCount == 0, "the finished todo leaves the count")
+        let depths = Dictionary(uniqueKeysWithValues: page.todos.map { ($0.id, $0.depth) })
+        #expect(depths["1"] == 0, "the parent is a top-level step")
+        #expect(depths["2"] == 1, "the sub-step reads one step in")
     }
 
-    @Test("removing a todo takes it off the list")
+    @Test("a sub-step of a sub-step reads two steps in")
     @MainActor
-    func removingATodoTakesItOffTheList() async throws {
-        let (repository, tool) = try Self.makeStore()
+    func aSubStepOfASubStepReadsTwoStepsIn() {
+        let page = Self.makePage([
+            Self.item("1", .inProgress),
+            Self.item("2", .pending, parent: "1"),
+            Self.item("3", .pending, parent: "2"),
+        ])
 
-        _ = try await tool.execute(
-            input: #"{"action":"create","id":"task-1","content":"Draft chapter one"}"#
-        )
-        _ = try await tool.execute(
-            input: #"{"action":"create","id":"task-2","content":"Draft chapter two"}"#
-        )
+        let depths = Dictionary(uniqueKeysWithValues: page.todos.map { ($0.id, $0.depth) })
+        #expect(depths["3"] == 2)
+    }
 
-        let page = Self.makePage(repository)
-        page.remove(id: "task-1")
+    @Test("an item whose parent is missing reads as a top-level step")
+    @MainActor
+    func anItemWhoseParentIsMissingReadsAsATopLevelStep() {
+        let page = Self.makePage([Self.item("2", .pending, parent: "gone")])
 
-        let removed = try repository.get(id: "task-1")
-        #expect(removed == nil, "the removed todo is gone from the store")
-        #expect(page.todos.map(\.title) == ["Draft chapter two"])
-        #expect(page.outstandingCount == 1)
+        #expect(page.todos.first?.depth == 0,
+                "a dangling parent does not push the item off the top")
+    }
+
+    @Test("an item that is its own parent reads as a top-level step")
+    @MainActor
+    func anItemThatIsItsOwnParentReadsAsATopLevelStep() {
+        let page = Self.makePage([Self.item("1", .pending, parent: "1")])
+
+        #expect(page.todos.first?.depth == 0,
+                "a self-parented item does not loop forever")
+    }
+
+    @Test("a cycle in the plan does not hang the depth")
+    @MainActor
+    func aCycleInThePlanDoesNotHangTheDepth() {
+        let page = Self.makePage([
+            Self.item("1", .pending, parent: "2"),
+            Self.item("2", .pending, parent: "1"),
+        ])
+
+        #expect(page.todos.count == 2, "both items are still on the page")
+        #expect(page.todos.allSatisfy { $0.depth == 0 },
+                "a cycle degrades to the top level")
     }
 
     // MARK: - A read that fails
 
-    @Test("a failed read says so and keeps the last good count")
+    @Test("a failed read says so and invents no count")
     @MainActor
-    func aFailedReadSaysSoAndKeepsTheLastGoodCount() async throws {
-        let (repository, tool) = try Self.makeStore()
+    func aFailedReadSaysSoAndInventsNoCount() {
+        struct PlanReadFailure: Error {}
 
-        _ = try await tool.execute(
-            input: #"{"action":"create","id":"task-1","content":"Draft chapter one"}"#
-        )
-
-        var page = InspectorTodoModel(repository: repository)
-        page.refresh()
-        #expect(page.outstandingCount == 1)
-        #expect(!page.loadFailed)
-
-        // The store can no longer be read (= the rows and the count
-        // stay the last good ones, = the page says the read failed).
-        let failing = InspectorTodoModel(
-            repository: repository,
-            readTodos: { throw WSTodoRepositoryError.notFound }
-        )
+        let failing = InspectorTodoModel(readPlan: { throw PlanReadFailure() })
         failing.refresh()
-        #expect(failing.loadFailed, "the page says the store could not be read")
-        #expect(failing.outstandingCount == 0, "a failed read never invents a count")
+
+        #expect(failing.loadFailed, "the page says the plan could not be read")
+        #expect(failing.doneCount == 0, "a failed read invents no count")
+        #expect(failing.totalCount == 0)
+        #expect(failing.todos.isEmpty)
     }
 
-    // MARK: - The status rule
+    @Test("a failed read keeps the last good cards")
+    @MainActor
+    func aFailedReadKeepsTheLastGoodCards() {
+        struct PlanReadFailure: Error {}
 
-    @Test("a pending todo is outstanding")
+        let model = InspectorTodoModel(readPlan: { [Self.item("1", .pending)] })
+        model.refresh()
+        #expect(model.todos.count == 1)
+        #expect(!model.loadFailed)
+
+        let failing = InspectorTodoModel(readPlan: { throw PlanReadFailure() })
+        failing.refresh()
+        #expect(failing.loadFailed)
+    }
+
+    // MARK: - The plan's own vocabulary
+
+    @Test("a pending plan item is outstanding")
     func pendingIsOutstanding() {
-        #expect(InspectorTodoStatus.isOutstanding("pending"))
+        #expect(InspectorTodo(id: "1", title: "a", status: .pending).isOutstanding)
     }
 
-    @Test("an in-progress todo is outstanding")
+    @Test("an in-progress plan item is outstanding")
     func inProgressIsOutstanding() {
-        #expect(InspectorTodoStatus.isOutstanding("in_progress"))
+        #expect(InspectorTodo(id: "1", title: "a", status: .inProgress).isOutstanding)
     }
 
-    @Test("a completed todo is finished")
-    func completedIsFinished() {
-        #expect(!InspectorTodoStatus.isOutstanding("completed"))
+    @Test("a completed plan item is not outstanding")
+    func completedIsNotOutstanding() {
+        #expect(!InspectorTodo(id: "1", title: "a", status: .completed).isOutstanding)
     }
 
-    @Test("a cancelled todo is finished")
-    func cancelledIsFinished() {
-        #expect(!InspectorTodoStatus.isOutstanding("cancelled"))
+    @Test("a cancelled plan item is not outstanding")
+    func cancelledIsNotOutstanding() {
+        #expect(!InspectorTodo(id: "1", title: "a", status: .cancelled).isOutstanding)
     }
 
-    @Test("a done todo is finished")
-    func doneIsFinished() {
-        #expect(!InspectorTodoStatus.isOutstanding("done"))
-    }
+    // MARK: - The depth rule on its own
 
-    @Test("the status the agent's tool writes for a finished todo is the finished one")
-    func theToolsFinishedStatusIsFinished() {
-        #expect(InspectorTodoStatus.finished == "completed",
-                "the page finishes a todo the way the agent's tool finishes one")
-        #expect(!InspectorTodoStatus.isOutstanding(InspectorTodoStatus.finished))
+    @Test("the depth rule reads the tree the plan declares")
+    func theDepthRuleReadsTheTreeThePlanDeclares() {
+        let todos = [
+            InspectorTodo(id: "1", title: "a", status: .pending),
+            InspectorTodo(id: "2", title: "b", status: .pending, parent: "1"),
+            InspectorTodo(id: "3", title: "c", status: .pending, parent: "2"),
+            InspectorTodo(id: "4", title: "d", status: .pending),
+        ]
+
+        let depths = InspectorTodoDepths.resolve(todos)
+        #expect(depths["1"] == 0)
+        #expect(depths["2"] == 1)
+        #expect(depths["3"] == 2)
+        #expect(depths["4"] == 0, "an item without a parent is a top-level step")
     }
 }

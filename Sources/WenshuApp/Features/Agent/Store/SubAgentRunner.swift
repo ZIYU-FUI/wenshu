@@ -327,8 +327,17 @@ final class SubAgentRunner {
                 taskId: handleID,
                 maxAttempts: 1,
                 streamCallback: { block in
-                    guard case .text(let text) = block else { return }
-                    await outputRegistry.appendOutput(handleID: handleID, text: text)
+                    switch block {
+                    case .text(let text):
+                        await outputRegistry.appendOutput(handleID: handleID, text: text)
+                    case .toolUse(_, let toolName, _):
+                        // The card names the tool the sub-agent is calling
+                        // right now (= Hermes' sub-agent row does), so the
+                        // name is recorded as the block arrives.
+                        await outputRegistry.recordCurrentTool(handleID: handleID, tool: toolName)
+                    default:
+                        break
+                    }
                 },
                 toolSchemas: toolSchemas
             )

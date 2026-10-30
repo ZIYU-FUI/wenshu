@@ -53,6 +53,21 @@ struct BackgroundDelegationHandle: Sendable, Equatable {
     /// still arrives through `markCompleted` (= `result`).
     var outputTail: String
 
+    /// The tool the sub-agent is calling right now.
+    ///
+    /// Nil = the sub-agent is not calling a tool (= it is thinking, or
+    /// its turn is over). The field carries the tool's NAME, which is
+    /// what the card shows beside the agent's name (= Hermes' sub-agent
+    /// row names the tool the agent is calling, = the question a glance
+    /// at the crew has to answer).
+    ///
+    /// The name arrives from the sub-agent's stream, whose tool-use block
+    /// carries it beside the tool call's id and its input. It is written
+    /// through `recordCurrentTool` because the tool changes while the
+    /// delegation runs (= the record's other mutable fields change the
+    /// same way).
+    var currentTool: String?
+
     init(
         id: String = UUID().uuidString,
         agentName: String,
@@ -63,7 +78,8 @@ struct BackgroundDelegationHandle: Sendable, Equatable {
         result: String? = nil,
         trackerSpawnID: UUID? = nil,
         scope: AgentScope? = nil,
-        outputTail: String = ""
+        outputTail: String = "",
+        currentTool: String? = nil
     ) {
         self.id = id
         self.agentName = agentName
@@ -75,6 +91,7 @@ struct BackgroundDelegationHandle: Sendable, Equatable {
         self.trackerSpawnID = trackerSpawnID
         self.scope = scope
         self.outputTail = outputTail
+        self.currentTool = currentTool
     }
 }
 
@@ -198,6 +215,18 @@ actor AsyncDelegationRegistry {
     /// Update an existing handle (e.g. state transition).
     func update(_ handle: BackgroundDelegationHandle) {
         records[handle.id] = handle
+    }
+
+    /// Record the tool the sub-agent is calling right now.
+    ///
+    /// A blank name clears the field (= the sub-agent stopped calling
+    /// tools). An unknown handle id is a no-op (= the sub-agent finished,
+    /// or the record was evicted, before its last block arrived).
+    func recordCurrentTool(handleID: String, tool: String?) {
+        guard var handle = records[handleID] else { return }
+        let trimmed = tool?.trimmingCharacters(in: .whitespacesAndNewlines)
+        handle.currentTool = (trimmed?.isEmpty == false) ? trimmed : nil
+        records[handleID] = handle
     }
 
     /// Get a handle by id.

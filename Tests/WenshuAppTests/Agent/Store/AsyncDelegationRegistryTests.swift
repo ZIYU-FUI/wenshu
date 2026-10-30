@@ -43,6 +43,49 @@ struct AsyncDelegationRegistryTests {
         #expect(stored?.state == .pending)
     }
 
+    // MARK: - Test 3: the tool the sub-agent is calling
+
+    @Test("the tool a sub-agent is calling lands in the record")
+    func theToolASubAgentIsCallingLandsInTheRecord() async {
+        let handle = BackgroundDelegationHandle(
+            agentName: "researcher",
+            userMessage: "current tool probe",
+            state: .running
+        )
+        await AsyncDelegationRegistry.shared.register(handle: handle)
+
+        await AsyncDelegationRegistry.shared.recordCurrentTool(handleID: handle.id, tool: "read_file")
+
+        let stored = await AsyncDelegationRegistry.shared.get(id: handle.id)
+        #expect(stored?.currentTool == "read_file",
+                "the record names the tool the sub-agent is calling right now")
+    }
+
+    @Test("a blank tool name clears the record's tool")
+    func aBlankToolNameClearsTheRecordsTool() async {
+        let handle = BackgroundDelegationHandle(
+            agentName: "researcher",
+            userMessage: "clearing probe",
+            state: .running,
+            currentTool: "read_file"
+        )
+        await AsyncDelegationRegistry.shared.register(handle: handle)
+
+        await AsyncDelegationRegistry.shared.recordCurrentTool(handleID: handle.id, tool: "  ")
+
+        let stored = await AsyncDelegationRegistry.shared.get(id: handle.id)
+        #expect(stored?.currentTool == nil,
+                "a blank name means the sub-agent stopped calling tools")
+    }
+
+    @Test("an unknown handle id is a no-op")
+    func anUnknownHandleIdIsANoOp() async {
+        await AsyncDelegationRegistry.shared.recordCurrentTool(handleID: "no-such-handle", tool: "read_file")
+        // The call must not trap or register anything.
+        let stored = await AsyncDelegationRegistry.shared.get(id: "no-such-handle")
+        #expect(stored == nil)
+    }
+
     // MARK: - Test 2: the mention path lands in the shared registry
 
     @MainActor

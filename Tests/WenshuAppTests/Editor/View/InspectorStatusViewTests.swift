@@ -66,6 +66,66 @@ struct InspectorStatusViewTests {
                 "a task that has not started has no elapsed time to show")
     }
 
+    // MARK: - The tool the agent is calling
+
+    @Test("a running card names the tool the agent is calling")
+    func runningCardNamesTheToolTheAgentIsCalling() {
+        let handle = BackgroundDelegationHandle(
+            agentName: "researcher",
+            userMessage: "Find the scene where the letter arrives.",
+            state: .running,
+            startedAt: Self.start,
+            currentTool: "read_file"
+        )
+        let task = InspectorStatusTask(handle: handle)
+
+        #expect(task.currentTool == "read_file",
+                "a running card names the tool the agent is calling right now")
+    }
+
+    @Test("a card with no tool shows no tool column")
+    func cardWithNoToolShowsNoToolColumn() {
+        let handle = BackgroundDelegationHandle(
+            agentName: "researcher",
+            userMessage: "Find the scene where the letter arrives.",
+            state: .running,
+            startedAt: Self.start
+        )
+        let task = InspectorStatusTask(handle: handle)
+
+        #expect(task.currentTool == nil,
+                "an agent that is not calling a tool shows no tool column")
+    }
+
+    @Test("a finished card names no tool")
+    func finishedCardNamesNoTool() {
+        let handle = BackgroundDelegationHandle(
+            agentName: "researcher",
+            userMessage: "Find the scene where the letter arrives.",
+            state: .completed,
+            startedAt: Self.start,
+            completedAt: Self.start,
+            currentTool: "read_file"
+        )
+        let task = InspectorStatusTask(handle: handle)
+
+        #expect(task.currentTool == nil,
+                "a finished agent's last tool is history, = the card shows the present")
+    }
+
+    @Test("a tool's name reads as words")
+    func toolsNameReadsAsWords() {
+        #expect(InspectorStatusToolLabel.text("read_file") == "Read File")
+        #expect(InspectorStatusToolLabel.text("todo_hermes") == "Todo Hermes")
+        #expect(InspectorStatusToolLabel.text("web_search") == "Web Search")
+    }
+
+    @Test("a tool's name with no underscore reads as itself")
+    func toolsNameWithNoUnderscoreReadsAsItself() {
+        #expect(InspectorStatusToolLabel.text("read") == "Read")
+        #expect(InspectorStatusToolLabel.text("") == "")
+    }
+
     // MARK: - Output
 
     @Test("a task with no output has no output area")
