@@ -133,10 +133,10 @@ invariant = see the SAFETY comment").
 
 ## Future work
 
-- ADR-0028 (proposed): convert lock-based classes to `actor`
+- ADR-0034 (proposed): convert lock-based classes to `actor`
   (= moves the lock into the actor's executor; = the
   @unchecked disappears naturally; = async API surface).
-- ADR-0029 (proposed): convert reference wrappers to
+- ADR-0035 (proposed): convert reference wrappers to
   `struct` + CoW (= eliminates the reference class entirely).
 
 These are non-blocking and can be picked up when each

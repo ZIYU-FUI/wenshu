@@ -183,3 +183,36 @@ reference, LOC, and content tag.
 <!-- Append new rows at the END of the table above. The key-level merge
      driver keeps both rows when two cards add one each. -->
 | `docs/agents/2026-10-30-layout-guard-and-quota-closeout.md` | `docs/agents/2026-10-30-layout-guard-and-quota-closeout.md` | 78 | the session closeout of record: the four landed commits (= the resize guard, the chat pane height, the divider drag, and the quota naming on both sides of the package boundary), the suites that prove them (= 104 tests, 0 failures), the durable ancestry fact, and the open item (= the app hangs at launch in a blocking read inside loadShelves, which is why the launch arm measured nothing). |
+| `(new) Package.swift` | `Mobile/Sources/WenshuMobileKit/Companion/LinkEnvelope.swift` | 89 | `the wire frame: version, kind, id, timestamp, payload; the JSON codec both sides share` |
+| `(new) Package.swift` | `Mobile/Sources/WenshuMobileKit/Companion/LinkCommand.swift` | 35 | `the commands the device sends, each naming the revision it was based on` |
+| `(new) Package.swift` | `Mobile/Sources/WenshuMobileKit/Companion/PairingClaims.swift` | 32 | `what the device claims when it asks the Mac for a session` |
+| `(new) Package.swift` | `Mobile/Sources/WenshuMobileKit/Companion/ConnectionState.swift` | 66 | `the link states, ordered by how much the device may do` |
+| `(new) Package.swift` | `Mobile/Sources/WenshuMobileApp/Features/Connection/Service/ConnectionStore.swift` | 58 | `the app's owner of the link state; the transitions, no socket` |
+| `(new) Package.swift` | `Mobile/Sources/WenshuMobileApp/Features/Connection/View/ConnectionView.swift` | 104 | `the connection screen: pairing, live link, and the states that are not live` |
+| `(new) Package.swift` | `Mobile/Sources/WenshuMobileApp/Features/Connection/View/ConnectionListView.swift` | 29 | `the connect destination's list: the link's rows, and the way into the connection screen` |
+| `(new) Package.swift` | `Mobile/Sources/WenshuMobileApp/App/RootView.swift` | 15 | `the root; the shell holds the tab structure and the split view` |
+| `(new) Package.swift` | `Mobile/Sources/WenshuMobileApp/Shared/UI/DesignTokens.swift` | 24 | `the one place a visual value is written down` |
+| `(new) Package.swift` | `Mobile/Sources/WenshuMobileApp/Shared/UI/SFIcon.swift` | 20 | `the one icon factory` |
+| `(new) Package.swift` | `Mobile/Tests/WenshuMobileTests/LinkEnvelopeTests.swift` | 24 | `the frame round trip and the version refusal` |
+| `(new) Package.swift` | `Mobile/Tests/WenshuMobileTests/LinkCommandTests.swift` | 18 | `the command in its envelope, and the revision it carries` |
+| `(new) Package.swift` | `Mobile/Tests/WenshuMobileTests/ConnectionStateTests.swift` | 27 | `what each link state lets the device do` |
+| `(new) docs/adr/0030-deployment-floor-and-foldable-fallback.md` | `docs/adr/0032-device-priority-and-the-foldable.md` | 52 | `which devices are primary: the iPhone 18 family, with a foldable adapted to fit` |
+| `(new) docs/product-line-plan.md` | `docs/adr/0033-the-ios-native-shell.md` | 47 | `the client's shell is iOS's own: a tab bar, a stack, and the split view only where the width earns it` |
+| `(new) Package.swift` | `Mobile/Sources/WenshuMobileApp/Shared/UI/AdaptiveLayout.swift` | 261 | `the layout decision: the width picks the shape, the foldable-native API refines how the columns are drawn` |
+| `(new) Package.swift` | `Mobile/Tests/WenshuMobileTests/AdaptiveLayoutTests.swift` | 123 | `the layout decision on every size class and both sides of the availability gate` |
+| `(new) Package.swift` | `Mobile/Sources/WenshuMobileApp/App/ClientShell.swift` | 189 | `the shell: the tab bar with a stack in each tab, and the split view where the width earns it` |
+| `(new) Package.swift` | `Mobile/Sources/WenshuMobileApp/Features/Library/View/LibraryEmptyState.swift` | 17 | `the library's empty state: Apple's own, with no sample book standing in` |
+| `(new) Package.swift` | `Mobile/Tests/WenshuMobileTests/ClientShellTests.swift` | 68 | `the shell choice on every size class, and the two destinations the shell offers` |
+| `(new) Package.swift` | `Mobile/Sources/WenshuMobileApp/Shared/UI/GlassSurface.swift` | 57 | `the surface gate: the system's glass where it offers it, the system's material below that` |
+| `(new) Package.swift` | `Mobile/Tests/WenshuMobileTests/GlassSurfaceTests.swift` | 164 | `the surface gate on both sides of the availability, and the call sites that use it` |
+| `(new) Package.swift` | `Mobile/Sources/WenshuMobileApp/Features/Library/Model/LibraryItem.swift` | 33 | `the library's shapes: the shelf, the book, the chapter and its word count` |
+| `(new) Package.swift` | `Mobile/Sources/WenshuMobileApp/Features/Library/Service/LibraryStore.swift` | 260 | `the boundary the library views read through: the outline, the chapter read, the link-backed store and the fixture` |
+| `(new) Package.swift` | `Mobile/Sources/WenshuMobileApp/Features/Library/View/LibraryOutlineView.swift` | 180 | `the outline the Library tab draws: the shelves, their books, and the chapters with their word counts` |
+| `(new) Package.swift` | `Mobile/Tests/WenshuMobileTests/LibraryStoreTests.swift` | 236 | `the library boundary: the fixture's outline, the command the link store sends, and the fixture's absence from the shipped app` |
+| `(new) Package.swift` | `Mobile/Sources/WenshuMobileApp/Features/Library/View/ChapterReaderView.swift` | 162 | `the screen a chapter opens in: the body as Markdown, the revision it was read at, and the failure that is not an empty library` |
+| `(new) Package.swift` | `Mobile/Tests/WenshuMobileTests/ChapterReaderTests.swift` | 137 | `the chapter read: the body and its revision, the command that asked for it, the Markdown, the order the outline gave, and the failure that is not an empty library` |
+| `(new) Package.swift` | `Mobile/Sources/WenshuMobileApp/Features/Connection/Model/PairingCode.swift` | 24 | `the flow's side of the pairing code: how the app makes one and checks it` |
+| `(new) Package.swift` | `Mobile/Sources/WenshuMobileApp/Features/Connection/Service/PairingSession.swift` | 89 | `the owner of the pairing flow: it starts a pairing, holds the code and moves the link's state` |
+| `(new) Package.swift` | `Mobile/Sources/WenshuMobileApp/Features/Connection/Service/DeviceTokenStore.swift` | 73 | `the Keychain entry where the device token is kept, so the link survives a relaunch` |
+| `(new) Package.swift` | `Mobile/Sources/WenshuMobileApp/Resources/Localizable.xcstrings` | 56 | `the strings the app shows, in the one catalog the compiler reads` |
+| `(new) Package.swift` | `Mobile/Tests/WenshuMobileTests/PairingSessionTests.swift` | 121 | `the pairing flow: the code is held, a bad one is refused, and the token survives a relaunch` |

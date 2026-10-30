@@ -57,7 +57,7 @@ SSOT for every contributor and agent on /Volumes/ANAN/Engineering/wenshu.
 | --- | ---- | --------- |
 | 2.1 | Stack: Swift / SwiftUI / Observation (@Observable) / SwiftData / Swift Concurrency. | Apple stack exclusive. |
 | 2.2 | NO CoreData. NO SQLite (SwiftData only). NO external AI platform SDK. NO monorepo. NO npm. NO Python in the app target. NO Rust. NO Tauri. NO Vue. | Package.swift (tools-version 6.4); Sources/ imports = Apple frameworks + 4 approved upstreams. |
-| 2.3 | macOS-only app. iPad/iPhone = the wenshu-mobile repo. | Boss ruling 8/18, 10/28. |
+| 2.3 | macOS-only app. iPad/iPhone = the client, in this repo. | Boss ruling 8/18, 10/28. |
 | 2.4 | Swift 6 strict concurrency. @MainActor for UI. actor for background. Sendable for cross-isolation. | wenshu-swift-standards.md §4; ADR-0027 (each @unchecked Sendable justified; its count is its census at its date). |
 | 2.5 | LLM connector: 14 slugs = 13 built-in + custom (anthropic / openai-codex / gemini / deepseek / ollama / openrouter / minimax / minimax-cn / nous / copilot / copilot-acp / xai-oauth / stepfun / custom). BYOK, no default. | Connector/BuiltInProviders.swift. |
 | 2.6 | LLM key storage: macOS Keychain via ProviderKeychain, AND a plaintext mirror at `~/Library/Application Support/com.wenshu.app/provider-keys.json` (mode 0600, outside the .ws). Normally every write hits BOTH stores and the toggle picks the read primary; the debug no-keychain override writes the file only. NEVER inside the .ws. | MirroredKeychainStore.swift |
@@ -118,7 +118,7 @@ SSOT for every contributor and agent on /Volumes/ANAN/Engineering/wenshu.
 | 6.5 | File naming suffix by role: <Xxx>View / <Xxx>Ops / <Xxx>Service / <Xxx>State .swift. One concern per file. | wenshu-swift-standards.md §1.2. |
 | 6.6 | File size cap: 600 LOC per .swift file. Exceed = split, and register the split in the NFI (1.7). DEFERRED (ADR-0025). | wenshu-swift-standards.md §1.2. |
 | 6.7 | One import block per file. Alphabetical. No unused imports. | wenshu-swift-standards.md §1.1. |
-| 6.8 | Root tree: visible dirs (Scripts / Sources / Tests / Tools / build / docs) + visible files (AGENTS.md / OOB.md / Package.swift / ...). .worktrees/ = card worktrees. .test-backup-*/ + .test-vision-*.txt = gitignored sandbox copies (their count grows per test run, so it is not asserted). | Measured 2026-10-29. |
+| 6.8 | Root tree: visible dirs (Mobile / Scripts / Sources / Tests / Tools / build / docs) + visible files (AGENTS.md / OOB.md / Package.swift / ...). .worktrees/ = card worktrees. | Measured 2026-10-29. |
 | 6.9 | Single-purpose rule. Any dir with exactly 1 file and 0 dependents = deletion candidate (= .scratch/ specs; = docs/agents/ per-role docs; = docs/adr/ per-decision docs). The 3 hidden tooling dirs (.claude/ .git-hooks/ .hermes/) hold one entry each. | Boss OOB 2026-10-16. |
 | 6.10 | Top-level purpose map. Sources/ = Swift targets (canonical). Tests/ = Swift test target. Scripts/ = shell + python helpers. Tools/wenshu-devtool/ = gates + probes. build/ = swift build output (.gitignored). docs/ = adr/ + agents/. | Boss OOB 2026-10-16. |
 
@@ -184,9 +184,10 @@ SSOT for every contributor and agent on /Volumes/ANAN/Engineering/wenshu.
 | Ticket difficulty tiers | docs/agents/ticket-tiers.md |
 | Devtool gates + probes | Tools/wenshu-devtool/README.md |
 | OOB index (boss directives, dev-time only) | OOB.md |
-| Mobile product line (sibling repo) | ../wenshu-mobile/ |
+| Mobile client (this repo, at Mobile/) | Mobile/AGENTS.md = the client's SSOT |
+| Mobile client SSOT | Mobile/AGENTS.md |
 | Domain glossary | docs/agents/domain.md |
-| ADRs (0000-0028) | docs/adr/ |
+| ADRs (0000-0033) | docs/adr/ |
 | Deferred standards (6.2 + 6.6) | docs/adr/0025-*.md |
 | Unchecked-Sendable audit | docs/adr/0027-*.md |
 

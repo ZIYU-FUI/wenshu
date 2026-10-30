@@ -53,6 +53,20 @@ jobs:
       - name: Pollution check
         run: |
           # Verify no pollution vocab in code commits
+          #
+          # This step is PATH-AGNOSTIC (= it greps the whole history, not a
+          # file list), so it already reaches every path in the repository,
+          # Mobile/ included: there is no exclude that leaves the client
+          # out, and the client's own Swift files carry none of the
+          # vocabulary (checked 2026-10-30).
+          #
+          # It is ALSO RED ON MAIN (= 3940 on main, 4788 over all refs),
+          # because `git log -p` prints DELETED lines and the vocabulary it
+          # names was in code that was later removed (= the check asks "does
+          # it exist NOW" and counts "did it ever exist"). That is a
+          # pre-existing failure and NOT one this migration caused; fixing
+          # it is its own card. Reported here so the state is not mistaken
+          # for a green check.
           POLLUTION=$(git log --all -p | grep -E "修真|渡劫|筑基|返虚|结丹|金丹|元婴|飞升|天劫|雷劫|心魔|魔障" | grep -v "AGENTS.md\|CONTEXT.md\|WenshuVerifier\|WenshuAgentIdentity\|commit_filter.py\|test_block_pollution" | wc -l | tr -d ' ')
           if [ "$POLLUTION" -gt 0 ]; then
             echo "Pollution leak found: $POLLUTION lines"
@@ -107,19 +121,45 @@ jobs:
         # V1.7 spec-axis finding: the prior step had no exit-code check and
         # would silently pass even on formatting drift).
         run: |
-          swiftformat lint Sources Tests 2>&1 | tee /tmp/wenshu-swiftformat.log
+          # `lint` is a FLAG in SwiftFormat 0.62.1, not a subcommand, so the
+          # old `swiftformat lint Sources Tests` looked for a FILE named
+          # lint, exited 70, and the hard-fail pattern below matched nothing:
+          # this step had never failed and never checked anything.
+          #
+          # The step checks the files THIS CHANGE touched, not the tree. The
+          # tree carries 1032 files that were never formatted (504 of 543
+          # under Sources/, and 529 of 537 under Tests/), so a whole-tree
+          # check would be red before this change and could never be green
+          # = a step that reports the history instead of the change.
+          #
+          # The base ref is the one that resolves in every trigger: a
+          # pull request has origin/main, a push to a worktree branch has
+          # origin/main, and a push to main has the sha the event carries
+          # as `before` (origin/main is HEAD there, so a diff against it
+          # would be empty).
+          BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            BASE="origin/main"
+          fi
+          CHANGED=$(git diff --name-only "$BASE...HEAD" -- 'Sources/**/*.swift' 'Tests/**/*.swift' 2>/dev/null || true)
+          if [ -z "$CHANGED" ]; then
+            echo "SwiftFormat: no changed Swift files (= nothing to check)"
+            exit 0
+          fi
+          # shellcheck disable=SC2086
+          swiftformat --lint $CHANGED 2>&1 | tee /tmp/wenshu-swiftformat.log
           exit_status=${PIPESTATUS[0]}
           if [ "$exit_status" -ne 0 ]; then
             error_count=$(grep -cE '^/.*: error:' /tmp/wenshu-swiftformat.log || true)
             if [ "$error_count" -gt 0 ]; then
-              echo "SwiftFormat hard-failed: $error_count error-severity violations"
+              echo "SwiftFormat hard-failed: $error_count error-severity violations in the files this change touched"
               grep -E '^/.*: error:' /tmp/wenshu-swiftformat.log | head -50
               exit 1
             fi
-            echo "SwiftFormat: $exit_status non-zero exit code but 0 error-severity violations (= pre-existing formatting drift; future sweep ticket will address)"
+            echo "SwiftFormat: $exit_status non-zero exit code but 0 error-severity violations"
             exit 0
           fi
-          echo "SwiftFormat clean"
+          echo "SwiftFormat clean (= the changed Swift files are formatted)"
 
       - name: Verify pre-commit hook installed
         run: |
@@ -137,6 +177,80 @@ jobs:
           path: /tmp/wenshu-test.log
           retention-days: 7
 
+
+  # The client is a SECOND product in this repository (the native iOS and
+  # iPadOS app, at Mobile/), so it needs its own job: the desktop job proves
+  # the desktop app, and this one proves the client. The step summary says
+  # which product went green, so a reader never has to guess.
+  client-build-and-test:
+    runs-on: macos-15
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Show Swift version
+        run: swift --version
+
+      - name: Swift build (the client)
+        # The client is its own SwiftPM package, so it builds from its own
+        # directory (= SwiftPM uses the NEAREST manifest).
+        run: cd Mobile && swift build 2>&1 | tee /tmp/wenshu-mobile-build.log
+
+      - name: iOS build (simulator)
+        # The product target is iOS and iPadOS, so the simulator build is the
+        # one that proves the product compiles.
+        #
+        # OTHER_LDFLAGS stamps the SDK the build compiled against into the
+        # product's LC_BUILD_VERSION. Without it SwiftPM derives the stamp
+        # from Package.swift's platform declaration and the binary carries
+        # sdk 18.0, which the newest systems draw as a legacy binary and
+        # scale into a phone-sized window. The minimum OS stays 18.0, so the
+        # deployment floor of ADR-0002 does not move.
+        #
+        # The flag is passed in the -Xlinker form on purpose: the comma
+        # form (-Wl,-platform_version,ios-simulator,18.0,27.1) is split
+        # by xcodebuild and the link dies with "unknown argument".
+        run: |
+          cd Mobile
+          xcodebuild -scheme WenshuMobile-Package \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath /tmp/wenshu-mobile-dd \
+            'OTHER_LDFLAGS=$(inherited) -Xlinker -platform_version -Xlinker ios-simulator -Xlinker 18.0 -Xlinker 27.1' \
+            build 2>&1 | tee /tmp/wenshu-mobile-ios.log
+          grep -q "BUILD SUCCEEDED" /tmp/wenshu-mobile-ios.log
+
+      - name: Swift test (the client)
+        # The deployment floor test reads the LC_BUILD_VERSION of the
+        # product the iOS build above produced, so that build comes first.
+        run: |
+          cd Mobile
+          swift test 2>&1 | tee /tmp/wenshu-mobile-test.log
+          TEST_LINE=$(grep "Test run" /tmp/wenshu-mobile-test.log | tail -1)
+          echo "## client: $TEST_LINE" >> $GITHUB_STEP_SUMMARY
+          if echo "$TEST_LINE" | grep -q "failed"; then
+            echo "Client tests failed — see log"
+            exit 1
+          fi
+
+      - name: Design sweep (the client)
+        # The sweep's own default file list is `git diff main...HEAD`, and
+        # that is EMPTY in both shapes this workflow runs in (a pull-request
+        # checkout has no local main, and a push to main has main...HEAD
+        # empty by definition) = the step would pass over a tree that
+        # contains violations. So the file list is given EXPLICITLY, and the
+        # step can fail.
+        run: |
+          bash Tools/wenshu-devtool/design-sweep.sh \
+            $(git ls-files 'Mobile/Sources/**.swift' 'Mobile/Tests/**.swift')
+
+      - name: Agents gate (the client's SSOT)
+        # The client's SSOT is its own file (= the root one is the
+        # desktop's), so the gate reads that one.
+        run: python3 Tools/wenshu-devtool/agents_gate.py --file Mobile/AGENTS.md
   # Lint commit messages for conventional commits + English-only
   lint-commits:
     runs-on: ubuntu-latest
