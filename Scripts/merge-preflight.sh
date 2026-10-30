@@ -71,13 +71,19 @@ card_id_of() {
 # The lookup is by the sha the branch points at: the review card's body
 # names the sha under review in its WHAT TO BUILD claim, and the branch
 # tip is that sha once pocock has committed the work it reviews.
+#
+# ``lookup_rc`` carries the gate's exit code to the caller, because "the
+# board could not be read" (= 2) and "no card names this sha" (= 3) are
+# different failures and the caller names them differently.
 review_card_for_branch() {
     local branch="$1"
     local sha
+    local out
     sha=$(git rev-parse --verify -q "$branch" 2>/dev/null) || return 0
     [[ -z "$sha" ]] && return 0
-    python3 "$GATE" --branch "$branch" --sha "$sha" --board "$BOARD" 2>/dev/null \
-        | sed -n 's/^CARD \([a-z_0-9]*\)$/\1/p' | head -1
+    out="$(python3 "$GATE" --branch "$branch" --sha "$sha" --board "$BOARD" 2>/dev/null)"
+    lookup_rc=$?
+    printf '%s\n' "$out" | sed -n 's/^CARD \([a-z_0-9]*\)$/\1/p' | head -1
 }
 conflict=0
 unreviewed=0
@@ -108,20 +114,37 @@ for b in "${branches[@]}"; do
         # existed. The claim only counts when the board still carries
         # that card. Otherwise the lookup falls through to the sha, and a
         # sha that no card names is refused below.
-        if ! python3 "$GATE" --card "$card" --board "$BOARD" >/dev/null 2>&1; then
-            gate_rc=$?
-            if [[ $gate_rc -eq 2 ]]; then
-                unreviewed=1
-                echo "UNREADABLE $b"
-                echo "         the board could not be read, so the card"
-                echo "         ($card) this branch names cannot be checked"
-                continue
-            fi
+        #
+        # The exit code is captured WITHOUT the `if !` form: inside `if !`,
+        # `$?` is the status of the negation (= 0 when the command failed),
+        # not the command's own code, so the board-unreadable case would
+        # be read as a plain miss.
+        python3 "$GATE" --card "$card" --board "$BOARD" >/dev/null 2>&1
+        claim_rc=$?
+        if [[ $claim_rc -eq 2 ]]; then
+            unreviewed=1
+            echo "UNREADABLE $b"
+            echo "         the board could not be read, so the card"
+            echo "         ($card) this branch names cannot be checked"
+            continue
+        fi
+        if [[ $claim_rc -ne 0 ]]; then
+            # The card is not on the board (or the gate could not clear
+            # it): the claim does not count, so the sha decides.
             card=""
         fi
     fi
     if [[ -z "$card" ]]; then
         card="$(review_card_for_branch "$b")"
+        if [[ -z "$card" && "${lookup_rc:-0}" -eq 2 ]]; then
+            # The gate could not read the board, so it could not answer.
+            # That is not "no card names this sha": it is "the answer is
+            # unknown", and an unknown answer must not read as a pass.
+            unreviewed=1
+            echo "UNREADABLE $b"
+            echo "         the review gate could not read the board"
+            continue
+        fi
     fi
     if [[ -z "$card" ]]; then
         # No review card resolves this branch. That is NOT "no card to
