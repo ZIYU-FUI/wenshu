@@ -158,7 +158,7 @@ private struct InspectorTodoCard: View {
             VStack(alignment: .leading, spacing: 0) {
                 Text(todo.title)
                     .font(.body.weight(.medium))
-                    .foregroundStyle(todo.isOutstanding ? DesignTokens.textBody : DesignTokens.statusForeground)
+                    .foregroundStyle(InspectorTodoStateStyle.foreground(for: todo.status))
                     .lineLimit(3)
                     .textSelection(.enabled)
             }
@@ -363,10 +363,25 @@ enum InspectorTodoStateStyle {
     /// The state's tint (= the system semantic colour the glyph wears).
     static func tone(for status: HermesTodoStatus) -> IconColor {
         switch status {
-        case .pending:      return .secondary
+        case .pending:      return .primary
         case .inProgress:  return .tint
         case .completed:   return .green
         case .cancelled:   return .tertiary
+        }
+    }
+
+    /// The colour the card's text reads in.
+    ///
+    /// A step that is still to do reads loud (= the item's own words
+    /// carry the eye), and a resolved step reads quiet (= the card
+    /// recedes, = the eye goes to the open steps first).
+    @MainActor
+    static func foreground(for status: HermesTodoStatus) -> HierarchicalShapeStyle {
+        switch status {
+        case .pending, .inProgress:
+            return DesignTokens.textBody
+        case .completed, .cancelled:
+            return DesignTokens.textMetadata
         }
     }
 }

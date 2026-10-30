@@ -273,6 +273,7 @@ private struct InspectorStatusTaskCard: View {
                     )
                     Text(task.agentName)
                         .font(.headline)
+                        .foregroundStyle(InspectorStatusStateStyle.foreground(for: task.state))
                         .lineLimit(1)
                     if let tool = task.currentTool {
                         // The tool the agent is calling right now, in a
@@ -293,10 +294,10 @@ private struct InspectorStatusTaskCard: View {
                 }
                 Text(InspectorStatusStateStyle.label(for: task.state))
                     .font(.caption)
-                    .foregroundStyle(DesignTokens.statusForeground)
+                    .foregroundStyle(InspectorStatusStateStyle.foreground(for: task.state))
                 Text(task.taskText)
                     .font(.callout)
-                    .foregroundStyle(DesignTokens.textChrome)
+                    .foregroundStyle(InspectorStatusStateStyle.foreground(for: task.state))
                     .lineLimit(3)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -310,7 +311,11 @@ private struct InspectorStatusTaskCard: View {
             )
         }
         .buttonStyle(.plain)
-        .disabled(task.output == nil)
+        // A card without output cannot be opened (= there is nothing to
+        // read). The hit test is off rather than the control disabled,
+        // because a disabled control dims the whole card (= a running
+        // agent that has produced nothing yet would read as finished).
+        .allowsHitTesting(task.output != nil)
     }
 }
 
@@ -360,11 +365,31 @@ enum InspectorStatusStateStyle {
     /// The state's tint (= the system semantic colour the glyph wears).
     static func color(for state: BackgroundDelegationState) -> IconColor {
         switch state {
-        case .pending:    return .secondary
+        case .pending:    return .primary
         case .running:    return .tint
         case .completed:  return .green
         case .failed:     return .red
         case .timeout:    return .orange
+        }
+    }
+
+    /// The colour the card's text reads in.
+    ///
+    /// Work that is still going reads loud (= the state label and the
+    /// task text carry the eye, = the column answers "what is happening
+    /// now"). Work that is done reads quiet (= the card recedes, = the
+    /// eye goes to the live cards first).
+    ///
+    /// A running agent that has produced no text yet is still live (= it
+    /// is running), so it reads loud too (= the card's own state decides
+    /// the colour, = not whether there is output to read).
+    @MainActor
+    static func foreground(for state: BackgroundDelegationState) -> HierarchicalShapeStyle {
+        switch state {
+        case .pending, .running:
+            return DesignTokens.textBody
+        case .completed, .failed, .timeout:
+            return DesignTokens.textMetadata
         }
     }
 }
