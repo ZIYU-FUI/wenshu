@@ -107,6 +107,21 @@ for b in "${branches[@]}"; do
     # pocock's own, so the card id does not come from the branch name: the
     # review card that covers it is the one whose body names the sha the
     # branch points at. So the branch's tip sha is the lookup key.
+    #
+    # The gate file is checked FIRST: a missing gate is a missing gate, and
+    # running the lookups before the check makes the gate's own failure
+    # (= python cannot open the file) read as "the board is unreadable".
+    if [[ ! -f "$GATE" ]]; then
+        # A missing gate is NOT a pass. Refuse, because a merge gate that
+        # skips its own check silently is the exact defect this gate exists
+        # to prevent (= a check that cannot fail).
+        unreviewed=1
+        echo "NO GATE  $b"
+        echo "         the review gate is missing: $GATE"
+        echo "         (the gate ships with Tools/wenshu-devtool/review_gate.py;"
+        echo "          merge that first, or this merge lands unchecked)"
+        continue
+    fi
     card="$(card_id_of "$b")"
     if [[ -n "$card" ]]; then
         # A card id in the branch name is a CLAIM, not a fact: the card may
@@ -159,17 +174,6 @@ for b in "${branches[@]}"; do
         echo "         (the review card's body names the sha under review;"
         echo "          a rebase rewrites the sha, so a re-review must name"
         echo "          the NEW sha)"
-        continue
-    fi
-    if [[ ! -f "$GATE" ]]; then
-        # A missing gate is NOT a pass. Refuse, because a merge gate that
-        # skips its own check silently is the exact defect this gate exists
-        # to prevent (= a check that cannot fail).
-        unreviewed=1
-        echo "NO GATE  $b"
-        echo "         the review gate is missing: $GATE"
-        echo "         (the gate ships with Tools/wenshu-devtool/review_gate.py;"
-        echo "          merge that first, or this merge lands unchecked)"
         continue
     fi
     gate_out="$(python3 "$GATE" --card "$card" --board "$BOARD" 2>&1)"
