@@ -61,11 +61,15 @@ struct HermesTodoItem: Codable, Sendable, Equatable, Hashable {
     var id: String
     var content: String
     var status: HermesTodoStatus
+    // / Id of the item this one belongs to (= a sub-step's parent);
+    // / nil = a top-level step.
+    var parent: String?
 
-    init(id: String, content: String, status: HermesTodoStatus) {
+    init(id: String, content: String, status: HermesTodoStatus, parent: String? = nil) {
         self.id = id
         self.content = content
         self.status = status
+        self.parent = HermesTodoItem.normalizedParent(parent)
     }
 
     /// Convenience initializer from the python dict shape (= accepts
@@ -75,10 +79,12 @@ struct HermesTodoItem: Codable, Sendable, Equatable, Hashable {
             self.id = HermesTodoItem.stringValue(d["id"]) ?? "?"
             self.content = HermesTodoStore.capContent(HermesTodoItem.stringValue(d["content"]) ?? "")
             self.status = HermesTodoStatus(rawValue: HermesTodoItem.stringValue(d["status"])?.lowercased() ?? "") ?? .pending
+            self.parent = HermesTodoItem.normalizedParent(HermesTodoItem.stringValue(d["parent"]))
         } else {
             self.id = "?"
             self.content = HermesTodoStore.capContent("")
             self.status = .pending
+            self.parent = nil
         }
     }
 
@@ -86,6 +92,14 @@ struct HermesTodoItem: Codable, Sendable, Equatable, Hashable {
         guard let v = v else { return nil }
         if let s = v as? String { return s }
         return "\(v)"
+    }
+
+    /// The parent id a raw input carries (= the python `parent` key);
+    /// a blank one is no parent.
+    private static func normalizedParent(_ raw: String?) -> String? {
+        guard let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !trimmed.isEmpty else { return nil }
+        return trimmed
     }
 
     /// `[id, content, status]` ordered tuple (= mirrors the python
@@ -229,7 +243,8 @@ final class HermesTodoStore: @unchecked Sendable {
             status = .pending
         }
 
-        return HermesTodoItem(id: id, content: content, status: status)
+        // The parent rides along (= the plan's tree survives the write).
+        return HermesTodoItem(id: id, content: content, status: status, parent: raw.parent)
     }
 
     /// Truncate oversized todo content to `maxTodoContentChars`

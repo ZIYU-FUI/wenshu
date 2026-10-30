@@ -20,6 +20,16 @@
 //  re-injection block (= the file's marquee feature per the python
 //  docstring).
 //
+//  Plus the plan tree's cases:
+//
+//    7. testPlanItemCarriesParent  — the item names the item it belongs to
+//    8. testPlanItemCodable        — the parent survives the JSON round-trip
+//    9. testStoreReadReturnsParent  — the read hands back the parent
+//   10. testPlanTextUnchanged       — the re-injection text and the status
+//                                    words keep their shape
+//   11. testPlanCapsAndDedupe      — the caps and the de-duplication keep
+//                                    their behaviour
+//
 
 import Testing
 import SwiftData
@@ -252,5 +262,172 @@ struct HermesTodoToolTests {
         let output = try await tool.execute(input: inputJSON)
         #expect(output.contains("\"from-json\""))
         #expect(output.contains("\"hello\""))
+    }
+
+    // MARK: - Test 7: a plan item names the item it belongs to
+
+    @Test("a plan item names the item it belongs to")
+    @MainActor
+    func testPlanItemCarriesParent() {
+        // An item written WITH a parent carries it.
+        let child = HermesTodoItem(
+            id: "1.1",
+            content: "sub-step",
+            status: .pending,
+            parent: "1"
+        )
+        #expect(child.parent == "1")
+
+        // An item written WITHOUT one carries none (= it behaves exactly
+        // as it did before the field existed).
+        let root = HermesTodoItem(id: "1", content: "step", status: .pending)
+        #expect(root.parent == nil)
+
+        // The raw input carries the parent's id under its own key.
+        let rawChild: [String: Any] = [
+            "id": "1.1",
+            "content": "sub-step",
+            "status": "pending",
+            "parent": "1"
+        ]
+        #expect(HermesTodoItem(fromAny: rawChild).parent == "1")
+
+        // A raw input without the key = no parent.
+        let rawRoot: [String: Any] = ["id": "1", "content": "step", "status": "pending"]
+        #expect(HermesTodoItem(fromAny: rawRoot).parent == nil)
+    }
+
+    // MARK: - Test 8: the parent survives the JSON round-trip
+
+    @Test("the parent survives the JSON round-trip")
+    @MainActor
+    func testPlanItemCodable() throws {
+        let child = HermesTodoItem(
+            id: "1.1",
+            content: "sub-step",
+            status: .inProgress,
+            parent: "1"
+        )
+        let encoded = try JSONEncoder().encode(child)
+        let decoded = try JSONDecoder().decode(HermesTodoItem.self, from: encoded)
+        #expect(decoded == child)
+        #expect(decoded.parent == "1")
+
+        // An item with no parent round-trips unchanged (= the synthesized
+        // coding stays correct for an item that carries no parent).
+        let root = HermesTodoItem(id: "1", content: "step", status: .pending)
+        let rootEncoded = try JSONEncoder().encode(root)
+        let rootDecoded = try JSONDecoder().decode(HermesTodoItem.self, from: rootEncoded)
+        #expect(rootDecoded == root)
+        #expect(rootDecoded.parent == nil)
+
+        // A payload persisted before the field existed (= no "parent" key)
+        // still decodes, and carries no parent.
+        let legacy = Data(#"{"id":"1","content":"step","status":"pending"}"#.utf8)
+        let legacyDecoded = try JSONDecoder().decode(HermesTodoItem.self, from: legacy)
+        #expect(legacyDecoded.id == "1")
+        #expect(legacyDecoded.content == "step")
+        #expect(legacyDecoded.status == .pending)
+        #expect(legacyDecoded.parent == nil)
+    }
+
+    // MARK: - Test 9: the store's read hands back the parent
+
+    @Test("the store's read hands back the parent")
+    @MainActor
+    func testStoreReadReturnsParent() throws {
+        let store = HermesTodoStore()
+        store.write(
+            todos: [
+                HermesTodoItem(id: "1", content: "step", status: .pending),
+                HermesTodoItem(
+                    id: "1.1",
+                    content: "sub-step",
+                    status: .inProgress,
+                    parent: "1"
+                )
+            ],
+            merge: false
+        )
+
+        let items = store.read()
+        #expect(items.count == 2)
+        #expect(items.first(where: { $0.id == "1" })?.parent == nil)
+        #expect(items.first(where: { $0.id == "1.1" })?.parent == "1")
+
+        // The tool's own write path hands the same parent back.
+        let result = try hermesTodoTool(todos: nil, merge: false, store: store)
+        #expect(result.todos.first(where: { $0.id == "1.1" })?.parent == "1")
+        #expect(result.todos.first(where: { $0.id == "1" })?.parent == nil)
+    }
+
+    // MARK: - Test 10: the plan's own text keeps its shape
+
+    @Test("the re-injection text and the status words keep their shape")
+    @MainActor
+    func testPlanTextUnchanged() {
+        let store = HermesTodoStore()
+        store.write(
+            todos: [
+                HermesTodoItem(id: "1", content: "step", status: .pending),
+                HermesTodoItem(
+                    id: "1.1",
+                    content: "sub-step",
+                    status: .inProgress,
+                    parent: "1"
+                ),
+                HermesTodoItem(id: "2", content: "done", status: .completed)
+            ],
+            merge: false
+        )
+
+        let injection = store.formatForInjection()
+        #expect(injection != nil)
+        // The header line.
+        #expect(injection?.hasPrefix("[Your active task list was preserved across context compression]") == true)
+        // The row shape: "- <marker> <id>. <content> (<status>)".
+        #expect(injection?.contains("- [ ] 1. step (pending)") == true)
+        #expect(injection?.contains("- [>] 1.1. sub-step (in_progress)") == true)
+        // A resolved item stays out of the re-injection.
+        #expect(injection?.contains("done") == false)
+
+        // The plan's own status words.
+        #expect(HermesTodoStatus.pending.rawValue == "pending")
+        #expect(HermesTodoStatus.inProgress.rawValue == "in_progress")
+        #expect(HermesTodoStatus.completed.rawValue == "completed")
+        #expect(HermesTodoStatus.cancelled.rawValue == "cancelled")
+    }
+
+    // MARK: - Test 11: the caps and the de-duplication keep their behaviour
+
+    @Test("the caps and the de-duplication keep their behaviour")
+    @MainActor
+    func testPlanCapsAndDedupe() {
+        // De-duplication: the last occurrence of an id wins, in its own
+        // position.
+        let store = HermesTodoStore()
+        store.write(
+            todos: [
+                HermesTodoItem(id: "1", content: "first", status: .pending),
+                HermesTodoItem(id: "2", content: "other", status: .pending),
+                HermesTodoItem(id: "1", content: "last", status: .completed)
+            ],
+            merge: false
+        )
+        let items = store.read()
+        #expect(items.count == 2)
+        #expect(items.map(\.id) == ["2", "1"])
+        #expect(items.first(where: { $0.id == "1" })?.content == "last")
+
+        // The content cap.
+        let long = String(repeating: "x", count: maxTodoContentChars + 100)
+        #expect(HermesTodoStore.capContent(long).count == maxTodoContentChars)
+        #expect(HermesTodoStore.capContent(long).hasSuffix(truncationMarker) == true)
+
+        // The item-count cap.
+        let many = (0..<(maxTodoItems + 5)).map {
+            HermesTodoItem(id: "\($0)", content: "c", status: .pending)
+        }
+        #expect(HermesTodoStore().write(todos: many, merge: false).count == maxTodoItems)
     }
 }
