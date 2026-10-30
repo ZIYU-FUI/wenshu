@@ -91,6 +91,40 @@ struct InspectorCardSurfaceTests {
         }
     }
 
+    @Test("Every marker of the plan wears one symbol set (= one size, = one column)")
+    func everyMarkerWearsOneSymbolSet() throws {
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/InspectorTodoPageView.swift")
+        let content = try String(contentsOf: url, encoding: .utf8)
+        // Every MARKER is an SFIcon (= the one factory, = one point
+        // size, = one column). A ProgressView draws its own spinner at
+        // its own size and centres it in the space it is offered, so a
+        // spinner sat in the middle of the column while the symbols sat
+        // at its edge, and the rows read ragged.
+        //
+        // The check reads the marker function, not the whole file (= the
+        // page's own loading spinner is a ProgressView, = and that one
+        // is not a marker).
+        let marker = try #require(
+            content.range(of: "private var stateMarker"),
+            "the plan's page must carry a stateMarker"
+        )
+        let markerBody = String(content[marker.lowerBound...])
+        // The call, not the word (= the marker carries the word in its
+        // own comment, = and the comment says why).
+        #expect(!markerBody.contains("ProgressView("),
+                "the plan's markers must all be SFIcon (= a ProgressView draws its own spinner at its own size)")
+        #expect(content.contains(".frame(width: DesignTokens.inspectionMarkerColumnWidth, alignment: .leading)"),
+                "the markers must sit at the column's leading edge (= so every symbol's ink starts at the same place)")
+    }
+
+    @Test("The marker column holds the widest symbol the plan wears")
+    func theMarkerColumnHoldsTheWidestSymbol() throws {
+        let url = SourceLocator.url("Sources/WenshuApp/DesignTokens.swift")
+        let content = try String(contentsOf: url, encoding: .utf8)
+        #expect(content.contains("static let inspectionMarkerColumnWidth: CGFloat = 16"),
+                "the marker column must be 16 PT (= the widest inline-small symbol's ink is 15 PT at the 14 PT point size, = measured with NSImage)")
+    }
+
     @Test("The plan's cards do not fold (= the count says how much is left)")
     func thePlanDoesNotFold() throws {
         let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/InspectorTodoPageView.swift")

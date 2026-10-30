@@ -161,6 +161,16 @@ private struct InspectorTodoCard: View {
             // different intrinsic widths, = without the column the
             // rows read ragged).
             stateMarker
+                // The marker sits in a column of its own width, and it
+                // sits at the column's LEADING edge (= the column
+                // holds the symbols by their left edge, = so every
+                // symbol's ink starts at the same place, = and the
+                // words of every card start at the same place).
+                //
+                // The symbols are chosen to match in ink width (= 14
+                // to 15 PT at the 14 PT point size, = measured with
+                // NSImage), = so a narrower symbol does not float away
+                // from the words beside it.
                 .frame(width: DesignTokens.inspectionMarkerColumnWidth, alignment: .leading)
                 .padding(.top, 1)
             VStack(alignment: .leading, spacing: 0) {
@@ -170,13 +180,17 @@ private struct InspectorTodoCard: View {
                     .lineLimit(3)
                     .textSelection(.enabled)
             }
+            // An item that belongs to another item reads indented under
+            // it (= the plan is a tree, and the tree shows in the
+            // shape). The indent is on the WORDS, = not on the card:
+            // the markers keep one column (= so the column of markers
+            // reads as one straight line, = and the tree shows in the
+            // words, = which is where a reader reads the tree).
+            .padding(.leading, CGFloat(todo.depth) * DesignTokens.spacingLoose)
             Spacer(minLength: 0)
         }
         .padding(DesignTokens.spacingStandard)
         .frame(maxWidth: .infinity, alignment: .leading)
-        // An item that belongs to another item reads indented under it
-        // (= the plan is a tree, and the tree shows in the shape).
-        .padding(.leading, CGFloat(todo.depth) * DesignTokens.spacingLoose)
         // The shared card surface (= the same glass the column's other
         // two pages wear, = the plan's cards and the board's cards and
         // the sub-agent's cards are one family).
@@ -197,19 +211,29 @@ private struct InspectorTodoCard: View {
     private var stateMarker: some View {
         switch todo.status {
         case HermesTodoStatus.pending:
-            SFIcon("tray", style: .inlineSmall, color: InspectorTodoStateStyle.tone(for: todo.status))
-                .symbolRenderingMode(.hierarchical)
+            SFIcon(
+                "shippingbox",
+                style: .inlineSmall,
+                color: InspectorTodoStateStyle.tone(for: todo.status)
+            )
+            .symbolRenderingMode(.hierarchical)
         case HermesTodoStatus.inProgress:
-            // The spinner sits at the column's leading edge (= the
-            // symbols sit there, = and a centred spinner under a
-            // leading symbol would start the words a step apart).
-            // `fixedSize` keeps the spinner at its own width (= a
-            // spinner fills the space it is offered and centres
-            // itself in it, = so without this it sits in the middle
-            // of the column while the symbols sit at its edge).
-            ProgressView()
-                .controlSize(.mini)
-                .fixedSize()
+            // The item being worked on wears the system's own rotating
+            // symbol (= an SF Symbol with Apple's rotate effect, = the
+            // system draws both the symbol and the motion).
+            //
+            // It is a SYMBOL, not a ProgressView (= a ProgressView
+            // draws its own spinner at its own size and centres it in
+            // the space it is offered, = so the spinner sat in the
+            // middle of the column while the symbols sat at its edge,
+            // and the spinner read smaller than every other marker).
+            // One symbol set means one size means one column.
+            SFIcon(
+                "arrow.triangle.2.circlepath",
+                style: .inlineSmall,
+                color: InspectorTodoStateStyle.tone(for: todo.status)
+            )
+            .symbolEffect(.rotate, options: .repeating)
         case HermesTodoStatus.completed:
             SFIcon("checkmark.circle.fill", style: .inlineSmall, color: InspectorTodoStateStyle.tone(for: todo.status))
         case HermesTodoStatus.cancelled:

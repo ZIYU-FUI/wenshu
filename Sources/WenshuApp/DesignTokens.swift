@@ -259,15 +259,15 @@ enum DesignTokens {
     /// left edge). The edge carries the column's status color.
     static let kanbanCardStatusEdgeWidth: CGFloat = 2
 
-    /// / The column a card's state marker sits in (= 20 PT, = the
+    /// / The column a card's state marker sits in (= 16 PT, = the
     /// / width of the widest inline-small symbol the column's cards
-    /// / wear; = the tray is 20 PT wide at the 14 PT point size, = and
-    /// / a column narrower than the widest symbol lets the symbol
-    /// / spill over the words beside it). A spinner and a symbol have
-    /// / different intrinsic widths, = so a card that does not reserve
-    /// / the column reads ragged (= the words start at different
-    /// / places).
-    static let inspectionMarkerColumnWidth: CGFloat = 20
+    /// / wear; = the symbols' ink measures 14 to 15 PT at the 14 PT
+    /// / point size, = and a column narrower than the widest symbol
+    /// / lets the symbol spill over the words beside it). A spinner
+    /// / and a symbol have different intrinsic widths, = so a card
+    /// / that does not reserve the column reads ragged (= the words
+    /// / start at different places).
+    static let inspectionMarkerColumnWidth: CGFloat = 16
 
     /// Kanban column dot diameter (= 6 PT, the status dot in a column
     /// header). Matches the Hermes board's column dot.
