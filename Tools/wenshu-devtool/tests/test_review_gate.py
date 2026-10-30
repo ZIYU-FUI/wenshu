@@ -327,6 +327,52 @@ def main() -> int:
         [],
     )
 
+    # 12. A REVIEW card is the review (boss ruling 2026-10-30). It was
+    # created FOR the reviewer and never handed off, so its REVIEW HANDOFF
+    # section is not a handoff: there is no implementer to hand off from,
+    # and naming a reviewer there would name the implementer.
+    review_card_body = body_with(
+        "A verdict on `a159635f2d`.",
+        handoff="This card is the review. There is no implementer to hand off from.",
+    )
+    check(
+        "a review card's handoff section needs no reviewer name",
+        tool.contract_errors(
+            review_card_body,
+            assignee="wenshu-review",
+            kind="review",
+            is_review=True,
+        ),
+        [],
+    )
+    check(
+        "a build card's handoff section still needs a reviewer name",
+        tool.contract_errors(
+            body_with(
+                "Sources/WenshuApp/Features/Editor/View/InspectorView.swift",
+                handoff="Nothing here names a reviewer.",
+            ),
+            assignee="pocock",
+            kind="build",
+        ) != [],
+        True,
+    )
+    # The exemption is narrow: a card whose kind is not review still has to
+    # name its reviewer, because that is where the reviewer is declared.
+    check(
+        "the exemption is narrow: a build card still needs the reviewer name",
+        tool.contract_errors(
+            body_with(
+                "Sources/WenshuApp/Features/Editor/View/InspectorView.swift",
+                handoff="Nothing here names a reviewer.",
+            ),
+            assignee="pocock",
+            kind="review",
+            is_review=False,
+        ) != [],
+        True,
+    )
+
     print()
     if FAILURES:
         print(f"review_gate: {len(FAILURES)} case(s) FAILED")

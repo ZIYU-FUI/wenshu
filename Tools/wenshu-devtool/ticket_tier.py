@@ -550,10 +550,17 @@ def review_contract_errors(
 
     if text is not None:
         if reviewer is None:
-            errors.append(
-                "the REVIEW HANDOFF section names no reviewer profile "
-                '(write reviewer="wenshu-review")'
-            )
+            # A REVIEW card is the review: it was created FOR the reviewer
+            # and never handed off, so its REVIEW HANDOFF section is not a
+            # handoff at all (= there is no implementer to hand off from).
+            # The section still has to name the reviewer when the card has
+            # an implementation phase, because that is where the reviewer
+            # is declared.
+            if not (kind == "review" and is_review_card):
+                errors.append(
+                    "the REVIEW HANDOFF section names no reviewer profile "
+                    '(write reviewer="wenshu-review")'
+                )
         elif assignee and reviewer == assignee and not is_review_card:
             errors.append(
                 f"the REVIEW HANDOFF names the implementer profile ({reviewer}); "
