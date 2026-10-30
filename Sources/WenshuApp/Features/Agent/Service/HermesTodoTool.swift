@@ -365,6 +365,14 @@ struct HermesTodoTool: Tool, Sendable {
         store.read()
     }
 
+    /// Write a plan into the shared store (= the agent's own todo tool
+    /// writes here, = a seed writes here too, = the page reads one
+    /// list either way).
+    @discardableResult
+    func writePlan(_ items: [HermesTodoItem], merge: Bool = false) -> [HermesTodoItem] {
+        store.write(todos: items, merge: merge)
+    }
+
     func execute(input: String) async throws -> String {
         // Empty input == read (= mirrors Python "omit todos to read").
         let parsed: [String: Any]

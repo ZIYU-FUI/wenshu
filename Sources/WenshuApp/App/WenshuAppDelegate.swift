@@ -12,6 +12,24 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
     // migration from legacy chat.sqlite to warehouse. Preserves chat history when
     // user first picks a .ws warehouse in onboarding (= avoids silent data loss).
     // Idempotent: if legacy file doesn't exist or new file already exists, skip.
+    /// Wait for the focused chat session to name its book.
+    ///
+    /// The board follows the session, so the seed's sample tasks belong
+    /// on the focused session's board. The session names its book when
+    /// the chat zone binds it, which is after launch, so the seed
+    /// waits for it (= and gives up after a few seconds, because a
+    /// session that names no book has the library-level board).
+    @MainActor
+    private static func waitForFocusedBookID() async -> String? {
+        for _ in 0..<40 {
+            if let bookID = AppStateLocator.shared.appState?.chatBookID {
+                return bookID.rawValue
+            }
+            try? await Task.sleep(for: .milliseconds(250))
+        }
+        return nil
+    }
+
     private static func migrateLegacyChatIfNeeded(warehousePath: String, chatDbPath: String?) {
         guard let chatDbPath = chatDbPath else { return }
         let fm = FileManager.default
@@ -362,6 +380,21 @@ final class WenshuAppDelegate: NSObject, NSApplicationDelegate {
         NSApp.activate(ignoringOtherApps: true)
         if ProcessInfo.processInfo.environment["WS_SCREENSHOT"] == "1" {
             SelfScreenshot.run()
+        }
+
+        // A dev-only sample of the assistant's plan, the delegation
+        // crew, and the board's tasks (= the plan lives in memory and
+        // the board's store starts empty, = the column's pages have
+        // nothing to show). Gated on the environment, = a launch without
+        // it never reaches the seed.
+        //
+        // The seed waits for the focused session's book (= the board
+        // follows the session, = the sample lands on that board).
+        if PlanSeed.isRequested() {
+            Task { @MainActor in
+                let bookID = await Self.waitForFocusedBookID()
+                await PlanSeed.run(bookID: bookID)
+            }
         }
 
         // Sub-agent runner drain loop (= the team-link consolidation): Start the sub-
