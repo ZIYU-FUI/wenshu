@@ -41,6 +41,14 @@ struct InspectorCardSurfaceTests {
                 "the shared card surface must not hand-draw an edge (= the system draws the glass edge)")
     }
 
+    @Test("The glass is tinted white (= the glass scatters white light)")
+    func theGlassIsTinted() throws {
+        let url = SourceLocator.url("Sources/WenshuApp/Shared/UI/InspectorCardSurface.swift")
+        let content = try String(contentsOf: url, encoding: .utf8)
+        #expect(content.contains(".tint(.white.opacity(0.30))"),
+                "the glass must be tinted white (= an untinted glass over a flat ground leaves the ground showing through and the card disappears into it)")
+    }
+
     @Test("The shared surface is the system's own shape (= Apple's shape factory)")
     func sharedSurfaceUsesApplesShape() throws {
         let url = SourceLocator.url("Sources/WenshuApp/Shared/UI/InspectorCardSurface.swift")

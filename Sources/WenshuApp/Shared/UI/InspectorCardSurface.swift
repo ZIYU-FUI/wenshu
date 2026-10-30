@@ -49,6 +49,10 @@ struct InspectorCardSurface: ViewModifier {
     /// it can, = the system's own reaction to a touchable surface).
     var isInteractive: Bool = false
 
+    /// The glass the card wears (= Apple's regular glass, = the
+    /// variant that works over any ground).
+    var glass: Glass = .regular
+
     /// Whether the card carries the status edge (= the board's cards
     /// carry their group's colour on the left edge; = the plan's and
     /// the sub-agent's cards carry no edge).
@@ -72,8 +76,17 @@ struct InspectorCardSurface: ViewModifier {
             // The glass is the surface (= no hand-drawn fill and no
             // hand-drawn edge: = the system draws both, = and the
             // system's edge tracks the system's radius).
+            //
+            // The tint is white at 30% (= the glass scatters white
+            // light, = and a tinted glass reads as a raised sheet of
+            // glass on a flat ground, = while an untinted one leaves
+            // the ground showing through unchanged and the card
+            // disappears into it). Measured on the column's pale
+            // ground: untinted 229, = tinted 222, = against a ground
+            // of 235.
             .glassEffect(
-                isInteractive ? .regular.interactive() : .regular,
+                (isInteractive ? glass.interactive() : glass)
+                    .tint(.white.opacity(0.30)),
                 in: .rect(cornerRadius: DesignTokens.surfaceCornerRadiusCard)
             )
             .overlay(alignment: .leading) {
