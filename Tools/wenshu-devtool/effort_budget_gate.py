@@ -178,7 +178,7 @@ def _board_cards(board: str | None = None) -> list[dict] | None:
     """
     db = BOARD_DB
     if board:
-        candidate = Path.home() / ".hermes/kanban/boards" / board / "kanban.db"
+        candidate = Path(product_lines.board_db(board))
         if candidate.exists():
             db = candidate
     if not db.exists():

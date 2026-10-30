@@ -22,9 +22,16 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-WENSHU_ROOT = Path("/Volumes/ANAN/Engineering/wenshu")
-SOURCES = WENSHU_ROOT / "Sources" / "WenshuApp"
-TESTS = WENSHU_ROOT / "Tests" / "WenshuAppTests"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import product_lines  # noqa: E402  (sibling module, same directory)
+
+# The repo root, derived from this file's own location, so the tool works
+# in whatever checkout it runs from (= a card's worktree, the shared
+# checkout, or a probe copy) instead of only at one hardcoded path.
+WENSHU_ROOT = Path(__file__).resolve().parents[2]
+# The desktop line's own source and test roots, declared once.
+SOURCES = WENSHU_ROOT / product_lines.DESKTOP.source_dirs[0]
+TESTS = WENSHU_ROOT / product_lines.DESKTOP.test_roots[0] / "WenshuAppTests"
 
 def run_cmd(cmd, cwd=WENSHU_ROOT):
     """Run shell command and return stdout"""

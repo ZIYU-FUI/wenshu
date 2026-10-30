@@ -36,8 +36,12 @@ import time
 from collections import Counter, defaultdict
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import product_lines  # noqa: E402  (sibling module, same directory)
+
 HERMES = Path(os.path.expanduser("~/.hermes"))
-BOARDS = HERMES / "kanban" / "boards"
+# The boards live under the GLOBAL hermes home, declared once.
+BOARDS = Path(product_lines.boards_dir())
 WORKER_PROFILES = ("wenshu-dev", "wenshu-review", "pocock")
 
 # A tool call that only LOOKS at things (no code changes).
@@ -501,7 +505,7 @@ def report(d: dict) -> str:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--hours", type=float, default=24.0)
-    ap.add_argument("--board", default="wenshu-par")
+    ap.add_argument("--board", default=product_lines.DEFAULT_BOARD)
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args()
     d = build(args.hours, args.board)

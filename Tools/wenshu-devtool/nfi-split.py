@@ -173,7 +173,7 @@ RULE_1_11 = (
 )
 INDEX_ROW = (
     "| Nervous file index (NFI) | "
-    "/Volumes/ANAN/Engineering/wenshu/docs/agents/nfi.md |"
+    "docs/agents/nfi.md |"
 )
 
 

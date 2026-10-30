@@ -48,8 +48,10 @@ like inside that line" — and after it, both lines look the same.
 
 from __future__ import annotations
 
+import os
 import re
 from dataclasses import dataclass, field
+from pathlib import Path
 
 
 @dataclass(frozen=True)
@@ -178,16 +180,17 @@ def repo_relative(path: str) -> str:
 def is_source(path: str) -> bool:
     """Whether a path is a source file of some line.
 
-    A TEST FILE IS NOT A SOURCE, even though it sits under `Sources/`: the
-    packages nest their test target inside the package (= `Sources/
-    WenshuAgent/Tests/WenshuAgentTests/...`), so a rule that counts every
-    `Sources/` path as a source counts that file TWICE (= once as a source
-    and once as a test) and charges the card for work it did not ask for.
+    A path under `Sources/` IS a source, INCLUDING a nested test target
+    (= `Sources/WenshuAgent/Tests/WenshuAgentTests/...`): the tier has
+    always counted it as one, and the tier's measured numbers must not
+    move when the measurement changes where it READS its inputs from.
+    Excluding it here would quietly re-rate every card that names one.
+
+    The path is read as it reads INSIDE its package, so the mobile line's
+    files count as sources exactly as the desktop line's do.
     """
     relative = package_relative(path)
-    if not relative.startswith("Sources/") or not path.endswith(".swift"):
-        return False
-    return "/Tests/" not in f"/{relative}"
+    return relative.startswith("Sources/") and path.endswith(".swift")
 
 
 def is_test(path: str) -> bool:
@@ -254,24 +257,61 @@ def test_paths(paths) -> list[str]:
     return sorted(p for p in paths if is_test(p))
 
 
-def boards_dir() -> str:
-    """Where the board databases live."""
-    import os
-    from pathlib import Path
+def home_candidates() -> tuple[Path, ...]:
+    """The Hermes homes that may hold the boards, most specific first.
 
+    ``HERMES_HOME`` points at the PROFILE's directory, not at the home
+    that holds the boards, and a profile's own copy of the boards does
+    not exist (= ``<profile>/kanban`` is absent). So the profile is
+    tried first, the home above it second (= a profile's home is
+    ``<root>/profiles/<name>``, so the root is two levels up), and the
+    shared home last. Getting this wrong is not a slow path, it is a
+    WRONG path: the gate then reads no board at all and reports an
+    agreement it never verified.
+    """
+    candidates: list[Path] = []
+    env = os.environ.get("HERMES_HOME")
+    if env:
+        home = Path(env).expanduser()
+        candidates.append(home)
+        if home.parent.name == "profiles":
+            candidates.append(home.parent.parent)
+    candidates.append(Path.home() / ".hermes")
+    return tuple(candidates)
+
+
+def boards_dir() -> str:
+    """Where the board databases live.
+
+    The first candidate that actually HOLDS a boards directory wins,
+    because the profile's own directory never does.
+    """
     override = os.environ.get("HERMES_KANBAN_BOARDS")
     if override:
         return override
-    home = os.environ.get("HERMES_HOME")
-    base = Path(home) if home else Path.home() / ".hermes"
-    return str(base / "kanban" / "boards")
+    candidates = [home / "kanban" / "boards" for home in home_candidates()]
+    for candidate in candidates:
+        if candidate.is_dir():
+            return str(candidate)
+    # No candidate holds a boards directory: name the shared home's, so
+    # the caller reports the path it looked for.
+    return str(candidates[-1])
 
 
 def board_db(board: str = DEFAULT_BOARD) -> str:
-    """The database file of one board."""
-    from pathlib import Path
+    """The database file of one board.
 
-    return str(Path(boards_dir()) / board / "kanban.db")
+    The board's own file decides, so a board that lives under one home
+    is found even when another home is the active profile's.
+    """
+    candidates = [
+        home / "kanban" / "boards" / board / "kanban.db"
+        for home in home_candidates()
+    ]
+    for candidate in candidates:
+        if candidate.is_file():
+            return str(candidate)
+    return str(candidates[-1])
 
 
 # A path the tools must recognise as a file they can measure. The mobile

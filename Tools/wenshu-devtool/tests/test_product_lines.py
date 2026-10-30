@@ -19,7 +19,9 @@ Run: python3 Tools/wenshu-devtool/tests/test_product_lines.py
 from __future__ import annotations
 
 import importlib.util
+import os
 import sys
+import tempfile
 from pathlib import Path
 
 FAILURES: list[str] = []
@@ -148,9 +150,9 @@ check(
     True,
 )
 check(
-    "a nested test target is not a source",
+    "a nested test target is a source, as the tier has always counted it",
     pl.is_source("Sources/WenshuAgent/Tests/WenshuAgentTests/ConductorSessionScopeTests.swift"),
-    False,
+    True,
 )
 
 # THE SECOND BUG THIS FIXES: the package boundary of every line counts.
@@ -211,6 +213,45 @@ check(
     pl.board_db("wenshu-mob-par").endswith("wenshu-mob-par/kanban.db"),
     True,
 )
+
+# The board database must be the one that EXISTS. A worker's HERMES_HOME
+# points at its PROFILE's directory, and a profile carries no `kanban/`
+# directory of its own, so resolving the board through HERMES_HOME alone
+# names a database that is not there. The gate then reads no board at all
+# and reports an agreement it never verified.
+_saved_home = os.environ.get("HERMES_HOME")
+_saved_boards = os.environ.get("HERMES_KANBAN_BOARDS")
+try:
+    with tempfile.TemporaryDirectory() as _td:
+        _root = Path(_td)
+        _boards = _root / "kanban" / "boards"
+        (_boards / "wenshu-par").mkdir(parents=True)
+        (_boards / "wenshu-par" / "kanban.db").write_text("")
+        # A profile's home: .../profiles/<name>, whose own copy of the
+        # boards does NOT exist.
+        _profile = _root / "profiles" / "wenshu-dev"
+        _profile.mkdir(parents=True)
+        os.environ["HERMES_HOME"] = str(_profile)
+        os.environ.pop("HERMES_KANBAN_BOARDS", None)
+        check(
+            "a profile HERMES_HOME still finds the boards directory",
+            pl.boards_dir(),
+            str(_boards),
+        )
+        check(
+            "a profile HERMES_HOME still finds the board's database",
+            pl.board_db("wenshu-par"),
+            str(_boards / "wenshu-par" / "kanban.db"),
+        )
+finally:
+    if _saved_home is None:
+        os.environ.pop("HERMES_HOME", None)
+    else:
+        os.environ["HERMES_HOME"] = _saved_home
+    if _saved_boards is None:
+        os.environ.pop("HERMES_KANBAN_BOARDS", None)
+    else:
+        os.environ["HERMES_KANBAN_BOARDS"] = _saved_boards
 
 print()
 if FAILURES:
