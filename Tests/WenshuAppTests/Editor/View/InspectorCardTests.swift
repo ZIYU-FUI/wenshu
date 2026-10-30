@@ -176,6 +176,20 @@ struct InspectorCardTests {
                 "the board's group must not wear a shell (= the column's cards are the cards)")
     }
 
+    @Test("The plan carries no count line")
+    func thePlanCarriesNoCountLine() throws {
+        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/InspectorTodoPageView.swift")
+        let content = try String(contentsOf: url, encoding: .utf8)
+        // The plan's cards say what the plan is (= the state rides on
+        // the card), = so a count line above them says it twice.
+        #expect(!content.contains("private var header"),
+                "the plan must not draw a count line (= the cards carry the state)")
+        #expect(!content.contains("doneCount"),
+                "the plan must not keep a done count (= nothing reads it)")
+        #expect(!content.contains("totalCount"),
+                "the plan must not keep a total count (= nothing reads it)")
+    }
+
     @Test("The board carries no title row and no new-task button")
     func theBoardCarriesNoTitleRow() throws {
         let url = SourceLocator.url("Sources/WenshuApp/Features/Kanban/View/KanbanView.swift")

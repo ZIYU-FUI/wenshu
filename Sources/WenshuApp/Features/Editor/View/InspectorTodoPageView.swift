@@ -7,10 +7,7 @@
 //  The page shows the plan the ASSISTANT wrote: the rows come from the
 //  agent's own plan store, the assistant writes them, and the user
 //  cannot edit them (= the page is read-only, because the assistant's
-//  next turn owns that list). A header line counts the plan the way a
-//  plan is counted (= done over total, and a dropped item counts on
-//  neither side), so the column answers "how much is left" without the
-//  user opening anything.
+//  next turn owns that list).
 //
 //  The rows are cards, because the column is narrow: a card carries the
 //  item's state marker, the item's own words, and the item's place in
@@ -27,8 +24,7 @@ import SwiftUI
 /// The trailing inspector column's todo page.
 ///
 /// Shows the plan the assistant wrote (= the agent's plan store), the
-/// outstanding items first, with a header line counting the plan and a
-/// card per item.
+/// outstanding items first, with a card per item.
 struct InspectorTodoPageView: View {
     /// The page's own mirror of the plan store (= the store stays the
     /// source of truth; = the view holds a snapshot and re-reads it).
@@ -36,32 +32,10 @@ struct InspectorTodoPageView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            header
             loadFailureLine
             content
         }
         .task { await refreshLoop() }
-    }
-
-    /// The header line (= the plan's count).
-    ///
-    /// The count reads done over total (= "3/7"), which is how a plan is
-    /// counted. A dropped item (= cancelled) is on neither side of the
-    /// fraction, because it is neither done nor still to do.
-    private var header: some View {
-        HStack(spacing: DesignTokens.spacingStandard) {
-            Text(countText)
-                .font(.callout)
-                .foregroundStyle(DesignTokens.textChrome)
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, DesignTokens.spacingStandard)
-        .padding(.vertical, DesignTokens.spacingTight)
-    }
-
-    /// The count line (= the done count over the total).
-    private var countText: String {
-        "\(model.doneCount)/\(model.totalCount)"
     }
 
     /// The page's body (= the list, or the empty state).
@@ -78,8 +52,8 @@ struct InspectorTodoPageView: View {
     }
 
     /// The read-failure line (= the store could not be read; = the
-    /// cards and the count below are the last good read, so the line
-    /// says the list may be stale).
+    /// cards below are the last good read, so the line says the list
+    /// may be stale).
     @ViewBuilder
     private var loadFailureLine: some View {
         if model.loadFailed {
@@ -107,10 +81,9 @@ struct InspectorTodoPageView: View {
 
     /// The plan's cards (= one per item).
     ///
-    /// The cards sit under the count, always visible (= the count says
-    /// how much is left, = so the reader can tell whether the plan is
-    /// worth reading without folding anything open, = and a fold here
-    /// hid the plan behind one more click).
+    /// The cards are always visible (= a fold here hid the plan behind
+    /// one more click, = and the plan is the column's reason to be
+    /// open).
     private var todoList: some View {
         ScrollView {
             // One glass container for the page's glass surfaces (= the
@@ -226,18 +199,12 @@ final class InspectorTodoModel {
     /// The plan items the page shows (= a snapshot of the store's rows).
     private(set) var todos: [InspectorTodo] = []
 
-    /// The number of resolved items (= the left side of the count).
-    private(set) var doneCount = 0
-
-    /// The number of items the plan holds (= the right side of the count).
-    private(set) var totalCount = 0
-
     /// Whether the first read has landed (= the page shows a spinner
     /// until it has).
     private(set) var isLoaded = false
 
     /// Whether the last read failed (= the page says so, = the cards
-    /// and the count are the last good read).
+    /// are the last good read).
     private(set) var loadFailed = false
 
     /// The store the page reads.
@@ -247,15 +214,15 @@ final class InspectorTodoModel {
         self.readPlan = readPlan
     }
 
-    /// One read of the store: the cards and the count come from the same
-    /// read, so the count can never disagree with the cards.
+    /// One read of the store: the cards come from that one read, so
+    /// they can never disagree with each other.
     func refresh() {
         let items: [HermesTodoItem]
         do {
             items = try readPlan()
         } catch {
-            // A failed read keeps the last good snapshot, so the count
-            // never reads as zero because the store could not be read.
+            // A failed read keeps the last good snapshot, so the list
+            // never empties because the store could not be read.
             loadFailed = true
             isLoaded = true
             return
@@ -285,10 +252,6 @@ final class InspectorTodoModel {
         }
         todos = cards
 
-        // The count reads done over total, and a dropped item is on
-        // neither side (= it is neither done nor still to do).
-        doneCount = snapshot.filter { $0.status == .completed }.count
-        totalCount = snapshot.filter { $0.status != .cancelled }.count
         isLoaded = true
     }
 }
@@ -363,11 +326,6 @@ struct InspectorTodo: Identifiable, Equatable, Sendable {
         self.depth = depth
     }
 
-    /// Whether the item is still outstanding (= its state is not a
-    /// resolved one).
-    var isOutstanding: Bool {
-        status == .pending || status == .inProgress
-    }
 }
 
 // MARK: - State presentation

@@ -7447,24 +7447,7 @@
           }
         }
       }
-    },
-    "inspector.todo.queue.count": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%d queued"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%d 条排队"
-          }
-        }
-      }
-    }
+}
   },
   "version": "1.0"
 }

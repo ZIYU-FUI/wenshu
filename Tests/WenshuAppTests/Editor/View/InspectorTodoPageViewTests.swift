@@ -56,7 +56,6 @@ struct InspectorTodoPageViewTests {
 
         #expect(page.todos.count == 1, "the plan item is on the page")
         #expect(page.todos.first?.title == "Draft chapter 1")
-        #expect(page.totalCount == 1, "the plan item is counted")
     }
 
     @Test("the page shows every plan item the agent wrote")
@@ -69,7 +68,6 @@ struct InspectorTodoPageViewTests {
 
         #expect(page.todos.count == 2, "both plan items are on the page")
         #expect(Set(page.todos.map(\.title)) == ["Draft chapter 1", "Draft chapter 2"])
-        #expect(page.totalCount == 2)
     }
 
     @Test("the page reads the agent's own plan store")
@@ -86,49 +84,6 @@ struct InspectorTodoPageViewTests {
 
         #expect(model.todos.count == 1, "the plan the store holds is on the page")
         #expect(model.todos.first?.title == "Draft chapter 1")
-    }
-
-    // MARK: - The count
-
-    @Test("the count reads done over total")
-    @MainActor
-    func countReadsDoneOverTotal() {
-        let page = Self.makePage([
-            Self.item("1", .completed),
-            Self.item("2", .pending),
-            Self.item("3", .pending),
-        ])
-
-        #expect(page.doneCount == 1, "the resolved item is the left side")
-        #expect(page.totalCount == 3, "the plan's items are the right side")
-    }
-
-    @Test("a dropped item is on neither side of the count")
-    @MainActor
-    func aDroppedItemIsOnNeitherSideOfTheCount() {
-        let page = Self.makePage([
-            Self.item("1", .completed),
-            Self.item("2", .cancelled),
-            Self.item("3", .pending),
-        ])
-
-        #expect(page.doneCount == 1, "a dropped item is not done")
-        #expect(page.totalCount == 2, "a dropped item is neither done nor still to do")
-    }
-
-    @Test("the count and the cards come from the same read")
-    @MainActor
-    func theCountAndTheCardsComeFromTheSameRead() {
-        let page = Self.makePage([
-            Self.item("1", .completed),
-            Self.item("2", .pending),
-            Self.item("3", .inProgress),
-        ])
-
-        let outstanding = page.todos.filter(\.isOutstanding).count
-        #expect(outstanding == 2, "the pending item and the working item are outstanding")
-        #expect(page.doneCount + outstanding == page.totalCount,
-                "the count and the cards agree")
     }
 
     // MARK: - The plan's shape
@@ -201,8 +156,7 @@ struct InspectorTodoPageViewTests {
         failing.refresh()
 
         #expect(failing.loadFailed, "the page says the plan could not be read")
-        #expect(failing.doneCount == 0, "a failed read invents no count")
-        #expect(failing.totalCount == 0)
+        #expect(failing.todos.isEmpty, "a failed read invents no items")
         #expect(failing.todos.isEmpty)
     }
 
@@ -219,28 +173,6 @@ struct InspectorTodoPageViewTests {
         let failing = InspectorTodoModel(readPlan: { throw PlanReadFailure() })
         failing.refresh()
         #expect(failing.loadFailed)
-    }
-
-    // MARK: - The plan's own vocabulary
-
-    @Test("a pending plan item is outstanding")
-    func pendingIsOutstanding() {
-        #expect(InspectorTodo(id: "1", title: "a", status: .pending).isOutstanding)
-    }
-
-    @Test("an in-progress plan item is outstanding")
-    func inProgressIsOutstanding() {
-        #expect(InspectorTodo(id: "1", title: "a", status: .inProgress).isOutstanding)
-    }
-
-    @Test("a completed plan item is not outstanding")
-    func completedIsNotOutstanding() {
-        #expect(!InspectorTodo(id: "1", title: "a", status: .completed).isOutstanding)
-    }
-
-    @Test("a cancelled plan item is not outstanding")
-    func cancelledIsNotOutstanding() {
-        #expect(!InspectorTodo(id: "1", title: "a", status: .cancelled).isOutstanding)
     }
 
     // MARK: - The depth rule on its own
