@@ -436,9 +436,52 @@ def _approving_runs(runs: list[dict], reviewer: str | None) -> list[dict]:
     for run in runs:
         if str(run.get("outcome") or "") != "completed":
             continue
-        metadata = run.get("metadata")
-        metadata = metadata if isinstance(metadata, dict) else {}
+        metadata = _run_metadata(run)
         if metadata.get("review_outcome") != "approved":
+            continue
+        if reviewer and str(run.get("profile") or "") != str(reviewer):
+            continue
+        out.append(run)
+    return out
+
+
+def _run_metadata(run: dict) -> dict:
+    """The run's metadata, whatever shape the reader found it in.
+
+    The board stores ``task_runs.metadata`` as JSON TEXT: the CLI decodes
+    it, and the sqlite reader does not. A run read straight out of the
+    database therefore carries a string, and a test for
+    ``isinstance(metadata, dict)`` drops the verdict on the floor: the
+    ``--branch`` path read the approval as no approval, while the
+    ``--card`` path (through the CLI) read the same run as approved.
+    """
+    metadata = run.get("metadata")
+    if isinstance(metadata, dict):
+        return metadata
+    if isinstance(metadata, (bytes, bytearray)):
+        metadata = metadata.decode("utf-8", errors="replace")
+    if isinstance(metadata, str) and metadata.strip():
+        try:
+            parsed = json.loads(metadata)
+        except json.JSONDecodeError:
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+    return {}
+
+
+def _verdict_runs(runs: list[dict], reviewer: str | None) -> list[dict]:
+    """The completed runs that carry a verdict from the reviewer.
+
+    A verdict is either an approval or a request for changes. The board
+    stores the run's metadata as JSON TEXT, so both shapes are read
+    through ``_run_metadata``.
+    """
+    out = []
+    for run in runs:
+        if str(run.get("outcome") or "") != "completed":
+            continue
+        metadata = _run_metadata(run)
+        if metadata.get("review_outcome") not in ("approved", "changes_requested"):
             continue
         if reviewer and str(run.get("profile") or "") != str(reviewer):
             continue
@@ -456,6 +499,12 @@ def verdict_from_doc(doc: dict) -> dict:
     created FOR the reviewer and never handed off, so its verdict is the
     reviewer's own completion, and the implementer is the profile that
     created it (the one that wrote the code).
+
+    Its verdict is read from the run's metadata field, which carries
+    either ``approved`` or ``changes_requested``. The board's own
+    ``request_changes`` transition is NOT the route here: it requires a
+    ``review_requested`` handoff event and a run claimed out of the
+    ``review`` status, and this flow never creates either.
     """
     events = [e for e in (doc.get("events") or []) if isinstance(e, dict)]
     runs = [r for r in (doc.get("runs") or []) if isinstance(r, dict)]
@@ -465,16 +514,23 @@ def verdict_from_doc(doc: dict) -> dict:
             task = doc.get("task") or {}
             reviewer = str(task.get("assignee") or "") or None
             implementer = str(task.get("created_by") or "") or None
-            approvals = _approving_runs(runs, reviewer)
-            if approvals and implementer and implementer != reviewer:
-                approval = max(approvals, key=lambda r: _at(r, "ended_at", "started_at"))
-                return {
-                    "status": "approved",
-                    "reviewer": reviewer,
-                    "implementer": implementer,
-                    "run_id": approval.get("id"),
-                }
-            if approvals:
+            verdicts = _verdict_runs(runs, reviewer)
+            if verdicts:
+                verdict = max(verdicts, key=lambda r: _at(r, "ended_at", "started_at"))
+                outcome = _run_metadata(verdict).get("review_outcome")
+                if outcome == "changes_requested":
+                    return {
+                        "status": "changes_requested",
+                        "reviewer": reviewer,
+                        "run_id": verdict.get("id"),
+                    }
+                if implementer and implementer != reviewer:
+                    return {
+                        "status": "approved",
+                        "reviewer": reviewer,
+                        "implementer": implementer,
+                        "run_id": verdict.get("id"),
+                    }
                 return {
                     "status": "self_review",
                     "reviewer": reviewer,
@@ -512,8 +568,7 @@ def verdict_from_doc(doc: dict) -> dict:
     for run in runs:
         if str(run.get("outcome") or "") != "completed":
             continue
-        metadata = run.get("metadata")
-        metadata = metadata if isinstance(metadata, dict) else {}
+        metadata = _run_metadata(run)
         if metadata.get("review_outcome") != "approved":
             continue
         if str(run.get("profile") or "") != str(reviewer):

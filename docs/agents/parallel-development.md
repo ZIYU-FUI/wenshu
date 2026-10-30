@@ -114,9 +114,15 @@ consecutive failures the card auto-blocks.
 ### The REVIEWER's verdict needs a machine-readable landing
 
 The reviewer approves with `kanban_complete(metadata={"review_outcome": "approved"})`,
-or sends the card back with `kanban_comment` plus `kanban_request_changes(reason=...)`.
+or asks for changes with `kanban_comment` (the finding) plus
+`kanban_complete(metadata={"review_outcome": "changes_requested"})`.
 A verdict written only in the summary is NOT a verdict: `review_gate.py` reads the run
 metadata's `review_outcome` field, so a prose verdict leaves the card `not_approved`.
+
+NOT `kanban_request_changes`: the board refuses it for a reviewer-owned card. It
+requires a `review_requested` handoff event carrying an implementer, and a run claimed
+out of the `review` status. A review card in this flow is created FOR the reviewer and
+is never handed off, so neither exists.
 
 Measured 2026-10-28: 4 cards on this board finished their review work and narrated the
 finding instead of calling a terminal tool. The dispatcher records that as a
@@ -135,7 +141,8 @@ So a card that owes a review names the verdict tool in its own handoff section:
 
         The reviewer ends its run with a terminal board call, never with prose:
         approve with `kanban_complete(metadata={"review_outcome": "approved", ...})`,
-        reject with `kanban_comment` then `kanban_request_changes(reason=...)`.
+        reject with `kanban_comment` then
+        `kanban_complete(metadata={"review_outcome": "changes_requested"})`.
 
 The section is ROUTING, so this text is not charged against the body's budget.
 

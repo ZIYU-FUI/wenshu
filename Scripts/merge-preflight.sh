@@ -23,10 +23,11 @@
 # code owes one verdict from a profile that is not its implementer, and this
 # script refuses to bless a merge until that verdict is on the record.
 #
-# The card id is read from the branch name (= project/<task-id>-<slug>), so
-# the gate needs no argument beyond the branch. A branch with no card id, or
-# a card created before the review contract started, is not gated: the cards
-# already on the board were dispatched under the old contract.
+# The review card is read by the sha the branch points at: under the
+# one-developer flow the branch is pocock's own (= it is not named after a
+# card), so the card whose body names that sha is the only card that can
+# cover the branch. A branch whose sha no card names carries NO verdict and
+# is refused, never skipped.
 #
 # Usage:
 #   merge-preflight.sh <card-branch> [<card-branch> ...]
@@ -78,7 +79,6 @@ review_card_for_branch() {
     python3 "$GATE" --branch "$branch" --sha "$sha" --board "$BOARD" 2>/dev/null \
         | sed -n 's/^CARD \([a-z_0-9]*\)$/\1/p' | head -1
 }
-
 conflict=0
 unreviewed=0
 for b in "${branches[@]}"; do
@@ -105,7 +105,21 @@ for b in "${branches[@]}"; do
     if [[ -z "$card" ]]; then
         card="$(review_card_for_branch "$b")"
     fi
-    [[ -z "$card" ]] && continue
+    if [[ -z "$card" ]]; then
+        # No review card resolves this branch. That is NOT "no card to
+        # gate": under the one-developer flow the sha lookup is the ONLY
+        # lookup (= the branch is pocock's own and is not named after a
+        # card), so a miss means the work carries no verdict. A gate that
+        # skips its own check silently is the exact defect this gate
+        # exists to prevent (= a check that cannot fail).
+        unreviewed=1
+        echo "UNREVIEWED $b"
+        echo "         no review card names the sha this branch points at"
+        echo "         (the review card's body names the sha under review;"
+        echo "          a rebase rewrites the sha, so a re-review must name"
+        echo "          the NEW sha)"
+        continue
+    fi
     if [[ ! -f "$GATE" ]]; then
         # A missing gate is NOT a pass. Refuse, because a merge gate that
         # skips its own check silently is the exact defect this gate exists

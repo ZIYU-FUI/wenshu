@@ -27,6 +27,7 @@ Exit: 0 = every case passed, 1 = at least one case failed.
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 from pathlib import Path
 
@@ -417,6 +418,98 @@ def main() -> int:
         tool.review_cards_for.__doc__ is not None
         and "BLOB" in (tool.review_cards_for.__doc__ or ""),
         True,
+    )
+
+    # 15. The board stores a run's metadata as JSON TEXT. A run read
+    # straight out of sqlite therefore carries a string, and a test for
+    # ``isinstance(metadata, dict)`` drops the verdict: the --branch path
+    # read an approval as no approval while the --card path (through the
+    # CLI, which decodes) read the same run as approved.
+    approval = {"review_outcome": "approved"}
+    check(
+        "a run whose metadata is JSON text still carries its verdict",
+        tool._run_metadata({"metadata": json.dumps(approval)}),
+        approval,
+    )
+    check(
+        "a run whose metadata is a dict still carries its verdict",
+        tool._run_metadata({"metadata": approval}),
+        approval,
+    )
+    check(
+        "a run whose metadata is unreadable carries no verdict",
+        tool._run_metadata({"metadata": "not json"}),
+        {},
+    )
+
+    # 16. The verdict of a review card is the reviewer's own completion,
+    # and it carries either an approval or a request for changes. The
+    # board's request_changes transition is NOT the route here (= it needs
+    # a review_requested handoff this flow never creates), so the reject
+    # route is a completion whose metadata says so.
+    review_task = {
+        "id": "t_test",
+        "assignee": "wenshu-review",
+        "created_by": "pocock",
+        "title": "[T2][review] The review card",
+        "body": "## WHAT TO BUILD\n\nA verdict on `a159635f2d`.\n",
+    }
+
+    def review_doc(runs):
+        return {"task": review_task, "runs": runs, "events": []}
+
+    check(
+        "a review card with an approving run reads approved",
+        tool.verdict_from_doc(
+            review_doc(
+                [
+                    {
+                        "id": 1,
+                        "profile": "wenshu-review",
+                        "outcome": "completed",
+                        "ended_at": 10,
+                        "metadata": {"review_outcome": "approved"},
+                    }
+                ]
+            )
+        )["status"],
+        "approved",
+    )
+    check(
+        "a review card asking for changes reads changes_requested",
+        tool.verdict_from_doc(
+            review_doc(
+                [
+                    {
+                        "id": 2,
+                        "profile": "wenshu-review",
+                        "outcome": "completed",
+                        "ended_at": 10,
+                        "metadata": {"review_outcome": "changes_requested"},
+                    }
+                ]
+            )
+        )["status"],
+        "changes_requested",
+    )
+    check(
+        "a review card whose reviewer is its implementer reads self_review",
+        tool.verdict_from_doc(
+            {
+                "task": dict(review_task, created_by="wenshu-review"),
+                "runs": [
+                    {
+                        "id": 3,
+                        "profile": "wenshu-review",
+                        "outcome": "completed",
+                        "ended_at": 10,
+                        "metadata": {"review_outcome": "approved"},
+                    }
+                ],
+                "events": [],
+            }
+        )["status"],
+        "self_review",
     )
 
     print()
