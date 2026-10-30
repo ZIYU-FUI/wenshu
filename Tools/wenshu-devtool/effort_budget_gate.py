@@ -97,8 +97,11 @@ import sys
 import time
 from pathlib import Path
 
-REPO = Path("/Volumes/ANAN/Engineering/wenshu")
-BOARD_DB = Path.home() / ".hermes/kanban/boards/wenshu-par/kanban.db"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import product_lines  # noqa: E402  (sibling module, same directory)
+
+REPO = Path(__file__).resolve().parents[2]
+BOARD_DB = Path(product_lines.board_db())
 
 # The gate starts here. Cards created before this are reported, never
 # blocked: the 161 cards already open were dispatched under the old

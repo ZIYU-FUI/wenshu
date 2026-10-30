@@ -99,8 +99,11 @@ import sqlite3
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import product_lines  # noqa: E402  (sibling module, same directory)
+
 PROFILE_ROOT = Path.home() / ".hermes/profiles"
-BOARD_DB = Path.home() / ".hermes/kanban/boards/wenshu-par/kanban.db"
+BOARD_DB = Path(product_lines.board_db())
 
 # Tools that read the code.
 CODE_READERS = ("read_file", "search_files", "terminal", "execute_code")

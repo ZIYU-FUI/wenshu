@@ -69,9 +69,13 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import product_lines  # noqa: E402  (sibling module, same directory)
 import ticket_tier  # noqa: E402  (sibling module, same directory)
 
-BOARD = "wenshu-par"
+# The board this tool reads when the caller names none. Declared in one
+# place (= product_lines), so a tool that sweeps boards reads the same
+# board list the rest of the devtool does.
+BOARD = product_lines.DEFAULT_BOARD
 
 # The epoch the gate-width contract starts at (= when this gate landed on
 # main). A card dispatched before it is reported, never blocked.

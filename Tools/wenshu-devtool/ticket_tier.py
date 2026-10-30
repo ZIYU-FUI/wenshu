@@ -77,8 +77,13 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import wave_gate  # noqa: E402  (sibling module, same directory)
 import effort_budget_gate  # noqa: E402  (sibling module, same directory)
+import product_lines  # noqa: E402  (sibling module, same directory)
 
-REPO = "/Volumes/ANAN/Engineering/wenshu"
+# The repo root. Derived from this file's own location, so the tool works
+# in whatever checkout it is run from (= a card's worktree, the shared
+# checkout, or a probe copy) instead of only at one hardcoded path.
+REPO = str(Path(__file__).resolve().parents[2])
+
 
 # The contract each tier buys.
 #
@@ -298,7 +303,12 @@ INSTRUMENT = re.compile(
 # WenshuAgent, so matching the word calls a card that mentions the type a
 # package-boundary change. Measured: the word fired on 11 cards and the path
 # on 16, and 4 of the word's hits were the type.
-PACKAGE_PATHS = ("Sources/WenshuAgent/", "Sources/WenshuData/")
+# The package boundaries of EVERY line this repo carries, so a card that
+# writes a mobile package boundary is as deep a change as one that writes
+# a desktop package boundary.
+PACKAGE_PATHS = tuple(
+    p for line in product_lines.PRODUCT_LINES for p in line.package_paths
+)
 # The file-shaped deep signals: they fire on a file the card WRITES.
 CATALOG_RE = re.compile(r"\.xcstrings$|\.lproj/|Info\.plist$", re.I)
 MANIFEST_RE = re.compile(r"^Package\.swift$")
@@ -578,6 +588,14 @@ def areas_of(paths: list[str]) -> set[str]:
     areas can break a caller it never named, so its narrow gate would not
     prove the change.
 
+    The measurement is the SHARED one (= product_lines.areas_of), because
+    the two product lines must measure the same work the same way. It was
+    measured here once, with the path read as it reads in the repo: with
+    the mobile line's `Mobile/` prefix left on, the area cut fell through
+    to the file-level branch on the extra directory, and the same six
+    files measured SIX areas instead of TWO (= every mobile card priced as
+    a T3 it did not earn).
+
     An area is a DIRECTORY, so the file's name never becomes one. A path
     with fewer directories than the cut (= `Tests/WenshuMobileTests/
     GlassSurfaceTests.swift`, where the tree is two levels deep, not four)
@@ -586,18 +604,7 @@ def areas_of(paths: list[str]) -> set[str]:
     not earn. The cut is on the directory, so the depth of the tree
     decides how deep the area goes, not how many segments the path has.
     """
-    areas: set[str] = set()
-    for path in paths:
-        parts = path.split("/")
-        if (path.startswith("Sources/") or "/Tests/" in f"/{path}") and len(parts) > 2:
-            # Drop the file's name, so the deepest segment is a directory.
-            directory = "/".join(parts[:-1])
-            areas.add("/".join(directory.split("/")[:3]))
-        elif path.startswith(("Tools/", "Scripts/", "docs/")):
-            areas.add(parts[0])
-        else:
-            areas.add(path)
-    return areas
+    return product_lines.areas_of(paths)
 
 
 # The sections that carry the ORDER: the paths in them are the files the
@@ -733,12 +740,15 @@ def signals(body: str) -> dict:
     # card touches, but the tier counts sources and areas, so an
     # unplaceable name cannot inflate either.
     qualified = {p for p in order if "/" in p}
-    sources = sorted(p for p in qualified if p.startswith("Sources/") and p.endswith(".swift"))
+    # The source and test sets come from the SHARED declaration, so the
+    # mobile line's files count as sources and its test files count as
+    # tests, exactly as the desktop line's do.
+    sources = product_lines.source_paths(qualified)
     # A TEST FILE IS A PATH WITH A `Tests/` SEGMENT, not a path that starts
     # with `Tests/`: the packages nest their test target inside the package
     # (= `Sources/WenshuAgent/Tests/WenshuAgentTests/...`), so a rule that
     # only counted the top-level test target read those files as source.
-    tests = sorted(p for p in qualified if "/Tests/" in f"/{p}" and p.endswith(".swift"))
+    tests = product_lines.test_paths(qualified)
     text = work_text(body)
     return {
         "files": sorted(written),
@@ -751,7 +761,7 @@ def signals(body: str) -> dict:
         "code": code_volume(body),
         "persistence": bool(SIGNALS["persistence"].search(text)),
         "new_subsystem": bool(SIGNALS["new_subsystem"].search(text)),
-        "package_boundary": any(p.startswith(PACKAGE_PATHS) for p in qualified)
+        "package_boundary": any(product_lines.is_package_boundary(p) for p in qualified)
         or any(MANIFEST_RE.match(p) for p in qualified),
         "live_app": bool(NOTES["live_app"].search(text)),
         "instrument": bool(INSTRUMENT.search(text)),
@@ -1440,6 +1450,37 @@ def print_card(row: dict) -> None:
         print(f"      - {note}")
 
 
+def _print_cards(cards: list[dict], args) -> int:
+    """Print the rows for one board's cards, and return the failure count.
+
+    The check counts CONTRADICTIONS, not notes. A note is a cost the
+    tier already pays for (= the string catalog merges by key, = a
+    multi-area card is priced by its tier), so a card whose only finding
+    is a note agrees with its tier.
+    """
+    rows = [report(card) for card in cards]
+
+    if args.json:
+        print(json.dumps(rows, indent=2))
+    else:
+        for row in rows:
+            print_card(row)
+            print()
+
+    if not args.check:
+        return 0
+    errors = [r for r in rows if r["errors"]]
+    if errors:
+        print(f"=== {len(errors)} card(s) disagree with their tier ===")
+        for row in errors:
+            print(f"  {row['id']}  {row['title']}")
+            for finding in row["errors"]:
+                print(f"      ! {finding}")
+        return 1
+    print("=== every card agrees with its tier ===")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("cards", nargs="*", help="card ids; default = every card")
@@ -1448,6 +1489,11 @@ def main() -> int:
     parser.add_argument("--check", action="store_true", help="report tier mismatches")
     parser.add_argument("--plan", action="store_true", help="print the tier contract table")
     parser.add_argument("--board", help="board slug; default = the current board")
+    parser.add_argument(
+        "--all-boards",
+        action="store_true",
+        help="sweep every board this repo carries (one per product line)",
+    )
     parser.add_argument("--json", action="store_true", help="machine-readable output")
     args = parser.parse_args()
 
@@ -1462,6 +1508,27 @@ def main() -> int:
         print("\nThe tier is derived from the card body by this script. The title")
         print("carries it as [T1] / [T2] / [T3] so `kanban list` shows the rating.")
         return 0
+
+    if args.all_boards:
+        # One sweep over EVERY board the repo carries, so a rule that
+        # names a path is measured on the line it belongs to. The boards
+        # are declared in one place (= product_lines), so a line added
+        # there is swept here without touching this tool.
+        failures = 0
+        for board in product_lines.BOARDS:
+            cards = kanban_cards(board)
+            if cards is None:
+                print(f"=== the board could not be read: {board} ===")
+                failures += 1
+                continue
+            if args.live:
+                cards = [c for c in cards if c.get("status") != "done"]
+            if args.cards:
+                wanted = set(args.cards)
+                cards = [c for c in cards if c.get("id") in wanted]
+            print(f"\n=== board {board} ===")
+            failures += _print_cards(cards, args)
+        return 1 if failures else 0
 
     if args.body:
         cards = [card_from_file(args.body)]
@@ -1480,30 +1547,7 @@ def main() -> int:
             wanted = set(args.cards)
             cards = [c for c in cards if c.get("id") in wanted]
 
-    rows = [report(card) for card in cards]
-
-    if args.json:
-        print(json.dumps(rows, indent=2))
-    else:
-        for row in rows:
-            print_card(row)
-            print()
-
-    if args.check:
-        # The check counts CONTRADICTIONS, not notes. A note is a cost the
-        # tier already pays for (= the string catalog merges by key, = a
-        # multi-area card is priced by its tier), so a card whose only
-        # finding is a note agrees with its tier.
-        errors = [r for r in rows if r["errors"]]
-        if errors:
-            print(f"=== {len(errors)} card(s) disagree with their tier ===")
-            for row in errors:
-                print(f"  {row['id']}  {row['title']}")
-                for finding in row["errors"]:
-                    print(f"      ! {finding}")
-            return 1
-        print("=== every card agrees with its tier ===")
-    return 0
+    return _print_cards(cards, args)
 
 
 if __name__ == "__main__":

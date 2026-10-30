@@ -82,7 +82,13 @@ import subprocess
 import sys
 from pathlib import Path
 
-REPO = "/Volumes/ANAN/Engineering/wenshu"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import product_lines  # noqa: E402  (sibling module, same directory)
+
+# The repo root, derived from this file's own location, so the tool works
+# in whatever checkout it runs from (= a card's worktree, the shared
+# checkout, or a probe copy) instead of only at one hardcoded path.
+REPO = str(Path(__file__).resolve().parents[2])
 
 # ===========================================================================
 # THE CARD-BODY VOCABULARY
@@ -213,12 +219,12 @@ GRANT_RE = re.compile(
     r"|\bupdate it in this ticket\b"
 )
 
-PATH_RE = re.compile(
-    r"(?:Sources|Tests|Tools|docs|Scripts)/[A-Za-z0-9_./-]+\.[A-Za-z0-9]+"
-    r"|(?:AGENTS|Package|CHANGELOG|OOB|CONTEXT|README)\.md"
-    r"|Package\.(?:swift|resolved)"
-    r"|\.(?:swiftlint\.yml|swift-format)"
-)
+# The path shape a card writes in. It is the SHARED one (= product_lines),
+# so a card naming a file inside the mobile package (= `Sources/
+# WenshuMobileApp/...`) is recognised exactly as one naming a desktop
+# file (= `Sources/WenshuApp/...`), and the repo-relative form of the
+# same file (= `Mobile/Sources/...`) is recognised too.
+PATH_RE = product_lines.PATH_RE
 
 # --- what a heading looks like -------------------------------------------
 #
