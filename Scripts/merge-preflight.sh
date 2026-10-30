@@ -74,7 +74,12 @@ card_id_of() {
 #
 # ``lookup_rc`` carries the gate's exit code to the caller, because "the
 # board could not be read" (= 2) and "no card names this sha" (= 3) are
-# different failures and the caller names them differently.
+# different failures and the caller names them differently. The caller
+# reads it from a FILE: the lookup runs inside a command substitution
+# (= a subshell), so a variable it set would not survive.
+LOOKUP_RC="$(mktemp "${TMPDIR:-/tmp}/wenshu-lookup-rc.XXXXXX")"
+trap 'rm -f "$LOOKUP_RC"' EXIT
+
 review_card_for_branch() {
     local branch="$1"
     local sha
@@ -82,7 +87,7 @@ review_card_for_branch() {
     sha=$(git rev-parse --verify -q "$branch" 2>/dev/null) || return 0
     [[ -z "$sha" ]] && return 0
     out="$(python3 "$GATE" --branch "$branch" --sha "$sha" --board "$BOARD" 2>/dev/null)"
-    lookup_rc=$?
+    printf '%s' "$?" > "$LOOKUP_RC"
     printf '%s\n' "$out" | sed -n 's/^CARD \([a-z_0-9]*\)$/\1/p' | head -1
 }
 conflict=0
@@ -163,6 +168,12 @@ for b in "${branches[@]}"; do
     fi
     if [[ -z "$card" ]]; then
         card="$(review_card_for_branch "$b")"
+        # The lookup runs in a command substitution (= a subshell), so its
+        # exit code does not reach this shell: the function writes it to a
+        # file the caller reads.
+        if [[ -z "$card" ]]; then
+            lookup_rc="$(cat "$LOOKUP_RC" 2>/dev/null || echo 0)"
+        fi
         if [[ -z "$card" && "${lookup_rc:-0}" -eq 2 ]]; then
             # The gate could not read the board, so it could not answer.
             # That is not "no card names this sha": it is "the answer is

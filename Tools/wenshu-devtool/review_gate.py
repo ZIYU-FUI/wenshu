@@ -228,20 +228,25 @@ def board_cards(board: str = BOARD) -> list[dict] | None:
 
 
 
-def review_cards_for(board: str = BOARD) -> list[dict]:
+def review_cards_for(board: str = BOARD) -> list[dict] | None:
     """Every card on the board, with its runs, read cheaply (= one query).
 
     A card body is not always TEXT: the board stores some of them as a
     BLOB, and a NULL for the cards created without one. Both are decoded
     here, so the caller never has to know the storage type.
+
+    None means the board could not be read, and an empty list means the
+    board is readable and holds no cards. The two are different facts: an
+    empty board is a board where nobody has a card, and an unreadable
+    one is a board nobody can ask.
     """
     path = _board_db_path(board)
     if path is None:
-        return []
+        return None
     try:
         conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
     except sqlite3.Error:
-        return []
+        return None
     try:
         conn.row_factory = sqlite3.Row
         cards = [dict(r) for r in conn.execute("SELECT * FROM tasks")]
@@ -249,7 +254,7 @@ def review_cards_for(board: str = BOARD) -> list[dict]:
         for r in conn.execute("SELECT * FROM task_runs ORDER BY started_at ASC"):
             runs.setdefault(r["task_id"], []).append(dict(r))
     except sqlite3.Error:
-        return []
+        return None
     finally:
         conn.close()
     for c in cards:
@@ -770,6 +775,12 @@ def main() -> int:
                 return 3
             sha_filter = resolved
         cards = review_cards_for(args.board)
+        if cards is None:
+            # The board could not be read. That is not "no card names
+            # this sha": it is "nobody can ask", and an answer nobody can
+            # get must not read as a refusal the caller can ignore.
+            print("BOARD UNREADABLE: the board could not be read")
+            return 2
         found = []
         for card in cards:
             # ``review_cards_for`` returns RAW task rows (= no ``task``
