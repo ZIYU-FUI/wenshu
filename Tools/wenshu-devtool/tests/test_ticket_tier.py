@@ -637,10 +637,136 @@ def main() -> int:
         any("runtime cap" in f for f in tool.find_errors(bad_cap)),
         True,
     )
+    # A card with NO cap has no fuse: the dispatcher only reaps a worker
+    # whose card carries one (= the reaper's query is `WHERE
+    # t.max_runtime_seconds IS NOT NULL`), so the card runs until the quota
+    # wall instead of until its work is done. Measured 2026-10-30: the
+    # newest card on the board was created with no cap at all.
+    no_cap = {k: v for k, v in good.items() if k != "max_runtime_seconds"}
+    # The rule starts on its epoch (= a rule that starts on a date does not
+    # look back at the cards that predate it), so the fixture is dated.
+    no_cap["created_at"] = tool.CAP_CONTRACT_FROM
+    findings = tool.find_errors(no_cap)
+    check(
+        "a card with no runtime cap is an error",
+        any("no runtime cap" in f for f in findings),
+        True,
+    )
+    check(
+        "a card with no runtime cap says what the tier buys",
+        any("no runtime cap" in f and "900" in f for f in findings),
+        True,
+    )
+    # The rule starts on its epoch, so a card that predates it is not
+    # reported (= the cards already on the board were dispatched under a
+    # flow that did not ask for a cap, and they have all finished).
+    legacy_no_cap = dict(no_cap, created_at=tool.CAP_CONTRACT_FROM - 1)
+    check(
+        "a card with no runtime cap from before the epoch is not an error",
+        not any("no runtime cap" in f for f in tool.find_errors(legacy_no_cap)),
+        True,
+    )
     missing_tag = dict(good, title="one file")
     check(
         "a missing title tag is an error",
         any("no tier tag" in f for f in tool.find_errors(missing_tag)),
+        True,
+    )
+
+    # 12. An INSTRUMENT card measures the built product instead of
+    #     writing it, so the tier cannot see it in the ORDER (= the files
+    #     the card writes): an instrument card writes no source file, so
+    #     it reads as the cheapest tier there is. But it builds the app,
+    #     launches it, waits, and reads a verdict, and that work has a
+    #     wall clock of its own.
+    #
+    #     Measured 2026-10-30: `t_0cb4b46d` (launch-time crash triage)
+    #     was priced T1 (= a 15-minute cap), ran the arm twice on that
+    #     cap, and timed out both times (908 s and 906 s against a 900 s
+    #     limit). It closed only after a human raised the cap by hand.
+    instrument_body = (
+        "## WHAT TO BUILD\n"
+        "This card writes no source file. It runs the arm:\n"
+        "```\n"
+        "python3 .../scripts/launch_arm.py --arm launch-after-guard-fix "
+        "--app <bundle> --exec <binary> --trials 6 --wait 95\n"
+        "```\n"
+        "The crash oracle matches on the binary's uuid, so an arm with no "
+        "uuid measures nothing, and a vacuous trial proves nothing.\n"
+    )
+    instrument_tier, instrument_reasons = tool.tier_of(instrument_body)
+    check(
+        "an instrument card is not T1",
+        instrument_tier,
+        "T2",
+    )
+    check(
+        "an instrument card says why it is not T1",
+        any("instrument" in r for r in instrument_reasons),
+        True,
+    )
+    # The same card WITHOUT the instrument is T1: the signal has to name
+    # the instrument, not the general English of measuring.
+    plain_body = instrument_body.replace(
+        "python3 .../scripts/launch_arm.py --arm launch-after-guard-fix "
+        "--app <bundle> --exec <binary> --trials 6 --wait 95",
+        "edit the file",
+    ).replace(
+        "The crash oracle matches on the binary's uuid, so an arm with no "
+        "uuid measures nothing, and a vacuous trial proves nothing.",
+        "the file changes",
+    )
+    check(
+        "a card that names no instrument is still T1",
+        tool.tier_of(plain_body)[0],
+        "T1",
+    )
+    # An instrument card is not T3 either: it writes no source file, so
+    # its blast radius is small even though its clock is long.
+    check(
+        "an instrument card is not T3",
+        instrument_tier != "T3",
+        True,
+    )
+
+    # 13. The INSTRUMENT lane has its own floor, the way the review lane
+    #     does. The floor is DERIVED from the card: the invocation names
+    #     the trial count and the per-trial wait, so the wall clock the
+    #     card cannot avoid is spelled out in the card itself.
+    #
+    #     Measured 2026-10-30: the launch-time crash triage card ran
+    #     `launch_arm.py --trials 6 --wait 95` (= 570 s of waiting before
+    #     it read a line), was priced T1 (= a 900 s cap), and timed out
+    #     twice (908 s and 906 s). It closed only after a human raised
+    #     the cap by hand.
+    check(
+        "an instrument card's floor is derived from its own wait",
+        tool.instrument_floor(instrument_body),
+        6 * 95 + tool.INSTRUMENT_WAIT_ALLOWANCE,
+    )
+    check(
+        "a card that names no instrument has no floor",
+        tool.instrument_floor(plain_body),
+        0,
+    )
+    # The floor is what the gate checks: under it, the card dies before
+    # its instrument reports.
+    under_floor = {
+        "body": instrument_body,
+        "created_at": tool.CAP_CONTRACT_FROM,
+        "max_runtime_seconds": 900,
+        "title": "[T2] an instrument card",
+    }
+    check(
+        "an instrument card under its floor is an error",
+        any("instrument needs at least" in f for f in tool.find_errors(under_floor)),
+        True,
+    )
+    # Over the floor is generous, not wrong (= the review lane's rule).
+    over_floor = dict(under_floor, max_runtime_seconds=2700)
+    check(
+        "an instrument card over its floor is not an error",
+        not any("instrument needs at least" in f for f in tool.find_errors(over_floor)),
         True,
     )
 

@@ -164,6 +164,18 @@ TIERS = {
     },
 }
 
+# The epoch of the "a card must carry a cap" rule. A card with no
+# `max_runtime_seconds` has no fuse: the dispatcher's reaper only sees the
+# workers whose card carries one (= its query is `WHERE
+# t.max_runtime_seconds IS NOT NULL`), so a card without a cap runs until
+# the provider's quota wall or the process dies.
+#
+# Cards created before this epoch were dispatched under a flow that did
+# not ask for a cap, and they have all finished or been archived. So the
+# rule starts here and does not look back.
+CAP_CONTRACT_FROM = 1793260800  # 2026-10-30 00:00 CST
+
+
 # A card carries its tier in the title, so `kanban list` shows the rating at a
 # glance and the worker reads it without hunting for it.
 TITLE_RE = re.compile(r"^\[(T[123])\]\s*")
@@ -213,6 +225,39 @@ NOTES = {
         re.I,
     ),
 }
+
+# An INSTRUMENT card measures the built product instead of writing it.
+#
+# The tier is derived from the ORDER (= the files the card writes), so a
+# card that writes NO source file reads as the cheapest tier there is: it
+# looks like a card that touches nothing. But the work of an instrument
+# card is the ARM: it builds the app, launches it, waits, and reads a
+# verdict out of the run. That work has a wall clock of its own, and the
+# tier cannot see it.
+#
+# Measured 2026-10-30: the card `t_0cb4b46d` (launch-time crash triage)
+# writes no source file, so the tier priced it T1 (= a 15-minute cap). It
+# ran the arm twice on that cap and timed out both times (908 s and 906 s
+# against a 900 s limit), and it only closed after a human raised the cap
+# by hand. Its own gate names the arm's invocation, including the trial
+# count and the per-trial wait, so the floor was written in the card the
+# whole time.
+#
+# So an instrument card is a card that NAMES THE INSTRUMENT, and the
+# vocabulary here is the instrument's own (= its script, its flags, its
+# verdict), NOT the general English of "launching" and "measuring". A wide
+# net was tried first and rejected: `"the arm"` alone matched 32 cards
+# that had nothing to do with an arm, and `measure` matched 20 of 28
+# cards on the board. The narrow net below matches 4 cards on a board of
+# 166, and every one of the 4 is an instrument card.
+INSTRUMENT = re.compile(
+    r"launch_arm\.py"      # the instrument's own script
+    r"|--arm\s+\w"         # the arm it selects
+    r"|--trials\s+\d"      # how many trials it runs
+    r"|vacuous\b"          # the verdict it renders
+    r"|crash oracle",       # the oracle it matches on
+    re.I,
+)
 
 # The package boundary is a PATH, not a word. The app's facade TYPE is named
 # WenshuAgent, so matching the word calls a card that mentions the type a
@@ -637,6 +682,7 @@ def signals(body: str) -> dict:
         "package_boundary": any(p.startswith(PACKAGE_PATHS) for p in qualified)
         or any(MANIFEST_RE.match(p) for p in qualified),
         "live_app": bool(NOTES["live_app"].search(text)),
+        "instrument": bool(INSTRUMENT.search(text)),
         "catalog": any(CATALOG_RE.search(p) for p in qualified),
     }
 
@@ -671,11 +717,18 @@ def tier_of(body: str) -> tuple[str, list[str]]:
     if deep:
         return "T3", deep
 
+    # An instrument card is BLOCKING, so it cannot be T1: T1 is the tier
+    # for a card that touches almost nothing, and an instrument card runs
+    # the built product for a wall clock of its own. It is not DEEP, so it
+    # does not become T3: it writes no source file, so its blast radius is
+    # small even though its clock is long. T2 (= 25m) is where it belongs.
     blocking = [
         name
         for name in ("persistence", "live_app", "new_subsystem", "package_boundary")
         if sig[name]
     ]
+    if sig["instrument"]:
+        blocking.append("an instrument to run")
     if (
         sig["n_sources"] <= 1
         and sig["n_files"] <= 2
@@ -686,10 +739,17 @@ def tier_of(body: str) -> tuple[str, list[str]]:
             f"{sig['n_sources']} source file, {sig['n_tests']} test file(s)",
             "no persistence, no live-app proof, no new subsystem",
         ]
-    return "T2", [
+    reasons = [
         f"{sig['n_sources']} source file(s), {sig['n_tests']} test file(s)",
-        "no deep-work signal",
     ]
+    if sig["instrument"]:
+        # Say WHY the card is not T1. A card that writes no source file
+        # would otherwise read as the cheapest tier there is, and the
+        # reason it is not is invisible: it runs an instrument.
+        reasons.append("it runs an instrument, so it has a clock of its own")
+    else:
+        reasons.append("no deep-work signal")
+    return "T2", reasons
 
 
 def gate_width(body: str) -> str:
@@ -714,6 +774,69 @@ def declared_tier(title: str) -> str | None:
     return match.group(1) if match else None
 
 
+def _is_subject(card: dict) -> bool:
+    """Whether this card was created on or after the cap contract's epoch.
+
+    A rule that starts on a date does not look back: the cards created
+    before it were dispatched under a flow that did not ask for the thing
+    the rule asks for, and they have all finished or been archived. So the
+    finding is scoped to the cards a session could still dispatch.
+    """
+    try:
+        created = int(card.get("created_at") or 0)
+    except (TypeError, ValueError):
+        return False
+    return created >= CAP_CONTRACT_FROM
+
+
+# The INSTRUMENT LANE has its own clock, the way the review lane does.
+#
+# A card that runs an instrument spends most of its time WAITING for the
+# instrument, and the wait is written in the card: the invocation names
+# the trial count and the per-trial wait, so the wall clock the card
+# cannot avoid is DERIVABLE instead of guessed.
+#
+# Measured 2026-10-30: the launch-time crash triage card
+# (`t_0cb4b46d`) runs `launch_arm.py --trials 6 --wait 95`, so the arm
+# alone costs 570 s of waiting before the card has read a single line.
+# The tier priced that card T1 (= a 900 s cap), it timed out twice
+# (908 s and 906 s against the 900 s limit), and it closed only after a
+# human raised the cap by hand.
+#
+# So the instrument's own wait is a FLOOR on the cap, the way the review
+# lane's 3600 s is a floor: a card carrying less dies on the clock
+# before its instrument can report. A card carrying more is generous,
+# not wrong, so the floor is what this gate checks.
+#
+# The floor is the arm's wait PLUS the work around it (= the build it
+# runs and the reading it does), because the wait is only the part that
+# is spelled out. The allowance around it is the same for every
+# instrument, so it is one number here.
+INSTRUMENT_WAIT_ALLOWANCE = 900
+_TRIALS_RE = re.compile(r"--trials\s+(\d+)")
+_WAIT_RE = re.compile(r"--wait\s+(\d+)")
+
+
+def instrument_floor(body: str) -> int:
+    """The wall clock an instrument card cannot avoid, in seconds.
+
+    Zero when the card names no instrument, or names one whose wait the
+    card does not spell out. The floor is a floor, not a cap: it says
+    what the card MUST be given, and a card that asks for more is fine.
+    """
+    trials = _TRIALS_RE.search(body)
+    wait = _WAIT_RE.search(body)
+    if not (trials and wait):
+        return 0
+    try:
+        arm = int(trials.group(1)) * int(wait.group(1))
+    except ValueError:
+        return 0
+    if arm <= 0:
+        return 0
+    return arm + INSTRUMENT_WAIT_ALLOWANCE
+
+
 def find_contract_errors(card: dict) -> list[str]:
     """Every way the card CONTRADICTS the tier it earns.
 
@@ -734,7 +857,24 @@ def find_contract_errors(card: dict) -> list[str]:
         errors.append(f"title says {claimed}, the body earns {tier}")
 
     runtime = card.get("max_runtime_seconds")
-    if runtime is not None:
+    if runtime is None:
+        # A card with NO cap has no fuse, so it is a contradiction with the
+        # tier the same way a wrong cap is: the tier says how long the work
+        # gets, and a card that carries no time at all carries no answer.
+        #
+        # Measured 2026-10-30: the newest card on the board
+        # (`t_c2483505`) was created with no cap at all, and it was running
+        # with no fuse on it. The cards created before the epoch were
+        # dispatched under a flow that did not ask for a cap, and they have
+        # all finished or been archived, so the rule does not look back.
+        if _is_subject(card):
+            errors.append(
+                f"the card carries no runtime cap, so it has no fuse: tier {tier} "
+                f"buys {contract['runtime']}s ({contract['runtime_text']}), and a "
+                "card without a cap runs until the quota wall, not until its "
+                "work is done"
+            )
+    else:
         # A card in the review lane runs the REVIEW's work, so it is judged
         # against the review lane's cap (= the lane's own measured
         # distribution), not against the tier's implementation cap.
@@ -754,11 +894,32 @@ def find_contract_errors(card: dict) -> list[str]:
                     f"{REVIEW_LANE_CAP_FLOOR}s (= a review that runs out of "
                     f"clock hands back no verdict)"
                 )
-        elif runtime != contract["runtime"]:
-            errors.append(
-                f"runtime cap {runtime}s, tier {tier} buys {contract['runtime']}s "
-                f"({contract['runtime_text']})"
-            )
+        else:
+            # The INSTRUMENT lane has its own floor, the way the review
+            # lane does. The floor is DERIVED from the card (= the arm's
+            # own trial count and per-trial wait), so a card that spells
+            # out a long arm cannot be priced under it. A card carrying
+            # more than the floor is generous, not wrong.
+            floor = instrument_floor(body)
+            if floor:
+                # An instrument card is judged against its FLOOR, not
+                # against the tier's exact cap: the tier's cap is fitted
+                # to an implementation run, and an instrument card is not
+                # one. A card carrying less than the floor dies on the
+                # clock before its instrument can report; a card carrying
+                # more is generous, not wrong (= the review lane's rule).
+                if runtime < floor:
+                    errors.append(
+                        f"runtime cap {runtime}s, the instrument needs at least "
+                        f"{floor}s (= the arm's own wait plus the build and the "
+                        f"reading around it), and a card that runs out of clock "
+                        f"hands back no verdict"
+                    )
+            elif runtime != contract["runtime"]:
+                errors.append(
+                    f"runtime cap {runtime}s, tier {tier} buys {contract['runtime']}s "
+                    f"({contract['runtime_text']})"
+                )
 
     if work_length(body) > contract["body_max"]:
         errors.append(
