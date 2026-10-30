@@ -200,8 +200,16 @@ private struct InspectorTodoCard: View {
             SFIcon("tray", style: .inlineSmall, color: InspectorTodoStateStyle.tone(for: todo.status))
                 .symbolRenderingMode(.hierarchical)
         case HermesTodoStatus.inProgress:
+            // The spinner sits at the column's leading edge (= the
+            // symbols sit there, = and a centred spinner under a
+            // leading symbol would start the words a step apart).
+            // `fixedSize` keeps the spinner at its own width (= a
+            // spinner fills the space it is offered and centres
+            // itself in it, = so without this it sits in the middle
+            // of the column while the symbols sit at its edge).
             ProgressView()
                 .controlSize(.mini)
+                .fixedSize()
         case HermesTodoStatus.completed:
             SFIcon("checkmark.circle.fill", style: .inlineSmall, color: InspectorTodoStateStyle.tone(for: todo.status))
         case HermesTodoStatus.cancelled:
