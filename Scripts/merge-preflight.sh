@@ -102,6 +102,24 @@ for b in "${branches[@]}"; do
     # review card that covers it is the one whose body names the sha the
     # branch points at. So the branch's tip sha is the lookup key.
     card="$(card_id_of "$b")"
+    if [[ -n "$card" ]]; then
+        # A card id in the branch name is a CLAIM, not a fact: the card may
+        # have been archived, or the branch may name a card that never
+        # existed. The claim only counts when the board still carries
+        # that card. Otherwise the lookup falls through to the sha, and a
+        # sha that no card names is refused below.
+        if ! python3 "$GATE" --card "$card" --board "$BOARD" >/dev/null 2>&1; then
+            gate_rc=$?
+            if [[ $gate_rc -eq 2 ]]; then
+                unreviewed=1
+                echo "UNREADABLE $b"
+                echo "         the board could not be read, so the card"
+                echo "         ($card) this branch names cannot be checked"
+                continue
+            fi
+            card=""
+        fi
+    fi
     if [[ -z "$card" ]]; then
         card="$(review_card_for_branch "$b")"
     fi
@@ -140,6 +158,19 @@ for b in "${branches[@]}"; do
     elif [[ $gate_rc -eq 1 ]]; then
         unreviewed=1
         echo "CONTRACT  $b"
+        echo "$gate_out" | sed 's/^/         /'
+    elif [[ $gate_rc -eq 2 ]]; then
+        # The board could not be read. That is NOT "no verdict": it is
+        # "the verdict is unknown", and an unknown verdict must not read
+        # as an approving one.
+        unreviewed=1
+        echo "UNREADABLE $b"
+        echo "$gate_out" | sed 's/^/         /'
+    elif [[ $gate_rc -ne 0 ]]; then
+        # Any other non-zero exit is a gate that could not give its
+        # answer. Refuse: a gate that cannot fail is not a gate.
+        unreviewed=1
+        echo "UNREVIEWED $b"
         echo "$gate_out" | sed 's/^/         /'
     fi
 done
