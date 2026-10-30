@@ -31,6 +31,8 @@ import contextlib
 import importlib.util
 import io
 import json
+import os
+import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -1471,6 +1473,83 @@ def main() -> int:
         ),
         ["Sources/WenshuApp/Features", "Tests/WenshuAppTests/Chat"],
     )
+
+    # 20. THE BOARD READER MUST CARRY THE RUNS, BECAUSE THE LIST VIEW HAS
+    #     NONE. `hermes kanban list --json` returns a card without its run
+    #     history, and the type derivation reads the runs to tell a review
+    #     card (= no implementation phase) from a build card that happens to
+    #     be sitting in the review lane. With the runs missing that judgement
+    #     could never fire, so a card the board calls a review card was
+    #     derived as a build card (= it owed a verdict it was about to give),
+    #     and its declared type was reported as a contradiction. The runs
+    #     come from the board's own record.
+    with tempfile.TemporaryDirectory() as tmp:
+        home = Path(tmp)
+        board_dir = home / "kanban" / "boards" / "wenshu-par"
+        board_dir.mkdir(parents=True)
+        db_path = board_dir / "kanban.db"
+        conn = sqlite3.connect(db_path)
+        conn.execute(
+            "CREATE TABLE task_runs (id INTEGER, task_id TEXT, profile TEXT)"
+        )
+        conn.executemany(
+            "INSERT INTO task_runs (id, task_id, profile) VALUES (?, ?, ?)",
+            [
+                (1, "t_reviewonly", "wenshu-review"),
+                (2, "t_reviewonly", "wenshu-review"),
+                (3, "t_implemented", "wenshu-dev"),
+                (4, "t_implemented", "wenshu-review"),
+            ],
+        )
+        conn.commit()
+        conn.close()
+
+        listing = _StubCLI(
+            returncode=0,
+            stdout=json.dumps([
+                {"id": "t_reviewonly", "title": "[T1][审核] r", "body": ONE_FILE,
+                 "status": "ready", "max_runtime_seconds": 900},
+                {"id": "t_implemented", "title": "[T1][工单] b", "body": ONE_FILE,
+                 "status": "ready", "max_runtime_seconds": 900},
+            ]),
+        )
+        saved_env = os.environ.get("HERMES_HOME")
+        os.environ["HERMES_HOME"] = str(home)
+        saved_cli = tool.subprocess
+        try:
+            tool.subprocess = listing
+            code, out, err = run_check(tool, listing, ["--check", "--board", "wenshu-par"])
+            cards = tool.kanban_cards("wenshu-par")
+        finally:
+            tool.subprocess = saved_cli
+            if saved_env is None:
+                os.environ.pop("HERMES_HOME", None)
+            else:
+                os.environ["HERMES_HOME"] = saved_env
+
+        check(
+            "the board reader carries the card's runs",
+            sorted(p["profile"] for p in (cards or [{}])[0].get("runs", [])),
+            ["wenshu-review", "wenshu-review"],
+        )
+        check(
+            "a card with no implementation phase is derived as a review card",
+            tool.card_type(ONE_FILE, (cards or [{}])[0].get("runs")),
+            "review",
+        )
+        check(
+            "a card with an implementation phase is not a review card",
+            tool.card_type(ONE_FILE, (cards or [{}])[1].get("runs")),
+            "build",
+        )
+        # The sweep must not report the type as a contradiction: the
+        # declaration and the runs-derived kind agree, so the card's only
+        # findings are about its cap and its budget.
+        check(
+            "a declared review type is not reported as a contradiction",
+            "the title says the card is" in out,
+            False,
+        )
 
     print()
     if FAILURES:

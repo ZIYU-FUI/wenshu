@@ -67,7 +67,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
+import sqlite3
 import subprocess
 import sys
 from pathlib import Path
@@ -1318,7 +1320,67 @@ def kanban_cards(board: str | None = None) -> list[dict] | None:
     if not isinstance(data, list):
         print("the board could not be read: the CLI printed no card list", file=sys.stderr)
         return None
-    return list(data)
+    cards = list(data)
+    _attach_runs(cards, board)
+    return cards
+
+
+def _board_db_path(board: str) -> Path | None:
+    """The board's database file, or None when it cannot be found.
+
+    ``HERMES_HOME`` points at the PROFILE's directory, not at the home that
+    holds the boards, so the profile's own copy is tried first and the shared
+    home second (the same search the review gate does, = a wrong path here
+    means no run history at all).
+    """
+    candidates = []
+    env = os.environ.get("HERMES_HOME")
+    if env:
+        candidates.append(Path(env))
+    candidates.append(Path.home() / ".hermes")
+    for home in candidates:
+        candidate = home / "kanban" / "boards" / board / "kanban.db"
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def _attach_runs(cards: list[dict], board: str | None) -> None:
+    """Give every card its run history, because the board's LIST view has none.
+
+    ``hermes kanban list --json`` does not carry a card's runs, and the type
+    derivation needs them: a card whose every run carries the reviewer's
+    profile has NO implementation phase, and that is what separates a review
+    card from a build card sitting in the review lane. With the runs
+    missing, that judgement could never fire, and a card that the board
+    itself calls a review card was derived as a build card (= it owed a
+    verdict it was about to give). The read is from the board's own record,
+    which is the same record the review gate reads.
+    """
+    if not board:
+        return
+    db_path = _board_db_path(board)
+    if db_path is None:
+        return
+    try:
+        conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True, timeout=30)
+    except sqlite3.Error:
+        return
+    try:
+        rows = conn.execute(
+            "SELECT task_id, profile FROM task_runs "
+            "WHERE profile IS NOT NULL AND profile != ''"
+        ).fetchall()
+    except sqlite3.Error:
+        return
+    finally:
+        conn.close()
+    runs: dict[str, list[dict]] = {}
+    for task_id, profile in rows:
+        runs.setdefault(str(task_id), []).append({"profile": str(profile)})
+    for card in cards:
+        card_id = str(card.get("id") or "")
+        card["runs"] = runs.get(card_id, [])
 
 
 def card_from_file(path: str) -> dict:
