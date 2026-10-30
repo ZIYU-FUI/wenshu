@@ -631,11 +631,22 @@ def main() -> int:
         any("title says T3" in f for f in tool.find_errors(bad_title)),
         True,
     )
-    bad_cap = dict(good, max_runtime_seconds=1800)
+    # THE CAP IS A FLOOR, NOT AN EXACT VALUE. A cap ABOVE the tier's is
+    # generous, not wrong: the review lane raises a card's cap when the
+    # card is handed off, and that raise outlives the review, so a finished
+    # card keeps a cap the tier did not buy. A cap BELOW it is a fuse that
+    # fires before the work can finish, and that is an error.
+    bad_cap = dict(good, max_runtime_seconds=600)
     check(
-        "a wrong cap is an error",
+        "a cap below the tier's is an error",
         any("runtime cap" in f for f in tool.find_errors(bad_cap)),
         True,
+    )
+    generous_cap = dict(good, max_runtime_seconds=1800)
+    check(
+        "a cap above the tier's is generous, not an error",
+        any("runtime cap" in f for f in tool.find_errors(generous_cap)),
+        False,
     )
     # A card with NO cap has no fuse: the dispatcher only reaps a worker
     # whose card carries one (= the reaper's query is `WHERE
@@ -956,8 +967,11 @@ def main() -> int:
         ),
         True,
     )
-    # A build card that is WAITING for review keeps the implementation's
-    # clock, so it is not held to the review lane's floor.
+    # A build card that is QUEUED for review owes the review's clock: the
+    # reviewer is about to run the review on this card, and the review is
+    # slower than the implementation it audits. The card's status is the
+    # signal here, not its assignee (= a card that has not been handed off
+    # yet still sits with its implementer).
     build_waiting = {
         "body": build_with_verdict_later,
         "title": "[T1][工单] a build",
@@ -967,12 +981,79 @@ def main() -> int:
         "assignee": "wenshu-dev",
     }
     check(
-        "a build card waiting for review is not held to the review floor",
+        "a build card queued for review owes the review lane's floor",
         any(
             "review lane needs at least" in f
             for f in tool.find_errors(build_waiting)
         ),
+        True,
+    )
+    # A build card that has NOT been handed off yet runs the
+    # implementation's clock.
+    build_not_handed_off = dict(build_waiting, status="running")
+    check(
+        "a build card not handed off keeps the implementation's clock",
+        any(
+            "review lane needs at least" in f
+            for f in tool.find_errors(build_not_handed_off)
+        ),
         False,
+    )
+    # But a build card that is ALREADY with the reviewer DOES owe the
+    # review's clock: the reviewer inherits the cap column the
+    # implementation left behind, and the review is slower than the
+    # implementation it audits.
+    build_under_review = dict(build_waiting, assignee="wenshu-review")
+    check(
+        "a build card under review owes the review lane's floor",
+        any(
+            "review lane needs at least" in f
+            for f in tool.find_errors(build_under_review)
+        ),
+        True,
+    )
+    # And a FINISHED build card owes nothing more, even though it is still
+    # assigned to the reviewer (= the assignee alone cannot say whether the
+    # review still has to happen).
+    build_reviewed = dict(build_under_review, status="done")
+    check(
+        "a finished build card owes no review clock",
+        any(
+            "review lane needs at least" in f
+            for f in tool.find_errors(build_reviewed)
+        ),
+        False,
+    )
+    # THE CAP IS A FLOOR. A cap ABOVE the tier's is generous, not wrong:
+    # the review lane raises a card's cap when the card is handed off, and
+    # that raise outlives the review, so a finished card keeps a cap the
+    # tier did not buy. Measured 2026-10-30: five cards on the two boards
+    # carried the review lane's 3600 s cap, and every one of them was
+    # reported as a tier violation for it.
+    generous = {
+        "body": build_with_verdict_later,
+        "title": "[T1][工单] a build",
+        "created_at": tool.CAP_CONTRACT_FROM,
+        "max_runtime_seconds": 3600,
+        "status": "done",
+        "assignee": "wenshu-review",
+    }
+    check(
+        "a cap above the tier's is generous, not a violation",
+        any(
+            "tier T1 buys 900s" in f for f in tool.find_errors(generous)
+        ),
+        False,
+    )
+    # A cap BELOW the tier's is still an error: that is a fuse that fires
+    # before the work can finish.
+    tight = dict(generous, max_runtime_seconds=600)
+    check(
+        "a cap below the tier's is an error",
+        any(
+            "tier T1 buys 900s" in f for f in tool.find_errors(tight)
+        ),
+        True,
     )
     # And the review obligation follows the TYPE, not the body: the same
     # build body, declared a research card, owes no verdict.

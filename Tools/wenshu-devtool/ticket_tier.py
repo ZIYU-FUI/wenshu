@@ -1054,6 +1054,32 @@ def type_owes_verdict(kind: str) -> bool:
     return kind == "build"
 
 
+def _awaits_review(card: dict) -> bool:
+    """Whether this card still owes a review (= the review is not done).
+
+    A card is handed off by being reassigned to the reviewer, and the card
+    STAYS assigned to it for the whole review, so the assignee alone cannot
+    say whether the review still has to happen: a finished card is still
+    assigned to the reviewer, and it owes nothing more.
+
+    So the review is pending while the card is QUEUED for it or WORKING on
+    it, and it is done once the card is done or archived.
+    """
+    status = str(card.get("status") or "").strip().lower()
+    if status in ("done", "archived"):
+        return False
+    # QUEUED for review (= the status the card sits in between the handoff
+    # and the reviewer's pickup).
+    if status == "review":
+        return True
+    # WORKING on the review (= the card is with the reviewer).
+    assignee = str(card.get("assignee") or "").strip()
+    if assignee == REVIEW_PROFILE:
+        return True
+    reviewer = named_reviewer(card.get("body") or "")
+    return bool(reviewer and assignee and assignee == reviewer)
+
+
 def find_contract_errors(card: dict) -> list[str]:
     """Every way the card CONTRADICTS the tier it earns.
 
@@ -1105,26 +1131,25 @@ def find_contract_errors(card: dict) -> list[str]:
                 "work is done"
             )
     else:
-        # A card in the review lane runs the REVIEW's work, so it is judged
-        # against the review lane's cap (= the lane's own measured
-        # distribution), not against the tier's implementation cap.
+        # THE CAP IS A FLOOR, NOT AN EXACT VALUE, and the floor depends on
+        # what the card still has to do.
         #
-        # The lane is WHO IS ASSIGNED, not the card's momentary status. A
-        # review card is assigned to the reviewer the moment it is handed off
-        # and stays assigned to it for the whole review, so the reviewer is
-        # the durable signal. Keying on status == "review" only covered the
-        # QUEUED window: a card under review (status "running") was judged as
-        # implementation work, which both flagged a generous review cap as a
-        # tier violation and MISSED a review whose cap was under the floor --
-        # the exact card that dies on the clock and hands back no verdict.
-        # A REVIEW card runs the REVIEW's work (= re-read the diff, re-derive
-        # the acceptance, re-run the gates), which is slower than the
-        # implementation it audits, so it is judged against the review
-        # lane's floor. The TYPE decides that, not the card's status at this
-        # instant: a review card that has not been picked up yet still owes
-        # the review's clock, and a build card that happens to be sitting in
-        # the review queue still runs the implementation's clock.
-        if kind == "review" or in_review_lane(card):
+        # A card that still owes a REVIEW (= it is a REVIEW card, or it is a
+        # BUILD card waiting for or under review) runs the review's work on
+        # its own clock, and the review lane's measured distribution says
+        # that work needs at least 3600 s. The reviewer inherits the cap
+        # column the implementation left behind, so the cap is raised when
+        # the card is handed off.
+        #
+        # A card that owes no review (= it is a BUILD card that has not been
+        # handed off, or a finished one) is measured against its tier's own
+        # cap, and it is measured as a FLOOR: a cap ABOVE the tier's is
+        # generous, not wrong. That is the same rule the review lane and the
+        # instrument lane use (= "carrying more than the floor is generous"),
+        # and it is what makes a card whose cap was raised for its review
+        # stop reading as a contract violation once the review is done.
+        owes_review = kind == "review" or _awaits_review(card)
+        if owes_review:
             if runtime < REVIEW_LANE_CAP_FLOOR:
                 errors.append(
                     f"runtime cap {runtime}s, the review lane needs at least "
@@ -1152,7 +1177,14 @@ def find_contract_errors(card: dict) -> list[str]:
                         f"reading around it), and a card that runs out of clock "
                         f"hands back no verdict"
                     )
-            elif runtime != contract["runtime"]:
+            elif runtime < contract["runtime"]:
+                # The cap is a FLOOR. A cap ABOVE the tier's is generous,
+                # not wrong: the review lane raises a card's cap when the
+                # card is handed off, and that raise outlives the review,
+                # so a finished card keeps a cap the tier did not buy.
+                # Measured 2026-10-30: five cards on the two boards carried
+                # the review lane's 3600 s cap, and every one of them was
+                # reported as a tier violation for it.
                 errors.append(
                     f"runtime cap {runtime}s, tier {tier} buys {contract['runtime']}s "
                     f"({contract['runtime_text']})"
