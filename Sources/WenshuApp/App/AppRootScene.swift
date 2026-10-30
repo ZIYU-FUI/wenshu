@@ -9,7 +9,6 @@ import WenshuData
 // … (= 18 rationale lines collapsed; = A112 docblock collapse per §1.8)
 // / scenes, prefer this same naming convention.
 enum WindowID {
-    static let kanban = "wenshu-kanban"
     // SwiftData library upgrade panel window (see OOB.md #2026-10-06). Single-instance Window (= macOS
     // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
     // must walk through the panel's 重试 / 退出 button path).
@@ -158,14 +157,6 @@ struct AppRootScene: Scene {
         // Add 2 dedicated `Window` scenes (= the SwiftUI macOS
         // … (= 64 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // by default (= no `.defaultSize` modifier needed).
-        Window("看板", id: WindowID.kanban) {
-            KanbanWindow(workspaceUI: workspaceUI)
-        }
-        .windowResizability(.contentSize)
-        // macOS 27 doc-alignment: kanban + todo secondary windows
-        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
-        // macOS toolbar) for consistency.
-        .windowToolbarStyle(.unified)
         // SwiftData library upgrade panel (= boss OOB 2026-10-06
         // … (= 26 rationale lines collapsed; = A112 docblock collapse per §1.8)
         // arguments from outside).

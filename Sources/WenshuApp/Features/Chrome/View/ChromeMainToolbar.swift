@@ -66,15 +66,6 @@ extension ChromeMainToolbar: ToolbarContent {
     /// rightmost toolbar slot (= matches the wenshu 1:1 macOS 27
     /// Liquid Glass default).
     var body: some ToolbarContent {
-        ToolbarItem(placement: .primaryAction) {
-            WindowOpenButton(
-                id: WindowID.kanban,
-                icon: "rectangle.split.3x1",
-                title: String(localized: "window.kanban.title"),
-                openWindow: openWindow,
-                isEnabled: true
-            )
-        }
         ToolbarItem(placement: .automatic) {
             // Export button (= the 2nd `.toolbar` block that lived
             // in LibraryRootView.content). Cross-component sync:

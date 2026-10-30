@@ -514,7 +514,7 @@ Per boss 2026-10-16 OOB "用不用每一个都像截图一样拆出来" (= each 
 
 | WindowID | Feature dir | Window file |
 | --- | --- | --- |
-| `kanban` | `Features/Kanban/` (pre-existing) | `View/KanbanWindow.swift` |
+| `kanban` | `Features/Kanban/` (pre-existing) | `View/KanbanView.swift` (= the board, in the trailing column's task page) |
 | `todo` | `Features/Todo/` (NEW A93) | `View/TodoWindow.swift` |
 | `canvas` | `Features/Canvas/` (NEW A93) | `View/CanvasWindow.swift` |
 | `composer` | `Features/Composer/` (NEW A93) | `View/ComposerWindow.swift` |

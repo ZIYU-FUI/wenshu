@@ -3741,23 +3741,6 @@
         }
       }
     },
-    "window.kanban.title": {
-      "extractionState": "manual",
-      "localizations": {
-        "en": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Kanban"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "看板"
-          }
-        }
-      }
-    },
     "workspace.editor.dirty_discard_alert_title": {
       "extractionState": "manual",
       "localizations": {

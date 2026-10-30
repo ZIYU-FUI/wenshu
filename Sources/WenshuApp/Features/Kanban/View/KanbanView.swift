@@ -7,12 +7,19 @@
 //  + the local `@State scope`, both read via @Environment per v0.30 spec
 //  8/31 OOB 'region' = option A = global @Observable store).
 //
+//  Scope: the book's half of the scope comes from the app's shared
+//  selection (= the page hands the shared workspace state down; = a
+//  sidebar book row or folder row names the book the board shows).
+//
 //  Layout (= the Hermes board, rendered with Apple's own controls):
-// - Header row: board title + ticket count + book picker + scope picker
-//   + a search field + the new-task button on the trailing edge.
-// - Body: one horizontal strip of columns (= one per status). The strip
-//   scrolls sideways; the columns fill the window height. A column does
-//   not scroll on its own, so the board reads as one surface.
+// - Header: board title + ticket count + the new-task button on the
+//   trailing edge, then the scope picker, then the search field. The
+//   controls stack in rows (= the board's home is the trailing column,
+//   which is too narrow for one control row).
+// - Body: one vertical stack of columns (= one per status). The stack
+//   scrolls down; a column is as wide as the column it sits in and
+//   keeps its own leading alignment. A column does not scroll on its
+//   own, so the board reads as one surface.
 // - Each ticket card: title first, then the body preview, then the
 //   status control. The card carries a colored left edge in its
 //   column's status color.
@@ -34,12 +41,17 @@
 
 import SwiftUI
 
-/// Per-(book × scope) kanban board view. Mounted by `KanbanWindow`
-/// in the `aiDynamic` zone (= tab "kanban"). Reads from `BookKanbanStore`
-/// (= scope-aware kanban JSON: `kanban.json` / `kanban-<folder>.json`
-/// / `library-kanban.json`).
+/// Per-(book × scope) kanban board view. Mounted by the trailing
+/// column's task page (`InspectorTaskPageView`). Reads from
+/// `BookKanbanStore` (= scope-aware kanban JSON: `kanban.json` /
+/// `kanban-<folder>.json` / `library-kanban.json`).
 struct KanbanView: View {
     @Environment(BookStore.self) private var bookStore
+
+    /// The app's shared workspace state (= the selection that names
+    /// the book the board shows). The board follows it, so the board
+    /// and the rest of the app read one book.
+    let workspaceUI: WorkspaceUIState
 
     /// The active scope (book root / 6 sub-folders / reference library).
     /// changes when the user picks a different scope from the
@@ -72,7 +84,7 @@ struct KanbanView: View {
     /// Identifiable input on macOS; KanbanTicket is already Identifiable).
     @State private var sheetTicket: KanbanTicket?
 
-    init() {}
+    init(workspaceUI: WorkspaceUIState) { self.workspaceUI = workspaceUI }
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingStandard) {
@@ -92,9 +104,16 @@ struct KanbanView: View {
         // "=" per ticket 026 v0.26).
         // re-load when the active scope changes (= user picked a
         // different sub-folder / reference library from the picker).
-        .onAppear { reloadFromDisk() }
+        .onAppear {
+            // The sidebar's book first (= the board follows the shared
+            // selection), then the read (= the read names the book
+            // the sidebar just chose, not the previous one).
+            applySidebarSelection()
+            reloadFromDisk()
+        }
         .onChange(of: bookStore.selectedBookId) { _, _ in reloadFromDisk() }
         .onChange(of: scope) { _, _ in reloadFromDisk() }
+        .onChange(of: workspaceUI.sidebarSelection) { _, _ in applySidebarSelection() }
         // apple-001 HIG absent batch: .refreshable (= Apple
         // HIG pull-to-refresh standard). On macOS this becomes a
         // refresh button in the toolbar (= Cmd-R equivalent). The
@@ -122,23 +141,33 @@ struct KanbanView: View {
 
     // MARK: - Subviews
 
-    /// Header: board title + ticket count + book picker + scope picker
-    /// + search field + the new-task button.
+    /// Header: board title + ticket count + the new-task button on
+    /// the trailing edge, then the pickers, then the search field.
+    ///
+    /// The controls stack in rows (= the board's home is the trailing
+    /// column, which is too narrow for one control row): the title
+    /// and the count share the first row with the new-task button on
+    /// that row's trailing edge, the pickers share the next row, and
+    /// the search field takes the last row.
     ///
     /// The count is the NUMBER of tickets on the board. A label that
     /// reads "ticket count" belongs next to a number, not in its place.
     private var header: some View {
-        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.spacingStandard) {
-            Text(String(localized: "auto.kanbanview.l100.h57246144"))
-                .font(.headline)
-            Text(String(tickets.count))
-                .font(.caption)
-                .foregroundStyle(DesignTokens.statusForeground)
-            bookPicker
-            scopePicker
+        VStack(alignment: .leading, spacing: DesignTokens.spacingStandard) {
+            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.spacingStandard) {
+                Text(String(localized: "auto.kanbanview.l100.h57246144"))
+                    .font(.headline)
+                Text(String(tickets.count))
+                    .font(.caption)
+                    .foregroundStyle(DesignTokens.statusForeground)
+                Spacer(minLength: DesignTokens.spacingStandard)
+                newTaskButton
+            }
+            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.spacingStandard) {
+                bookPicker
+                scopePicker
+            }
             searchField
-            Spacer(minLength: DesignTokens.spacingStandard)
-            newTaskButton
         }
     }
 
@@ -297,11 +326,11 @@ struct KanbanView: View {
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
-            // One horizontal strip. The columns fill the window height
-            // and the strip scrolls sideways (= the board reads as one
+            // One vertical stack. The columns fill the column's width
+            // and the stack scrolls down (= the board reads as one
             // surface, not eight independent scrollers).
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: DesignTokens.spacingModerate) {
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(alignment: .leading, spacing: DesignTokens.spacingModerate) {
                     ForEach(KanbanStatus.boardOrder, id: \.self) { status in
                         KanbanColumn(
                             status: status,
@@ -321,6 +350,33 @@ struct KanbanView: View {
                 }
                 .padding(.vertical, DesignTokens.spacingIconic)
             }
+        }
+    }
+
+    // MARK: - Shared selection
+
+    /// Hand the store the book the app's shared selection names.
+    ///
+    /// A book row and a folder row both name a book (= a folder is a
+    /// sub-row of one). Every other selection (= a shelf, a reference
+    /// category, a tag, nothing) names no book, and the board then
+    /// keeps the book it shows (= its own picker is the way to change
+    /// it). The store is shared with the rest of the app, so a
+    /// selection that names no book must not clear it.
+    private func applySidebarSelection() {
+        guard let bookId = KanbanView.bookId(for: workspaceUI.sidebarSelection) else { return }
+        bookStore.selectedBookId = bookId
+    }
+
+    /// The book a sidebar selection names, if any.
+    static func bookId(for selection: SidebarItem?) -> UUID? {
+        switch selection {
+        case .book(let bookId):
+            return bookId
+        case .folder(let bookId, _):
+            return bookId
+        case .shelf, .referenceCategory, .referenceUnclassified, .tag, nil:
+            return nil
         }
     }
 
@@ -461,7 +517,10 @@ private struct KanbanColumn: View {
             }
         }
         .padding(DesignTokens.spacingStandard)
-        .frame(width: DesignTokens.kanbanColumnWidth)
+        // The column is as wide as the column it sits in (= the
+        // trailing column decides the width; = a fixed width would
+        // overflow a narrower trailing column).
+        .frame(maxWidth: .infinity)
         .background(.background.secondary, in: RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusProgressCard))
         .overlay(
             RoundedRectangle(cornerRadius: DesignTokens.surfaceCornerRadiusProgressCard)
