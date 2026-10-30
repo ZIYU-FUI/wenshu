@@ -218,6 +218,28 @@ def review_cards_for(board: str = BOARD) -> list[dict]:
     return cards
 
 
+def _git_tip(ref: str) -> str | None:
+    """The sha a branch or ref points at, or None when it cannot be read.
+
+    The review card that covers a branch is the one whose body names the
+    sha the branch points at, so the branch's own tip is the lookup key.
+    A ref that does not resolve must NOT match anything: a lookup that
+    falls back to "any review card" would let an unrelated card satisfy
+    the gate for a branch nobody reviewed.
+    """
+    try:
+        out = subprocess.run(
+            ["git", "rev-parse", "--verify", "-q", f"{ref}^{{commit}}"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    sha = out.stdout.strip()
+    return sha or None
+
+
 def reviewed_sha(body: str) -> str | None:
     """The sha a review card names, read from its WHAT TO BUILD claim."""
     for name, text in sections(body):
@@ -618,6 +640,18 @@ def main() -> int:
     if args.branch:
         # The review card that covers a branch, read by the sha the branch
         # points at (= the sha the card's body names under review).
+        #
+        # Without --sha the branch's OWN tip is the key. A lookup that
+        # matched any review card would let an unrelated card satisfy the
+        # gate for a branch nobody reviewed, which is the exact defect this
+        # gate exists to prevent.
+        sha_filter = args.sha
+        if not sha_filter:
+            resolved = _git_tip(args.branch)
+            if resolved is None:
+                print(f"NO REVIEW CARD: branch {args.branch} has no resolvable tip")
+                return 3
+            sha_filter = resolved
         cards = review_cards_for(args.board)
         found = []
         for card in cards:
@@ -627,7 +661,7 @@ def main() -> int:
             sha = reviewed_sha(body)
             if not sha:
                 continue
-            if args.sha and not (sha.startswith(args.sha) or args.sha.startswith(sha)):
+            if not (sha.startswith(sha_filter) or sha_filter.startswith(sha)):
                 continue
             doc = {"task": card, "runs": card.get("runs") or [], "events": []}
             verdict = verdict_from_doc(doc)
