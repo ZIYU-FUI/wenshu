@@ -47,6 +47,7 @@ def load(name: str):
 
 
 pl = load("product_lines")
+ag = load("agents_gate")
 
 # The two lines, and their boards.
 check("the repo carries two product lines", len(pl.PRODUCT_LINES), 2)
@@ -112,6 +113,16 @@ check(
     "the repo-relative form measures the same as the package-relative form",
     sorted(pl.areas_of(["Mobile/" + p for p in MOBILE_SIX])),
     sorted(pl.areas_of(MOBILE_SIX)),
+)
+check(
+    "the repo-relative form counts the same sources as the package-relative form",
+    len(pl.source_paths(["Mobile/" + p for p in MOBILE_SIX])),
+    len(pl.source_paths(MOBILE_SIX)),
+)
+check(
+    "the repo-relative form counts the same tests as the package-relative form",
+    len(pl.test_paths(["Mobile/Tests/WenshuMobileTests/ClientShellTests.swift"])),
+    len(pl.test_paths(["Tests/WenshuMobileTests/ClientShellTests.swift"])),
 )
 
 # The two forms of one file are the same file.
@@ -252,6 +263,83 @@ finally:
         os.environ.pop("HERMES_KANBAN_BOARDS", None)
     else:
         os.environ["HERMES_KANBAN_BOARDS"] = _saved_boards
+
+# THE THIRD DEFECT THE DECLARATION FIXES: a tool that names a board must
+# read the slug from the declaration, so the mobile board is named the
+# same way the desktop board is. The agents gate held its own copy of the
+# slug list, and the copy knew only the desktop board: a file naming the
+# mobile board in a tool column was reported as naming a skill that is
+# not installed (= a false error on a true reference).
+check(
+    "the agents gate knows every board the repo carries",
+    sorted(b for b in pl.BOARDS if b in ag.NOT_A_SKILL),
+    sorted(pl.BOARDS),
+)
+check(
+    "the agents gate still knows the profile names",
+    all(p in ag.NOT_A_SKILL for p in ("wenshu-dev", "wenshu-review")),
+    True,
+)
+
+# NO TOOL HARDCODES A REPO PATH OR A BOARD SLUG.
+#
+# The declaration is the ONE place a line's constants live, so a tool
+# that carries its own copy of one is a copy that drifts. The check is
+# over the SOURCE (= the constants a tool holds), not over prose: a
+# docstring that mentions a board as an example is not a hardcoded slug,
+# but a string constant that IS the slug is.
+import ast  # noqa: E402
+
+TOOLS = Path(__file__).resolve().parent.parent
+SLUGS = set(pl.BOARDS)
+REPO_ABS = str(TOOLS.parent.parent)
+
+
+def _source_constants(path: Path):
+    """The string constants of a file that are NOT its docstrings."""
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    docstrings: set[int] = set()
+    for node in ast.walk(tree):
+        if isinstance(
+            node, (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
+        ):
+            text = ast.get_docstring(node, clean=False)
+            if text is None:
+                continue
+            for sub in ast.walk(node):
+                if isinstance(sub, ast.Constant) and sub.value == text:
+                    docstrings.add(id(sub))
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Constant)
+            and isinstance(node.value, str)
+            and id(node) not in docstrings
+        ):
+            yield node
+
+
+def _hardcoded(tool: Path):
+    """The board slugs and repo paths a tool holds as constants."""
+    found = []
+    for node in _source_constants(tool):
+        value = node.value
+        if value in SLUGS:
+            found.append(f"{tool.name}:{node.lineno} board slug {value!r}")
+        elif REPO_ABS in value and tool.name != "product_lines.py":
+            found.append(f"{tool.name}:{node.lineno} repo path {value!r}")
+    return found
+
+
+_hardcoded_found = []
+for _tool in sorted(TOOLS.rglob("*.py")):
+    if "tests" in _tool.parts or _tool.name == "product_lines.py":
+        continue
+    _hardcoded_found.extend(_hardcoded(_tool))
+check(
+    "no tool hardcodes a board slug or a repo path",
+    _hardcoded_found,
+    [],
+)
 
 print()
 if FAILURES:

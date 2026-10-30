@@ -88,6 +88,18 @@ LSREGISTER = ("/System/Library/Frameworks/CoreServices.framework/Frameworks/"
 # ------------------------------------------------------------- identity --
 
 
+def repo_root():
+    """The repo root, derived from this file's own location.
+
+    The probe lives at ``<repo>/Tools/wenshu-devtool/probes/``, so the
+    root is three directories up. Deriving it means the probe names no
+    checkout path of its own: a copy of that path is a copy that goes
+    stale the moment the repo moves or is checked out somewhere else.
+    """
+    here = os.path.dirname(os.path.abspath(__file__))
+    return os.path.dirname(os.path.dirname(os.path.dirname(here)))
+
+
 def realpath(path):
     """The path the system reports for a file, symlinks resolved."""
     return os.path.realpath(path)
@@ -416,8 +428,15 @@ def selftest():
         if got != want:
             failures.append("%s: got %r, want %r" % (name, got, want))
 
-    ours_path = "/Volumes/ANAN/Engineering/wenshu/build/Wenshu.app"
-    other_path = "/Volumes/ANAN/Engineering/wenshu/.worktrees/t_x/build/Wenshu.app"
+    # The paths are DERIVED from this file's own location, so the probe
+    # carries no hardcoded checkout path: a copy of that path is a copy
+    # that goes stale the moment the repo moves. What the cases need is
+    # two DIFFERENT app bundles that share a suffix (= the repo's own
+    # build and a sibling worktree's build), and the repo root names
+    # both.
+    root = repo_root()
+    ours_path = os.path.join(root, "build", "Wenshu.app")
+    other_path = os.path.join(root, ".worktrees", "t_x", "build", "Wenshu.app")
     ours_exe = ours_path + "/Contents/MacOS/WenshuApp"
     other_exe = other_path + "/Contents/MacOS/WenshuApp"
 

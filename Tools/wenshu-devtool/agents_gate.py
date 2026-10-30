@@ -64,6 +64,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import product_lines  # noqa: E402  (sibling module, same directory)
+
 REPO = Path(__file__).resolve().parent.parent.parent
 
 # The Hermes context-file cap. The loader truncates above it, so a file at
@@ -172,8 +175,15 @@ BARE_NAME_RE = re.compile(r"^[A-Za-z0-9_][\w.-]*\.[A-Za-z0-9]+$")
 SKILL_NAME_RE = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$")
 
 # Identifiers that look like a skill name but are not one.
+#
+# The BOARD SLUGS come from the shared declaration (= product_lines), so a
+# board slug is named in ONE place and every board this repo carries is
+# known here. A copy of the slug list is a copy that drifts: the desktop
+# slug was listed here and the mobile one was not, so a file naming the
+# mobile board in a tool column was reported as naming a skill that is
+# not installed (= a false error on a true reference).
 NOT_A_SKILL = {
-    "wenshu-par",  # the board slug
+    *product_lines.BOARDS,
     "wenshu-dev",  # the implementer profile
     "wenshu-review",  # the reviewer profile
 }

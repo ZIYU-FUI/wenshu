@@ -1489,11 +1489,6 @@ def main() -> int:
     parser.add_argument("--check", action="store_true", help="report tier mismatches")
     parser.add_argument("--plan", action="store_true", help="print the tier contract table")
     parser.add_argument("--board", help="board slug; default = the current board")
-    parser.add_argument(
-        "--all-boards",
-        action="store_true",
-        help="sweep every board this repo carries (one per product line)",
-    )
     parser.add_argument("--json", action="store_true", help="machine-readable output")
     args = parser.parse_args()
 
@@ -1508,27 +1503,6 @@ def main() -> int:
         print("\nThe tier is derived from the card body by this script. The title")
         print("carries it as [T1] / [T2] / [T3] so `kanban list` shows the rating.")
         return 0
-
-    if args.all_boards:
-        # One sweep over EVERY board the repo carries, so a rule that
-        # names a path is measured on the line it belongs to. The boards
-        # are declared in one place (= product_lines), so a line added
-        # there is swept here without touching this tool.
-        failures = 0
-        for board in product_lines.BOARDS:
-            cards = kanban_cards(board)
-            if cards is None:
-                print(f"=== the board could not be read: {board} ===")
-                failures += 1
-                continue
-            if args.live:
-                cards = [c for c in cards if c.get("status") != "done"]
-            if args.cards:
-                wanted = set(args.cards)
-                cards = [c for c in cards if c.get("id") in wanted]
-            print(f"\n=== board {board} ===")
-            failures += _print_cards(cards, args)
-        return 1 if failures else 0
 
     if args.body:
         cards = [card_from_file(args.body)]
