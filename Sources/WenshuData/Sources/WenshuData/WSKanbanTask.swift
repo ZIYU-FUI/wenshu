@@ -36,12 +36,22 @@ public final class WSKanbanTask {
     /// argument to the LLM (= `body / description` at
     /// KanbanStoreTool.swift:333), but the @Model had no column.
     public var body: String?
+    /// The book this task belongs to (= the board it shows on).
+    ///
+    /// Nil = the task belongs to no book (= the library-level board and
+    /// the reference-material board). The board follows the session, and
+    /// the session names its book, so this column is what makes "one
+    /// board per book" a fact the store can answer.
+    ///
+    /// Optional, because a task written before this column existed
+    /// belongs to no book (= it reads on the library-level board).
+    public var bookID: String?
     public var createdAt: Date
     public var updatedAt: Date
 
     public init(id: String, title: String, status: String = "new", priority: Int = 5,
          assignee: String? = nil, startedAt: Date? = nil, completedAt: Date? = nil,
-         modelOverride: String? = nil, body: String? = nil) {
+         modelOverride: String? = nil, body: String? = nil, bookID: String? = nil) {
         self.id = id
         self.title = title
         self.status = status
@@ -51,6 +61,7 @@ public final class WSKanbanTask {
         self.completedAt = completedAt
         self.modelOverride = modelOverride
         self.body = body
+        self.bookID = bookID
         self.createdAt = Date()
         self.updatedAt = Date()
     }

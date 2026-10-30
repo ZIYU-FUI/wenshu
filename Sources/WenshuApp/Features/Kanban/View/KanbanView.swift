@@ -1,38 +1,33 @@
 //
 //  KanbanView.swift
+//  wenshu
 //
-//  Per-(book × scope) kanban board. Reads + writes a scope-aware kanban
-//  JSON file (= BookKanbanStore). Switches the data source when the
-//  active book OR the active scope changes (= bookStore.selectedBookId
-//  + the local `@State scope`, both read via @Environment per v0.30 spec
-//  8/31 OOB 'region' = option A = global @Observable store).
+//  The board of long-running work, in the trailing column.
 //
-//  Scope: the book's half of the scope comes from the app's shared
-//  selection (= the page hands the shared workspace state down; = a
-//  sidebar book row or folder row names the book the board shows).
+//  The board reads the APP'S TASK STORE (= SwiftData, = the same store
+//  the `kanban` tool writes when the agent schedules work), so the
+//  board and the scheduler read one list. The board follows the
+//  focused chat session (= one board per session, = the session names
+//  its book), so it carries no picker of its own: the filter the user
+//  means is the left column's directory tree.
 //
 //  Layout (= the Hermes board, rendered with Apple's own controls):
 // - Header: board title + ticket count + the new-task button on the
-//   trailing edge, then the scope picker, then the search field. The
-//   controls stack in rows (= the board's home is the trailing column,
-//   which is too narrow for one control row).
-// - Body: one vertical stack of columns (= one per status). The stack
-//   scrolls down; a column is as wide as the column it sits in and
-//   keeps its own leading alignment. A column does not scroll on its
+//   trailing edge.
+// - Body: one vertical stack of groups (= one per status). The stack
+//   scrolls down; a group is as wide as the column it sits in and
+//   keeps its own leading alignment. A group does not scroll on its
 //   own, so the board reads as one surface.
-// - Each ticket card: title first, then the body preview, then the
-//   status control. The card carries a colored left edge in its
-//   column's status color.
+// - Each group: a permanent header (= the status dot, the label, the
+//   count) with the cards folding away under it. A group with no
+//   cards shows its header and nothing else.
+// - Each task card: title first, then the body preview. The card
+//   carries a colored left edge in its group's status color.
 //
-//  (= (see OOB.md #2026-09-04) OOB "kanbanissue"): the scope
-//  picker (= .menu Picker over the 6 standard sub-folders + book root
-//  + reference library) drives which JSON file the view reads from /
-//  writes to. Scope is a view filter, not a data-layer change.
-//
-//  Persistence:
-//    - BookKanbanStore.save([KanbanTicket]) writes the whole array
-//      atomically (= per spec v5 ticket 026). On every add / status
-//      change / delete, the view reloads from disk + writes back.
+//  The USER does not schedule: the status is the scheduler's, so the
+//  card carries no status control and no way to move itself. The card
+//  opens its read-only body sheet on a click anywhere on it, and its
+//  context menu deletes it.
 //
 //  Apple HIG: small icon button + .bordered / .borderedProminent
 //  button styles per macOS 26 Tahoe guidance. No sheet (per
@@ -40,51 +35,47 @@
 //
 
 import SwiftUI
+import WenshuData
 
-/// Per-(book × scope) kanban board view. Mounted by the trailing
-/// column's task page (`InspectorTaskPageView`). Reads from
-/// `BookKanbanStore` (= scope-aware kanban JSON: `kanban.json` /
-/// `kanban-<folder>.json` / `library-kanban.json`).
+/// The board of long-running work. Mounted by the trailing column's
+/// task page (`InspectorTaskPageView`). Reads from the app's task
+/// store (= SwiftData, = where the `kanban` tool writes).
 struct KanbanView: View {
-    @Environment(BookStore.self) private var bookStore
-
     /// The app's shared workspace state (= the selection that names
     /// the book the board shows). The board follows it, so the board
     /// and the rest of the app read one book.
     let workspaceUI: WorkspaceUIState
 
-    /// The active scope (book root / 6 sub-folders / reference library).
-    /// changes when the user picks a different scope from the
-    /// `.menu` Picker in the header. Reload-from-disk happens in
-    /// `.onChange(of: scope)`.
-    @State private var scope: TaskScope = .book
+    /// The book the focused chat session is reading.
+    ///
+    /// The board follows the SESSION (= one board per session, = the
+    /// session is per-book by construction, = so the book comes from
+    /// the session and the board carries no picker of its own). The
+    /// filter the user means is the left column's directory tree, and
+    /// a second answer on the board (= a text field) would be two
+    /// answers to one question.
+    let focusedBookID: BookID?
 
-    /// The active book's per-scope kanban tickets (= loaded from the
-    /// scope's JSON file on appear + whenever `scope` or
-    /// `selectedBookId` changes).
-    @State private var tickets: [KanbanTicket] = []
-    @State private var newTicketTitle: String = ""
+    /// The board's tasks (= the focused book's tasks, = read from the
+    /// app's task store on appear + whenever the focused session's
+    /// book changes).
+    @State private var tasks: [KanbanTask] = []
+    @State private var newTaskTitle: String = ""
     @State private var loadError: String? = nil
 
-    /// Resolved directory for `(selectedBookId, scope)`. Nil when the
-    /// active scope has no on-disk directory (= no book selected + a
-    /// per-book scope, OR the library is not bootstrapped).
-    @State private var scopeDir: URL? = nil
-
-    /// The header's filter text. It narrows what the board SHOWS and
-    /// never changes what is on disk.
-    @State private var searchText: String = ""
-
     /// Whether the inline title field is showing. The new-task button
-    /// reveals it; submitting it creates the card.
+    /// reveals it; submitting it creates the task.
     @State private var isCreating: Bool = false
 
     /// kanban-detail-sheet 2026-09-28: nil means no sheet is open.
-    /// The identity is the ticket itself (= sheet(items:) requires
-    /// Identifiable input on macOS; KanbanTicket is already Identifiable).
-    @State private var sheetTicket: KanbanTicket?
+    /// The identity is the task itself (= sheet(items:) requires
+    /// Identifiable input on macOS).
+    @State private var sheetTask: KanbanTask?
 
-    init(workspaceUI: WorkspaceUIState) { self.workspaceUI = workspaceUI }
+    init(workspaceUI: WorkspaceUIState, focusedBookID: BookID?) {
+        self.workspaceUI = workspaceUI
+        self.focusedBookID = focusedBookID
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingStandard) {
@@ -102,121 +93,56 @@ struct KanbanView: View {
         .padding(DesignTokens.spacingStandard)
         // wenshu-verification-fix: flexible size (was: 480x320 min forcing zone to grow).
         // "=" per ticket 026 v0.26).
-        // re-load when the active scope changes (= user picked a
-        // different sub-folder / reference library from the picker).
+        // The board follows the focused session (= one board per
+        // session), so a new session means a new board.
         .onAppear {
-            // The sidebar's book first (= the board follows the shared
-            // selection), then the read (= the read names the book
-            // the sidebar just chose, not the previous one).
-            applySidebarSelection()
-            reloadFromDisk()
+            reloadFromStore()
         }
-        .onChange(of: bookStore.selectedBookId) { _, _ in reloadFromDisk() }
-        .onChange(of: scope) { _, _ in reloadFromDisk() }
-        .onChange(of: workspaceUI.sidebarSelection) { _, _ in applySidebarSelection() }
+        .onChange(of: focusedBookID) { _, _ in reloadFromStore() }
         // apple-001 HIG absent batch: .refreshable (= Apple
         // HIG pull-to-refresh standard). On macOS this becomes a
         // refresh button in the toolbar (= Cmd-R equivalent). The
-        // reloadFromDisk() action re-reads the kanban.json from disk,
-        // = useful when the user edits the JSON file externally.
-        .refreshable { reloadFromDisk() }
+        // reloadFromStore() action re-reads the board from the store.
+        .refreshable { reloadFromStore() }
         // kanban-detail-sheet 2026-09-28: tapping a KanbanCard opens
         // this read-only body modal. Apple HIG canonical sheet (= no
-        // custom chrome wrapper). .sheet(item:) gives us the ticket
-        // identity (= sheet auto-dismisses when sheetTicket = nil).
-        .sheet(item: $sheetTicket) { ticket in
+        // custom chrome wrapper). .sheet(item:) gives us the task
+        // identity (= sheet auto-dismisses when sheetTask = nil).
+        .sheet(item: $sheetTask) { task in
             KanbanTicketDetailSheet(
-                ticket: ticket,
-                onDismiss: { sheetTicket = nil }
+                task: task,
+                onDismiss: { sheetTask = nil }
             )
         }
     }
 
     /// kanban-detail-sheet 2026-09-28: callback from KanbanCard.onOpen.
-    /// Stashes the ticket into sheetTicket; = the .sheet(item:) binding
+    /// Stashes the task into sheetTask; = the .sheet(item:) binding
     /// observes the change and animates the modal in.
-    private func onOpenSheet(_ ticket: KanbanTicket) {
-        sheetTicket = ticket
+    private func onOpenSheet(_ task: KanbanTask) {
+        sheetTask = task
     }
 
     // MARK: - Subviews
 
-    /// Header: board title + ticket count + the new-task button on
-    /// the trailing edge, then the pickers, then the search field.
+    /// Header: board title + task count + the new-task button on
+    /// the trailing edge.
     ///
-    /// The controls stack in rows (= the board's home is the trailing
-    /// column, which is too narrow for one control row): the title
-    /// and the count share the first row with the new-task button on
-    /// that row's trailing edge, the pickers share the next row, and
-    /// the search field takes the last row.
+    /// The board carries NO picker and NO filter field: the board
+    /// follows the focused session (= one board per session), and the
+    /// filter the user means is the left column's directory tree.
     ///
-    /// The count is the NUMBER of tickets on the board. A label that
-    /// reads "ticket count" belongs next to a number, not in its place.
+    /// The count is the NUMBER of tasks on the board. A label that
+    /// reads "task count" belongs next to a number, not in its place.
     private var header: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.spacingStandard) {
-            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.spacingStandard) {
-                Text(String(localized: "auto.kanbanview.l100.h57246144"))
-                    .font(.headline)
-                Text(String(tickets.count))
-                    .font(.caption)
-                    .foregroundStyle(DesignTokens.statusForeground)
-                Spacer(minLength: DesignTokens.spacingStandard)
-                newTaskButton
-            }
-            HStack(alignment: .firstTextBaseline, spacing: DesignTokens.spacingStandard) {
-                bookPicker
-                scopePicker
-            }
-            searchField
-        }
-    }
-
-    /// The books the board can show. The board needs one, because the
-    /// ticket file lives inside the book's folder.
-    @ViewBuilder
-    private var bookPicker: some View {
-        if !bookStore.books.isEmpty {
-            Picker(String(localized: "kanban.book.picker"), selection: bookSelectionBinding) {
-                ForEach(bookStore.books) { book in
-                    Text(book.title).tag(Optional(book.id))
-                }
-            }
-            .pickerStyle(.menu)
-            .fixedSize()
-            .help(String(localized: "kanban.book.picker.help"))
-        }
-    }
-
-    /// The board's book selection, bound to the store (= the window
-    /// seeds the store from the main window's sidebar selection, so
-    /// the two agree until the user picks a different book here).
-    private var bookSelectionBinding: Binding<UUID?> {
-        Binding(
-            get: { bookStore.selectedBookId },
-            set: { bookStore.selectedBookId = $0 }
-        )
-    }
-
-    /// The scope picker. It is a `.menu` Picker (= compact for the
-    /// DynamicZone width; the cadence is `.menu` for narrow zone).
-    private var scopePicker: some View {
-        Picker("scope", selection: $scope) {
-            ForEach(bookStore.availableScopes(bookId: bookStore.selectedBookId)) { s in
-                Text(s.displayName).tag(s)
-            }
-        }
-        .pickerStyle(.menu)
-        .fixedSize()
-        .help(String(localized: "auto2.kanbanview.l109.h72695635"))
-    }
-
-    /// The board's filter field. It narrows the VISIBLE cards only.
-    private var searchField: some View {
-        HStack(spacing: DesignTokens.spacingIconic) {
-            SFIcon("magnifyingglass", style: .inlineSmall, color: IconColor.secondary)
-            TextField(String(localized: "kanban.search.placeholder"), text: $searchText)
-                .textFieldStyle(.plain)
-                .frame(minWidth: DesignTokens.kanbanSearchFieldWidth)
+        HStack(alignment: .firstTextBaseline, spacing: DesignTokens.spacingStandard) {
+            Text(String(localized: "auto.kanbanview.l100.h57246144"))
+                .font(.headline)
+            Text(String(tasks.count))
+                .font(.caption)
+                .foregroundStyle(DesignTokens.statusForeground)
+            Spacer(minLength: DesignTokens.spacingStandard)
+            newTaskButton
         }
     }
 
@@ -235,90 +161,37 @@ struct KanbanView: View {
         .help(String(localized: "kanban.new_task.help"))
     }
 
-    /// Hint text showing which JSON file the active scope reads from.
-    /// scope-aware (= changes when `scope` changes).
-    private var jsonHint: String {
-        switch scope {
-        case .book:
-            return "kanban.json"
-        case .folder(let f):
-            return "kanban-\(f.folderName).json"
-        case .referenceLibrary:
-            return "library-kanban.json"
-        }
-    }
-
     /// Inline-create row (Apple HIG text field + return-to-submit).
-    /// Disabled when the scope has no resolved directory or the text
-    /// is empty.
-    /// fix: `.disabled(...)` is placed BEFORE `.buttonStyle(...)`
-    /// so SwiftUI applies the disabled visual state (gray-out) to the
-    /// button content, not to the styled wrapper; `.help(...)` exposes
-    /// the reason on hover; an inline caption explains why the button
-    /// is inactive when no directory is resolved (= Apple HIG
-    /// disabled-control feedback).
+    /// Disabled when the text is empty.
+    ///
+    /// A new task starts in the FIRST status (= the scheduler's queue,
+    /// = the user does not pick a status = the user does not schedule).
     private var inputRow: some View {
-        VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
-            HStack(spacing: DesignTokens.spacingTight) {
-                TextField(String(localized: "auto2.kanbanview.l142.h68849992"), text: $newTicketTitle)
-                    .textFieldStyle(.roundedBorder)
-                    .onSubmit { addTicket() }
-                Button(action: addTicket) {
-                    Label { Text(String(localized: "auto2.kanbanview.l146.h37112406")) } icon: { SFIcon("plus", style: .inlineSmall, color: IconColor.tint) }
-                }
-                .disabled(!canAdd)
-                .buttonStyle(.borderedProminent)
-                .help(addButtonHelp)
+        HStack(spacing: DesignTokens.spacingTight) {
+            TextField(String(localized: "auto2.kanbanview.l142.h68849992"), text: $newTaskTitle)
+                .textFieldStyle(.roundedBorder)
+                .onSubmit { addTask() }
+            Button(action: addTask) {
+                Label { Text(String(localized: "auto2.kanbanview.l146.h37112406")) } icon: { SFIcon("plus", style: .inlineSmall, color: IconColor.tint) }
             }
-            if !canAdd, scopeDir != nil {
-                Text(String(localized: "auto.kanbanview.l157.h65127890"))
-                    .font(.caption)
-                    .foregroundStyle(DesignTokens.statusForeground)
-            }
+            .disabled(!canAdd)
+            .buttonStyle(.borderedProminent)
+            .help(addButtonHelp)
         }
     }
 
-    /// explain why the add row is inactive. Different message
-    /// for the reference-library scope vs a missing-book selection.
-    private var scopeUnavailableHint: String {
-        switch scope {
-        case .referenceLibrary:
-            return String(localized: "error.reference_library_not_bootstrapped")
-        case .book, .folder:
-            return String(localized: "kanban.unselected_book")
-        }
-    }
-
-    /// Tooltip for the disabled/disabled-reason-aware add button.
-    /// Empty when canAdd so hovering an enabled button shows no stale
-    /// "please…" text.
+    /// Tooltip for the add button. Empty when the button is enabled, so
+    /// hovering an enabled button shows no stale "please…" text.
     private var addButtonHelp: String {
-        if scopeDir == nil {
-            switch scope {
-            case .referenceLibrary:
-                return String(localized: "error.reference_library_not_bootstrapped")
-            case .book, .folder:
-                return String(localized: "kanban.unselected_book")
-            }
-        }
-        if newTicketTitle.trimmingCharacters(in: .whitespaces).isEmpty {
+        if newTaskTitle.trimmingCharacters(in: .whitespaces).isEmpty {
             return String(localized: "auto.kanbanview.l157.h65127890")
         }
-        return String(localized: "kanban.new_task.writes") + " " + jsonHint
+        return String(localized: "kanban.new_task.writes")
     }
 
     @ViewBuilder
     private var content: some View {
-        if scopeDir == nil {
-            // ONE explanation, not two. The board cannot resolve a
-            // directory, so it says why and stops.
-            EmptyStateView(
-                icon: "rectangle.split.3x1",
-                title: String(localized: "kanban.no_book.title"),
-                body: scopeUnavailableHint
-            )
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        } else if tickets.isEmpty {
+        if tasks.isEmpty {
             EmptyStateView(
                 icon: "rectangle.split.3x1",
                 title: String(localized: "kanban.empty.title"),
@@ -326,25 +199,22 @@ struct KanbanView: View {
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
-            // One vertical stack. The columns fill the column's width
+            // One vertical stack. The groups fill the column's width
             // and the stack scrolls down (= the board reads as one
             // surface, not eight independent scrollers).
             ScrollView(.vertical, showsIndicators: false) {
                 VStack(alignment: .leading, spacing: DesignTokens.spacingModerate) {
                     ForEach(KanbanStatus.boardOrder, id: \.self) { status in
-                        KanbanColumn(
+                        KanbanGroup(
                             status: status,
-                            tickets: visibleTickets(in: status),
-                            onMove: { ticket, newStatus in
-                                updateStatus(ticket: ticket, to: newStatus)
-                            },
-                            onDelete: { ticket in
-                                deleteTicket(ticket)
+                            tasks: visibleTasks(in: status),
+                            onDelete: { task in
+                                deleteTask(task)
                             },
                             // kanban-detail-sheet 2026-09-28:
                             // open request bubbles up to KanbanView
-                            // (= the View owns the sheetTicket state).
-                            onOpen: { ticket in onOpenSheet(ticket) }
+                            // (= the View owns the sheetTask state).
+                            onOpen: { task in onOpenSheet(task) }
                         )
                     }
                 }
@@ -353,132 +223,108 @@ struct KanbanView: View {
         }
     }
 
-    // MARK: - Shared selection
-
-    /// Hand the store the book the app's shared selection names.
-    ///
-    /// A book row and a folder row both name a book (= a folder is a
-    /// sub-row of one). Every other selection (= a shelf, a reference
-    /// category, a tag, nothing) names no book, and the board then
-    /// keeps the book it shows (= its own picker is the way to change
-    /// it). The store is shared with the rest of the app, so a
-    /// selection that names no book must not clear it.
-    private func applySidebarSelection() {
-        guard let bookId = KanbanView.bookId(for: workspaceUI.sidebarSelection) else { return }
-        bookStore.selectedBookId = bookId
-    }
-
-    /// The book a sidebar selection names, if any.
-    static func bookId(for selection: SidebarItem?) -> UUID? {
-        switch selection {
-        case .book(let bookId):
-            return bookId
-        case .folder(let bookId, _):
-            return bookId
-        case .shelf, .referenceCategory, .referenceUnclassified, .tag, nil:
-            return nil
-        }
-    }
-
     // MARK: - Derived
 
-    /// The cards a column shows, after the header's filter.
-    private func visibleTickets(in status: KanbanStatus) -> [KanbanTicket] {
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        return tickets.filter { ticket in
-            guard ticket.status == status else { return false }
-            guard !query.isEmpty else { return true }
-            let haystack = "\(ticket.title) \(ticket.body ?? "")".lowercased()
-            return haystack.contains(query)
-        }
+    /// The cards a group shows.
+    private func visibleTasks(in status: KanbanStatus) -> [KanbanTask] {
+        tasks.filter { $0.status == status }
     }
 
     private var canAdd: Bool {
-        scopeDir != nil && !newTicketTitle.trimmingCharacters(in: .whitespaces).isEmpty
+        !newTaskTitle.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
     // MARK: - Mutations
 
-    /// lift the disk-IO + state-transition logic into
-    /// `KanbanOps` (= the stateless business layer at
-    /// `Sources/WenshuApp/Views/Kanban/KanbanOps.swift`). Per
-    /// ADR-0009 (= UI// separation), the View is now a pure
-    /// consumer: it holds the @State (tickets / newTicketTitle /
-    /// scopeDir / loadError), reads via @Environment for the
-    /// BookStore, and delegates every mutation to KanbanOps.
-    private func reloadFromDisk() {
-        let resolver = BookStoreScopeDirectoryResolver(bookStore: bookStore)
-        let result = KanbanOps.loadTickets(
-            bookId: bookStore.selectedBookId,
-            scope: scope,
-            resolver: resolver
-        )
-        tickets = result.tickets
-        scopeDir = result.scopeDir
-        loadError = result.loadError
+    /// The store the board reads and writes.
+    ///
+    /// The board is a view, so it reads the app's task store directly
+    /// (= the store the `kanban` tool writes, = one list for the board
+    /// and the scheduler).
+    private var store: WSKanbanRepository {
+        WSKanbanRepository()
     }
 
-    private func addTicket() {
-        let resolver = BookStoreScopeDirectoryResolver(bookStore: bookStore)
-        let result = KanbanOps.addTicket(
-            bookId: bookStore.selectedBookId,
-            scope: scope,
-            resolver: resolver,
-            title: newTicketTitle,
-            to: tickets
-        )
-        tickets = result.savedTickets
-        if result.didSave {
-            // SwiftUI-side reset (= inline-create TextField clears on
-            // successful save; = a binding reset, NOT a business rule,
-            // = stays in the view per ADR-0009).
-            newTicketTitle = ""
-            isCreating = false
+    /// Re-read the board from the task store.
+    private func reloadFromStore() {
+        do {
+            tasks = try store.list(bookID: focusedBookID?.rawValue).map { model in
+                KanbanTask(
+                    id: model.id,
+                    title: model.title,
+                    status: KanbanStatus(rawValue: model.status) ?? .new,
+                    createdAt: model.createdAt,
+                    updatedAt: model.updatedAt,
+                    priority: model.priority,
+                    assignee: model.assignee,
+                    startedAt: model.startedAt,
+                    completedAt: model.completedAt,
+                    modelOverride: model.modelOverride,
+                    body: model.body
+                )
+            }
+            loadError = nil
+        } catch {
+            loadError = String(describing: error)
         }
-        if let err = result.error { loadError = err }
     }
 
-    private func updateStatus(ticket: KanbanTicket, to newStatus: KanbanStatus) {
-        let resolver = BookStoreScopeDirectoryResolver(bookStore: bookStore)
-        let result = KanbanOps.updateStatus(
-            bookId: bookStore.selectedBookId,
-            scope: scope,
-            resolver: resolver,
-            ticket: ticket,
-            to: newStatus,
-            in: tickets
-        )
-        tickets = result.savedTickets
-        if let err = result.error { loadError = err }
+    /// Add a task to this book's board.
+    ///
+    /// The task starts in the FIRST status (= the scheduler's queue).
+    /// The user does not pick a status (= the user does not schedule),
+    /// so the task waits for the scheduler to move it.
+    private func addTask() {
+        let title = newTaskTitle.trimmingCharacters(in: .whitespaces)
+        guard !title.isEmpty else { return }
+        do {
+            _ = try store.add(
+                title: title,
+                status: KanbanStatus.boardOrder.first?.rawValue ?? "new",
+                bookID: focusedBookID?.rawValue
+            )
+            newTaskTitle = ""
+            isCreating = false
+            loadError = nil
+        } catch {
+            loadError = String(describing: error)
+        }
+        reloadFromStore()
     }
 
-    private func deleteTicket(_ ticket: KanbanTicket) {
-        let resolver = BookStoreScopeDirectoryResolver(bookStore: bookStore)
-        let result = KanbanOps.deleteTicket(
-            bookId: bookStore.selectedBookId,
-            scope: scope,
-            resolver: resolver,
-            ticket: ticket,
-            in: tickets
-        )
-        tickets = result.savedTickets
-        if let err = result.error { loadError = err }
+    /// Remove a task from the board.
+    private func deleteTask(_ task: KanbanTask) {
+        do {
+            try store.delete(id: task.id)
+            loadError = nil
+        } catch {
+            loadError = String(describing: error)
+        }
+        reloadFromStore()
     }
 }
 
-// MARK: - Column
+// MARK: - Group
 
-/// One Kanban column (= a single KanbanStatus). Renders the column
-/// header + a vertical list of ticket cards. Pure layout; mutations
-/// bubble up via closures (KanbanView owns the truth).
-private struct KanbanColumn: View {
+/// One group of the board (= a single KanbanStatus). Renders the
+/// group header + a vertical list of task cards. Pure layout;
+/// mutations bubble up via closures (KanbanView owns the truth).
+///
+/// The header is a permanent row: the group stays on the board whether
+/// or not it holds cards, and the cards under it fold away on demand.
+/// A group with no cards shows its header and nothing else (= the
+/// header already carries the count, = so an empty group reads as
+/// "nothing here" without a placeholder line).
+private struct KanbanGroup: View {
     let status: KanbanStatus
-    let tickets: [KanbanTicket]
-    let onMove: (KanbanTicket, KanbanStatus) -> Void
-    let onDelete: (KanbanTicket) -> Void
-    // kanban-detail-sheet 2026-09-28: column forwards the open
+    let tasks: [KanbanTask]
+    let onDelete: (KanbanTask) -> Void
+    // kanban-detail-sheet 2026-09-28: group forwards the open
     // request upward (KanbanView owns the sheet state).
-    let onOpen: (KanbanTicket) -> Void
+    let onOpen: (KanbanTask) -> Void
+
+    /// Whether the group's cards are showing.
+    @State private var isExpanded = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
@@ -491,33 +337,35 @@ private struct KanbanColumn: View {
                     )
                 Text(status.boardLabel)
                     .font(.subheadline.weight(.semibold))
-                Text(String(tickets.count))
+                Text(String(tasks.count))
                     .font(.caption)
                     .foregroundStyle(DesignTokens.statusForeground)
             }
             .padding(.horizontal, DesignTokens.spacingIconic)
-            if tickets.isEmpty {
-                Text(String(localized: "auto.kanbanview.l343.h97636928"))
-                    .font(.caption)
-                    .foregroundStyle(DesignTokens.statusForeground)
-                    .padding(.horizontal, DesignTokens.spacingIconic)
-            } else {
-                VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
-                    ForEach(tickets) { ticket in
-                        KanbanCard(
-                            ticket: ticket,
-                            onMove: { newStatus in onMove(ticket, newStatus) },
-                            onDelete: { onDelete(ticket) },
-                            // kanban-detail-sheet 2026-09-28:
-                            // tapping a card surfaces the body sheet.
-                            onOpen: { onOpen(ticket) }
-                        )
+            // The fold (= SwiftUI's DisclosureGroup, = the same control
+            // the chat's reasoning panel and its plan panel use for
+            // their steps). A group with no cards shows its header and
+            // nothing else, so an empty group takes no room.
+            if !tasks.isEmpty {
+                DisclosureGroup(isExpanded: $isExpanded) {
+                    VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
+                        ForEach(tasks) { task in
+                            KanbanCard(
+                                task: task,
+                                onDelete: { onDelete(task) },
+                                // kanban-detail-sheet 2026-09-28:
+                                // tapping a card surfaces the body sheet.
+                                onOpen: { onOpen(task) }
+                            )
+                        }
                     }
+                } label: {
+                    EmptyView()
                 }
             }
         }
         .padding(DesignTokens.spacingStandard)
-        // The column is as wide as the column it sits in (= the
+        // The group is as wide as the column it sits in (= the
         // trailing column decides the width; = a fixed width would
         // overflow a narrower trailing column).
         .frame(maxWidth: .infinity)
@@ -531,19 +379,23 @@ private struct KanbanColumn: View {
 
 // MARK: - Card
 
-/// Single Kanban ticket card. Title first, then the body preview, then
-/// the status control + delete button. The card carries a colored left
-/// edge in its column's status color, so a card reads as belonging to
-/// its column at a glance.
+/// Single kanban task card. Title first, then the body preview. The
+/// card carries a colored left edge in its group's status color, so a
+/// card reads as belonging to its group at a glance.
 ///
-/// kanban-detail-sheet (= the v2.9 arc of kanban-markdown work): tap
-/// target added on the card body (= Menu area excluded so the
-/// status-stepper still works). Clicking the card opens the
-/// read-only body sheet (= mirrors hermes 0.21.5 drawer opening on
-/// card click).
+/// The card answers the mouse two ways (= the board's own interaction
+/// language):
+/// - the WHOLE card opens the read-only body sheet (= tapping the
+///   card's empty space opens it too, = the card is one target, = not
+///   just its text);
+/// - the card's CONTEXT MENU deletes it (= the trash button that used
+///   to sit in the corner is gone, = the menu is where a destructive
+///   action belongs).
+///
+/// The card carries NO status control (= the user does not schedule:
+/// the status is the scheduler's).
 private struct KanbanCard: View {
-    let ticket: KanbanTicket
-    let onMove: (KanbanStatus) -> Void
+    let task: KanbanTask
     let onDelete: () -> Void
     let onOpen: () -> Void
 
@@ -551,46 +403,22 @@ private struct KanbanCard: View {
         VStack(alignment: .leading, spacing: DesignTokens.spacingIconic) {
             // The title comes FIRST: it is what the user scans the
             // board for. The body is the preview under it.
-            Text(ticket.title)
+            Text(task.title)
                 .font(.body.weight(.medium))
                 .lineLimit(3)
                 .textSelection(.enabled)
-            // Per iron-rule I-4 (= wenshu-comment-policy): ticket.body renders
+            // Per iron-rule I-4 (= wenshu-comment-policy): task.body renders
             // when present, going through the same inline-markdown parser
             // chat uses (= ChatTextPartView.parseMarkdown). Mirrors
             // hermes 0.21.5 commit 63f5bc0999: the kanban drawer
             // reuses MessageTextContent. wenshu's reuse keeps ONE
             // markdown pipeline across the app — no per-surface parser.
-            if let body = ticket.body, !body.isEmpty {
+            if let body = task.body, !body.isEmpty {
                 Text(ChatTextPartView.parseMarkdown(body))
                     .font(.callout)
                     .foregroundStyle(DesignTokens.statusForeground)
                     .lineLimit(3)
                     .textSelection(.enabled)
-            }
-            HStack(spacing: DesignTokens.spacingIconic) {
-                Menu {
-                    ForEach(KanbanStatus.boardOrder, id: \.self) { s in
-                        Button(s.boardLabel) { onMove(s) }
-                    }
-                } label: {
-                    Text(ticket.status.boardLabel)
-                        .font(.caption)
-                        .padding(.horizontal, DesignTokens.spacingTight)
-                        .padding(.vertical, DesignTokens.spacingCaption)
-                        .background(
-                            ticket.status.boardTone.opacity(DesignTokens.accentTintOpacityHero),
-                            in: Capsule()
-                        )
-                }
-                .menuStyle(.borderlessButton)
-                .fixedSize()
-                Spacer()
-                Button(action: onDelete) {
-                    SFIcon("trash", style: .inlineSmall, color: IconColor.tint)
-                }
-                .buttonStyle(.borderless)
-                .foregroundStyle(.secondary)
             }
         }
         .padding(DesignTokens.spacingStandard)
@@ -603,17 +431,24 @@ private struct KanbanCard: View {
         .overlay(alignment: .leading) {
             // The status edge (= the Hermes board's colored left border).
             Rectangle()
-                .fill(ticket.status.boardTone)
+                .fill(task.status.boardTone)
                 .frame(width: DesignTokens.kanbanCardStatusEdgeWidth)
         }
-        // kanban-detail-sheet 2026-09-28: tap on the card body opens
-        // the read-only body sheet. The trailing control row (status
-        // stepper + delete) keeps its own gestures; = contentShape
-        // limits the tap target to the card surface (= excluding the
-        // Menu label / Button hit areas so the existing per-control
-        // handlers still win).
+        // The whole card is one tap target (= its padding, its
+        // background, and the empty space beside the body preview all
+        // belong to the tap, = not just the text).
         .contentShape(Rectangle())
         .onTapGesture { onOpen() }
+        // The delete lives in the context menu (= the trash button that
+        // used to sit in the corner is gone).
+        .contextMenu {
+            Button(role: .destructive, action: onDelete) {
+                Label(
+                    String(localized: "kanban.card.delete"),
+                    systemImage: "trash"
+                )
+            }
+        }
         .hoverWash()
     }
 }

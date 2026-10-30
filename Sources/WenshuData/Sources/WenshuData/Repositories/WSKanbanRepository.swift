@@ -49,7 +49,8 @@ public final class WSKanbanRepository {
         priority: Int = 5,
         assignee: String? = nil,
         modelOverride: String? = nil,
-        body: String? = nil
+        body: String? = nil,
+        bookID: String? = nil
     ) throws -> String {
         let id = UUID().uuidString
         let now = Date()
@@ -60,7 +61,8 @@ public final class WSKanbanRepository {
             priority: priority,
             assignee: assignee,
             modelOverride: modelOverride,
-            body: body
+            body: body,
+            bookID: bookID
         )
         // Lifecycle hooks (parity with legacy KanbanStore actor:
         // startedAt auto-set when status = "running" at add time, completedAt
@@ -116,6 +118,28 @@ public final class WSKanbanRepository {
             )
         } else {
             descriptor = FetchDescriptor<WSKanbanTask>(
+                sortBy: [SortDescriptor(\.priority, order: .reverse), SortDescriptor(\.createdAt, order: .reverse)]
+            )
+        }
+        return try context.fetch(descriptor)
+    }
+
+    /// The tasks on one book's board.
+    ///
+    /// The board follows the session, and the session names its book,
+    /// so this is the board's read: the tasks whose book is this one.
+    /// A nil book id reads the library-level board (= the tasks that
+    /// belong to no book).
+    public func list(bookID: String?) throws -> [WSKanbanTask] {
+        let descriptor: FetchDescriptor<WSKanbanTask>
+        if let bookID {
+            descriptor = FetchDescriptor<WSKanbanTask>(
+                predicate: #Predicate { $0.bookID == bookID },
+                sortBy: [SortDescriptor(\.priority, order: .reverse), SortDescriptor(\.createdAt, order: .reverse)]
+            )
+        } else {
+            descriptor = FetchDescriptor<WSKanbanTask>(
+                predicate: #Predicate { $0.bookID == nil },
                 sortBy: [SortDescriptor(\.priority, order: .reverse), SortDescriptor(\.createdAt, order: .reverse)]
             )
         }

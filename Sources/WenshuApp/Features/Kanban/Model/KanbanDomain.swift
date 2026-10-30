@@ -25,7 +25,7 @@ enum KanbanStatus: String, Codable, Sendable, CaseIterable {
 /// Kanban task
 /// .003: extended with hermes-style metadata
 /// (priority / assignee / started_at / completed_at / model_override).
-struct KanbanTask: Equatable, Sendable {
+struct KanbanTask: Identifiable, Equatable, Sendable {
     let id: String
     var title: String
     var status: KanbanStatus

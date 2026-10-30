@@ -27,7 +27,11 @@ struct InspectorTaskPageView: View {
     /// the book the board shows).
     let workspaceUI: WorkspaceUIState
 
+    /// The app state (= the focused chat session, = the board follows
+    /// the session, = one board per session and no picker on the board).
+    let appState: AppState
+
     var body: some View {
-        KanbanView(workspaceUI: workspaceUI)
+        KanbanView(workspaceUI: workspaceUI, focusedBookID: appState.chatBookID)
     }
 }

@@ -2,7 +2,7 @@
 //  KanbanTicketDetailSheet.swift
 //  arc of kanban-markdown work)
 //
-//  Opens a sheet (= modal) for a single KanbanTicket so the full
+//  Opens a sheet (= modal) for a single kanban task so the full
 //  agent-written body (= markdown = `**Goal:**`, lists, inline code,
 //  links) can be read past the card's `.lineLimit(6)` truncation.
 //
@@ -10,7 +10,7 @@
 //    - .sheet(isPresented:)
 //    - NavigationStack (Apple-default sheet chrome = title row + close)
 //    - ScrollView + Text(AttributedString) for the body
-//    - HStack(status badge) mirrors the card's status pill (= no layout drift)
+//    - the status badge mirrors the card's status pill (= no layout drift)
 //    - .frame(width:height:) per DesignTokens settyIOsheet size (= 600×400
 //      reused for any read-only body sheet; = no current ask for a
 //      dedicated kanban-size token yet).
@@ -19,15 +19,15 @@
 //  `ChatTextPartView.parseMarkdown` the card body uses (= 1:1 with
 //  hermes 0.21.5 reusing MessageTextContent across kanban + chat).
 //
-//  i18n: status labels reuse the existing `label(for:)` style from
-//  `KanbanCard`; = no new strings here beyond a "Body" header (= the
-//  body is the only new visible chrome).
+//  i18n: the status label comes from the board's own mapping
+//  (= `KanbanStatus.boardLabel`), = so the sheet and the card read
+//  the same word in every language.
 //
 
 import SwiftUI
 
 struct KanbanTicketDetailSheet: View {
-    let ticket: KanbanTicket
+    let task: KanbanTask
     let onDismiss: () -> Void
 
     var body: some View {
@@ -36,17 +36,17 @@ struct KanbanTicketDetailSheet: View {
                 statusBadge
                 ScrollView {
                     VStack(alignment: .leading, spacing: DesignTokens.spacingTight) {
-                        Text(ticket.title)
+                        Text(task.title)
                             .font(.title2.weight(.semibold))
                             .textSelection(.enabled)
-                        if let body = ticket.body, !body.isEmpty {
+                        if let body = task.body, !body.isEmpty {
                             Text(ChatTextPartView.parseMarkdown(body))
                                 .font(.body)
                                 .foregroundStyle(.primary)
                                 .textSelection(.enabled)
                                 .fixedSize(horizontal: false, vertical: true)
                         } else {
-                            Text("No body set.")
+                            Text(String(localized: "kanban.detail.no_body"))
                                 .font(.callout)
                                 .foregroundStyle(.secondary)
                         }
@@ -57,17 +57,17 @@ struct KanbanTicketDetailSheet: View {
             }
             .frame(idealWidth: DesignTokens.settingIOsheetSize.width,
                    idealHeight: DesignTokens.settingIOsheetSize.height)
-            .navigationTitle("Ticket")
+            .navigationTitle(String(localized: "kanban.detail.title"))
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Close", action: onDismiss)
+                    Button(String(localized: "kanban.detail.close"), action: onDismiss)
                 }
             }
         }
     }
 
     private var statusBadge: some View {
-        Text(statusLabel(ticket.status))
+        Text(task.status.boardLabel)
             .font(.caption.weight(.medium))
             .padding(.horizontal, DesignTokens.spacingTight)
             .padding(.vertical, DesignTokens.spacingCaption)
@@ -76,16 +76,4 @@ struct KanbanTicketDetailSheet: View {
             .padding(.top, DesignTokens.spacingTight)
     }
 
-    private func statusLabel(_ status: KanbanStatus) -> String {
-        switch status {
-        case .new: return "新"
-        case .triage: return "分流"
-        case .ready: return "就绪"
-        case .running: return "进行"
-        case .blocked: return "阻塞"
-        case .review: return "复核"
-        case .done: return "完成"
-        case .failed: return "失败"
-        }
-    }
 }

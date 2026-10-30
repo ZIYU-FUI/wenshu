@@ -57,6 +57,27 @@ enum SidebarItem: Hashable, Codable {
 
     static let referenceLibraryRoot = SidebarItem.referenceCategory("__root__")
 
+    /// The book this row belongs to.
+    ///
+    /// A book row names its own book and a folder row names its parent
+    /// book (= a folder is a sub-row of one). Every other row (= a
+    /// shelf, a reference category, the unclassified row, a tag, no
+    /// row) names no book.
+    ///
+    /// The board follows the session, and the session names its book,
+    /// so this is how a sidebar click reaches a session (= and through
+    /// it, the session's board).
+    var bookId: UUID? {
+        switch self {
+        case .book(let id):
+            return id
+        case .folder(let bookId, _):
+            return bookId
+        case .shelf, .referenceCategory, .referenceUnclassified, .tag:
+            return nil
+        }
+    }
+
     // MARK: - v0.30 (see OOB.md #2026-08-31): Codable for AppStorage persistence
     //
     // Custom JSON encode/decode for @AppStorage (= AppStorage uses

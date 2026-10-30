@@ -100,7 +100,7 @@ struct InspectorView: View {
                 InspectorStatusView(appState: appState)
             case .task:
                 // The task page owns the board of long-running work.
-                InspectorTaskPageView(workspaceUI: workspaceUI)
+                InspectorTaskPageView(workspaceUI: workspaceUI, appState: appState)
             }
         }
         .toolbar {
