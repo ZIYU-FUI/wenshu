@@ -299,8 +299,12 @@ def _git_out(args: list[str], stdin: str | None = None) -> str | None:
             # A diff can carry bytes that are not text (= a file git reads
             # as text because it holds no NUL byte, and it is not UTF-8).
             # Decoding must not raise: a gate that CRASHES on a file is
-            # not a gate that fails closed.
-            errors="replace",
+            # not a gate that fails closed. But it must not LOSE bytes
+            # either: "replace" maps every undecodable byte to U+FFFD, so
+            # two different payloads would hash the same (= a fail-open
+            # collision where the crash used to be a fail-closed one).
+            # "surrogateescape" round-trips the bytes exactly.
+            errors="surrogateescape",
             timeout=30,
         )
     except (OSError, subprocess.SubprocessError):
@@ -359,7 +363,9 @@ def change_id(sha: str, main: str = "main") -> str | None:
     body = _change_body(diff)
     if not body.strip():
         return None
-    return hashlib.sha256(body.encode("utf-8")).hexdigest()
+    # Encode back with the same escape, so the hash is over the BYTES the
+    # diff carried (= a payload that is not UTF-8 keeps its identity).
+    return hashlib.sha256(body.encode("utf-8", "surrogateescape")).hexdigest()
 
 
 def _change_body(diff: str) -> str:
@@ -384,21 +390,31 @@ def _change_body(diff: str) -> str:
     kept: list[str] = []
     for part in diff.split("diff --git ")[1:]:
         section = "diff --git " + part
-        binary = "Binary files" in section
-        for line in section.splitlines():
+        lines = section.splitlines()
+        # Git's own marker for a binary diff is a line that STARTS with
+        # "Binary files ". A substring test over the whole section also
+        # matches a TEXT file whose CONTENT says "Binary files ...", and
+        # that text file would then keep its whole-file blob hash (= its
+        # identity would depend on the whole file, and a landing near
+        # the change would move it).
+        binary = any(line.startswith("Binary files ") for line in lines)
+        for line in lines:
             if line.startswith("@@"):
                 continue
             if line.startswith("index "):
                 if not binary:
                     continue
-                # Keep ONLY the new blob hash (= the payload). The old
-                # one is the BASE's blob, and it moves as soon as the
-                # base does (= a rebase would move the identity).
                 parts = line.split()
                 # The mode can be on the next line (= "new file mode"), so
                 # the index line carries only the two blob hashes.
                 if len(parts) >= 2 and ".." in parts[1]:
-                    line = "index " + parts[1].split("..", 1)[1]
+                    old_blob, new_blob = parts[1].split("..", 1)
+                    # A DELETION carries its payload in the OLD half (=
+                    # the new half is all zeros), so keep whichever half
+                    # holds the bytes. Keeping the wrong one gives every
+                    # deleted file of that path one identity.
+                    keep = old_blob if set(new_blob) == {"0"} else new_blob
+                    line = "index " + keep
                 else:
                     continue
             kept.append(line)

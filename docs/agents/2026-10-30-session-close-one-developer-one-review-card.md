@@ -85,15 +85,30 @@ rebased onto a newer main changed sha (e103538d -> 0040c704) and tree,
 and its edit did not move.
 
 **AND THE BLOB HASH IS KEPT, PER FILE SECTION, FOR A BINARY FILE.** Git
-renders a binary diff as one constant line, so the new blob hash is the
+renders a binary diff as one constant line, so the blob hash is the
 only thing in the section that says WHICH payload it is. Dropping it
 gave two different PNGs one identity, and the gate cleared a branch
 carrying a different image. So the `index` line is dropped for a TEXT
-file (= the +/- lines carry the content) and kept for a BINARY file,
-and when it is kept only the NEW blob hash survives (= the old one is
-the base's, and it moves as soon as the base does). The rule is per
-section: git prints `index` BEFORE the "Binary files" line, so a
-line-order check reads the wrong answer.
+file (= the +/- lines carry the content) and kept for a BINARY file.
+Three details, each measured:
+
+* WHICH half survives depends on the direction. An ADD or a MODIFY
+  keeps the NEW blob (= the payload); a DELETE keeps the OLD one (= the
+  new half is all zeros, so keeping it gave every deleted file of that
+  path one identity).
+* BINARY is detected the way git prints it (= a line that STARTS with
+  "Binary files "), not by a substring over the section. A text file
+  whose CONTENT says "Binary files ..." was read as binary, and then
+  its identity depended on the whole file.
+* The rule is read PER SECTION, because git prints `index` BEFORE the
+  "Binary files" line, so a line-order check reads the wrong answer.
+
+**AND THE DECODE IS LOSSLESS.** A diff can carry bytes that are not
+text (= a file git reads as text because it holds no NUL byte, and it
+is not UTF-8). Replacing them made two different payloads hash the
+same (= a fail-open collision where the crash had been a fail-closed
+one), so the decode round-trips the bytes and the hash is over the
+bytes.
 
 **WHAT IT IS NOT.** `git patch-id --stable` is NOT the identity of a
 change: it strips whitespace (= two different programs share an id) and

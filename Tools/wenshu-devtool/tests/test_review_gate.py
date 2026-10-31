@@ -851,6 +851,114 @@ def main() -> int:
         ["t_refusal"],
     )
 
+    # ---- the four defects the review round measured on this change ----
+    # D-A: a TEXT file whose CONTENT says "Binary files ..." is not a
+    # binary diff, and must not keep its whole-file blob hash.
+    # D-B: a DELETED binary keeps its payload in the OLD half of the
+    # index line (= the new half is all zeros).
+    # D-C: the decode must be lossless (= two payloads that differ only
+    # in an undecodable byte must not share an identity).
+    # D-D: the decode fix has a case at all.
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp) / "repo"
+        repo.mkdir()
+        run = lambda *a: subprocess.run(
+            ["git", *a], cwd=repo, capture_output=True, text=True, check=True
+        )
+        run("init", "-q", "-b", "main")
+        run("config", "user.email", "t@t")
+        run("config", "user.name", "t")
+        cwd_before = Path.cwd()
+        os.chdir(repo)
+        (repo / "a.txt").write_text("base\n")
+        # the file both branches will change must EXIST in the base
+        # (= two branches ADDING the same path is a conflict, not a test)
+        (repo / "says.py").write_text("x = 0\n" * 10)
+        run("add", "-A")
+        run("commit", "-qm", "base")
+
+        # ---- D-A: a text file that merely SAYS "Binary files" ----
+        run("checkout", "-qb", "feature")
+        (repo / "says.py").write_text(
+            "msg = 'Binary files a/x and b/x differ'\n" + "x = 0\n" * 10)
+        run("add", "-A")
+        run("commit", "-qm", "a text file that says Binary files")
+        says = run("rev-parse", "HEAD").stdout.strip()
+        # an unrelated landing in the SAME file, then a rebase: the change
+        # must not move (= the identity must not depend on the whole file)
+        run("checkout", "-q", "main")
+        (repo / "says.py").write_text("x = 0\n" * 10 + "other = 1\n")
+        run("add", "-A")
+        run("commit", "-qm", "a landing in the same file")
+        run("checkout", "-q", "feature")
+        run("rebase", "main")
+        says_rebased = run("rev-parse", "HEAD").stdout.strip()
+        check(
+            "D-A: a text file that SAYS 'Binary files' keeps its identity "
+            "across a landing in the same file",
+            tool.change_id(says_rebased) == tool.change_id(says),
+            True,
+        )
+
+        # ---- D-B: a DELETED binary ----
+        # The identity of a change is measured against its own base, so
+        # two deletions of DIFFERENT payloads are measured in two
+        # repositories (= each base carries its own image).
+        def deletion_identity(payload: bytes) -> str:
+            with tempfile.TemporaryDirectory() as tmp2:
+                repo2 = Path(tmp2) / "repo"
+                repo2.mkdir()
+                r2 = lambda *a: subprocess.run(
+                    ["git", *a], cwd=repo2, capture_output=True, text=True, check=True
+                )
+                r2("init", "-q", "-b", "main")
+                r2("config", "user.email", "t@t")
+                r2("config", "user.name", "t")
+                (repo2 / "img.bin").write_bytes(
+                    b"\x89PNG\r\n\x1a\n\x00" + payload)
+                r2("add", "-A")
+                r2("commit", "-qm", "the base carries an image")
+                r2("checkout", "-q", "-b", "deleter")
+                r2("rm", "-q", "img.bin")
+                r2("commit", "-qam", "delete the image")
+                sha = r2("rev-parse", "HEAD").stdout.strip()
+                cwd2 = Path.cwd()
+                os.chdir(repo2)
+                try:
+                    return tool.change_id(sha) or ""
+                finally:
+                    os.chdir(cwd2)
+        del_one = deletion_identity(b"payload-one" * 8)
+        del_two = deletion_identity(b"payload-two" * 8)
+        check(
+            "D-B: two DELETED binaries with different payloads are NOT the "
+            "same change",
+            bool(del_one) and bool(del_two) and del_one != del_two,
+            True,
+        )
+
+        # ---- D-C + D-D: a diff that is not UTF-8 ----
+        run("checkout", "-qb", "weird", "main")
+        (repo / "weird.txt").write_bytes(b"a = 1\n\xff\xfe not utf-8\n")
+        run("add", "-A")
+        run("commit", "-qm", "a file that is not utf-8")
+        weird = run("rev-parse", "HEAD").stdout.strip()
+        cid = tool.change_id(weird)
+        check("D-D: the gate reads a diff that is not UTF-8", isinstance(cid, str), True)
+        check("D-D: and gives it an identity", bool(cid), True)
+        run("checkout", "-q", "-b", "weird2", "main")
+        (repo / "weird.txt").write_bytes(b"a = 1\n\xff\xfd not utf-8\n")
+        run("add", "-A")
+        run("commit", "-qm", "a different file that is not utf-8")
+        weird2 = run("rev-parse", "HEAD").stdout.strip()
+        check(
+            "D-C: two payloads that differ only in an undecodable byte are "
+            "NOT the same change",
+            tool.change_id(weird) != tool.change_id(weird2),
+            True,
+        )
+        os.chdir(cwd_before)
+
     print()
     if FAILURES:
         print(f"review_gate: {len(FAILURES)} case(s) FAILED")
