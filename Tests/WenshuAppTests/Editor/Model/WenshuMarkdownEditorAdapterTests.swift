@@ -428,8 +428,7 @@ struct WenshuMarkdownEditorAdapterTests {
         case isTrue
         case isFalse
         case unknown
-        /// The condition of the `#else` branch = = the negation of the
-        /// `#if` branch's.
+        /// The negation of this condition (= `#else` and `#elseif`).
         var negated: BranchCondition {
             switch self {
             case .isTrue: return .isFalse
@@ -437,6 +436,31 @@ struct WenshuMarkdownEditorAdapterTests {
             case .unknown: return .unknown
             }
         }
+        /// The conjunction of two conditions (= two scopes that BOTH
+        /// have to hold).
+        func and(_ other: BranchCondition) -> BranchCondition {
+            if self == .isFalse || other == .isFalse { return .isFalse }
+            if self == .isTrue && other == .isTrue { return .isTrue }
+            return .unknown
+        }
+        /// The disjunction of two conditions (= two branches of ONE
+        /// chain, of which at most one is compiled).
+        func or(_ other: BranchCondition) -> BranchCondition {
+            if self == .isTrue || other == .isTrue { return .isTrue }
+            if self == .isFalse && other == .isFalse { return .isFalse }
+            return .unknown
+        }
+    }
+
+    /// One open `#if` chain: = the branch this reader is inside, = and
+    /// the branches that came before it (= so `#else` = the negation of
+    /// all of them, = and not of the last one only).
+    struct BranchChain {
+        /// The condition of the branch the reader is inside.
+        var current: BranchCondition
+        /// Every branch of this chain that has been seen (= at most one
+        /// of them is compiled).
+        var taken: BranchCondition
     }
 
     /// The condition this reader can resolve. = Swift resolves a bare
@@ -459,8 +483,8 @@ struct WenshuMarkdownEditorAdapterTests {
     /// active, = a literal `false` is not, = and a flag is whatever the
     /// build settings say (= which this reader cannot see).
     private func conditionalScope(in code: String, upTo index: String.Index) -> ConditionalScope {
-        // The branches the declaration sits in, innermost last.
-        var branches: [BranchCondition] = []
+        // The open `#if` chains the declaration sits in, innermost last.
+        var chains: [BranchChain] = []
         var lineStart = code.startIndex
         while lineStart < index {
             let rest = code[lineStart..<index]
@@ -470,26 +494,47 @@ struct WenshuMarkdownEditorAdapterTests {
                 let directive = trimmed.dropFirst()
                 if directive.hasPrefix("if") {
                     let text = String(directive.dropFirst(2).drop(while: { $0 == " " || $0 == "\t" }))
-                    branches.append(condition(of: text))
+                    let branch = condition(of: text)
+                    chains.append(BranchChain(current: branch, taken: branch))
                 } else if directive.hasPrefix("elseif") {
                     let text = String(directive.dropFirst(6).drop(while: { $0 == " " || $0 == "\t" }))
-                    if !branches.isEmpty {
-                        branches[branches.count - 1] = condition(of: text)
+                    if !chains.isEmpty {
+                        // = an `#elseif` branch is compiled only when the
+                        // = branches before it were NOT, = so its
+                        // = condition is NOT(taken) AND its own.
+                        let previous = chains[chains.count - 1]
+                        let branch = previous.taken.negated.and(condition(of: text))
+                        chains[chains.count - 1] = BranchChain(current: branch,
+                                                              taken: previous.taken.or(branch))
                     }
                 } else if directive.hasPrefix("else") {
-                    if !branches.isEmpty {
-                        branches[branches.count - 1] = branches[branches.count - 1].negated
+                    if !chains.isEmpty {
+                        // = an `#else` branch is compiled only when NO
+                        // = branch before it was, = so its condition is
+                        // = the negation of ALL of them.
+                        let previous = chains[chains.count - 1]
+                        chains[chains.count - 1] = BranchChain(current: previous.taken.negated,
+                                                              taken: previous.taken)
                     }
                 } else if directive.hasPrefix("endif") {
-                    if !branches.isEmpty { branches.removeLast() }
+                    if !chains.isEmpty { chains.removeLast() }
                 }
             }
             lineStart = lineEnd < index ? code.index(after: lineEnd) : index
         }
-        if branches.isEmpty { return .certain }
-        if branches.contains(.isFalse) { return .absent }
-        if branches.contains(.isTrue) { return .certain }
-        return .maybe
+        // = A declaration nested in scopes S1...Sn exists only if EVERY
+        // = one of them is active, = so the reduction is a CONJUNCTION:
+        // = "any level is definitely true" is NOT enough (= the outer
+        // = flag still decides, = so the answer there is "maybe").
+        var whole = BranchCondition.isTrue
+        for chain in chains {
+            whole = whole.and(chain.current)
+        }
+        switch whole {
+        case .isFalse: return .absent
+        case .isTrue: return .certain
+        case .unknown: return .maybe
+        }
     }
 
     /// The number of UNCLOSED conditional-compilation blocks before

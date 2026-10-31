@@ -86,9 +86,13 @@ the two lanes each shipped what the other could not.
 ## The measured result
 
 The matrix grew as the reviews found more shapes: 29 cases, then 33, then
-36, then 39. The last review round measured the card's own 40 named
-cases and 85 probes, every one of them in a reviewer-owned copy of the
-tree, with the source restored and the restore sha256-verified after
+36, then 39, then 42, then 53 (= the last two rounds added the decoys a
+branch chain can hide: = the `#elseif true` of an `#if true` chain, = an
+`#if true` under an unknown outer guard, = and the `#else` of an `#if
+true / #elseif false` chain, = each with its capture proof and its
+correct-tree control). The last review round measured the card's own 40
+named cases and 85 probes, every one of them in a reviewer-owned copy of
+the tree, with the source restored and the restore sha256-verified after
 every case, and with the implementer's worktree verified pristine before,
 during and after.
 
