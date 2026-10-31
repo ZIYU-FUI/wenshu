@@ -113,7 +113,20 @@ def is_review_card(doc: dict) -> bool:
     runs = [r for r in (doc.get("runs") or []) if isinstance(r, dict)]
     runs = [r for r in runs if r.get("profile")]
     if not runs:
-        return False
+        # A card with NO run has no implementation phase: it cannot have
+        # run one. Under the one-developer flow a review card is created
+        # FOR the reviewer and has no run until the reviewer picks it up,
+        # so "every run carries the same profile" is vacuously true here.
+        #
+        # Measured 2026-10-31: a freshly created review card read as a
+        # contract error (= "the REVIEW HANDOFF section names no reviewer
+        # profile") because of this, and the error was a false positive:
+        # the card WAS the review, exactly like the ones that had already
+        # run and passed. The shape is only ever used together with the
+        # card's DECLARED kind (= the kind says the card is a review, and
+        # the shape says it has no implementation phase), so a build card
+        # with no run is still judged as a build card.
+        return True
     return len({str(r.get("profile")) for r in runs}) == 1
 
 

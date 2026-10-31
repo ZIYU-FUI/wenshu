@@ -493,6 +493,24 @@ def main() -> int:
         "changes_requested",
     )
     check(
+        "a review card with NO run yet carries no contract error",
+        tool.contract_errors(
+            "## WHAT TO BUILD\n\nA verdict on `a159635f2d`.\n\n"
+            "## REVIEW HANDOFF\n\napprove with `kanban_complete(metadata="
+            '{"review_outcome": "approved"})`.\n',
+            assignee="wenshu-review",
+            created_at=tool.REVIEW_CONTRACT_FROM + 86400,
+            kind="review",
+            is_review=True,
+        ),
+        [],
+    )
+    check(
+        "a card with no run is read as having no implementation phase",
+        tool.is_review_card({"task": review_task, "runs": [], "events": []}),
+        True,
+    )
+    check(
         "a review card whose reviewer is its implementer reads self_review",
         tool.verdict_from_doc(
             {
