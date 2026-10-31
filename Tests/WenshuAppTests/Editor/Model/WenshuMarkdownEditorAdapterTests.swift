@@ -503,9 +503,16 @@ struct WenshuMarkdownEditorAdapterTests {
                         // = branches before it were NOT, = so its
                         // = condition is NOT(taken) AND its own.
                         let previous = chains[chains.count - 1]
-                        let branch = previous.taken.negated.and(condition(of: text))
+                        // = the branch's OWN condition, = and NOT the
+                        // = effective one: = `taken` is the union of the
+                        // = chain's raw conditions (= "no preceding
+                        // = branch was selected" = its negation), = and
+                        // = the effective condition (= NOT(taken) AND
+                        // = own) already carries a NOT(taken) factor.
+                        let own = condition(of: text)
+                        let branch = previous.taken.negated.and(own)
                         chains[chains.count - 1] = BranchChain(current: branch,
-                                                              taken: previous.taken.or(branch))
+                                                              taken: previous.taken.or(own))
                     }
                 } else if directive.hasPrefix("else") {
                     if !chains.isEmpty {
