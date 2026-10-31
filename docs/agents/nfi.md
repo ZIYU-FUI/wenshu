@@ -13,10 +13,12 @@ was written) and 37 name a file whose line count never matched the row's
 number at any point. So a row's LOC answers "how big was this when the
 row was written", which is what the row is FOR, and a reader who
 compares it against the file today is reading a number that was never
-meant to be live. THE NUMBERS MOVE as the files grow (= 75 stale and a
-38/37 split the day before, at a tree one commit earlier), which is the
-column working as it is meant to; they are measured AT a tree for that
-reason. A NEW row carries the file's count as it stands
+meant to be live. THE NUMBERS MOVE, in both directions: a file grows
+and its row goes stale, and a row is corrected when the same change
+rewrites the file, so a row can come back (= this session's own row
+went stale and was corrected twice). They are measured AT a tree for
+that reason: the day before, at a tree one commit earlier, the same
+measurement read 75 stale and a 38/37 split. A NEW row carries the file's count as it stands
 when the row is written (= the one exception: a row for a file this change
 ADDED is written with that file's count, and the row is corrected if the
 same change rewrites it).
