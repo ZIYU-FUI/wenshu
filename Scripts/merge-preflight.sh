@@ -97,7 +97,9 @@ for b in "${branches[@]}"; do
     rc=$?
     if [[ $rc -eq 0 ]]; then
         behind=$(git rev-list --count "$b..main" 2>/dev/null || echo "?")
-        echo "CLEAN    $b   (behind main by $behind commit(s) -> rebase in its worktree, then ff)"
+        echo "CLEAN    $b   (behind main by $behind commit(s) -> rebase in its worktree, then ff;"
+        echo "         a rebase rewrites the sha but not the change, so the card that"
+        echo "         reviewed it still covers the branch)"
     else
         conflict=1
         echo "CONFLICT $b"
@@ -195,8 +197,8 @@ for b in "${branches[@]}"; do
         echo "UNREVIEWED $b"
         echo "         no review card names the sha this branch points at"
         echo "         (the review card's body names the sha under review;"
-        echo "          a rebase rewrites the sha, so a re-review must name"
-        echo "          the NEW sha)"
+        echo "          the gate matches the CHANGE, so a branch that was"
+        echo "          rebased still matches the card that reviewed it)"
         continue
     fi
     gate_out="$(python3 "$GATE" --card "$card" --board "$BOARD" 2>&1)"

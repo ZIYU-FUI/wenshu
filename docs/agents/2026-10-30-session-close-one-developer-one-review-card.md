@@ -71,6 +71,14 @@ never creates. A verdict written only in the summary is NOT a verdict
 names an old sha gets a verdict on the old tree, so the reviewed sha must
 be the branch tip, and a branch whose tip no card names is UNREVIEWED.
 
+**AND BY THE CHANGE IT CARRIES.** A branch that fell behind main is
+rebased before it lands, and a rebase rewrites the commit id. So the
+gate also accepts the card whose sha the branch used to point at, when
+the two carry the same `git patch-id` (= the same edit). Measured 2026-10-31:
+a branch rebased onto a newer main changed sha (e103538d -> 0040c704)
+and tree, and its patch-id did not move. Without this, one session
+landing its work voided every verdict in flight.
+
 ## The nine defects the review rounds found
 
 Each was found by `wenshu-review` on the card under review, fixed as its

@@ -20,6 +20,9 @@ wenshu-par:
   8. an approving verdict only counts from the profile that was named.
   9. changes requested AFTER the last approval void that approval.
  10. a card that never handed off owes a verdict it does not have.
+ 11. a verdict covers a branch that was REBASED since the card was written
+     (= the same change, a new commit id), and does NOT cover a branch
+     carrying a different change.
 
 Run:  python3 Tools/wenshu-devtool/tests/test_review_gate.py
 Exit: 0 = every case passed, 1 = at least one case failed.
@@ -28,7 +31,10 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 TOOL = Path(__file__).resolve().parent.parent / "review_gate.py"
@@ -529,6 +535,96 @@ def main() -> int:
         )["status"],
         "self_review",
     )
+
+    # ---- case 11: the verdict covers the CHANGE, not the commit id ----
+    # A branch that fell behind main is rebased before it lands, and a
+    # rebase rewrites the commit id. A verdict that binds to the commit
+    # id is then voided by somebody ELSE landing their work. These cases
+    # build a real repository, rebase the branch, and ask the gate.
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp) / "repo"
+        repo.mkdir()
+        run = lambda *a: subprocess.run(
+            ["git", *a], cwd=repo, capture_output=True, text=True, check=True
+        )
+        # The gate runs its git commands in the repository it is run from,
+        # so the case runs the tool from inside the fixture repository.
+        cwd_before = Path.cwd()
+        os.chdir(repo)
+        run("init", "-q", "-b", "main")
+        run("config", "user.email", "t@t")
+        run("config", "user.name", "t")
+        (repo / "base.txt").write_text("base\n")
+        run("add", "-A")
+        run("commit", "-qm", "base")
+        run("checkout", "-qb", "feature")
+        (repo / "feature.txt").write_text("the change under review\n")
+        run("add", "-A")
+        run("commit", "-qm", "the change")
+        reviewed_sha = run("rev-parse", "HEAD").stdout.strip()
+        # somebody else lands: main moves
+        run("checkout", "-q", "main")
+        (repo / "other.txt").write_text("somebody else's work\n")
+        run("add", "-A")
+        run("commit", "-qm", "other work")
+        # the branch is rebased, as the merge gate demands
+        run("checkout", "-q", "feature")
+        run("rebase", "main")
+        rebased_sha = run("rev-parse", "HEAD").stdout.strip()
+        check(
+            "the rebase rewrote the sha (= a sha-bound verdict would die)",
+            reviewed_sha != rebased_sha,
+            True,
+        )
+        check(
+            "the fixture repository is the one the tool reads",
+            tool.patch_id(rebased_sha) is not None,
+            True,
+        )
+        check(
+            "the patch-id survived the rebase (= the change is the same)",
+            tool.patch_id(rebased_sha) == tool.patch_id(reviewed_sha),
+            True,
+        )
+        card = {
+            "id": "t_rebase",
+            "title": "[T2][审核] the change",
+            "body": f"## WHAT TO BUILD\n\nA verdict on `{reviewed_sha}`.\n\n"
+                    "## REVIEW HANDOFF\n\nnone\n",
+            "runs": [
+                {
+                    "id": 1,
+                    "profile": "wenshu-review",
+                    "outcome": "completed",
+                    "ended_at": 10,
+                    "metadata": {"review_outcome": "approved"},
+                }
+            ],
+            "events": [],
+        }
+        found = tool.matching_cards([card], rebased_sha, "feature")
+        check(
+            "a verdict covers the branch after it was rebased",
+            [(f[0], f[3]) for f in found],
+            [("t_rebase", "patch-id")],
+        )
+        check(
+            "the same card does NOT cover a branch with no reflog entry "
+            "(= the sha it names is not the branch's)",
+            tool.matching_cards([card], rebased_sha, None),
+            [],
+        )
+        # a DIFFERENT change on the same branch must not be covered
+        (repo / "feature.txt").write_text("a different change\n")
+        run("add", "-A")
+        run("commit", "-qm", "a different change")
+        other_sha = run("rev-parse", "HEAD").stdout.strip()
+        check(
+            "a verdict does NOT cover a branch carrying a different change",
+            tool.matching_cards([card], other_sha, "feature"),
+            [],
+        )
+        os.chdir(cwd_before)
 
     print()
     if FAILURES:

@@ -287,6 +287,140 @@ def review_cards_for(board: str = BOARD) -> list[dict] | None:
     return cards
 
 
+def _git_out(args: list[str], stdin: str | None = None) -> str | None:
+    """Run a git command and return its stdout, or None when it fails."""
+    try:
+        out = subprocess.run(
+            ["git", *args],
+            input=stdin,
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if out.returncode != 0:
+        return None
+    return out.stdout
+
+
+def _merge_base(a: str, b: str) -> str | None:
+    """Where two refs diverged, or None when either cannot be read."""
+    out = _git_out(["merge-base", a, b])
+    return out.strip() if out and out.strip() else None
+
+
+def patch_id(sha: str, main: str = "main") -> str | None:
+    """The stable patch-id of the change a sha carries, or None.
+
+    A verdict names a sha. A sha dies the moment the branch is rebased,
+    and a rebase is exactly what the merge gate demands of a branch that
+    fell behind main. So a verdict that binds to a commit id is voided by
+    somebody ELSE landing their work: that is the interference this
+    function removes.
+
+    The verdict must attach to the CHANGE, not to the commit id.
+    ``git patch-id --stable`` gives the same id to two diffs that carry
+    the same edit, whatever the commit ids and whatever the line numbers
+    moved to. Measured 2026-10-31 on this repository: a branch rebased
+    onto a newer main changed sha (e103538d -> 0040c704) and tree, and
+    its patch-id did not move.
+
+    The change a sha carries = the diff from where its branch left main.
+    None when the sha carries no change at all (= an empty diff, or a
+    sha this repository does not have), and the caller must then fall
+    back to comparing the commit ids.
+    """
+    base = _merge_base(main, sha)
+    if base is None:
+        return None
+    diff = _git_out(["diff", f"{base}..{sha}"])
+    if diff is None or not diff.strip():
+        return None
+    out = _git_out(["patch-id", "--stable"], stdin=diff)
+    if not out:
+        return None
+    parts = out.split()
+    return parts[0] if parts else None
+
+
+def branch_tip_history(branch: str, limit: int = 12) -> list[str]:
+    """The shas a branch has pointed at, newest first.
+
+    A rebase leaves the branch's old tip in its reflog. That is where a
+    card's sha goes when the branch is rewritten: the card still names
+    it, the branch no longer points at it, and the sha comparison misses.
+    The reflog says "this branch used to be that"; the patch-id says
+    "and it still carries the same change".
+    """
+    out = _git_out(["reflog", "show", "--format=%H", branch])
+    if not out:
+        return []
+    shas: list[str] = []
+    for line in out.splitlines():
+        sha = line.strip()
+        if sha and sha not in shas:
+            shas.append(sha)
+        if len(shas) >= limit:
+            break
+    return shas
+
+
+def matching_cards(
+    cards: list[dict], target_sha: str, branch: str | None = None
+) -> list[tuple[str | None, str | None, str | None, str]]:
+    """The review cards whose verdict covers the sha a branch points at.
+
+    Two ways to cover it. The same commit id (= the card was written for
+    this exact tip), or the same CHANGE (= the branch was rebased since,
+    which rewrites the commit id and leaves the edit alone). The second
+    one is what stops somebody else landing their work from voiding a
+    verdict that is still good.
+
+    Returns ``(card id, verdict status, reviewer, how)`` for every card
+    that covers it, where ``how`` is ``"sha"`` or ``"patch-id"``.
+    """
+    history = branch_tip_history(branch) if branch else []
+    target_pid: str | None = None
+    target_pid_done = False
+    found: list[tuple[str | None, str | None, str | None, str]] = []
+    for card in cards:
+        # ``review_cards_for`` returns RAW task rows (= no ``task``
+        # key). ``card_kind`` reads the body and the title out of
+        # ``doc["task"]``, so it must be handed the WRAPPED doc. A raw
+        # row makes it judge the card on an empty body and an empty
+        # title, and a card whose runs carry two profiles then reads as
+        # a research card and is skipped here: the review card of a
+        # card that was reworked would vanish from the lookup.
+        doc = {"task": card, "runs": card.get("runs") or [], "events": []}
+        if card_kind(doc) != "review":
+            continue
+        body = card.get("body") or ""
+        sha = reviewed_sha(body)
+        if not sha:
+            continue
+        if sha.startswith(target_sha) or target_sha.startswith(sha):
+            verdict = verdict_from_doc(doc)
+            found.append((card.get("id"), verdict.get("status"), verdict.get("reviewer"), "sha"))
+            continue
+        # Not the same commit id. Is it the same CHANGE? Only a sha this
+        # branch used to point at can be (= the reflog), and the patch-id
+        # has to agree.
+        if not any(sha.startswith(h) or h.startswith(sha) for h in history):
+            continue
+        if not target_pid_done:
+            target_pid = patch_id(target_sha)
+            target_pid_done = True
+        if target_pid is None:
+            continue
+        card_pid = patch_id(sha)
+        if card_pid is None or card_pid != target_pid:
+            continue
+        verdict = verdict_from_doc(doc)
+        found.append((card.get("id"), verdict.get("status"), verdict.get("reviewer"), "patch-id"))
+    return found
+
+
 def _git_tip(ref: str) -> str | None:
     """The sha a branch or ref points at, or None when it cannot be read.
 
@@ -794,29 +928,12 @@ def main() -> int:
             # get must not read as a refusal the caller can ignore.
             print("BOARD UNREADABLE: the board could not be read")
             return 2
-        found = []
-        for card in cards:
-            # ``review_cards_for`` returns RAW task rows (= no ``task``
-            # key). ``card_kind`` reads the body and the title out of
-            # ``doc["task"]``, so it must be handed the WRAPPED doc. A raw
-            # row makes it judge the card on an empty body and an empty
-            # title, and a card whose runs carry two profiles then reads as
-            # a research card and is skipped here: the review card of a
-            # card that was reworked would vanish from the lookup.
-            doc = {"task": card, "runs": card.get("runs") or [], "events": []}
-            if card_kind(doc) != "review":
-                continue
-            body = card.get("body") or ""
-            sha = reviewed_sha(body)
-            if not sha:
-                continue
-            if not (sha.startswith(sha_filter) or sha_filter.startswith(sha)):
-                continue
-            verdict = verdict_from_doc(doc)
-            found.append((card.get("id"), verdict.get("status"), verdict.get("reviewer")))
-        for card_id, status, reviewer in found:
+        found = matching_cards(cards, sha_filter, args.branch)
+        for card_id, status, reviewer, how in found:
             print(f"CARD {card_id}")
             print(f"  verdict: {status} by {reviewer}")
+            if how == "patch-id":
+                print("  matched by patch-id (= the branch was rebased; the change is the same)")
         if not found:
             print(f"NO REVIEW CARD names the sha {args.sha or '?'} on branch {args.branch}")
         return 0 if found else 3
