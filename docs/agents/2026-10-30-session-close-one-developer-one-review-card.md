@@ -101,13 +101,20 @@ The five refusal paths of the merge gate, each naming its own cause, each
 exiting non-zero:
 
 ```
-card-id branch, card absent          -> exit 3  UNREVIEWED
-board unreadable                     -> exit 3  UNREADABLE
-sha no card names                    -> exit 3  UNREVIEWED
-gate file missing                    -> exit 3  NO GATE
-verdict still pending                -> exit 3  UNREVIEWED
-reviewed branch, card approved       -> exit 0  CLEAN
+card-id branch, card absent,
+  and no card names its sha    -> exit 3  UNREVIEWED
+board unreadable               -> exit 3  UNREADABLE
+sha no card names              -> exit 3  UNREVIEWED
+gate file missing              -> exit 3  NO GATE
+verdict still pending          -> exit 3  UNREVIEWED
+reviewed branch, card approved -> exit 0  CLEAN
 ```
+
+A card id in a branch name is a CLAIM, not a verdict: when the board
+does not carry that card, the lookup falls through to the sha, and the
+sha decides. So the first row needs its qualifier (= a card-id branch
+whose sha IS named by an approved card passes, which is right: that
+branch IS reviewed).
 
 The three states of the gate are distinct, and the gate's own exit codes
 say which is which: `card_absent` (4), `board_unreadable` (2), an
