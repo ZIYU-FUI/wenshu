@@ -97,24 +97,37 @@ the whole arc, oldest first.
 
 ## The measured result
 
-The four refusal paths of the merge gate, each exiting non-zero, and
-the three causes the script can print for them:
+The merge gate prints six labels, and this is the whole set (read off the
+script's own `echo` lines, not from memory):
+
+```
+CLEAN                              exit 0   the branch is reviewed
+UNREVIEWED                         exit 3   no verdict names it
+UNREADABLE                         exit 3   the board could not be read
+NO GATE                            exit 3   the gate file is missing
+CONTRACT                           exit 3   the card's body breaks the contract
+CONFLICT                           exit 1   the branch conflicts with main
+```
+
+`CONFLICT` is a merge conflict rather than a verdict failure, so the
+five VERDICT paths are the ones that matter here, and they carry four
+causes (`UNREVIEWED` covers two of them):
 
 ```
 board unreadable               -> exit 3  UNREADABLE
 sha no card names              -> exit 3  UNREVIEWED
 gate file missing              -> exit 3  NO GATE
 verdict still pending          -> exit 3  UNREVIEWED
+the card breaks the contract   -> exit 3  CONTRACT
 reviewed branch, card approved -> exit 0  CLEAN
 ```
 
-There are FOUR paths and THREE causes, and not five of either: a card
-id in a branch name is a CLAIM, not a verdict. When the board does not
-carry that card the script discards the claim and lets the SHA decide,
-so a card-id branch whose sha no card names refuses with the second
-path's cause (= "no review card names the sha this branch points at"),
-and a card-id branch whose sha IS named by an approving card passes (=
-that branch IS reviewed). Measured on the tree under review:
+A card id in a branch name is a CLAIM, not a verdict: when the board
+does not carry that card the script discards the claim and lets the SHA
+decide, so a card-id branch whose sha no card names refuses with the
+second path's cause (= "no review card names the sha this branch points
+at"), and a card-id branch whose sha IS named by an approving card
+passes (= that branch IS reviewed). Measured on the tree under review:
 `review_gate.py --card t_ffffffff` reads `card_absent` (exit 4), while
 `merge-preflight.sh` on a branch named after that card exits 0 when an
 approved card names its sha.
@@ -135,8 +148,8 @@ board does not carry):
 
 The `CLEAN` on the first line is the per-branch CONFLICT status, not the
 verdict: at that tree the gate found no card naming the sha and simply
-continued, so the branch landed with nothing on the record. The five
-refusal paths above are all `exit=3` with the cause named.
+continued, so the branch landed with nothing on the record. Every verdict
+path above is `exit=3` with its cause named.
 
 ## The repo gates, on the merged tree
 
