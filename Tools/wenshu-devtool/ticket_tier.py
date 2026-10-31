@@ -132,7 +132,7 @@ REPO = str(Path(__file__).resolve().parents[2])
 #
 # Measured on this board: at a 1500 cap the review runs died at 25.1 min
 # (seven of them), and at 3600 a 27-min review completed. So the lane's FLOOR
-# is 3600 s, and a card carrying less will die before it can hand back a
+# is a number a card carrying less will die under, before it can hand back a
 # verdict. A card carrying more is generous, not wrong, so the floor is what
 # this gate checks.
 #
@@ -932,7 +932,7 @@ def _is_subject(card: dict) -> bool:
 # human raised the cap by hand.
 #
 # So the instrument's own wait is a FLOOR on the cap, the way the review
-# lane's 3600 s is a floor: a card carrying less dies on the clock
+# lane's 5400 s is a floor: a card carrying less dies on the clock
 # before its instrument can report. A card carrying more is generous,
 # not wrong, so the floor is what this gate checks.
 #
