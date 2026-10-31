@@ -135,8 +135,13 @@ refusal paths above are all `exit=3` with the cause named.
 case. `bash -n Scripts/merge-preflight.sh` exits 0.
 `python3 Tools/wenshu-devtool/verify-dead.py` reports 0 dead
 declarations. The CJK audit over the added lines of every commit this session
-made reports 0 new CJK characters, and every commit subject is English with a
-conventional prefix.
+made reports 6 new characters, all of them the board's own two kind tags
+(the review tag and the build tag, as `Tools/wenshu-devtool/ticket_tier.py`
+spells them = it maps them to `review` and `build`), in one test fixture,
+used the way that file already used the same tags twice before. So they
+are the tool's own vocabulary and not a comment, and rule 1.1's subject
+check (which the CI lint job runs) is clean: every commit subject is
+English with a conventional prefix.
 
 ## Where this is (the durable fact)
 
