@@ -342,16 +342,19 @@ struct WenshuMarkdownEditorAdapterTests {
     /// type's own `var body` is at depth two, = and a `var body` inside a
     /// closure is deeper still).
     private func editorBodyRegion(in readable: String) -> String? {
-        // The editor's OWN type, = and NOT a type whose name merely
-        // BEGINS with it: = `WenshuMarkdownEditorPreview` and
-        // `WenshuMarkdownEditor_Previews` are not the editor, = and a
-        // plain substring anchor took THEM for it (= their body, = their
-        // branch, = and the editor's real branch was never read: = the
-        // defect shipped green). = The word boundaries are what say
-        // "this whole name, = and not the start of a longer one".
-        guard let declaration = readable.range(
-            of: #"\bstruct\s+WenshuMarkdownEditor\b"#,
-            options: .regularExpression),
+        // The editor's OWN declaration: = the file-scope type whose name
+        // is exactly the editor's. = NOT a type whose name merely BEGINS
+        // with it (= `WenshuMarkdownEditorPreview` = and
+        // `WenshuMarkdownEditor_Previews`), = and NOT a type with the
+        // editor's exact name that is NESTED inside another type.
+        //
+        // WHY BOTH: a plain substring anchor took the prefix names for
+        // the editor, = and a first-match anchor takes the FIRST
+        // declaration (= a nested exact-name decoy declared BEFORE the
+        // editor took the region: = its body was read, = its branch was
+        // read, = and the editor's real branch was never read: = the
+        // defect shipped green).
+        guard let declaration = editorTypeDeclaration(in: readable),
               let brace = readable.range(of: "{",
                                          range: declaration.upperBound..<readable.endIndex),
               let typeEnd = matchingBrace(in: readable, from: brace.lowerBound),
@@ -361,6 +364,38 @@ struct WenshuMarkdownEditorAdapterTests {
               let bodyEnd = matchingBrace(in: readable, from: bodyBrace)
         else { return nil }
         return String(readable[readable.index(after: bodyBrace)..<bodyEnd])
+    }
+
+    /// The editor's OWN declaration: = the file-scope (= top-level) type
+    /// whose name is exactly the editor's.
+    ///
+    /// WHY THE DEPTH: the editor's declaration sits at brace depth zero,
+    /// = because it is a file-scope type, = while a type nested inside
+    /// another type is declared at depth one or deeper. = So the depth
+    /// is what tells the editor's own declaration from a decoy that
+    /// carries the same name.
+    private func editorTypeDeclaration(in readable: String) -> Range<String.Index>? {
+        let pattern = #"\bstruct\s+WenshuMarkdownEditor\b"#
+        var search = readable.startIndex
+        while let hit = readable.range(of: pattern,
+                                       options: .regularExpression,
+                                       range: search..<readable.endIndex) {
+            if braceDepth(in: readable, upTo: hit.lowerBound) == 0 {
+                return hit
+            }
+            search = hit.upperBound
+        }
+        return nil
+    }
+
+    /// The number of UNCLOSED `{` before `index` (= zero at file scope).
+    private func braceDepth(in code: String, upTo index: String.Index) -> Int {
+        var depth = 0
+        for character in code[..<index] {
+            if character == "{" { depth += 1 }
+            if character == "}" { depth -= 1 }
+        }
+        return depth
     }
 
     /// The `{` of the `var body: some View {` that belongs DIRECTLY to a
