@@ -251,6 +251,134 @@ struct WenshuMarkdownEditorAdapterTests {
             .joined(separator: "\n")
     }
 
+    // MARK: - Reading a SwiftUI branch STRUCTURALLY
+
+    /// Which side of a branch the editor's height-mode check is on.
+    enum HeightModeBranch {
+        /// The branch that runs when the editor fits its content.
+        case fitsContent
+        /// The branch that runs when the editor scrolls internally.
+        case scrolls
+        /// The condition says neither (= the check is somewhere else, or
+        /// it is spelled in a way this reader does not resolve).
+        case unknown
+    }
+
+    /// The two bodies of one `if`/`else` pair.
+    struct BranchPair {
+        /// The body of the branch the height-mode check selects.
+        var gated: String
+        /// The body of the branch it does NOT select.
+        var other: String
+    }
+
+    /// Find the `if`/`else` pair whose condition resolves to the editor's
+    /// height-mode check, and return both bodies.
+    ///
+    /// WHY A STRUCTURAL READ AND NOT A SUBSTRING SEARCH: the condition
+    /// can be spelled three ways, and a substring search only catches
+    /// one of them.
+    ///
+    ///  1. written out (= `surface.configuration.heightBehavior ==
+    ///     .fitsContent`), = which a substring search finds, = but it
+    ///     also finds the phrase when the phrase is somewhere ELSE and
+    ///     the branch is inverted, = and it cannot tell two `} else {`
+    ///     apart, = so an unrelated earlier one reverses the slice.
+    ///  2. extracted into a computed property (= `if isFitsContent`),
+    ///     which a substring search MISSES, = and a search for the
+    ///     phrase plus the word `if` would FALSE-POSITIVE on it.
+    ///  3. negated (= `if !isFitsContent`), = which names the OTHER
+    ///     branch.
+    ///
+    /// So the condition is resolved to the thing it NAMES (= a computed
+    /// property is followed to its own body and read there), = and the
+    /// branch bodies are found by matching braces (= never by taking the
+    /// first `} else {` in the file).
+    ///
+    /// - Returns: the pair, or nil when no branch resolves to the check.
+    private func heightModeBranchPair(in code: String) -> BranchPair? {
+        var search = code.startIndex
+        while let ifRange = code.range(of: "if ", range: search..<code.endIndex) {
+            defer { search = ifRange.upperBound }
+            guard let brace = code.range(of: "{", range: ifRange.upperBound..<code.endIndex),
+                  let bodyEnd = matchingBrace(in: code, from: brace.lowerBound)
+            else { continue }
+            let condition = String(code[ifRange.upperBound..<brace.lowerBound])
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let ifBody = String(code[brace.upperBound..<bodyEnd])
+            let elseBody = elseBody(of: code, after: bodyEnd)
+
+            switch heightMode(of: condition, in: code) {
+            case .fitsContent:
+                return BranchPair(gated: ifBody, other: elseBody ?? "")
+            case .scrolls:
+                guard let elseBody else { continue }
+                return BranchPair(gated: elseBody, other: ifBody)
+            case .unknown:
+                continue
+            }
+        }
+        return nil
+    }
+
+    /// The body of the `else` that follows an `if` block, or nil when
+    /// the `if` has no `else` (= or when what follows is not one).
+    private func elseBody(of code: String, after bodyEnd: String.Index) -> String? {
+        var i = code.index(after: bodyEnd)
+        while i < code.endIndex, code[i].isWhitespace { i = code.index(after: i) }
+        guard code[i...].hasPrefix("else"),
+              let brace = code.range(of: "{", range: i..<code.endIndex),
+              let end = matchingBrace(in: code, from: brace.lowerBound)
+        else { return nil }
+        return String(code[brace.upperBound..<end])
+    }
+
+    /// The index of the `}` that closes the `{` at `open`.
+    private func matchingBrace(in code: String, from open: String.Index) -> String.Index? {
+        var depth = 0
+        var i = open
+        while i < code.endIndex {
+            switch code[i] {
+            case "{": depth += 1
+            case "}":
+                depth -= 1
+                if depth == 0 { return i }
+            default: break
+            }
+            i = code.index(after: i)
+        }
+        return nil
+    }
+
+    /// Which height-mode branch a condition selects, resolved through a
+    /// computed property when the condition names one.
+    private func heightMode(of condition: String, in code: String) -> HeightModeBranch {
+        let trimmed = condition.trimmingCharacters(in: .whitespacesAndNewlines)
+        let negated = trimmed.hasPrefix("!")
+        let named = negated
+            ? String(trimmed.dropFirst()).trimmingCharacters(in: .whitespacesAndNewlines)
+            : trimmed
+        // A computed property is a plain identifier (= the gate written
+        // out is an expression, = and it is read directly).
+        guard !named.isEmpty,
+              named.allSatisfy({ $0.isLetter || $0.isNumber || $0 == "_" })
+        else {
+            return trimmed.contains("heightBehavior == .fitsContent") ? .fitsContent : .unknown
+        }
+        guard let declaration = code.range(of: "var \(named): Bool {",
+                                          range: code.startIndex..<code.endIndex),
+              // The declaration's OWN `{` opens the computed property's
+              // body (= searching forward from `declaration.upperBound`
+              // would find the NEXT `{` in the file, = which is a
+              // different scope entirely).
+              let brace = code.range(of: "{", range: declaration.lowerBound..<declaration.upperBound),
+              let end = matchingBrace(in: code, from: brace.lowerBound)
+        else { return .unknown }
+        let body = String(code[brace.upperBound..<end])
+        guard body.contains("heightBehavior == .fitsContent") else { return .unknown }
+        return negated ? .scrolls : .fitsContent
+    }
+
     // MARK: - LaTeX rendering enabled (= boss拍 2026-10-11)
 
     @Test("WenshuEditorServicesFactory constructs a LatexRenderer (= NoOpLatexRenderer is NOT the production choice)")
@@ -705,19 +833,16 @@ struct WenshuMarkdownEditorAdapterTests {
                 "WenshuMarkdownEditor must NOT scroll horizontally (= the engine's own NSScrollView owns the horizontal axis; = a horizontal SwiftUI scroller is what produced the 30 PT sliver)")
 
         // The gate's LOCATION is the claim (= which branch carries the
-        // scroll view), = so the two branches are sliced apart and each is
-        // checked on its own.
-        let gate = "surface.configuration.heightBehavior == .fitsContent"
-        let fitsStart = code.range(of: gate)
-        let elseStart = code.range(of: "} else {")
-        #expect(fitsStart != nil && elseStart != nil,
-                "WenshuMarkdownEditor must gate the scroll view on surface.configuration.heightBehavior (= .scrolls keeps the engine's own scroller; = nesting two scrollers would swallow the wheel events)")
-        if let fitsStart, let elseStart {
-            let fitsBranch = code[fitsStart.lowerBound ..< elseStart.lowerBound]
-            let scrollsBranch = code[elseStart.upperBound...]
-            #expect(fitsBranch.contains("ScrollView(.vertical)"),
+        // scroll view), = so the branch is read STRUCTURALLY: the
+        // condition is resolved to the height-mode check it names, = and
+        // the two bodies are found by matching braces.
+        let pair = heightModeBranchPair(in: code)
+        #expect(pair != nil,
+                "WenshuMarkdownEditor must branch on surface.configuration.heightBehavior (= .scrolls keeps the engine's own scroller; = nesting two scrollers would swallow the wheel events)")
+        if let pair {
+            #expect(pair.gated.contains("ScrollView(.vertical)"),
                     "the .fitsContent branch MUST carry the ScrollView (= the engine's paging contract needs the enclosing scroller)")
-            #expect(!scrollsBranch.contains("ScrollView"),
+            #expect(!pair.other.contains("ScrollView"),
                     "the .scrolls branch MUST NOT carry a ScrollView (= two scrollers would nest and the wheel events would be swallowed by the outer one)")
         }
 
