@@ -83,6 +83,53 @@ struct WenshuMarkdownEditor: View {
         // superfluous). Removing it lets the NSTextView sit flush against
         // the editor zone's own background (matches Pages / Numbers canvas
         // feel).
+        //
+        // `.fitsContent` needs an enclosing scroll view, and this is where
+        // it goes. The engine's own contract (its `HeightBehavior` docs):
+        // in `.fitsContent` the editor reports `headerHeight + content
+        // height` to SwiftUI and the ENCLOSING scroll view owns the
+        // paging (= its `ClampedScrollView` disables its own vertical
+        // scroller and forwards wheel events to the responder chain's
+        // enclosing scroll view). Without one, the reported height is
+        // the only height the editor column has: the hosting view's
+        // `height >= <content>` demand reaches the NSSplitViewController's
+        // item wrapper (= measured: the split grew from 984 PT to 1032 PT),
+        // the split view's top edge rose above the window's top edge, and
+        // the editor column's tab strip + format toolbar were drawn off
+        // the top of the window (= the measured clip: the editor column's
+        // first ink row sat at y=0.0 while every other column started at
+        // y=67.5).
+        //
+        // The scroll view is added ONLY in `.fitsContent` (= one mode
+        // needs it; = the other mode's engine owns its own scroll and must
+        // NOT be nested inside a second one). The horizontal axis stays
+        // off: the engine's own NSScrollView provides horizontal scroll
+        // (= the v1 wrapper's `ScrollView([.horizontal, .vertical])` is
+        // what produced the 30 PT sliver = the engine's NSTextContainer
+        // measured against an unbounded width).
+        //
+        // This is not the v3 "text not rendered" regression. That one's
+        // root cause was the engine's `centerReadingColumn(forClipWidth: 0)`
+        // call at `makeNSView` time (= the engine's `readingWidth` was
+        // pinned to 600 PT then). `readingWidth` is nil today (=
+        // `WenshuEditorServicesFactory` pins it), so `centerReadingColumn`
+        // never runs (= the engine's own guard: `if configuration.readingWidth
+        // != nil`), and the engine tracks the parent's width instead.
+        Group {
+            if surface.configuration.heightBehavior == .fitsContent {
+                ScrollView(.vertical) {
+                    engine
+                }
+            } else {
+                engine
+            }
+        }
+    }
+
+    /// The engine's own view (= the `NSViewRepresentable` the
+    /// `NativeTextViewWrapper` provides; = the single mount point for
+    /// both the preview and the edit surface).
+    private var engine: some View {
         NativeTextViewWrapper(
             text: $text,
             configuration: adjustedConfiguration,

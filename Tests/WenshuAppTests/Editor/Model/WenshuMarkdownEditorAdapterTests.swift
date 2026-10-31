@@ -650,6 +650,85 @@ struct WenshuMarkdownEditorAdapterTests {
         #expect(editor.contains("onCaretRectChange: surface.onCaretRectChange"),
                 "WenshuMarkdownEditor must forward onCaretRectChange to NativeTextViewWrapper")
     }
+
+    /// `.fitsContent` needs an enclosing scroll view, and the desktop
+    /// did not have one.
+    ///
+    /// The engine's own contract (its `HeightBehavior` docs): in
+    /// `.fitsContent` the editor reports `headerHeight + content height`
+    /// to SwiftUI, its own `ClampedScrollView` DISABLES its vertical
+    /// scroller (`wantsVerticalScroller` returns false for
+    /// `.fitsContent`), and its `scrollWheel` forwards the event to the
+    /// responder chain (= "the enclosing (SwiftUI) scroll view receives
+    /// the event"). So an enclosing scroller is not optional: without
+    /// one the document cannot be scrolled at all AND its content
+    /// height becomes the only height the editor column has (= the
+    /// hosting view's `height >= content` demand reaches the
+    /// NSSplitViewController's item wrapper; = the split grew past the
+    /// window and the column's top chrome was drawn off the window's
+    /// top edge).
+    ///
+    /// The gate is on the HOST, not on the engine: the enclosing scroll
+    /// view has to wrap the engine's `NativeTextViewWrapper` in the
+    /// wenshu-side host (= `WenshuMarkdownEditor`), because the engine
+    /// itself cannot provide one.
+    ///
+    /// Two things are gated, because both were wrong at once:
+    /// 1. `.fitsContent` MUST get the scroll view (= the contract above).
+    /// 2. `.scrolls` MUST NOT (= the engine's own `NSScrollView` owns the
+    ///    scroll there; = a second scroller would nest them and the
+    ///    wheel events would be swallowed by the outer one).
+    ///
+    /// The gate asserts WHERE the scroll view sits, not that a phrase
+    /// appears somewhere in the file. A substring check on the gate's
+    /// own text cannot tell "the scroll view is inside the `.fitsContent`
+    /// branch" from "the scroll view is on the `.scrolls` branch and the
+    /// phrase is still in the file", = so the branch is SLICED and each
+    /// slice is checked on its own. Measured against the real source:
+    /// this fails when the scroll view is moved to the `.scrolls` branch,
+    /// when it is removed, and when it is put on BOTH branches (= the
+    /// nesting the card names).
+    ///
+    /// The canvas's own code is read for the same reason: the property
+    /// "the canvas carries no scroll view" lives in
+    /// `EditorPaperCanvas.swift`, = so asserting it about the HOST file
+    /// would be true for every possible content of that file (= a check
+    /// that cannot fail is not a check).
+    @Test("WenshuMarkdownEditor gives .fitsContent an enclosing scroll view (= the engine's paging contract)")
+    func wenshuMarkdownEditorGivesFitsContentAnEnclosingScrollView() throws {
+        let editorPath = resolve("Sources/WenshuApp/Features/Editor/Model/WenshuMarkdownEditor.swift")
+        let editor = try String(contentsOfFile: editorPath, encoding: .utf8)
+        let code = codeOnly(editor)
+        #expect(code.contains("ScrollView(.vertical)"),
+                "WenshuMarkdownEditor must wrap the engine in a vertical ScrollView (= the engine's .fitsContent contract requires an enclosing scroller)")
+        #expect(!code.contains("ScrollView([.horizontal, .vertical])"),
+                "WenshuMarkdownEditor must NOT scroll horizontally (= the engine's own NSScrollView owns the horizontal axis; = a horizontal SwiftUI scroller is what produced the 30 PT sliver)")
+
+        // The gate's LOCATION is the claim (= which branch carries the
+        // scroll view), = so the two branches are sliced apart and each is
+        // checked on its own.
+        let gate = "surface.configuration.heightBehavior == .fitsContent"
+        let fitsStart = code.range(of: gate)
+        let elseStart = code.range(of: "} else {")
+        #expect(fitsStart != nil && elseStart != nil,
+                "WenshuMarkdownEditor must gate the scroll view on surface.configuration.heightBehavior (= .scrolls keeps the engine's own scroller; = nesting two scrollers would swallow the wheel events)")
+        if let fitsStart, let elseStart {
+            let fitsBranch = code[fitsStart.lowerBound ..< elseStart.lowerBound]
+            let scrollsBranch = code[elseStart.upperBound...]
+            #expect(fitsBranch.contains("ScrollView(.vertical)"),
+                    "the .fitsContent branch MUST carry the ScrollView (= the engine's paging contract needs the enclosing scroller)")
+            #expect(!scrollsBranch.contains("ScrollView"),
+                    "the .scrolls branch MUST NOT carry a ScrollView (= two scrollers would nest and the wheel events would be swallowed by the outer one)")
+        }
+
+        // The canvas's own CODE (= its comment history still names a
+        // ScrollView, = so the comments are stripped first), = because the
+        // property this asserts lives there and not in the host file.
+        let canvasPath = resolve("Sources/WenshuApp/Features/Editor/View/EditorPaperCanvas.swift")
+        let canvasCode = codeOnly(try String(contentsOfFile: canvasPath, encoding: .utf8))
+        #expect(!canvasCode.contains("ScrollView"),
+                "EditorPaperCanvas must NOT carry a ScrollView (= the enclosing scroll view belongs on the engine host; = the canvas's ScrollView is what the v3 'text not rendered' regression came from)")
+    }
 }
 
 
