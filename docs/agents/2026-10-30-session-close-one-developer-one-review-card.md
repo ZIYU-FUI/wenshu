@@ -4,10 +4,24 @@
 review gate so every path fails closed, and landed the result behind a
 chain of review cards. The chain is on the board, and the property that
 describes it holds whatever its length: EVERY card this session created
-was a review card (= `created_by=pocock` on `wenshu-par`, every one of
-them assigned to `wenshu-review`, every one of them naming the sha it
-reviews), and every one of them that has closed carries a verdict from
-the reviewer.
+was a review card, and every one of them that has closed carries a
+verdict from the reviewer.
+
+**HOW TO FIND THIS SESSION'S CARDS.** Not by `created_by`: the parallel
+session runs under the same `pocock` profile, so that column carries its
+build cards too. The shape tells them apart. A card of this session has
+`## WHAT TO BUILD` and a `## REVIEW HANDOFF` that names NO reviewer
+(= a card written by the one developer IS the review, so there is no
+implementer to hand off from); the parallel session's build cards name
+a reviewer. That shape selects exactly this session's chain. The cards
+up to the card under review are:
+
+```
+t_cf48e2ec  t_fd3551fe  t_0e9e9d5f  t_bf5f3894  t_cd4230dc
+t_20bd6cbf  t_f51843e8  t_a1e41861  t_de63e367  t_7d718554
+```
+
+and the card that reviews this record is the last of them.
 
 ## The symptom, in the board's own words
 
