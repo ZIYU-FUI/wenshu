@@ -18,7 +18,10 @@ nobody: a card had three endings and only two of them were automatic
 = nobody does it for you). The lane cost a full extra agent per ticket,
 and the cost was measured, not assumed: 14 cards sat `done`, reviewed,
 and still unmerged, every one of them CLEAN at `merge-preflight.sh` and
-BEHIND `main` by 4 to 76 commits.
+BEHIND `main` by 4 to 76 commits. That is a SNAPSHOT, taken at the tree
+this session started from: those branches are gone from the repo now
+(= the only `wt/` branches left belong to this session's own review
+cards), so the range is a past measurement and not a live count.
 
 The lane also failed open. `merge-preflight.sh` answered "will this
 conflict" and REFUSED an unreviewed merge — but a card the board did not
@@ -132,9 +135,10 @@ passes (= that branch IS reviewed). Measured on the tree under review:
 `merge-preflight.sh` on a branch named after that card exits 0 when an
 approved card names its sha.
 
-The three states of the gate are distinct, and the gate's own exit codes
-say which is which: `card_absent` (4), `board_unreadable` (2), an
-unapproved verdict (3), an approved card (0).
+The four states of the gate are distinct, and the gate's own exit codes
+say which is which (each measured on the tree under review):
+`card_absent` (4), `board_unreadable` (2), an unapproved verdict (3), an
+approved card (0).
 
 The reviewer's own matrix, comparing the reviewed tree against its
 parent, found the fail-open it had come for. Reproduced here on the

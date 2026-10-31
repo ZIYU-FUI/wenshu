@@ -5,14 +5,18 @@ file. Each row: parent file, extracted file, current LOC, content tag. The
 next reader finds the file by concern in under five seconds.
 
 **THE LOC COLUMN IS THE COUNT AT THE MOMENT THE ROW WAS WRITTEN, not a live
-count of the file today.** Measured 2026-10-31: of the 163 rows whose
-extracted file still exists, 75 carry a LOC that no longer matches the
-file today. Of those 75, 38 name a file that HAD that count at some point
-in its history (= the file grew after the row was written) and 37 name a
-file whose line count never matched the row's number at any point. So a
-row's LOC answers "how big was this when the row was written", which is
-what the row is FOR, and a reader who compares it against the file today
-is reading a number that was never meant to be live. A NEW row carries the file's count as it stands
+count of the file today.** Measured 2026-10-31 on the tree at `d1c1279e46`:
+of the 163 rows whose extracted file still exists, 76 carry a LOC that
+no longer matches the file today. Of those 76, 39 name a file that HAD
+that count at some point in its history (= the file grew after the row
+was written) and 37 name a file whose line count never matched the row's
+number at any point. So a row's LOC answers "how big was this when the
+row was written", which is what the row is FOR, and a reader who
+compares it against the file today is reading a number that was never
+meant to be live. THE NUMBERS MOVE as the files grow (= 75 stale and a
+38/37 split the day before, at a tree one commit earlier), which is the
+column working as it is meant to; they are measured AT a tree for that
+reason. A NEW row carries the file's count as it stands
 when the row is written (= the one exception: a row for a file this change
 ADDED is written with that file's count, and the row is corrected if the
 same change rewrites it).
@@ -231,6 +235,6 @@ reference, LOC, and content tag.
 
 
 | `Sources/WenshuApp/Shared/UI/InspectorCard.swift` | `Tests/WenshuAppTests/Editor/View/InspectorCardTests.swift` | 152 | `struct InspectorCard` = the ONE card the trailing inspector column's three pages wear (= Apple's Liquid Glass via `.glassEffect` with a white 30% tint, = the system's `.rect(cornerRadius:)` shape, = a marker column of its own width so every card's words start at the same place, = so the plan's cards, the sub-agent's cards and the board's cards are one family instead of three sets that drift), plus the test that holds the three pages to it (= eleven checks, = mutation-verified). |
-| `docs/agents/2026-10-30-session-close-one-developer-one-review-card.md` | `docs/agents/2026-10-30-session-close-one-developer-one-review-card.md` | 227 | `the session closeout of record for the one-developer review flow: the symptom (= a second developer lane bought an extra agent per ticket and the merge gate failed OPEN on a card the board did not carry, a board it could not read, and a gate file that was missing), the fix (= pocock develops outside the board and creates ONE review card after the commit, the reviewer's verdict is the run metadata's review_outcome field, and the gate resolves a branch by that branch's own tip), the nine defects the review rounds found and the nine commits that fixed them, the measured result (= the five refusal paths of the merge gate, each naming its own cause), and the open items (= the push carried the sibling session's interleaved commits, and the sibling's own card is not clean)` |
+| `docs/agents/2026-10-30-session-close-one-developer-one-review-card.md` | `docs/agents/2026-10-30-session-close-one-developer-one-review-card.md` | 231 | `the session closeout of record for the one-developer review flow: the symptom (= a second developer lane bought an extra agent per ticket and the merge gate failed OPEN on a card the board did not carry, a board it could not read, and a gate file that was missing), the fix (= pocock develops outside the board and creates ONE review card after the commit, the reviewer's verdict is the run metadata's review_outcome field, and the gate resolves a branch by that branch's own tip), the nine defects the review rounds found and the nine commits that fixed them, the measured result (= the five refusal paths of the merge gate, each naming its own cause), and the open items (= the push carried the sibling session's interleaved commits, and the sibling's own card is not clean)` |
 <!-- Append new rows at the END of the table above. The key-level merge
      driver keeps both rows when two cards add one each. -->
