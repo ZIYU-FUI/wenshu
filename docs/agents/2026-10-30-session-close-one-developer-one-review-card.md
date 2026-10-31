@@ -137,10 +137,15 @@ conventional prefix.
 
 ## Where this is (the durable fact)
 
-Each of the thirteen commits is an ancestor of `main` on BOTH remotes
+Every commit this session made is an ancestor of `main` on BOTH remotes
 (`origin` = `gitcode.com:ZIYU1983/wenshu`, `old-origin` =
 `github.com:ZIYU-FUI/wenshu`), checked with `git merge-base
---is-ancestor` against each remote's tracking ref. The dispatcher's
+--is-ancestor` against each remote's tracking ref. The session's commits
+are the ones whose subject names the gate, the workflow, the closeout
+record, the tier or the NFI registry (= `fix(gate):` `refactor(workflow):`
+`docs(close):` `docs(tier):` `docs(nfi):` `fix(tier):`); the parallel
+session's are the ones that name the inspector, the todo page, the board
+or the editor. The dispatcher's
 configuration is not in
 this repository: it lives in the Hermes tree
 (`/Volumes/ANAN/.hermes/config.yaml`
@@ -156,16 +161,16 @@ reads.
 
 **BOTH REMOTES CARRY THE WORK.** `origin` (`gitcode.com:ZIYU1983/wenshu`)
 and `old-origin` (`github.com:ZIYU-FUI/wenshu`) both read back at the
-same sha, and each of the thirteen commits is an ancestor of `main` on both
+same sha, and every commit this session made is an ancestor of `main` on both
 (= `git merge-base --is-ancestor` against each remote's tracking ref). The
 push to each was a plain fast-forward and rewrote no byte.
 
-**THE PUSH CARRIED A SIBLING'S COMMITS.** The thirteen commits this
-session made and the parallel session's fifteen are INTERLEAVED on one
-`main` history, so a push of `main` cannot carry one without the other.
+**THE PUSH CARRIED A SIBLING'S COMMITS.** This session's commits and the
+parallel session's commits are INTERLEAVED on one `main` history, so a push
+of `main` cannot carry one without the other.
 The push was a plain fast-forward (`fda16f70b5..a345524927`, then
 `a345524927..3883052470`) and rewrote no byte of the sibling's work,
-but the sibling's fifteen commits are now on `origin/main` too. They
+but the sibling's commits are now on `origin/main` too. They
 belong to a sibling session and are named here because the boss reads
 the landing table and needs to know who owns each row.
 
