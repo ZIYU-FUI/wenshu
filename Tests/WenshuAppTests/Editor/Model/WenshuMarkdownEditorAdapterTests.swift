@@ -342,7 +342,16 @@ struct WenshuMarkdownEditorAdapterTests {
     /// type's own `var body` is at depth two, = and a `var body` inside a
     /// closure is deeper still).
     private func editorBodyRegion(in readable: String) -> String? {
-        guard let declaration = readable.range(of: "struct WenshuMarkdownEditor"),
+        // The editor's OWN type, = and NOT a type whose name merely
+        // BEGINS with it: = `WenshuMarkdownEditorPreview` and
+        // `WenshuMarkdownEditor_Previews` are not the editor, = and a
+        // plain substring anchor took THEM for it (= their body, = their
+        // branch, = and the editor's real branch was never read: = the
+        // defect shipped green). = The word boundaries are what say
+        // "this whole name, = and not the start of a longer one".
+        guard let declaration = readable.range(
+            of: #"\bstruct\s+WenshuMarkdownEditor\b"#,
+            options: .regularExpression),
               let brace = readable.range(of: "{",
                                          range: declaration.upperBound..<readable.endIndex),
               let typeEnd = matchingBrace(in: readable, from: brace.lowerBound),
