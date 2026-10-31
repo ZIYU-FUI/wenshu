@@ -4,6 +4,17 @@ The registry of every file split out of a god-class or extracted to its own
 file. Each row: parent file, extracted file, current LOC, content tag. The
 next reader finds the file by concern in under five seconds.
 
+**THE LOC COLUMN IS THE COUNT AT THE MOMENT THE ROW WAS WRITTEN, not a live
+count of the file today.** Measured 2026-10-31: of the 163 rows whose
+extracted file still exists, 75 carry a LOC that no longer matches the
+file, because the file grew after the split. So a row's LOC answers "how
+big was this when it was extracted", which is what the row is FOR, and a
+reader who compares it against the file today is reading a number that was
+never meant to be live. A NEW row carries the file's count as it stands
+when the row is written (= the one exception: a row for a file this change
+ADDED is written with that file's count, and the row is corrected if the
+same change rewrites it).
+
 This table used to live in `AGENTS.md` §1.11. It moved here because it is
 APPEND-ONLY (= every new row lands at the end), so two cards each adding one
 row both wrote the same last line and collided. In its own file it merges at
