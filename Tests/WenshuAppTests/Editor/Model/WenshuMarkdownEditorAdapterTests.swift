@@ -329,17 +329,51 @@ struct WenshuMarkdownEditorAdapterTests {
     /// The editor's own `body`, = which is the region the gate's claim
     /// is about.
     ///
-    /// WHY THE REGION MATTERS: a height-mode check somewhere ELSE in
-    /// the file (= in a helper, = in a configuration builder) is not
-    /// the branch this gate is about, = and reading it instead would
-    /// point the gate at the wrong branch (= the same class of defect
-    /// as a decoy in a comment).
+    /// WHY THE REGION IS FOUND BY THE TYPE AND NOT BY THE PHRASE: the
+    /// phrase `var body: some View {` belongs to EVERY view, = so the
+    /// first one in the file is not necessarily the editor's. = A second
+    /// view type earlier in the file (= one with its own height-mode
+    /// branch) would capture the reader, = and the editor's real branch
+    /// would never be read = which is a HOLE (= the defect ships
+    /// undetected) = and not a false positive.
+    ///
+    /// So the region is the body that belongs to the editor's OWN
+    /// declaration, = and = at brace depth one inside it (= a nested
+    /// type's own `var body` is at depth two, = and a `var body` inside a
+    /// closure is deeper still).
     private func editorBodyRegion(in readable: String) -> String? {
-        guard let declaration = readable.range(of: "var body: some View {"),
-              let brace = readable.range(of: "{", range: declaration.lowerBound..<declaration.upperBound),
-              let end = matchingBrace(in: readable, from: brace.lowerBound)
+        guard let declaration = readable.range(of: "struct WenshuMarkdownEditor"),
+              let brace = readable.range(of: "{",
+                                         range: declaration.upperBound..<readable.endIndex),
+              let typeEnd = matchingBrace(in: readable, from: brace.lowerBound),
+              let bodyBrace = topLevelBodyDeclaration(in: readable,
+                                                      from: brace.lowerBound,
+                                                      to: typeEnd),
+              let bodyEnd = matchingBrace(in: readable, from: bodyBrace)
         else { return nil }
-        return String(readable[brace.upperBound..<end])
+        return String(readable[readable.index(after: bodyBrace)..<bodyEnd])
+    }
+
+    /// The `{` of the `var body: some View {` that belongs DIRECTLY to a
+    /// type, = and not to a nested type or to a closure.
+    private func topLevelBodyDeclaration(in code: String,
+                                         from typeBrace: String.Index,
+                                         to typeEnd: String.Index) -> String.Index? {
+        let needle = "var body: some View {"
+        var depth = 0
+        var i = typeBrace
+        while i < typeEnd {
+            if depth == 1, code[i...].hasPrefix(needle) {
+                return code.index(i, offsetBy: needle.count - 1)
+            }
+            switch code[i] {
+            case "{": depth += 1
+            case "}": depth -= 1
+            default: break
+            }
+            i = code.index(after: i)
+        }
+        return nil
     }
 
     /// Find the `if`/`else` pair inside the editor's body whose
@@ -347,7 +381,7 @@ struct WenshuMarkdownEditorAdapterTests {
     /// both bodies.
     ///
     /// WHY A STRUCTURAL READ AND NOT A SUBSTRING SEARCH: the condition
-    /// can be spelled five ways, and a substring search only catches one
+    /// can be spelled six ways, and a substring search only catches one
     /// of them.
     ///
     ///  1. written out (= `surface.configuration.heightBehavior ==
@@ -365,13 +399,23 @@ struct WenshuMarkdownEditorAdapterTests {
     ///  5. written with `!=` (= `if surface.configuration.heightBehavior
     ///     != .fitsContent`), = which is the OTHER branch written the
     ///     other way round.
+    ///  6. the enum spelled in full (= `if surface.configuration
+    ///     .heightBehavior == MarkdownEditorConfiguration.HeightBehavior
+    ///     .fitsContent`), = which is the SAME branch, = and which a
+    ///     test for the phrase `heightBehavior == .fitsContent` MISSES.
     ///
     /// So the condition is resolved to the thing it NAMES (= a computed
     /// property is followed to its own body and read there, = a negation
-    /// is read as the branch it excludes, = and `!=` is read as the
-    /// branch that is NOT the fitsContent one), = and the branch bodies
-    /// are found by matching braces (= never by taking the first
-    /// `} else {` in the file).
+    /// is read as the branch it excludes, = and the comparison is SPLIT
+    /// so that the enum may be spelled any way it likes), = and the
+    /// branch bodies are found by matching braces (= never by taking the
+    /// first `} else {` in the file).
+    ///
+    /// WHICH BRANCH, WHEN THERE IS MORE THAN ONE: the claim is about the
+    /// branch that RENDERS THE EDITOR, = so the branch is the one whose
+    /// body hands the engine to SwiftUI. = A height-mode check that
+    /// only picks a background colour is a legitimate thing to add, = and
+    /// the gate must not be captured by it.
     ///
     /// - Parameter readable: the source with comments and strings blanked.
     /// - Returns: the pair, or nil when no branch resolves to the check.
@@ -400,20 +444,45 @@ struct WenshuMarkdownEditorAdapterTests {
                     let ifBody = String(body[brace.upperBound..<bodyEnd])
                     let elseBody = elseBody(of: body, after: bodyEnd)
 
+                    let pair: BranchPair?
                     switch heightMode(of: condition, in: readable) {
                     case .fitsContent:
-                        return BranchPair(gated: ifBody, other: elseBody ?? "")
+                        pair = BranchPair(gated: ifBody, other: elseBody ?? "")
                     case .scrolls:
-                        guard let elseBody else { continue }
-                        return BranchPair(gated: elseBody, other: ifBody)
+                        pair = elseBody.map { BranchPair(gated: $0, other: ifBody) }
                     case .unknown:
-                        break
+                        pair = nil
+                    }
+                    // The branch that renders the editor (= and only
+                    // that one) is the one the claim is about.
+                    if let pair, mentionsEngine(pair.gated) || mentionsEngine(pair.other) {
+                        return pair
                     }
                 }
             }
             offset += line.count + 1
         }
         return nil
+    }
+
+    /// Whether a branch body hands the EDITOR's engine to SwiftUI.
+    ///
+    /// The token, = not a substring (= so `engineering` does not count),
+    /// and the comments are already blanked (= so a comment that names
+    /// the engine cannot make a branch qualify).
+    private func mentionsEngine(_ text: String) -> Bool {
+        var search = text.startIndex
+        while let range = text.range(of: "engine", range: search..<text.endIndex) {
+            let before = range.lowerBound == text.startIndex
+                ? nil : text[text.index(before: range.lowerBound)]
+            let after = range.upperBound == text.endIndex
+                ? nil : text[range.upperBound]
+            let beforeOK = before.map { !($0.isLetter || $0.isNumber || $0 == "_") } ?? true
+            let afterOK = after.map { !($0.isLetter || $0.isNumber || $0 == "_") } ?? true
+            if beforeOK && afterOK { return true }
+            search = range.upperBound
+        }
+        return false
     }
 
     /// The body of the `else` that follows an `if` block, or nil when
@@ -454,7 +523,7 @@ struct WenshuMarkdownEditorAdapterTests {
     /// Which height-mode branch a condition selects, resolved through a
     /// computed property when the condition names one, = and read
     /// through a negation when the condition is negated.
-    private func heightMode(of condition: String, in code: String) -> HeightModeBranch {
+    private func heightMode(of condition: String, in code: String, depth: Int = 0) -> HeightModeBranch {
         var text = condition.trimmingCharacters(in: .whitespacesAndNewlines)
         var negated = false
         // A leading `!` and the parentheses around the test are noise
@@ -473,16 +542,52 @@ struct WenshuMarkdownEditorAdapterTests {
         }
         let base: HeightModeBranch
         if text.isHeightModeIdentifier {
-            base = heightModeOfComputedProperty(named: text, in: code)
-        } else if text.contains("heightBehavior != .fitsContent") {
-            base = .scrolls
-        } else if text.contains("heightBehavior == .fitsContent") {
-            base = .fitsContent
+            guard depth < 3 else { return .unknown }
+            base = heightModeOfComputedProperty(named: text, in: code, depth: depth)
         } else {
-            base = .unknown
+            base = heightModeOfComparison(text)
         }
         guard base != .unknown else { return .unknown }
         return negated ? (base == .fitsContent ? .scrolls : .fitsContent) : base
+    }
+
+    /// The branch a COMPARISON selects, however the enum is spelled.
+    ///
+    /// WHY A PARSE AND NOT A PHRASE: the right-hand side names the mode
+    /// in three ways, = and a substring test catches one of them:
+    /// `.fitsContent`, = `fitsContent`, = and
+    /// `MarkdownEditorConfiguration.HeightBehavior.fitsContent` (= the
+    /// fully qualified case, = which is a legitimate rewrite, = and which
+    /// a test for the phrase `heightBehavior == .fitsContent` MISSES).
+    /// So the comparison is SPLIT, = the left side must name the
+    /// behaviour, = and the right side is read by its LAST path
+    /// component (= so any prefix resolves to the same case).
+    ///
+    /// The operator decides the polarity: `heightBehavior ==
+    /// .fitsContent` is TRUE in the fitsContent mode, = and
+    /// `heightBehavior != .fitsContent` is TRUE in the other one.
+    private func heightModeOfComparison(_ text: String) -> HeightModeBranch {
+        for (op, isEqual) in [("!=", false), ("==", true)] {
+            guard let range = text.range(of: op) else { continue }
+            let left = String(text[..<range.lowerBound])
+            let right = String(text[range.upperBound...])
+            guard left.contains("heightBehavior") else { continue }
+            guard let mode = heightModeName(of: right) else { continue }
+            let selectsFitsContent = (mode == .fitsContent)
+            return (isEqual == selectsFitsContent) ? .fitsContent : .scrolls
+        }
+        return .unknown
+    }
+
+    /// The mode an enum case names, however it is spelled.
+    private func heightModeName(of text: String) -> HeightModeBranch? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let last = trimmed.split(separator: ".").last else { return nil }
+        switch last {
+        case "fitsContent": return .fitsContent
+        case "scrolls": return .scrolls
+        default: return nil
+        }
     }
 
     /// Whether the parentheses in a condition are balanced (= so a
@@ -500,7 +605,7 @@ struct WenshuMarkdownEditorAdapterTests {
     }
 
     /// The branch a computed property's own body selects.
-    private func heightModeOfComputedProperty(named name: String, in code: String) -> HeightModeBranch {
+    private func heightModeOfComputedProperty(named name: String, in code: String, depth: Int = 0) -> HeightModeBranch {
         guard let declaration = code.range(of: "var \(name): Bool {",
                                           range: code.startIndex..<code.endIndex),
               // The declaration's OWN `{` opens the computed property's
@@ -511,9 +616,14 @@ struct WenshuMarkdownEditorAdapterTests {
               let end = matchingBrace(in: code, from: brace.lowerBound)
         else { return .unknown }
         let body = String(code[brace.upperBound..<end])
-        if body.contains("heightBehavior != .fitsContent") { return .scrolls }
-        if body.contains("heightBehavior == .fitsContent") { return .fitsContent }
-        if body.contains("heightBehavior == .scrolls") { return .scrolls }
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolved = heightModeOfComparison(body)
+        if resolved != .unknown { return resolved }
+        // The property may name ANOTHER property (= a property of a
+        // property), = so the read follows the name one more step.
+        if body.isHeightModeIdentifier {
+            return heightMode(of: body, in: code, depth: depth + 1)
+        }
         return .unknown
     }
 
