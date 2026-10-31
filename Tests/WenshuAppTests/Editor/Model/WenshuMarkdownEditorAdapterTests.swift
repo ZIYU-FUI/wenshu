@@ -377,15 +377,60 @@ struct WenshuMarkdownEditorAdapterTests {
     private func editorTypeDeclaration(in readable: String) -> Range<String.Index>? {
         let pattern = #"\bstruct\s+WenshuMarkdownEditor\b"#
         var search = readable.startIndex
+        var fallback: Range<String.Index>?
         while let hit = readable.range(of: pattern,
                                        options: .regularExpression,
                                        range: search..<readable.endIndex) {
-            if braceDepth(in: readable, upTo: hit.lowerBound) == 0 {
+            guard braceDepth(in: readable, upTo: hit.lowerBound) == 0 else {
+                search = hit.upperBound
+                continue
+            }
+            // A BRACE DEPTH IS NOT A SCOPE: = an `#if` block adds NO
+            // braces, = so a type declared inside one still sits at
+            // depth zero, = and it is still the FIRST match. = So the
+            // editor's own declaration must also be outside every
+            // conditional-compilation block.
+            if conditionalBlockDepth(in: readable, upTo: hit.lowerBound) == 0 {
                 return hit
             }
+            // = and if EVERY candidate sits inside a conditional block
+            // (= the editor really is declared inside one), = the first
+            // of them is still the best answer.
+            if fallback == nil { fallback = hit }
             search = hit.upperBound
         }
-        return nil
+        return fallback
+    }
+
+    /// The number of UNCLOSED conditional-compilation blocks before
+    /// `index`.
+    ///
+    /// WHY: `#if` ... `#endif` adds NO braces, = so a declaration inside
+    /// one is at brace depth zero, = and a depth alone cannot tell it
+    /// from the editor's own declaration.
+    private func conditionalBlockDepth(in code: String, upTo index: String.Index) -> Int {
+        var depth = 0
+        var lineStart = code.startIndex
+        while lineStart < index {
+            let rest = code[lineStart..<index]
+            let lineEnd = rest.firstIndex(of: "\n") ?? index
+            let trimmed = code[lineStart..<lineEnd].drop(while: { $0 == " " || $0 == "\t" })
+            if trimmed.hasPrefix("#") {
+                let directive = trimmed.dropFirst()
+                if directive.hasPrefix("if") {
+                    let after = directive.dropFirst(2)
+                    // `#if` opens a block (= and `#if` is not `#ifdef`).
+                    if after.isEmpty || !after.first!.isLetter && !after.first!.isNumber {
+                        depth += 1
+                    }
+                } else if directive.hasPrefix("endif") {
+                    depth -= 1
+                }
+                // `#else` and `#elseif` open nothing and close nothing.
+            }
+            lineStart = lineEnd < index ? code.index(after: lineEnd) : index
+        }
+        return depth
     }
 
     /// The number of UNCLOSED `{` before `index` (= zero at file scope).
