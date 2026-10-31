@@ -109,4 +109,47 @@ struct WSSessionTests {
         let count = try context.fetchCount(FetchDescriptor<WSSession>())
         #expect(count == 2)
     }
+
+    @Test("WSSession carries the archive's three columns, and an ordinary chat carries none of them")
+    @MainActor
+    func archiveColumnsRoundTrip() throws {
+        let container = try makeContainer()
+        let context = ModelContext(container)
+        // A chat session (= source = nil) and a unit of agent work
+        // (= source = the work kind), so the archive's read can tell
+        // them apart by the tag alone.
+        let chat = WSSession(sessionID: "sess-chat")
+        let work = WSSession(
+            sessionID: "sess-work",
+            title: "the work",
+            bookID: "book-A",
+            source: WSSessionSource.agent,
+            parentSessionID: "sess-chat",
+            agentName: "researcher"
+        )
+        context.insert(chat)
+        context.insert(work)
+        try context.save()
+
+        let fetched = try context.fetch(FetchDescriptor<WSSession>())
+        let byID = Dictionary(uniqueKeysWithValues: fetched.map { ($0.sessionID, $0) })
+        #expect(byID["sess-chat"]?.source == nil,
+                "an ordinary chat carries no work tag (= the archive lists only the tagged rows)")
+        #expect(byID["sess-work"]?.source == WSSessionSource.agent)
+        #expect(byID["sess-work"]?.parentSessionID == "sess-chat",
+                "the work names the session that asked for it (= the archive walks back to the chat)")
+        #expect(byID["sess-work"]?.agentName == "researcher",
+                "the work names the agent that did it (= the archive's second search dimension)")
+    }
+
+    @Test("WSSessionSource names the work kinds Hermes writes into its sessions table")
+    @MainActor
+    func sessionSourceVocabulary() {
+        // The column is a plain String (= SwiftData persists a String and
+        // not a Swift enum), so the vocabulary lives here as constants.
+        // Hermes keeps ONE sessions table and tags each row with where
+        // it came from, so a delegated agent's run and a board task's
+        // work are rows of the same table, told apart by the tag.
+        #expect(WSSessionSource.agent == "agent")
+    }
 }

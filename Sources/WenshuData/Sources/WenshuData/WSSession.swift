@@ -7,6 +7,27 @@
 import Foundation
 import SwiftData
 
+/// The kinds of work a session can record (= the values Hermes writes
+/// into its `source` column).
+///
+/// Hermes keeps every conversation in ONE `sessions` table and tags
+/// each row with where it came from (= `kanban` / `local` / `cli`),
+/// so a delegated agent's run and a board card's work are rows of
+/// the same table and are told apart by reading the tag. Wenshu
+/// keeps that shape: one table, one tag.
+///
+/// A new kind of work is a new constant here (= the archive reads the
+/// rows that carry a tag; = the kinds with no producer yet stay out
+/// until their producer ships).
+public enum WSSessionSource {
+    /// A unit of agent work (= a delegated agent's own session).
+    ///
+    /// The agent that did the work is named beside it
+    /// (= `WSSession.agentName`), which is the second dimension the
+    /// archive searches by.
+    public static let agent = "agent"
+}
+
 @Model
 public final class WSSession {
     /// The session id, unique per book (= the composite key
@@ -38,6 +59,35 @@ public final class WSSession {
     // bookID can have multiple sessions.
     public var bookID: String?
 
+    /// What kind of work this session records (= Hermes' `source`).
+    ///
+    /// Nil = an ordinary chat session (= the conversation the user is
+    /// having). Non-nil = a unit of agent work (= a delegated agent's
+    /// own session). The archive reads the rows that carry a tag, so
+    /// a chat and a run never land in the same list.
+    ///
+    /// The column is a plain String (= the vocabulary in
+    /// `WSSessionSource`), because SwiftData persists a String and not
+    /// a Swift enum.
+    public var source: String?
+
+    /// The session that asked for this work (= Hermes'
+    /// `parent_session_id`).
+    ///
+    /// Nil = the work was not requested by a chat session (= a
+    /// delegation that carried no scope). The value is the parent's
+    /// session id (= the id the chat itself uses), so the archive can
+    /// walk from a run back to the conversation that started it.
+    public var parentSessionID: String?
+
+    /// The agent that did the work (= the archive's "which agent"
+    /// dimension).
+    ///
+    /// Nil = the work has no named agent. The value is the sub-agent's
+    /// slug (= `researcher`, `writer`, = the sub-agent identity's raw
+    /// value), so a run is searchable by the agent that produced it.
+    public var agentName: String?
+
     @Relationship(deleteRule: .cascade, inverse: \WSChatMessage.session)
     public var messages: [WSChatMessage] = []
 
@@ -47,10 +97,20 @@ public final class WSSession {
     @Relationship(deleteRule: .cascade, inverse: \WSSubAgentRun.session)
     public var subAgentRuns: [WSSubAgentRun] = []
 
-    public init(sessionID: String, title: String? = nil, bookID: String? = nil) {
+    public init(
+        sessionID: String,
+        title: String? = nil,
+        bookID: String? = nil,
+        source: String? = nil,
+        parentSessionID: String? = nil,
+        agentName: String? = nil
+    ) {
         self.sessionID = sessionID
         self.title = title
         self.bookID = bookID
+        self.source = source
+        self.parentSessionID = parentSessionID
+        self.agentName = agentName
         self.createdAt = Date()
         self.updatedAt = Date()
     }
