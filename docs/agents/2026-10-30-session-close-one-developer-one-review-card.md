@@ -125,9 +125,11 @@ conventional prefix.
 
 ## Where this is (the durable fact)
 
-Each of the eleven commits is an ancestor of `main` on `origin`
-(`gitcode.com:ZIYU1983/wenshu`), read back through the local tracking
-ref `refs/remotes/origin/main`. The dispatcher's configuration is not in
+Each of the twelve commits is an ancestor of `main` on BOTH remotes
+(`origin` = `gitcode.com:ZIYU1983/wenshu`, `old-origin` =
+`github.com:ZIYU-FUI/wenshu`), checked with `git merge-base
+--is-ancestor` against each remote's tracking ref. The dispatcher's
+configuration is not in
 this repository: it lives in the Hermes tree (`/Volumes/ANAN/.hermes/config.yaml`
 for the dispatcher allowlist, `~/.hermes/profiles/pocock/` for the
 profile's own defaults and credentials). The rules are in
@@ -139,11 +141,11 @@ reads.
 
 ## The open items, on purpose
 
-**`old-origin` (`github.com:ZIYU-FUI/wenshu`) is BEHIND.** It still points
-at `fda16f70b59`, so the eleven commits are not ancestors of its `main`.
-The two remotes have diverged in role: `origin` is the live one, and
-`old-origin` was not pushed by this session. Pushing there is a separate
-decision about that repository's future, not part of this scope.
+**BOTH REMOTES CARRY THE WORK.** `origin` (`gitcode.com:ZIYU1983/wenshu`)
+and `old-origin` (`github.com:ZIYU-FUI/wenshu`) both read back at
+`a345524927`, and each of the twelve commits is an ancestor of `main` on
+both (= `git merge-base --is-ancestor` against each remote's tracking
+ref). The push to each was a plain fast-forward and rewrote no byte.
 
 **THE PUSH CARRIED A SIBLING'S COMMITS.** The eleven commits and twelve
 commits from the parallel session are INTERLEAVED on one `main` history,
