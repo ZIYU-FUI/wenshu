@@ -235,12 +235,14 @@ worktree still on disk that belongs to the parallel session, and every
 branch it owns (`feat/todo-kanban-ui`, `pocock/coltop`,
 `project/t_6a672e62-...`), was left untouched, rebased and undeleted.
 This session's own review worktrees and their branches are gone, but
-NOT because the card's close removed them: the BOARD's cleanup defers a
-shared workspace, so it can land hours after the close (measured: the
-card `t_f51843e8` closed at 16:25 and its worktree was still on disk at
-18:37, and the board's own event row says
-`workspace_cleanup_deferred_shared`). This session removed its own
-cards' worktrees and branches by hand after the fact, so the state a
-reader finds is true (= no `.worktrees/` directory and no `wt/<card id>`
-branch for a card of this session) even though the board's sweep is what
-would have done it, later.
+NOT because the card's close removed them: the board DEFERS the removal
+of a workspace it cannot prove is free. It scans every board for another
+live task using the path, and when it cannot tell it refuses to delete
+and records why. The board's own event row for `t_f51843e8` says
+`workspace_cleanup_deferred_shared` with the reason `unknown` (= it
+could not tell), so the close left the directory on disk: measured, the
+card closed at 16:25 and its worktree was still on disk at 18:37. This
+session removed its own cards' worktrees and branches by hand after the
+fact, so the state a reader finds is true (= no `.worktrees/` directory
+and no `wt/<card id>` branch for a card of this session) even though the
+board's sweep is what would have done it, later.
