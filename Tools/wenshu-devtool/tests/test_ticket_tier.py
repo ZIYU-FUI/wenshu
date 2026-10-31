@@ -1104,22 +1104,32 @@ def main() -> int:
     # the review's work (re-read the diff, re-derive the acceptance, re-run the
     # gates), which is slower than the implementation it audits, so the tier's
     # implementation cap would kill it before it could hand back a verdict.
-    # Measured on this board: at a 1500 cap the review runs died at 25.1 min
-    # (seven of them), and at 3600 a 27-min review completed. So the lane has
-    # a FLOOR of 3600s, and a card above it is generous rather than wrong.
-    review_card = dict(good, status="review", max_runtime_seconds=3600)
+    # Measured 2026-10-30: at a 1500 cap the review runs died at 25.1 min
+    # (seven of them), and at 3600 a 27-min review completed. Measured
+    # 2026-10-31 over every run the quota wall did not kill: a review run
+    # completed 14% of the time at a 15m cap, 17% at 25m, 26% at 45m and 67%
+    # at 60m, and the completed reviews ran p50 30 min, p90 50 min, max 86
+    # min. So the lane has a FLOOR, and the floor is the measured maximum of
+    # a completing review (= 5400 s = 90 min).
+    #
+    # THE FLOOR IS READ FROM THE TOOL, NOT HARD-CODED HERE: a test that
+    # pins the number stops testing the rule the moment the measurement
+    # moves, and it fails for a reason that has nothing to do with the
+    # behaviour it claims to check.
+    FLOOR = tool.REVIEW_LANE_CAP_FLOOR
+    review_card = dict(good, status="review", max_runtime_seconds=FLOOR)
     check(
         "a review card at the lane's floor has no cap finding",
         any("runtime cap" in f for f in tool.find_errors(review_card)),
         False,
     )
-    review_under = dict(good, status="review", max_runtime_seconds=1500)
+    review_under = dict(good, status="review", max_runtime_seconds=FLOOR - 2100)
     check(
         "a review card under the lane's floor is an error",
         any("review lane needs at least" in f for f in tool.find_errors(review_under)),
         True,
     )
-    review_over = dict(good, status="review", max_runtime_seconds=5400)
+    review_over = dict(good, status="review", max_runtime_seconds=FLOOR + 1800)
     check(
         "a review card above the floor is not an error",
         any("runtime cap" in f for f in tool.find_errors(review_over)),
@@ -1137,6 +1147,75 @@ def main() -> int:
     check(
         "the review floor does not depend on the tier",
         any("review lane needs at least" in f for f in tool.find_errors(review_t2)),
+        True,
+    )
+
+    # 11c. THE TOOL MUST NOT ADVISE A CAP ITS OWN GATE REJECTS. The tier
+    # prices the WORK under review, and a review runs the review's work on
+    # its own clock, so the printed cap for a review card is the LANE's
+    # floor and not the tier's number. Measured 2026-10-31: a review card
+    # created with the cap the tool printed (= the tier's 15m) was refused
+    # by the gate it was printed from, and the card died on the clock twice
+    # before it could hand back a verdict.
+    review_body = (
+        "## WHAT TO BUILD\n\nA verdict on `abc1234567`.\n\n"
+        "## WHAT TO CHECK\n\n1. Does the thing.\n\n"
+        "## GATES\n\n```bash\nswift test --filter FooTests\n```\n\n"
+        "## ACCEPTANCE\n\n- it works.\n\n"
+        "## REVIEW HANDOFF\n\n"
+        "approve with `kanban_complete(summary=..., "
+        'metadata={"review_outcome": "approved"})`.\n'
+    )
+    draft = {"id": "draft-review", "title": "[T1][审核] draft", "body": review_body,
+             "status": "draft"}
+    advised = tool.report(draft)
+    check(
+        "a review card is advised the lane's floor, not the tier's cap",
+        advised["runtime_text"],
+        f"{tool.REVIEW_LANE_CAP_FLOOR // 60}m",
+    )
+    # And the advice must survive the gate: a card built from the printed
+    # cap must not carry a cap finding.
+    built = dict(draft, status="ready", assignee="wenshu-review",
+                 max_runtime_seconds=tool.REVIEW_LANE_CAP_FLOOR,
+                 runs=[{"profile": "wenshu-review"}])
+    check(
+        "the cap the tool advises for a review passes the tool's own gate",
+        any("runtime cap" in f for f in tool.find_contract_errors(built)),
+        False,
+    )
+    # A BUILD card keeps its tier's cap: the floor belongs to the review
+    # lane, not to every card.
+    build_draft = {"id": "draft-build", "title": "[T1][工单] draft",
+                   "body": ONE_FILE, "status": "draft"}
+    check(
+        "a build card is still advised its own tier's cap",
+        tool.report(build_draft)["runtime_text"],
+        tool.TIERS["T1"]["runtime_text"],
+    )
+
+    # 11d. A FINISHED review card owes nothing more, so the review lane's
+    # floor is not measured against its cap. Measured 2026-10-31: with the
+    # floor at 5400 s, sixteen FINISHED cards on the board (= every review
+    # card that carried the old 3600 s cap) read as violations, which buried
+    # the one LIVE card that actually owed a review.
+    finished_review = dict(
+        good,
+        status="done",
+        assignee="wenshu-review",
+        title="[T1][审核] a finished review",
+        body=review_body,
+        max_runtime_seconds=3600,
+    )
+    check(
+        "a finished review card is not measured against the review floor",
+        any("review lane needs at least" in f for f in tool.find_errors(finished_review)),
+        False,
+    )
+    live_review = dict(finished_review, status="running", max_runtime_seconds=3600)
+    check(
+        "a live review card under the floor is still an error",
+        any("review lane needs at least" in f for f in tool.find_errors(live_review)),
         True,
     )
 

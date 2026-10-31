@@ -139,7 +139,33 @@ REPO = str(Path(__file__).resolve().parents[2])
 # The floor is one number for the lane: the width of a REVIEW is not
 # derivable from the card body, because that body describes the work under
 # review, not the review itself.
-REVIEW_LANE_CAP_FLOOR = 3600
+#
+# MEASURED 2026-10-31 on board `wenshu-par`, every run that was not killed
+# by the provider quota (= the cap was the only limit on it):
+#
+#   cap   review runs that completed
+#   15m       1 of 7   (14%)
+#   25m       8 of 46  (17%)
+#   45m      11 of 42  (26%)
+#   60m      18 of 27  (67%)
+#
+# A review run that runs out of clock hands back NO verdict, so the card
+# retries and the review is redone from scratch. The measured elapsed of
+# the review runs that DID complete: p50 30 min, p90 50 min, max 86 min.
+# The old floor of 3600 s (= 60 min) sits BELOW that maximum, so a review
+# that could finish in 86 min was killed by the clock at 60.
+#
+# The floor is now the measured maximum of a completing review, rounded up:
+# 5400 s (= 90 min). A cap ABOVE the floor is generous, not wrong, so
+# nothing is forbidden by raising it.
+#
+# A BIGGER CAP DOES NOT COST MORE ATTEMPTS: the runs-per-card of the
+# cards that completed is driven by the quota wall, not by the cap (the
+# 90m cohort spent 15.8 quota runs per card and the 25m cohort spent
+# 2.3). The implementation lane's 30-minute tier stays where it is: it
+# completed 2.57 runs per card in 37 min of wall time, the best number
+# on the board.
+REVIEW_LANE_CAP_FLOOR = 5400
 
 TIERS = {
     "T1": {
@@ -1153,12 +1179,12 @@ def find_contract_errors(card: dict) -> list[str]:
         # THE CAP IS A FLOOR, NOT AN EXACT VALUE, and the floor depends on
         # what the card still has to do.
         #
-        # A card that still owes a REVIEW (= it is a REVIEW card, or it is a
-        # BUILD card waiting for or under review) runs the review's work on
-        # its own clock, and the review lane's measured distribution says
-        # that work needs at least 3600 s. The reviewer inherits the cap
-        # column the implementation left behind, so the cap is raised when
-        # the card is handed off.
+        # A card that still owes a REVIEW (= it is a REVIEW card that has
+        # not finished, or it is a BUILD card waiting for or under review)
+        # runs the review's work on its own clock, and the review lane's
+        # measured distribution says that work needs at least 5400 s. The
+        # reviewer inherits the cap column the implementation left behind,
+        # so the cap is raised when the card is handed off.
         #
         # A card that owes no review (= it is a BUILD card that has not been
         # handed off, or a finished one) is measured against its tier's own
@@ -1167,7 +1193,18 @@ def find_contract_errors(card: dict) -> list[str]:
         # instrument lane use (= "carrying more than the floor is generous"),
         # and it is what makes a card whose cap was raised for its review
         # stop reading as a contract violation once the review is done.
-        owes_review = kind == "review" or _awaits_review(card)
+        #
+        # A FINISHED review card owes nothing more, so its cap is NOT
+        # measured against the review lane's floor. Measured 2026-10-31:
+        # with the floor at 5400 s, sixteen finished cards on the board
+        # (= every review card that carried the old 3600 s cap) read as
+        # violations, which buries the one LIVE card that actually owes a
+        # review under fifteen historical ones. The floor is for a review
+        # that still has to RUN.
+        owes_review = _awaits_review(card) or (
+            kind == "review" and str(card.get("status") or "").strip().lower()
+            not in ("done", "archived")
+        )
         if owes_review:
             if runtime < REVIEW_LANE_CAP_FLOOR:
                 errors.append(
@@ -1411,6 +1448,20 @@ def report(card: dict) -> dict:
     body = card.get("body") or ""
     tier, reasons = tier_of(body)
     contract = TIERS[tier]
+    kind = card_type(body, card.get("runs"), card.get("title") or "")
+    # THE REPORTED CAP IS THE LANE'S FLOOR FOR A REVIEW CARD, not the
+    # tier's own number. The tier prices the WORK under review, and a
+    # review runs the review's work on its own clock (= measured: the
+    # completed reviews ran p50 30 min, p90 50 min, max 86 min). So the
+    # tool must not print a number its own gate rejects: a creator who
+    # follows the printed cap creates a card that `find_contract_errors`
+    # calls a violation, and the card dies on the clock before it can hand
+    # back a verdict.
+    runtime = contract["runtime"]
+    runtime_text = contract["runtime_text"]
+    if kind == "review":
+        runtime = max(runtime, REVIEW_LANE_CAP_FLOOR)
+        runtime_text = f"{REVIEW_LANE_CAP_FLOOR // 60}m"
     return {
         "id": card.get("id"),
         "title": card.get("title"),
@@ -1419,10 +1470,10 @@ def report(card: dict) -> dict:
         "label": contract["label"],
         "reasons": reasons,
         "declared_tier": declared_tier(card.get("title") or ""),
-        "kind": card_type(body, card.get("runs"), card.get("title") or ""),
-        "declared_kind": declared_type(card.get("title") or ""),
+        "kind": kind,
+        "declared_kind": declared_type(str(card.get("title") or "")),
         "runtime_seconds": card.get("max_runtime_seconds"),
-        "runtime_text": contract["runtime_text"],
+        "runtime_text": runtime_text,
         "retries": contract["retries"],
         "body_max": contract["body_max"],
         "body_len": work_length(body),
