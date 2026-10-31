@@ -5,12 +5,14 @@ file. Each row: parent file, extracted file, current LOC, content tag. The
 next reader finds the file by concern in under five seconds.
 
 **THE LOC COLUMN IS THE COUNT AT THE MOMENT THE ROW WAS WRITTEN, not a live
-count of the file today.** Measured 2026-10-31 on the tree at `d1c1279e46`:
-of the 163 rows whose extracted file still exists, 76 carry a LOC that
-no longer matches the file today. Of those 76, 39 name a file that HAD
-that count at some point in its history (= the file grew after the row
-was written) and 37 name a file whose line count never matched the row's
-number at any point. So a row's LOC answers "how big was this when the
+count of the file today.** Measured 2026-10-31 on the tree at `d1c1279e46`,
+counting a file's lines the way `wc -l` does (= newline-terminated
+lines, so a file that ends WITHOUT a trailing newline counts one less
+than a reader's `splitlines()`): of the 163 rows whose extracted file
+still exists, 74 carry a LOC that no longer matches the file today. Of
+those 74, 38 name a file that HAD that count at some point in its
+history (= the file grew after the row was written) and 36 name a file
+whose line count never matched the row's number at any point. So a row's LOC answers "how big was this when the
 row was written", which is what the row is FOR, and a reader who
 compares it against the file today is reading a number that was never
 meant to be live. THE NUMBERS MOVE, in both directions: a file grows
@@ -18,7 +20,9 @@ and its row goes stale, and a row is corrected when the same change
 rewrites the file, so a row can come back (= this session's own row
 went stale and was corrected twice). They are measured AT a tree for
 that reason: the day before, at a tree one commit earlier, the same
-measurement read 75 stale and a 38/37 split. A NEW row carries the file's count as it stands
+measurement read 75 stale and a 38/37 split (counted with
+`splitlines()`, which is one higher than `wc -l` for the one file in the
+table that ends without a trailing newline). A NEW row carries the file's count as it stands
 when the row is written (= the one exception: a row for a file this change
 ADDED is written with that file's count, and the row is corrected if the
 same change rewrites it).
