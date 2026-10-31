@@ -385,21 +385,111 @@ struct WenshuMarkdownEditorAdapterTests {
                 search = hit.upperBound
                 continue
             }
-            // A BRACE DEPTH IS NOT A SCOPE: = an `#if` block adds NO
-            // braces, = so a type declared inside one still sits at
-            // depth zero, = and it is still the FIRST match. = So the
-            // editor's own declaration must also be outside every
-            // conditional-compilation block.
-            if conditionalBlockDepth(in: readable, upTo: hit.lowerBound) == 0 {
+            // A BRACE DEPTH IS NOT A SCOPE, = and NEITHER IS "IT IS NOT
+            // INSIDE A CONDITIONAL BLOCK". = The question that decides
+            // is: = does this declaration EXIST in the compiled program?
+            // = A declaration inside a `#if false` block does not, = one
+            // inside a `#if true` block does, = and one inside a block
+            // whose condition is a build flag is UNKNOWN (= only the
+            // compiler can resolve that, = and not this reader).
+            switch conditionalScope(in: readable, upTo: hit.lowerBound) {
+            case .absent:
+                // = it cannot exist, = so it is not the editor.
+                search = hit.upperBound
+                continue
+            case .certain:
+                // = it exists, = and no later candidate can be better.
                 return hit
+            case .maybe:
+                // = it may exist, = and it is the best answer so far.
+                if fallback == nil { fallback = hit }
             }
-            // = and if EVERY candidate sits inside a conditional block
-            // (= the editor really is declared inside one), = the first
-            // of them is still the best answer.
-            if fallback == nil { fallback = hit }
             search = hit.upperBound
         }
         return fallback
+    }
+
+    /// Whether a declaration exists in the COMPILED program.
+    enum ConditionalScope {
+        /// The declaration is inside a block this reader knows is false,
+        /// = so it does not exist at all.
+        case absent
+        /// The declaration certainly exists: = it is outside every
+        /// conditional block, = or it is inside a block this reader knows
+        /// is true.
+        case certain
+        /// The declaration may or may not exist, = because the block it
+        /// is in is guarded by a condition this reader cannot resolve.
+        case maybe
+    }
+
+    /// The condition of one branch of a conditional-compilation block.
+    enum BranchCondition: Equatable {
+        case isTrue
+        case isFalse
+        case unknown
+        /// The condition of the `#else` branch = = the negation of the
+        /// `#if` branch's.
+        var negated: BranchCondition {
+            switch self {
+            case .isTrue: return .isFalse
+            case .isFalse: return .isTrue
+            case .unknown: return .unknown
+            }
+        }
+    }
+
+    /// The condition this reader can resolve. = Swift resolves a bare
+    /// flag against the build settings, = which this reader cannot see,
+    /// = so every flag is UNKNOWN (= and only the compiler knows).
+    private func condition(of text: String) -> BranchCondition {
+        switch text {
+        case "true": return .isTrue
+        case "false": return .isFalse
+        default: return .unknown
+        }
+    }
+
+    /// Whether a declaration at `index` exists in the compiled program.
+    ///
+    /// WHY: the reader's scope is not the file's braces. = A type
+    /// declared inside an INACTIVE `#if` block does not exist, = and one
+    /// declared inside an ACTIVE one does, = and the reader has to tell
+    /// them apart the way the compiler does: = a literal `true` is
+    /// active, = a literal `false` is not, = and a flag is whatever the
+    /// build settings say (= which this reader cannot see).
+    private func conditionalScope(in code: String, upTo index: String.Index) -> ConditionalScope {
+        // The branches the declaration sits in, innermost last.
+        var branches: [BranchCondition] = []
+        var lineStart = code.startIndex
+        while lineStart < index {
+            let rest = code[lineStart..<index]
+            let lineEnd = rest.firstIndex(of: "\n") ?? index
+            let trimmed = code[lineStart..<lineEnd].drop(while: { $0 == " " || $0 == "\t" })
+            if trimmed.hasPrefix("#") {
+                let directive = trimmed.dropFirst()
+                if directive.hasPrefix("if") {
+                    let text = String(directive.dropFirst(2).drop(while: { $0 == " " || $0 == "\t" }))
+                    branches.append(condition(of: text))
+                } else if directive.hasPrefix("elseif") {
+                    let text = String(directive.dropFirst(6).drop(while: { $0 == " " || $0 == "\t" }))
+                    if !branches.isEmpty {
+                        branches[branches.count - 1] = condition(of: text)
+                    }
+                } else if directive.hasPrefix("else") {
+                    if !branches.isEmpty {
+                        branches[branches.count - 1] = branches[branches.count - 1].negated
+                    }
+                } else if directive.hasPrefix("endif") {
+                    if !branches.isEmpty { branches.removeLast() }
+                }
+            }
+            lineStart = lineEnd < index ? code.index(after: lineEnd) : index
+        }
+        if branches.isEmpty { return .certain }
+        if branches.contains(.isFalse) { return .absent }
+        if branches.contains(.isTrue) { return .certain }
+        return .maybe
     }
 
     /// The number of UNCLOSED conditional-compilation blocks before

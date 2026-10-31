@@ -99,22 +99,25 @@ defect shipping, and the flip is what says the defect no longer ships.
 
 ## The open items
 
-One residual survives, and it is the reviewer's own: the conditional-block
-FALLBACK keeps the FIRST candidate, so a decoy still wins when the
-editor's own declaration is itself inside a conditional block (card
-`t_1915ca4d`).
+The last residual was the reviewer's own: the conditional-block FALLBACK
+kept the FIRST candidate, so a decoy won when the editor's own
+declaration was itself inside a conditional block (card `t_1915ca4d`).
 
-It is unreachable today: `git grep` finds no preprocessor directive in
-either production file, so the editor's declaration is unconditionally at
-conditional depth zero and the fallback never fires for it. It would take
-the editor's own declaration moving inside a block for the shape to
-exist.
+It is closed now. The reader no longer asks "is this declaration inside
+a conditional block?" = it asks "does this declaration EXIST in the
+compiled program?": = a declaration inside a `#if false` block does not,
+= one inside a `#if true` block does, = and one inside a block guarded
+by a build flag is UNKNOWN (= only the compiler resolves that). = So the
+reader takes the declaration that certainly exists, = and the fallback
+that kept the first candidate is gone.
 
-And it is where a static reader stops: resolving a build flag's value is
-the compiler's job, not the reader's. So the honest end-state of the
-family is that the reader resolves the editor's declaration whenever it
-sits at file scope, and that a declaration guarded by a flag this reader
-cannot evaluate is a limit, not a defect to be fixed.
+What remains is where a static reader stops: a decoy and the editor
+BOTH inside blocks whose conditions are build flags are
+indistinguishable to a reader that cannot see the build settings. = That
+is a limit, not a defect to be fixed, = and it is the honest end-state
+of the family: = the reader resolves the editor's declaration whenever it
+sits at file scope or inside a block it can evaluate, = and it says so
+when it cannot.
 
 The second open item is about the review lane, not about the code: the
 docs review of this record timed out three times (= 2400 s, 5400 s and
