@@ -175,9 +175,10 @@ its `## REVIEW HANDOFF` names the implementer profile, and a card cannot
 be reviewed by the profile that implemented it. That card is the
 sibling's, so it is measured here and not closed.
 
-**`old-origin`'s worktree branches are not this session's.** The three
-worktrees still on disk (`coltop`, `todo-kanban-ui`, `t_6a672e62`) belong
-to the parallel session, and its branches (`feat/todo-kanban-ui`,
+**`old-origin`'s worktree branches are not this session's.** The
+worktrees still on disk that belong to the parallel session (`coltop`,
+`todo-kanban-ui`, `t_6a672e62`) and its branches (`feat/todo-kanban-ui`,
 `pocock/coltop`, `project/t_6a672e62-...`) were not touched, rebased or
-deleted. This session's own five review worktrees and their branches were
-removed after their cards closed.
+deleted. This session's own six review worktrees
+(`t_cf48e2ec` `t_fd3551fe` `t_0e9e9d5f` `t_bf5f3894` `t_cd4230dc`
+`t_20bd6cbf`) and their branches were removed after their cards closed.
