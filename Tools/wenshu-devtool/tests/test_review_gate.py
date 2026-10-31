@@ -745,6 +745,112 @@ def main() -> int:
         )
         os.chdir(cwd_before)
 
+    # ---- D4: a BINARY change has an identity ----
+    # A binary diff renders as one constant line, so the new blob hash is
+    # the only thing that says WHICH payload it is. Drop it and two
+    # different images share one identity (= the gate clears a branch
+    # carrying a different image).
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp) / "repo"
+        repo.mkdir()
+        run = lambda *a: subprocess.run(
+            ["git", *a], cwd=repo, capture_output=True, text=True, check=True
+        )
+        run("init", "-q", "-b", "main")
+        run("config", "user.email", "t@t")
+        run("config", "user.name", "t")
+        cwd_before = Path.cwd()
+        os.chdir(repo)
+        (repo / "a.txt").write_text("base\n")
+        run("add", "-A")
+        run("commit", "-qm", "base")
+        run("checkout", "-qb", "feature")
+        (repo / "img.bin").write_bytes(b"\x89PNG\r\n\x1a\n\x00" + b"payload-one" * 8)
+        run("add", "-A")
+        run("commit", "-qm", "one image")
+        one = run("rev-parse", "HEAD").stdout.strip()
+        (repo / "img.bin").write_bytes(b"\x89PNG\r\n\x1a\n\x00" + b"payload-two" * 8)
+        run("add", "-A")
+        run("commit", "-qm", "a different image")
+        two = run("rev-parse", "HEAD").stdout.strip()
+        check(
+            "D4: two different payloads are NOT the same change",
+            tool.change_id(one) != tool.change_id(two),
+            True,
+        )
+        bin_card = {
+            "id": "t_bin", "title": "[T2][审核] x",
+            "body": f"## WHAT TO BUILD\n\nA verdict on `{one}`.\n\n"
+                    "## REVIEW HANDOFF\n\nnone\n",
+            "runs": [{"id": 1, "profile": "wenshu-review", "outcome": "completed",
+                      "ended_at": 10, "metadata": {"review_outcome": "approved"}}],
+            "events": [], "created_at": 10,
+        }
+        check(
+            "D4: an approval does NOT cover a branch carrying a different "
+            "image",
+            tool.matching_cards([bin_card], two, "feature"),
+            [],
+        )
+        run("checkout", "-q", "main")
+        (repo / "other.txt").write_text("elsewhere\n")
+        run("add", "-A")
+        run("commit", "-qm", "an unrelated landing")
+        run("checkout", "-q", "feature")
+        run("rebase", "main")
+        rebased = run("rev-parse", "HEAD").stdout.strip()
+        # the branch tip after the rebase carries the SAME payload as the
+        # commit it was rewritten from (= the second commit), so its
+        # identity is that commit's identity
+        check(
+            "D4: a rebase that keeps the payload keeps the identity",
+            tool.change_id(rebased) == tool.change_id(two),
+            True,
+        )
+        check(
+            "D4: a rebase that carries another payload moves the identity",
+            tool.change_id(rebased) != tool.change_id(one),
+            True,
+        )
+        os.chdir(cwd_before)
+
+    # ---- D5: the verdict's OWN run, not the newest ended run ----
+    approved_runs = [
+        {"id": 1, "profile": "wenshu-review", "outcome": "completed",
+         "ended_at": 100, "metadata": {"review_outcome": "approved"}},
+        # a later run that carried NO verdict (a crash, a superseded
+        # attempt): it is not a verdict, and it must not make the
+        # approval look newer than it is.
+        {"id": 2, "profile": "wenshu-review", "outcome": "completed",
+         "ended_at": 400, "metadata": {}},
+    ]
+    card_approved = {
+        "id": "t_approval", "title": "[T2][审核] x",
+        "body": "## WHAT TO BUILD\n\nA verdict on `" + "a" * 40 + "`.\n\n"
+                "## REVIEW HANDOFF\n\nnone\n",
+        "runs": approved_runs, "events": [], "created_at": 100,
+    }
+    card_refused = {
+        "id": "t_refusal", "title": "[T2][审核] x",
+        "body": "## WHAT TO BUILD\n\nA verdict on `" + "a" * 40 + "`.\n\n"
+                "## REVIEW HANDOFF\n\nnone\n",
+        "runs": [{"id": 3, "profile": "wenshu-review", "outcome": "completed",
+                  "ended_at": 200, "metadata": {"review_outcome": "changes_requested"}}],
+        "events": [], "created_at": 200,
+    }
+    check(
+        "D5: a run that carried no verdict does not date the verdict",
+        tool._verdict_time({"task": card_approved, "runs": approved_runs,
+                            "events": []}),
+        100,
+    )
+    found = tool.matching_cards([card_approved, card_refused], "a" * 40, None)
+    check(
+        "D5: the later REFUSAL governs over the earlier approval",
+        [f[0] for f in found][:1],
+        ["t_refusal"],
+    )
+
     print()
     if FAILURES:
         print(f"review_gate: {len(FAILURES)} case(s) FAILED")

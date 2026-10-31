@@ -79,16 +79,32 @@ the two carry the same EDIT.
 **WHAT "THE SAME EDIT" MEANS, PRECISELY.** The identity of a change is
 the diff from where the branch left main, produced with NO CONTEXT
 (`-U0`), with the hunk headers dropped (= the line numbers move in a
-rebase) and the base's `index` line dropped (= the base's blob hash
-moves as soon as the base does), and with the +/- lines kept VERBATIM
-(= the whitespace is the meaning; in Python the indent IS the meaning).
-Measured 2026-10-31: a branch rebased onto a newer main changed sha
-(e103538d -> 0040c704) and tree, and its edit did not move.
+rebase) and the +/- lines kept VERBATIM (= the whitespace is the meaning;
+in Python the indent IS the meaning). Measured 2026-10-31: a branch
+rebased onto a newer main changed sha (e103538d -> 0040c704) and tree,
+and its edit did not move.
+
+**AND THE BLOB HASH IS KEPT, PER FILE SECTION, FOR A BINARY FILE.** Git
+renders a binary diff as one constant line, so the new blob hash is the
+only thing in the section that says WHICH payload it is. Dropping it
+gave two different PNGs one identity, and the gate cleared a branch
+carrying a different image. So the `index` line is dropped for a TEXT
+file (= the +/- lines carry the content) and kept for a BINARY file,
+and when it is kept only the NEW blob hash survives (= the old one is
+the base's, and it moves as soon as the base does). The rule is per
+section: git prints `index` BEFORE the "Binary files" line, so a
+line-order check reads the wrong answer.
 
 **WHAT IT IS NOT.** `git patch-id --stable` is NOT the identity of a
 change: it strips whitespace (= two different programs share an id) and
 it hashes the context lines (= a landing near the change moves it). The
 review round measured both, and the gate uses the diff instead.
+
+**AND THE VERDICT IS DATED BY THE RUN THAT CARRIED IT.** A run that
+carried no verdict (a crash, a superseded attempt) is not a verdict, and
+its timestamp must not make an OLD approval look newer than a newer
+refusal. The ordering reads the verdict's own run, the same one
+`verdict_from_doc` reads.
 
 **AND THE ORDER IS THE AUTHORITY.** When several cards cover a branch,
 the card naming the CURRENT sha governs it, and among those the later

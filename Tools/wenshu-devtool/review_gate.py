@@ -296,6 +296,11 @@ def _git_out(args: list[str], stdin: str | None = None) -> str | None:
             input=stdin,
             capture_output=True,
             text=True,
+            # A diff can carry bytes that are not text (= a file git reads
+            # as text because it holds no NUL byte, and it is not UTF-8).
+            # Decoding must not raise: a gate that CRASHES on a file is
+            # not a gate that fails closed.
+            errors="replace",
             timeout=30,
         )
     except (OSError, subprocess.SubprocessError):
@@ -344,21 +349,61 @@ def change_id(sha: str, main: str = "main") -> str | None:
     base = _merge_base(main, sha)
     if base is None:
         return None
-    diff = _git_out(["diff", "-U0", "--no-color", f"{base}..{sha}"])
+    # ``--full-index`` prints the WHOLE blob hashes in the ``index`` line
+    # (= the abbreviated ones are too short to be an identity).
+    diff = _git_out(
+        ["diff", "-U0", "--no-color", "--full-index", f"{base}..{sha}"]
+    )
     if diff is None or not diff.strip():
         return None
-    # Drop the two lines that are about the BASE, not about the change:
-    # the hunk headers (= the line numbers) and the ``index`` line (= the
-    # base's blob hash, which differs as soon as the base moves). Keep
-    # everything else verbatim: the file names, and the +/- lines with
-    # their whitespace.
-    body = "\n".join(
-        line for line in diff.splitlines()
-        if not line.startswith("@@") and not line.startswith("index ")
-    )
+    body = _change_body(diff)
     if not body.strip():
         return None
     return hashlib.sha256(body.encode("utf-8")).hexdigest()
+
+
+def _change_body(diff: str) -> str:
+    """The diff text that IS the change, section by section.
+
+    Per file section:
+
+    * The hunk headers are dropped (= the line numbers move in a rebase).
+    * The ``index`` line is dropped for a TEXT file (= the +/- lines
+      carry the content, and the base's blob hash moves as soon as the
+      base does).
+    * The ``index`` line is KEPT for a BINARY file. Git renders a binary
+      diff as one constant line, so the new blob hash is the only thing
+      in the section that says WHICH payload it is. Measured 2026-10-31:
+      dropping it gave two different PNGs one identity, and the gate
+      cleared a branch carrying a different image.
+
+    The ``index`` line has to be read PER SECTION: git prints it before
+    the "Binary files" line, so a line-order check reads the wrong
+    answer.
+    """
+    kept: list[str] = []
+    for part in diff.split("diff --git ")[1:]:
+        section = "diff --git " + part
+        binary = "Binary files" in section
+        for line in section.splitlines():
+            if line.startswith("@@"):
+                continue
+            if line.startswith("index "):
+                if not binary:
+                    continue
+                # Keep ONLY the new blob hash (= the payload). The old
+                # one is the BASE's blob, and it moves as soon as the
+                # base does (= a rebase would move the identity).
+                parts = line.split()
+                # The mode can be on the next line (= "new file mode"), so
+                # the index line carries only the two blob hashes.
+                if len(parts) >= 2 and ".." in parts[1]:
+                    line = "index " + parts[1].split("..", 1)[1]
+                else:
+                    continue
+            kept.append(line)
+        kept.append("")
+    return "\n".join(kept)
 
 
 def patch_id(sha: str, main: str = "main") -> str | None:
@@ -484,15 +529,29 @@ def matching_cards(
 
 
 def _verdict_time(doc: dict) -> int:
-    """When a card's verdict landed (= the newest run that carried one)."""
-    newest = 0
-    for run in doc.get("runs") or []:
-        ended = run.get("ended_at")
-        if isinstance(ended, (int, float)) and ended > newest:
-            newest = int(ended)
-    if newest:
-        return newest
-    created = doc.get("task", {}).get("created_at")
+    """When the card's VERDICT landed (= the run the verdict comes from).
+
+    Not the newest run that ENDED: a run that carried no verdict (a
+    crash, a superseded attempt) is not a verdict, and its timestamp
+    would let an OLD approval look newer than a newer refusal.
+    Measured 2026-10-31: a card approved at t=100 with a later run that
+    ended at t=400 carrying no verdict sorted as the newer verdict, so
+    the caller took the OLD approval over a refusal that landed at
+    t=200. The selection mirrors ``verdict_from_doc``: the runs that
+    carry a verdict, and the newest of those.
+    """
+    task = doc.get("task") or {}
+    reviewer = named_reviewer(task.get("body") or "") or str(
+        task.get("assignee") or ""
+    ) or None
+    runs = [r for r in (doc.get("runs") or []) if isinstance(r, dict)]
+    verdicts = _verdict_runs(runs, reviewer)
+    if verdicts:
+        chosen = max(verdicts, key=lambda r: _at(r, "ended_at", "started_at"))
+        at = _at(chosen, "ended_at", "started_at")
+        if isinstance(at, (int, float)):
+            return int(at)
+    created = task.get("created_at")
     return int(created) if isinstance(created, (int, float)) else 0
 
 
