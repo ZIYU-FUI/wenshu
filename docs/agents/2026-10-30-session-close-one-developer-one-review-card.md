@@ -175,8 +175,17 @@ path above is `exit=3` with its cause named.
 `python3 Tools/wenshu-devtool/agents_gate.py --file AGENTS.md` exits 0.
 `python3 Tools/wenshu-devtool/tests/test_review_gate.py` passes every
 case. `bash -n Scripts/merge-preflight.sh` exits 0.
-`python3 Tools/wenshu-devtool/verify-dead.py` reports 0 dead
-declarations. The CJK audit over the added lines of every commit this session
+`python3 Tools/wenshu-devtool/verify-dead.py` reports 0 fully dead
+files. It also reports 4 files with SOME dead declaration
+(`ChatReasoningPartView.renderMarkdown`, and one each in
+`SidebarService`, `LibraryMigrationPanel` and a fourth): every one of
+them is a pre-existing Swift view, and this session changed no Swift
+source at all. Its commits touched ten files, and no `.swift` is among
+them: `AGENTS.md`, `.hermes.md`, `Scripts/merge-preflight.sh`,
+`Tools/wenshu-devtool/review_gate.py`, `Tools/wenshu-devtool/ticket_tier.py`,
+their two test files, and three documents under `docs/agents/`.
+
+The CJK audit over the added lines of every commit this session
 made reports 6 new characters, all of them the board's own two kind tags
 (the review tag and the build tag, as `Tools/wenshu-devtool/ticket_tier.py`
 spells them = it maps them to `review` and `build`), in one test fixture,
@@ -218,9 +227,9 @@ push to each was a plain fast-forward and rewrote no byte.
 **THE PUSH CARRIED A SIBLING'S COMMITS.** This session's commits and the
 parallel session's commits are INTERLEAVED on one `main` history, so a push
 of `main` cannot carry one without the other.
-The push was a plain fast-forward (`fda16f70b5..a345524927`, then
-`a345524927..3883052470`) and rewrote no byte of the sibling's work,
-but the sibling's commits are now on `origin/main` too. They
+Every push of this session's work was a plain fast-forward (the first
+was `fda16f70b5..a345524927`) and rewrote no byte of the sibling's
+work, but the sibling's commits are now on `origin/main` too. They
 belong to a sibling session and are named here because the boss reads
 the landing table and needs to know who owns each row.
 
