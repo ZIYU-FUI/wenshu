@@ -1,10 +1,13 @@
 # Session close: one developer, one review card
 
 2026-10-30. A session that retired the `wenshu-dev` lane, rebuilt the
-review gate so every path fails closed, and landed the result behind
-seven review cards (= every card it created carried a review, and the
-board's own record is the list: `t_cf48e2ec` `t_fd3551fe` `t_0e9e9d5f`
-`t_bf5f3894` `t_cd4230dc` `t_20bd6cbf` `t_f51843e8`).
+review gate so every path fails closed, and landed the result behind a
+chain of review cards. The chain is on the board, and the property that
+describes it holds whatever its length: EVERY card this session created
+was a review card (= `created_by=pocock` on `wenshu-par`, every one of
+them assigned to `wenshu-review`, every one of them naming the sha it
+reviews), and every one of them that has closed carries a verdict from
+the reviewer.
 
 ## The symptom, in the board's own words
 
@@ -180,10 +183,11 @@ its `## REVIEW HANDOFF` names the implementer profile, and a card cannot
 be reviewed by the profile that implemented it. That card is the
 sibling's, so it is measured here and not closed.
 
-**`old-origin`'s worktree branches are not this session's.** The
-worktrees still on disk that belong to the parallel session (`coltop`,
-`todo-kanban-ui`, `t_6a672e62`) and its branches (`feat/todo-kanban-ui`,
-`pocock/coltop`, `project/t_6a672e62-...`) were not touched, rebased or
-deleted. This session's own six review worktrees
-(`t_cf48e2ec` `t_fd3551fe` `t_0e9e9d5f` `t_bf5f3894` `t_cd4230dc`
-`t_20bd6cbf`) and their branches were removed after their cards closed.
+**`old-origin`'s worktree branches are not this session's.** Every
+worktree still on disk that belongs to the parallel session, and every
+branch it owns (`feat/todo-kanban-ui`, `pocock/coltop`,
+`project/t_6a672e62-...`), was left untouched, rebased and undeleted.
+This session's own review worktrees and their branches were each removed
+as soon as their card closed (= the rule the session followed; the check
+is that a card of this session has no `.worktrees/` directory and no
+`wt/<card id>` branch left once it is closed).
