@@ -2,7 +2,9 @@
 
 2026-10-30. A session that retired the `wenshu-dev` lane, rebuilt the
 review gate so every path fails closed, and landed the result behind
-four review cards.
+seven review cards (= every card it created carried a review, and the
+board's own record is the list: `t_cf48e2ec` `t_fd3551fe` `t_0e9e9d5f`
+`t_bf5f3894` `t_cd4230dc` `t_20bd6cbf` `t_f51843e8`).
 
 ## The symptom, in the board's own words
 
