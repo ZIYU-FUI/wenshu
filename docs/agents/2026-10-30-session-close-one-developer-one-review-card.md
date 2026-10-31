@@ -20,8 +20,9 @@ and the cost was measured, not assumed: 14 cards sat `done`, reviewed,
 and still unmerged, every one of them CLEAN at `merge-preflight.sh` and
 BEHIND `main` by 4 to 76 commits. That is a SNAPSHOT, taken at the tree
 this session started from: those branches are gone from the repo now
-(= the only `wt/` branches left belong to this session's own review
-cards), so the range is a past measurement and not a live count.
+(= at the tree this record was written at, the only `wt/` branches left
+belonged to this session's own review cards), so the range is a past
+measurement and not a live count.
 
 The lane also failed open. `merge-preflight.sh` answered "will this
 conflict" and REFUSED an unreviewed merge — but a card the board did not
