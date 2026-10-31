@@ -97,12 +97,10 @@ the whole arc, oldest first.
 
 ## The measured result
 
-The five refusal paths of the merge gate, each naming its own cause, each
-exiting non-zero:
+The four refusal paths of the merge gate, each exiting non-zero, and
+the three causes the script can print for them:
 
 ```
-card-id branch, card absent,
-  and no card names its sha    -> exit 3  UNREVIEWED
 board unreadable               -> exit 3  UNREADABLE
 sha no card names              -> exit 3  UNREVIEWED
 gate file missing              -> exit 3  NO GATE
@@ -110,11 +108,16 @@ verdict still pending          -> exit 3  UNREVIEWED
 reviewed branch, card approved -> exit 0  CLEAN
 ```
 
-A card id in a branch name is a CLAIM, not a verdict: when the board
-does not carry that card, the lookup falls through to the sha, and the
-sha decides. So the first row needs its qualifier (= a card-id branch
-whose sha IS named by an approved card passes, which is right: that
-branch IS reviewed).
+There are FOUR paths and THREE causes, and not five of either: a card
+id in a branch name is a CLAIM, not a verdict. When the board does not
+carry that card the script discards the claim and lets the SHA decide,
+so a card-id branch whose sha no card names refuses with the second
+path's cause (= "no review card names the sha this branch points at"),
+and a card-id branch whose sha IS named by an approving card passes (=
+that branch IS reviewed). Measured on the tree under review:
+`review_gate.py --card t_ffffffff` reads `card_absent` (exit 4), while
+`merge-preflight.sh` on a branch named after that card exits 0 when an
+approved card names its sha.
 
 The three states of the gate are distinct, and the gate's own exit codes
 say which is which: `card_absent` (4), `board_unreadable` (2), an
@@ -199,7 +202,13 @@ sibling's, so it is measured here and not closed.
 worktree still on disk that belongs to the parallel session, and every
 branch it owns (`feat/todo-kanban-ui`, `pocock/coltop`,
 `project/t_6a672e62-...`), was left untouched, rebased and undeleted.
-This session's own review worktrees and their branches were each removed
-as soon as their card closed (= the rule the session followed; the check
-is that a card of this session has no `.worktrees/` directory and no
-`wt/<card id>` branch left once it is closed).
+This session's own review worktrees and their branches are gone, but
+NOT because the card's close removed them: the BOARD's cleanup defers a
+shared workspace, so it can land hours after the close (measured: the
+card `t_f51843e8` closed at 16:25 and its worktree was still on disk at
+18:37, and the board's own event row says
+`workspace_cleanup_deferred_shared`). This session removed its own
+cards' worktrees and branches by hand after the fact, so the state a
+reader finds is true (= no `.worktrees/` directory and no `wt/<card id>`
+branch for a card of this session) even though the board's sweep is what
+would have done it, later.
