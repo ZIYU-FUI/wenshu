@@ -52,6 +52,7 @@ not be read, 3 = a card owes a verdict it does not have.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -310,26 +311,63 @@ def _merge_base(a: str, b: str) -> str | None:
     return out.strip() if out and out.strip() else None
 
 
-def patch_id(sha: str, main: str = "main") -> str | None:
-    """The stable patch-id of the change a sha carries, or None.
+def change_id(sha: str, main: str = "main") -> str | None:
+    """The identity of the change a sha carries, or None.
 
     A verdict names a sha. A sha dies the moment the branch is rebased,
     and a rebase is exactly what the merge gate demands of a branch that
     fell behind main. So a verdict that binds to a commit id is voided by
     somebody ELSE landing their work: that is the interference this
-    function removes.
+    function removes. The verdict must attach to the CHANGE.
 
-    The verdict must attach to the CHANGE, not to the commit id.
-    ``git patch-id --stable`` gives the same id to two diffs that carry
-    the same edit, whatever the commit ids and whatever the line numbers
-    moved to. Measured 2026-10-31 on this repository: a branch rebased
-    onto a newer main changed sha (e103538d -> 0040c704) and tree, and
-    its patch-id did not move.
+    WHAT the identity must be, and what it must NOT be:
+
+    * NOT the line numbers. A rebase shifts them, and the change is the
+      same change. So the hunk headers (``@@ -a,b +c,d @@``) are dropped.
+    * NOT the whitespace. In Python the indent IS the meaning, and
+      ``git patch-id --stable`` strips it (= two different programs share
+      an id, measured 2026-10-31). So the +/- lines are kept VERBATIM.
+    * NOT the context. A landing that edits a nearby line in the same
+      file must not void a verdict for a change nobody touched, and a
+      context line is not part of the change. So the diff is produced
+      with ``-U0``: no context lines at all.
+
+    What is left = which file changed, and exactly which lines were
+    added and removed, verbatim. That is the change, and its identity is
+    a hash of it.
 
     The change a sha carries = the diff from where its branch left main.
     None when the sha carries no change at all (= an empty diff, or a
     sha this repository does not have), and the caller must then fall
     back to comparing the commit ids.
+    """
+    base = _merge_base(main, sha)
+    if base is None:
+        return None
+    diff = _git_out(["diff", "-U0", "--no-color", f"{base}..{sha}"])
+    if diff is None or not diff.strip():
+        return None
+    # Drop the two lines that are about the BASE, not about the change:
+    # the hunk headers (= the line numbers) and the ``index`` line (= the
+    # base's blob hash, which differs as soon as the base moves). Keep
+    # everything else verbatim: the file names, and the +/- lines with
+    # their whitespace.
+    body = "\n".join(
+        line for line in diff.splitlines()
+        if not line.startswith("@@") and not line.startswith("index ")
+    )
+    if not body.strip():
+        return None
+    return hashlib.sha256(body.encode("utf-8")).hexdigest()
+
+
+def patch_id(sha: str, main: str = "main") -> str | None:
+    """``git patch-id --stable`` of the change a sha carries, or None.
+
+    Kept for the record and for the test that compares the two: the
+    stable patch-id ignores whitespace AND the line numbers, so it
+    cannot be the identity of a change (= it merges two different
+    programs). See ``change_id`` for the one the gate uses.
     """
     base = _merge_base(main, sha)
     if base is None:
@@ -377,12 +415,26 @@ def matching_cards(
     one is what stops somebody else landing their work from voiding a
     verdict that is still good.
 
+    THE ORDER IS THE AUTHORITY. The caller takes the FIRST card, so the
+    order must put the card that governs the branch first: a card that
+    names the CURRENT sha governs it, and among cards that cover the
+    same tree the LATER verdict governs (= a later refusal voids an
+    earlier approval, which is the gate's own rule). Only when no card
+    names the current sha does a card that covers the same change come
+    into it.
+
+    Measured 2026-10-31: the caller collapsed the list with ``head -1``,
+    and the board hands the cards over in creation order (= oldest
+    first), so an OLD approval of a pre-rebase tree shadowed a NEWER
+    refusal of the current tree and the branch landed. The order below
+    is what makes ``head -1`` correct.
+
     Returns ``(card id, verdict status, reviewer, how)`` for every card
-    that covers it, where ``how`` is ``"sha"`` or ``"patch-id"``.
+    that covers it, where ``how`` is ``"sha"`` or ``"change"``.
     """
     history = branch_tip_history(branch) if branch else []
-    target_pid: str | None = None
-    target_pid_done = False
+    target_cid: str | None = None
+    target_cid_done = False
     found: list[tuple[str | None, str | None, str | None, str]] = []
     for card in cards:
         # ``review_cards_for`` returns RAW task rows (= no ``task``
@@ -401,24 +453,47 @@ def matching_cards(
             continue
         if sha.startswith(target_sha) or target_sha.startswith(sha):
             verdict = verdict_from_doc(doc)
-            found.append((card.get("id"), verdict.get("status"), verdict.get("reviewer"), "sha"))
+            found.append((
+                card.get("id"), verdict.get("status"), verdict.get("reviewer"), "sha",
+                _verdict_time(doc),
+            ))
             continue
         # Not the same commit id. Is it the same CHANGE? Only a sha this
-        # branch used to point at can be (= the reflog), and the patch-id
+        # branch used to point at can be (= the reflog), and the change
         # has to agree.
         if not any(sha.startswith(h) or h.startswith(sha) for h in history):
             continue
-        if not target_pid_done:
-            target_pid = patch_id(target_sha)
-            target_pid_done = True
-        if target_pid is None:
+        if not target_cid_done:
+            target_cid = change_id(target_sha)
+            target_cid_done = True
+        if target_cid is None:
             continue
-        card_pid = patch_id(sha)
-        if card_pid is None or card_pid != target_pid:
+        card_cid = change_id(sha)
+        if card_cid is None or card_cid != target_cid:
             continue
         verdict = verdict_from_doc(doc)
-        found.append((card.get("id"), verdict.get("status"), verdict.get("reviewer"), "patch-id"))
-    return found
+        found.append((
+            card.get("id"), verdict.get("status"), verdict.get("reviewer"), "change",
+            _verdict_time(doc),
+        ))
+    # The authority order: the card that names the CURRENT sha first, and
+    # within one group the LATER verdict first (= a later refusal voids an
+    # earlier approval). The caller takes the first card.
+    found.sort(key=lambda row: (0 if row[3] == "sha" else 1, -(row[4] or 0)))
+    return [(row[0], row[1], row[2], row[3]) for row in found]
+
+
+def _verdict_time(doc: dict) -> int:
+    """When a card's verdict landed (= the newest run that carried one)."""
+    newest = 0
+    for run in doc.get("runs") or []:
+        ended = run.get("ended_at")
+        if isinstance(ended, (int, float)) and ended > newest:
+            newest = int(ended)
+    if newest:
+        return newest
+    created = doc.get("task", {}).get("created_at")
+    return int(created) if isinstance(created, (int, float)) else 0
 
 
 def _git_tip(ref: str) -> str | None:
@@ -932,8 +1007,8 @@ def main() -> int:
         for card_id, status, reviewer, how in found:
             print(f"CARD {card_id}")
             print(f"  verdict: {status} by {reviewer}")
-            if how == "patch-id":
-                print("  matched by patch-id (= the branch was rebased; the change is the same)")
+            if how == "change":
+                print("  matched by change (= the branch was rebased; the change is the same)")
         if not found:
             print(f"NO REVIEW CARD names the sha {args.sha or '?'} on branch {args.branch}")
         return 0 if found else 3

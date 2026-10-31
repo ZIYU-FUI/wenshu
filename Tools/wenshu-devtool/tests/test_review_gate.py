@@ -582,7 +582,7 @@ def main() -> int:
             True,
         )
         check(
-            "the patch-id survived the rebase (= the change is the same)",
+            "the change survived the rebase (= the same edit, a new commit id)",
             tool.patch_id(rebased_sha) == tool.patch_id(reviewed_sha),
             True,
         )
@@ -606,7 +606,7 @@ def main() -> int:
         check(
             "a verdict covers the branch after it was rebased",
             [(f[0], f[3]) for f in found],
-            [("t_rebase", "patch-id")],
+            [("t_rebase", "change")],
         )
         check(
             "the same card does NOT cover a branch with no reflog entry "
@@ -623,6 +623,125 @@ def main() -> int:
             "a verdict does NOT cover a branch carrying a different change",
             tool.matching_cards([card], other_sha, "feature"),
             [],
+        )
+        os.chdir(cwd_before)
+
+    # ---- the three defects the review round measured on this change ----
+    # D1: an OLD approval of a pre-rebase tree must not shadow a NEWER
+    # refusal of the current tree (= the caller takes the first card).
+    # D2: a whitespace difference is a difference (in Python the indent
+    # IS the meaning, and `git patch-id --stable` strips it).
+    # D3: a landing that edits a NEARBY line in the same file must not
+    # void a verdict for a change nobody touched (= no context lines).
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp) / "repo"
+        repo.mkdir()
+        run = lambda *a: subprocess.run(
+            ["git", *a], cwd=repo, capture_output=True, text=True, check=True
+        )
+        run("init", "-q", "-b", "main")
+        run("config", "user.email", "t@t")
+        run("config", "user.name", "t")
+        # The gate runs its git commands in the repository it is run from,
+        # so the cases run the tool from inside the fixture repository.
+        cwd_before = Path.cwd()
+        os.chdir(repo)
+        lines = ["a = 1\n"] * 20
+        (repo / "prog.py").write_text("".join(lines))
+        run("add", "-A")
+        run("commit", "-qm", "base")
+
+        # the change under review: one line inserted
+        run("checkout", "-qb", "feature")
+        (repo / "prog.py").write_text(
+            "".join(lines[:2] + ["    x = 1\n"] + lines[2:]))
+        run("add", "-A")
+        run("commit", "-qm", "the change")
+        reviewed = run("rev-parse", "HEAD").stdout.strip()
+
+        # D2: the same edit, re-indented, on its own branch (= both have
+        # a real diff, so both ids exist).
+        run("checkout", "-q", "-b", "variant", "feature~1")
+        (repo / "prog.py").write_text(
+            "".join(lines[:2] + ["        x = 1\n"] + lines[2:]))
+        run("add", "-A")
+        run("commit", "-qm", "the same edit, re-indented")
+        reindented = run("rev-parse", "HEAD").stdout.strip()
+        check(
+            "D2: a whitespace difference is NOT the same change",
+            tool.change_id(reviewed) != tool.change_id(reindented),
+            True,
+        )
+        check(
+            "D2: the stable patch-id DOES merge them (= why the gate "
+            "cannot use it)",
+            tool.patch_id(reviewed) == tool.patch_id(reindented),
+            True,
+        )
+
+        # D3: a landing that edits a NEARBY line of the same file (= a
+        # line inside the -U3 context window of the change), so the
+        # rebase is clean but the default diff's context moves.
+        run("checkout", "-q", "main")
+        near = list(lines)
+        near[4] = "c = 3\n"
+        (repo / "prog.py").write_text("".join(near))
+        run("add", "-A")
+        run("commit", "-qm", "a landing near the change")
+        run("checkout", "-q", "feature")
+        run("rebase", "main")
+        rebased = run("rev-parse", "HEAD").stdout.strip()
+        check(
+            "D3: the branch's own edit is untouched by the rebase",
+            (repo / "prog.py").read_text().count("    x = 1\n"),
+            1,
+        )
+        check(
+            "D3: a branch's identity survives a landing near its change",
+            tool.change_id(rebased) == tool.change_id(reviewed),
+            True,
+        )
+        check(
+            "D3: the stable patch-id does NOT survive it (= the context "
+            "moves)",
+            tool.patch_id(rebased) == tool.patch_id(reviewed),
+            False,
+        )
+
+        # D1: the order is the authority.
+        def card(cid, sha, verdict, ended_at):
+            return {
+                "id": cid,
+                "title": "[T2][审核] x",
+                "body": f"## WHAT TO BUILD\n\nA verdict on `{sha}`.\n\n"
+                        "## REVIEW HANDOFF\n\nnone\n",
+                "runs": [{
+                    "id": 1, "profile": "wenshu-review", "outcome": "completed",
+                    "ended_at": ended_at, "metadata": {"review_outcome": verdict},
+                }],
+                "events": [],
+                "created_at": ended_at,
+            }
+        old_approval = card("t_old", reviewed, "approved", 100)
+        new_refusal = card("t_new", rebased, "changes_requested", 200)
+        found = tool.matching_cards([old_approval, new_refusal], rebased, "feature")
+        check(
+            "D1: the card naming the CURRENT sha comes first",
+            [f[0] for f in found][:1],
+            ["t_new"],
+        )
+        check(
+            "D1: and it is the refusal, so the branch is NOT cleared",
+            found[0][1],
+            "changes_requested",
+        )
+        later_approval = card("t_late", rebased, "approved", 300)
+        found2 = tool.matching_cards(
+            [new_refusal, later_approval], rebased, "feature")
+        check(
+            "D1: among cards on the same tree the LATER verdict governs",
+            [f[0] for f in found2][:1],
+            ["t_late"],
         )
         os.chdir(cwd_before)
 

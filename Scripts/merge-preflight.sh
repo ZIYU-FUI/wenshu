@@ -98,7 +98,7 @@ for b in "${branches[@]}"; do
     if [[ $rc -eq 0 ]]; then
         behind=$(git rev-list --count "$b..main" 2>/dev/null || echo "?")
         echo "CLEAN    $b   (behind main by $behind commit(s) -> rebase in its worktree, then ff;"
-        echo "         a rebase rewrites the sha but not the change, so the card that"
+        echo "         a rebase rewrites the sha but not the edit, so the card that"
         echo "         reviewed it still covers the branch)"
     else
         conflict=1

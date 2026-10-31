@@ -74,10 +74,27 @@ be the branch tip, and a branch whose tip no card names is UNREVIEWED.
 **AND BY THE CHANGE IT CARRIES.** A branch that fell behind main is
 rebased before it lands, and a rebase rewrites the commit id. So the
 gate also accepts the card whose sha the branch used to point at, when
-the two carry the same `git patch-id` (= the same edit). Measured 2026-10-31:
-a branch rebased onto a newer main changed sha (e103538d -> 0040c704)
-and tree, and its patch-id did not move. Without this, one session
-landing its work voided every verdict in flight.
+the two carry the same EDIT.
+
+**WHAT "THE SAME EDIT" MEANS, PRECISELY.** The identity of a change is
+the diff from where the branch left main, produced with NO CONTEXT
+(`-U0`), with the hunk headers dropped (= the line numbers move in a
+rebase) and the base's `index` line dropped (= the base's blob hash
+moves as soon as the base does), and with the +/- lines kept VERBATIM
+(= the whitespace is the meaning; in Python the indent IS the meaning).
+Measured 2026-10-31: a branch rebased onto a newer main changed sha
+(e103538d -> 0040c704) and tree, and its edit did not move.
+
+**WHAT IT IS NOT.** `git patch-id --stable` is NOT the identity of a
+change: it strips whitespace (= two different programs share an id) and
+it hashes the context lines (= a landing near the change moves it). The
+review round measured both, and the gate uses the diff instead.
+
+**AND THE ORDER IS THE AUTHORITY.** When several cards cover a branch,
+the card naming the CURRENT sha governs it, and among those the later
+verdict governs (= a later refusal voids an earlier approval). Without
+this, an old approval of a pre-rebase tree shadowed a newer refusal of
+the current tree, and the branch landed.
 
 ## The nine defects the review rounds found
 
@@ -157,6 +174,13 @@ passes (= that branch IS reviewed). Measured on the tree under review:
 `review_gate.py --card t_ffffffff` reads `card_absent` (exit 4), while
 `merge-preflight.sh` on a branch named after that card exits 0 when an
 approved card names its sha.
+
+**WHEN SEVERAL CARDS COVER A BRANCH, THE FIRST ONE THE GATE PRINTS IS
+THE ONE THAT GOVERNS.** The merge script takes the first `CARD` line,
+so the gate prints them in the order of authority (= the card naming the
+current sha first, and within that the later verdict first). Measured
+2026-10-31: the board hands the cards over in creation order (= oldest
+first), so an old approval used to shadow a newer refusal.
 
 The four states of the gate are distinct, and the gate's own exit codes
 say which is which (each measured on the tree under review):
