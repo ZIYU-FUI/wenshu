@@ -272,65 +272,166 @@ struct WenshuMarkdownEditorAdapterTests {
         var other: String
     }
 
-    /// Find the `if`/`else` pair whose condition resolves to the editor's
-    /// height-mode check, and return both bodies.
+    /// Blank every comment and every string literal (= the characters
+    /// become spaces, = so the offsets still line up with the original).
+    ///
+    /// WHY: the reader must not be fooled by a DECOY. A phrase that sits
+    /// in a trailing comment, = in a block comment, = or in a string
+    /// literal is not code, = and a reader that reads it as code can be
+    /// pointed at the wrong branch. (= the same reason the suite's
+    /// `codeOnly` drops whole-line comments: = a comment that names a
+    /// symbol must neither satisfy nor break a gate.)
+    private func blankingCommentsAndStrings(_ source: String) -> String {
+        let chars = Array(source)
+        var out = chars
+        var i = 0
+        // 0 = code, 1 = a line comment, 2 = a block comment, 3 = a string.
+        var state = 0
+        while i < chars.count {
+            let c = chars[i]
+            let next = i + 1 < chars.count ? chars[i + 1] : " "
+            switch state {
+            case 0:
+                if c == "/", next == "/" {
+                    out[i] = " "; out[i + 1] = " "; i += 2; state = 1; continue
+                }
+                if c == "/", next == "*" {
+                    out[i] = " "; out[i + 1] = " "; i += 2; state = 2; continue
+                }
+                if c == "\"" {
+                    out[i] = " "; i += 1; state = 3; continue
+                }
+            case 1:
+                if c == "\n" { state = 0 } else { out[i] = " " }
+            case 2:
+                if c == "*", next == "/" {
+                    out[i] = " "; out[i + 1] = " "; i += 2; state = 0; continue
+                }
+                if c != "\n" { out[i] = " " }
+            case 3:
+                if c == "\\" {
+                    out[i] = " "
+                    if i + 1 < chars.count { out[i + 1] = " " }
+                    i += 2; continue
+                }
+                if c == "\"" {
+                    out[i] = " "; i += 1; state = 0; continue
+                }
+                if c != "\n" { out[i] = " " }
+            default:
+                break
+            }
+            i += 1
+        }
+        return String(out)
+    }
+
+    /// The editor's own `body`, = which is the region the gate's claim
+    /// is about.
+    ///
+    /// WHY THE REGION MATTERS: a height-mode check somewhere ELSE in
+    /// the file (= in a helper, = in a configuration builder) is not
+    /// the branch this gate is about, = and reading it instead would
+    /// point the gate at the wrong branch (= the same class of defect
+    /// as a decoy in a comment).
+    private func editorBodyRegion(in readable: String) -> String? {
+        guard let declaration = readable.range(of: "var body: some View {"),
+              let brace = readable.range(of: "{", range: declaration.lowerBound..<declaration.upperBound),
+              let end = matchingBrace(in: readable, from: brace.lowerBound)
+        else { return nil }
+        return String(readable[brace.upperBound..<end])
+    }
+
+    /// Find the `if`/`else` pair inside the editor's body whose
+    /// condition resolves to the editor's height-mode check, and return
+    /// both bodies.
     ///
     /// WHY A STRUCTURAL READ AND NOT A SUBSTRING SEARCH: the condition
-    /// can be spelled three ways, and a substring search only catches
-    /// one of them.
+    /// can be spelled five ways, and a substring search only catches one
+    /// of them.
     ///
     ///  1. written out (= `surface.configuration.heightBehavior ==
     ///     .fitsContent`), = which a substring search finds, = but it
     ///     also finds the phrase when the phrase is somewhere ELSE and
-    ///     the branch is inverted, = and it cannot tell two `} else {`
-    ///     apart, = so an unrelated earlier one reverses the slice.
+    ///     the branch is inverted.
     ///  2. extracted into a computed property (= `if isFitsContent`),
     ///     which a substring search MISSES, = and a search for the
     ///     phrase plus the word `if` would FALSE-POSITIVE on it.
     ///  3. negated (= `if !isFitsContent`), = which names the OTHER
     ///     branch.
+    ///  4. negated in place (= `if !(surface.configuration.heightBehavior
+    ///     == .fitsContent)`), = which is the same and reads the same
+    ///     way, = and which a "contains the phrase" test gets BACKWARDS.
+    ///  5. written with `!=` (= `if surface.configuration.heightBehavior
+    ///     != .fitsContent`), = which is the OTHER branch written the
+    ///     other way round.
     ///
     /// So the condition is resolved to the thing it NAMES (= a computed
-    /// property is followed to its own body and read there), = and the
-    /// branch bodies are found by matching braces (= never by taking the
-    /// first `} else {` in the file).
+    /// property is followed to its own body and read there, = a negation
+    /// is read as the branch it excludes, = and `!=` is read as the
+    /// branch that is NOT the fitsContent one), = and the branch bodies
+    /// are found by matching braces (= never by taking the first
+    /// `} else {` in the file).
     ///
+    /// - Parameter readable: the source with comments and strings blanked.
     /// - Returns: the pair, or nil when no branch resolves to the check.
-    private func heightModeBranchPair(in code: String) -> BranchPair? {
-        var search = code.startIndex
-        while let ifRange = code.range(of: "if ", range: search..<code.endIndex) {
-            defer { search = ifRange.upperBound }
-            guard let brace = code.range(of: "{", range: ifRange.upperBound..<code.endIndex),
-                  let bodyEnd = matchingBrace(in: code, from: brace.lowerBound)
-            else { continue }
-            let condition = String(code[ifRange.upperBound..<brace.lowerBound])
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-            let ifBody = String(code[brace.upperBound..<bodyEnd])
-            let elseBody = elseBody(of: code, after: bodyEnd)
+    private func heightModeBranchPair(in readable: String) -> BranchPair? {
+        guard let body = editorBodyRegion(in: readable) else { return nil }
+        let lines = body.split(separator: "\n", omittingEmptySubsequences: false)
+        var offset = 0
+        for line in lines {
+            // The `if` must OPEN a line (= a decoy in a comment, = in a
+            // string, = or in the middle of a line must not be able to
+            // point the reader at the wrong branch).
+            if line.trimmingCharacters(in: .whitespaces).hasPrefix("if ") {
+                let lineStart = body.index(body.startIndex, offsetBy: offset)
+                // The condition starts AFTER the `if ` (= and after the
+                // line's indentation, = or the condition would still
+                // carry the `if ` and read as an expression).
+                let indent = line.prefix { $0 == " " || $0 == "\t" }.count
+                let afterIf = body.index(lineStart, offsetBy: indent + 3)
+                let searchEnd = body.index(afterIf, offsetBy: 400, limitedBy: body.endIndex)
+                    ?? body.endIndex
+                if let brace = body.range(of: "{", range: afterIf..<searchEnd),
+                   let bodyEnd = matchingBrace(in: body, from: brace.lowerBound)
+                {
+                    let condition = String(body[afterIf..<brace.lowerBound])
+                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                    let ifBody = String(body[brace.upperBound..<bodyEnd])
+                    let elseBody = elseBody(of: body, after: bodyEnd)
 
-            switch heightMode(of: condition, in: code) {
-            case .fitsContent:
-                return BranchPair(gated: ifBody, other: elseBody ?? "")
-            case .scrolls:
-                guard let elseBody else { continue }
-                return BranchPair(gated: elseBody, other: ifBody)
-            case .unknown:
-                continue
+                    switch heightMode(of: condition, in: readable) {
+                    case .fitsContent:
+                        return BranchPair(gated: ifBody, other: elseBody ?? "")
+                    case .scrolls:
+                        guard let elseBody else { continue }
+                        return BranchPair(gated: elseBody, other: ifBody)
+                    case .unknown:
+                        break
+                    }
+                }
             }
+            offset += line.count + 1
         }
         return nil
     }
 
     /// The body of the `else` that follows an `if` block, or nil when
     /// the `if` has no `else` (= or when what follows is not one).
+    ///
+    /// An `else if` CHAIN is not resolved (= the reader reports no
+    /// branch, = which fails the gate loudly; = it never reads the
+    /// chain's first branch as if it were the height-mode one).
     private func elseBody(of code: String, after bodyEnd: String.Index) -> String? {
         var i = code.index(after: bodyEnd)
         while i < code.endIndex, code[i].isWhitespace { i = code.index(after: i) }
-        guard code[i...].hasPrefix("else"),
-              let brace = code.range(of: "{", range: i..<code.endIndex),
-              let end = matchingBrace(in: code, from: brace.lowerBound)
-        else { return nil }
-        return String(code[brace.upperBound..<end])
+        guard code[i...].hasPrefix("else") else { return nil }
+        let afterElse = code.index(i, offsetBy: 4)
+        var j = afterElse
+        while j < code.endIndex, code[j].isWhitespace { j = code.index(after: j) }
+        guard j < code.endIndex, code[j] == "{" else { return nil }
+        guard let end = matchingBrace(in: code, from: j) else { return nil }
+        return String(code[code.index(after: j)..<end])
     }
 
     /// The index of the `}` that closes the `{` at `open`.
@@ -351,21 +452,56 @@ struct WenshuMarkdownEditorAdapterTests {
     }
 
     /// Which height-mode branch a condition selects, resolved through a
-    /// computed property when the condition names one.
+    /// computed property when the condition names one, = and read
+    /// through a negation when the condition is negated.
     private func heightMode(of condition: String, in code: String) -> HeightModeBranch {
-        let trimmed = condition.trimmingCharacters(in: .whitespacesAndNewlines)
-        let negated = trimmed.hasPrefix("!")
-        let named = negated
-            ? String(trimmed.dropFirst()).trimmingCharacters(in: .whitespacesAndNewlines)
-            : trimmed
-        // A computed property is a plain identifier (= the gate written
-        // out is an expression, = and it is read directly).
-        guard !named.isEmpty,
-              named.allSatisfy({ $0.isLetter || $0.isNumber || $0 == "_" })
-        else {
-            return trimmed.contains("heightBehavior == .fitsContent") ? .fitsContent : .unknown
+        var text = condition.trimmingCharacters(in: .whitespacesAndNewlines)
+        var negated = false
+        // A leading `!` and the parentheses around the test are noise
+        // for the question "is this branch the fitsContent one?".
+        while true {
+            if text.hasPrefix("!") {
+                negated.toggle()
+                text = String(text.dropFirst()).trimmingCharacters(in: .whitespacesAndNewlines)
+                continue
+            }
+            if text.hasPrefix("("), text.hasSuffix(")"), isBalanced(text) {
+                text = String(text.dropFirst().dropLast()).trimmingCharacters(in: .whitespacesAndNewlines)
+                continue
+            }
+            break
         }
-        guard let declaration = code.range(of: "var \(named): Bool {",
+        let base: HeightModeBranch
+        if text.isHeightModeIdentifier {
+            base = heightModeOfComputedProperty(named: text, in: code)
+        } else if text.contains("heightBehavior != .fitsContent") {
+            base = .scrolls
+        } else if text.contains("heightBehavior == .fitsContent") {
+            base = .fitsContent
+        } else {
+            base = .unknown
+        }
+        guard base != .unknown else { return .unknown }
+        return negated ? (base == .fitsContent ? .scrolls : .fitsContent) : base
+    }
+
+    /// Whether the parentheses in a condition are balanced (= so a
+    /// condition that is only WRAPPED can be unwrapped).
+    private func isBalanced(_ text: String) -> Bool {
+        var depth = 0
+        for c in text {
+            if c == "(" { depth += 1 }
+            if c == ")" {
+                depth -= 1
+                if depth < 0 { return false }
+            }
+        }
+        return depth == 0
+    }
+
+    /// The branch a computed property's own body selects.
+    private func heightModeOfComputedProperty(named name: String, in code: String) -> HeightModeBranch {
+        guard let declaration = code.range(of: "var \(name): Bool {",
                                           range: code.startIndex..<code.endIndex),
               // The declaration's OWN `{` opens the computed property's
               // body (= searching forward from `declaration.upperBound`
@@ -375,8 +511,10 @@ struct WenshuMarkdownEditorAdapterTests {
               let end = matchingBrace(in: code, from: brace.lowerBound)
         else { return .unknown }
         let body = String(code[brace.upperBound..<end])
-        guard body.contains("heightBehavior == .fitsContent") else { return .unknown }
-        return negated ? .scrolls : .fitsContent
+        if body.contains("heightBehavior != .fitsContent") { return .scrolls }
+        if body.contains("heightBehavior == .fitsContent") { return .fitsContent }
+        if body.contains("heightBehavior == .scrolls") { return .scrolls }
+        return .unknown
     }
 
     // MARK: - LaTeX rendering enabled (= boss拍 2026-10-11)
@@ -826,7 +964,12 @@ struct WenshuMarkdownEditorAdapterTests {
     func wenshuMarkdownEditorGivesFitsContentAnEnclosingScrollView() throws {
         let editorPath = resolve("Sources/WenshuApp/Features/Editor/Model/WenshuMarkdownEditor.swift")
         let editor = try String(contentsOfFile: editorPath, encoding: .utf8)
-        let code = codeOnly(editor)
+        // Comments and strings are blanked (= not just the whole-line
+        // ones), = so a DECOY that names the gate phrase in a trailing
+        // comment, = in a block comment, = or in a string literal cannot
+        // point the reader at the wrong branch, = and cannot satisfy the
+        // assertions below either.
+        let code = blankingCommentsAndStrings(codeOnly(editor))
         #expect(code.contains("ScrollView(.vertical)"),
                 "WenshuMarkdownEditor must wrap the engine in a vertical ScrollView (= the engine's .fitsContent contract requires an enclosing scroller)")
         #expect(!code.contains("ScrollView([.horizontal, .vertical])"),
@@ -850,9 +993,17 @@ struct WenshuMarkdownEditorAdapterTests {
         // ScrollView, = so the comments are stripped first), = because the
         // property this asserts lives there and not in the host file.
         let canvasPath = resolve("Sources/WenshuApp/Features/Editor/View/EditorPaperCanvas.swift")
-        let canvasCode = codeOnly(try String(contentsOfFile: canvasPath, encoding: .utf8))
+        let canvasCode = blankingCommentsAndStrings(codeOnly(try String(contentsOfFile: canvasPath, encoding: .utf8)))
         #expect(!canvasCode.contains("ScrollView"),
                 "EditorPaperCanvas must NOT carry a ScrollView (= the enclosing scroll view belongs on the engine host; = the canvas's ScrollView is what the v3 'text not rendered' regression came from)")
+    }
+}
+
+private extension String {
+    /// Whether a condition is a plain identifier (= `isFitsContent`),
+    /// as opposed to an expression (= `a.b == c`).
+    var isHeightModeIdentifier: Bool {
+        !isEmpty && allSatisfy { $0.isLetter || $0.isNumber || $0 == "_" }
     }
 }
 
