@@ -2,7 +2,7 @@
 
 2026-10-30. A session that retired the `wenshu-dev` lane, rebuilt the
 review gate so every path fails closed, and landed the result behind
-three review cards.
+four review cards.
 
 ## The symptom, in the board's own words
 
@@ -109,9 +109,19 @@ say which is which: `card_absent` (4), `board_unreadable` (2), an
 unapproved verdict (3), an approved card (0).
 
 The reviewer's own matrix, comparing the reviewed tree against its
-parent, found the fail-open it had come for: the parent passed a card-id
-branch whose card the board did not carry (`exit=0 CLEAN`), and the
-reviewed tree refuses it (`exit=3 UNREVIEWED`).
+parent, found the fail-open it had come for. Reproduced here on the
+branch the earlier card used (a branch whose NAME embeds a card id the
+board does not carry):
+
+```
+4e14379fd2  (the parent)   exit=0  CLEAN           <- passed with no verdict
+0f3e04e8a9  (the fix)       exit=3  UNREVIEWED      <- refuses
+```
+
+The `CLEAN` on the first line is the per-branch CONFLICT status, not the
+verdict: at that tree the gate found no card naming the sha and simply
+continued, so the branch landed with nothing on the record. The five
+refusal paths above are all `exit=3` with the cause named.
 
 ## The repo gates, on the merged tree
 
@@ -119,18 +129,19 @@ reviewed tree refuses it (`exit=3 UNREVIEWED`).
 `python3 Tools/wenshu-devtool/tests/test_review_gate.py` passes every
 case. `bash -n Scripts/merge-preflight.sh` exits 0.
 `python3 Tools/wenshu-devtool/verify-dead.py` reports 0 dead
-declarations. The CJK audit over the added lines of all eleven commits
-reports 0 new CJK characters, and every commit subject is English with a
+declarations. The CJK audit over the added lines of every commit this session
+made reports 0 new CJK characters, and every commit subject is English with a
 conventional prefix.
 
 ## Where this is (the durable fact)
 
-Each of the twelve commits is an ancestor of `main` on BOTH remotes
+Each of the thirteen commits is an ancestor of `main` on BOTH remotes
 (`origin` = `gitcode.com:ZIYU1983/wenshu`, `old-origin` =
 `github.com:ZIYU-FUI/wenshu`), checked with `git merge-base
 --is-ancestor` against each remote's tracking ref. The dispatcher's
 configuration is not in
-this repository: it lives in the Hermes tree (`/Volumes/ANAN/.hermes/config.yaml`
+this repository: it lives in the Hermes tree
+(`/Volumes/ANAN/.hermes/config.yaml`
 for the dispatcher allowlist, `~/.hermes/profiles/pocock/` for the
 profile's own defaults and credentials). The rules are in
 `AGENTS.md` (the SSOT), `.hermes.md` (the session entry point),
@@ -142,18 +153,19 @@ reads.
 ## The open items, on purpose
 
 **BOTH REMOTES CARRY THE WORK.** `origin` (`gitcode.com:ZIYU1983/wenshu`)
-and `old-origin` (`github.com:ZIYU-FUI/wenshu`) both read back at
-`a345524927`, and each of the twelve commits is an ancestor of `main` on
-both (= `git merge-base --is-ancestor` against each remote's tracking
-ref). The push to each was a plain fast-forward and rewrote no byte.
+and `old-origin` (`github.com:ZIYU-FUI/wenshu`) both read back at the
+same sha, and each of the thirteen commits is an ancestor of `main` on both
+(= `git merge-base --is-ancestor` against each remote's tracking ref). The
+push to each was a plain fast-forward and rewrote no byte.
 
-**THE PUSH CARRIED A SIBLING'S COMMITS.** The eleven commits and twelve
-commits from the parallel session are INTERLEAVED on one `main` history,
-so a push of `main` cannot carry one without the other. The push was a
-plain fast-forward (`fda16f70b5..ca51ff184f`) and rewrote no byte of the
-sibling's work, but the sibling's twelve commits are now on `origin/main`
-too. They belong to a sibling session and are named here because the
-boss reads the landing table and needs to know who owns each row.
+**THE PUSH CARRIED A SIBLING'S COMMITS.** The thirteen commits this
+session made and the parallel session's fifteen are INTERLEAVED on one
+`main` history, so a push of `main` cannot carry one without the other.
+The push was a plain fast-forward (`fda16f70b5..a345524927`, then
+`a345524927..3883052470`) and rewrote no byte of the sibling's work,
+but the sibling's fifteen commits are now on `origin/main` too. They
+belong to a sibling session and are named here because the boss reads
+the landing table and needs to know who owns each row.
 
 **THE SIBLING'S OWN CARD IS NOT CLEAN.** `t_6a672e62` (`done`, assignee
 `wenshu-review`) is refused by `review_gate.py` with a contract error:
