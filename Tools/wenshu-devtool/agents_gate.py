@@ -93,25 +93,60 @@ CONTEXT_FILE_FLOOR_CHARS = 20_000
 
 
 def _hermes_config_path() -> Path:
-    """THE ONE config file the loader reads.
+    """THE ONE config file the loader reads, resolved the way IT resolves it.
 
     The loader reads EXACTLY one file: ``get_config_path()`` =
-    ``$HERMES_HOME/config.yaml`` (hermes_cli/config.py:433-435), merged
-    alone with DEFAULT_CONFIG (config.py:2248-2262). A profile does NOT
-    inherit the root's config: measured under
+    ``get_hermes_home() / "config.yaml"`` (hermes_cli/config.py:433-435),
+    merged alone with DEFAULT_CONFIG (config.py:2248-2262). A profile
+    does NOT inherit the root's config: measured under
     ``HERMES_HOME=<root>/profiles/<name>``, a root-only key reads the
     default and the profile's own key reads the profile's value.
 
-    So the gate reads the same one file. A search list would let the
-    gate report a number the loader will never use (= at MiniMax-M2.x's
+    The loader's home resolution is ``get_process_hermes_home()`` ->
+    ``_expand_hermes_home`` (hermes_constants.py:52-54) =
+    ``Path(os.path.expanduser(os.path.expandvars(path)))``, and with no
+    ``HERMES_HOME`` it is ``_platform_default_hermes_home``
+    (hermes_constants.py:57-69) = ``user_home()/(".hermes" +
+    HERMES_DATA_DIR_SUFFIX)``.
+
+    So the gate resolves it the same way. A search list let the gate
+    report a number the loader will never use (= at MiniMax-M2.x's
     204,800-token window the loader's dynamic cap is 49,152 while the
     root's pin says 240,000, so the gate would be 190,848 LOOSER and
-    would accept a file the loader truncates in the middle).
+    would accept a file the loader truncates in the middle), and a
+    literal path let it read a file that does not exist (= a FALSE RED:
+    under ``HERMES_HOME='~/.hermes'`` the loader reads
+    ``/Users/<user>/.hermes/config.yaml`` and the gate read the literal
+    ``~/.hermes/config.yaml``, so it fell back to the floor and
+    rejected a file the loader loads whole).
     """
     home = os.environ.get("HERMES_HOME")
     if home:
-        return Path(home) / "config.yaml"
-    return Path.home() / ".hermes" / "config.yaml"
+        base = Path(os.path.expanduser(os.path.expandvars(home)))
+    else:
+        suffix = os.environ.get("HERMES_DATA_DIR_SUFFIX", "")
+        if sys.platform == "win32":
+            local = os.environ.get("LOCALAPPDATA", "").strip()
+            base = (
+                Path(local) if local else Path.home() / "AppData" / "Local"
+            ) / ("hermes" + suffix)
+        else:
+            base = Path.home() / (".hermes" + suffix)
+    return base / "config.yaml"
+
+
+def _expand_env_value(value: str) -> str:
+    """The loader expands ``${VAR}`` and ``${env:VAR}`` in a string value.
+
+    An unresolved ref stays VERBATIM (= the loader keeps it so a caller
+    can detect it), so the gate does the same.
+    """
+    def repl(match: re.Match) -> str:
+        name = match.group(1)
+        if name.startswith("env:"):
+            name = name[4:]
+        return os.environ.get(name, match.group(0))
+    return re.sub(r"\$\{([^}]*)\}", repl, value)
 
 
 def _pinned_context_file_cap() -> tuple[int, str] | None:
@@ -127,9 +162,11 @@ def _pinned_context_file_cap() -> tuple[int, str] | None:
     # = a top-level lookup in the merged config). An indented key (= a key
     # nested under `agent:`) is NOT the one the loader reads, and Hermes'
     # own CLI says so: "is not a recognized config key".
-    pinned = re.search(r"^context_file_max_chars:[ \t]*(\d+)", text, re.M)
+    pinned = re.search(r"^context_file_max_chars:[ \t]*(.+)$", text, re.M)
     if pinned:
-        return int(pinned.group(1)), str(path)
+        raw = _expand_env_value(pinned.group(1).strip().strip("\"'"))
+        if raw.isdigit():
+            return int(raw), str(path)
     return None
 
 

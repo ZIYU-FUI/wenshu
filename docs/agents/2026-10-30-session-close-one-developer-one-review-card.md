@@ -280,17 +280,42 @@ the root's), `hermes config get context_file_max_chars` prints it under
 each of the three homes, and the gate reads the same file the loader
 reads.
 
+AND THE GATE RESOLVES THAT FILE THE WAY THE LOADER RESOLVES IT. The
+loader expands the home (`expanduser` then `expandvars`) and, with no
+`HERMES_HOME`, uses the platform default INCLUDING
+`HERMES_DATA_DIR_SUFFIX`; it also expands `${VAR}` in a config value.
+The gate read the home literally, so under `HERMES_HOME='~/.hermes'` it
+read a file that does not exist, fell back to the floor, and REJECTED a
+20,137-char AGENTS.md the loader loads whole (= a false red, and a
+regression against the parent, whose search list happened to cover it).
+The gate resolves it the loader's way now, and there are cases for a
+tilde home, a `$VAR` home, the suffixed default and a `${VAR}` value,
+each measured against the loader's OWN resolver.
+
 AND A CASE THAT COMPARES TWO IDENTITIES CANNOT SEE A SEPARATOR. Two
 different payloads differ under ANY implementation, so "the VT payload
 is not the LF payload" stays green even when the tool treats the VT as
 a line break. What sees it is the SHAPE of the body (= a line cut in
 half is not a line of the diff), and the strongest form of that is a
-SELECTION: a body is a selection of the diff's lines, so every line of
-the body is a line of the diff. A prefix check alone is not enough (a
-cut whose second half starts with `+`, `-` or ` ` passes it, because
-those are legal content prefixes), and the prefix set has to know git's
-`\ No newline at end of file` marker or it reports a false red on a
-file with no trailing newline.
+SELECTION: **a TEXT diff's body is a selection of the diff's lines**, so
+every line of that body is a line of the diff. A prefix check alone is
+not enough (a cut whose second half starts with `+`, `-` or ` ` passes
+it, because those are legal content prefixes), and the prefix set has to
+know git's `\ No newline at end of file` marker or it reports a false
+red on a file with no trailing newline.
+
+**THE SELECTION UNIVERSAL IS SCOPED TO A TEXT DIFF, AND THAT SCOPE IS
+THE POINT.** A BINARY diff's body carries a REWRITTEN `index` line (= one
+blob hash, not the diff's `index <old>..<new> <mode>`), so that line is
+NOT one of the diff's lines. The rewrite is deliberate: the blob hash is
+the only thing in the section that says WHICH payload it is, and the old
+blob's hash moves as soon as the base moves. Complying with the
+universal literally (= keeping the binary `index` line verbatim) leaves
+the suite GREEN while the identity starts to depend on the base's blob,
+so the same payload over two different bases gets two identities. There
+is a case for that now: a binary body's `index` line carries exactly one
+blob hash, it is not one of the diff's lines, and the same payload over
+two different bases keeps ONE identity.
 `python3 Tools/wenshu-devtool/tests/test_review_gate.py` passes every
 case. `bash -n Scripts/merge-preflight.sh` exits 0.
 `python3 Tools/wenshu-devtool/verify-dead.py` reports 0 fully dead

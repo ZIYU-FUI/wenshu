@@ -946,6 +946,65 @@ def main() -> int:
             True,
         )
 
+        # ---- D-2: a BINARY body carries a REWRITTEN index line ----
+        # So "every line of the body is a line of the diff" does NOT hold
+        # for a binary: the body carries `index <one blob hash>`, not the
+        # diff's `index <old>..<new> <mode>`. The rewrite is deliberate
+        # (= the blob hash is the only thing in the section that says
+        # WHICH payload it is, and the OLD blob's hash moves as soon as
+        # the base moves), so the universal has to be scoped, and the
+        # rewrite has to be pinned by a case.
+        def binary_body_and_identity(base_bytes: bytes):
+            with tempfile.TemporaryDirectory() as tmp2:
+                repo2 = Path(tmp2) / "repo"
+                repo2.mkdir()
+                r2 = lambda *a: subprocess.run(
+                    ["git", *a], cwd=repo2, capture_output=True, text=True, check=True
+                )
+                r2("init", "-q", "-b", "main")
+                r2("config", "user.email", "t@t")
+                r2("config", "user.name", "t")
+                (repo2 / "img.bin").write_bytes(base_bytes)
+                r2("add", "-A")
+                r2("commit", "-qm", "the base image")
+                r2("checkout", "-qb", "feature")
+                (repo2 / "img.bin").write_bytes(b"\x00\x01\x02the payload" + b"x" * 40)
+                r2("add", "-A")
+                r2("commit", "-qm", "the new image")
+                sha = r2("rev-parse", "HEAD").stdout.strip()
+                base = r2("merge-base", "main", "HEAD").stdout.strip()
+                cwd2 = Path.cwd()
+                os.chdir(repo2)
+                try:
+                    diff = tool._git_out(
+                        ["diff", "-U0", "--no-color", "--full-index", f"{base}..{sha}"]
+                    ) or ""
+                    return diff, tool._change_body(diff), tool.change_id(sha) or ""
+                finally:
+                    os.chdir(cwd2)
+        bin_diff, bin_body, bin_id = binary_body_and_identity(
+            b"\x00\x01\x02base one" + b"y" * 40)
+        bin_index = [l for l in bin_body.split("\n") if l.startswith("index ")]
+        check(
+            "D-2: a binary body's index line carries exactly ONE blob hash",
+            len(bin_index) == 1 and ".." not in bin_index[0],
+            True,
+        )
+        check(
+            "D-2: a binary body's index line is NOT one of the diff's lines "
+            "(so the selection universal is scoped to a TEXT diff)",
+            bool(bin_index) and bin_index[0] not in bin_diff.split("\n"),
+            True,
+        )
+        _, _, bin_id_two = binary_body_and_identity(
+            b"\x00\x01\x02base two" + b"z" * 40)
+        check(
+            "D-2: the same binary payload over two different bases keeps ONE "
+            "identity (= the rewrite is what makes that true)",
+            bool(bin_id) and bin_id == bin_id_two,
+            True,
+        )
+
         # ---- D-C + D-D: a diff that is not UTF-8 ----
         run("checkout", "-qb", "weird", "main")
         (repo / "weird.txt").write_bytes(b"a = 1\n\xff\xfe not utf-8\n")
@@ -1182,6 +1241,72 @@ def main() -> int:
                 os.environ.pop("HERMES_HOME", None)
             else:
                 os.environ["HERMES_HOME"] = saved
+
+    # D-1: the gate resolves the home the way THE LOADER resolves it. The
+    # loader's own resolver is the oracle (= the gate must name the SAME
+    # file, or it reads a file the loader never reads, and it either
+    # reports a number the loader will not use or misses the pin).
+    try:
+        from hermes_cli.config import get_config_path as loader_config_path
+    except Exception:
+        loader_config_path = None
+    if loader_config_path is not None:
+        keys = ("HERMES_HOME", "HERMES_DATA_DIR_SUFFIX", "WENSHU_TEST_HOME",
+                "WENSHU_TEST_CAP")
+        saved = {k: os.environ.get(k) for k in keys}
+        try:
+            os.environ["HERMES_HOME"] = "~/.hermes"
+            check(
+                "the gate resolves a ~ home the way the loader does",
+                os.path.realpath(cap_gate._hermes_config_path())
+                == os.path.realpath(loader_config_path()),
+                True,
+            )
+            with tempfile.TemporaryDirectory() as tmp:
+                os.environ["WENSHU_TEST_HOME"] = tmp
+                os.environ["HERMES_HOME"] = "$WENSHU_TEST_HOME"
+                check(
+                    "the gate resolves a $VAR home the way the loader does",
+                    os.path.realpath(cap_gate._hermes_config_path())
+                    == os.path.realpath(loader_config_path()),
+                    True,
+                )
+            os.environ.pop("HERMES_HOME", None)
+            os.environ["HERMES_DATA_DIR_SUFFIX"] = "-alt"
+            check(
+                "the gate resolves the suffixed default the way the loader does",
+                os.path.realpath(cap_gate._hermes_config_path())
+                == os.path.realpath(loader_config_path()),
+                True,
+            )
+            # and the loader expands ${VAR} in a VALUE, so the gate does
+            with tempfile.TemporaryDirectory() as tmp:
+                home = Path(tmp) / "home"
+                home.mkdir()
+                (home / "config.yaml").write_text(
+                    "context_file_max_chars: ${WENSHU_TEST_CAP}\n")
+                os.environ["WENSHU_TEST_CAP"] = "222222"
+                os.environ["HERMES_HOME"] = str(home)
+                check(
+                    "the gate expands ${VAR} in the pinned value, the way "
+                    "the loader does",
+                    cap_gate.effective_context_file_cap()[0],
+                    222222,
+                )
+                # an unresolved ref stays VERBATIM (= the loader keeps it
+                # so a caller can detect it), and then there is no number
+                os.environ.pop("WENSHU_TEST_CAP")
+                check(
+                    "an unresolved ${VAR} is not a number",
+                    cap_gate.effective_context_file_cap()[0],
+                    20000,
+                )
+        finally:
+            for k, v in saved.items():
+                if v is None:
+                    os.environ.pop(k, None)
+                else:
+                    os.environ[k] = v
 
     print()
     if FAILURES:
