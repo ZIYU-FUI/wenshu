@@ -1246,11 +1246,40 @@ def main() -> int:
     # loader's own resolver is the oracle (= the gate must name the SAME
     # file, or it reads a file the loader never reads, and it either
     # reports a number the loader will not use or misses the pin).
-    try:
-        from hermes_cli.config import get_config_path as loader_config_path
-    except Exception:
-        loader_config_path = None
-    if loader_config_path is not None:
+    # The loader runs in a SUBPROCESS (= the gate's own interpreter search:
+    # the plain python3 this repo documents cannot import hermes_cli, and a
+    # case that cannot run in the documented environment is a case that
+    # cannot see its own defect). If no interpreter can run it, the case
+    # FAILS: a silent skip would let a reverted fix leave the suite green.
+    def loader_probe(script: str) -> str:
+        for interpreter in cap_gate._hermes_pythons():
+            try:
+                proc = subprocess.run(
+                    [interpreter, "-c", script],
+                    capture_output=True,
+                    text=True,
+                    timeout=120,
+                )
+            except (OSError, subprocess.SubprocessError):
+                continue
+            if proc.returncode == 0:
+                return proc.stdout.strip()
+        return ""
+
+    def loader_config_path() -> str:
+        """The loader's own resolver, in the CURRENT environment."""
+        return loader_probe(
+            "from hermes_cli.config import get_config_path;"
+            " print(get_config_path())"
+        )
+
+    check(
+        "the loader's own resolver runs in a Hermes-capable interpreter "
+        "(a case that cannot run cannot see its defect)",
+        bool(loader_config_path()),
+        True,
+    )
+    if True:
         keys = ("HERMES_HOME", "HERMES_DATA_DIR_SUFFIX", "WENSHU_TEST_HOME",
                 "WENSHU_TEST_CAP")
         saved = {k: os.environ.get(k) for k in keys}
@@ -1279,28 +1308,75 @@ def main() -> int:
                 == os.path.realpath(loader_config_path()),
                 True,
             )
-            # and the loader expands ${VAR} in a VALUE, so the gate does
-            with tempfile.TemporaryDirectory() as tmp:
-                home = Path(tmp) / "home"
-                home.mkdir()
-                (home / "config.yaml").write_text(
-                    "context_file_max_chars: ${WENSHU_TEST_CAP}\n")
-                os.environ["WENSHU_TEST_CAP"] = "222222"
-                os.environ["HERMES_HOME"] = str(home)
-                check(
-                    "the gate expands ${VAR} in the pinned value, the way "
-                    "the loader does",
-                    cap_gate.effective_context_file_cap()[0],
-                    222222,
-                )
-                # an unresolved ref stays VERBATIM (= the loader keeps it
-                # so a caller can detect it), and then there is no number
-                os.environ.pop("WENSHU_TEST_CAP")
-                check(
-                    "an unresolved ${VAR} is not a number",
-                    cap_gate.effective_context_file_cap()[0],
-                    20000,
-                )
+            # AND THE TEXT FALLBACK (a machine with no YAML parser) reads
+            # the same forms: an unquoted int, and nothing else.
+            check(
+                "the text fallback reads an int with a trailing comment",
+                cap_gate._pinned_from_text(
+                    "context_file_max_chars: 240000 # a comment\n"),
+                240000,
+            )
+            check(
+                "the text fallback does NOT read a quoted value",
+                cap_gate._pinned_from_text(
+                    'context_file_max_chars: "240000"\n'),
+                None,
+            )
+            check(
+                "the text fallback does NOT read an expansion",
+                cap_gate._pinned_from_text(
+                    "context_file_max_chars: ${WENSHU_TEST_CAP}\n"),
+                None,
+            )
+
+            # AND THE PIN IS HONORED EXACTLY WHEN THE LOADER HONORS IT.
+            # The loader honors it only when the merged config value is an
+            # int or a float (prompt_builder.py:1054), so a quoted number
+            # is a STRING and inert, an expansion is a STRING after the
+            # expansion (= the expansion substitutes into the parsed text,
+            # it does not re-type it) and inert, and a trailing comment is
+            # stripped by the parser (= the value is still the int).
+            # Each form is measured against the LOADER's own merged value.
+            forms = (
+                ("an int", "context_file_max_chars: 240000\n", "240000"),
+                ("a quoted number", 'context_file_max_chars: "240000"\n', "0"),
+                ("an expansion", "context_file_max_chars: ${WENSHU_TEST_CAP}\n", "0"),
+                ("an int with a comment",
+                 "context_file_max_chars: 240000 # a comment\n", "240000"),
+            )
+            for label, body, expected in forms:
+                with tempfile.TemporaryDirectory() as tmp:
+                    home = Path(tmp) / "home"
+                    home.mkdir()
+                    (home / "config.yaml").write_text(body)
+                    os.environ["HERMES_HOME"] = str(home)
+                    os.environ["WENSHU_TEST_CAP"] = "222222"
+                    loader_pin = loader_probe(
+                        "from hermes_cli.config import load_config_readonly;"
+                        " v=load_config_readonly().get('context_file_max_chars');"
+                        " print(int(v) if isinstance(v,(int,float)) and v>0 else 0)"
+                    )
+                    check(
+                        f"the loader's honored pin and the gate's agree ({label})",
+                        (loader_pin or "").strip(), expected,
+                    )
+                    gate_pin = cap_gate._pinned_context_file_cap()
+                    check(
+                        f"the gate honors the pin exactly as the loader does "
+                        f"({label})",
+                        (gate_pin[0] if gate_pin else 0),
+                        int(expected),
+                    )
+                    # and the gate is never LOOSER than the loader (= the
+                    # direction that lets a file through that the loader
+                    # truncates in the middle)
+                    gate_cap = cap_gate.effective_context_file_cap()[0]
+                    check(
+                        f"the gate is never LOOSER than the loader ({label})",
+                        gate_cap <= max(int(expected), 20000),
+                        True,
+                    )
+                os.environ.pop("HERMES_HOME", None)
         finally:
             for k, v in saved.items():
                 if v is None:

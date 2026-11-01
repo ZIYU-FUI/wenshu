@@ -283,14 +283,38 @@ reads.
 AND THE GATE RESOLVES THAT FILE THE WAY THE LOADER RESOLVES IT. The
 loader expands the home (`expanduser` then `expandvars`) and, with no
 `HERMES_HOME`, uses the platform default INCLUDING
-`HERMES_DATA_DIR_SUFFIX`; it also expands `${VAR}` in a config value.
-The gate read the home literally, so under `HERMES_HOME='~/.hermes'` it
-read a file that does not exist, fell back to the floor, and REJECTED a
-20,137-char AGENTS.md the loader loads whole (= a false red, and a
-regression against the parent, whose search list happened to cover it).
-The gate resolves it the loader's way now, and there are cases for a
-tilde home, a `$VAR` home, the suffixed default and a `${VAR}` value,
-each measured against the loader's OWN resolver.
+`HERMES_DATA_DIR_SUFFIX`. The gate read the home literally, so under
+`HERMES_HOME='~/.hermes'` it read a file that does not exist, fell back
+to the floor, and REJECTED a 20,137-char AGENTS.md the loader loads
+whole (= a false red, and a regression against the parent, whose search
+list happened to cover it). The gate resolves it the loader's way now.
+
+AND THE GATE HONORS THE PIN EXACTLY WHEN THE LOADER HONORS IT. The
+loader honors it only when the merged config value is an int or a float
+(`int(val) if isinstance(val, (int, float)) and val > 0`), so the gate
+parses the config with the same parser and applies the same rule:
+
+| the config says | the loader | the gate |
+|---|---|---|
+| `240000` | an int = honored | honored |
+| `"240000"` | a string = inert | inert |
+| `${VAR}` | a string after the expansion = inert | inert |
+| `240000 # a comment` | an int (the parser strips the comment) | honored |
+
+The gate used to read "the stripped text is all digits", which is a
+DIFFERENT rule: it honored a quoted value (= up to 190,848 chars LOOSER
+than the loader at a 204,800-token window, so it would accept a file the
+loader truncates in the middle) and it LOST the pin to a trailing
+comment (= 220,000 chars too tight = a false red).
+
+THE CASES RUN WHERE THE REPO SAYS THEY RUN. The loader is not importable
+from the plain `python3` this repo documents, so the five resolution
+cases run the loader in a SUBPROCESS (= the gate's own interpreter
+search, and all sixteen of those interpreters can import it). A case
+that cannot run in the documented environment cannot see its own defect,
+so if no interpreter can run the loader the case FAILS instead of
+skipping: a silent skip would let a reverted fix leave the suite green
+while the summary still said "every case passed".
 
 AND A CASE THAT COMPARES TWO IDENTITIES CANNOT SEE A SEPARATOR. Two
 different payloads differ under ANY implementation, so "the VT payload

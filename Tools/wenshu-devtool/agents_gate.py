@@ -135,38 +135,60 @@ def _hermes_config_path() -> Path:
     return base / "config.yaml"
 
 
-def _expand_env_value(value: str) -> str:
-    """The loader expands ``${VAR}`` and ``${env:VAR}`` in a string value.
-
-    An unresolved ref stays VERBATIM (= the loader keeps it so a caller
-    can detect it), so the gate does the same.
-    """
-    def repl(match: re.Match) -> str:
-        name = match.group(1)
-        if name.startswith("env:"):
-            name = name[4:]
-        return os.environ.get(name, match.group(0))
-    return re.sub(r"\$\{([^}]*)\}", repl, value)
-
-
 def _pinned_context_file_cap() -> tuple[int, str] | None:
-    """The cap the config pins, and the file it came from."""
+    """The cap the config pins, and the file it came from.
+
+    THE LOADER'S OWN RULE, and only that rule: it honors the pin when
+    the MERGED config value is an int or a float (agent/prompt_builder.py
+    :1054: ``int(val) if isinstance(val, (int, float)) and val > 0``).
+
+    So the gate parses the config the way the loader parses it, and
+    honors the pin under the same condition. That decides three forms
+    the loader decides:
+
+    * ``240000`` = an int = honored.
+    * ``"240000"`` = a STRING = inert (= the loader falls back to its
+      dynamic cap, so a gate that honored it would be LOOSER than the
+      loader and would accept a file the loader truncates in the
+      middle).
+    * ``${VAR}`` = a STRING after the expansion (= the expansion
+      substitutes into the parsed text, it does not re-type it) = inert.
+    * ``240000 # a comment`` = an int = honored (= the YAML parser strips
+      the comment, and a regex that swallowed it would lose the pin and
+      fall back to the floor = a false red).
+
+    The key is TOP LEVEL, the way the loader reads it (= a top-level
+    lookup in the merged config). An indented key (= a key nested under
+    `agent:`) is NOT the one the loader reads, and Hermes' own CLI says
+    so: "is not a recognized config key".
+    """
     path = _hermes_config_path()
     try:
         text = path.read_text(encoding="utf-8")
     except OSError:
         return None
-    # The key is TOP LEVEL, the way the loader reads it
-    # (= agent/prompt_builder.py:
-    #  _config_readonly("context_file_max_chars").get("context_file_max_chars")
-    # = a top-level lookup in the merged config). An indented key (= a key
-    # nested under `agent:`) is NOT the one the loader reads, and Hermes'
-    # own CLI says so: "is not a recognized config key".
-    pinned = re.search(r"^context_file_max_chars:[ \t]*(.+)$", text, re.M)
-    if pinned:
-        raw = _expand_env_value(pinned.group(1).strip().strip("\"'"))
-        if raw.isdigit():
+    value, _how = _yaml_load(text)
+    if isinstance(value, dict):
+        raw = value.get("context_file_max_chars")
+        if isinstance(raw, bool):
+            raw = None
+        if isinstance(raw, (int, float)) and raw > 0:
             return int(raw), str(path)
+        return None
+    # No YAML parser on this machine: fall back to the text.
+    return _pinned_from_text(text), str(path)
+
+
+def _pinned_from_text(text: str) -> int | None:
+    """The pin read from the TEXT, for a machine with no YAML parser.
+
+    It requires an UNQUOTED integer (= the form the loader honors), and
+    the match stops at the first non-digit, so a trailing comment cannot
+    swallow the pin and a quoted value is not a pin.
+    """
+    pinned = re.search(r"^context_file_max_chars:[ \t]*(\d+)", text, re.M)
+    if pinned:
+        return int(pinned.group(1))
     return None
 
 
