@@ -291,27 +291,29 @@ def review_cards_for(board: str = BOARD) -> list[dict] | None:
 def _git_out(args: list[str], stdin: str | None = None) -> str | None:
     """Run a git command and return its stdout, or None when it fails."""
     try:
+        # The BYTES are captured and decoded HERE. ``text=True`` builds a
+        # TextIOWrapper with universal newlines, which translates \r\n
+        # into \n DURING the decode, and a CRLF payload and an LF payload
+        # are different payloads. Passing ``encoding``/``errors`` implies
+        # text mode in CPython, so the decode is done here instead.
         out = subprocess.run(
             ["git", *args],
-            input=stdin,
+            input=(
+                stdin.encode("utf-8", "surrogateescape") if stdin is not None else None
+            ),
             capture_output=True,
-            text=True,
-            # A diff can carry bytes that are not text (= a file git reads
-            # as text because it holds no NUL byte, and it is not UTF-8).
-            # Decoding must not raise: a gate that CRASHES on a file is
-            # not a gate that fails closed. But it must not LOSE bytes
-            # either: "replace" maps every undecodable byte to U+FFFD, so
-            # two different payloads would hash the same (= a fail-open
-            # collision where the crash used to be a fail-closed one).
-            # "surrogateescape" round-trips the bytes exactly.
-            errors="surrogateescape",
             timeout=30,
         )
     except (OSError, subprocess.SubprocessError):
         return None
     if out.returncode != 0:
         return None
-    return out.stdout
+    # "surrogateescape" round-trips the bytes exactly: an undecodable byte
+    # becomes a lone surrogate, and encoding it back with the same escape
+    # gives the byte again. ("replace" would map every undecodable byte
+    # to U+FFFD, so two payloads that differ only in that byte would
+    # hash the same = a fail-open collision.)
+    return out.stdout.decode("utf-8", "surrogateescape")
 
 
 def _merge_base(a: str, b: str) -> str | None:
@@ -390,15 +392,20 @@ def _change_body(diff: str) -> str:
     kept: list[str] = []
     for part in diff.split("diff --git ")[1:]:
         section = "diff --git " + part
-        lines = section.splitlines()
+        lines = section.split("\n")
         # Git's own marker for a binary diff is a line that STARTS with
         # "Binary files ". A substring test over the whole section also
         # matches a TEXT file whose CONTENT says "Binary files ...", and
         # that text file would then keep its whole-file blob hash (= its
         # identity would depend on the whole file, and a landing near
         # the change would move it).
-        binary = any(line.startswith("Binary files ") for line in lines)
-        for line in lines:
+        # Split on "\n" ONLY. ``str.splitlines()`` also splits on \r (and
+        # on \x0b \x0c \x1c \x1d \x1e \x85 and two Unicode ones), so a
+        # lone \r inside a line would be dropped and the line cut in
+        # half (= a second collision of the same shape).
+        section_lines = section.split("\n")
+        binary = any(line.startswith("Binary files ") for line in section_lines)
+        for line in section_lines:
             if line.startswith("@@"):
                 continue
             if line.startswith("index "):

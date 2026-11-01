@@ -959,6 +959,55 @@ def main() -> int:
         )
         os.chdir(cwd_before)
 
+    # ---- D-E: the line endings are part of the payload ----
+    # A CRLF file and an LF file are DIFFERENT payloads, and the
+    # identity must say so. The CR is lost in TWO places if the diff is
+    # decoded with universal newlines (text=True) and split with
+    # splitlines() (= both eat it), and both have to go.
+    def payload_identity(payload: bytes) -> str:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / "repo"
+            repo.mkdir()
+            run = lambda *a: subprocess.run(
+                ["git", *a], cwd=repo, capture_output=True, text=True, check=True
+            )
+            run("init", "-q", "-b", "main")
+            run("config", "user.email", "t@t")
+            run("config", "user.name", "t")
+            (repo / "base.txt").write_text("base\n")
+            run("add", "-A")
+            run("commit", "-qm", "base")
+            run("checkout", "-qb", "feature")
+            (repo / "f.txt").write_bytes(payload)
+            run("add", "-A")
+            run("commit", "-qm", "the payload")
+            sha = run("rev-parse", "HEAD").stdout.strip()
+            cwd_before = Path.cwd()
+            os.chdir(repo)
+            try:
+                return tool.change_id(sha) or ""
+            finally:
+                os.chdir(cwd_before)
+    crlf = payload_identity(b"a = 1\r\nb = 2\r\n")
+    lf = payload_identity(b"a = 1\nb = 2\n")
+    check(
+        "D-E: a CRLF payload and an LF payload are NOT the same change",
+        bool(crlf) and bool(lf) and crlf != lf,
+        True,
+    )
+    check(
+        "D-E: and the CRLF identity is stable (= it is read, not guessed)",
+        crlf == payload_identity(b"a = 1\r\nb = 2\r\n"),
+        True,
+    )
+    # the other separators splitlines() would have cut on
+    vt = payload_identity(b"a = 1\x0bb = 2\n")
+    check(
+        "D-E: a lone vertical tab is not a line break either",
+        bool(vt) and vt != lf,
+        True,
+    )
+
     print()
     if FAILURES:
         print(f"review_gate: {len(FAILURES)} case(s) FAILED")

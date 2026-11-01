@@ -103,12 +103,19 @@ Three details, each measured:
 * The rule is read PER SECTION, because git prints `index` BEFORE the
   "Binary files" line, so a line-order check reads the wrong answer.
 
-**AND THE DECODE IS LOSSLESS.** A diff can carry bytes that are not
-text (= a file git reads as text because it holds no NUL byte, and it
-is not UTF-8). Replacing them made two different payloads hash the
-same (= a fail-open collision where the crash had been a fail-closed
-one), so the decode round-trips the bytes and the hash is over the
-bytes.
+**AND THE DECODE IS LOSSLESS, IN BOTH PLACES THAT COULD LOSE A BYTE.**
+A diff can carry bytes that are not text (= a file git reads as text
+because it holds no NUL byte, and it is not UTF-8). Replacing them made
+two different payloads hash the same (= a fail-open collision where the
+crash had been a fail-closed one), so the bytes are captured and
+decoded HERE (= not by `text=True`, whose universal newlines translate
+`\r\n` into `\n` DURING the decode) with a surrogate escape that
+round-trips them exactly.
+
+And the diff is split on `\n` ONLY: `str.splitlines()` also splits on
+`\r` (and on eight more separators), so a lone `\r` inside a line was
+dropped and the line cut in half. A CRLF payload and an LF payload are
+different payloads, and the identity now says so.
 
 **WHAT IT IS NOT.** `git patch-id --stable` is NOT the identity of a
 change: it strips whitespace (= two different programs share an id) and
@@ -130,8 +137,11 @@ the current tree, and the branch landed.
 ## The nine defects the review rounds found
 
 Each was found by `wenshu-review` on the card under review, fixed as its
-own commit, and re-reviewed by the next card. The commit list below is
-the whole arc, oldest first.
+own commit, and re-reviewed by the next card. These nine are the defects
+of the ORIGINAL contract (= the sha contract, the card-absent contract
+and the exit codes). The change-based verdict that replaced them found
+more, and those are in the section below. The commit list is oldest
+first.
 
 1. **`92e8dafbd6`** — `ticket_tier.py`'s review-card contract did not
    match what `review_gate.py` actually reads, so a card the tier script
