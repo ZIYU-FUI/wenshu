@@ -63,6 +63,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -85,7 +86,8 @@ REPO = Path(__file__).resolve().parent.parent.parent
 #
 # So the gate uses a FIXED number, and the suite asserts that the config
 # pins the same one (and that the loader honors it under every home).
-CONTEXT_FILE_MAX_CHARS = 500_000  # 0.5 MB, pinned in the Hermes config
+CONTEXT_FILE_MAX_CHARS = 500_000  # 0.5 MB: the project's cap
+CONTEXT_FILE_FLOOR_CHARS = 20_000  # the loader's floor (= its smallest cap)
 
 
 ALLOWED_CJK_ANYWHERE = set("老板 文枢 拍 拍板 ※".split())
@@ -206,30 +208,58 @@ SKILL_PREFIXES = ("wenshu-", "pocock-", "universal-", "mattpocock", "q99-")
 # (= the mandate's own words), so a rule may use them anywhere.
 TOOL_COLUMNS = ("enforcement", "reference", "skill", "tool", "gate", "source", "path", "file")
 
-def effective_context_file_cap() -> tuple[int, str]:
-    """The cap the loader will use, and where that number came from.
+def _pinned_cap() -> int | None:
+    """The cap THIS home's config pins, or None when it pins none.
 
-    IT IS A FIXED VALUE: 500,000 chars (= 0.5 MB), pinned in the Hermes
-    config as `context_file_max_chars` and mirrored by the constant
-    above. The loader honors an explicit config value, so the two are
-    the same number by construction, and a case asserts that the config
-    and this constant agree (= so they cannot drift apart).
-
-    WHY A FIXED VALUE. The loader's own dynamic cap MOVES with the
-    model's window (= 49,152 at a 204,800-token model, 240,000 at 1M),
-    so a gate that computed it had to resolve the model's window AND
-    the config's own rules (which key, which level, which file, what
-    type, a duplicate key, a value in (0,1), a file the parser
-    rejects...), and every one of those resolutions was a place where
-    the gate could come out LOOSER than the loader (= it accepts a file
-    the loader truncates in the middle, which is the one failure this
-    gate exists to prevent). A fixed number has no such places: ONE
-    number, pinned in the config, asserted here.
+    Conservative on purpose: only an UNQUOTED integer is a pin. The
+    loader honors the config value only when it is an int or a float, so
+    a quoted value is a string the loader IGNORES, and honoring it here
+    would make the gate LOOSER than the loader (= it would accept a
+    file the loader truncates in the middle).
     """
-    return CONTEXT_FILE_MAX_CHARS, (
-        "the fixed project cap (500,000 chars = 0.5 MB, pinned in the "
-        "Hermes config)"
+    home = os.environ.get("HERMES_HOME")
+    base = Path(home) if home else Path.home() / ".hermes"
+    try:
+        text = (base / "config.yaml").read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return None
+    pinned = re.search(
+        r"^context_file_max_chars:[ \t]*(\d+)[ \t]*$", text, re.M)
+    if not pinned:
+        return None
+    value = int(pinned.group(1))
+    return value if value > 0 else None
+
+
+def effective_context_file_cap() -> tuple[int, str]:
+    """The cap the loader will use for THIS home, and where it came from.
+
+    IT IS A FIXED NUMBER: 500,000 chars (= 0.5 MB), pinned in the Hermes
+    config as `context_file_max_chars`. The gate reads that one line
+    from the one file the loader reads (= $HERMES_HOME/config.yaml), so
+    the two are the same number by construction.
+
+    WHY NOT A CONSTANT IN THE CODE. A profile that does not carry the
+    pin (a fresh one: `hermes profile create` does not copy it) falls
+    back to the loader's dynamic cap (= 49,152 at a 204,800-token
+    model), so a gate that always said 500,000 would be LOOSER than the
+    loader there (= it would accept a file the loader truncates in the
+    middle, which is the one failure this gate exists to prevent).
+
+    AND WHEN THERE IS NO PIN, the gate uses the loader's FLOOR (= 20,000
+    = the smallest cap the loader can ever use), so the gate is never
+    looser than the loader in any home: the loader's cap is the pin,
+    else its dynamic cap (= never below the floor).
+    """
+    pinned = _pinned_cap()
+    if pinned is not None:
+        return pinned, (
+            f"the cap this home's config pins ({pinned} chars)"
+        )
+    return CONTEXT_FILE_FLOOR_CHARS, (
+        "the loader's floor (this home's config pins no cap)"
     )
+
 
 
 def _strip_fenced_blocks(text: str) -> str:

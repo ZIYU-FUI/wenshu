@@ -1220,8 +1220,26 @@ def main() -> int:
             if proc.returncode == 0 and out and out[-1].strip().isdigit():
                 return int(out[-1].strip())
         return -1
+    def gate_cap_for(home: Path) -> int:
+        """The gate's own number under that home (= the documented CLI)."""
+        repo = Path(__file__).resolve().parents[3]
+        proc = subprocess.run(
+            [sys.executable, str(repo / "Tools/wenshu-devtool/agents_gate.py"),
+             "--file", str(repo / "AGENTS.md")],
+            env=dict(os.environ, HERMES_HOME=str(home)),
+            capture_output=True, text=True, timeout=120,
+        )
+        found = re.search(r"cap (\d+)", proc.stdout)
+        return int(found.group(1)) if found else -1
     hermes_root = Path.home() / ".hermes"
-    homes = [hermes_root] + sorted(p.parent for p in hermes_root.glob("profiles/*/config.yaml"))
+    # EVERY live profile DIRECTORY (= a profile with no config.yaml of its
+    # own is still a home the loader reads, and the loader falls back to
+    # its dynamic cap there, so it is exactly the case that must not be
+    # skipped).
+    profile_dir = hermes_root / "profiles"
+    homes = [hermes_root] + sorted(
+        p for p in profile_dir.iterdir() if p.is_dir()
+    ) if profile_dir.is_dir() else [hermes_root]
     check("the drift guard found the Hermes root and its profiles",
           len(homes) >= 2, True)
     for home in homes:
@@ -1231,11 +1249,41 @@ def main() -> int:
             loader_cap > 0,
             True,
         )
+        gate_cap = gate_cap_for(home)
         check(
             f"the gate is not LOOSER than the loader ({home.name})",
-            cap_gate.effective_context_file_cap()[0] <= loader_cap,
+            gate_cap <= loader_cap,
             True,
         )
+        # and the gate's number is the project's cap (500,000) or the
+        # loader's floor (20,000 = what it uses when the config pins no
+        # cap). A config pinned to a DIFFERENT number is a drift, and a
+        # one-sided check would not see it.
+        check(
+            f"the gate's number for this home is the project's cap or the "
+            f"loader's floor ({home.name})",
+            gate_cap in (500000, 20000),
+            True,
+        )
+    # A QUOTED PIN IS A STRING, so the loader IGNORES it (= it falls to
+    # its dynamic cap), and the gate must not honor it either (= the gate
+    # is then the floor, which is never looser).
+    with tempfile.TemporaryDirectory() as tmp:
+        quoted = Path(tmp) / "quoted"
+        quoted.mkdir()
+        (quoted / "config.yaml").write_text(
+            'context_file_max_chars: "500000"\n')
+        check(
+            "a quoted pin is not a pin (= the loader ignores it)",
+            gate_cap_for(quoted),
+            20000,
+        )
+        check(
+            "and the gate is not looser than the loader there",
+            gate_cap_for(quoted) <= loader_cap_for(quoted),
+            True,
+        )
+
     # and the gate REFUSES a file over the cap, and accepts the real one
     with tempfile.TemporaryDirectory() as tmp:
         big = Path(tmp) / "big.md"

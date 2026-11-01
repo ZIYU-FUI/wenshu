@@ -248,14 +248,26 @@ path above is `exit=3` with its cause named.
 `python3 Tools/wenshu-devtool/agents_gate.py --file AGENTS.md` exits 0.
 It checks the file against the CONTEXT-FILE CAP, and the cap is a FIXED
 NUMBER: 500,000 chars (= 0.5 MB), pinned in the Hermes config as
-`context_file_max_chars` and mirrored by the gate's own constant. The
-loader honors an explicit config value, so the two are the same number
-by construction, and the suite compares them against the LOADER'S OWN
-answer for every home (= the root and every profile), because a
-line-based read cannot tell a pin the loader honors from one it ignores
-(= a quoted value, or a duplicate key, leaves the loader on its dynamic
-cap, and then the gate would be looser than the loader). A home that
-cannot be read is a FAILURE, never a skip.
+`context_file_max_chars`. The gate reads that ONE line from the ONE
+file the loader reads (= $HERMES_HOME/config.yaml), so the two are the
+same number by construction.
+
+AND WHEN A HOME PINS NO CAP, THE GATE USES THE LOADER'S FLOOR (= 20,000
+= the smallest cap the loader can ever use). A profile that does not
+carry the pin (a fresh one: `hermes profile create` does not copy it)
+falls back to the loader's dynamic cap (= 49,152 at a 204,800-token
+model), so a gate that always said 500,000 would be LOOSER than the
+loader there (= it would accept a file the loader truncates in the
+middle, which is the one failure this gate exists to prevent). With the
+floor, the gate is never looser than the loader in any home: the
+loader's cap is the pin, else its dynamic cap (= never below the floor).
+
+The suite compares the two for EVERY home (= the root and every profile
+directory, including the ones with no config of their own), against the
+LOADER'S OWN answer, because a line-based read cannot tell a pin the
+loader honors from one it ignores (= a quoted value, or a duplicate key,
+leaves the loader on its dynamic cap). A home that cannot be read is a
+FAILURE, never a skip.
 
 **WHY A FIXED VALUE, AND WHAT IT COST TO LEARN IT.** The loader's own
 dynamic cap MOVES with the model's window (= 49,152 at a 204,800-token
