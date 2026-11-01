@@ -56,11 +56,14 @@ reload path). So the reason a plain enum fails is its missing `Codable`
 conformance, not its being an enum.
 
 One more rule the reproduction hits, so it is written down here: a `@Model`
-property's DEFAULT value must be fully qualified. `var kind: Kind =
-Kind.agent` compiles; `var kind: Kind = .agent` fails with "A default value
-requires a fully qualified domain named value (from macro 'Model')". That is
-a second macro rule, separate from the `PersistentModel` one above, and it
-has nothing to do with the enum's conformances.
+property's default that NAMES A MEMBER must be written fully qualified.
+`var kind: Kind = Kind.agent` compiles; `var kind: Kind = .agent` fails with
+"A default value requires a fully qualified domain named value (from macro
+'Model')". A LITERAL default needs no qualification (= `var count: Int = 0`
+and `var title: String = "hello"` compile in the same model), so the rule is
+about naming a member, not about defaults in general. That is a second macro
+rule, separate from the `PersistentModel` one above, and it has nothing to do
+with the enum's conformances.
 
 The fix is the house pattern, and it is unaffected by that measurement: the
 COLUMN is a plain `String?` and the vocabulary is a namespace of static
@@ -121,31 +124,52 @@ Hermes does not write that value. It reserves `'subagent'` for delegated
 children (`hermes_cli/session_listing.py:13` names it
 `SUBAGENT_SOURCE`), and a board task's session reads `'kanban'`. Measured
 across Hermes' three live stores: `source='agent'` holds 0 rows, and no
-`source='agent'` literal exists anywhere in the Hermes tree.
+Hermes PRODUCER writes `'agent'` into a session row's source column.
 
 **Which value a delegated child's row carries depends on the path, so the
 durable facts are the producers and the precedence, not a census of the
-live stores.** Hermes has two delegate paths, and only one of them writes
+live stores.** Hermes has two delegate paths, and BOTH can write
 `'subagent'`:
 
 - The **reserved / worker** path stamps the row's source literally:
   `agent/runtime_session_child.py:32` and `gateway/session_worker_child.py:63`
   both write `'subagent'`.
 - The **in-process** path builds the child with `platform="subagent"`
-  (`tools/delegate_tool.py:296`), but the row's source comes from
-  `session_source_for(self.platform)` at `run_agent.py:319`, and
-  `agent/session_source.py:34-42` returns the **inherited**
-  `HERMES_SESSION_SOURCE` BEFORE the platform. Measured with Hermes' own
-  function: a parent whose env says `desktop` produces a child row reading
-  `'desktop'`, likewise `'tui'`, `'local'` and `'kanban'`; only an empty
-  parent env falls through to the platform's `'subagent'`.
+  (`tools/delegate_tool.py:296`), and the row's source comes from
+  `session_source_for(self.platform)` at `run_agent.py:319`. That function
+  (`agent/session_source.py:34-42`) normally returns the **inherited**
+  `HERMES_SESSION_SOURCE` BEFORE the platform, so a parent whose env says
+  `desktop` produces a child row reading `'desktop'`, likewise `'tui'`,
+  `'local'` and `'kanban'`.
+
+**The precedence has one exception, and it is the one that matters here.**
+`agent/session_source.py:36-39` drops an inherited `tui` or `desktop` label
+when the one-shot marker is set (`HERMES_SINGLE_QUERY_SESSION=1`), and then
+the platform's `'subagent'` wins. Measured with Hermes' own function:
+
+| parent env | clean | one-shot marker set |
+| --- | --- | --- |
+| `desktop` | `desktop` | **`subagent`** |
+| `tui` | `tui` | **`subagent`** |
+| `local` | `local` | `local` |
+| `kanban` | `kanban` | `kanban` |
+| (empty) | `subagent` | `subagent` |
+
+The marker is set by `hermes_cli/cli_single_query.py:496` (`hermes chat -q`)
+and `hermes_cli/oneshot.py:280` (`hermes -z`), and a one-shot session DOES
+delegate (= `ONESHOT_DISABLED_TOOLSETS` keeps `delegate_task`,
+`agent/oneshot_footprint.py:28`). So the in-process path writes
+`'subagent'` too, whenever the parent's label is `tui` or `desktop` under the
+one-shot marker. That is not a corner case to be argued away: it is the
+configuration the one-shot lane runs in.
 
 Both paths are live at once, so the stores show the mix rather than one
 value: the delegated rows (= every row whose `parent_session_id` matches
 `json_extract(model_config,'$._delegate_from')`, with `_branched_from` and
-`_reset_from` NULL) read `subagent` on the reserved path and the parent's
-surface label on the in-process path. No `kanban` row in any of the three
-stores carries a parent at all.
+`_reset_from` NULL) read a mix of `'subagent'` and the parent's surface
+label. No `kanban` row in any of the three stores carries a parent at all.
+(= the store carries no field that separates the two paths, so which path
+wrote which row is an inference from the code, not a measurement.)
 
 So the constant now holds `subagent`, and its doc comment names the two
 Hermes sites that reserve it and the path that writes it. The test that

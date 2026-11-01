@@ -24,14 +24,15 @@ public enum WSSessionSource {
     /// The value is the one Hermes RESERVES for the same kind of work, so
     /// a Wenshu row and a Hermes row mean the same thing: Hermes names
     /// `'subagent'` as its delegated-child source
-    /// (`hermes_cli/session_listing.py:13` = `SUBAGENT_SOURCE`), and its
-    /// reserved / worker delegate path stamps a child's row with it
-    /// (`agent/runtime_session_child.py:32`).
-    ///
-    /// It is the reserved path's value, not every delegate path's: the
-    /// in-process path inherits the parent's surface label instead
+    /// (`hermes_cli/session_listing.py:13` = `SUBAGENT_SOURCE`), and both
+    /// of its delegate paths can write it = the reserved / worker path
+    /// stamps a child's row with it literally
+    /// (`agent/runtime_session_child.py:32`), and the in-process path
+    /// reaches it whenever the parent's label does not survive
     /// (`agent/session_source.py:34-42` prefers the inherited
-    /// `HERMES_SESSION_SOURCE` over the platform).
+    /// `HERMES_SESSION_SOURCE` over the platform, EXCEPT that the
+    /// one-shot marker drops an inherited `tui` or `desktop` label, and
+    /// then the platform's `'subagent'` wins).
     ///
     /// The agent that did the work is named beside it
     /// (= `WSSession.agentName`), which is the second dimension the
