@@ -1215,6 +1215,18 @@ def main() -> int:
             r"^context_file_max_chars:[ \t]*\"?(\d+)", text, re.M)
         return int(found.group(1)) if found else None
 
+    def gate_headroom_for(home: Path) -> int:
+        """The headroom the gate's OWN CLI reports for the repo's AGENTS.md."""
+        repo = Path(__file__).resolve().parents[3]
+        proc = subprocess.run(
+            [sys.executable, str(repo / "Tools/wenshu-devtool/agents_gate.py"),
+             "--file", str(repo / "AGENTS.md")],
+            env=dict(os.environ, HERMES_HOME=str(home)),
+            capture_output=True, text=True, timeout=120,
+        )
+        found = re.search(r"headroom\s+(\d+)", proc.stdout)
+        return int(found.group(1)) if found else -1
+
     def gate_cap_for(home: Path) -> int:
         """The gate's own number under that home (= the documented CLI)."""
         repo = Path(__file__).resolve().parents[3]
@@ -1272,6 +1284,7 @@ def main() -> int:
         return -1
     real_agents = (Path(__file__).resolve().parents[3] / "AGENTS.md").read_text(
         encoding="utf-8")
+    loaded_agents = len(real_agents) + len("## AGENTS.md\n\n")
     hermes_root = Path.home() / ".hermes"
     # EVERY live profile DIRECTORY (= a profile with no config.yaml of its
     # own is still a home the loader reads, and the loader falls back to
@@ -1300,14 +1313,27 @@ def main() -> int:
         # margin stated (= a home whose cap is the loader's floor leaves
         # the file one edit away from a false red, and that has to be
         # visible, not guessed at).
-        margin = loader_cap - len(real_agents)
+        # the SAME measure the gate uses (= the whole file plus the
+        # section label the loader wraps it in), or the margin would not
+        # be the gate's own headroom
+        margin = loader_cap - loaded_agents
         print(f"    ok: the margin under {home.name}'s loader cap is "
               f"{margin} chars")
         check(
             f"the AGENTS.md fits under this home's loader cap "
             f"({home.name})",
-            len(real_agents) <= loader_cap,
+            loaded_agents <= loader_cap,
             True,
+        )
+        # and the suite's margin IS the headroom the gate's own CLI
+        # reports (= the same number, from the same measure: the whole
+        # file PLUS the section label the loader prepends). A suite that
+        # measured the raw file would be 14 chars optimistic, and would
+        # answer a different question than the gate.
+        check(
+            f"the suite's margin IS the gate's own headroom ({home.name})",
+            gate_headroom_for(home),
+            margin,
         )
         # "NO PIN" and "A PIN THE LOADER IGNORES" must be DIFFERENT
         # ANSWERS, or a broken pin is invisible (= the gate's floor and

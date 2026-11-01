@@ -278,7 +278,7 @@ directory, including the ones with no config of their own), against the
 LOADER'S OWN answer, because a line-based read cannot tell a pin the
 loader honors from one it ignores (= a quoted value, or a duplicate key,
 leaves the loader on its dynamic cap). It also states the MARGIN under
-each home's cap (= 480,065 chars under a pinned home, 29,217 under an
+each home's cap (= 480,051 chars under a pinned home, 29,203 under an
 unpinned one), because a margin of 51 chars is a fact the reader needs,
 not a number to guess at.
 
