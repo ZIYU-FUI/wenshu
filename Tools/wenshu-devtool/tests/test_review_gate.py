@@ -1193,20 +1193,49 @@ def main() -> int:
         cap_gate.effective_context_file_cap()[0],
         500000,
     )
-    home = os.environ.get("HERMES_HOME")
-    if home:
-        cfg = Path(home) / "config.yaml"
-        if cfg.exists():
-            text = cfg.read_text(encoding="utf-8")
-            pinned = re.search(
-                r"^context_file_max_chars:[ \t]*(\d+)[ \t]*$", text, re.M)
-            check(
-                "the config pins the same number the gate uses",
-                (int(pinned.group(1)) if pinned else None),
-                cap_gate.effective_context_file_cap()[0],
-            )
-        else:
-            check("the config that pins the cap exists", False, True)
+    # THE DRIFT GUARD, AGAINST THE LOADER'S OWN ANSWER. A line-based
+    # regex cannot tell a pin the loader honors from one it ignores (= a
+    # duplicate key, or a pin inside a quoted string, leaves the loader
+    # on its dynamic cap), so the comparison is the loader's own
+    # function, for EVERY home (= the root and every profile). And a
+    # home that cannot be read is a FAILURE, never a skip: a case that
+    # cannot run cannot see its own defect.
+    def loader_cap_for(home: Path) -> int:
+        """The loader's OWN cap for that home (= its own function)."""
+        script = (
+            "import sys;sys.path.insert(0,'/Volumes/ANAN/.hermes/hermes-agent');"
+            "from agent.prompt_builder import _get_context_file_max_chars;"
+            "print(_get_context_file_max_chars(204800))"
+        )
+        for interpreter in cap_gate._hermes_pythons():
+            try:
+                proc = subprocess.run(
+                    [interpreter, "-c", script],
+                    env=dict(os.environ, HERMES_HOME=str(home)),
+                    capture_output=True, text=True, timeout=120,
+                )
+            except (OSError, subprocess.SubprocessError):
+                continue
+            out = proc.stdout.strip().splitlines()
+            if proc.returncode == 0 and out and out[-1].strip().isdigit():
+                return int(out[-1].strip())
+        return -1
+    hermes_root = Path.home() / ".hermes"
+    homes = [hermes_root] + sorted(p.parent for p in hermes_root.glob("profiles/*/config.yaml"))
+    check("the drift guard found the Hermes root and its profiles",
+          len(homes) >= 2, True)
+    for home in homes:
+        loader_cap = loader_cap_for(home)
+        check(
+            f"the loader answers for this home ({home.name})",
+            loader_cap > 0,
+            True,
+        )
+        check(
+            f"the gate is not LOOSER than the loader ({home.name})",
+            cap_gate.effective_context_file_cap()[0] <= loader_cap,
+            True,
+        )
     # and the gate REFUSES a file over the cap, and accepts the real one
     with tempfile.TemporaryDirectory() as tmp:
         big = Path(tmp) / "big.md"
@@ -1220,14 +1249,18 @@ def main() -> int:
             (report.get("ok") is False) and ("truncates above" in errors),
             True,
         )
-    repo_root = Path(__file__).resolve().parent.parent.parent
+    repo_root = Path(__file__).resolve().parents[3]
     real = repo_root / "AGENTS.md"
-    if real.exists():
-        check(
-            "the real AGENTS.md is under the cap and passes the gate",
-            cap_gate.check_file(real).get("ok"),
-            True,
-        )
+    check(
+        "the real AGENTS.md is there to check",
+        real.exists(),
+        True,
+    )
+    check(
+        "the real AGENTS.md is under the cap and passes the gate",
+        cap_gate.check_file(real).get("ok"),
+        True,
+    )
 
     print()
     if FAILURES:

@@ -13,14 +13,11 @@ WHY THE GATE EXISTS (measured 2026-10-27, before this gate landed):
   - The Hermes context loader truncates a context file above ITS cap
     (= hermes_cli/agent/prompt_builder.py: an explicit
     `context_file_max_chars` in the config wins, else
-    max(20_000, min(window * 4 * 0.06, 500_000))).
+    max(20_000, min(window * 4 * 0.06, 500_000))). This gate's cap is a
+    FIXED 500,000 chars (= 0.5 MB), pinned in the config as
+    `context_file_max_chars` and mirrored by the constant below.
     A truncated AGENTS.md loses its tail silently: the file still parses, the
     session still starts, and the last rules simply are not there.
-    Measured 2026-10-31: with a 1M-token model the loader's cap is 240,000
-    chars, so this gate used to refuse growth the loader would accept (= it
-    checked the loader's FLOOR and called it the cap). It now reads the
-    loader's own source of truth and falls back to the floor with a clear
-    message when it cannot read it.
   - The old rule 10.4 promised a tool named `validate.py`. That file has
     never existed in this repository, so the rule was a false guarantee: it
     read as "a machine checks this" and checked nothing. This gate is the
@@ -44,7 +41,7 @@ WHY THE GATE EXISTS (measured 2026-10-27, before this gate landed):
 WHAT THE GATE CHECKS
 
   1. frontmatter   parses as YAML, and carries name / version / description
-  2. budget       the file as the loader loads it (<= 20,000 chars, frontmatter
+  2. budget       the file as the loader loads it (<= 500,000 chars, frontmatter
                   and the section label included = what gets truncated)
   3. references   every file path the file names exists, and every skill it
                   names is installed
@@ -66,7 +63,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import re
 import subprocess
 import sys
@@ -87,8 +83,8 @@ REPO = Path(__file__).resolve().parent.parent.parent
 # loader's cap is 240,000 chars, so a gate that hardcodes 20,000 refuses
 # growth the loader would accept.
 #
-# So the gate asks the loader's own source of truth (the config), and
-# falls back to the floor with a clear message when it cannot read it.
+# So the gate uses a FIXED number, and the suite asserts that the config
+# pins the same one (and that the loader honors it under every home).
 CONTEXT_FILE_MAX_CHARS = 500_000  # 0.5 MB, pinned in the Hermes config
 
 
