@@ -215,8 +215,8 @@ The tree does not regress; a log went stale.
 
 | What | Where |
 | --- | --- |
-| the data-layer change | the commit on the branch `pocock/archive` whose subject is `feat(archive): the session table carries what kind of work it records`; it is an ancestor of `refs/heads/pocock/archive` on BOTH remotes (`origin` = `gitcode.com:ZIYU1983/wenshu`, `old-origin` = `github.com:ZIYU-FUI/wenshu`) |
-| the review card | the board card whose body names that commit's sha (= the one review card this session created) |
+| the data-layer change | **LANDED.** The six commits are ancestors of `main` on BOTH remotes (`origin` = `gitcode.com:ZIYU1983/wenshu`, `old-origin` = `github.com/ZIYU-FUI/wenshu`), checked with `git merge-base --is-ancestor <sha> refs/remotes/origin/main` and the same against `refs/remotes/old-origin/main`. Their subjects: `feat(archive): the session table carries what kind of work it records`; `docs(close): the record states durable facts, not the tree it was written on`; and the four review fixes `fix(archive): the tag names the work kind Hermes actually writes`, `fix(archive): the claim names the path that writes the value`, `fix(archive): the record says true about the file it points at`, `fix(archive): the claim carries its exceptions` |
+| the review card | `t_480829c1` on the board `wenshu-par` (= the card whose verdict the landing gate read: `approved by wenshu-review`). The chain that got there: `t_10454d5f` and `t_177a0bcd` and `t_6b793f13` each returned `changes_requested`, `t_a7494ded` produced the last three findings, `t_e5e573a5` approved the diff but wrote the verdict into its summary only, and `t_480829c1` wrote it into the run's metadata where the gate reads it |
 | the shared-skill template fix | `/Users/anbaiqiang/.hermes/shared/wenshu-skills/wenshu-parallel-dev/templates/kanban-card-body.md` (the shared tree is `/Users/anbaiqiang/.hermes` -> `/Volumes/ANAN/.hermes`) |
 | the shared-skill reference fix | `.../wenshu-parallel-dev/references/review-lane-cap-is-not-the-implementation-cap.md` (= the same stale 3600 s floor, in the reference that states the rule) |
 | the dependency fix | the `mem0` plugin's `pyproject.toml` in each of the three plugin copies (= see the mem0 note above) |
@@ -270,7 +270,7 @@ the tag vocabulary ready for the task kind, or the task producer ships in the
 same batch. The first is recommended: the sub-agent half is a real producer
 today, so it can close the P1 loop in one slice.
 
-## The review card, when the work lands
+## The review card, and what the rounds cost
 
 The review lane's rules were re-read this session and the new ones bind:
 
@@ -285,19 +285,40 @@ The review lane's rules were re-read this session and the new ones bind:
 - a rejected card is DONE, so a rework round is a NEW card naming the new
   shas.
 
-**THE RECORD WAS CORRECTED IN A SECOND COMMIT, AND THAT MOVES THE REVIEW'S
-FOOTING.** The measured table above was written while the change was still
-unstaged, so it named "unstaged", a file count and a test count that the
-commit made stale (= the house rule: a closure record states DURABLE facts,
-never tips). Correcting it is a second commit on the branch, and a second
-commit changes the branch's EDIT (= the gate's identity is the diff from
-where the branch left `main`, so the correction is part of it). Measured:
-the identity of the branch tip with the correction is NOT the identity of
-the sha the running card names, so the running verdict does NOT cover the
-corrected tip.
+**EVERY COMMIT IS ITS OWN REVIEW CARD, because the gate's identity of a
+change is the diff from where the branch left `main`.** Measured on this
+branch: the four shas carried four different identities, so one card's
+verdict cannot cover the tip that follows it, and a card names the sha it
+judged (= the next sha needs the next card). The rounds this scope cost:
 
-So the corrected tip needs its own review card, exactly as a rework round
-does (= the rule above). The card this session created carries the FIRST
-commit's sha; the correction's card names the sha that carries the
-correction. Both are named in the board comment on the first card, so the
-next reader sees the pair.
+| card | what it judged | verdict |
+| --- | --- | --- |
+| `t_10454d5f` | the code (= the tag's constant and its test) | `changes_requested` |
+| `t_177a0bcd` | the closure record (= the tip-shaped rows) | `changes_requested` |
+| `t_6b793f13` | the rework of the first round's two findings | `changes_requested` |
+| `t_a7494ded` | the prose, after the rework | `changes_requested` (= F1, F2, F3) |
+| `t_e5e573a5` | the prose, after F1/F2/F3 | approved, but the verdict reached the summary only |
+| `t_480829c1` | the same diff, once more | **approved** (= the verdict the gate reads) |
+
+**THE VERDICT'S KEY NAME IS PART OF THE VERDICT.** The gate reads the
+verdict from the run's METADATA, and only the key `review_outcome` counts
+(= value `approved` or `changes_requested`). Two runs wrote
+`metadata={"changes_requested": {...}}` and one wrote
+`metadata={"approved": {...}}`, so an APPROVED branch read as `UNREVIEWED`
+and could not land = the failure is invisible in the run's summary (= the
+summary said APPROVED), and it can only be caught by asking the gate itself:
+`python3 Tools/wenshu-devtool/review_gate.py --card <id>` must print
+`approved` before the reviewer finishes.
+
+**THE LANDING.** The branch was rebased in its OWN worktree (never the
+shared checkout), the card's named gates were re-run on the rebased tree
+(= a rebase rewrites the sha but not the edit: the change_id is identical
+before and after, which is the gate's own rule for why the verdict still
+covers the branch), then the branch was fast-forwarded into `main` and
+`main` was pushed to both remotes and read back from both.
+
+**WHAT IS LANDED AND WHAT IS NOT.** The data layer, the closure record and
+the four review fixes are on `main` and on both remotes. The archive feature
+is NOT done: the open items above are untouched on purpose, and the boss's
+one pending decision (= whether this version ships the sub-agent sessions
+only, or the task producer in the same batch) is unchanged.
