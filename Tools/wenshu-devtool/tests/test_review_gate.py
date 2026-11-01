@@ -59,6 +59,15 @@ def check(name: str, got, want) -> None:
         FAILURES.append(name)
 
 
+def load_agents_gate():
+    """Import the sibling gate that owns the context-file cap."""
+    path = Path(__file__).resolve().parent.parent / "agents_gate.py"
+    spec = importlib.util.spec_from_file_location("agents_gate", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def body_with(files: str, handoff: str | None = None, extra: str = "") -> str:
     """A card body that writes the named files, with an optional handoff."""
     sections = [
@@ -1000,13 +1009,114 @@ def main() -> int:
         crlf == payload_identity(b"a = 1\r\nb = 2\r\n"),
         True,
     )
-    # the other separators splitlines() would have cut on
+    # The other separators splitlines() would have cut on. The comparison
+    # is against the SAME payload with the byte REMOVED, not against the
+    # LF payload: a VT payload differs from an LF payload under ANY
+    # implementation (= the bytes differ), so that comparison cannot see a
+    # VT that is treated as a line break. Measured 2026-10-31: a mutant
+    # that treats \x0b as a break left the whole suite green, because the
+    # case compared against the wrong thing.
     vt = payload_identity(b"a = 1\x0bb = 2\n")
+    vt_removed = payload_identity(b"a = 1b = 2\n")
     check(
         "D-E: a lone vertical tab is not a line break either",
-        bool(vt) and vt != lf,
+        bool(vt) and bool(vt_removed) and vt != vt_removed,
         True,
     )
+    # The identity comparison above cannot see a VT that is treated as a
+    # break (= the mutant changes the identity, and any two different
+    # payloads differ under ANY implementation). What it CAN see is the
+    # SHAPE of the body: a line cut in half loses its "+" prefix, and no
+    # real diff ever has a line without one.
+    def payload_body(payload: bytes) -> list[str]:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / "repo"
+            repo.mkdir()
+            run = lambda *a: subprocess.run(
+                ["git", *a], cwd=repo, capture_output=True, text=True, check=True
+            )
+            run("init", "-q", "-b", "main")
+            run("config", "user.email", "t@t")
+            run("config", "user.name", "t")
+            (repo / "base.txt").write_text("base\n")
+            run("add", "-A")
+            run("commit", "-qm", "base")
+            run("checkout", "-qb", "feature")
+            (repo / "f.txt").write_bytes(payload)
+            run("add", "-A")
+            run("commit", "-qm", "the payload")
+            sha = run("rev-parse", "HEAD").stdout.strip()
+            base = run("merge-base", "main", "HEAD").stdout.strip()
+            cwd_before = Path.cwd()
+            os.chdir(repo)
+            try:
+                diff = tool._git_out(
+                    ["diff", "-U0", "--no-color", "--full-index", f"{base}..{sha}"]
+                )
+                return tool._change_body(diff or "").split("\n")
+            finally:
+                os.chdir(cwd_before)
+    # NOTE: the empty string must NOT be in the allowed prefixes (= every
+    # string starts with it, so the check could never fail). An empty line
+    # is allowed as an empty line.
+    # every header git can put in a diff, plus the three content prefixes
+    allowed = (
+        "diff --git ", "index ", "@@", "--- ", "+++ ", "new file mode ",
+        "deleted file mode ", "old mode ", "new mode ", "similarity index ",
+        "dissimilarity index ", "rename from ", "rename to ", "copy from ",
+        "copy to ", "Binary files ", "+", "-", " ",
+    )
+    well_formed = lambda lines: all(
+        line == "" or line.startswith(allowed) for line in lines
+    )
+    check(
+        "D-E: a lone vertical tab does not CUT a line in half",
+        well_formed(payload_body(b"a = 1\x0bb = 2\n")),
+        True,
+    )
+    check(
+        "D-E: and the CR does not cut a line in half either",
+        well_formed(payload_body(b"a = 1\r\nb = 2\r\n")),
+        True,
+    )
+
+    # ---- the gate reads the key the LOADER reads, at the level it reads it ----
+    # A pin nested under `agent:` is INERT: Hermes' own CLI says it is not
+    # a recognized config key, so the loader never sees it. The gate must
+    # not read it either (= and it must say where its number came from).
+    cap_gate = load_agents_gate()
+    with tempfile.TemporaryDirectory() as tmp:
+        home = Path(tmp) / "home"
+        profile = home / "profiles" / "pocock"
+        profile.mkdir(parents=True)
+        (home / "config.yaml").write_text("context_file_max_chars: 123456\n")
+        saved = os.environ.get("HERMES_HOME")
+        os.environ["HERMES_HOME"] = str(profile)
+        try:
+            check(
+                "the gate reads the TOP-LEVEL pin the loader reads",
+                cap_gate.effective_context_file_cap()[0],
+                123456,
+            )
+            cap, source = cap_gate.effective_context_file_cap()
+            check(
+                "the gate says where its number came from",
+                "config.yaml" in source,
+                True,
+            )
+            (home / "config.yaml").write_text(
+                "agent:\n  context_file_max_chars: 234567\n")
+            cap, source = cap_gate.effective_context_file_cap()
+            check(
+                "the gate does NOT read a pin nested under agent:",
+                cap != 234567,
+                True,
+            )
+        finally:
+            if saved is None:
+                os.environ.pop("HERMES_HOME", None)
+            else:
+                os.environ["HERMES_HOME"] = saved
 
     print()
     if FAILURES:

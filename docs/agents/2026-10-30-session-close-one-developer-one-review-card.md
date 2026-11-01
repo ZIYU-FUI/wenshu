@@ -247,11 +247,32 @@ path above is `exit=3` with its cause named.
 
 `python3 Tools/wenshu-devtool/agents_gate.py --file AGENTS.md` exits 0.
 It checks the file against the LOADER's own context-file limit, read
-from the Hermes config (= `agent.context_file_max_chars`, which the
-loader prefers over its dynamic cap). It used to check the loader's
-FLOOR (20,000) as if it were the cap, so it refused growth the loader
-would accept: with a 1M-token model the loader's limit is 240,000
-chars, and this file loads as 19,949 (= 8% of it).
+from the Hermes config. The key is TOP LEVEL (`context_file_max_chars`,
+the way the loader reads it), and Hermes' own CLI confirms the pin is
+live: `hermes config get context_file_max_chars` prints the number. A
+pin nested under `agent:` is INERT (= the loader never sees it, and
+Hermes warns "is not a recognized config key"), so the gate and the
+loader read the same key rather than agreeing by coincidence.
+
+The gate used to check the loader's FLOOR (20,000) as if it were the
+cap, so it refused growth the loader would accept: with a 1M-token
+model the loader's limit is 240,000 chars, and this file loads as
+19,949 (= 8% of it).
+
+AND THE PIN IS AT THE LEVEL THE LOADER READS IT. The loader looks the
+key up at the TOP level of the merged config, so a pin nested under
+`agent:` is INERT: Hermes' own CLI says it is "not a recognized config
+key", and the gate and the loader then agreed only by coincidence (=
+the dynamic cap for a 1M-token model is also 240,000). The pin now
+lives at the top level, `hermes config get context_file_max_chars`
+prints it, and the gate reads the same key.
+
+AND A CASE THAT COMPARES TWO IDENTITIES CANNOT SEE A SEPARATOR. Two
+different payloads differ under ANY implementation, so "the VT payload
+is not the LF payload" stays green even when the tool treats the VT as
+a line break. What sees it is the SHAPE: a line cut in half loses its
+`+` prefix, and no real diff has a line without one. The case reads
+the body, not the hash.
 `python3 Tools/wenshu-devtool/tests/test_review_gate.py` passes every
 case. `bash -n Scripts/merge-preflight.sh` exits 0.
 `python3 Tools/wenshu-devtool/verify-dead.py` reports 0 fully dead

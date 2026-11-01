@@ -118,13 +118,13 @@ def _pinned_context_file_cap() -> tuple[int, str] | None:
             text = path.read_text(encoding="utf-8")
         except OSError:
             continue
-        match = re.search(r"^agent:\s*$", text, re.M)
-        if not match:
-            continue
-        rest = text[match.end():]
-        end = re.search(r"^\S", rest, re.M)
-        section = rest[: end.start()] if end else rest
-        pinned = re.search(r"^\s+context_file_max_chars:\s*(\d+)", section, re.M)
+        # The key is TOP LEVEL, the way the loader reads it
+        # (= agent/prompt_builder.py:
+        #  _config_readonly("context_file_max_chars").get("context_file_max_chars")
+        # = a top-level lookup in the merged config). An indented key (= a
+        # key nested under `agent:`) is NOT the one the loader reads, and
+        # Hermes' own CLI says so: "is not a recognized config key".
+        pinned = re.search(r"^context_file_max_chars:[ \t]*(\d+)", text, re.M)
         if pinned:
             return int(pinned.group(1)), str(path)
     return None
@@ -133,10 +133,18 @@ def _pinned_context_file_cap() -> tuple[int, str] | None:
 def effective_context_file_cap() -> tuple[int, str]:
     """The cap the loader will really use, and where that number came from.
 
-    The loader's own order: the explicit config value wins, else the
-    dynamic cap for the active model, else the floor. The gate reads the
-    FIRST of those it can see (= the explicit value), and falls back to
-    the floor, so the gate never refuses growth the loader accepts.
+    The loader's own order: the explicit TOP-LEVEL config value wins,
+    else the dynamic cap for the active model, else the floor. The gate
+    reads the FIRST of those it can see (= the explicit value), and
+    falls back to the floor, so the gate never refuses growth the loader
+    accepts, and never accepts growth the loader refuses.
+
+    The key must be the one the loader reads. Measured 2026-10-31: a pin
+    nested under `agent:` is INERT (= the loader never sees it, and Hermes'
+    own CLI warns "is not a recognized config key"), so the gate and the
+    loader agreed only by coincidence (= the dynamic cap for a 1M-token
+    model is also 240,000). Pinned at the top level, they read one
+    number.
     """
     pinned = _pinned_context_file_cap()
     if pinned:
