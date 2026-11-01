@@ -321,47 +321,78 @@ glob over the test directory (= `for s in .../test_*.py; do python3
 reads (= `python3 .../test_*.py`). The card's body now names the
 commands directly.
 
-**§7.2 = the Swift suite's baseline is RED, and it stays RED.** Measured
-on the base tree and on the merged tree, with the same command and the
-same counting convention (= the distinct `Test "..." failed` and
-`Suite "..." failed` lines, with the timings stripped):
+**§7.2 = the Swift suite's baseline is RED, and it stays RED.** And the
+count is a fact about a RUN, not about a tree.
+
+**THE STABLE FACT: THE TWO TREES CARRY IDENTICAL SWIFT SOURCES.**
 
 ```
-the base tree   39 distinct failing tests
-the merged tree 39 distinct failing tests
+git diff --name-only 0beb37b910 50f325e848 -- '*.swift'    -> empty
 ```
 
-**AND THE TWO SETS ARE THE SAME SET.** The only differences are the
-timings inside two lines (= `body_logs_history_metadata` and the run's
-own summary line), so nothing fails on the merged tree that does not
-fail on the base tree.
+No `.swift` path differs between the session's base tree and the tip,
+and the last commit that touched a `.swift` path on main (`2ddbc764be`)
+is an ancestor of the base tree. So **no Swift test result can be
+attributed to this session's work** (= the whole diff from the session
+base to the tip touches no `.swift` path), and any difference between
+two runs of the two trees is the machine's load, not the code.
 
-**THIS CORRECTS AN EARLIER READING OF THIS RECORD.** It said "22 on the
-base, 22 on the merged tree, three of them new on the merged tree", and
-it attributed those three to the sibling's `KanbanView.swift`. Measured:
-the base tree and the merged tree fail the SAME 39, and
-`Sources/WenshuApp/Features/Kanban/View/KanbanView.swift` is the SAME
-BLOB in both (= `git rev-parse` gives one hash for the base and for the
-tip), so no sweep can differ because of that file. And the sweep fails
-on the base tree too, on its own:
+**THE COUNT MOVES, BECAUSE THE SUITE IS LOAD-SENSITIVE.** Measured with
+the same command and the same counting convention (= the distinct
+`Test "..." failed` and `Suite "..." failed` lines, with the timings
+stripped and the run's own summary line excluded), on three SOLO runs
+of each tree:
+
+```
+the base tree    41 / 41 / 41
+the merged tree  39 / 43 / 41
+```
+
+So the count is a fact about one run under one load, and it is not
+stable on either tree. And the SETS differ by whole tests in two of the
+three pairings (= the `WSMemoryProvider` suite and the `sync adds a
+memory entry` test fail on the base tree and not on the merged one in
+one pairing; the replicated-kanban suite and the `T10: tool_use JSON`
+test fail the other way in another). The isolated probes confirm the
+cause: `swift test --filter WSMemoryProvider` in the base worktree
+exits 0 (= it passes alone) while the same suite fails inside the
+base tree's whole-suite runs.
+
+**AND THE SWEEP FAILS ON THE BASE TREE ON ITS OWN.**
 
 ```
 swift test --filter AccentTintOpacitySweepTests   (on the base tree)
   Test "DesignTokens.accentTintOpacityHero usage covers kanban sites" FAILED
 ```
 
-So the earlier reading was wrong twice: the count was not 22, and the
-failures were not new on the merged tree. The stable fact is the one the
-tree supports: **the Swift suite is red on both trees, with the same
-failures, and this session changed no Swift file at all** (= the whole
-diff from the session base to the tip touches no `.swift` path).
+**THIS CORRECTS TWO EARLIER READINGS OF THIS RECORD.** The first said
+"22 on the base, 22 on the merged tree, three of them new on the merged
+tree", and blamed the sibling's `KanbanView.swift` for the three. The
+second said "39 on both trees, and the two sets are the same set". Both
+were wrong, and the second was wrong because its runs shared the machine
+with other `swift test` processes (= the reviewer measured the same
+trees SOLO and got 41/41/41 and 39/43/41).
 
-**THE LESSON IS THE ONE THE SKILL ALREADY CARRIES.** A number that
-moves is a fact about a tree, and a fact measured once under one
-convention is a CLAIM until it reproduces. So this record now names the
-tree, the command and the counting convention for the number, and the
-attribution rests on the blob hash (= the same file) rather than on a
-reading of a failure list.
+**THE ATTRIBUTION IS REFUTED BY A BLOB HASH, NOT BY AN ARGUMENT.**
+
+```
+git rev-parse 0beb37b910:Sources/WenshuApp/Features/Kanban/View/KanbanView.swift
+git rev-parse main:Sources/WenshuApp/Features/Kanban/View/KanbanView.swift
+```
+
+give ONE hash, so the file is the same blob in both trees, and no sweep
+can differ because of it.
+
+**THE LESSON IS THE ONE THE SKILL ALREADY CARRIES, PLUS THE ONE THIS
+ROUND ADDED.** A number that moves is a fact about a tree, and a fact
+measured once under one convention is a CLAIM until it reproduces. So
+this record now names the tree, the command and the counting convention
+for every number it carries. **AND A COUNT MEASURED WHILE THE MACHINE
+IS BUSY IS A COUNT OF THE MACHINE, NOT OF THE CODE** (= the base tree
+is 41 in every solo run, and 39 when another `swift test` shares the
+machine). So the honest form of this claim is the one that does not
+carry a count: the two trees carry identical Swift sources, and the
+suite is red on both.
 
 ## WHAT THE STANDARDS AUDIT FOUND (the delegated read of the diff)
 
