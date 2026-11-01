@@ -102,6 +102,26 @@ inverted real branch was GREEN on the pre-fix test file and is DETECTED
 on the tip. A green gate on a tree whose real branch was inverted is a
 defect shipping, and the flip is what says the defect no longer ships.
 
+## The tests
+
+The gate lives in ONE file:
+
+    Tests/WenshuAppTests/Editor/Model/WenshuMarkdownEditorAdapterTests.swift
+
+and it is run by
+
+    swift test --filter WenshuMarkdownEditorAdapterTests
+
+The mutation matrix that proves the gate is not a decoy-reader is a recipe
+over that suite (= the real production source mutated, = one fresh suite run
+per case, = the source restored after every case and the restore verified by
+sha256). The recipe and its 56 cases are in card `t_deeeab51`'s review
+comment; = the last round's 67 measurements (= the card's own named cases +
+the reviewer's independent probes) are in the review verdict on card
+`t_f6d6223a`, whose run metadata carries `review_outcome: approved`.
+
+= the gate is that one suite's, = the whole suite is NOT this record's gate.
+
 ## The open items
 
 The last residual was the reviewer's own: the conditional-block FALLBACK
