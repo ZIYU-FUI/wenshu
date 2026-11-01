@@ -259,20 +259,38 @@ cap, so it refused growth the loader would accept: with a 1M-token
 model the loader's limit is 240,000 chars, and this file loads as
 19,949 (= 8% of it).
 
-AND THE PIN IS AT THE LEVEL THE LOADER READS IT. The loader looks the
-key up at the TOP level of the merged config, so a pin nested under
-`agent:` is INERT: Hermes' own CLI says it is "not a recognized config
-key", and the gate and the loader then agreed only by coincidence (=
-the dynamic cap for a 1M-token model is also 240,000). The pin now
-lives at the top level, `hermes config get context_file_max_chars`
-prints it, and the gate reads the same key.
+AND THE PIN IS AT THE LEVEL THE LOADER READS IT, IN THE ONE FILE THE
+LOADER READS. The loader looks the key up at the TOP level of the merged
+config, so a pin nested under `agent:` is INERT: Hermes' own CLI says it
+is "not a recognized config key".
+
+And the loader reads EXACTLY ONE file: `get_config_path()` =
+`$HERMES_HOME/config.yaml`, merged alone with the defaults. A profile
+does NOT inherit the root's config (= measured under
+`HERMES_HOME=<root>/profiles/<name>`: a root-only key reads the default
+and the profile's own key reads the profile's value). So the gate reads
+that one file too, and not a search list: a list let the gate report a
+number the loader will never use, and in the LOOSER direction (= at
+MiniMax-M2.x's 204,800-token window the loader's dynamic cap is 49,152
+while the root's pin says 240,000, so the gate would have accepted a
+100,000-char file the loader truncates in the middle).
+
+The pin now lives at the top level of each profile's own config (and of
+the root's), `hermes config get context_file_max_chars` prints it under
+each of the three homes, and the gate reads the same file the loader
+reads.
 
 AND A CASE THAT COMPARES TWO IDENTITIES CANNOT SEE A SEPARATOR. Two
 different payloads differ under ANY implementation, so "the VT payload
 is not the LF payload" stays green even when the tool treats the VT as
-a line break. What sees it is the SHAPE: a line cut in half loses its
-`+` prefix, and no real diff has a line without one. The case reads
-the body, not the hash.
+a line break. What sees it is the SHAPE of the body (= a line cut in
+half is not a line of the diff), and the strongest form of that is a
+SELECTION: a body is a selection of the diff's lines, so every line of
+the body is a line of the diff. A prefix check alone is not enough (a
+cut whose second half starts with `+`, `-` or ` ` passes it, because
+those are legal content prefixes), and the prefix set has to know git's
+`\ No newline at end of file` marker or it reports a false red on a
+file with no trailing newline.
 `python3 Tools/wenshu-devtool/tests/test_review_gate.py` passes every
 case. `bash -n Scripts/merge-preflight.sh` exits 0.
 `python3 Tools/wenshu-devtool/verify-dead.py` reports 0 fully dead

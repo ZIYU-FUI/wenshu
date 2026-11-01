@@ -92,42 +92,46 @@ REPO = Path(__file__).resolve().parent.parent.parent
 CONTEXT_FILE_FLOOR_CHARS = 20_000
 
 
-def _hermes_config_paths() -> list[Path]:
-    """The config files that can pin the cap, most specific first."""
-    out: list[Path] = []
+def _hermes_config_path() -> Path:
+    """THE ONE config file the loader reads.
+
+    The loader reads EXACTLY one file: ``get_config_path()`` =
+    ``$HERMES_HOME/config.yaml`` (hermes_cli/config.py:433-435), merged
+    alone with DEFAULT_CONFIG (config.py:2248-2262). A profile does NOT
+    inherit the root's config: measured under
+    ``HERMES_HOME=<root>/profiles/<name>``, a root-only key reads the
+    default and the profile's own key reads the profile's value.
+
+    So the gate reads the same one file. A search list would let the
+    gate report a number the loader will never use (= at MiniMax-M2.x's
+    204,800-token window the loader's dynamic cap is 49,152 while the
+    root's pin says 240,000, so the gate would be 190,848 LOOSER and
+    would accept a file the loader truncates in the middle).
+    """
     home = os.environ.get("HERMES_HOME")
     if home:
-        base = Path(home)
-        out.append(base / "config.yaml")
-        # a profile's home lives at <root>/profiles/<name>, so the root is
-        # two levels up (= the global config the profile inherits from)
-        if base.parent.name == "profiles":
-            out.append(base.parent.parent / "config.yaml")
-    out.append(Path.home() / ".hermes" / "config.yaml")
-    seen: list[Path] = []
-    for path in out:
-        if path not in seen:
-            seen.append(path)
-    return seen
+        return Path(home) / "config.yaml"
+    return Path.home() / ".hermes" / "config.yaml"
 
 
 def _pinned_context_file_cap() -> tuple[int, str] | None:
     """The cap the config pins, and the file it came from."""
-    for path in _hermes_config_paths():
-        try:
-            text = path.read_text(encoding="utf-8")
-        except OSError:
-            continue
-        # The key is TOP LEVEL, the way the loader reads it
-        # (= agent/prompt_builder.py:
-        #  _config_readonly("context_file_max_chars").get("context_file_max_chars")
-        # = a top-level lookup in the merged config). An indented key (= a
-        # key nested under `agent:`) is NOT the one the loader reads, and
-        # Hermes' own CLI says so: "is not a recognized config key".
-        pinned = re.search(r"^context_file_max_chars:[ \t]*(\d+)", text, re.M)
-        if pinned:
-            return int(pinned.group(1)), str(path)
+    path = _hermes_config_path()
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError:
+        return None
+    # The key is TOP LEVEL, the way the loader reads it
+    # (= agent/prompt_builder.py:
+    #  _config_readonly("context_file_max_chars").get("context_file_max_chars")
+    # = a top-level lookup in the merged config). An indented key (= a key
+    # nested under `agent:`) is NOT the one the loader reads, and Hermes'
+    # own CLI says so: "is not a recognized config key".
+    pinned = re.search(r"^context_file_max_chars:[ \t]*(\d+)", text, re.M)
+    if pinned:
+        return int(pinned.group(1)), str(path)
     return None
+
 
 
 def effective_context_file_cap() -> tuple[int, str]:

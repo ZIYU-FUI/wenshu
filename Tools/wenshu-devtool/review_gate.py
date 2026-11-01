@@ -392,7 +392,6 @@ def _change_body(diff: str) -> str:
     kept: list[str] = []
     for part in diff.split("diff --git ")[1:]:
         section = "diff --git " + part
-        lines = section.split("\n")
         # Git's own marker for a binary diff is a line that STARTS with
         # "Binary files ". A substring test over the whole section also
         # matches a TEXT file whose CONTENT says "Binary files ...", and

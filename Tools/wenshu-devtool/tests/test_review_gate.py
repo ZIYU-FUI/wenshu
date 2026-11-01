@@ -1053,7 +1053,7 @@ def main() -> int:
                 diff = tool._git_out(
                     ["diff", "-U0", "--no-color", "--full-index", f"{base}..{sha}"]
                 )
-                return tool._change_body(diff or "").split("\n")
+                return diff or "", tool._change_body(diff or "").split("\n")
             finally:
                 os.chdir(cwd_before)
     # NOTE: the empty string must NOT be in the allowed prefixes (= every
@@ -1064,19 +1064,59 @@ def main() -> int:
         "diff --git ", "index ", "@@", "--- ", "+++ ", "new file mode ",
         "deleted file mode ", "old mode ", "new mode ", "similarity index ",
         "dissimilarity index ", "rename from ", "rename to ", "copy from ",
-        "copy to ", "Binary files ", "+", "-", " ",
+        "copy to ", "Binary files ", "+", "-", " ", "\\ No newline at end of file",
     )
     well_formed = lambda lines: all(
         line == "" or line.startswith(allowed) for line in lines
     )
+    def body_of(payload: bytes) -> tuple[list[str], list[str]]:
+        diff, body = payload_body(payload)
+        return diff.split("\n"), body
+
     check(
         "D-E: a lone vertical tab does not CUT a line in half",
-        well_formed(payload_body(b"a = 1\x0bb = 2\n")),
+        well_formed(body_of(b"a = 1\x0bb = 2\n")[1]),
         True,
     )
     check(
         "D-E: and the CR does not cut a line in half either",
-        well_formed(payload_body(b"a = 1\r\nb = 2\r\n")),
+        well_formed(body_of(b"a = 1\r\nb = 2\r\n")[1]),
+        True,
+    )
+    # THE STRONGEST DISCRIMINATOR. A body is a SELECTION of the diff's
+    # lines (= it drops some of them), so every line of the body is a
+    # line of the diff. A line cut in half is NOT a line of the diff,
+    # whatever it starts with (= a cut whose second half starts with
+    # "+", "-" or " " passes a prefix check, because those are legal
+    # content prefixes).
+    def is_selection(diff_lines: list[str], body_lines: list[str]) -> bool:
+        rest = list(diff_lines)
+        for line in body_lines:
+            if line == "":
+                continue
+            if line not in rest:
+                return False
+            rest = rest[rest.index(line) + 1:]
+        return True
+
+    for label, payload in (
+        ("a lone vertical tab", b"a = 1\x0bb = 2\n"),
+        ("a vertical tab before a plus", b"a = 1\x0b+b = 2\n"),
+        ("a vertical tab before a space", b"a = 1\x0b b = 2\n"),
+        ("a carriage return", b"a = 1\r\nb = 2\r\n"),
+    ):
+        diff_lines, body_lines = body_of(payload)
+        check(
+            f"D-E: the body stays a SELECTION of the diff's lines ({label})",
+            is_selection(diff_lines, body_lines),
+            True,
+        )
+    # a file with NO trailing newline (= git adds a marker line the body
+    # keeps, and the prefix set must know it)
+    diff_lines, body_lines = body_of(b"a = 1\nb = 2")
+    check(
+        "D-E: a file with no trailing newline is not a false red",
+        well_formed(body_lines) and is_selection(diff_lines, body_lines),
         True,
     )
 
@@ -1089,7 +1129,16 @@ def main() -> int:
         home = Path(tmp) / "home"
         profile = home / "profiles" / "pocock"
         profile.mkdir(parents=True)
-        (home / "config.yaml").write_text("context_file_max_chars: 123456\n")
+        # The pin goes in the PROFILE's OWN config.yaml (= the ONE file
+        # the loader reads: get_config_path() = $HERMES_HOME/config.yaml).
+        # The ROOT two levels up gets a DIFFERENT pin, because a profile
+        # does NOT inherit the root's config (= measured: a root-only key
+        # reads the default under a profile, and the profile's own key
+        # reads the profile's value). So the gate must return the
+        # PROFILE's number, and a search list that falls through to the
+        # root returns the wrong one.
+        (home / "config.yaml").write_text("context_file_max_chars: 999999\n")
+        (profile / "config.yaml").write_text("context_file_max_chars: 123456\n")
         saved = os.environ.get("HERMES_HOME")
         os.environ["HERMES_HOME"] = str(profile)
         try:
@@ -1101,16 +1150,32 @@ def main() -> int:
             cap, source = cap_gate.effective_context_file_cap()
             check(
                 "the gate says where its number came from",
-                "config.yaml" in source,
+                source.endswith("profiles/pocock/config.yaml"),
                 True,
             )
-            (home / "config.yaml").write_text(
+            check(
+                "the gate does NOT fall through to the root's config "
+                "(a profile does not inherit it)",
+                cap != 999999,
+                True,
+            )
+            # the nested key lands in the PROFILE's own file too (= the file
+            # the loader reads), so this tests what it claims
+            (profile / "config.yaml").write_text(
                 "agent:\n  context_file_max_chars: 234567\n")
             cap, source = cap_gate.effective_context_file_cap()
             check(
                 "the gate does NOT read a pin nested under agent:",
                 cap != 234567,
                 True,
+            )
+            # and with no pin at all, the gate falls back to the loader's
+            # own floor, NOT to a number it found elsewhere
+            (profile / "config.yaml").write_text("model: x\n")
+            cap, source = cap_gate.effective_context_file_cap()
+            check(
+                "with no pin, the gate uses the loader's own floor",
+                cap, 20000,
             )
         finally:
             if saved is None:
