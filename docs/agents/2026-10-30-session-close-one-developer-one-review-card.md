@@ -285,15 +285,15 @@ done
 The ten merge-blocking gates (§7) were run on the MERGED tree, and three
 of them found things that were NOT this session's cap work.
 
-**§7.8 = the CI lint job has been red on main since it was added.** Its
-regex demanded the scope to be EXACTLY `(wenshu)`, while the repo uses 33
-different scopes (= `(gate)`, `(close)`, `(editor)`, ...) and its own
-pre-commit hook (= the rule's other reference) accepts every one of
-them. Measured: 1,063 of the commits since the job was added carry a
-subject that regex rejects, and the job reads only the last 10 (= 4 of
-the 10 were rejected at this session's base, and all 10 are now). The
-regex accepts an optional free-form scope, so the job passes on main's
-window again.
+**§7.8 = the CI lint job rejects the repo's own commit subjects.** Its
+regex demanded the scope to be EXACTLY `(wenshu)`, while the repo's own
+commits use many scopes (= `(gate)`, `(close)`, `(editor)`, ... = 97
+distinct scopes over main's history) and its own pre-commit hook (= the
+rule's other reference) accepts every one of them. Measured at this tree:
+809 of the commits since the job was added carry a subject that regex
+rejects, and the job reads only the last 10 (= 4 of the 10 were
+rejected at this session's base, and all 10 are now). The regex accepts
+an optional free-form scope, so the job passes on main's window again.
 
 **§7.10 = a review card's gate section must name the suite in the FORM
 the gate-width gate reads.** This session's card named it as a shell
@@ -302,18 +302,47 @@ glob over the test directory (= `for s in .../test_*.py; do python3
 reads (= `python3 .../test_*.py`). The card's body now names the
 commands directly.
 
-**§7.2 = the Swift suite's baseline is RED, and it stays red.** The base
-carries 22 failing tests, and the merged tree carries 22 (= three
-different ones fail on each side, all of them timing-dependent). The
-three that are new on the merged tree are the design-system sweeps over
-the SIBLING's `KanbanView.swift` (= the sibling's file, not this
-session's work: this session touched no Swift file at all).
+**§7.2 = the Swift suite's baseline is RED, and it stays RED.** Measured
+on the base tree and on the merged tree, with the same command and the
+same counting convention (= the distinct `Test "..." failed` and
+`Suite "..." failed` lines, with the timings stripped):
 
-THE ATTRIBUTION IS MEASURED, NOT ASSUMED. The sweep over
-`KanbanView.swift` was run twice on the merged tree: once with the
-BASE's `KanbanView.swift` put back in place (= GREEN) and once with the
-sibling's file (= RED). So the failure follows the file, and the file is
-the sibling's.
+```
+the base tree   39 distinct failing tests
+the merged tree 39 distinct failing tests
+```
+
+**AND THE TWO SETS ARE THE SAME SET.** The only differences are the
+timings inside two lines (= `body_logs_history_metadata` and the run's
+own summary line), so nothing fails on the merged tree that does not
+fail on the base tree.
+
+**THIS CORRECTS AN EARLIER READING OF THIS RECORD.** It said "22 on the
+base, 22 on the merged tree, three of them new on the merged tree", and
+it attributed those three to the sibling's `KanbanView.swift`. Measured:
+the base tree and the merged tree fail the SAME 39, and
+`Sources/WenshuApp/Features/Kanban/View/KanbanView.swift` is the SAME
+BLOB in both (= `git rev-parse` gives one hash for the base and for the
+tip), so no sweep can differ because of that file. And the sweep fails
+on the base tree too, on its own:
+
+```
+swift test --filter AccentTintOpacitySweepTests   (on the base tree)
+  Test "DesignTokens.accentTintOpacityHero usage covers kanban sites" FAILED
+```
+
+So the earlier reading was wrong twice: the count was not 22, and the
+failures were not new on the merged tree. The stable fact is the one the
+tree supports: **the Swift suite is red on both trees, with the same
+failures, and this session changed no Swift file at all** (= the whole
+diff from the session base to the tip touches no `.swift` path).
+
+**THE LESSON IS THE ONE THE SKILL ALREADY CARRIES.** A number that
+moves is a fact about a tree, and a fact measured once under one
+convention is a CLAIM until it reproduces. So this record now names the
+tree, the command and the counting convention for the number, and the
+attribution rests on the blob hash (= the same file) rather than on a
+reading of a failure list.
 
 ## WHAT THE STANDARDS AUDIT FOUND (the delegated read of the diff)
 

@@ -278,13 +278,16 @@ jobs:
               continue
             fi
             # Verify conventional commit prefix
-            # The scope is OPTIONAL and free-form: the repo uses 33 of
-            # them (= "(gate)", "(close)", "(editor)", ...), and the
-            # rule is "a conventional prefix", not "the scope must be
-            # (wenshu)". That regex demanded one exact scope, so the
-            # job rejected every scoped subject in the repo's own
-            # convention (= 1063 of the commits since this job was
-            # added), and it has been red on main ever since.
+            # The scope is OPTIONAL and free-form: the repo's own
+            # commits use many of them (= "(gate)", "(close)",
+            # "(editor)", ... = 97 distinct scopes over main's history),
+            # and the rule is "a conventional prefix", not "the scope
+            # must be (wenshu)". That regex demanded one exact scope,
+            # so the job rejected the repo's own convention (= 809 of
+            # the commits since this job was added carry a subject it
+            # rejects, measured at this tree). The job reads only the
+            # last 10 subjects, so it was red on main whenever any of
+            # those 10 carried a scope.
             if ! echo "$SUBJECT" | grep -qE "^(feat|fix|docs|test|refactor|chore|perf|build|ci)(\([a-zA-Z0-9._/-]+\))?:"; then
               echo "Bad commit subject: $SUBJECT"
               exit 1
