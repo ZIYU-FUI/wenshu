@@ -32,6 +32,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -1335,10 +1336,28 @@ def main() -> int:
                         proc.returncode == 0 and "Traceback" not in proc.stderr,
                         True,
                     )
+                    # THE CLI'S OWN ANSWER (= the number it reports for THIS
+                    # config). An in-process call here would read a
+                    # different config, so it would not see this one.
+                    reported = re.search(r"cap (\d+)", proc.stdout)
                     check(
                         f"and the gate uses the floor for it ({label})",
-                        cap_gate.effective_context_file_cap()[0],
-                        20000,
+                        (reported.group(1) if reported else None),
+                        "20000",
+                    )
+                    # and a config that is not valid UTF-8 must not crash it
+                    (home / "config.yaml").write_bytes(b"context: \xff\xfe\x00bad")
+                    proc2 = subprocess.run(
+                        [sys.executable, str(Path(__file__).resolve().parent.parent
+                                            / "agents_gate.py"), "--file", "AGENTS.md"],
+                        cwd=str(Path(__file__).resolve().parent.parent.parent),
+                        env=env, capture_output=True, text=True, timeout=120,
+                    )
+                    check(
+                        f"a config that is not valid UTF-8 does not crash the "
+                        f"gate ({label})",
+                        proc2.returncode == 0 and "Traceback" not in proc2.stderr,
+                        True,
                     )
 
             # AND THE TEXT FALLBACK (a machine with no YAML parser) reads

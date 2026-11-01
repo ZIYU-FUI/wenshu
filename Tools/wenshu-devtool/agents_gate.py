@@ -165,7 +165,9 @@ def _pinned_context_file_cap() -> tuple[int, str] | None:
     path = _hermes_config_path()
     try:
         text = path.read_text(encoding="utf-8")
-    except OSError:
+    except (OSError, UnicodeDecodeError):
+        # A config that is not valid UTF-8 is not a reason to die: the
+        # loader reads it (and falls back), so the gate answers too.
         return None
     value, _how = _yaml_load(text)
     if isinstance(value, dict):

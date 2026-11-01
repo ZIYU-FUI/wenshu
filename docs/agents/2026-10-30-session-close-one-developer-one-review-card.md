@@ -308,8 +308,11 @@ YAML config all make the loader honor 0 (= it falls to its dynamic
 cap), so the gate falls to the floor. The gate used to return a
 2-tuple whose first element was None, and a 2-tuple is truthy, so the
 cap became None and the gate died with a TypeError instead of
-answering. There are cases for all four shapes now, and they run the
-CLI (= the CLI is what crashed).
+answering. A config that is not valid UTF-8 died the same way. There
+are cases for all of those now, and they run the CLI (= the CLI is
+what crashed) and read the cap OUT of the CLI's own output (= an
+in-process call in that block would read a different config, so it
+would not see the one under test).
 
 The gate used to read "the stripped text is all digits", which is a
 DIFFERENT rule: it honored a quoted value (= up to 190,848 chars LOOSER
