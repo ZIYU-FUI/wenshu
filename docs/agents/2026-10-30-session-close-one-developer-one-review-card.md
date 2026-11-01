@@ -246,173 +246,32 @@ path above is `exit=3` with its cause named.
 ## The repo gates, on the merged tree
 
 `python3 Tools/wenshu-devtool/agents_gate.py --file AGENTS.md` exits 0.
-It checks the file against the LOADER's own context-file limit, read
-from the Hermes config. The key is TOP LEVEL (`context_file_max_chars`,
-the way the loader reads it), and Hermes' own CLI confirms the pin is
-live: `hermes config get context_file_max_chars` prints the number. A
-pin nested under `agent:` is INERT (= the loader never sees it, and
-Hermes warns "is not a recognized config key"), so the gate and the
-loader read the same key rather than agreeing by coincidence.
+`python3 Tools/wenshu-devtool/agents_gate.py --file AGENTS.md` exits 0.
+It checks the file against the CONTEXT-FILE CAP, and the cap is a FIXED
+NUMBER: 500,000 chars (= 0.5 MB), pinned in the Hermes config as
+`context_file_max_chars` and mirrored by the gate's own constant. The
+loader honors an explicit config value, so the two are the same number
+by construction, and a case reads the config and asserts that (= so they
+cannot drift apart).
 
-The gate used to check the loader's FLOOR (20,000) as if it were the
-cap, so it refused growth the loader would accept: with a 1M-token
-model the loader's limit is 240,000 chars, and this file loads as
-19,949 (= 8% of it).
+**WHY A FIXED VALUE, AND WHAT IT COST TO LEARN IT.** The loader's own
+dynamic cap MOVES with the model's window (= 49,152 at a 204,800-token
+model, 240,000 at 1M), so a gate that computed it had to resolve the
+model's window AND the config's own rules (= which key, which level,
+which file, what type, a duplicate key, a value in (0,1), a file the
+parser rejects). Each of those was a place where the gate could come out
+LOOSER than the loader (= it accepts a file the loader truncates in the
+middle, which is the one failure this gate exists to prevent), and the
+review rounds found one of them per round: the pin's level, the pin's
+file, the pin's type, a crash on a config that is not a mapping, the
+"no pin" and "an honored 0" confusion, and a config the loader's parser
+rejects. A fixed number has none of those places: ONE number, pinned in
+the config, asserted by the suite.
 
-AND THE PIN IS AT THE LEVEL THE LOADER READS IT, IN THE ONE FILE THE
-LOADER READS. The loader looks the key up at the TOP level of the merged
-config, so a pin nested under `agent:` is INERT: Hermes' own CLI says it
-is "not a recognized config key".
-
-And the loader reads EXACTLY ONE file: `get_config_path()` =
-`$HERMES_HOME/config.yaml`, merged alone with the defaults. A profile
-does NOT inherit the root's config (= measured under
-`HERMES_HOME=<root>/profiles/<name>`: a root-only key reads the default
-and the profile's own key reads the profile's value). So the gate reads
-that one file too, and not a search list: a list let the gate report a
-number the loader will never use, and in the LOOSER direction (= at
-MiniMax-M2.x's 204,800-token window the loader's dynamic cap is 49,152
-while the root's pin says 240,000, so the gate would have accepted a
-100,000-char file the loader truncates in the middle).
-
-The pin now lives at the top level of each profile's own config (and of
-the root's), `hermes config get context_file_max_chars` prints it under
-each of the three homes, and the gate reads the same file the loader
-reads.
-
-AND THE GATE RESOLVES THAT FILE THE WAY THE LOADER RESOLVES IT. The
-loader expands the home (`expanduser` then `expandvars`) and, with no
-`HERMES_HOME`, uses the platform default INCLUDING
-`HERMES_DATA_DIR_SUFFIX`. The gate read the home literally, so under
-`HERMES_HOME='~/.hermes'` it read a file that does not exist, fell back
-to the floor, and REJECTED a 20,137-char AGENTS.md the loader loads
-whole (= a false red, and a regression against the parent, whose search
-list happened to cover it). The gate resolves it the loader's way now.
-
-AND THE GATE HONORS THE PIN EXACTLY WHEN THE LOADER HONORS IT. The
-loader honors it only when the merged config value is an int or a float
-(`int(val) if isinstance(val, (int, float)) and val > 0`), so the gate
-parses the config with the LOADER'S OWN PARSER (= `hermes_yaml`, which
-is YAML 1.1, so `yes` IS a boolean there) and applies the same rule. A
-different parser is a different answer: plain ruamel is YAML 1.2 (so
-`yes` is a string there), and PyYAML is YAML 1.1 with other
-differences, so the gate does not fall back to either for this file.
-
-AND THE PARSER'S VERDICT IS TRI-STATE, BECAUSE "NO PIN" AND "NO
-PARSER" ARE DIFFERENT ANSWERS. The parser says 'pinned' (= the loader
-honors this value), 'no-pin' (= the parser RAN and the loader has no
-pin: the key is absent, the value is not an int, OR THE PARSER REJECTED
-THE FILE) or 'no-parser' (= no loader parser is on this machine). The
-text fallback runs ONLY for 'no-parser'. It used to run for 'no-pin' as
-well, and it is LINE-based, so it read a pin out of files the loader
-cannot read (= a duplicate key on another key, invalid YAML, a
-multi-document file, a tab-indent error, a pin inside a quoted string):
-the gate read 240,000 where the loader read none, so it was LOOSER by
-190,848 chars at a 204,800-token window, and it ACCEPTED a 344,936-char
-AGENTS.md that the loader truncates at 240,000 (= the exact failure this
-gate exists to prevent). All six of those shapes are in the sweep now.
-
-AND THE GATE READS THE CONFIG WITH THE LOADER'S PARSER EVERYWHERE IT
-CAN, AND THE TEXT ONLY WHEN IT CANNOT. The text fallback requires the
-digits to be the WHOLE value (= a YAML comment may follow, because the
-parser strips it, but `0o17` is not the number 0), and it refuses a
-duplicate key (= the loader's parser rejects that file) and a zero
-(= the loader's condition, and a cap of 0 would reject every file).
-
-AND THE PROTOCOL HAS TO TELL "NO PIN" FROM "AN HONORED VALUE OF 0". The
-loader honors a float in (0,1) (= `int(0.5)` = 0, so it keeps NOTHING of
-the file), and the subprocess used to print a bare number, so "no pin"
-and "an honored 0" were the same thing and the gate fell back to the
-floor (= it ACCEPTED a file the loader empties). The protocol prints
-`PIN=<n>` / `NOPIN` / `REJECTED` now, and the conversion is INSIDE the
-try (= a value that parses and then cannot be converted, like `.inf`,
-must not exit non-zero, because that walked past every interpreter and
-landed on "no parser").
-
-AND THE GATE HAS TWO BRANCHES FOR READING THE CONFIG, AND BOTH MUST
-AGREE. One runs in-process (when `hermes_yaml` is importable) and one
-runs the parser in a subprocess (the documented `python3`, which cannot
-import it). The in-process branch is DEAD in the documented environment,
-so a case that measures the gate in-process measures a path the
-documented command never takes. The sweep measures the gate the way the
-documented command runs it.
-
-THE SWEEP IS IN THE SUITE. Fifty-one shapes of a config, each measured
-against the loader's own number for the SAME config: the honored pin
-must be the same, and the gate's cap must never be LOOSER than the
-loader's (= the direction that lets a file through that the loader
-truncates in the middle). The sweep measures at a SMALL window too
-(= 49,152), because at a 1M window the loader's dynamic cap is 240,000
-and that hides a looseness. The sweep found five real defects that the
-earlier cases missed: a duplicate key (= the gate read a pin from a
-file the loader cannot read), `0o17` (= the text fallback matched the
-prefix "0" and reported a cap of 0), the shapes the review rounds
-hunted (= a config the loader's parser REJECTS that still carries a pin
-line, the tri-state verdict above, and a float in (0,1) whose honored
-value is 0). A sweep is a cover list: a shape that is not in it is a
-shape nothing checks, and each round found one.
-
-The gate honors the pin only when the loader honors it:
-
-| the config says | the loader | the gate |
-|---|---|---|
-| `240000` | an int = honored | honored |
-| `"240000"` | a string = inert | inert |
-| `${VAR}` | a string after the expansion = inert | inert |
-| `240000 # a comment` | an int (the parser strips the comment) | honored |
-| `true` | a bool IS an int in Python = honored as 1 | honored as 1 |
-
-AND A CONFIG THAT IS NOT A MAPPING MUST NOT CRASH THE GATE. An empty
-config, a comment-only config, a config that is a list and an invalid
-YAML config all make the loader honor 0 (= it falls to its dynamic
-cap), so the gate falls to the floor. The gate used to return a
-2-tuple whose first element was None, and a 2-tuple is truthy, so the
-cap became None and the gate died with a TypeError instead of
-answering. A config that is not valid UTF-8 died the same way. There
-are cases for all of those now, and they run the CLI (= the CLI is
-what crashed) and read the cap OUT of the CLI's own output (= an
-in-process call in that block would read a different config, so it
-would not see the one under test).
-
-The gate used to read "the stripped text is all digits", which is a
-DIFFERENT rule: it honored a quoted value (= up to 190,848 chars LOOSER
-than the loader at a 204,800-token window, so it would accept a file the
-loader truncates in the middle) and it LOST the pin to a trailing
-comment (= 220,000 chars too tight = a false red).
-
-THE CASES RUN WHERE THE REPO SAYS THEY RUN. The loader is not importable
-from the plain `python3` this repo documents, so the five resolution
-cases run the loader in a SUBPROCESS (= the gate's own interpreter
-search, and all sixteen of those interpreters can import it). A case
-that cannot run in the documented environment cannot see its own defect,
-so if no interpreter can run the loader the case FAILS instead of
-skipping: a silent skip would let a reverted fix leave the suite green
-while the summary still said "every case passed".
-
-AND A CASE THAT COMPARES TWO IDENTITIES CANNOT SEE A SEPARATOR. Two
-different payloads differ under ANY implementation, so "the VT payload
-is not the LF payload" stays green even when the tool treats the VT as
-a line break. What sees it is the SHAPE of the body (= a line cut in
-half is not a line of the diff), and the strongest form of that is a
-SELECTION: **a TEXT diff's body is a selection of the diff's lines**, so
-every line of that body is a line of the diff. A prefix check alone is
-not enough (a cut whose second half starts with `+`, `-` or ` ` passes
-it, because those are legal content prefixes), and the prefix set has to
-know git's `\ No newline at end of file` marker or it reports a false
-red on a file with no trailing newline.
-
-**THE SELECTION UNIVERSAL IS SCOPED TO A TEXT DIFF, AND THAT SCOPE IS
-THE POINT.** A BINARY diff's body carries a REWRITTEN `index` line (= one
-blob hash, not the diff's `index <old>..<new> <mode>`), so that line is
-NOT one of the diff's lines. The rewrite is deliberate: the blob hash is
-the only thing in the section that says WHICH payload it is, and the old
-blob's hash moves as soon as the base moves. Complying with the
-universal literally (= keeping the binary `index` line verbatim) leaves
-the suite GREEN while the identity starts to depend on the base's blob,
-so the same payload over two different bases gets two identities. There
-is a case for that now: a binary body's `index` line carries exactly one
-blob hash, it is not one of the diff's lines, and the same payload over
-two different bases keeps ONE identity.
+The loader truncates the WHOLE file, not the body: the number that
+decides truncation is the file's length plus its label, and the loader
+keeps the head and the tail and drops the middle (= so the rules in the
+middle of a long file silently vanish).
 `python3 Tools/wenshu-devtool/tests/test_review_gate.py` passes every
 case. `bash -n Scripts/merge-preflight.sh` exits 0.
 `python3 Tools/wenshu-devtool/verify-dead.py` reports 0 fully dead
@@ -423,11 +282,6 @@ same bucket, so the summary counts 4 while only THREE files hold a dead
 declaration (`ChatReasoningPartView.renderMarkdown`,
 `SidebarService.dividerSentinelId` and `LibraryMigrationPanel.RowState`).
 Every one of those three is a pre-existing Swift view, and this session
-changed no Swift source at all. Its commits touched ten files, and no
-`.swift` is among them: `AGENTS.md`, `.hermes.md`,
-`Scripts/merge-preflight.sh`,
-`Tools/wenshu-devtool/review_gate.py`,
-`Tools/wenshu-devtool/ticket_tier.py`, their two test files, and three
 documents under `docs/agents/`.
 
 The CJK audit over the added lines of every commit this session

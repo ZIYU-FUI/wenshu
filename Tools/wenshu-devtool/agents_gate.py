@@ -89,299 +89,9 @@ REPO = Path(__file__).resolve().parent.parent.parent
 #
 # So the gate asks the loader's own source of truth (the config), and
 # falls back to the floor with a clear message when it cannot read it.
-CONTEXT_FILE_FLOOR_CHARS = 20_000
+CONTEXT_FILE_MAX_CHARS = 500_000  # 0.5 MB, pinned in the Hermes config
 
 
-def _hermes_config_path() -> Path:
-    """THE ONE config file the loader reads, resolved the way IT resolves it.
-
-    The loader reads EXACTLY one file: ``get_config_path()`` =
-    ``get_hermes_home() / "config.yaml"`` (hermes_cli/config.py:433-435),
-    merged alone with DEFAULT_CONFIG (config.py:2248-2262). A profile
-    does NOT inherit the root's config: measured under
-    ``HERMES_HOME=<root>/profiles/<name>``, a root-only key reads the
-    default and the profile's own key reads the profile's value.
-
-    The loader's home resolution is ``get_process_hermes_home()`` ->
-    ``_expand_hermes_home`` (hermes_constants.py:52-54) =
-    ``Path(os.path.expanduser(os.path.expandvars(path)))``, and with no
-    ``HERMES_HOME`` it is ``_platform_default_hermes_home``
-    (hermes_constants.py:57-69) = ``user_home()/(".hermes" +
-    HERMES_DATA_DIR_SUFFIX)``.
-
-    So the gate resolves it the same way. A search list let the gate
-    report a number the loader will never use (= at MiniMax-M2.x's
-    204,800-token window the loader's dynamic cap is 49,152 while the
-    root's pin says 240,000, so the gate would be 190,848 LOOSER and
-    would accept a file the loader truncates in the middle), and a
-    literal path let it read a file that does not exist (= a FALSE RED:
-    under ``HERMES_HOME='~/.hermes'`` the loader reads
-    ``/Users/<user>/.hermes/config.yaml`` and the gate read the literal
-    ``~/.hermes/config.yaml``, so it fell back to the floor and
-    rejected a file the loader loads whole).
-    """
-    home = os.environ.get("HERMES_HOME")
-    if home:
-        base = Path(os.path.expanduser(os.path.expandvars(home)))
-    else:
-        suffix = os.environ.get("HERMES_DATA_DIR_SUFFIX", "")
-        if sys.platform == "win32":
-            local = os.environ.get("LOCALAPPDATA", "").strip()
-            base = (
-                Path(local) if local else Path.home() / "AppData" / "Local"
-            ) / ("hermes" + suffix)
-        else:
-            base = Path.home() / (".hermes" + suffix)
-    return base / "config.yaml"
-
-
-def _pinned_context_file_cap() -> tuple[int, str] | None:
-    """The cap the config pins, and the file it came from.
-
-    THE LOADER'S OWN RULE, and only that rule: it honors the pin when
-    the MERGED config value is an int or a float (agent/prompt_builder.py
-    :1054: ``int(val) if isinstance(val, (int, float)) and val > 0``).
-
-    So the gate parses the config the way the loader parses it, and
-    honors the pin under the same condition. That decides three forms
-    the loader decides:
-
-    * ``240000`` = an int = honored.
-    * ``"240000"`` = a STRING = inert (= the loader falls back to its
-      dynamic cap, so a gate that honored it would be LOOSER than the
-      loader and would accept a file the loader truncates in the
-      middle).
-    * ``${VAR}`` = a STRING after the expansion (= the expansion
-      substitutes into the parsed text, it does not re-type it) = inert.
-    * ``240000 # a comment`` = an int = honored (= the YAML parser strips
-      the comment, and a regex that swallowed it would lose the pin and
-      fall back to the floor = a false red).
-
-    The key is TOP LEVEL, the way the loader reads it (= a top-level
-    lookup in the merged config). An indented key (= a key nested under
-    `agent:`) is NOT the one the loader reads, and Hermes' own CLI says
-    so: "is not a recognized config key".
-    """
-    path = _hermes_config_path()
-    try:
-        text = path.read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError):
-        # A config that is not valid UTF-8 is not a reason to die: the
-        # loader reads it (and falls back), so the gate answers too.
-        return None
-    # THE LOADER'S OWN PARSER, and only that: the loader parses the
-    # user's config with ruamel (= hermes_yaml), so the gate does too.
-    # Ruamel REJECTS a duplicate key, and its YAML 1.2 scalars differ
-    # from PyYAML's YAML 1.1 (= `yes` is a string here and a boolean
-    # there), so a different parser is a different answer.
-    verdict, pin = _loader_honored_pin(path)
-    if verdict == "pinned":
-        return pin, str(path)
-    if verdict == "no-pin":
-        # The loader's parser RAN and the loader has no pin in this file
-        # (= the key is absent, the value is not an int, or the parser
-        # REJECTED the file). The text fallback must NOT run here: it is
-        # LINE-based, so it would read a pin out of a file the loader
-        # cannot read, and that is the LOOSER direction.
-        return None
-    # No loader parser on this machine: read the text, and only an
-    # UNQUOTED integer (= the form the loader honors). A bare None (= NOT
-    # a 2-tuple whose first element is None: a 2-tuple is truthy, so
-    # `if pinned:` would be True and the cap would become None).
-    value = _pinned_from_text(text)
-    return (value, str(path)) if value is not None else None
-
-
-def _loader_honored_pin(path: Path) -> tuple[str, int | None]:
-    """The loader's verdict on this file: ('pinned', n) | ('no-pin', None)
-    | ('no-parser', None).
-
-    The loader parses the user's config with `hermes_yaml` (= YAML 1.1,
-    so `yes` IS a boolean there) and applies the loader's own condition
-    (= honored only when the value is an int or a float; `bool` IS a
-    subclass of `int`, so the loader honors `true` as 1).
-
-    The verdict is TRI-STATE, and the difference matters:
-
-    * 'pinned' = the parser ran and the loader honors this value.
-    * 'no-pin' = the parser ran and the loader has NO pin: the key is
-      absent, the value is not an int, OR THE PARSER REJECTED THE FILE
-      (= a duplicate key, invalid YAML, a multi-document file, a tab).
-      A file the loader cannot read has no pin, so the text fallback
-      must NOT run on it: honoring a pin there is the LOOSER direction
-      (= the gate accepts a file the loader truncates in the middle).
-    * 'no-parser' = no loader parser is available on this machine, so
-      the text fallback is the only reader left.
-
-    The parser is not importable from every interpreter, so it also runs
-    through the same interpreter search the YAML reader uses.
-    """
-    script = (
-        "import sys;sys.path.insert(0,'/Volumes/ANAN/.hermes/hermes-agent');"
-        "from hermes_yaml import safe_load;\n"
-        "try:\n"
-        "    v=safe_load(open(sys.argv[1],encoding='utf-8').read())\n"
-        "    raw=v.get('context_file_max_chars') if isinstance(v,dict) else None\n"
-        # the loader honors the pin when the value is an int or a float
-        # and it is > 0, and its cap is int(raw) (= 0 for a float in
-        # (0,1)), so the PROTOCOL has to tell "no pin" apart from "an
-        # honored value of 0"
-        "    if not (isinstance(raw,(int,float)) and raw>0):\n"
-        "        print('NOPIN')\n"
-        "    else:\n"
-        "        print('PIN=%d' % int(raw))\n"
-        # the conversion is INSIDE the try: a value that parses and then
-        # cannot be converted (= `.inf`) must not exit non-zero (= that
-        # walked past every interpreter and landed on 'no-parser')
-        "except Exception:\n"
-        "    print('REJECTED')\n"
-    )
-    try:
-        from hermes_yaml import safe_load  # type: ignore
-
-        value = safe_load(path.read_text(encoding="utf-8"))
-    except ImportError:
-        pass
-    except Exception:
-        # The loader's parser REJECTED the file, so the loader has no
-        # pin in it either.
-        return "no-pin", None
-    else:
-        raw = value.get("context_file_max_chars") if isinstance(value, dict) else None
-        if isinstance(raw, (int, float)) and raw > 0:
-            try:
-                return "pinned", int(raw)
-            except (OverflowError, ValueError):
-                # The loader cannot use this value either (= `.inf`),
-                # so it has no pin.
-                return "no-pin", None
-        return "no-pin", None
-    for interpreter in _hermes_pythons():
-        try:
-            proc = subprocess.run(
-                [interpreter, "-c", script, str(path)],
-                capture_output=True,
-                text=True,
-                timeout=60,
-            )
-        except (OSError, subprocess.SubprocessError):
-            continue
-        if proc.returncode != 0:
-            continue
-        out = proc.stdout.strip().splitlines()
-        if not out:
-            continue
-        last = out[-1].strip()
-        if last == "REJECTED":
-            # The loader's parser REJECTED the file (= the loader has no
-            # pin in it either).
-            return "no-pin", None
-        if last == "NOPIN":
-            return "no-pin", None
-        if last.startswith("PIN="):
-            # An HONORED value, including 0 (= a float in (0,1) is
-            # honored by the loader as int(0.5) = 0, so the loader keeps
-            # nothing of the file and the gate must refuse it).
-            return "pinned", int(last[4:])
-    return "no-parser", None
-
-
-def _pinned_from_text(text: str) -> int | None:
-    """The pin read from the TEXT, for a machine with no YAML parser.
-
-    It requires an UNQUOTED integer (= the form the loader honors), and
-    the match stops at the first non-digit, so a trailing comment cannot
-    swallow the pin and a quoted value is not a pin.
-    """
-    # The digits must be the WHOLE value (= a YAML comment may follow,
-    # because the parser strips it, but `0o17` is not the number 0). The
-    # loader's condition applies here too (= a value of 0 is not
-    # honored, and a cap of 0 would reject every file).
-    matches = re.findall(
-        r"^context_file_max_chars:[ \t]*(\d+)[ \t]*(?:#.*)?$", text, re.M)
-    if len(matches) != 1:
-        # ZERO = no pin, and MORE THAN ONE = the loader's parser REJECTS
-        # the file (= a duplicate key), so it has no pin either.
-        return None
-    value = int(matches[0])
-    return value if value > 0 else None
-
-
-
-def effective_context_file_cap() -> tuple[int, str]:
-    """The cap the loader will really use, and where that number came from.
-
-    The loader's own order: the explicit TOP-LEVEL config value wins,
-    else the dynamic cap for the active model, else the floor. The gate
-    reads the FIRST of those it can see (= the explicit value), and
-    falls back to the floor, so the gate never refuses growth the loader
-    accepts, and never accepts growth the loader refuses.
-
-    The key must be the one the loader reads. Measured 2026-10-31: a pin
-    nested under `agent:` is INERT (= the loader never sees it, and Hermes'
-    own CLI warns "is not a recognized config key"), so the gate and the
-    loader agreed only by coincidence (= the dynamic cap for a 1M-token
-    model is also 240,000). Pinned at the top level, they read one
-    number.
-    """
-    pinned = _pinned_context_file_cap()
-    if pinned:
-        return pinned
-    return CONTEXT_FILE_FLOOR_CHARS, (
-        "the loader's floor (no context_file_max_chars is pinned in the "
-        "Hermes config)"
-    )
-
-# The roots a file reference may be written against. A reference is
-# resolved against each of them, and it is OK when any one of them has it.
-REFERENCE_ROOTS = (
-    REPO,
-    REPO / "Sources/WenshuApp",
-    REPO / "Sources/WenshuData/Sources/WenshuData",
-    REPO / "Sources/WenshuAgent/Sources/WenshuAgent",
-    Path.home() / ".hermes/shared/wenshu-skills",
-    Path.home(),
-)
-
-# The roots a bare file name may be found in. These are the reference
-# folders, not the home directory: the search must stay fast.
-BARE_NAME_ROOTS = (
-    REPO / "docs",
-    REPO / "Tools",
-    REPO / "Sources",
-    Path.home() / ".hermes/shared/wenshu-skills",
-    Path.home() / ".hermes/profiles/pocock/skills",
-)
-
-# The extensions a bare file name is checked against. A bare ".json" is a
-# runtime data file the app writes (shelf.json, library.json), not a
-# reference in this repo, so it is not checked. A bare ".py" / ".sh" /
-# ".md" is a reference: the reader will try to open it.
-BARE_CHECKED_EXT = (".py", ".sh", ".md", ".swift")
-
-# The top-level names a path may start with. A reference that starts with
-# one of these is a path; anything else with a slash is a ratio ("8/18").
-PATH_PREFIXES = (
-    "Scripts",
-    "Tools",
-    "Sources",
-    "Tests",
-    "docs",
-    "Features",
-    ".github",
-    ".hermes",
-    "/",
-    "./",
-    "~",
-)
-
-# The skill families this project uses. A name with one of these prefixes
-# is a promise ("this skill enforces that"), so it must resolve. A hyphenated
-# English word ("cold-cache") is prose, not a promise, so it is not checked.
-SKILL_PREFIXES = ("wenshu-", "pocock-", "universal-", "mattpocock", "q99-")
-
-# The project-mandated tokens. commit_filter.py allows these in ANY file
-# (= the mandate's own words), so a rule may use them anywhere.
 ALLOWED_CJK_ANYWHERE = set("老板 文枢 拍 拍板 ※".split())
 
 # The banned families. A rule has to name them to ban them, so they are
@@ -405,11 +115,31 @@ ALLOWED_CJK_VOCABULARY = set(
 )
 
 # The only rows allowed to carry the banned families.
+BACKTICK_RE = re.compile(r"`([^`\n]+)`")
+BARE_CHECKED_EXT = (".py", ".sh", ".md", ".swift")
+
+# The top-level names a path may start with. A reference that starts with
+# one of these is a path; anything else with a slash is a ratio ("8/18").
+BARE_NAME_RE = re.compile(r"^[A-Za-z0-9_][\w.-]*\.[A-Za-z0-9]+$")
+
+# A token that names a skill: lowercase words joined by hyphens. It cannot
+# contain a dot (that is a file), a slash (that is a path), or an underscore
+# (that is a tool call).
+BARE_NAME_ROOTS = (
+    REPO / "docs",
+    REPO / "Tools",
+    REPO / "Sources",
+    Path.home() / ".hermes/shared/wenshu-skills",
+    Path.home() / ".hermes/profiles/pocock/skills",
+)
+
+# The extensions a bare file name is checked against. A bare ".json" is a
+# runtime data file the app writes (shelf.json, library.json), not a
+# reference in this repo, so it is not checked. A bare ".py" / ".sh" /
+# ".md" is a reference: the reader will try to open it.
+CJK_RE = re.compile(r"[\u4e00-\u9fff\u3000-\u303f\uff00-\uffef]+")
 CJK_VOCABULARY_ROWS = {"1.3", "1.4"}
 
-CJK_RE = re.compile(r"[\u4e00-\u9fff\u3000-\u303f\uff00-\uffef]+")
-BACKTICK_RE = re.compile(r"`([^`\n]+)`")
-ROW_ID_RE = re.compile(r"^\|\s*(\d+(?:\.\d+)*)\s*\|", re.M)
 HEADING_SECTION_RE = re.compile(r"^#{2,3}\s+§(\d+)\b", re.M)
 INLINE_REF_RE = re.compile(r"§(\d+(?:\.\d+)*)")
 
@@ -417,6 +147,14 @@ INLINE_REF_RE = re.compile(r"§(\d+(?:\.\d+)*)")
 # starts with a known top-level name, or it ends in an extension this repo
 # uses. Everything else in backticks is an identifier, a flag, a ratio
 # ("8/18") or a command, and is not checked for existence.
+NOT_A_SKILL = {
+    *product_lines.BOARDS,
+    "wenshu-dev",  # the implementer profile
+    "wenshu-review",  # the reviewer profile
+}
+
+# The table columns whose cells name tools. A skill name in these columns
+# is a promise ("this skill enforces that"), so it must resolve.
 PATHLIKE_RE = re.compile(
     r"^(?:Scripts|Tools|Sources|Tests|docs|Features|\.github|\.hermes|\.{1,2}/|~)/[\w./~-]+$"
     r"|^\.[\w.-]+\.(?:py|sh|md|yml|yaml|json|swift|txt|db)$"
@@ -426,11 +164,36 @@ PATHLIKE_RE = re.compile(
 # A bare file name: no path separator. It is a reference only when its
 # extension says so (see BARE_CHECKED_EXT), because a bare ".json" is a
 # runtime data file the app writes, not a file in this repo.
-BARE_NAME_RE = re.compile(r"^[A-Za-z0-9_][\w.-]*\.[A-Za-z0-9]+$")
+PATH_PREFIXES = (
+    "Scripts",
+    "Tools",
+    "Sources",
+    "Tests",
+    "docs",
+    "Features",
+    ".github",
+    ".hermes",
+    "/",
+    "./",
+    "~",
+)
 
-# A token that names a skill: lowercase words joined by hyphens. It cannot
-# contain a dot (that is a file), a slash (that is a path), or an underscore
-# (that is a tool call).
+# The skill families this project uses. A name with one of these prefixes
+# is a promise ("this skill enforces that"), so it must resolve. A hyphenated
+# English word ("cold-cache") is prose, not a promise, so it is not checked.
+REFERENCE_ROOTS = (
+    REPO,
+    REPO / "Sources/WenshuApp",
+    REPO / "Sources/WenshuData/Sources/WenshuData",
+    REPO / "Sources/WenshuAgent/Sources/WenshuAgent",
+    Path.home() / ".hermes/shared/wenshu-skills",
+    Path.home(),
+)
+
+# The roots a bare file name may be found in. These are the reference
+# folders, not the home directory: the search must stay fast.
+REQUIRED_SECTIONS = ("1", "7", "8", "10")
+ROW_ID_RE = re.compile(r"^\|\s*(\d+(?:\.\d+)*)\s*\|", re.M)
 SKILL_NAME_RE = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$")
 
 # Identifiers that look like a skill name but are not one.
@@ -441,17 +204,36 @@ SKILL_NAME_RE = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)+$")
 # slug was listed here and the mobile one was not, so a file naming the
 # mobile board in a tool column was reported as naming a skill that is
 # not installed (= a false error on a true reference).
-NOT_A_SKILL = {
-    *product_lines.BOARDS,
-    "wenshu-dev",  # the implementer profile
-    "wenshu-review",  # the reviewer profile
-}
+SKILL_PREFIXES = ("wenshu-", "pocock-", "universal-", "mattpocock", "q99-")
 
-# The table columns whose cells name tools. A skill name in these columns
-# is a promise ("this skill enforces that"), so it must resolve.
+# The project-mandated tokens. commit_filter.py allows these in ANY file
+# (= the mandate's own words), so a rule may use them anywhere.
 TOOL_COLUMNS = ("enforcement", "reference", "skill", "tool", "gate", "source", "path", "file")
 
-REQUIRED_SECTIONS = ("1", "7", "8", "10")
+def effective_context_file_cap() -> tuple[int, str]:
+    """The cap the loader will use, and where that number came from.
+
+    IT IS A FIXED VALUE: 500,000 chars (= 0.5 MB), pinned in the Hermes
+    config as `context_file_max_chars` and mirrored by the constant
+    above. The loader honors an explicit config value, so the two are
+    the same number by construction, and a case asserts that the config
+    and this constant agree (= so they cannot drift apart).
+
+    WHY A FIXED VALUE. The loader's own dynamic cap MOVES with the
+    model's window (= 49,152 at a 204,800-token model, 240,000 at 1M),
+    so a gate that computed it had to resolve the model's window AND
+    the config's own rules (which key, which level, which file, what
+    type, a duplicate key, a value in (0,1), a file the parser
+    rejects...), and every one of those resolutions was a place where
+    the gate could come out LOOSER than the loader (= it accepts a file
+    the loader truncates in the middle, which is the one failure this
+    gate exists to prevent). A fixed number has no such places: ONE
+    number, pinned in the config, asserted here.
+    """
+    return CONTEXT_FILE_MAX_CHARS, (
+        "the fixed project cap (500,000 chars = 0.5 MB, pinned in the "
+        "Hermes config)"
+    )
 
 
 def _strip_fenced_blocks(text: str) -> str:

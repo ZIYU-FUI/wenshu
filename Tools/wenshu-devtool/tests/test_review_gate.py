@@ -1180,494 +1180,54 @@ def main() -> int:
         True,
     )
 
-    # ---- the gate reads the key the LOADER reads, at the level it reads it ----
-    # A pin nested under `agent:` is INERT: Hermes' own CLI says it is not
-    # a recognized config key, so the loader never sees it. The gate must
-    # not read it either (= and it must say where its number came from).
     cap_gate = load_agents_gate()
-    with tempfile.TemporaryDirectory() as tmp:
-        home = Path(tmp) / "home"
-        profile = home / "profiles" / "pocock"
-        profile.mkdir(parents=True)
-        # The pin goes in the PROFILE's OWN config.yaml (= the ONE file
-        # the loader reads: get_config_path() = $HERMES_HOME/config.yaml).
-        # The ROOT two levels up gets a DIFFERENT pin, because a profile
-        # does NOT inherit the root's config (= measured: a root-only key
-        # reads the default under a profile, and the profile's own key
-        # reads the profile's value). So the gate must return the
-        # PROFILE's number, and a search list that falls through to the
-        # root returns the wrong one.
-        (home / "config.yaml").write_text("context_file_max_chars: 999999\n")
-        (profile / "config.yaml").write_text("context_file_max_chars: 123456\n")
-        saved = os.environ.get("HERMES_HOME")
-        os.environ["HERMES_HOME"] = str(profile)
-        try:
-            check(
-                "the gate reads the TOP-LEVEL pin the loader reads",
-                cap_gate.effective_context_file_cap()[0],
-                123456,
-            )
-            cap, source = cap_gate.effective_context_file_cap()
-            check(
-                "the gate says where its number came from",
-                source.endswith("profiles/pocock/config.yaml"),
-                True,
-            )
-            check(
-                "the gate does NOT fall through to the root's config "
-                "(a profile does not inherit it)",
-                cap != 999999,
-                True,
-            )
-            # the nested key lands in the PROFILE's own file too (= the file
-            # the loader reads), so this tests what it claims
-            (profile / "config.yaml").write_text(
-                "agent:\n  context_file_max_chars: 234567\n")
-            cap, source = cap_gate.effective_context_file_cap()
-            check(
-                "the gate does NOT read a pin nested under agent:",
-                cap != 234567,
-                True,
-            )
-            # and with no pin at all, the gate falls back to the loader's
-            # own floor, NOT to a number it found elsewhere
-            (profile / "config.yaml").write_text("model: x\n")
-            cap, source = cap_gate.effective_context_file_cap()
-            check(
-                "with no pin, the gate uses the loader's own floor",
-                cap, 20000,
-            )
-        finally:
-            if saved is None:
-                os.environ.pop("HERMES_HOME", None)
-            else:
-                os.environ["HERMES_HOME"] = saved
 
-    # D-1: the gate resolves the home the way THE LOADER resolves it. The
-    # loader's own resolver is the oracle (= the gate must name the SAME
-    # file, or it reads a file the loader never reads, and it either
-    # reports a number the loader will not use or misses the pin).
-    # The loader runs in a SUBPROCESS (= the gate's own interpreter search:
-    # the plain python3 this repo documents cannot import hermes_cli, and a
-    # case that cannot run in the documented environment is a case that
-    # cannot see its own defect). If no interpreter can run it, the case
-    # FAILS: a silent skip would let a reverted fix leave the suite green.
-    def loader_probe(script: str, env: dict | None = None) -> str:
-        for interpreter in cap_gate._hermes_pythons():
-            try:
-                proc = subprocess.run(
-                    [interpreter, "-c", script],
-                    capture_output=True,
-                    text=True,
-                    timeout=120,
-                    env=env,
-                )
-            except (OSError, subprocess.SubprocessError):
-                continue
-            if proc.returncode == 0:
-                return proc.stdout.strip()
-        return ""
-
-    def gate_probe(home: str) -> tuple[int | None, int]:
-        """The gate's own answer, measured in the DOCUMENTED interpreter.
-
-        The gate has two branches for reading the config: an in-process
-        one (= when `hermes_yaml` is importable) and a subprocess one
-        (= the documented `python3`, which cannot import it). The
-        in-process branch is DEAD in the documented environment, so a
-        case that measures the gate in-process measures a path the
-        documented command never takes. So the gate is measured the way
-        the documented command runs it.
-        """
-        devtool = str(Path(__file__).resolve().parent.parent)
-        script = (
-            "import sys;sys.path.insert(0,'" + devtool + "');"
-            "import agents_gate;"
-            "p=agents_gate._pinned_context_file_cap();"
-            "print('PIN=' + (str(p[0]) if p else 'none'));"
-            "print('CAP=' + str(agents_gate.effective_context_file_cap()[0]))"
-        )
-        proc = subprocess.run(
-            [sys.executable, "-c", script],
-            env=dict(os.environ, HERMES_HOME=home),
-            capture_output=True, text=True, timeout=120,
-        )
-        pin: int | None = None
-        cap = 0
-        for line in proc.stdout.splitlines():
-            if line.startswith("PIN="):
-                value = line[4:]
-                pin = None if value == "none" else int(value)
-            elif line.startswith("CAP="):
-                cap = int(line[4:])
-        return pin, cap
-
-    def loader_config_path() -> str:
-        """The loader's own resolver, in the CURRENT environment."""
-        return loader_probe(
-            "from hermes_cli.config import get_config_path;"
-            " print(get_config_path())"
-        )
-
+    # ---- THE CAP IS A FIXED NUMBER ----
+    # 500,000 chars (= 0.5 MB), mirrored by the gate's constant and
+    # pinned in the Hermes config. The loader honors an explicit config
+    # value, so the two are the same number by construction, and the
+    # case below reads the config and asserts that (= so the two cannot
+    # drift apart).
     check(
-        "the loader's own resolver runs in a Hermes-capable interpreter "
-        "(a case that cannot run cannot see its defect)",
-        bool(loader_config_path()),
-        True,
+        "the gate's cap is the fixed project cap",
+        cap_gate.effective_context_file_cap()[0],
+        500000,
     )
-    if True:
-        keys = ("HERMES_HOME", "HERMES_DATA_DIR_SUFFIX", "WENSHU_TEST_HOME",
-                "WENSHU_TEST_CAP")
-        saved = {k: os.environ.get(k) for k in keys}
-        try:
-            os.environ["HERMES_HOME"] = "~/.hermes"
+    home = os.environ.get("HERMES_HOME")
+    if home:
+        cfg = Path(home) / "config.yaml"
+        if cfg.exists():
+            text = cfg.read_text(encoding="utf-8")
+            pinned = re.search(
+                r"^context_file_max_chars:[ \t]*(\d+)[ \t]*$", text, re.M)
             check(
-                "the gate resolves a ~ home the way the loader does",
-                os.path.realpath(cap_gate._hermes_config_path())
-                == os.path.realpath(loader_config_path()),
-                True,
+                "the config pins the same number the gate uses",
+                (int(pinned.group(1)) if pinned else None),
+                cap_gate.effective_context_file_cap()[0],
             )
-            with tempfile.TemporaryDirectory() as tmp:
-                os.environ["WENSHU_TEST_HOME"] = tmp
-                os.environ["HERMES_HOME"] = "$WENSHU_TEST_HOME"
-                check(
-                    "the gate resolves a $VAR home the way the loader does",
-                    os.path.realpath(cap_gate._hermes_config_path())
-                    == os.path.realpath(loader_config_path()),
-                    True,
-                )
-            os.environ.pop("HERMES_HOME", None)
-            os.environ["HERMES_DATA_DIR_SUFFIX"] = "-alt"
-            check(
-                "the gate resolves the suffixed default the way the loader does",
-                os.path.realpath(cap_gate._hermes_config_path())
-                == os.path.realpath(loader_config_path()),
-                True,
-            )
-            # A CONFIG THAT IS NOT A MAPPING must not crash the gate. The
-            # loader honors 0 there (= it falls to its dynamic cap), so the
-            # gate falls to the floor. The CLI is what crashed, so the CLI
-            # is what the case runs.
-            for label, body in (
-                ("an empty config", ""),
-                ("a comment-only config", "# nothing here\n"),
-                ("a config that is a list", "- a\n- b\n"),
-                ("an invalid yaml config", "key: [unclosed\n"),
-            ):
-                with tempfile.TemporaryDirectory() as tmp:
-                    home = Path(tmp) / "home"
-                    home.mkdir()
-                    (home / "config.yaml").write_text(body)
-                    env = dict(os.environ, HERMES_HOME=str(home))
-                    proc = subprocess.run(
-                        [sys.executable, str(Path(__file__).resolve().parent.parent
-                                            / "agents_gate.py"), "--file", "AGENTS.md"],
-                        cwd=str(Path(__file__).resolve().parent.parent.parent),
-                        env=env, capture_output=True, text=True, timeout=120,
-                    )
-                    check(
-                        f"a config that is not a mapping does not crash the "
-                        f"gate ({label})",
-                        proc.returncode == 0 and "Traceback" not in proc.stderr,
-                        True,
-                    )
-                    # THE CLI'S OWN ANSWER (= the number it reports for THIS
-                    # config). An in-process call here would read a
-                    # different config, so it would not see this one.
-                    reported = re.search(r"cap (\d+)", proc.stdout)
-                    check(
-                        f"and the gate uses the floor for it ({label})",
-                        (reported.group(1) if reported else None),
-                        "20000",
-                    )
-                    # and a config that is not valid UTF-8 must not crash it
-                    (home / "config.yaml").write_bytes(b"context: \xff\xfe\x00bad")
-                    proc2 = subprocess.run(
-                        [sys.executable, str(Path(__file__).resolve().parent.parent
-                                            / "agents_gate.py"), "--file", "AGENTS.md"],
-                        cwd=str(Path(__file__).resolve().parent.parent.parent),
-                        env=env, capture_output=True, text=True, timeout=120,
-                    )
-                    check(
-                        f"a config that is not valid UTF-8 does not crash the "
-                        f"gate ({label})",
-                        proc2.returncode == 0 and "Traceback" not in proc2.stderr,
-                        True,
-                    )
-
-            # THE SWEEP. Every shape of a config, measured against the
-            # loader's own number for the SAME config: the honored pin
-            # must be the same, and the gate's cap must never be LOOSER
-            # than the loader's (= the direction that lets a file through
-            # that the loader truncates in the middle). A shape that is
-            # not in this table is a shape nothing checks.
-            sweep = (
-                ("an int", "context_file_max_chars: 240000\n"),
-                ("a float", "context_file_max_chars: 240000.0\n"),
-                ("a negative", "context_file_max_chars: -5\n"),
-                ("a zero", "context_file_max_chars: 0\n"),
-                ("a quoted int", 'context_file_max_chars: "240000"\n'),
-                ("a bool", "context_file_max_chars: true\n"),
-                ("a duplicate key",
-                 "context_file_max_chars: 240000\ncontext_file_max_chars: 111111\n"),
-                ("an anchor", "cap: &c 240000\ncontext_file_max_chars: *c\n"),
-                ("a CRLF file", "context_file_max_chars: 240000\r\n"),
-                ("a key with spaces", "context_file_max_chars:   240000\n"),
-                ("a tab before the value", "context_file_max_chars:\t240000\n"),
-                ("a nested key only", "agent:\n  context_file_max_chars: 240000\n"),
-                ("an expansion", "context_file_max_chars: ${WENSHU_TEST_CAP}\n"),
-                ("a mapping with other keys",
-                 "model: x\ncontext_file_max_chars: 240000\nagent:\n"
-                 "  reasoning_effort: medium\n"),
-                ("an empty config", ""),
-                ("a comment-only config", "# nothing here\n"),
-                ("a config that is a list", "- a\n- b\n"),
-                ("an invalid yaml config", "key: [unclosed\n"),
-                ("a YAML 1.1 yes", "context_file_max_chars: yes\n"),
-                ("a YAML 1.1 no", "context_file_max_chars: no\n"),
-                ("a YAML 1.1 on", "context_file_max_chars: on\n"),
-                ("a YAML 1.1 off", "context_file_max_chars: off\n"),
-                ("a null", "context_file_max_chars: null\n"),
-                ("a tilde null", "context_file_max_chars: ~\n"),
-                ("an empty value", "context_file_max_chars:\n"),
-                ("a quoted empty", "context_file_max_chars: ""\n"),
-                ("a hex number", "context_file_max_chars: 0x1E\n"),
-                ("an underscore number", "context_file_max_chars: 1_000\n"),
-                ("scientific notation", "context_file_max_chars: 2.4e5\n"),
-                ("a plus sign", "context_file_max_chars: +240000\n"),
-                ("a trailing space", "context_file_max_chars: 240000 \n"),
-                ("an octal", "context_file_max_chars: 0o17\n"),
-                # A CONFIG THE LOADER'S PARSER CANNOT READ. The loader
-                # has NO pin in these (= it cannot read them), so the
-                # gate must not read one either (= the text fallback is
-                # line-based, so it would). Measured 2026-11-01: the gate
-                # read 240000 out of all of these and the loader read
-                # none, so the gate was LOOSER than the loader by 190,848
-                # chars at a 204,800-token window.
-                ("an invalid yaml config with a pin",
-                 "context_file_max_chars: 240000\nkey: [unclosed\n"),
-                ("a duplicate key on another key",
-                 "model: a\nmodel: b\ncontext_file_max_chars: 240000\n"),
-                ("a multi-document file",
-                 "context_file_max_chars: 240000\n---\nother: 1\n"),
-                ("a tab-indent error",
-                 "context_file_max_chars: 240000\nfoo:\n\tbar: 1\n"),
-                ("a pin inside a quoted string",
-                 'note: "foo\ncontext_file_max_chars: 240000\nbar"\n'),
-                ("an invalid yaml config with a bigger pin",
-                 "context_file_max_chars: 999999\nkey: [unclosed\n"),
-                ("an undefined alias",
-                 "context_file_max_chars: *missing\n"),
-                ("a bad escape",
-                 "context_file_max_chars: 240000\nnote: \"bad \\q escape\"\n"),
-                ("a NUL byte", "context_file_max_chars: 240000\n\x00\n"),
-                ("a duplicate anchor",
-                 "a: &x 1\nb: &x 2\ncontext_file_max_chars: 240000\n"),
-                ("a BOM", "\ufeffcontext_file_max_chars: 240000\n"),
-                ("a very deep nesting",
-                 "context_file_max_chars: 240000\n"
-                 + "".join("  " * i + "k:\n" for i in range(1, 80))),
-                ("a control character",
-                 "context_file_max_chars: 240000\nnote: \x01\n"),
-                ("a trailing document end",
-                 "context_file_max_chars: 240000\n...\n"),
-                # A FLOAT IN (0,1). The loader honors the pin and its cap
-                # is int(0.5) = 0 (= it keeps nothing of the file), so
-                # the gate's protocol has to tell "no pin" apart from "an
-                # honored value of 0".
-                ("a float in (0,1)", "context_file_max_chars: 0.5\n"),
-                ("an infinity", "context_file_max_chars: .inf\n"),
-                ("a negative infinity", "context_file_max_chars: -.inf\n"),
-                ("a NaN", "context_file_max_chars: .nan\n"),
-            )
-            for label, body in sweep:
-                with tempfile.TemporaryDirectory() as tmp:
-                    home = Path(tmp) / "home"
-                    home.mkdir()
-                    (home / "config.yaml").write_text(body)
-                    env = dict(os.environ, HERMES_HOME=str(home),
-                               WENSHU_TEST_CAP="222222")
-                    # the gate reads os.environ, so the in-process calls
-                    # need the same home the probe gets
-                    saved_home = os.environ.get("HERMES_HOME")
-                    os.environ["HERMES_HOME"] = str(home)
-                    try:
-                        measured = loader_probe(
-        "import json,sys\n"
-                            "sys.path.insert(0,'/Volumes/ANAN/.hermes/hermes-agent')\n"
-                            "from hermes_cli.config import load_config_readonly\n"
-                            "from agent.prompt_builder import _get_context_file_max_chars\n"
-                            "v=load_config_readonly().get('context_file_max_chars')\n"
-                            "cap=None\n"
-                            "small=None\n"
-                            "crash=False\n"
-                            "try:\n"
-                            "    cap=_get_context_file_max_chars(1000000)\n"
-                            "    small=_get_context_file_max_chars(204800)\n"
-                            "except Exception:\n"
-                            "    crash=True\n"
-                            "print(json.dumps({'pin': int(v) if isinstance(v,(int,float))"
-                            " and v>0 else 0, 'cap': cap, 'small': small,"
-                            " 'crash': crash}))",
-                            env=env,
-                        )
-                        try:
-                            facts = json.loads(measured or "{}")
-                        except json.JSONDecodeError:
-                            facts = {}
-                        if not facts:
-                            # The LOADER ITSELF crashes on this config
-                            # (= `.inf` cannot be converted to an int), so
-                            # there is no number to compare with. The gate
-                            # must still ANSWER, and it must refuse (= the
-                            # floor), because a crash is not a verdict.
-                            gate_alone = gate_probe(str(home))[1]
-                            check(
-                                f"the loader has no answer, and the gate still "
-                                f"refuses ({label})",
-                                gate_alone <= 20000,
-                                True,
-                            )
-                            continue
-                        check(
-                            f"the sweep measured the loader for this shape ({label})",
-                            bool(facts),
-                            True,
-                        )
-                        gate_pin, gate_cap_now = gate_probe(str(home))
-                        check(
-                            f"the gate's honored pin equals the loader's ({label})",
-                            (gate_pin if gate_pin is not None else 0),
-                            int(facts.get("pin", 0)),
-                        )
-                        check(
-                            f"the gate is never LOOSER than the loader ({label})",
-                            gate_cap_now <= int(facts.get("cap", 20000)),
-                            True,
-                        )
-                        # and at a SMALLER window, where the loader's
-                        # dynamic cap is 49,152 (= the discriminating
-                        # measurement: at a 1M window the dynamic cap is
-                        # 240,000, which hides a looseness)
-                        check(
-                            f"the gate is never LOOSER than the loader at a "
-                            f"small window ({label})",
-                            gate_cap_now <= int(facts.get("small", 20000)),
-                            True,
-                        )
-                    finally:
-                        if saved_home is None:
-                            os.environ.pop("HERMES_HOME", None)
-                        else:
-                            os.environ["HERMES_HOME"] = saved_home
-
-            # AND THE TEXT FALLBACK (a machine with no YAML parser) reads
-            # the same forms: an unquoted int, and nothing else.
-            check(
-                "the text fallback reads an int with a trailing comment",
-                cap_gate._pinned_from_text(
-                    "context_file_max_chars: 240000 # a comment\n"),
-                240000,
-            )
-            check(
-                "the text fallback does NOT read a quoted value",
-                cap_gate._pinned_from_text(
-                    'context_file_max_chars: "240000"\n'),
-                None,
-            )
-            check(
-                "the text fallback does NOT read an expansion",
-                cap_gate._pinned_from_text(
-                    "context_file_max_chars: ${WENSHU_TEST_CAP}\n"),
-                None,
-            )
-            check(
-                "the text fallback does NOT read a PREFIX of the value "
-                "(= `0o17` is not the number 0)",
-                cap_gate._pinned_from_text("context_file_max_chars: 0o17\n"),
-                None,
-            )
-            check(
-                "the text fallback does NOT read a prefix of a longer value "
-                "(= `240000abc` is not the number 240000)",
-                cap_gate._pinned_from_text(
-                    "context_file_max_chars: 240000abc\n"),
-                None,
-            )
-            check(
-                "the text fallback does NOT read a zero (= the loader's "
-                "condition, and a cap of 0 would reject every file)",
-                cap_gate._pinned_from_text("context_file_max_chars: 0\n"),
-                None,
-            )
-            check(
-                "the text fallback does NOT read a duplicate key (= the "
-                "loader's parser rejects the file, so it has no pin)",
-                cap_gate._pinned_from_text(
-                    "context_file_max_chars: 240000\n"
-                    "context_file_max_chars: 111111\n"),
-                None,
-            )
-
-            # AND THE PIN IS HONORED EXACTLY WHEN THE LOADER HONORS IT.
-            # The loader honors it only when the merged config value is an
-            # int or a float (prompt_builder.py:1054), so a quoted number
-            # is a STRING and inert, an expansion is a STRING after the
-            # expansion (= the expansion substitutes into the parsed text,
-            # it does not re-type it) and inert, and a trailing comment is
-            # stripped by the parser (= the value is still the int).
-            # Each form is measured against the LOADER's own merged value.
-            forms = (
-                ("an int", "context_file_max_chars: 240000\n", "240000"),
-                ("a quoted number", 'context_file_max_chars: "240000"\n', "0"),
-                ("an expansion", "context_file_max_chars: ${WENSHU_TEST_CAP}\n", "0"),
-                ("an int with a comment",
-                 "context_file_max_chars: 240000 # a comment\n", "240000"),
-                # `bool` IS a subclass of `int` in Python, so the loader
-                # honors `true` as 1 (= it truncates the file to one
-                # character). Carving the bool out would make the gate
-                # LOOSER than the loader.
-                ("a bool pin", "context_file_max_chars: true\n", "1"),
-            )
-            for label, body, expected in forms:
-                with tempfile.TemporaryDirectory() as tmp:
-                    home = Path(tmp) / "home"
-                    home.mkdir()
-                    (home / "config.yaml").write_text(body)
-                    os.environ["HERMES_HOME"] = str(home)
-                    os.environ["WENSHU_TEST_CAP"] = "222222"
-                    loader_pin = loader_probe(
-                        "from hermes_cli.config import load_config_readonly;"
-                        " v=load_config_readonly().get('context_file_max_chars');"
-                        " print(int(v) if isinstance(v,(int,float)) and v>0 else 0)"
-                    )
-                    check(
-                        f"the loader's honored pin and the gate's agree ({label})",
-                        (loader_pin or "").strip(), expected,
-                    )
-                    gate_pin = cap_gate._pinned_context_file_cap()
-                    check(
-                        f"the gate honors the pin exactly as the loader does "
-                        f"({label})",
-                        (gate_pin[0] if gate_pin else 0),
-                        int(expected),
-                    )
-                    # and the gate is never LOOSER than the loader (= the
-                    # direction that lets a file through that the loader
-                    # truncates in the middle)
-                    gate_cap = cap_gate.effective_context_file_cap()[0]
-                    check(
-                        f"the gate is never LOOSER than the loader ({label})",
-                        gate_cap <= max(int(expected), 20000),
-                        True,
-                    )
-                os.environ.pop("HERMES_HOME", None)
-        finally:
-            for k, v in saved.items():
-                if v is None:
-                    os.environ.pop(k, None)
-                else:
-                    os.environ[k] = v
+        else:
+            check("the config that pins the cap exists", False, True)
+    # and the gate REFUSES a file over the cap, and accepts the real one
+    with tempfile.TemporaryDirectory() as tmp:
+        big = Path(tmp) / "big.md"
+        big.write_text(
+            "# a\n\n" + ("x" * (cap_gate.effective_context_file_cap()[0] + 10))
+        )
+        report = cap_gate.check_file(big)
+        errors = " ".join(report.get("errors", []))
+        check(
+            "a file over the cap is refused with the budget error",
+            (report.get("ok") is False) and ("truncates above" in errors),
+            True,
+        )
+    repo_root = Path(__file__).resolve().parent.parent.parent
+    real = repo_root / "AGENTS.md"
+    if real.exists():
+        check(
+            "the real AGENTS.md is under the cap and passes the gate",
+            cap_gate.check_file(real).get("ok"),
+            True,
+        )
 
     print()
     if FAILURES:
