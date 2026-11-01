@@ -379,10 +379,20 @@ carried a scope", and that is false: the OLD rule refuses a scope
 OTHER THAN `(wenshu)`, so a window of 10 subjects that all carry
 `(wenshu)` passes. Measured at `00c1df5008` (= ten consecutive `feat(
 wenshu): ...` / `docs(wenshu): ...` / `fix(wenshu): ...` subjects) the
-OLD rule rejects **0 of the 10**, and there are **3,276** such trees in
-main's history. So the job was red on main in WINDOWS, not in every
-window: it was red whenever the last 10 subjects carried a scope other
-than `(wenshu)`.
+OLD rule rejects **0 of the 10**.
+
+**AND THE 3,276 IS THE GREEN COUNT INSIDE A LARGER POPULATION.** Over
+main's 6,124 commits (= 6,114 windows of 10), measured at this tree:
+
+- **3,473** windows have a last-10 whose subjects ALL carry `(wenshu)`;
+- of those, the OLD rule **accepts every subject in 3,276** (= the job
+  is GREEN there), and **refuses at least one in 197** (= the job is RED
+  there, and the refusals are the `merge(wenshu): ...` subjects, because
+  `merge` is not one of the nine conventional types).
+
+So the job was red on main in WINDOWS, not in every window, and "3,276"
+is the count of the windows the OLD rule let through (= NOT the count of
+the windows that carried only `(wenshu)` = 3,473).
 
 **THE TREE IS NAMED BECAUSE THE FIGURE BELONGS TO ONE TREE.** An earlier
 reading of this record said "4 of the 10 at this session's base", and

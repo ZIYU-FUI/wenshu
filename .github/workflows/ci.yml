@@ -302,9 +302,12 @@ jobs:
             # is now accepted.
             # The job reads only the last 10 subjects, so it was red on
             # main in WINDOWS (= whenever those 10 carried a scope other
-            # than (wenshu)), not in every window: there are 3,276 trees
-            # in main's history whose last 10 subjects all carry
-            # (wenshu), and the old rule accepts every one of them.
+            # than (wenshu)), not in every window. Measured over main's
+            # 6,114 windows of 10 at this tree: 3,473 have a last 10
+            # whose subjects all carry (wenshu), and the old rule lets
+            # through 3,276 of them (the other 197 carry a
+            # merge(wenshu): subject, and "merge" is not one of the nine
+            # conventional types).
             if ! echo "$SUBJECT" | grep -qE "^(feat|fix|docs|test|refactor|chore|perf|build|ci)(\([a-zA-Z0-9._/-]+\))?:"; then
               echo "Bad commit subject: $SUBJECT"
               exit 1
