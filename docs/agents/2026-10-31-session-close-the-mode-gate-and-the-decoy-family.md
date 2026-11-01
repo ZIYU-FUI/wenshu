@@ -115,10 +115,13 @@ and it is run by
 The mutation matrix that proves the gate is not a decoy-reader is a recipe
 over that suite (= the real production source mutated, = one fresh suite run
 per case, = the source restored after every case and the restore verified by
-sha256). The recipe and its 56 cases are in card `t_deeeab51`'s review
-comment; = the last round's 67 measurements (= the card's own named cases +
-the reviewer's independent probes) are in the review verdict on card
-`t_f6d6223a`, whose run metadata carries `review_outcome: approved`.
+sha256). The RECIPE is in card `t_deeeab51`'s review comment. = the 56 cases
+and the last round's 67 measurements (= the card's own named cases + the
+reviewer's independent probes) are in the review verdict on card `t_f6d6223a`,
+= whose body carries the breakdown (= 3 Z cases + 12 named + 41 already-green)
+= and whose review comment counts the implementer's matrix script (= 55 `case(`
+calls + the one inline case = 56) and states the recipe for re-running it.
+= that card's run metadata carries `review_outcome: approved`.
 
 = the gate is that one suite's, = the whole suite is NOT this record's gate.
 
