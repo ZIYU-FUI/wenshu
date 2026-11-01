@@ -1166,7 +1166,9 @@ def main() -> int:
         "approve with `kanban_complete(summary=..., "
         'metadata={"review_outcome": "approved"})`.\n'
     )
-    draft = {"id": "draft-review", "title": "[T1][审核] draft", "body": review_body,
+    draft = {"id": "draft-review",
+            "title": f"[T1][{tool.TYPE_TAG_NAMES['review']}] draft",
+            "body": review_body,
              "status": "draft"}
     advised = tool.report(draft)
     check(
@@ -1186,7 +1188,8 @@ def main() -> int:
     )
     # A BUILD card keeps its tier's cap: the floor belongs to the review
     # lane, not to every card.
-    build_draft = {"id": "draft-build", "title": "[T1][工单] draft",
+    build_draft = {"id": "draft-build",
+                    "title": f"[T1][{tool.TYPE_TAG_NAMES['build']}] draft",
                    "body": ONE_FILE, "status": "draft"}
     check(
         "a build card is still advised its own tier's cap",
@@ -1203,7 +1206,7 @@ def main() -> int:
         good,
         status="done",
         assignee="wenshu-review",
-        title="[T1][审核] a finished review",
+        title=f"[T1][{tool.TYPE_TAG_NAMES['review']}] a finished review",
         body=review_body,
         max_runtime_seconds=3600,
     )

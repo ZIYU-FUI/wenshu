@@ -161,7 +161,6 @@ for b in "${branches[@]}"; do
             # verdict of the card this branch names is what is asked
             # for, so the gate's own answer stands.
             gate_out="$(python3 "$GATE" --card "$card" --board "$BOARD" 2>&1)"
-            gate_rc=$?
             unreviewed=1
             echo "UNREVIEWED $b"
             echo "$gate_out" | sed 's/^/         /'

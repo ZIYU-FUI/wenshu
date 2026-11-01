@@ -152,6 +152,13 @@ def main() -> int:
         "Sources/WenshuApp/Features/Book/View/BookView.swift",
     )
     ticket_tier = load_tool_tier()
+    # The board writes its card titles in the board's own language, and
+    # the tag is what DECLARES a card's kind (= the tool parses it), so
+    # the fixture asks the TOOL for the tag instead of writing the
+    # character here (= the file stays English, and the fixture cannot
+    # drift from the map the tool actually reads).
+    REVIEW_TAG = ticket_tier.TYPE_TAG_NAMES["review"]
+
     check("the tier of the small body", ticket_tier.tier_of(t1_body)[0], "T1")
     check("the tier of the large body", ticket_tier.tier_of(t3_body)[0], "T3")
     check(
@@ -599,7 +606,7 @@ def main() -> int:
         )
         card = {
             "id": "t_rebase",
-            "title": "[T2][审核] the change",
+            "title": f"[T2][{REVIEW_TAG}] the change",
             "body": f"## WHAT TO BUILD\n\nA verdict on `{reviewed_sha}`.\n\n"
                     "## REVIEW HANDOFF\n\nnone\n",
             "runs": [
@@ -723,7 +730,7 @@ def main() -> int:
         def card(cid, sha, verdict, ended_at):
             return {
                 "id": cid,
-                "title": "[T2][审核] x",
+                "title": f"[T2][{REVIEW_TAG}] x",
                 "body": f"## WHAT TO BUILD\n\nA verdict on `{sha}`.\n\n"
                         "## REVIEW HANDOFF\n\nnone\n",
                 "runs": [{
@@ -790,7 +797,7 @@ def main() -> int:
             True,
         )
         bin_card = {
-            "id": "t_bin", "title": "[T2][审核] x",
+            "id": "t_bin", "title": f"[T2][{REVIEW_TAG}] x",
             "body": f"## WHAT TO BUILD\n\nA verdict on `{one}`.\n\n"
                     "## REVIEW HANDOFF\n\nnone\n",
             "runs": [{"id": 1, "profile": "wenshu-review", "outcome": "completed",
@@ -836,13 +843,13 @@ def main() -> int:
          "ended_at": 400, "metadata": {}},
     ]
     card_approved = {
-        "id": "t_approval", "title": "[T2][审核] x",
+        "id": "t_approval", "title": f"[T2][{REVIEW_TAG}] x",
         "body": "## WHAT TO BUILD\n\nA verdict on `" + "a" * 40 + "`.\n\n"
                 "## REVIEW HANDOFF\n\nnone\n",
         "runs": approved_runs, "events": [], "created_at": 100,
     }
     card_refused = {
-        "id": "t_refusal", "title": "[T2][审核] x",
+        "id": "t_refusal", "title": f"[T2][{REVIEW_TAG}] x",
         "body": "## WHAT TO BUILD\n\nA verdict on `" + "a" * 40 + "`.\n\n"
                 "## REVIEW HANDOFF\n\nnone\n",
         "runs": [{"id": 3, "profile": "wenshu-review", "outcome": "completed",
