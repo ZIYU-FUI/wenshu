@@ -250,7 +250,17 @@ jobs:
       - name: Agents gate (the client's SSOT)
         # The client's SSOT is its own file (= the root one is the
         # desktop's), so the gate reads that one.
-        run: python3 Tools/wenshu-devtool/agents_gate.py --file Mobile/AGENTS.md
+        #
+        # The gate's cap is the cap the Hermes config pins, and a runner
+        # has no Hermes config (= no pin), so the gate would fall back to
+        # the loader's floor (= 20,000 chars) and the file would sit one
+        # edit away from a false red. The pin is written here, so the CI
+        # checks the file against the SAME cap the developers' loader
+        # uses (= 500,000 chars = 0.5 MB).
+        run: |
+          mkdir -p "$HOME/.hermes"
+          printf 'context_file_max_chars: 500000\n' > "$HOME/.hermes/config.yaml"
+          python3 Tools/wenshu-devtool/agents_gate.py --file Mobile/AGENTS.md
   # Lint commit messages for conventional commits + English-only
   lint-commits:
     runs-on: ubuntu-latest

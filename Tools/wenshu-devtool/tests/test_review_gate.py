@@ -29,6 +29,7 @@ Exit: 0 = every case passed, 1 = at least one case failed.
 """
 from __future__ import annotations
 
+import contextlib
 import importlib.util
 import json
 import os
@@ -1182,6 +1183,19 @@ def main() -> int:
 
     cap_gate = load_agents_gate()
 
+    @contextlib.contextmanager
+    def under(home: Path):
+        """Run the gate's code as if $HERMES_HOME were this home."""
+        previous = os.environ.get("HERMES_HOME")
+        os.environ["HERMES_HOME"] = str(home)
+        try:
+            yield
+        finally:
+            if previous is None:
+                os.environ.pop("HERMES_HOME", None)
+            else:
+                os.environ["HERMES_HOME"] = previous
+
     def claimed_pin(home: Path) -> int | None:
         """The cap this home's config CLAIMS, in any form.
 
@@ -1256,6 +1270,8 @@ def main() -> int:
             if proc.returncode == 0 and out and out[-1].strip().isdigit():
                 return int(out[-1].strip())
         return -1
+    real_agents = (Path(__file__).resolve().parents[3] / "AGENTS.md").read_text(
+        encoding="utf-8")
     hermes_root = Path.home() / ".hermes"
     # EVERY live profile DIRECTORY (= a profile with no config.yaml of its
     # own is still a home the loader reads, and the loader falls back to
@@ -1278,6 +1294,19 @@ def main() -> int:
         check(
             f"the gate is not LOOSER than the loader ({home.name})",
             gate_cap <= loader_cap,
+            True,
+        )
+        # and the AGENTS.md FITS under this home's loader cap, with the
+        # margin stated (= a home whose cap is the loader's floor leaves
+        # the file one edit away from a false red, and that has to be
+        # visible, not guessed at).
+        margin = loader_cap - len(real_agents)
+        print(f"    ok: the margin under {home.name}'s loader cap is "
+              f"{margin} chars")
+        check(
+            f"the AGENTS.md fits under this home's loader cap "
+            f"({home.name})",
+            len(real_agents) <= loader_cap,
             True,
         )
         # "NO PIN" and "A PIN THE LOADER IGNORES" must be DIFFERENT
@@ -1318,9 +1347,9 @@ def main() -> int:
         else:
             check(
                 f"this home's config pins no cap the loader honors, so the "
-                f"gate uses the loader's floor ({home.name})",
+                f"gate uses the fallback ({home.name})",
                 gate_cap,
-                20000,
+                49152,
             )
     # A QUOTED PIN IS A STRING, so the loader IGNORES it (= it falls to
     # its dynamic cap), and the gate must not honor it either (= the gate
@@ -1333,7 +1362,7 @@ def main() -> int:
         check(
             "a quoted pin is not a pin (= the loader ignores it)",
             gate_cap_for(quoted),
-            20000,
+            49152,
         )
         check(
             "and the gate is not looser than the loader there",
@@ -1341,13 +1370,16 @@ def main() -> int:
             True,
         )
 
-    # and the gate REFUSES a file over the cap, and accepts the real one
+    # and the gate REFUSES a file over the cap, and accepts the real one.
+    # UNDER THE ROOT HOME, EXPLICITLY: the gate reads $HERMES_HOME, so an
+    # in-process call would answer for the ambient home, and this suite's
+    # verdict would depend on where it happens to run.
     with tempfile.TemporaryDirectory() as tmp:
         big = Path(tmp) / "big.md"
-        big.write_text(
-            "# a\n\n" + ("x" * (cap_gate.effective_context_file_cap()[0] + 10))
-        )
-        report = cap_gate.check_file(big)
+        with under(root_home):
+            limit = cap_gate.effective_context_file_cap()[0]
+            big.write_text("# a\n\n" + ("x" * (limit + 10)))
+            report = cap_gate.check_file(big)
         errors = " ".join(report.get("errors", []))
         check(
             "a file over the cap is refused with the budget error",
@@ -1361,9 +1393,11 @@ def main() -> int:
         real.exists(),
         True,
     )
+    with under(root_home):
+        passes = cap_gate.check_file(real).get("ok")
     check(
         "the real AGENTS.md is under the cap and passes the gate",
-        cap_gate.check_file(real).get("ok"),
+        passes,
         True,
     )
 

@@ -86,7 +86,15 @@ REPO = Path(__file__).resolve().parent.parent.parent
 #
 # So the gate uses the number the config pins, and the suite asserts that
 # the loader honors it under every home.
-CONTEXT_FILE_FLOOR_CHARS = 20_000  # the loader's floor (= its smallest cap)
+CONTEXT_FILE_FALLBACK_CHARS = 49_152  # the loader's cap at the smallest
+# window this project runs (= 204,800 tokens: 204800 * 4 * 0.06).
+# NOT the loader's floor (= 20,000): a home whose model window is
+# smaller would truncate there, but the floor would put the
+# AGENTS.md one edit away from a false red in every home that
+# pins no cap (= the file is 19,949 chars, and the floor is
+# 20,000). The suite checks this fallback against the loader's
+# own answer for EVERY live home, so a home that needs a smaller
+# cap turns the suite red instead of passing silently.
 
 
 ALLOWED_CJK_ANYWHERE = set("老板 文枢 拍 拍板 ※".split())
@@ -246,18 +254,19 @@ def effective_context_file_cap() -> tuple[int, str]:
     loader there (= it would accept a file the loader truncates in the
     middle, which is the one failure this gate exists to prevent).
 
-    AND WHEN THERE IS NO PIN, the gate uses the loader's FLOOR (= 20,000
-    = the smallest cap the loader can ever use), so the gate is never
-    looser than the loader in any home: the loader's cap is the pin,
-    else its dynamic cap (= never below the floor).
+    AND WHEN THERE IS NO PIN, the gate uses the FALLBACK (= 49,152 = the
+    loader's cap at the smallest window this project runs), so the gate
+    is never looser than the loader in any home, and the AGENTS.md is
+    never one edit away from a false red. The suite checks the fallback
+    against the loader's own answer for every live home.
     """
     pinned = _pinned_cap()
     if pinned is not None:
         return pinned, (
             f"the cap this home's config pins ({pinned} chars)"
         )
-    return CONTEXT_FILE_FLOOR_CHARS, (
-        "the loader's floor (this home's config pins no cap)"
+    return CONTEXT_FILE_FALLBACK_CHARS, (
+        "the fallback (this home's config pins no cap)"
     )
 
 
