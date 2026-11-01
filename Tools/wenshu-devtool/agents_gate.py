@@ -425,15 +425,24 @@ def _yaml_load(block: str) -> tuple[object, str]:
         return pyyaml.safe_load(block), "in-process"
     except Exception:
         pass
+    # The loader's package is ASKED of the interpreters, the same way the
+    # cap reader asks for it. A hardcoded checkout here would shadow the
+    # interpreter's own install (= the frontmatter reader and the cap
+    # reader would read TWO different copies of the same package), and
+    # the checkout is on an actively-worked branch, so an edit there
+    # changes this gate with no commit in this repo.
     script = (
-        "import sys;sys.path.insert(0,'/Volumes/ANAN/.hermes/hermes-agent');"
+        "import sys,json;"
+        "roots=json.loads(sys.argv[1]);"
+        "[sys.path.insert(0,r) for r in roots];"
         "from hermes_cli.config import yaml;"
-        "import json;print(json.dumps(yaml.safe_load(sys.stdin.read())))"
+        "print(json.dumps(yaml.safe_load(sys.stdin.read())))"
     )
+    roots = _hermes_source_roots()
     for interpreter in _hermes_pythons():
         try:
             proc = subprocess.run(
-                [interpreter, "-c", script],
+                [interpreter, "-c", script, json.dumps(roots)],
                 input=block,
                 capture_output=True,
                 text=True,

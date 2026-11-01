@@ -512,6 +512,21 @@ used interpreter #1's answer while the gate ran elsewhere), and the gate
 asks the INTERPRETERS where the loader's package lives instead of
 carrying a hardcoded root. All three mutations now go red.
 
+**AND THEN THE NEXT REVIEW FOUND THE HARDCODE SURVIVING IN THE GATE'S
+OTHER READER.** The cap reader was pointed at the discovered roots, but
+the FRONTMATTER reader (`_yaml_load`) still asked a hardcoded checkout
+(= a live git worktree on an actively-worked branch, so an edit there
+changes this gate with no commit in this repo), and the hardcoded path
+SHADOWED the interpreter's own install (= the two readers read two
+different copies of the same package). So both readers ask the
+interpreters now, and `grep -n "/Volumes/\|/Users/"` finds **no
+absolute path left in the gate**.
+
+No answer differed at the time (= the parser file the frontmatter reader
+uses is byte-identical at the checkout and at every discovered root), so
+this was a latent split rather than a live fail-open. But it is the
+split the commit said it closed.
+
 **A LATER REFUSAL WAS SHADOWED BY AN EARLIER APPROVAL.** The gate's
 order put the card naming the current sha first and compared the time
 only WITHIN a group. Every card in that list covers the SAME EDIT (= the
