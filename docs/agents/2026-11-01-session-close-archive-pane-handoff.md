@@ -38,7 +38,7 @@ yet.
 | `parentSessionID: String?` | the session that asked for the work | walk back to the chat |
 | `agentName: String?` | which agent did the work | P2 |
 
-## The two defects this session found and fixed
+## The three defects this session found and fixed
 
 ### 1. SwiftData cannot persist a custom enum
 
@@ -65,17 +65,49 @@ reviews at p50 30 min, p90 50 min, max 86 min. The template was the last
 document still naming 3600, so a creator who followed it built a card the
 tool itself reports as a violation. Fixed to 5400.
 
+The same stale floor also sat in the reference that STATES the rule
+(`references/review-lane-cap-is-not-the-implementation-cap.md`), so a reader
+of the rule saw two different floors. Fixed to 5400 in both places.
+
+### 3. A manifest declaration the package manager never reads
+
+The `mem0` provider's backend failed to initialize in the serving process
+(`No module named 'sentence_transformers'`), so `mem0_search` and
+`mem0_add` returned "Mem0 backend not initialized" while still registering
+their tool schemas.
+
+The plugin's `plugin.yaml` DID declare `sentence-transformers>=3` in
+`pip_dependencies`. The declaration was simply never read: the PM's reader
+(`pm/plugin_declarations.py::read_python_declaration`) returns a plugin's
+`pyproject.toml` `[project] dependencies` when that file exists and was not
+PM-generated, and never falls back to the manifest's `pip_dependencies`. So
+the installed set was `mem0ai` + `httpx` only, in every environment built
+after that edit, while the environment built before it carried the whole
+stack.
+
+The proof that needs no rebuild: `read_python_declaration(plugin_dir)
+.install_requirements` prints the set the PM will actually install, and it
+named no embedder. The fix declares the dependency where the PM reads it
+(= each plugin copy's `pyproject.toml`), and the reader now reports it.
+
+The rebuild that installs it, and the process restart that activates it,
+are left to a moment when no board card is in flight (= a gateway restart
+destroys every running worker). The memories this session wrote went in
+through the provider's OWN path (= `_backend.OSSBackend` -> `mem0.Memory` ->
+qdrant) in a fresh process, and a search through the same path finds them.
+
 ## The measured result
 
-On the branch `pocock/archive` in the worktree
-`/Volumes/ANAN/Engineering/wenshu/.worktrees/archive`:
+Measured on the tree this session's commit carries (= the branch `pocock/archive`
+at the commit whose subject is `feat(archive): the session table carries what
+kind of work it records`):
 
 | Measurement | Value |
 | --- | --- |
 | `swift build` (whole app) | exit 0 |
-| `swift test --filter WenshuDataTests` | exit 0, 141 tests in 32 suites |
+| `swift test --filter WenshuDataTests` | exit 0, 143 tests in 32 suites (= 141 before this session's two new cases) |
 | fresh compile of `WSSession.swift` after deleting its object file | exit 0 |
-| the diff | 1 file, +61/-1, unstaged |
+| the settings scene's 8-pane tripwire (`IconStylesTests`) | passes (= this change adds no pane) |
 
 ## A stale build log that is not a regression
 
@@ -96,8 +128,11 @@ The tree does not regress; a log went stale.
 
 | What | Where |
 | --- | --- |
-| the data-layer diff | worktree `.worktrees/archive`, branch `pocock/archive`, unstaged |
+| the data-layer change | the commit on the branch `pocock/archive` whose subject is `feat(archive): the session table carries what kind of work it records`; it is an ancestor of `refs/heads/pocock/archive` on BOTH remotes (`origin` = `gitcode.com:ZIYU1983/wenshu`, `old-origin` = `github.com:ZIYU-FUI/wenshu`) |
+| the review card | the board card whose body names that commit's sha (= the one review card this session created) |
 | the shared-skill template fix | `/Users/anbaiqiang/.hermes/shared/wenshu-skills/wenshu-parallel-dev/templates/kanban-card-body.md` (the shared tree is `/Users/anbaiqiang/.hermes` -> `/Volumes/ANAN/.hermes`) |
+| the shared-skill reference fix | `.../wenshu-parallel-dev/references/review-lane-cap-is-not-the-implementation-cap.md` (= the same stale 3600 s floor, in the reference that states the rule) |
+| the dependency fix | the `mem0` plugin's `pyproject.toml` in each of the three plugin copies (= see the mem0 note below) |
 | this closure doc | `docs/agents/2026-11-01-session-close-archive-pane-handoff.md` |
 | the boss's rulings | the session's own messages 129594, 129681, 129730, 129768, 129786, 129897 |
 
@@ -161,3 +196,20 @@ The review lane's rules were re-read this session and the new ones bind:
 - `main` is frozen while the card runs;
 - a rejected card is DONE, so a rework round is a NEW card naming the new
   shas.
+
+**THE RECORD WAS CORRECTED IN A SECOND COMMIT, AND THAT MOVES THE REVIEW'S
+FOOTING.** The measured table above was written while the change was still
+unstaged, so it named "unstaged", a file count and a test count that the
+commit made stale (= the house rule: a closure record states DURABLE facts,
+never tips). Correcting it is a second commit on the branch, and a second
+commit changes the branch's EDIT (= the gate's identity is the diff from
+where the branch left `main`, so the correction is part of it). Measured:
+the identity of the branch tip with the correction is NOT the identity of
+the sha the running card names, so the running verdict does NOT cover the
+corrected tip.
+
+So the corrected tip needs its own review card, exactly as a rework round
+does (= the rule above). The card this session created carries the FIRST
+commit's sha; the correction's card names the sha that carries the
+correction. Both are named in the board comment on the first card, so the
+next reader sees the pair.
