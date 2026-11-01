@@ -203,13 +203,25 @@ across 3207 tests in 512 suites. The same run on the tree BEFORE this
 session's first commit reports 20, and the two sets share 19 assertions
 exactly (= a design-token sweep, an editor-title check, an icon-migration
 sweep, the memory provider, the kanban tools, the tool registry, and the
-trigger-closure wiring). The one assertion in each list that the other does
-not have is a TIMING assertion in both directions
-(`HermesTodoStoreConcurrencyTests.swift:268` = `judged.elapsed < 5.0`, and
-`EditorPersistenceTests.swift:253` = a saved body), and each of them PASSES
-when its suite runs alone on BOTH trees (measured three runs each). So the
-whole-suite failures are pre-existing and concurrent-run flaky, and none of
-them touches a file this session changed (= `WSSession.swift`,
+trigger-closure wiring). The one SUITE in each list that the other does not
+have is a TIMING suite in both directions: `HermesTodoStoreConcurrencyTests`
+(= `judged.elapsed < 5.0`) and `EditorPersistenceTests`' auto-save test
+(= it waits for the 3-second auto-save Task, then for the Task to nil
+itself out). Each of them PASSES when its suite runs alone on BOTH trees
+(measured three runs each).
+
+**THE FAILING ASSERTION INSIDE A TIMING SUITE MOVES BETWEEN RUNS, so the
+record names the SUITE rather than the line.** Measured across two
+whole-suite runs of the same tree: the auto-save test failed at
+`EditorPersistenceTests.swift:253` (= `tab.originalBody == "# auto-saved\n"`,
+the write not having landed) in one and at `:259` (= `tab.autoSaveTask == nil`,
+the Task not having nil'd itself) in the other = the same test, the same
+wait, and whichever half of the wait loses the race is the one that reports.
+A reader who reproduces this will see a different LINE, and the line is not
+the fact = the suite is.
+
+So the whole-suite failures are pre-existing and concurrent-run flaky, and
+none of them touches a file this session changed (= `WSSession.swift`,
 `WSSessionTests.swift`, and two documents).
 
 ## A stale build log that is not a regression
