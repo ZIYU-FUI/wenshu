@@ -287,13 +287,16 @@ jobs:
             # the workflow file it lives in (= 57be84050a for the old
             # one, the tip for this one), over the 5,602 commits
             # 57be84050a..50f325e848:
-            #   the OLD rule rejected 1,215 subjects, of which 585 carry
-            #   a scope != (wenshu) (= the repo's own convention), 65
-            #   carry scope exactly (wenshu) (= "merge(wenshu): ...",
-            #   rejected for their type), and 565 have no conventional
-            #   prefix at all;
-            #   the rule above rejects 656, of which none carries a
-            #   scope its own charset accepts.
+            #   the OLD rule rejected 1,215 subjects, of which 650 carry
+            #   a scope (= 585 with a scope other than (wenshu), 65 with
+            #   (wenshu) exactly) and 565 carry no scope at all;
+            #   the rule above rejects 656, of which 91 carry a scope
+            #   (= 88 of them have a scope this job's charset accepts
+            #   and are rejected for their type, and 3 have a space in
+            #   the scope) and 565 carry no scope at all.
+            # So the fix stopped the scope's content from being the
+            # reason a subject was refused, and the scope's existence
+            # is now accepted.
             # The job reads only the last 10 subjects, so it was red on
             # main whenever any of those 10 carried a scope.
             if ! echo "$SUBJECT" | grep -qE "^(feat|fix|docs|test|refactor|chore|perf|build|ci)(\([a-zA-Z0-9._/-]+\))?:"; then

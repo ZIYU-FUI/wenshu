@@ -299,39 +299,66 @@ over the 5,602 commits `57be84050a..50f325e848`:
 git log --format=%s 57be84050a..50f325e848 | grep -vE '<the rule>'
 ```
 
-- the OLD rule (= the scope must be `(wenshu)`) rejected **1,215** of
-  them. Of those, **585 carry a scope != `(wenshu)`** (= the repo's own
-  convention), **65 carry scope exactly `(wenshu)`** (= `merge(wenshu):
-  ...`, rejected for their TYPE, because `merge` is not one of the nine
-  conventional types), and **565 have no conventional prefix at all**.
-- the CURRENT rule (= an optional free-form scope) rejects **656**, of
-  which **none carries a scope the CI's own scope charset accepts**
-  (= `\([a-zA-Z0-9._/-]+\)`), and **91 carry a scope under a broader
-  convention** (= `\w+\([^)]*\):`, which counts scopes the CI's
-  charset would not accept).
+**ONE SCOPE CONVENTION FOR BOTH ROWS** (= a scope is `\w+\([^)]*\):`,
+so a subject that carries one is counted as scoped whatever its type):
 
-So the old rule rejected the repo's own convention (= the 585 scoped
-subjects that use one of the scopes the repo actually writes), and the
-current one rejects no scoped subject that follows it.
+- the OLD rule (= the scope must be `(wenshu)`) rejected **1,215** of
+  them. Of those, **650 carry a scope** (= 585 with a scope other than
+  `(wenshu)`, and 65 with scope exactly `(wenshu)`), and **565 carry no
+  scope at all**. The 650 sum with the 565 to the 1,215.
+- the CURRENT rule (= an optional free-form scope) rejects **656**, of
+  which **91 carry a scope** and **565 carry no scope at all**. Of the
+  91, **88 carry a scope the CI's own charset accepts** (= they are
+  rejected for their TYPE, because `merge`, `style`, `ref`, `tool`,
+  `debug`, `i18n`, `spec`, `revert` and `cleanup` are not among the nine
+  conventional types), and **3 carry a scope the charset rejects** (= a
+  scope with a space in it).
+
+**SO WHAT THE FIX ACTUALLY CHANGED.** `(wenshu)` IS one of the repo's
+own 97 scopes, so the OLD rule rejected **650** of the subjects that
+carry one of the scopes the repo actually writes. The CURRENT rule
+rejects **91** of them, and every one of those 91 is rejected for
+something OTHER than the scope's shape (= 88 for its type, 3 for a space
+inside the scope). So the fix stopped the scope's CONTENT from being
+the reason, and it did not stop the scope's EXISTENCE from being
+accepted: **the current rule accepts a subject whose scope is one of
+the repo's own**, which is what the old rule refused to do.
 
 **THE COUNTS ARE NAMED WITH THEIR TREE, THEIR COMMAND AND THEIR
-CONVENTION, BECAUSE A COUNT WITHOUT THOSE IS A CLAIM.** Two earlier
-readings of this record got this wrong: the first counted with a regex
-the record wrote itself (809), and the second wrote "650 of those carry
-a scope (= every one a scope != `(wenshu)`)" (= false: 65 of the 650
+CONVENTION, BECAUSE A COUNT WITHOUT THOSE IS A CLAIM.** Three earlier
+readings of this record got this wrong, and each one changed the
+glosses rather than the numbers: the first counted with a regex the
+record wrote itself (809); the second wrote "650 of those carry a
+scope (= every one a scope != `(wenshu)`)" (= false: 65 of the 650
 carry scope exactly `(wenshu)`) and "656 ... NONE of those carries a
-scope" (= false under the broad convention: 91 of them do). The two
-rows also needed two DIFFERENT scope conventions to come out as
-written, and no single convention makes both true.
+scope" (= false: 91 of them do); and the third wrote "none carries a
+scope the CI's own charset accepts" (= false: 88 of the 91 do) and
+paired the two rules' counts as "1,216 and 651" (= 651 is the OLD
+rule's scoped count at that tree, not the CURRENT rule's rejection
+count). So the rows are now ONE convention, and every clause in them is
+true under it.
 
 **AND THE NUMBERS MOVE WITH THE TREE, SO THE TREE IS NAMED.** The
-counts above hold at `50f325e848`; at the commit that carries them
-(`d058fee233`) the same command gives 1,216 and 651 over 5,603 commits,
-because the count is over the commits that exist at the tree.
+counts above hold at `50f325e848`. At `d058fee233` the OLD rule rejects
+**1,216** over 5,603 commits (= its scoped count is 651), and the
+CURRENT rule still rejects **656** (= the commits since are `docs(close):
+...`, which the current rule accepts). So a count is over the commits
+that exist at the tree, and the pair that moves is named per rule.
 
 And the job reads only the last 10 subjects, so it was red on main
-whenever any of those 10 carried a scope (= 4 of the 10 were rejected
-at this session's base, and all 10 are now).
+whenever any of those 10 carried a scope. Measured with the OLD rule
+over the last 10 subjects: **4 of the 10 were rejected at `fda16f70b5`**
+(= the tree this session's cap work started from), and **10 of the 10
+are rejected at the tip** (= every one of the last 10 subjects carries a
+scope the old rule would refuse, because they are `fix(gate): ...`,
+`docs(close): ...` and `fix(ci): ...`).
+
+**THE TREE IS NAMED BECAUSE THE FIGURE BELONGS TO ONE TREE.** An earlier
+reading of this record said "4 of the 10 at this session's base", and
+"this session's base" names two different trees in this record (= the
+Swift section's base is `0beb37b910`, and the 4-of-10 figure is
+`fda16f70b5`). Measured at `0beb37b910` the old rule rejects **10 of the
+last 10**, not 4.
 
 **§7.10 = a review card's gate section must name the suite in the FORM
 the gate-width gate reads.** This session's card named it as a shell
