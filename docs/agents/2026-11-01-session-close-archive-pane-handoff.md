@@ -195,7 +195,7 @@ The tree does not regress; a log went stale.
 | the review card | the board card whose body names that commit's sha (= the one review card this session created) |
 | the shared-skill template fix | `/Users/anbaiqiang/.hermes/shared/wenshu-skills/wenshu-parallel-dev/templates/kanban-card-body.md` (the shared tree is `/Users/anbaiqiang/.hermes` -> `/Volumes/ANAN/.hermes`) |
 | the shared-skill reference fix | `.../wenshu-parallel-dev/references/review-lane-cap-is-not-the-implementation-cap.md` (= the same stale 3600 s floor, in the reference that states the rule) |
-| the dependency fix | the `mem0` plugin's `pyproject.toml` in each of the three plugin copies (= see the mem0 note below) |
+| the dependency fix | the `mem0` plugin's `pyproject.toml` in each of the three plugin copies (= see the mem0 note above) |
 | this closure doc | `docs/agents/2026-11-01-session-close-archive-pane-handoff.md` |
 | the boss's rulings | the session's own messages 129594, 129681, 129730, 129768, 129786, 129897 |
 
