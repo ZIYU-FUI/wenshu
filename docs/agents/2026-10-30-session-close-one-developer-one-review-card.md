@@ -315,6 +315,52 @@ BASE's `KanbanView.swift` put back in place (= GREEN) and once with the
 sibling's file (= RED). So the failure follows the file, and the file is
 the sibling's.
 
+## WHAT THE STANDARDS AUDIT FOUND (the delegated read of the diff)
+
+An independent sub-agent read the whole diff against the repo's own rules
+(= §7's Standards axis). It found six things; three were real, and two
+of them were MY OWN regressions.
+
+**THE GATE READ THE PIN WITH A REGEX, SO IT COULD BE LOOSER THAN THE
+LOADER.** `agents_gate.py` matched the pin with a regex over the text,
+while the loader parses the config. The two rules disagree in both
+directions, and the disagreement is a fail-OPEN:
+
+| the config | the gate said | the loader said | |
+| --- | --- | --- | --- |
+| a plain pin | 500,000 | 500,000 | agree |
+| a pin with a trailing comment | 49,152 | 500,000 | a false red |
+| **a DUPLICATE key** | **500,000** | **49,152** | **FAIL-OPEN** |
+| a quoted pin | 49,152 | 49,152 | agree |
+
+The duplicate key is the dangerous one: the loader's parser REJECTS the
+file (= it falls back to its dynamic cap), the regex took the FIRST
+match (= 500,000), so the gate accepted a file the loader truncates in
+the middle = the one failure this gate exists to prevent. And the fix is
+not a better regex: the gate now reads the config with the LOADER'S OWN
+PARSER (`_yaml_load`, which the gate already had for the frontmatter), so
+the two can never disagree. Six shapes are now cases, each measured
+against the loader's own answer.
+
+**A LATER REFUSAL WAS SHADOWED BY AN EARLIER APPROVAL.** The gate's
+order put the card naming the current sha first and compared the time
+only WITHIN a group. Every card in that list covers the SAME EDIT (= the
+sha group names the sha the branch points at, and the change group names
+a sha the branch used to point at whose change identity agrees), so the
+group cannot outrank the time: an approval at t=100 on the current sha
+shadowed a refusal at t=500 on the same change under its pre-rebase sha,
+and the branch landed on a change the reviewer had refused. The order is
+now the LATER verdict first, with the group as the tie-break.
+
+**AND A SECOND PIECE OF DEAD CODE** (`PATH_PREFIXES` in
+`agents_gate.py`, whose only occurrence was its own assignment).
+
+The audit also CLEARED two hypotheses it could not reproduce: the
+identity collision from the `diff --git ` marker split (= a content line
+beginning with that marker would be cut into a fake section, but no two
+different changes collide), and CI running no devtool suite (= true, and
+pre-existing: which is why the cap regression was invisible to CI).
+
 ## The repo gates, on the merged tree
 
 `python3 Tools/wenshu-devtool/agents_gate.py --file AGENTS.md` exits 0.

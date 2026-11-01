@@ -761,6 +761,26 @@ def main() -> int:
             [f[0] for f in found2][:1],
             ["t_late"],
         )
+        # D1-ACROSS-GROUPS: the same shadowing, the other way round. The
+        # approval names the CURRENT sha and the LATER refusal names the
+        # change under its PRE-REBASE sha (= the same edit, an older
+        # commit id). Both cards are about the same change, so the later
+        # verdict governs and the branch is NOT cleared.
+        early_approval = card("t_early", rebased, "approved", 100)
+        late_refusal = card("t_late_refusal", reviewed, "changes_requested", 500)
+        found3 = tool.matching_cards(
+            [early_approval, late_refusal], rebased, "feature")
+        check(
+            "D1: a LATER refusal is not shadowed by an EARLIER approval "
+            "across the sha/change groups",
+            [f[0] for f in found3][:1],
+            ["t_late_refusal"],
+        )
+        check(
+            "D1: and the branch is NOT cleared",
+            found3[0][1],
+            "changes_requested",
+        )
         os.chdir(cwd_before)
 
     # ---- D4: a BINARY change has an identity ----

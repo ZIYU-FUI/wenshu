@@ -543,10 +543,25 @@ def matching_cards(
             card.get("id"), verdict.get("status"), verdict.get("reviewer"), "change",
             _verdict_time(doc),
         ))
-    # The authority order: the card that names the CURRENT sha first, and
-    # within one group the LATER verdict first (= a later refusal voids an
-    # earlier approval). The caller takes the first card.
-    found.sort(key=lambda row: (0 if row[3] == "sha" else 1, -(row[4] or 0)))
+    # THE AUTHORITY ORDER IS THE VERDICT'S OWN TIME, because EVERY card
+    # in this list covers the SAME EDIT: the "sha" group names the sha
+    # the branch points at, and the "change" group names a sha the
+    # branch used to point at whose change identity agrees (= the same
+    # edit, under an older commit id). The groups say HOW a card matched
+    # (= by id or by edit), not WHICH edit it is about, so they cannot
+    # outrank the time.
+    #
+    # The LATER verdict governs, so a later refusal is never shadowed by
+    # an earlier approval. Measured 2026-10-31: an OLD approval of a
+    # pre-rebase tree shadowed a NEWER refusal of the current tree, and
+    # the branch landed. Measured 2026-11-01: the same shadowing in the
+    # other direction (= a card approved the current sha at t=100, a
+    # LATER card refused the same change under its pre-rebase sha at
+    # t=500, and the group order let the approval win).
+    #
+    # The group is the TIE-BREAK: at the same time, the card that names
+    # the current sha is the more specific answer about what will land.
+    found.sort(key=lambda row: (-(row[4] or 0), 0 if row[3] == "sha" else 1))
     return [(row[0], row[1], row[2], row[3]) for row in found]
 
 

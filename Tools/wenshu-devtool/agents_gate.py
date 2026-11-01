@@ -169,20 +169,6 @@ PATHLIKE_RE = re.compile(
 # A bare file name: no path separator. It is a reference only when its
 # extension says so (see BARE_CHECKED_EXT), because a bare ".json" is a
 # runtime data file the app writes, not a file in this repo.
-PATH_PREFIXES = (
-    "Scripts",
-    "Tools",
-    "Sources",
-    "Tests",
-    "docs",
-    "Features",
-    ".github",
-    ".hermes",
-    "/",
-    "./",
-    "~",
-)
-
 # The skill families this project uses. A name with one of these prefixes
 # is a promise ("this skill enforces that"), so it must resolve. A hyphenated
 # English word ("cold-cache") is prose, not a promise, so it is not checked.
@@ -218,11 +204,23 @@ TOOL_COLUMNS = ("enforcement", "reference", "skill", "tool", "gate", "source", "
 def _pinned_cap() -> int | None:
     """The cap THIS home's config pins, or None when it pins none.
 
-    Conservative on purpose: only an UNQUOTED integer is a pin. The
-    loader honors the config value only when it is an int or a float, so
-    a quoted value is a string the loader IGNORES, and honoring it here
-    would make the gate LOOSER than the loader (= it would accept a
-    file the loader truncates in the middle).
+    THE CONFIG IS READ WITH THE LOADER'S OWN PARSER (``_yaml_load``),
+    not with a regex over the text. The two rules disagree, and every
+    disagreement is a place where the gate can come out LOOSER than the
+    loader (= it accepts a file the loader truncates in the middle,
+    which is the one failure this gate exists to prevent). Measured
+    2026-11-01, against the loader's own answer:
+
+    * a DUPLICATE key: the loader's parser REJECTS the file (= it falls
+      back to its dynamic cap), while a regex took the FIRST match and
+      answered 500,000 = the gate was LOOSER than the loader.
+    * a pin with a TRAILING COMMENT: the loader honors it (= 500,000),
+      while the regex did not match it (= the gate was stricter, and
+      reported a false red).
+
+    So the gate asks the same reader the loader asks. A config the
+    parser cannot read carries NO pin (= the loader is on its dynamic
+    cap there, so the gate's fallback is the right answer).
     """
     home = os.environ.get("HERMES_HOME")
     base = Path(home) if home else Path.home() / ".hermes"
@@ -230,12 +228,16 @@ def _pinned_cap() -> int | None:
         text = (base / "config.yaml").read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
         return None
-    pinned = re.search(
-        r"^context_file_max_chars:[ \t]*(\d+)[ \t]*$", text, re.M)
-    if not pinned:
+    parsed, _how = _yaml_load(text)
+    if not isinstance(parsed, dict):
         return None
-    value = int(pinned.group(1))
-    return value if value > 0 else None
+    value = parsed.get("context_file_max_chars")
+    # The loader honors the value only when it is an int or a float, and
+    # ``bool`` IS an int in Python (= the loader honors ``true`` as 1),
+    # so the condition is the loader's own.
+    if not isinstance(value, (int, float)):
+        return None
+    return int(value) if value > 0 else None
 
 
 def effective_context_file_cap() -> tuple[int, str]:

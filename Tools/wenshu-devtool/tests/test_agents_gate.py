@@ -28,6 +28,8 @@ Exit: 0 = every case passed, 1 = at least one case failed.
 from __future__ import annotations
 
 import importlib.util
+import subprocess
+import os
 import sys
 import tempfile
 from pathlib import Path
@@ -279,6 +281,95 @@ def main() -> int:
             "; ".join(r["errors"][:3]),
         )
     )
+
+    # 13. the gate reads the pin with the LOADER's parser, so the two
+    #     can never disagree about what a config pins. Measured
+    #     2026-11-01: a DUPLICATE key (= the loader's parser REJECTS the
+    #     file, and the loader falls back to its dynamic cap) was read by
+    #     a regex as the FIRST match, so the gate said 500,000 where the
+    #     loader said 49,152 = the gate was LOOSER than the loader, and it
+    #     would accept a file the loader truncates in the middle (= the
+    #     one failure this gate exists to prevent).
+    #
+    #     So the cases ask for the cap under a fixture HOME whose config
+    #     carries each shape, and compare it with the LOADER's own answer.
+    with tempfile.TemporaryDirectory() as tmp:
+        _shape_no = [0, 0]
+
+        def cap_under(config_text: str) -> int:
+            # A FRESH home per shape: the loader keeps the LAST KNOWN GOOD
+            # config for a home whose file breaks (= a duplicate key), so
+            # a home reused across shapes would serve a cached answer and
+            # the comparison would measure the cache, not the shape.
+            home = Path(tmp) / f"home-{_shape_no[0]}"
+            _shape_no[0] += 1
+            home.mkdir()
+            (home / "config.yaml").write_text(config_text, encoding="utf-8")
+            previous = os.environ.get("HERMES_HOME")
+            os.environ["HERMES_HOME"] = str(home)
+            try:
+                return ag.effective_context_file_cap()[0]
+            finally:
+                if previous is None:
+                    os.environ.pop("HERMES_HOME", None)
+                else:
+                    os.environ["HERMES_HOME"] = previous
+
+        def loader_cap_under(config_text: str) -> int | None:
+            """The LOADER's own answer for that config (= its oracle)."""
+            home = Path(tmp) / f"loader-home-{_shape_no[1]}"
+            _shape_no[1] += 1
+            home.mkdir()
+            (home / "config.yaml").write_text(config_text, encoding="utf-8")
+            script = (
+                "import sys;sys.path.insert(0,'/Volumes/ANAN/.hermes/hermes-agent');"
+                "from agent.prompt_builder import _get_context_file_max_chars;"
+                "print(_get_context_file_max_chars(204800))"
+            )
+            for interpreter in ag._hermes_pythons():
+                previous = os.environ.get("HERMES_HOME")
+                os.environ["HERMES_HOME"] = str(home)
+                try:
+                    proc = subprocess.run(
+                        [interpreter, "-c", script],
+                        capture_output=True, text=True, timeout=60,
+                    )
+                except (OSError, subprocess.SubprocessError):
+                    continue
+                finally:
+                    if previous is None:
+                        os.environ.pop("HERMES_HOME", None)
+                    else:
+                        os.environ["HERMES_HOME"] = previous
+                if proc.returncode == 0:
+                    try:
+                        return int(proc.stdout.strip().splitlines()[-1])
+                    except (ValueError, IndexError):
+                        continue
+            return None
+
+        shapes = (
+            ("a plain pin", "context_file_max_chars: 500000\n"),
+            ("a pin with a trailing comment",
+             "context_file_max_chars: 500000  # a comment\n"),
+            ("a DUPLICATE key (= the loader rejects the file)",
+             "context_file_max_chars: 500000\ncontext_file_max_chars: 400000\n"),
+            ("a quoted pin (= the loader ignores a string)",
+             "context_file_max_chars: '500000'\n"),
+            ("a pin of zero (= the loader rejects it)",
+             "context_file_max_chars: 0\n"),
+            ("a config that is not a mapping", "not: a mapping\n"),
+        )
+        for label, config_text in shapes:
+            gate_cap = cap_under(config_text)
+            loader_cap = loader_cap_under(config_text)
+            results.append(
+                case(
+                    f"the gate and the loader agree on {label}",
+                    loader_cap is not None and gate_cap == loader_cap,
+                    f"the gate says {gate_cap}, the loader says {loader_cap}",
+                )
+            )
 
     passed = sum(1 for r_ in results if r_)
     print(f"\n{passed}/{len(results)} cases passed")
