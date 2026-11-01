@@ -294,6 +294,9 @@ jobs:
             #   (= 88 of them have a scope this job's charset accepts
             #   and are rejected for their type, and 3 have a space in
             #   the scope) and 565 carry no scope at all.
+            # A scope is "^\w+\([^)]*\):", ANCHORED at the subject's
+            # head (= the anchor matters: an unanchored grep also counts
+            # a scope-shaped token inside a quoted revert title).
             # So the fix stopped the scope's content from being the
             # reason a subject was refused, and the scope's existence
             # is now accepted.

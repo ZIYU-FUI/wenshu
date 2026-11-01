@@ -288,8 +288,9 @@ of them found things that were NOT this session's cap work.
 **§7.8 = the CI lint job rejects the repo's own commit subjects.** Its
 regex demanded the scope to be EXACTLY `(wenshu)`, while the repo's own
 commits use many scopes (= `(gate)`, `(close)`, `(editor)`, ... = 97
-distinct scopes over main's history) and its own pre-commit hook (= the
-rule's other reference) accepts every one of them.
+distinct scopes over main's history, counted under the same anchored
+convention) and its own pre-commit hook (= the rule's other reference)
+accepts every one of them.
 
 Measured at tree `50f325e848`, with the job's OWN regexes (= read out of
 the workflow files at `57be84050a` and at the tip, not restated here),
@@ -299,8 +300,9 @@ over the 5,602 commits `57be84050a..50f325e848`:
 git log --format=%s 57be84050a..50f325e848 | grep -vE '<the rule>'
 ```
 
-**ONE SCOPE CONVENTION FOR BOTH ROWS** (= a scope is `\w+\([^)]*\):`,
-so a subject that carries one is counted as scoped whatever its type):
+**ONE SCOPE CONVENTION FOR BOTH ROWS** (= a scope is `^\w+\([^)]*\):`,
+ANCHORED at the subject's head, so a subject that carries one is counted
+as scoped whatever its type):
 
 - the OLD rule (= the scope must be `(wenshu)`) rejected **1,215** of
   them. Of those, **650 carry a scope** (= 585 with a scope other than
@@ -550,10 +552,11 @@ prevent).
 THE FALLBACK IS NOT THE LOADER'S FLOOR (= 20,000 = the smallest cap the
 loader can ever use), because the AGENTS.md is 19,949 chars: against
 the floor it would sit 51 chars away from a false red in every home
-that pins no cap, and it had been creeping up against that floor (three
-commits, one char each). The suite checks the fallback against the
-LOADER'S OWN answer for every live home, so a home that needs a smaller
-cap turns the suite red instead of passing silently.
+that pins no cap, and it had been creeping up against that floor (TWO
+commits, one char each: `74568d4819` and `830cb5d2c8`). The suite
+checks the fallback against the LOADER'S OWN answer for every live
+home, so a home that needs a smaller cap turns the suite red instead of
+passing silently.
 
 AND THE CI CARRIES THE PIN (= the workflow writes the config before it
 runs the gate), so the CI checks the file against the SAME cap the
@@ -614,14 +617,24 @@ declaration (`ChatReasoningPartView.renderMarkdown`,
 Every one of those three is a pre-existing Swift view, and this session
 documents under `docs/agents/`.
 
-The CJK audit over the added lines of every commit this session
-made reports 6 new characters, all of them the board's own two kind tags
-(the review tag and the build tag, as `Tools/wenshu-devtool/ticket_tier.py`
-spells them = it maps them to `review` and `build`), in one test fixture,
-used the way that file already used the same tags twice before. So they
-are the tool's own vocabulary and not a comment, and rule 1.1's subject
-check (which the CI lint job runs) is clean: every commit subject is
-English with a conventional prefix.
+The CJK audit over the added lines of every commit this session made
+reports **16 new characters, in two test fixtures** (= 10 in
+`Tools/wenshu-devtool/tests/test_review_gate.py` and 6 in
+`Tools/wenshu-devtool/tests/test_ticket_tier.py`), and the distinct
+characters are four: the board's own two kind tags (the review tag and
+the build tag, as `Tools/wenshu-devtool/ticket_tier.py` spells them = it
+maps them to `review` and `build`). So they are the tool's own vocabulary
+and not a comment, and rule 1.1's subject check (which the CI lint job
+runs) is clean: every commit subject is English with a conventional
+prefix.
+
+**AND THE COUNT IS MEASURED AT THIS TREE, WITH THE COMMIT SET NAMED.**
+It was 6 in one fixture at the trees up to `41e0b78961`; three later
+commits of this session added the other 10 to a SECOND fixture
+(`8d899234b5` +2, `74568d4819` +2, `4a1cb222a0` +6), so the two
+readings disagree only because they were taken at different trees. And
+§7.5 above says the same thing about the one file it names (= the file
+went "from zero CJK characters to ten"), so the two sections now agree.
 
 ## Where this is (the durable fact)
 
