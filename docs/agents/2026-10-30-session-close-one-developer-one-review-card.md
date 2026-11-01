@@ -291,28 +291,47 @@ commits use many scopes (= `(gate)`, `(close)`, `(editor)`, ... = 97
 distinct scopes over main's history) and its own pre-commit hook (= the
 rule's other reference) accepts every one of them.
 
-Measured at this tree, with the job's OWN regex (= read out of the
-workflow file at the commit that added it, not restated here), over the
-5,602 commits since the job was added:
+Measured at tree `50f325e848`, with the job's OWN regexes (= read out of
+the workflow files at `57be84050a` and at the tip, not restated here),
+over the 5,602 commits `57be84050a..50f325e848`:
+
+```
+git log --format=%s 57be84050a..50f325e848 | grep -vE '<the rule>'
+```
 
 - the OLD rule (= the scope must be `(wenshu)`) rejected **1,215** of
-  them, and 650 of those carry a scope (= every one a scope !=
-  `(wenshu)`);
-- the CURRENT rule (= an optional free-form scope) rejects **656**, and
-  NONE of those carries a scope (= they are the subjects with no
-  conventional prefix at all).
+  them. Of those, **585 carry a scope != `(wenshu)`** (= the repo's own
+  convention), **65 carry scope exactly `(wenshu)`** (= `merge(wenshu):
+  ...`, rejected for their TYPE, because `merge` is not one of the nine
+  conventional types), and **565 have no conventional prefix at all**.
+- the CURRENT rule (= an optional free-form scope) rejects **656**, of
+  which **none carries a scope the CI's own scope charset accepts**
+  (= `\([a-zA-Z0-9._/-]+\)`), and **91 carry a scope under a broader
+  convention** (= `\w+\([^)]*\):`, which counts scopes the CI's
+  charset would not accept).
 
-So the old rule rejected the repo's own convention, and the current one
-rejects only the subjects with no conventional prefix at all. And the job
-reads only the last 10 subjects, so it was red on main whenever any of
-those 10 carried a scope (= 4 of the 10 were rejected at this session's
-base, and all 10 are now).
+So the old rule rejected the repo's own convention (= the 585 scoped
+subjects that use one of the scopes the repo actually writes), and the
+current one rejects no scoped subject that follows it.
 
-**THE COUNT IS A FACT ABOUT THE JOB'S OWN REGEX, SO THE REGEX IS NAMED
-AND READ OUT OF THE FILE.** An earlier reading of this record counted
-with a different regex (= `\w+` for the type, and only `(wenshu)` for
-the scope) and reported 809. That is a different measurement of a
-different rule, so it is replaced by the table above.
+**THE COUNTS ARE NAMED WITH THEIR TREE, THEIR COMMAND AND THEIR
+CONVENTION, BECAUSE A COUNT WITHOUT THOSE IS A CLAIM.** Two earlier
+readings of this record got this wrong: the first counted with a regex
+the record wrote itself (809), and the second wrote "650 of those carry
+a scope (= every one a scope != `(wenshu)`)" (= false: 65 of the 650
+carry scope exactly `(wenshu)`) and "656 ... NONE of those carries a
+scope" (= false under the broad convention: 91 of them do). The two
+rows also needed two DIFFERENT scope conventions to come out as
+written, and no single convention makes both true.
+
+**AND THE NUMBERS MOVE WITH THE TREE, SO THE TREE IS NAMED.** The
+counts above hold at `50f325e848`; at the commit that carries them
+(`d058fee233`) the same command gives 1,216 and 651 over 5,603 commits,
+because the count is over the commits that exist at the tree.
+
+And the job reads only the last 10 subjects, so it was red on main
+whenever any of those 10 carried a scope (= 4 of the 10 were rejected
+at this session's base, and all 10 are now).
 
 **§7.10 = a review card's gate section must name the suite in the FORM
 the gate-width gate reads.** This session's card named it as a shell
