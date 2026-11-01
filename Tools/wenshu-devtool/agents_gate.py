@@ -201,6 +201,69 @@ SKILL_PREFIXES = ("wenshu-", "pocock-", "universal-", "mattpocock", "q99-")
 # (= the mandate's own words), so a rule may use them anywhere.
 TOOL_COLUMNS = ("enforcement", "reference", "skill", "tool", "gate", "source", "path", "file")
 
+def _config_as_the_loader_reads(text: str) -> tuple[object | None, str]:
+    """Parse the config the way the LOADER reads it, and nothing else.
+
+    The loader's parser is STRICT: it REJECTS a file it cannot read
+    (= a duplicate key), and the loader then falls back to its dynamic
+    cap. So the gate has to fall back the same way.
+
+    AND IT MUST NOT READ THE FILE WITH A LAUNCHER PARSER AFTER THE
+    LOADER'S PARSER REJECTED IT. Plain PyYAML takes the LAST value of a
+    duplicate key, so a fallback chain answered 400,000 where the loader
+    answers 49,152 = the gate was LOOSER than the loader (= it accepted
+    a file the loader truncates in the middle, which is the one failure
+    this gate exists to prevent). Measured 2026-11-01: the third
+    interpreter in the gate's own search path has PyYAML 6.0.3, and
+    there the lax link answered, so the fail-open was REACHABLE on the
+    machine that runs the gate.
+
+    So: the loader's parser and NOTHING ELSE. A file it rejects carries
+    NO pin (= the loader is on its dynamic cap, so the gate's fallback
+    is the right answer). Returns (value, how) where how is
+    "in-process", "subprocess", "rejected" (= the parser read the file
+    and refused it), or "none" (= no parser was reachable).
+    """
+    try:
+        from hermes_cli.config import yaml as hermes_yaml  # type: ignore
+
+        try:
+            return hermes_yaml.safe_load(text), "in-process"
+        except Exception:
+            # The parser REJECTED the file (= a duplicate key). The
+            # loader falls back to its dynamic cap, so there is no pin.
+            return None, "rejected"
+    except Exception:
+        pass  # the loader's package is not importable here
+    script = (
+        "import sys;sys.path.insert(0,'/Volumes/ANAN/.hermes/hermes-agent');"
+        "from hermes_cli.config import yaml;"
+        "import json;print(json.dumps(yaml.safe_load(sys.stdin.read())))"
+    )
+    for interpreter in _hermes_pythons():
+        try:
+            proc = subprocess.run(
+                [interpreter, "-c", script],
+                input=text,
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+        except (OSError, subprocess.SubprocessError):
+            continue
+        if proc.returncode != 0:
+            # The parser REJECTED the file (= a duplicate key). The
+            # loader falls back to its dynamic cap, so there is no pin.
+            # And a lax parser MUST NOT be tried here: it would answer
+            # where the loader refuses (= the gate would be looser).
+            return None, "rejected"
+        try:
+            return json.loads(proc.stdout), "subprocess"
+        except json.JSONDecodeError:
+            continue
+    return None, "none"
+
+
 def _pinned_cap() -> int | None:
     """The cap THIS home's config pins, or None when it pins none.
 
@@ -228,7 +291,7 @@ def _pinned_cap() -> int | None:
         text = (base / "config.yaml").read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
         return None
-    parsed, _how = _yaml_load(text)
+    parsed, _how = _config_as_the_loader_reads(text)
     if not isinstance(parsed, dict):
         return None
     value = parsed.get("context_file_max_chars")

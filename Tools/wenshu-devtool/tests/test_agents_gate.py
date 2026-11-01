@@ -294,7 +294,7 @@ def main() -> int:
     #     So the cases ask for the cap under a fixture HOME whose config
     #     carries each shape, and compare it with the LOADER's own answer.
     with tempfile.TemporaryDirectory() as tmp:
-        _shape_no = [0, 0]
+        _shape_no = [0, 0, 0]
 
         def cap_under(config_text: str) -> int:
             # A FRESH home per shape: the loader keeps the LAST KNOWN GOOD
@@ -348,6 +348,44 @@ def main() -> int:
                         continue
             return None
 
+        # The gate's reader is a CHAIN over the interpreters it finds, so
+        # the case runs in EVERY one of them: an interpreter with a LAX
+        # yaml parser installed answers a duplicate key where the loader
+        # refuses it, and that interpreter is the one that would carry
+        # the fail-open. Measured 2026-11-01: the third interpreter in
+        # the gate's own search path has PyYAML 6.0.3.
+        def gate_cap_in(interpreter: str, config_text: str) -> int | None:
+            home = Path(tmp) / f"gate-home-{_shape_no[2]}"
+            _shape_no[2] += 1
+            home.mkdir()
+            (home / "config.yaml").write_text(config_text, encoding="utf-8")
+            script = (
+                "import sys;sys.path.insert(0,'/Volumes/ANAN/Engineering/wenshu"
+                "/Tools/wenshu-devtool');"
+                "import agents_gate as ag;"
+                "print(ag.effective_context_file_cap()[0])"
+            )
+            previous = os.environ.get("HERMES_HOME")
+            os.environ["HERMES_HOME"] = str(home)
+            try:
+                proc = subprocess.run(
+                    [interpreter, "-c", script],
+                    capture_output=True, text=True, timeout=120,
+                )
+            except (OSError, subprocess.SubprocessError):
+                return None
+            finally:
+                if previous is None:
+                    os.environ.pop("HERMES_HOME", None)
+                else:
+                    os.environ["HERMES_HOME"] = previous
+            if proc.returncode != 0:
+                return None
+            try:
+                return int(proc.stdout.strip().splitlines()[-1])
+            except (ValueError, IndexError):
+                return None
+
         shapes = (
             ("a plain pin", "context_file_max_chars: 500000\n"),
             ("a pin with a trailing comment",
@@ -370,6 +408,24 @@ def main() -> int:
                     f"the gate says {gate_cap}, the loader says {loader_cap}",
                 )
             )
+
+        # And in EVERY interpreter the gate would use, because the gate
+        # picks one at runtime and a LAX yaml parser in one of them
+        # answers a duplicate key where the loader refuses it.
+        interpreters = sorted(set(ag._hermes_pythons()))
+        for interpreter in interpreters:
+            for label, config_text in shapes:
+                gate_cap = gate_cap_in(interpreter, config_text)
+                loader_cap = loader_cap_under(config_text)
+                results.append(
+                    case(
+                        f"the gate and the loader agree on {label} in "
+                        f"{Path(interpreter).parent.parent.name}",
+                        loader_cap is not None and gate_cap == loader_cap,
+                        f"the gate says {gate_cap}, the loader says "
+                        f"{loader_cap}",
+                    )
+                )
 
     passed = sum(1 for r_ in results if r_)
     print(f"\n{passed}/{len(results)} cases passed")

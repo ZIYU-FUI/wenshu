@@ -338,9 +338,21 @@ file (= it falls back to its dynamic cap), the regex took the FIRST
 match (= 500,000), so the gate accepted a file the loader truncates in
 the middle = the one failure this gate exists to prevent. And the fix is
 not a better regex: the gate now reads the config with the LOADER'S OWN
-PARSER (`_yaml_load`, which the gate already had for the frontmatter), so
-the two can never disagree. Six shapes are now cases, each measured
-against the loader's own answer.
+PARSER, so the two can never disagree.
+
+AND THE FIRST FIX AT THAT WAS NOT ENOUGH. `_yaml_load` (= the reader the
+gate already had for the frontmatter) is a CHAIN, and when the loader's
+strict parser REJECTS a file the chain fell through to plain PyYAML,
+which takes the LAST value of a duplicate key = 400,000 where the loader
+says 49,152. So the fail-open was reopened by the fallback. The gate now
+reads the config with the loader's parser and NOTHING ELSE: a file that
+parser rejects carries no pin (= the loader is on its dynamic cap, so
+the gate's fallback is the right answer).
+
+And it was REACHABLE on this machine: the third interpreter in the gate's
+own search path has PyYAML 6.0.3, and there the lax link answered. So
+the case now runs in EVERY interpreter the gate would use (= 116 cases),
+each measured against the loader's own answer in the same interpreter.
 
 **A LATER REFUSAL WAS SHADOWED BY AN EARLIER APPROVAL.** The gate's
 order put the card naming the current sha first and compared the time
