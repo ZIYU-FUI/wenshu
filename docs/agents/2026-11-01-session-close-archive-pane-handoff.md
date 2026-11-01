@@ -185,16 +185,32 @@ delegated child's row reads it.
 
 ## The measured result
 
-Measured on the tree this session's commit carries (= the branch `pocock/archive`
-at the commit whose subject is `feat(archive): the session table carries what
-kind of work it records`):
+Measured on the MERGED tree (= `main`, after the landing; = the tree the
+boss runs, not the branch that was measured before the merge):
 
 | Measurement | Value |
 | --- | --- |
-| `swift build` (whole app) | exit 0 |
+| `swift build` (whole app) | exit 0, "Build complete!" |
 | `swift test --filter WenshuDataTests` | exit 0, 143 tests in 32 suites (= 141 before this session's two new cases) |
+| `bash Tools/wenshu-devtool/tests/test_nfi_registry.sh` | all tests passed |
 | fresh compile of `WSSession.swift` after deleting its object file | exit 0 |
 | the settings scene's 8-pane tripwire (`IconStylesTests`) | passes (= this change adds no pane) |
+| the CJK audit over the six commits' added lines | 0 Han lines, and no forbidden vocabulary |
+
+**THE WHOLE SUITE HAS FAILURES THAT ARE NOT THIS SESSION'S, MEASURED
+RATHER THAN ASSUMED.** `swift test` on the merged tree reports 21 issues
+across 3207 tests in 512 suites. The same run on the tree BEFORE this
+session's first commit reports 20, and the two sets share 19 assertions
+exactly (= a design-token sweep, an editor-title check, an icon-migration
+sweep, the memory provider, the kanban tools, the tool registry, and the
+trigger-closure wiring). The one assertion in each list that the other does
+not have is a TIMING assertion in both directions
+(`HermesTodoStoreConcurrencyTests.swift:268` = `judged.elapsed < 5.0`, and
+`EditorPersistenceTests.swift:253` = a saved body), and each of them PASSES
+when its suite runs alone on BOTH trees (measured three runs each). So the
+whole-suite failures are pre-existing and concurrent-run flaky, and none of
+them touches a file this session changed (= `WSSession.swift`,
+`WSSessionTests.swift`, and two documents).
 
 ## A stale build log that is not a regression
 
