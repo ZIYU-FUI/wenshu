@@ -21,12 +21,17 @@ import SwiftData
 public enum WSSessionSource {
     /// A unit of agent work (= a delegated agent's own session).
     ///
-    /// The value is the one Hermes writes for the same kind of work, so
-    /// a Wenshu row and a Hermes row mean the same thing: Hermes
-    /// stamps a delegated child's session with `'subagent'`
-    /// (`agent/runtime_session_child.py:32`, and
-    /// `hermes_cli/session_listing.py:13` names the same value
-    /// `SUBAGENT_SOURCE`).
+    /// The value is the one Hermes RESERVES for the same kind of work, so
+    /// a Wenshu row and a Hermes row mean the same thing: Hermes names
+    /// `'subagent'` as its delegated-child source
+    /// (`hermes_cli/session_listing.py:13` = `SUBAGENT_SOURCE`), and its
+    /// reserved / worker delegate path stamps a child's row with it
+    /// (`agent/runtime_session_child.py:32`).
+    ///
+    /// It is the reserved path's value, not every delegate path's: the
+    /// in-process path inherits the parent's surface label instead
+    /// (`agent/session_source.py:34-42` prefers the inherited
+    /// `HERMES_SESSION_SOURCE` over the platform).
     ///
     /// The agent that did the work is named beside it
     /// (= `WSSession.agentName`), which is the second dimension the
