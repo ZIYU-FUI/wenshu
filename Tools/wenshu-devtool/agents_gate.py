@@ -10,10 +10,17 @@ One question, one gate:
 
 WHY THE GATE EXISTS (measured 2026-10-27, before this gate landed):
 
-  - The Hermes context loader truncates a context file above 20,000 chars
-    (= hermes_cli/agent/prompt_builder.py: CONTEXT_FILE_MAX_CHARS = 20_000).
+  - The Hermes context loader truncates a context file above ITS cap
+    (= hermes_cli/agent/prompt_builder.py: an explicit
+    `context_file_max_chars` in the config wins, else
+    max(20_000, min(window * 4 * 0.06, 500_000))).
     A truncated AGENTS.md loses its tail silently: the file still parses, the
     session still starts, and the last rules simply are not there.
+    Measured 2026-10-31: with a 1M-token model the loader's cap is 240,000
+    chars, so this gate used to refuse growth the loader would accept (= it
+    checked the loader's FLOOR and called it the cap). It now reads the
+    loader's own source of truth and falls back to the floor with a clear
+    message when it cannot read it.
   - The old rule 10.4 promised a tool named `validate.py`. That file has
     never existed in this repository, so the rule was a false guarantee: it
     read as "a machine checks this" and checked nothing. This gate is the
@@ -59,6 +66,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -71,7 +79,72 @@ REPO = Path(__file__).resolve().parent.parent.parent
 
 # The Hermes context-file cap. The loader truncates above it, so a file at
 # the cap is a file whose tail may be cut.
-CONTEXT_FILE_MAX_CHARS = 20_000
+#
+# 20,000 is NOT the loader's cap: it is the FLOOR of the loader's dynamic
+# cap (= `agent/prompt_builder.py`: max(20_000, min(window * 4 * 0.06,
+# 500_000))), and the loader reads an explicit `context_file_max_chars`
+# from the config FIRST. Measured 2026-10-31: with a 1M-token model the
+# loader's cap is 240,000 chars, so a gate that hardcodes 20,000 refuses
+# growth the loader would accept.
+#
+# So the gate asks the loader's own source of truth (the config), and
+# falls back to the floor with a clear message when it cannot read it.
+CONTEXT_FILE_FLOOR_CHARS = 20_000
+
+
+def _hermes_config_paths() -> list[Path]:
+    """The config files that can pin the cap, most specific first."""
+    out: list[Path] = []
+    home = os.environ.get("HERMES_HOME")
+    if home:
+        base = Path(home)
+        out.append(base / "config.yaml")
+        # a profile's home lives at <root>/profiles/<name>, so the root is
+        # two levels up (= the global config the profile inherits from)
+        if base.parent.name == "profiles":
+            out.append(base.parent.parent / "config.yaml")
+    out.append(Path.home() / ".hermes" / "config.yaml")
+    seen: list[Path] = []
+    for path in out:
+        if path not in seen:
+            seen.append(path)
+    return seen
+
+
+def _pinned_context_file_cap() -> tuple[int, str] | None:
+    """The cap the config pins, and the file it came from."""
+    for path in _hermes_config_paths():
+        try:
+            text = path.read_text(encoding="utf-8")
+        except OSError:
+            continue
+        match = re.search(r"^agent:\s*$", text, re.M)
+        if not match:
+            continue
+        rest = text[match.end():]
+        end = re.search(r"^\S", rest, re.M)
+        section = rest[: end.start()] if end else rest
+        pinned = re.search(r"^\s+context_file_max_chars:\s*(\d+)", section, re.M)
+        if pinned:
+            return int(pinned.group(1)), str(path)
+    return None
+
+
+def effective_context_file_cap() -> tuple[int, str]:
+    """The cap the loader will really use, and where that number came from.
+
+    The loader's own order: the explicit config value wins, else the
+    dynamic cap for the active model, else the floor. The gate reads the
+    FIRST of those it can see (= the explicit value), and falls back to
+    the floor, so the gate never refuses growth the loader accepts.
+    """
+    pinned = _pinned_context_file_cap()
+    if pinned:
+        return pinned
+    return CONTEXT_FILE_FLOOR_CHARS, (
+        "the loader's floor (no context_file_max_chars is pinned in the "
+        "Hermes config)"
+    )
 
 # The roots a file reference may be written against. A reference is
 # resolved against each of them, and it is OK when any one of them has it.
@@ -434,11 +507,12 @@ def check_file(path: Path) -> dict:
                     errors.append(f"the frontmatter has no {key}")
 
     # 2. budget
-    if loaded_len > CONTEXT_FILE_MAX_CHARS:
+    cap, cap_source = effective_context_file_cap()
+    if loaded_len > cap:
         errors.append(
             f"the file loads as {loaded_len} chars ({len(text)} in the file + "
             f"{loaded_len - len(text)} for the section label): the context loader "
-            f"truncates above {CONTEXT_FILE_MAX_CHARS}, and it drops the MIDDLE "
+            f"truncates above {cap} (= {cap_source}), and it drops the MIDDLE "
             f"of the file (= the rules in the middle silently vanish)"
         )
 
@@ -532,8 +606,8 @@ def check_file(path: Path) -> dict:
         "file": str(path),
         "body_chars": body_len,
         "loaded_chars": loaded_len,
-        "budget": CONTEXT_FILE_MAX_CHARS,
-        "headroom": CONTEXT_FILE_MAX_CHARS - loaded_len,
+        "budget": effective_context_file_cap()[0],
+        "headroom": effective_context_file_cap()[0] - loaded_len,
         "frontmatter_checked": how,
         "rule_rows": len(ids),
         "errors": errors,
@@ -553,7 +627,8 @@ def main(argv: list[str] | None = None) -> int:
         print("=== the AGENTS.md contract ===")
         print()
         print("frontmatter   parses as YAML, and carries name / version / description")
-        print("budget       the file as the loader loads it <= 20,000 chars (= the cap)")
+        cap, source = effective_context_file_cap()
+        print(f"budget       the file as the loader loads it <= {cap} chars (= {source})")
         print("references   every named path exists; every named skill is installed")
         print("vocabulary   CJK only in rules 1.2 / 1.3 / 1.4, and only as a known token")
         print("ids          the rule ids of a section are contiguous, no id repeats,")

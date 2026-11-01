@@ -246,6 +246,12 @@ path above is `exit=3` with its cause named.
 ## The repo gates, on the merged tree
 
 `python3 Tools/wenshu-devtool/agents_gate.py --file AGENTS.md` exits 0.
+It checks the file against the LOADER's own context-file limit, read
+from the Hermes config (= `agent.context_file_max_chars`, which the
+loader prefers over its dynamic cap). It used to check the loader's
+FLOOR (20,000) as if it were the cap, so it refused growth the loader
+would accept: with a 1M-token model the loader's limit is 240,000
+chars, and this file loads as 19,949 (= 8% of it).
 `python3 Tools/wenshu-devtool/tests/test_review_gate.py` passes every
 case. `bash -n Scripts/merge-preflight.sh` exits 0.
 `python3 Tools/wenshu-devtool/verify-dead.py` reports 0 fully dead

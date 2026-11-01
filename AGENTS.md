@@ -199,7 +199,7 @@ SSOT for every contributor and agent on /Volumes/ANAN/Engineering/wenshu.
 | 10.1 | Edit trigger = boss OOB only. Never edit during a normal ticket. |
 | 10.2 | New rule = add numbered row (§1.X / §2.X / etc.). Never insert between rows. |
 | 10.3 | Remove rule = delete from this file. No history. Outdated = gone. |
-| 10.4 | Pre-flight before committing this file: `python3 Tools/wenshu-devtool/agents_gate.py --file AGENTS.md` exits 0. It checks the frontmatter parses, the file fits the loader's 20,000-char cap (= the whole file, frontmatter included), every named path and skill exists, the rule ids are contiguous, and no CJK hides outside 1.2-1.4. |
+| 10.4 | Pre-flight before committing this file: `python3 Tools/wenshu-devtool/agents_gate.py --file AGENTS.md` exits 0. It checks the frontmatter parses, the file fits the loader's context-file cap (= the whole file, frontmatter included), every named path and skill exists, the rule ids are contiguous, and no CJK hides outside 1.2-1.4. |
 
 > First line fact: Wenshu is a Swift / SwiftUI / SwiftData macOS app, single-process, Apple-stack exclusive.
 > Last line fact: This file is SSOT for wenshu; all detail lives in §9 reference index.
