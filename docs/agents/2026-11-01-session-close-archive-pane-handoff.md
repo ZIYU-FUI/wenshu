@@ -55,6 +55,13 @@ a real `ModelContainer` round-trip (= including a fresh context, = the
 reload path). So the reason a plain enum fails is its missing `Codable`
 conformance, not its being an enum.
 
+One more rule the reproduction hits, so it is written down here: a `@Model`
+property's DEFAULT value must be fully qualified. `var kind: Kind =
+Kind.agent` compiles; `var kind: Kind = .agent` fails with "A default value
+requires a fully qualified domain named value (from macro 'Model')". That is
+a second macro rule, separate from the `PersistentModel` one above, and it
+has nothing to do with the enum's conformances.
+
 The fix is the house pattern, and it is unaffected by that measurement: the
 COLUMN is a plain `String?` and the vocabulary is a namespace of static
 constants, exactly as `WSCardCoverStatus` does it in
@@ -110,20 +117,47 @@ wording problem. The constant read `WSSessionSource.agent = "agent"`, and
 the commit body, the file's own doc comment and this record all claimed it
 held "the value Hermes writes into its `source` column".
 
-Hermes does not write that value. It stamps a delegated child's session
-with `'subagent'` (`agent/runtime_session_child.py:32`, and
-`hermes_cli/session_listing.py:13` names the same value
-`SUBAGENT_SOURCE`), and a board task's session with `'kanban'`. Measured
-across Hermes' three live stores: `source='agent'` holds 0 rows, while
-`subagent` and `kanban` hold the delegated and task rows = and every row
-that carries a `parent_session_id` is one of those two.
+Hermes does not write that value. It reserves `'subagent'` for delegated
+children (`hermes_cli/session_listing.py:13` names it
+`SUBAGENT_SOURCE`), and a board task's session reads `'kanban'`. Measured
+across Hermes' three live stores: `source='agent'` holds 0 rows, and no
+`source='agent'` literal exists anywhere in the Hermes tree.
+
+**Which value a delegated child's row carries depends on the path, so the
+durable facts are the producers and the precedence, not a census of the
+live stores.** Hermes has two delegate paths, and only one of them writes
+`'subagent'`:
+
+- The **reserved / worker** path stamps the row's source literally:
+  `agent/runtime_session_child.py:32` and `gateway/session_worker_child.py:63`
+  both write `'subagent'`.
+- The **in-process** path builds the child with `platform="subagent"`
+  (`tools/delegate_tool.py:296`), but the row's source comes from
+  `session_source_for(self.platform)` at `run_agent.py:319`, and
+  `agent/session_source.py:34-42` returns the **inherited**
+  `HERMES_SESSION_SOURCE` BEFORE the platform. Measured with Hermes' own
+  function: a parent whose env says `desktop` produces a child row reading
+  `'desktop'`, likewise `'tui'`, `'local'` and `'kanban'`; only an empty
+  parent env falls through to the platform's `'subagent'`.
+
+Both paths are live at once, so the stores show the mix rather than one
+value: the delegated rows (= every row whose `parent_session_id` matches
+`json_extract(model_config,'$._delegate_from')`, with `_branched_from` and
+`_reset_from` NULL) read `subagent` on the reserved path and the parent's
+surface label on the in-process path. No `kanban` row in any of the three
+stores carries a parent at all.
 
 So the constant now holds `subagent`, and its doc comment names the two
-Hermes sites that define it. The test that named the claim could not have
-caught the gap: it compared the constant to a literal sitting in the same
-test file, so it proved only that two copies agree. It now pins the value
-from OUTSIDE the assertion's subject, so a divergence from Hermes'
-vocabulary fails the suite.
+Hermes sites that reserve it and the path that writes it. The test that
+named the claim could not have caught the gap: it compared the constant to a
+literal sitting in the same test file, so it proved only that two copies
+agree. It now pins the value from OUTSIDE the assertion's subject, so a
+divergence from Hermes' vocabulary fails the suite.
+
+The value is not in question here: `'subagent'` is the string Hermes
+RESERVES for delegated children (`SUBAGENT_SOURCE`) and the one its
+reserved / worker path writes. What this record will not claim is that every
+delegated child's row reads it.
 
 ## The measured result
 
