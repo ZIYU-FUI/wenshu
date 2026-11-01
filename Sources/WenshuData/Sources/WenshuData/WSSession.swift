@@ -7,8 +7,7 @@
 import Foundation
 import SwiftData
 
-/// The kinds of work a session can record (= the values Hermes writes
-/// into its `source` column).
+/// The kinds of work a session can record.
 ///
 /// Hermes keeps every conversation in ONE `sessions` table and tags
 /// each row with where it came from (= `kanban` / `local` / `cli`),
@@ -22,10 +21,17 @@ import SwiftData
 public enum WSSessionSource {
     /// A unit of agent work (= a delegated agent's own session).
     ///
+    /// The value is the one Hermes writes for the same kind of work, so
+    /// a Wenshu row and a Hermes row mean the same thing: Hermes
+    /// stamps a delegated child's session with `'subagent'`
+    /// (`agent/runtime_session_child.py:32`, and
+    /// `hermes_cli/session_listing.py:13` names the same value
+    /// `SUBAGENT_SOURCE`).
+    ///
     /// The agent that did the work is named beside it
     /// (= `WSSession.agentName`), which is the second dimension the
     /// archive searches by.
-    public static let agent = "agent"
+    public static let subagent = "subagent"
 }
 
 @Model

@@ -38,9 +38,9 @@ yet.
 | `parentSessionID: String?` | the session that asked for the work | walk back to the chat |
 | `agentName: String?` | which agent did the work | P2 |
 
-## The three defects this session found and fixed
+## The four defects this session found and fixed
 
-### 1. SwiftData cannot persist a custom enum
+### 1. SwiftData cannot persist a non-Codable custom enum
 
 The first draft typed the column `WSSessionSource?`. SwiftData's macro
 expansion failed with `requires that 'WSSessionSource' conform to
@@ -48,11 +48,18 @@ expansion failed with `requires that 'WSSessionSource' conform to
 expanded into `getValue(forKey:)`/`setValue(forKey:to:)`, and those demand
 `PersistentModel` conformance.
 
-The fix is the house pattern: the COLUMN is a plain `String?` and the
-vocabulary is a namespace of static constants, exactly as
-`WSCardCoverStatus` does it in `WSCardCover.swift:90`. So
-`WSSessionSource` is now a plain `enum` of `static let` strings, and
-`WSSession.source` is `String?`.
+The constraint is a NON-Codable Swift enum, not a Swift enum: measured on
+this toolchain, `enum Kind { case agent }` fails with exactly those two
+errors, while `enum Kind: String, Codable` compiles and its value survives
+a real `ModelContainer` round-trip (= including a fresh context, = the
+reload path). So the reason a plain enum fails is its missing `Codable`
+conformance, not its being an enum.
+
+The fix is the house pattern, and it is unaffected by that measurement: the
+COLUMN is a plain `String?` and the vocabulary is a namespace of static
+constants, exactly as `WSCardCoverStatus` does it in
+`WSCardCover.swift:90`. So `WSSessionSource` is now a plain `enum` of
+`static let` strings, and `WSSession.source` is `String?`.
 
 ### 2. The card body template carried a stale cap floor
 
@@ -95,6 +102,28 @@ are left to a moment when no board card is in flight (= a gateway restart
 destroys every running worker). The memories this session wrote went in
 through the provider's OWN path (= `_backend.OSSBackend` -> `mem0.Memory` ->
 qdrant) in a fresh process, and a search through the same path finds them.
+
+### 4. The tag constant held a value no Hermes producer writes
+
+The review round caught this one, and it was a real defect rather than a
+wording problem. The constant read `WSSessionSource.agent = "agent"`, and
+the commit body, the file's own doc comment and this record all claimed it
+held "the value Hermes writes into its `source` column".
+
+Hermes does not write that value. It stamps a delegated child's session
+with `'subagent'` (`agent/runtime_session_child.py:32`, and
+`hermes_cli/session_listing.py:13` names the same value
+`SUBAGENT_SOURCE`), and a board task's session with `'kanban'`. Measured
+across Hermes' three live stores: `source='agent'` holds 0 rows, while
+`subagent` and `kanban` hold the delegated and task rows = and every row
+that carries a `parent_session_id` is one of those two.
+
+So the constant now holds `subagent`, and its doc comment names the two
+Hermes sites that define it. The test that named the claim could not have
+caught the gap: it compared the constant to a literal sitting in the same
+test file, so it proved only that two copies agree. It now pins the value
+from OUTSIDE the assertion's subject, so a divergence from Hermes'
+vocabulary fails the suite.
 
 ## The measured result
 
@@ -145,10 +174,11 @@ without re-deriving anything.
 
 1. **The producer.** Nothing in the tree writes a session's `source`, so the
    archive list would render empty. The sub-agent run is the seam: when a
-   delegation finishes, write a session row carrying `source`, `agentName`,
-   `parentSessionID` (from the handle's `scope`), and the transcript as
-   `WSChatMessage` rows under it. The raw material already exists at
-   `SubAgentRunner.swift:355` (`result.messages`).
+   delegation finishes, write a session row carrying `source` (= the
+   `WSSessionSource.subagent` tag, = the value Hermes writes for the same
+   kind of work), `agentName`, `parentSessionID` (from the handle's
+   `scope`), and the transcript as `WSChatMessage` rows under it. The raw
+   material already exists at `SubAgentRunner.swift:355` (`result.messages`).
 2. **The transcript's role vocabulary.** `LiveChatRepository.makeDomain`
    maps only `"user"`, `"wenshu"` and `"system"`; every other `role` returns
    nil and the row is dropped. A sub-agent's tool calls and tool results must
