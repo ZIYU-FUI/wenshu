@@ -278,7 +278,14 @@ jobs:
               continue
             fi
             # Verify conventional commit prefix
-            if ! echo "$SUBJECT" | grep -qE "^(feat|fix|docs|test|refactor|chore|perf|build|ci)(\(wenshu\))?:"; then
+            # The scope is OPTIONAL and free-form: the repo uses 33 of
+            # them (= "(gate)", "(close)", "(editor)", ...), and the
+            # rule is "a conventional prefix", not "the scope must be
+            # (wenshu)". That regex demanded one exact scope, so the
+            # job rejected every scoped subject in the repo's own
+            # convention (= 1063 of the commits since this job was
+            # added), and it has been red on main ever since.
+            if ! echo "$SUBJECT" | grep -qE "^(feat|fix|docs|test|refactor|chore|perf|build|ci)(\([a-zA-Z0-9._/-]+\))?:"; then
               echo "Bad commit subject: $SUBJECT"
               exit 1
             fi

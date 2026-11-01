@@ -243,6 +243,72 @@ verdict: at that tree the gate found no card naming the sha and simply
 continued, so the branch landed with nothing on the record. Every verdict
 path above is `exit=3` with its cause named.
 
+## WHAT THE CLOSEOUT'S OWN GATES FOUND
+
+The closeout re-ran the ten merge-blocking gates (§7) on the MERGED tree,
+and three of them found things this session's own work had broken or
+left behind. They are in their own commits, each reviewed by its own
+card.
+
+**§7.5 = the fixtures had added CJK to a modified file.** The card
+titles in the test fixtures carried the board's Chinese type tag,
+written out by hand, and the fixtures took
+`tests/test_review_gate.py` from zero CJK characters to ten. The tag is
+load-bearing (= it is what DECLARES a card's kind), so the fixture now
+asks the TOOL for it (`ticket_tier.TYPE_TAG_NAMES["review"]`): the file
+stays English and the fixture cannot drift from the map the tool reads.
+
+**§7.6 = a dead function.** `review_gate.py` carried
+`_approving_runs`, which nothing called (= `_verdict_runs` is the live
+reader, and it accepts a refusal as well as an approval). Restoring it
+changed nothing, which is how it was proven dead.
+
+**§7.2 = a case that wrote the cap down, and nobody ran it.** The
+over-cap fixture was built at 30,225 chars (= over the 20,000 floor the
+gate used before). The cap is now the pinned 500,000, so the fixture was
+UNDER it, the gate accepted it, and TWO CASES FAILED. The fixture now
+measures the cap the gate itself reports, so it is over the cap
+whatever the cap is.
+
+The lesson is not the three fixes: it is that the session had been
+running FIVE devtool suites, and the sixth (= the one holding the
+regression) was not among them. The tree's suites are the tree's gates:
+
+```bash
+for s in Tools/wenshu-devtool/tests/test_*.py; do
+  python3 "$s" >/dev/null || echo "RED: $s"
+done
+```
+
+## WHAT THE CLOSEOUT'S OWN GATES FOUND (the second round)
+
+The ten merge-blocking gates (§7) were run on the MERGED tree, and three
+of them found things that were NOT this session's cap work.
+
+**§7.8 = the CI lint job has been red on main since it was added.** Its
+regex demanded the scope to be EXACTLY `(wenshu)`, while the repo uses 33
+different scopes (= `(gate)`, `(close)`, `(editor)`, ...) and its own
+pre-commit hook (= the rule's other reference) accepts every one of
+them. Measured: 1,063 of the commits since the job was added carry a
+subject that regex rejects, and the job reads only the last 10 (= 4 of
+the 10 were rejected at this session's base, and all 10 are now). The
+regex accepts an optional free-form scope, so the job passes on main's
+window again.
+
+**§7.10 = a review card's gate section must name the suite in the FORM
+the gate-width gate reads.** This session's card named it as a shell
+glob over the test directory (= `for s in .../test_*.py; do python3
+"$s"`), which names the same suites but is not the shape the regex
+reads (= `python3 .../test_*.py`). The card's body now names the
+commands directly.
+
+**§7.2 = the Swift suite's baseline is RED, and it stays red.** The base
+carries 22 failing tests, and the merged tree carries 22 (= three
+different ones fail on each side, all of them timing-dependent). The
+three that are new on the merged tree are the design-system sweeps over
+the SIBLING's `KanbanView.swift` (= the sibling's file, not this
+session's work: this session touched no Swift file at all).
+
 ## The repo gates, on the merged tree
 
 `python3 Tools/wenshu-devtool/agents_gate.py --file AGENTS.md` exits 0.
