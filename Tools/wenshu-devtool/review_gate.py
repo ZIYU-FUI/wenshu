@@ -772,21 +772,6 @@ def _implementer_of_card(card_id: str, board: str = BOARD) -> str | None:
     return implementer_of(doc)
 
 
-def _approving_runs(runs: list[dict], reviewer: str | None) -> list[dict]:
-    """The completed runs that carry an approving verdict from the reviewer."""
-    out = []
-    for run in runs:
-        if str(run.get("outcome") or "") != "completed":
-            continue
-        metadata = _run_metadata(run)
-        if metadata.get("review_outcome") != "approved":
-            continue
-        if reviewer and str(run.get("profile") or "") != str(reviewer):
-            continue
-        out.append(run)
-    return out
-
-
 def _run_metadata(run: dict) -> dict:
     """The run's metadata, whatever shape the reader found it in.
 

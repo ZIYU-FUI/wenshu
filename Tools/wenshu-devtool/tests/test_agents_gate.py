@@ -134,7 +134,13 @@ def main() -> int:
     #    file, frontmatter included, plus the "## AGENTS.md" label), not
     #    to the body alone. A body-only budget passes a file the loader
     #    cuts in the middle.
-    huge = good_body() + ("\n" + ("x" * 500) + "\n") * 60
+    # The file must be over the cap THE GATE NOW USES (= the cap its own
+    # home's config pins), not over a number written down here: a hard
+    # 20,000 stops being "over the cap" the moment the cap moves, and the
+    # case then passes for the wrong reason (= it checks a file the gate
+    # accepts).
+    cap = ag.effective_context_file_cap()[0]
+    huge = good_body() + ("\n" + ("x" * 500) + "\n") * ((cap // 501) + 2)
     r = check(huge)
     results.append(
         case(
@@ -148,7 +154,7 @@ def main() -> int:
     #     whose whole file does not is still an error.
     #     a frontmatter big enough to push the WHOLE file over the cap
     #     while its body alone stays under it.
-    long_front = FRONT + ("#" * 200 + "\n") * 110
+    long_front = FRONT + ("#" * 200 + "\n") * ((cap // 201) + 2)
     r = check(good_body(), front=long_front)
     results.append(
         case(
