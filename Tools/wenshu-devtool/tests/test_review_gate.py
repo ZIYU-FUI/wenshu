@@ -1182,15 +1182,51 @@ def main() -> int:
 
     cap_gate = load_agents_gate()
 
+    def claimed_pin(home: Path) -> int | None:
+        """The cap this home's config CLAIMS, in any form.
+
+        A quoted value is a claim the loader IGNORES (= the loader honors
+        the config value only when it is an int or a float), and a claim
+        the loader ignores is a broken pin, so the claim and the
+        loader's own answer have to be compared (= otherwise "no pin" and
+        "a pin the loader ignores" are the same thing, and a broken pin
+        is invisible).
+        """
+        cfg = home / "config.yaml"
+        try:
+            text = cfg.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            return None
+        found = re.search(
+            r"^context_file_max_chars:[ \t]*\"?(\d+)", text, re.M)
+        return int(found.group(1)) if found else None
+
+    def gate_cap_for(home: Path) -> int:
+        """The gate's own number under that home (= the documented CLI)."""
+        repo = Path(__file__).resolve().parents[3]
+        proc = subprocess.run(
+            [sys.executable, str(repo / "Tools/wenshu-devtool/agents_gate.py"),
+             "--file", str(repo / "AGENTS.md")],
+            env=dict(os.environ, HERMES_HOME=str(home)),
+            capture_output=True, text=True, timeout=120,
+        )
+        found = re.search(r"cap (\d+)", proc.stdout)
+        return int(found.group(1)) if found else -1
+
     # ---- THE CAP IS A FIXED NUMBER ----
     # 500,000 chars (= 0.5 MB), mirrored by the gate's constant and
     # pinned in the Hermes config. The loader honors an explicit config
     # value, so the two are the same number by construction, and the
     # case below reads the config and asserts that (= so the two cannot
     # drift apart).
+    # NOT the ambient: the gate reads $HERMES_HOME, so an in-process call
+    # would answer for whatever home the suite happens to run under (= the
+    # suite's verdict would be ambient-dependent). The ROOT home is named
+    # instead, and the gate is run under it (= the documented CLI).
+    root_home = Path.home() / ".hermes"
     check(
         "the gate's cap is the fixed project cap",
-        cap_gate.effective_context_file_cap()[0],
+        gate_cap_for(root_home),
         500000,
     )
     # THE DRIFT GUARD, AGAINST THE LOADER'S OWN ANSWER. A line-based
@@ -1220,17 +1256,6 @@ def main() -> int:
             if proc.returncode == 0 and out and out[-1].strip().isdigit():
                 return int(out[-1].strip())
         return -1
-    def gate_cap_for(home: Path) -> int:
-        """The gate's own number under that home (= the documented CLI)."""
-        repo = Path(__file__).resolve().parents[3]
-        proc = subprocess.run(
-            [sys.executable, str(repo / "Tools/wenshu-devtool/agents_gate.py"),
-             "--file", str(repo / "AGENTS.md")],
-            env=dict(os.environ, HERMES_HOME=str(home)),
-            capture_output=True, text=True, timeout=120,
-        )
-        found = re.search(r"cap (\d+)", proc.stdout)
-        return int(found.group(1)) if found else -1
     hermes_root = Path.home() / ".hermes"
     # EVERY live profile DIRECTORY (= a profile with no config.yaml of its
     # own is still a home the loader reads, and the loader falls back to
@@ -1255,16 +1280,48 @@ def main() -> int:
             gate_cap <= loader_cap,
             True,
         )
-        # and the gate's number is the project's cap (500,000) or the
-        # loader's floor (20,000 = what it uses when the config pins no
-        # cap). A config pinned to a DIFFERENT number is a drift, and a
-        # one-sided check would not see it.
-        check(
-            f"the gate's number for this home is the project's cap or the "
-            f"loader's floor ({home.name})",
-            gate_cap in (500000, 20000),
-            True,
-        )
+        # "NO PIN" and "A PIN THE LOADER IGNORES" must be DIFFERENT
+        # ANSWERS, or a broken pin is invisible (= the gate's floor and
+        # the loader's dynamic cap both look like "no pin"). So the
+        # config's own text is read, and:
+        #   * a pin the loader HONORS => the gate uses that pin, and the
+        #     loader's answer is that pin;
+        #   * a pin the loader IGNORES (= a quoted value, a duplicate
+        #     key) => the gate uses the floor, and the loader's answer
+        #     is NOT the pin (= and that is a broken pin, so it is
+        #     reported).
+        claimed = claimed_pin(home)
+        if (home / "config.yaml").exists():
+            # a home that HAS a config carries the project's cap
+            check(
+                f"this home's config carries the project's cap "
+                f"({home.name})",
+                claimed,
+                500000,
+            )
+            # and the loader honors what it claims (= a quoted value or a
+            # duplicate key would leave the loader on its dynamic cap, and
+            # that is a broken pin)
+            check(
+                f"the loader honors the cap this home's config claims "
+                f"({home.name})",
+                loader_cap,
+                claimed if claimed is not None else -1,
+            )
+        if claimed is not None and loader_cap == claimed:
+            check(
+                f"the gate uses the cap this home's config pins "
+                f"({home.name})",
+                gate_cap,
+                claimed,
+            )
+        else:
+            check(
+                f"this home's config pins no cap the loader honors, so the "
+                f"gate uses the loader's floor ({home.name})",
+                gate_cap,
+                20000,
+            )
     # A QUOTED PIN IS A STRING, so the loader IGNORES it (= it falls to
     # its dynamic cap), and the gate must not honor it either (= the gate
     # is then the floor, which is never looser).

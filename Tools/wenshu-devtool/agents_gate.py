@@ -84,9 +84,8 @@ REPO = Path(__file__).resolve().parent.parent.parent
 # loader's cap is 240,000 chars, so a gate that hardcodes 20,000 refuses
 # growth the loader would accept.
 #
-# So the gate uses a FIXED number, and the suite asserts that the config
-# pins the same one (and that the loader honors it under every home).
-CONTEXT_FILE_MAX_CHARS = 500_000  # 0.5 MB: the project's cap
+# So the gate uses the number the config pins, and the suite asserts that
+# the loader honors it under every home.
 CONTEXT_FILE_FLOOR_CHARS = 20_000  # the loader's floor (= its smallest cap)
 
 
@@ -234,10 +233,11 @@ def _pinned_cap() -> int | None:
 def effective_context_file_cap() -> tuple[int, str]:
     """The cap the loader will use for THIS home, and where it came from.
 
-    IT IS A FIXED NUMBER: 500,000 chars (= 0.5 MB), pinned in the Hermes
-    config as `context_file_max_chars`. The gate reads that one line
-    from the one file the loader reads (= $HERMES_HOME/config.yaml), so
-    the two are the same number by construction.
+    THE NUMBER IS FIXED BY THE CONFIG: 500,000 chars (= 0.5 MB),
+    pinned as `context_file_max_chars` in the Hermes config. The gate
+    reads that one line from the one file the loader reads (=
+    $HERMES_HOME/config.yaml), so the two are the same number by
+    construction.
 
     WHY NOT A CONSTANT IN THE CODE. A profile that does not carry the
     pin (a fresh one: `hermes profile create` does not copy it) falls

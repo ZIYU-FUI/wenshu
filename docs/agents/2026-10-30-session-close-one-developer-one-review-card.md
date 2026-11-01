@@ -269,19 +269,30 @@ loader honors from one it ignores (= a quoted value, or a duplicate key,
 leaves the loader on its dynamic cap). A home that cannot be read is a
 FAILURE, never a skip.
 
-**WHY A FIXED VALUE, AND WHAT IT COST TO LEARN IT.** The loader's own
-dynamic cap MOVES with the model's window (= 49,152 at a 204,800-token
-model, 240,000 at 1M), so a gate that computed it had to resolve the
-model's window AND the config's own rules (= which key, which level,
-which file, what type, a duplicate key, a value in (0,1), a file the
-parser rejects). Each of those was a place where the gate could come out
+**WHY ONE LINE, AND WHAT IT COST TO LEARN IT.** The loader's own dynamic
+cap MOVES with the model's window (= 49,152 at a 204,800-token model,
+240,000 at 1M), so a gate that computed it had to resolve the model's
+window AND the config's own rules (= which key, which level, which file,
+what type, a duplicate key, a value in (0,1), a file the parser
+rejects). Each of those was a place where the gate could come out
 LOOSER than the loader (= it accepts a file the loader truncates in the
 middle, which is the one failure this gate exists to prevent), and the
-review rounds found one of them per round: the pin's level, the pin's
-file, the pin's type, a crash on a config that is not a mapping, the
-"no pin" and "an honored 0" confusion, and a config the loader's parser
-rejects. A fixed number has none of those places: ONE number, pinned in
-the config, asserted by the suite.
+review rounds found one of them per round. So the gate does NOT compute
+the cap: it reads ONE line (= the cap the config pins) from the ONE
+file the loader reads, and where a home pins no cap it uses the
+loader's floor. The number is fixed (= 0.5 MB) in every config that
+carries it.
+
+AND THE SUITE CHECKS EVERY HOME, BECAUSE A HOME IS A PLACE THE GATE CAN
+BE LOOSER. A profile that does not carry the pin (a fresh one: `hermes
+profile create` does not copy it) falls back to the loader's dynamic
+cap, so the gate uses the floor there. The suite compares the gate's
+number with the LOADER'S OWN answer for the root and for every profile
+directory (including the ones with no config of their own), and it
+compares the config's CLAIM with the loader's answer, so "no pin" and "a
+pin the loader ignores" (= a quoted value) are different answers (= a
+broken pin is visible). A home that cannot be read is a FAILURE, never a
+skip.
 
 The loader truncates the WHOLE file, not the body: the number that
 decides truncation is the file's length plus its label, and the loader
