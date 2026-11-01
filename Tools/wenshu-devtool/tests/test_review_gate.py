@@ -1252,7 +1252,7 @@ def main() -> int:
     # case that cannot run in the documented environment is a case that
     # cannot see its own defect). If no interpreter can run it, the case
     # FAILS: a silent skip would let a reverted fix leave the suite green.
-    def loader_probe(script: str) -> str:
+    def loader_probe(script: str, env: dict | None = None) -> str:
         for interpreter in cap_gate._hermes_pythons():
             try:
                 proc = subprocess.run(
@@ -1260,6 +1260,7 @@ def main() -> int:
                     capture_output=True,
                     text=True,
                     timeout=120,
+                    env=env,
                 )
             except (OSError, subprocess.SubprocessError):
                 continue
@@ -1360,6 +1361,110 @@ def main() -> int:
                         True,
                     )
 
+            # THE SWEEP. Every shape of a config, measured against the
+            # loader's own number for the SAME config: the honored pin
+            # must be the same, and the gate's cap must never be LOOSER
+            # than the loader's (= the direction that lets a file through
+            # that the loader truncates in the middle). A shape that is
+            # not in this table is a shape nothing checks.
+            sweep = (
+                ("an int", "context_file_max_chars: 240000\n"),
+                ("a float", "context_file_max_chars: 240000.0\n"),
+                ("a negative", "context_file_max_chars: -5\n"),
+                ("a zero", "context_file_max_chars: 0\n"),
+                ("a quoted int", 'context_file_max_chars: "240000"\n'),
+                ("a bool", "context_file_max_chars: true\n"),
+                ("a duplicate key",
+                 "context_file_max_chars: 240000\ncontext_file_max_chars: 111111\n"),
+                ("an anchor", "cap: &c 240000\ncontext_file_max_chars: *c\n"),
+                ("a CRLF file", "context_file_max_chars: 240000\r\n"),
+                ("a key with spaces", "context_file_max_chars:   240000\n"),
+                ("a tab before the value", "context_file_max_chars:\t240000\n"),
+                ("a nested key only", "agent:\n  context_file_max_chars: 240000\n"),
+                ("an expansion", "context_file_max_chars: ${WENSHU_TEST_CAP}\n"),
+                ("a mapping with other keys",
+                 "model: x\ncontext_file_max_chars: 240000\nagent:\n"
+                 "  reasoning_effort: medium\n"),
+                ("an empty config", ""),
+                ("a comment-only config", "# nothing here\n"),
+                ("a config that is a list", "- a\n- b\n"),
+                ("an invalid yaml config", "key: [unclosed\n"),
+                ("a YAML 1.1 yes", "context_file_max_chars: yes\n"),
+                ("a YAML 1.1 no", "context_file_max_chars: no\n"),
+                ("a YAML 1.1 on", "context_file_max_chars: on\n"),
+                ("a YAML 1.1 off", "context_file_max_chars: off\n"),
+                ("a null", "context_file_max_chars: null\n"),
+                ("a tilde null", "context_file_max_chars: ~\n"),
+                ("an empty value", "context_file_max_chars:\n"),
+                ("a quoted empty", "context_file_max_chars: ""\n"),
+                ("a hex number", "context_file_max_chars: 0x1E\n"),
+                ("an underscore number", "context_file_max_chars: 1_000\n"),
+                ("scientific notation", "context_file_max_chars: 2.4e5\n"),
+                ("a plus sign", "context_file_max_chars: +240000\n"),
+                ("a trailing space", "context_file_max_chars: 240000 \n"),
+                ("an octal", "context_file_max_chars: 0o17\n"),
+            )
+            for label, body in sweep:
+                with tempfile.TemporaryDirectory() as tmp:
+                    home = Path(tmp) / "home"
+                    home.mkdir()
+                    (home / "config.yaml").write_text(body)
+                    env = dict(os.environ, HERMES_HOME=str(home),
+                               WENSHU_TEST_CAP="222222")
+                    # the gate reads os.environ, so the in-process calls
+                    # need the same home the probe gets
+                    saved_home = os.environ.get("HERMES_HOME")
+                    os.environ["HERMES_HOME"] = str(home)
+                    try:
+                        measured = loader_probe(
+                            "import json,sys;"
+                            "sys.path.insert(0,'/Volumes/ANAN/.hermes/hermes-agent');"
+                            "from hermes_cli.config import load_config_readonly;"
+                            "from agent.prompt_builder import _get_context_file_max_chars;"
+                            " v=load_config_readonly().get('context_file_max_chars');"
+                            " print(json.dumps({'pin': int(v) if isinstance(v,(int,float))"
+                            " and v>0 else 0,"
+                            " 'cap': _get_context_file_max_chars(1000000),"
+                            " 'small': _get_context_file_max_chars(204800)}))",
+                            env=env,
+                        )
+                        try:
+                            facts = json.loads(measured or "{}")
+                        except json.JSONDecodeError:
+                            facts = {}
+                        check(
+                            f"the sweep measured the loader for this shape ({label})",
+                            bool(facts),
+                            True,
+                        )
+                        gate_pin = cap_gate._pinned_context_file_cap()
+                        check(
+                            f"the gate's honored pin equals the loader's ({label})",
+                            (gate_pin[0] if gate_pin else 0),
+                            int(facts.get("pin", 0)),
+                        )
+                        gate_cap_now = cap_gate.effective_context_file_cap()[0]
+                        check(
+                            f"the gate is never LOOSER than the loader ({label})",
+                            gate_cap_now <= int(facts.get("cap", 20000)),
+                            True,
+                        )
+                        # and at a SMALLER window, where the loader's
+                        # dynamic cap is 49,152 (= the discriminating
+                        # measurement: at a 1M window the dynamic cap is
+                        # 240,000, which hides a looseness)
+                        check(
+                            f"the gate is never LOOSER than the loader at a "
+                            f"small window ({label})",
+                            gate_cap_now <= int(facts.get("small", 20000)),
+                            True,
+                        )
+                    finally:
+                        if saved_home is None:
+                            os.environ.pop("HERMES_HOME", None)
+                        else:
+                            os.environ["HERMES_HOME"] = saved_home
+
             # AND THE TEXT FALLBACK (a machine with no YAML parser) reads
             # the same forms: an unquoted int, and nothing else.
             check(
@@ -1378,6 +1483,33 @@ def main() -> int:
                 "the text fallback does NOT read an expansion",
                 cap_gate._pinned_from_text(
                     "context_file_max_chars: ${WENSHU_TEST_CAP}\n"),
+                None,
+            )
+            check(
+                "the text fallback does NOT read a PREFIX of the value "
+                "(= `0o17` is not the number 0)",
+                cap_gate._pinned_from_text("context_file_max_chars: 0o17\n"),
+                None,
+            )
+            check(
+                "the text fallback does NOT read a prefix of a longer value "
+                "(= `240000abc` is not the number 240000)",
+                cap_gate._pinned_from_text(
+                    "context_file_max_chars: 240000abc\n"),
+                None,
+            )
+            check(
+                "the text fallback does NOT read a zero (= the loader's "
+                "condition, and a cap of 0 would reject every file)",
+                cap_gate._pinned_from_text("context_file_max_chars: 0\n"),
+                None,
+            )
+            check(
+                "the text fallback does NOT read a duplicate key (= the "
+                "loader's parser rejects the file, so it has no pin)",
+                cap_gate._pinned_from_text(
+                    "context_file_max_chars: 240000\n"
+                    "context_file_max_chars: 111111\n"),
                 None,
             )
 

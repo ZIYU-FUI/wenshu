@@ -169,21 +169,73 @@ def _pinned_context_file_cap() -> tuple[int, str] | None:
         # A config that is not valid UTF-8 is not a reason to die: the
         # loader reads it (and falls back), so the gate answers too.
         return None
-    value, _how = _yaml_load(text)
-    if isinstance(value, dict):
-        raw = value.get("context_file_max_chars")
-        # The loader's condition VERBATIM. `bool` IS a subclass of `int`
-        # in Python, so the loader honors `context_file_max_chars: true`
-        # as 1 (= it truncates the file to one character). Carving the
-        # bool out here would make the gate LOOSER than the loader.
-        if isinstance(raw, (int, float)) and raw > 0:
-            return int(raw), str(path)
-        return None
-    # No YAML parser on this machine: fall back to the text. A bare None
-    # (= NOT a 2-tuple whose first element is None: a 2-tuple is truthy,
-    # so `if pinned:` would be True and the cap would become None).
+    # THE LOADER'S OWN PARSER, and only that: the loader parses the
+    # user's config with ruamel (= hermes_yaml), so the gate does too.
+    # Ruamel REJECTS a duplicate key, and its YAML 1.2 scalars differ
+    # from PyYAML's YAML 1.1 (= `yes` is a string here and a boolean
+    # there), so a different parser is a different answer.
+    pin = _loader_honored_pin(path)
+    if pin is not None:
+        return pin, str(path)
+    # No loader parser on this machine: read the text, and only an
+    # UNQUOTED integer (= the form the loader honors). A bare None (= NOT
+    # a 2-tuple whose first element is None: a 2-tuple is truthy, so
+    # `if pinned:` would be True and the cap would become None).
     value = _pinned_from_text(text)
     return (value, str(path)) if value is not None else None
+
+
+def _loader_honored_pin(path: Path) -> int | None:
+    """The pin the LOADER honors in this file, read by the LOADER's parser.
+
+    The loader parses the user's config with ruamel (= `hermes_yaml`) and
+    applies the loader's own condition (= honored only when the value is
+    an int or a float; `bool` IS a subclass of `int`, so the loader
+    honors `true` as 1). A config ruamel REJECTS (= a duplicate key) has
+    NO pin, because the loader cannot read it either.
+
+    Ruamel is not importable from every interpreter, so it also runs
+    through the same interpreter search the YAML reader uses.
+    """
+    script = (
+        "import sys;sys.path.insert(0,'/Volumes/ANAN/.hermes/hermes-agent');"
+        "from hermes_yaml import safe_load;"
+        "v=safe_load(open(sys.argv[1],encoding='utf-8').read());"
+        "v=v.get('context_file_max_chars') if isinstance(v,dict) else None;"
+        "print(int(v) if isinstance(v,(int,float)) and v>0 else 0)"
+    )
+    try:
+        from hermes_yaml import safe_load  # type: ignore
+
+        value = safe_load(path.read_text(encoding="utf-8"))
+    except ImportError:
+        pass
+    except Exception:
+        # The loader cannot read it either (= a duplicate key, or bytes
+        # that are not text), so it has no pin.
+        return None
+    else:
+        raw = value.get("context_file_max_chars") if isinstance(value, dict) else None
+        if isinstance(raw, (int, float)) and raw > 0:
+            return int(raw)
+        return None
+    for interpreter in _hermes_pythons():
+        try:
+            proc = subprocess.run(
+                [interpreter, "-c", script, str(path)],
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+        except (OSError, subprocess.SubprocessError):
+            continue
+        if proc.returncode != 0:
+            continue
+        out = proc.stdout.strip().splitlines()
+        if out and out[-1].strip().isdigit():
+            value = int(out[-1].strip())
+            return value if value > 0 else None
+    return None
 
 
 def _pinned_from_text(text: str) -> int | None:
@@ -193,10 +245,18 @@ def _pinned_from_text(text: str) -> int | None:
     the match stops at the first non-digit, so a trailing comment cannot
     swallow the pin and a quoted value is not a pin.
     """
-    pinned = re.search(r"^context_file_max_chars:[ \t]*(\d+)", text, re.M)
-    if pinned:
-        return int(pinned.group(1))
-    return None
+    # The digits must be the WHOLE value (= a YAML comment may follow,
+    # because the parser strips it, but `0o17` is not the number 0). The
+    # loader's condition applies here too (= a value of 0 is not
+    # honored, and a cap of 0 would reject every file).
+    matches = re.findall(
+        r"^context_file_max_chars:[ \t]*(\d+)[ \t]*(?:#.*)?$", text, re.M)
+    if len(matches) != 1:
+        # ZERO = no pin, and MORE THAN ONE = the loader's parser REJECTS
+        # the file (= a duplicate key), so it has no pin either.
+        return None
+    value = int(matches[0])
+    return value if value > 0 else None
 
 
 
