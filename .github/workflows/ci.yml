@@ -301,7 +301,10 @@ jobs:
             # reason a subject was refused, and the scope's existence
             # is now accepted.
             # The job reads only the last 10 subjects, so it was red on
-            # main whenever any of those 10 carried a scope.
+            # main in WINDOWS (= whenever those 10 carried a scope other
+            # than (wenshu)), not in every window: there are 3,276 trees
+            # in main's history whose last 10 subjects all carry
+            # (wenshu), and the old rule accepts every one of them.
             if ! echo "$SUBJECT" | grep -qE "^(feat|fix|docs|test|refactor|chore|perf|build|ci)(\([a-zA-Z0-9._/-]+\))?:"; then
               echo "Bad commit subject: $SUBJECT"
               exit 1

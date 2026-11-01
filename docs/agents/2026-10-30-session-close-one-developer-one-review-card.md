@@ -361,20 +361,34 @@ record is committed, so the numbers would never settle. The rule that
 reads them is the command above, so a reader runs it at the tree they
 care about; and the two rows here are trees that will not move.
 
-And the job reads only the last 10 subjects, so it was red on main
-whenever any of those 10 carried a scope. Measured with the OLD rule
-over the last 10 subjects: **4 of the 10 were rejected at `fda16f70b5`**
-(= the tree this session's cap work started from), and **10 of the 10
-are rejected at the tip** (= every one of the last 10 subjects carries a
-scope the old rule would refuse, because they are `fix(gate): ...`,
-`docs(close): ...` and `fix(ci): ...`).
+**AND THE JOB READS ONLY THE LAST 10 SUBJECTS, SO ITS VERDICT IS A
+VERDICT ON THOSE 10.** Measured with the OLD rule over the last 10
+subjects:
+
+- at `fda16f70b5` (= the tree this session's cap work started from) the
+  OLD rule rejects **4 of the 10**;
+- at `0beb37b910` (= the base the Swift section names) it rejects **10 of
+  the 10**;
+- at the tip it rejects **10 of the 10** (= the last 10 subjects carry
+  the scopes `fix(gate): ...` and `docs(close): ...`, and the OLD rule
+  refuses any scope other than `(wenshu)`).
+
+**AND THE OLD RULE WAS NOT RED ON MAIN THE WHOLE TIME.** An earlier
+reading of this record said "it was red on main whenever any of those 10
+carried a scope", and that is false: the OLD rule refuses a scope
+OTHER THAN `(wenshu)`, so a window of 10 subjects that all carry
+`(wenshu)` passes. Measured at `00c1df5008` (= ten consecutive `feat(
+wenshu): ...` / `docs(wenshu): ...` / `fix(wenshu): ...` subjects) the
+OLD rule rejects **0 of the 10**, and there are **3,276** such trees in
+main's history. So the job was red on main in WINDOWS, not in every
+window: it was red whenever the last 10 subjects carried a scope other
+than `(wenshu)`.
 
 **THE TREE IS NAMED BECAUSE THE FIGURE BELONGS TO ONE TREE.** An earlier
 reading of this record said "4 of the 10 at this session's base", and
 "this session's base" names two different trees in this record (= the
 Swift section's base is `0beb37b910`, and the 4-of-10 figure is
-`fda16f70b5`). Measured at `0beb37b910` the old rule rejects **10 of the
-last 10**, not 4.
+`fda16f70b5`).
 
 **§7.10 = a review card's gate section must name the suite in the FORM
 the gate-width gate reads.** This session's card named it as a shell
