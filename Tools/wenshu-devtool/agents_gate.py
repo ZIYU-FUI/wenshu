@@ -201,6 +201,42 @@ SKILL_PREFIXES = ("wenshu-", "pocock-", "universal-", "mattpocock", "q99-")
 # (= the mandate's own words), so a rule may use them anywhere.
 TOOL_COLUMNS = ("enforcement", "reference", "skill", "tool", "gate", "source", "path", "file")
 
+def _hermes_source_roots() -> list[str]:
+    """The roots that hold the LOADER's package, best first.
+
+    The gate has to run the loader's parser, so it has to find the
+    loader's package. And the root is ASKED of the interpreters
+    themselves (= `import hermes_cli`), not hardcoded, so the gate
+    measures the loader that is actually installed rather than a path
+    that was right on the day the constant was written. Measured
+    2026-11-01: a hardcoded root made the gate measure a DIFFERENT
+    file from the tree under test, and the split was invisible in the
+    output.
+    """
+    script = (
+        "import hermes_cli,os;"
+        "print(os.path.dirname(os.path.dirname(os.path.abspath("
+        "hermes_cli.__file__))))"
+    )
+    roots: list[str] = []
+    for interpreter in _hermes_pythons():
+        try:
+            proc = subprocess.run(
+                [interpreter, "-c", script],
+                capture_output=True, text=True, timeout=60,
+            )
+        except (OSError, subprocess.SubprocessError):
+            continue
+        if proc.returncode != 0:
+            continue
+        lines = proc.stdout.strip().splitlines()
+        if lines:
+            root = lines[-1].strip()
+            if root and root not in roots:
+                roots.append(root)
+    return roots
+
+
 def _config_as_the_loader_reads(text: str) -> tuple[object | None, str]:
     """Parse the config the way the LOADER reads it, and nothing else.
 
@@ -236,14 +272,17 @@ def _config_as_the_loader_reads(text: str) -> tuple[object | None, str]:
     except Exception:
         pass  # the loader's package is not importable here
     script = (
-        "import sys;sys.path.insert(0,'/Volumes/ANAN/.hermes/hermes-agent');"
+        "import sys,json;"
+        "roots=json.loads(sys.argv[1]);"
+        "[sys.path.insert(0,r) for r in roots];"
         "from hermes_cli.config import yaml;"
-        "import json;print(json.dumps(yaml.safe_load(sys.stdin.read())))"
+        "print(json.dumps(yaml.safe_load(sys.stdin.read())))"
     )
+    roots = _hermes_source_roots()
     for interpreter in _hermes_pythons():
         try:
             proc = subprocess.run(
-                [interpreter, "-c", script],
+                [interpreter, "-c", script, json.dumps(roots)],
                 input=text,
                 capture_output=True,
                 text=True,

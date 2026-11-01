@@ -354,6 +354,23 @@ own search path has PyYAML 6.0.3, and there the lax link answered. So
 the case now runs in EVERY interpreter the gate would use (= 116 cases),
 each measured against the loader's own answer in the same interpreter.
 
+**AND THEN THE REVIEW FOUND THE CASE ITSELF WAS MEASURING THE WRONG
+FILE.** The per-interpreter case imported the gate from a HARDCODED
+absolute path to the MAIN checkout, so the suite measured two files and
+the split was invisible in the output. Three mutations that the case
+claimed to catch were NOT caught: the in-process lax link, the chain
+revert, and the in-process branch itself (= the system python3 cannot
+import `hermes_cli`, so it never reached the branch that could carry the
+fail-open).
+
+So the case now imports the gate from THE TREE UNDER TEST (`TOOL.parent`,
+which is this file's own directory), the oracle runs in the SAME
+interpreter as the gate under test (= before, the oracle looped the
+interpreters and returned the first that worked, so every comparison
+used interpreter #1's answer while the gate ran elsewhere), and the gate
+asks the INTERPRETERS where the loader's package lives instead of
+carrying a hardcoded root. All three mutations now go red.
+
 **A LATER REFUSAL WAS SHADOWED BY AN EARLIER APPROVAL.** The gate's
 order put the card naming the current sha first and compared the time
 only WITHIN a group. Every card in that list covers the SAME EDIT (= the

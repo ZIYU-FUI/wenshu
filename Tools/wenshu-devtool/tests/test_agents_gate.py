@@ -28,6 +28,7 @@ Exit: 0 = every case passed, 1 = at least one case failed.
 from __future__ import annotations
 
 import importlib.util
+import json
 import subprocess
 import os
 import sys
@@ -315,24 +316,39 @@ def main() -> int:
                 else:
                     os.environ["HERMES_HOME"] = previous
 
-        def loader_cap_under(config_text: str) -> int | None:
-            """The LOADER's own answer for that config (= its oracle)."""
+        def loader_cap_under(config_text: str,
+                             interpreter: str | None = None) -> int | None:
+            """The LOADER's own answer for that config (= its oracle).
+
+            In ONE interpreter, so the oracle and the gate under test are
+            the same pair of programs. Measured 2026-11-01: the oracle
+            looped over the interpreters and returned the FIRST that
+            worked, so every comparison used interpreter #1's answer
+            while the gate ran elsewhere: the stated method was not the
+            implemented one.
+            """
             home = Path(tmp) / f"loader-home-{_shape_no[1]}"
             _shape_no[1] += 1
             home.mkdir()
             (home / "config.yaml").write_text(config_text, encoding="utf-8")
             script = (
-                "import sys;sys.path.insert(0,'/Volumes/ANAN/.hermes/hermes-agent');"
+                "import sys,json;"
+                "roots=json.loads(sys.argv[1]);"
+                "[sys.path.insert(0,r) for r in roots];"
                 "from agent.prompt_builder import _get_context_file_max_chars;"
                 "print(_get_context_file_max_chars(204800))"
             )
-            for interpreter in ag._hermes_pythons():
+            roots = ag._hermes_source_roots()
+            candidates = (
+                [interpreter] if interpreter else list(ag._hermes_pythons())
+            )
+            for candidate in candidates:
                 previous = os.environ.get("HERMES_HOME")
                 os.environ["HERMES_HOME"] = str(home)
                 try:
                     proc = subprocess.run(
-                        [interpreter, "-c", script],
-                        capture_output=True, text=True, timeout=60,
+                        [candidate, "-c", script, json.dumps(roots)],
+                        capture_output=True, text=True, timeout=120,
                     )
                 except (OSError, subprocess.SubprocessError):
                     continue
@@ -359,9 +375,16 @@ def main() -> int:
             _shape_no[2] += 1
             home.mkdir()
             (home / "config.yaml").write_text(config_text, encoding="utf-8")
+            # The gate comes from THE TREE UNDER TEST (= this file's own
+            # directory), never from a hardcoded path to another checkout.
+            # Measured 2026-11-01: a hardcoded path made the case measure
+            # whatever sat at that path at run time, so the suite measured
+            # TWO files and the split was invisible in the output. And the
+            # landing flow runs the gates on a branch while main still
+            # holds the old copy, so a branch that reintroduced a defect
+            # landed green.
             script = (
-                "import sys;sys.path.insert(0,'/Volumes/ANAN/Engineering/wenshu"
-                "/Tools/wenshu-devtool');"
+                "import sys;sys.path.insert(0," + repr(str(TOOL.parent)) + ");"
                 "import agents_gate as ag;"
                 "print(ag.effective_context_file_cap()[0])"
             )
@@ -416,7 +439,7 @@ def main() -> int:
         for interpreter in interpreters:
             for label, config_text in shapes:
                 gate_cap = gate_cap_in(interpreter, config_text)
-                loader_cap = loader_cap_under(config_text)
+                loader_cap = loader_cap_under(config_text, interpreter)
                 results.append(
                     case(
                         f"the gate and the loader agree on {label} in "
