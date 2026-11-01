@@ -319,19 +319,38 @@ parser strips it, but `0o17` is not the number 0), and it refuses a
 duplicate key (= the loader's parser rejects that file) and a zero
 (= the loader's condition, and a cap of 0 would reject every file).
 
-THE SWEEP IS IN THE SUITE. Thirty-eight shapes of a config, each measured
+AND THE PROTOCOL HAS TO TELL "NO PIN" FROM "AN HONORED VALUE OF 0". The
+loader honors a float in (0,1) (= `int(0.5)` = 0, so it keeps NOTHING of
+the file), and the subprocess used to print a bare number, so "no pin"
+and "an honored 0" were the same thing and the gate fell back to the
+floor (= it ACCEPTED a file the loader empties). The protocol prints
+`PIN=<n>` / `NOPIN` / `REJECTED` now, and the conversion is INSIDE the
+try (= a value that parses and then cannot be converted, like `.inf`,
+must not exit non-zero, because that walked past every interpreter and
+landed on "no parser").
+
+AND THE GATE HAS TWO BRANCHES FOR READING THE CONFIG, AND BOTH MUST
+AGREE. One runs in-process (when `hermes_yaml` is importable) and one
+runs the parser in a subprocess (the documented `python3`, which cannot
+import it). The in-process branch is DEAD in the documented environment,
+so a case that measures the gate in-process measures a path the
+documented command never takes. The sweep measures the gate the way the
+documented command runs it.
+
+THE SWEEP IS IN THE SUITE. Fifty-one shapes of a config, each measured
 against the loader's own number for the SAME config: the honored pin
 must be the same, and the gate's cap must never be LOOSER than the
 loader's (= the direction that lets a file through that the loader
 truncates in the middle). The sweep measures at a SMALL window too
 (= 49,152), because at a 1M window the loader's dynamic cap is 240,000
-and that hides a looseness. The sweep found four real defects that the
+and that hides a looseness. The sweep found five real defects that the
 earlier cases missed: a duplicate key (= the gate read a pin from a
 file the loader cannot read), `0o17` (= the text fallback matched the
-prefix "0" and reported a cap of 0), and the two shapes the review
-round hunted (= a config the loader's parser REJECTS that still carries
-a pin line, and the tri-state verdict above). A sweep is a cover list:
-a shape that is not in it is a shape nothing checks.
+prefix "0" and reported a cap of 0), the shapes the review rounds
+hunted (= a config the loader's parser REJECTS that still carries a pin
+line, the tri-state verdict above, and a float in (0,1) whose honored
+value is 0). A sweep is a cover list: a shape that is not in it is a
+shape nothing checks, and each round found one.
 
 The gate honors the pin only when the loader honors it:
 

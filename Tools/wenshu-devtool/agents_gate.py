@@ -221,10 +221,20 @@ def _loader_honored_pin(path: Path) -> tuple[str, int | None]:
         "from hermes_yaml import safe_load;\n"
         "try:\n"
         "    v=safe_load(open(sys.argv[1],encoding='utf-8').read())\n"
+        "    raw=v.get('context_file_max_chars') if isinstance(v,dict) else None\n"
+        # the loader honors the pin when the value is an int or a float
+        # and it is > 0, and its cap is int(raw) (= 0 for a float in
+        # (0,1)), so the PROTOCOL has to tell "no pin" apart from "an
+        # honored value of 0"
+        "    if not (isinstance(raw,(int,float)) and raw>0):\n"
+        "        print('NOPIN')\n"
+        "    else:\n"
+        "        print('PIN=%d' % int(raw))\n"
+        # the conversion is INSIDE the try: a value that parses and then
+        # cannot be converted (= `.inf`) must not exit non-zero (= that
+        # walked past every interpreter and landed on 'no-parser')
         "except Exception:\n"
-        "    print('REJECTED');sys.exit(0)\n"
-        "v=v.get('context_file_max_chars') if isinstance(v,dict) else None;"
-        "print(int(v) if isinstance(v,(int,float)) and v>0 else 0)"
+        "    print('REJECTED')\n"
     )
     try:
         from hermes_yaml import safe_load  # type: ignore
@@ -239,7 +249,12 @@ def _loader_honored_pin(path: Path) -> tuple[str, int | None]:
     else:
         raw = value.get("context_file_max_chars") if isinstance(value, dict) else None
         if isinstance(raw, (int, float)) and raw > 0:
-            return "pinned", int(raw)
+            try:
+                return "pinned", int(raw)
+            except (OverflowError, ValueError):
+                # The loader cannot use this value either (= `.inf`),
+                # so it has no pin.
+                return "no-pin", None
         return "no-pin", None
     for interpreter in _hermes_pythons():
         try:
@@ -261,9 +276,13 @@ def _loader_honored_pin(path: Path) -> tuple[str, int | None]:
             # The loader's parser REJECTED the file (= the loader has no
             # pin in it either).
             return "no-pin", None
-        if last.isdigit():
-            value = int(last)
-            return ("pinned", value) if value > 0 else ("no-pin", None)
+        if last == "NOPIN":
+            return "no-pin", None
+        if last.startswith("PIN="):
+            # An HONORED value, including 0 (= a float in (0,1) is
+            # honored by the loader as int(0.5) = 0, so the loader keeps
+            # nothing of the file and the gate must refuse it).
+            return "pinned", int(last[4:])
     return "no-parser", None
 
 

@@ -1268,6 +1268,40 @@ def main() -> int:
                 return proc.stdout.strip()
         return ""
 
+    def gate_probe(home: str) -> tuple[int | None, int]:
+        """The gate's own answer, measured in the DOCUMENTED interpreter.
+
+        The gate has two branches for reading the config: an in-process
+        one (= when `hermes_yaml` is importable) and a subprocess one
+        (= the documented `python3`, which cannot import it). The
+        in-process branch is DEAD in the documented environment, so a
+        case that measures the gate in-process measures a path the
+        documented command never takes. So the gate is measured the way
+        the documented command runs it.
+        """
+        devtool = str(Path(__file__).resolve().parent.parent)
+        script = (
+            "import sys;sys.path.insert(0,'" + devtool + "');"
+            "import agents_gate;"
+            "p=agents_gate._pinned_context_file_cap();"
+            "print('PIN=' + (str(p[0]) if p else 'none'));"
+            "print('CAP=' + str(agents_gate.effective_context_file_cap()[0]))"
+        )
+        proc = subprocess.run(
+            [sys.executable, "-c", script],
+            env=dict(os.environ, HERMES_HOME=home),
+            capture_output=True, text=True, timeout=120,
+        )
+        pin: int | None = None
+        cap = 0
+        for line in proc.stdout.splitlines():
+            if line.startswith("PIN="):
+                value = line[4:]
+                pin = None if value == "none" else int(value)
+            elif line.startswith("CAP="):
+                cap = int(line[4:])
+        return pin, cap
+
     def loader_config_path() -> str:
         """The loader's own resolver, in the CURRENT environment."""
         return loader_probe(
@@ -1422,6 +1456,29 @@ def main() -> int:
                  'note: "foo\ncontext_file_max_chars: 240000\nbar"\n'),
                 ("an invalid yaml config with a bigger pin",
                  "context_file_max_chars: 999999\nkey: [unclosed\n"),
+                ("an undefined alias",
+                 "context_file_max_chars: *missing\n"),
+                ("a bad escape",
+                 "context_file_max_chars: 240000\nnote: \"bad \\q escape\"\n"),
+                ("a NUL byte", "context_file_max_chars: 240000\n\x00\n"),
+                ("a duplicate anchor",
+                 "a: &x 1\nb: &x 2\ncontext_file_max_chars: 240000\n"),
+                ("a BOM", "\ufeffcontext_file_max_chars: 240000\n"),
+                ("a very deep nesting",
+                 "context_file_max_chars: 240000\n"
+                 + "".join("  " * i + "k:\n" for i in range(1, 80))),
+                ("a control character",
+                 "context_file_max_chars: 240000\nnote: \x01\n"),
+                ("a trailing document end",
+                 "context_file_max_chars: 240000\n...\n"),
+                # A FLOAT IN (0,1). The loader honors the pin and its cap
+                # is int(0.5) = 0 (= it keeps nothing of the file), so
+                # the gate's protocol has to tell "no pin" apart from "an
+                # honored value of 0".
+                ("a float in (0,1)", "context_file_max_chars: 0.5\n"),
+                ("an infinity", "context_file_max_chars: .inf\n"),
+                ("a negative infinity", "context_file_max_chars: -.inf\n"),
+                ("a NaN", "context_file_max_chars: .nan\n"),
             )
             for label, body in sweep:
                 with tempfile.TemporaryDirectory() as tmp:
@@ -1436,33 +1493,53 @@ def main() -> int:
                     os.environ["HERMES_HOME"] = str(home)
                     try:
                         measured = loader_probe(
-                            "import json,sys;"
-                            "sys.path.insert(0,'/Volumes/ANAN/.hermes/hermes-agent');"
-                            "from hermes_cli.config import load_config_readonly;"
-                            "from agent.prompt_builder import _get_context_file_max_chars;"
-                            " v=load_config_readonly().get('context_file_max_chars');"
-                            " print(json.dumps({'pin': int(v) if isinstance(v,(int,float))"
-                            " and v>0 else 0,"
-                            " 'cap': _get_context_file_max_chars(1000000),"
-                            " 'small': _get_context_file_max_chars(204800)}))",
+        "import json,sys\n"
+                            "sys.path.insert(0,'/Volumes/ANAN/.hermes/hermes-agent')\n"
+                            "from hermes_cli.config import load_config_readonly\n"
+                            "from agent.prompt_builder import _get_context_file_max_chars\n"
+                            "v=load_config_readonly().get('context_file_max_chars')\n"
+                            "cap=None\n"
+                            "small=None\n"
+                            "crash=False\n"
+                            "try:\n"
+                            "    cap=_get_context_file_max_chars(1000000)\n"
+                            "    small=_get_context_file_max_chars(204800)\n"
+                            "except Exception:\n"
+                            "    crash=True\n"
+                            "print(json.dumps({'pin': int(v) if isinstance(v,(int,float))"
+                            " and v>0 else 0, 'cap': cap, 'small': small,"
+                            " 'crash': crash}))",
                             env=env,
                         )
                         try:
                             facts = json.loads(measured or "{}")
                         except json.JSONDecodeError:
                             facts = {}
+                        if not facts:
+                            # The LOADER ITSELF crashes on this config
+                            # (= `.inf` cannot be converted to an int), so
+                            # there is no number to compare with. The gate
+                            # must still ANSWER, and it must refuse (= the
+                            # floor), because a crash is not a verdict.
+                            gate_alone = gate_probe(str(home))[1]
+                            check(
+                                f"the loader has no answer, and the gate still "
+                                f"refuses ({label})",
+                                gate_alone <= 20000,
+                                True,
+                            )
+                            continue
                         check(
                             f"the sweep measured the loader for this shape ({label})",
                             bool(facts),
                             True,
                         )
-                        gate_pin = cap_gate._pinned_context_file_cap()
+                        gate_pin, gate_cap_now = gate_probe(str(home))
                         check(
                             f"the gate's honored pin equals the loader's ({label})",
-                            (gate_pin[0] if gate_pin else 0),
+                            (gate_pin if gate_pin is not None else 0),
                             int(facts.get("pin", 0)),
                         )
-                        gate_cap_now = cap_gate.effective_context_file_cap()[0]
                         check(
                             f"the gate is never LOOSER than the loader ({label})",
                             gate_cap_now <= int(facts.get("cap", 20000)),
