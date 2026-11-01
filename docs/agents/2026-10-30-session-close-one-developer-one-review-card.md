@@ -292,12 +292,25 @@ list happened to cover it). The gate resolves it the loader's way now.
 AND THE GATE HONORS THE PIN EXACTLY WHEN THE LOADER HONORS IT. The
 loader honors it only when the merged config value is an int or a float
 (`int(val) if isinstance(val, (int, float)) and val > 0`), so the gate
-parses the config with the LOADER'S OWN PARSER (= ruamel, `hermes_yaml`)
-and applies the same rule. A different parser is a different answer:
-ruamel REJECTS a duplicate key (= the loader cannot read that file, so
-it has no pin) and PyYAML's YAML 1.1 scalars differ from ruamel's YAML
-1.2 (= `yes` is a boolean in one and a string in the other), so the gate
-does not fall back to PyYAML for this file.
+parses the config with the LOADER'S OWN PARSER (= `hermes_yaml`, which
+is YAML 1.1, so `yes` IS a boolean there) and applies the same rule. A
+different parser is a different answer: plain ruamel is YAML 1.2 (so
+`yes` is a string there), and PyYAML is YAML 1.1 with other
+differences, so the gate does not fall back to either for this file.
+
+AND THE PARSER'S VERDICT IS TRI-STATE, BECAUSE "NO PIN" AND "NO
+PARSER" ARE DIFFERENT ANSWERS. The parser says 'pinned' (= the loader
+honors this value), 'no-pin' (= the parser RAN and the loader has no
+pin: the key is absent, the value is not an int, OR THE PARSER REJECTED
+THE FILE) or 'no-parser' (= no loader parser is on this machine). The
+text fallback runs ONLY for 'no-parser'. It used to run for 'no-pin' as
+well, and it is LINE-based, so it read a pin out of files the loader
+cannot read (= a duplicate key on another key, invalid YAML, a
+multi-document file, a tab-indent error, a pin inside a quoted string):
+the gate read 240,000 where the loader read none, so it was LOOSER by
+190,848 chars at a 204,800-token window, and it ACCEPTED a 344,936-char
+AGENTS.md that the loader truncates at 240,000 (= the exact failure this
+gate exists to prevent). All six of those shapes are in the sweep now.
 
 AND THE GATE READS THE CONFIG WITH THE LOADER'S PARSER EVERYWHERE IT
 CAN, AND THE TEXT ONLY WHEN IT CANNOT. The text fallback requires the
@@ -306,16 +319,19 @@ parser strips it, but `0o17` is not the number 0), and it refuses a
 duplicate key (= the loader's parser rejects that file) and a zero
 (= the loader's condition, and a cap of 0 would reject every file).
 
-THE SWEEP IS IN THE SUITE. Thirty-two shapes of a config, each measured
+THE SWEEP IS IN THE SUITE. Thirty-eight shapes of a config, each measured
 against the loader's own number for the SAME config: the honored pin
 must be the same, and the gate's cap must never be LOOSER than the
 loader's (= the direction that lets a file through that the loader
 truncates in the middle). The sweep measures at a SMALL window too
 (= 49,152), because at a 1M window the loader's dynamic cap is 240,000
-and that hides a looseness. The sweep found two real defects that the
+and that hides a looseness. The sweep found four real defects that the
 earlier cases missed: a duplicate key (= the gate read a pin from a
-file the loader cannot read) and `0o17` (= the text fallback matched
-the prefix "0" and reported a cap of 0).
+file the loader cannot read), `0o17` (= the text fallback matched the
+prefix "0" and reported a cap of 0), and the two shapes the review
+round hunted (= a config the loader's parser REJECTS that still carries
+a pin line, and the tri-state verdict above). A sweep is a cover list:
+a shape that is not in it is a shape nothing checks.
 
 The gate honors the pin only when the loader honors it:
 

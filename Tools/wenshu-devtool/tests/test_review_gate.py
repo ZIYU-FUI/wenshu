@@ -1403,6 +1403,25 @@ def main() -> int:
                 ("a plus sign", "context_file_max_chars: +240000\n"),
                 ("a trailing space", "context_file_max_chars: 240000 \n"),
                 ("an octal", "context_file_max_chars: 0o17\n"),
+                # A CONFIG THE LOADER'S PARSER CANNOT READ. The loader
+                # has NO pin in these (= it cannot read them), so the
+                # gate must not read one either (= the text fallback is
+                # line-based, so it would). Measured 2026-11-01: the gate
+                # read 240000 out of all of these and the loader read
+                # none, so the gate was LOOSER than the loader by 190,848
+                # chars at a 204,800-token window.
+                ("an invalid yaml config with a pin",
+                 "context_file_max_chars: 240000\nkey: [unclosed\n"),
+                ("a duplicate key on another key",
+                 "model: a\nmodel: b\ncontext_file_max_chars: 240000\n"),
+                ("a multi-document file",
+                 "context_file_max_chars: 240000\n---\nother: 1\n"),
+                ("a tab-indent error",
+                 "context_file_max_chars: 240000\nfoo:\n\tbar: 1\n"),
+                ("a pin inside a quoted string",
+                 'note: "foo\ncontext_file_max_chars: 240000\nbar"\n'),
+                ("an invalid yaml config with a bigger pin",
+                 "context_file_max_chars: 999999\nkey: [unclosed\n"),
             )
             for label, body in sweep:
                 with tempfile.TemporaryDirectory() as tmp:

@@ -174,9 +174,16 @@ def _pinned_context_file_cap() -> tuple[int, str] | None:
     # Ruamel REJECTS a duplicate key, and its YAML 1.2 scalars differ
     # from PyYAML's YAML 1.1 (= `yes` is a string here and a boolean
     # there), so a different parser is a different answer.
-    pin = _loader_honored_pin(path)
-    if pin is not None:
+    verdict, pin = _loader_honored_pin(path)
+    if verdict == "pinned":
         return pin, str(path)
+    if verdict == "no-pin":
+        # The loader's parser RAN and the loader has no pin in this file
+        # (= the key is absent, the value is not an int, or the parser
+        # REJECTED the file). The text fallback must NOT run here: it is
+        # LINE-based, so it would read a pin out of a file the loader
+        # cannot read, and that is the LOOSER direction.
+        return None
     # No loader parser on this machine: read the text, and only an
     # UNQUOTED integer (= the form the loader honors). A bare None (= NOT
     # a 2-tuple whose first element is None: a 2-tuple is truthy, so
@@ -185,22 +192,37 @@ def _pinned_context_file_cap() -> tuple[int, str] | None:
     return (value, str(path)) if value is not None else None
 
 
-def _loader_honored_pin(path: Path) -> int | None:
-    """The pin the LOADER honors in this file, read by the LOADER's parser.
+def _loader_honored_pin(path: Path) -> tuple[str, int | None]:
+    """The loader's verdict on this file: ('pinned', n) | ('no-pin', None)
+    | ('no-parser', None).
 
-    The loader parses the user's config with ruamel (= `hermes_yaml`) and
-    applies the loader's own condition (= honored only when the value is
-    an int or a float; `bool` IS a subclass of `int`, so the loader
-    honors `true` as 1). A config ruamel REJECTS (= a duplicate key) has
-    NO pin, because the loader cannot read it either.
+    The loader parses the user's config with `hermes_yaml` (= YAML 1.1,
+    so `yes` IS a boolean there) and applies the loader's own condition
+    (= honored only when the value is an int or a float; `bool` IS a
+    subclass of `int`, so the loader honors `true` as 1).
 
-    Ruamel is not importable from every interpreter, so it also runs
+    The verdict is TRI-STATE, and the difference matters:
+
+    * 'pinned' = the parser ran and the loader honors this value.
+    * 'no-pin' = the parser ran and the loader has NO pin: the key is
+      absent, the value is not an int, OR THE PARSER REJECTED THE FILE
+      (= a duplicate key, invalid YAML, a multi-document file, a tab).
+      A file the loader cannot read has no pin, so the text fallback
+      must NOT run on it: honoring a pin there is the LOOSER direction
+      (= the gate accepts a file the loader truncates in the middle).
+    * 'no-parser' = no loader parser is available on this machine, so
+      the text fallback is the only reader left.
+
+    The parser is not importable from every interpreter, so it also runs
     through the same interpreter search the YAML reader uses.
     """
     script = (
         "import sys;sys.path.insert(0,'/Volumes/ANAN/.hermes/hermes-agent');"
-        "from hermes_yaml import safe_load;"
-        "v=safe_load(open(sys.argv[1],encoding='utf-8').read());"
+        "from hermes_yaml import safe_load;\n"
+        "try:\n"
+        "    v=safe_load(open(sys.argv[1],encoding='utf-8').read())\n"
+        "except Exception:\n"
+        "    print('REJECTED');sys.exit(0)\n"
         "v=v.get('context_file_max_chars') if isinstance(v,dict) else None;"
         "print(int(v) if isinstance(v,(int,float)) and v>0 else 0)"
     )
@@ -211,14 +233,14 @@ def _loader_honored_pin(path: Path) -> int | None:
     except ImportError:
         pass
     except Exception:
-        # The loader cannot read it either (= a duplicate key, or bytes
-        # that are not text), so it has no pin.
-        return None
+        # The loader's parser REJECTED the file, so the loader has no
+        # pin in it either.
+        return "no-pin", None
     else:
         raw = value.get("context_file_max_chars") if isinstance(value, dict) else None
         if isinstance(raw, (int, float)) and raw > 0:
-            return int(raw)
-        return None
+            return "pinned", int(raw)
+        return "no-pin", None
     for interpreter in _hermes_pythons():
         try:
             proc = subprocess.run(
@@ -232,10 +254,17 @@ def _loader_honored_pin(path: Path) -> int | None:
         if proc.returncode != 0:
             continue
         out = proc.stdout.strip().splitlines()
-        if out and out[-1].strip().isdigit():
-            value = int(out[-1].strip())
-            return value if value > 0 else None
-    return None
+        if not out:
+            continue
+        last = out[-1].strip()
+        if last == "REJECTED":
+            # The loader's parser REJECTED the file (= the loader has no
+            # pin in it either).
+            return "no-pin", None
+        if last.isdigit():
+            value = int(last)
+            return ("pinned", value) if value > 0 else ("no-pin", None)
+    return "no-parser", None
 
 
 def _pinned_from_text(text: str) -> int | None:
