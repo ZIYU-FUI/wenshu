@@ -301,13 +301,15 @@ jobs:
             # reason a subject was refused, and the scope's existence
             # is now accepted.
             # The job reads only the last 10 subjects, so it was red on
-            # main in WINDOWS (= whenever those 10 carried a scope other
-            # than (wenshu)), not in every window. Measured over main's
-            # 6,114 windows of 10 at this tree: 3,473 have a last 10
-            # whose subjects all carry (wenshu), and the old rule lets
-            # through 3,276 of them (the other 197 carry a
-            # merge(wenshu): subject, and "merge" is not one of the nine
-            # conventional types).
+            # main in WINDOWS, not in every window, and for TWO
+            # reasons: a scope other than (wenshu) (= what this fix
+            # addresses) and a subject with no conventional prefix at
+            # all (= the old rule refused those for their shape). At
+            # this tree, 3,473 of main's windows have a last 10 whose
+            # subjects all carry (wenshu), and the old rule lets through
+            # 3,276 of them (the other 197 carry a merge(wenshu):
+            # subject, and "merge" is not one of the nine types). The
+            # counts move with the tree; the two causes are the claim.
             if ! echo "$SUBJECT" | grep -qE "^(feat|fix|docs|test|refactor|chore|perf|build|ci)(\([a-zA-Z0-9._/-]+\))?:"; then
               echo "Bad commit subject: $SUBJECT"
               exit 1

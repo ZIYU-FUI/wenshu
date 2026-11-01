@@ -381,18 +381,32 @@ OTHER THAN `(wenshu)`, so a window of 10 subjects that all carry
 wenshu): ...` / `docs(wenshu): ...` / `fix(wenshu): ...` subjects) the
 OLD rule rejects **0 of the 10**.
 
-**AND THE 3,276 IS THE GREEN COUNT INSIDE A LARGER POPULATION.** Over
-main's 6,124 commits (= 6,114 windows of 10), measured at this tree:
+**AND THE OLD RULE WAS RED FOR TWO REASONS, AND ONLY ONE OF THEM IS
+ABOUT SCOPES.** Over main's windows of 10, the OLD rule refuses a window
+when either:
 
-- **3,473** windows have a last-10 whose subjects ALL carry `(wenshu)`;
-- of those, the OLD rule **accepts every subject in 3,276** (= the job
-  is GREEN there), and **refuses at least one in 197** (= the job is RED
-  there, and the refusals are the `merge(wenshu): ...` subjects, because
-  `merge` is not one of the nine conventional types).
+1. a subject carries a scope OTHER THAN `(wenshu)` (= the reason the
+   fix addressed), or
+2. a subject has NO conventional prefix at all (= `Merge ...` and the
+   plain English titles, which the old rule refused for their SHAPE).
+
+Measured at this tree, the windows whose last 10 subjects all carry
+`(wenshu)` number **3,473**, and the OLD rule lets through **3,276** of
+them (= the job is GREEN there) and refuses at least one in **197** (=
+the job is RED there, and the refusals are the `merge(wenshu): ...`
+subjects, because `merge` is not one of the nine conventional types).
 
 So the job was red on main in WINDOWS, not in every window, and "3,276"
 is the count of the windows the OLD rule let through (= NOT the count of
 the windows that carried only `(wenshu)` = 3,473).
+
+**THE COUNTS MOVE WITH THE TREE, SO THE CAUSES ARE THE CLAIM.** Every
+count in this paragraph is over the commits that exist at the tree, so
+it changes as the tree moves (= the reviewer measured 3,473 / 3,276 /
+197 at an earlier tree and the same split at this one). The two CAUSES
+(= a scope other than `(wenshu)`, and a subject with no conventional
+prefix) are what the fix changed, and they are the claim this
+paragraph makes.
 
 **THE TREE IS NAMED BECAUSE THE FIGURE BELONGS TO ONE TREE.** An earlier
 reading of this record said "4 of the 10 at this session's base", and
