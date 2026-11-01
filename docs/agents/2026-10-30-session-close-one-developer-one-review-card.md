@@ -289,11 +289,30 @@ of them found things that were NOT this session's cap work.
 regex demanded the scope to be EXACTLY `(wenshu)`, while the repo's own
 commits use many scopes (= `(gate)`, `(close)`, `(editor)`, ... = 97
 distinct scopes over main's history) and its own pre-commit hook (= the
-rule's other reference) accepts every one of them. Measured at this tree:
-809 of the commits since the job was added carry a subject that regex
-rejects, and the job reads only the last 10 (= 4 of the 10 were
-rejected at this session's base, and all 10 are now). The regex accepts
-an optional free-form scope, so the job passes on main's window again.
+rule's other reference) accepts every one of them.
+
+Measured at this tree, with the job's OWN regex (= read out of the
+workflow file at the commit that added it, not restated here), over the
+5,602 commits since the job was added:
+
+- the OLD rule (= the scope must be `(wenshu)`) rejected **1,215** of
+  them, and 650 of those carry a scope (= every one a scope !=
+  `(wenshu)`);
+- the CURRENT rule (= an optional free-form scope) rejects **656**, and
+  NONE of those carries a scope (= they are the subjects with no
+  conventional prefix at all).
+
+So the old rule rejected the repo's own convention, and the current one
+rejects only the subjects with no conventional prefix at all. And the job
+reads only the last 10 subjects, so it was red on main whenever any of
+those 10 carried a scope (= 4 of the 10 were rejected at this session's
+base, and all 10 are now).
+
+**THE COUNT IS A FACT ABOUT THE JOB'S OWN REGEX, SO THE REGEX IS NAMED
+AND READ OUT OF THE FILE.** An earlier reading of this record counted
+with a different regex (= `\w+` for the type, and only `(wenshu)` for
+the scope) and reported 809. That is a different measurement of a
+different rule, so it is replaced by the table above.
 
 **§7.10 = a review card's gate section must name the suite in the FORM
 the gate-width gate reads.** This session's card named it as a shell

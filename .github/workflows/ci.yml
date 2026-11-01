@@ -282,10 +282,13 @@ jobs:
             # commits use many of them (= "(gate)", "(close)",
             # "(editor)", ... = 97 distinct scopes over main's history),
             # and the rule is "a conventional prefix", not "the scope
-            # must be (wenshu)". That regex demanded one exact scope,
-            # so the job rejected the repo's own convention (= 809 of
-            # the commits since this job was added carry a subject it
-            # rejects, measured at this tree). The job reads only the
+            # must be (wenshu)". That regex demanded one exact scope.
+            # Measured at this tree, over the 5,602 commits since this
+            # job was added, the OLD rule rejected 1,215 of their
+            # subjects (= 650 of them carry a scope, and every one of
+            # those 650 is a scope != (wenshu)); the rule above rejects
+            # 656 (= the subjects with no conventional prefix at all,
+            # and NONE of them carries a scope). The job reads only the
             # last 10 subjects, so it was red on main whenever any of
             # those 10 carried a scope.
             if ! echo "$SUBJECT" | grep -qE "^(feat|fix|docs|test|refactor|chore|perf|build|ci)(\([a-zA-Z0-9._/-]+\))?:"; then
