@@ -339,11 +339,25 @@ count). So the rows are now ONE convention, and every clause in them is
 true under it.
 
 **AND THE NUMBERS MOVE WITH THE TREE, SO THE TREE IS NAMED.** The
-counts above hold at `50f325e848`. At `d058fee233` the OLD rule rejects
-**1,216** over 5,603 commits (= its scoped count is 651), and the
-CURRENT rule still rejects **656** (= the commits since are `docs(close):
-...`, which the current rule accepts). So a count is over the commits
-that exist at the tree, and the pair that moves is named per rule.
+counts above hold at `50f325e848`. The rule that reads them is
+`git log --format=%s 57be84050a..<the tree> | grep -vE '<the rule>'`, so
+the count is over the commits that exist AT the tree:
+
+- at `50f325e848`: 5,602 commits, the OLD rule rejects 1,215 (= 650 of
+  them carry a scope), and the CURRENT rule rejects 656;
+- at `d058fee233`: 5,603 commits, the OLD rule rejects 1,216 (= 651 carry
+  a scope), and the CURRENT rule still rejects 656.
+
+So the OLD rule's counts move with the tree (every commit since carries
+a scope the old rule refuses), and the CURRENT rule's do not (= the
+commits since are `docs(close): ...`, which it accepts). The pair that
+moves is named per rule.
+
+**THE TABLE NAMES TWO FIXED TREES, NOT THE TREE THAT CARRIES IT.** A
+row for the carrying commit would be a row that changes every time the
+record is committed, so the numbers would never settle. The rule that
+reads them is the command above, so a reader runs it at the tree they
+care about; and the two rows here are trees that will not move.
 
 And the job reads only the last 10 subjects, so it was red on main
 whenever any of those 10 carried a scope. Measured with the OLD rule
