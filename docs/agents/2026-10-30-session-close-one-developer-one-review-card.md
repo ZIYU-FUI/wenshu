@@ -309,6 +309,12 @@ three that are new on the merged tree are the design-system sweeps over
 the SIBLING's `KanbanView.swift` (= the sibling's file, not this
 session's work: this session touched no Swift file at all).
 
+THE ATTRIBUTION IS MEASURED, NOT ASSUMED. The sweep over
+`KanbanView.swift` was run twice on the merged tree: once with the
+BASE's `KanbanView.swift` put back in place (= GREEN) and once with the
+sibling's file (= RED). So the failure follows the file, and the file is
+the sibling's.
+
 ## The repo gates, on the merged tree
 
 `python3 Tools/wenshu-devtool/agents_gate.py --file AGENTS.md` exits 0.
