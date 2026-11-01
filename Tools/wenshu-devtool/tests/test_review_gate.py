@@ -1308,6 +1308,39 @@ def main() -> int:
                 == os.path.realpath(loader_config_path()),
                 True,
             )
+            # A CONFIG THAT IS NOT A MAPPING must not crash the gate. The
+            # loader honors 0 there (= it falls to its dynamic cap), so the
+            # gate falls to the floor. The CLI is what crashed, so the CLI
+            # is what the case runs.
+            for label, body in (
+                ("an empty config", ""),
+                ("a comment-only config", "# nothing here\n"),
+                ("a config that is a list", "- a\n- b\n"),
+                ("an invalid yaml config", "key: [unclosed\n"),
+            ):
+                with tempfile.TemporaryDirectory() as tmp:
+                    home = Path(tmp) / "home"
+                    home.mkdir()
+                    (home / "config.yaml").write_text(body)
+                    env = dict(os.environ, HERMES_HOME=str(home))
+                    proc = subprocess.run(
+                        [sys.executable, str(Path(__file__).resolve().parent.parent
+                                            / "agents_gate.py"), "--file", "AGENTS.md"],
+                        cwd=str(Path(__file__).resolve().parent.parent.parent),
+                        env=env, capture_output=True, text=True, timeout=120,
+                    )
+                    check(
+                        f"a config that is not a mapping does not crash the "
+                        f"gate ({label})",
+                        proc.returncode == 0 and "Traceback" not in proc.stderr,
+                        True,
+                    )
+                    check(
+                        f"and the gate uses the floor for it ({label})",
+                        cap_gate.effective_context_file_cap()[0],
+                        20000,
+                    )
+
             # AND THE TEXT FALLBACK (a machine with no YAML parser) reads
             # the same forms: an unquoted int, and nothing else.
             check(
@@ -1343,6 +1376,11 @@ def main() -> int:
                 ("an expansion", "context_file_max_chars: ${WENSHU_TEST_CAP}\n", "0"),
                 ("an int with a comment",
                  "context_file_max_chars: 240000 # a comment\n", "240000"),
+                # `bool` IS a subclass of `int` in Python, so the loader
+                # honors `true` as 1 (= it truncates the file to one
+                # character). Carving the bool out would make the gate
+                # LOOSER than the loader.
+                ("a bool pin", "context_file_max_chars: true\n", "1"),
             )
             for label, body, expected in forms:
                 with tempfile.TemporaryDirectory() as tmp:

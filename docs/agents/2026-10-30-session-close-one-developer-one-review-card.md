@@ -300,6 +300,16 @@ parses the config with the same parser and applies the same rule:
 | `"240000"` | a string = inert | inert |
 | `${VAR}` | a string after the expansion = inert | inert |
 | `240000 # a comment` | an int (the parser strips the comment) | honored |
+| `true` | a bool IS an int in Python = honored as 1 | honored as 1 |
+
+AND A CONFIG THAT IS NOT A MAPPING MUST NOT CRASH THE GATE. An empty
+config, a comment-only config, a config that is a list and an invalid
+YAML config all make the loader honor 0 (= it falls to its dynamic
+cap), so the gate falls to the floor. The gate used to return a
+2-tuple whose first element was None, and a 2-tuple is truthy, so the
+cap became None and the gate died with a TypeError instead of
+answering. There are cases for all four shapes now, and they run the
+CLI (= the CLI is what crashed).
 
 The gate used to read "the stripped text is all digits", which is a
 DIFFERENT rule: it honored a quoted value (= up to 190,848 chars LOOSER

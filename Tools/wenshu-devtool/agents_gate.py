@@ -170,13 +170,18 @@ def _pinned_context_file_cap() -> tuple[int, str] | None:
     value, _how = _yaml_load(text)
     if isinstance(value, dict):
         raw = value.get("context_file_max_chars")
-        if isinstance(raw, bool):
-            raw = None
+        # The loader's condition VERBATIM. `bool` IS a subclass of `int`
+        # in Python, so the loader honors `context_file_max_chars: true`
+        # as 1 (= it truncates the file to one character). Carving the
+        # bool out here would make the gate LOOSER than the loader.
         if isinstance(raw, (int, float)) and raw > 0:
             return int(raw), str(path)
         return None
-    # No YAML parser on this machine: fall back to the text.
-    return _pinned_from_text(text), str(path)
+    # No YAML parser on this machine: fall back to the text. A bare None
+    # (= NOT a 2-tuple whose first element is None: a 2-tuple is truthy,
+    # so `if pinned:` would be True and the cap would become None).
+    value = _pinned_from_text(text)
+    return (value, str(path)) if value is not None else None
 
 
 def _pinned_from_text(text: str) -> int | None:
