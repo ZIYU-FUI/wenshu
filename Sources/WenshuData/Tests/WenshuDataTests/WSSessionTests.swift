@@ -123,7 +123,7 @@ struct WSSessionTests {
             sessionID: "sess-work",
             title: "the work",
             bookID: "book-A",
-            source: WSSessionSource.agent,
+            source: WSSessionSource.subagent,
             parentSessionID: "sess-chat",
             agentName: "researcher"
         )
@@ -135,7 +135,7 @@ struct WSSessionTests {
         let byID = Dictionary(uniqueKeysWithValues: fetched.map { ($0.sessionID, $0) })
         #expect(byID["sess-chat"]?.source == nil,
                 "an ordinary chat carries no work tag (= the archive lists only the tagged rows)")
-        #expect(byID["sess-work"]?.source == WSSessionSource.agent)
+        #expect(byID["sess-work"]?.source == WSSessionSource.subagent)
         #expect(byID["sess-work"]?.parentSessionID == "sess-chat",
                 "the work names the session that asked for it (= the archive walks back to the chat)")
         #expect(byID["sess-work"]?.agentName == "researcher",
@@ -150,6 +150,20 @@ struct WSSessionTests {
         // Hermes keeps ONE sessions table and tags each row with where
         // it came from, so a delegated agent's run and a board task's
         // work are rows of the same table, told apart by the tag.
-        #expect(WSSessionSource.agent == "agent")
+        //
+        // The reference is a value pinned here from Hermes' own
+        // definition (= `SUBAGENT_SOURCE` in Hermes'
+        // `hermes_cli/session_listing.py:13`, and the value its
+        // delegated-child producer passes to `create_session` at
+        // `agent/runtime_session_child.py:32`). It is spelled OUTSIDE
+        // this assertion's subject on purpose: a comparison against a
+        // literal sitting next to the constant proves only that two
+        // copies agree, so a divergence from Hermes' vocabulary would
+        // pass the suite = the gap this pins.
+        let hermesSubagentSource = "subagent"
+        #expect(WSSessionSource.subagent == hermesSubagentSource,
+                "the tag for a delegated agent's session must be the value Hermes writes for the same kind of work")
+        #expect(WSSessionSource.subagent != "agent",
+                "no Hermes store holds a row whose source is 'agent' (= its delegated children's rows read 'subagent')")
     }
 }
