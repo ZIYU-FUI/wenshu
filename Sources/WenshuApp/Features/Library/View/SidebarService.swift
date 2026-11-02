@@ -477,7 +477,7 @@ final class SidebarService {
         }
         let keyword = EntityClassifier().keywordClassify(
             title: reference.title,
-            summary: reference.summary ?? "",
+            summary: reference.summary,
             body: ""
         )
         if keyword.confidence > 0 {

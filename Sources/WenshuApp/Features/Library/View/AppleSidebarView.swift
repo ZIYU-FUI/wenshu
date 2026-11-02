@@ -180,7 +180,10 @@ struct AppleSidebarView: View {
 
     var body: some View {
         Group {
-            if let service {
+            // The branch reads the property through `self` (= the parts
+            // below and `partContent` all reach it that way), so the
+            // binding this used to make was never read.
+            if service != nil {
                 VStack(spacing: 0) {
                     // ', 10 PT /
                     // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)

@@ -390,15 +390,30 @@ final class ChatViewModel {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            // Re-resolve the snapshot (= the notification
-            // is a signal; the canonical value lives in
-            // the lock-protected snapshot). Defensive
-            // `??` keeps a previously-captured reference
-            // (= the AppDelegate may re-install the same
-            // conductor across lifecycle paths; = the
-            // snapshot value is identical; = no churn).
-            self?.conductor = WenshuAgent.shared.currentConductorSync() ?? self?.conductor
+            // The notification can be posted from any thread, and
+            // `queue: .main` is a delivery detail, not an isolation
+            // guarantee: the hop below is what makes the main-actor
+            // write legal, so changing the queue cannot turn this
+            // into a data race.
+            Task { @MainActor [weak self] in
+                self?.adoptInstalledConductor()
+            }
         }
+    }
+
+    /// Adopt the conductor the AppDelegate published.
+    ///
+    /// Main-actor isolated, because the property it writes is.
+    @MainActor
+    private func adoptInstalledConductor() {
+        // Re-resolve the snapshot (= the notification
+        // is a signal; the canonical value lives in
+        // the lock-protected snapshot). Defensive
+        // `??` keeps a previously-captured reference
+        // (= the AppDelegate may re-install the same
+        // conductor across lifecycle paths; = the
+        // snapshot value is identical; = no churn).
+        conductor = WenshuAgent.shared.currentConductorSync() ?? conductor
     }
 
     // / Build a per-book session id. Returns `book:<id>:default` when scoped to

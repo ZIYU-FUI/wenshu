@@ -402,7 +402,9 @@ final class CoverEntryCache: @unchecked Sendable {
 
     /// Drops an entry, so the next read goes to the disk.
     func evict(forKey key: String) {
-        lock.withLock { entries.removeValue(forKey: key) }
+        // The removed entry is not wanted (= the point of the eviction),
+        // so the return value is dropped on purpose.
+        _ = lock.withLock { entries.removeValue(forKey: key) }
     }
 
     /// Drops every entry.

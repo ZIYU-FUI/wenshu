@@ -89,8 +89,14 @@ public enum ToolCatalogue {
     /// An empty preset list means everything, which is the default and the
     /// state every existing installation is in (= nothing is turned off until
     /// someone opens settings and chooses).
+    ///
+    /// The presets do NOT apply here: this overload takes the tool NAMES the
+    /// user chose, and the settings screen already expanded the presets into
+    /// names when it wrote them (= `AgentSettingsStore`). Expanding them
+    /// again would clobber a per-tool edit the user made after turning a
+    /// preset on. The overload that takes preset IDS is the one that
+    /// expands them.
     public static func exposure(settings: PromptSettings) -> ToolExposure {
-        let presets = ToolExposure.standardPresets(registry: exposureRegistry)
         if settings.visibleTools.isEmpty {
             return ToolExposure(registry: exposureRegistry)
         }
