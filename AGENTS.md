@@ -118,9 +118,9 @@ SSOT for every contributor and agent on /Volumes/ANAN/Engineering/wenshu.
 | 6.5 | File naming suffix by role: <Xxx>View / <Xxx>Ops / <Xxx>Service / <Xxx>State .swift. One concern per file. | wenshu-swift-standards.md §1.2. |
 | 6.6 | File size cap: 600 LOC per .swift file. Exceed = split, and register the split in the NFI (1.7). DEFERRED (ADR-0025). | wenshu-swift-standards.md §1.2. |
 | 6.7 | One import block per file. Alphabetical. No unused imports. | wenshu-swift-standards.md §1.1. |
-| 6.8 | Root tree: visible dirs (Mobile / Scripts / Sources / Tests / Tools / build / docs) + visible files (AGENTS.md / OOB.md / Package.swift / ...). .worktrees/ = card worktrees. | Measured 2026-10-29. |
+| 6.8 | Root tree: visible dirs (Board / Mobile / Scripts / Sources / Tests / Tools / build / docs) + visible files (AGENTS.md / OOB.md / Package.swift / ...). .worktrees/ = card worktrees. | Measured 2026-10-29. |
 | 6.9 | Single-purpose rule. Any dir with exactly 1 file and 0 dependents = deletion candidate (= .scratch/ specs; = docs/agents/ per-role docs; = docs/adr/ per-decision docs). The 3 hidden tooling dirs (.claude/ .git-hooks/ .hermes/) hold one entry each. | Boss OOB 2026-10-16. |
-| 6.10 | Top-level purpose map. Sources/ = Swift targets (canonical). Tests/ = Swift test target. Scripts/ = shell + python helpers. Tools/wenshu-devtool/ = gates + probes. build/ = swift build output (.gitignored). docs/ = adr/ + agents/. | Boss OOB 2026-10-16. |
+| 6.10 | Top-level purpose map. Board/ = the card-board client (= its own SwiftPM package, = consumes `Sources/WenshuData` as a local path package, = the desktop app is not a dependency of it). Sources/ = Swift targets (canonical). Tests/ = Swift test target. Scripts/ = shell + python helpers. Tools/wenshu-devtool/ = gates + probes. build/ = swift build output (.gitignored). docs/ = adr/ + agents/. | Boss OOB 2026-10-16. |
 
 ## §7 Verification & quality gates
 
