@@ -860,16 +860,25 @@ says `workspace_cleanup_deferred_shared` with the reason `unknown` (= it
 could not tell), so the close left the directory on disk: measured, the
 card closed at 16:25 and its worktree was still on disk at 18:37.
 
-This session therefore removed its own cards' worktrees and branches by
-hand, card by card, as each one closed. **AND THE BRANCHES NEEDED A
-SECOND SWEEP**: the board's deferred cleanup removes a card's WORKTREE
-(= the directory), and the `wt/<card id>` branch it points at survives
-it (= the branch is what the worktree checked out, and deleting the
-directory does not delete the branch). So after the last worktree went,
-seventeen of this session's card branches were still on disk, every one
-of them already merged into `main`. They are gone now, measured: no
-`wt/<card id>` branch remains for a card this session swept, and the
-`wt/...` branches left are the parallel session's.
+This session therefore removed its own cards' WORKTREES by hand, card by
+card, as each one closed (= the board's deferred cleanup removes NEITHER
+the worktree nor the branch: it refuses, records
+`workspace_cleanup_deferred_shared` with its reason, and leaves both on
+disk = sixteen of this session's cards carry that event row with the
+reason `unknown`). **AND THE BRANCHES NEEDED A SECOND SWEEP, BECAUSE
+REMOVING A WORKTREE BY HAND LEAVES THE BRANCH IT CHECKED OUT**: `git
+worktree remove` takes the directory and leaves the `wt/<card id>`
+branch behind. So after the last worktree went, seventeen of this
+session's card branches were still on disk, every one of them already
+merged into `main`. They are gone now, measured: no `wt/<card id>`
+branch remains for a card this session swept, and the `wt/...` branches
+left are the parallel session's (plus a few NAMED branches with no card
+row at all, which fall outside this sentence).
+
+(Where the board's own cleanup DOES run, it deletes the `wt/<card id>`
+branch together with the worktree
+(`hermes_cli/kanban_db_workspace.py:492-494`, = `git branch -D`), so a
+card whose cleanup was not deferred leaves neither behind.)
 
 A card that closes AFTER this record is written leaves its worktree
 until the board's deferred sweep runs it, which is the mechanism above.
