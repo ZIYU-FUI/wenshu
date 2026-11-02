@@ -97,11 +97,21 @@ struct ProviderKeychainTests {
     /// then green in isolation and red in a full run, and the set of
     /// failures moves with the order the suites happened to run in.
     ///
-    /// Two rules, both checkable without running a suite:
+    /// Four rules, all checkable without running a suite:
     ///   1. no test file writes the global directly (= the global's own
-    ///      mutators), and
-    ///   2. every global install puts in an EMPTY store, so an install can
-    ///      never carry a key.
+    ///      mutators),
+    ///   2. no test file ASSIGNS the global (= the backend property set to
+    ///      a store, which is the spelling production code itself uses
+    ///      (= SettingView.swift)), and
+    ///   3. every global install puts in an EMPTY store, so an install can
+    ///      never carry a key, and
+    ///   4. a file that writes through the PUBLIC API and ALSO installs a
+    ///      global backend is an offender. Outside a
+    ///      `withBackendForTesting` scope the public API writes the
+    ///      process-global store, so the two together = the global gets
+    ///      written. Neither half is enough: a public write with no
+    ///      install is the live-gated suite's shape, and an install with no
+    ///      public write is harmless.
     ///
     /// The needles are assembled at run time, so this file does not match
     /// its own rules.
@@ -111,6 +121,14 @@ struct ProviderKeychainTests {
         let globalWrites = ["saveKeySync", "deleteKeySync", "saveMetadata"]
         let installCall = "ProviderKeychain.setBackend" + "ForTesting("
         let emptyStore = "InMemoryKeychainStore()"
+        // The public API's own writers: these reach the process-global
+        // store whenever no scope is active. The prefix and the method
+        // name are kept apart so this file does not match its own rule.
+        let publicPrefix = "ProviderKeychain."
+        let publicWrites = ["saveKeySync", "deleteKeySync", "saveMetadata"]
+        // The assignment spelling, assembled at run time so this file does
+        // not match its own rule.
+        let assignment = "ProviderKeychain.backend" + " ="
 
         let testsRoot = SourceLocator.repoRoot.appendingPathComponent("Tests")
         let enumerator = FileManager.default.enumerator(
@@ -127,6 +145,10 @@ struct ProviderKeychainTests {
             for write in globalWrites where text.contains(globalPrefix + write) {
                 offenders.append("\(url.lastPathComponent): writes the global backend directly")
             }
+            if text.contains(assignment) {
+                offenders.append("\(url.lastPathComponent): assigns the global backend directly")
+            }
+            var installsGlobal = false
             var cursor = text.startIndex
             while let range = text.range(of: installCall, range: cursor..<text.endIndex) {
                 let after = text[range.upperBound...]
@@ -141,7 +163,19 @@ struct ProviderKeychainTests {
                         )
                     }
                 }
+                installsGlobal = true
                 cursor = range.upperBound
+            }
+            // Rule 4: the public door AND the install door in one file.
+            let publicWritesHere = publicWrites.filter { text.contains(publicPrefix + $0) }
+            if installsGlobal && !publicWritesHere.isEmpty {
+                offenders.append(
+                    """
+                    \(url.lastPathComponent): writes the global backend through the public API \
+                    (\(publicWritesHere.map { publicPrefix + $0 }.joined(separator: ", "))) \
+                    and also installs a global backend
+                    """
+                )
             }
         }
         #expect(scanned > 0, "the guard must read the test tree, not an empty directory")
