@@ -877,11 +877,11 @@ row at all, which fall outside this sentence).
 
 (Where the board's own cleanup DOES run and the tree is clean and
 pushed, it deletes the `wt/<card id>` branch together with the worktree
-(= `hermes_cli/kanban_db_workspace.py:492-494`, = `git branch -D`). But
-that is ONE of the ways the board leaves both behind, not the only
-complement to a deferral: a tree that is DIRTY or carries an UNPUSHED
-commit is preserved with both, and it writes NO event row at all
-(= lines 449-454), and a `git worktree remove` that fails returns
+(= `hermes_cli/kanban_db_workspace.py:492-494`, = `git branch -D`). That
+deletion is ONE path of the board's cleanup, and it is NOT the only way
+the board leaves both behind: a tree that is DIRTY or carries an
+UNPUSHED commit is preserved with both, and it writes NO event row at
+all (= lines 449-454), and a `git worktree remove` that fails returns
 before the branch delete (= lines 480-490). So a reader who checks the
 board for `workspace_cleanup_deferred_shared` sees one of the three
 cases and misses the two that write no row.)
