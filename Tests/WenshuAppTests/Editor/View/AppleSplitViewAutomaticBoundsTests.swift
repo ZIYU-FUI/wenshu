@@ -20,14 +20,30 @@ struct AppleSplitViewAutomaticBoundsTests {
 
     @Test("editor and chat use Apple automatic lower, preferred, and upper bounds")
     func editorAndChatUseAutomaticBounds() throws {
-        let source = try Self.source(
-            "Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift"
-        )
+        // The controller was ONE file and was split under the tree's
+        // 600-LOC cap, so its source is read across the five files it
+        // now lives in (= a move is not a disappearance).
+        let source = try Self.controllerSource()
         #expect(source.components(separatedBy: "minimumThickness = NSSplitViewItem.unspecifiedDimension").count == 3)
         #expect(source.components(separatedBy: "preferredThicknessFraction = 1.0 / 2.0").count == 3)
         #expect(source.contains("item.maximumThickness = available"))
         #expect(source.contains("guard available > 0 else { return }"))
         #expect(source.contains("updateAutomaticThicknessBounds()"))
+    }
+
+    /// The controller's source, across the five files it lives in.
+    private static let controllerSourceFiles = [
+        "Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift",
+        "Sources/WenshuApp/Features/Editor/View/EditorChatNSController+Lifecycle.swift",
+        "Sources/WenshuApp/Features/Editor/View/EditorChatNSController+Divider.swift",
+        "Sources/WenshuApp/Features/Editor/View/EditorChatNSController+Layout.swift",
+        "Sources/WenshuApp/Features/Editor/View/EditorChatSplitHost.swift",
+    ]
+
+    private static func controllerSource() throws -> String {
+        try controllerSourceFiles
+            .map { try Self.source($0) }
+            .joined(separator: "\n")
     }
 
     private static func source(_ relativePath: String) throws -> String {

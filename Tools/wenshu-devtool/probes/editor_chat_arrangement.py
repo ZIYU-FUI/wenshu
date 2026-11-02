@@ -82,9 +82,9 @@ FRAGMENTS = (
     ("Features/Editor/View/EditorChatNSController.swift",
      "static let stackedMaximumWidth: CGFloat = 920"),
     ("Features/Editor/View/EditorChatNSController.swift",
-     'private static let autosaveName = "wenshu.editor.split.autosave"'),
+     'static let autosaveName = "wenshu.editor.split.autosave"'),
     ("Features/Editor/View/EditorChatNSController.swift",
-     'private static let sideAutosaveName = "wenshu.editor.split.autosave.side"'),
+     'static let sideAutosaveName = "wenshu.editor.split.autosave.side"'),
 )
 
 UTF8 = 0x08000100

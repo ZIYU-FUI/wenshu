@@ -47,6 +47,33 @@ import Testing
 @MainActor
 struct EditorChatNSControllerTests {
 
+    /// The controller's source, across the five files it lives in.
+    ///
+    /// The controller was ONE file (= 1509 LOC) and was split under
+    /// the tree's 600-LOC cap into the class's own file, three
+    /// extension files and the SwiftUI host. The assertions below read
+    /// the source, so they read the CONTROLLER's source (= all five
+    /// files), not one file's slice of it: a move is not a
+    /// disappearance.
+    private static let controllerSourceFiles = [
+        "Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift",
+        "Sources/WenshuApp/Features/Editor/View/EditorChatNSController+Lifecycle.swift",
+        "Sources/WenshuApp/Features/Editor/View/EditorChatNSController+Divider.swift",
+        "Sources/WenshuApp/Features/Editor/View/EditorChatNSController+Layout.swift",
+        "Sources/WenshuApp/Features/Editor/View/EditorChatSplitHost.swift",
+    ]
+
+    /// The five files' source, joined.
+    ///
+    /// The join is a newline, so a line never runs into the next
+    /// file's first line, and an assertion that counts a token counts
+    /// it the same way it counted it when the controller was one file.
+    private static func controllerSource() throws -> String {
+        try controllerSourceFiles
+            .map { try String(contentsOf: SourceLocator.url($0), encoding: .utf8) }
+            .joined(separator: "\n")
+    }
+
     // MARK: - Static identifier stability
     //
     // AppKit autosaveName writes to UserDefaults keyed on these
@@ -61,8 +88,7 @@ struct EditorChatNSControllerTests {
 
     @Test("autosaveName persists the divider position via Apple HIG UserDefaults path")
     func autosaveNameStable() throws {
-        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
-        let content = try String(contentsOf: url, encoding: .utf8)
+        let content = try Self.controllerSource()
         // The autosaveName literal must match the UserDefaults
         // prefix 'NSSplitView Subview Frames'; = AppKit wires the
         // rest. Verify the exact constant value.
@@ -72,8 +98,7 @@ struct EditorChatNSControllerTests {
 
     @Test("firstLaunchSetKey = the one-shot UserDefaults flag that gates the 50:50 reset")
     func firstLaunchSetKeyStable() throws {
-        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
-        let content = try String(contentsOf: url, encoding: .utf8)
+        let content = try Self.controllerSource()
         #expect(content.contains("\"wenshu.editor.split.firstLaunchDidSet\""),
                 "firstLaunchSetKey must be the literal 'wenshu.editor.split.firstLaunchDidSet'")
     }
@@ -82,32 +107,28 @@ struct EditorChatNSControllerTests {
 
     @Test("Source wires NSSplitView.dividerStyle = .thin (= Apple HIG hairline divider)")
     func sourceThinDividerStyle() throws {
-        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
-        let content = try String(contentsOf: url, encoding: .utf8)
-        #expect(content.contains("self.splitView.dividerStyle = .thin"),
+        let content = try Self.controllerSource()
+        #expect(content.contains("splitView.dividerStyle = .thin"),
                 "EditorChatNSController must set dividerStyle = .thin (= Apple HIG Keynote/Pages standard)")
     }
 
     @Test("Source wires NSSplitView.isVertical = false (= top-to-bottom Keynote speaker-notes layout)")
     func sourceTopToBottomLayout() throws {
-        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
-        let content = try String(contentsOf: url, encoding: .utf8)
-        #expect(content.contains("self.splitView.isVertical = false"),
+        let content = try Self.controllerSource()
+        #expect(content.contains("splitView.isVertical = false"),
                 "EditorChatNSController must set isVertical = false so editor sits above the chat zone")
     }
 
     @Test("Source wires splitView.autosaveName so the user's drag persists across launches")
     func sourceAutosaveWiring() throws {
-        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
-        let content = try String(contentsOf: url, encoding: .utf8)
-        #expect(content.contains("self.splitView.autosaveName = Self.autosaveName"),
+        let content = try Self.controllerSource()
+        #expect(content.contains("splitView.autosaveName = Self.autosaveName"),
                 "EditorChatNSController must assign the static autosaveName (= persistence is automatic once wired)")
     }
 
     @Test("Source applies 50:50 first-launch reset via splitView.bounds.height / 2 (= canonical formula)")
     func sourceFiftyFiftyFormula() throws {
-        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
-        let content = try String(contentsOf: url, encoding: .utf8)
+        let content = try Self.controllerSource()
         #expect(content.contains("splitView.bounds.height / 2"),
                 "applyFiftyFiftyFirstLaunch must compute dividerY = splitView.bounds.height / 2 (= 50% from the top)")
         #expect(content.contains("setPosition(dividerY, ofDividerAt: 0)"),
@@ -116,8 +137,7 @@ struct EditorChatNSControllerTests {
 
     @Test("Source toggles chat zone visibility via animator().isCollapsed (= native NSSplitView animation)")
     func sourceAnimatedCollapseToggle() throws {
-        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
-        let content = try String(contentsOf: url, encoding: .utf8)
+        let content = try Self.controllerSource()
         #expect(content.contains("item.animator().isCollapsed.toggle()"),
                 "toggleChatZone must use animator().isCollapsed.toggle() (= canonical NSSplitView animated collapse)")
     }
@@ -202,8 +222,7 @@ struct EditorChatNSControllerTests {
         // be unreachable). This is a source-level assertion because
         // it is a property of the SIGNATURE: a pure call cannot
         // depend on an argument it was never given.
-        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
-        let content = try String(contentsOf: url, encoding: .utf8)
+        let content = try Self.controllerSource()
         let ruleBody = try #require(
             Self.functionBody(named: "arrangement", in: content),
             "the width rule must exist")
@@ -324,26 +343,27 @@ struct EditorChatNSControllerTests {
 
     @Test("Source keeps one autosave name per arrangement")
     func sourceTwoAutosaveNames() throws {
-        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
-        let content = try String(contentsOf: url, encoding: .utf8)
+        let content = try Self.controllerSource()
         #expect(content.contains("\"wenshu.editor.split.autosave.side\""),
                 "the side-by-side arrangement needs its own autosave name (= each arrangement keeps its own dragged position)")
-        #expect(content.contains("private static let sideAutosaveName"),
+        // The access modifier is not asserted (= the split promoted the
+        // constant, because another file reads it), so what is asserted
+        // is the shape: it is a named constant, not a literal at the use
+        // site.
+        #expect(content.contains("static let sideAutosaveName"),
                 "the side-by-side autosave name must be a named constant (= the two names travel together)")
     }
 
     @Test("Source clamps the thickness on the arrangement's own axis")
     func sourceAxisAwareClamp() throws {
-        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
-        let content = try String(contentsOf: url, encoding: .utf8)
+        let content = try Self.controllerSource()
         #expect(content.contains("arrangement.isVertical ? splitView.bounds.width : splitView.bounds.height"),
                 "updateAutomaticThicknessBounds must clamp the width when side by side and the height when stacked")
     }
 
     @Test("Source reads the stored payload with object(forKey:) (= data(forKey:) is always nil for AppKit's array)")
     func sourcePayloadRead() throws {
-        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
-        let content = try String(contentsOf: url, encoding: .utf8)
+        let content = try Self.controllerSource()
         #expect(content.contains(".object(forKey: \"NSSplitView Subview Frames"),
                 "the stored payload must be read with object(forKey:) (= AppKit stores it as an array of strings)")
         #expect(!content.contains("defaults.data(forKey:"),
@@ -352,11 +372,10 @@ struct EditorChatNSControllerTests {
 
     @Test("Source resets 50:50 on the arrangement's own axis and only when the entered arrangement has no stored payload")
     func sourceArrangementAwareReset() throws {
-        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
-        let content = try String(contentsOf: url, encoding: .utf8)
-        #expect(content.contains("let dividerX = self.splitView.bounds.width / 2"),
+        let content = try Self.controllerSource()
+        #expect(content.contains("let dividerX = splitView.bounds.width / 2"),
                 "the side-by-side 50:50 reset must divide the width (= the width carries the split side by side)")
-        #expect(content.contains("self.splitView.setPosition(dividerX, ofDividerAt: 0)"),
+        #expect(content.contains("splitView.setPosition(dividerX, ofDividerAt: 0)"),
                 "the side-by-side 50:50 reset must set the divider position")
         #expect(content.contains("pendingResetArrangement = keepsOwnPosition ? nil : target"),
                 "the 50:50 reset is owed only when the arrangement being entered has no stored payload of its own")
@@ -465,8 +484,7 @@ struct EditorChatNSControllerTests {
 
     @Test("Source positions the divider at the leading pane's share of the axis (= the position AppKit's own layout must agree with)")
     func sourcePositionsTheDividerAtTheLeadingShare() throws {
-        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
-        let content = try String(contentsOf: url, encoding: .utf8)
+        let content = try Self.controllerSource()
         #expect(content.contains("} else if hasAutosave {"),
                 "a stored payload must still drive the divider's position (= without it the split's width oscillates and AppKit's runaway-layout guard aborts the app)")
         #expect(content.contains("applyStoredShare()"),
@@ -479,23 +497,21 @@ struct EditorChatNSControllerTests {
 
     @Test("Source does NOT position the divider on every layout pass (= a write per frame re-arms the window's update-constraints pass, which is the quantity AppKit's runaway-layout guard counts)")
     func sourceDoesNotWriteTheDividerPerFrame() throws {
-        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
-        let content = try String(contentsOf: url, encoding: .utf8)
+        let content = try Self.controllerSource()
         let body = try #require(Self.functionBody(named: "applyStoredShare", in: content),
                                 "applyStoredShare must exist")
         let writes = body.components(separatedBy: "splitView.setPosition(").count - 1
         #expect(writes == 1,
                 "the divider is written on exactly one path (= the decision function's outcome), not unconditionally on every layout pass")
-        #expect(content.contains("case .assertAt(let share):"),
+        #expect(content.contains("case let .assertAt(share):"),
                 "the write happens on the decision's outcome (= the seed, or a repair after a resize left the share off)")
-        #expect(content.contains("case .adopt(let share):"),
+        #expect(content.contains("case let .adopt(share):"),
                 "a user drag is adopted (= the assert must never write over it, = the drag is eaten otherwise)")
     }
 
     @Test("Source holds the share instead of re-reading it on every pass (= reading it back moves the target every pass)")
     func sourceHoldsTheShare() throws {
-        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
-        let content = try String(contentsOf: url, encoding: .utf8)
+        let content = try Self.controllerSource()
         #expect(content.contains("if assertedShare == nil {"),
                 "the share is captured once (= the payload is written by AppKit as the layout settles, so reading it after asserting into it moves the target every pass)")
         #expect(content.contains("assertedShare = nil"),
@@ -794,9 +810,12 @@ struct EditorChatNSControllerTests {
 
     @Test("Source: the layout's caller drives the latch (= the latch under test IS the shipped latch)")
     func sourceTheCallerDrivesTheLatch() throws {
-        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
-        let content = try String(contentsOf: url, encoding: .utf8)
-        #expect(content.contains("private var dividerLatch = DividerLatch()"),
+        let content = try Self.controllerSource()
+        // The access modifier is not asserted (= the split promoted the
+        // property, because another file reads it), so what is asserted
+        // is the shape: the controller owns ONE latch, of the type the
+        // test drives.
+        #expect(content.contains("var dividerLatch = DividerLatch()"),
                 "the controller owns one latch (= the state that spans layout passes)")
         #expect(content.contains("dividerLatch.pass("),
                 "the layout's caller must drive the latch (= the latch's lifecycle is the defect's home)")
@@ -806,8 +825,7 @@ struct EditorChatNSControllerTests {
 
     @Test("Source: the thickness cap is written in quanta (= a write per frame re-arms the window's update-constraints pass)")
     func sourceWritesTheThicknessCapInQuanta() throws {
-        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
-        let content = try String(contentsOf: url, encoding: .utf8)
+        let content = try Self.controllerSource()
         let body = try #require(Self.functionBody(named: "updateAutomaticThicknessBounds", in: content),
                                 "updateAutomaticThicknessBounds must exist")
         #expect(body.contains("Self.thicknessQuantum"),
@@ -822,8 +840,7 @@ struct EditorChatNSControllerTests {
 
     @Test("Source puts the panes in the arrangement's own order (= the chat on the left, the editor on the right)")
     func sourcePaneOrder() throws {
-        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
-        let content = try String(contentsOf: url, encoding: .utf8)
+        let content = try Self.controllerSource()
         #expect(content.contains("applyPaneOrder(for: target)"),
                 "entering an arrangement must put the panes in that arrangement's order")
         #expect(content.contains("let editorShouldLead = target == .stacked"),
@@ -836,8 +853,7 @@ struct EditorChatNSControllerTests {
 
     @Test("Source reads the stored frames in the arrangement's own order (= the frames follow the panes)")
     func sourceReadsFramesInOrder() throws {
-        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
-        let content = try String(contentsOf: url, encoding: .utf8)
+        let content = try Self.controllerSource()
         #expect(content.contains("firstPaneLeads: arrangement == .stacked"),
                 "the frames are in the panes' own order (= the chat leads when the panes stand side by side), so the reader must be told which pane leads")
         #expect(content.contains("let leadingShare = editorLeads ? share : 1 - share"),
@@ -925,8 +941,7 @@ struct EditorChatNSControllerTests {
 
     @Test("Source: the layout callback does NOT reach the arrangement's structural change (= the change is deferred to the next runloop turn)")
     func sourceStructuralChangeIsNotReachableFromLayoutCallback() throws {
-        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
-        let content = try String(contentsOf: url, encoding: .utf8)
+        let content = try Self.controllerSource()
 
         // Name the method that does the structural change, and prove
         // it IS the structural change (= it moves an item).
@@ -967,8 +982,7 @@ struct EditorChatNSControllerTests {
 
     @Test("Source: the thickness bounds and the preferred fractions are written only when the value differs")
     func sourceWritesOnlyWhenTheValueDiffers() throws {
-        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
-        let content = try String(contentsOf: url, encoding: .utf8)
+        let content = try Self.controllerSource()
 
         let boundsBody = try #require(
             Self.functionBody(named: "updateAutomaticThicknessBounds", in: content),
@@ -989,8 +1003,7 @@ struct EditorChatNSControllerTests {
 
     @Test("Source: sizeThatFits never reports the inner split's own width back up")
     func sourceSizeThatFitsHasNoInnerWidthFallback() throws {
-        let url = SourceLocator.url("Sources/WenshuApp/Features/Editor/View/EditorChatNSController.swift")
-        let content = try String(contentsOf: url, encoding: .utf8)
+        let content = try Self.controllerSource()
 
         let fitBody = try #require(
             Self.functionBody(named: "sizeThatFits", in: content),
