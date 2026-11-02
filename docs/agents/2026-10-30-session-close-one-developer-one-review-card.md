@@ -569,25 +569,41 @@ now the LATER verdict first, with the group as the tie-break.
 **AND A SECOND PIECE OF DEAD CODE** (`PATH_PREFIXES` in
 `agents_gate.py`, whose only occurrence was its own assignment).
 
-**AND THEN THE REVIEW FOUND THE CASE NEVER EXERCISED THE GATE'S
-SUBPROCESS FALLBACK.** The gate's reader has two branches: it asks the
-loader's package IN-PROCESS when that package is importable, and it
-falls back to a SUBPROCESS when it is not. Every interpreter the gate
-would use can import that package, so every case ran the IN-PROCESS
-branch and the subprocess branch was NEVER exercised = a defect in it
-was invisible. Measured: with the subprocess branch restored to fall
-through to a lax parser, the suite stayed **116/116 green** (= the
-fail-open was NOT caught), while the same gate under `python3 -E -s`
-(= the loader's package not importable, so the subprocess branch IS
-taken) answered **400,000** where the loader answers 49,152.
+**AND THEN THE REVIEW FOUND THE NEW CASE DID NOT ASSERT WHICH LINK
+ANSWERED, AND THAT THE RECORD'S PREMISE WAS FALSE ON THIS TREE.**
 
-So the case now runs the gate with the loader's package made
-unimportable, and compares with the loader's own answer (= six more
-cases, 122 in all).
+The gate's reader has two links: it asks the loader's package
+IN-PROCESS when that package is importable, and it falls back to a
+SUBPROCESS when it is not. The review measured the parent tree
+`2338938cd6` on this machine: the links went **subprocess 58,
+in-process 70, rejected 17** (= the subprocess link WAS reached, 58
+times), and a lax fall-through left that parent at **113/116** (= it was
+caught there too). So the old suite was never blind to that link.
 
-**A BRANCH NO CASE EXERCISES IS A BRANCH NO CASE CAN SEE.** The suite's
-green was true of the branch it ran, and silent about the branch it did
-not.
+What the reviewer's own measurement added was the finding that the
+earlier "116/116 green" figure was **the machine state of one
+interpreter's choice** (= on 2026-11-01 the suite ran under an
+interpreter that took the in-process link, so the subprocess link was
+never reached and the mutation was invisible), and that "every
+interpreter the gate would use can import that package" is false (= two
+of the sixteen interpreters the gate searches cannot).
+
+So the case now **PROVES the precondition and ASSERTS the link**: it
+runs the gate under `python3 -S -E` with `PYTHONPATH` cleared (= `-S`
+skips every site-packages, and the loader's package is otherwise only
+reachable through `PYTHONPATH`, so the subprocess link is the one that
+must answer), the child REPORTS the link it took, and the case FAILS if
+the reader names any other link. The reader now names its refusals
+(`rejected-in-process` / `rejected-subprocess`) so the two can be told
+apart. Measured: 123 cases green, and a lax fall-through inside the
+subprocess link takes the duplicate-key case to **122/123** (= red).
+
+**A CASE THAT CAN PASS WHILE THE BRANCH IT NAMES WAS NEVER EXERCISED
+IS NOT A GUARD.** The first version of this case compared two caps and
+threw the link away, so it could go green while the link it claimed to
+cover never ran. And **A REACHABILITY FACT ABOUT A MACHINE IS NOT A
+PROPERTY OF A SUITE** (= the link a suite reaches depends on the
+interpreter it runs under, and on which installs exist that minute).
 
 The audit also CLEARED two hypotheses it could not reproduce: the
 identity collision from the `diff --git ` marker split (= a content line

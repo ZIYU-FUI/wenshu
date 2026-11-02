@@ -257,8 +257,15 @@ def _config_as_the_loader_reads(text: str) -> tuple[object | None, str]:
     So: the loader's parser and NOTHING ELSE. A file it rejects carries
     NO pin (= the loader is on its dynamic cap, so the gate's fallback
     is the right answer). Returns (value, how) where how is
-    "in-process", "subprocess", "rejected" (= the parser read the file
-    and refused it), or "none" (= no parser was reachable).
+    "in-process", "subprocess" (= the answer came from that link),
+    "rejected-in-process" / "rejected-subprocess" (= the parser on that
+    link read the file and refused it), or "none" (= no parser was
+    reachable).
+
+    THE LINK IS NAMED, BECAUSE A TEST MUST BE ABLE TO TELL WHICH LINK
+    ANSWERED. Measured 2026-11-02: a case that named the subprocess
+    link while the in-process link answered it was GREEN, and the
+    mutation it claimed to catch went unnoticed.
     """
     try:
         from hermes_cli.config import yaml as hermes_yaml  # type: ignore
@@ -268,7 +275,9 @@ def _config_as_the_loader_reads(text: str) -> tuple[object | None, str]:
         except Exception:
             # The parser REJECTED the file (= a duplicate key). The
             # loader falls back to its dynamic cap, so there is no pin.
-            return None, "rejected"
+            # The link that refused is NAMED, so a test can tell the
+            # two refusals apart (= they are not the same answer).
+            return None, "rejected-in-process"
     except Exception:
         pass  # the loader's package is not importable here
     script = (
@@ -295,7 +304,9 @@ def _config_as_the_loader_reads(text: str) -> tuple[object | None, str]:
             # loader falls back to its dynamic cap, so there is no pin.
             # And a lax parser MUST NOT be tried here: it would answer
             # where the loader refuses (= the gate would be looser).
-            return None, "rejected"
+            # The link that refused is NAMED, so a test can tell the
+            # two refusals apart.
+            return None, "rejected-subprocess"
         try:
             return json.loads(proc.stdout), "subprocess"
         except json.JSONDecodeError:

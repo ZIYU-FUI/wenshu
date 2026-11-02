@@ -450,47 +450,95 @@ def main() -> int:
         #
         # So the case runs the gate with the loader's package made
         # unimportable, and compares with the loader's own answer.
-        def gate_cap_without_the_package(config_text: str) -> int | None:
+        # An interpreter where the loader's package is NOT importable,
+        # so the reader's SUBPROCESS link is the one that must answer.
+        #
+        # Measured 2026-11-02: `-E -s` does NOT do it (= a venv python
+        # has the package on its own path), but `-S -E` with PYTHONPATH
+        # cleared does, in EVERY interpreter the gate would use (= `-S`
+        # skips every site-packages, and the package is otherwise only
+        # reachable through PYTHONPATH).
+        #
+        # So the case PROVES the precondition and ASSERTS the link the
+        # reader names: a case that can pass while the branch it names
+        # was never exercised is the failure mode this commit ends.
+        subprocess_interpreter = sys.executable
+        precondition = subprocess.run(
+            [subprocess_interpreter, "-S", "-E", "-c", "import hermes_cli.config"],
+            capture_output=True, text=True, timeout=60,
+            env={k: v for k, v in os.environ.items() if k != "PYTHONPATH"},
+        )
+        results.append(
+            case(
+                "the reader's SUBPROCESS link is reachable (= the loader's "
+                "package is unimportable under the interpreter the case uses)",
+                precondition.returncode != 0,
+                f"importing the loader's package returned {precondition.returncode} "
+                f"(0 means it IS importable = the in-process link would answer)",
+            )
+        )
+
+        def gate_cap_without_the_package(
+            config_text: str,
+        ) -> tuple[int | None, str | None]:
             home = Path(tmp) / f"subproc-home-{_shape_no[3]}"
             _shape_no[3] += 1
             home.mkdir()
             (home / "config.yaml").write_text(config_text, encoding="utf-8")
+            # The child reports BOTH the cap the gate would use AND the
+            # link the reader answered on (= so the case can require the
+            # subprocess link, and cannot pass while the in-process link
+            # answered it).
             script = (
-                "import sys;sys.path.insert(0," + repr(str(TOOL.parent)) + ");"
+                "import os,sys;sys.path.insert(0," + repr(str(TOOL.parent)) + ");"
                 "import agents_gate as ag;"
-                "print(ag.effective_context_file_cap()[0])"
+                "cap,reason=ag.effective_context_file_cap();"
+                "text=open(os.path.join(os.environ['HERMES_HOME'],'config.yaml'),"
+                "encoding='utf-8').read();"
+                "value,link=ag._config_as_the_loader_reads(text);"
+                "print(cap);print(link)"
             )
+            if subprocess_interpreter is None:
+                return None, None
             previous = os.environ.get("HERMES_HOME")
             os.environ["HERMES_HOME"] = str(home)
             try:
                 proc = subprocess.run(
-                    [sys.executable, "-E", "-s", "-c", script],
+                    [subprocess_interpreter, "-S", "-E", "-c", script],
                     capture_output=True, text=True, timeout=120,
                     env={k: v for k, v in os.environ.items() if k != "PYTHONPATH"},
                 )
             except (OSError, subprocess.SubprocessError):
-                return None
+                return None, None
             finally:
                 if previous is None:
                     os.environ.pop("HERMES_HOME", None)
                 else:
                     os.environ["HERMES_HOME"] = previous
             if proc.returncode != 0:
-                return None
+                return None, None
+            lines = proc.stdout.strip().splitlines()
+            if len(lines) < 2:
+                return None, None
             try:
-                return int(proc.stdout.strip().splitlines()[-1])
-            except (ValueError, IndexError):
-                return None
+                return int(lines[-2]), lines[-1].strip()
+            except ValueError:
+                return None, None
 
         for label, config_text in shapes:
-            gate_cap = gate_cap_without_the_package(config_text)
+            gate_cap, branch = gate_cap_without_the_package(config_text)
             loader_cap = loader_cap_under(config_text)
             results.append(
                 case(
                     f"the gate's SUBPROCESS branch and the loader agree "
                     f"on {label}",
-                    loader_cap is not None and gate_cap == loader_cap,
-                    f"the gate says {gate_cap}, the loader says {loader_cap}",
+                    # The branch is ASSERTED, so the case cannot pass
+                    # while the branch it names was never exercised.
+                    branch in ("subprocess", "rejected-subprocess")
+                    and loader_cap is not None
+                    and gate_cap == loader_cap,
+                    f"the gate says {gate_cap} on the {branch} branch, "
+                    f"the loader says {loader_cap}",
                 )
             )
 
