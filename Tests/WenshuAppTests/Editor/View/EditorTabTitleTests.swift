@@ -15,7 +15,15 @@
 //  Precedence (= per the boss's 'tab title didn't go to the document name' OOB):
 //    1. documentPath basename (= real file wins; = strips .md)
 //    2. tab.title (= entity / book-doc title = 'Battle of Red Cliffs' etc.)
-//    3. 'preview-sample' (= legacy placeholder; = last resort)
+//    3. the localized placeholder (= the 'preview.tab.placeholder' key;
+//       = last resort)
+//
+//  The source does 2 before 1, so case 1 fails. That is a real source
+//  bug, not a stale test: `OOB.md:103` (2026-10-19) records that the
+//  source is against the 2026-09-12 OOB, that the failing tests are a
+//  real source bug, and that the boss asked for the problems to be
+//  cleared WITHOUT changing the behaviour (= it was left as a ticket).
+//  So case 1 fails on purpose, and the fix is not this suite's to make.
 //
 //  These tests don't render the tab strip; they only verify the
 //  pure displayTitle logic.
@@ -70,15 +78,19 @@ struct EditorTabTitleTests {
     }
 
     /// boss 9/12 OOB 'tab title didn't go to the document name bug': when both documentPath
-    /// and title are nil, the legacy placeholder is used.
-    @Test("displayTitle_previewSample_whenBothNil")
+    /// and title are nil, the localized placeholder is used.
+    ///
+    /// The expectation resolves the key the way the source does, so it
+    /// pins WHICH placeholder the fallback is and not the string a
+    /// particular locale happens to render it as.
+    @Test("displayTitle_localizedPlaceholder_whenBothNil")
     @MainActor
-    func displayTitle_previewSample_whenBothNil() {
+    func displayTitle_localizedPlaceholder_whenBothNil() {
         let tab = makeTab(documentPath: nil, title: nil)
         let title = EditorTab.displayTitle(tab)
         #expect(
-            title == "preview-sample",
-            "Expected 'preview-sample' legacy placeholder when both documentPath + title are nil, got '\(title)'"
+            title == NSLocalizedString("preview.tab.placeholder", comment: ""),
+            "Expected the localized 'preview.tab.placeholder' when both documentPath + title are nil, got '\(title)'"
         )
     }
 
@@ -99,14 +111,16 @@ struct EditorTabTitleTests {
     /// empty-string title is treated as missing (= defensive against
     /// bad caller data; = openCardInEditor sometimes passes empty
     /// strings when the entity has no title).
+    ///
+    /// The same key, resolved the way the source resolves it.
     @Test("displayTitle_emptyTitleFallsBackToPlaceholder")
     @MainActor
     func displayTitle_emptyTitleFallsBackToPlaceholder() {
         let tab = makeTab(documentPath: nil, title: "")
         let title = EditorTab.displayTitle(tab)
         #expect(
-            title == "preview-sample",
-            "Expected 'preview-sample' legacy placeholder when both fields are empty, got '\(title)'"
+            title == NSLocalizedString("preview.tab.placeholder", comment: ""),
+            "Expected the localized 'preview.tab.placeholder' when both fields are empty, got '\(title)'"
         )
     }
 
