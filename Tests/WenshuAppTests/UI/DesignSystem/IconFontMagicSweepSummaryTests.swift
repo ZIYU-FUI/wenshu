@@ -108,7 +108,11 @@ struct IconFontMagicSweepSummaryTests {
         // Round 21 control height
         #expect(content.contains("static let controlHeightLarge: CGFloat = 36"))
         // Round 22 onboarding
-        #expect(content.contains("static let onboardingWindowSize: CGSize = CGSize(width: 640, height: 720)"))
+        // The declaration's spelling is not asserted (= the tree's formatter rewrites
+        // `CGSize(width:height:)` as `.init(width:height:)`), so what is asserted is
+        // the token's name, its type and its size.
+        #expect(content.contains("static let onboardingWindowSize: CGSize"))
+        #expect(content.contains("width: 640, height: 720"))
     }
 
     @Test("Round 22 — IconStyles file defines 11-case IconStyle + 11-case IconColor")

@@ -1,13 +1,12 @@
-// 
-// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+//
 import Foundation
+import os.log
 import WenshuAgent
 import WenshuData
-import os.log
 
-// / reference-type accumulator for the streaming LLMBlock callback. Required
-// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-// / returned by `snapshotParts()` is safe to pass across actor boundaries.
+// A reference-type accumulator for the streaming LLMBlock callback. It is a
+// reference type because the callback is @Sendable, and the value
+// `snapshotParts()` returns is safe to pass across actor boundaries.
 
 final class StreamingAccumulator: @unchecked Sendable {
     private let lock = NSLock()
@@ -17,17 +16,19 @@ final class StreamingAccumulator: @unchecked Sendable {
         get { lock.lock(); defer { lock.unlock() }; return _parts }
         set { lock.lock(); defer { lock.unlock() }; _parts = newValue }
     }
+
     var thinking: String {
         get { lock.lock(); defer { lock.unlock() }; return _thinking }
         set { lock.lock(); defer { lock.unlock() }; _thinking = newValue }
     }
-    // / Take a thread-safe snapshot of `parts` (= returns a copy safe to pass
-    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-    // / access at the message-replacement site).
+
+    /// Takes a thread-safe snapshot of `parts` (= a copy that is safe to pass
+    /// across the actor boundary at the message-replacement site).
     func snapshotParts() -> [ChatMessagePart] {
         lock.lock(); defer { lock.unlock() }
         return _parts
     }
+
     func snapshotThinking() -> String {
         lock.lock(); defer { lock.unlock() }
         return _thinking
@@ -41,7 +42,7 @@ final class StreamingAccumulator: @unchecked Sendable {
     func appendText(_ chunk: String) {
         guard !chunk.isEmpty else { return }
         lock.lock(); defer { lock.unlock() }
-        if case .text(let last)? = _parts.last?.kind {
+        if case let .text(last)? = _parts.last?.kind {
             _parts[_parts.count - 1] = .text(last + chunk)
         } else {
             _parts.append(.text(chunk))
@@ -52,7 +53,9 @@ final class StreamingAccumulator: @unchecked Sendable {
     func accumulatedText() -> String {
         lock.lock(); defer { lock.unlock() }
         return _parts.compactMap { part in
-            if case .text(let text) = part.kind { return text }
+            if case let .text(text) = part.kind {
+                return text
+            }
             return nil
         }.joined()
     }
@@ -73,14 +76,14 @@ final class StreamingAccumulator: @unchecked Sendable {
         // A model that marks only its steps (= no thinking marker) still
         // gets them lifted, so the condition looks for any of the markers.
         guard let textIndex = _parts.firstIndex(where: { part in
-            if case .text(let text) = part.kind {
+            if case let .text(text) = part.kind {
                 return text.contains("[[thinking:")
                     || text.contains("[[action:")
                     || text.contains("[[result:")
             }
             return false
         }) else { return }
-        guard case .text(let text) = _parts[textIndex].kind else { return }
+        guard case let .text(text) = _parts[textIndex].kind else { return }
 
         // The whole segment is scanned, not only the thinking marker: the
         // step markers sit after it, in the same text run, and leaving them
@@ -105,7 +108,7 @@ final class StreamingAccumulator: @unchecked Sendable {
     func appendReasoning(_ chunk: String) {
         guard !chunk.isEmpty else { return }
         lock.lock(); defer { lock.unlock() }
-        if case .reasoning(let last)? = _parts.last?.kind {
+        if case let .reasoning(last)? = _parts.last?.kind {
             _parts[_parts.count - 1] = .reasoning(last + chunk)
         } else {
             _parts.append(.reasoning(chunk))
@@ -153,9 +156,10 @@ enum ChatSubAgentReceipt {
 final class ChatViewModel {
     var messages: [ChatMessage] = []
     var inputText: String = ""
-    // CHATIMG-001 (2026-09-07): absolute path of an image the user
-    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-    // and the draft is cleared. nil = no pending image.
+    // Absolute path of an image the user attached via the chat input row's
+    // paperclip button (= draft state). When non-nil, a small preview chip is
+    // rendered above the TextField; on send the path is moved into the
+    // ChatMessage and the draft is cleared. nil = no pending image.
     var attachedImagePath: String?
     var isSending: Bool = false
     var lastError: String?
@@ -205,17 +209,21 @@ final class ChatViewModel {
         placeholderId: UUID,
         accumulator: StreamingAccumulator
     ) {
-        if !batch.text.isEmpty { accumulator.appendText(batch.text) }
-        if !batch.reasoning.isEmpty { accumulator.appendReasoning(batch.reasoning) }
+        if !batch.text.isEmpty {
+            accumulator.appendText(batch.text)
+        }
+        if !batch.reasoning.isEmpty {
+            accumulator.appendReasoning(batch.reasoning)
+        }
         // The trace marker is lifted once it is complete, so the reader
         // sees the reasoning as its own block rather than as part of the
         // answer.
         accumulator.liftTraceMarker()
         for block in batch.blocks {
             switch block {
-            case .toolUse(let id, let name, let input):
+            case let .toolUse(id, name, input):
                 accumulator.appendPart(.toolUse(id: ToolCallID(rawValue: id), name: name, args: input))
-            case .toolResult(let toolUseID, let output):
+            case let .toolResult(toolUseID, output):
                 accumulator.appendPart(.toolResult(toolUseID: ToolCallID(rawValue: toolUseID), content: output, isError: false))
             case .text, .thinking:
                 break
@@ -241,25 +249,30 @@ final class ChatViewModel {
     /// update per frame instead of one per token.
     @ObservationIgnored
     private var streamBuffer: StreamBuffer?
-    // 'check split, check dead code'.
-    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-    // retention (= keep cancelRequested):
+    /// 'check split, check dead code'. Removed dead `activeSubAgentName` +
+    /// `currentAgentTurn` fields (= T4-SUBAGENT-UI + T8-CHATVIEWMODEL-WIRE) —
+    /// these were read by ChatSubAgentTag + ChatTurnProgress (. both files
+    /// deleted). No view in the codebase consumes these values anymore; = dead
+    /// reactive state. The corresponding `[wenshu.subagent]` + `[wenshu.agent]
+    /// turn` marker emission (= ConversationLoop + WenshuConductor) and
+    /// marker-parsing block below are also removed. retention (= keep
+    /// cancelRequested):
     var cancelRequested: Bool = false
-    // / T67-MUTE-SHORTCUT (2026-09-18): ⌘. handler (= cancel the
-    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-    // / no-op when nothing is streaming.
+    /// Cancels the streaming reply (= the ⌘. handler). It is a no-op when
+    /// nothing is streaming.
     func cancelStreaming() {
         cancelRequested = true
     }
 
-    // / CHATIMG-001 (2026-09-07): copy the picked file into the library's
-    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-    // / LiveChatRepository.
+    /// Copies the picked file into the library's attachment folder. The copy
+    /// itself is delegated to the data layer (= LiveChatRepository).
     @discardableResult
     func attachImage(at sourceURL: URL) async -> Bool {
-        // Config lookup (= business layer reads app config from
-        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-        // lives in LiveChatRepository.
+        // Config lookup: the business layer reads the app config from
+        // `ActiveLibrary` (= the canonical single source of truth for the `.ws`
+        // library URL, bound to the security-scoped bookmark via
+        // `LibraryBookmark`). This is a config query (= not IO); the directory
+        // creation and the file copy live in `LiveChatRepository`.
         guard let libraryPath = ActiveLibrary.path, !libraryPath.isEmpty else { return false }
         // Delegate the actual copy to the data layer.
         let destPath: String?
@@ -277,35 +290,34 @@ final class ChatViewModel {
         return true
     }
 
-    // / CHATIMG-001: clear the pending image draft (= called when the user
-    // / clicks the small ✕ on the preview chip, or after send).
+    /// Clears the pending image draft (= called when the user clicks the small ✕
+    /// on the preview chip, or after the send).
     func clearAttachedImage() {
         attachedImagePath = nil
     }
-    // wenshu.llm.model centralization. The model id was
-    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-    // when this is empty.
+
+    /// The model id was scattered across several reads and writes (4 `@AppStorage`
+    /// and 3 raw `UserDefaults`); the canonical owner is now `AppState.llmModel`,
+    /// and this property reads it.
     private let appState: AppState?
-    // Follow-up (= `ChatViewModelDefaultModelTests`):
-    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-    // now locks down).
+    /// When no `AppState` is injected (= a standalone `ChatViewModel` initialised
+    /// without the app-wide environment), the model id defaults to the empty
+    /// string read straight from `UserDefaults`, so the model picker shows nothing
+    /// rather than a hard-coded model. The pattern is locked down by
+    /// `ChatViewModelDefaultModelTests`.
     var currentModel: String {
         let raw = appState?.llmModel
             ?? UserDefaults.standard.string(forKey: "wenshu.llm.model")
             ?? ""
-        // Per boss 2026-10-16 OOB "还是没有内容":
-        // if the model selection is empty (= first
-        // launch with no UserDefaults entry AND no
-        // appState wiring; = the chat sends a POST
-        // with `model: ""` to minimax, which
-        // minimax rejects with HTTP 400 = the
-        // verifier SSE stream emits 0 events =
-        // the chat bubble stays empty), fall
-        // back to the active provider's first
-        // default model (= "MiniMax-M3" for
-        // minimax-cn = the canonical "this is
-        // the model the user configured" pick).
-        if !raw.isEmpty { return raw }
+        // The model selection can be empty (= the first launch with no
+        // `UserDefaults` entry AND no appState wiring). The chat would then send
+        // a POST with an empty `model`, which the provider rejects with HTTP 400,
+        // so the SSE stream emits no events and the chat bubble stays empty. Fall
+        // back to the active provider's first default model (= the canonical
+        // "this is the model the user configured" pick).
+        if !raw.isEmpty {
+            return raw
+        }
         let activeSlug = WenshuAppDelegateLLMHelpers.activeConnectorSlug()
         let provider = Provider.by(slug: activeSlug)
         if let firstDefault = provider?.defaultModels.first, !firstDefault.isEmpty {
@@ -313,30 +325,22 @@ final class ChatViewModel {
         }
         return "MiniMax-M3"
     }
+
     var availableModels: [String] = []
     var contextUsed: Int = 0
-        // 'minimax m3 is not 1MB context window?
-        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-        // to query per the 2026-08-25 'no API to fetch from, right?' = the user confirmed no API).
+    /// The context window of the active model, in tokens. The provider's published
+    /// figure is 1,000,000; the public endpoint enforces a lower input cap than
+    /// the published one, so a turn larger than that may be refused by the vendor.
+    /// The budget here follows the published figure, so context budgeting matches
+    /// the documentation. The provider's model list does not report a context
+    /// length, so there is no field to query.
     var contextMax: Int = 1_000_000
 
-    // / 2026-10-19 mac-mini reproducer (= chat hang
-    // "AI 思考中 20s"): the SwiftUI @State ChatViewModel
-    // is constructed on the FIRST ChatView body
-    // evaluation (= happens before
-    // `applicationDidFinishLaunching` runs; = before
-    // `WenshuAgent.installConductorSync` writes the
-    // snapshot; = the value resolved via
-    // `WenshuAgent.shared.currentConductorSync()` is nil
-    // at construction time). Subscribe to
-    // `wenshuConductorInstalled` notifications so the
-    // field gets patched in the moment the AppDelegate
-    // publishes the conductor (= the existing
-    // `installConductor` flow at AppDelegate lines 290
-    // + 335 fires both `installConductorSync` and
-    // `installConductor`; = both paths post the
-    // notification; = the subscriber updates the
-    // conductor on the main actor).
+    /// The conductor the chat path runs the turn on. It is patched when the
+    /// AppDelegate publishes one: a chat hung because the field was still nil at
+    /// the moment the user pressed send.
+    ///
+    /// The chat hung for 20 seconds: the SwiftUI @State ChatViewModel
     private var conductor: WenshuConductor?
     // Chat persistence lives in `WSChatRepository.shared` (= a
     // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
@@ -351,33 +355,46 @@ final class ChatViewModel {
 
     @MainActor private var sessionId: SessionID
 
-    // Current scope bookID for all persistence calls.
-    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-    // P2-02 audit (2026-09-24): BookID brand wrapper.
-    @MainActor internal var currentBookID: BookID?
+    // Current scope bookID for all persistence calls. nil = global un-attached (=
+    // the previous default; = used when no book is selected, e.g.
+    // onboarding-before-book-selection chats). The view layer is expected to call
+    // setCurrentBookID(_:) when the user picks a different book so the chat panel
+    // reloads against the new scope. Until the view wires this up . P2-02 audit:
+    // BookID brand wrapper.
+    @MainActor var currentBookID: BookID?
 
     /// Whether any provider holds a key. Nil asks the facade (= production);
     /// a closure lets a test state the answer instead of inheriting whatever
     /// happens to be in the developer's keychain.
     private let providersConfigured: (@Sendable () async -> Bool)?
 
-    // / Update the active scope (= called by the view layer when the user picks
-    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-    // / session) and reloads history. No-op if the bookID is unchanged.
+    /// Updates the active scope (= called by the view layer when the user picks a
+    /// book). It sets the session id and reloads the history. It is a no-op when
+    /// the bookID is unchanged.
     func setCurrentBookID(_ bookID: BookID?) {
-        if currentBookID == bookID { return }
+        if currentBookID == bookID {
+            return
+        }
         currentBookID = bookID
-        // Per-book session id: same key prefix + bookID suffix so the
-        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-        // is what scopes reads, not the session id).
+        // Per-book session id: same key prefix + bookID suffix so the global
+        // session rows and the per-book session rows can coexist in the same
+        // SwiftData store (= the WSChatMessage.bookID column is what scopes
+        // reads, not the session id).
         sessionId = Self.makeSessionID(for: bookID)
         // Fire-and-forget reload against the new scope.
         Task { await self.loadHistory() }
     }
 
-    // build fix: demote from `public init` to internal `init`.
-    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-    // this parameter to avoid touching SwiftData stack.
+    /// Build fix: demote from `public init` to internal `init`. `AppState` is
+    /// internal (= `final class AppState`, no access modifier), and a `public
+    /// init` cannot accept an internal type as a parameter. Both call sites (= see
+    /// `AppRootScene.swift` + `ChatView.swift` init) are inside the `WenshuApp`
+    /// module, so internal access is sufficient. The class itself stays `public
+    /// final class` so existing public surface (`currentModel`, `messages`,
+    /// `send`, etc.) is unchanged. Inject `ChatRepositoryProtocol` (= the
+    /// data-layer seam). Default = `LiveChatRepository.shared` so existing call
+    /// sites (= `ChatZoneView`, `ChatView`) work unchanged. Tests pass a fake via
+    /// this parameter to avoid touching SwiftData stack.
     init(
         conductor: WenshuConductor? = nil,
         sessionId: SessionID = SessionID(rawValue: "default"),
@@ -386,33 +403,29 @@ final class ChatViewModel {
         repository: ChatRepositoryProtocol = LiveChatRepository.shared,
         bookID: BookID? = nil,
         // Whether a provider is configured. Injected for the same reason the
-        // repository is: loadHistory shows an empty state when nothing is
-        // configured (= boss 2026-10-16 OOB), and a test cannot make that
-        // decision for itself because the real answer comes from the keychain.
+        // repository is: `loadHistory` shows an empty state when nothing is
+        // configured, and a test cannot make that decision for itself because the
+        // real answer comes from the keychain.
         providersConfigured: (@Sendable () async -> Bool)? = nil
     ) {
-        // AUDIT.md §2.2 partial (2026-10-16): the public
-        // facade is the canonical source of truth for
-        // the conductor; = if no conductor is injected,
-        // resolve it from the facade (= same value as
-        // `WenshuAppDelegate.sharedConductor` since the
-        // static is now a 1-line forwarder to the
-        // facade).
+        // The public facade is the canonical source of truth for the conductor:
+        // when no conductor is injected, resolve it from the facade (= the same
+        // value the shared conductor static forwards to).
         self.conductor = conductor ?? WenshuAgent.shared.currentConductorSync()
-        // Per-book session id when bookID is set
-        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-        // per-book session id keeps chat rows cleanly partitioned).
+        // Per-book session id when bookID is set (= the SwiftData store keys
+        // sessions by sessionID; = a unique per-book session id keeps chat rows
+        // cleanly partitioned).
         self.sessionId = Self.makeSessionID(for: bookID, fallback: sessionId.rawValue)
-        self.currentBookID = bookID
-        self.messages = initialMessages
+        currentBookID = bookID
+        messages = initialMessages
         self.providersConfigured = providersConfigured
-        // hold a strong reference to the AppState instance so
-        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-        // lifetime as the WindowGroup that owns it).
+        // Hold a strong reference to the AppState instance so currentModel /
+        // switchModel can read + write the canonical owner. Caller passes the
+        // env-injected AppState (= same lifetime as the WindowGroup that owns
+        // it).
         self.appState = appState
-        // C-4: data-layer seam. The protocol handles StoredChatMessage
-        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-        // ChatMessage only).
+        // Data-layer seam. The protocol handles StoredChatMessage ↔ ChatMessage
+        // mapping internally (= business layer speaks ChatMessage only).
         self.repository = repository
         self.resultAdopter = SubAgentResultAdopter(repository: repository)
         // Boss 2026-10-19 mac-mini reproducer (= chat
@@ -494,40 +507,38 @@ final class ChatViewModel {
         conductor = WenshuAgent.shared.currentConductorSync() ?? conductor
     }
 
-    // / Build a per-book session id. Returns `book:<id>:default` when scoped to
-    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-    // / bookID always hit the same SwiftData row.
+    /// Builds a per-book session id. It returns `book:<id>:default` when scoped
+    /// to a book, and `default` when it is not, so every turn of the same book
+    /// hits the same SwiftData row.
     static func makeSessionID(for bookID: BookID?, fallback: String = "default") -> SessionID {
         guard let bookID else { return SessionID(rawValue: fallback) }
         return SessionID(rawValue: "book:\(bookID.rawValue):\(fallback)")
     }
 
-    // / C-4: the data-layer seam. Defaults to LiveChatRepository.shared at init
-    // / (= production path); tests inject a fake.
+    /// The data-layer seam. It defaults to LiveChatRepository.shared at init (=
+    /// the production path); the tests inject a fake.
     private let repository: ChatRepositoryProtocol
 
     func switchModel(_ id: String) {
-        // write to the canonical owner (= AppState.llmModel),
-        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-        // UserDefaults call here (= single owner maintained).
+        // Write to the canonical owner (= AppState.llmModel), which then mirrors
+        // to UserDefaults via its didSet. No raw UserDefaults call here (= single
+        // owner maintained).
         appState?.llmModel = id
     }
 
-    // / UI layer must not call the data layer directly (= the canonical
-    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-    // / `ChatZoneView` (= UI layer) into the business layer.
+    /// Opens the settings pane at the provider's API section. The UI layer must
+    /// not call the data layer directly: the canonical route is the ChatZoneView,
+    /// which is the UI layer, into the business layer.
     func openSettingsToProviderApi() {
         UserDefaultsStore.shared.setString("providerApi", forKey: .settingsTab)
     }
 
     func loadAvailableModels() async {
         // Use multi-provider discovery (= query all configured
-        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
         // `WenshuLLMModel.allCases` = 3 MiniMax-only cases).
         //
-        // Per boss 2026-10-16 OOB "配好 KEY 后, 模型设置
-        // 中的可选模型, 也应该通过 API 查询. 同样不
-        // 能写死": use the live `loadLive()` (= calls
+        // The optional models are read from the API, never written down:
+        // use the live `loadLive()` (= calls
         // `LLMModelDiscovery.discover` for each
         // configured provider, which hits the
         // provider's `/models` endpoint and falls
@@ -542,8 +553,8 @@ final class ChatViewModel {
             }
         }
         if modelIds.isEmpty {
-            // No provider keys configured. Fall back to MiniMax hardcoded
-            // list (current WenshuLLMModel scope per the 2026-08-21 spec).
+            // No provider keys are configured, so fall back to the built-in model
+            // list.
             modelIds = WenshuLLMModel.allCases.map { $0.rawValue }
         }
         availableModels = modelIds
@@ -582,24 +593,31 @@ final class ChatViewModel {
             .info("[wenshu.context] context usage after recompute: total=\(totalContext, privacy: .public) messages=\(messageCount, privacy: .public)")
     }
 
-    // / routeInput is the front-door for chat input. It dispatches `/plan
-    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-    // / a stub skill-invoke result).
+    /// The front door for the chat input. It dispatches `/plan` and the other
+    /// commands, and otherwise runs the turn.
     func routeInput() async {
         let input = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !input.isEmpty else { return }
 
-        // T20c-PLAN-ROUTE (2026-09-18): intercept `/plan <query>` BEFORE
-        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-        // type change required for T20c).
+        // T20c-PLAN-ROUTE: intercept `/plan <query>` BEFORE the slash-command
+        // path (= /plan is a hub command that needs engine dispatch + plan
+        // rendering, = not a normal skill). Strategy: extract the query after
+        // `/plan ` and call PlanModeEngine.run to get a numbered plan. The plan
+        // is surfaced as a system ChatMessage (= the text content includes the
+        // numbered steps; =). This is the lightweight route — keeps the engine
+        // integration self-contained (= no ChatMessagePart type change required
+        // for T20c).
         if let planQuery = stripPlanPrefix(input) {
             await runPlanMode(query: planQuery)
             return
         }
 
-        // (2026-09-04): try @-mention subagent trigger
-        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-        // preserved in the chat log).
+        // Try @-mention subagent trigger FIRST (= higher priority than slash
+        // commands, because @slug syntax is more specific — it names a known
+        // sub-agent). Multiple mentions in one input spawn multiple sub-agents
+        // concurrently (= AsyncDelegation.delegate is async; awaits are awaited
+        // sequentially so the user sees the spawn order preserved in the chat
+        // log).
         let mentions = SubAgentMentionParser.parseAll(input)
         if !mentions.isEmpty {
             for mention in mentions {
@@ -664,20 +682,21 @@ final class ChatViewModel {
             return
         }
 
-        // No slash match → existing LLM send path. The slash prefix
-        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-        // interprets it as a prompt template per ChatHubCommands.
+        // No slash match → existing LLM send path. The slash prefix (= `/review
+        // chapter 1`) is sent verbatim to the LLM, which interprets it as a
+        // prompt template per ChatHubCommands.
         await send()
     }
 
-    // MARK: - T20c-PLAN-ROUTE (2026-09-18): /plan command surface
-    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-    // / collision with future /plans commands)
+    // The `/plan` command surface.
+
+    /// Strips the `/plan` prefix off the input (= the prefix is a command marker,
+    /// not text the user typed).
     private func stripPlanPrefix(_ input: String) -> String? {
         guard input.hasPrefix("/plan") else { return nil }
-        // Exact-match on "/plan" + whitespace (= no args means
-        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-        // the LLM verbatim as a slash command per ChatHubCommands).
+        // Exact-match on "/plan" + whitespace (= no args means the command is
+        // invalid for plan-mode; = send `/plan` to the LLM verbatim as a slash
+        // command per ChatHubCommands).
         let afterPrefix = input.dropFirst("/plan".count)
         // Either whitespace (= normal command) or end-of-string
         // (= no args) is allowed.
@@ -691,25 +710,30 @@ final class ChatViewModel {
         return trimmed.isEmpty ? nil : trimmed
     }
 
-    // / Run plan mode for the given query: invoke PlanModeEngine (= wraps the
-    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-    // / user sees why the plan failed).
+    /// Runs plan mode for the given query: it invokes the PlanModeEngine (= which
+    /// wraps the model call) and reports a failure, so the user sees why the plan
+    /// failed.
     private func runPlanMode(query: String) async {
         inputText = ""
-        // Resolve connector + model from the active conductor
-        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-        // for T20c.
-        let model = self.currentModel
-        // AUDIT.md §2.2 partial (2026-10-16 boss "只做把之前的
-        // 调用方式改成调用包" arc): resolve the active
+        // Resolve connector + model from the active conductor (= same source of
+        // truth ChatViewModel.send uses). The conductor owns a connector actor; =
+        // use its currentModel. We don't currently have direct accessor for the
+        // connector on WenshuConductor, so instantiate PlanModeEngine with
+        // AnthropicConnector (= the conductor's default) + the current model id.
+        // Future tickets may route through AppState.activeConnector; = out of
+        // scope for T20c.
+        let model = currentModel
+        // The audit's package cleanup: resolve the active
         // connector through the public facade.
         let connector: any LLMConnector = WenshuAgent.shared.activeLLMConnector()
         let engine = PlanModeEngine(connector: connector, model: model)
         do {
             let plan = try await engine.run(query: query)
-            // T22-PLAN-PART (2026-09-18): surface the plan as a
-            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-            // future ticket = T22b).
+            // Surface the plan as a structured.plan ChatMessagePart (= rendered
+            // via ChatPlanPartView) instead of a plain system text message. The
+            // plan carries query + steps + connectorID + createdAt; =
+            // ChatPlanPartView shows them as a numbered step list with an Approve
+            // button (T20b primitive; = Approve wiring is a).
             messages.append(ChatMessage(
                 role: .system,
                 source: .system,
@@ -736,9 +760,10 @@ final class ChatViewModel {
     /// send: send message → Wenshu main agent synthesis
     func send() async {
         let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
-        // CHATIMG-001 (2026-09-07): allow image-only sends (= an
-        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-        // the image atomically.
+        // Allow image-only sends (= an attached screenshot with no text is still
+        // a valid send; the image carries the meaning). Capture + clear the draft
+        // path BEFORE constructing the user message so the message captures the
+        // image atomically.
         let imagePath = attachedImagePath
         attachedImagePath = nil
         guard !text.isEmpty || imagePath != nil, !isSending else { return }
@@ -752,9 +777,9 @@ final class ChatViewModel {
         let placeholder = ChatMessage(id: placeholderId, role: .agent, source: .wenshu, content: "AI 思考中…", isPlaceholder: true)
         messages.append(placeholder)
 
-        // C-4: route through ChatRepositoryProtocol (= the data-layer
-        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-        // business layer speaks ChatMessage only.
+        // Route through ChatRepositoryProtocol (= the data-layer seam). The Live
+        // impl owns the StoredChatMessage mapping; = business layer speaks
+        // ChatMessage only.
         do {
             try await repository.append(userMsg, sessionId: sessionId, bookID: currentBookID)
         } catch {
@@ -763,36 +788,48 @@ final class ChatViewModel {
 
         do {
             try Task.checkCancellation()
-            // streaming path = render each text chunk as it
-            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-            // owner maintained).
+            // Streaming path = render each text chunk as it arrives (=
+            // character-by-character, ChatGPT-style). The conductor path remains
+            // blocking for now (= its WenshuConductor.handle returns a single
+            // assembled reply = the WenshuConductor owns its own multi-agent
+            // pipeline and isn't yet adapted to streaming). ships streaming for
+            // the direct verifier path = the most common user flow. read the
+            // model id from the canonical owner (= same value `vm.currentModel`
+            // returns, via the shared AppState reference). No more raw
+            // UserDefaults read here (= single owner maintained).
             let currentModel: String = self.currentModel
-            // Per Apple HIG + 12 standard + Swift 6 strict-concurrency:
-            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-            // Logger interpolation (= Swift 6 closure-capture rule).
+            // Per Apple HIG + 12 standard + Swift 6 strict-concurrency: migrate
+            // from `NSLog` (= Swift 6 treats variadic as unavailable). Local
+            // variable captures model name for the Logger interpolation (= Swift
+            // 6 closure-capture rule).
             let modelForLog = currentModel
             Logger(subsystem: "com.wenshu.app", category: "chat.model")
                 .info("[wenshu.model] effective model: \(modelForLog, privacy: .public) (AppState source)")
             var reply: String
-            var replyThinking: String?    // WenshuLLMBlock.thinking footnote UI
+            var replyThinking: String? // WenshuLLMBlock.thinking footnote UI
             var replyTokens: Int?
             if let conductor = conductor {
-                // 
-                // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-                // class reference IS thread-safe here).
+                // The conductor path streams as well, so the same streaming
+                // switch below (= the one the direct path uses) handles
+                // `LLMBlock` events from either source. Both paths accumulate
+                // into the same parts array and the same thinking buffer, so the
+                // placeholder renders the same way regardless of which path
+                // emitted the event. The stream callback is `@Sendable` (= it can
+                // be invoked from any actor, because the conversation loop runs
+                // on a separate actor), so a local `var` cannot be captured: the
+                // accumulator is a reference type, safe to capture in a
+                // `@Sendable` closure (= each invocation is serial with respect
+                // to the owning actor, so the reference is thread-safe here).
                 let accumulator = StreamingAccumulator()
-                // 
-                // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-                // message with an in-flight snapshot).
-                // The buffer owns the rate at which the view updates. Its
-                // flush handler is the single place that writes to the
-                // streaming message, so the message is touched once per
-                // frame rather than once per token.
+                // The buffer owns the rate at which the view updates. Its flush
+                // handler is the single place that writes to the streaming
+                // message, so the message is touched once per frame rather than
+                // once per token.
                 let buffer = StreamBuffer { [weak self] batch in
                     guard let self else { return }
                     self.applyStreamBatch(batch, placeholderId: placeholderId, accumulator: accumulator)
                 }
-                self.streamBuffer = buffer
+                streamBuffer = buffer
                 defer { self.streamBuffer = nil }
                 let result = await conductor.handle(
                     userMessage: text,
@@ -800,9 +837,9 @@ final class ChatViewModel {
                     model: currentModel,
                     bookID: currentBookID?.rawValue,
                     streamCallback: { [weak self] block in
-                        // T1-THINKING-VISIBLE (2026-09-18): log each
-                        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-                        // PATH=... so it grep-parity with T0 logs.
+                        // T1-THINKING-VISIBLE: log each stream block (= dev can
+                        // confirm which part kinds the LLM actually emits). Tag
+                        // with PATH=.. so it grep-parity with T0 logs.
                         let kindTag: String = {
                             switch block {
                             case .text: return "text"
@@ -836,13 +873,14 @@ final class ChatViewModel {
                 reply = result.reply
                 replyThinking = result.thinking ?? accumulator.thinking
                 replyTokens = result.totalTokens
-                // Mark the conductor's bubble as
-                // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-                // final message.
+                // Mark the conductor's bubble as sealed (= Hermes `pending:
+                // false` flip after `message.complete`). Replace placeholder with
+                // the final message.
                 if let idx = messages.firstIndex(where: { $0.id == placeholderId }) {
                     // Per Apple HIG + 12 standard + Swift 6 strict-concurrency:
-                    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-                    // unavailable). Local captures avoid closure-capture complaint.
+                    // migrate from `NSLog` (= Swift 6 treats variadic as
+                    // unavailable). Local captures avoid closure-capture
+                    // complaint.
                     let placeholderIDString = placeholderId.uuidString
                     let messageCount = messages.count
                     Logger(subsystem: "com.wenshu.app", category: "chat.scroll")
@@ -859,9 +897,8 @@ final class ChatViewModel {
                     )
                 }
             } else {
-                // AGENT-LOOP (boss 2026-10-16 OOB "agent 没有达到 agent
-                // 的标准"): the conductor is now ALWAYS wired with the
-                // active connector (= commit 7de86fc08 = WenshuAppDelegate
+                // The conductor is now ALWAYS wired with the
+                // active connector (= WenshuAppDelegate
                 // + ChatView both pass `WenshuAppDelegateLLMHelpers.
                 // activeLLMConnector()` at construction time). The
                 // old `WenshuVerifier.streamChat` fallback (= the
@@ -884,8 +921,9 @@ final class ChatViewModel {
             if !messages.contains(where: { $0.id == placeholderId }) {
                 messages.append(ChatMessage(id: placeholderId, role: .agent, source: .wenshu, content: reply))
             }
-            // C-4: route the agent message through ChatRepositoryProtocol
-            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+            // Route the agent message through ChatRepositoryProtocol (=
+            // data-layer seam). The Live impl builds the StoredChatMessage from
+            // this ChatMessage (= handles the id-stringification +
             // empty-thinking-nil-collapse logic).
             let agentMsg = ChatMessage(
                 id: placeholderId,
@@ -903,9 +941,12 @@ final class ChatViewModel {
             }
             recomputeContextUsed()
 
-            // trigger summary generation (LLM + saveSummary + deleteOldMessages order)
-            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-            // pattern that lost errors silently).
+            // Trigger summary generation (LLM + saveSummary + deleteOldMessages
+            // order) route through ChatRepositoryProtocol (= data-layer seam).
+            // The Live impl hops to MainActor internally (= the protocol method
+            // is async + the caller doesn't need a manual Task wrap anymore; =
+            // was the bug-prone `Task { @MainActor in.. }` pattern that lost
+            // errors silently).
             let verifier = WenshuVerifier()
             do {
                 try await repository.summarizeIfNeeded(
@@ -919,18 +960,12 @@ final class ChatViewModel {
                 Self.logSwallowedPersistenceFailure(operation: "summarizeIfNeeded", error: error)
             }
         } catch {
-            // Per boss 2026-10-19 OOB "macbook 上聊天一直思考
-            // 中, 看不到实际错误": the chat layer no longer
-            // collapses every error to the single `modelConfigInvalid`
-            // line. The granular `UserFacingError.from` mapping
-            // (= network, key, rate-limit, etc.) is now the user-
-            // visible message so the user (= the boss + power
-            // users) can tell whether the failure is a 401 (key
-            // missing / wrong) vs a transport timeout (network /
-            // proxy) vs a 5xx (server) vs a malformed body
-            // (response shape). The previous single-line collapse
-            // hid the real cause (= boss reported "AI 思考中
-            // 29.4s" with no further detail; = impossible to
+            // The chat layer does not collapse every error to a single generic
+            // line: the granular `UserFacingError.from` mapping (= network, key,
+            // rate limit, etc.) is the user-visible message, so the user can tell
+            // a missing or wrong key from a transport timeout from a server error
+            // from a malformed response body. The single-line collapse hid the
+            // real cause (= a long think with no further detail = impossible to
             // distinguish key from network).
             let activeProvider = WenshuAppDelegateLLMHelpers.activeConnectorSlug()
             let rawDesc = String(describing: error)
@@ -938,7 +973,7 @@ final class ChatViewModel {
                 .error("[wenshu.chat.persist] operation=send_chat error=\(rawDesc, privacy: .public) provider=\(activeProvider, privacy: .public)")
             // Use the granular classifier (= surfaces the real
             // underlying message body, not the generic
-            // "模型配置有误" line). Falls back to the raw
+            // generic line). Falls back to the raw
             // underlying description when no classifier matches
             // (= matches the previous behavior for unknown error
             // shapes).
@@ -959,9 +994,7 @@ final class ChatViewModel {
         isSending = false
     }
 
-    // / WIRE-AGENT-003 (2026-09-04): start a long-running goal via the
-    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-    // / context'.
+    /// Starts a long-running goal via the agent's own context.
     func startNewSession() {
         // 1. Clear in-memory state (= visual reset).
         messages = []
@@ -969,9 +1002,10 @@ final class ChatViewModel {
         // 2. Generate new sessionId (= UUID-based).
         let newId = SessionID(rawValue: "s_" + UUID().uuidString.prefix(12).lowercased())
         sessionId = newId
-        // 3. NSLog audit trail (= verify in Console.app).
-        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-        // = use Logger instead per Apple's modern logging guidance).
+        // NSLog audit trail (= verify in Console.app). Migrated from `NSLog` (=
+        // the Swift 6 strict-concurrency model treats the variadic signature as
+        // unavailable; = = use Logger instead per Apple's modern logging
+        // guidance).
         let logger = Logger(subsystem: "com.wenshu.app", category: "chat")
         let sessionIdRaw = sessionId.rawValue
         let messageCount = messages.count
@@ -985,31 +1019,27 @@ final class ChatViewModel {
     }
 
     /// valueForSessionId: used by ChatView .task to load history.
-    func valueForSessionId() -> SessionID { sessionId }  // @MainActor-isolated helper
+    func valueForSessionId() -> SessionID {
+        sessionId
+    } // @MainActor-isolated helper
 
     /// replaceMessages: ChatView .task loadcompletereplace (append)
     func replaceMessages(_ newMessages: [ChatMessage]) {
-        self.messages = newMessages
+        messages = newMessages
     }
 
-    // / C-5: load chat history from the data layer (= formerly lived inline in
-    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-    // / global un-attached).
+    /// Loads the chat history from the data layer. The rows that are not attached
+    /// to a session are skipped: they are not global.
     func loadHistory() async {
-        // / Per boss 2026-10-16 OOB "如果没配 key, 就只显示空态,
-        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-        // / chat history (= call sites in `ChatView.task` also
-        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-        // / when no key is configured = the persisted rows are not
-        // / surfaced behind the empty-state overlay. This is the
-        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-        // / ephemeral when the provider is not configured.
-        // AUDIT.md §2.2 partial (2026-10-16): route through
-        // WenshuAgent.shared (= the public facade; =
-        // the 14 callers migration enabler; = commit
-        // `a0b371b45` added `providersWithKeys()`; =
-        // commit `fd5baaee6` added the conductor
-        // lifecycle).
+        // Whether any provider holds a key.
+        //
+        // The persisted history is surfaced only once a key is configured
+        // (= the call sites in `ChatView.task` also skip the load when no
+        // key is configured), so the persisted rows are not shown behind the
+        // empty-state overlay: they are ephemeral when the provider is not
+        // configured.
+        //
+        // The lookup routes through WenshuAgent.shared (= the public facade).
         let isConfigured: Bool
         if let providersConfigured {
             isConfigured = await providersConfigured()
@@ -1018,13 +1048,14 @@ final class ChatViewModel {
             isConfigured = !configured.isEmpty
         }
         if !isConfigured {
-            self.messages = []
+            messages = []
             return
         }
         do {
             let loaded = try await repository.loadMessages(sessionId: sessionId, bookID: currentBookID)
-            // "持久化的聊天记录, 重新渲染顺序有问题, 问答先后顺序混乱" (see OOB.md #2026-07-23)
-            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+            // The persisted rows kept the question and the answer out of
+            // order (= the order they were rendered in, not the order they
+            // were written). The sort is by
             // timestamp (= <1 ms apart on fast hardware).
             let sorted = loaded.sorted { a, b in
                 if a.timestamp != b.timestamp {
@@ -1032,18 +1063,17 @@ final class ChatViewModel {
                 }
                 return a.id.uuidString < b.id.uuidString
             }
-            self.messages = sorted
+            messages = sorted
         } catch {
-            // Silent no-op (= matches legacy behavior; = the view
-            // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-            // empty-state placeholder).
+            // Silent no-op (= matches legacy behavior; = the view already handles
+            // empty messages[] by showing the empty-state placeholder).
         }
     }
 }
 
 // MARK: - Try-logging helper (= 12 standard P1-02 try?  scaffolding)
-// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-// across Core/Agent and Core/Tools.
+
+/// across Core/Agent and Core/Tools.
 extension ChatViewModel {
     fileprivate static let persistLogger = Logger(subsystem: "com.wenshu.app", category: "chat.persist")
 

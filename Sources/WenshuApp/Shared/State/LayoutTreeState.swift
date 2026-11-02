@@ -1,20 +1,33 @@
-// Sources/WenshuApp/State/LayoutTreeState.swift
-// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-// justification; = shipped together per the standing rule).
-import Foundation
+// Sources/WenshuApp/State/LayoutTreeState.swift Bumped from v1 (= flat array of
+// panes) to v2 (= recursive split tree). 1:1 port of /Volumes/ANAN/.hermes/hermes-agent/apps/desktop/src/
+// components/pane-shell/tree/model.ts (650 LOC TypeScript). Two node kinds: -
+// SplitNode: children laid out along an orientation with fractional weights. -
+// GroupNode: a stack of panes (tabs) with one active; may be minimized to its
+// header strip; carries a standing choice for tab-strip mode. All operations are
+// pure and return new trees; normalize keeps the structure canonical (no empty
+// groups, no single-child or same- orientation nested splits). Atomic-coupling
+// with LayoutTreeStore.swift (= the schema and its migration logic are
+// inseparable — see ticket spec for the justification; = shipped together per the
+// standing rule).
 import CoreGraphics
+import Foundation
 
 // MARK: - Tab + Pane primitives (unchanged from v1)
-// / PaneID — type-safe identifier for a workspace pane (= same as v1).
+
+/// PaneID — a type-safe identifier for a workspace pane.
 struct PaneID: Codable, Equatable, Hashable {
     var raw: UUID
-    init(_ raw: UUID = UUID()) { self.raw = raw }
+    init(_ raw: UUID = UUID()) {
+        self.raw = raw
+    }
 }
 
 /// TabID — type-safe identifier for a workspace tab (= same as v1).
 struct TabID: Codable, Equatable, Hashable {
     var raw: UUID
-    init(_ raw: UUID = UUID()) { self.raw = raw }
+    init(_ raw: UUID = UUID()) {
+        self.raw = raw
+    }
 }
 
 /// SplitDirection — kept; v2 reads it as `Orientation`.
@@ -31,7 +44,9 @@ struct PaneFrame: Codable, Equatable {
     var idealWidth: CGFloat
     var flex: CGFloat
 
-    static var defaultFrame: PaneFrame { PaneFrame(minWidth: 320, idealWidth: 600, flex: 1.0) }
+    static var defaultFrame: PaneFrame {
+        PaneFrame(minWidth: 320, idealWidth: 600, flex: 1.0)
+    }
 }
 
 /// TabKind — which view a tab renders (= same as v1; untouched).
@@ -44,18 +59,16 @@ enum TabKind: String, Codable {
     case aiDynamic
 }
 
-// / PaneNode — a single pane (= holds 0 or more tabs).
-// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-// / up frame + tab info per-pane.
+/// PaneNode — a single pane. It holds 0 or more tabs, and its frame and
+/// its tab info live per-pane.
 struct PaneNode: Codable, Equatable, Identifiable {
     var id: PaneID
-    // / Orientation of the split (= which axis the pane's flex
-    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-    // / root pane owns its parent's split direction).
+    /// The orientation of the split (= which axis the pane's flex layout
+    /// follows). The root pane owns its parent's split direction.
     var split: SplitDirection
     var frame: PaneFrame
-    // / Ordered list of tabs in this pane (= first is the selected
-    // / tab when the pane becomes active).
+    /// The ordered list of tabs in this pane. The first one is the selected tab
+    /// when the pane becomes active.
     var tabIDs: [TabID]
 
     static func make(split: SplitDirection = .horizontal, frame: PaneFrame = .defaultFrame, tabs: [TabID] = []) -> PaneNode {
@@ -76,8 +89,9 @@ struct TabSpec: Codable, Equatable, Identifiable {
 }
 
 // MARK: - Tree node kinds (= hermes model.ts lines 16-56)
-// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-// / `tabStrip`; everything else asks AUTO).
+
+/// The tab strip's mode. `tabStrip` is the explicit choice; every other
+/// value asks for AUTO.
 enum TabStripMode: String, Codable {
     case always
     case never
@@ -101,17 +115,18 @@ enum DropPosition: String, Codable {
     case bottom
 }
 
-// / LayoutNode — recursive tree node. Sum type: SplitNode | GroupNode.
-// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-// / branch by the `type` field.
+/// LayoutNode — recursive tree node. Sum type: SplitNode | GroupNode. Codable
+/// conformance: encoded as a JSON object with a `type` discriminator (= "split" |
+/// "group") so the on-disk format is self-describing and forward-compatible.
+/// Decoding picks the right branch by the `type` field.
 indirect enum LayoutNode: Codable, Equatable {
     case split(SplitNode)
     case group(GroupNode)
 
     var id: String {
         switch self {
-        case .split(let n): return n.id
-        case .group(let n): return n.id
+        case let .split(n): return n.id
+        case let .group(n): return n.id
         }
     }
 
@@ -127,10 +142,10 @@ indirect enum LayoutNode: Codable, Equatable {
     func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
-        case .split(let s):
+        case let .split(s):
             try container.encode(Discriminator.split, forKey: .type)
             try s.encode(to: encoder)
-        case .group(let g):
+        case let .group(g):
             try container.encode(Discriminator.group, forKey: .type)
             try g.encode(to: encoder)
         }
@@ -170,15 +185,16 @@ struct GroupNode: Codable, Equatable, Identifiable {
     var active: PaneID
     /// Collapsed to header strip (= chevron restores).
     var minimized: Bool?
-    // / The user's standing choice for this zone's strip; absent = auto.
-    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-    // / ignores it — a minimized group IS its strip.
+    /// The user's standing choice for this zone's strip. Absent = auto. A
+    /// minimized group ignores it: a minimized group IS its strip.
     var tabStrip: TabStripMode?
 }
 
 // MARK: - Tree node constructors (= hermes model.ts lines 63-86)
-// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-// / requires the annotation.
+
+/// The sequence that hands out the node ids. It is `@unchecked Sendable`
+/// because it mutates a counter, and that annotation is what the compiler
+/// requires.
 private final class NodeIDSequence: @unchecked Sendable {
     static let shared = NodeIDSequence()
     private var value: UInt64 = 0
@@ -217,12 +233,13 @@ func makeSplit(orientation: Orientation, children: [LayoutNode], weights: [Doubl
 }
 
 // MARK: - Queries (= hermes model.ts lines 89-147)
-// / Recursive lookup: returns the group with `groupId`, or nil.
+
+/// Recursive lookup: returns the group with `groupId`, or nil.
 func findGroup(_ node: LayoutNode, groupId: String) -> GroupNode? {
-    if case .group(let g) = node {
+    if case let .group(g) = node {
         return g.id == groupId ? g : nil
     }
-    if case .split(let s) = node {
+    if case let .split(s) = node {
         for child in s.children {
             if let hit = findGroup(child, groupId: groupId) {
                 return hit
@@ -234,10 +251,10 @@ func findGroup(_ node: LayoutNode, groupId: String) -> GroupNode? {
 
 /// Recursive lookup: returns the group containing `paneId`, or nil.
 func findGroupOfPane(_ node: LayoutNode, paneId: PaneID) -> GroupNode? {
-    if case .group(let g) = node {
+    if case let .group(g) = node {
         return g.panes.contains(paneId) ? g : nil
     }
-    if case .split(let s) = node {
+    if case let .split(s) = node {
         for child in s.children {
             if let hit = findGroupOfPane(child, paneId: paneId) {
                 return hit
@@ -250,14 +267,14 @@ func findGroupOfPane(_ node: LayoutNode, paneId: PaneID) -> GroupNode? {
 /// All pane IDs in the tree (= DFS-flattened leaf order).
 func allPaneIDs(_ node: LayoutNode) -> [PaneID] {
     switch node {
-    case .group(let g): return g.panes
-    case .split(let s): return s.children.flatMap { allPaneIDs($0) }
+    case let .group(g): return g.panes
+    case let .split(s): return s.children.flatMap { allPaneIDs($0) }
     }
 }
 
 /// The split whose DIRECT child carries `childId`, or nil.
 func findParentSplit(_ node: LayoutNode, childId: String) -> SplitNode? {
-    if case .split(let s) = node {
+    if case let .split(s) = node {
         if s.children.contains(where: { $0.id == childId }) {
             return s
         }
@@ -271,10 +288,10 @@ func findParentSplit(_ node: LayoutNode, childId: String) -> SplitNode? {
 }
 
 // MARK: - normalize (= hermes model.ts lines 153-217)
-// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-// / Returns nil when the tree is fully empty.
+
+/// Returns nil when the tree is fully empty.
 func normalize(_ node: LayoutNode) -> LayoutNode? {
-    if case .group(let g) = node {
+    if case let .group(g) = node {
         if g.panes.isEmpty {
             return nil
         }
@@ -289,14 +306,14 @@ func normalize(_ node: LayoutNode) -> LayoutNode? {
             minimized: g.minimized, tabStrip: g.tabStrip
         ))
     }
-    if case .split(let s) = node {
+    if case let .split(s) = node {
         var children: [LayoutNode] = []
         var weights: [Double] = []
         for (i, child) in s.children.enumerated() {
             guard let kept = normalize(child) else { continue }
             // Flatten same-orientation nesting: distribute this slot's
             // weight across the flattened children proportionally.
-            if case .split(let inner) = kept, inner.orientation == s.orientation {
+            if case let .split(inner) = kept, inner.orientation == s.orientation {
                 let total = inner.weights.reduce(0, +)
                 let totalSafe = total > 0 ? total : 1
                 for (j, grandchild) in inner.children.enumerated() {
@@ -311,8 +328,12 @@ func normalize(_ node: LayoutNode) -> LayoutNode? {
             let slotWeight = s.weights[s.weights.index(s.weights.startIndex, offsetBy: i, limitedBy: s.weights.endIndex).flatMap { $0 < s.weights.endIndex ? $0 : nil } ?? 0]
             weights.append(slotWeight)
         }
-        if children.isEmpty { return nil }
-        if children.count == 1 { return children[0] }
+        if children.isEmpty {
+            return nil
+        }
+        if children.count == 1 {
+            return children[0]
+        }
         return .split(SplitNode(
             id: s.id, orientation: s.orientation, children: children, weights: weights
         ))
@@ -321,11 +342,12 @@ func normalize(_ node: LayoutNode) -> LayoutNode? {
 }
 
 // MARK: - removePane (= hermes model.ts lines 219-241)
-// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-// / was last) — same rule as terminals and the preview rail.
+
+/// Removes a pane from the tree. The pane that was removed last falls back
+/// to the same rule the terminals and the preview rail use.
 func removePane(_ node: LayoutNode, paneId: PaneID) -> LayoutNode? {
     func walk(_ n: LayoutNode) -> LayoutNode {
-        if case .group(let g) = n {
+        if case let .group(g) = n {
             guard let at = g.panes.firstIndex(of: paneId) else { return n }
             let panes = g.panes.filter { $0 != paneId }
             let fallbackIndex = min(at, max(0, panes.count - 1))
@@ -335,7 +357,7 @@ func removePane(_ node: LayoutNode, paneId: PaneID) -> LayoutNode? {
                 minimized: g.minimized, tabStrip: g.tabStrip
             ))
         }
-        if case .split(let s) = n {
+        if case let .split(s) = n {
             return .split(SplitNode(
                 id: s.id, orientation: s.orientation,
                 children: s.children.map(walk), weights: s.weights
@@ -347,8 +369,9 @@ func removePane(_ node: LayoutNode, paneId: PaneID) -> LayoutNode? {
 }
 
 // MARK: - insertAtGroup (= hermes model.ts lines 243-301)
-// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-// / becomes empty.
+
+/// Inserts a pane into a group. The group becomes empty when the pane that
+/// was its last one leaves.
 func insertAtGroup(
     _ node: LayoutNode,
     targetGroupId: String,
@@ -359,11 +382,13 @@ func insertAtGroup(
     edgeWeights: (Double, Double)? = nil
 ) -> LayoutNode? {
     func walk(_ n: LayoutNode) -> LayoutNode {
-        if case .group(let g) = n {
+        if case let .group(g) = n {
             guard g.id == targetGroupId else { return n }
             if pos == .center {
                 let at: Int = {
-                    if let b = before, let i = g.panes.firstIndex(of: b) { return i }
+                    if let b = before, let i = g.panes.firstIndex(of: b) {
+                        return i
+                    }
                     return -1
                 }()
                 let panes: [PaneID] = at >= 0
@@ -383,7 +408,7 @@ func insertAtGroup(
             let weights: [Double] = leading ? [addedWeight, targetWeight] : [targetWeight, addedWeight]
             return makeSplit(orientation: orientation, children: children, weights: weights)
         }
-        if case .split(let s) = n {
+        if case let .split(s) = n {
             return .split(SplitNode(
                 id: s.id, orientation: s.orientation,
                 children: s.children.map(walk), weights: s.weights
@@ -395,25 +420,28 @@ func insertAtGroup(
 }
 
 // MARK: - movePane + movePanes (= hermes model.ts lines 303-416)
-// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-// / of node ids.
+
+/// A signature of the tree's shape: the ordered list of node ids.
 private func shapeSignature(_ node: LayoutNode) -> String {
-    if case .group(let g) = node {
+    if case let .group(g) = node {
         return g.panes.isEmpty ? "" : "[" + g.panes.map { $0.raw.uuidString }.joined(separator: ",") + "]"
     }
-    if case .split(let s) = node {
+    if case let .split(s) = node {
         let children = s.children.map(shapeSignature).filter { !$0.isEmpty }
-        if children.isEmpty { return "" }
-        if children.count == 1 { return children[0] }
+        if children.isEmpty {
+            return ""
+        }
+        if children.count == 1 {
+            return children[0]
+        }
         let o: String = (s.orientation == .row) ? "row" : "column"
         return "\(o)(\(children.joined(separator: "|")))"
     }
     return ""
 }
 
-// / Move = remove + insert. If the target group vanished during
-// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-// / under a fresh zone id.
+/// Moves one pane. The move is a remove plus an insert. If the target
+/// group vanished during the move, the pane lands under a fresh zone id.
 func movePane(
     _ root: LayoutNode,
     paneId: PaneID,
@@ -430,9 +458,8 @@ func movePane(
     return shapeSignature(next) == shapeSignature(root) ? root : next
 }
 
-// / Move a SELECTION of panes together (multi-tab drag), preserving
-// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-// / rebuilds the visible arrangement returns `root`.
+/// Moves a SELECTION of panes together (a multi-tab drag), preserving their
+/// order. The caller rebuilds the visible arrangement and gets `root` back.
 func movePanes(
     _ root: LayoutNode,
     paneIds ids: [PaneID],
@@ -444,8 +471,10 @@ func movePanes(
         return movePane(root, paneId: ids[0], target: target)
     }
     let lead = ids[0]
-    // Replaced the previous `working!` (= force-unwrap inside a loop
-    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
+    // Replaced the previous `working!` (= force-unwrap inside a loop that may
+    // exit early on removePane failure) with explicit `guard let pending` (= the
+    // loop-local name is `pending` to avoid shadowing the outer `current` var; =
+    // pending is the in-loop current value before removePane, then re-assigned to
     // the outer current).
     var current: LayoutNode? = root
     for id in ids {
@@ -459,7 +488,7 @@ func movePanes(
     guard var next = insertAtGroup(working, targetGroupId: target.groupId, paneId: lead, pos: target.pos, before: target.before) else {
         return root
     }
-    for i in 1..<ids.count {
+    for i in 1 ..< ids.count {
         guard let leadGroup = findGroupOfPane(next, paneId: lead) else { return root }
         let before: PaneID? = (target.pos == .center) ? target.before : nil
         guard let updated = insertAtGroup(next, targetGroupId: leadGroup.id, paneId: ids[i], pos: .center, before: before, activate: false) else {
@@ -474,10 +503,15 @@ func movePanes(
 }
 
 // MARK: - groupLeafIds + findCover (= hermes model.ts lines 418-445)
-// / Group ids of every leaf under a node, in tree order.
+
+/// The group ids of every leaf under a node, in tree order.
 func groupLeafIDs(_ node: LayoutNode) -> [String] {
-    if case .group(let g) = node { return [g.id] }
-    if case .split(let s) = node { return s.children.flatMap { groupLeafIDs($0) } }
+    if case let .group(g) = node {
+        return [g.id]
+    }
+    if case let .split(s) = node {
+        return s.children.flatMap { groupLeafIDs($0) }
+    }
     return []
 }
 
@@ -485,21 +519,26 @@ private func sameSet(_ ids: [String], _ set: Set<String>) -> Bool {
     return ids.count == set.count && ids.allSatisfy { set.contains($0) }
 }
 
-// / The node whose complete leaf set equals `set` (= a rectangular
-// / region in a guillotine tree is always exactly one subtree), or nil.
+/// Finds the node whose complete leaf set equals `set` (= a rectangular
+/// region in a guillotine tree is always exactly one subtree), or nil.
 private func findCover(_ node: LayoutNode, _ set: Set<String>) -> LayoutNode? {
-    if sameSet(groupLeafIDs(node), set) { return node }
-    if case .split(let s) = node {
+    if sameSet(groupLeafIDs(node), set) {
+        return node
+    }
+    if case let .split(s) = node {
         for child in s.children {
-            if let hit = findCover(child, set) { return hit }
+            if let hit = findCover(child, set) {
+                return hit
+            }
         }
     }
     return nil
 }
 
 // MARK: - mergeZonesWithPane (= hermes model.ts lines 447-505)
-// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-// / single-zone drop.
+
+/// Merges the zone under a pane that was dropped on it (= a single-zone
+/// drop).
 func mergeZonesWithPane(
     _ root: LayoutNode,
     groupIds: [String],
@@ -509,11 +548,11 @@ func mergeZonesWithPane(
     guard set.count > 1, findCover(root, set) != nil else { return nil }
     var panesInSet: [PaneID] = []
     func collect(_ n: LayoutNode) {
-        if case .group(let g) = n {
+        if case let .group(g) = n {
             if set.contains(g.id) {
                 panesInSet.append(contentsOf: g.panes.filter { !ids.contains($0) })
             }
-        } else if case .split(let s) = n {
+        } else if case let .split(s) = n {
             s.children.forEach(collect)
         }
     }
@@ -526,8 +565,10 @@ func mergeZonesWithPane(
     }
     let merged = makeGroup(panes: ids + panesInSet)
     func replace(_ n: LayoutNode) -> LayoutNode {
-        if sameSet(groupLeafIDs(n), set) { return merged }
-        if case .split(let s) = n {
+        if sameSet(groupLeafIDs(n), set) {
+            return merged
+        }
+        if case let .split(s) = n {
             return .split(SplitNode(
                 id: s.id, orientation: s.orientation,
                 children: s.children.map(replace), weights: s.weights
@@ -541,8 +582,10 @@ func mergeZonesWithPane(
 // MARK: - Attribute edits (= hermes model.ts lines 507-587)
 
 private func mapGroups(_ node: LayoutNode, _ fn: (GroupNode) -> GroupNode) -> LayoutNode {
-    if case .group(let g) = node { return .group(fn(g)) }
-    if case .split(let s) = node {
+    if case let .group(g) = node {
+        return .group(fn(g))
+    }
+    if case let .split(s) = node {
         return .split(SplitNode(
             id: s.id, orientation: s.orientation,
             children: s.children.map { mapGroups($0, fn) }, weights: s.weights
@@ -561,9 +604,8 @@ func setActivePane(_ root: LayoutNode, groupId: String, paneId: PaneID) -> Layou
     }
 }
 
-// / Reorder a block of panes within a group as one unit (browser-tab
-// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-// / order.
+/// Reorders a block of panes within a group as one unit (browser-tab
+/// order).
 func reorderPanesInGroup(
     _ root: LayoutNode,
     groupId: String,
@@ -582,8 +624,8 @@ func reorderPanesInGroup(
     }
 }
 
-// / Toggle a group's minimized state (= chevron expands / collapses
-// / the group to a header strip).
+/// Toggles a group's minimized state (= a chevron expands or collapses the
+/// group to a header strip).
 func setGroupMinimized(_ root: LayoutNode, groupId: String, minimized: Bool) -> LayoutNode {
     return mapGroups(root) { g in
         (g.id == groupId) ? GroupNode(
@@ -603,12 +645,15 @@ func setGroupTabStrip(_ root: LayoutNode, groupId: String, tabStrip: TabStripMod
     }
 }
 
-// / Mirror the layout HORIZONTALLY (the titlebar flip toggle / ⌘\):
-// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-// / flips everywhere. Its own involution: flipping twice is the identity.
+/// Mirrors the layout HORIZONTALLY (the titlebar flip toggle / the
+/// command-backslash shortcut): the pane that was on the left is on the
+/// right, and it flips everywhere. Its own involution: flipping twice is the
+/// identity.
 func mirrorTreeHorizontal(_ root: LayoutNode) -> LayoutNode {
-    if case .group = root { return root }
-    if case .split(let s) = root {
+    if case .group = root {
+        return root
+    }
+    if case let .split(s) = root {
         let children = s.children.map(mirrorTreeHorizontal)
         if s.orientation == .row {
             return .split(SplitNode(
@@ -627,7 +672,7 @@ func mirrorTreeHorizontal(_ root: LayoutNode) -> LayoutNode {
 
 /// Update split weights (= drag-resize weight update).
 func setSplitWeights(_ root: LayoutNode, splitId: String, weights: [Double]) -> LayoutNode {
-    if case .split(let s) = root {
+    if case let .split(s) = root {
         if s.id == splitId {
             return .split(SplitNode(
                 id: s.id, orientation: s.orientation,
@@ -644,16 +689,17 @@ func setSplitWeights(_ root: LayoutNode, splitId: String, weights: [Double]) -> 
 }
 
 // MARK: - Validation + persisted-tree migration (= hermes model.ts lines 589-650)
-// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-// / hermes `headerHidden` → `tabStrip` retirement).
+
+/// Migrates a persisted tree onto the current shape (= the hermes
+/// `headerHidden` → `tabStrip` retirement).
 func migratePersistedTree(_ node: LayoutNode) -> LayoutNode {
     switch node {
-    case .group(let g):
+    case let .group(g):
         return .group(GroupNode(
             id: g.id, panes: g.panes, active: g.active,
             minimized: g.minimized, tabStrip: g.tabStrip
         ))
-    case .split(let s):
+    case let .split(s):
         return .split(SplitNode(
             id: s.id, orientation: s.orientation,
             children: s.children.map(migratePersistedTree), weights: s.weights
@@ -661,9 +707,8 @@ func migratePersistedTree(_ node: LayoutNode) -> LayoutNode {
     }
 }
 
-// / Cheap structural validator for an unknown value (= used to gate
-// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-// / cost. Returns true for both legal split and legal group shapes.
+/// A cheap structural validator for an unknown value (= used to gate the
+/// decode). It returns true for both legal split and legal group shapes.
 func isLayoutNode(_ value: Any) -> Bool {
     guard let n = value as? [String: Any], let type = n["type"] as? String else {
         return false
@@ -673,10 +718,11 @@ func isLayoutNode(_ value: Any) -> Bool {
     }
     if type == "split" {
         guard let orientation = n["orientation"] as? String,
-                        (orientation == "row" || orientation == "column"),
-                        let children = n["children"] as? [Any], !children.isEmpty,
-                        let weights = n["weights"] as? [Double],
-                        weights.count == children.count else {
+              orientation == "row" || orientation == "column",
+              let children = n["children"] as? [Any], !children.isEmpty,
+              let weights = n["weights"] as? [Double],
+              weights.count == children.count
+        else {
             return false
         }
         return weights.allSatisfy { $0.isFinite && $0 > 0 }
@@ -685,24 +731,24 @@ func isLayoutNode(_ value: Any) -> Bool {
 }
 
 // MARK: - LayoutTreeState v2 (= hermes-tree-backed)
-// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-// / the tree and return a new state.
+
+/// The state of the layout tree. Every mutation returns a new state.
 struct LayoutTreeState: Codable, Equatable {
-    // / The tree root. Persisted as nested JSON (= split/group
-    // / discriminated by `type` field).
+    /// The tree root. It is persisted as nested JSON, and the `type` field
+    /// discriminates a split from a group.
     var root: LayoutNode
-    // / Pane metadata (= keyed by PaneID). The tree references these
-    // / via `GroupNode.panes`.
+    /// The pane metadata (= keyed by PaneID). The tree references these through
+    /// `GroupNode.panes`.
     var panes: [PaneNode]
-    // / All tabs (= keyed by TabID). Each `PaneNode.tabIDs` references
-    // / entries here.
+    /// All the tabs (= keyed by TabID). Each `PaneNode.tabIDs` references
+    /// entries here.
     var tabs: [TabSpec]
     /// Schema version (= current = 2).
     var version: Int
 
     // MARK: - 3-column NavigationSplitView migration (= M1 shell)
-    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-    // / Marked `Optional` (= Codable back-compat for old persisted JSON).
+
+    /// Marked `Optional` (= Codable back-compat for old persisted JSON).
     var useThreeColumnSplit: Bool? = nil
 
     /// Lookup helper for a tab by ID (= O(n) over tabs; n is small).
@@ -715,31 +761,30 @@ struct LayoutTreeState: Codable, Equatable {
         panes.first(where: { $0.id == id })
     }
 
-    // / Lookup helper for the currently active pane (= the front-most
-    // / pane in the tree).
+    /// A lookup helper for the currently active pane (= the front-most pane in
+    /// the tree).
     var activePaneID: PaneID? {
-        for case .group(let g) in walkRoot(root) {
+        for case let .group(g) in walkRoot(root) {
             return g.active
         }
         return nil
     }
 
-    // / All PaneIDs in tree order (= wrapper over the file-scope
-    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-    // / the helper's name).
+    /// All the PaneIDs in tree order (= a wrapper over the file-scope helper of
+    /// the same name).
     var allPaneIDsInTree: [PaneID] {
         allPaneIDs(root)
     }
 }
 
-// / Private helper: walks the tree breadth-first and yields each
-// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-// / front-most (= depth-first, first encountered) group.
+/// A private helper: it walks the tree breadth-first and yields each group.
+/// The front-most group (= depth-first, first encountered) is the one it
+/// returns.
 private func walkRoot(_ node: LayoutNode) -> [LayoutNode] {
     var result: [LayoutNode] = []
     func walk(_ n: LayoutNode) {
         result.append(n)
-        if case .split(let s) = n {
+        if case let .split(s) = n {
             s.children.forEach(walk)
         }
     }
@@ -747,27 +792,26 @@ private func walkRoot(_ node: LayoutNode) -> [LayoutNode] {
     return result
 }
 
-// / LayoutPreset — a named saved layout (= user can have several).
-// … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-// / layout. It is recreated on demand; user cannot delete it.
+/// LayoutPreset — a named saved layout (= the user can have several). A
+/// preset holds the layout. It is recreated on demand; the user cannot
+/// delete it.
 struct LayoutPreset: Codable, Equatable, Identifiable {
     var id: UUID
     var name: String
     var workspace: LayoutTreeState
     var isBuiltIn: Bool
 
-    // / Stable UUIDs for the 4 builtin presets. Generated once here
-    // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-    // / compile time so the failure path is unreachable).
+    /// Stable UUIDs for the 4 builtin presets. They are generated once here, at
+    /// compile time, so the failure path is unreachable.
     static let builtinDefaultID = UUID.literal("00000000-0000-0000-0000-000000000001")
     static let builtinFocusID = UUID.literal("00000000-0000-0000-0000-000000000002")
     static let builtinTerminalDeckID = UUID.literal("00000000-0000-0000-0000-000000000003")
     static let builtinQuadID = UUID.literal("00000000-0000-0000-0000-000000000004")
 
     static func builtinDefault(_ workspace: LayoutTreeState) -> LayoutPreset {
-        // Translated the legacy localized string "Default" → "Default"
-        // … (= 1 rationale lines collapsed; = A115 aggressive docblock collapse)
-        // version comes from the i18n layer when shown to the user).
+        // Translated the legacy localized string "Default" → "Default" (= the
+        // builtin preset name is in English; the localized version comes from the
+        // i18n layer when shown to the user).
         LayoutPreset(id: builtinDefaultID, name: "Default", workspace: workspace, isBuiltIn: true)
     }
 }

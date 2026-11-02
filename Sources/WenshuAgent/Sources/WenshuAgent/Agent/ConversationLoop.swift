@@ -1,12 +1,16 @@
-// ConversationLoop.swift
-// … (= 49 rationale lines collapsed; = A112 docblock collapse per §1.8)
-// unit tests + callers that don't care about progress emission).
+// The conversation loop actor (= the Swift port of hermes'
+// `conversation_loop.run_conversation`). This is the agent's main loop engine.
+// Each user turn: 1. builds the message list (= the history plus the new user
+// message). 2. invokes `LLMConnector.send(messages:options:)` (= one round-trip
+// to the active connector profile). 3. appends the assistant response to the
+// message list. 4. returns the result (= the response plus the full message
+// history and the task id for tracing).
 import Foundation
 import os.log
 
-// / Result of a single ConversationLoop.runConversation call.
-// … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
-// / full message history + taskId for tracing + telemetry).
+/// The result of a single `ConversationLoop.runConversation` call: the
+/// model's reply, the full message history, and the taskId used for tracing
+/// and telemetry.
 public struct ConversationResult: Sendable {
     public let response: LLMResponse
     public var messages: [LLMMessage]
@@ -19,22 +23,18 @@ public struct ConversationResult: Sendable {
     }
 }
 
-// / Agent main loop engine. One ConversationLoop per session (= per
-// … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
-// / profile per Settings → LLM Connector pane) and returns the result.
+/// The agent's main loop engine. One ConversationLoop per session (= per
+/// profile per Settings → LLM Connector pane) and returns the result.
 public actor ConversationLoop {
-
     private let connector: any LLMConnector
     private let systemPrompt: String?
 
-    // / Runtime state (= mock-time / verbose / debug / credential chain).
-    // … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / keeps the ConversationLoop actor's isolation contract intact.
+    /// The runtime state (= mock-time / verbose / debug / credential chain). It
+    /// keeps the ConversationLoop actor's isolation contract intact.
     private let runtime: RuntimeHelpers
 
-    // / Build a ConversationLoop bound to an active LLMConnector.
-    // … (= 21 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // /     by-step feedback in the OpenBox panel during a turn.
+    /// Builds a ConversationLoop bound to an active LLMConnector. It reports
+    /// by-step feedback in the OpenBox panel during a turn.
     public init(
         connection: any LLMConnector,
         systemPrompt: String? = nil,
@@ -45,10 +45,12 @@ public actor ConversationLoop {
         progressTracker: AgentProgressTracker = .noop,
         memoryProvider: (any MemoryProvider)? = nil
     ) {
-        // Back-compat: the parameter is named `connector` everywhere in
-        // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
-        // stored property below.
-        self.connector = connection
+        // Back-compat: the parameter is named `connector` everywhere in the
+        // existing surface; the new parameter is named `connection` (= wenshu
+        // port marker). For now we accept `connection` via this init; the legacy
+        // `connector:` init remains for callers that don't need the new surface.
+        // Both inits land on the same stored property below.
+        connector = connection
         self.systemPrompt = systemPrompt
         self.runtime = runtime ?? RuntimeHelpers()
         self.shellHookChain = shellHookChain
@@ -58,9 +60,9 @@ public actor ConversationLoop {
         self.memoryProvider = memoryProvider
     }
 
-    // / Legacy initializer (= preserved for backward compat with callers
-    // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / wenshu port init with default hook chain + compression actor.
+    /// The legacy initializer (= preserved for backward compatibility with the
+    /// callers that predate the hermes port) with the default hook chain and
+    /// compression actor.
     public init(
         connector: any LLMConnector,
         systemPrompt: String? = nil,
@@ -76,47 +78,44 @@ public actor ConversationLoop {
         )
     }
 
-    // / Shell hook chain (= wenshu port). Default = empty.
-    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / = no behavior change for callers not registering hooks.
+    /// The shell hook chain (= the hermes port). Default = empty, so there is no
+    /// behaviour change for the callers that do not register hooks.
     private let shellHookChain: ShellHookChain
 
-    // / Conversation compression actor (= wenshu port). Default =
-    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / conversation_history_after_compression).
+    /// The conversation compression actor (= the hermes port). Default = the
+    /// compression actor that drops the conversation history after the
+    /// compression.
     private let conversationCompression: ConversationCompression
     /// Reduces the transcript before the provider call. Injected so the
     /// budget is a construction-time decision rather than a constant read
     /// here (= see OOB.md #2026-10-20 on agent settings).
     private let historyCompressor: HistoryCompressor
 
-    // / Agent progress tracker (= WIRE-AGENT-006). Default = `.noop`
-    // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / OpenBox panel during a conversation turn.
+    /// The agent progress tracker. Default = `.noop`, so the OpenBox panel shows
+    /// nothing during a conversation turn.
     private let progressTracker: AgentProgressTracker
 
-    // / The memory provider the turn writes into.
-    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // (= the resolver decides; = nil = resolve the user's backend).
+    /// The memory provider the turn writes into. The resolver decides which one
+    /// is used, and nil = the user's own backend is resolved at the call site.
     private let memoryProvider: (any MemoryProvider)?
 
-    // / Resolve the current time via the runtime (= hermes-port Z-contract
-    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / can call the loop's clock instead of touching `Date()` directly.
+    /// Resolves the current time via the runtime (= the hermes-port Z-contract),
+    /// so a caller can call the loop's clock instead of touching `Date()`
+    /// directly.
     public func now() async -> Date {
         await runtime.now()
     }
-    // / Run a complete conversation turn (= hermes run_conversation L523-L546).
-    // … (= 27 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / - Throws: LLMConnectorError on transport / auth / provider failure.
+
+    /// Runs a complete conversation turn (= the hermes `run_conversation`).
+    /// It throws `LLMConnectorError` on a transport, auth or provider failure.
     public func runConversation(
         userMessage: String,
         systemMessage: String? = nil,
         conversationHistory: [LLMMessage]? = nil,
         taskId: String? = nil,
         streamCallback: (@Sendable (LLMBlock) async -> Void)? = nil,
-        persistUserMessage: String? = nil,
-        persistUserTimestamp: TimeInterval? = nil,
+        persistUserMessage _: String? = nil,
+        persistUserTimestamp _: TimeInterval? = nil,
         moaConfig: MOAConfig? = nil,
         toolSchemas: [ToolRegistrySchema] = [],
         // The user's settings for this turn. The prompt assembly reads
@@ -131,9 +130,9 @@ public actor ConversationLoop {
     ) async throws -> ConversationResult {
         let resolvedTaskId = taskId ?? UUID().uuidString
 
-        // Per-turn setup (= wenshu port): sanitize the user
-        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
-        // emit the pre-turn shell hook.
+        // Per-turn setup (= wenshu port): sanitize the user message (= hermes
+        // message_sanitization._sanitize_surrogates + _strip_non_ascii), reset
+        // the retry counter for this turn, and emit the pre-turn shell hook.
         let sanitizedUser = MessageSanitization.sanitizeText(userMessage)
         var retryState = TurnRetryState(maxAttempts: 1)
         retryState.reset() // single-shot = no retry; runTurn() manages retries
@@ -147,28 +146,34 @@ public actor ConversationLoop {
             attemptNumber: retryState.attemptNumber
         )
         try await shellHookChain.firePreTurn(sanitizedUser)
-        _ = turnCtx  // captured for downstream debug accessors
+        _ = turnCtx // captured for downstream debug accessors
 
         // Build message list = prior history + new user message
         var messages = conversationHistory ?? []
         messages.append(LLMMessage.user(sanitizedUser))
 
-        // Resolve system prompt (= systemMessage override > persistent systemPrompt)
-        // … (= 8 rationale lines collapsed; = A112 docblock collapse per §1.8)
-        // anywhere in the source tree.
+        // Resolve system prompt (= systemMessage override > persistent
+        // systemPrompt) Per hermes-port wire-up: compose stable + dynamic tiers
+        // via PromptBuilder instead of the v0.35 placeholder string that wrapped
+        // the ephemeral hint with a Context: prefix. The dynamic tier composes
+        // from ContextEngine + MemoryAdapter + SkillAdapter + caller extras; for
+        // the minimum surface, those are empty (= ContextEngine + SkillAdapter
+        // land in follow-on tickets), so the dynamic tier reduces to the
+        // ephemeral hint as a final block. The placeholder Swift template no
+        // longer appears anywhere in the source tree.
         let effectiveSystemPrompt = await composeSystemPrompt(
             override: systemMessage,
             persistent: systemPrompt,
             settings: settings
         )
 
-        // Build call options (= model defaults to first defaultModel of
-        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
-        // the PromptCaching cache layer).
+        // Build call options (= model defaults to first defaultModel of the
+        // active connector profile; per-call override lands in the PromptCaching
+        // cache layer).
         let defaultModel = defaultModelForConnector()
-        // read user-selected reasoning effort from
-        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
-        // "xhigh"/"max"). nil = connector uses provider default.
+        // Read user-selected reasoning effort from UserDefaults (= set by
+        // SettingView picker; = "low"/"medium"/"high"/ "xhigh"/"max"). nil =
+        // connector uses provider default.
         let reasoningEffort = UserDefaults.standard.string(forKey: "wenshu.llm.reasoningEffort")
         let options = LLMCallOptions(
             model: defaultModel,
@@ -203,9 +208,9 @@ public actor ConversationLoop {
         let assistantMessage = LLMMessage(role: .assistant, blocks: response.blocks)
         messages.append(assistantMessage)
 
-        // Post-turn hooks (= wenshu port):
-        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
-        // 2. ShellHookChain.firePostTurn (= observation + optional mutation)
+        // Post-turn hooks (= wenshu port): 1. TurnFinalizer.finalize (= drop
+        // empty blocks, normalize) 2. ShellHookChain.firePostTurn (= observation
+        // + optional mutation)
         let finalResponse = TurnFinalizer.finalize(response: response)
         try await shellHookChain.firePostTurn(finalResponse)
 
@@ -223,8 +228,8 @@ public actor ConversationLoop {
     }
 
     // MARK: - wenshu port wire-up: runTurn (full turn orchestrator)
-    // … (= 33 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // /   history + taskId.
+
+    /// The history and the taskId of the turn.
     public func runTurn(
         userMessage: String,
         systemMessage: String? = nil,
@@ -235,9 +240,8 @@ public actor ConversationLoop {
         settings: AgentSettings = .init(),
         requiredDeliverables: [String] = [],
         streamCallback: (@Sendable (LLMBlock) async -> Void)? = nil,
-        // / Tool schemas advertised to the model. Empty (= default)
-        // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
-        // / conductor before invoking runTurn).
+        // The tool schemas advertised to the model. Empty (= the default) means
+        // the conductor advertises no tool before invoking `runTurn`.
         toolSchemas: [ToolRegistrySchema] = [],
         // The turn's output budget (= a task that writes several
         // documents needs more than a conversation; = the provider
@@ -250,9 +254,10 @@ public actor ConversationLoop {
         let resolvedTaskId = taskId ?? UUID().uuidString
         var retry = TurnRetryState(maxAttempts: maxAttempts)
 
-        // : start the agent progress
-        // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
-        // `current(sessionId:)` every render cycle.
+        // Start the agent progress entry for this turn. The sessionId defaults to
+        // the taskId (= caller may use a richer id later; the OpenBox panel
+        // matches by taskId today). The OpenBox panel polls `current(sessionId:)`
+        // every render cycle.
         let sessionId = resolvedTaskId
         var progressEntry = await progressTracker.start(
             sessionId: sessionId,
@@ -262,9 +267,11 @@ public actor ConversationLoop {
         while retry.canRetry {
             retry.recordAttempt()
             do {
-                // step 2: "Compressing context if needed".
-                // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
-                // the LLM call can hook real work here.
+                // "Compressing context if needed". The current code path triggers
+                // compression only after the LLM response (= hermes parity), so
+                // this step is a no-op for now (= the tracker entry simply
+                // advances past it). Future tickets that preflight-compress
+                // before the LLM call can hook real work here.
                 await progressTracker.advance(
                     id: progressEntry.id,
                     label: "Compressing context if needed"
@@ -284,9 +291,13 @@ public actor ConversationLoop {
                     ) ?? ""
                 ) ?? conversationHistory
 
-                // step 3 + 4: "Building prompt" + "Calling LLM".
-                // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
-                // realistic countdown that the next step will clear.
+                // "Building prompt" + "Calling LLM". Prompt construction and the
+                // actual LLM round-trip both happen inside runConversation; we
+                // surface this combined phase with a generous ETA (= the LLM
+                // round-trip dominates wall-clock time). The ETA estimate is
+                // intentionally conservative (= 8s for the calling phase) so the
+                // OpenBox panel shows a realistic countdown that the next step
+                // will clear.
                 await progressTracker.setStep(
                     id: progressEntry.id,
                     stepNumber: 3,
@@ -300,9 +311,11 @@ public actor ConversationLoop {
                     etaSeconds: 8
                 )
 
-                // Run the basic conversation (= 1 LLM call + 1 turn).
-                // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
-                // parallelism).
+                // Run the basic conversation (= 1 LLM call + 1 turn). If the
+                // assistant message contains tool_use blocks, the tool executor
+                // dispatches them sequentially (= the current ToolExecutor
+                // default; concurrent path is available via executeConcurrent for
+                // callers wanting parallelism).
                 var result = try await runConversation(
                     userMessage: userMessage,
                     systemMessage: systemMessage,
@@ -320,9 +333,9 @@ public actor ConversationLoop {
                     thinkingBudget: thinkingBudget
                 )
 
-                // step 5: "Parsing response". The LLM
-                // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
-                // than signal that the parse phase finished.
+                // "Parsing response". The LLM response is already in
+                // result.response (= parsed blocks); the loop has nothing extra
+                // to do here other than signal that the parse phase finished.
                 await progressTracker.setStep(
                     id: progressEntry.id,
                     stepNumber: 5,
@@ -341,7 +354,9 @@ public actor ConversationLoop {
                     text: Self.flattenText(result.response.blocks),
                     finishReason: result.response.stopReason.rawValue,
                     hasToolCalls: result.messages.last?.blocks.contains { block in
-                        if case .toolUse = block { return true }
+                        if case .toolUse = block {
+                            return true
+                        }
                         return false
                     } ?? false
                 )
@@ -354,7 +369,7 @@ public actor ConversationLoop {
                 switch ladder.evaluate(replyFacts) {
                 case .accept:
                     break
-                case .continueText(let prompt):
+                case let .continueText(prompt):
                     // Keep the prose already produced and ask for the rest. A
                     // retry here would throw away text the user asked for.
                     result.messages.append(
@@ -402,7 +417,7 @@ public actor ConversationLoop {
                         )
                     }
                     continue
-                case .abort(_, let message):
+                case let .abort(_, message):
                     await progressTracker.complete(id: progressEntry.id, status: .failed)
                     return ConversationResult(
                         response: LLMResponse(blocks: [.text(message)]),
@@ -411,28 +426,35 @@ public actor ConversationLoop {
                     )
                 }
 
-                // Tool dispatch loop (= hermes _execute_tool_calls_sequential).
-                // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
-                // at maxAgentTurns to prevent runaway loops).
-                //
-                // The round limit is a setting, not a constant (= hermes
-                // agent.max_turns). The safety policy's own caps bound the
-                // specific behaviours; this bounds the worst case, and the
-                // two are not substitutes for each other.
+                // The tool dispatch loop (= hermes'
+                // `_execute_tool_calls_sequential`). The round limit is a
+                // setting, not a constant (= hermes' `agent.max_turns`). The
+                // safety policy's own caps bound the specific behaviours; this
+                // bounds the worst case, and the two are not substitutes for each
+                // other.
                 let maxAgentTurns = max(1, settings.turn.maxIterations)
-                var turnCount = 1  // first LLM call = turn 1
+                var turnCount = 1 // first LLM call = turn 1
                 // The turn's ledger of the calls made so far (= the loop
                 // guardrails). It lives HERE, not in the executor: the
                 // executor is built fresh inside every round, so a counter
                 // there would die with the round.
                 let safetyLedger = ToolSafetyLedger(policy: ToolSafetyPolicy.values)
                 while let assistant = result.messages.last,
-                      assistant.blocks.contains(where: { if case .toolUse = $0 { return true } else { return false } }),
-                      turnCount < maxAgentTurns {
+                      assistant.blocks.contains(where: {
+                          if case .toolUse = $0 {
+                              return true
+                          } else {
+                              return false
+                          }
+                      }),
+                      turnCount < maxAgentTurns
+                {
                     turnCount += 1
-                    // dead `[wenshu.agent] turn N/M`
-                    // … (= 5 rationale lines collapsed; = A112 docblock collapse per §1.8)
-                    // step 6: "Executing tools".
+                    // Dead `[wenshu.agent] turn N/M` marker emission removed (=
+                    // ChatTurnProgress.swift deleted in v1.83; = no view consumes
+                    // the marker). The loop counter is still kept internally (=
+                    // it bounds the while condition); = only the user-visible
+                    // marker is dropped. "Executing tools".
                     await progressTracker.setStep(
                         id: progressEntry.id,
                         stepNumber: 6,
@@ -440,9 +462,10 @@ public actor ConversationLoop {
                         etaSeconds: nil
                     )
                     let executor = ToolExecutor(safetyLedger: safetyLedger)
-                    // T2-TOOL-UI (2026-09-18): forward streamCallback so
-                    // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
-                    // finishes).
+                    // T2-TOOL-UI: forward streamCallback so ToolExecutor
+                    // emits.toolUse +.toolResult blocks to ChatView (= the
+                    // ChatToolUsePartView / ChatToolResultPartView cards appear
+                    // live, not only when the whole turn finishes).
                     try await executor.executeSequential(
                         assistantMessage: assistant,
                         messages: &result.messages,
@@ -486,9 +509,9 @@ public actor ConversationLoop {
                     )
                 }
 
-                // step 7: "Finalizing reply". Post-turn
-                // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
-                // of finalization; surface it under the same step.
+                // "Finalizing reply". Post-turn compression (= hermes
+                // conversation_history_after_compression) runs as part of
+                // finalization; surface it under the same step.
                 await progressTracker.setStep(
                     id: progressEntry.id,
                     stepNumber: 7,
@@ -504,22 +527,18 @@ public actor ConversationLoop {
                     ) ?? ""
                 )
 
-                // step 8: "Persisting memory". Write the turn's
-                // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
-                // off-by-default users see no behavior change.
-                //
-                // The turn's own settings decide whether this happens. The
-                // memory adapter's write carries its own guard, but that guard
-                // reads a global user-defaults key, so the turn's settings
-                // could not turn the write off (= a caller that asks for no
-                // memory would still leave a trace). The check belongs here,
+                // "Persisting memory". Write the turn's off-by-default users see
+                // no behavior change. The turn's own settings decide whether this
+                // happens. The memory adapter's write carries its own guard, but
+                // that guard reads a global user-defaults key, so the turn's
+                // settings could not turn the write off (= a caller that asks for
+                // no memory would still leave a trace). The check belongs here,
                 // where the write is: the settings are already in scope (= this
                 // step reads them for the backend), so the switch reaches the
-                // write without a new parameter or a new type.
-                //
-                // With the switch at its default the write happens exactly as
-                // it does today, and a caller that passes no settings keeps
-                // reading the global key through the adapter.
+                // write without a new parameter or a new type. With the switch at
+                // its default the write happens exactly as it does today, and a
+                // caller that passes no settings keeps reading the global key
+                // through the adapter.
                 if settings.memory.enabled {
                     await progressTracker.setStep(
                         id: progressEntry.id,
@@ -537,29 +556,51 @@ public actor ConversationLoop {
                         provider: provider
                     ).write(
                         snippet: userMessage,
-                        source: result.response.blocks.first(where: { if case .text = $0 { return true } else { return false } })
-                            .map { block -> String in
-                                if case .text(let s) = block { return s }
-                                return ""
-                            } ?? "",
+                        source: result.response.blocks.first(where: {
+                            if case .text = $0 {
+                                return true
+                            } else {
+                                return false
+                            }
+                        })
+                        .map { block -> String in
+                            if case let .text(s) = block {
+                                return s
+                            }
+                            return ""
+                        } ?? "",
                         bookId: nil
                     )
                 }
 
-                // step 9: "Submitting background-review proposals".
-                // … (= 9 rationale lines collapsed; = A112 docblock collapse per §1.8)
-                // surface remains BackgroundReviewOps.approve / reject).
+                // "Submitting background-review proposals". The agent-side
+                // auto-call hook per the auto+manual merge stance: the agent
+                // scans the response for background-worthy events (= file writes,
+                // entity changes, schedule edits) and submits a proposal per
+                // event via `BackgroundReviewOps`. For the MVP the hook is the
+                // simplest possible: always submit one proposal per turn whose
+                // kind =.turnSummary (= the operator reviews the turn in the
+                // inspector's BackgroundReview tab; = the manual surface remains
+                // BackgroundReviewOps.approve / reject).
                 await progressTracker.setStep(
                     id: progressEntry.id,
                     stepNumber: 9,
                     label: "Submitting background-review proposal",
                     etaSeconds: nil
                 )
-                let turnSummary = result.response.blocks.first(where: { if case .text = $0 { return true } else { return false } })
-                    .map { block -> String in
-                        if case .text(let s) = block { return s }
-                        return ""
-                    } ?? ""
+                let turnSummary = result.response.blocks.first(where: {
+                    if case .text = $0 {
+                        return true
+                    } else {
+                        return false
+                    }
+                })
+                .map { block -> String in
+                    if case let .text(s) = block {
+                        return s
+                    }
+                    return ""
+                } ?? ""
                 let autoProposal = BackgroundProposal(
                     kind: .turnSummary,
                     title: "Turn summary: \(turnSummary.prefix(80))",
@@ -577,18 +618,21 @@ public actor ConversationLoop {
                     taskId: resolvedTaskId
                 )
             } catch let error as LLMConnectorError {
-                // mark the entry as failed on retryable
-                // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
-                // attempt.
+                // Mark the entry as failed on retryable error too (= the user
+                // sees the failed step in the OpenBox panel even if the loop will
+                // retry). The next retry iteration's `advance(..)` will reset the
+                // step to step 4 "Calling LLM" so the user sees a fresh attempt.
                 await progressTracker.complete(id: progressEntry.id, status: .failed)
                 // Classifier-aware retry: transient errors get retried,
                 // non-transient fail immediately.
                 if !retry.canRetry || !LLMConnectorErrorClassifier.isTransient(error) {
                     throw error
                 }
-                // Open a fresh running entry for the retry iteration
-                // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
-                // != .running) and return the new entry instead.
+                // Open a fresh running entry for the retry iteration so the
+                // OpenBox panel shows progress again. The previous entry is
+                // already marked failed above; the `current(sessionId:)` lookup
+                // will skip it (= status !=.running) and return the new entry
+                // instead.
                 progressEntry = await progressTracker.start(
                     sessionId: sessionId,
                     label: "Reading user message"
@@ -606,10 +650,8 @@ public actor ConversationLoop {
         )
     }
 
-    // / T14-CONVLOOP-STREAMING (2026-09-18): replace direct `connector.send(...)`
-    // … (= 21 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / (= runConversation + TurnFinalizer) still gets a valid shape.
-    /// Holds the streaming task so the cap can await and cancel it.
+    /// The streaming path: it replaces the direct `connector.send(...)` call, so
+    /// the caller (= runConversation + TurnFinalizer) still gets a valid shape.
     final class StreamTaskBox: @unchecked Sendable {
         private let lock = NSLock()
         private var _task: Task<[LLMBlock], Error>?
@@ -672,28 +714,17 @@ public actor ConversationLoop {
         streamBox.task = Task<[LLMBlock], Error> {
             var collected: [LLMBlock] = []
             for await block in stream {
-                // P5-SSE-CANCEL (2026-10-19 follow-up to
-                // 5568f909d + e77f82e22: the previous
-                // commit's `cc944079e` "60s cap" only
-                // CANCELED the child task; the underlying
-                // `for await block in stream` (= an
-                // `AsyncStream<LLMBlock>` produced by the
-                // third-party mattt/EventSource parser) is
-                // NOT cancellation-cooperative; = the
-                // cancel propagated to the task but the
-                // for-await stayed blocked on the EventSource
-                // parser; = the cap never returned to the
-                // caller's `await streamTask.value`. The
-                // explicit `Task.checkCancellation()` here
-                // (= checked once per inbound block) gives
-                // the runtime a per-iteration chance to
-                // observe the cancel and unwind the
-                // for-await. The 60s cap path (the
-                // sibling `timeoutTask`) cancels the child
-                // (= this check fires on the next block
-                // arrival; = if no block ever arrives the
-                // cap's `Task.sleep(60s)` still fires via
-                // the throwing task body in `timeoutTask`).
+                // The underlying `for await block in stream` (= an
+                // `AsyncStream<LLMBlock>` produced by the third-party
+                // event-stream parser) is NOT cancellation-cooperative:
+                // cancelling the task propagates the cancel to the task but the
+                // for-await stays blocked in the parser, so the cap never returns
+                // to the caller's await. The explicit `Task.checkCancellation()`
+                // here (= checked once per inbound block) gives the runtime a
+                // per-iteration chance to observe the cancel and unwind the
+                // for-await. The cap's own path cancels the child (= this check
+                // fires on the next block arrival; if no block ever arrives the
+                // cap's sleep still fires via the throwing task body).
                 try Task.checkCancellation()
                 if collected.isEmpty {
                     // The connection answered. The cap no longer applies:
@@ -738,10 +769,8 @@ public actor ConversationLoop {
                 _ = try? await streamBox.task?.value
                 return
             }
-            // P5-CAP-FORCE-UNWIND (2026-10-19
-            // mac-mini reproducer boss "我又发了一句
-            // 测试" = the previous cap's
-            // `streamTask.cancel()` did NOT unwinding
+            // The previous cap's
+            // `streamTask.cancel()` did NOT unwind
             // the `for await block in stream` (= the
             // mattt/EventSource AsyncStream is not
             // cancellation-cooperative; = the for-await
@@ -797,61 +826,33 @@ public actor ConversationLoop {
             }
             timeoutTask.cancel()
         } catch {
-            // P5-CAP-DIAG (2026-10-19 mac-mini
-            // reproducer boss "至今还没有回复"): the
-            // 60s cap (= the sibling timeoutTask)
-            // throws an `LLMConnectorError.transport`
-            // (= a transient error per the existing
-            // LLMConnectorErrorClassifier.isTransient
-            // contract; = the ConversationLoop.runTurn
-            // catch block at L394 will treat the
-            // timeout as retryable; = the user sees a
-            // silent "AI 思考中 60s" then a "文枢暂时
-            // 无法回复" fallback with no actionable
-            // signal). The classifier here (= the
-            // NSError with NSLocalizedDescriptionKey
-            // "流式响应超时（60 秒内无任何 block 到
-            // 达）") is the canonical
-            // UserFacingError.from source; = the
-            // caller WenshuConductor.runConversation
-            // LoopPath catch at L339 logs the
-            // description (= visible in Console.app
-            // under `[wenshu.conductor] PATH=legacy
-            // REASON=ConversationLoop.runTurn threw`)
-            // and the user can now tell the difference
-            // between a 401 / 429 / 5xx / SSE hang
-            // from the cap's description string.
-            //
-            // Boss 2026-10-19 follow-up: the user
-            // asked "你应该修让他回复我, 怎么只修一个
-            // 提示, 让他告诉我无法回复就完了" (= the
-            // cap + structured error alone is the
-            // "tell the user we can't reply" half; the
-            // "actually reply" half needs a fallback
-            // to the non-streaming send() path so the
-            // user sees a real LLM response when the
-            // SSE parser hangs on the upstream).
-            // The fallback here routes the same
-            // (messages, options) through
-            // `connector.send(...)` (= the
-            // non-streaming request/response path;
-            // = bypasses the EventSource SSE parser
-            // entirely; = the only path that returns
-            // a complete LLMResponse even when the
-            // SSE wireup hangs). The catch below
-            // emits a structured timeout log line so
-            // the user can still tell from
-            // Console.app which path fired (= a
-            // streaming hang that fell back to
-            // non-streaming, vs a clean streaming
-            // success).
+            // The cap (= the sibling timeout task) throws a transport error (= a
+            // transient error per the existing transient-error contract, so the
+            // turn's catch block treats the timeout as retryable; the user sees a
+            // long think and then a "cannot reply yet" fallback with no
+            // actionable signal). The classifier here (= the error with the
+            // streaming-timeout description) is the canonical user-facing error
+            // source, so the caller logs a description the user can act on (=
+            // visible in Console.app under the conductor's legacy path), and the
+            // user can tell a missing key from a rate limit from a server error
+            // from an SSE hang by the description string. The cap and the
+            // structured error alone are only the "tell the user we can't reply"
+            // half: the "actually reply" half needs a fallback to the
+            // non-streaming send path, so the user sees a real LLM response when
+            // the SSE parser hangs on the upstream. The fallback routes the same
+            // messages and options through `connector.send(...)` (= the
+            // non-streaming request/response path, which bypasses the
+            // event-stream parser entirely and is the only path that returns a
+            // complete response even when the SSE wireup hangs). The catch below
+            // emits a structured timeout log line so the user can still tell from
+            // Console.app which path fired (= a streaming hang that fell back to
+            // non-streaming, vs a clean streaming success).
             os_log("[wenshu.conversationLoop] PATH=stream-cap-fallback REASON=60s_no_blocks falling back to non-streaming send provider=%{public}@", log: .default, type: .error, connector.connectorID)
             do {
-                let fallback = try await connector.send(
+                return try await connector.send(
                     messages: messages,
                     options: options
                 )
-                return fallback
             } catch {
                 // The non-streaming fallback also
                 // failed (= genuine provider error, not
@@ -859,8 +860,8 @@ public actor ConversationLoop {
                 // the structured timeout so the chat
                 // surface shows the user-facing message
                 // (= the `UserFacingError.from`
-                // classifier in 8cdcb8d69 maps this to
-                // "流式响应超时" = the user can re-send
+                // classifier maps this to the
+                // streaming-timeout message, so the user can re-send
                 // or fall back to a different provider).
                 os_log("[wenshu.conversationLoop] PATH=stream-cap-fallback-failed REASON=non_streaming_also_failed error=%{public}@", log: .default, type: .error, String(describing: error))
                 throw LLMConnectorError.transport(
@@ -870,9 +871,12 @@ public actor ConversationLoop {
                 )
             }
         }
-        // Stable id + model shape (= mirrors what send() produces).
-        // … (= 4 rationale lines collapsed; = A112 docblock collapse per §1.8)
-        // consistent model name regardless of send() vs stream().
+        // Stable id + model shape (= mirrors what send produces). The connector's
+        // send implementation supplies its own id + model; = here we use the
+        // deterministic connector-derived fallback (= "mock-model" for
+        // MockLLMConnector, "<slug>-model" for real connectors) so downstream
+        // code (TurnFinalizer, tests) sees a consistent model name regardless of
+        // send vs stream.
         let model = defaultModelForConnector()
         // The counters the provider sent inside the stream events (= the
         // input count, the output count, and the cache counts). The
@@ -883,33 +887,48 @@ public actor ConversationLoop {
             id: "\(connector.connectorID)-stream-\(UUID().uuidString)",
             model: model,
             blocks: accumulated,
-            stopReason: accumulated.contains(where: { if case .toolUse = $0 { return true } else { return false } })
+            stopReason: accumulated.contains(where: {
+                if case .toolUse = $0 {
+                    return true
+                } else {
+                    return false
+                }
+            })
                 ? .toolUse : .endTurn,
             usage: usage
         )
     }
 
-    // / Resolve the default model for the active connector (= first model
-    // … (= 6 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / model via the Settings pane).
+    /// Resolves the default model for the active connector (= the first model the
+    /// connector offers, or the model the user chose via the Settings pane).
     private nonisolated func defaultModelForConnector() -> String {
-        // Provider enum lookup by connectorID (= thin integration in sub-step 3)
+        // The provider enum lookup by connector id (= a thin integration on the
+        // provider's own slug).
         if let provider = Provider.all.first(where: { $0.slug == connector.connectorID }) {
             return provider.defaultModels.first ?? "unknown-model"
         }
-        // fix: when no Provider matches (= the
-        // … (= 11 rationale lines collapsed; = A112 docblock collapse per §1.8)
-        // prefix makes the source of the model obvious).
+        // Fix: when no Provider matches (= the common test path with
+        // MockLLMConnector whose connectorID is "mock"), derive a stable fallback
+        // from the connectorID itself so test assertions like
+        // `result.response.model == "mock"` (= the Z contract per
+        // `PromptCachingAndTurnContextTests.runConversationEcho`) match without
+        // adding a synthetic Provider entry. The derived name is deterministic (=
+        // connectorID-based) so test snapshots stay stable. For test-only
+        // connectors (= connectorID == "mock") we return the bare ID (= "mock")
+        // so the test sees the canonical model name; for production connectors
+        // without a registered Provider we return "connectorID-model" to keep the
+        // diagnostic shape visible in logs (= the connector ID prefix makes the
+        // source of the model obvious).
         let connectorID = connector.connectorID
-        // Mock connector + production connectors share the
-        // … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
-        // supplied via the Provider.defaultModels list above.
+        // Mock connector + production connectors share the connectorID-derived
+        // fallback (= "connectorID-model") so test snapshots and production logs
+        // see the same shape. Real model identifiers for production connectors
+        // are supplied via the Provider.defaultModels list above.
         return "\(connectorID)-model"
     }
 
-    // / Compose the effective system prompt via PromptBuilder
-    // … (= 21 rationale lines collapsed; = A112 docblock collapse per §1.8)
-    // / this method to read live data from those adapters.
+    /// Composes the effective system prompt via the PromptBuilder. The
+    /// adapters read live data, and this method reads it from those adapters.
     private func composeSystemPrompt(
         override: String?,
         persistent: String?,
@@ -930,16 +949,14 @@ public actor ConversationLoop {
             provider: SystemPrompt.ProviderGuidance(providerSlug: connector.connectorID)
         )
 
-        // Dynamic tier: composed via PromptBuilder (= the GAP-001 path).
-        // … (= 2 rationale lines collapsed; = A112 docblock collapse per §1.8)
-        // so the LLM sees relevant context on the first token.
-        // The memory prefetch reads the user's stored memories (= the
-        // turn's memory store, = on the main actor). A turn that turned
-        // the memory off must not read it: = the turn asked for a clean
-        // context, = and the read is a main-actor hop that can block the
-        // turn behind whatever the main actor is doing.
+        // Dynamic tier: composed via PromptBuilder. so the LLM sees relevant
+        // context on the first token. The memory prefetch reads the user's stored
+        // memories (= the turn's memory store, = on the main actor). A turn that
+        // turned the memory off must not read it: = the turn asked for a clean
+        // context, = and the read is a main-actor hop that can block the turn
+        // behind whatever the main actor is doing.
         let prefetched: [MemoryAdapter.MemoryEntry]
-        if settings.memory.enabled && settings.prompt.memoryGuidanceEnabled {
+        if settings.memory.enabled, settings.prompt.memoryGuidanceEnabled {
             // The loop's own provider comes first (= the same order the
             // write path uses), = so a caller that injected a provider
             // gets that one, = and the read and the write agree.
@@ -970,16 +987,16 @@ public actor ConversationLoop {
             ephemeralHint: ephemeralHint
         )
 
-        // No hint + no dynamic = no system prompt at all (= caller chose
-        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
-        // handles the default).
+        // No hint + no dynamic = no system prompt at all (= caller chose to send
+        // the conversation without a system prompt; connector handles the
+        // default).
         if ephemeralHint.isEmpty {
             return stable.isEmpty ? nil : stable
         }
 
-        // Join stable + dynamic with the canonical separator (= same
-        // … (= 1 rationale lines collapsed; = A112 docblock collapse per §1.8)
-        // buildOpenAISystem / buildGeminiSystemInstruction output).
+        // Join stable + dynamic with the canonical separator (= same separator
+        // SystemPrompt.build uses; matches PromptBuilder's buildOpenAISystem /
+        // buildGeminiSystemInstruction output).
         return stable + "\n\n---\n\n" + dynamic
     }
 
@@ -1011,11 +1028,11 @@ public actor ConversationLoop {
             await self?.summariseHistory(middle, systemMessage: systemMessage)
         }
         switch outcome {
-        case .unnecessary(let untouched):
+        case let .unnecessary(untouched):
             return untouched.count < history.count ? untouched : nil
-        case .pruned(let reduced, _):
+        case let .pruned(reduced, _):
             return reduced.count < history.count ? reduced : nil
-        case .summarised(let reduced, _, _):
+        case let .summarised(reduced, _, _):
             return reduced
         }
     }
@@ -1052,11 +1069,11 @@ public actor ConversationLoop {
         do {
             let response = try await connector.send(
                 messages: [
-                    LLMMessage(role: .user, blocks: [.text(instruction)])
+                    LLMMessage(role: .user, blocks: [.text(instruction)]),
                 ],
                 options: LLMCallOptions(
                     model: defaultModelForConnector(),
-                    maxTokens: 1_024,
+                    maxTokens: 1024,
                     systemPrompt: systemMessage,
                     temperature: 0.2,
                     reasoningEffort: nil,
@@ -1074,7 +1091,9 @@ public actor ConversationLoop {
     /// tail-punctuation checks both read prose, not block structure).
     static func flattenText(_ blocks: [LLMBlock]) -> String {
         blocks.compactMap { block in
-            if case .text(let text) = block { return text }
+            if case let .text(text) = block {
+                return text
+            }
             return nil
         }.joined(separator: "\n")
     }
@@ -1094,9 +1113,8 @@ public actor ConversationLoop {
     }
 }
 
-// / Mixture-of-Agents config (= hermes `moa_config` param).
-// … (= 3 rationale lines collapsed; = A112 docblock collapse per §1.8)
-// / 9-param signature is hermes-compatible from day 1.
+/// The mixture-of-Agents config (= the hermes `moa_config` parameter). The
+/// 9-parameter signature is hermes-compatible from day 1.
 public struct MOAConfig: Sendable {
     public let advisorCount: Int
     public let aggregatorModel: String
@@ -1106,4 +1124,3 @@ public struct MOAConfig: Sendable {
         self.aggregatorModel = aggregatorModel
     }
 }
-
