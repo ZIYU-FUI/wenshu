@@ -363,58 +363,38 @@ care about; and the two rows here are trees that will not move.
 
 **AND THE JOB READS ONLY THE LAST 10 SUBJECTS, SO ITS VERDICT IS A
 VERDICT ON THOSE 10.** Measured with the OLD rule over the last 10
-subjects:
+subjects at the tree this session's cap work started from
+(`fda16f70b5`), the OLD rule rejects **4 of the 10**; at the base the
+Swift section names (`0beb37b910`) and at the tip, it rejects **10 of
+the 10** (= the last 10 subjects carry the scopes `fix(gate): ...` and
+`docs(close): ...`, and the OLD rule refuses any scope other than
+`(wenshu)`).
 
-- at `fda16f70b5` (= the tree this session's cap work started from) the
-  OLD rule rejects **4 of the 10**;
-- at `0beb37b910` (= the base the Swift section names) it rejects **10 of
-  the 10**;
-- at the tip it rejects **10 of the 10** (= the last 10 subjects carry
-  the scopes `fix(gate): ...` and `docs(close): ...`, and the OLD rule
-  refuses any scope other than `(wenshu)`).
+**AND THE OLD RULE WAS NOT RED ON MAIN THE WHOLE TIME, AND IT WAS RED
+FOR TWO REASONS.** The OLD rule refuses a subject when either:
 
-**AND THE OLD RULE WAS NOT RED ON MAIN THE WHOLE TIME.** An earlier
-reading of this record said "it was red on main whenever any of those 10
-carried a scope", and that is false: the OLD rule refuses a scope
-OTHER THAN `(wenshu)`, so a window of 10 subjects that all carry
-`(wenshu)` passes. Measured at `00c1df5008` (= ten consecutive `feat(
-wenshu): ...` / `docs(wenshu): ...` / `fix(wenshu): ...` subjects) the
-OLD rule rejects **0 of the 10**.
+1. its scope is not `(wenshu)` (= the reason this session's fix
+   addressed), or
+2. it has no conventional prefix at all (= the `Merge ...` titles and
+   the plain English ones, which the old rule refused for their SHAPE),
+   or its type is not one of the nine conventional types (= `merge`,
+   `tool`, `debug`, `i18n` and `cleanup` are not).
 
-**AND THE OLD RULE WAS RED FOR TWO REASONS, AND ONLY ONE OF THEM IS
-ABOUT SCOPES.** Over main's windows of 10, the OLD rule refuses a window
-when either:
+So the job was red on main in WINDOWS, not in every window: a window of
+ten subjects that all carry `(wenshu)` passes (= measured at
+`00c1df5008` the OLD rule rejects 0 of the 10). And only the first of
+the three reasons is a scope question, so the fix changed that one.
 
-1. a subject carries a scope OTHER THAN `(wenshu)` (= the reason the
-   fix addressed), or
-2. a subject has NO conventional prefix at all (= `Merge ...` and the
-   plain English titles, which the old rule refused for their SHAPE).
-
-Measured at this tree, the windows whose last 10 subjects all carry
-`(wenshu)` number **3,473**, and the OLD rule lets through **3,276** of
-them (= the job is GREEN there) and refuses at least one in **197** (=
-the job is RED there).
-
-**AND THE 197 ARE NOT ALL `merge(wenshu)`.** The rule's nine types are
-`feat`, `fix`, `docs`, `test`, `refactor`, `chore`, `perf`, `build` and
-`ci`, so it refuses any OTHER type even when the scope is `(wenshu)`.
-Measured over the failing subjects in those 197 windows: **402** are
-`merge(wenshu): ...` and **25** are `tool(wenshu): ...` (7),
-`debug(wenshu): ...` (10), `i18n(wenshu): ...` (6) and
-`cleanup(wenshu): ...` (2). So the 197 are red because of their TYPE,
-not because of their scope.
-
-So the job was red on main in WINDOWS, not in every window, and "3,276"
-is the count of the windows the OLD rule let through (= NOT the count of
-the windows that carried only `(wenshu)` = 3,473).
-
-**THE COUNTS MOVE WITH THE TREE, SO THE CAUSES ARE THE CLAIM.** Every
-count in this paragraph is over the commits that exist at the tree, so
-it changes as the tree moves (= the reviewer measured 3,473 / 3,276 /
-197 at an earlier tree and the same split at this one). The two CAUSES
-(= a scope other than `(wenshu)`, and a subject with no conventional
-prefix) are what the fix changed, and they are the claim this
-paragraph makes.
+**THIS PARAGRAPH CARRIES NO COUNT OVER THE WHOLE HISTORY, AND THAT IS
+THE POINT.** An earlier reading of this record carried the window
+statistics (= how many windows of ten the old rule let through, and how
+many it refused). Every such count is over the commits that exist at
+the tree, so it moves as the tree moves (= three review rounds measured
+it at three trees and each one produced a different gloss for the same
+number). So the paragraph now states the CAUSES (= what the rule
+refused and why) and the ONE count that belongs to a fixed tree (= the
+4 of the 10 at `fda16f70b5`), and the reader's command is in the
+paragraph above for anything else.
 
 **THE TREE IS NAMED BECAUSE THE FIGURE BELONGS TO ONE TREE.** An earlier
 reading of this record said "4 of the 10 at this session's base", and
