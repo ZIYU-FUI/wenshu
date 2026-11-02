@@ -807,13 +807,13 @@ those fixes touched a test file, because none of them was about a case.
 review cards say "THE TREE IS FROZEN FOR THIS CARD. NO COMMIT LANDS ON
 `main` UNTIL THE VERDICT IS ON THE RECORD." Two doc-only commits landed
 on `main` and on both remotes while the card `t_ee0f7f39` was running
-(= the commit that recorded the verdict, and the commit that corrected
-it). The reviewer named it: the freeze was broken, so its verdict
-described a tree that was no longer the tip, and the tip carried no
-card. **THE FREEZE BINDS THE COMMITTER, NOT THE REVIEWER** (= the
-session that writes the code is the one that can move `main`), and the
-sequence is review -> verdict -> THEN the fix as its own commit -> its
-own card.
+(= `aac9c9b74c` at 16:26 and `6c3a12570e` at 16:53, against the card's
+run window of 15:49 to 17:25). The reviewer named it: the freeze was
+broken, so its verdict described a tree that was no longer the tip, and
+the tip carried no card. **THE FREEZE BINDS THE COMMITTER, NOT THE
+REVIEWER** (= the session that writes the code is the one that can move
+`main`), and the sequence is review -> verdict -> THEN the fix as its
+own commit -> its own card.
 
 ## The open items, on purpose
 
@@ -861,8 +861,15 @@ could not tell), so the close left the directory on disk: measured, the
 card closed at 16:25 and its worktree was still on disk at 18:37.
 
 This session therefore removed its own cards' worktrees and branches by
-hand, card by card, as each one closed (= no `.worktrees/` directory and
-no `wt/<card id>` branch for a card this session swept, measured after
-the last of them closed). A card that closes AFTER this record is
-written leaves its worktree until the board's deferred sweep runs it,
-which is the mechanism above.
+hand, card by card, as each one closed. **AND THE BRANCHES NEEDED A
+SECOND SWEEP**: the board's deferred cleanup removes a card's WORKTREE
+(= the directory), and the `wt/<card id>` branch it points at survives
+it (= the branch is what the worktree checked out, and deleting the
+directory does not delete the branch). So after the last worktree went,
+seventeen of this session's card branches were still on disk, every one
+of them already merged into `main`. They are gone now, measured: no
+`wt/<card id>` branch remains for a card this session swept, and the
+`wt/...` branches left are the parallel session's.
+
+A card that closes AFTER this record is written leaves its worktree
+until the board's deferred sweep runs it, which is the mechanism above.
