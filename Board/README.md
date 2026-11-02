@@ -11,18 +11,22 @@ own client rather than inside the shipping app.
 
 | Path | What it is |
 | ---- | ---------- |
+| `AGENTS.md` | The SSOT: 10 sections of hard rules, gates, and the workflow. |
 | `Package.swift` | Its own SwiftPM package. Consumes `../Sources/WenshuData` as a local path package, so the two sides resolve the same bytes by construction. |
 | `Sources/WenshuBoardKit/` | The card model: the element envelope, the placement regimes, the order key, and the join to a Wenshu chapter. |
 | `Sources/WenshuBoardApp/` | The app target: one window, one column of cards. |
 | `Tests/WenshuBoardTests/` | The test target. |
+| `docs/board-plan.md` | What the client is for, what the two references contribute, what must not be copied, the phases, and the open decisions. |
+| `docs/milanote-card-model.md` | The Milanote teardown: the element model, measured live against its API and its own bundles. |
+| `docs/freeform-card-model.md` | The Apple Freeform teardown: the board app's own model, its App Intents, and the SDK quotes for the Apple-canonical answer. |
+| `docs/adr/` | The client's decision records. |
 
 ## What it borrows, and from where
 
 The model is ported from Milanote, measured live against its API and its own
 bundles, and from Apple Freeform, read out of the installed app and the
-installed SDK. The teardown is
-`docs/agents/2026-11-02-milanote-card-model-teardown.md` in the repository
-root.
+installed SDK. Both teardowns live in this directory:
+`docs/milanote-card-model.md` and `docs/freeform-card-model.md`.
 
 Three things came across:
 
