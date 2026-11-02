@@ -377,8 +377,12 @@ FOR TWO REASONS.** The OLD rule refuses a subject when either:
    addressed), or
 2. it has no conventional prefix at all (= the `Merge ...` titles and
    the plain English ones, which the old rule refused for their SHAPE),
-   or its type is not one of the nine conventional types (= `merge`,
-   `tool`, `debug`, `i18n` and `cleanup` are not).
+   or its type is not one of the nine conventional types. The nine are
+   `feat`, `fix`, `docs`, `test`, `refactor`, `chore`, `perf`, `build`
+   and `ci`; over main's history the types outside that set which still
+   carry a scope are `merge` (57), `style` (8), `ref` (4), `i18n` (3),
+   `tool` (2), `spec` (1), `debug` (1), `revert` (1), `cleanup` (1) and
+   `review` (1).
 
 So the job was red on main in WINDOWS, not in every window: a window of
 ten subjects that all carry `(wenshu)` passes (= measured at

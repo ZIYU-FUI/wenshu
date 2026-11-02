@@ -305,8 +305,11 @@ jobs:
             # subjects that all carry (wenshu) passes), and it refused
             # for three reasons: a scope other than (wenshu) (= what
             # this fix addresses), no conventional prefix at all, and a
-            # type outside the nine conventional ones (= merge, tool,
-            # debug, i18n, cleanup). Only the first is a scope question.
+            # type outside the nine conventional ones (= feat, fix,
+            # docs, test, refactor, chore, perf, build, ci; the types
+            # outside that set which still carry a scope are merge,
+            # style, ref, i18n, tool, spec, debug, revert, cleanup and
+            # review). Only the first is a scope question.
             # No count over the whole history is quoted here: every one
             # of them is over the commits that exist at the tree, so it
             # moves as the tree moves.
