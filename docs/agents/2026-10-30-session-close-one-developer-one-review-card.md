@@ -738,6 +738,40 @@ skill tree `~/.hermes/shared/wenshu-skills/` (the procedure). This
 document is the tracked record; the skills are what the next session
 reads.
 
+## THE VERDICT THAT CLOSED IT
+
+**THE CARD `t_e4ced51a` APPROVED `302dbe6f34`**, and the verdict is in
+the run's METADATA (= the gate reads the field, not the summary).
+`review_gate.py --card t_e4ced51a` exits 0, and
+`bash Scripts/merge-preflight.sh main` reads **CLEAN**.
+
+**AND THE VERDICT CAME AFTER THREE ROUNDS OF REAL DEFECTS**, each one
+found by the reviewer and each one fixed in its own commit:
+
+1. `t_7b68d0ee` found that the per-interpreter case imported the gate
+   from a HARDCODED path (= it measured a different file than the tree
+   under test) and that three mutations went uncaught. Fixed in
+   `c3eace3839`: the case now imports the gate from the tree it is
+   testing (`TOOL.parent`), and the oracle runs in the same interpreter
+   as the subject.
+2. `t_f22b3869` found that the new case never asserted WHICH LINK
+   answered (= the reader's in-process branch or its subprocess one), so
+   it could pass while the link it named was never exercised; and that
+   the record's paragraph claimed the subprocess link was never
+   exercised, which is false on this tree. Fixed in `302dbe6f34`: the
+   reader names its refusals (`rejected-in-process` /
+   `rejected-subprocess`), the case ASSERTS the link and PROVES its
+   precondition, and the record says what holds.
+3. `t_e4ced51a` confirmed both by mutation: the takeover mutation makes
+   the child report `in-process` and takes the suite to **117/123**
+   (= red on exactly the six subprocess cases), and a lax fall-through
+   inside the subprocess link takes the duplicate-key case red.
+
+**THE THREE FIXES ARE THE WHOLE STORY OF THIS SESSION'S REVIEW LOOP:**
+every round found a case that could not fail for the reason it claimed
+to test, and every fix made the case prove its own precondition
+instead of assuming it.
+
 ## The open items, on purpose
 
 **BOTH REMOTES CARRY THE WORK.** `origin` (`gitcode.com:ZIYU1983/wenshu`)
