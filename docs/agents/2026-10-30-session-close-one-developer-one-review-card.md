@@ -864,21 +864,27 @@ This session therefore removed its own cards' WORKTREES by hand, card by
 card, as each one closed (= the board's deferred cleanup removes NEITHER
 the worktree nor the branch: it refuses, records
 `workspace_cleanup_deferred_shared` with its reason, and leaves both on
-disk = sixteen of this session's cards carry that event row with the
-reason `unknown`). **AND THE BRANCHES NEEDED A SECOND SWEEP, BECAUSE
-REMOVING A WORKTREE BY HAND LEAVES THE BRANCH IT CHECKED OUT**: `git
-worktree remove` takes the directory and leaves the `wt/<card id>`
-branch behind. So after the last worktree went, seventeen of this
+disk = sixteen of the seventeen card branches this session swept
+carry that row, reason `unknown`). **AND THE BRANCHES NEEDED A SECOND
+SWEEP, BECAUSE REMOVING A WORKTREE BY HAND LEAVES THE BRANCH IT CHECKED
+OUT**: `git worktree remove` takes the directory and leaves the
+`wt/<card id>` branch behind. So after the last worktree went, seventeen of this
 session's card branches were still on disk, every one of them already
 merged into `main`. They are gone now, measured: no `wt/<card id>`
 branch remains for a card this session swept, and the `wt/...` branches
 left are the parallel session's (plus a few NAMED branches with no card
 row at all, which fall outside this sentence).
 
-(Where the board's own cleanup DOES run, it deletes the `wt/<card id>`
-branch together with the worktree
-(`hermes_cli/kanban_db_workspace.py:492-494`, = `git branch -D`), so a
-card whose cleanup was not deferred leaves neither behind.)
+(Where the board's own cleanup DOES run and the tree is clean and
+pushed, it deletes the `wt/<card id>` branch together with the worktree
+(= `hermes_cli/kanban_db_workspace.py:492-494`, = `git branch -D`). But
+that is ONE of the ways the board leaves both behind, not the only
+complement to a deferral: a tree that is DIRTY or carries an UNPUSHED
+commit is preserved with both, and it writes NO event row at all
+(= lines 449-454), and a `git worktree remove` that fails returns
+before the branch delete (= lines 480-490). So a reader who checks the
+board for `workspace_cleanup_deferred_shared` sees one of the three
+cases and misses the two that write no row.)
 
 A card that closes AFTER this record is written leaves its worktree
 until the board's deferred sweep runs it, which is the mechanism above.
