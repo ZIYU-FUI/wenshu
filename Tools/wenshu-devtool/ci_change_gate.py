@@ -33,7 +33,6 @@ not, and every offender is printed with its file and line.
 from __future__ import annotations
 
 import argparse
-import os
 import re
 import subprocess
 import sys
@@ -52,7 +51,6 @@ VIOLATION = re.compile(
 )
 
 SWIFT_SUFFIX = ".swift"
-CONFIG_NAME = ".swift-format"
 
 
 def parse_diff(diff_text: str) -> tuple[dict[str, list[tuple[int, int]]], dict[str, dict[int, str]]]:
@@ -184,27 +182,72 @@ def _git(args: list[str], cwd: Path) -> str:
 
 
 def changed_paths(base: str, cwd: Path) -> list[str]:
-    out = _git(["diff", "--name-only", f"{base}...HEAD"], cwd)
+    """The paths this change touches, WITHOUT the deleted ones.
+
+    A deleted path must not reach SwiftFormat: ``swiftformat --lint`` aborts
+    the whole run on the first missing file (= "error: File not found at
+    ...", exit 70) and reports NOTHING for the files that do exist, so the
+    deleted path swallows the entire report (= a false green: measured
+    2026-11-02, a change that deleted one Swift file and added an unformatted
+    line to another passed this gate). The diff filter is what keeps the
+    deleted path out of the list.
+    """
+    out = _git(["diff", "--name-only", "--diff-filter=d", f"{base}...HEAD"], cwd)
     return [line.strip() for line in out.splitlines() if line.strip()]
 
 
 def swiftformat_args(paths: list[str], cwd: Path) -> list[str]:
     """The SwiftFormat command for a lint run.
 
-    The repository's own ``.swift-format`` is NOT passed, because SwiftFormat
-    rejects it: measured 2026-11-02, the file starts with a brace and
-    SwiftFormat answers "Unknown option '{' in configuration file", and nine
-    of the rule names it lists do not exist in this SwiftFormat version at
-    all (= only ``RedundantReturn`` and ``TrailingCommas`` do). A rejected
-    config makes SwiftFormat report nothing, so passing it would make this
-    gate silently green (= the very failure this gate exists to remove).
-    The configuration file's own repair is its own card.
+    The repository's own ``.swift-format`` is NOT passed, for two separate
+    reasons, both measured 2026-11-02:
+
+    1. SwiftFormat discovers its configuration under the name
+       ``.swiftformat`` (no dash). The repository's file is named
+       ``.swift-format`` (with a dash), so SwiftFormat never reads it: a
+       lint run in this repository does not print "Reading config file" at
+       all. The two names are not interchangeable.
+    2. Even under the name SwiftFormat does read, the file's CONTENT would
+       be rejected: it is in the ``swift-format`` JSON dialect, the file
+       starts with a brace, and SwiftFormat 0.62.1 answers "error: Unknown
+       option '{' in configuration file", exits 70, and reports NO
+       violation. Nine of the rule names it lists do not exist in this
+       SwiftFormat version at all (= only ``RedundantReturn`` and
+       ``TrailingCommas`` do). A rejected config makes SwiftFormat report
+       nothing, so passing it would make this gate silently green (= the
+       very failure this gate exists to remove).
+
+    So the lint runs with SwiftFormat's DEFAULT rules, and the
+    configuration file's own repair (= its name AND its dialect) is its own
+    card.
     """
     return ["swiftformat", "--lint", *paths]
 
 
+class SwiftFormatFailure(RuntimeError):
+    """SwiftFormat refused to lint (= exit 70): the report is not trustworthy.
+
+    SwiftFormat exits 70 when it cannot do the work at all: a missing file,
+    a configuration file it rejects, a syntax error in a file it was asked to
+    lint. In every one of those cases it reports NO violation, so treating
+    "no violation parsed" as clean makes the gate silently green on the very
+    drift it exists to catch. A run that could not be completed must be
+    loud, not clean.
+    """
+
+    def __init__(self, exit_code: int, output: str) -> None:
+        self.exit_code = exit_code
+        self.output = output
+        super().__init__(f"swiftformat exited {exit_code}")
+
+
 def swiftformat_report(paths: list[str], cwd: Path) -> str:
-    """SwiftFormat's report for the given files (= lint only, no rewrite)."""
+    """SwiftFormat's report for the given files (= lint only, no rewrite).
+
+    Raises :class:`SwiftFormatFailure` when SwiftFormat could not complete the
+    run (= a non-zero exit that is not the "violations found" exit). The
+    caller must treat that as a failure, never as a clean file.
+    """
     if not paths:
         return ""
     result = subprocess.run(
@@ -213,7 +256,11 @@ def swiftformat_report(paths: list[str], cwd: Path) -> str:
         capture_output=True,
         text=True,
     )
-    return (result.stdout or "") + (result.stderr or "")
+    output = (result.stdout or "") + (result.stderr or "")
+    # SwiftFormat exits 0 = clean, 1 = violations found, 70 = could not run.
+    if result.returncode not in (0, 1):
+        raise SwiftFormatFailure(result.returncode, output)
+    return output
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -243,7 +290,19 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     swift_paths = [p for p in changed_paths(args.base, cwd) if p.endswith(SWIFT_SUFFIX)]
-    report = swiftformat_report(swift_paths, cwd)
+    try:
+        report = swiftformat_report(swift_paths, cwd)
+    except SwiftFormatFailure as exc:
+        # A run that could not be completed is NOT a clean file. Reporting it
+        # as clean is exactly the false green this gate exists to remove.
+        print(
+            f"formatting: swiftformat could not lint the change "
+            f"(exit {exc.exit_code}); the report is not trustworthy"
+        )
+        for line in exc.output.splitlines():
+            if line.strip():
+                print(f"  {line.strip()}")
+        return 1
     violations = format_violations(report, cwd)
     offenders = format_offenders(violations, ranges)
     if not offenders:

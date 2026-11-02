@@ -19,7 +19,11 @@ against the two gates' own claims:
      touch (= the tree's own drift belongs to the tree).
   8. the formatting gate ignores a violation in a file the change did not
      touch.
-  9. this file itself carries no forbidden vocabulary.
+  9. a DELETED path never reaches SwiftFormat (= a missing file makes
+     SwiftFormat abort the whole run and report nothing = a false green).
+ 10. a SwiftFormat run that could not COMPLETE (= exit 70) is a failure, not
+     a clean file.
+ 11. this file itself carries no forbidden vocabulary.
 
 Run:  python3 Tools/wenshu-devtool/tests/test_ci_change_gate.py
 Exit: 0 = every case passed, 1 = at least one case failed.
@@ -27,6 +31,8 @@ Exit: 0 = every case passed, 1 = at least one case failed.
 from __future__ import annotations
 
 import importlib.util
+import shutil
+import subprocess
 import sys
 import tempfile
 from pathlib import Path
@@ -84,6 +90,103 @@ def case(name: str, ok: bool, detail: str = "") -> bool:
     mark = "PASS" if ok else "FAIL"
     print(f"[{mark}] {name}" + (f"  ({detail})" if detail else ""))
     return ok
+
+
+def _scratch_repo(tmp: str) -> Path:
+    """A git repo with one Swift file, committed, so a change can be made."""
+    repo = Path(tmp) / "repo"
+    (repo / "Sources").mkdir(parents=True)
+    (repo / "Sources" / "Kept.swift").write_text(
+        "struct Kept {\n    let value = 1\n}\n", encoding="utf-8"
+    )
+    (repo / "Sources" / "Deleted.swift").write_text(
+        "struct Deleted {\n    let value = 2\n}\n", encoding="utf-8"
+    )
+    for args in (
+        ["init", "-q"],
+        ["config", "user.email", "gate@test.invalid"],
+        ["config", "user.name", "gate"],
+        ["add", "-A"],
+        ["commit", "-q", "-m", "base"],
+    ):
+        subprocess.run(["git", *args], cwd=str(repo), check=True, capture_output=True)
+    return repo
+
+
+def case_deleted_path_never_reaches_swiftformat() -> bool:
+    """A change that DELETES a Swift file and edits another must still be linted.
+
+    Measured 2026-11-02: ``swiftformat --lint`` aborts the whole run on the
+    first missing file (= exit 70) and reports NOTHING for the files that do
+    exist, so a deleted path in the lint list swallows the entire report and
+    the gate goes green on a change that added an unformatted line.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = _scratch_repo(tmp)
+        base = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=str(repo), capture_output=True, text=True, check=True
+        ).stdout.strip()
+        # Delete one file and add an unformatted line to the other.
+        (repo / "Sources" / "Deleted.swift").unlink()
+        (repo / "Sources" / "Kept.swift").write_text(
+            "struct Kept {\nlet value = 1\n    let added = 3\n}\n", encoding="utf-8"
+        )
+        subprocess.run(["git", "add", "-A"], cwd=str(repo), check=True, capture_output=True)
+        subprocess.run(
+            ["git", "commit", "-q", "-m", "change"], cwd=str(repo), check=True, capture_output=True
+        )
+
+        paths = gate.changed_paths(base, repo)
+        deleted_reached = "Sources/Deleted.swift" in paths
+        kept_reached = "Sources/Kept.swift" in paths
+
+        # And the whole gate must call the drift it introduced a violation.
+        exit_code = gate.main(["--base", base, "--check", "formatting", "--repo", str(repo)])
+        return case(
+            "a DELETED path never reaches SwiftFormat (= a missing file would swallow the whole report)",
+            not deleted_reached
+            and kept_reached
+            and exit_code == 1,
+            f"paths={paths} gate_exit={exit_code} (= 1 = the added unformatted line was caught)",
+        )
+
+
+def case_swiftformat_failure_is_not_a_clean_file() -> bool:
+    """A SwiftFormat run that could not COMPLETE is a failure, not a clean file.
+
+    SwiftFormat exits 70 when it cannot do the work (= a missing file, a
+    rejected configuration, a syntax error). It reports NO violation in that
+    case, so treating "no violation parsed" as clean is the false green this
+    gate exists to remove.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp) / "repo"
+        repo.mkdir()
+        # A file SwiftFormat cannot parse: the run cannot complete.
+        broken = repo / "Broken.swift"
+        broken.write_text("struct Broken {\n", encoding="utf-8")
+        raised = False
+        try:
+            gate.swiftformat_report(["Broken.swift"], repo)
+        except gate.SwiftFormatFailure:
+            raised = True
+        except FileNotFoundError:
+            raised = False  # SwiftFormat is not installed here: the case cannot run.
+        if not raised and not _swiftformat_installed():
+            return case(
+                "a SwiftFormat run that could not COMPLETE (= exit 70) is a failure, not a clean file",
+                True,
+                "SwiftFormat is not installed on this machine (= the case cannot run here)",
+            )
+        return case(
+            "a SwiftFormat run that could not COMPLETE (= exit 70) is a failure, not a clean file",
+            raised,
+            "the unparseable file raised SwiftFormatFailure instead of returning an empty report",
+        )
+
+
+def _swiftformat_installed() -> bool:
+    return shutil.which("swiftformat") is not None
 
 
 def main() -> int:
@@ -198,6 +301,11 @@ def main() -> int:
                 "SwiftFormat rejects that file (= nine of its rule names do not exist in this version), = and a rejected config reports nothing",
             )
         )
+
+    # Case 9 + 10 need a real repository and the real SwiftFormat, so they
+    # run against a scratch git repo the test builds itself.
+    results.append(case_deleted_path_never_reaches_swiftformat())
+    results.append(case_swiftformat_failure_is_not_a_clean_file())
 
     own_text = Path(__file__).read_text(encoding="utf-8")
     results.append(

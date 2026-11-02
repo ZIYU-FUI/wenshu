@@ -121,29 +121,54 @@ jobs:
         # are the lines SwiftFormat is happy with.
         #
         # The step checks the lines THIS CHANGE adds, not the whole touched
-        # file and not the tree. The tree carries 1032 files that were never
-        # formatted (504 of 543 under Sources/, and 529 of 537 under Tests/),
-        # so a whole-file check was red before any change and could never be
-        # green = a step that reports the history instead of the change.
+        # file and not the tree. The tree carries 1033 files that were never
+        # formatted (504 of 543 under Sources/, and 529 of 537 under Tests/,
+        # and 504 + 529 = 1033), so a whole-file check was red before any
+        # change and could never be green = a step that reports the history
+        # instead of the change.
         #
         # SwiftFormat reports every violation in a file; the gate keeps the
         # ones that fall on a line the change added, because the tree's own
         # drift belongs to the tree (= its own card, not every push).
         #
-        # The gate passes the repository's own .swift-format to SwiftFormat,
-        # because SwiftFormat does not discover it on its own: without the
-        # flag the lint applied SwiftFormat's DEFAULT rules and reported 86
-        # violations in five files that are formatted exactly as this
-        # repository's rules want them (= measured 2026-11-02). The step used
-        # to run without the config, so it measured a rule set the repository
-        # never asked for, and it reported the history of the touched file
-        # instead of the change.
+        # THE GATE LINTS WITH SWIFTFORMAT'S DEFAULT RULES, ON PURPOSE, AND
+        # THE REASON IS TWO SEPARATE THINGS:
+        #
+        # 1. SwiftFormat discovers its configuration under the name
+        #    `.swiftformat` (no dash). The repository's file is named
+        #    `.swift-format` (with a dash), so SwiftFormat NEVER reads it:
+        #    measured 2026-11-02, a lint run in this repository does not
+        #    print "Reading config file" at all. The two names are not
+        #    interchangeable.
+        # 2. Even under the name SwiftFormat does read, the file's CONTENT
+        #    would be rejected: it is in the `swift-format` JSON dialect,
+        #    and SwiftFormat 0.62.1 answers "error: Unknown option '{' in
+        #    configuration file", exits 70, and reports NO violation. A
+        #    rejected configuration makes SwiftFormat report nothing, so
+        #    passing it would make this gate silently green (= the very
+        #    failure this gate exists to remove).
+        #
+        # So the gate lints with SwiftFormat's DEFAULT rules, and the
+        # configuration file's own repair (= its name AND its dialect) is
+        # its own card. The tool's docstring carries the full measurement:
+        # Tools/wenshu-devtool/ci_change_gate.py, `swiftformat_args`.
+        #
+        # A SwiftFormat run that could not COMPLETE (a missing file, a
+        # rejected config, a syntax error) exits 70 and reports nothing, so
+        # the gate treats that as a FAILURE, never as a clean file.
         #
         # The base ref is the one that resolves in every trigger: a
         # pull request has origin/main, a push to a worktree branch has
         # origin/main, and a push to main has the sha the event carries
         # as `before` (origin/main is HEAD there, so a diff against it
         # would be empty).
+        #
+        # COMMIT-MESSAGE BODIES are not read by any CI step: the gate scans
+        # the diff's ADDED LINES only, and `lint-commits` reads the SUBJECT
+        # (`--format=%s`) of the last 10 commits. A message body carrying
+        # forbidden vocabulary is still blocked at commit time by the local
+        # `commit_filter.py --hook=commit-msg` hook, which is where that
+        # coverage lives.
         run: |
           BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
           if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
