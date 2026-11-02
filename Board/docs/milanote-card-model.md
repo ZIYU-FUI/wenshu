@@ -116,6 +116,37 @@ That is a fractional index: `score` alone totally orders the list, and a new ite
 
 **This is the single most directly copyable mechanism in Milanote.** Wenshu's chapter order needs exactly this (insert a chapter between two, from the agent, without rewriting the list).
 
+### 4.1.1 The order key, in the reference's own source
+
+The step is a named constant and the insert rule is a pure function, both read
+out of the main bundle (module 69045):
+
+```js
+const c = 65536;                                   // the step
+const d = e => { const t = []; for (let n = 0; n < e; n++) t[n] = n * c; return t; };
+const u = (prev, next, n) => next == null ? c : prev == null ? -c : (next - prev) / (n + 1);
+const p = (prev, next, gap) => (prev == null && next == null) ? 0 : (prev == null) ? next + gap : prev + gap;
+const m = (list, at, n) => {
+  const r = clamp(0, list.length, at),
+        i = list[r - 1], s = list[r],
+        gap = u(i, s, n), base = p(i, s, gap);
+  if (base === i || base === s) return null;        // no room: the caller must rebalance
+  return base + n * gap;
+};
+```
+
+Four facts, and the client's `BoardOrderKey` has to match all four:
+
+| Fact | Consequence |
+| --- | --- |
+| The step is `65536` | The gap between two neighbours divides evenly. |
+| A head insert takes a **negative** score (`next - 65536`) | The head is not special-cased in the data; it sits below zero. |
+| A batch insert of `n` items divides the gap by `(n + 1)` | Inserting three cards at once needs one gap, not three. |
+| The insert returns **`null`** when the gap is exhausted | The caller must rebalance (= renumber) instead of writing a colliding key. |
+
+The measured ladder (`0, 65536, 131072, 196608`, and the head's `-262144,
+-327680`) is this function's output.
+
 ### 4.2 Canvas to column
 
 `element.groupIntoColumn` is the action that converts free-canvas cards into one ordered column. The reverse (`inList` flag on the element component) is what the view reads. So the two regimes are not separate features — they are two renderings of the same record, and the product can move a card between them.
@@ -294,6 +325,69 @@ Two things to copy: **a mutation is a patch against the content tree, not a whol
 | `POST /api/auth/upgrade-better-auth-session` | session refresh |
 
 Auth is `authorization: Bearer <token>`; there is no cookie. The board graph endpoint accepts several board ids at once, which is how the client prefetches a board plus its ancestors.
+
+### 11.3 The write envelope, in the reference's own source
+
+The single write call site, read out of the main bundle:
+
+```js
+await transport({ url: "actions", method: POST, data: { action: s } });
+```
+
+so the body is **one action per request, wrapped in `{ action: { type, ... } }`**.
+An earlier attempt with `{ updates: [...] }` and `{ moves: [...] }` at the top
+level returned `500 TypeError: Cannot read properties of undefined (reading
+'type')`, and this is why: the server reads `body.action.type`.
+
+The action creators and the shapes they build:
+
+| Action | Shape | Source |
+| --- | --- | --- |
+| update content | `{ type, updates: [{ id, data }], transactionId }` | module 65992 |
+| update element (undoable) | `{ type, id, elementType, changes, undoChanges, transactionId }` | `Cr.DD` |
+| create element | `{ type, elementType, location, content, transactionId, select }` | `Tr.OX` |
+| select | `{ type, ids, transactionId, rangeAnchors }` | `Sr.lj` |
+| delete | `{ type, ids, transactionId }` | `Sr.b9` |
+| **move** | `{ type, parentId, section, sortFn, moveOperation, initialMeasurements, transactionId, actionOrigin }` | `Yr.DL` / reducer case `b.ce` |
+
+**The move action carries no score.** It carries the target `parentId` and
+`section` plus a `sortFn`, and the client recomputes every moved element's
+`location.position.score` locally, from the sorted order:
+
+```js
+case MOVE: (state, t) => {
+  const graph = elementGraph(state),
+        sorted = sortElements({ elements: state, elementGraph: graph, parentId: t.parentId, section: t.section, sortFn }),
+        scores  = scoreLadder(sorted.size);
+  return state.merge(sorted.reduce((acc, el, i) => {
+    acc[idOf(el)] = el.setIn(["location", "position", "score"], scores[i]);
+    return acc;
+  }, {}));
+}
+```
+
+That is the whole reason the score ladder is fractional: **the client
+computes the order, and the server only has to believe it.**
+
+### 11.4 A live edit is not a write
+
+The action-type vocabulary includes two constants that answer the drag
+question:
+
+```
+ELEMENT_EDIT_START
+ELEMENT_EDIT_COMPLETE
+```
+
+plus `ELEMENTS_SELECTED`, `ELEMENTS_DESELECTED`, `ELEMENTS_DESELECT_ALL`,
+`ELEMENTS_FORCE_REMOTE_DESELECT`, `TABLE_ELEMENT_CELL_SELECTIONS_UPDATE`,
+`ELEMENTS_RESET_SCORES`, `TRASH_CLEAR_START` / `_COMPLETE` / `_FAILED`.
+
+`ELEMENT_EDIT_START` marks the beginning of a manipulation and
+`ELEMENT_EDIT_COMPLETE` the commit. So Milanote, like Freeform (§4.3 of the
+other teardown), keeps the live manipulation transient and writes only the
+committed state. **A drag is not a write, and this is how the reference says
+so.**
 
 ## 12. Feature surface Milanote has, and the question each raises for Wenshu
 

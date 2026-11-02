@@ -201,3 +201,202 @@ That is a design decision with consequences, not a detail: a generation view tha
 - **No canvas view on macOS.** If Wenshu ever wants a Freeform-like ink surface, it hand-rolls it on `SwiftUICore.Canvas` and stores `PKDrawing` data. That is a real cost and it is why §17 says the canvas regime is out of v1 scope.
 - **No public Freeform file format.** The UTI is declared, the package layout is not documented.
 
+## 4. The canvas implementation, read out of the binary
+
+### 4.1 The method, and why it is cheap
+
+Freeform is Objective-C, so its class metadata is in the Mach-O. The whole
+canvas vocabulary is recoverable without a decompiler:
+
+```bash
+lipo -thin arm64e /System/Applications/Freeform.app/Contents/MacOS/Freeform -output ff.arm64e
+otool -oV ff.arm64e > ff.objc.txt        # 0.24 s, 19 MB, 422,590 lines
+```
+
+`otool -oV` prints the class names, the **ivar names** and the **property
+names** as text, so no pointer chasing is needed for the model. What it does
+not print is the selector behind a relative method list (those selectors live
+in the dyld shared cache), so the method bodies are out of reach here and the
+decompiler route is the only one for them — Ghidra did not finish importing
+this 57 MB binary inside its 900 s deadline.
+
+What came out: **959 `CRL*` classes, 94 of them `CRLCanvas*`, 3,320 ivars and
+4,634 properties.**
+
+### 4.2 The geometry of one item
+
+`CRLCanvasInfoGeometry` is the geometry of a canvas item, and it is small:
+
+| | |
+| --- | --- |
+| ivars | `_position` (CGPoint), `_size` (CGSize), `_flags` (a bit field) |
+| properties | `position`, `size`, `widthValid`, `heightValid`, `horizontalFlip`, `verticalFlip`, `angle`, `boundsBeforeRotation`, `center`, `transform`, `transformWithoutFlips`, `transformedBounds`, `transformedBoundsOrigin`, `fullTransform`, `allValuesValidNumbers` |
+
+So an item is **a position, a size, an angle and two flip flags**, plus the
+transforms derived from them. There is no scale and no matrix in the item
+itself: the transform is computed.
+
+### 4.3 The canvas is a layout tree, and a live edit is not a write
+
+`CRLCanvasAbstractLayout` is the tree node, and the property list is the
+design:
+
+| Group | Properties |
+| --- | --- |
+| The chain to the world | `geometry`, `transform`, `frame`, `geometryInParent`, `transformInParent`, `frameInParent`, `geometryInRoot`, `transformInRoot`, `frameInRoot`, `clipRect`, `alignmentFrame`, `alignmentFrameInParent`, `alignmentFrameInRoot` |
+| The tree | `parent`, `root`, `children`, `visibleGeometries`, `isAxisAlignedUnflippedInRoot`, `providesGuidesForChildLayouts`, `exclusivelyProvidesGuidesForChildLayouts` |
+| The cull | `frameForCulling`, `frameForCullingInRoot`, `shouldBeIncludedInParentFrameForCulling` |
+| The live edit | `interimPositionX`, `interimPositionY`, `lastInterimPosition`, `alignmentFrameOriginForFixingInterimPosition`, `shouldSnapWhileResizing` |
+| Capabilities | `supportsRotation`, `supportsFlipping`, `supportsCalloutAttributes` |
+
+`CRLCanvasLayout` is the concrete node, and it carries the answer to the drag
+question:
+
+| | |
+| --- | --- |
+| the committed geometry | `info`, `originalGeometry`, `originalTransformInRoot`, `originalPureGeometry`, `pureGeometryInRoot` |
+| the live geometry | `dynamicGeometry`, `freeTransformState`, `isInRealTimeDynamicOperation`, `isBeingTransformed`, `isBeingManipulated` |
+| the commit | `infoGeometryForCommitingAnchorHintAtEndOfDynamicOperation` |
+| the dependency graph | `dependentLayouts`, `dependentLayoutsForDrag`, `bidirectionalSizeDependentLayouts`, `reliedOnLayouts` |
+
+**A manipulation keeps a dynamic geometry beside the committed one, and only
+the committed one is written.** The commit happens at the end of the operation
+(`...ForCommitingAnchorHintAtEndOfDynamicOperation`), and the original is
+restored if the operation is abandoned. Milanote does the same thing with
+`ELEMENT_EDIT_START` / `ELEMENT_EDIT_COMPLETE` (the other teardown §11.4).
+
+Two consequences for a replica:
+
+- The live manipulation is **client state**, so a drag does not write the
+  library. This is what makes an infinite canvas compatible with one library,
+  one writer.
+- The tree means a nested item's position is **relative to its parent**, with
+  `frameInRoot` as the absolute answer. A flat list of world coordinates
+  cannot express a group that moves with its parent.
+
+### 4.4 The snapping system is six independent guides
+
+`CRLCanvasGuideController` is the snap controller, and its switches are the
+feature list:
+
+```
+shouldAlignToSizingGuides      shouldAlignToSpacingGuides
+shouldAlignEdges               shouldAlignCenters
+shouldSnapToGrid               shouldAlignEdgesToTemplateGuides
+shouldUseHapticFeedbackWhenSnapping
+snapDistanceToUseForGuides     guideColor / defaultGuideColor
+```
+
+Its state keeps the generated guides apart by kind: `_verticalSpacings`,
+`_horizontalSpacings`, `_verticalSizingGuides`, `_alignmentFrameInRootByLayout`,
+plus `_didJustSnapInX` / `_didJustSnapInY` (so the client can tell a snap from
+a free move).
+
+`CRLCanvasAlignmentGuide` is one guide: `renderable`, `start`, `end`,
+`guideType`, `infinite`, `snapsToMin`, `snapsToMid`, `snapsToMax`.
+
+So snapping is **not one behaviour but six**, each independently switchable,
+and a guide can bind to an item's minimum, middle or maximum edge.
+
+### 4.5 The zoom model: the scale is a view concern, and it snaps
+
+`CRLCanvasLayer` is the viewport:
+
+```
+viewScale, unscaledSize, unscaledContentCenter,
+minimumPinchViewScale, maximumPinchViewScale,
+allowsPinchZoom, showsScaleFeedback, infinite,
+contentInset, centeredInScrollView, horizontallyCenteredInScrollView, verticallyCenteredInScrollView
+```
+
+Three facts worth copying:
+
+- **The model is stored in unscaled units.** `unscaledSize` and
+  `unscaledContentCenter` are the content; `viewScale` is the view. The
+  client's `BoardViewport` (a scale and an offset) is the same split.
+- **`infinite` is a property of the layer**, so "the canvas is infinite" is a
+  mode, not a metaphor.
+- The zoom bounds are `minimumPinchViewScale` / `maximumPinchViewScale`, and
+  the scale is pinned to a ladder rather than free.
+
+`CRLCanvasZoomTracker` is where the pinning lives:
+
+```
+fastPinchSnapsViewScale, slowPinchSnapsViewScale, currentlySnappingViewScale,
+gestureIsFastPinch, animateTransform, visibleUnscaledBoundsAtEndOfZoom,
+alwaysUsesTranslationSprings
+```
+
+**A fast pinch snaps the view scale to the ladder; a slow pinch is continuous.**
+The tracker knows which one is happening (`gestureIsFastPinch`) and animates
+the snap (`currentlySnappingViewScale`, `animateTransform`). A replica that
+only does continuous zoom will feel different in the hand, and this is why.
+
+### 4.6 Autoscroll, connectors, and the data/view split
+
+- **`CRLCanvasAutoscroll`**: `target`, `unscaledAutoscrollPoint`,
+  `adjustedUnscaledAutoscrollPoint`, `lastAutoscrollDelta`, `directions`,
+  `repeatInterval`, `count`, `unscaledDistancePastVisibleRect`,
+  `unscaledInset`. Dragging near an edge scrolls the world, and the
+  distances are in **unscaled** units, so the threshold is zoom-independent.
+- **`CRLConnectionLineAbstractLayout`** is the connector, and it is a layout
+  like any other: `connectedFrom`, `connectedTo`, `connectedFromInfo`,
+  `temporaryConnectedFromInfo`, `validLine`, `headMagnetType`,
+  `tailMagnetType`, `headMagnetNormalizedPosition`,
+  `tailMagnetNormalizedPosition`, `headMagnetCanvasPosition`,
+  `tailMagnetCanvasPosition`, `clipHead`, `clipTail`, `headClipT`,
+  `tailClipT`, `magnetsAdjusted`. A connector's endpoint binds to a
+  **normalized position** on another item's edge, and the line is clipped at
+  the target.
+- **`CRLBoardItemLayout`** is the seam between the data and the view: it
+  holds `boardItem`, `hasAlpha` and `geometry`. **The item is the data; the
+  layout is its positioned view.** The two are separate objects, which is why
+  a drag can change the layout without touching the item.
+- **`CRLBoardItemEditor`** enumerates what a selection can be asked to do:
+  `selectedObjectsSupportingFill`, `...Stroke`, `...Shadow`,
+  `...Reflection`, `...Opacity`, `...Rotation`, `...Resize`,
+  `...ShrinkTextToFit`, `...CalloutAttributes`, `...Attribution`,
+  `...FreehandAnimations`, `...TextInset`, `...Endpoints`,
+  `...ConnectionLineAttributes`, `...SmartShapeAttributes`, and
+  `anyLayoutHasUnlockedAspectRatio`. That list is the item feature surface.
+
+### 4.7 PencilKit on macOS: the exact position
+
+The earlier reading of this teardown said the drawing view is not public on
+macOS. The precise statement, after reading the SDK and the binary:
+
+| Fact | Evidence |
+| --- | --- |
+| `PKCanvasView` **exists and is exported** on macOS | `PencilKit.tbd`: `objc-classes: [ PKCanvasView, ... ]` |
+| Apple **ships no header** for it on macOS | the SDK's PencilKit `Headers/` has no `PKCanvasView.h`, and `PencilKit.h` line 11 `#import`s `<PencilKit/PKCanvasView.h>` — a file the SDK does not contain |
+| The macOS **Swift interface** does not expose it | `PencilKit.swiftmodule/arm64e-apple-macos.swiftinterface` declares `PKDrawing`, `PKStroke`, `PKStrokePath`, `PKStrokePoint`, `PKInk`, `PKInkingTool`, `PKEraserTool`, `PKLassoTool`, `PKTool`, `PKStrokeRecognizer`, `EraserType`, `InkType`, `Stride`, `RenderState`, `SearchResult`, `ConvertedBezierPoint`, `InterpolatedSlice` — and no `PKCanvasView` |
+| Freeform **uses it anyway** | the binary carries `$__lazy_storage_$_pencilKitCanvasView` |
+
+So the class is reachable at runtime and unreachable from a compiling app
+without hand-declaring a private interface. The client does not take that
+route (it is a private API dependency), and the public macOS PencilKit still
+gives it what it needs:
+
+```
+PKDrawing.dataRepresentation()
+PKDrawing.imageFromRect(_:scale:)      → NSImage on macOS
+PKDrawing.drawingByApplyingTransform(_:)
+PKDrawing.drawingByAppendingStrokes(_:)
+PKDrawing.drawingByErasingStrokePath(_:mask:transform:)   (macOS 27)
+```
+
+**The ink layer is therefore buildable on public API**: `PKDrawing` for the
+data, `imageFromRect:scale:` to rasterise, and the strokes drawn on a
+`SwiftUICore.Canvas` with the client's own gesture handling.
+
+### 4.8 What is still not dug
+
+- The `.board` package format. The app has never run on this machine (its
+  container is empty), so no board exists to inspect, and the archiving code
+  is Swift (`$__lazy_storage_$_taskForArchivingBoardItems`) rather than
+  Objective-C, so it is not in the class dump.
+- The method bodies. The selectors behind the relative method lists live in
+  the dyld shared cache; Ghidra did not finish this binary inside its
+  deadline.
+- The live behaviour: no board was created, so nothing was measured in the
+  running app.

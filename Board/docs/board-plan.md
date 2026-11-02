@@ -163,6 +163,7 @@ decision that shapes the client's architecture. Two ways to honour it:
 | 2 | A real library connection: open a `.ws`, list its books, read a chapter, show its cards. | Depends on the writer rule (§8). |
 | 3 | The card view: one chapter as a column, cards that can be selected, moved and reordered. | A UI slice; the boss looks at it in person. |
 | 3a | The canvas: the viewport arithmetic, the pan and the zoom, the dot grid, the z-order, the cull. | The core of the reference's canvas, built from the public pieces. Its arithmetic is proven by the viewport tests and by the offscreen render. |
+| 3b | The canvas as a layout tree: a transform chain to the root, a clip rect, a culling bound, and a live manipulation that keeps a dynamic geometry beside the committed one. | The reference's canvas is a tree with a dynamic/committed split, and that split is what lets a drag avoid writing the library. |
 | 4 | A card's own lifecycle: a status, an attempt, an error, and a row per card. | A persistence slice; it needs the shared model layer, so it decides §4's design-layer question. |
 | 5 | The generation view: `ImagePlayground` for imagery, the agent for text, into a card. | Depends on 3 and 4. |
 
@@ -178,7 +179,10 @@ decision that shapes the client's architecture. Two ways to honour it:
    The second is a non-additive change and needs a declared schema version.
 5. Which of Freeform's board settings carry over: the dot grid (taken), the
    connector mode, the shape library, the brush set?
-6. Does the board open in the list regime or the canvas regime by default, and
+6. Does the zoom snap to a ladder? The reference pins the view scale: a fast
+   pinch snaps to the ladder and a slow pinch is continuous. A replica that
+   only zooms continuously feels different in the hand.
+7. Does the board open in the list regime or the canvas regime by default, and
    does a chapter keep both? Milanote's board holds both at once (a section
    decides which), so the client can too.
 

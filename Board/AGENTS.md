@@ -87,12 +87,13 @@ tablet client is at Mobile/. This file governs the card board.
 | --- | ---- | --------- |
 | 4.1 | A board, a column and a card are the SAME record (`BoardElement`); only the kind differs, so a container holds cards and boards alike. | Board/docs/milanote-card-model.md §2. |
 | 4.2 | One `location` carries both placement regimes: a free canvas (`x`/`y` + a z-order score) and an ordered list (an ordinal + an order key). | Board/docs/milanote-card-model.md §4. |
-| 4.3 | The order key's step is 65536 and a card placed above the head takes a negative rung, so an insert does not renumber the list. An insert with no room between its neighbours asks for a rebalance. | BoardOrderKey; Board/docs/milanote-card-model.md §4.1. |
+| 4.3 | The order key's step is 65536 and a card placed above the head takes a negative rung, so an insert does not renumber the list. A batch insert splits the gap by (n + 1), and an insert with no room between its neighbours asks for a rebalance instead of writing a colliding key. | BoardOrderKey; Board/docs/milanote-card-model.md (the order key in the reference's own source). |
 | 4.4 | The payload is an open path map, not a union of every field, so a kind decides the meaning of its values. | BoardContent; Board/docs/milanote-card-model.md §6. |
 | 4.5 | A card's text is Markdown. The reference stores a ProseMirror document and the conversion belongs at the boundary; the reference's per-block identity key is NOT copied, because it exists to reconcile a ProseMirror re-parse. | Board/docs/board-plan.md §5. |
 | 4.6 | The canvas regime IS in scope. Apple ships no infinite canvas on macOS (`PKCanvasView` is absent from the SDK, and macOS 27 adds none), so the client builds it from the public pieces: `SwiftUICore.Canvas`, `MagnifyGesture`, `DragGesture`, `ScrollGeometry`, `zIndex`, `drawingGroup`. | Board/docs/freeform-card-model.md §3; Board/docs/board-plan.md §4. |
 | 4.7 | No freeform file format. Apple's board package is not documented, so reading or writing one is not a commitment. The Apple-canonical route to an Apple board is an App Intent. | Board/docs/freeform-card-model.md §2.5. |
 | 4.8 | The viewport is the canvas's arithmetic and it is a pure function: a zoom keeps the world point under the anchor under the anchor, a scale clamps to [0.2, 4.0], and an item off screen is neither drawn nor hit tested. The arithmetic lives in the Kit, the gestures in the view. | BoardViewport. |
+| 4.9 | The canvas is a LAYOUT TREE, not a flat list: every item is a layout with a transform chain to the root, a clip rect and a culling bound. A live manipulation keeps a dynamic geometry beside the committed one, and only the committed one is written, so a drag is not a write. The scale is a view concern: the model is in unscaled units. | Board/docs/freeform-card-model.md §4. |
 
 ## §5 Third-party library policy
 
