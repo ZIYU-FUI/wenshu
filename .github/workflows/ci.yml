@@ -15,6 +15,30 @@ jobs:
   build-and-test:
     runs-on: macos-14
     timeout-minutes: 30
+    defaults:
+      run:
+        # `shell: bash` (EXPLICIT) = `bash --noprofile --norc -eo pipefail {0}`.
+        # The UNSPECIFIED default = `bash -e {0}`, which has `-e` but NOT
+        # `-o pipefail`, so a command piped into `tee` reports TEE's exit
+        # code and the step passes even when the command failed.
+        # (GitHub's own docs, "supported shells": the unspecified row runs a
+        # DIFFERENT command from the `bash` row.)
+        #
+        # Measured 2026-11-02 on this repository's own `swift test` log: the
+        # three "Test run with ..." summaries belong to the three SWIFT TESTING
+        # targets (= WenshuDataTests, WenshuAppTests and WenshuAgentTests), and
+        # the WenshuAppTests one reported "3219 tests in 513 suites FAILED with
+        # 11 issues". The summaries are printed in a fixed order and the failing
+        # one is NOT the last, so a check that reads only the LAST "Test run"
+        # line read a passing target's summary, and a tree with 11 failing
+        # assertions reported green.
+        #
+        # The XCTest bundles print NO "Test run with" line at all: XCTest
+        # reports its own verdict as "Executed N tests, with M failures", and
+        # every one of those lines sits BEFORE the first "Test run with" line.
+        # So the XCTest channel is invisible to a scan of the summaries, and the
+        # test step below reads BOTH.
+        shell: bash
 
     steps:
       - name: Checkout
@@ -41,14 +65,46 @@ jobs:
         # actual filename is 'ci.yml' (= same job, same trigger,
         # same macos-14 runner).
         run: |
+          # `errexit` would abort the step AT the `| tee` line, one line
+          # before the log could be read, so the status is captured with
+          # errexit off and the verdict is decided below (= the step still
+          # names the target that failed).
+          set +e
           swift test 2>&1 | tee /tmp/wenshu-test.log
-          TEST_LINE=$(grep "Test run" /tmp/wenshu-test.log | tail -1)
-          echo "## $TEST_LINE" >> $GITHUB_STEP_SUMMARY
-          # Fail if any test failed
-          if echo "$TEST_LINE" | grep -q "failed"; then
-            echo "Tests failed — see log"
+          TEST_STATUS=${PIPESTATUS[0]}
+          set -e
+          # Every SWIFT TESTING target prints its own "Test run with ..."
+          # summary, and this package has three (= WenshuDataTests,
+          # WenshuAppTests and WenshuAgentTests). They are printed in a fixed
+          # order, and the one that fails is NOT the last, so a check that
+          # reads only the LAST line reads a PASSING target's summary. Every
+          # summary is read, and one that says "failed" is a failure.
+          TEST_LINES=$(grep "Test run with" /tmp/wenshu-test.log || true)
+          if [ -z "$TEST_LINES" ]; then
+            echo "No 'Test run with' summary in the log (= the test run did not complete)"
             exit 1
           fi
+          # The XCTest bundles print NO "Test run with" line: XCTest reports
+          # its own verdict as "Executed N tests, with M failures", and every
+          # one of those lines sits BEFORE the first summary. So a failing
+          # XCTest class is invisible to the grep above, and the step would go
+          # red naming no target. Read the XCTest verdict as well.
+          XC_FAILURES=$(grep -E "Executed [0-9]+ tests, with [1-9][0-9]* failure" /tmp/wenshu-test.log || true)
+          # swift-testing names each failing target and its framework.
+          TARGET_NOTE=$(grep -A5 "Some test targets reported failures" /tmp/wenshu-test.log || true)
+          {
+            echo "## $TEST_LINES"
+            if [ -n "$XC_FAILURES" ]; then echo "$XC_FAILURES"; fi
+            if [ -n "$TARGET_NOTE" ]; then echo "$TARGET_NOTE"; fi
+          } >> $GITHUB_STEP_SUMMARY
+          if [ "$TEST_STATUS" -ne 0 ] || echo "$TEST_LINES" | grep -q "failed"; then
+            echo "Tests failed (swift test exit $TEST_STATUS) — see log"
+            echo "$TEST_LINES" | grep "failed" || true
+            if [ -n "$XC_FAILURES" ]; then echo "$XC_FAILURES"; fi
+            if [ -n "$TARGET_NOTE" ]; then echo "$TARGET_NOTE"; fi
+            exit 1
+          fi
+          echo "All test targets passed"
 
       - name: Pollution check
         run: |
@@ -99,8 +155,16 @@ jobs:
         # (= enforces the forbidden-vocab invariant automatically, no human
         # review needed for this specific check).
         run: |
+          # `errexit` would abort the step AT the `| tee` line, one line
+          # before `exit_status` is read, so the status is captured with
+          # errexit off. Without this the report-only escape hatch below
+          # (= a non-zero exit with 0 error-severity violations) is
+          # unreachable, and a leak goes red with no list of the
+          # offending files.
+          set +e
           swiftlint lint --quiet 2>&1 | tee /tmp/wenshu-swiftlint.log
           exit_status=${PIPESTATUS[0]}
+          set -e
           if [ "$exit_status" -ne 0 ]; then
             # Distinguish: was it a real error (= xianxia leak or other error
             # severity violation) or just info/warning volume from default rules?
@@ -201,6 +265,12 @@ jobs:
   client-build-and-test:
     runs-on: macos-15
     timeout-minutes: 30
+    defaults:
+      run:
+        # The same reason as the desktop job's: the unspecified default shell
+        # has no `-o pipefail`, so a command piped into `tee` reports tee's
+        # exit code and the step passes even when the command failed.
+        shell: bash
 
     steps:
       - name: Checkout
@@ -244,13 +314,29 @@ jobs:
         # product the iOS build above produced, so that build comes first.
         run: |
           cd Mobile
+          # `errexit` would abort the step AT the `| tee` line, one line
+          # before the log could be read, so the status is captured with
+          # errexit off and the verdict is decided below.
+          set +e
           swift test 2>&1 | tee /tmp/wenshu-mobile-test.log
-          TEST_LINE=$(grep "Test run" /tmp/wenshu-mobile-test.log | tail -1)
-          echo "## client: $TEST_LINE" >> $GITHUB_STEP_SUMMARY
-          if echo "$TEST_LINE" | grep -q "failed"; then
-            echo "Client tests failed — see log"
+          TEST_STATUS=${PIPESTATUS[0]}
+          set -e
+          # Every target's summary is read (= the same reason as the desktop
+          # job's step: the target that fails is not the last one).
+          TEST_LINES=$(grep "Test run with" /tmp/wenshu-mobile-test.log || true)
+          if [ -z "$TEST_LINES" ]; then
+            echo "No 'Test run with' summary in the log (= the test run did not complete)"
             exit 1
           fi
+          {
+            echo "## client: $TEST_LINES"
+          } >> $GITHUB_STEP_SUMMARY
+          if [ "$TEST_STATUS" -ne 0 ] || echo "$TEST_LINES" | grep -q "failed"; then
+            echo "Client tests failed (swift test exit $TEST_STATUS) — see log"
+            echo "$TEST_LINES" | grep "failed" || true
+            exit 1
+          fi
+          echo "All client test targets passed"
 
       - name: Design sweep (the client)
         # The sweep's own default file list is `git diff main...HEAD`, and
