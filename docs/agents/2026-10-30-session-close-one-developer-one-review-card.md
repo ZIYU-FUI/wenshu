@@ -746,8 +746,8 @@ the run's METADATA (= the gate reads the field, not the summary).
 `bash Scripts/merge-preflight.sh main` reads **CLEAN**.
 
 **AND THE VERDICT CAME AFTER ROUNDS OF REAL DEFECTS**, each one found
-by the reviewer and each one fixed in its own commit. The three rounds
-on the tree this verdict covers:
+by the reviewer and each one fixed in its own commit. The rounds on the
+tree this verdict covers:
 
 1. `t_7b68d0ee` (on `974b6fb45a`) found that the per-interpreter case
    imported the gate from a HARDCODED path (= it measured a different
@@ -758,8 +758,9 @@ on the tree this verdict covers:
 2. `t_1b85c62c` (on `c3eace3839`) found the same hardcoded checkout
    SURVIVING in the gate's OTHER reader of the loader's package (= the
    frontmatter reader), so the gate still asked one fixed place where
-   the loader lives. Fixed in the same tree, by asking the interpreters
-   the same way the cap reader does.
+   the loader lives. Fixed in `03f863734f` (= the frontmatter reader
+   asks for the loader's package too), whose own message says the
+   previous fix closed the split only halfway.
 3. `t_f22b3869` (on `93d3f1f18a`) found that the new case never
    asserted WHICH LINK answered (= the reader's in-process branch or its
    subprocess one), so it could pass while the link it named was never
