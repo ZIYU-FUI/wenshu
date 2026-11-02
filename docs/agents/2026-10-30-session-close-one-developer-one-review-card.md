@@ -569,6 +569,26 @@ now the LATER verdict first, with the group as the tie-break.
 **AND A SECOND PIECE OF DEAD CODE** (`PATH_PREFIXES` in
 `agents_gate.py`, whose only occurrence was its own assignment).
 
+**AND THEN THE REVIEW FOUND THE CASE NEVER EXERCISED THE GATE'S
+SUBPROCESS FALLBACK.** The gate's reader has two branches: it asks the
+loader's package IN-PROCESS when that package is importable, and it
+falls back to a SUBPROCESS when it is not. Every interpreter the gate
+would use can import that package, so every case ran the IN-PROCESS
+branch and the subprocess branch was NEVER exercised = a defect in it
+was invisible. Measured: with the subprocess branch restored to fall
+through to a lax parser, the suite stayed **116/116 green** (= the
+fail-open was NOT caught), while the same gate under `python3 -E -s`
+(= the loader's package not importable, so the subprocess branch IS
+taken) answered **400,000** where the loader answers 49,152.
+
+So the case now runs the gate with the loader's package made
+unimportable, and compares with the loader's own answer (= six more
+cases, 122 in all).
+
+**A BRANCH NO CASE EXERCISES IS A BRANCH NO CASE CAN SEE.** The suite's
+green was true of the branch it ran, and silent about the branch it did
+not.
+
 The audit also CLEARED two hypotheses it could not reproduce: the
 identity collision from the `diff --git ` marker split (= a content line
 beginning with that marker would be cut into a fake section, but no two

@@ -295,7 +295,7 @@ def main() -> int:
     #     So the cases ask for the cap under a fixture HOME whose config
     #     carries each shape, and compare it with the LOADER's own answer.
     with tempfile.TemporaryDirectory() as tmp:
-        _shape_no = [0, 0, 0]
+        _shape_no = [0, 0, 0, 0]
 
         def cap_under(config_text: str) -> int:
             # A FRESH home per shape: the loader keeps the LAST KNOWN GOOD
@@ -427,6 +427,68 @@ def main() -> int:
             results.append(
                 case(
                     f"the gate and the loader agree on {label}",
+                    loader_cap is not None and gate_cap == loader_cap,
+                    f"the gate says {gate_cap}, the loader says {loader_cap}",
+                )
+            )
+
+        # THE SUBPROCESS FALLBACK, WHICH EVERY OTHER CASE MISSES.
+        #
+        # The gate's reader has two branches: it asks the loader's
+        # package IN-PROCESS when that package is importable, and it
+        # falls back to a SUBPROCESS when it is not. Every interpreter
+        # the gate would use can import that package, so every case
+        # above ran the IN-PROCESS branch, and the subprocess branch was
+        # NEVER EXERCISED = a defect in it was invisible.
+        #
+        # Measured 2026-11-01: with the subprocess branch restored to
+        # fall through to a lax parser, the suite stayed 116/116 green
+        # (= the fail-open was not caught), while the same gate under
+        # `python3 -E -s` (= the loader's package NOT importable, so the
+        # subprocess branch IS taken) answered 400,000 where the loader
+        # answers 49,152.
+        #
+        # So the case runs the gate with the loader's package made
+        # unimportable, and compares with the loader's own answer.
+        def gate_cap_without_the_package(config_text: str) -> int | None:
+            home = Path(tmp) / f"subproc-home-{_shape_no[3]}"
+            _shape_no[3] += 1
+            home.mkdir()
+            (home / "config.yaml").write_text(config_text, encoding="utf-8")
+            script = (
+                "import sys;sys.path.insert(0," + repr(str(TOOL.parent)) + ");"
+                "import agents_gate as ag;"
+                "print(ag.effective_context_file_cap()[0])"
+            )
+            previous = os.environ.get("HERMES_HOME")
+            os.environ["HERMES_HOME"] = str(home)
+            try:
+                proc = subprocess.run(
+                    [sys.executable, "-E", "-s", "-c", script],
+                    capture_output=True, text=True, timeout=120,
+                    env={k: v for k, v in os.environ.items() if k != "PYTHONPATH"},
+                )
+            except (OSError, subprocess.SubprocessError):
+                return None
+            finally:
+                if previous is None:
+                    os.environ.pop("HERMES_HOME", None)
+                else:
+                    os.environ["HERMES_HOME"] = previous
+            if proc.returncode != 0:
+                return None
+            try:
+                return int(proc.stdout.strip().splitlines()[-1])
+            except (ValueError, IndexError):
+                return None
+
+        for label, config_text in shapes:
+            gate_cap = gate_cap_without_the_package(config_text)
+            loader_cap = loader_cap_under(config_text)
+            results.append(
+                case(
+                    f"the gate's SUBPROCESS branch and the loader agree "
+                    f"on {label}",
                     loader_cap is not None and gate_cap == loader_cap,
                     f"the gate says {gate_cap}, the loader says {loader_cap}",
                 )
