@@ -23,13 +23,17 @@ import WenshuAgent
 @Suite("ToolRegistry production trigger")
 struct ToolRegistryProductionTriggerTests {
 
-    /// How long the probe waits for the registrations to land.
+    /// Upper bound on the wait for the registrations to land.
     ///
-    /// Each registration is scheduled on a background task, so the
-    /// registry fills asynchronously after the install hook runs. A
-    /// fixed sleep tuned for an idle run loses the race under load.
-    private static let settleTimeoutMs: UInt64 = 5_000
-    private static let settlePollMs: UInt64 = 20
+    /// This is a safety net against a registration that never happens
+    /// (= a hang), NOT the wait's budget: the wait ends as soon as the
+    /// registrations land. Each registration is scheduled on a
+    /// background task, so the registry fills asynchronously after the
+    /// install hook runs, and how long that takes depends on what else
+    /// the process is doing. A fixed sleep tuned for an idle run loses
+    /// the race under load; waiting on the registration itself does
+    /// not.
+    private static let settleCeiling: Duration = .seconds(60)
 
     /// The app's install hook registers the whole catalogue, and the
     /// production chat path hands the model a non-empty schema set.
@@ -42,26 +46,21 @@ struct ToolRegistryProductionTriggerTests {
         // The first read of the shared registry runs the installed hook.
         let registry = ToolRegistry.shared
 
-        // Poll until every catalogue name has been seen registered, or
-        // the window closes. A name counts as registered once the
-        // trigger fired for it: another suite in this process may
-        // deregister its own marker afterwards, and that says nothing
-        // about whether the production trigger ran.
-        let deadline = ContinuousClock.now.advanced(
-            by: .milliseconds(Int64(Self.settleTimeoutMs))
+        // Wait until every catalogue name has landed. A name counts as
+        // registered once the trigger fired for it: another suite in
+        // this process may deregister its own marker afterwards, and
+        // that says nothing about whether the production trigger ran.
+        let catalogue = Set(ToolCatalogue.names)
+        let landed = await registry.awaitRegistration(
+            of: catalogue,
+            ceiling: Self.settleCeiling
         )
-        var seen = Set<String>()
-        while ContinuousClock.now < deadline {
-            seen.formUnion(await registry.getAllToolNames())
-            if Set(ToolCatalogue.names).isSubset(of: seen) { break }
-            try? await Task.sleep(nanoseconds: Self.settlePollMs * 1_000_000)
-        }
 
         let registered = await registry.getAllToolNames()
         print("REGISTERED count=\(registered.count) names=\(registered.joined(separator: ","))")
-        let missing = Set(ToolCatalogue.names).subtracting(seen)
+        let missing = catalogue.subtracting(registered)
         #expect(
-            missing.isEmpty,
+            landed,
             "these tools never registered through the production trigger: \(missing.sorted())"
         )
 

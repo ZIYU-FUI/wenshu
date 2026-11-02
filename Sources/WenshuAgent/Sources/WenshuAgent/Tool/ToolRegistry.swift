@@ -46,6 +46,9 @@ public actor ToolRegistry {
     private var _generation: Int = 0
     /// Last-register error message (= tests inspect this; nil = clean).
     private var _lastRegisterError: String?
+    /// Callers waiting for tool names to land (= see
+    /// `awaitRegistration(of:ceiling:)`).
+    private var _registrationWaiters: [RegistrationWaiter] = []
 
     // MARK: - Init
 
@@ -116,6 +119,10 @@ public actor ToolRegistry {
             maxResultSizeChars: maxResultSizeChars
         )
         _generation += 1
+        // A waiter may be blocked on this name (= the tool files
+        // schedule their registration, so the caller that needs it
+        // waits here rather than on a clock).
+        wakeRegistrationWaiters()
     }
 
     /// Last error message from `register()` (= tests inspect; nil =
@@ -236,6 +243,124 @@ public actor ToolRegistry {
     /// Total number of registered tools (= hermes `len(_tools)`).
     public func count() -> Int {
         _tools.count
+    }
+
+    // MARK: - Awaitable registration
+
+    /// Suspend until every name in `names` has landed in the registry.
+    ///
+    /// The app's tool files schedule their registration as a `Task`, so
+    /// how long it takes to land depends on what else the process is
+    /// doing. A caller that waits on a clock decides its verdict from
+    /// the machine's load; a caller that waits here decides it from the
+    /// code: the wait ends the moment the last name lands.
+    ///
+    /// Returns `true` when every name landed, `false` when `ceiling`
+    /// elapsed first.
+    ///
+    /// `ceiling` is a safety net against a registration that never
+    /// happens (= a hang), NOT the wait's budget: a wait that is long
+    /// because the machine is busy still ends as soon as the
+    /// registration lands.
+    @discardableResult
+    public func awaitRegistration(
+        of names: Set<String>,
+        ceiling: Duration = .seconds(60)
+    ) async -> Bool {
+        guard !names.isEmpty else {
+            return true
+        }
+        if names.subtracting(Set(_tools.keys)).isEmpty {
+            return true
+        }
+
+        let waiter = RegistrationWaiter(names: names)
+        _registrationWaiters.append(waiter)
+
+        // A registration may have landed between the check above and the
+        // append, so re-check before suspending.
+        if names.subtracting(Set(_tools.keys)).isEmpty {
+            _registrationWaiters.removeAll { $0 === waiter }
+            return true
+        }
+
+        let expiration = Task { [weak self] in
+            try? await Task.sleep(for: ceiling)
+            await self?.expireRegistrationWaiter(waiter)
+        }
+        defer { expiration.cancel() }
+
+        let landed = await withCheckedContinuation { continuation in
+            waiter.install(continuation)
+        }
+        _registrationWaiters.removeAll { $0 === waiter }
+        return landed
+    }
+
+    /// Cut a wait short (= the ceiling elapsed before the names landed).
+    private func expireRegistrationWaiter(_ waiter: RegistrationWaiter) {
+        _registrationWaiters.removeAll { $0 === waiter }
+        waiter.resume(outcome: false)
+    }
+
+    /// Resume every waiter whose names have all landed.
+    private func wakeRegistrationWaiters() {
+        guard !_registrationWaiters.isEmpty else { return }
+        let registered = Set(_tools.keys)
+        var landed: [RegistrationWaiter] = []
+        _registrationWaiters.removeAll { waiter in
+            if waiter.names.subtracting(registered).isEmpty {
+                landed.append(waiter)
+                return true
+            }
+            return false
+        }
+        for waiter in landed {
+            waiter.resume(outcome: true)
+        }
+    }
+}
+
+// MARK: - RegistrationWaiter
+
+/// A caller waiting for a set of tool names to land.
+///
+/// The registration and the ceiling both try to resume the waiter, so
+/// the guard makes exactly one of them win (= a double resume of a
+/// continuation traps).
+private final class RegistrationWaiter: @unchecked Sendable {
+    let names: Set<String>
+
+    private let lock = NSLock()
+    private var continuation: CheckedContinuation<Bool, Never>?
+    private var outcome = false
+    private var resumed = false
+
+    init(names: Set<String>) {
+        self.names = names
+    }
+
+    /// Install the continuation, or resume it at once when the waiter
+    /// was already resumed (= the names landed before the wait began).
+    func install(_ continuation: CheckedContinuation<Bool, Never>) {
+        lock.lock()
+        defer { lock.unlock() }
+        if resumed {
+            continuation.resume(returning: outcome)
+        } else {
+            self.continuation = continuation
+        }
+    }
+
+    /// Resume the waiter (= exactly once; the first caller wins).
+    func resume(outcome: Bool) {
+        lock.lock()
+        defer { lock.unlock() }
+        guard !resumed else { return }
+        resumed = true
+        self.outcome = outcome
+        continuation?.resume(returning: outcome)
+        continuation = nil
     }
 }
 

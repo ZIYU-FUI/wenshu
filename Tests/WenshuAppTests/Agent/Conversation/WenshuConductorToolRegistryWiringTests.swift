@@ -307,15 +307,14 @@ struct WenshuConductorToolRegistryWiringTests {
     /// cooperative pool gets to it. A test that shadows a production name
     /// must wait for the production entry first, or its cleanup removes a
     /// tool the rest of the process depends on.
+    ///
+    /// The wait is on the registration itself (= the registry resumes the
+    /// waiter when the name lands), so it does not shorten under load.
     private static func awaitRegistration(
         of name: String,
         in registry: ToolRegistry
     ) async -> ToolEntry? {
-        let deadline = ContinuousClock.now.advanced(by: .seconds(10))
-        while ContinuousClock.now < deadline {
-            if let entry = await registry.getEntry(name: name) { return entry }
-            try? await Task.sleep(nanoseconds: 20_000_000)
-        }
+        await registry.awaitRegistration(of: [name], ceiling: .seconds(60))
         return await registry.getEntry(name: name)
     }
 

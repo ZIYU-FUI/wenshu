@@ -81,33 +81,38 @@ struct ToolRegistryEndToEndTests {
         "web"              // Core/Tools/WebTools.swift
     ]
 
-    /// Upper bound on how long to wait for the module-load registrations to
-    /// land. Each `_registryBootstrap` schedules its `Task { await … }` on the
-    /// cooperative pool, so how long that takes depends on what else the
-    /// process is doing. A fixed sleep tuned for an idle run is too short when
-    /// the whole suite runs in parallel — `kanban` and `todo` were the two that
-    /// lost the race, every time. Poll instead of sleeping once.
-    private static let settleTimeoutMs: UInt64 = 5_000
-    private static let settlePollMs: UInt64 = 20
+    /// Upper bound on how long to wait for the module-load registrations
+    /// to land.
+    ///
+    /// This is a safety net against a registration that never happens
+    /// (= a hang), NOT the wait's budget: the wait ends as soon as the
+    /// registrations land. Each `_registryBootstrap` schedules its
+    /// `Task { await … }` on the cooperative pool, so how long that
+    /// takes depends on what else the process is doing — a wait tuned
+    /// for an idle run is too short when the whole suite runs in
+    /// parallel, and `kanban` and `todo` were the two that lost the
+    /// race, every time. Waiting on the registration itself (= the
+    /// registry resumes the waiter when the name lands) makes the
+    /// verdict the same at any load.
+    private static let settleCeiling: Duration = .seconds(60)
 
-    /// Waits until every expected tool has a handler, then returns the names
-    /// still missing (empty = settled). FAILURE MODE: returns the missing set
-    /// rather than trapping, so the assertion reports which tools did not land.
+    /// Waits until every expected tool has a handler, then returns the
+    /// names still missing (empty = settled). FAILURE MODE: returns the
+    /// missing set rather than trapping, so the assertion reports which
+    /// tools did not land.
     private static func awaitSettledRegistration() async -> [String] {
-        var missing = expectedToolNames
-        let deadline = ContinuousClock.now.advanced(
-            by: .milliseconds(Int64(settleTimeoutMs))
+        let landed = await ToolRegistry.shared.awaitRegistration(
+            of: Set(expectedToolNames),
+            ceiling: settleCeiling
         )
-        while ContinuousClock.now < deadline {
-            var stillMissing: [String] = []
-            for name in missing {
-                if await ToolRegistry.shared.getHandler(name: name) == nil {
-                    stillMissing.append(name)
-                }
+        if landed {
+            return []
+        }
+        var missing: [String] = []
+        for name in expectedToolNames {
+            if await ToolRegistry.shared.getHandler(name: name) == nil {
+                missing.append(name)
             }
-            if stillMissing.isEmpty { return [] }
-            missing = stillMissing
-            try? await Task.sleep(nanoseconds: settlePollMs * 1_000_000)
         }
         return missing
     }
@@ -151,7 +156,7 @@ struct ToolRegistryEndToEndTests {
         // warmup window).
         let unsettled = await Self.awaitSettledRegistration()
         #expect(unsettled.isEmpty,
-                "tools never registered within 5s: \(unsettled)")
+                "tools never registered: \(unsettled)")
 
         for toolName in Self.expectedToolNames {
             let handler = await ToolRegistry.shared.getHandler(name: toolName)
@@ -170,7 +175,7 @@ struct ToolRegistryEndToEndTests {
         Self.triggerAllToolBootstraps()
         let unsettled = await Self.awaitSettledRegistration()
         #expect(unsettled.isEmpty,
-                "tools never registered within 5s: \(unsettled)")
+                "tools never registered: \(unsettled)")
 
         let requested = Set(Self.expectedToolNames)
         let definitions = await ToolRegistry.shared.getDefinitions(toolNames: requested)
@@ -209,7 +214,7 @@ struct ToolRegistryEndToEndTests {
         Self.triggerAllToolBootstraps()
         let unsettled = await Self.awaitSettledRegistration()
         #expect(unsettled.isEmpty,
-                "tools never registered within 5s: \(unsettled)")
+                "tools never registered: \(unsettled)")
 
         let tools = await WenshuConductor.buildTools(from: ToolRegistry.shared)
         #expect(
