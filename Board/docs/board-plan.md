@@ -64,14 +64,23 @@ exists.
 | A drag gesture | `.draggable` / `.dropDestination` | — |
 | Rich text in a card | `SwiftUI.TextEditor` | — |
 | Generated imagery | `ImagePlayground.imagePlaygroundSheet` | `ImageCreator` is **deprecated in 27.0** (= this client's floor), so the programmatic path is out |
-| A canvas | `SwiftUICore.Canvas` | **`PKCanvasView` is not in the macOS SDK at all.** PencilKit ships the drawing data model and not the canvas view |
+| A canvas | `SwiftUICore.Canvas` + `MagnifyGesture` + `DragGesture` + `ScrollGeometry` + `zIndex` | **`PKCanvasView` is not in the macOS SDK at all**, and macOS 27 adds no infinite canvas of its own. PencilKit ships the drawing data model and not the canvas view |
 | Icons | SF Symbols 6 | The desktop app's icon factory is in the app target and is **not consumable** |
 
 Two consequences for this client:
 
-- **No canvas in the first release.** The canvas would be hand-rolled on
-  `SwiftUICore.Canvas`, which is a real cost, and a chapter list does not need
-  one. The list regime plus the order key delivers the chapter use case.
+- **The canvas is hand-rolled, and that is the point.** Apple ships the
+  pieces and not the product: there is no public infinite canvas on macOS, and
+  the reference's own canvas is private classes. The client builds it from
+  `SwiftUICore.Canvas`, `MagnifyGesture`, `DragGesture`, `ScrollGeometry`,
+  `zIndex` and `drawingGroup`. The arithmetic that matters is the viewport,
+  and it is a pure function, so it is testable without a window.
+
+  The first slice of it exists: `BoardViewport` + `BoardCanvasView`, with an
+  offscreen `ImageRenderer` proof that renders the canvas into a bitmap with
+  no window and no human. The model needed no change to carry it — the
+  section already decides which regime reads which field of the position, so
+  the canvas is a **view**, not a data migration.
 - **The client needs its own design layer.** The desktop app's `SFIcon`,
   `DesignTokens`, `IconStyle` and `IconColor` live in
   `Sources/WenshuApp/Shared/UI/`, which is the app target. Either the tokens
@@ -85,8 +94,11 @@ Two consequences for this client:
   a card is a chapter's content block.
 - **The LLM authoring.** Milanote has no model for it. The generation view is
   Wenshu's own; Milanote contributes the container shape only.
-- **The canvas regime.** `gridSize`, collision reflow, z-order, locked
-  position, 3D drag effects. Expensive, and not needed for chapters.
+- **The canvas regime's expensive extras.** The regime itself is borrowed;
+  these parts of it are not: collision reflow (cards that push each other when
+  one grows), locked position, the 3D drag effects, the connector mode, and
+  the per-board brush and shape settings. The dot grid and the z-order are
+  borrowed.
 - **`attrs.key`.** Every block in Milanote's ProseMirror document carries a
   short random id, because ProseMirror needs a node identity to reconcile a
   re-parse. Wenshu's text is Markdown, and Markdown does not need it. Copying
@@ -150,6 +162,7 @@ decision that shapes the client's architecture. Two ways to honour it:
 | 1 | The model: the envelope, the kinds, the placement regimes, the order key, the file reader, the join. | Done, in the first commit. It is the whole reference model with no UI on it. |
 | 2 | A real library connection: open a `.ws`, list its books, read a chapter, show its cards. | Depends on the writer rule (§8). |
 | 3 | The card view: one chapter as a column, cards that can be selected, moved and reordered. | A UI slice; the boss looks at it in person. |
+| 3a | The canvas: the viewport arithmetic, the pan and the zoom, the dot grid, the z-order, the cull. | The core of the reference's canvas, built from the public pieces. Its arithmetic is proven by the viewport tests and by the offscreen render. |
 | 4 | A card's own lifecycle: a status, an attempt, an error, and a row per card. | A persistence slice; it needs the shared model layer, so it decides §4's design-layer question. |
 | 5 | The generation view: `ImagePlayground` for imagery, the agent for text, into a card. | Depends on 3 and 4. |
 
@@ -163,8 +176,11 @@ decision that shapes the client's architecture. Two ways to honour it:
    two places; a projection cannot.
 4. Does the chapter's body stay the source of truth, or do the cards become it?
    The second is a non-additive change and needs a declared schema version.
-5. Which of Freeform's board settings carry over: the dot grid, the connector
-   mode, the shape library, the brush set?
+5. Which of Freeform's board settings carry over: the dot grid (taken), the
+   connector mode, the shape library, the brush set?
+6. Does the board open in the list regime or the canvas regime by default, and
+   does a chapter keep both? Milanote's board holds both at once (a section
+   decides which), so the client can too.
 
 ## 11. The measured facts behind this plan
 

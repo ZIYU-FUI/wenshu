@@ -15,9 +15,28 @@ import WenshuBoardKit
 
 @main
 struct WenshuBoardApp: App {
+
+    init() {
+        // The proof path renders the canvas into a bitmap and leaves. It is
+        // how a geometry claim gets looked at without a human and a window.
+        if let directory = RenderProof.requestedDirectory() {
+            RenderProof.write(to: directory)
+            exit(0)
+        }
+    }
+
     var body: some Scene {
         WindowGroup {
-            BoardColumnView(column: BoardColumn.demo)
+            TabView {
+                BoardCanvasView(elements: BoardCanvasDemo.elements)
+                    .tabItem {
+                        Label("Canvas", systemImage: "square.grid.2x2")
+                    }
+                BoardColumnView(column: BoardColumn.demo)
+                    .tabItem {
+                        Label("Column", systemImage: "rectangle.stack")
+                    }
+            }
         }
         .defaultSize(width: 960, height: 720)
     }

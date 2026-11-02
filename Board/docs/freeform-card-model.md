@@ -147,6 +147,48 @@ Checked in the installed SDK (`MacOSX27.2.sdk`), because the rule is to quote a 
 
 Wenshu's floor is `platforms: [.macOS(.v27)]` (Package.swift), so every row above is available with no availability gate — except where noted.
 
+### 3.1 The infinite canvas: the pieces, and the product Apple does not ship
+
+The question "Apple has not opened it, so can we write one" was answered by
+reading the SDK, not by remembering it.
+
+| Piece | Symbol | Verified fact |
+| --- | --- | --- |
+| The drawing surface | `SwiftUICore.Canvas` | `nonisolated public struct Canvas<Symbols> : ~Sendable where Symbols : SwiftUICore::View`; `init(opaque:colorMode:rendersAsynchronously:renderer:symbols:)`; the renderer receives `inout GraphicsContext` and `CGSize`. It is a drawing surface, not a pan-and-zoom plane. |
+| The zoom gesture | `MagnifyGesture` | `nonisolated public struct MagnifyGesture : SwiftUICore.Gesture, ~Swift::Sendable`; `Value.magnification: CGFloat`, `Value.time: Date` |
+| The pan gesture | `DragGesture` | `public struct DragGesture : SwiftUICore.Gesture, ~Swift::Sendable` |
+| The viewport | `ScrollGeometry` | `public struct ScrollGeometry : Swift::Equatable, Swift::Sendable` with `contentOffset`, `contentSize`, `contentInsets`, `containerSize`, `visibleRect`; read by `onScrollGeometryChange(for:of:action:)` |
+| The layer order | `zIndex(_:)` | `nonisolated public func zIndex(_ value: Swift::Double) -> some SwiftUICore.View` |
+| The offscreen composite | `drawingGroup(opaque:colorMode:)` | `nonisolated public func drawingGroup(opaque: Swift::Bool = false, colorMode: SwiftUICore.ColorRenderingMode = .nonLinear) -> some SwiftUICore.View` |
+| **The infinite canvas** | **none** | There is no public infinite-canvas view on macOS, and macOS 27 adds none: the only 2025+ canvas-shaped symbols in `SwiftUICore` are visionOS's `onWorldRecenter` and `WorldScalingBehavior`, which are not macOS. |
+
+**What Freeform does with the pieces.** Freeform links Metal and PencilKit
+(§2.6) and builds its canvas out of private `CRL*` classes —
+`CRLCanvasItemView`, `CRLCanvasView` — with `CRLPKDrawingProvider` supplying
+the ink. None of that is public, so none of it can be borrowed; only the
+vocabulary can.
+
+**So the client writes it**, and the write is this shape:
+
+1. A world coordinate space and a viewport that maps it to the screen: a
+   scale and an offset (`BoardViewport`).
+2. The items placed in the world, and the world layer scaled and offset as one
+   transform, so the items keep their positions relative to each other and
+   SwiftUI hit tests them in the transformed space for free.
+3. The zoom **computed, not applied**: a zoom that keeps the world point under
+   the anchor under the anchor (`zoomed(to:about:)`).
+4. The cull: an item off screen is neither drawn nor hit tested
+   (`visibleWorldRect(in:)`, `isVisible(_:in:)`).
+5. The dot grid drawn in world space, so it scales with the board (`Canvas`
+   plus `GraphicsContext`).
+
+The arithmetic is a pure function, so it is proven by tests that need no
+window, and the whole view is proven by an offscreen `ImageRenderer` render: a
+bitmap, with no window and no human in it.
+
+**Still not borrowed:** the collision reflow, the locked position, the 3D drag
+effects, the connector mode.
+
 ### 16.1 The consequence for the content generation view
 
 `ImageCreator` is the programmatic path and it is **deprecated on Wenshu's own floor**. So the canonical route is the sheet (SwiftUI) or `ImagePlaygroundViewController` (AppKit), and the generated image arrives as a **file URL** (`onCompletion: @escaping (URL) -> Void`), not as a `CGImage`.
