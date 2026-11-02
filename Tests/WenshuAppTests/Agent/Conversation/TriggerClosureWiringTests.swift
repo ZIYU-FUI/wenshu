@@ -68,12 +68,20 @@ struct TriggerClosureWiringTests {
         let allNames = await registry.getAllToolNames()
         #expect(allNames.count >= 1,
                 "ToolRegistry.shared should have at least one registered tool in the test process (got \(allNames.count))")
-        let tools = WenshuConductor.buildToolsSync(from: registry)
-        let reachableDefaults = await WenshuConductor.defaultToolNames.filter { name in
-            tools[name] != nil
+        // The tool cache is process-wide, and its cold path hands the
+        // first caller in the process an empty dict while the fill
+        // lands on a detached task. So this suite's verdict depended on
+        // whether another suite had already warmed the cache. A cache of
+        // its own (= filled here, before the assertion) makes the
+        // verdict the same whatever order the suites run in.
+        await WenshuConductor.withToolCacheForTesting(from: registry) {
+            let tools = WenshuConductor.buildToolsSync(from: registry)
+            let reachableDefaults = await WenshuConductor.defaultToolNames.filter { name in
+                tools[name] != nil
+            }
+            #expect(!reachableDefaults.isEmpty,
+                    "buildTools must surface at least one default-name handler when the shared registry has it (reachable: \(reachableDefaults))")
         }
-        #expect(!reachableDefaults.isEmpty,
-                "buildTools must surface at least one default-name handler when the shared registry has it (reachable: \(reachableDefaults))")
     }
 
     @Test("activeLLMConnector never returns nil and honours an explicit slug")
