@@ -26,12 +26,6 @@ import WenshuAgent
 @Suite("OllamaConnector (§11.2 gap-fill)", .serialized)
 struct OllamaConnectorTests {
 
-    init() {
-        // 
-        // to avoid cross-suite races on `ProviderKeychain.backend`.
-        ProviderKeychain.setBackendForTesting(InMemoryKeychainStore())
-    }
-
     @Test("OllamaConnector.connectorID == 'ollama' (per AGENTS.md §11.2 profile slug)")
     func testConnectorIDIdentity() async throws {
         let connector = OllamaConnector()

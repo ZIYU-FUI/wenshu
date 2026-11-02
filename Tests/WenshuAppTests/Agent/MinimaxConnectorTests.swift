@@ -27,12 +27,6 @@ import WenshuAgent
 @Suite("MinimaxConnector (ticket 001 sub-step 7)", .serialized)
 struct MinimaxConnectorTests {
 
-    init() {
-        // 
-        // to avoid cross-suite races on `ProviderKeychain.backend`.
-        ProviderKeychain.setBackendForTesting(InMemoryKeychainStore())
-    }
-
     // MARK: - Test 1: Build Anthropic-compatible request body
 
     @Test("Build Anthropic-compatible request body with x-api-key + anthropic-version headers")

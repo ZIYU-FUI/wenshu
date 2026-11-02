@@ -14,16 +14,6 @@ import WenshuAgent
 @Suite("OpenAIConnector (ticket 005)", .serialized)
 struct OpenAIConnectorTests {
 
-    init() {
-        // 
-        // each test starts with a clean in-memory backend so the
-        // OpenAICompatibleConnector tests don't race against
-        // DeepSeekConnectorTests / OllamaConnectorTests etc. on the
-        // shared `ProviderKeychain.backend` global var when Swift
-        // Testing runs multiple suites concurrently.
-        ProviderKeychain.setBackendForTesting(InMemoryKeychainStore())
-    }
-
     @Test("OpenAI native: Bearer auth + Authorization header")
     func testOpenAINativeAuth() async throws {
         let (stub, stubProtocolClass) = URLProtocolStub.makeIsolatedStub()

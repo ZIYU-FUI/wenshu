@@ -150,8 +150,13 @@ struct UnsignedKeychainPromptTests {
 
     @Test("a test run never resolves to a store that touches the keychain")
     func testProcessNeverResolvesToKeychainStore() {
+        // A test process resolves to the write-proof backend, which holds
+        // nothing and refuses every write. It never touches the keychain,
+        // which is what this test protects: a keychain prompt is a modal
+        // dialog on someone's screen, and nothing else in the suite would
+        // notice it.
         let backend = ProviderKeychain.resolveBackend()
-        #expect(backend is InMemoryKeychainStore)
+        #expect(backend is WriteProofKeychainStore)
         #expect(!(backend is AppleKeychainStore))
         #expect(!(backend is MirroredKeychainStore))
     }

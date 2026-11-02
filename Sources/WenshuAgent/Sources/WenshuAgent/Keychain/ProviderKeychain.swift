@@ -236,6 +236,65 @@ public final class AppleKeychainStore: ProviderKeychainStoring, @unchecked Senda
     }
 }
 
+/// Test backend — every write fails, loudly, in a test process.
+///
+/// The process-global backend is shared by every suite in the test process,
+/// so a suite that writes into it hands its key to whichever suite runs next.
+/// The text guard in `ProviderKeychainTests` stops the SPELLINGS of a write,
+/// but a write that arrives under a name the guard does not know, or a public
+/// write that sits outside a `withBackendForTesting` scope, still reaches
+/// the shared store.
+///
+/// This backend closes the door from the other side: the write itself fails,
+/// and the failure names the call that made it. It does not care how the call
+/// was spelled, so it covers every door the text rules miss.
+///
+/// Its reads return nothing, because there is nothing to read: a test that
+/// wants to read a key installs a scoped store with `withBackendForTesting`.
+public final class WriteProofKeychainStore: ProviderKeychainStoring, @unchecked Sendable {
+    /// The error every write raises.
+    ///
+    /// It names the call and the provider, so the suite that made the write
+    /// fails AT the write with a message that says what it did.
+    public struct WriteRefused: Error, CustomStringConvertible, Equatable {
+        public let call: String
+        public let provider: String
+
+        public var description: String {
+            "the process-global keychain backend refuses writes in a test process: "
+                + "\(call) was called for provider '\(provider)'. "
+                + "Install a scoped store with ProviderKeychain.withBackendForTesting(_:perform:) "
+                + "so the write stays inside this task."
+        }
+    }
+
+    public init() {}
+
+    public func saveKeySync(_: String, for provider: Provider) throws {
+        throw WriteRefused(call: "saveKeySync", provider: provider.slug)
+    }
+
+    public func loadKeySync(for _: Provider) -> String? {
+        nil
+    }
+
+    public func deleteKeySync(for provider: Provider) throws {
+        throw WriteRefused(call: "deleteKeySync", provider: provider.slug)
+    }
+
+    public func listProvidersWithKeys() -> [String] {
+        []
+    }
+
+    public func loadMetadata(for _: Provider) -> ProviderKeychainMetadata? {
+        nil
+    }
+
+    public func saveMetadata(_: ProviderKeychainMetadata, for provider: Provider) throws {
+        throw WriteRefused(call: "saveMetadata", provider: provider.slug)
+    }
+}
+
 /// Test backend — in-memory dict, no OS Keychain entitlements required.
 /// Mirrors AppleKeychainStore public API (save / load / delete / list).
 public final class InMemoryKeychainStore: ProviderKeychainStoring, @unchecked Sendable {
@@ -377,10 +436,12 @@ public enum ProviderKeychain {
             // provider. The grant would not survive either, because an
             // ad-hoc signature changes with every build.
             //
-            // The in-memory store is used rather than the file store, so
-            // a test that saves a key cannot overwrite the key the
-            // developer configured.
-            return InMemoryKeychainStore()
+            // The store refuses every write, so a test that saves a key
+            // without a scope fails AT the write instead of handing its
+            // key to whichever suite runs next. A test that wants to
+            // write installs a scoped store with `withBackendForTesting`,
+            // which the write-proof backend does not see.
+            return WriteProofKeychainStore()
         }
         if UserDefaults.standard.bool(forKey: "wenshu.debugNoKeychain") {
             // The file store, not the in-memory one: the point of this
