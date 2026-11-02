@@ -747,14 +747,18 @@ the run's METADATA (= the gate reads the field, not the summary).
 
 **AND THE VERDICT CAME AFTER ROUNDS OF REAL DEFECTS**, each one found
 by the reviewer and each one fixed in its own commit. The rounds on the
-tree this verdict covers:
+tree this verdict covers (= the three defect rounds, and then the card
+that approved them):
 
 1. `t_7b68d0ee` (on `974b6fb45a`) found that the per-interpreter case
    imported the gate from a HARDCODED path (= it measured a different
-   file than the tree under test) and that three mutations went
-   uncaught. Fixed in `c3eace3839`: the case now imports the gate from
-   the tree it is testing (`TOOL.parent`), and the oracle runs in the
-   same interpreter as the subject.
+   file than the tree under test), and that TWO of its three mutations
+   went uncaught (= the in-process lax link and the `_pinned_cap`
+   revert; the subprocess lax link went red at 115/116), while the
+   in-process BRANCH was never reached at all. Fixed in `c3eace3839`:
+   the case now imports the gate from the tree it is testing
+   (`TOOL.parent`), and the oracle runs in the same interpreter as the
+   subject.
 2. `t_1b85c62c` (on `c3eace3839`) found the same hardcoded checkout
    SURVIVING in the gate's OTHER reader of the loader's package (= the
    frontmatter reader), so the gate still asked one fixed place where
@@ -769,11 +773,12 @@ tree this verdict covers:
    `302dbe6f34`: the reader names its refusals (`rejected-in-process` /
    `rejected-subprocess`), the case ASSERTS the link and PROVES its
    precondition, and the record says what holds.
-4. `t_e4ced51a` (on `302dbe6f34`) confirmed both by mutation: the
-   takeover mutation makes the child report `in-process` and takes the
-   suite to **117/123** (= red on exactly the six subprocess cases), and
-   a lax fall-through inside the subprocess link takes the duplicate-key
-   case red.
+**AND THEN THE CARD THAT APPROVED THEM.** `t_e4ced51a` (on
+`302dbe6f34`) confirmed both by mutation: the takeover mutation makes
+the child report `in-process` and takes the suite to **117/123** (= red
+on exactly the six subprocess cases), and a lax fall-through inside the
+subprocess link takes the duplicate-key case red. It found nothing and
+fixed nothing (= it is the approval, not a defect round).
 
 **AND THE EARLIER ROUNDS ON THE SAME LINE OF WORK** (= the record's own
 history, named here so the next reader sees the whole loop): `t_552135cc`
@@ -783,9 +788,20 @@ record's numbers), `t_1aecfa74` on `2e595bf237` (the CI's two reasons)
 and `t_c357ff48` on `93d3f1f18a` (= the same tree as round 3, and it
 found the same two defects independently).
 
-**THE PATTERN ACROSS EVERY ROUND IS THE SAME:** each one found a case
-that could not fail for the reason it claimed to test, and each fix made
-the case prove its own precondition instead of assuming it.
+**AND THE ROUNDS FALL INTO TWO PATTERNS, NOT ONE.** Three rounds found
+a CASE that could not fail for the reason it claimed to test, and each
+fix made the case prove its own precondition instead of assuming it
+(= `t_7b68d0ee` and `t_f22b3869`, and `t_c357ff48` which found the
+same two defects independently). Measured: in `50f325e848..302dbe6f34`
+exactly two commits touch a case (`93d3f1f18a` and `302dbe6f34`).
+
+The other rounds found a CLAIM that did not reproduce, and each fix made
+the claim reproduce (= `t_1b85c62c` found the product still asking one
+fixed place for the loader's package, and its own verdict records that
+fix as behaviour-neutral; `t_552135cc` found the Swift baseline's
+number; `t_4b0ec376` and `t_1aecfa74` found the CI's counts and its
+two reasons; `t_f9dd6aad` found the record's own numbers). None of
+those fixes touched a test file, because none of them was about a case.
 
 ## The open items, on purpose
 
