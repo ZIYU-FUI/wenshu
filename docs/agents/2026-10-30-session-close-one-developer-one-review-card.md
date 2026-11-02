@@ -393,8 +393,16 @@ when either:
 Measured at this tree, the windows whose last 10 subjects all carry
 `(wenshu)` number **3,473**, and the OLD rule lets through **3,276** of
 them (= the job is GREEN there) and refuses at least one in **197** (=
-the job is RED there, and the refusals are the `merge(wenshu): ...`
-subjects, because `merge` is not one of the nine conventional types).
+the job is RED there).
+
+**AND THE 197 ARE NOT ALL `merge(wenshu)`.** The rule's nine types are
+`feat`, `fix`, `docs`, `test`, `refactor`, `chore`, `perf`, `build` and
+`ci`, so it refuses any OTHER type even when the scope is `(wenshu)`.
+Measured over the failing subjects in those 197 windows: **402** are
+`merge(wenshu): ...` and **25** are `tool(wenshu): ...` (7),
+`debug(wenshu): ...` (10), `i18n(wenshu): ...` (6) and
+`cleanup(wenshu): ...` (2). So the 197 are red because of their TYPE,
+not because of their scope.
 
 So the job was red on main in WINDOWS, not in every window, and "3,276"
 is the count of the windows the OLD rule let through (= NOT the count of
