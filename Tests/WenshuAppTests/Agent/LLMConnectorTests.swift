@@ -30,7 +30,7 @@ struct LLMConnectorTests {
     // MARK: - Test 1: Protocol conformance
 
     @Test("LLMConnector protocol can be conformed by a test type")
-    func testProtocolConformance() async throws {
+    func protocolConformance() async throws {
         let mock = MockLLMConnector()
         let messages = [LLMMessage(role: .user, blocks: [.text("hi")])]
         let options = LLMCallOptions(model: "mock-model", maxTokens: 100)
@@ -46,7 +46,7 @@ struct LLMConnectorTests {
     // MARK: - Test 2: Cross-connector wire format
 
     @Test("LLMMessage / LLMResponse support text + thinking + tool_use")
-    func testCrossConnectorWireFormat() throws {
+    func crossConnectorWireFormat() {
         let textMsg = LLMMessage(role: .user, blocks: [.text("hello")])
         let toolMsg = LLMMessage(role: .assistant, blocks: [.toolUse(id: "t1", name: "ReadFile", input: "{}")])
         let toolResult = LLMMessage(role: .tool, blocks: [.toolResult(toolUseID: "t1", output: "file content")])
@@ -73,7 +73,7 @@ struct LLMConnectorTests {
     // MARK: - Test 3: ConnectorCredentials wenshu-side wins pattern
 
     @Test("ConnectorCredentials resolves API key from ProviderKeychain (= wenshu-side wins)")
-    func testConnectorCredentialsWenshuSideWins() async throws {
+    func connectorCredentialsWenshuSideWins() async throws {
         // Use InMemoryKeychainStore for hermes (= per ProviderKeychainTests pattern)
         let store = InMemoryKeychainStore()
         try store.saveKeySync("sk-test-12345", for: .anthropic)
@@ -88,7 +88,7 @@ struct LLMConnectorTests {
     }
 
     @Test("ConnectorCredentials returns empty apiKey for Ollama (= no auth)")
-    func testConnectorCredentialsOllamaNoAuth() throws {
+    func connectorCredentialsOllamaNoAuth() {
         // Ollama = local, no key required (per AGENTS.md §11.2 P1)
         let creds = ConnectorCredentials.resolve(for: .ollama)
         #expect(creds.apiKey.isEmpty)
@@ -98,7 +98,7 @@ struct LLMConnectorTests {
     // MARK: - Test 4: Provider enum extended with Gemini / DeepSeek / Ollama
 
     @Test("Provider enum includes 7 connector profiles (= AGENTS.md §11.2)")
-    func testProviderEnumHas7Connectors() {
+    func providerEnumHas7Connectors() {
         // Per AGENTS.md §11.2: 7 connector profiles
         // Existing: anthropic, openai (Codex), minimax, openrouter
         // New (v0.35): gemini, deepseek, ollama
@@ -110,7 +110,7 @@ struct LLMConnectorTests {
     }
 
     @Test("New Gemini / DeepSeek / Ollama providers have correct wire format")
-    func testNewProvidersWireFormat() {
+    func newProvidersWireFormat() {
         #expect(Provider.gemini.apiMode == "google_genai")
         #expect(Provider.deepseek.apiMode == "anthropic_messages")
         #expect(Provider.ollama.apiMode == "openai_chat")

@@ -28,7 +28,7 @@ struct ProviderKeychainTests {
     // so this suite leaves no key behind for a suite that runs later.)
 
     @Test("saveKey then loadKey returns same value")
-    func testSaveAndLoad() async throws {
+    func saveAndLoad() async throws {
         try await ProviderKeychain.withBackendForTesting(InMemoryKeychainStore()) {
             let key = "redacted-sk-\(UUID().uuidString.prefix(8))"
             try ProviderKeychain.saveKeySync(key, for: .openrouter)
@@ -39,7 +39,7 @@ struct ProviderKeychainTests {
     }
 
     @Test("loadKey returns nil when no key stored")
-    func testLoadEmpty() async throws {
+    func loadEmpty() async throws {
         try await ProviderKeychain.withBackendForTesting(InMemoryKeychainStore()) {
             try ProviderKeychain.deleteKeySync(for: .anthropic)
             let loaded = ProviderKeychain.loadKeySync(for: .anthropic)
@@ -48,7 +48,7 @@ struct ProviderKeychainTests {
     }
 
     @Test("empty key throws invalidKeyFormat")
-    func testEmptyKeyThrows() async {
+    func emptyKeyThrows() async {
         await ProviderKeychain.withBackendForTesting(InMemoryKeychainStore()) {
             await #expect(throws: ProviderKeychainError.self) {
                 try ProviderKeychain.saveKeySync("", for: .nous)
@@ -57,7 +57,7 @@ struct ProviderKeychainTests {
     }
 
     @Test("different providers store keys independently")
-    func testProviderIsolation() async throws {
+    func providerIsolation() async throws {
         try await ProviderKeychain.withBackendForTesting(InMemoryKeychainStore()) {
             let openrouterKey = "redacted-sk-or-\(UUID().uuidString.prefix(8))"
             let nousKey = "redacted-sk-\(UUID().uuidString.prefix(8))"
@@ -87,6 +87,7 @@ struct ProviderKeychainTests {
             try ProviderKeychain.deleteKeySync(for: .anthropic)
         }
     }
+
     // MARK: - The process-global backend stays untouched
 
     /// No suite may write the PROCESS-GLOBAL keychain backend.
@@ -116,7 +117,7 @@ struct ProviderKeychainTests {
     /// The needles are assembled at run time, so this file does not match
     /// its own rules.
     @Test("no suite writes the process-global keychain backend")
-    func testNoSuiteWritesTheGlobalBackend() throws {
+    func noSuiteWritesTheGlobalBackend() {
         let globalPrefix = "ProviderKeychain.backend."
         let globalWrites = ["saveKeySync", "deleteKeySync", "saveMetadata"]
         let installCall = "ProviderKeychain.setBackend" + "ForTesting("
@@ -150,12 +151,12 @@ struct ProviderKeychainTests {
             }
             var installsGlobal = false
             var cursor = text.startIndex
-            while let range = text.range(of: installCall, range: cursor..<text.endIndex) {
+            while let range = text.range(of: installCall, range: cursor ..< text.endIndex) {
                 let after = text[range.upperBound...]
                 if let close = after.firstIndex(of: ")") {
                     // The closing parenthesis belongs to the argument
                     // (= the call's own parenthesis is the one before it).
-                    let argument = String(after[after.startIndex...close])
+                    let argument = String(after[after.startIndex ... close])
                         .trimmingCharacters(in: .whitespacesAndNewlines)
                     if argument != emptyStore {
                         offenders.append(
@@ -168,7 +169,7 @@ struct ProviderKeychainTests {
             }
             // Rule 4: the public door AND the install door in one file.
             let publicWritesHere = publicWrites.filter { text.contains(publicPrefix + $0) }
-            if installsGlobal && !publicWritesHere.isEmpty {
+            if installsGlobal, !publicWritesHere.isEmpty {
                 offenders.append(
                     """
                     \(url.lastPathComponent): writes the global backend through the public API \
@@ -180,8 +181,8 @@ struct ProviderKeychainTests {
         }
         #expect(scanned > 0, "the guard must read the test tree, not an empty directory")
         #expect(offenders.isEmpty, """
-            a suite must not write the process-global keychain backend: \
-            \(offenders.joined(separator: "; "))
-            """)
+        a suite must not write the process-global keychain backend: \
+        \(offenders.joined(separator: "; "))
+        """)
     }
 }
