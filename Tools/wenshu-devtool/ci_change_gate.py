@@ -13,7 +13,7 @@ Two checks, both about the lines a change ADDS:
 WHY THIS EXISTS. The CI used to run ``git log --all -p | grep <vocabulary>``
 for the pollution check (= 4788 hits on the repository's own history, = the
 step could never be green) and ``swiftformat --lint`` on every file a change
-touched for the formatting check (= the tree carries 1032 files that were
+touched for the formatting check (= the tree carries 1033 files that were
 never formatted, = 529 of 537 under Tests/, = so the step was red before any
 change and could never be green either). Both steps reported the history
 instead of the change, which is the opposite of what their own comments say

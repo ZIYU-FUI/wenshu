@@ -116,9 +116,10 @@ jobs:
           echo "SwiftLint clean (= 0 error-severity violations)"
 
       - name: SwiftFormat lint
-        # Lint-only (= no auto-fix). The repo's .swift-format file (= batch 1
-        # issue 02) governs the rules. CI verifies the lines this change adds
-        # are the lines SwiftFormat is happy with.
+        # Lint-only (= no auto-fix). The gate lints with SwiftFormat's DEFAULT
+        # rules: the repo's .swift-format is NOT read (= the two reasons are
+        # below). CI verifies the lines this change adds are the lines
+        # SwiftFormat is happy with.
         #
         # The step checks the lines THIS CHANGE adds, not the whole touched
         # file and not the tree. The tree carries 1033 files that were never
