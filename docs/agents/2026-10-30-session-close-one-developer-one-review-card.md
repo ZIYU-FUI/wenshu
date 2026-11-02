@@ -803,6 +803,18 @@ number; `t_4b0ec376` and `t_1aecfa74` found the CI's counts and its
 two reasons; `t_f9dd6aad` found the record's own numbers). None of
 those fixes touched a test file, because none of them was about a case.
 
+**AND THE FREEZE WAS BROKEN TWICE, AND THE REVIEW CAUGHT IT.** The
+review cards say "THE TREE IS FROZEN FOR THIS CARD. NO COMMIT LANDS ON
+`main` UNTIL THE VERDICT IS ON THE RECORD." Two doc-only commits landed
+on `main` and on both remotes while the card `t_ee0f7f39` was running
+(= the commit that recorded the verdict, and the commit that corrected
+it). The reviewer named it: the freeze was broken, so its verdict
+described a tree that was no longer the tip, and the tip carried no
+card. **THE FREEZE BINDS THE COMMITTER, NOT THE REVIEWER** (= the
+session that writes the code is the one that can move `main`), and the
+sequence is review -> verdict -> THEN the fix as its own commit -> its
+own card.
+
 ## The open items, on purpose
 
 **BOTH REMOTES CARRY THE WORK.** `origin` (`gitcode.com:ZIYU1983/wenshu`)
@@ -820,7 +832,10 @@ no byte of the sibling's work, but the sibling's commits are now on
 commits differs per remote, so it is named per remote: on `origin/main`
 it was `fda16f70b5..ca51ff184f`, and on `old-origin/main` it was
 `fda16f70b5..a345524927` (= `ca51ff184f` was never pushed to that
-remote on its own). They
+remote on its own). **AND THE EARLIEST COMMIT EITHER REMOTE CARRIES
+AFTER THE BASE IS A SIBLING'S** (`00c47e3dfc`, = the plan item naming
+the item it belongs to), so both remotes carry the sibling's work
+before any of this session's. They
 belong to a sibling session and are named here because the boss reads
 the landing table and needs to know who owns each row.
 
@@ -832,8 +847,11 @@ sibling's, so it is measured here and not closed.
 
 **`old-origin`'s worktree branches are not this session's.** Every
 worktree still on disk that belongs to the parallel session, and every
-branch it owns (`feat/todo-kanban-ui`, `pocock/coltop`,
-`project/t_6a672e62-...`), was left untouched, rebased and undeleted.
+branch it owns (`feat/todo-kanban-ui`, `project/t_6a672e62-...`, and
+the cards' own `project/...` and `wt/...` branches), was left untouched,
+rebased and undeleted. `pocock/coltop` is named here because it was on
+disk earlier in this session and is NOT now: the parallel session
+removed it, so this session did not touch it and did not keep it.
 A card's close does NOT remove its worktree: the board DEFERS the
 removal of a workspace it cannot prove is free. It scans every board
 for another live task using the path, and when it cannot tell it refuses
@@ -844,7 +862,7 @@ card closed at 16:25 and its worktree was still on disk at 18:37.
 
 This session therefore removed its own cards' worktrees and branches by
 hand, card by card, as each one closed (= no `.worktrees/` directory and
-no `wt/<card id>` branch for a card this session swept). A card that
-closes AFTER this record is written leaves its worktree until the
-board's deferred sweep runs it, which is the mechanism above: so the
-newest card's worktree is the board's to clear, not this session's.
+no `wt/<card id>` branch for a card this session swept, measured after
+the last of them closed). A card that closes AFTER this record is
+written leaves its worktree until the board's deferred sweep runs it,
+which is the mechanism above.
