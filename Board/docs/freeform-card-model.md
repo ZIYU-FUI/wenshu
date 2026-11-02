@@ -1,7 +1,7 @@
 # Apple Freeform — Card Model Teardown
 
 Date: 2026-11-02
-Target: `/System/Applications/Freeform.app`, version **5.0** (build 656.1.2), bundle id `com.apple.freeform`, localized name `无边记` (zh_CN) / `無邊記` (zh_TW).
+Target: `/System/Applications/Freeform.app`, version **5.0** (build 656.1.2), bundle id `com.apple.freeform`. The app ships localized names; on this machine it runs Chinese-localized, which is why the menus in §5.3 were read in Chinese.
 Why: the boss plans card-based chapter organization and a content generation view in Wenshu, and wants both references read before any of it is built. Freeform is the reference for the **Apple-canonical answer**: it is Apple's own board app, and its model is what an Apple board looks like.
 Status: reference teardown. Read out of the installed app and the installed SDK (`MacOSX27.2.sdk`); no Wenshu code in this document.
 
@@ -26,7 +26,7 @@ Reproduction: see §17.
 
 ## 2. The second reference: Apple Freeform
 
-`/System/Applications/Freeform.app`, version **5.0** (build 656.1.2), bundle id `com.apple.freeform`, localized name `无边记` (zh_CN) / `無邊記` (zh_TW).
+`/System/Applications/Freeform.app`, version **5.0** (build 656.1.2), bundle id `com.apple.freeform`. The app ships localized names; on this machine it runs Chinese-localized, which is why the menus in §5.3 were read in Chinese.
 
 ### 15.1 What Apple ships as a document type
 
@@ -400,3 +400,111 @@ data, `imageFromRect:scale:` to rasterise, and the strokes drawn on a
   deadline.
 - The live behaviour: no board was created, so nothing was measured in the
   running app.
+
+## 5. The running app: what it holds and what it measures
+
+### 5.1 A Freeform board has no local file
+
+The app had never run on this machine (its container held exactly one file, the
+container metadata plist). Launched in the background it immediately showed
+**85 boards**, all of them real and all of them synced from iCloud — and after
+the launch the container still held **one file**.
+
+| Fact | Consequence |
+| --- | --- |
+| 85 boards, none of them local | The board list and the boards live in CloudKit; the container is not a cache of them. |
+| The container stays empty | There is no local board file to inspect, on any board. |
+| macOS Freeform never writes a `.board` | See §5.4: the format is an **import** format on macOS. |
+
+### 5.2 What the running app measures
+
+Measured on a real board (a service-architecture diagram), at the zoom the app
+had stored for it (25%):
+
+| Measurement | Value | How |
+| --- | --- | --- |
+| The dot grid | **74.1 pt** in world units | The dot period measured off the screenshot by autocorrelation (20 image px, correlation 0.983); the capture is 1.0798 image px per point (1568 px for a 1452 pt window); 20 / 1.0798 / 0.25 |
+| The item sizes | **130×51 pt** (×28), **80×29** (×19), **116×29** (×8), **283×51** (×4), **98×29** (×3) | 62 `AXLayoutItem` frames are screen points, so the world size is the frame / 0.25 |
+| The horizontal pitch between adjacent boxes | **151 pt**, exactly (world x = 0, 151, 302, 453) | the same frames |
+
+The sizes are quantized and the pitch is exact, which is the signature of a
+snapped layout: the items sit on a lattice, and the lattice is what a replica
+has to reproduce, not the individual boxes.
+
+The zoom control is an `AXMenuButton` whose value is the percentage (25% here),
+flanked by `Zoom Out` and `Zoom In` and a fit button (a star in a
+square). **The zoom is a menu of levels, not a free field** — which is the
+other half of the §4.5 finding that a fast pinch snaps the scale.
+
+The three canvas toggles are toolbar buttons, and their help strings say what
+they do: `Grid` (help "hide the dot grid"), `Connector` (help "show connectors to
+connect objects easily"), `Show Scene Navigator`.
+
+### 5.3 The whole command surface, read out of the live app
+
+The app runs Chinese-localized on this machine; the items below are Apple's own
+English names for the same commands, and the live tree also carries each
+item's action identifier (`_NS:1121`, `didTriggerSubscriptionManagementMenuItem`,
+...), which is language independent.
+
+| Menu | Items |
+| --- | --- |
+| Insert | Sticky Note, Shapes, Text Box, Table, Draw, Line, Line with Arrow, Connector, Browse Media, Photo or Video, Link, Import from iPhone or iPad, Choose File |
+| Shapes (submenu) | Rectangle, Rounded Rectangle, Oval, Triangle, Right Triangle, Arrow, Double Arrow, Diamond, Speech Bubble |
+| Format | Font, Text, Indent, Shape and Line, Table, Image, Draw, Shadow, Corner Radius, Loop, Copy Style, Paste Style, Save as Insert Style, Use Light Background, Show Color |
+| Arrange | Bring Forward, Bring to Front, Send Backward, Send to Back, Align Objects, Distribute Objects, Lock, Unlock, Move Object to Board, Group, Ungroup, Force Aspect Ratio |
+| View | Icon View, List View, Sort By, Use Groups, Show Content Center, **Show Connectors**, **Hide Grid**, **Snap to Grid Guides**, **Zoom Scene**, Hide Collaboration Activity, Hide Tab Bar, Show All Tabs, Show Sidebar, Enter Full Screen |
+| File | New Board, New Folder, New Folder with Selected Items, New Tab, New Window, Close, Close All, Delete, Duplicate, Add to Favorites, **Export Board as PDF…**, **Export Scene as PDF…**, **Share…**, Manage Shared Boards…, Print Board…, Print Scene… |
+
+The four canvas-mode switches are **Show Connectors / Hide Grid / Snap to Grid Guides
+/ Zoom Scene** — the same four the model in §4 names: the connector, the grid,
+the guides, and the zoom.
+
+### 5.4 The `.board` package: an import format on macOS, and that is the whole answer
+
+| Evidence | Says |
+| --- | --- |
+| The UTI is declared: `com.apple.freeform.board`, a package conforming to `public.data` + `public.composite-content`, extension `.board` | The format exists and is a package, not a file |
+| The binary carries `Open Freeform Board`, `Create New Freeform Board`, `com.apple.freeform.boardLibrary`, and `.boardIdentifierMustBeOwnerForCreation` | The app **opens** and **creates from** a `.board`, and the file carries an identifier whose creator must be the owner |
+| The File menu has **no** export-to-`.board` item | It offers Export Board as PDF…, Export Scene as PDF…, Share…, Print Board… and Print Scene…, and nothing else |
+
+**So on macOS a `.board` is what Freeform opens and creates from, and not
+something it writes.** The export path iOS has (the share sheet's "Export as
+Freeform Board") is not in the macOS menus, and no board on this machine has a
+local file either (§5.1).
+
+⇒ **The package format cannot be sampled from the macOS app at all.** A sample
+would have to come from an iOS export or from the format's producer. The client
+does not need it (ADR-0034's sibling rule: no freeform file format), so this is
+a **closed question**, not a gap — and the honest thing to record is why it
+cannot be closed by measurement on this platform.
+
+### 5.5 The accessibility surface of a canvas item
+
+- Each canvas item is one `AXLayoutItem` whose label is `<text>, <shape>`
+  (e.g. "<text>, Rectangle"), with an `AXTextArea` child carrying the item's text.
+- Its actions are `crlaxrotateclockwise` and `crlaxrotatecounterclockwise`,
+  plus "show formatting options" and "edit text".
+- The zoom, the connector and the grid are `AXButton` / `AXMenuButton` with
+  Chinese help strings, and the tree exposes the whole menu bar with its
+  action identifiers (`_NS:1121`, `didTriggerSubscriptionManagementMenuItem`,
+  …).
+- ⇒ An accessible replica has to expose the item as one object with an
+  editable text child and named rotate actions — the same shape the reference
+  does.
+
+### 5.6 What could not be driven, and why
+
+The canvas's floating controls (the zoom −/+, the zoom level, the grid toggle,
+the connector toggle, the share button) **do not respond to background input**:
+a background mouse event posts successfully and changes nothing, and an
+AXPress reports success and changes nothing. The app is not the key
+application, and Freeform's canvas overlay handles its own events.
+
+`focus_app` is refused by the driver itself ("no reviewed risk classification"),
+and foreground delivery needs the operator's approval.
+
+⇒ The measurements in §5.2 are the ones that need no input: the geometry, the
+menus, the accessibility surface. The interactive behaviours — the zoom
+ladder's actual levels, the snap while dragging, the connector's magnet
+behaviour — remain **measured from the model in §4, not from the running app**.
