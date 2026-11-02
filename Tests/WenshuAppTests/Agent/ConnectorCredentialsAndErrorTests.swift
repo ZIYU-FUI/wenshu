@@ -126,23 +126,25 @@ struct ConnectorCredentialsDeepTests {
 
     @Test("ConnectorCredentials.resolve: Ollama = empty key")
     func resolveOllamaEmptyKey() async {
-        // Clear any existing ollama key
-        let store = InMemoryKeychainStore()
-        try? store.deleteKeySync(for: .ollama)
-        let creds = ConnectorCredentials.resolve(for: .ollama)
+        // The resolver reads the shared backend, so the test has to give it
+        // an empty store of its own. The store is scoped to this task (= the
+        // TaskLocal pattern), so the process-global backend is never written
+        // (= a key another suite left there cannot decide this result).
+        let creds = await ProviderKeychain.withBackendForTesting(InMemoryKeychainStore()) {
+            ConnectorCredentials.resolve(for: .ollama)
+        }
         #expect(creds.apiKey.isEmpty)
     }
 
     @Test("ConnectorCredentials.resolve: non-Ollama = empty key when no key saved")
     func resolveNonOllamaEmptyKey() async {
-        // The resolver reads the shared backend, so the test has to put
-        // an empty store there. Creating a store of its own does not
-        // change what the resolver reads, and the real store holds the
-        // key the developer configured.
-        let previous = ProviderKeychain.backend
-        defer { ProviderKeychain.setBackendForTesting(previous) }
-        ProviderKeychain.setBackendForTesting(InMemoryKeychainStore())
-        let creds = ConnectorCredentials.resolve(for: .anthropic)
+        // The resolver reads the shared backend, so the test has to give it
+        // an empty store. The store is scoped to this task (= the TaskLocal
+        // pattern), so the process-global backend is never written (= the
+        // real store keeps the key the developer configured).
+        let creds = await ProviderKeychain.withBackendForTesting(InMemoryKeychainStore()) {
+            ConnectorCredentials.resolve(for: .anthropic)
+        }
         #expect(creds.apiKey.isEmpty)
     }
 }

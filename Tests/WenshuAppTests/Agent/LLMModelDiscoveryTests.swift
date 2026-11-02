@@ -83,12 +83,17 @@ struct LLMModelDiscoveryTests {
         // Re-resolve the backend so it uses the InMemory
         // store (= otherwise the test hits the real
         // macOS Keychain).
-        ProviderKeychain.setBackendForTesting(InMemoryKeychainStore())
+        // The store is scoped to this task (= the TaskLocal pattern) and
+        // the process-global backend is never written: = a suite that runs
+        // later cannot read this test's key.
+        let store = InMemoryKeychainStore()
         let provider = testProvider(slug: "openai-test", apiMode: "openai_chat")
-        try ProviderKeychain.backend.saveKeySync("test-key-openai", for: provider)
+        try store.saveKeySync("test-key-openai", for: provider)
 
-        let discovery = LLMModelDiscovery(session: session)
-        let result = await discovery.discover(provider: provider, forceRefresh: true)
+        let result = await ProviderKeychain.withBackendForTesting(store) {
+            let discovery = LLMModelDiscovery(session: session)
+            return await discovery.discover(provider: provider, forceRefresh: true)
+        }
         #expect(result.isLive, "live endpoint should have answered")
         #expect(result.models.contains("gpt-5"))
         #expect(result.models.contains("gpt-5-mini"))
@@ -107,12 +112,17 @@ struct LLMModelDiscoveryTests {
         stub.responseStatusCode = 200
         let session = makeSession(for: stubProtocolClass)
 
-        ProviderKeychain.setBackendForTesting(InMemoryKeychainStore())
+        // The store is scoped to this task (= the TaskLocal pattern) and
+        // the process-global backend is never written: = a suite that runs
+        // later cannot read this test's key.
+        let store = InMemoryKeychainStore()
         let provider = testProvider(slug: "anthropic-test", apiMode: "anthropic_messages")
-        try ProviderKeychain.backend.saveKeySync("test-key-anthropic", for: provider)
+        try store.saveKeySync("test-key-anthropic", for: provider)
 
-        let discovery = LLMModelDiscovery(session: session)
-        let result = await discovery.discover(provider: provider, forceRefresh: true)
+        let result = await ProviderKeychain.withBackendForTesting(store) {
+            let discovery = LLMModelDiscovery(session: session)
+            return await discovery.discover(provider: provider, forceRefresh: true)
+        }
         #expect(result.isLive)
         #expect(result.models == ["MiniMax-M3", "MiniMax-M2"])
     }
@@ -129,12 +139,17 @@ struct LLMModelDiscoveryTests {
         stub.responseStatusCode = 200
         let session = makeSession(for: stubProtocolClass)
 
-        ProviderKeychain.setBackendForTesting(InMemoryKeychainStore())
+        // The store is scoped to this task (= the TaskLocal pattern) and
+        // the process-global backend is never written: = a suite that runs
+        // later cannot read this test's key.
+        let store = InMemoryKeychainStore()
         let provider = testProvider(slug: "gemini-test", apiMode: "google_genai")
-        try ProviderKeychain.backend.saveKeySync("test-key-gemini", for: provider)
+        try store.saveKeySync("test-key-gemini", for: provider)
 
-        let discovery = LLMModelDiscovery(session: session)
-        let result = await discovery.discover(provider: provider, forceRefresh: true)
+        let result = await ProviderKeychain.withBackendForTesting(store) {
+            let discovery = LLMModelDiscovery(session: session)
+            return await discovery.discover(provider: provider, forceRefresh: true)
+        }
         #expect(result.isLive)
         #expect(result.models.contains("gemini-2.5-pro"))
         #expect(!result.models.contains(where: { $0.hasPrefix("models/") }),
@@ -148,16 +163,18 @@ struct LLMModelDiscoveryTests {
         stub.responseStatusCode = 401
         let session = makeSession(for: stubProtocolClass)
 
-        ProviderKeychain.setBackendForTesting(InMemoryKeychainStore())
+        let store = InMemoryKeychainStore()
         let provider = testProvider(
             slug: "unauth-test",
             apiMode: "openai_chat",
             defaultModels: ["fallback-model-a", "fallback-model-b"]
         )
-        try ProviderKeychain.backend.saveKeySync("stale-key", for: provider)
+        try store.saveKeySync("stale-key", for: provider)
 
-        let discovery = LLMModelDiscovery(session: session)
-        let result = await discovery.discover(provider: provider, forceRefresh: true)
+        let result = await ProviderKeychain.withBackendForTesting(store) {
+            let discovery = LLMModelDiscovery(session: session)
+            return await discovery.discover(provider: provider, forceRefresh: true)
+        }
         #expect(!result.isLive, "401 must mark the result as not-live")
         #expect(result.models == provider.defaultModels,
                 "401 must fall back to the canonical defaultModels list")
@@ -175,7 +192,7 @@ struct LLMModelDiscoveryTests {
         let session = makeSession(for: stubProtocolClass)
         _ = stub  // keep the stub alive in scope
 
-        ProviderKeychain.setBackendForTesting(InMemoryKeychainStore())
+        let store = InMemoryKeychainStore()
         let provider = testProvider(
             slug: "no-key-test",
             apiMode: "openai_chat",
@@ -183,8 +200,10 @@ struct LLMModelDiscoveryTests {
         )
         // Deliberately do NOT save a key for this provider.
 
-        let discovery = LLMModelDiscovery(session: session)
-        let result = await discovery.discover(provider: provider, forceRefresh: true)
+        let result = await ProviderKeychain.withBackendForTesting(store) {
+            let discovery = LLMModelDiscovery(session: session)
+            return await discovery.discover(provider: provider, forceRefresh: true)
+        }
         #expect(!result.isLive, "no-key path must not be marked live")
         #expect(result.models == provider.defaultModels)
     }

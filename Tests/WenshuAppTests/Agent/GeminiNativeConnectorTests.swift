@@ -24,13 +24,17 @@ struct GeminiNativeConnectorTests {
 
         let store = InMemoryKeychainStore()
         try store.saveKeySync("gem-test-key", for: .gemini)
-        ProviderKeychain.setBackendForTesting(store)
 
-        let connector = GeminiNativeConnector(session: session)
-        _ = try await connector.send(
-            messages: [LLMMessage.user("test")],
-            options: LLMCallOptions(model: "gemini-2.5-flash")
-        )
+        // The store is scoped to this task (= the TaskLocal pattern) and
+        // the process-global backend is never written: = a suite that runs
+        // later cannot read this test's key.
+        try await ProviderKeychain.withBackendForTesting(store) {
+            let connector = GeminiNativeConnector(session: session)
+            _ = try await connector.send(
+                messages: [LLMMessage.user("test")],
+                options: LLMCallOptions(model: "gemini-2.5-flash")
+            )
+        }
 
         let captured = stub.lastRequest
         #expect(captured?.url?.path.contains("/models/gemini-2.5-flash:generateContent") == true)
@@ -51,13 +55,17 @@ struct GeminiNativeConnectorTests {
 
         let store = InMemoryKeychainStore()
         try store.saveKeySync("k", for: .gemini)
-        ProviderKeychain.setBackendForTesting(store)
 
-        let connector = GeminiNativeConnector(session: session)
-        _ = try await connector.send(
-            messages: [LLMMessage.user("test")],
-            options: LLMCallOptions(model: "gemini-2.5-flash", systemPrompt: "stable system")
-        )
+        // The store is scoped to this task (= the TaskLocal pattern) and
+        // the process-global backend is never written: = a suite that runs
+        // later cannot read this test's key.
+        try await ProviderKeychain.withBackendForTesting(store) {
+            let connector = GeminiNativeConnector(session: session)
+            _ = try await connector.send(
+                messages: [LLMMessage.user("test")],
+                options: LLMCallOptions(model: "gemini-2.5-flash", systemPrompt: "stable system")
+            )
+        }
 
         let body = try JSONSerialization.jsonObject(with: stub.lastRequest!.httpBody!) as? [String: Any]
         #expect(body?["systemInstruction"] != nil)
@@ -70,15 +78,18 @@ struct GeminiNativeConnectorTests {
     @Test("Missing API key throws LLMConnectorError.missingAPIKey")
     func testMissingAPIKey() async {
         let store = InMemoryKeychainStore()
-        ProviderKeychain.setBackendForTesting(store)
 
-        let connector = GeminiNativeConnector(session: .shared)
+        // Scoped to this task (= the TaskLocal pattern): = the global
+        // backend is never written, = so this suite leaves nothing behind.
+        await ProviderKeychain.withBackendForTesting(store) {
+            let connector = GeminiNativeConnector(session: .shared)
 
-        await #expect(throws: LLMConnectorError.self) {
-            _ = try await connector.send(
-                messages: [LLMMessage.user("test")],
-                options: LLMCallOptions(model: "gemini-2.5-flash")
-            )
+            await #expect(throws: LLMConnectorError.self) {
+                _ = try await connector.send(
+                    messages: [LLMMessage.user("test")],
+                    options: LLMCallOptions(model: "gemini-2.5-flash")
+                )
+            }
         }
     }
 }

@@ -73,13 +73,16 @@ struct LLMConnectorTests {
     // MARK: - Test 3: ConnectorCredentials wenshu-side wins pattern
 
     @Test("ConnectorCredentials resolves API key from ProviderKeychain (= wenshu-side wins)")
-    func testConnectorCredentialsWenshuSideWins() throws {
+    func testConnectorCredentialsWenshuSideWins() async throws {
         // Use InMemoryKeychainStore for hermes (= per ProviderKeychainTests pattern)
         let store = InMemoryKeychainStore()
         try store.saveKeySync("sk-test-12345", for: .anthropic)
-        ProviderKeychain.setBackendForTesting(store)
-
-        let creds = ConnectorCredentials.resolve(for: .anthropic)
+        // Scoped to this task (= the TaskLocal pattern): = the global
+        // backend is never written, = so no other suite can read this
+        // test's key.
+        let creds = try await ProviderKeychain.withBackendForTesting(store) {
+            ConnectorCredentials.resolve(for: .anthropic)
+        }
         #expect(creds.apiKey == "sk-test-12345")
         #expect(creds.provider.slug == "anthropic")
     }
