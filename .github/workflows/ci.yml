@@ -52,27 +52,29 @@ jobs:
 
       - name: Pollution check
         run: |
-          # Verify no pollution vocab in code commits
+          # The forbidden vocabulary must not reach the committed artifacts.
           #
-          # This step is PATH-AGNOSTIC (= it greps the whole history, not a
-          # file list), so it already reaches every path in the repository,
-          # Mobile/ included: there is no exclude that leaves the client
-          # out, and the client's own Swift files carry none of the
-          # vocabulary (checked 2026-10-30).
+          # This step used to run `git log --all -p | grep <vocabulary>`, which
+          # counts 4788 lines on this repository's own history: `git log -p`
+          # prints DELETED lines, so the step asked "did it ever exist" while
+          # claiming to ask "does it exist now", and it was red on main and
+          # could never be green.
           #
-          # It is ALSO RED ON MAIN (= 3940 on main, 4788 over all refs),
-          # because `git log -p` prints DELETED lines and the vocabulary it
-          # names was in code that was later removed (= the check asks "does
-          # it exist NOW" and counts "did it ever exist"). That is a
-          # pre-existing failure and NOT one this migration caused; fixing
-          # it is its own card. Reported here so the state is not mistaken
-          # for a green check.
-          POLLUTION=$(git log --all -p | grep -E "修真|渡劫|筑基|返虚|结丹|金丹|元婴|飞升|天劫|雷劫|心魔|魔障" | grep -v "AGENTS.md\|CONTEXT.md\|WenshuVerifier\|WenshuAgentIdentity\|commit_filter.py\|test_block_pollution" | wc -l | tr -d ' ')
-          if [ "$POLLUTION" -gt 0 ]; then
-            echo "Pollution leak found: $POLLUTION lines"
-            exit 1
+          # It now measures the CHANGE: the lines this change adds are
+          # scanned, and the vocabulary and the path allowlist come from
+          # commit_filter.py (= the repository's own source for both, = this
+          # file carries no second copy of either).
+          #
+          # The base ref is the one that resolves in every trigger: a pull
+          # request has origin/main, a push to a worktree branch has
+          # origin/main, and a push to main has the sha the event carries as
+          # `before` (origin/main is HEAD there, so a diff against it would
+          # be empty).
+          BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
+          if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
+            BASE="origin/main"
           fi
-          echo "Pollution check passed: 0 leak"
+          python3 Tools/wenshu-devtool/ci_change_gate.py --base "$BASE" --check pollution
 
       # Source-code lint gate (batch 1 issue 08)
       # Runs SwiftLint + SwiftFormat lint on every push + PR.
@@ -115,51 +117,39 @@ jobs:
 
       - name: SwiftFormat lint
         # Lint-only (= no auto-fix). The repo's .swift-format file (= batch 1
-        # issue 02) governs the rules. CI verifies formatting matches.
-        # Run WITHOUT --strict (= report-only mode; same rationale as SwiftLint).
-        # Capture PIPESTATUS to hard-fail on real errors (= forward-fix for
-        # V1.7 spec-axis finding: the prior step had no exit-code check and
-        # would silently pass even on formatting drift).
+        # issue 02) governs the rules. CI verifies the lines this change adds
+        # are the lines SwiftFormat is happy with.
+        #
+        # The step checks the lines THIS CHANGE adds, not the whole touched
+        # file and not the tree. The tree carries 1032 files that were never
+        # formatted (504 of 543 under Sources/, and 529 of 537 under Tests/),
+        # so a whole-file check was red before any change and could never be
+        # green = a step that reports the history instead of the change.
+        #
+        # SwiftFormat reports every violation in a file; the gate keeps the
+        # ones that fall on a line the change added, because the tree's own
+        # drift belongs to the tree (= its own card, not every push).
+        #
+        # The gate passes the repository's own .swift-format to SwiftFormat,
+        # because SwiftFormat does not discover it on its own: without the
+        # flag the lint applied SwiftFormat's DEFAULT rules and reported 86
+        # violations in five files that are formatted exactly as this
+        # repository's rules want them (= measured 2026-11-02). The step used
+        # to run without the config, so it measured a rule set the repository
+        # never asked for, and it reported the history of the touched file
+        # instead of the change.
+        #
+        # The base ref is the one that resolves in every trigger: a
+        # pull request has origin/main, a push to a worktree branch has
+        # origin/main, and a push to main has the sha the event carries
+        # as `before` (origin/main is HEAD there, so a diff against it
+        # would be empty).
         run: |
-          # `lint` is a FLAG in SwiftFormat 0.62.1, not a subcommand, so the
-          # old `swiftformat lint Sources Tests` looked for a FILE named
-          # lint, exited 70, and the hard-fail pattern below matched nothing:
-          # this step had never failed and never checked anything.
-          #
-          # The step checks the files THIS CHANGE touched, not the tree. The
-          # tree carries 1032 files that were never formatted (504 of 543
-          # under Sources/, and 529 of 537 under Tests/), so a whole-tree
-          # check would be red before this change and could never be green
-          # = a step that reports the history instead of the change.
-          #
-          # The base ref is the one that resolves in every trigger: a
-          # pull request has origin/main, a push to a worktree branch has
-          # origin/main, and a push to main has the sha the event carries
-          # as `before` (origin/main is HEAD there, so a diff against it
-          # would be empty).
           BASE="${{ github.event.pull_request.base.sha || github.event.before }}"
           if [ -z "$BASE" ] || [ "$BASE" = "0000000000000000000000000000000000000000" ]; then
             BASE="origin/main"
           fi
-          CHANGED=$(git diff --name-only "$BASE...HEAD" -- 'Sources/**/*.swift' 'Tests/**/*.swift' 2>/dev/null || true)
-          if [ -z "$CHANGED" ]; then
-            echo "SwiftFormat: no changed Swift files (= nothing to check)"
-            exit 0
-          fi
-          # shellcheck disable=SC2086
-          swiftformat --lint $CHANGED 2>&1 | tee /tmp/wenshu-swiftformat.log
-          exit_status=${PIPESTATUS[0]}
-          if [ "$exit_status" -ne 0 ]; then
-            error_count=$(grep -cE '^/.*: error:' /tmp/wenshu-swiftformat.log || true)
-            if [ "$error_count" -gt 0 ]; then
-              echo "SwiftFormat hard-failed: $error_count error-severity violations in the files this change touched"
-              grep -E '^/.*: error:' /tmp/wenshu-swiftformat.log | head -50
-              exit 1
-            fi
-            echo "SwiftFormat: $exit_status non-zero exit code but 0 error-severity violations"
-            exit 0
-          fi
-          echo "SwiftFormat clean (= the changed Swift files are formatted)"
+          python3 Tools/wenshu-devtool/ci_change_gate.py --base "$BASE" --check formatting
 
       - name: Verify pre-commit hook installed
         run: |
